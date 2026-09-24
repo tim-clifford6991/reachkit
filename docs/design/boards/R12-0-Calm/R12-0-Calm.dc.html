@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>0 · The calm layer — what changes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f6f9;color:#101019;font-family:"Plus Jakarta Sans",ui-sans-serif,system-ui,sans-serif;font-size:15px;line-height:1.55;word-spacing:.06em;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1}
+*{box-sizing:border-box}
+h1,h2,h3,h4,p{margin:0}
+h1,h2,h3,h4{text-wrap:balance;word-spacing:.04em}
+a{color:#5b4be0;text-decoration:none}a:hover{color:#4a3bc9}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;word-spacing:0;font-feature-settings:normal}
+.num{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.02em}
+.eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#676774;word-spacing:0}
+.muted{color:#5e5e73}
+.card{background:#fff;border-radius:14px;box-shadow:0 0 0 1px rgb(24 24 48/.06),0 1px 2px rgb(24 24 48/.04);transition:box-shadow .2s cubic-bezier(.2,.7,.2,1),transform .2s cubic-bezier(.2,.7,.2,1)}
+.lift{cursor:pointer}
+.lift:hover{transform:translateY(-2px);box-shadow:0 0 0 1px rgb(24 24 48/.08),0 8px 20px -6px rgb(24 24 48/.12)}
+.lift:hover .nudge{transform:translateX(3px)}
+.nudge{display:inline-block;transition:transform .2s cubic-bezier(.2,.7,.2,1)}
+.float{box-shadow:0 0 0 1px rgb(24 24 48/.06),0 24px 48px -16px rgb(40 30 120/.18),0 4px 12px -4px rgb(24 24 48/.06)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:9px;border:0;font:600 14px/1 "Plus Jakarta Sans",sans-serif;word-spacing:.04em;cursor:pointer;white-space:nowrap;transition:background-color .15s ease-out,box-shadow .15s ease-out,color .15s ease-out,transform .12s ease-out;text-decoration:none}
+.btn:active{transform:scale(.98)}
+.btn:focus-visible,.field:focus-within,.chip:focus-visible,.tab:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(91 75 224/.22)}
+.btn-sm{height:32px;padding:0 12px;font-size:13px;border-radius:8px}
+.btn-lg{height:48px;padding:0 22px;font-size:15px}
+.btn-primary{background:#5b4be0;color:#fff;box-shadow:inset 0 1px 0 rgb(255 255 255/.16),0 1px 2px rgb(40 30 140/.3),0 0 0 1px #5243d6}
+.btn-primary:hover{background:#4f40d4;color:#fff}
+.btn-soft{background:#eeecfd;color:#4a3bc9}
+.btn-soft:hover{background:#e3e0fb;color:#3f31b8}
+.btn-quiet{background:#fff;color:#101019;box-shadow:0 0 0 1px #e2e2ea}
+.btn-quiet:hover{box-shadow:0 0 0 1px #cfcfdb;background:#fbfbfd;color:#101019}
+.btn-ghost{background:transparent;color:#5e5e73}
+.btn-ghost:hover{background:#efeff4;color:#101019}
+.btn-warn{background:transparent;color:#945c22}
+.btn-warn:hover{background:#fff3e6;color:#7d4c19}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;word-spacing:0;white-space:nowrap}
+.b-ok{background:#e7f6f0;color:#1b765b}.b-warn{background:#fff3e6;color:#945c22}.b-bad{background:#fdece8;color:#b84029}.b-acc{background:#eeecfd;color:#4a3bc9}.b-mute{background:#efeff4;color:#5e5e73}
+.chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;border:0;background:transparent;color:#5e5e73;font:600 13px/1 "Plus Jakarta Sans",sans-serif;cursor:pointer;transition:background-color .15s ease-out,color .15s ease-out}
+.chip:hover{background:#efeff4;color:#101019}
+.chip.on{background:#101019;color:#fff}
+.chip .n{font-family:"JetBrains Mono",monospace;font-size:11px;opacity:.7}
+.field{display:flex;align-items:center;gap:8px;background:#fff;border-radius:11px;box-shadow:0 0 0 1px #e2e2ea;transition:box-shadow .15s ease-out}
+.field:hover{box-shadow:0 0 0 1px #cfcfdb}
+.field input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:400 15px "Plus Jakarta Sans",sans-serif;color:#101019;height:44px;padding:0 14px}
+.field input::placeholder{color:#8a8a9c}
+.tab{position:relative;height:44px;display:inline-flex;align-items:center;padding:0 2px;background:none;border:0;font:500 14px "Plus Jakarta Sans",sans-serif;color:#5e5e73;cursor:pointer;transition:color .15s ease-out}
+.tab:hover{color:#101019}
+.tab::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:#101019;transform:scaleX(0);transition:transform .25s cubic-bezier(.2,.7,.2,1)}
+.tab.on{color:#101019;font-weight:600}
+.tab.on::after{transform:scaleX(1)}
+.nav{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:9px;color:#5e5e73;font-weight:500;font-size:14px;transition:background-color .15s ease-out,color .15s ease-out}
+.nav:hover{background:#efeff4;color:#101019}
+.nav.on{background:#eeecfd;color:#4a3bc9;font-weight:600}
+.rule{height:1px;background:#eaeaf1;border:0}
+.dot{width:8px;height:8px;border-radius:99px;display:inline-block;flex-shrink:0}
+.live{position:relative}
+.live::after{content:"";position:absolute;inset:0;border-radius:99px;background:inherit;animation:pulse 2.4s ease-out infinite}
+@keyframes pulse{0%{transform:scale(1);opacity:.55}70%{transform:scale(2.6);opacity:0}100%{opacity:0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes growy{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+.rise{animation:rise .6s cubic-bezier(.2,.7,.2,1) both}
+.fade{animation:fade .8s ease-out both}
+.d1{animation-delay:.06s}.d2{animation-delay:.12s}.d3{animation-delay:.18s}.d4{animation-delay:.24s}.d5{animation-delay:.30s}.d6{animation-delay:.36s}.d7{animation-delay:.42s}.d8{animation-delay:.48s}.d9{animation-delay:.54s}.d10{animation-delay:.6s}
+.draw{stroke-dasharray:1200;stroke-dashoffset:1200;animation:draw 1.6s .35s cubic-bezier(.3,.6,.2,1) forwards}
+.bar{transform-origin:left center;animation:grow .9s cubic-bezier(.2,.7,.2,1) both}
+.cell{animation:pop .35s cubic-bezier(.2,.9,.3,1.3) both}
+.skel{background:linear-gradient(90deg,#efeff4 25%,#f7f7fa 50%,#efeff4 75%);background-size:200% 100%;animation:shimmer 1.6s linear infinite;border-radius:6px}
+details summary{list-style:none;cursor:pointer}
+details summary::-webkit-details-marker{display:none}
+details .chev{transition:transform .25s cubic-bezier(.2,.7,.2,1)}
+details[open] .chev{transform:rotate(180deg)}
+details[open] .ans{animation:rise .35s cubic-bezier(.2,.7,.2,1) both}
+.cal{transition:background-color .15s ease-out,box-shadow .15s ease-out}
+.cal:hover{box-shadow:0 0 0 1px #cfcfdb}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.draw{stroke-dashoffset:0}}
+@keyframes draw-ring{to{stroke-dashoffset:171.9}}
+@media (prefers-reduced-motion:reduce){.ring{stroke-dashoffset:171.9!important}.bar,.cell,.rise,.fade{opacity:1!important;transform:none!important}}
+.hide{display:none!important}
+.cal.sel{box-shadow:0 0 0 2px #5b4be0!important}
+@keyframes spin{to{transform:rotate(360deg)}}.spin{animation:spin 1s linear infinite;transform-origin:center}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.marquee{display:flex;gap:12px;width:max-content;animation:marquee 70s linear infinite}
+.marquee-wrap:hover .marquee{animation-play-state:paused}
+.marquee-wrap{-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.seg{display:inline-flex;padding:3px;border-radius:9px;background:#efeff4;gap:2px}
+.seg button{all:unset;cursor:pointer;width:28px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#676774;transition:background-color .15s ease-out,color .15s ease-out,box-shadow .15s ease-out}
+.seg button:hover{color:#101019}
+.seg button.on{background:#fff;color:#101019;box-shadow:0 1px 2px rgb(24 24 48/.12)}
+.ptab{all:unset;cursor:pointer;position:relative;display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:8px;font-size:13px;font-weight:500;color:#5e5e73;transition:background-color .15s ease-out,color .15s ease-out}
+.ptab:hover{color:#101019;background:#f3f3f7}
+.ptab.on{background:#fff;color:#101019;font-weight:600;box-shadow:0 0 0 1px #eaeaf1,0 1px 2px rgb(24 24 48/.06)}
+.ptab .prog{position:absolute;left:10px;right:10px;bottom:3px;height:2px;border-radius:2px;background:#5b4be0;transform-origin:left;transform:scaleX(0)}
+.ptab.on .prog{animation:grow 5s linear both}
+.panel{animation:rise .45s cubic-bezier(.2,.7,.2,1) both}
+.btn-ink{background:#101019;color:#fff;box-shadow:inset 0 1px 0 rgb(255 255 255/.12)}
+.btn-ink:hover{background:#26263a;color:#fff}
+.logo-item{filter:grayscale(1);opacity:.62;transition:filter .25s ease-out,opacity .25s ease-out,background-color .2s ease-out}
+.logo-item:hover{filter:none;opacity:1;background:#fff;color:#101019}
+.gcard .gview{color:#8a8a9c!important;transition:color .15s ease-out}
+.gcard:hover .gview{color:#4a3bc9!important}
+.sel-quiet{appearance:none;height:40px;padding:0 36px 0 14px;border-radius:10px;border:0;background:#fff;box-shadow:0 0 0 1px #e2e2ea;font:500 14px "Plus Jakarta Sans",sans-serif;color:#101019;cursor:pointer}
+.dk .card{background:#161a21;box-shadow:0 0 0 1px #242a34,0 1px 2px rgb(0 0 0/.4)}
+.dk .float{box-shadow:0 0 0 1px #242a34,0 24px 48px -16px rgb(0 0 0/.6)}
+.dk .muted{color:#8e99aa}.dk .eyebrow{color:#7e879a}
+.dk .btn-primary{background:#9bb4ff;color:#0e1116;box-shadow:inset 0 1px 0 rgb(255 255 255/.25),0 0 0 1px #9bb4ff}
+.dk .btn-primary:hover{background:#b3c6ff;color:#0e1116}
+.dk .btn-ghost{color:#8e99aa}.dk .btn-ghost:hover{background:#1c212a;color:#dde3eb}
+.dk .field{background:#11151b;box-shadow:0 0 0 1px #2a303b}.dk .field input{color:#dde3eb}.dk .field input::placeholder{color:#6f788a}
+.dk .seg{background:#1c212a}.dk .seg button{color:#7e879a}.dk .seg button.on{background:#2a303b;color:#dde3eb;box-shadow:none}
+.dk .ptab{color:#8e99aa}.dk .ptab:hover{background:#1c212a;color:#dde3eb}.dk .ptab.on{background:#1c212a;color:#dde3eb;box-shadow:0 0 0 1px #2a303b}.dk .ptab .prog{background:#9bb4ff}
+.dk .logo-item{filter:grayscale(1) brightness(0) invert(1);opacity:.6;color:#dde3eb}.dk .logo-item:hover{filter:none;opacity:1;background:#161a21;color:#dde3eb}
+.dk a{color:#9bb4ff}
+.dk .b-ok{background:rgb(123 216 176/.12);color:#7bd8b0}.dk .b-warn{background:rgb(230 180 90/.12);color:#e6b45a}.dk .b-acc{background:rgb(155 180 255/.12);color:#9bb4ff}.dk .b-mute{background:#1c212a;color:#8e99aa}
+
+</style>
+</helmet>
+<div style="width: 1280px; height: 1913px; background: #f6f6f9; overflow: hidden; padding: 56px 64px; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; flex-direction: column; gap: 10px; max-width: 760px">
+<span class="eyebrow" style="color: #5b4be0">The calm layer</span>
+<h1 style="font-size: 40px; line-height: 1.1; font-weight: 700; letter-spacing: -0.035em">Same structure, same theme. Eight small changes.</h1>
+<p class="muted" style="font-size: 16px">Every board on this canvas uses only what is on this sheet. Hover and press anything here — the states are live.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px">
+<section class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em">1 · Room between words</h2><span class="mono" style="font-size: 12px; color: #676774">word-spacing: .06em</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 10px; background: #fdf4f2"><span class="eyebrow" style="color: #b84029">Now · 0.17em gap</span><p style="word-spacing: 0; font-size: 15px">Sign in · Scan my site · It waits for you before it publishes.</p></div>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 10px; background: #f2faf6"><span class="eyebrow" style="color: #1b765b">Proposed · 0.23em gap</span><p style="font-size: 15px">Sign in · Scan my site · It waits for you before it publishes.</p></div>
+<p style="font-size: 13px; color: #5e5e73">Plus Jakarta Sans ships a narrow space. One line on <span class="mono">body</span> in <span class="mono">tailwind.css</span>.</p>
+</section>
+
+<section class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em">2 · Real weights</h2><span class="mono" style="font-size: 12px; color: #676774">load 500 + 600</span></div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; text-align: center">
+<div style="padding: 14px 6px; border-radius: 10px; background: #f6f6f9; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 22px; font-weight: 400">Aa</span><span class="mono" style="font-size: 11px; color: #676774">400 body</span></div>
+<div style="padding: 14px 6px; border-radius: 10px; background: #eeecfd; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 22px; font-weight: 500">Aa</span><span class="mono" style="font-size: 11px; color: #4a3bc9">500 new · UI</span></div>
+<div style="padding: 14px 6px; border-radius: 10px; background: #eeecfd; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 22px; font-weight: 600">Aa</span><span class="mono" style="font-size: 11px; color: #4a3bc9">600 new · labels</span></div>
+<div style="padding: 14px 6px; border-radius: 10px; background: #f6f6f9; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 22px; font-weight: 700">Aa</span><span class="mono" style="font-size: 11px; color: #676774">700 headings</span></div>
+</div>
+<p style="font-size: 13px; color: #5e5e73">Today 91 <span class="mono">font-semibold</span> uses fall through to 700, so every label shouts. Headings step down to 700 (hero) and 600–700 (screens); tracking tightens as size grows: −0.015em at 18px, −0.03em at 32px+.</p>
+</section>
+
+<section class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em">3 · One loud button, the rest quiet</h2><span class="mono" style="font-size: 12px; color: #676774">btn-soft · btn-ghost</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<button class="btn btn-primary" type="button">Primary</button>
+<button class="btn btn-soft" type="button">Soft</button>
+<button class="btn btn-quiet" type="button">Quiet</button>
+<button class="btn btn-ghost" type="button">Ghost</button>
+<button class="btn btn-warn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg> Stop</button>
+</div>
+<div style="display: flex; gap: 10px; align-items: center; padding: 12px; border-radius: 10px; background: #fdf4f2"><span class="eyebrow" style="color: #b84029">Now</span><span style="display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: 9px; box-shadow: inset 0 0 0 1px #101019; font-size: 13px; font-weight: 700">Measure again now</span><span style="display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: 9px; box-shadow: inset 0 0 0 1px #101019; font-size: 13px; font-weight: 700">Your review 1</span><span style="font-size: 12px; color: #5e5e73">58 black outlines</span></div>
+<p style="font-size: 13px; color: #5e5e73">Hover: colour in 150ms. Press: scale .98 in 120ms. Primary gets a 1px inner highlight so it reads as a surface, not a sticker.</p>
+</section>
+
+<section class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em">4 · Edges and lift</h2><span class="mono" style="font-size: 12px; color: #676774">ring + shadow</span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px">
+<div style="padding: 16px; border-radius: 14px; background: #fff; box-shadow: 0 1px 3px rgb(24 24 48/.045); display: flex; flex-direction: column; gap: 4px; min-height: 96px"><span class="eyebrow" style="color: #b84029">Now</span><span style="font-size: 13px; color: #5e5e73">Shadow only — edge dissolves into the ground.</span></div>
+<div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 4px; min-height: 96px"><span class="eyebrow" style="color: #1b765b">Resting</span><span style="font-size: 13px; color: #5e5e73">1px ring at 6% + 1px shadow.</span></div>
+<div class="card lift" style="padding: 16px; display: flex; flex-direction: column; gap: 4px; min-height: 96px"><span class="eyebrow" style="color: #4a3bc9">Clickable</span><span style="font-size: 13px; color: #5e5e73">Hover me — rises 2px, arrow nudges <span class="nudge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span></div>
+</div>
+<p style="font-size: 13px; color: #5e5e73">The deep “float” shadow is kept for exactly two things: the landing's product frame and the price card.</p>
+</section>
+</div>
+
+<section class="card" style="padding: 24px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em">5 · Motion, one easing, seven timings</h2><span class="mono" style="font-size: 12px; color: #676774">ease cubic-bezier(.2,.7,.2,1)</span></div>
+<table style="width: 100%; border-collapse: collapse; font-size: 13px">
+<thead><tr style="text-align: left; color: #676774"><th style="font-weight: 500; padding-bottom: 8px">What moves</th><th style="font-weight: 500; padding-bottom: 8px">How</th><th style="font-weight: 500; padding-bottom: 8px; text-align: right">Time</th></tr></thead>
+<tbody>
+<tr style="box-shadow: 0 -1px 0 #f0f0f5"><td style="padding: 9px 0">Button press</td><td style="color: #5e5e73">scale .98</td><td class="mono" style="text-align: right">120ms</td></tr>
+<tr style="box-shadow: 0 -1px 0 #f0f0f5"><td style="padding: 9px 0">Hover colour, border, tab ink</td><td style="color: #5e5e73">ease-out</td><td class="mono" style="text-align: right">150ms</td></tr>
+<tr style="box-shadow: 0 -1px 0 #f0f0f5"><td style="padding: 9px 0">Card lift, arrow nudge</td><td style="color: #5e5e73">−2px, shadow grows</td><td class="mono" style="text-align: right">200ms</td></tr>
+<tr style="box-shadow: 0 -1px 0 #f0f0f5"><td style="padding: 9px 0">Tab underline, accordion chevron</td><td style="color: #5e5e73">scaleX / rotate</td><td class="mono" style="text-align: right">250ms</td></tr>
+<tr style="box-shadow: 0 -1px 0 #f0f0f5"><td style="padding: 9px 0">Screen enter</td><td style="color: #5e5e73">rise 8px, 60ms stagger</td><td class="mono" style="text-align: right">600ms</td></tr>
+<tr style="box-shadow: 0 -1px 0 #f0f0f5"><td style="padding: 9px 0">Chart draw, score count-up</td><td style="color: #5e5e73">once, on first view</td><td class="mono" style="text-align: right">1.4s</td></tr>
+<tr style="box-shadow: 0 -1px 0 #f0f0f5"><td style="padding: 9px 0">“Live” / “Your review” dot</td><td style="color: #5e5e73">soft pulse, the only loop</td><td class="mono" style="text-align: right">2.4s</td></tr>
+</tbody>
+</table>
+<p style="font-size: 13px; color: #5e5e73">Reduced motion: every animation is off and the final state is drawn. Built with Tailwind utilities and React 19's &lt;ViewTransition&gt; — no animation library.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: center"><span class="eyebrow">Loading → content, cross-faded</span><button class="btn btn-soft btn-sm" type="button" onClick="{{replay}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Replay</button></div>
+<div style="position: relative; height: 150px; padding: 18px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px #eaeaf1">
+<div class="{{skelCls}}" style="display: flex; flex-direction: column; gap: 10px"><span class="skel" style="height: 12px; width: 40%"></span><span class="skel" style="height: 28px; width: 30%"></span><span class="skel" style="height: 10px; width: 90%"></span><span class="skel" style="height: 10px; width: 70%"></span></div>
+<div class="{{contentCls}}" style="display: flex; flex-direction: column; gap: 8px"><span class="eyebrow rise">Searches you appear for</span><span class="num rise d1" style="font-size: 30px; line-height: 1.1">41 <span class="badge b-ok" style="vertical-align: middle">▲ 13</span></span><svg viewBox="0 0 300 36" width="100%" height="36" aria-hidden="true"><path class="draw" d="M0 30 L60 28 L120 24 L180 20 L240 14 L296 8" fill="none" stroke="#5b4be0" stroke-width="2" stroke-linecap="round"></path></svg></div>
+</div>
+<span class="eyebrow">Tabs, focus, live</span>
+<div style="display: flex; align-items: center; gap: 24px; padding: 0 4px; box-shadow: inset 0 -1px 0 #eaeaf1">
+<button class="tab {{t.a}}" onClick="{{ta}}">Overview</button><button class="tab {{t.b}}" onClick="{{tb}}">Search</button><button class="tab {{t.c}}" onClick="{{tc}}">AI answers</button>
+<span style="margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #1b765b; font-weight: 600"><span class="dot live" style="background: #1b765b"></span>Live</span>
+</div>
+<div class="field"><input aria-label="Try the focus ring" placeholder="Click here — a soft violet ring, 3px at 22%"></div>
+</div>
+</section>
+
+<section class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em">6–8 · Rhythm, figures, and what premium sites do to convert</h2><span class="mono" style="font-size: 12px; color: #676774">from the calm styles on Refero</span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<div style="padding: 16px; border-radius: 12px; background: #f6f6f9; display: flex; flex-direction: column; gap: 6px"><span style="font-weight: 600; font-size: 14px">Gutters and one gap scale</span><span style="font-size: 13px; color: #5e5e73">40px content gutter beside the sidebar. Gaps of 16 inside a row, 20–24 between rows, 88–104 between landing sections. Cards in a row stretch to equal height.</span></div>
+<div style="padding: 16px; border-radius: 12px; background: #f6f6f9; display: flex; flex-direction: column; gap: 6px"><span style="font-weight: 600; font-size: 14px">Quiet empties</span><span style="font-size: 13px; color: #5e5e73">Empty calendar days are flat grey, not white cards. “Nothing needs you” is a tick, not a green alert. Zeros never fill four tiles.</span></div>
+<div style="padding: 16px; border-radius: 12px; background: #f6f6f9; display: flex; flex-direction: column; gap: 6px"><span style="font-weight: 600; font-size: 14px">Figures in the UI face</span><span style="font-size: 13px; color: #5e5e73">Big numbers in Jakarta 600 with tabular figures; mono kept for domains, dates, searches and code. Needs a DESIGN.md line.</span></div>
+<div style="padding: 16px; border-radius: 12px; background: #f6f6f9; display: flex; flex-direction: column; gap: 6px"><span style="font-weight: 600; font-size: 14px">Risk reversal beside every ask</span><span style="font-size: 13px; color: #5e5e73">“free · no account · permanent link” under the scan field; “Cancel in one click” with a shield under the price; the 24-hour stop window in the proof strip.</span></div>
+<div style="padding: 16px; border-radius: 12px; background: #f6f6f9; display: flex; flex-direction: column; gap: 6px"><span style="font-weight: 600; font-size: 14px">Product as the hero</span><span style="font-size: 13px; color: #5e5e73">An “Inside ReachKit” preview, the same height as the headline, turns through the week, the score, AI answers and the page on its own — the page shows what is behind the paywall instead of describing it.</span></div>
+<div style="padding: 16px; border-radius: 12px; background: #f6f6f9; display: flex; flex-direction: column; gap: 6px"><span style="font-weight: 600; font-size: 14px">Proof before the fold, action at the end</span><span style="font-size: 13px; color: #5e5e73">A slowly moving strip of logos from real finished scans under the hero, linking to the gallery of every free scan, the fold landing mid-video so the page asks to be scrolled, and a tinted closing band whose button returns to the one scan field.</span></div>
+<div style="padding: 16px; border-radius: 12px; background: #f6f6f9; display: flex; flex-direction: column; gap: 6px"><span style="font-weight: 600; font-size: 14px">Glass header and dock</span><span style="font-size: 13px; color: #5e5e73">Sticky header at 78% white with a 12px blur; the phone dock floats 12px off the edges with the same glass.</span></div>
+<div style="padding: 16px; border-radius: 12px; background: #f6f6f9; display: flex; flex-direction: column; gap: 6px"><span style="font-weight: 600; font-size: 14px">Urgency that's true</span><span style="font-size: 13px; color: #5e5e73">A live countdown to “goes live” on the review card and the draft's Decide panel — real, calm, and it moves the one decision forward.</span></div>
+<div style="padding: 16px; border-radius: 12px; background: #f6f6f9; display: flex; flex-direction: column; gap: 6px"><span style="font-weight: 600; font-size: 14px">The fixes that aren't polish</span><span style="font-size: 13px; color: #5e5e73">The logo's dome restored in /app (duplicate SVG id), and one arrow on “Back to the plan”.</span></div>
+</div>
+</section>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1913}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { loaded: false, tab: "a" };
+  }
+  componentDidMount() { this.load(); }
+  componentWillUnmount() { clearTimeout(this.timer); }
+  load() {
+    clearTimeout(this.timer);
+    this.setState({ loaded: false });
+    this.timer = setTimeout(() => this.setState({ loaded: true }), 1400);
+  }
+  renderVals() {
+    const on = (k) => (this.state.tab === k ? "on" : "");
+    return {
+      skelCls: this.state.loaded ? "hide" : "fade",
+      contentCls: this.state.loaded ? "fade" : "hide",
+      replay: () => this.load(),
+      t: { a: on("a"), b: on("b"), c: on("c") },
+      ta: () => this.setState({ tab: "a" }),
+      tb: () => this.setState({ tab: "b" }),
+      tc: () => this.setState({ tab: "c" }),
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>2 · Free scan report</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f6f9;color:#101019;font-family:"Plus Jakarta Sans",ui-sans-serif,system-ui,sans-serif;font-size:15px;line-height:1.55;word-spacing:.06em;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1}
+*{box-sizing:border-box}
+h1,h2,h3,h4,p{margin:0}
+h1,h2,h3,h4{text-wrap:balance;word-spacing:.04em}
+a{color:#5b4be0;text-decoration:none}a:hover{color:#4a3bc9}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;word-spacing:0;font-feature-settings:normal}
+.num{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.02em}
+.eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#676774;word-spacing:0}
+.muted{color:#5e5e73}
+.card{background:#fff;border-radius:14px;box-shadow:0 0 0 1px rgb(24 24 48/.06),0 1px 2px rgb(24 24 48/.04);transition:box-shadow .2s cubic-bezier(.2,.7,.2,1),transform .2s cubic-bezier(.2,.7,.2,1)}
+.lift{cursor:pointer}
+.lift:hover{transform:translateY(-2px);box-shadow:0 0 0 1px rgb(24 24 48/.08),0 8px 20px -6px rgb(24 24 48/.12)}
+.lift:hover .nudge{transform:translateX(3px)}
+.nudge{display:inline-block;transition:transform .2s cubic-bezier(.2,.7,.2,1)}
+.float{box-shadow:0 0 0 1px rgb(24 24 48/.06),0 24px 48px -16px rgb(40 30 120/.18),0 4px 12px -4px rgb(24 24 48/.06)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:9px;border:0;font:600 14px/1 "Plus Jakarta Sans",sans-serif;word-spacing:.04em;cursor:pointer;white-space:nowrap;transition:background-color .15s ease-out,box-shadow .15s ease-out,color .15s ease-out,transform .12s ease-out;text-decoration:none}
+.btn:active{transform:scale(.98)}
+.btn:focus-visible,.field:focus-within,.chip:focus-visible,.tab:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(91 75 224/.22)}
+.btn-sm{height:32px;padding:0 12px;font-size:13px;border-radius:8px}
+.btn-lg{height:48px;padding:0 22px;font-size:15px}
+.btn-primary{background:#5b4be0;color:#fff;box-shadow:inset 0 1px 0 rgb(255 255 255/.16),0 1px 2px rgb(40 30 140/.3),0 0 0 1px #5243d6}
+.btn-primary:hover{background:#4f40d4;color:#fff}
+.btn-soft{background:#eeecfd;color:#4a3bc9}
+.btn-soft:hover{background:#e3e0fb;color:#3f31b8}
+.btn-quiet{background:#fff;color:#101019;box-shadow:0 0 0 1px #e2e2ea}
+.btn-quiet:hover{box-shadow:0 0 0 1px #cfcfdb;background:#fbfbfd;color:#101019}
+.btn-ghost{background:transparent;color:#5e5e73}
+.btn-ghost:hover{background:#efeff4;color:#101019}
+.btn-warn{background:transparent;color:#945c22}
+.btn-warn:hover{background:#fff3e6;color:#7d4c19}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;word-spacing:0;white-space:nowrap}
+.b-ok{background:#e7f6f0;color:#1b765b}.b-warn{background:#fff3e6;color:#945c22}.b-bad{background:#fdece8;color:#b84029}.b-acc{background:#eeecfd;color:#4a3bc9}.b-mute{background:#efeff4;color:#5e5e73}
+.chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;border:0;background:transparent;color:#5e5e73;font:600 13px/1 "Plus Jakarta Sans",sans-serif;cursor:pointer;transition:background-color .15s ease-out,color .15s ease-out}
+.chip:hover{background:#efeff4;color:#101019}
+.chip.on{background:#101019;color:#fff}
+.chip .n{font-family:"JetBrains Mono",monospace;font-size:11px;opacity:.7}
+.field{display:flex;align-items:center;gap:8px;background:#fff;border-radius:11px;box-shadow:0 0 0 1px #e2e2ea;transition:box-shadow .15s ease-out}
+.field:hover{box-shadow:0 0 0 1px #cfcfdb}
+.field input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:400 15px "Plus Jakarta Sans",sans-serif;color:#101019;height:44px;padding:0 14px}
+.field input::placeholder{color:#8a8a9c}
+.tab{position:relative;height:44px;display:inline-flex;align-items:center;padding:0 2px;background:none;border:0;font:500 14px "Plus Jakarta Sans",sans-serif;color:#5e5e73;cursor:pointer;transition:color .15s ease-out}
+.tab:hover{color:#101019}
+.tab::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:#101019;transform:scaleX(0);transition:transform .25s cubic-bezier(.2,.7,.2,1)}
+.tab.on{color:#101019;font-weight:600}
+.tab.on::after{transform:scaleX(1)}
+.nav{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:9px;color:#5e5e73;font-weight:500;font-size:14px;transition:background-color .15s ease-out,color .15s ease-out}
+.nav:hover{background:#efeff4;color:#101019}
+.nav.on{background:#eeecfd;color:#4a3bc9;font-weight:600}
+.rule{height:1px;background:#eaeaf1;border:0}
+.dot{width:8px;height:8px;border-radius:99px;display:inline-block;flex-shrink:0}
+.live{position:relative}
+.live::after{content:"";position:absolute;inset:0;border-radius:99px;background:inherit;animation:pulse 2.4s ease-out infinite}
+@keyframes pulse{0%{transform:scale(1);opacity:.55}70%{transform:scale(2.6);opacity:0}100%{opacity:0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes growy{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+.rise{animation:rise .6s cubic-bezier(.2,.7,.2,1) both}
+.fade{animation:fade .8s ease-out both}
+.d1{animation-delay:.06s}.d2{animation-delay:.12s}.d3{animation-delay:.18s}.d4{animation-delay:.24s}.d5{animation-delay:.30s}.d6{animation-delay:.36s}.d7{animation-delay:.42s}.d8{animation-delay:.48s}.d9{animation-delay:.54s}.d10{animation-delay:.6s}
+.draw{stroke-dasharray:1200;stroke-dashoffset:1200;animation:draw 1.6s .35s cubic-bezier(.3,.6,.2,1) forwards}
+.bar{transform-origin:left center;animation:grow .9s cubic-bezier(.2,.7,.2,1) both}
+.cell{animation:pop .35s cubic-bezier(.2,.9,.3,1.3) both}
+.skel{background:linear-gradient(90deg,#efeff4 25%,#f7f7fa 50%,#efeff4 75%);background-size:200% 100%;animation:shimmer 1.6s linear infinite;border-radius:6px}
+details summary{list-style:none;cursor:pointer}
+details summary::-webkit-details-marker{display:none}
+details .chev{transition:transform .25s cubic-bezier(.2,.7,.2,1)}
+details[open] .chev{transform:rotate(180deg)}
+details[open] .ans{animation:rise .35s cubic-bezier(.2,.7,.2,1) both}
+.cal{transition:background-color .15s ease-out,box-shadow .15s ease-out}
+.cal:hover{box-shadow:0 0 0 1px #cfcfdb}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.draw{stroke-dashoffset:0}}
+@keyframes draw-ring{to{stroke-dashoffset:171.9}}
+@media (prefers-reduced-motion:reduce){.ring{stroke-dashoffset:171.9!important}.bar,.cell,.rise,.fade{opacity:1!important;transform:none!important}}
+.hide{display:none!important}
+.cal.sel{box-shadow:0 0 0 2px #5b4be0!important}
+@keyframes spin{to{transform:rotate(360deg)}}.spin{animation:spin 1s linear infinite;transform-origin:center}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.marquee{display:flex;gap:12px;width:max-content;animation:marquee 70s linear infinite}
+.marquee-wrap:hover .marquee{animation-play-state:paused}
+.marquee-wrap{-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.seg{display:inline-flex;padding:3px;border-radius:9px;background:#efeff4;gap:2px}
+.seg button{all:unset;cursor:pointer;width:28px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#676774;transition:background-color .15s ease-out,color .15s ease-out,box-shadow .15s ease-out}
+.seg button:hover{color:#101019}
+.seg button.on{background:#fff;color:#101019;box-shadow:0 1px 2px rgb(24 24 48/.12)}
+.ptab{all:unset;cursor:pointer;position:relative;display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:8px;font-size:13px;font-weight:500;color:#5e5e73;transition:background-color .15s ease-out,color .15s ease-out}
+.ptab:hover{color:#101019;background:#f3f3f7}
+.ptab.on{background:#fff;color:#101019;font-weight:600;box-shadow:0 0 0 1px #eaeaf1,0 1px 2px rgb(24 24 48/.06)}
+.ptab .prog{position:absolute;left:10px;right:10px;bottom:3px;height:2px;border-radius:2px;background:#5b4be0;transform-origin:left;transform:scaleX(0)}
+.ptab.on .prog{animation:grow 5s linear both}
+.panel{animation:rise .45s cubic-bezier(.2,.7,.2,1) both}
+.btn-ink{background:#101019;color:#fff;box-shadow:inset 0 1px 0 rgb(255 255 255/.12)}
+.btn-ink:hover{background:#26263a;color:#fff}
+.logo-item{filter:grayscale(1);opacity:.62;transition:filter .25s ease-out,opacity .25s ease-out,background-color .2s ease-out}
+.logo-item:hover{filter:none;opacity:1;background:#fff;color:#101019}
+.gcard .gview{color:#8a8a9c!important;transition:color .15s ease-out}
+.gcard:hover .gview{color:#4a3bc9!important}
+.sel-quiet{appearance:none;height:40px;padding:0 36px 0 14px;border-radius:10px;border:0;background:#fff;box-shadow:0 0 0 1px #e2e2ea;font:500 14px "Plus Jakarta Sans",sans-serif;color:#101019;cursor:pointer}
+.dk .card{background:#161a21;box-shadow:0 0 0 1px #242a34,0 1px 2px rgb(0 0 0/.4)}
+.dk .float{box-shadow:0 0 0 1px #242a34,0 24px 48px -16px rgb(0 0 0/.6)}
+.dk .muted{color:#8e99aa}.dk .eyebrow{color:#7e879a}
+.dk .btn-primary{background:#9bb4ff;color:#0e1116;box-shadow:inset 0 1px 0 rgb(255 255 255/.25),0 0 0 1px #9bb4ff}
+.dk .btn-primary:hover{background:#b3c6ff;color:#0e1116}
+.dk .btn-ghost{color:#8e99aa}.dk .btn-ghost:hover{background:#1c212a;color:#dde3eb}
+.dk .field{background:#11151b;box-shadow:0 0 0 1px #2a303b}.dk .field input{color:#dde3eb}.dk .field input::placeholder{color:#6f788a}
+.dk .seg{background:#1c212a}.dk .seg button{color:#7e879a}.dk .seg button.on{background:#2a303b;color:#dde3eb;box-shadow:none}
+.dk .ptab{color:#8e99aa}.dk .ptab:hover{background:#1c212a;color:#dde3eb}.dk .ptab.on{background:#1c212a;color:#dde3eb;box-shadow:0 0 0 1px #2a303b}.dk .ptab .prog{background:#9bb4ff}
+.dk .logo-item{filter:grayscale(1) brightness(0) invert(1);opacity:.6;color:#dde3eb}.dk .logo-item:hover{filter:none;opacity:1;background:#161a21;color:#dde3eb}
+.dk a{color:#9bb4ff}
+.dk .b-ok{background:rgb(123 216 176/.12);color:#7bd8b0}.dk .b-warn{background:rgb(230 180 90/.12);color:#e6b45a}.dk .b-acc{background:rgb(155 180 255/.12);color:#9bb4ff}.dk .b-mute{background:#1c212a;color:#8e99aa}
+
+</style>
+</helmet>
+<div style="width: 1280px; height: 2331px; background: #f6f6f9; overflow: hidden; display: flex; flex-direction: column">
+<header style="height: 64px; display: flex; align-items: center; gap: 8px; padding: 0 64px; background: rgb(255 255 255 / 0.78); backdrop-filter: blur(12px); box-shadow: 0 1px 0 #eaeaf1">
+<a href="../R12-1-Landing/R12-1-Landing.dc.html" style="display: flex; align-items: center; gap: 10px; color: #101019; font-weight: 800; font-size: 18px; letter-spacing: -0.02em; margin-right: auto"><svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true" style="flex-shrink: 0"><defs><linearGradient id="rkfade3" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.35" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="rkfade3c"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#rkfade3c)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#rkfade3)"></path></g></svg><span>ReachKit</span></a>
+<button class="btn btn-ghost btn-sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> Copy link</button>
+<a class="btn btn-ghost btn-sm" href="#pricing">Pricing</a>
+<a class="btn btn-ghost btn-sm" href="#signin">Sign in</a>
+<a class="btn btn-soft btn-sm" href="#start" style="margin-left: 4px">Start ReachKit</a>
+</header>
+
+<main style="width: 1152px; margin: 0 auto; padding: 40px 0 72px; display: flex; flex-direction: column; gap: 20px">
+
+<section class="card rise" style="padding: 32px; display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 40px; align-items: center">
+<div style="display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span class="eyebrow">Your free report</span>
+<h1 class="mono" style="font-size: 30px; font-weight: 600; letter-spacing: -0.02em; word-spacing: 0">example.com</h1>
+<p style="font-size: 13px; color: #5e5e73">Measured <span class="mono">Sep 5, 2026</span> · product analytics · US Google, in English · <a href="#market" style="font-weight: 600">Not your market?</a></p>
+</div>
+<p style="font-size: 17px; line-height: 1.5; max-width: 640px">What holds your score down most is <strong style="font-weight: 600">presence</strong> — how often you appear where buyers look, in Google and in AI answers.</p>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; justify-content: space-between; font-size: 13px"><span style="font-weight: 600">Foundations</span><span class="mono" style="color: #5e5e73">7/10</span></div><div style="height: 6px; border-radius: 6px; background: #efeff4; overflow: hidden"><div class="bar d3" style="width: 70%; height: 100%; border-radius: 6px; background: #5b4be0"></div></div></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; justify-content: space-between; font-size: 13px"><span style="font-weight: 600">Answerability</span><span class="mono" style="color: #5e5e73">9/10</span></div><div style="height: 6px; border-radius: 6px; background: #efeff4; overflow: hidden"><div class="bar d4" style="width: 90%; height: 100%; border-radius: 6px; background: #5b4be0"></div></div></div>
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; justify-content: space-between; font-size: 13px"><span style="font-weight: 600">Presence</span><span class="mono" style="color: #b84029; font-weight: 600">4/10</span></div><div style="height: 6px; border-radius: 6px; background: #efeff4; overflow: hidden"><div class="bar d5" style="width: 40%; height: 100%; border-radius: 6px; background: #b84029"></div></div></div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 10px">
+<div style="position: relative; width: 168px; height: 168px">
+<svg viewBox="0 0 168 168" width="168" height="168" aria-hidden="true" style="transform: rotate(-90deg)"><circle cx="84" cy="84" r="72" fill="none" stroke="#efeff4" stroke-width="12"></circle><circle class="ring" cx="84" cy="84" r="72" fill="none" stroke="#5b4be0" stroke-width="12" stroke-linecap="round" style="stroke-dasharray: 452.4; stroke-dashoffset: 452.4; animation: draw-ring 1.4s .3s cubic-bezier(.3,.6,.2,1) forwards"></circle></svg>
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center"><span class="num" style="font-size: 52px; line-height: 1">{{score}}</span><span class="mono" style="font-size: 12px; color: #676774">of 100</span></div>
+</div>
+<span class="badge b-ok">Findable</span>
+<span style="font-size: 12px; color: #5e5e73">Discoverability score</span>
+</div>
+</section>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: stretch">
+<section class="card rise d2" style="padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between; align-items: center"><span class="eyebrow" style="display: flex; align-items: center; gap: 8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg> AI answers</span><span class="badge b-mute">Google AI answers · <span class="mono">Sep 5</span></span></div>
+<h2 style="font-size: 18px; font-weight: 600; letter-spacing: -0.015em">AI answers appear on 9 of your 12 biggest searches — and name you on none.</h2>
+<div style="display: grid; grid-template-columns: 172px repeat(12, minmax(0, 1fr)) 36px; gap: 4px; align-items: center; font-size: 12px">
+<span class="mono" style="color: #5e5e73; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">rival-one.example.net</span><span class="cell d1" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d1" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d2" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="cell d2" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d3" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d3" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="cell d4" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d4" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d5" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d5" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="cell d6" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="cell d6" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="mono" style="text-align: right; color: #5e5e73">6/9</span>
+<span class="mono" style="color: #5e5e73; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">rival-two.example.net</span><span class="cell d2" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d2" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="cell d3" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d3" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d4" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="cell d4" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d5" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d5" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="cell d6" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d6" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d7" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="cell d7" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="mono" style="text-align: right; color: #5e5e73">6/9</span>
+<span class="mono" style="color: #5e5e73; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">rival-three.example.org</span><span class="cell d3" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="cell d3" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d4" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d4" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="cell d5" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d5" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d6" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="cell d6" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d7" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d7" style="height: 16px; border-radius: 4px; background: #6b6a84"></span><span class="cell d8" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="cell d8" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="mono" style="text-align: right; color: #5e5e73">6/9</span>
+<span class="mono" style="color: #4a3bc9; font-weight: 600">example.com</span><span class="cell d4" style="height: 16px; border-radius: 4px; box-shadow: inset 0 0 0 1.5px #e3a293"></span><span class="cell d4" style="height: 16px; border-radius: 4px; box-shadow: inset 0 0 0 1.5px #e3a293"></span><span class="cell d5" style="height: 16px; border-radius: 4px; box-shadow: inset 0 0 0 1.5px #e3a293"></span><span class="cell d5" style="height: 16px; border-radius: 4px; box-shadow: inset 0 0 0 1.5px #e3a293"></span><span class="cell d6" style="height: 16px; border-radius: 4px; box-shadow: inset 0 0 0 1.5px #e3a293"></span><span class="cell d6" style="height: 16px; border-radius: 4px; box-shadow: inset 0 0 0 1.5px #e3a293"></span><span class="cell d7" style="height: 16px; border-radius: 4px; box-shadow: inset 0 0 0 1.5px #e3a293"></span><span class="cell d7" style="height: 16px; border-radius: 4px; box-shadow: inset 0 0 0 1.5px #e3a293"></span><span class="cell d8" style="height: 16px; border-radius: 4px; box-shadow: inset 0 0 0 1.5px #e3a293"></span><span class="cell d8" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="cell d9" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="cell d9" style="height: 16px; border-radius: 4px; background: #efeff4"></span><span class="mono" style="text-align: right; color: #b84029; font-weight: 600">0/9</span>
+</div>
+<div class="rule"></div>
+<div style="display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; padding: 10px 0"><div style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 14px; font-weight: 500">What is the best product analytics tool for a small SaaS team?</span><span class="mono" style="font-size: 11px; color: #676774; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">names rival-one.example.net, rival-three.example.org</span></div><span class="badge b-bad">not you</span></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; padding: 10px 0; box-shadow: 0 -1px 0 #f0f0f5"><div style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 14px; font-weight: 500">Which product analytics tool should a startup pick first?</span><span class="mono" style="font-size: 11px; color: #676774">names rival-one.example.net, rival-two.example.net</span></div><span class="badge b-bad">not you</span></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; padding: 10px 0; box-shadow: 0 -1px 0 #f0f0f5"><div style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 14px; font-weight: 500">Is there a cheaper alternative to Amplitude?</span><span class="mono" style="font-size: 11px; color: #676774">names rival-one.example.net, rival-three.example.org</span></div><span class="badge b-bad">not you</span></div>
+</div>
+<button class="btn btn-ghost btn-sm" style="align-self: flex-start">Show all 12 questions <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="m6 9 6 6 6-6"/></svg></button>
+</section>
+
+<section class="card rise d3" style="padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between; align-items: center"><span class="eyebrow" style="display: flex; align-items: center; gap: 8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Google search</span><span class="badge b-mute">your 12 biggest searches</span></div>
+<h2 style="font-size: 18px; font-weight: 600; letter-spacing: -0.015em">Rivals rank on up to 10 of your 12 searches. You rank on 1.</h2>
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between; font-size: 13px"><span class="mono">rival-one.example.net</span><span class="mono" style="color: #5e5e73">10/12</span></div><div style="height: 8px; border-radius: 8px; background: #efeff4; overflow: hidden"><div class="bar d3" style="width: 83%; height: 100%; border-radius: 8px; background: #6b6a84"></div></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between; font-size: 13px"><span class="mono">rival-two.example.net</span><span class="mono" style="color: #5e5e73">8/12</span></div><div style="height: 8px; border-radius: 8px; background: #efeff4; overflow: hidden"><div class="bar d4" style="width: 67%; height: 100%; border-radius: 8px; background: #6b6a84"></div></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between; font-size: 13px"><span class="mono">rival-three.example.org</span><span class="mono" style="color: #5e5e73">5/12</span></div><div style="height: 8px; border-radius: 8px; background: #efeff4; overflow: hidden"><div class="bar d5" style="width: 42%; height: 100%; border-radius: 8px; background: #6b6a84"></div></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between; font-size: 13px"><span class="mono" style="color: #4a3bc9; font-weight: 600">example.com</span><span class="mono" style="color: #4a3bc9; font-weight: 600">1/12</span></div><div style="height: 8px; border-radius: 8px; background: #efeff4; overflow: hidden"><div class="bar d6" style="width: 8%; height: 100%; border-radius: 8px; background: #5b4be0"></div></div></div>
+</div>
+<div class="rule"></div>
+<span class="eyebrow">5 biggest searches you're absent from</span>
+<table style="width: 100%; border-collapse: collapse; font-size: 13px">
+<thead><tr style="color: #676774; text-align: left"><th style="font-weight: 500; padding: 0 0 8px">Search</th><th style="font-weight: 500; padding: 0 0 8px; text-align: right">Volume</th><th style="font-weight: 500; padding: 0 0 8px 20px">Holds #1</th></tr></thead>
+<tbody class="mono" style="font-size: 12px">
+<tr style="box-shadow: 0 -1px 0 #f0f0f5"><td style="padding: 9px 0">product analytics tools</td><td style="text-align: right">8,100</td><td style="padding-left: 20px; color: #5e5e73">rival-one.example.net</td></tr>
+<tr style="box-shadow: 0 -1px 0 #f0f0f5"><td style="padding: 9px 0">best product analytics tool</td><td style="text-align: right">4,400</td><td style="padding-left: 20px; color: #5e5e73">rival-two.example.net</td></tr>
+<tr style="box-shadow: 0 -1px 0 #f0f0f5"><td style="padding: 9px 0">amplitude alternative</td><td style="text-align: right">2,900</td><td style="padding-left: 20px; color: #5e5e73">rival-three.example.org</td></tr>
+<tr style="box-shadow: 0 -1px 0 #f0f0f5"><td style="padding: 9px 0">mixpanel vs amplitude</td><td style="text-align: right">1,900</td><td style="padding-left: 20px; color: #5e5e73">rival-one.example.net</td></tr>
+<tr style="box-shadow: 0 -1px 0 #f0f0f5"><td style="padding: 9px 0">self hosted analytics</td><td style="text-align: right">1,600</td><td style="padding-left: 20px; color: #1b765b; font-family: 'Plus Jakarta Sans'; font-weight: 600">Open — no rival holds it</td></tr>
+</tbody>
+</table>
+</section>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em">What holds you back</h2><span class="muted" style="font-size: 13px">3 that cost you most, then 8 quick checks</span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch">
+<div class="card lift rise d3" style="padding: 22px; display: flex; flex-direction: column; gap: 12px"><div style="display: flex; justify-content: space-between; align-items: center"><span style="width: 36px; height: 36px; border-radius: 9px; background: #fdece8; color: #b84029; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><span class="num" style="font-size: 32px; line-height: 1">4</span></div><h3 style="font-size: 16px; font-weight: 600">AI readers blocked</h3><p class="muted" style="font-size: 13px">Four AI crawlers are turned away by your robots.txt, so they can't read you to name you.</p><div style="display: flex; gap: 6px; margin-top: auto"><span class="badge b-bad">Critical</span><span class="badge b-ok">Free fix · 10 min</span></div><span style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">Show the four lines <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span></div>
+<div class="card lift rise d4" style="padding: 22px; display: flex; flex-direction: column; gap: 12px"><div style="display: flex; justify-content: space-between; align-items: center"><span style="width: 36px; height: 36px; border-radius: 9px; background: #fff3e6; color: #945c22; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></span><span class="num" style="font-size: 32px; line-height: 1">7</span></div><h3 style="font-size: 16px; font-weight: 600">Missing pages</h3><p class="muted" style="font-size: 13px">Seven questions your buyers ask have no page on your site to answer them.</p><div style="display: flex; gap: 6px; margin-top: auto"><span class="badge b-warn">Worth fixing</span><span class="badge b-acc">ReachKit writes</span></div><span style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">See the first one <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span></div>
+<div class="card lift rise d5" style="padding: 22px; display: flex; flex-direction: column; gap: 12px"><div style="display: flex; justify-content: space-between; align-items: center"><span style="width: 36px; height: 36px; border-radius: 9px; background: #fdece8; color: #b84029; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="num" style="font-size: 32px; line-height: 1">3</span></div><h3 style="font-size: 16px; font-weight: 600">Unquotable pages</h3><p class="muted" style="font-size: 13px">Three pages have no line an AI answer could lift and quote with your name on it.</p><div style="display: flex; gap: 6px; margin-top: auto"><span class="badge b-bad">Critical</span><span class="badge b-acc">ReachKit rewrites</span></div><span style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">Which three <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span></div>
+</div>
+<div class="card rise d6" style="padding: 8px 22px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 40px">
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; box-shadow: 0 1px 0 #f0f0f5"><span class="dot" style="background: #c9c9d6"></span><span style="font-size: 14px; font-weight: 500; flex: 1">Missing or duplicate titles</span><span class="badge b-acc">ReachKit rewrites</span></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; box-shadow: 0 1px 0 #f0f0f5"><span class="dot" style="background: #c9c9d6"></span><span style="font-size: 14px; font-weight: 500; flex: 1">Missing or duplicate descriptions</span><span class="badge b-acc">ReachKit rewrites</span></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; box-shadow: 0 1px 0 #f0f0f5"><span class="dot" style="background: #c9c9d6"></span><span style="font-size: 14px; font-weight: 500; flex: 1">Pages hidden from search</span><span class="badge b-ok">Free fix · 10 min</span></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; box-shadow: 0 1px 0 #f0f0f5"><span class="dot" style="background: #c9c9d6"></span><span style="font-size: 14px; font-weight: 500; flex: 1">No sitemap</span><span class="badge b-ok">Free fix · 10 min</span></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; box-shadow: 0 1px 0 #f0f0f5"><span class="dot" style="background: #c9c9d6"></span><span style="font-size: 14px; font-weight: 500; flex: 1">Slow pages</span><span class="badge b-ok">Free fix · 10 min</span></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; box-shadow: 0 1px 0 #f0f0f5"><span class="dot" style="background: #c9c9d6"></span><span style="font-size: 14px; font-weight: 500; flex: 1">Broken internal links</span><span class="badge b-ok">Free fix · 10 min</span></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 0"><span class="dot" style="background: #c9c9d6"></span><span style="font-size: 14px; font-weight: 500; flex: 1">Hard to use on a phone</span><span class="badge b-ok">Free fix · 10 min</span></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 0"><span class="dot" style="background: #c9c9d6"></span><span style="font-size: 14px; font-weight: 500; flex: 1">Missing structured data</span><span class="badge b-acc">ReachKit writes</span></div>
+</div>
+<p style="font-size: 12px; color: #676774">Grey dot: this check couldn't run this time — that isn't the same as nothing to fix. <a href="#method" style="font-weight: 600">The complete method, free</a></p>
+</div>
+
+<section class="card rise" style="margin-top: 20px; padding: 28px; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 40px; box-shadow: 0 0 0 1px #ddd8fa, 0 12px 32px -12px rgb(91 75 224 / 0.18)">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; gap: 8px; align-items: center"><span class="eyebrow" style="color: #4a3bc9">Your first page</span><span class="badge b-acc">free</span></div>
+<h2 style="font-size: 24px; line-height: 1.2; font-weight: 700; letter-spacing: -0.025em">Six product analytics tools that work without a data warehouse</h2>
+<div style="display: grid; grid-template-columns: 90px minmax(0, 1fr); row-gap: 8px; font-size: 14px">
+<span style="color: #676774">Target</span><span class="mono" style="font-size: 13px">amplitude alternative · 2,900/mo</span>
+<span style="color: #676774">Beats</span><span class="mono" style="font-size: 13px">rival-three.example.org</span>
+<span style="color: #676774">Format</span><span>A comparison page</span>
+</div>
+<p style="font-size: 12px; color: #676774">Proposed by ReachKit, not yet written. That's page 1 of 7 we found for you.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; justify-content: center">
+<label for="report-email" style="font-size: 13px; font-weight: 600">Where should we send it?</label>
+<div class="field"><input id="report-email" placeholder="you@company.com"></div>
+<button class="btn btn-soft" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> Email me the full page</button>
+</div>
+</section>
+
+<section id="start" class="card float rise" style="margin-top: 28px; padding: 40px; display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 48px; align-items: center">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<h2 style="font-size: 30px; line-height: 1.15; font-weight: 700; letter-spacing: -0.03em">Close the gap, one page a day.</h2>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; font-size: 15px">
+<span style="display: flex; gap: 10px"><span style="color: #1b765b; display: flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M20 6 9 17l-5-5"/></svg></span>One new page written for your site every day</span>
+<span style="display: flex; gap: 10px"><span style="color: #1b765b; display: flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M20 6 9 17l-5-5"/></svg></span>Your findability re-measured every week</span>
+<span style="display: flex; gap: 10px"><span style="color: #1b765b; display: flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M20 6 9 17l-5-5"/></svg></span>What moved, in your inbox every Monday</span>
+<span style="display: flex; gap: 10px"><span style="color: #1b765b; display: flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M20 6 9 17l-5-5"/></svg></span>Every page waits 24 hours for you to stop it</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 24px; border-radius: 12px; background: #f7f6fe; box-shadow: inset 0 0 0 1px #e4e0fb">
+<div style="display: flex; align-items: baseline; gap: 8px"><span class="num" style="font-size: 44px; line-height: 1">€49</span><span class="muted" style="font-size: 14px">per month, VAT included</span></div>
+<button class="btn btn-primary btn-lg" type="button" style="width: 100%">Start ReachKit <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+<span style="font-size: 12px; color: #5e5e73; display: flex; align-items: center; justify-content: center; gap: 6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg> Cancel in one click, yourself</span>
+</div>
+</section>
+<p style="font-size: 12px; color: #676774; text-align: center; margin-top: 8px">Own this site and want this report taken down? Write to remove@reachkit.app.</p>
+</main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2331}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { score: 0 };
+  }
+  componentDidMount() {
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) { this.setState({ score: 62 }); return; }
+    const to = 62, dur = 1400, t0 = performance.now() + 300;
+    const step = (t) => {
+      const p = Math.min(1, Math.max(0, (t - t0) / dur));
+      this.setState({ score: Math.round(to * (1 - Math.pow(1 - p, 3))) });
+      if (p < 1) this.raf = requestAnimationFrame(step);
+    };
+    this.raf = requestAnimationFrame(step);
+  }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); }
+  renderVals() {
+    return { score: this.state.score };
+  }
+}
+</script>
+</body>
+</html>
