@@ -51,7 +51,10 @@ interface MinimalQuery<T> extends PromiseLike<MinimalResult<T>> {
   select(columns: string, options?: { count: "exact" }): MinimalQuery<T>;
   eq(column: string, value: unknown): MinimalQuery<T>;
   or(filter: string): MinimalQuery<T>;
-  order(column: string, options: { ascending: boolean; nullsFirst?: boolean }): MinimalQuery<T>;
+  order(
+    column: string,
+    options: { ascending: boolean; nullsFirst?: boolean },
+  ): MinimalQuery<T>;
   range(from: number, to: number): MinimalQuery<T>;
   limit(n: number): MinimalQuery<T>;
 }
@@ -94,19 +97,32 @@ function toEntry(row: Row): GalleryEntry {
 }
 
 function searched<T>(query: MinimalQuery<T>, term: string): MinimalQuery<T> {
-  return term === "" ? query : query.or(`company.ilike."*${term}*",domain.ilike."*${term}*"`);
+  return term === ""
+    ? query
+    : query.or(`company.ilike."*${term}*",domain.ilike."*${term}*"`);
 }
 
-function ordered<T>(query: MinimalQuery<T>, sort: GallerySort): MinimalQuery<T> {
+function ordered<T>(
+  query: MinimalQuery<T>,
+  sort: GallerySort,
+): MinimalQuery<T> {
   switch (sort) {
     case "highest":
-      return query.order("score", { ascending: false, nullsFirst: false }).order("domain", { ascending: true });
+      return query
+        .order("score", { ascending: false, nullsFirst: false })
+        .order("domain", { ascending: true });
     case "lowest":
-      return query.order("score", { ascending: true, nullsFirst: false }).order("domain", { ascending: true });
+      return query
+        .order("score", { ascending: true, nullsFirst: false })
+        .order("domain", { ascending: true });
     case "az":
-      return query.order("company_key", { ascending: true }).order("domain", { ascending: true });
+      return query
+        .order("company_key", { ascending: true })
+        .order("domain", { ascending: true });
     case "newest":
-      return query.order("scanned_at", { ascending: false }).order("domain", { ascending: true });
+      return query
+        .order("scanned_at", { ascending: false })
+        .order("domain", { ascending: true });
   }
 }
 
@@ -117,14 +133,30 @@ export async function readGallery(a: {
   sort: GallerySort;
   shown: number;
 }): Promise<GalleryPage> {
-  let cards = searched(untyped().from<Row>("free_scan_listing").select(COLUMNS, { count: "exact" }), a.search);
+  let cards = searched(
+    untyped()
+      .from<Row>("free_scan_listing")
+      .select(COLUMNS, { count: "exact" }),
+    a.search,
+  );
   if (a.category !== null) cards = cards.eq("category", a.category);
   const [page, chips] = await Promise.all([
     ordered(cards, a.sort).range(0, a.shown - 1),
-    searched(untyped().from<{ category: string | null }>("free_scan_listing").select("category"), a.search),
+    searched(
+      untyped()
+        .from<{ category: string | null }>("free_scan_listing")
+        .select("category"),
+      a.search,
+    ),
   ]);
-  if (page.error) throw new Error(`gallery: could not read the free scans: ${page.error.message}`);
-  if (chips.error) throw new Error(`gallery: could not count the categories: ${chips.error.message}`);
+  if (page.error)
+    throw new Error(
+      `gallery: could not read the free scans: ${page.error.message}`,
+    );
+  if (chips.error)
+    throw new Error(
+      `gallery: could not count the categories: ${chips.error.message}`,
+    );
 
   const counts = new Map<string, number>();
   for (const row of chips.data ?? []) {
@@ -149,6 +181,7 @@ export async function isListed(domain: string): Promise<boolean> {
     .select("domain")
     .eq("domain", domain)
     .limit(1);
-  if (error) throw new Error(`gallery: could not read ${domain}: ${error.message}`);
+  if (error)
+    throw new Error(`gallery: could not read ${domain}: ${error.message}`);
   return (data?.length ?? 0) > 0;
 }

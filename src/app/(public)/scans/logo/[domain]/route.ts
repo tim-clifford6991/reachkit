@@ -16,9 +16,13 @@ import { readSiteLogo } from "@/lib/site-profile";
 
 export const dynamic = "force-dynamic";
 
-const NOT_FOUND = () => new Response(null, { status: 404, headers: { "Cache-Control": "no-store" } });
+const NOT_FOUND = () =>
+  new Response(null, { status: 404, headers: { "Cache-Control": "no-store" } });
 
-export async function GET(_request: Request, ctx: { params: Promise<{ domain: string }> }): Promise<Response> {
+export async function GET(
+  _request: Request,
+  ctx: { params: Promise<{ domain: string }> },
+): Promise<Response> {
   const domain = decodeURIComponent((await ctx.params).domain).toLowerCase();
   if (!/^[a-z0-9.-]{1,253}$/.test(domain)) return NOT_FOUND();
   if (!(await isListed(domain))) return NOT_FOUND();
@@ -30,7 +34,8 @@ export async function GET(_request: Request, ctx: { params: Promise<{ domain: st
       "Content-Type": logo.type,
       "Cache-Control": "public, max-age=3600",
       "X-Content-Type-Options": "nosniff",
-      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+      "Content-Security-Policy":
+        "default-src 'none'; style-src 'unsafe-inline'; sandbox",
     },
   });
 }

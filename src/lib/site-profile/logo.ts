@@ -56,7 +56,11 @@ function attributes(raw: string): Map<string, string> {
   ATTR_RE.lastIndex = 0;
   for (let m = ATTR_RE.exec(raw); m !== null; m = ATTR_RE.exec(raw)) {
     const name = (m[1] ?? "").toLowerCase();
-    if (!out.has(name)) out.set(name, (m[2] ?? m[3] ?? m[4] ?? "").replace(/&amp;/gi, "&").trim());
+    if (!out.has(name))
+      out.set(
+        name,
+        (m[2] ?? m[3] ?? m[4] ?? "").replace(/&amp;/gi, "&").trim(),
+      );
   }
   return out;
 }
@@ -65,7 +69,10 @@ function tags(html: string): { tag: string; attrs: Map<string, string> }[] {
   const out: { tag: string; attrs: Map<string, string> }[] = [];
   TAG_RE.lastIndex = 0;
   for (let m = TAG_RE.exec(html); m !== null; m = TAG_RE.exec(html)) {
-    out.push({ tag: (m[1] ?? "").toLowerCase(), attrs: attributes(m[2] ?? "") });
+    out.push({
+      tag: (m[1] ?? "").toLowerCase(),
+      attrs: attributes(m[2] ?? ""),
+    });
   }
   return out;
 }
@@ -84,7 +91,10 @@ function squareSize(sizes: string | undefined): number | null {
 }
 
 function isSvg(attrs: Map<string, string>): boolean {
-  return attrs.get("type") === "image/svg+xml" || /\.svg(?:[?#]|$)/i.test(attrs.get("href") ?? "");
+  return (
+    attrs.get("type") === "image/svg+xml" ||
+    /\.svg(?:[?#]|$)/i.test(attrs.get("href") ?? "")
+  );
 }
 
 function relTokens(attrs: Map<string, string>): string[] {
@@ -95,7 +105,9 @@ function resolve(href: string | undefined, base: string): string | null {
   if (href === undefined || href === "") return null;
   try {
     const url = new URL(href, base);
-    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+    return url.protocol === "https:" || url.protocol === "http:"
+      ? url.toString()
+      : null;
   } catch {
     return null;
   }
@@ -117,15 +129,23 @@ export function logoCandidates(html: string, homeUrl: string): string[] {
       const rel = relTokens(attrs);
       const href = attrs.get("href");
       if (href === undefined) continue;
-      if (rel.includes("apple-touch-icon") || rel.includes("apple-touch-icon-precomposed")) {
+      if (
+        rel.includes("apple-touch-icon") ||
+        rel.includes("apple-touch-icon-precomposed")
+      ) {
         touch.push({ href, size: squareSize(attrs.get("sizes")) ?? 180 });
       } else if (rel.includes("icon")) {
         const size = squareSize(attrs.get("sizes"));
         if (isSvg(attrs)) icons.push({ href, size: Number.MAX_SAFE_INTEGER });
-        else if (size !== null && size >= SITE_LOGO.MIN_ICON_PX) icons.push({ href, size });
+        else if (size !== null && size >= SITE_LOGO.MIN_ICON_PX)
+          icons.push({ href, size });
       }
     } else if (tag === "meta") {
-      const key = (attrs.get("property") ?? attrs.get("name") ?? "").toLowerCase();
+      const key = (
+        attrs.get("property") ??
+        attrs.get("name") ??
+        ""
+      ).toLowerCase();
       const content = attrs.get("content");
       if (key === "" || content === undefined || meta.has(key)) continue;
       meta.set(key, content);
@@ -136,7 +156,12 @@ export function logoCandidates(html: string, homeUrl: string): string[] {
   if (logo !== undefined) og.push(logo);
   const image = meta.get("og:image") ?? meta.get("og:image:url");
   const width = meta.get("og:image:width");
-  if (image !== undefined && width !== undefined && width === meta.get("og:image:height")) og.push(image);
+  if (
+    image !== undefined &&
+    width !== undefined &&
+    width === meta.get("og:image:height")
+  )
+    og.push(image);
 
   const header = HEADER_RE.exec(html)?.[0];
   const headerLogos = tags(header ?? html)
@@ -168,19 +193,43 @@ export function logoCandidates(html: string, homeUrl: string): string[] {
  *  is not one of the six picture formats a logo is served as. */
 export function sniffLogo(bytes: Buffer): LogoType | null {
   if (bytes.length < 4) return null;
-  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  if (
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  )
+    return "image/png";
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff)
+    return "image/jpeg";
   if (bytes.subarray(0, 4).toString("latin1") === "GIF8") return "image/gif";
-  if (bytes.length >= 12 && bytes.subarray(0, 4).toString("latin1") === "RIFF" && bytes.subarray(8, 12).toString("latin1") === "WEBP") {
+  if (
+    bytes.length >= 12 &&
+    bytes.subarray(0, 4).toString("latin1") === "RIFF" &&
+    bytes.subarray(8, 12).toString("latin1") === "WEBP"
+  ) {
     return "image/webp";
   }
-  if (bytes[0] === 0 && bytes[1] === 0 && bytes[2] === 1 && bytes[3] === 0) return "image/x-icon";
-  const head = bytes.subarray(0, 1024).toString("utf8").replace(/^﻿/, "").trimStart();
-  if (/^(?:<\?xml[^>]*>\s*)?(?:<!--[\s\S]*?-->\s*)*(?:<!DOCTYPE svg[^>]*>\s*)?<svg\b/i.test(head)) return "image/svg+xml";
+  if (bytes[0] === 0 && bytes[1] === 0 && bytes[2] === 1 && bytes[3] === 0)
+    return "image/x-icon";
+  const head = bytes
+    .subarray(0, 1024)
+    .toString("utf8")
+    .replace(/^﻿/, "")
+    .trimStart();
+  if (
+    /^(?:<\?xml[^>]*>\s*)?(?:<!--[\s\S]*?-->\s*)*(?:<!DOCTYPE svg[^>]*>\s*)?<svg\b/i.test(
+      head,
+    )
+  )
+    return "image/svg+xml";
   return null;
 }
 
-export type LogoFetch = (url: string, opts: Parameters<typeof safeFetch>[1]) => Promise<FetchOutcome>;
+export type LogoFetch = (
+  url: string,
+  opts: Parameters<typeof safeFetch>[1],
+) => Promise<FetchOutcome>;
 
 /**
  * The site's logo, or `null` where no candidate was usable in time. Never
@@ -189,9 +238,12 @@ export type LogoFetch = (url: string, opts: Parameters<typeof safeFetch>[1]) => 
  */
 export async function captureLogo(
   a: { html: string; homeUrl: string },
-  fetcher: LogoFetch = safeFetch
+  fetcher: LogoFetch = safeFetch,
 ): Promise<SiteLogo | null> {
-  const candidates = logoCandidates(a.html, a.homeUrl).slice(0, SITE_LOGO.MAX_TRIES);
+  const candidates = logoCandidates(a.html, a.homeUrl).slice(
+    0,
+    SITE_LOGO.MAX_TRIES,
+  );
   if (candidates.length === 0) return null;
   const signal = AbortSignal.timeout(SITE_LOGO.BUDGET_MS);
   for (const url of candidates) {
