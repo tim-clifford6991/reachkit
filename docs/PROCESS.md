@@ -82,6 +82,8 @@ A worktree whose commits are already on `origin/main`, and whose issue is closed
 
 This is how two sessions avoid editing one checkout. It is not a factory, and it is not a reason to add a dispatcher.
 
+2026-09-24  **An implementation agent is a Herdr tab in the reachkit workspace, not a subagent of the master** (owner). The Herdr workspace labelled `reachkit` gets one tab per issue, named `rk-<N>`. The agent is created there for that issue alone, in `/root/projects/reachkitv3-wt/issue-<N>`, and the tab is closed when the pull request merges or the issue closes. The master does not spawn it with the Agent tool and does not share its transcript. An agent already running may finish. The next one is started this way.
+
 ## What gets worked
 
 The milestone **Launch** is the launch queue. Take an open Launch issue that is not `blocked-on-owner` before any issue outside that milestone.
@@ -98,4 +100,5 @@ The master session orchestrates only (#1026, above): it holds no implementation 
 - Guess an owner decision.
 - Write under `docs/archive/`.
 - Bring back a factory role, a dispatcher, a lander, or an extra merge gate.
+- Spawn an implementation agent as a subagent of the master. It is a Herdr agent in the reachkit workspace, one issue, then the tab is closed.
 - Keep a second copy of these rules in a memory file, a settings note, or `/root/ops`.
