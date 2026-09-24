@@ -71,6 +71,7 @@ import type { DraftCommand } from "./actions";
 import { draftStore, type SaveBody } from "./save";
 import { Editor, type EditorPane, type PreviewFrame } from "./Editor";
 import { liveBreaks, type MarkInputs } from "./marks";
+import { Check } from "lucide-react";
 import { headingsOf } from "@/lib/generate/rules/text";
 import { PageRecordBlock } from "./PageRecordBlock";
 import { TargetBlock } from "./TargetBlock";
@@ -114,6 +115,12 @@ const EYEBROW = "text-xs font-semibold uppercase tracking-wide opacity-70";
  *  readable in a test and in a page source. */
 const TITLE_FIELD_ID = "draft-edit-title";
 const DESCRIPTION_FIELD_ID = "draft-edit-description";
+
+/** The editor's two field labels, in the one key/value label style the page
+ *  arm sets (#1072): sentence case, `text-sm`, the
+ *  quiet ink. daisyUI's `fieldset-legend` stays for its row layout (the
+ *  count sits at the row's end); its weight is the one thing overridden. */
+const KEY_LABEL = "fieldset-legend text-sm font-normal text-base-content/70";
 
 /** The two writes this screen can ask for. Both are §9 edges and both go
  *  to the state machine through the seam. */
@@ -202,6 +209,10 @@ export function DraftScreen(p: {
   const unsaved = !sameText(text, savedText);
   const settled = useDebounced(text, AUTOSAVE_DEBOUNCE_MS);
 
+  /** Set when *Done editing* is pressed with a save still on its way: the
+   *  save that lands, or is refused, answers for the press (#1095). */
+  const answerSaveRef = useRef(false);
+
   const save = useCallback(
     (next: DraftText): void => {
       void draftStore
@@ -219,15 +230,26 @@ export function DraftScreen(p: {
               rulesFailed: result.rulesFailed,
             });
             setRefused(false);
+            if (answerSaveRef.current) {
+              answerSaveRef.current = false;
+              say(copy("draft.edit.saved", { at: formatTime(result.savedAt, view.timeZone) }), "ok");
+            }
             return;
           }
           setRefused(true);
+          answerRefusal();
         })
         .catch(() => {
           setRefused(true);
+          answerRefusal();
         });
+      function answerRefusal(): void {
+        if (!answerSaveRef.current) return;
+        answerSaveRef.current = false;
+        say(copy("draft.unsaved"), "bad");
+      }
     },
-    [view.draftId],
+    [view.draftId, view.timeZone],
   );
 
   // c6, the pause: one save per settled buffer, never one per keystroke.
@@ -338,8 +360,15 @@ export function DraftScreen(p: {
         {copy("draft.edit.rules-held")}
       </p>
     ) : (
-      <p className="alert alert-success text-sm" data-testid="draft-rules-ok">
-        {copy("draft.editor.rules-ok")}
+      // Nothing broken is a zero state, so it is quiet (DESIGN.md, the calm
+      // layer, #1095): a flat grey ground, a tick and the one line — not a
+      // green alert for a page with nothing to report.
+      <p
+        className="rounded-box bg-base-200 flex items-start gap-2 px-4 py-3 text-sm"
+        data-testid="draft-rules-ok"
+      >
+        <Check size={16} strokeWidth={1.75} className="text-success mt-0.5 shrink-0" aria-hidden />
+        <span className="min-w-0">{copy("draft.editor.rules-ok")}</span>
       </p>
     );
   // Whether generation recorded a grounding at all: three facts, and the
@@ -480,6 +509,27 @@ export function DraftScreen(p: {
   const flush = (): void => {
     if (!sameText(text, savedText)) save(text);
   };
+  /**
+   * *Done editing* answers (SPEC §4, "every action answers"; #1095): the
+   * save confirmation is the product's one toast, never an animation of
+   * its own. A save still on its way answers when it lands; a refused one
+   * says so at once; a session with nothing saved in it says nothing,
+   * because nothing was done.
+   */
+  const leaveEditor = (): void => {
+    setEditing(false);
+    if (refused) {
+      say(copy("draft.unsaved"), "bad");
+      return;
+    }
+    if (unsaved) {
+      answerSaveRef.current = true;
+      return;
+    }
+    if (savedAt !== null && savedAt !== view.lastSavedAt) {
+      say(copy("draft.edit.saved", { at: formatTime(savedAt, view.timeZone) }), "ok");
+    }
+  };
 
   /**
    * SPEC §7's search result, as a reader meets one (issue 932).
@@ -568,12 +618,12 @@ export function DraftScreen(p: {
           className="card card-border bg-base-100 min-w-0"
           data-testid="draft-edit-card"
         >
-          <div className="card-body min-w-0 gap-3">
+          <div className="card-body min-w-0 gap-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h1 className="card-title break-words text-2xl">{text.title}</h1>
               {saveLine === null ? null : (
                 <span
-                  className="text-xs opacity-70"
+                  className="text-xs text-base-content/70"
                   data-testid="draft-save-line"
                 >
                   {saveLine}
@@ -587,8 +637,8 @@ export function DraftScreen(p: {
                 it — axe reports both of these fields `label` (critical),
                 which is a merge gate. The class is daisyUI's own and stays;
                 the element it sits on is the one that can carry a name. */}
-            <fieldset className="fieldset">
-              <label className="fieldset-legend" htmlFor={TITLE_FIELD_ID}>
+            <fieldset className="fieldset gap-2">
+              <label className={KEY_LABEL} htmlFor={TITLE_FIELD_ID}>
                 {copy("draft.edit.title-label")}
               </label>
               <input
@@ -600,14 +650,14 @@ export function DraftScreen(p: {
                 onBlur={flush}
                 data-testid="draft-editor-title"
               />
-              <label className="fieldset-legend" htmlFor={DESCRIPTION_FIELD_ID}>
+              <label className={KEY_LABEL} htmlFor={DESCRIPTION_FIELD_ID}>
                 {copy("draft.edit.description-label")}
                 {/* SPEC §7's "length count". A count and not a verdict:
                     nothing in §8 bounds a meta description, so a bar that
                     turned red at 160 would be this screen inventing a rule
                     the battery does not run. It is a number, so it is set
                     in the mono face and is never clamped. */}
-                <span className="num ms-auto text-xs opacity-70" data-testid="draft-description-count">
+                <span className="num ms-auto text-xs text-base-content/70" data-testid="draft-description-count">
                   {copy("draft.editor.description-count", {
                     n: formatCount(text.description.length),
                   })}
@@ -635,7 +685,7 @@ export function DraftScreen(p: {
               inputs={markInputs}
               searchResult={searchResult}
             />
-            <p className="text-sm opacity-70" data-testid="draft-edit-footnote">
+            <p className="text-sm text-base-content/70" data-testid="draft-edit-footnote">
               {copy("draft.edit.footnote")}
             </p>
           </div>
@@ -646,7 +696,7 @@ export function DraftScreen(p: {
             type="button"
             className="btn btn-sm btn-primary"
             data-testid="draft-edit-done"
-            onClick={() => setEditing(false)}
+            onClick={leaveEditor}
           >
             {copy("draft.edit.done")}
           </button>
