@@ -133,7 +133,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
             whether it is running. */}
         <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-2">
           <span className="flex min-w-0 flex-wrap items-baseline gap-2" data-testid="billing-price">
-            <span className="num text-3xl font-semibold wrap-anywhere">{amount}</span>
+            <span className="figure text-3xl wrap-anywhere">{amount}</span>
             {interval === null ? null : (
               <span className="num-phrase text-xs text-base-content/60 wrap-anywhere">{interval}</span>
             )}

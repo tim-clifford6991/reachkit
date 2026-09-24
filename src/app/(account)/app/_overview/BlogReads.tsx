@@ -99,7 +99,7 @@ export function BlogReads(p: { model: BlogReadsModel }): React.JSX.Element | nul
             testId="blog-reads-fetches"
             figure={
               fetches.isDash ? null : (
-                <span className="num text-3xl leading-none font-bold" data-testid="blog-reads-fetches-value">
+                <span className="figure text-3xl leading-none" data-testid="blog-reads-fetches-value">
                   {fetches.text}
                 </span>
               )
@@ -139,7 +139,7 @@ export function BlogReads(p: { model: BlogReadsModel }): React.JSX.Element | nul
                 // text is, and this text is a phrase; it still folds only at
                 // its space, never inside the number.
                 <span
-                  className="num num-phrase text-3xl leading-none font-bold"
+                  className="figure num-phrase text-3xl leading-none"
                   data-testid="blog-reads-referrals-value"
                 >
                   {copy("overview.blog.at-least", { n: referrals.text })}

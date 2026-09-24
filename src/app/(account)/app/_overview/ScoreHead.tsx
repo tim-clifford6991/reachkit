@@ -92,7 +92,7 @@ export function ScoreHead(p: {
               <span className="text-sm text-base-content/70">{value.line ?? label}</span>
             ) : (
               <>
-                <span className="num text-3xl font-bold leading-none">{value.text}</span>
+                <span className="figure text-3xl leading-none">{value.text}</span>
                 <span className="num text-sm text-base-content/60">{goal}</span>
                 {carried.kind === "delta" ? (
                   <span className={BADGE.ok}>

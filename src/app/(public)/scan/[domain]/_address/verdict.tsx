@@ -129,7 +129,7 @@ export function VerdictStrip(p: {
           <div className="stat w-auto p-0 text-right">
             <div className="stat-title">{copy("verdict.score.label")}</div>
             <div className="stat-value text-5xl">
-              <Num unmeasured={scoreAndBand.kind === "unmeasured"}>
+              <Num unmeasured={scoreAndBand.kind === "unmeasured"} figure>
                 {scoreAndBand.kind === "unmeasured" ? dash() : scoreAndBand.value.score}
               </Num>
             </div>

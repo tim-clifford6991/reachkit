@@ -79,7 +79,7 @@ function Tile(p: {
           <div className="stat p-0">
             <div className="stat-title text-xs font-semibold uppercase tracking-wide">{p.label}</div>
             <div className="flex flex-wrap items-baseline gap-2" data-carry={CARRY_BESIDE}>
-              <div className="stat-value num">{p.figure ?? "—"}</div>
+              <div className="stat-value figure">{p.figure ?? "—"}</div>
               {p.beside === null ? null : (
                 <div className="stat-desc flex flex-wrap items-center gap-2 whitespace-normal">{p.beside}</div>
               )}

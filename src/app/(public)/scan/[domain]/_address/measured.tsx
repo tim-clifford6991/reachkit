@@ -67,6 +67,10 @@ export function Num(p: {
    *  back the whole value. Opted in per call site, and never for a number
    *  — a number has no ellipsis that could mean anything. */
   clamp?: string;
+  /** A **big figure** — the score, a count set large — in the UI face at
+   *  600 with tabular figures (`.figure`, the calm layer, #1062) rather
+   *  than the mono face. Same box rules; only the face and weight change. */
+  figure?: boolean;
 }): React.JSX.Element {
   // ADR-093: content fits its box or the box changes, and text is never
   // shrunk to fit. **The box changes; the value does not** (issue #256).
@@ -90,7 +94,8 @@ export function Num(p: {
   // Where a value still cannot fit, the *box* changes and not the value —
   // `_modules/free-page.tsx` stacks its label above the value for exactly
   // that reason.
-  const base = p.phrase === true ? "num num-phrase min-w-0" : "num min-w-0";
+  const face = p.figure === true ? "figure" : "num";
+  const base = p.phrase === true ? `${face} num-phrase min-w-0` : `${face} min-w-0`;
   return (
     <span
       className={p.clamp === undefined ? base : `${base} max-w-full truncate`}
@@ -104,9 +109,13 @@ export function Num(p: {
 
 /** A measured count, with the dash rule applied and no line — for a card
  *  that places the reason line itself. */
-export function MeasuredNum(p: { value: Measured<number>; what: string }): React.JSX.Element {
+export function MeasuredNum(p: { value: Measured<number>; what: string; figure?: boolean }): React.JSX.Element {
   const rendered = measuredText(p.value, p.what);
-  return <Num unmeasured={rendered.isDash}>{rendered.text}</Num>;
+  return (
+    <Num unmeasured={rendered.isDash} figure={p.figure}>
+      {rendered.text}
+    </Num>
+  );
 }
 
 /** `n/m`, composed in TypeScript rather than as two JSX children with a

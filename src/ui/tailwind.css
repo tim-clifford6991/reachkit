@@ -102,10 +102,17 @@
 }
 
 /* The page's own ground and ink. Until something paints them, Tailwind's
- * preflight leaves the document white in both themes. */
+ * preflight leaves the document white in both themes.
+ *
+ * And room between words (the calm layer, `docs/DESIGN.md` 2026-09-24,
+ * #1062): Plus Jakarta Sans ships a 0.17em space where Arial's is 0.28em,
+ * so *Sign in* and *Scan my site* read as one word. `.06em` more brings it
+ * to about 0.23em. It inherits, so every label and button takes it;
+ * headings take their own `.04em` in `type.css`. */
 body {
   background: var(--bg);
   color: var(--ink);
+  word-spacing: 0.06em;
 }
 
 /* The hairline, named (#243): 1px, the width of every rule, card edge, cell

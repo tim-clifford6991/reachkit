@@ -100,7 +100,7 @@ function Tile(p: {
         ) : (
           <>
             <div className="flex min-w-0 flex-wrap items-baseline gap-2">
-              <span className="num text-3xl font-bold leading-none">{p.figure}</span>
+              <span className="figure text-3xl leading-none">{p.figure}</span>
               {p.against}
               {p.change}
             </div>

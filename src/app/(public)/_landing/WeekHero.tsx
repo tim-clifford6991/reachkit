@@ -180,7 +180,7 @@ export function WeekHero(): React.JSX.Element {
                   each has a block box of its own sized to its own content,
                   and `items-baseline` keeps the two numerals on one line. */}
               <div className="stat-value flex items-baseline gap-1 text-4xl">
-                <Num>{SPECIMEN_HERO.score}</Num>
+                <Num figure>{SPECIMEN_HERO.score}</Num>
                 <span className="text-base-content/60 text-base">
                   <Num>{outOf(SPECIMEN_HERO.max)}</Num>
                 </span>

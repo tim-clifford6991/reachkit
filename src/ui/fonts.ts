@@ -42,9 +42,10 @@
 //
 // **One call per family per subset, and the subsets are the vendor's.**
 // `unicode-range` is a `@font-face` property, and `declarations` applies to
-// every `src` entry in one call — so a subset is a call. The eleven below
-// are exactly the faces the four `@fontsource/*.css` imports this file used
-// to make: same families, same weights, same ranges, so no codepoint that
+// every `src` entry in one call — so a subset is a call (latin Jakarta takes
+// three, because preloading is decided per call). The faces below are
+// exactly the ones the six `@fontsource/*.css` stylesheets for these weights
+// ship: same families, same weights, same ranges, so no codepoint that
 // rendered in Jakarta or JetBrains Mono yesterday falls through to the
 // system stack today. The ranges are Google's subsetting rather than this
 // file's decision, and `tests/ui/fonts.test.ts` holds each one equal to the
@@ -54,7 +55,8 @@
 //
 // **What preloads (an internal parameter, rule 1.1 — reversal cost: one
 // boolean).** Only the latin faces the product renders above the fold:
-// Jakarta 400 (body) and 700 (`type.css`'s one heading weight), JetBrains
+// Jakarta 400 (body), 600 (every label, button and big figure, #1062) and
+// 700 (`type.css`'s one heading weight), JetBrains
 // Mono 400 (every numeral), and Jakarta 800 — `BUILD.md` §2.3's "Jakarta
 // 700–800", which `src/ui/idiom/idiom.css` spends on the public header's
 // wordmark and the landing's headline, the first two things `/` paints.
@@ -70,14 +72,17 @@
 // fetched when it is matched.
 //
 // Weights loaded (rule 1.1 again — one `src` row per weight, no call site
-// depends on the set): Jakarta 400 for body text, 700 and 800 for
-// `BUILD.md` §2.3's heading range; JetBrains Mono 400, the only weight
-// `BUILD.md` §2.3 or `.num` (type.css) asks for.
+// depends on the set): Jakarta 400 for body text, 500 and 600 so
+// `font-medium` and `font-semibold` render as themselves (the calm layer,
+// `docs/DESIGN.md` 2026-09-24, #1062 — until then every 600 fell through to
+// 700 and every label read as bold), 700 and 800 for `BUILD.md` §2.3's
+// heading range; JetBrains Mono 400, the only weight `.num` (type.css)
+// asks for.
 //
 // **Every value below is written out, never referenced.** `next/font`'s
 // transform reads its arguments at build and refuses anything that is not
-// an explicitly written literal — so the two family names appear eleven
-// times each rather than once from a constant. Their one home is still
+// an explicitly written literal — so the two family names appear once per
+// call rather than once from a constant. Their one home is still
 // `src/ui/theme.css`'s `--font-ui` / `--font-mono`, and
 // `tests/ui/fonts.test.ts` holds every occurrence here equal to it.
 //
@@ -90,19 +95,28 @@
 // meaning to CSS and survive that trip. `tests/ui/fonts.test.ts` requires
 // the quotes and compares the names without them.
 //
-// The eleven handles are exported because `next/font`'s transform binds
+// The twelve handles are exported because `next/font`'s transform binds
 // each call to a name and an unread binding is a lint error; they are this
 // module's record of what it loaded and nothing imports them. The product
 // reaches these faces by name, through `--font-ui` and `--font-mono`.
 import localFont from "next/font/local";
 
-/** Plus Jakarta Sans, latin — the body weight and the heading weight, the
- *  two faces every screen in the product renders, so the two that preload. */
+/** Plus Jakarta Sans, latin — the body weight, the label weight and the
+ *  heading weight, the three faces every screen in the product renders, so
+ *  the three that preload. 600 joined on 2026-09-24 (#1062): `font-semibold`
+ *  is every button, tab and card label and every big figure, and before it
+ *  loaded each one fell through to 700. Discovered late, it would swap in
+ *  under a laid-out button and move it, as the 800 note below records. */
 export const jakartaLatin = localFont({
   src: [
     {
       path: "../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-400-normal.woff2",
       weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-600-normal.woff2",
+      weight: "600",
       style: "normal",
     },
     {
@@ -151,12 +165,48 @@ export const jakartaLatinHeavy = localFont({
   ],
 });
 
+/** Plus Jakarta Sans 500, latin — `font-medium`, which a handful of
+ *  quiet labels spend (the calm layer, 2026-09-24, #1062). Loaded so the
+ *  class renders as itself rather than falling to 400 or 700, and not
+ *  preloaded: nothing above the fold on `/` or `/scan/{domain}` is set in
+ *  it, so the byte is fetched when a rule first matches. */
+export const jakartaLatinMedium = localFont({
+  src: [
+    {
+      path: "../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+  ],
+  display: "swap",
+  preload: false,
+  adjustFontFallback: false,
+  declarations: [
+    { prop: "font-family", value: "'Plus Jakarta Sans'" },
+    {
+      prop: "unicode-range",
+      value:
+        "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+    },
+  ],
+});
+
 /** Plus Jakarta Sans, latin-ext — fetched only for text that needs it. */
 export const jakartaLatinExt = localFont({
   src: [
     {
       path: "../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-ext-400-normal.woff2",
       weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-ext-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-ext-600-normal.woff2",
+      weight: "600",
       style: "normal",
     },
     {
@@ -192,6 +242,16 @@ export const jakartaVietnamese = localFont({
       style: "normal",
     },
     {
+      path: "../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-vietnamese-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-vietnamese-600-normal.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
       path: "../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-vietnamese-700-normal.woff2",
       weight: "700",
       style: "normal",
@@ -222,6 +282,16 @@ export const jakartaCyrillicExt = localFont({
     {
       path: "../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-cyrillic-ext-400-normal.woff2",
       weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-cyrillic-ext-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-cyrillic-ext-600-normal.woff2",
+      weight: "600",
       style: "normal",
     },
     {

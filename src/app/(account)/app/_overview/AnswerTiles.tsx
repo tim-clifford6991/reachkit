@@ -58,7 +58,7 @@ function Tile(p: {
           <p className="text-sm text-base-content/70">{p.line ?? copy(p.labelKey)}</p>
         ) : (
           <div className="flex min-w-0 flex-wrap items-baseline gap-2">
-            <span className="num text-3xl leading-none font-bold" data-testid={`${p.testId}-value`}>
+            <span className="figure text-3xl leading-none" data-testid={`${p.testId}-value`}>
               {p.figure}
             </span>
             <span className="num flex flex-wrap items-baseline gap-1 text-sm text-base-content/60">

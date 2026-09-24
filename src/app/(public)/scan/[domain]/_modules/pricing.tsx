@@ -91,8 +91,8 @@ export function PricingCard(
       <div className="card-body gap-4">
         {/* REQ-022 c1: "€49 per month and says that VAT is included". */}
         <div className="flex flex-wrap items-baseline justify-center gap-2 text-center">
-          <div className="text-5xl font-semibold">
-            <Num>{copy("price.amount")}</Num>
+          <div className="text-5xl">
+            <Num figure>{copy("price.amount")}</Num>
           </div>
           <span className="text-base-content/60 text-sm font-semibold">{copy("price.interval")}</span>
         </div>
