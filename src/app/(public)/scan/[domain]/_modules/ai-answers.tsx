@@ -179,7 +179,7 @@ const AI_OVERVIEW: BatteryEngine = "ai_overview";
  *  one. */
 function EngineNotAsked(p: { engine: BatteryEngine }): React.JSX.Element {
   return (
-    <p className="flex flex-wrap items-center gap-2 text-xs">
+    <p className="flex grow-0 flex-wrap items-center gap-2 text-xs">
       <span className="badge badge-ghost">{copy(ENGINE_LABEL[p.engine])}</span>
       <span className="opacity-60">{copy("ai-answers.engine.not-measured")}</span>
     </p>
@@ -373,13 +373,16 @@ function matrixRows(section: AiAnswersSection): readonly MatrixRow[] {
 
 /** The card's head: the glyph, the card's name, and what sits at its right —
  *  the source line on the measured card, the dash on the absent one. */
-function Head(p: { right: React.ReactNode }): React.JSX.Element {
+function Head(p: { right: React.ReactNode; heading?: boolean }): React.JSX.Element {
+  // The card's name is an eyebrow (#1068); on the measured card the heading
+  // is the finding under it, and on the absent card the name is the heading.
+  const Tag = p.heading === true ? "h2" : "p";
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <h2 className="card-title text-base-content/70 text-xs tracking-wide uppercase">
-        <Bot size={16} strokeWidth={1.75} aria-hidden />
+      <Tag className="eyebrow flex items-center gap-2">
+        <Bot size={14} strokeWidth={1.75} aria-hidden />
         {copy("ai-answers.title")}
-      </h2>
+      </Tag>
       {p.right}
     </div>
   );
@@ -451,11 +454,11 @@ export function AiAnswersCard(p: {
   const rest = section.rows.slice(QUESTIONS_SHOWN);
 
   return (
-    <section className="card bg-base-100 border-base-300 border">
-      <div className="card-body gap-3">
+    <section className="card bg-base-100 shadow-(--shadow-card) min-w-0">
+      <div className="card-body gap-4">
         <Head
           right={
-            <span className="badge badge-ghost h-auto py-1 text-xs whitespace-normal">
+            <span className="badge badge-soft h-auto py-1 text-xs whitespace-normal">
               {copy("ai-answers.source", { date: p.measuredOn })}
             </span>
           }
@@ -476,13 +479,20 @@ export function AiAnswersCard(p: {
             <Num phrase>{copy("ai-answers.reused-from", { date: formatReusedOn(section.reusedFrom) })}</Num>
           </p>
         )}
-        {/* The card leads with its answer, not with its metric. */}
-        <p className="grow-0 text-sm font-semibold">
-          {copy("ai-answers.denominator", {
-            answered: String(section.answeredSearches),
-            measured: String(section.measuredSearches),
-          })}
-        </p>
+        {/* The card leads with its answer, not with its metric — and the
+            answer is its heading, one sentence (#1068). */}
+        <h2 className="text-lg font-semibold">
+          {section.customerCitations === 0
+            ? copy("ai-answers.finding.none", {
+                answered: String(section.answeredSearches),
+                measured: String(section.measuredSearches),
+              })
+            : copy("ai-answers.finding", {
+                answered: String(section.answeredSearches),
+                measured: String(section.measuredSearches),
+                named: String(section.customerCitations),
+              })}
+        </h2>
 
         {/* The matrix scrolls rather than shrinking its labels. The
             customer's own row is labelled `n/m`; no sentence repeats it.
@@ -505,7 +515,7 @@ export function AiAnswersCard(p: {
 
         <div className="divider my-0" />
 
-        <p className="text-base-content/60 grow-0 text-xs font-semibold tracking-wide uppercase">
+        <p className="eyebrow grow-0">
           {copy("ai-answers.questions.title", { total: String(section.rows.length) })}
         </p>
         {/* Issue 873: what was measured, stated rather than counted off the
@@ -544,9 +554,9 @@ export function AiAnswersCard(p: {
  *  never an empty card, never a spinner. */
 export function AiAnswersAbsent(p: { cutOff?: boolean; domain?: CanonicalDomain } = {}): React.JSX.Element {
   return (
-    <section className="card bg-base-100 border-base-300 border">
-      <div className="card-body gap-3">
-        <Head right={<Num unmeasured>{dash()}</Num>} />
+    <section className="card bg-base-100 shadow-(--shadow-card) min-w-0">
+      <div className="card-body gap-4">
+        <Head heading right={<Num unmeasured>{dash()}</Num>} />
         <p className="grow-0 text-sm">{copy("ai-answers.absent")}</p>
         {/* The part this card could not measure is offered again on the card:
             "Retry this part" where the pass's ceiling cut it off (SPEC §2),

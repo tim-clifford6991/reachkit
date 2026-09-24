@@ -1,24 +1,28 @@
-// BUILD §4.1 module 3 — the three problem cards
+// BUILD §4.1 module 3 — the three problem cards, and the eight quick checks
 //
-// Count, severity in words, who does the work, and the paste block on the
-// one arm that carries lines. Rendered from `model.ts`'s three-tuple and
-// from nothing else, so this file cannot reach a report field the model
-// did not hand it.
+// Board `R12-2-Report` (#1068): the three costliest problems are equal-height
+// clickable cards — icon, count, title, one-line cause, badges, a *show me*
+// link — and the eight checks are one two-column list. Rendered from
+// `model.ts`'s three-tuple and `checks.ts`'s cards and from nothing else, so
+// this file cannot reach a report field the model did not hand it.
 //
-// daisyUI in the route (DESIGN rule 1): each problem is a `card` with a
-// severity `badge` and a who-does-it `badge`. The tone rides beside the word
-// and never instead of it.
+// daisyUI in the route (DESIGN rule 1): `card`, `badge`, `status`, `list`.
+// The tone rides beside the word and never instead of it.
 //
 // A count that could not be measured shows the dash for the count *and*
 // for the severity, carries the reason-specific written line, and holds no
 // lines to paste — a founder is never shown a robots directive derived
-// from a measurement that did not happen.
+// from a measurement that did not happen. The robots lines themselves sit
+// behind the card's link, in the method section (`method.tsx`).
 import type React from "react";
+import { ArrowRight, FileText, Lock, MessageSquareQuote, type LucideIcon } from "lucide-react";
+import { ARROW_NUDGE, CARD_LIFT } from "@/ui/lift";
+import type { CopyKey } from "@/lib/presentation/copy";
 import { copy } from "@/lib/presentation/copy";
 import { SEVERITY } from "@/lib/presentation/bands";
 import { dash, MeasuredNum, measuredText } from "../_address/measured";
 import type { Measured } from "@/lib/measure/measured";
-import { SEVERITY_INDEX, type ProblemCard, type Severity } from "./model";
+import { SEVERITY_INDEX, type ProblemCard, type ProblemName, type Severity } from "./model";
 import type { CheckCard } from "./checks";
 import { CopyLines } from "./copy-lines";
 
@@ -43,7 +47,7 @@ function SeverityBadge(p: { severity: Measured<Severity> }): React.JSX.Element {
   );
 }
 
-function PasteBlock(p: { lines: readonly string[] }): React.JSX.Element {
+export function PasteBlock(p: { lines: readonly string[] }): React.JSX.Element {
   return (
     <>
       <pre className="bg-base-200 rounded-box min-w-0 overflow-x-auto p-3 text-xs">
@@ -56,70 +60,128 @@ function PasteBlock(p: { lines: readonly string[] }): React.JSX.Element {
   );
 }
 
-/** A total switch over `Fix`, so a new arm fails the build until it has a
- *  rendering. The `paste` arm is the only one that carries lines, and the
- *  copy control is the only control on any fix. */
-function FixBody(p: { card: ProblemCard }): React.JSX.Element | null {
-  const { fix } = p.card;
-  switch (fix.kind) {
+/** Where each card's link goes, and what it says. `method-…` is the
+ *  content of that problem's method section, so following it opens the
+ *  collapse it sits in; `first-page` is the free page card. */
+export const METHOD_ANCHOR: Readonly<Record<ProblemName, string>> = Object.freeze({
+  blocked_readers: "method-blocked-readers",
+  missing_pages: "method-missing-pages",
+  unquotable_pages: "method-unquotable-pages",
+});
+export const FIRST_PAGE_ANCHOR = "first-page";
+
+const PROBLEM_ICON: Readonly<Record<ProblemName, LucideIcon>> = Object.freeze({
+  blocked_readers: Lock,
+  missing_pages: FileText,
+  unquotable_pages: MessageSquareQuote,
+});
+
+const PROBLEM_CAUSE: Readonly<Record<ProblemName, CopyKey>> = Object.freeze({
+  blocked_readers: "problem.blocked-readers.cause",
+  missing_pages: "problem.missing-pages.cause",
+  unquotable_pages: "problem.unquotable-pages.cause",
+});
+
+/** The icon tile takes the severity's tone; unmeasured is quiet. */
+const ICON_TONE: Readonly<Record<Severity, string>> = Object.freeze({
+  low: "bg-success/10 text-success",
+  mid: "bg-warning/10 text-warning",
+  high: "bg-error/10 text-error",
+});
+
+/** The one line under the title: the cause where there is something to
+ *  fix, "Nothing to fix" on a measured zero, the reason on the dash. */
+function CardLine(p: { card: ProblemCard }): React.JSX.Element | null {
+  const { card } = p;
+  switch (card.fix.kind) {
     case "none_needed":
-      return <p className="text-sm">{copy(p.card.noneNeeded)}</p>;
+      return <p className="text-base-content/70 text-sm">{copy(card.noneNeeded)}</p>;
     case "unknown": {
-      const rendered = measuredText(p.card.count, copy(p.card.title));
-      return rendered.line === undefined ? null : <p className="text-sm">{rendered.line}</p>;
+      const rendered = measuredText(card.count, copy(card.title));
+      return rendered.line === undefined ? null : <p className="text-base-content/70 text-sm">{rendered.line}</p>;
     }
     case "paste":
-      return <PasteBlock lines={fix.lines} />;
     case "we_write":
     case "we_rewrite":
-      return null;
+      return <p className="text-base-content/70 text-sm">{copy(PROBLEM_CAUSE[card.problem])}</p>;
     default: {
-      const exhaustive: never = fix;
+      const exhaustive: never = card.fix;
       return exhaustive;
     }
   }
 }
 
-function ProblemCardView(p: { card: ProblemCard }): React.JSX.Element {
+/** The card's link: the robots lines on the paste arm, the free page for
+ *  the pages ReachKit writes when there is one, and the method otherwise. */
+function linkOf(card: ProblemCard, firstPage: boolean): { href: string; label: CopyKey } {
+  if (card.fix.kind === "paste") return { href: `#${METHOD_ANCHOR[card.problem]}`, label: "problem.show.lines" };
+  if (card.fix.kind === "we_write" && firstPage) return { href: `#${FIRST_PAGE_ANCHOR}`, label: "problem.show.first-page" };
+  return { href: `#${METHOD_ANCHOR[card.problem]}`, label: "problem.show.method" };
+}
+
+function ProblemCardView(p: { card: ProblemCard; firstPage: boolean }): React.JSX.Element {
   const { card } = p;
+  const Icon = PROBLEM_ICON[card.problem];
+  const tone = card.severity.kind === "unmeasured" ? "bg-base-200 text-base-content/70" : ICON_TONE[card.severity.value];
+  const link = linkOf(card, p.firstPage);
   return (
-    <section className="card bg-base-100 border-base-300 border">
-      <div className="card-body gap-3">
-        <h3 className="card-title text-base">{copy(card.title)}</h3>
-        <div className="flex flex-wrap gap-2">
+    <a href={link.href} className={`card bg-base-100 shadow-(--shadow-card) h-full min-w-0 ${CARD_LIFT}`}>
+      <div className="card-body gap-3 p-5">
+        <div className="flex items-center justify-between gap-3">
+          <span className={`rounded-field grid size-9 place-items-center ${tone}`}>
+            <Icon size={18} strokeWidth={1.75} aria-hidden />
+          </span>
+          <span className="text-3xl leading-none">
+            <MeasuredNum value={card.count} what={copy(card.title)} figure />
+          </span>
+        </div>
+        <h3 className="text-base font-semibold">{copy(card.title)}</h3>
+        <CardLine card={card} />
+        <div className="mt-auto flex flex-wrap gap-2">
           <SeverityBadge severity={card.severity} />
-          <span className="badge badge-primary badge-outline">{copy(card.doer)}</span>
+          <span className="badge badge-soft badge-primary">{copy(card.doer)}</span>
         </div>
-        <div className="text-4xl">
-          <MeasuredNum value={card.count} what={copy(card.title)} figure />
-        </div>
-        <FixBody card={card} />
+        <span className="text-primary flex items-center gap-1 text-sm font-semibold">
+          {copy(link.label)}
+          <ArrowRight size={16} strokeWidth={1.75} aria-hidden className={ARROW_NUDGE} />
+        </span>
       </div>
-    </section>
+    </a>
   );
 }
 
-/** Exactly three, in `PROBLEM_ORDER`. The props are the tuple and nothing
- *  else; there is no field here that could hold a page, a title or a URL,
- *  so "neither lists nor previews the pages themselves" holds by
- *  construction. */
+/** Exactly three, in `PROBLEM_ORDER`, stretched to one height. The props
+ *  are the tuple and whether the report has a first page to point at; there
+ *  is no field here that could hold a page, a title or a URL, so "neither
+ *  lists nor previews the pages themselves" holds by construction. */
 export function ProblemCards(p: {
   cards: readonly [ProblemCard, ProblemCard, ProblemCard];
+  firstPage?: boolean;
 }): React.JSX.Element {
   return (
-    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       {p.cards.map((card) => (
-        <ProblemCardView key={card.problem} card={card} />
+        <ProblemCardView key={card.problem} card={card} firstPage={p.firstPage === true} />
       ))}
     </div>
   );
 }
 
-/** SPEC §9's eight checks. A check that was not run, or ran and could not
- *  measure, is absent with one why-line: no figure, no severity, no dash, and
- *  never "Nothing to fix". The who-does-it badge is the ruling's and is
- *  always shown. */
-function CheckCardView(p: { card: CheckCard }): React.JSX.Element {
+/** A check's dot: its severity's tone where it was measured, grey where it
+ *  could not run or could not measure — the legend under the list says what
+ *  grey means, and the row says it to a screen reader. */
+const STATUS_TONE: Readonly<Record<Severity, string>> = Object.freeze({
+  low: "status-success",
+  mid: "status-warning",
+  high: "status-error",
+});
+
+/** SPEC §9's eight checks, one row each. A check that was not run, or ran
+ *  and could not measure, has a grey dot and its why-line for a screen
+ *  reader: no figure, no severity, no dash, and never "Nothing to fix". The
+ *  who-does-it badge is the ruling's and is always shown. A check with lines
+ *  to paste opens them under its row. */
+function CheckRow(p: { card: CheckCard }): React.JSX.Element {
   const { card } = p;
   const title = copy(card.title);
   const { fix, reading } = card;
@@ -130,33 +192,68 @@ function CheckCardView(p: { card: CheckCard }): React.JSX.Element {
       : fix.kind === "unknown" && reading !== null
         ? measuredText(reading.count, title).line
         : undefined;
-  return (
-    <section className="card bg-base-100 border-base-300 border" data-check={card.check}>
-      <div className="card-body gap-3">
-        <h3 className="card-title text-base">{title}</h3>
-        <div className="flex flex-wrap gap-2">
-          {measured === null ? null : <SeverityBadge severity={measured.severity} />}
-          <span className="badge badge-primary badge-outline">{copy(card.doer)}</span>
-        </div>
+  const tone =
+    measured === null || measured.severity.kind === "unmeasured" ? "" : STATUS_TONE[measured.severity.value];
+  // What the dot says, for a reader that cannot see its colour: the why-line
+  // where there is no reading, "Nothing to fix" on a zero, the severity
+  // word otherwise.
+  const said =
+    why ??
+    (fix.kind === "none_needed"
+      ? copy("check.none-needed")
+      : measured !== null && measured.severity.kind !== "unmeasured"
+        ? copy(SEVERITY[SEVERITY_INDEX[measured.severity.value]])
+        : undefined);
+  const row = (
+    <>
+      <span className={`status status-lg shrink-0 ${tone}`}>
+        {said === undefined ? null : <span className="sr-only">{said}</span>}
+      </span>
+      <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 text-sm font-medium">
+        <span>{title}</span>
         {measured === null ? null : (
-          <div className="text-4xl">
-            <MeasuredNum value={measured.count} what={title} figure />
-          </div>
+          <span className="text-base-content/70">
+            <MeasuredNum value={measured.count} what={title} />
+          </span>
         )}
-        {why === undefined ? null : <p className="text-sm">{why}</p>}
-        {fix.kind === "none_needed" ? <p className="text-sm">{copy("check.none-needed")}</p> : null}
-        {fix.kind === "paste" ? <PasteBlock lines={fix.lines} /> : null}
-      </div>
-    </section>
+      </span>
+      <span className="badge badge-soft badge-primary badge-sm shrink-0">{copy(card.doer)}</span>
+    </>
+  );
+  return (
+    <li className="border-base-200 border-b py-3 last:border-b-0 md:[&:nth-last-child(2):nth-child(odd)]:border-b-0" data-check={card.check}>
+      {fix.kind === "paste" ? (
+        <details>
+          <summary className="flex cursor-pointer list-none items-center gap-3 [&::-webkit-details-marker]:hidden">
+            {row}
+          </summary>
+          <div className="mt-3 flex flex-col gap-2">
+            <PasteBlock lines={fix.lines} />
+          </div>
+        </details>
+      ) : (
+        <div className="flex items-center gap-3">{row}</div>
+      )}
+    </li>
   );
 }
 
 export function CheckCards(p: { cards: readonly CheckCard[] }): React.JSX.Element {
   return (
-    <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {p.cards.map((card) => (
-        <CheckCardView key={card.check} card={card} />
-      ))}
+    <div className="flex flex-col gap-3">
+      <section className="card bg-base-100 shadow-(--shadow-card)">
+        <ul className="grid grid-cols-1 gap-x-10 px-5 py-2 md:grid-cols-2">
+          {p.cards.map((card) => (
+            <CheckRow key={card.check} card={card} />
+          ))}
+        </ul>
+      </section>
+      <p className="text-base-content/70 flex flex-wrap gap-x-1 text-xs">
+        <span>{copy("check.legend")}</span>
+        <a href="#method" className="link link-primary font-semibold">
+          {copy("method.title")}
+        </a>
+      </p>
     </div>
   );
 }

@@ -159,6 +159,10 @@ export const REPORT_COPY = Object.freeze({
   // 6a: "Discoverability Score" is the number's name on every surface that
   // labels it — this eyebrow, the Overview tile, and the two mails.
   "verdict.score.label": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
+  // Issue 1068, board R12-2: the summary card's eyebrow and what the ring's
+  // figure is out of. Drafted; the owner corrects the wording.
+  "report.eyebrow": ["Your free report", { slots: {}, fixedBy: "issue 1068" }],
+  "verdict.score.of": ["of 100", { slots: {}, fixedBy: "issue 1068" }],
   // REQ-094 c1's correction control, as S2 draws it. #786 gives it its
   // destination: an inline field that posts the corrected market to
   // `POST /api/report/{domain}/correct` and follows the rerun's stages.
@@ -272,6 +276,10 @@ export const REPORT_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §2 · issue 715" },
   ],
   "ai-answers.denominator": ["AI answers appear on {answered} of your {measured} biggest searches", { slots: { answered: "text", measured: "text" }, fixedBy: "REQ-006 c1" }],
+  // Issue 1068: the card's heading states its finding in one sentence —
+  // where AI answers appear, and how often they name the customer.
+  "ai-answers.finding": ["AI answers appear on {answered} of your {measured} biggest searches — and name you on {named}.", { slots: { answered: "text", measured: "text", named: "text" }, fixedBy: "issue 1068" }],
+  "ai-answers.finding.none": ["AI answers appear on {answered} of your {measured} biggest searches — and name you on none.", { slots: { answered: "text", measured: "text" }, fixedBy: "issue 1068" }],
   "ai-answers.customer-citations": ["You’re named in {cited} of the {answered} AI answers that appeared.", { slots: { cited: "text", answered: "text" }, fixedBy: "REQ-006 c1" }],
   "ai-answers.legend": ["Filled: named in that answer · Empty: not named · Muted: no AI answer appeared", { slots: {}, fixedBy: "REQ-006 c1" }],
   // REQ-006 c6's one written line: what was measured, and no second
@@ -335,6 +343,9 @@ export const REPORT_COPY = Object.freeze({
   "presence.title": ["Google search", { slots: {}, fixedBy: "REQ-008 c1" }],
   "presence.source": ["your market’s 12 biggest searches", { slots: {}, fixedBy: "REQ-008 c1" }],
   "presence.occupancy": ["You’re in the top ten on {you} of {measured} searches.", { slots: { you: "text", measured: "text" }, fixedBy: "REQ-008 c1" }],
+  // Issue 1068: the card's one-sentence finding, the most any rival holds
+  // beside the customer's own count.
+  "presence.finding": ["Rivals rank on up to {rival} of your {measured} searches. You rank on {you}.", { slots: { rival: "text", measured: "text", you: "text" }, fixedBy: "issue 1068" }],
   "presence.legend": ["Your bar in colour, rivals in grey · n/12 = searches where the domain is in the top ten", { slots: {}, fixedBy: "REQ-008 c2" }],
   "presence.no-rivals": ["No rival domain was found across these searches, so there is nothing to compare your count against yet.", { slots: {}, fixedBy: "REQ-008 c6" }],
   "presence.occupancy.column.domain": ["Domain", { slots: {}, fixedBy: "REQ-008 c1" }],
@@ -360,6 +371,16 @@ export const REPORT_COPY = Object.freeze({
   "problem.unquotable-pages.none-needed": ["Nothing to fix", { slots: {}, fixedBy: "REQ-009 c3" }],
   // The one control any fix carries (REQ-009 c2), on the paste arm only.
   "problem.paste.label": ["Copy the lines", { slots: {}, fixedBy: "REQ-009 c2" }],
+  // Issue 1068, board R12-2: the section's head, each card's one-line cause,
+  // and the *show me* link the card opens. Drafted; the owner corrects them.
+  "problem.section.title": ["What holds you back", { slots: {}, fixedBy: "issue 1068" }],
+  "problem.section.sub": ["3 that cost you most, then 8 quick checks", { slots: {}, fixedBy: "issue 1068" }],
+  "problem.blocked-readers.cause": ["AI crawlers your robots.txt turns away can’t read you, so they can’t name you.", { slots: {}, fixedBy: "issue 1068" }],
+  "problem.missing-pages.cause": ["Questions your buyers ask that no page on your site answers.", { slots: {}, fixedBy: "issue 1068" }],
+  "problem.unquotable-pages.cause": ["Pages with no line an AI answer could lift and quote with your name on it.", { slots: {}, fixedBy: "issue 1068" }],
+  "problem.show.lines": ["Show me the lines", { slots: {}, fixedBy: "issue 1068" }],
+  "problem.show.first-page": ["See the first one", { slots: {}, fixedBy: "issue 1068" }],
+  "problem.show.method": ["Show me how", { slots: {}, fixedBy: "issue 1068" }],
 
   // ── Module 3, the technical checks (SPEC §9, issue 571) ──────────────
   // The doer words and the measured-zero line are SPEC §9's own; the eight
@@ -373,6 +394,9 @@ export const REPORT_COPY = Object.freeze({
     "This check couldn’t run this time — that isn’t the same as nothing to fix.",
     { slots: {}, fixedBy: "issue 571" },
   ],
+  // Issue 1068: the eight checks are one list, and a grey dot is the not-run
+  // line said once under it.
+  "check.legend": ["Grey dot: this check couldn’t run this time — that isn’t the same as nothing to fix.", { slots: {}, fixedBy: "issue 1068" }],
   "check.page-titles.title": ["Missing or duplicate titles", { slots: {}, fixedBy: "issue 571" }],
   "check.meta-descriptions.title": ["Missing or duplicate descriptions", { slots: {}, fixedBy: "issue 571" }],
   "check.noindex-pages.title": ["Pages hidden from search", { slots: {}, fixedBy: "issue 571" }],
@@ -388,7 +412,7 @@ export const REPORT_COPY = Object.freeze({
   // prose is the owner's (approved 2026-09-10, #459).
   "method.title": ["The complete method, free", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.blocked-readers.title": ["Unblock the AI readers", { slots: {}, fixedBy: "REQ-009 c6" }],
-  "method.blocked-readers.body": ["Open the robots.txt file at the root of your site — your host or CMS usually has a setting for it. Find the rules that block the AI readers named on the card and add the lines shown there, so each reader is allowed. Save and publish; the readers pick up the change on their next visit. If your home page carries a noindex rule in its head, remove that too — it tells every reader, Google included, to ignore the page. Nothing else in the file needs to change, and no other reader gains access.", { slots: {}, fixedBy: "REQ-009 c6" }],
+  "method.blocked-readers.body": ["Open the robots.txt file at the root of your site — your host or CMS usually has a setting for it. Find the rules that block the AI readers and add the lines shown below, so each reader is allowed. Save and publish; the readers pick up the change on their next visit. If your home page carries a noindex rule in its head, remove that too — it tells every reader, Google included, to ignore the page. Nothing else in the file needs to change, and no other reader gains access.", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.missing-pages.title": ["Write the missing pages", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.missing-pages.body": ["Each missing page answers one question your market asks that names rivals and not you. Take the question, answer it plainly in the first paragraph, then back the answer with facts from your own site — numbers, dates, names, with a link to where each one lives. Publish it at a plain address on your own domain and link to it from a page that already ranks. One page a day is a good pace; one a week still moves the number. ReachKit writes these for subscribers, but nothing here needs a subscription.", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.unquotable-pages.title": ["Make your pages quotable", { slots: {}, fixedBy: "REQ-009 c6" }],
@@ -413,7 +437,7 @@ export const REPORT_COPY = Object.freeze({
   "free-page.format.format_page": ["A comparison, alternative, integration or template page", { slots: {}, fixedBy: "REQ-010 c1" }],
   "free-page.format.keyword_page": ["A page for this search", { slots: {}, fixedBy: "REQ-010 c1" }],
   // REQ-010 c2's trade: the address field and the one control beside it.
-  "free-page.email.label": ["Your email", { slots: {}, fixedBy: "REQ-010 c2" }],
+  "free-page.email.label": ["Where should we send it?", { slots: {}, fixedBy: "REQ-010 c2" }],
   "free-page.email.placeholder": ["you@company.com", { slots: {}, fixedBy: "REQ-010 c2" }],
   "free-page.submit": ["Email me the full page", { slots: {}, fixedBy: "REQ-010 c2" }],
   "free-page.absent": ["No first page for this domain this time — the scan found none worth writing, or didn’t get that far. Nothing is invented to fill the slot.", { slots: {}, fixedBy: "REQ-004 c10" }],

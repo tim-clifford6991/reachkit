@@ -47,7 +47,11 @@ export const OFFER_COPY = Object.freeze({
   // The approved screen set draws this line under the Start control on
   // both surfaces that carry the offer, unbracketed — approved copy as
   // written (ruling 11a, 2026-09-08; issue #352).
-  "offer.cancel_self_service": ["Cancel in one click.", { slots: {}, fixedBy: "REQ-021 c2" }],
+  // Issue 1068, board R12-2: the line says who cancels, as the board does.
+  "offer.cancel_self_service": ["Cancel in one click, yourself.", { slots: {}, fixedBy: "REQ-021 c2" }],
+  // Issue 1068, board R12-2: the price close's heading on the report.
+  // Drafted; the owner corrects the wording.
+  "offer.close.heading": ["Close the gap, one page a day.", { slots: {}, fixedBy: "issue 1068" }],
   "offer.start": ["Start ReachKit", { slots: {}, fixedBy: "REQ-021 c4" }],
   /** The **control's** own label, and the one the approved set draws on it:
    *  "Start ReachKit €49" (11a). `offer.start` stays exactly as the owner

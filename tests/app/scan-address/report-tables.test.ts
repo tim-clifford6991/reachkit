@@ -141,25 +141,20 @@ describe("a table or grid on the report scrolls inside its own wrap, or stacks s
     }
   });
 
-  it("the module grids align their cards to the start, so a shorter card keeps its height", () => {
-    // daisyUI's own rule is `.card-body p { flex-grow: 1 }`, so a card the
-    // grid stretched to a taller sibling hands the slack to its
-    // paragraphs: one line of text became a 399px band on the presence
-    // card at 1280, and the legend under it another 393px. `items-start`
-    // is the half of the fix that stops the stretch.
+  it("the module grids stretch the two-up cards to one height (the calm layer, #1068)", () => {
+    // `docs/DESIGN.md`, 2026-09-24: "Cards in a row stretch to one height."
+    // This was `items-start` (#244), because daisyUI's `.card-body p
+    // { flex-grow: 1 }` handed a stretched card's slack to its paragraphs;
+    // the two cards' own paragraphs are `grow-0` now, so the rows stretch.
     const view = readFileSync(
       path.resolve(import.meta.dirname, "../../../src/app/(public)/scan/[domain]/_address/report-view.tsx"),
       "utf8"
     );
-    // The report lays its modules out on the arm's own tracks since #258:
-    // `<main>` spans them and `grid-cols-subgrid` puts each row on those
-    // tracks, so the two-up cards are siblings in one row. Every grid that
-    // can hold two cards side by side has to align them to the start.
     const grids = [...view.matchAll(/className="[^"]*grid[^"]*(?:subgrid|grid-cols-2)[^"]*"/g)].map(
       (m) => m[0]
     );
     expect(grids.length).toBeGreaterThan(0);
-    for (const grid of grids) expect(grid, grid).toContain("items-start");
+    for (const grid of grids) expect(grid, grid).not.toContain("items-start");
   });
 
   it("the presence card's occupancy is the registered drawing, and needs no scroll container", () => {

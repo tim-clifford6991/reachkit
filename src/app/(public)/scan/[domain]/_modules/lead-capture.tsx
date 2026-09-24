@@ -6,12 +6,12 @@
 // that could not take it. The page itself is written and mailed by the
 // `lead/nurture` tick — nothing here waits for it.
 //
-// daisyUI in the route: `input`, `btn` (outline — the report's one solid
+// daisyUI in the route: `input`, `btn` (soft — the report's one solid
 // primary is the offer's Start), `alert`.
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { CircleAlert, CircleCheck } from "lucide-react";
+import { CircleAlert, CircleCheck, Mail } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { LeadResponse } from "@/app/api/lead/route";
 
@@ -51,24 +51,23 @@ export function LeadCapture(p: { scanId: string }): React.JSX.Element {
   }
 
   return (
-    <form className="flex flex-col gap-2" onSubmit={(event) => void onSubmit(event)} data-testid="lead-form">
-      <div className="flex flex-wrap items-end gap-2">
-        <label className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="text-base-content/60 text-sm">{copy("free-page.email.label")}</span>
-          <input
-            className="input w-full"
-            type="email"
-            name="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder={copy("free-page.email.placeholder")}
-          />
-        </label>
-        <button type="submit" className="btn btn-soft btn-primary" disabled={step.kind === "sending"}>
-          {copy("free-page.submit")}
-        </button>
-      </div>
+    <form className="flex flex-col gap-2.5" onSubmit={(event) => void onSubmit(event)} data-testid="lead-form">
+      <label className="flex min-w-0 flex-col gap-2">
+        <span className="text-sm font-semibold">{copy("free-page.email.label")}</span>
+        <input
+          className="input w-full"
+          type="email"
+          name="email"
+          required
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder={copy("free-page.email.placeholder")}
+        />
+      </label>
+      <button type="submit" className="btn btn-soft btn-primary" disabled={step.kind === "sending"}>
+        <Mail size={16} strokeWidth={1.75} aria-hidden />
+        {copy("free-page.submit")}
+      </button>
       {step.kind === "answered" ? (
         <div role="alert" className="alert alert-error alert-soft" data-testid="lead-refused">
           <CircleAlert size={20} strokeWidth={1.75} aria-hidden />
