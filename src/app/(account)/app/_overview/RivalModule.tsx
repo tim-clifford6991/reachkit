@@ -74,7 +74,14 @@ function Leaders(p: {
       {none === null ? null : <p className="text-sm">{none}</p>}
       <div className="flex flex-wrap items-center gap-2 rounded-box bg-base-200 p-3">
         <p className="text-xs text-base-content/70">{line}</p>
-        <a href={SWAP_HREF[swap.destination]} className="btn btn-ghost btn-sm">
+        {/* daisyUI's `.btn` is `flex-shrink: 0` at a fixed height, so at
+            320px this sentence stood 8px past the row it wraps in (#1040).
+            `max-w-full` holds it to the row and `h-auto` lets it take the
+            second line — the shape `CategoryChoice` gives its own. */}
+        <a
+          href={SWAP_HREF[swap.destination]}
+          className="btn btn-ghost btn-sm h-auto min-h-8 max-w-full py-1"
+        >
           {control}
         </a>
       </div>

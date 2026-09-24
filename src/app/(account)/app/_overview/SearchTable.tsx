@@ -178,8 +178,10 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
         cell: (ctx) => {
           const target = ctx.getValue();
           const value = renderValue(target.difficulty, COLUMN_COPY_KEY.difficulty);
+          // On the phone shape the bar folds under the number where the
+          // column is narrower than both (#1040: 6px over at 320px).
           return (
-            <span className="flex items-center gap-2 whitespace-nowrap">
+            <span className="flex items-center gap-2 whitespace-nowrap max-sm:flex-wrap">
               <span
                 className="num w-6 text-right"
                 title={value.line}
