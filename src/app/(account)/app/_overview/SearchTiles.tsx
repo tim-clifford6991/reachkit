@@ -14,17 +14,54 @@
 // **Every number goes through `renderValue`**, so a reading nobody took is
 // the dash and its own written line and never a zero.
 //
+// **Two lines are this site's own reading** (#1039, board R4-05-Search):
+// the queue says how long it lasts, and the first page names the live page
+// best placed on it. The other two keep the board's fixed line. A dash on
+// either of the two says why it is a dash — never the fixed line instead.
+//
 // **It cannot overflow.** One column on a phone, two at `sm`, four at
 // `xl`; every tile is `min-w-0`, its name is clamped to one line with the
 // whole of it on the element's own title, and its figure is never clamped —
 // the box changes instead (docs/DESIGN.md's no-overflow rule).
 import type React from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { renderValue } from "./present";
-import type { SearchTile, SearchTiles as Tiles } from "./search-model";
+import { formatCount, renderValue } from "./present";
+import type { SearchTile, SearchTiles as Tiles, TileReading } from "./search-model";
+
+/** A place on the results page, spoken the way the table speaks it. */
+function place(position: number): string {
+  return copy("overview.search.position", { position: formatCount(position) });
+}
+
+/** The site's own reading, as the registry words it. */
+function readingLine(r: TileReading): string {
+  switch (r.kind) {
+    case "queue":
+      if (r.weeks >= 2) return copy("overview.search.tile.going-after.weeks", { weeks: formatCount(r.weeks) });
+      if (r.days >= 2) return copy("overview.search.tile.going-after.days", { days: formatCount(r.days) });
+      return r.days === 1
+        ? copy("overview.search.tile.going-after.one-day")
+        : copy("overview.search.tile.going-after.none");
+    case "first-page":
+      return r.others === 0
+        ? copy("overview.search.tile.first-page.one", { search: r.search, position: place(r.position) })
+        : copy("overview.search.tile.first-page.more", {
+            search: r.search,
+            position: place(r.position),
+            others: formatCount(r.others),
+          });
+    case "closest":
+      return copy("overview.search.tile.first-page.closest", { search: r.search, position: place(r.position) });
+    case "no-place":
+      return copy("overview.search.tile.first-page.no-place");
+    case "none-live":
+      return copy("overview.search.tile.first-page.none-live");
+  }
+}
 
 /** One tile: its name, the number, what the number is read against, and one
- *  line saying what it means. */
+ *  line saying what it means — the site's own reading where the tile has
+ *  one, the fixed line otherwise. */
 function Tile(p: {
   labelKey: CopyKey;
   testId: string;
@@ -32,12 +69,18 @@ function Tile(p: {
   /** How the denominator is spoken — "of 30 kept ready", "of 17 live
    *  pages", "goal: 400". A key, never a sentence composed here. */
   againstKey: CopyKey;
-  meansKey: CopyKey;
+  meansKey: CopyKey | null;
 }): React.JSX.Element {
   const label = copy(p.labelKey);
   const value = renderValue(p.tile.value, p.labelKey);
   const of = renderValue(p.tile.of, p.labelKey);
   const against = of.isDash ? null : copy(p.againstKey, { of: of.text, value: of.text });
+  const fixed = p.meansKey === null ? null : copy(p.meansKey);
+  const means = value.isDash
+    ? (value.line ?? fixed)
+    : p.tile.reading === undefined
+      ? fixed
+      : readingLine(p.tile.reading);
 
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid={p.testId}>
@@ -57,7 +100,11 @@ function Tile(p: {
             <span className="num text-sm text-base-content/60">{against}</span>
           )}
         </div>
-        <p className="text-xs text-base-content/60">{value.isDash ? (value.line ?? copy(p.meansKey)) : copy(p.meansKey)}</p>
+        {means === null ? null : (
+          <p className="text-xs text-base-content/60" data-testid={`${p.testId}-means`}>
+            {means}
+          </p>
+        )}
       </div>
     </section>
   );
@@ -74,7 +121,7 @@ const TILES = [
     labelKey: "overview.search.tile.going-after",
     testId: "search-tile-going-after",
     againstKey: "overview.search.tile.going-after.of",
-    meansKey: "overview.search.tile.going-after.means",
+    meansKey: null,
   },
   {
     id: "firstTwoPages",
@@ -88,7 +135,7 @@ const TILES = [
     labelKey: "overview.search.tile.first-page",
     testId: "search-tile-first-page",
     againstKey: "overview.search.tile.pages.of",
-    meansKey: "overview.search.tile.first-page.means",
+    meansKey: null,
   },
   {
     // The fourth tile is the Overview's own first tile, read from the same
@@ -105,7 +152,7 @@ const TILES = [
   labelKey: CopyKey;
   testId: string;
   againstKey: CopyKey;
-  meansKey: CopyKey;
+  meansKey: CopyKey | null;
 }[];
 
 export function SearchTiles(p: { tiles: Tiles }): React.JSX.Element {

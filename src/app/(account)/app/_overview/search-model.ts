@@ -109,7 +109,28 @@ export interface SearchTile {
   /** What the number is out of — the live pages counted, or the depth the
    *  product keeps ready. */
   of: Measured<number>;
+  /** What the number says about **this** site, in the board's shape
+   *  (#1039) — absent where the tile's line is a fixed one, and where the
+   *  number was not measured: a dash says why, never a generality. */
+  reading?: TileReading;
 }
+
+/**
+ * The site's own reading under a tile, as facts; the tile speaks them.
+ *
+ * `queue` is how long the kept-ready searches last at §7's one page a day,
+ * in whole weeks once there are two of them and in days before that.
+ * `first-page` is the best-placed live page on the first page and how many
+ * more stand beside it; `closest` is the best-placed live page where none
+ * has reached it; `no-place` is live pages Google shows for none of their
+ * searches; `none-live` is no live page at all.
+ */
+export type TileReading =
+  | { kind: "queue"; weeks: number; days: number }
+  | { kind: "first-page"; search: string; position: number; others: number }
+  | { kind: "closest"; search: string; position: number }
+  | { kind: "no-place" }
+  | { kind: "none-live" };
 
 export interface SearchTiles {
   /** Open, ready, non-Fix rows — days of pages the product holds
@@ -249,27 +270,61 @@ export function assembleSearch(facts: SearchFacts, at: Date): SearchModel {
   // only over the ones the report actually measured a place for: a search
   // it did not reach is not a page that fell off the first two pages.
   const live = new Set(facts.liveSearches);
-  const placed: number[] = [...live].flatMap((search) => {
-    const m = facts.positions.get(search);
-    return m === undefined || m.kind === "unmeasured" ? [] : [m.value];
-  });
+  const placed: { search: string; position: number }[] = [...live]
+    .flatMap((search) => {
+      const m = facts.positions.get(search);
+      return m === undefined || m.kind === "unmeasured" ? [] : [{ search, position: m.value }];
+    })
+    .sort((a, b) => a.position - b.position || a.search.localeCompare(b.search));
   const within = (limit: number): Measured<number> =>
     facts.livePages.kind === "unmeasured"
       ? facts.livePages
-      : counted(placed.filter((place) => place <= limit).length, at);
+      : counted(placed.filter((p) => p.position <= limit).length, at);
 
   return {
     rows,
     counts,
     tiles: {
-      goingAfter: { value: facts.ready, of: measured(SUPPLY_TARGET_DEPTH, at) },
+      goingAfter: {
+        value: facts.ready,
+        of: measured(SUPPLY_TARGET_DEPTH, at),
+        reading: facts.ready.kind === "unmeasured" ? undefined : queueReading(facts.ready.value),
+      },
       firstTwoPages: { value: within(FIRST_TWO_PAGES), of: facts.livePages },
-      firstPage: { value: within(FIRST_PAGE), of: facts.livePages },
+      firstPage: {
+        value: within(FIRST_PAGE),
+        of: facts.livePages,
+        reading:
+          facts.livePages.kind === "unmeasured" ? undefined : firstPageReading(placed, facts.livePages.value),
+      },
       appearFor: { value: facts.ownRanked, of: measured(GOALS.searches_appeared_in.value, at) },
     },
     ceiling: facts.ceiling,
     measuredAt: facts.measuredAt,
   };
+}
+
+/** §7: at most one page a day, so every kept-ready search is a day. */
+const DAYS_A_WEEK = 7;
+
+/** How long `ready` searches last. Whole weeks only, rounded down — "the
+ *  next five weeks" is a promise, and a promise is never rounded up. */
+export function queueReading(ready: number): TileReading {
+  return { kind: "queue", weeks: Math.floor(ready / DAYS_A_WEEK), days: ready };
+}
+
+/** The first-page tile's line, from the live pages' own places, best
+ *  first. */
+export function firstPageReading(
+  placed: readonly { search: string; position: number }[],
+  livePages: number
+): TileReading {
+  const best = placed[0];
+  if (best === undefined) return livePages === 0 ? { kind: "none-live" } : { kind: "no-place" };
+  const onFirstPage = placed.filter((p) => p.position <= FIRST_PAGE).length;
+  return onFirstPage === 0
+    ? { kind: "closest", search: best.search, position: best.position }
+    : { kind: "first-page", search: best.search, position: best.position, others: onFirstPage - 1 };
 }
 
 /** Google's first two pages, and its first page. Ten results to a page is

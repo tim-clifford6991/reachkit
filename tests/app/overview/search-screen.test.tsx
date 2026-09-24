@@ -26,6 +26,7 @@ import { SearchTiles } from "@/app/(account)/app/_overview/SearchTiles";
 import { assembleSearch } from "@/app/(account)/app/_overview/search-model";
 import { FIXTURE_SEARCH_FACTS } from "@/app/(account)/app/_overview/search-fixture";
 import { copy } from "@/lib/presentation/copy";
+import { unmeasured } from "@/lib/measure/measured";
 
 const AT = FIXTURE_SEARCH_FACTS.measuredAt ?? new Date(0);
 const MODEL = assembleSearch(FIXTURE_SEARCH_FACTS, AT);
@@ -192,6 +193,55 @@ describe("the four tiles", () => {
       expect(tile?.querySelectorAll("span.num").length, id).toBeGreaterThanOrEqual(2);
     }
     expect(container.innerHTML).not.toContain("TODO(copy)");
+  });
+});
+
+describe("two tiles state this site's own reading, in the board's shape (#1039)", () => {
+  function tiles(tiles: typeof MODEL.tiles): Element {
+    const container = document.createElement("div");
+    container.innerHTML = renderToStaticMarkup(<SearchTiles tiles={tiles} />);
+    return container;
+  }
+
+  it("the queue says how long it lasts, and the first page names the search and its place", () => {
+    const el0 = tiles({
+      ...MODEL.tiles,
+      goingAfter: { ...MODEL.tiles.goingAfter, reading: { kind: "queue", weeks: 5, days: 35 } },
+      firstPage: {
+        ...MODEL.tiles.firstPage,
+        reading: { kind: "first-page", search: "brake pads when to replace", position: 4, others: 0 },
+      },
+    });
+    expect(el(el0, "search-tile-going-after-means")?.textContent).toBe(
+      copy("overview.search.tile.going-after.weeks", { weeks: "5" })
+    );
+    expect(el(el0, "search-tile-first-page-means")?.textContent).toBe(
+      copy("overview.search.tile.first-page.one", {
+        search: "brake pads when to replace",
+        position: copy("overview.search.position", { position: "4" }),
+      })
+    );
+  });
+
+  it("a queue under two weeks is counted in days", () => {
+    const el0 = tiles({
+      ...MODEL.tiles,
+      goingAfter: { ...MODEL.tiles.goingAfter, reading: { kind: "queue", weeks: 1, days: 10 } },
+    });
+    expect(el(el0, "search-tile-going-after-means")?.textContent).toBe(
+      copy("overview.search.tile.going-after.days", { days: "10" })
+    );
+  });
+
+  it("an unmeasured count keeps its dash and says why, never the old generality", () => {
+    const el0 = tiles({
+      ...MODEL.tiles,
+      goingAfter: { value: unmeasured<number>("not_attempted", AT), of: MODEL.tiles.goingAfter.of },
+    });
+    expect(el(el0, "search-tile-going-after-value")?.textContent).toBe(copy("unmeasured.dash"));
+    expect(el(el0, "search-tile-going-after-means")?.textContent).toBe(
+      copy("unmeasured.not-attempted", { what: copy("overview.search.tile.going-after") })
+    );
   });
 });
 

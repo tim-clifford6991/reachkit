@@ -518,9 +518,25 @@ export const OVERVIEW_COPY = Object.freeze({
     "of {of} kept ready",
     { slots: { of: "text" }, fixedBy: "SPEC §6 supply depth" },
   ],
-  "overview.search.tile.going-after.means": [
-    "ReachKit keeps a queue of searches ready so there is always a page to write tomorrow.",
-    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  // The line under it states this site's own queue in the board's shape
+  // ("Enough for the next five weeks.", R4-05-Search): the kept-ready count
+  // at §7's one page a day, in whole weeks from two weeks up and in days
+  // below that. Drafted under the 2026-09-16 ruling (#759), issue 1039.
+  "overview.search.tile.going-after.weeks": [
+    "Enough for the next {weeks} weeks.",
+    { slots: { weeks: "text" }, fixedBy: "issue 1039" },
+  ],
+  "overview.search.tile.going-after.days": [
+    "Enough for the next {days} days.",
+    { slots: { days: "text" }, fixedBy: "issue 1039" },
+  ],
+  "overview.search.tile.going-after.one-day": [
+    "Enough for tomorrow’s page.",
+    { slots: {}, fixedBy: "issue 1039" },
+  ],
+  "overview.search.tile.going-after.none": [
+    "No page is ready to write. Monday’s re-measure looks for more.",
+    { slots: {}, fixedBy: "issue 1039" },
   ],
   "overview.search.tile.first-two-pages": [
     "On Google’s first two pages",
@@ -535,9 +551,30 @@ export const OVERVIEW_COPY = Object.freeze({
     "Top 20 is where a page starts to be found.",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
-  "overview.search.tile.first-page.means": [
-    "The first page is where nearly every click goes.",
-    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  // The first-page tile names this site's own best-placed live page, in the
+  // board's shape ("'brake pads when to replace', at 11 last week.",
+  // R4-05-Search). The place is `overview.search.position`'s, and the date
+  // it was measured is the line under the tabs. Drafted under the
+  // 2026-09-16 ruling (#759), issue 1039.
+  "overview.search.tile.first-page.one": [
+    "“{search}”, at {position}.",
+    { slots: { search: "text", position: "text" }, fixedBy: "issue 1039" },
+  ],
+  "overview.search.tile.first-page.more": [
+    "“{search}”, at {position}, and {others} more.",
+    { slots: { search: "text", position: "text", others: "text" }, fixedBy: "issue 1039" },
+  ],
+  "overview.search.tile.first-page.closest": [
+    "Closest: “{search}”, at {position}.",
+    { slots: { search: "text", position: "text" }, fixedBy: "issue 1039" },
+  ],
+  "overview.search.tile.first-page.no-place": [
+    "Google doesn’t show any of your live pages for its search yet.",
+    { slots: {}, fixedBy: "issue 1039" },
+  ],
+  "overview.search.tile.first-page.none-live": [
+    "Your first page isn’t live yet.",
+    { slots: {}, fixedBy: "issue 1039" },
   ],
   "overview.search.tile.appear-for.means": [
     "Every search Google shows you for, at any position.",
