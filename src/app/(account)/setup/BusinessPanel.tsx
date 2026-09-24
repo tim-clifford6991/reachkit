@@ -52,6 +52,9 @@ const GROUP_COPY = {
 
 const ICON = { strokeWidth: 1.75, "aria-hidden": true } as const;
 const QUIET = "text-sm text-base-content/70";
+/** A quiet empty (the calm layer, #1059): a flat grey cell and one line —
+ *  never a white card or a coloured alert for a thing that is not there. */
+const EMPTY = "rounded-box bg-base-200 px-3 py-2 text-sm text-base-content/70";
 
 export function BusinessPanel(p: {
   draft: BusinessDraft;
@@ -75,7 +78,7 @@ function Job(p: { job: string; onJob: (next: string) => void }): React.JSX.Eleme
   const head = copy("setup.business.group.job");
   return (
     <section className="card bg-base-100 card-border" data-testid="setup-business-job">
-      <div className="card-body gap-3 p-4">
+      <div className="card-body gap-4 p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <h3 className="min-w-0 font-medium">{head}</h3>
           <p className={`min-w-0 ${QUIET}`}>{copy("setup.business.group.job.note")}</p>
@@ -121,7 +124,7 @@ function Group(p: {
 
   return (
     <section className="card bg-base-100 card-border" data-testid={`setup-business-${p.group}`}>
-      <div className="card-body gap-3 p-4">
+      <div className="card-body gap-4 p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <h3 className="min-w-0 font-medium">{head}</h3>
           <p className={`min-w-0 ${QUIET}`}>
@@ -130,7 +133,7 @@ function Group(p: {
         </div>
 
         {items.length === 0 ? (
-          <p className={QUIET} data-testid={`setup-business-${p.group}-empty`}>
+          <p className={EMPTY} data-testid={`setup-business-${p.group}-empty`}>
             {copy("setup.business.empty")}
           </p>
         ) : (

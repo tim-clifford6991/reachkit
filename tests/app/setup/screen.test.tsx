@@ -243,13 +243,13 @@ describe("step one — your site and your market (REQ-021 c6/c7, REQ-026 c1/c3)"
     expect(tree.querySelector('[data-testid="setup-site-and-market"]')).not.toBeNull();
   });
 
-  it("each Change is a soft button, not bare text (#521)", () => {
+  it("each Change is a ghost button, not bare text (#521, the calm layer #1091)", () => {
     const changes = [
       ...screenFor("site").querySelectorAll('[data-testid="setup-site-and-market"] button'),
     ];
     expect(changes).toHaveLength(2);
     for (const change of changes) {
-      expect(change.classList.contains("btn-soft"), change.outerHTML).toBe(true);
+      expect(change.classList.contains("btn-ghost"), change.outerHTML).toBe(true);
     }
   });
 

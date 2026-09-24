@@ -31,6 +31,7 @@ import type React from "react";
 import { useState } from "react";
 import { ArrowRight, Check, Circle } from "lucide-react";
 import { Surface } from "@/ui/layout";
+import { ENTER_PUBLIC } from "@/ui/motion";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { DnsRecord } from "@/lib/publish/setup/cards";
 import type { HostnameState } from "@/lib/publish/destinations/hosted/hostname";
@@ -62,7 +63,9 @@ export function ConnectScreen(p: {
   const live = state === "live";
 
   return (
-    <div className="grid min-h-svh grid-rows-[1fr_auto]">
+    // Screen enter (#1065): outside both shells, so the screen spends the
+    // public shell's own rise — each section of `<main>`, 60ms apart.
+    <div className={`grid min-h-svh grid-rows-[1fr_auto] ${ENTER_PUBLIC}`}>
       <Surface
         arms={{
           compact: { kind: "columns", count: 1 },
@@ -109,8 +112,11 @@ export function ConnectScreen(p: {
               />
             </div>
 
-            <aside className="grid min-w-0 content-start gap-4" data-testid="setup-connect-what">
-              <section className="card card-border min-w-0 bg-base-100">
+            {/* A flex column whose card grows (the calm layer's rhythm,
+                #1091): the row stretches both columns to one height, and
+                the card takes what the note under it leaves. */}
+            <aside className="flex min-w-0 flex-col gap-4" data-testid="setup-connect-what">
+              <section className="card card-border min-w-0 grow bg-base-100">
                 <div className="card-body gap-4 p-5">
                   <h2 className="eyebrow">{copy("setup.connect.what")}</h2>
                   {/* `timeline-compact` and not `timeline-snap-icon`: the two set the
@@ -130,7 +136,8 @@ export function ConnectScreen(p: {
                             {done ? (
                               <Check {...ICON} size={16} className="text-success" />
                             ) : current ? (
-                              <span className="loading loading-dots loading-xs text-primary" aria-hidden />
+                              // A still dot: the one loop is *Live*'s (#1059).
+                              <span className="status status-primary" aria-hidden />
                             ) : (
                               <Circle {...ICON} size={14} className="text-base-content/40" />
                             )}

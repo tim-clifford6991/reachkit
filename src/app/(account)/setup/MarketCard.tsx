@@ -33,7 +33,10 @@ const ICON = { strokeWidth: 1.75, size: 20, "aria-hidden": true } as const;
 const CARD = "card bg-base-100 shadow-sm";
 const ROW = "flex min-w-0 flex-wrap items-center justify-between gap-3";
 const QUIET = "text-sm text-base-content/70";
-const CHANGE = "btn btn-sm btn-soft";
+/** A quiet empty (the calm layer, #1059): a flat grey cell and one line —
+ *  never a white card or a coloured alert for a thing that is not there. */
+const EMPTY = "rounded-box bg-base-200 px-3 py-2 text-sm text-base-content/70";
+const CHANGE = "btn btn-sm btn-ghost";
 const CHIP = "badge badge-primary badge-soft h-auto py-1 wrap-anywhere";
 
 const SITE_AND_MARKET_TEST_ID = "setup-site-and-market";
@@ -230,7 +233,7 @@ export function MarketCard(p: {
             {copy("setup.market.title")}
           </h2>
           {state.siteDomain === null ? (
-            <p className={QUIET} data-testid="setup-market-awaiting-site">
+            <p className={EMPTY} data-testid="setup-market-awaiting-site">
               {copy("setup.market.awaiting-site")}
             </p>
           ) : state.market.state === "empty" || editingMarket ? (

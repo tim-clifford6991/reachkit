@@ -68,22 +68,36 @@ export function SetupPanel(p: {
   onJob: (next: string) => void;
 }): React.JSX.Element {
   return (
-    <aside className="grid min-w-0 grid-cols-1 content-start gap-3" data-testid="setup-panel" data-step={p.step}>
-      <h2 className="min-w-0 text-base font-medium wrap-anywhere" data-testid="setup-panel-title">
-        {p.step === "business" && p.businessName !== null
-          ? copy("setup.panel.business.title", { business: p.businessName })
-          : copy(PANEL_TITLE[p.step])}
-      </h2>
+    // A flex column whose body grows (the calm layer's rhythm, #1091): the
+    // aside is stretched to the step's height by the row it sits in, and
+    // the body takes what the title and the notes leave, so the preview
+    // stands exactly as tall as the step beside it rather than stopping
+    // short of it. Below `lg` there is nothing beside it and it is only as
+    // tall as it is.
+    <aside className="flex min-w-0 flex-col gap-4" data-testid="setup-panel" data-step={p.step}>
+      {/* Keyed on the step, so the panel's side of a step change rises in
+          one stagger (60ms) after the question's. The status line below
+          stays mounted: it holds the pass's subscription. */}
+      <div
+        key={p.step}
+        className="flex min-w-0 grow flex-col gap-4 motion-safe:animate-rise motion-safe:[animation-delay:60ms]"
+      >
+        <h2 className="min-w-0 text-base font-medium wrap-anywhere" data-testid="setup-panel-title">
+          {p.step === "business" && p.businessName !== null
+            ? copy("setup.panel.business.title", { business: p.businessName })
+            : copy(PANEL_TITLE[p.step])}
+        </h2>
 
-      {p.step === "business" ? (
-        <BusinessPanel draft={p.draft} onDraft={p.onDraft} job={p.job} onJob={p.onJob} />
-      ) : p.step === "rivals" ? (
-        <RivalsPanel grid={p.rivalGrid} />
-      ) : p.step === "voice" ? (
-        <VoicePanel />
-      ) : (
-        <BlogMockup address={p.blogAddress} businessName={p.businessName} market={p.market} />
-      )}
+        {p.step === "business" ? (
+          <BusinessPanel draft={p.draft} onDraft={p.onDraft} job={p.job} onJob={p.onJob} />
+        ) : p.step === "rivals" ? (
+          <RivalsPanel grid={p.rivalGrid} />
+        ) : p.step === "voice" ? (
+          <VoicePanel />
+        ) : (
+          <BlogMockup address={p.blogAddress} businessName={p.businessName} market={p.market} />
+        )}
+      </div>
 
       <p className="text-sm text-base-content/70" data-testid="setup-panel-note">
         {copy("setup.panel.note")}
@@ -112,7 +126,7 @@ function BlogMockup(p: {
 }): React.JSX.Element {
   return (
     <div
-      className="mockup-browser bg-base-100 border border-base-300"
+      className="mockup-browser grow bg-base-100 border border-base-300"
       data-testid="setup-panel-blog"
     >
       <div className="mockup-browser-toolbar">

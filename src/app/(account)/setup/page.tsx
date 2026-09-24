@@ -36,6 +36,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { readSetupScreen } from "./_setup/provider";
 import { SetupForm } from "./SetupForm";
+import { SKELETON_EXIT, ViewTransition } from "@/ui/motion";
 import { copy } from "@/lib/presentation/copy";
 
 /** /setup's own `<title>` (#945). Without it this screen announced
@@ -47,7 +48,14 @@ export default async function SetupPage(): Promise<React.JSX.Element> {
   const model = await readSetupScreen();
 
   return (
-    <Suspense fallback={<div className="skeleton m-4 h-96" />}>
+    <Suspense
+      fallback={
+        // The reveal (#1065): the skeleton leaves and the step crossfades in.
+        <ViewTransition {...SKELETON_EXIT}>
+          <div className="skeleton m-4 h-96" />
+        </ViewTransition>
+      }
+    >
       <SetupForm model={model} />
     </Suspense>
   );
