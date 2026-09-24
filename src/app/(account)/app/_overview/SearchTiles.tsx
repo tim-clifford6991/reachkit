@@ -19,6 +19,12 @@
 // best placed on it. The other two keep the board's fixed line. A dash on
 // either of the two says why it is a dash — never the fixed line instead.
 //
+// **A zero is quiet** (docs/DESIGN.md, the calm layer, #1089). A tile whose
+// reading is zero, or was never taken, is a flat grey cell with its number
+// at body size, never a white card with a big "0" — a week-0 account used to
+// open this tab on four of them. The words are the same; only the weight
+// changes, so a live tile beside it is the one the eye finds.
+//
 // **It cannot overflow.** One column on a phone, two at `sm`, four at
 // `xl`; every tile is `min-w-0`, its name is clamped to one line with the
 // whole of it on the element's own title, and its figure is never clamped —
@@ -76,6 +82,10 @@ function Tile(p: {
   const of = renderValue(p.tile.of, p.labelKey);
   const against = of.isDash ? null : copy(p.againstKey, { of: of.text, value: of.text });
   const fixed = p.meansKey === null ? null : copy(p.meansKey);
+  const quiet = value.isDash || p.tile.value.kind !== "measured" || p.tile.value.value === 0;
+  // /60 ink holds axe's contrast floor on white but not on the grey cell, so
+  // a quiet tile's small lines step up to /70.
+  const ink = quiet ? "text-base-content/70" : "text-base-content/60";
   const means = value.isDash
     ? (value.line ?? fixed)
     : p.tile.reading === undefined
@@ -83,25 +93,32 @@ function Tile(p: {
       : readingLine(p.tile.reading);
 
   return (
-    <section className="card card-border min-w-0 bg-base-100" data-testid={p.testId}>
+    <section
+      className={quiet ? "card min-w-0 bg-base-200" : "card card-border min-w-0 bg-base-100"}
+      data-testid={p.testId}
+      data-quiet={quiet ? "" : undefined}
+    >
       <div className="card-body gap-2 p-4">
         {/* The tile's name is the product's own, not the customer's, so it
             wraps rather than being clamped: four fixed phrases, and a name
             cut in half is a name nobody can read (the same ruling
             `LinkedTiles` records for its three). */}
-        <span className="min-w-0 text-xs font-semibold uppercase tracking-wide text-base-content/60">
+        <span className={`min-w-0 text-xs font-semibold uppercase tracking-wide ${ink}`}>
           {label}
         </span>
         <div className="flex min-w-0 flex-wrap items-baseline gap-2">
-          <span className="figure text-3xl leading-none" data-testid={`${p.testId}-value`}>
+          <span
+            className={quiet ? "figure text-base leading-none text-base-content/70" : "figure text-3xl leading-none"}
+            data-testid={`${p.testId}-value`}
+          >
             {value.text}
           </span>
           {against === null ? null : (
-            <span className="num text-sm text-base-content/60">{against}</span>
+            <span className={`num text-sm ${ink}`}>{against}</span>
           )}
         </div>
         {means === null ? null : (
-          <p className="text-xs text-base-content/60" data-testid={`${p.testId}-means`}>
+          <p className={`text-xs ${ink}`} data-testid={`${p.testId}-means`}>
             {means}
           </p>
         )}
@@ -157,7 +174,7 @@ const TILES = [
 
 export function SearchTiles(p: { tiles: Tiles }): React.JSX.Element {
   return (
-    <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4" data-testid="search-tiles">
+    <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-4" data-testid="search-tiles">
       {TILES.map((tile) => (
         <Tile
           key={tile.id}

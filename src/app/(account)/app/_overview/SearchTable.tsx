@@ -56,7 +56,7 @@ import {
   type ColumnFiltersState,
 } from "@tanstack/react-table";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { formatCount, renderValue } from "./present";
+import { FILTER_PILL, formatCount, renderValue } from "./present";
 import { DifficultyBar } from "./DifficultyBar";
 import { SEARCH_FILTERS, type SearchModel, type SearchRow } from "./search-model";
 import {
@@ -287,7 +287,7 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
               key={id}
               type="radio"
               name={SHOW}
-              className={`btn btn-sm ${id === "all" ? "filter-reset" : ""}`}
+              className={`${FILTER_PILL} ${id === "all" ? "filter-reset" : ""}`}
               data-testid={`search-chip-${id}`}
               aria-label={
                 id === "all"

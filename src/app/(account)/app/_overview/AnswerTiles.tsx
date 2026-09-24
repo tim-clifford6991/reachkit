@@ -17,6 +17,11 @@
 // **Every number goes through `renderValue`**, so a reading nobody took is
 // the dash and its own written line and never a zero.
 //
+// **A zero is quiet** (docs/DESIGN.md, the calm layer, #1089): a tile whose
+// reading is zero or was never taken is a flat grey cell with its number at
+// body size, the way the Search tab's are — never a white card with a big
+// "0".
+//
 // **It cannot overflow.** One column on a phone and two at `sm`; both tiles
 // are `min-w-0`, the names wrap inside their own column and no figure is
 // clamped — the box changes instead (docs/DESIGN.md's no-overflow rule).
@@ -44,31 +49,42 @@ function Tile(p: {
   lines: readonly (string | null)[];
   /** The written line where the reading was not taken. */
   line: string | null;
+  /** Zero, or never taken: drawn flat and small. */
+  quiet: boolean;
 }): React.JSX.Element {
+  // /60 ink holds axe's contrast floor on white but not on the grey cell.
+  const ink = p.quiet ? "text-base-content/70" : "text-base-content/60";
   return (
-    <section className="card card-border min-w-0 bg-base-100" data-testid={p.testId}>
+    <section
+      className={p.quiet ? "card min-w-0 bg-base-200" : "card card-border min-w-0 bg-base-100"}
+      data-testid={p.testId}
+      data-quiet={p.quiet ? "" : undefined}
+    >
       <div className="card-body gap-2 p-4">
         {/* The tile's name is the product's own, not the customer's, so it
             wraps rather than being clamped: two fixed phrases, and a name
             cut in half is a name nobody can read. */}
-        <span className="min-w-0 text-xs font-semibold tracking-wide uppercase text-base-content/60">
+        <span className={`min-w-0 text-xs font-semibold tracking-wide uppercase ${ink}`}>
           {copy(p.labelKey)}
         </span>
         {p.figure === null ? (
           <p className="text-sm text-base-content/70">{p.line ?? copy(p.labelKey)}</p>
         ) : (
           <div className="flex min-w-0 flex-wrap items-baseline gap-2">
-            <span className="figure text-3xl leading-none" data-testid={`${p.testId}-value`}>
+            <span
+              className={p.quiet ? "figure text-base leading-none text-base-content/70" : "figure text-3xl leading-none"}
+              data-testid={`${p.testId}-value`}
+            >
               {p.figure}
             </span>
-            <span className="num flex flex-wrap items-baseline gap-1 text-sm text-base-content/60">
+            <span className={`num flex flex-wrap items-baseline gap-1 text-sm ${ink}`}>
               {p.against}
             </span>
           </div>
         )}
         {p.lines.map((line) =>
           line === null ? null : (
-            <p key={line} className="text-xs text-base-content/60">
+            <p key={line} className={`text-xs ${ink}`}>
               {line}
             </p>
           )
@@ -104,7 +120,7 @@ export function AnswerTiles(p: { model: AnswersModel }): React.JSX.Element {
       });
 
   return (
-    <div className="grid min-w-0 gap-3 sm:grid-cols-2" data-testid="answers-tiles">
+    <div className="grid min-w-0 gap-4 sm:grid-cols-2" data-testid="answers-tiles">
       <Tile
         labelKey={RATE_LABEL}
         testId="answers-tile-rate"
@@ -112,6 +128,7 @@ export function AnswerTiles(p: { model: AnswersModel }): React.JSX.Element {
         against={asked.isDash ? null : copy("overview.answers.rate.of", { of: asked.text })}
         lines={[split, why]}
         line={rate.line ?? null}
+        quiet={rate.isDash || p.model.rate.value.kind !== "measured" || p.model.rate.value.value === 0}
       />
       <Tile
         labelKey={WEEK_LABEL}
@@ -127,6 +144,7 @@ export function AnswerTiles(p: { model: AnswersModel }): React.JSX.Element {
           copy("overview.answers.week.means", { engine: copy(ENGINE_LABEL[p.model.week.engine]) }),
         ]}
         line={week.line ?? null}
+        quiet={week.isDash || p.model.week.value.kind !== "measured" || p.model.week.value.value === 0}
       />
     </div>
   );

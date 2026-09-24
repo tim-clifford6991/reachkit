@@ -41,7 +41,7 @@ import {
   type ColumnFiltersState,
 } from "@tanstack/react-table";
 import { copy } from "@/lib/presentation/copy";
-import { formatCount, renderValue } from "./present";
+import { FILTER_PILL, formatCount, renderValue } from "./present";
 import { ALL_RIVALS, type RivalSearchRow, type RivalsModel } from "./rivals-model";
 import {
   RIVAL_CELL_CLASS,
@@ -225,7 +225,7 @@ export function RivalTable(p: { model: RivalsModel }): React.JSX.Element {
           <input
             type="radio"
             name={RIVAL}
-            className="btn btn-sm filter-reset"
+            className={`${FILTER_PILL} filter-reset`}
             data-testid="rivals-chip-all"
             aria-label={copy("overview.rivals.filter.all")}
             checked={rival === ALL_RIVALS}
@@ -236,7 +236,7 @@ export function RivalTable(p: { model: RivalsModel }): React.JSX.Element {
               key={domain}
               type="radio"
               name={RIVAL}
-              className="btn btn-sm"
+              className={FILTER_PILL}
               data-testid={`rivals-chip-${domain}`}
               aria-label={copy("overview.rivals.chip", {
                 rival: domain,

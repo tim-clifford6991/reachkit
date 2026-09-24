@@ -22,7 +22,7 @@ export default async function SettingsVoiceTab(): Promise<React.JSX.Element> {
   const settings = await readSettings();
 
   return (
-    <div className="flex min-w-0 flex-col gap-4" data-testid="settings-tab-panel-voice">
+    <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-voice">
       <VoicePanel settings={settings} />
     </div>
   );

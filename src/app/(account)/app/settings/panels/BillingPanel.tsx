@@ -42,6 +42,7 @@ import { CreditCard, ExternalLink } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
+import { SettingRow } from "./SettingRow";
 import { PRICE_KEYS, type BillingSummary } from "../billing";
 
 /** REQ-097 c6's three statements, in the order the criterion names them.
@@ -149,24 +150,24 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
         </div>
 
         {nextInvoice === null && cardOnFile === null ? null : (
-          <dl className="border-base-300 grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 border-t pt-4 text-sm">
+          // The settable-row shape every Settings tab draws (`SettingRow`,
+          // #1089): the name at the near edge, the value at the far one.
+          <div className="border-base-300 flex min-w-0 flex-col border-t pt-4">
             {nextInvoice === null ? null : (
-              <>
-                <dt className="text-base-content/70">{copy("settings.billing.next-invoice")}</dt>
-                <dd className="num num-phrase text-right" data-testid="billing-next-invoice">
+              <SettingRow name={copy("settings.billing.next-invoice")} testId="billing-row-next-invoice">
+                <span className="num num-phrase min-w-0 wrap-anywhere" data-testid="billing-next-invoice">
                   {nextInvoice}
-                </dd>
-              </>
+                </span>
+              </SettingRow>
             )}
             {cardOnFile === null ? null : (
-              <>
-                <dt className="text-base-content/70">{copy("settings.billing.card")}</dt>
-                <dd className="num text-right" data-testid="billing-card">
+              <SettingRow name={copy("settings.billing.card")} testId="billing-row-card">
+                <span className="num min-w-0 wrap-anywhere" data-testid="billing-card">
                   {cardOnFile}
-                </dd>
-              </>
+                </span>
+              </SettingRow>
             )}
-          </dl>
+          </div>
         )}
 
         {/* **One control, and the line says what is behind it** (#925).
