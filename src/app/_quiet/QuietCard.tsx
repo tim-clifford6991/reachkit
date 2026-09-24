@@ -78,7 +78,7 @@ export interface QuietCardProps {
  *  inside a page that already has its own `Surface` and heading. */
 export function QuietCardBody(p: QuietCardProps): React.JSX.Element {
   return (
-    <section className="card bg-base-100 border-base-300 border" data-testid={p.testId}>
+    <section className="card bg-base-100 shadow-(--shadow-card)" data-testid={p.testId}>
       <div className="card-body gap-3">
         <span
           className={`rounded-box grid size-10 shrink-0 place-items-center ${TILE[p.tone ?? "plain"]}`}

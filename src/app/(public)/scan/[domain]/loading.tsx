@@ -35,6 +35,7 @@ import type React from "react";
 import { Surface } from "@/ui/layout";
 import type { Arm, Band } from "@/ui/layout";
 import { WaitingScreen } from "@/app/_fallback/Waiting";
+import { SKELETON_EXIT, ViewTransition } from "@/ui/motion";
 
 const ARMS = {
   compact: { kind: "columns", count: 1 },
@@ -48,7 +49,11 @@ export default function ReportLoading(): React.JSX.Element {
   return (
     <Surface arms={ARMS}>
       <main>
-        <WaitingScreen testId={TEST_ID} />
+        {/* The Suspense reveal (#1065): when the address resolves, this
+            line leaves and the page cross-fades to the arm that arrived. */}
+        <ViewTransition {...SKELETON_EXIT}>
+          <WaitingScreen testId={TEST_ID} />
+        </ViewTransition>
       </main>
     </Surface>
   );

@@ -301,7 +301,7 @@ function pagePanel(p: {
     <aside className={PANEL} data-testid="veto-panel">
       <div className={PANEL_COLUMN}>
         {p.heading === null ? null : <h2 className="text-primary">{p.heading}</h2>}
-        <div className="mockup-browser border-base-300 bg-base-100 border">
+        <div className="mockup-browser bg-base-100 shadow-(--shadow-card)">
           <div className="mockup-browser-toolbar">
             {/* The address is clamped by the box that holds it, in the UI
                 face: a site name can be any length. */}

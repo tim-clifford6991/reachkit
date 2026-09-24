@@ -118,7 +118,7 @@ function OnThisPage(p: { headings: readonly LegalHeading[] }): React.JSX.Element
 
   return (
     <>
-      <details className="collapse-arrow border-base-300 bg-base-100 collapse border lg:hidden" data-testid="legal-toc-phone">
+      <details className="collapse-arrow bg-base-100 collapse shadow-(--shadow-card) lg:hidden" data-testid="legal-toc-phone">
         <summary className="collapse-title text-sm font-semibold">{copy("chrome.on-this-page")}</summary>
         <nav className="collapse-content" aria-label={copy("chrome.on-this-page")}>
           {list}
@@ -167,7 +167,7 @@ export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
             {copy("legal.updated", { date: copy(p.document.updated) })}
           </p>
           {/* One card, no head: the page's own h1 already names the document. */}
-          <div className="card border-base-300 bg-base-100 mt-3 border">
+          <div className="card bg-base-100 mt-3 shadow-(--shadow-card)">
             <div className="card-body">
               <div
                 className="text-base-content/80 min-w-0 leading-relaxed"

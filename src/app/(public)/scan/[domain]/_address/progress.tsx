@@ -198,7 +198,14 @@ export function ScanProgress(p: {
                 <Check size={16} strokeWidth={1.75} aria-hidden />
               </span>
             ) : null}
-            <span className="flex flex-wrap items-baseline gap-2">
+            {/* A stage rises into its finished state as it finishes — its
+                time arriving beside it — and the one running or ahead does
+                not move (the calm layer's motion, #1059). The class is added
+                on the frame the stage finishes, which is when the browser
+                runs it; reduced motion draws it in place. */}
+            <span
+              className={`flex flex-wrap items-baseline gap-2 ${state === "done" ? "motion-safe:animate-rise" : ""}`}
+            >
               {copy(STAGE_KEY[stage])}
               {/* Only a stage that finished has a time; the one running and
                   the ones ahead of it carry none. */}
