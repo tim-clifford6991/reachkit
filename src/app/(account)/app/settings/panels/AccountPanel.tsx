@@ -99,7 +99,7 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
               {copy("settings.account.email-pending-expires", { at: pending.expiresAt })}
             </p>
             <form action={cancelEmailChangeAction}>
-              <button type="submit" className="btn btn-outline btn-sm">
+              <button type="submit" className="btn btn-ghost btn-sm">
                 {copy("settings.account.cancel-change")}
               </button>
             </form>
@@ -121,7 +121,7 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
           </label>
           {refusalLine === null ? null : <p className="text-xs text-error wrap-anywhere">{refusalLine}</p>}
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <button type="submit" className="btn btn-outline btn-sm">
+            <button type="submit" className="btn btn-soft btn-primary btn-sm">
               {copy("settings.account.change-email")}
             </button>
           </div>

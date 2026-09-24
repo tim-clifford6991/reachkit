@@ -99,7 +99,7 @@ export function VoicePanel(): React.JSX.Element {
 
       <button
         type="button"
-        className="btn btn-outline btn-sm w-fit"
+        className="btn btn-soft btn-primary btn-sm w-fit"
         data-testid="setup-voice-write"
         disabled={writing || spent}
         onClick={() => void write()}

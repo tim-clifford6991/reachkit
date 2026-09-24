@@ -259,7 +259,7 @@ export function MarketPanel(p: {
             {editing === "domain" ? null : (
               <>
                 <span className="num min-w-0 wrap-anywhere">{p.domain}</span>
-                <button type="button" className="btn btn-outline btn-sm" onClick={() => open("domain")}>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => open("domain")}>
                   {copy("settings.change")}
                 </button>
               </>
@@ -274,7 +274,7 @@ export function MarketPanel(p: {
             {editing === "category" ? null : (
               <>
                 <span className="num min-w-0 wrap-anywhere">{p.market.category}</span>
-                <button type="button" className="btn btn-outline btn-sm" onClick={() => open("category")}>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => open("category")}>
                   {copy("settings.edit")}
                 </button>
               </>
@@ -287,7 +287,7 @@ export function MarketPanel(p: {
             Outline rather than solid: this screen's one fill is a Save. */}
         <div className="flex min-w-0 flex-col gap-2" data-testid="market-remeasure">
           <form action={pressRemeasure}>
-            <button type="submit" className="btn btn-outline btn-sm" data-testid="market-remeasure-press">
+            <button type="submit" className="btn btn-soft btn-primary btn-sm" data-testid="market-remeasure-press">
               {copy("settings.market.remeasure.action")}
             </button>
           </form>

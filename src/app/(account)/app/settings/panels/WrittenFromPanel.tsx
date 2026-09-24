@@ -139,7 +139,7 @@ export function WrittenFromPanel(p: {
           )}
           <button
             type="button"
-            className="btn btn-outline btn-sm self-start"
+            className="btn btn-soft btn-primary btn-sm self-start"
             disabled={busy}
             onClick={() => void readAgain()}
             // `business-read-again`, not `action-read-again`: the seven

@@ -185,7 +185,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
             <span className="join">
               <button
                 type="button"
-                className="btn btn-outline btn-sm join-item"
+                className="btn btn-outline border-base-300 btn-sm join-item"
                 aria-label={copy("settings.publishing.veto.less.label")}
                 disabled={writer.busy || days <= VETO.minDays}
                 data-testid="veto-less"
@@ -198,7 +198,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
               </span>
               <button
                 type="button"
-                className="btn btn-outline btn-sm join-item"
+                className="btn btn-outline border-base-300 btn-sm join-item"
                 aria-label={copy("settings.publishing.veto.more.label")}
                 disabled={writer.busy || days >= VETO.maxDays}
                 data-testid="veto-more"
@@ -244,7 +244,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
                 <span className="num min-w-0 wrap-anywhere">{publishing.publishTime}</span>
                 <button
                   type="button"
-                  className="btn btn-outline btn-sm"
+                  className="btn btn-ghost btn-sm"
                   onClick={() => setEditing("publish_time")}
                 >
                   {copy("settings.change")}
@@ -296,7 +296,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
                 </span>
                 <button
                   type="button"
-                  className="btn btn-outline btn-sm"
+                  className="btn btn-ghost btn-sm"
                   onClick={() => setEditing("time_zone")}
                 >
                   {copy("settings.change")}

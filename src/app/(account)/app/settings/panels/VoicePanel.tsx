@@ -93,7 +93,7 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
             />
           </label>
           <span>
-            <button type="submit" className="btn btn-outline btn-sm">
+            <button type="submit" className="btn btn-soft btn-primary btn-sm">
               {copy("settings.voice.save")}
             </button>
           </span>
@@ -145,7 +145,7 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
                 list of controls. */}
             <button
               type="submit"
-              className="btn btn-outline btn-sm"
+              className="btn btn-soft btn-primary btn-sm"
               aria-label={copy("settings.voice.add-claim")}
               disabled={writer.busy}
             >

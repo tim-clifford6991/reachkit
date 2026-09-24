@@ -93,7 +93,7 @@ export function RetryPartControl(p: {
       <div className="card-actions">
         <button
           type="button"
-          className="btn btn-outline btn-primary btn-sm"
+          className="btn btn-soft btn-primary btn-sm"
           disabled={step.kind === "sending"}
           data-testid={`retry-${p.part}`}
           onClick={() => void onClick()}

@@ -205,11 +205,11 @@ describe("the set's card, and nothing else on the page", () => {
 
       expect(controls).toHaveLength(1);
       expect(controls[0]?.props.children).toBe(copy("chrome.back-to-reachkit"));
-      // Outline since #936, not ghost: on a quiet page the one way out is
+      // Soft since #1063, not ghost: on a quiet page the one way out is
       // the thing to press, and the board draws it as the card's own
       // control rather than as a whisper under it. Still not solid — see
       // the row below.
-      expect(classOf(controls[0] as Node)).toContain("btn-outline");
+      expect(classOf(controls[0] as Node)).toContain("btn-soft");
       expect(controls[0]?.props.href).toBe("/");
 
       const types = nodes(tree).map((node) => node.type);

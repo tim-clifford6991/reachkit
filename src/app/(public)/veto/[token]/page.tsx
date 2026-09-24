@@ -455,7 +455,7 @@ function Told(p: {
           link straight into the app bounced a signed-out reader to a
           sign-in wall with no word about why. The control says what it
           will do instead. */}
-      <Link href={SIGN_IN_PATH} className="btn btn-outline btn-block">
+      <Link href={SIGN_IN_PATH} className="btn btn-soft btn-primary btn-block">
         {copy("publish.veto.calendar")}
       </Link>
     </>,

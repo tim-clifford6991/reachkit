@@ -32,7 +32,7 @@ export function CategoryChoice(p: {
                 type="submit"
                 name={REMEASURE_CATEGORY_FIELD}
                 value={suggestion}
-                className="btn btn-outline btn-sm h-auto min-h-8 max-w-full wrap-anywhere"
+                className="btn btn-soft rounded-full btn-sm h-auto min-h-8 max-w-full wrap-anywhere"
                 disabled={pending}
                 data-testid="category-suggestion"
               >
@@ -47,7 +47,7 @@ export function CategoryChoice(p: {
           <span className="text-sm">{p.words.own}</span>
           <input className="input input-sm w-full" name={REMEASURE_CATEGORY_FIELD} required disabled={pending} />
         </label>
-        <button type="submit" className="btn btn-outline btn-sm self-start" disabled={pending}>
+        <button type="submit" className="btn btn-soft btn-primary btn-sm self-start" disabled={pending}>
           {pending ? (
             <span className="loading loading-spinner loading-xs" aria-hidden />
           ) : (

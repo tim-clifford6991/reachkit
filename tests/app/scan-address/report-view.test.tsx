@@ -359,13 +359,13 @@ describe("DESIGN rule 1 — the report has one solid primary, and it is Start", 
   it("draws exactly one solid primary button", () => {
     const solids = [...html.matchAll(/<button[^>]*class="([^"]*)"/g)]
       .map((m) => m[1] ?? "")
-      .filter((cls) => cls.split(" ").includes("btn-primary") && !cls.split(" ").includes("btn-outline"));
+      .filter((cls) => cls.split(" ").includes("btn-primary") && !/\bbtn-(soft|outline|ghost)\b/.test(cls));
     expect(solids).toHaveLength(1);
     expect(buttonTag("offer.start.priced")).not.toContain("btn-outline");
   });
 
   it("the free page's control and the correction are quieter ranks", () => {
-    expect(buttonTag("free-page.submit")).toContain("btn-outline");
+    expect(buttonTag("free-page.submit")).toContain("btn-soft");
     expect(buttonTag("verdict.not-your-market")).not.toContain("btn-primary");
   });
 });

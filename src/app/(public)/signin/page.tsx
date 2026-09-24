@@ -193,7 +193,7 @@ export default function SignInPage(props: {
                 </div>
                 <p className={`font-mono text-sm ${QUIET}`}>{copy("signin.sent.to", { address: value })}</p>
                 <p className={`text-sm ${QUIET}`}>{copy("signin.sent.terms")}</p>
-                <Link href={SIGN_IN_PATH} className="btn btn-outline self-start">
+                <Link href={SIGN_IN_PATH} className="btn btn-soft btn-primary self-start">
                   {copy("signin.sent.resend")}
                 </Link>
               </>

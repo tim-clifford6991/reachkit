@@ -558,7 +558,7 @@ export function AiAnswersAbsent(p: { cutOff?: boolean; domain?: CanonicalDomain 
           <RetryPartControl domain={p.domain} part={AI_ANSWERS_PART} />
         ) : (
           <div className="card-actions">
-            <button type="button" className="btn btn-outline btn-primary btn-sm">
+            <button type="button" className="btn btn-soft btn-primary btn-sm">
               {copy(p.cutOff === true ? "control.retry-part" : "control.rescan-incomplete")}
             </button>
           </div>

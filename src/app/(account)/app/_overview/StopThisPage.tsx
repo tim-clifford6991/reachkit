@@ -48,7 +48,7 @@ export function StopThisPage(p: { draftId: string }): React.JSX.Element {
     <div className="flex min-w-0 flex-col gap-2" data-testid="overview-stop">
       <button
         type="button"
-        className="btn btn-outline btn-warning"
+        className="btn btn-ghost btn-warning"
         onClick={stop}
         disabled={pending || answer === "stopped"}
         data-testid="overview-stop-action"

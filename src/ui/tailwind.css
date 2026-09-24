@@ -210,6 +210,15 @@ body {
   transition-timing-function: var(--ease-calm);
 }
 
+/* Press is `scale: .98` on every `.btn` that can be pressed (#1063): one
+ * rule rather than `active:scale-[.98]` on each button. Under reduced
+ * motion the button does not move. */
+@media (prefers-reduced-motion: no-preference) {
+  .btn:active:not(:disabled, .btn-disabled) {
+    scale: 0.98;
+  }
+}
+
 /* The tab underline draws out from its centre, and the chevron turns, in
  * 250ms. An inactive tab's underline is transparent, so collapsing it to
  * nothing changes no pixel until the tab becomes the current one. */

@@ -106,7 +106,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
       : null;
 
   const pill = (key: CopyKey, run: () => void): React.JSX.Element => (
-    <button type="button" className="btn btn-outline btn-sm" onClick={run}>
+    <button type="button" className="btn btn-soft btn-primary btn-sm" onClick={run}>
       {copy(key)}
     </button>
   );

@@ -31,7 +31,7 @@ export function ContentPanel(p: { settings: SettingsModel }): React.JSX.Element 
         </div>
 
         <div className="min-w-0" data-testid="action-export">
-          <button type="button" className="btn btn-outline btn-block" onClick={() => action.run("export")}>
+          <button type="button" className="btn btn-soft btn-primary btn-block" onClick={() => action.run("export")}>
             {copy("settings.content.export")}
           </button>
         </div>

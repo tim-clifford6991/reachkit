@@ -33,7 +33,7 @@ const ICON = { strokeWidth: 1.75, size: 20, "aria-hidden": true } as const;
 const CARD = "card bg-base-100 shadow-sm";
 const ROW = "flex min-w-0 flex-wrap items-center justify-between gap-3";
 const QUIET = "text-sm text-base-content/70";
-const CHANGE = "btn btn-sm btn-outline";
+const CHANGE = "btn btn-sm btn-soft";
 const CHIP = "badge badge-primary badge-soft h-auto py-1 wrap-anywhere";
 
 const SITE_AND_MARKET_TEST_ID = "setup-site-and-market";
@@ -196,7 +196,7 @@ export function MarketCard(p: {
                     }}
                     onKeyDown={onEnter(() => void commitAddress())}
                   />
-                  <button type="button" className="btn btn-outline" onClick={() => void commitAddress()}>
+                  <button type="button" className="btn btn-soft btn-primary" onClick={() => void commitAddress()}>
                     {copy("setup.address.change")}
                   </button>
                 </div>
@@ -253,7 +253,7 @@ export function MarketCard(p: {
                     onChange={(event) => setMarketDraft(event.target.value)}
                     onKeyDown={onEnter(commitMarket)}
                   />
-                  <button type="button" className="btn btn-outline" onClick={commitMarket}>
+                  <button type="button" className="btn btn-soft btn-primary" onClick={commitMarket}>
                     {copy("setup.market.change")}
                   </button>
                 </div>

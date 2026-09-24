@@ -75,7 +75,7 @@ export function ConnectDestination(p: { action: CredentialAction }): React.JSX.E
 
   return (
     <div className="flex min-w-0 flex-col gap-2" data-testid="wp-credential">
-      <button type="button" className="btn btn-outline btn-sm" onClick={() => setOpen((was) => !was)}>
+      <button type="button" className="btn btn-soft btn-primary btn-sm" onClick={() => setOpen((was) => !was)}>
         {copy(ACTION_COPY_KEY[p.action])}
       </button>
 

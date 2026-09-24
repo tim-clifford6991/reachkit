@@ -527,11 +527,11 @@ describe("needs you (S12)", () => {
   it("spends no solid button at all — the screen's one is Read it, on the page waiting for review", () => {
     // SPEC §4 (2026-09-20): the page in review leads the screen and takes
     // its one solid control. This card no longer repeats that page, so a
-    // panel here is always a second thing waiting and takes the outline.
+    // panel here is always a second thing waiting and takes the soft rank (#1063).
     const veto = markup.slice(markup.indexOf('data-kind="pending_veto"'));
     const reconnect = markup.slice(markup.indexOf('data-kind="needs_you"'));
-    expect(veto.slice(0, veto.indexOf("</a>"))).toContain("btn-outline");
-    expect(reconnect.slice(0, reconnect.indexOf("</a>"))).toContain("btn-outline");
+    expect(veto.slice(0, veto.indexOf("</a>"))).toContain("btn-soft");
+    expect(reconnect.slice(0, reconnect.indexOf("</a>"))).toContain("btn-soft");
     expect(count(markup, 'class="btn btn-primary')).toBe(0);
   });
 

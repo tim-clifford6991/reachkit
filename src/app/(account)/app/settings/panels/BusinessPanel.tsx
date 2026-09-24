@@ -256,7 +256,7 @@ function AddField(p: {
           and the shape the Remove controls here have carried since #488. */}
       <button
         type="submit"
-        className="btn btn-outline btn-sm shrink-0"
+        className="btn btn-soft btn-primary btn-sm shrink-0"
         aria-label={copy("settings.business.add.label", { group: p.head })}
         disabled={p.writer.busy || p.entry.trim() === ""}
       >
@@ -393,7 +393,7 @@ function Job(p: {
           ) : null}
           <button
             type="button"
-            className="btn btn-outline btn-sm shrink-0"
+            className="btn btn-soft btn-primary btn-sm shrink-0"
             onClick={() => setEditing(true)}
           >
             {copy("settings.business.reword")}

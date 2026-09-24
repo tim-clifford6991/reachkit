@@ -483,22 +483,21 @@ describe("the panel's arms", () => {
     expect(read?.className).toContain("btn-primary");
     expect(read?.className).toContain("col-span-2");
 
-    // A stop is the warning outline: its consequence is the opposite of
+    // A stop is a ghost in warning (#1063): its consequence is the opposite of
     // the control above it (#271).
     const veto = root.querySelector('[data-testid="day-action-calendar.action.veto"]');
     expect(veto?.tagName.toLowerCase()).toBe("button");
-    expect(veto?.className).toContain("btn-outline");
+    expect(veto?.className).toContain("btn-ghost");
     expect(veto?.className).toContain("btn-warning");
     expect(veto?.className).not.toContain("btn-primary");
   });
 
-  it("live's way in is the OUTLINE rank — it leaves the product, so it is not the screen's fill", () => {
+  it("live's way in is the SOFT rank — it leaves the product, so it is not the screen's fill", () => {
     const live = panel("2026-09-01").querySelector(
       '[data-testid="day-action-calendar.action.view-live-page"]',
     );
     expect(live?.tagName.toLowerCase()).toBe("a");
-    expect(live?.className).toContain("btn-outline");
-    expect(live?.className).not.toContain("btn-primary");
+    expect(live?.className).toContain("btn-soft");
   });
 
   it("the empty arm names the day, states its whole account, and offers nothing**", () => {

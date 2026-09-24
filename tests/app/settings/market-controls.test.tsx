@@ -286,11 +286,10 @@ describe("issue 866 — the standalone 'measure again now'", () => {
     expect(pressed.filter((p) => p.action !== "remeasure")).toEqual([]);
   });
 
-  it("it is the outline rank — this screen's one fill is a Save", async () => {
+  it("it is the soft rank — this screen's one fill is a Save", async () => {
     const root = await market();
     const button = root.querySelector('[data-testid="market-remeasure-press"]');
-    expect(button?.className).toContain("btn-outline");
-    expect(button?.className).not.toContain("btn-primary");
+    expect(button?.className).toContain("btn-soft");
   });
 });
 

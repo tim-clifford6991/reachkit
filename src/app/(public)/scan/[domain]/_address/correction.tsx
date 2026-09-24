@@ -121,7 +121,7 @@ export function CategoryCorrection(p: { domain: CanonicalDomain; offer: Correcti
             onChange={(event) => setCategory(event.target.value)}
             aria-label={copy("correction.field.label")}
           />
-          <button type="submit" className="btn btn-outline btn-sm join-item">
+          <button type="submit" className="btn btn-soft btn-primary btn-sm join-item">
             {step.sending ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
             {copy("correction.submit")}
           </button>

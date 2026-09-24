@@ -351,7 +351,7 @@ describe("the done arm, and the refusals that wear its shape", () => {
     expect(COPY["publish.veto.calendar"]).toBe("Sign in to open your plan");
     // Not solid: the done arm asks nothing of the reader, and the page it
     // offers is one they may or may not want.
-    expect(classOf(links[0] as Node)).toContain("btn-outline");
+    expect(classOf(links[0] as Node)).toContain("btn-soft");
     expect(buttonsOf(tree)).toHaveLength(0);
   });
 

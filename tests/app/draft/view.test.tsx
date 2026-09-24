@@ -278,7 +278,7 @@ describe("REQ-045 c4 — told what happens if nothing is done, and able to appro
   // §9.1 gives one solid primary. The classes are the ranks: `btn-primary`
   // is the solid fill, `btn-outline` the outline secondary (carrying the
   // one tone a rank may take), `btn-ghost` the quiet arm.
-  it("§9.1 — Approve is the one solid primary, Veto the warn outline, Edit the quiet arm", () => {
+  it("§9.1 — Approve is the one solid primary, Veto a ghost in warning, Edit the quiet arm", () => {
     const root = markup();
     const button = (key: string): Element | null =>
       root.querySelector(`button[data-testid="draft-action-${key}"]`);
@@ -287,7 +287,7 @@ describe("REQ-045 c4 — told what happens if nothing is done, and able to appro
     expect(approve?.className).toContain("btn-primary");
 
     const veto = button("draft.action.veto");
-    expect(veto?.className).toContain("btn-outline");
+    expect(veto?.className).toContain("btn-ghost");
     expect(veto?.className).not.toContain("btn-primary");
     expect(veto?.className).toContain("btn-warning");
 
@@ -296,7 +296,7 @@ describe("REQ-045 c4 — told what happens if nothing is done, and able to appro
     expect(edit?.className).not.toContain("btn-primary");
 
     // One solid fill on the whole screen, not merely in this row.
-    expect(root.querySelectorAll(".btn-primary")).toHaveLength(1);
+    expect(root.querySelectorAll(".btn-primary:not(.btn-soft, .btn-outline, .btn-ghost)")).toHaveLength(1);
   });
 
   it("the info box states what happens if you do nothing, with the time under autopilot", () => {

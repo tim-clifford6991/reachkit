@@ -49,6 +49,8 @@ const ADD_PLACEHOLDER = {
 
 const TEST_ID = "setup-competitors";
 const ICON = { strokeWidth: 1.75 } as const;
+// A chosen suggestion is a solid ink pill, the rest soft (#1063).
+const INK_PILL = "border-base-content bg-base-content text-base-100";
 
 export function RivalsCard(p: {
   rivals: RivalSet;
@@ -150,7 +152,7 @@ export function RivalsCard(p: {
               <button
                 key={domain}
                 type="button"
-                className={`btn btn-sm btn-outline num ${chosen.has(domain) ? "btn-active" : ""}`}
+                className={`btn btn-sm rounded-full num ${chosen.has(domain) ? INK_PILL : "btn-soft"}`}
                 aria-pressed={chosen.has(domain)}
                 disabled={full && !chosen.has(domain)}
                 onClick={() => toggleSuggested(domain)}
@@ -201,7 +203,7 @@ export function RivalsCard(p: {
             />
             <button
               type="button"
-              className="btn btn-outline"
+              className="btn btn-soft btn-primary"
               disabled={full}
               onClick={() => {
                 void addTyped();

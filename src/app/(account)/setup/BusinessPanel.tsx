@@ -167,7 +167,7 @@ function Group(p: {
               onChange={(event) => setEntry(event.target.value)}
               onKeyDown={onKey}
             />
-            <button type="button" className="btn btn-outline shrink-0" disabled={full} onClick={add}>
+            <button type="button" className="btn btn-soft btn-primary shrink-0" disabled={full} onClick={add}>
               <Plus {...ICON} size={20} />
               {copy("setup.business.add")}
             </button>

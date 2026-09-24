@@ -148,7 +148,7 @@ export function DecidePanel(p: {
                   <button
                     key={action.key}
                     type="button"
-                    className="btn btn-sm btn-outline btn-warning"
+                    className="btn btn-sm btn-ghost btn-warning"
                     data-testid={`draft-action-${action.key}`}
                     disabled={p.deciding}
                     onClick={() => p.onCommand("veto")}

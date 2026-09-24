@@ -114,7 +114,7 @@ function Fact(p: {
         <input type="hidden" name={BUSINESS_FACT_FIELD} value={fact.passage} />
         <button
           type="submit"
-          className="btn btn-outline btn-xs w-full whitespace-nowrap sm:w-auto"
+          className="btn btn-soft btn-primary btn-xs w-full whitespace-nowrap sm:w-auto"
           disabled={writer.busy}
         >
           {copy(
