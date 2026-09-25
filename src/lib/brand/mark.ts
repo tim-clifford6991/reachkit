@@ -31,7 +31,7 @@
 //
 // Every consumer reads from here: `Brand.tsx` (the screens), the share
 // cards and the tab icon under `(public)/_seo/`, and `scripts/brand/` for
-// the committed raster set. `tests/ui/design/idiom-fidelity.test.ts` keeps
+// the committed raster set. `tests/ui/design/mark-and-glyphs.test.ts` keeps
 // it the only place.
 
 /** A shape carrying no fill of its own. Named because the copy sweep

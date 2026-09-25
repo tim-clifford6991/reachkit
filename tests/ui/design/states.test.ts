@@ -1,8 +1,8 @@
 // UI-SPEC §0 — the owner's sixteen rulings of 2026-09-11 (issue #530).
 //
 // Each `it` names the ruling it holds. The states are asserted on the
-// stylesheets that carry them — the idiom's own classes in `idiom.css` and
-// `shell.css` — because §0 says they live there and never per screen; a
+// stylesheet that carries them — `tailwind.css` — because §0 says they live
+// there and never per screen; a
 // screen that restyled one would be a second definition this file does not
 // see, which is the point. The calendar cell is daisyUI in the route since
 // issue 732, so its state is read off the route.
@@ -16,7 +16,7 @@ const REPO = path.resolve(import.meta.dirname, "../../..");
 const SRC = path.join(REPO, "src");
 const read = (rel: string): string => readFileSync(path.join(REPO, rel), "utf8");
 
-const IDIOM = "src/ui/idiom/idiom.css";
+const THEME = "src/ui/tailwind.css";
 // The states that fall on a daisyUI component class are daisyUI's own since
 // issue #548 — the owner ruling of 2026-09-11 retires the re-skins, and
 // `docs/DESIGN.md` takes every state "from daisyUI's own state selectors with
@@ -131,7 +131,7 @@ describe("the calm layer — one easing, seven timings (owner, 2026-09-24, #1065
 
   it("the reduced-motion rule removes every transition and animation", () => {
     const media = [] as AtRule[];
-    postcss.parse(read(IDIOM)).walkAtRules("media", (at) => {
+    postcss.parse(read(THEME)).walkAtRules("media", (at) => {
       if (/prefers-reduced-motion:\s*reduce/.test(at.params)) media.push(at);
     });
     expect(media).toHaveLength(1);

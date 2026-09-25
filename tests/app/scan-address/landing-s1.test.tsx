@@ -197,9 +197,4 @@ describe("S1 layout — Tailwind utilities, no idiom class, no viewport band (#5
   it("the hero h1 carries the set's display class", async () => {
     expect(await renderPage()).toMatch(/<h1 class="t-hero">landing\.headline<\/h1>/);
   });
-
-  it("no screen declares the shared split class", () => {
-    const sheet = read("src/ui/idiom/idiom.css");
-    expect(sheet).not.toMatch(/^\.rk-split\b/m);
-  });
 });

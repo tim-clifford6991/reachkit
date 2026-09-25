@@ -37,17 +37,6 @@ const ALLOWED_LITERALS: ReadonlyArray<{ readonly path: string; readonly why: str
     why: "ADR-093's layout tokens (2026-09-05 ruling, #65) — a second `:root`, kept out of theme.css so §2.1's stays verbatim",
   },
   {
-    path: "src/ui/idiom/idiom.css",
-    why:
-      "the owner-approved card idiom's four tokens (2026-09-02, issue 266). " +
-      "A third `:root`, on the same footing as layout.css's: every value is " +
-      "derived from a token §2.1 already states — `--shadow-lift` is §2.1's " +
-      "own dark-shadow construction re-inked, `--grad-accent` and the glass " +
-      "pair are `--on-accent` at the 12%/28% alphas §2.1 states verbatim, " +
-      "No " +
-      "colour is minted and no second accent stop exists",
-  },
-  {
     path: "src/lib/mail/shell/tokens.ts",
     why: "a mail client resolves no custom property, so the mail shell carries §2.1's values inline (BUILD §12)",
   },
@@ -222,13 +211,11 @@ describe('§2.1 — every colour in src/** resolves to a token, "these exact val
       expect(entry.why.length, entry.path).toBeGreaterThan(20);
       expect(SRC_FILES, entry.path).toContain(entry.path);
     }
-    // **Six since 2026-09-21** (#982), and the count is pinned so the list
-    // cannot grow without somebody saying why. The sixth is
-    // `src/lib/brand/mark.ts`: the brand mark's chip must stay violet in
-    // dark by owner ruling, and every token that could carry it flips.
-    // Both values it writes are still §2.1's own — the row below holds it
-    // to that, which is what keeps this an exemption and not a hole.
-    expect(ALLOWED_LITERALS).toHaveLength(6);
+    // The count is pinned so the list cannot grow without somebody saying
+    // why. `src/lib/brand/mark.ts` is on it because the brand mark's chip
+    // stays violet in dark by owner ruling (#982), and every token that
+    // could carry it flips.
+    expect(ALLOWED_LITERALS).toHaveLength(5);
   });
 
   it("the allowed files that are not theme.css write only values the theme declares", () => {
@@ -263,17 +250,6 @@ describe('§2.1 — every colour in src/** resolves to a token, "these exact val
 
 /* ── every colour-valued declaration names a §2.1 token ───────────────── */
 
-/** The card idiom's own colour tokens (issue 266), and the only ones a
- *  declaration may name that §2.1 does not state.
- *
- *  They are listed here by name rather than read from the file, so that a
- *  *sixth* one cannot appear by being written: adding to this list is a
- *  decision someone makes on purpose, which is exactly the property the
- *  rule below is for. Each is derived from a token §2.1 already states —
- *  `design/tokens.md` §9.3 carries the derivations, and `idiom.css`'s own
- *  `:root` block repeats them where the values are. */
-const IDIOM_ROOT: ReadonlySet<string> = new Set(["--grad-accent"]);
-
 function nonThemeColourTokens(files: readonly string[]): string[] {
   const out: string[] = [];
   for (const file of files) {
@@ -281,7 +257,7 @@ function nonThemeColourTokens(files: readonly string[]): string[] {
       if (!COLOR_PROPERTY.test(decl.prop)) continue;
       for (const match of decl.value.matchAll(/var\(\s*(--[\w-]+)/g)) {
         const token = match[1];
-        if (token !== undefined && !THEME_ROOT.has(token) && !IDIOM_ROOT.has(token)) {
+        if (token !== undefined && !THEME_ROOT.has(token)) {
           out.push(`${file}: ${decl.prop}: ${token}`);
         }
       }
@@ -293,26 +269,6 @@ function nonThemeColourTokens(files: readonly string[]): string[] {
 describe("§2.1 — a colour-valued declaration names a §2.1 token and nothing else", () => {
   it("every stylesheet under src/ paints only from :root", () => {
     expect(nonThemeColourTokens(CSS_FILES)).toEqual([]);
-  });
-
-  it("the idiom's one composition is declared on :root, and is only one", () => {
-    // Rule 5.5, and the reason `IDIOM_ROOT` is a written list: the set is
-    // closed until someone opens it. Each must actually be declared where
-    // it says it is, so the allowance cannot outlive the declaration.
-    //
-    // They are declared in `idiom.css` and not `theme.css`, because since
-    // issue #349 that file carries `docs/design/approved/tokens.css` and
-    // nothing else. Neither is a value: each is a construction over approved
-    // tokens, which is what makes it declarable outside the approved set.
-    // `--shadow-lift` was the third until #349 — the approved set draws
-    // every card on `--shadow-card`, so it is resolved, not relocated.
-    const root = declarationsOf(read("src/ui/idiom/idiom.css"));
-    const declared = new Set(root.filter((d) => d.prop.startsWith("--")).map((d) => d.prop));
-    for (const token of IDIOM_ROOT) {
-      expect(declared, `${token} is allowed but not declared`).toContain(token);
-    }
-    expect([...IDIOM_ROOT].sort()).toEqual(["--grad-accent"]);
-    expect(read("src/ui/theme.css")).not.toContain("--shadow-lift");
   });
 
   it("theme.css's :root is the authority, and holds §2.1's colour tokens", () => {

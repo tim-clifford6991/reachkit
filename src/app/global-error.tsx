@@ -38,7 +38,6 @@ import "@/ui/tailwind.css";
 import "@/ui/type.css";
 import "@/ui/layout/layout.css";
 import "@/ui/layout/surface.css";
-import "@/ui/idiom/idiom.css";
 import { fontVariables } from "@/ui/fonts";
 
 const GlobalErrorBody = lazy(() => import("@/app/_fallback/GlobalErrorBody"));

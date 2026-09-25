@@ -151,7 +151,7 @@ body {
  * layer, and an unlayered declaration wins over any layered one whatever
  * its specificity — so this needs no `!important` and no arms race over
  * selectors. It styles a daisyUI class, which this product otherwise does
- * not do (`idiom.css` says why): the exception is the point — a component
+ * not do: the exception is the point — a component
  * takes every value from the theme, and this is the one value daisyUI does
  * not read a theme slot for.
  */
@@ -181,8 +181,8 @@ body {
  *                                          loop (#1058, #1069): linear, as a
  *                                          drift that eased would stutter
  *
- * Under `prefers-reduced-motion: reduce` nothing moves: `idiom.css` turns
- * every animation and transition off, `animate-rise` holds nothing back once
+ * Under `prefers-reduced-motion: reduce` nothing moves: the rule at the end
+ * turns every animation and transition off, `animate-rise` holds nothing back once
  * it is off (its `from` is the only frame it states), the beacon's ring
  * rests invisible, and the view-transition rule at the end zeroes what `*`
  * does not reach. */
@@ -335,7 +335,21 @@ body {
     animation: figure-count 1.4s var(--ease-calm) forwards;
   }
 }
+/* Focus is one global rule: the accent outline, two pixels off the edge. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Reduced motion turns every animation and transition off; the
+ * view-transition pseudo elements, which `*` does not reach, follow. */
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
   ::view-transition-group(*),
   ::view-transition-old(*),
   ::view-transition-new(*) {

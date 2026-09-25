@@ -54,12 +54,7 @@
 // block — the spacing steps and the two content measures it spends — and
 // sits beside its neighbour rather than inside it, because that file is
 // ADR-093's three tokens and nothing else.
-//
-// The card idiom: `src/ui/idiom/idiom.css` is the idiom the owner endorsed
-// on 2026-09-02 ("A · Six boxes"), ported from the live preview code
-// (issue #266). It declares four tokens on `:root` and widens three
-// registered components' arms, so it ships wherever those components do —
-// which is every route.
+
 import type React from "react";
 import { headers } from "next/headers";
 
@@ -68,7 +63,6 @@ import "@/ui/tailwind.css";
 import "@/ui/type.css";
 import "@/ui/layout/layout.css";
 import "@/ui/layout/surface.css";
-import "@/ui/idiom/idiom.css";
 import { fontVariables } from "@/ui/fonts";
 import { COUNT_UP_SCRIPT } from "@/ui/count-up";
 import { THEME_SCRIPT } from "./_theme/theme";

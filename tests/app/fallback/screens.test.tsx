@@ -305,7 +305,6 @@ describe("S8 — what each file is, on disk", () => {
       "@/ui/type.css",
       "@/ui/layout/layout.css",
       "@/ui/layout/surface.css",
-      "@/ui/idiom/idiom.css",
     ]) {
       expect(code, sheet).toContain(sheet);
     }
