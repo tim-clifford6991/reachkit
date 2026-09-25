@@ -62,6 +62,59 @@ tolerate a newer blob by reading only the members it understands, every one of i
 would need a not-present arm at every reader, and every future version bump would have to state
 what an older build silently loses. It buys back one click that has never been needed.
 
+### Where CI runs
+
+Owner, 2026-09-25 (#1113); the rules are in `docs/PROCESS.md` Gates. The light jobs — `what
+changed`, `typecheck · lint · unit`, `schema · RLS` and `audit` — take their runner from the
+repository variable `CI_LIGHT_RUNNER`. Unset, they run GitHub-hosted and in parallel. Set to
+`["self-hosted","reachkit-light"]`, they run on the box's second runner. The browser job always
+runs on `reachkit-box` (label `reachkit`), the only runner that takes it.
+
+| Do | Command |
+|---|---|
+| light jobs to the box (hosted jobs fail with *"recent account payments have failed or your spending limit needs to be increased"*) | `gh variable set CI_LIGHT_RUNNER --body '["self-hosted","reachkit-light"]'` |
+| light jobs back to hosted | `gh variable delete CI_LIGHT_RUNNER` |
+| see which | `gh variable list` (no `CI_LIGHT_RUNNER` = hosted) |
+
+**The runners on the box.** Both run as `ghrunner`, one directory each under `/home/ghrunner`:
+
+| Runner | Labels | systemd unit | Limits |
+|---|---|---|---|
+| `reachkit-box` | `self-hosted, reachkit` | `actions.runner.tim-clifford6991-reachkit.reachkit-box.service` | drop-in `nice.conf`: `Nice=15`, cores 0–1 |
+| `reachkit-light` | `self-hosted, reachkit-light` | `actions.runner.tim-clifford6991-reachkit.reachkit-light.service` | drop-in `limits.conf`: `MemoryMax=1536M`, `MemorySwapMax=1G`, `Nice=19`, `CPUWeight=20`, `IOWeight=20` |
+
+`reachkit-light` has no `reachkit` label, so a browser sweep never lands on it. To recreate it, run
+`sudo bash scripts/ci-runners/install-light-runner.sh` from a checkout, as root. It copies the
+first runner's binaries, registers the new runner with a registration token, installs the service
+and writes the limits. The script's header says how to remove it. If a typecheck on it is
+killed for memory, the ceiling is too low for that job. Raise `MemoryMax` in the drop-in, keeping
+`rk-guard`'s 1.2 GB available-memory floor in mind.
+
+**The minutes switch.** `rk-ci-switch.timer` runs `/root/ops/reachkit/bin/ci-minutes-switch.sh`
+hourly, beside `rk-deployer` and `rk-guard`, and logs every flip to
+`/root/ops/reachkit/log/ci-switch.log`:
+
+- **To the box:** it sets `CI_LIGHT_RUNNER` when a hosted job this cycle was refused for
+  billing, or at 90% or more of the cycle's included Actions minutes. A billing refusal is a
+  failed payment or the spending limit, and minutes have nothing to do with it (#1119). It
+  records the cycle and which of the two it was in `/root/ops/reachkit/state/ci-switch`.
+- **Back to hosted, after minutes:** only in a new cycle (day `RK_CI_RESET_DAY` of the month,
+  UTC), with the minutes readable and below 90%, and with the last hosted job not refused for
+  billing. Minutes it cannot read count as unavailable.
+- **Back to hosted, after billing: by hand only**, once Billing & plans is fixed. Run
+  `gh variable delete CI_LIGHT_RUNNER` and `rm /root/ops/reachkit/state/ci-switch`. A failed
+  payment does not reset with the month.
+- **A value set by hand is left alone.** On 2026-09-25 the orchestrator set
+  `["self-hosted","reachkit"]` after #1119's hosted jobs were refused for billing.
+
+To recreate it, run `sudo bash scripts/ci-runners/install-minutes-switch.sh`. It ends with a dry
+run, which says what the switch can read.
+
+**What it cannot read yet.** The minutes are `GET /users/tim-clifford6991/settings/billing/actions`,
+which needs the `user` scope. The box's `gh` token lacks it. Until someone runs
+`gh auth refresh -h github.com -s user` as root, the switch cannot flip at 90%. It still flips to
+the box on a billing refusal, and it never flips back by itself.
+
 ---
 
 ## 2. Environments
@@ -916,6 +969,8 @@ deployment (`dpl_2NEUXishMXAkzXG4Ti85yTy7NDda`, 23 Aug 2026).
 | someone is asking to roll back | §1 — the scripts cannot; Vercel can, and must not. Why is there |
 | "is not readable by this build" in a log | §1 — an older build is reading a newer report. Deploy `main`, do not roll back further |
 | how long would a restore take | §9 — unknown until the drill runs. Enabling it and running it are the owner's |
+| CI jobs fail with a billing or spending-limit error | §1 *Where CI runs* — one `gh variable set` sends the light jobs to the box |
+| a check sits in *queued* for hours | §1 *Where CI runs* — is the runner its label names online? `gh api repos/tim-clifford6991/reachkit/actions/runners` |
 | `Vercel` fails on every PR | §1 — the Hobby plan's 100 builds a day. It is not a required check; nothing is blocked |
 
 ---

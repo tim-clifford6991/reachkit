@@ -6,13 +6,13 @@
 # and the same `up.sh` call in two places — two copies of one arrangement,
 # which is how the two come to disagree about what "the substrate" is.
 #
-# **Where it runs** (#1013). Every job runs on `reachkit-box`, the
-# self-hosted runner on the shared box, against the box's own PostgreSQL 18
-# on 127.0.0.1:5432 — there is no Docker there, so no service container.
-# The worktree agents use that same cluster, so this job takes a run of its
-# own (`up.sh --run`): its own database and its own PostgREST, proxy and
-# postgres-meta, never another run's. `../db-substrate-down` stops them and
-# drops the database, and every job that uses this action calls it with
+# **Where it runs.** Whatever answers on 127.0.0.1:5432 as `reachkit`: the
+# `db` job's own `postgres:18` service on a GitHub-hosted runner (#1113), or
+# the box's own PostgreSQL 18 for the browser job on `reachkit-box` (#1013),
+# where there is no Docker. The worktree agents use the box's cluster too, so
+# this action always takes a run of its own (`up.sh --run`): its own database
+# and its own PostgREST, proxy and postgres-meta, never another run's. On the
+# box, `../db-substrate-down` stops them and drops the database, called with
 # `if: always()` — a composite action has no post step to do it here.
 name: Bring up the db substrate
 description: >-
@@ -28,7 +28,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        # The box has it; the install stays for a machine that does not.
+        # The box has it; a hosted runner ships an older client.
         if psql --version 2>/dev/null | grep -q ' 18\.'; then
           psql --version
           exit 0
