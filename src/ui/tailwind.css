@@ -161,6 +161,7 @@ body {
  *   screen enter                    600ms — `animate-rise`, 60ms apart
  *   chart draw                      1.4s  — `SERIES_DRAW` in `src/ui/motion.ts`
  *   the report's score ring         1.4s  — `animate-ring`, the same draw
+ *   figure count-up                 1.4s  — `.figure`, below (#1079)
  *   *Live* / *Your review* dot      2.4s  — `animate-beacon`, the only loop
  *
  * Under `prefers-reduced-motion: reduce` nothing moves: `idiom.css` turns
@@ -263,6 +264,49 @@ body {
 @keyframes settle {
   to {
     opacity: 0;
+  }
+}
+/* The figure count-up (#1079): a big figure counts from 0 to itself in 1.4s,
+ * once, when it is first half in view. `COUNT_UP_SCRIPT` in
+ * `src/ui/count-up.ts` sets `data-countup` on `<html>` only when the reader
+ * allows motion and the browser can draw this, and marks each `.figure` it
+ * has read: `wait` (the counter shows 0), `run`, then `done` or `off` (drawn
+ * as it is). Until a figure is read it is held blank rather than drawn final,
+ * so the final figure never flashes before the 0. The figure's own text stays
+ * in the DOM under the counter, transparent, so the box keeps its final width
+ * and a screen reader reads the final figure; the counter's alt text is
+ * empty. Under reduced motion none of this matches. */
+@property --figure-n {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 0;
+}
+@keyframes figure-count {
+  from {
+    --figure-n: 0;
+  }
+  to {
+    --figure-n: var(--figure-to);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-countup] .figure:not([data-figure]) {
+    -webkit-text-fill-color: transparent;
+  }
+  :root[data-countup] .figure:is([data-figure="wait"], [data-figure="run"]) {
+    position: relative;
+    -webkit-text-fill-color: transparent;
+    counter-reset: figure var(--figure-n);
+  }
+  :root[data-countup] .figure:is([data-figure="wait"], [data-figure="run"])::after {
+    content: attr(data-figure-pre) counter(figure) attr(data-figure-post) / "";
+    position: absolute;
+    inset: 0;
+    -webkit-text-fill-color: currentcolor;
+    pointer-events: none;
+  }
+  :root[data-countup] .figure[data-figure="run"] {
+    animation: figure-count 1.4s var(--ease-calm) forwards;
   }
 }
 @media (prefers-reduced-motion: reduce) {
