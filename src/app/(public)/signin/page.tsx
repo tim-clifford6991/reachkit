@@ -42,7 +42,7 @@ const QUIET = "text-base-content/70";
 /** The answered arm's mark: a success-tinted square, as `R7-S2` draws it. */
 const CHIP_OK = "grid size-12 flex-none place-items-center rounded-box bg-success/10 text-success";
 /** The tile on the tint: the app's own card, not a glass panel. */
-const TILE = "card bg-base-100 border-base-300 flex flex-col gap-3 border p-6";
+const TILE = "card bg-base-100 flex flex-col gap-3 p-6 shadow-(--shadow-card)";
 
 /** The specimen the accent half shows: the reserved domain and the figures
  *  the approved set draws on it (ruling 5c), read from `_landing/specimen.ts`
@@ -233,9 +233,9 @@ export default function SignInPage(props: {
             <h2 className="text-primary">{copy("signin.panel.heading")}</h2>
             <div className={TILE}>
               <p className="eyebrow">{copy("signin.panel.score-label")}</p>
-              <div className="flex flex-wrap items-baseline gap-2 font-mono">
+              <div className="flex flex-wrap items-baseline gap-2">
                 <span className="figure text-5xl">{SPECIMEN_SCORE}</span>
-                <span className={QUIET}>{`/ ${SPECIMEN_MAX}`}</span>
+                <span className={`font-mono ${QUIET}`}>{`/ ${SPECIMEN_MAX}`}</span>
                 <span className="badge badge-success ms-auto self-center">{copy("signin.panel.delta")}</span>
               </div>
               <progress

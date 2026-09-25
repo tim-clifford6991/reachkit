@@ -36,6 +36,7 @@
 
 import type React from "react";
 import { Surface } from "@/ui/layout";
+import { SKELETON_EXIT, ViewTransition } from "@/ui/motion";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { StageName } from "@/lib/scan/stages";
 import type { CanonicalDomain } from "@/lib/scan/domain";
@@ -67,20 +68,26 @@ const SECTIONS: readonly { readonly title: CopyKey; readonly stage: StageName; r
  *  finished, in words, with the time it took. */
 function SectionPlace(p: { title: CopyKey; done: boolean; lines: number }): React.JSX.Element {
   return (
-    <section className="card bg-base-100 border-base-300 border" data-testid="scan-section" data-done={p.done}>
+    <section className="card bg-base-100 shadow-(--shadow-card)" data-testid="scan-section" data-done={p.done}>
       <div className="card-body gap-3">
         <h3 className="card-title text-base">
-          {p.done ? <span className="status status-success" aria-hidden /> : null}
+          {/* The dot rises in the moment its stage finishes (the calm
+              layer's motion, #1059); reduced motion draws it in place. */}
+          {p.done ? <span className="status status-success motion-safe:animate-rise" aria-hidden /> : null}
           {copy(p.title)}
         </h3>
         {/* The content's place. `aria-hidden`: it carries no information a
             reader could use, and the stages beside it are the accessible
-            account of what is happening. */}
-        <div className="flex flex-col gap-2" aria-hidden>
-          {Array.from({ length: p.lines }, (_unused, line) => (
-            <div key={line} className={`skeleton h-4 ${line === p.lines - 1 ? "w-2/3" : "w-full"}`} />
-          ))}
-        </div>
+            account of what is happening. When the report arrives (the
+            router's refresh is a transition) the skeleton leaves and the
+            page cross-fades to what replaced it (#1065's reveal). */}
+        <ViewTransition {...SKELETON_EXIT}>
+          <div className="flex flex-col gap-2" aria-hidden>
+            {Array.from({ length: p.lines }, (_unused, line) => (
+              <div key={line} className={`skeleton h-4 ${line === p.lines - 1 ? "w-2/3" : "w-full"}`} />
+            ))}
+          </div>
+        </ViewTransition>
       </div>
     </section>
   );
@@ -108,7 +115,7 @@ export function ScanningView(p: {
       }}
     >
       <main className="col-span-full grid grid-cols-subgrid items-start gap-4">
-        <section className="card bg-base-100 border-base-300 border">
+        <section className="card bg-base-100 shadow-(--shadow-card)">
           <div className="card-body gap-4">
             {/* The domain is what this report is *about*, so it is the
                 page's `<h1>` (owner ruling 2026-09-23, #328). It was an
