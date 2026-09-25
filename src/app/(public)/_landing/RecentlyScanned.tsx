@@ -25,7 +25,7 @@ import type React from "react";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
-import { readRecent, type StripEntry } from "@/lib/scan/gallery";
+import type { StripEntry } from "@/lib/scan/gallery";
 
 /** How many of the newest scans the strip carries. */
 const SHOWN = 16;
@@ -113,6 +113,9 @@ export function RecentlyScannedSkeleton(): React.JSX.Element {
 export async function RecentlyScanned(): Promise<React.JSX.Element | null> {
   let entries: readonly StripEntry[];
   try {
+    // Imported here, not at the top: the database client checks its
+    // environment when it loads, and the landing renders without one.
+    const { readRecent } = await import("@/lib/scan/gallery");
     entries = await readRecent(SHOWN);
   } catch (error) {
     // The strip is not the landing's job: a failed read drops the strip,

@@ -107,6 +107,10 @@ describe("the calm layer — one easing, seven timings (owner, 2026-09-24, #1065
         }
         if (!MOVES.test(d.prop)) return;
         const value = d.value.trim();
+        // The landing's logo strip, the one other loop (`docs/DESIGN.md`,
+        // 2026-09-25, #1069): linear, 80s — admitted by name, never as a
+        // timing any other rule may take.
+        if (d.prop === "--animate-drift" && value === "drift 80s linear infinite") return;
         if (value === "none" || value.startsWith("none ")) return;
         for (const time of value.match(/(?<![\w-])\d*\.?\d+m?s\b/g) ?? []) {
           if (!TIMINGS.has(time)) offenders.push(`${rel}: ${d.prop}: ${time}`);

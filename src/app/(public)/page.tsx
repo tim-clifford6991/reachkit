@@ -10,8 +10,8 @@
 // chrome the group layout draws:
 //   1. the hero — title, subtitle, the one field — beside the *Inside
 //      ReachKit* preview at the same height (`InsideReachKit.tsx`);
-//   2. the logo strip, which #1069 adds here once it ships — nothing
-//      stands in for it until then;
+//   2. the *Recently scanned* logo strip (`RecentlyScanned.tsx`, #1069),
+//      streamed behind a quiet skeleton so the hero never waits on its read;
 //   3. *See it work*, the 2026-09-22 frame (#734), its title in the window
 //      bar, placed so its middle sits near the fold of a 1920×1080 screen;
 //   4. *Why you should care* — four features (`Features.tsx`);
@@ -25,6 +25,7 @@
 // A Server Component. It reads no session and no cookie. `ScanForm`,
 // `InsideTabs` and `FieldCta` are the client leaves.
 import type React from "react";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Play } from "lucide-react";
 import { Surface } from "@/ui/layout";
@@ -33,6 +34,7 @@ import { ScanForm } from "./_landing/ScanForm";
 import { scanFormWords } from "./_landing/scan-form-words";
 import { InsideReachKit } from "./_landing/InsideReachKit";
 import { Features } from "./_landing/Features";
+import { RecentlyScanned, RecentlyScannedSkeleton } from "./_landing/RecentlyScanned";
 import { FieldCta, FIELD_SECTION_ID, HOW_SECTION_ID, WHY_SECTION_ID } from "./_landing/FieldCta";
 import { PUBLIC_ROUTE_SEO } from "./_seo/routes";
 import { staticMetadata } from "./_seo/metadata";
@@ -93,6 +95,11 @@ export default function LandingPage(props: {
             <InsideReachKit />
           </div>
         </section>
+
+        {/* ══ RECENTLY SCANNED ══ Logos and names only, each to `/scans`. */}
+        <Suspense fallback={<RecentlyScannedSkeleton />}>
+          <RecentlyScanned />
+        </Suspense>
 
         {/* ══ SEE IT WORK ══ The 2026-09-22 frame, empty until the owner
             supplies the video (#734). Its title sits in the window bar so

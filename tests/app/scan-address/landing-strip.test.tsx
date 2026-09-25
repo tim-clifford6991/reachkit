@@ -61,8 +61,8 @@ describe("the landing's Recently scanned strip", () => {
     expect(lists[0]![1]).not.toContain("aria-hidden");
     expect(lists[1]![1]).toContain('aria-hidden="true"');
     expect(lists[0]![2]).not.toContain("tabindex");
-    expect(lists[1]![2].match(/<a /g)).toHaveLength(10);
-    expect(lists[1]![2].match(/tabindex="-1"/g)).toHaveLength(10);
+    expect(lists[1]![2]!.match(/<a /g)).toHaveLength(10);
+    expect(lists[1]![2]!.match(/tabindex="-1"/g)).toHaveLength(10);
   });
 
   it("an empty list or a failed read leaves the landing without the strip", async () => {
