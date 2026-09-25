@@ -778,4 +778,8 @@ export const REPORT_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 1069 · R12-3" },
   ],
   "gallery.empty.cta": ["Scan this site", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  // The landing's logo strip (SPEC §1, owner on #1058): *Recently scanned*,
+  // never *Trusted by*.
+  "landing.strip.label": ["Recently scanned", { slots: {}, fixedBy: "issue 1069 · R12-1" }],
+  "landing.strip.all": ["See all free scans", { slots: {}, fixedBy: "issue 1069 · R12-1" }],
 }) satisfies CopyPartition;
