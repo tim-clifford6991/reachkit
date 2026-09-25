@@ -10,7 +10,6 @@ Ship the paying path. Prefer a library over new code. Do not open `docs/archive/
 - Never add a custom component, CSS sheet, token set, or SVG chart where daisyUI or Recharts covers it. Do not wrap daisyUI in a new `Btn`/`Card`.
 - Never match pixels or copy markup from a board; it says what a screen holds, daisyUI classes say how it looks. Never add a UI dependency that is not on `docs/DESIGN.md`’s list.
 - Never write a test that transcribes a document.
-- Never keep something because it is protected — a test, a gate or an approved file is not a reason (`docs/PROCESS.md`, 2026-09-25, #1105).
 - Never guess an owner decision — `blocked-on-owner` and ask; record the answer as a dated SPEC line.
 - Never edit `docs/archive/`.
 - Never reintroduce Master, Worker, dispatcher, lander, or an extra merge gate. One issue uses one worktree, removed when its pull request merges (`docs/PROCESS.md`).
