@@ -1,10 +1,5 @@
-// BUILD §2.1, tokens.md §9 — the idiom ported at the ruled values (#298).
-// tests/ui/design/idiom-fidelity.test.ts
-//
-// The 2026-09-08 fidelity audit compared dev against the archived preview
-// app and found the card-head chips rendering as empty tinted squares, the
-// two pills missing, and asked whether the card radius had drifted to the
-// idiom's proposed 18px. These are the pins for what that settled.
+// The brand mark is one drawing, and the landing's chips carry their glyphs.
+// tests/ui/design/mark-and-glyphs.test.ts
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { createElement } from "react";
@@ -15,43 +10,6 @@ import { MARK_CHIP, MARK_DOME, MARK_RADIUS } from "@/lib/brand/mark";
 
 const SRC = path.resolve(import.meta.dirname, "../../../src");
 const read = (rel: string): string => readFileSync(path.join(SRC, rel), "utf8");
-
-/** A stylesheet with its comments stripped. The idiom's header *names*
- *  `--r-card` in order to say it is not taken, so a rule about what the
- *  sheet spends has to read the declarations and not the prose. */
-function withoutComments(css: string): string {
-  return css.replace(/\/\*[\s\S]*?\*\//g, " ");
-}
-
-describe("issue #298 — the card radius is the ruled --r-box, never the proposed 18px", () => {
-  const idiom = withoutComments(read("ui/idiom/idiom.css"));
-
-  it("every idiom surface names --r-box and no --r-card exists", () => {
-    // tokens.md §9.2: `--r-card` 18px was drawn as a *second* variable so a
-    // ruled value would not be re-drawn, and DECISIONS 2026-09-08 (#285)
-    // keeps the two unruled values at BUILD's. So the token must not exist
-    // here at all — not declared, not read.
-    expect(idiom).not.toContain("--r-card");
-    expect(idiom).not.toMatch(/border-radius:\s*18px/);
-  });
-
-  it("the card and the panel take --r-box", () => {
-    // The glass card left this sheet with the sign-in screen (issue #549):
-    // it is drawn on the page in `rounded-(--r-box)`, the same radius read
-    // from the same token, and there is no rule here to measure.
-    for (const rule of [".rk-idiom-card", ".rk-panel"]) {
-      const block = idiom.slice(idiom.indexOf(`${rule} {`));
-      const radius = /border-radius:\s*([^;]+);/.exec(block.slice(0, block.indexOf("}")));
-      expect(radius?.[1], `${rule} must take the ruled radius`).toBe("var(--r-box)");
-    }
-  });
-
-  it("no raw pixel radius is written anywhere in the sheet", () => {
-    // The three registered radii are `--r-box`, `--r-field` and `--r-pill`;
-    // a literal would be a fourth by the back door.
-    expect(idiom).not.toMatch(/border-radius:\s*\d/);
-  });
-});
 
 describe("S1 — the landing's chips carry the icons the approved set draws", () => {
   // The archive's drawings are superseded by the owner's approved screen set
@@ -184,11 +142,6 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
 
   it("S2's Copy link pill carries copy (L577)", () => {
     expect(read("app/(public)/scan/[domain]/_address/copy-link.tsx")).toMatch(/<Copy size=\{16\} strokeWidth=\{1\.75\}/);
-  });
-
-  it("a card head with no glyph draws no chip — the set never draws an empty one", () => {
-    const head = read("ui/idiom/CardHead.tsx");
-    expect(head).toMatch(/p\.icon == null \? null : \(\s*<span className="rk-head-chip"/);
   });
 });
 

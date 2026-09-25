@@ -1,9 +1,8 @@
-// BUILD §2.3 — the two families, self-hosted.
+// The two families, self-hosted.
 // src/ui/fonts.ts
 //
-// BP-018 `## Module / boundary`: "src/ui/fonts.ts" — the one font-loading
-// module. `BUILD.md` §1: "**Plus Jakarta Sans** (UI) + **JetBrains Mono**
-// (all numerals/data) | `@fontsource`, self-hosted." Self-hosted: every
+// The one font-loading module: Plus Jakarta Sans for UI and JetBrains Mono
+// for data, from `@fontsource`. Self-hosted: every
 // `path` below resolves to a `.woff2` inside `node_modules/@fontsource`,
 // never a `<link>` to fonts.googleapis.com/fonts.gstatic.com — so no
 // third-party font request is made from a customer's own domain when BP-004
@@ -57,11 +56,10 @@
 // boolean).** Only the latin faces the product renders above the fold:
 // Jakarta 400 (body), 600 (every label, button and big figure, #1062) and
 // 700 (`type.css`'s one heading weight), JetBrains
-// Mono 400 (every numeral), and Jakarta 800 — `BUILD.md` §2.3's "Jakarta
-// 700–800", which `src/ui/idiom/idiom.css` spends on the public header's
-// wordmark and the landing's headline, the first two things `/` paints.
+// Mono 400 (every numeral), and Jakarta 800, which the public header's
+// wordmark and the landing's headline spend, the first two things `/` paints.
 // Until issue #494 the 800 face did not preload, on the premise that no rule
-// spent it; the idiom sheet does, so the browser learned of the face only
+// spent it; those two do, so the browser learned of the face only
 // once the first frame had been laid out in the fallback, then swapped it
 // in and re-wrapped the header and the hero under the reader — CLS 0.21 at
 // 320 px once the approved strings were long enough to wrap differently
@@ -75,8 +73,7 @@
 // depends on the set): Jakarta 400 for body text, 500 and 600 so
 // `font-medium` and `font-semibold` render as themselves (the calm layer,
 // `docs/DESIGN.md` 2026-09-24, #1062 — until then every 600 fell through to
-// 700 and every label read as bold), 700 and 800 for `BUILD.md` §2.3's
-// heading range; JetBrains Mono 400, the only weight `.num` (type.css)
+// 700 and every label read as bold), 700 and 800 for the heading range; JetBrains Mono 400, the only weight `.num` (type.css)
 // asks for.
 //
 // **Every value below is written out, never referenced.** `next/font`'s

@@ -342,7 +342,7 @@ describe("BUILD §1 / BP-018 NFR — self-hosted, no third-party font request", 
     // body, 600 every label, button and big figure (#1062), and 700 is
     // `type.css`'s one heading weight; JetBrains Mono 400
     // is every numeral; Jakarta 800 is the public header's wordmark and the
-    // landing's headline (`idiom.css`), and a face discovered after first
+    // landing's headline, and a face discovered after first
     // paint swaps in and moves the page (issue #494, CLS 0.21 at 320 px).
     // No non-latin subset is on any screen's critical path, so none
     // preloads.

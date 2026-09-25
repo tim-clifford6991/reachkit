@@ -451,10 +451,8 @@ const REGIONS = [
   [/^(th|td|tr)$/, "row"],
   [/^table$/i, "table"],
   [/^(Badge)$/, "badge"],
-  [/^(CardHead)$/, "card head"],
-  [/^(ActionPanel)$/, "action panel"],
   [/^(Collapse)$/, "collapse"],
-  [/^(Card|IdiomCard|OptionCard)$/, "card"],
+  [/^(Card|OptionCard)$/, "card"],
   [/^(Steps|Stat|Table|Alert|Toggle|Progress|Tabs)$/, "component"],
 ];
 const CLASS_REGIONS = [
