@@ -67,7 +67,7 @@ function Block({ children, marker }: { children: ReactNode; marker: string }): R
           fontFamily: token("--font-ui-mail"),
           fontSize: token("--t-body"),
           lineHeight: 1.55,
-          color: token("--ink"),
+          color: token("--color-base-content"),
         }}
       >
         {children}
@@ -104,12 +104,12 @@ function Note({ children }: { children: string }): ReactNode {
 
 const RULED_CELL = {
   padding: "6px 0",
-  borderBottom: `1px solid ${token("--line")}`,
+  borderBottom: `1px solid ${token("--color-base-300")}`,
 } as const;
 
 const FACT_CELL = {
   padding: "7px 0",
-  borderBottom: `1px solid ${token("--line")}`,
+  borderBottom: `1px solid ${token("--color-base-300")}`,
   fontSize: token("--t-sm"),
 } as const;
 
@@ -137,7 +137,7 @@ function RuledRows({
       <Eyebrow>{label}</Eyebrow>
       {rows.map((item, index) => (
         <Row key={index}>
-          <Column style={{ ...RULED_CELL, color: token("--ink") }}>{item.left}</Column>
+          <Column style={{ ...RULED_CELL, color: token("--color-base-content") }}>{item.left}</Column>
           {item.right === undefined ? null : (
             <Column align={RIGHT} style={{ ...RULED_CELL, color: token("--ink-2") }}>
               {item.right}
@@ -162,7 +162,7 @@ function Facts({ rows }: { rows: readonly { label: string; value: string }[] }):
           <Column style={{ ...FACT_CELL, fontFamily: token("--font-mono-mail"), color: token("--ink-2") }}>
             {item.label}
           </Column>
-          <Column align={RIGHT} style={{ ...FACT_CELL, color: token("--ink") }}>
+          <Column align={RIGHT} style={{ ...FACT_CELL, color: token("--color-base-content") }}>
             <Mono>{item.value}</Mono>
           </Column>
         </Row>
@@ -190,7 +190,7 @@ function Hero(a: {
       <Eyebrow>{a.label}</Eyebrow>
       <Row>
         <Column
-          style={{ fontSize: HERO_SIZE, lineHeight: 1.1, fontWeight: 700, color: token("--ink") }}
+          style={{ fontSize: HERO_SIZE, lineHeight: 1.1, fontWeight: 700, color: token("--color-base-content") }}
         >
           <Mono>{a.value}</Mono>
         </Column>
@@ -246,7 +246,7 @@ function Stats({
       >
         {item.label}
       </div>
-      <div style={{ fontSize: token("--h3"), fontWeight: 700, color: token("--ink") }}>
+      <div style={{ fontSize: token("--h3"), fontWeight: 700, color: token("--color-base-content") }}>
         <Mono>{item.value}</Mono>
         {item.change === null ? null : (
           <span
@@ -321,9 +321,9 @@ function Action({
       href={safe}
       data-rk-action={variant}
       style={{
-        background: outlined ? token("--surface") : token("--accent"),
-        color: outlined ? token("--ink") : token("--on-accent"),
-        ...(outlined ? { border: `1px solid ${token("--line")}` } : {}),
+        background: outlined ? token("--color-base-100") : token("--color-primary"),
+        color: outlined ? token("--color-base-content") : token("--color-primary-content"),
+        ...(outlined ? { border: `1px solid ${token("--color-base-300")}` } : {}),
         padding: "11px 18px",
         borderRadius: token("--r-pill"),
         fontFamily: token("--font-ui-mail"),
@@ -361,13 +361,13 @@ function PageBody({ label, markdown }: { label: string; markdown: string }): Rea
           margin: 0,
           padding: "14px",
           borderRadius: token("--r-field"),
-          background: token("--sunk"),
-          border: `1px solid ${token("--line")}`,
+          background: token("--color-base-200"),
+          border: `1px solid ${token("--color-base-300")}`,
           fontFamily: token("--font-mono-mail"),
           fontSize: token("--t-sm"),
           lineHeight: 1.5,
           whiteSpace: "pre-wrap",
-          color: token("--ink"),
+          color: token("--color-base-content"),
         }}
       >
         {markdown}
@@ -389,7 +389,7 @@ function arm(block: MailBlock): ReactNode {
             fontSize: token("--h3"),
             fontWeight: 700,
             letterSpacing: "-0.02em",
-            color: token("--ink"),
+            color: token("--color-base-content"),
           }}
         >
           {copy(block.text, block.vars)}
@@ -405,7 +405,7 @@ function arm(block: MailBlock): ReactNode {
       return (
         <>
           <Eyebrow>{copy(block.label)}</Eyebrow>
-          <div style={{ fontSize: token("--h2"), fontWeight: 700, color: token("--ink") }}>
+          <div style={{ fontSize: token("--h2"), fontWeight: 700, color: token("--color-base-content") }}>
             <Mono>{formatStat(block.value, block.format)}</Mono>
           </div>
           {/* The note travels with its value or not at all: this arm is

@@ -24,7 +24,7 @@ import { describe, expect, it } from "vitest";
 import { classTokensAcrossSurfaces, REPO_ROOT, read } from "./vocabulary";
 import path from "node:path";
 import { readFileSync } from "node:fs";
-import { daisyTheme } from "./tokens-doc";
+import { daisyTheme, THEME_CSS, tokenSet } from "./tokens-doc";
 
 /* ── daisyUI's own slot set ───────────────────────────────────────────── */
 
@@ -49,22 +49,12 @@ function daisySlots(): { names: readonly string[]; values: Readonly<Record<strin
 
 /* ── what the theme block declares ─────────────────────────────────── */
 
-/** The `--slot: value` pairs in the `@plugin "daisyui/theme"` block of
- *  `src/ui/tailwind.css` — the one daisyUI theme (`docs/DESIGN.md`). */
+/** Every slot the theme supplies: the `--slot: value` pairs in the
+ *  `@plugin "daisyui/theme"` block of `src/ui/tailwind.css`, and the colour
+ *  slots `src/ui/theme.css` states with their values. */
 function declaredSlots(): Readonly<Record<string, string>> {
-  return Object.fromEntries(daisyTheme());
-}
-
-/** The tokens `src/ui/theme.css`'s bare `:root` declares — §2.1 verbatim,
- *  and the only colours a slot may point at. */
-function themeTokens(): ReadonlySet<string> {
-  const css = read("src/ui/theme.css");
-  const root = /:root\s*\{(.*?)\n\}/s.exec(css);
-  if (root === null) throw new Error("tests/ui/design/theme-slots.test.ts: theme.css's :root moved");
-  const names = [...(root[1] ?? "").matchAll(/(--[a-z0-9-]+)\s*:/g)]
-    .map((match) => match[1])
-    .filter((name): name is string => name !== undefined);
-  return new Set(names);
+  const fromTheme = [...tokenSet(THEME_CSS).light].filter(([name]) => name.startsWith("--color-"));
+  return { ...Object.fromEntries(fromTheme), ...Object.fromEntries(daisyTheme()) };
 }
 
 /**
@@ -81,7 +71,7 @@ function themeTokens(): ReadonlySet<string> {
 const NOT_DECLARED: Readonly<Record<string, string>> = {
   "--color-secondary": "§2.1 names no secondary; no `-secondary` modifier is registered",
   "--color-secondary-content": "the ink for a ground that is never drawn",
-  "--color-accent": "§2.1's `--accent` is daisyUI's *primary*; its own `accent` family is unused",
+  "--color-accent": "§2.1's `--color-primary` is daisyUI's *primary*; its own `accent` family is unused",
   "--color-accent-content": "the ink for a ground that is never drawn",
   "--color-neutral": "§2.1 names no neutral; reached only by `-neutral` modifiers and by `--depth` shadows, which are off",
   "--color-neutral-content": "the ink for a ground that is never drawn",
@@ -123,22 +113,20 @@ describe("the slot set is complete — daisyUI's own list, not ours", () => {
   });
 });
 
-describe("every colour slot points at a §2.1 token, never at a value", () => {
-  it("each is `var(--token)` on a token theme.css declares", () => {
-    const tokens = themeTokens();
-    for (const [name, value] of Object.entries(declaredSlots())) {
-      if (!name.startsWith("--color-")) continue;
-      const ref = /^var\((--[a-z0-9-]+)\)$/.exec(value);
-      expect(ref, `${name} must be var(--token), got ${value}`).not.toBeNull();
-      const token = ref?.[1] ?? "";
-      expect(tokens.has(token), `${name} points at ${token}, which §2.1 does not state`).toBe(true);
+describe("the colour slots live in theme.css, in light and both dark blocks", () => {
+  it("every colour slot the theme supplies has a light value and the same name in both dark blocks", () => {
+    const set = tokenSet(THEME_CSS);
+    for (const name of Object.keys(declaredSlots())) {
+      if (!name.startsWith("--color-") || daisyTheme().has(name)) continue;
+      expect(set["dark-media"].has(name), `${name} has no dark value`).toBe(true);
+      expect(set["dark-toggle"].has(name), `${name} has no dark toggle value`).toBe(true);
     }
   });
 
-  it("the four `-content` slots all take `--on-accent` — the one token named for ink on a saturated ground", () => {
-    const declared = declaredSlots();
-    for (const tone of ["primary", "success", "warning", "error"]) {
-      expect(declared[`--color-${tone}-content`]).toBe("var(--on-accent)");
+  it("the other three `-content` slots take the primary's — one ink on a saturated ground", () => {
+    const declared = daisyTheme();
+    for (const tone of ["success", "warning", "error"]) {
+      expect(declared.get(`--color-${tone}-content`)).toBe("var(--color-primary-content)");
     }
   });
 });

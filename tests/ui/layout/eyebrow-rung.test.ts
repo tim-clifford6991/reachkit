@@ -36,7 +36,7 @@ const SIZE_TOKEN = "--t-eyebrow";
 const INK_TOKEN = "--ink-3";
 
 /** The two grounds that deliberately re-ink an eyebrow: the accent ground
- *  draws it in the quiet on-accent, and S18's danger card in `--bad`. Their
+ *  draws it in the quiet on-accent, and S18's danger card in `--color-error`. Their
  *  eyebrows are measured for everything except the ink. */
 const RE_INKED = ".rk-accent-ground, .rk-danger";
 

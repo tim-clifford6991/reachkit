@@ -46,6 +46,6 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     display: "standalone",
     background_color: token("--bg"),
-    theme_color: token("--accent"),
+    theme_color: token("--color-primary"),
   };
 }

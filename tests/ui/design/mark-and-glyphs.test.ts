@@ -166,7 +166,7 @@ describe("issue #509 — the generated mark and the S12 figure, as the set draws
   });
 
   it("the generated mark is the Round 9 Fade chip, from the one drawing (#982)", () => {
-    // It was a lucide glyph on an `--accent` square with its own geometry
+    // It was a lucide glyph on an `--color-primary` square with its own geometry
     // written in `og-card.tsx`. The owner's 2026-09-21 ruling replaced the
     // mark, and #982 made `lib/brand/mark.ts` the only place its shape and
     // its violet are written — so this asserts the generated picture reads

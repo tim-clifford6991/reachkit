@@ -89,8 +89,8 @@ async function measure(): Promise<{
             "--r-field",
             "--r-pill",
             "--border-hair",
-            "--on-accent",
-            "--ink",
+            "--color-primary-content",
+            "--color-base-content",
           ]) {
             tokens[name] = root.getPropertyValue(name).trim();
           }

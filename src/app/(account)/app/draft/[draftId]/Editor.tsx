@@ -93,7 +93,7 @@ const FRAME_LABEL = {
  *
  * The same shape as `MARK_CLASS` — a tint, a hairline of its own family and
  * stated ink — because it is the same kind of object: a run of body text
- * the product is pointing at. The family is `--warn` rather than `--ok`
+ * the product is pointing at. The family is `--color-warning` rather than `--color-success`
  * because this one is a problem being shown to its owner, which §2.5 makes
  * the warn family's job, and it is never red: a held page is not a broken
  * one, and the founder's words are saved.

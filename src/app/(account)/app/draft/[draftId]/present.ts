@@ -10,24 +10,24 @@ import type { HtmlClasses } from "@/lib/publish/render/markdown";
  * The grounded passage's tint, in the mint the approved set draws it in
  * (issue #414). The set's own rule is `.mark{background:var(--ok-bg);
  * box-shadow:0 0 0 1px var(--ok-line);border-radius:var(--s-1);
- * padding:1px 3px;color:var(--ink)}` on S16's body and S19's alike, so the
- * tint is the `--ok` family's own pair and the edge is its line — not
- * `--ok` at an alpha, which is a fifth mint nothing else in the product
+ * padding:1px 3px;color:var(--color-base-content)}` on S16's body and S19's alike, so the
+ * tint is the `--color-success` family's own pair and the edge is its line — not
+ * `--color-success` at an alpha, which is a fifth mint nothing else in the product
  * spends. This was the warn family, on the reading that §2.5 rules red
  * out; mint is what the drawing settles, and it says the same thing
- * better — a grounded fact is a check that passed, which is what `--ok`
- * means everywhere else on this screen (the Checks list's ticks are `--ok`
+ * better — a grounded fact is a check that passed, which is what `--color-success`
+ * means everywhere else on this screen (the Checks list's ticks are `--color-success`
  * too).
  *
  * `--ok-bg` and `--ok-line` reach no daisyUI slot: §2.1 maps `success` to
- * `--ok` and stops, so they are read by name. That is a token reference
+ * `--color-success` and stops, so they are read by name. That is a token reference
  * and not a literal — the value still lives once, in `theme.css`, and
  * flips with the theme there.
  *
  * **The ink is stated, and has to be.** Nothing resets `mark`, so its
  * colour is the UA's `MarkText` — near-black — which the old rule left
  * standing on a dark ground. `text-base-content` is §2.1's own slot for
- * `--ink`, which is what the set writes.
+ * `--color-base-content`, which is what the set writes.
  *
  * **It is its own constant since issue 929**, because it is the one class
  * two screens must agree on: the draft screen's map below and the hosted

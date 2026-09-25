@@ -1,37 +1,28 @@
-// BUILD §12 · §2.1 · §2.3 — the design tokens a mail may use, resolved.
+// The theme's values a mail may use, resolved.
 //
-// A mail client is not a browser: `var(--accent)` resolves to nothing in
-// most inboxes, so an email cannot reference BP-018's custom properties
-// the way a screen does — it has to carry the resolved value inline. That
-// is the one thing this file does. It is the single place in
-// `src/lib/mail/**` where a colour or a font stack is written down;
-// `document.tsx`, `text-frame.ts` and `blocks/nodes.tsx` name tokens and never
-// values, so no mail module can mint a colour.
+// A mail client is not a browser: `var(--color-primary)` resolves to nothing
+// in most inboxes, so a mail carries the resolved value inline. This is the
+// one place in `src/lib/mail/**` a colour or a font stack is written down;
+// the renderers name tokens and never values. The names are the theme's own
+// (`src/ui/theme.css`), and `tests/mail/shell/shell-tokens.test.ts` holds
+// every value here equal to the one declared there, so the two cannot drift.
 //
-// `tests/mail/shell/shell-tokens.test.ts` reads `src/ui/theme.css` and
-// `src/ui/type.css` from disk and asserts every value below is the one
-// those files declare, and that no other file under `src/lib/mail/**`
-// contains a colour or font literal. A token edited here and not in
-// `theme.css` fails; a hex written into a renderer fails.
-//
-// Light values only. Inbox support for `prefers-color-scheme` is partial
-// and inconsistent, and BUILD §2.1's dark block is a screen rule; a mail
-// that half-switched would be worse than one that did not. Reversal cost
-// (rule 1.1): one `@media` block in `document.tsx` and a second table here.
+// Light values only: inbox support for `prefers-color-scheme` is partial, and
+// a mail that half-switched would be worse than one that did not.
 
 /** The `:root` tokens of `src/ui/theme.css` this seam uses, and the two
  *  font stacks `.rk-fonts` binds in `src/ui/type.css`. A name absent from
  *  this map is not available to a mail — deliberately narrow. */
 export const MAIL_TOKENS = Object.freeze({
   "--bg": "#f3f4fb",
-  "--surface": "#ffffff",
-  "--sunk": "#eef0f8",
-  "--line": "#e8e9f3",
-  "--ink": "#1e2233",
+  "--color-base-100": "#ffffff",
+  "--color-base-200": "#eef0f8",
+  "--color-base-300": "#e8e9f3",
+  "--color-base-content": "#1e2233",
   "--ink-2": "#646579",
   "--ink-3": "#6a6b80",
-  "--accent": "#5b4be0",
-  "--on-accent": "#ffffff",
+  "--color-primary": "#5b4be0",
+  "--color-primary-content": "#ffffff",
   "--accent-bg": "#eeecfd",
   "--accent-line": "#ddd8fa",
   "--r-box": "14px",

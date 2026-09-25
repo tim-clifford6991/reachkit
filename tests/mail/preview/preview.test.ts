@@ -187,7 +187,7 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
       // that read its padding would be a count of the library's internals.
       expect(mail.html.split("data-rk-action=").length - 1).toBe(BUTTONS[kind]);
       const { MAIL_TOKENS } = await import("@/lib/mail/shell/tokens");
-      const accent = `background:${MAIL_TOKENS["--accent"]};color:${MAIL_TOKENS["--on-accent"]}`;
+      const accent = `background:${MAIL_TOKENS["--color-primary"]};color:${MAIL_TOKENS["--color-primary-content"]}`;
       expect(mail.html.split(accent).length - 1, "one solid fill per mail").toBe(SOLID_FILLS[kind]);
     });
   }

@@ -211,11 +211,11 @@ describe("S19 — the customer is the publisher, and the page says so", () => {
 
 describe("nothing of ours is on a domain that is not ours", () => {
   it("no accent: the product's colour appears nowhere on the customer's page", async () => {
-    // `--accent` is the product and the customer's own series (§2.1). On a
-    // stranger's domain it would be our branding, so the mark is `--ink`
+    // `--color-primary` is the product and the customer's own series (§2.1). On a
+    // stranger's domain it would be our branding, so the mark is `--color-base-content`
     // and no class this page spends resolves to the accent.
     const html = await render();
-    expect(html).not.toContain("--accent");
+    expect(html).not.toContain("--color-primary");
     expect(html).not.toContain("rk-wordmark");
     expect(html).not.toContain("btn-primary");
   });

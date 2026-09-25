@@ -8,11 +8,11 @@
 // drift into two brands.
 //
 // **It is a mail, not a screen, in the one respect that matters**: satori
-// resolves no custom property, so `var(--accent)` would render as nothing.
+// resolves no custom property, so `var(--color-primary)` would render as nothing.
 // The resolved values therefore come from `src/lib/mail/shell/tokens.ts` —
 // the module that already exists for exactly this reason and whose test
 // holds every value in it equal to `src/ui/theme.css`. A second resolved
-// table here would be a second place `--accent` could drift, which is the
+// table here would be a second place `--color-primary` could drift, which is the
 // one thing that file was written to prevent. Light values only, for the
 // same reason a mail uses them: there is no reader preference to read.
 //
@@ -123,7 +123,7 @@ function Brand(): React.JSX.Element {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
       <BrandMark size={44} />
-      <div style={{ display: "flex", fontSize: 40, fontWeight: 800, color: token("--ink") }}>
+      <div style={{ display: "flex", fontSize: 40, fontWeight: 800, color: token("--color-base-content") }}>
         {copy("chrome.wordmark")}
       </div>
     </div>
@@ -154,8 +154,8 @@ export function OgCard(p: { children: React.ReactNode }): React.JSX.Element {
           height: "100%",
           padding: 64,
           borderRadius: token("--r-box"),
-          border: `1px solid ${token("--line")}`,
-          background: token("--surface"),
+          border: `1px solid ${token("--color-base-300")}`,
+          background: token("--color-base-100"),
         }}
       >
         <Brand />

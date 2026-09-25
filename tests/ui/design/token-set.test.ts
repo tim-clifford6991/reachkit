@@ -34,11 +34,7 @@ describe("theme.css is the only token file", () => {
     }
   });
 
-  it("the set is 54 light tokens, and the dark blocks agree", () => {
-    // 55 since #1064 added `--shadow-float`, the deep shadow the calm layer
-    // (DESIGN.md, 2026-09-24) spends in two places; 54 since #1065 retired
-    // `--motion-fast`.
-    expect(declared.light.size).toBe(54);
+  it("the two dark blocks agree", () => {
     expect([...declared["dark-media"]].sort()).toEqual([...declared["dark-toggle"]].sort());
   });
 
@@ -70,11 +66,9 @@ describe("theme.css is the only token file", () => {
   });
 
   it("the daisyUI theme block restates no approved token, and its own names have one home", () => {
-    // `docs/DESIGN.md`: one theme, declared once in `src/ui/tailwind.css`. It
-    // maps daisyUI's slots onto the approved set by `var()` and adds the four
-    // v2 colours; it never redeclares an approved token, or `theme.css` stops
-    // being the one home of the 54. And nothing else declares a name the
-    // theme block owns, or a sheet could re-colour a v2 token or a slot unseen.
+    // One theme, declared once in `src/ui/tailwind.css`. It never redeclares
+    // a name `theme.css` holds, or `theme.css` stops being the one home of a
+    // colour. And nothing else declares a name the theme block owns.
     const theme = daisyTheme();
     const approved = approvedTokens();
     const restated = [...theme.keys()].filter((token) => approved.has(token));

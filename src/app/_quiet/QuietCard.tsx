@@ -37,7 +37,7 @@ import type { Arm, Band } from "@/ui/layout";
  * Three and not four: `bad` is not here. A quiet page is not an alarm —
  * a removed report is the site owner's own decision and a rate limit is
  * the product working — and §2.5's rule that a tone travels only where a
- * severity does is kept by there being no way to spend `--bad` here.
+ * severity does is kept by there being no way to spend `--color-error` here.
  * `plain` is the theme's `base-200`, not a `neutral` slot: the `reachkit`
  * theme has no `neutral`, and asking for one paints nothing.
  */

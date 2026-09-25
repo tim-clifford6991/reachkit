@@ -40,9 +40,9 @@ import { SERIES_DRAW } from "@/ui/motion";
 /** Theme paint and Recharts keys, named: values, never copy. */
 const PAINT = {
   rival: "var(--chart-rival)",
-  accent: "var(--accent)",
-  surface: "var(--surface)",
-  axis: "var(--line)",
+  accent: "var(--color-primary)",
+  surface: "var(--color-base-100)",
+  axis: "var(--color-base-300)",
   quiet: "var(--ink-3)",
   dashBreak: "2 3",
 } as const;

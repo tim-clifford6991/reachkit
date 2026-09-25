@@ -1,7 +1,7 @@
 "use client";
 // BUILD §2.4 — the growth line, drawn by Recharts (#550)
 //
-// Area + line in `--chart-you`, the endpoint dot ringed in `--surface` and
+// Area + line in `--chart-you`, the endpoint dot ringed in `--color-base-100` and
 // labelled with its value, no axis and no gridline (#386). Every week keeps
 // its column and its tooltip: `name · value`, or `name · account` for a week
 // that was not measured.
@@ -18,7 +18,7 @@ import { Area, AreaChart, ReferenceDot, ReferenceLine, Tooltip, XAxis, YAxis } f
 import { SERIES_DRAW } from "@/ui/motion";
 
 /** Theme paint and Recharts keys, named: values, never copy. */
-const PAINT = { you: "var(--chart-you)", surface: "var(--surface)", goal: "var(--chart-goal)" } as const;
+const PAINT = { you: "var(--chart-you)", surface: "var(--color-base-100)", goal: "var(--chart-goal)" } as const;
 const KEY = { name: "name", top: "top", target: "insideTopLeft" } as const;
 /** The target line's dash, bound to a name: the copy sweep reads a bare
  *  JSX attribute string as product voice, and it is right to. A length in
