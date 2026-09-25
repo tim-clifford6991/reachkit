@@ -21,7 +21,7 @@
 //
 // **The calm layer (SPEC §4 2026-09-24, #1070, boards R12-4 · R12-7).**
 // Each tile lifts and nudges its arrow (`CARD_LIFT`, #1064), its trend draws
-// once and its figure counts up (`CountUp`); the tab's name stays in the
+// once; the tab's name stays in the
 // link for a screen reader and the arrow says it to the eye. On a phone the
 // first two tiles share a row and the rival's lead spans the next — the
 // phone board's three; each keeps its trend.
@@ -37,7 +37,6 @@ import { ARROW_NUDGE, CARD_LIFT } from "@/ui/lift";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { Measured } from "@/lib/measure/measured";
 import { BADGE } from "./badges";
-import { CountUp } from "./CountUp";
 import { GOALS } from "./goals";
 import { carriedBy, formatCount, renderValue } from "./present";
 import type { AiPresenceWindow, Module, OverviewModel } from "./model";
@@ -109,7 +108,7 @@ function Tile(p: {
         ) : (
           <>
             <div className="flex min-w-0 flex-wrap items-baseline gap-2">
-              <CountUp text={p.figure} className="figure text-4xl leading-none" />
+              <span className="figure text-4xl leading-none">{p.figure}</span>
               {p.against}
               {p.change}
             </div>

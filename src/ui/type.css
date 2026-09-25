@@ -1,74 +1,19 @@
-/* src/ui/type.css
+/* src/ui/type.css — what Tailwind's scale does not already set.
  *
- * `BUILD.md` §2.3, verbatim: "Headings: Jakarta 700–800, tight
- * letter-spacing (−0.02em), text-wrap:balance. Body 15px/1.55. Every
- * numeral, date, URL, search query and code-like string is JetBrains Mono
- * with tabular-nums. Uppercase 10.5–11px eyebrows for section labels."
- * `tokens.md` §4 quotes the same clause at the same values — nothing here
- * disagrees with the registry.
- *
- * `--font-ui` / `--font-mono` are bound in `.rk-fonts` — the class name
- * `fonts.ts` exports as `fontVariables` — not assumed from WO-029's
- * `theme.css`. The two files meet only at the root layout (WO-002), which
- * puts both classes on <html>.
+ * The families are named on `theme.css`'s `:root`; `fonts.ts` loads them and
+ * exports `.rk-fonts`, which the root layout puts on `<html>`. Body text is
+ * 15px/1.55; the calm layer's `word-spacing` lives on `body` in
+ * `tailwind.css`. Anything else a screen needs is a Tailwind utility.
  */
 
-/* `.rk-fonts` is the class `fonts.ts` exports as `fontVariables` and the
- * root layout puts on `<html>`; it is where the two files meet. The two
- * families it bound moved to `theme.css`'s `:root` (issue #349), so the
- * class no longer declares them — it is `fonts.ts`'s side-effect imports
- * that load the faces, and `:root` that names them. The class stays,
- * because the layout puts it on the element and `fonts.ts` exports it. */
 .rk-fonts {
   font-family: var(--font-ui);
 }
 
-/* The heading scale — ruled, not transcribed (issue #110).
- *
- * `BUILD.md` §2.3 fixes heading weight, tracking and wrapping and fixes the
- * body at 15px; it names **no heading size**. So these four are not read
- * off the spec: they are the owner's 2026-09-02 ruling, transcribed from
- * `design/tokens.md` §4 "Heading sizes — ruled, not transcribed", frozen
- * under `archive/sdlc-factory-2026-09-04/corpus/docs/design/tokens.md` and
- * quoted there as "Ratio 1.25 from the 15px body":
- *
- *   --t-h1  31px  Screen head
- *   --t-h2  25px  Module head
- *   --t-h3  20px  Card head
- *   --t-h4  16px  Sub-head. "Deliberately 1px off the 15px body — at h4 15
- *                 the two are indistinguishable"
- *
- * A frozen document cannot drift, so these are pinned by quotation and not
- * re-checked against a moving source (the pinned-value convention). The
- * four tokens themselves live in `src/ui/theme.css` with the rest of the
- * approved set (issue #349); the rules below read them.
- *
- * **Why any of this is needed at all.** `src/ui/tailwind.css` brings
- * Tailwind 4's preflight, which resets every heading to
- * `font-size: inherit`. The rules below are what preflight took away,
- * stated deliberately this time.
- */
-
-/* **In `@layer base`, so a utility can still say otherwise** (issue #941).
- *
- * These rules are element *defaults* — what an `h2` is when nothing else
- * speaks. Written unlayered they out-ranked every cascade layer, so
- * `text-xs`, `text-base` and daisyUI's own `card-title` all lost to them
- * and *WORKSPACE*, *THIS WEEK*, *NEEDS YOU* and every other card head drew
- * at 25px on every screen. Nothing about the scale changes — `--h1`…`--h4`,
- * the 640px step-down, the weight, the tracking and `text-wrap: balance`
- * are exactly as they were. Only its rank does, from "beats everything" to
- * "the default a class may override", which is what `base` means and what
- * these rules always were.
- *
- * `src/ui/tailwind.css` states the order — `@layer theme, base, components,
- * utilities` — and the root layout imports it before this file, so `base`
- * is registered first and `utilities` still wins. Preflight is in this same
- * layer and earlier in the document, so these still beat it.
- *
- * Heading weight is a single value within BUILD.md's stated 700-800 range
- * (an internal parameter, rule 1.1 — reversal cost: one line, no h1..h6
- * differentiation is asked for by this WO's test plan). */
+/* The heading scale. Preflight sets every heading to `font-size: inherit`;
+ * these give h1–h4 their steps. In `@layer base`, so a `text-*` utility on a
+ * heading wins. Tracking tightens with size (`docs/DESIGN.md`, the calm
+ * layer). Below 640px the h1 takes the h2 step. */
 @layer base {
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-ui);
@@ -77,72 +22,14 @@
     word-spacing: 0.04em;
     text-wrap: balance;
   }
-
-  /* The tracking ladder (the calm layer, `docs/DESIGN.md` 2026-09-24,
-   * #1062): tracking tightens as size grows — −0.015em at the small end,
-   * −0.02em at 20–25px (`h2`, `h3` and the narrow `h1`, the rule above),
-   * −0.03em from 31px (the wide `h1`, in the media block below, and
-   * `.t-hero`). `h4` is the 16px sub-head, the small end, and takes its
-   * −0.015em on its own size line below. */
-
-  /* `h1` is the one step that is narrower on a narrow viewport.
-   * `design/tokens.md` §4, "A third absolute, from the owner's 2026-09-02
-   * ruling", verbatim: "`--t-h1` takes `--t-h2`'s size ... below
-   * `--breakpoint-sm`. No new size is minted, the 1.25 ratio is untouched,
-   * and heads only ever step **down toward the body, never under it** — a
-   * 31px screen head on a 320px viewport wraps to four lines and pushes the
-   * card's own answer below the fold, which is the owner's rule reached from
-   * the other end."
-   *
-   * #166 left this unimplemented until the owner's own look at 320px
-   * disagreed with the sweep. It did, on `dev` after #251: the landing
-   * headline wrapped to four lines and pushed the field toward the fold
-   * (issue #258).
-   *
-   * Written narrow-first, so the only literal is a `min-width` — the
-   * convention `design/tokens.md` §2b states for itself ("Every query in the
-   * file is a `min-width`, so no literal is ever a breakpoint *minus one
-   * pixel*") and the one `layout.css`, `shell.css` and `surface.css` already
-   * follow. 640px is `--breakpoint-sm`, pinned by
-   * `tests/ui/layout-tokens.test.ts`; a media prelude cannot read a `var()`.
-   *
-   * No other step moves. §4's ruling names two more clauses — `--t-num-big`
-   * takes `--t-h1`'s size below the same breakpoint, and form-control text
-   * runs the other way — and neither token exists in this repository yet;
-   * they are their own work, not this line's. */
   h1 { font-size: var(--h2); }
   h2 { font-size: var(--h2); }
   h3 { font-size: var(--h3); }
   h4 { font-size: var(--h4); letter-spacing: -0.015em; }
-
-  /* The scale names four heading roles and the product uses four: no `h5` or
-   * `h6` appears anywhere under `src/app/**`. Rather than mint a fifth and a
-   * sixth step nobody asked for, these two take the body size — stated, so
-   * that it reads as a decision rather than as the preflight default it
-   * happens to equal. It is also the only size they could take: a head never
-   * steps under the body (`design/tokens.md` §4: heads "only ever step
-   * **down toward the body, never under it**"), and the sub-head above them
-   * is already within 1px of it. Weight and tracking still tell them apart
-   * from a paragraph. */
   h5, h6 { font-size: inherit; }
 }
 
-/* S1's hero headline at 46px (owner ruling 2026-09-11 on #534).
- *
- * It is still a class rather than a utility, for a different reason than it
- * used to be: 46px is not a rung of Tailwind's type scale, and
- * `docs/DESIGN.md` forbids inventing one. The reason recorded here before
- * #941 — "because the unlayered `h1` rule above out-ranks `@layer
- * utilities`" — is obsolete: the rule is layered now, and a utility would
- * win if one existed at this size. The class stays unlayered, which is what
- * keeps it above the `base` step; below 640 it sets no size and so keeps
- * the element's narrow step (#258). */
-:root {
-  --t-hero: 46px;
-}
-
-/* Leading 1.25: at 1.1 the glyph box overflows its line box and the layout
- * suite's clipping check reports the h1 at every width. */
+/* The landing's headline. Below 640px it keeps the h1 step. */
 .t-hero {
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -151,21 +38,15 @@
   text-wrap: balance;
 }
 
-/* The file's **one** media block, and it stays one: a `@media` prelude is
- * the only raw literal a stylesheet here still admits, and
- * `tests/ui/layout-tokens.test.ts` asserts that this file states exactly one
- * of them. So the h1 step sits in `@layer base` *inside* the query rather
- * than in a second query inside the layer — the same two declarations, the
- * same ranks, one literal. `.t-hero` is beside it and unlayered, which is
- * what keeps the hero above the step. */
 @media (min-width: 640px) {
   @layer base {
     h1 { font-size: var(--h1); }
-    /* The ladder's top rung at the wide step: 31px tracks −0.03em. */
     h1 { letter-spacing: -0.03em; }
   }
 
-  .t-hero { font-size: var(--t-hero); }
+  .t-hero {
+    font-size: 46px;
+  }
 }
 
 body {
@@ -174,58 +55,11 @@ body {
   line-height: 1.55;
 }
 
-/* A multi-line control keeps the mono face and its own wrapping (issue
- * #355). `.num` is `white-space: nowrap` — a *value* has no boundaries —
- * and the Markdown of a whole page is not one value: S17 draws the editor
- * as `textarea.input` in the mono face, and a textarea that cannot fold
- * scrolls its own text sideways out of the box the customer is typing in.
- * `pre-wrap` and not `normal`: the author's own line breaks are part of
- * Markdown's meaning, exactly as they are inside the `pre` below.
- *
- * Scoped to `textarea` and nothing else, on the same footing as that rule:
- * every other `.num` in the product is a value, and this cannot reach one. */
-textarea.num {
-  white-space: pre-wrap;
-}
-
-/* A code block keeps its own lines (issue #352). `.num` is
- * `white-space: nowrap` — a *value* has no boundaries — and a block of
- * `robots.txt` directives is not one value: REQ-009 c2 requires those
- * lines verbatim, and lines joined into one are not verbatim. The
- * descendant selector is what makes this win: `.num` is unlayered, so a
- * Tailwind utility on the same element loses to it, and only a more
- * specific rule here can say "inside a `pre`, the face is the same and the
- * lines are the author's".
- *
- * Scoped to `pre` and nothing else: every other `.num` in the product is a
- * value, and this rule cannot reach one. */
+/* A pasteable block keeps its line breaks. */
 pre .num {
   white-space: pre;
 }
 
-/* The two rungs the report spends as utilities rather than as literals:
- * `--t-sm` is each module-2 card's lead line and `--t-explain` its quiet
- * metadata (issue #352). Both tokens are `theme.css`'s — ruling 10a's
- * ladder has one home — and these classes are how a screen reaches them,
- * because a size written as a literal in a component is what the token
- * gate refuses. */
-.t-sm {
-  font-size: var(--t-sm);
-}
-
-.t-explain {
-  font-size: var(--t-explain);
-}
-
-/* Uppercase eyebrows for section labels. The 11 is no longer a rule 1.1
- * parameter inside §2.3's 10.5–11px range: ruling 10a fixes the ladder at
- * 15 / 13 / 12 / 11.5 / 11 with "nothing under 11px", and `--t-eyebrow` is
- * that bottom rung (issue #349).
- *
- * `docs/DESIGN.md` states the rung as one value — "eyebrow 11 uppercase 700
- * `.1em` ink-3" — so the weight, the tracking and the ink are declared here
- * with the size rather than re-added per surface (issue #548). A surface
- * that draws a different ink overrides that one property. */
 .eyebrow {
   font-family: var(--font-ui);
   text-transform: uppercase;
@@ -235,103 +69,18 @@ pre .num {
   color: var(--ink-3);
 }
 
-/* §2.5's explanatory step — the ladder's `--t-explain` rung (11.5px), in
- * the quiet ink. The approved screen set draws every footnote and aside on
- * it (`.explain`, issue #354), and `theme.css` names the size since ruling
- * 10a of 2026-09-08 closed the ladder at "15 / 13 / 12 / 11.5 / 11".
- *
- * It is prose, so it is set in the UI face and never the mono one — that
- * is the whole difference between this step and `.rk-prov` beside it,
- * which carries values at the same weight of voice. */
-.explain {
-  font-family: var(--font-ui);
-  font-size: var(--t-explain);
-  color: var(--ink-3);
-}
-
-/* BP-018 error behaviour: "Every numeral, date, URL, search query and
- * code-like string renders in JetBrains Mono with tabular-nums; a numeral
- * in the UI font is a defect." `.num` is the *only* rule in this file that
- * references `var(--font-mono)` — the one mechanism the numeral rule is
- * enforced through, so a component cannot half-apply it. The one other rule
- * that sets `font-variant-numeric` is `.figure` below, the calm layer's
- * big figure (#1062), which is the ruled exception to the face and not to
- * the tabular figures. */
+/* Domains, dates, searches and code: the mono face, tabular, never broken
+ * mid-token. */
 .num {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  /* The mono face's own natural line height, added 2026-09-05 (issue #13).
-   * Tailwind's display sizes ship a `line-height: 1` — tighter than any
-   * font's ascent plus descent — so a mono numeral set at a heading size
-   * inside a UI-font line box escapes that box by a few pixels and the
-   * layout conformance sweep reports it, correctly, as content outside its
-   * container. `normal` is not a chosen number: it is whatever JetBrains
-   * Mono's own metrics say, so the glyph box and the line box are the same
-   * box at every size. Below body size it stays inside the surrounding
-   * 1.55 line box and changes nothing. */
   line-height: normal;
-  /* **A value is never rewritten to fit its box** (issue #256; DECISIONS
-   * 2026-09-07 for #244: "a domain is a value and is never wrapped
-   * mid-word"). A customer compares the domain on the screen with the one
-   * they typed, so a mid-word break makes those two different strings —
-   * `rival-three.example.org` came out of a 164px track split at no
-   * boundary the string has, which is the very failure the mono face above
-   * exists to make visible.
-   *
-   * Declared here because `.num` is already the one mechanism the value
-   * rule is enforced through: every value in the product carries this
-   * class, so the rule holds for all of them at once and a component
-   * cannot half-apply it. Both properties are named rather than one,
-   * because `word-break: break-all` breaks mid-word without going through
-   * `overflow-wrap` at all.
-   *
-   * **This bans breaking inside a word, not wrapping between words.** A
-   * provenance line or a search phrase still wraps at its spaces exactly
-   * as before. Where a value genuinely cannot fit, ADR-093's rule applies
-   * and the *box* changes — an `overflow-x-auto` wrap, which is the layout
-   * sweep's own declared scroll container — rather than the value. */
   overflow-wrap: normal;
   word-break: normal;
-  /* **And not at a hyphen either** (issue #297). `overflow-wrap` and
-   * `word-break` ban breaking *inside* a word; a hyphen is not inside one,
-   * it is a soft wrap opportunity the line-breaking algorithm is entitled
-   * to take — so `rival-one.example.net` still came apart as `rival-` /
-   * `one.example.net` on the report at every width, which is the same
-   * defect one boundary further out. A value has no boundaries: it is one
-   * string, and every place it could break is a place it would be read as
-   * a different one.
-   *
-   * The cost is deliberate and is the point: a value that cannot fit now
-   * overflows its box instead of quietly rewriting itself, and an
-   * overflowing box with no scroll container is a check-3 offender the
-   * layout sweep reports by name. ADR-093's rule decides what happens
-   * next — the *box* changes, with the `overflow-x-auto` wrap the
-   * registered `Table` carries and the report's own value cells now carry
-   * too — and the sweep is what makes sure somebody does it.
-   *
-   * **It stops wrapping between words as well, and that is not a
-   * side effect to be worked around.** `.num` marks a value, and where it
-   * carries several words — a search phrase, a provenance line — those are
-   * still one value read as one string. Such a line now overflows a box it
-   * does not fit rather than folding, and the sweep reports it until the
-   * box is made a scroll container. If a line genuinely wants to wrap, it
-   * is prose and does not belong in `.num`: that is a call about what the
-   * text *is*, which is the call this class exists to make. */
   white-space: nowrap;
 }
 
-/* A **big figure** — a score, a stat, a price, a count set large — in the
- * UI face at 600 with tabular figures (the calm layer, `docs/DESIGN.md`
- * 2026-09-24, #1062, which amends "JetBrains Mono for numerals" for these
- * alone). At display size the mono face read as a terminal readout; the
- * figure is the card's answer and speaks in the product's voice. Domains,
- * dates, searches, code and every small value stay `.num`.
- *
- * The rest is `.num`'s, for `.num`'s reasons: tabular figures so a
- * changing score does not jitter, `line-height: normal` so the glyph box
- * and the line box are one box at a display size (#13), and a figure is
- * one value that never wraps or breaks (#256, #297). Unlayered like
- * `.num`, so it wins over daisyUI's `stat-value` weight. */
+/* Big figures — scores and stat numbers: the UI face at 600, tabular. */
 .figure {
   font-family: var(--font-ui);
   font-weight: 600;
@@ -342,26 +91,7 @@ pre .num {
   white-space: nowrap;
 }
 
-/* A mono **phrase** — the face §2.3 requires, folding where language
- * folds (issue #307).
- *
- * §2.3 puts "a search query" in the mono face, and a search query is
- * several words: "best product analytics tool" is one value to compare
- * against, and also a line of language with three places it can break
- * that are *between* words rather than inside one. `.num`'s `nowrap`
- * (#297) is right for a domain, a ratio, a date, a count — a single token
- * with no boundary that is not a lie. It is wrong for a phrase, and the
- * report's opportunities table is where that showed: three mono columns
- * in a half-width card, none of them able to fold, so the card scrolled
- * at 1024 and 1280 and clipped the rival beside it (#307).
- *
- * So this restores wrapping and nothing else. The face stays mono, and
- * `overflow-wrap: normal` / `word-break: normal` above still ban breaking
- * *inside* a word — a phrase folds at its spaces or not at all, and no
- * single token in it is ever rewritten. It is opted into per value by
- * `Num`'s `phrase` prop, never inferred: whether a string is one value or
- * a line of language is a judgement about what the text is, and the
- * caller is the only one that knows. */
+/* A figure that is a phrase (a count with words) may wrap between words. */
 .num-phrase {
   white-space: normal;
 }
