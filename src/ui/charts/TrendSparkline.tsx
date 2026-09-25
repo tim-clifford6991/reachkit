@@ -37,7 +37,7 @@ import { Line, LineChart, ReferenceDot, YAxis } from "recharts";
 import { SERIES_DRAW } from "@/ui/motion";
 import { SERIES_COLOR, type SeriesKind } from "./series";
 
-const PAINT = { surface: "var(--surface)" } as const;
+const PAINT = { surface: "var(--color-base-100)" } as const;
 const KEY = { value: "value" } as const;
 
 /** The plot's height in pixels. A sparkline is a hand-sized drawing (§2.4);

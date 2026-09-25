@@ -371,7 +371,7 @@ describe("the favicon set and the manifest ship, and no file is owed to the owne
     expect(document.name).toBe(COPY["chrome.wordmark"]);
     expect(document.start_url).toBe("/");
     const { token } = await import("@/lib/mail/shell/tokens");
-    expect(document.theme_color).toBe(token("--accent"));
+    expect(document.theme_color).toBe(token("--color-primary"));
   });
 });
 

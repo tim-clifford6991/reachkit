@@ -369,7 +369,7 @@ describe("the done arm, and the refusals that wear its shape", () => {
   });
 
   it("warn is never a fill: a refusal is a line, and only the confirmed stop is tinted", async () => {
-    // `--warn` is edge and ink, so a link that was already used or has
+    // `--color-warning` is edge and ink, so a link that was already used or has
     // expired states it in a line and never in a tinted block. The arm a
     // reader reaches by *pressing the control* is the one piece of good
     // news here, and it earns the success mark `R7-S5` draws.

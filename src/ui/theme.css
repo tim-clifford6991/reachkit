@@ -1,68 +1,44 @@
-/* src/ui/theme.css — the only token file.
+/* src/ui/theme.css — the one place a colour lives.
  *
- * Colour, radius and the type/space names the product still spends as
- * `var(--…)` live here. daisyUI's theme in `tailwind.css` maps onto these.
- * Docs: `docs/DESIGN.md`.
- *
- * Three-state theming: bare `:root` = light;
+ * The daisyUI slots (`--color-base-100` … `--color-error`) carry their values
+ * here, beside the few colours no slot names (`--bg`, the two muted inks,
+ * the tints, the chart series, the shadows). Bare `:root` is light; dark is
  * `@media (prefers-color-scheme: dark)` guarded with
- * `:root:not([data-theme="light"])`; `:root[data-theme="dark"]` for the
- * explicit toggle. Never define a color only inside a dark block.
+ * `:root:not([data-theme="light"])`, and `:root[data-theme="dark"]` for the
+ * explicit toggle. Unlayered, so it wins over daisyUI's `:where(:root)`.
+ * No colour is defined only in a dark block.
  *
- * Two tokens the product used to declare are **resolved**, not moved
- * (ruling 8a, and the focus state the approved set draws):
- *   · `--r-card` 18px — struck. Every card is `--r-box` 14.
- *   · `--ring-accent` — struck. Focus is `0 0 0 3px var(--accent-bg)`,
- *     written where it is spent.
- * Values the approved set does not name — the hairline, the calendar's cell
- * floor, the idiom's derived gradient and quiet ink — are declared in the
- * sheet that spends them, so this file stays the approved set alone.
- *
- * **Contrast (owner ruling, 2026-09-22, #946).** Every token this file
- * declares that is spent as *text* — or as a fill with `--on-accent` on it —
- * meets 4.5:1 against the ground it is drawn on, in both themes. That is
- * what moved seven values on this date, and nothing else about them: each
- * was scaled toward its own black or white, so every hue is the one the
- * approved set chose.
- *
- * **Softer ink, tinted ground (owner, 2026-09-25, #1104).** The light
- * `--bg`, `--sunk`, `--line`, `--ink`, `--ink-2` and `--ink-3` take a dark
- * slate ink and a faint cool ground; for these six only, the hue moves.
- * The floor above still holds on the new `--sunk`. Dark is unchanged.
- *
- * The ground each is measured against is the **worst** one it is drawn on:
- * `--sunk` in light (the darkest of the three surfaces) and `--surface` in
- * dark (the lightest). A token that passes there passes on `--bg` and
- * `--surface` too, which is why one number per token is enough.
- * `tests/ui/design/contrast.test.ts` reads this file and holds every pair.
+ * Every colour spent as text clears 4.5:1 against the worst ground it is
+ * drawn on — `--color-base-200` in light, `--color-base-100` in dark
+ * (`tests/ui/design/contrast.test.ts`). Mail carries the same light values
+ * in `src/lib/mail/shell/tokens.ts`, held equal by
+ * `tests/mail/shell/shell-tokens.test.ts`.
  */
 
 :root {
   /* Surfaces and ink */
   --bg: #f3f4fb;
-  --surface: #ffffff;
-  --sunk: #eef0f8;
-  --line: #e8e9f3;
-  --ink: #1e2233;
+  --color-base-100: #ffffff;
+  --color-base-200: #eef0f8;
+  --color-base-300: #e8e9f3;
+  --color-base-content: #1e2233;
   --ink-2: #646579;
   --ink-3: #6a6b80;
 
   /* Accent */
-  --accent: #5b4be0;
-  --on-accent: #ffffff;
+  --color-primary: #5b4be0;
+  --color-primary-content: #ffffff;
   --accent-bg: #eeecfd;
   --accent-line: #ddd8fa;
 
   /* State — ok / warn / bad */
-  --ok: #1b765b;
+  --color-success: #1b765b;
   --ok-bg: #e7f6f0;
   --ok-line: #d2ede3;
-  --warn: #945c22;
+  --color-warning: #945c22;
   --warn-bg: #fff3e6;
   --warn-line: #fbe1c6;
-  --bad: #b84029;
-  --bad-bg: #fdece8;
-  --bad-line: #f8d5cd;
+  --color-error: #b84029;
 
   /* Series — the only two chart colours, plus the goal marker */
   --chart-you: #5b4be0;
@@ -80,28 +56,17 @@
   --shadow-card: 0 0 0 1px rgb(24 24 48/.06), 0 1px 2px rgb(24 24 48/.04);
   --shadow-float: 0 0 0 1px rgb(24 24 48/.06), 0 24px 48px -16px rgb(40 30 120/.18), 0 4px 12px -4px rgb(24 24 48/.06);
 
-  /* The spacing ladder — 4px base, seven steps, nothing between them */
-  --s-1: 4px;
-  --s-2: 8px;
-  --s-3: 12px;
+  /* The three spacing steps a stylesheet still reads */
   --s-4: 16px;
   --s-5: 24px;
   --s-6: 32px;
-  --s-7: 48px;
 
-  /* The two families, self-hosted (`src/ui/fonts.ts`). `--font-num` is the
-   * face every numeral takes; the artifact flips it with its numeral
-   * toggle, and the product ships it pointed at the mono face (§2.3). */
+  /* The two families, self-hosted (`src/ui/fonts.ts`). */
   --font-ui: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-num: var(--font-mono);
-  --num-weight: 600;
 
-  /* Type — the two rungs below body the artifact declares itself, and the
-   * big figure. The rest of the ladder is in the 10a block at the foot. */
+  /* Type: the eyebrow, the body steps and the four heading steps. */
   --t-eyebrow: 11px;
-  --t-explain: 11.5px;
-  --t-num-big: 44px;
 
   /* Headings */
   --h1: 31px;
@@ -118,27 +83,25 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0e1116;
-    --surface: #161a21;
-    --sunk: #11151b;
-    --line: #242a34;
-    --ink: #dde3eb;
+    --color-base-100: #161a21;
+    --color-base-200: #11151b;
+    --color-base-300: #242a34;
+    --color-base-content: #dde3eb;
     --ink-2: #8e99aa;
     --ink-3: #7e879a;
 
-    --accent: #9bb4ff;
-    --on-accent: #0e1116;
+    --color-primary: #9bb4ff;
+    --color-primary-content: #0e1116;
     --accent-bg: rgb(155 180 255/.12);
     --accent-line: rgb(155 180 255/.28);
 
-    --ok: #7bd8b0;
+    --color-success: #7bd8b0;
     --ok-bg: rgb(123 216 176/.12);
     --ok-line: rgb(123 216 176/.28);
-    --warn: #e6b45a;
+    --color-warning: #e6b45a;
     --warn-bg: rgb(230 180 90/.12);
     --warn-line: rgb(230 180 90/.28);
-    --bad: #f0907a;
-    --bad-bg: rgb(240 144 122/.12);
-    --bad-line: rgb(240 144 122/.28);
+    --color-error: #f0907a;
 
     --chart-you: #5f7ff2;
     --chart-rival: #8b93a4;
@@ -152,27 +115,25 @@
 /* Explicit dark toggle — the same palette, reached the other way. */
 :root[data-theme="dark"] {
   --bg: #0e1116;
-  --surface: #161a21;
-  --sunk: #11151b;
-  --line: #242a34;
-  --ink: #dde3eb;
+  --color-base-100: #161a21;
+  --color-base-200: #11151b;
+  --color-base-300: #242a34;
+  --color-base-content: #dde3eb;
   --ink-2: #8e99aa;
   --ink-3: #7e879a;
 
-  --accent: #9bb4ff;
-  --on-accent: #0e1116;
+  --color-primary: #9bb4ff;
+  --color-primary-content: #0e1116;
   --accent-bg: rgb(155 180 255/.12);
   --accent-line: rgb(155 180 255/.28);
 
-  --ok: #7bd8b0;
+  --color-success: #7bd8b0;
   --ok-bg: rgb(123 216 176/.12);
   --ok-line: rgb(123 216 176/.28);
-  --warn: #e6b45a;
+  --color-warning: #e6b45a;
   --warn-bg: rgb(230 180 90/.12);
   --warn-line: rgb(230 180 90/.28);
-  --bad: #f0907a;
-  --bad-bg: rgb(240 144 122/.12);
-  --bad-line: rgb(240 144 122/.28);
+  --color-error: #f0907a;
 
   --chart-you: #5f7ff2;
   --chart-rival: #8b93a4;
@@ -182,19 +143,9 @@
   --shadow-float: 0 0 0 1px #242a34, 0 24px 48px -16px rgb(0 0 0/.6);
 }
 
-/* Ruling 10a (owner, 2026-09-08 · UI-SPEC.md §1) — the six the artifact
- * spends without naming: the top three rungs of the type ladder, and the
- * three measures. Theme-invariant, all six, exactly as the source file
- * declares them in its own second block. */
 :root {
   --t-body: 15px;
   --t-sm: 13px;
   --t-xs: 12px;
-  --w-form: 420px;
-  --w-sidebar: 222px;
-  --w-day-panel: 290px;
 }
 
-/* UI-SPEC §0 13's one motion token (`--motion-fast`, .18s, 2026-09-11) is
- * gone: the calm layer's one easing and seven timings supersede it
- * (owner, 2026-09-24, #1065) and live in `tailwind.css`'s `@theme`. */

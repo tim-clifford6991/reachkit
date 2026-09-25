@@ -37,10 +37,10 @@ describe('BUILD §2.4: "Two chart colors only: --chart-you (accent) and --chart-
     expect(SERIES_COLOR).toEqual({ you: "var(--chart-you)", rival: "var(--chart-rival)" });
   });
 
-  it("no chart file names --ok or --warn at all", () => {
+  it("no chart file names --color-success or --color-warning at all", () => {
     for (const { file, text } of sources()) {
-      expect(count(text, "var(--ok)"), file).toBe(0);
-      expect(count(text, "var(--warn)"), file).toBe(0);
+      expect(count(text, "var(--color-success)"), file).toBe(0);
+      expect(count(text, "var(--color-warning)"), file).toBe(0);
     }
   });
 });

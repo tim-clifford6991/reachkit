@@ -1,6 +1,6 @@
 // BUILD §2.1 · §2.3 · §12 — the mail frame names tokens; it never mints values.
 //
-// A mail client cannot resolve `var(--accent)`, so the seam has to carry
+// A mail client cannot resolve `var(--color-primary)`, so the seam has to carry
 // resolved values inline. `src/lib/mail/shell/tokens.ts` is the one place
 // they are written down, and this suite holds both halves of that claim:
 // every value there is the one `src/ui/theme.css` and `src/ui/type.css`

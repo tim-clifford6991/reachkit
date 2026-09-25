@@ -7,7 +7,7 @@
 // `tests/ui/tokens.test.ts` already checks the theme against §2.1's own
 // code fence — that the tokens exist, hold the stated values and are
 // declared in all three states. What it cannot see is the rest of the
-// tree: a component that writes `#5b4be0` instead of `var(--accent)`
+// tree: a component that writes `#5b4be0` instead of `var(--color-primary)`
 // renders the right colour today, drifts silently on the next theme edit,
 // and is invisible in dark mode. This file is the other direction — every
 // colour anywhere under `src/**` resolves to a §2.1 token, asserted by
@@ -44,12 +44,12 @@ const ALLOWED_LITERALS: ReadonlyArray<{ readonly path: string; readonly why: str
     path: "src/lib/brand/mark.ts",
     why:
       "the brand mark's own two inks (owner ruling 2026-09-21, issue 982). " +
-      "§2.1's `--accent` is `#5b4be0` in light and `#9bb4ff` in dark, and " +
+      "§2.1's `--color-primary` is `#5b4be0` in light and `#9bb4ff` in dark, and " +
       "`--color-primary` reads it — so a mark drawn in the token would " +
       "repaint itself in dark, which the ruling forbids: \"the chip stays " +
       "violet; the wordmark takes the dark theme's ink. One drawing, two " +
       "inks.\" No colour is minted: both values are §2.1's own light " +
-      "`--accent` and `--on-accent`, written here because the mark must " +
+      "`--color-primary` and `--color-primary-content`, written here because the mark must " +
       "keep them when the theme does not. It is also the file a favicon " +
       "and an apple-touch icon are generated from, and neither format " +
       "resolves a custom property",
@@ -272,7 +272,7 @@ describe("§2.1 — a colour-valued declaration names a §2.1 token and nothing 
   });
 
   it("theme.css's :root is the authority, and holds §2.1's colour tokens", () => {
-    for (const token of ["--bg", "--surface", "--ink", "--accent", "--chart-you", "--chart-rival"]) {
+    for (const token of ["--bg", "--color-base-100", "--color-base-content", "--color-primary", "--chart-you", "--chart-rival"]) {
       expect(THEME_ROOT.has(token), token).toBe(true);
     }
   });
@@ -329,15 +329,15 @@ describe("§2.1 — no reference to a token nothing declares", () => {
     // a screen explaining in a comment that daisyUI's badge is
     // `height: var(--size)` owes this repo no `--size` token.
     expect(tokenReferences("src/ui/layout/surface.css").length).toBeGreaterThan(0);
-    const decls = declarationsOf("/* height: var(--size) */ .x { color: var(--ink); }");
+    const decls = declarationsOf("/* height: var(--size) */ .x { color: var(--color-base-content); }");
     const seen = decls.flatMap((decl) =>
       [...decl.value.matchAll(/var\(\s*(--[\w-]+)/g)].map((match) => match[1])
     );
-    expect(seen).toEqual(["--ink"]);
+    expect(seen).toEqual(["--color-base-content"]);
   });
 
   it("mutation: a renamed token leaves its references dangling, and that is caught", () => {
-    expect(declared.has("--accent")).toBe(true);
+    expect(declared.has("--color-primary")).toBe(true);
     expect(declared.has("--accent-renamed")).toBe(false);
   });
 });

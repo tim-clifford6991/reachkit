@@ -126,7 +126,7 @@ function Score(p: { address: string; verdict: Verdict }): React.JSX.Element {
             fontSize: 148,
             fontWeight: 600,
             lineHeight: 1,
-            color: token("--accent"),
+            color: token("--color-primary"),
           }}
         >
           {String(p.verdict.score)}
@@ -135,7 +135,7 @@ function Score(p: { address: string; verdict: Verdict }): React.JSX.Element {
           <div style={{ display: "flex", fontSize: 26, color: token("--ink-3") }}>
             {copy("verdict.score.label")}
           </div>
-          <div style={{ display: "flex", fontSize: 44, fontWeight: 800, color: token("--ink") }}>
+          <div style={{ display: "flex", fontSize: 44, fontWeight: 800, color: token("--color-base-content") }}>
             {copy(SCORE_BANDS[p.verdict.band])}
           </div>
         </div>

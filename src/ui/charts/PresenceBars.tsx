@@ -3,11 +3,11 @@
 //
 // Occupancy over the searches measured. Rivals first, the customer last;
 // the customer's bar is `--chart-you`, every rival's `--chart-rival`, each on
-// a `--sunk` track the length of `measured`, each named with its own name and
+// a `--color-base-200` track the length of `measured`, each named with its own name and
 // `n/m`. Rival props carry no tone, so a rival cannot be made an alarm (§2.5).
 //
 // Zero is a measurement (§6.6): the customer's `0` is their whole track,
-// unfilled and ringed in `--bad`; a rival's zero is a stub. Neither row is
+// unfilled and ringed in `--color-error`; a rival's zero is a stub. Neither row is
 // dropped.
 //
 // **Each label is a line of its own, above a full-width bar (#943).** Both
@@ -30,8 +30,8 @@ import { SERIES_DRAW } from "@/ui/motion";
 const PAINT = {
   you: "var(--chart-you)",
   rival: "var(--chart-rival)",
-  track: "var(--sunk)",
-  absentRing: "var(--bad)",
+  track: "var(--color-base-200)",
+  absentRing: "var(--color-error)",
   none: "none",
 } as const;
 const KEY = {

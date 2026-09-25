@@ -22,7 +22,7 @@
 // `<linearGradient>`: a grain drawn as dots would have to be redrawn for
 // each size, and the rule exists precisely to forbid that.
 //
-// **The chip's violet is fixed, and does not follow the theme.** `--accent`
+// **The chip's violet is fixed, and does not follow the theme.** `--color-primary`
 // is `#5b4be0` in light and `#9bb4ff` in dark, and `--color-primary` reads
 // it — so `bg-primary` would repaint the mark in dark. The ruling is "the
 // chip stays violet; the wordmark takes the dark theme's ink. One drawing,
@@ -50,14 +50,14 @@ export const MARK_BOX = 64;
 export const MARK_RADIUS = 15;
 
 /** The brand's violet — see this file's header for why it is a constant
- *  and not `--accent`. It is the light theme's `--accent` value, which is
+ *  and not `--color-primary`. It is the light theme's `--color-primary` value, which is
  *  what makes the mark and the product's accent agree wherever the theme
  *  is light, and what keeps the mark itself when the theme is not. */
 export const MARK_CHIP = "#5b4be0";
 
 /** The ink the dome is drawn in, before the fade takes it down. White on
- *  the violet, which is `--on-accent`'s light value for the same reason
- *  the chip is `--accent`'s. */
+ *  the violet, which is `--color-primary-content`'s light value for the same reason
+ *  the chip is `--color-primary`'s. */
 export const MARK_INK = "#ffffff";
 
 /** The rising dome: a half-disc of radius 24 standing on the chip's lower

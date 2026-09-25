@@ -476,7 +476,7 @@ export const KNOWN_ON_MAIN: readonly KnownDefect[] = [
   // under the floor on ten screens and then on the tabs cut out of them.
   // The owner ruled the palette instead of excusing it: seven token values
   // moved in `src/ui/theme.css`, and the handful of places that thinned ink
-  // with an opacity — which no token value can save, since `--ink` at 50%
+  // with an opacity — which no token value can save, since `--color-base-content` at 50%
   // over white is 3.5:1 even at pure black — stopped doing it. The rows
   // went with the defect.
   //

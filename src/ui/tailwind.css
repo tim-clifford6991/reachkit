@@ -37,10 +37,9 @@
 }
 
 /* The theme. `default: true` applies it at bare `:root` with no
- * `data-theme` needed. Every slot is `var(--token)` on a token `theme.css`
- * declares, never a value, so the same slots serve all three of that file's
- * states — light, the guarded dark media query and the explicit
- * `[data-theme="dark"]` toggle — with no dark variant of the theme.
+ * `data-theme` needed. Its colour slots take their values from `theme.css`,
+ * which states them for light, the guarded dark media query and the explicit
+ * `[data-theme="dark"]` toggle — so there is no dark variant of the theme.
  *
  * `tests/ui/design/theme-slots.test.ts` checks the slot set against
  * daisyUI's own light theme: every slot daisyUI reads is declared here or
@@ -49,24 +48,13 @@
   name: "reachkit";
   default: true;
 
-  /* The colour slots. */
-  --color-base-100: var(--surface);
-  --color-base-200: var(--sunk);
-  --color-base-300: var(--line);
-  --color-base-content: var(--ink);
-  --color-primary: var(--accent);
-  --color-success: var(--ok);
-  --color-warning: var(--warn);
-  --color-error: var(--bad);
-
-  /* The ink on a saturated ground: `--on-accent` is the one token named for
-   * that job, and the one that flips with the theme (white in light,
-   * near-black in dark). `tests/ui/design/on-accent-contrast.test.ts`
-   * measures it on all four grounds. */
-  --color-primary-content: var(--on-accent);
-  --color-success-content: var(--on-accent);
-  --color-warning-content: var(--on-accent);
-  --color-error-content: var(--on-accent);
+  /* The colour slots are declared with their values in `theme.css`, light
+   * and dark, under daisyUI's own names — the one place a colour lives. The
+   * three other `-content` slots take the primary's: one ink on a
+   * saturated ground, flipping with the theme. */
+  --color-success-content: var(--color-primary-content);
+  --color-warning-content: var(--color-primary-content);
+  --color-error-content: var(--color-primary-content);
 
   /* Shape: cards and panels `--r-box`, inputs and buttons `--r-field`,
    * badges `--r-pill`. */
@@ -125,13 +113,13 @@
  * headings take their own `.04em` in `type.css`. */
 body {
   background: var(--bg);
-  color: var(--ink);
+  color: var(--color-base-content);
   word-spacing: 0.06em;
 }
 
 /* The hairline, named (#243): 1px, the width of every rule, card edge, cell
  * border and input outline — the value daisyUI's `--border` slot takes
- * above. `--line` is the colour of the same edge. */
+ * above. `--color-base-300` is the colour of the same edge. */
 :root {
   --border-hair: 1px;
 }
@@ -293,7 +281,7 @@ body {
 }
 /* Focus is one global rule: the accent outline, two pixels off the edge. */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 

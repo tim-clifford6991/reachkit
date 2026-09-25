@@ -106,7 +106,7 @@ function BrandHead({ wordmark }: { wordmark: string }): ReactNode {
   return (
     <>
       <Row>
-        <Column style={{ padding: "0 0 14px 0", borderBottom: `1px solid ${token("--line")}` }}>
+        <Column style={{ padding: "0 0 14px 0", borderBottom: `1px solid ${token("--color-base-300")}` }}>
           <Row>
             <Column width={MAIL_MARK_PX} style={{ width: `${MAIL_MARK_PX}px`, padding: "0 8px 0 0" }}>
               <div
@@ -127,7 +127,7 @@ function BrandHead({ wordmark }: { wordmark: string }): ReactNode {
                 fontSize: token("--t-body"),
                 fontWeight: 700,
                 letterSpacing: "-0.02em",
-                color: token("--ink"),
+                color: token("--color-base-content"),
               }}
             >
               {wordmark}
@@ -205,8 +205,8 @@ export function MailDocument(parts: DocumentParts): ReactNode {
         <Container style={{ maxWidth: CARD_WIDTH }}>
           <Section
             style={{
-              background: token("--surface"),
-              border: `1px solid ${token("--line")}`,
+              background: token("--color-base-100"),
+              border: `1px solid ${token("--color-base-300")}`,
               borderRadius: token("--r-box"),
               padding: "22px",
             }}

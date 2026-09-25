@@ -7,20 +7,20 @@
 // pull request.
 //
 // **Each token is measured against the worst ground it is drawn on.** In
-// light that is `--sunk`, the darkest of the three surfaces; in dark it is
-// `--surface`, the lightest. A token that clears the floor there clears it
+// light that is `--color-base-200`, the darkest of the three surfaces; in dark it is
+// `--color-base-100`, the lightest. A token that clears the floor there clears it
 // on the other two, which is why one number per token is the whole check.
 //
 // **The four state colours are measured twice**: as text on a surface, and
-// as a filled control with `--on-accent` on it (`--color-warning-content`
-// and its three siblings are `--on-accent` in `tailwind.css`). A fill that
+// as a filled control with `--color-primary-content` on it (`--color-warning-content`
+// and its three siblings are `--color-primary-content` in `tailwind.css`). A fill that
 // passes one and fails the other is a button whose label cannot be read.
 //
 // **What is not here.** The opacity arms — `text-base-content/60`, and the
 // `opacity-*` utilities — are not tokens and cannot be checked from this
 // file; they are held by the axe sweep, which measures what was actually
 // rendered. #946 moved the ones that were under the floor off the thinned
-// arms entirely: `--ink` at 50% over white is 3.5:1 even if `--ink` were
+// arms entirely: `--color-base-content` at 50% over white is 3.5:1 even if `--color-base-content` were
 // pure black, so no token value could have saved them.
 import { describe, expect, it } from "vitest";
 import { THEME_CSS, tokenSet } from "./tokens-doc";
@@ -62,24 +62,24 @@ function value(block: "light" | "dark-media" | "dark-toggle", name: string): str
 /** The tokens that reach a customer as text, and the ground each is worst
  *  against. Total over what the palette spends on words: a token added to
  *  the ink or state families and not listed here is one nobody measured. */
-const TEXT_TOKENS = ["--ink", "--ink-2", "--ink-3", "--accent", "--ok", "--warn", "--bad", "--chart-you", "--chart-rival", "--chart-goal"] as const;
+const TEXT_TOKENS = ["--color-base-content", "--ink-2", "--ink-3", "--color-primary", "--color-success", "--color-warning", "--color-error", "--chart-you", "--chart-rival", "--chart-goal"] as const;
 
-/** The four that are also drawn as a filled control, with `--on-accent` as
+/** The four that are also drawn as a filled control, with `--color-primary-content` as
  *  the label (`tailwind.css` maps all four `*-content` slots to it). */
-const FILLS = ["--accent", "--ok", "--warn", "--bad"] as const;
+const FILLS = ["--color-primary", "--color-success", "--color-warning", "--color-error"] as const;
 
 describe("#946 — every token spent as text clears 4.5:1, in both themes", () => {
-  it("light: on `--sunk`, the darkest surface a word is drawn on", () => {
-    const ground = value("light", "--sunk");
+  it("light: on `--color-base-200`, the darkest surface a word is drawn on", () => {
+    const ground = value("light", "--color-base-200");
     const under = TEXT_TOKENS.map((name) => [name, contrast(value("light", name), ground)] as const).filter(
       ([, ratio]) => ratio < FLOOR
     );
     expect(under).toEqual([]);
   });
 
-  it("dark: on `--surface`, the lightest ground a word is drawn on", () => {
+  it("dark: on `--color-base-100`, the lightest ground a word is drawn on", () => {
     for (const block of ["dark-media", "dark-toggle"] as const) {
-      const ground = value(block, "--surface");
+      const ground = value(block, "--color-base-100");
       const under = TEXT_TOKENS.map(
         (name) => [name, contrast(value(block, name), ground)] as const
       ).filter(([, ratio]) => ratio < FLOOR);
@@ -89,7 +89,7 @@ describe("#946 — every token spent as text clears 4.5:1, in both themes", () =
 
   it("a filled control's label clears it too, on all four fills and in both themes", () => {
     for (const block of ["light", "dark-media", "dark-toggle"] as const) {
-      const ink = value(block, "--on-accent");
+      const ink = value(block, "--color-primary-content");
       const under = FILLS.map((name) => [name, contrast(ink, value(block, name))] as const).filter(
         ([, ratio]) => ratio < FLOOR
       );
@@ -104,6 +104,6 @@ describe("#946 — every token spent as text clears 4.5:1, in both themes", () =
     expect(contrast("#5b4be0", "#5b4be0")).toBe(1);
     // And the value this ruling replaced is still under the floor, so the
     // rows above are measuring something that can fail.
-    expect(contrast("#9695a8", value("light", "--sunk"))).toBeLessThan(FLOOR);
+    expect(contrast("#9695a8", value("light", "--color-base-200"))).toBeLessThan(FLOOR);
   });
 });

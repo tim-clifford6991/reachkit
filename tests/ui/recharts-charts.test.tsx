@@ -119,7 +119,7 @@ describe("GrowthLine", () => {
     const dot = host.querySelector("circle.recharts-reference-dot-dot");
     expect(Number(dot?.getAttribute("cx"))).toBeCloseTo(x ?? NaN);
     expect(Number(dot?.getAttribute("cy"))).toBeCloseTo(y ?? NaN);
-    expect(dot?.getAttribute("stroke")).toBe("var(--surface)");
+    expect(dot?.getAttribute("stroke")).toBe("var(--color-base-100)");
     expect(texts(host)).toEqual(["81"]);
   });
 
@@ -152,7 +152,7 @@ describe("PresenceBars", () => {
     return [...host.querySelectorAll(".recharts-bar-rectangle path")];
   }
 
-  it("paints the customer in --chart-you and every rival in --chart-rival, each on a --sunk track", async () => {
+  it("paints the customer in --chart-you and every rival in --chart-rival, each on a --color-base-200 track", async () => {
     const host = await draw(<PresenceBars you={{ name: "acme.com", value: 4 }} rivals={rivals} measured={12} label="presence" />);
     expect(bars(host).map((b) => b.getAttribute("fill"))).toEqual([
       "var(--chart-rival)",
@@ -200,9 +200,9 @@ describe("PresenceBars", () => {
     expect(ratio?.className).not.toContain("truncate");
   });
 
-  it("draws the customer's zero as their whole track ringed in --bad, and never rings a rival's zero", async () => {
+  it("draws the customer's zero as their whole track ringed in --color-error, and never rings a rival's zero", async () => {
     const host = await draw(<PresenceBars you={{ name: "acme.com", value: 0 }} rivals={rivals} measured={12} label="presence" />);
-    const ringed = bars(host).filter((b) => b.getAttribute("stroke") === "var(--bad)");
+    const ringed = bars(host).filter((b) => b.getAttribute("stroke") === "var(--color-error)");
     expect(ringed.map((b) => b.getAttribute("name"))).toEqual(["acme.com"]);
     const track = host.querySelector(".recharts-bar-background-rectangle");
     expect(ringed[0]?.getAttribute("width")).toBe(track?.getAttribute("width"));
@@ -216,7 +216,7 @@ describe("RivalSparkline", () => {
     const host = await draw(<RivalSparkline name="one.com" value="78×" points={[302, 240, 190, 120, 78]} label="gap" />);
     expect(host.querySelector("path.recharts-line-curve")?.getAttribute("stroke")).toBe("var(--chart-rival)");
     const dots = [...host.querySelectorAll("circle")];
-    expect(dots.map((d) => d.getAttribute("fill"))).toEqual(["var(--accent)"]);
+    expect(dots.map((d) => d.getAttribute("fill"))).toEqual(["var(--color-primary)"]);
     expect(host.textContent).toContain("one.com");
     expect(host.textContent).toContain("78×");
   });
