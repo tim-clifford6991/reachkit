@@ -4,7 +4,9 @@
 # a check whose findings arrive after the merge is a check nobody can act on,
 # which is how the two browser jobs this one absorbed came to be red for days
 # without anybody seeing it (#976). No pixel baseline blocks a merge, and none
-# is kept (docs/DESIGN.md, docs/PROCESS.md).
+# is kept (docs/DESIGN.md, docs/PROCESS.md). Nor does anything run again on
+# the push to `main` a merge makes: those jobs already ran on the pull request,
+# and a result that arrives after the merge cannot stop it (2026-09-24, #1052).
 #
 # Every job runs on `reachkit-box`, the self-hosted runner on the shared box
 # (owner, 2026-09-22, #1013): the same checks, no GitHub-hosted minutes. It
@@ -14,8 +16,6 @@ name: CI
 
 on:
   pull_request:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
