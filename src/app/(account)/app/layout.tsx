@@ -30,6 +30,12 @@
 // `[data-surface]` per document. A page under `/app` declares no `Surface`
 // of its own.
 //
+// **2026-09-25 (#1100): the shell is full width.** The surface declares its
+// own edges, so it takes no centred measure and no gutter: at `lg` and up
+// the side runs the viewport's full height from its left edge, and the
+// content beside it is the one thing that scrolls. Below `lg` the content
+// keeps the compact gutter (`p-4`) it had from the surface.
+//
 // **2026-09-20 (#908, issue 912): the frame paints before any of it is
 // read.** SPEC §4 — "No loading screens in the app: a route paints its
 // shell and daisyUI `skeleton` placeholders at once and fills in."
@@ -105,8 +111,11 @@ export default async function AppLayout({
   return (
     <Surface
       arms={{
-        compact: { kind: "columns", count: 1 },
-        medium: { kind: "columns", count: 2 },
+        compact: {
+          kind: "declared",
+          note: "full-width shell: the side fixed at the left edge from lg, the content beside it scrolls",
+        },
+        medium: { kind: "same-as-below" },
         wide: { kind: "same-as-below" },
       }}
     >
@@ -120,7 +129,7 @@ export default async function AppLayout({
           element, which already holds the whole frame, puts it inside one
           without moving it a line. The role is explicit because a `<div>`
           has none; the name is the registry's. */}
-      <div role="region" aria-label={copy("shell.frame.label")} className="drawer lg:drawer-open">
+      <div role="region" aria-label={copy("shell.frame.label")} className="drawer lg:drawer-open lg:h-dvh">
         {/*
           The one control. It is the focusable, announceable thing behind
           every `<label>` in this shell, which is why it carries the panel's
@@ -138,9 +147,16 @@ export default async function AppLayout({
 
         {/* `lg:ps-10`: the calm layer's 40px gutter beside the sidebar
             (docs/DESIGN.md, 2026-09-24, #1070) — the content no longer
-            starts flush against the panel's edge. `pb-24` keeps the last
-            card clear of the floating dock below `lg`. */}
-        <div className="drawer-content flex min-w-0 flex-col gap-4 pb-24 lg:ps-10 lg:pb-0">
+            starts flush against the panel's edge. `pb-28` keeps the last
+            card clear of the floating dock below `lg`.
+
+            From `lg` this is the scroll container (#1100): the frame above
+            is exactly the viewport tall, so the document never scrolls and
+            the side never moves. It scrolls down only — `overflow-x-hidden`
+            rather than the `auto` a vertical scroller implies, so a box
+            wider than the content is still an offender to the layout
+            gate's containment check instead of a sideways scrollbar. */}
+        <div className="drawer-content flex min-w-0 flex-col gap-4 p-4 pb-28 lg:overflow-x-hidden lg:overflow-y-auto lg:py-6 lg:ps-10 lg:pe-6 xl:py-8 xl:pe-8">
           <Suspense fallback={<TopBarSkeleton />}>
             <TopBarSlot shell={shell} />
           </Suspense>
@@ -157,24 +173,18 @@ export default async function AppLayout({
         </div>
 
         {/*
-          Two overrides, both deliberate.
-
-          `lg:overflow-visible!` — daisyUI makes the side a scroll
-          container, and a scroll container clips, which would cut the
-          rail's tooltips and the theme menu off at 72px. The panel below
-          keeps its own scrollbar, so nothing tall is trapped.
-
-          `lg:h-auto!` with the panel's own `calc(100dvh - 2 × gutter)` —
-          daisyUI gives the side a flat `100dvh`, which inside the
-          surface's own block padding makes every `/app` screen one gutter
-          taller than the viewport and gives the whole app a scrollbar with
-          nothing under it. The two subtracted values are the surface's
-          gutters at those two bands (`--s-5`, `--s-6`).
+          One override, deliberate: `lg:overflow-visible!`. daisyUI makes
+          the side a scroll container, and a scroll container clips, which
+          would cut the rail's tooltips, the collapse button's tooltip and
+          the theme menu off at the panel's edge. The panel below keeps its
+          own vertical scrollbar, so nothing tall is trapped. daisyUI's own
+          `100dvh` sticky side is the full-height column the 2026-09-25
+          ruling asks for (#1100).
         */}
-        <div className="drawer-side z-30 lg:h-auto! lg:overflow-visible!">
+        <div className="drawer-side z-30 lg:overflow-visible!">
           <label htmlFor={DRAWER_TOGGLE_ID} className="drawer-overlay" aria-hidden="true" />
           <aside
-            className="border-base-300 bg-base-100 flex h-full w-60 max-w-[85vw] flex-col border-e p-4 lg:h-[calc(100dvh-3rem)] lg:is-drawer-open:w-18 lg:is-drawer-open:items-center lg:is-drawer-open:p-2 xl:h-[calc(100dvh-4rem)]"
+            className="border-base-300 bg-base-100 flex h-full w-60 max-w-[85vw] flex-col gap-5 border-e p-4 lg:is-drawer-open:w-18 lg:is-drawer-open:items-center lg:is-drawer-open:p-2"
             // Named for the same reason the draft screen's panel is (#328):
             // a screen can carry a second `<aside>`, and two unnamed
             // complementary landmarks are indistinguishable. It is the
@@ -184,18 +194,24 @@ export default async function AppLayout({
             data-testid="shell-sidebar"
           >
             {/* ── the full panel ─────────────────────────────────── */}
+            {/* The brand row stands above the panel's scroll container, not
+                in it (#1100). The collapse button sits at the panel's right
+                edge and its tooltip is centred under it, so inside the
+                scroller that tooltip hung 69px past the edge and gave the
+                panel a sideways scroll at every desktop width. Out here
+                nothing clips it and nothing scrolls. */}
+            <div className="flex min-w-0 shrink-0 items-center gap-2 lg:is-drawer-open:hidden">
+              <Brand href="/app" testId="shell-brand" />
+              <label
+                htmlFor={DRAWER_TOGGLE_ID}
+                className={`btn btn-ghost btn-square btn-sm tooltip tooltip-bottom ms-auto hidden shrink-0 lg:flex ${DRAWER_FOCUS_RING}`}
+                data-tip={copy("shell.panel.collapse")}
+                data-testid="shell-collapse"
+              >
+                <PanelLeftClose size={20} strokeWidth={1.75} aria-hidden />
+              </label>
+            </div>
             <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto lg:is-drawer-open:hidden">
-              <div className="flex min-w-0 items-center gap-2">
-                <Brand href="/app" testId="shell-brand" />
-                <label
-                  htmlFor={DRAWER_TOGGLE_ID}
-                  className={`btn btn-ghost btn-square btn-sm tooltip tooltip-bottom ms-auto hidden shrink-0 lg:flex ${DRAWER_FOCUS_RING}`}
-                  data-tip={copy("shell.panel.collapse")}
-                  data-testid="shell-collapse"
-                >
-                  <PanelLeftClose size={20} strokeWidth={1.75} aria-hidden />
-                </label>
-              </div>
               <Suspense fallback={<DomainSkeleton />}>
                 <DomainSlot shell={shell} />
               </Suspense>
