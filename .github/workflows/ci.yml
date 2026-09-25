@@ -1,6 +1,6 @@
 # Required on main: typecheck · lint · unit, audit, schema · RLS, and — since
 # the owner's ruling of 2026-09-21 closing #910 — no overflow · axe.
-# Every job here runs on every pull request. Nothing runs only on `main`:
+# Every job here reports on every pull request. Nothing runs only on `main`:
 # a check whose findings arrive after the merge is a check nobody can act on,
 # which is how the two browser jobs this one absorbed came to be red for days
 # without anybody seeing it (#976). No pixel baseline blocks a merge, and none
@@ -23,8 +23,57 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # **What the pull request changed** (owner, 2026-09-24, #1053). A pull
+  # request whose files are all under `docs/`, or are markdown (`*.md`,
+  # `CLAUDE.md`) outside `src/`, `tests/`, `supabase/`, `.github/` and
+  # `scripts/`, needs only `audit` (drift-audit.yml), which is the job that
+  # reads the documents. The three jobs below then report *skipped*, which
+  # the merge reads as passed, rather than holding the one runner for about
+  # 25 minutes. Any other file — code, tests, migrations, workflows,
+  # scripts, `package.json`, `package-lock.json`, config — runs all four.
+  #
+  # The list is of what may skip, so a file nobody thought of runs
+  # everything. The diff is the merge commit against its first parent, the
+  # base branch as the pull request would land on it. A run that is not a
+  # pull request, and a filter that fails, run everything too: the jobs
+  # below skip only on an explicit `false`.
+  changes:
+    name: what changed
+    runs-on: [self-hosted, reachkit]
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" != pull_request ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          files=$(git diff --name-only HEAD^1 HEAD)
+          code=false
+          [ -z "$files" ] && code=true
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              src/*|tests/*|supabase/*|.github/*|scripts/*) kind=code ;;
+              docs/*|*.md) kind=docs ;;
+              *) kind=code ;;
+            esac
+            echo "$kind  $f"
+            [ "$kind" = code ] && code=true
+          done <<< "$files"
+          echo "code=$code"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
   check:
     name: typecheck · lint · unit
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: [self-hosted, reachkit]
     timeout-minutes: 45
     steps:
@@ -40,6 +89,8 @@ jobs:
 
   no-overflow:
     name: no overflow · axe (390 / 768 / 1280, light and dark)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: [self-hosted, reachkit]
     timeout-minutes: 45
     # **The fourth merge gate** (owner's ruling of 2026-09-21, closing #910;
@@ -95,6 +146,8 @@ jobs:
 
   db:
     name: schema · RLS (live Postgres)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: [self-hosted, reachkit]
     timeout-minutes: 25
     # The `db` project asserts the schema against a live, migrated database.
