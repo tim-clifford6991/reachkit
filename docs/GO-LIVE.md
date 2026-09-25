@@ -217,7 +217,11 @@ Everything else that must be true before a stranger pays. **This table is the on
 | 8 | **No `TODO(copy)` renders on the paying path** | **[protected].** No registry value is the marker (`TODO_COPY_MARKER` remains the string the audit refuses). `sendEmail` refuses a mail that contains it. | — |
 
 The open Launch issues are the rows still marked not done: #1045, #1042, #335, #334, #1044, and #1025
-while the Round 7 sign-in split is still the screen the walk waits on. Anything labeled `later` or
+while the Round 7 sign-in split is still the screen the walk waits on.
+
+The stranger walk itself (#1044) is prepared in `docs/walk/README.md`: the tester's script, the
+findings form, what to watch in production, the refund as a runbook, and which of the rows above
+still block the walk. Anything labeled `later` or
 `parked` waits behind them (`docs/PROCESS.md`).
 
 ---
