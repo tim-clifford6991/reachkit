@@ -70,15 +70,19 @@ describe("SPEC §4 — the seven tabs are a daisyUI bar of addresses that cannot
     expect(bar).toMatch(/aria-current=/);
   });
 
-  it("seven words scroll sideways rather than widening the screen", () => {
+  it("seven words wrap on a phone and scroll sideways from `sm` up, never widening the screen", () => {
     // `docs/DESIGN.md`: no element is wider than its container at 390. A
-    // nav word cannot be clamped to an ellipsis and stay a nav word, so the
-    // row is the scroll container — the same construction `OverviewTabs` is
-    // proven at. `no-overflow.test.ts` renders all seven and measures it.
+    // nav word cannot be clamped to an ellipsis and stay a nav word. Below
+    // `sm` the bar wraps so no tab is hidden off-screen (#1101), each link a
+    // 44px target; from `sm` up the row is the scroll container, the same
+    // construction `OverviewTabs` is proven at. The layout suite renders all
+    // seven and measures both.
+    expect(bar).toMatch(/max-sm:flex-wrap/);
+    expect(bar).toMatch(/max-sm:h-11/);
     expect(bar).toMatch(/min-w-0/);
-    expect(bar).toMatch(/overflow-x-auto/);
-    expect(bar).toMatch(/w-max/);
-    expect(bar).toMatch(/flex-nowrap/);
+    expect(bar).toMatch(/sm:overflow-x-auto/);
+    expect(bar).toMatch(/sm:w-max/);
+    expect(bar).toMatch(/sm:flex-nowrap/);
   });
 
   it("no tab draws two card columns — the columns are what the tabs replaced", () => {

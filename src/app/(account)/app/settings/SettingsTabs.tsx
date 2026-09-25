@@ -11,32 +11,29 @@
 // the pathname that marks the current tab — the one `OverviewTabs` and
 // `SidebarNav` give — and bringing that tab into view, below.
 //
-// **It cannot overflow.** Seven words is more than a 390px screen holds, so
-// the row scrolls sideways (`overflow-x-auto` on a `min-w-0` parent, the bar
-// itself `w-max flex-nowrap`) rather than pushing the screen wider —
-// `docs/DESIGN.md`'s no-overflow rule, where a label that cannot be clamped
-// is a nav word. That is the same construction `OverviewTabs` is proven at,
-// and the reason this file repeats it rather than sharing it: one is four
-// words about the Overview and one is seven about Settings, and a shared
-// bar would need the tuple, the two maps and the current-tab rule passed
-// into it — which is the whole of both files.
+// **It cannot overflow, and below `sm` it does not scroll either** (#1101).
+// Seven words is 626px of tabs; a 390px screen's row is 358px. A sideways
+// scroll kept the screen from widening, but on a phone it hid four of the
+// seven tabs with nothing to say they were there. So below `sm` the bar
+// wraps (`flex-wrap`): every tab is on screen, the current one keeps
+// daisyUI's `tab-active` underline, and each link is `h-11` — the 44px
+// target a thumb needs, above daisyUI's 40px tab. The links stay links, so
+// no string and no widget is added for the phone.
 //
-// **A scroll container opens at its start, which put the current tab off
-// the edge** (owner, 2026-09-21, on #925). Four of the seven words fit a
-// 390px screen; on Mail, Billing and Account the marked tab was past the
-// right edge, so the one thing the bar exists to say — which tab you are on
-// — was the one thing a phone could not see. `aria-current` was set and
-// `tab-active` was painted; neither is visible if it is not on screen.
+// From `sm` up the strip is what it was: one row that scrolls sideways
+// (`overflow-x-auto` on a `min-w-0` parent, the bar itself `w-max
+// flex-nowrap`) rather than pushing the screen wider — `docs/DESIGN.md`'s
+// no-overflow rule, where a label that cannot be clamped is a nav word. That
+// is the same construction `OverviewTabs` is proven at.
 //
-// So the current link is scrolled into view once, on mount. `inline:
-// "center"` puts it in the middle of the row rather than flush against an
-// edge, where the tabs either side of it are the affordance that says the
-// row scrolls at all; `block: "nearest"` is what keeps this a *horizontal*
-// move — without it the browser is entitled to scroll the document
-// vertically to reach the bar, which on a short screen would open Settings
-// with its own heading pushed off the top. No animation is asked for, so
-// the browser's default (`auto`) applies and the row is simply already
-// where it should be when the screen is first painted.
+// **Where the row does scroll, it opens at its start** (owner, 2026-09-21,
+// on #925), which can leave the marked tab past the edge. So the current
+// link is scrolled into view once, on mount. `inline: "center"` puts it in
+// the middle of the row rather than flush against an edge; `block:
+// "nearest"` is what keeps this a *horizontal* move — without it the
+// browser is entitled to scroll the document vertically to reach the bar.
+// Below `sm` there is no scroll container and every tab is already in
+// view, so the same call moves nothing.
 //
 // It runs once per address: the effect's one dependency is the current tab,
 // and a tab press is a navigation, so nothing here fights a customer who
@@ -80,11 +77,11 @@ export function SettingsTabs(): React.JSX.Element {
 
   return (
     <nav
-      className="min-w-0 overflow-x-auto"
+      className="min-w-0 sm:overflow-x-auto"
       aria-label={copy("settings.tabs.label")}
       data-testid="settings-tabs"
     >
-      <div className="tabs tabs-border w-max flex-nowrap">
+      <div className="tabs tabs-border max-sm:flex-wrap sm:w-max sm:flex-nowrap">
         {SETTINGS_TABS.map((tab) => {
           const onThisTab = tab === current;
           return (
@@ -92,7 +89,7 @@ export function SettingsTabs(): React.JSX.Element {
               key={tab}
               ref={onThisTab ? here : undefined}
               href={SETTINGS_TAB_HREF[tab]}
-              className={`tab whitespace-nowrap ${onThisTab ? "tab-active" : ""}`}
+              className={`tab whitespace-nowrap max-sm:h-11 ${onThisTab ? "tab-active" : ""}`}
               data-testid={`settings-tab-${tab}`}
               aria-current={onThisTab ? "page" : undefined}
             >
