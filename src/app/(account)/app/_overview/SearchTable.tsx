@@ -326,7 +326,7 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
               each value carries the head's own word beside it instead, so
               they are not drawn rather than drawn and read out over a list
               that no longer has columns. */}
-          <thead className="hidden sm:table-header-group">
+          <thead className="hidden sm:table-header-group text-base-content/70">
             {table.getHeaderGroups().map((group) => (
               <tr key={group.id}>
                 {group.headers.map((header) => (

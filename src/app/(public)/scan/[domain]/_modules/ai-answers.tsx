@@ -219,7 +219,7 @@ function AnswerColumns(p: { rows: AnswerRows }): React.JSX.Element | null {
     <>
       <div className="min-w-0 overflow-x-auto">
         <table className="table table-sm">
-          <thead>
+          <thead className="text-base-content/70">
             <tr>
               <th className="whitespace-normal">{copy("ai-answers.engine.column.question")}</th>
               {drawn.map((engine) => (

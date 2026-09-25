@@ -179,7 +179,7 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
           aria-label={copy("presence.absent-from.title")}
         >
           <table className="table table-zebra table-sm">
-            <thead className="hidden sm:table-header-group">
+            <thead className="hidden sm:table-header-group text-base-content/70">
               <tr>
                 <th className="whitespace-normal">{copy("presence.absent-from.column.search")}</th>
                 <th className="whitespace-normal">{copy("presence.absent-from.column.volume")}</th>

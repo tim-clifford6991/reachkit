@@ -278,7 +278,7 @@ export function RivalTable(p: { model: RivalsModel }): React.JSX.Element {
           {/* The heads belong to the four-column shape. On the phone shape
               each value states itself, so they are not drawn rather than
               drawn and read out over a list that does not have them. */}
-          <thead className="hidden sm:table-header-group">
+          <thead className="hidden sm:table-header-group text-base-content/70">
             {table.getHeaderGroups().map((group) => (
               <tr key={group.id}>
                 {group.headers.map((header) => (

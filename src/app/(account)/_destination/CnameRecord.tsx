@@ -108,7 +108,7 @@ export function CnameRecord(p: {
 
       <div className="overflow-x-auto rounded-box bg-base-200">
         <table className="table table-sm" data-testid="dns-record" data-host={p.record.name}>
-          <thead>
+          <thead className="text-base-content/70">
             <tr>
               <th>{copy("setup.destination.guide.column.field")}</th>
               <th>{copy("setup.destination.guide.column.value")}</th>
