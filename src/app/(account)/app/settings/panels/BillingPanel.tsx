@@ -136,7 +136,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
           <span className="flex min-w-0 flex-wrap items-baseline gap-2" data-testid="billing-price">
             <span className="figure text-3xl wrap-anywhere">{amount}</span>
             {interval === null ? null : (
-              <span className="num-phrase text-xs text-base-content/60 wrap-anywhere">{interval}</span>
+              <span className="num-phrase text-xs text-base-content/70 wrap-anywhere">{interval}</span>
             )}
           </span>
           {!billing.readable ? null : (
@@ -212,7 +212,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
             </>
           )}
         </div>
-        <p className="text-xs text-base-content/60 wrap-anywhere" data-testid="billing-manage-note">
+        <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="billing-manage-note">
           {copy("settings.billing.manage.note")}
         </p>
 
@@ -221,18 +221,18 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
             {BILLING_UNREADABLE_KEYS.map((key) => ({ key, line: writtenLine(key) }))
               .filter((written) => written.line !== null)
               .map((written) => (
-                <p className="text-xs text-base-content/60 wrap-anywhere" key={written.key}>
+                <p className="text-xs text-base-content/70 wrap-anywhere" key={written.key}>
                   {written.line}
                 </p>
               ))}
           </div>
         )}
         {cancelling === null ? null : (
-          <p className="text-xs text-base-content/60 wrap-anywhere" data-testid="billing-cancelling">
+          <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="billing-cancelling">
             {cancelling}
           </p>
         )}
-        {action.line === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{action.line}</p>}
+        {action.line === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{action.line}</p>}
       </div>
     </section>
   );

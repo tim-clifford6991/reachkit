@@ -100,7 +100,7 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
         </form>
 
         <div className="border-base-300 flex min-w-0 flex-col gap-3 border-t pt-4" data-testid="setting-do_not_claim">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-base-content/70">
             {copy("settings.voice.never-claim")}
           </h3>
           {/* Each claim with its own way out: a filter the customer cannot
@@ -154,7 +154,7 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
           </form>
         </div>
 
-        {filterNote === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{filterNote}</p>}
+        {filterNote === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{filterNote}</p>}
       </div>
     </section>
   );

@@ -116,7 +116,7 @@ export default function PricingPage(props: {
           <PricingCard startAction={startCheckout} terms="pricing" refused={refused} />
         </div>
 
-        <p className="text-base-content/60 mx-auto max-w-xl text-center text-sm">
+        <p className="text-base-content/70 mx-auto max-w-xl text-center text-sm">
           {copy("pricing.footnote")}
         </p>
       </main>

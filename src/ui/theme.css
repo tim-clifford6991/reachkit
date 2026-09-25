@@ -25,6 +25,11 @@
  * was scaled toward its own black or white, so every hue is the one the
  * approved set chose.
  *
+ * **Softer ink, tinted ground (owner, 2026-09-25, #1104).** The light
+ * `--bg`, `--sunk`, `--line`, `--ink`, `--ink-2` and `--ink-3` take a dark
+ * slate ink and a faint cool ground; for these six only, the hue moves.
+ * The floor above still holds on the new `--sunk`. Dark is unchanged.
+ *
  * The ground each is measured against is the **worst** one it is drawn on:
  * `--sunk` in light (the darkest of the three surfaces) and `--surface` in
  * dark (the lightest). A token that passes there passes on `--bg` and
@@ -34,13 +39,13 @@
 
 :root {
   /* Surfaces and ink */
-  --bg: #f6f6f9;
+  --bg: #f3f4fb;
   --surface: #ffffff;
-  --sunk: #efeff4;
-  --line: #eaeaf1;
-  --ink: #101019;
-  --ink-2: #5e5e73;
-  --ink-3: #676774;
+  --sunk: #eef0f8;
+  --line: #e8e9f3;
+  --ink: #1e2233;
+  --ink-2: #646579;
+  --ink-3: #6a6b80;
 
   /* Accent */
   --accent: #5b4be0;

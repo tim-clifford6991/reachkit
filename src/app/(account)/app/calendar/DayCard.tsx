@@ -160,7 +160,7 @@ export function StageMark(p: {
         <RefreshCw
           size={12}
           strokeWidth={1.75}
-          className={`ml-auto shrink-0 opacity-60 ${
+          className={`ml-auto shrink-0 opacity-70 ${
             p.narrowable === true ? `hidden ${STAGE_MARK_AT[p.page.stage]}` : ""
           }`}
           aria-label={kindWord(true)}
@@ -180,7 +180,7 @@ export function UpdateMark(): React.JSX.Element {
     <RefreshCw
       size={12}
       strokeWidth={1.75}
-      className="shrink-0 opacity-60"
+      className="shrink-0 opacity-70"
       aria-label={kindWord(true)}
       data-testid="card-update-mark"
     />

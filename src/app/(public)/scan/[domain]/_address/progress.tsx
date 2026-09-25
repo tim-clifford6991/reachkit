@@ -210,7 +210,7 @@ export function ScanProgress(p: {
               {/* Only a stage that finished has a time; the one running and
                   the ones ahead of it carry none. */}
               {seconds === undefined ? null : (
-                <span className="text-base-content/60 text-xs">
+                <span className="text-base-content/70 text-xs">
                   {copy("stage.elapsed", { seconds: String(seconds) })}
                 </span>
               )}

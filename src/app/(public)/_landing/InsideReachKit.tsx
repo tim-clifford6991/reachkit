@@ -152,7 +152,7 @@ function ScorePanel(): React.JSX.Element {
         {/* A flex row, so the mono denominator has a box of its own (#935). */}
         <div className="stat-value flex items-baseline gap-2 text-5xl">
           <Num figure>{SPECIMEN_HERO.score}</Num>
-          <span className="text-base-content/60 text-base">
+          <span className="text-base-content/70 text-base">
             <Num>{outOf(SPECIMEN_HERO.max)}</Num>
           </span>
           <span className="badge badge-success badge-sm self-center">

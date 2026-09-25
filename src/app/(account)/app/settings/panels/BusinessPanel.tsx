@@ -284,7 +284,7 @@ function Group(p: {
       <div className="flex min-w-0 flex-wrap items-baseline gap-2">
         <h3 className="eyebrow">{head}</h3>
         {note === undefined ? null : (
-          <span className="text-xs text-base-content/60">{copy(note)}</span>
+          <span className="text-xs text-base-content/70">{copy(note)}</span>
         )}
       </div>
 
@@ -353,7 +353,7 @@ function Job(p: {
     <section className="flex min-w-0 flex-col gap-2" data-testid="business-job">
       <div className="flex min-w-0 flex-wrap items-baseline gap-2">
         <h3 className="eyebrow">{copy("settings.business.job")}</h3>
-        <span className="text-xs text-base-content/60">{copy("settings.business.job.hint")}</span>
+        <span className="text-xs text-base-content/70">{copy("settings.business.job.hint")}</span>
       </div>
 
       {editing ? (
@@ -403,7 +403,7 @@ function Job(p: {
       )}
 
       {offeringType === null ? null : (
-        <p className="text-xs text-base-content/60 wrap-anywhere">
+        <p className="text-xs text-base-content/70 wrap-anywhere">
           <span className="font-semibold">{copy("settings.business.offering")} </span>
           {offeringType}
         </p>

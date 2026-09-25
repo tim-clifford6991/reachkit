@@ -16,6 +16,8 @@ Admitting new UI: a daisyUI class → a daisyUI class plus a theme colour → Re
 
 One `@plugin "daisyui/theme"` named `reachkit`, `themes: false`. Ground, ink, accent, meaning (ok / warn / bad) and the chart colours (you / rival / goal) live there; dark is the same names with dark values. Every colour spent on text clears 4.5:1 in both themes against the worst ground it is drawn on. Mail reads the theme's values through `src/lib/mail/shell/tokens.ts`, because an inbox has no daisyUI.
 
+- 2026-09-25  **Softer ink, tinted ground** (owner, #1104). In light, ink is a dark slate and the ground and its two neighbours a faint cool tint; muted text is `text-base-content/70`, never `/60`, which falls under the floor. Dark is unchanged.
+
 Type is Plus Jakarta Sans (400, 500, 600, 700, 800) with JetBrains Mono for domains, dates, searches and code. Big figures — scores and stat numbers — are Plus Jakarta Sans 600 with `tabular-nums`.
 
 The theme control is a two-state light/dark switch in the public header, the first visit following the system, and a Light / Dark / System `dropdown` in the `/app` shell (`src/app/_theme/ThemeToggle.tsx`). System sets no `data-theme`; Light and Dark set it on `<html>` before paint. Never on hosted pages.

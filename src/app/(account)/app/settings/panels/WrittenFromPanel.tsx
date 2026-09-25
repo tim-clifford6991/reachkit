@@ -104,7 +104,7 @@ export function WrittenFromPanel(p: {
           ))}
         </ul>
 
-        <p className="text-xs text-base-content/60 wrap-anywhere">
+        <p className="text-xs text-base-content/70 wrap-anywhere">
           {copy("settings.business.written-from.closed")}
         </p>
 
@@ -133,7 +133,7 @@ export function WrittenFromPanel(p: {
                 })}
           </span>
           {p.profile.pagesRead === null ? null : (
-            <span className="text-xs text-base-content/60">
+            <span className="text-xs text-base-content/70">
               {copy("settings.business.pages-read", { count: String(p.profile.pagesRead) })}
             </span>
           )}
@@ -154,7 +154,7 @@ export function WrittenFromPanel(p: {
             {copy("settings.business.read-again")}
           </button>
           {line === null ? null : (
-            <p className="text-xs text-base-content/60 wrap-anywhere" data-testid="business-read-again-line">
+            <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="business-read-again-line">
               {line}
             </p>
           )}

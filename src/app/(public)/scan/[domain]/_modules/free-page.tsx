@@ -67,7 +67,7 @@ function Head(p: { right?: React.ReactNode }): React.JSX.Element {
 function Row(p: { label: string; children: React.ReactNode }): React.JSX.Element {
   return (
     <div className="border-base-300 grid grid-cols-[6rem_minmax(0,1fr)] gap-3 border-b py-2 last:border-b-0">
-      <dt className="text-base-content/60 text-xs">{p.label}</dt>
+      <dt className="text-base-content/70 text-xs">{p.label}</dt>
       <dd className="min-w-0 overflow-x-auto text-sm" tabIndex={0}>
         {p.children}
       </dd>

@@ -81,7 +81,7 @@ export function DangerZone(): React.JSX.Element {
           <Shield size={20} strokeWidth={1.75} aria-hidden />
           {copy("danger.zone.title")}
         </h2>
-        {exportFirst === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{exportFirst}</p>}
+        {exportFirst === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{exportFirst}</p>}
 
         <div className="flex min-w-0 flex-col gap-3">
           {DANGER.map((row) => (
@@ -101,7 +101,7 @@ export function DangerZone(): React.JSX.Element {
           ))}
         </div>
 
-        {action.line === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{action.line}</p>}
+        {action.line === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{action.line}</p>}
       </div>
     </section>
   );
@@ -197,17 +197,17 @@ function DangerLine(p: { outcome: RenderedOutcome }): React.JSX.Element {
   const line = writtenLine(p.outcome.lineKey);
   return (
     <div className="flex min-w-0 flex-col gap-1" data-testid="danger-outcome">
-      {line === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{line}</p>}
+      {line === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{line}</p>}
       {p.outcome.ran ? (
         <>
-          <p className="text-xs text-base-content/60 wrap-anywhere">
+          <p className="text-xs text-base-content/70 wrap-anywhere">
             {copy("danger.taken-down-count", { pages: String(p.outcome.takenDown) })}
           </p>
           {p.outcome.stillLive.length === 0 ? null : (
             <ul className="flex min-w-0 flex-col gap-1" data-testid="danger-still-live">
               {p.outcome.stillLive.flatMap((destination) =>
                 destination.liveUrls.map((url) => (
-                  <li key={url} className="num text-xs text-base-content/60 wrap-anywhere">
+                  <li key={url} className="num text-xs text-base-content/70 wrap-anywhere">
                     {url}
                   </li>
                 ))
@@ -216,7 +216,7 @@ function DangerLine(p: { outcome: RenderedOutcome }): React.JSX.Element {
           )}
         </>
       ) : (
-        <p className="text-xs text-base-content/60 wrap-anywhere">{copy("danger.nothing-changed")}</p>
+        <p className="text-xs text-base-content/70 wrap-anywhere">{copy("danger.nothing-changed")}</p>
       )}
     </div>
   );

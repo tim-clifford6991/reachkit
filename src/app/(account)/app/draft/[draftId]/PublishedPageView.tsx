@@ -115,7 +115,7 @@ export function PublishedPageView(p: {
       data-testid="published-view"
     >
       <p
-        className="text-xs text-base-content/60 wrap-anywhere"
+        className="text-xs text-base-content/70 wrap-anywhere"
         data-testid="published-view-lead"
       >
         {copy("draft.published-view.lead")}

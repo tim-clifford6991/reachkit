@@ -306,10 +306,10 @@ function QuestionList(p: { items: SetupQuestions["items"] }): React.JSX.Element 
             // band the gate sweeps starts at 390, which is why nothing saw
             // it.
             <li key={question.n} className="flex min-w-0 gap-3">
-              <span className="num text-sm text-base-content/60">{question.n}</span>
+              <span className="num text-sm text-base-content/70">{question.n}</span>
               <span className="flex min-w-0 flex-col">
                 <span className="text-sm">{wording.text}</span>
-                <span className="num text-xs text-base-content/60 wrap-anywhere">{provenance.text}</span>
+                <span className="num text-xs text-base-content/70 wrap-anywhere">{provenance.text}</span>
               </span>
             </li>
           );

@@ -36,7 +36,7 @@ function Card(p: { children: React.ReactNode; lead?: string | null }): React.JSX
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid={TEST_ID}>
       <div className="card-body gap-4 p-5">
-        <h2 className="card-title text-xs font-semibold uppercase tracking-wide text-base-content/60">
+        <h2 className="card-title text-xs font-semibold uppercase tracking-wide text-base-content/70">
           <Users aria-hidden size={20} strokeWidth={1.75} />
           {copy(RIVAL_LABEL)}
         </h2>
@@ -193,10 +193,10 @@ export function RivalModule(p: {
           <span className="num">{renderValue(p.rivals.own, RIVAL_LABEL).text}</span>
         </p>
       ) : null}
-      {line === null ? null : <p className="text-xs text-base-content/60">{line}</p>}
-      {starting === null ? null : <p className="text-xs text-base-content/60">{starting}</p>}
+      {line === null ? null : <p className="text-xs text-base-content/70">{line}</p>}
+      {starting === null ? null : <p className="text-xs text-base-content/70">{starting}</p>}
       {windowLine === null ? null : (
-        <p className="num text-xs text-base-content/60" data-testid="overview-rivals-comparison-window">
+        <p className="num text-xs text-base-content/70" data-testid="overview-rivals-comparison-window">
           {windowLine}
         </p>
       )}

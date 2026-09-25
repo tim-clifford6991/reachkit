@@ -62,7 +62,7 @@ function Figure(p: {
 }): React.JSX.Element {
   return (
     <div className="min-w-0" data-testid={p.testId}>
-      <span className="min-w-0 text-xs font-semibold tracking-wide uppercase text-base-content/60">
+      <span className="min-w-0 text-xs font-semibold tracking-wide uppercase text-base-content/70">
         {copy(p.labelKey)}
       </span>
       {p.figure === null ? (
@@ -88,7 +88,7 @@ export function BlogReads(p: { model: BlogReadsModel }): React.JSX.Element | nul
           <h2 className="card-title text-base!" data-testid="blog-reads-title">
             {copy("overview.blog.title")}
           </h2>
-          <p className="text-xs text-base-content/60">
+          <p className="text-xs text-base-content/70">
             {copy("overview.blog.lead", { days: formatCount(p.model.windowDays) })}
           </p>
         </header>
@@ -116,7 +116,7 @@ export function BlogReads(p: { model: BlogReadsModel }): React.JSX.Element | nul
                     {/* The `list-row` grid gives the second child the row's
                         remaining width; `text-end` is what puts the count at
                         its edge rather than beside the name. */}
-                    <span className="num text-end text-sm text-base-content/60">
+                    <span className="num text-end text-sm text-base-content/70">
                       {formatCount(row.fetches)}
                     </span>
                   </li>
@@ -149,7 +149,7 @@ export function BlogReads(p: { model: BlogReadsModel }): React.JSX.Element | nul
             line={referrals.line ?? null}
           >
             {referrals.isDash ? null : (
-              <p className="mt-2 text-xs text-base-content/60">{copy("overview.blog.at-least.means")}</p>
+              <p className="mt-2 text-xs text-base-content/70">{copy("overview.blog.at-least.means")}</p>
             )}
           </Figure>
         </div>

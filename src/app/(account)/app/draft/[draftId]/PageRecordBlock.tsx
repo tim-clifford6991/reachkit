@@ -147,7 +147,7 @@ export function PageRecordBlock(p: {
               {writtenLine(verification.copy)}
             </span>
             {verification.at === null ? null : (
-              <span className="num text-xs opacity-60">
+              <span className="num text-xs opacity-70">
                 {formatDateTime(verification.at, p.timeZone)}
               </span>
             )}

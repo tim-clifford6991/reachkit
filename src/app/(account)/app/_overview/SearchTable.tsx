@@ -117,14 +117,14 @@ function YouCell(p: { row: SearchRow }): React.JSX.Element {
 function RivalCell(p: { row: SearchRow }): React.JSX.Element {
   const rival = p.row.rival;
   if (rival === null) {
-    return <span className="text-sm text-base-content/60">{copy("overview.search.rival.yours")}</span>;
+    return <span className="text-sm text-base-content/70">{copy("overview.search.rival.yours")}</span>;
   }
   const place = renderValue(rival.position, COLUMN_COPY_KEY.rival);
   return (
     <span className="flex items-baseline gap-2 whitespace-nowrap">
       <span className="num text-sm">{rival.domain}</span>
       {place.isDash ? null : (
-        <span className="num text-xs text-base-content/60">
+        <span className="num text-xs text-base-content/70">
           {copy("overview.search.position", { position: place.text })}
         </span>
       )}
@@ -303,7 +303,7 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
           ))}
         </div>
         {ceiling === null ? null : (
-          <p className="text-xs text-base-content/60" data-testid="search-ceiling">
+          <p className="text-xs text-base-content/70" data-testid="search-ceiling">
             {ceiling}
           </p>
         )}
@@ -326,7 +326,7 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
               each value carries the head's own word beside it instead, so
               they are not drawn rather than drawn and read out over a list
               that no longer has columns. */}
-          <thead className="hidden sm:table-header-group">
+          <thead className="hidden sm:table-header-group text-base-content/70">
             {table.getHeaderGroups().map((group) => (
               <tr key={group.id}>
                 {group.headers.map((header) => (
@@ -357,7 +357,7 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
                       className={`flex items-baseline gap-1.5 p-0 align-middle sm:table-cell sm:px-3 sm:py-2 ${SEARCH_CELL_CLASS[id]}`}
                     >
                       {label === null ? null : (
-                        <span className="shrink-0 text-xs text-base-content/60 sm:hidden">
+                        <span className="shrink-0 text-xs text-base-content/70 sm:hidden">
                           {copy(label)}
                         </span>
                       )}
@@ -377,7 +377,7 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
             is not one value, so mono here is a line that cannot fold and is
             clipped at 390 (`src/ui/type.css` records the same reasoning for
             the editor's textarea and for `pre`). */}
-        <p className="min-w-0 flex-1 text-xs text-base-content/60" data-testid="search-showing">
+        <p className="min-w-0 flex-1 text-xs text-base-content/70" data-testid="search-showing">
           {copy("overview.search.showing", { shown: formatCount(shown), total: formatCount(total) })}
         </p>
         {shown < total ? (

@@ -90,7 +90,7 @@ function Fact(p: {
           >
             {shortAddress(fact.url)}
           </a>
-          <span className="text-base-content/60">{pagesLine(fact.pages)}</span>
+          <span className="text-base-content/70">{pagesLine(fact.pages)}</span>
           {fact.on ? null : (
             <span className="badge badge-ghost badge-sm">
               {copy("settings.business.facts.off")}

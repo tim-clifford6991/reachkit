@@ -83,7 +83,7 @@ export function DayList(p: {
               onClick={() => p.onSelect(cell.day)}
             >
               <span className="flex min-w-0 flex-col items-center">
-                <span className="text-[11px] font-semibold opacity-60">
+                <span className="text-[11px] font-semibold opacity-70">
                   {weekdayShort(cell.day)}
                 </span>
                 <span

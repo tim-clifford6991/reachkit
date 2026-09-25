@@ -73,7 +73,7 @@ export const LEGAL_BODY_CLASSES: HtmlClasses = Object.freeze({
   ul: "mb-3 list-disc ps-6",
   ol: "mb-3 list-decimal ps-6",
   li: "mb-1",
-  blockquote: "mb-3 border-l border-base-300 ps-4 text-base-content/60",
+  blockquote: "mb-3 border-l border-base-300 ps-4 text-base-content/70",
   pre: "mb-3 overflow-x-auto rounded-field bg-base-200 p-3",
   code: "font-mono text-sm",
   hr: "my-6 border-base-300",
@@ -129,7 +129,7 @@ function OnThisPage(p: { headings: readonly LegalHeading[] }): React.JSX.Element
         aria-label={copy("chrome.on-this-page")}
         data-testid="legal-toc"
       >
-        <p className="text-base-content/60 px-4 pb-1 text-xs font-semibold tracking-wide uppercase">
+        <p className="text-base-content/70 px-4 pb-1 text-xs font-semibold tracking-wide uppercase">
           {copy("chrome.on-this-page")}
         </p>
         {list}
@@ -157,13 +157,13 @@ export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
       <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-4 px-4 py-12 lg:flex-row lg:items-start lg:gap-8">
         <OnThisPage headings={headings} />
         <article className="flex w-full min-w-0 max-w-(--w-read) flex-col gap-3">
-          <span className="text-base-content/60 text-xs font-semibold tracking-wide uppercase">
+          <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
             {copy("legal.eyebrow")}
           </span>
           <h1>{copy(p.document.title)}</h1>
           {/* The whole line is a date with one word in front of it, so the
               whole line is in the mono face. */}
-          <p className="text-base-content/60 font-mono text-xs">
+          <p className="text-base-content/70 font-mono text-xs">
             {copy("legal.updated", { date: copy(p.document.updated) })}
           </p>
           {/* One card, no head: the page's own h1 already names the document. */}

@@ -134,12 +134,12 @@ export function NeedsYouModule(p: {
           </div>
         )}
         {overflowLine === null ? null : (
-          <p className="text-xs text-base-content/60" data-testid="overview-overflow">
+          <p className="text-xs text-base-content/70" data-testid="overview-overflow">
             {overflowLine}
           </p>
         )}
         {issuesOverflowLine === null ? null : (
-          <p className="text-xs text-base-content/60" data-testid="overview-issues-overflow">
+          <p className="text-xs text-base-content/70" data-testid="overview-issues-overflow">
             {issuesOverflowLine}
           </p>
         )}

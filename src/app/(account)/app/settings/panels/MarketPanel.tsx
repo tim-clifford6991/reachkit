@@ -292,19 +292,19 @@ export function MarketPanel(p: {
             </button>
           </form>
           {remeasureLine === null ? null : (
-            <p className="text-xs text-base-content/60 wrap-anywhere" data-testid="market-remeasure-line">
+            <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="market-remeasure-line">
               {remeasureLine}
             </p>
           )}
         </div>
 
-        {effect === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{effect}</p>}
+        {effect === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{effect}</p>}
         {dated === null ? null : (
           <p
             className={
               warned
                 ? "alert alert-warning alert-soft text-xs wrap-anywhere"
-                : "text-xs text-base-content/60 wrap-anywhere"
+                : "text-xs text-base-content/70 wrap-anywhere"
             }
             data-testid="market-change-line"
           >

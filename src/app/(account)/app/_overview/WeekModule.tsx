@@ -153,7 +153,7 @@ export function WeekModule(p: {
           })}
         </ol>
         {aimLine === null ? null : (
-          <p className="text-xs text-base-content/60" data-testid="overview-week-aim">
+          <p className="text-xs text-base-content/70" data-testid="overview-week-aim">
             {aimLine}
           </p>
         )}

@@ -144,7 +144,7 @@ export function ConnectScreen(p: {
                           </div>
                           <div className="timeline-end mb-4 min-w-0 text-start">
                             <p className="text-sm font-semibold">{copy(stage.title)}</p>
-                            <p className="text-xs text-base-content/60">{copy(stage.line)}</p>
+                            <p className="text-xs text-base-content/70">{copy(stage.line)}</p>
                           </div>
                           {index === STAGES.length - 1 ? null : <hr className={done ? "bg-primary" : ""} />}
                         </li>

@@ -175,7 +175,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
               /* SPEC §7 (2026-09-20, #914): the canvas draws the customer's
                  name for this window with a line saying what the number
                  measures. The row's own `below` slot carries it. */
-              <p className="text-base-content/60 min-w-0 text-xs wrap-anywhere" data-testid="veto-note">
+              <p className="text-base-content/70 min-w-0 text-xs wrap-anywhere" data-testid="veto-note">
                 {copy("settings.publishing.veto.note")}
               </p>
             }
@@ -319,7 +319,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
         </div>
 
         <div className="border-base-300 flex min-w-0 flex-col gap-3 border-t pt-4" data-testid="setting-destinations">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-base-content/70">
             {copy("settings.publishing.destinations")}
           </h3>
           {destinations.map((destination) => (
@@ -331,7 +331,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
                   </span>
                   {destination.hostname === null ? null : (
                     <span
-                      className="num min-w-0 text-xs text-base-content/60 wrap-anywhere"
+                      className="num min-w-0 text-xs text-base-content/70 wrap-anywhere"
                       data-testid={`hostname-${destination.id}`}
                     >
                       {destination.hostname}
@@ -373,7 +373,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
                 </span>
               </div>
               {destination.copy.line === null ? null : (
-                <p className="text-xs text-base-content/60 wrap-anywhere">{copy(destination.copy.line)}</p>
+                <p className="text-xs text-base-content/70 wrap-anywhere">{copy(destination.copy.line)}</p>
               )}
               {destination.dns === null ? null : (
                 <div className="mt-2 flex min-w-0 flex-col gap-1" data-testid={`dns-${destination.id}`}>
@@ -387,7 +387,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
           ))}
         </div>
 
-        {fixNote === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{fixNote}</p>}
+        {fixNote === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{fixNote}</p>}
       </div>
     </section>
   );

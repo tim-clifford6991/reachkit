@@ -83,9 +83,8 @@ function Tile(p: {
   const against = of.isDash ? null : copy(p.againstKey, { of: of.text, value: of.text });
   const fixed = p.meansKey === null ? null : copy(p.meansKey);
   const quiet = value.isDash || p.tile.value.kind !== "measured" || p.tile.value.value === 0;
-  // /60 ink holds axe's contrast floor on white but not on the grey cell, so
-  // a quiet tile's small lines step up to /70.
-  const ink = quiet ? "text-base-content/70" : "text-base-content/60";
+  // /70 ink: the softer 2026-09-25 ink at /60 is under axe's floor even on white.
+  const ink = "text-base-content/70";
   const means = value.isDash
     ? (value.line ?? fixed)
     : p.tile.reading === undefined

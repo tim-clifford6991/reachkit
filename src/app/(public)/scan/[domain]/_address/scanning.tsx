@@ -131,7 +131,7 @@ export function ScanningView(p: {
             {/* REQ-003 c1's own frame, and the set's line: what the wait is
                 worth, and that the address survives it. No countdown — the
                 stages carry the only figures on this screen. */}
-            <p className="text-base-content/60 text-sm">{copy("scan.waiting.line")}</p>
+            <p className="text-base-content/70 text-sm">{copy("scan.waiting.line")}</p>
           </div>
         </section>
 

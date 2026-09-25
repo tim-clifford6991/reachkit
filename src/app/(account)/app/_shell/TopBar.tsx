@@ -25,7 +25,7 @@ export function TopBar(p: { shell: ShellModel }): React.JSX.Element {
       <span className="shrink-0">
         <Brand href="/app" />
       </span>
-      <span className="num min-w-0 flex-1 truncate text-end text-xs opacity-60" title={p.shell.domain}>
+      <span className="num min-w-0 flex-1 truncate text-end text-xs opacity-70" title={p.shell.domain}>
         {p.shell.domain}
       </span>
       <label

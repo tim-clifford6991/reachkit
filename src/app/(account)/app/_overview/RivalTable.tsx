@@ -75,7 +75,7 @@ function WinnerCell(p: { row: RivalSearchRow }): React.JSX.Element {
     <span className="flex items-baseline gap-x-2 whitespace-nowrap max-sm:flex-wrap">
       <span className="num text-sm">{p.row.rival}</span>
       {place.isDash ? null : (
-        <span className="num text-xs text-base-content/60">
+        <span className="num text-xs text-base-content/70">
           {copy("overview.search.position", { position: place.text })}
         </span>
       )}
@@ -278,7 +278,7 @@ export function RivalTable(p: { model: RivalsModel }): React.JSX.Element {
           {/* The heads belong to the four-column shape. On the phone shape
               each value states itself, so they are not drawn rather than
               drawn and read out over a list that does not have them. */}
-          <thead className="hidden sm:table-header-group">
+          <thead className="hidden sm:table-header-group text-base-content/70">
             {table.getHeaderGroups().map((group) => (
               <tr key={group.id}>
                 {group.headers.map((header) => (
@@ -319,7 +319,7 @@ export function RivalTable(p: { model: RivalsModel }): React.JSX.Element {
       <div className="flex min-w-0 flex-wrap items-center gap-3 border-t border-base-300 p-4">
         {/* A sentence, not a value: it folds. `.num` is `white-space:
             nowrap`, and a line of five words is not one value. */}
-        <p className="min-w-0 flex-1 text-xs text-base-content/60" data-testid="rivals-showing">
+        <p className="min-w-0 flex-1 text-xs text-base-content/70" data-testid="rivals-showing">
           {copy("overview.rivals.showing", {
             shown: formatCount(shown),
             total: formatCount(total),

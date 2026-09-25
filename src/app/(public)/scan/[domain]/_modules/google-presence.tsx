@@ -53,7 +53,7 @@ const PRESENCE_PART: RetryPart = "presence";
  *  sentence of its own — the caller passes the same `presence.absent-from.
  *  column.*` key the `<th>` above it uses. */
 function Label(p: { children: React.ReactNode }): React.JSX.Element {
-  return <span className="text-base-content/60 text-xs sm:hidden">{p.children}</span>;
+  return <span className="text-base-content/70 text-xs sm:hidden">{p.children}</span>;
 }
 
 function Head(p: { right: React.ReactNode; heading?: boolean }): React.JSX.Element {
@@ -179,7 +179,7 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
           aria-label={copy("presence.absent-from.title")}
         >
           <table className="table table-zebra table-sm">
-            <thead className="hidden sm:table-header-group">
+            <thead className="hidden sm:table-header-group text-base-content/70">
               <tr>
                 <th className="whitespace-normal">{copy("presence.absent-from.column.search")}</th>
                 <th className="whitespace-normal">{copy("presence.absent-from.column.volume")}</th>

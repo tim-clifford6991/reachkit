@@ -88,7 +88,7 @@ const ARMS = {
  *  file spells the kind as a string. */
 /** One centred column: eyebrow, heading, line, one control. */
 const MAIN = "mx-auto flex w-full min-w-0 max-w-2xl flex-col items-center gap-3 px-4 py-12 text-center";
-const EYEBROW = "text-xs font-semibold uppercase tracking-wide text-base-content/60";
+const EYEBROW = "text-xs font-semibold uppercase tracking-wide text-base-content/70";
 
 function Fallback(p: FallbackProps & { kind: FallbackKind }): React.JSX.Element {
   const head = HEAD[p.kind];

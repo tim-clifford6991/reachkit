@@ -34,7 +34,7 @@ function Card(p: {
     <section className="card card-border min-w-0 bg-base-100" data-testid={TEST_ID}>
       <div className="card-body gap-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="card-title text-xs font-semibold uppercase tracking-wide text-base-content/60">
+          <h2 className="card-title text-xs font-semibold uppercase tracking-wide text-base-content/70">
             <TrendingUp aria-hidden size={20} strokeWidth={1.75} />
             {copy(SEARCHES_LABEL)}
             {p.delta === null || p.delta === undefined ? null : (
@@ -58,7 +58,7 @@ function Card(p: {
 
 function Footnotes(p: { lines: readonly (string | null)[] }): React.JSX.Element {
   return (
-    <div className="flex flex-wrap justify-between gap-2 text-xs text-base-content/60">
+    <div className="flex flex-wrap justify-between gap-2 text-xs text-base-content/70">
       {p.lines.map((line) => (line === null ? null : <p key={line}>{line}</p>))}
     </div>
   );
@@ -77,7 +77,7 @@ export function GrowthModule(p: {
     return (
       <Card>
         {line === null ? null : <p className="text-sm">{line}</p>}
-        <p className="num text-xs text-base-content/60" data-testid="overview-growth-first-due">
+        <p className="num text-xs text-base-content/70" data-testid="overview-growth-first-due">
           {formatDate(p.growth.firstDueOn, p.timeZone)}
         </p>
       </Card>

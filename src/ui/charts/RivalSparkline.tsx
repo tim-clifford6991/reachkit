@@ -171,7 +171,7 @@ export function RivalSparkline(p: RivalSparklineProps): React.JSX.Element {
         </ul>
       </figure>
       {p.account === undefined ? null : (
-        <p className="m-0 text-xs text-base-content/60">{p.account}</p>
+        <p className="m-0 text-xs text-base-content/70">{p.account}</p>
       )}
     </div>
   );

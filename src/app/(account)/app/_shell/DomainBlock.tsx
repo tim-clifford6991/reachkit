@@ -36,7 +36,7 @@ export function DomainBlock(p: { shell: ShellModel }): React.JSX.Element {
         </span>
       </p>
       {line === null ? null : (
-        <p className="text-xs opacity-60" data-testid="shell-domain-line">
+        <p className="text-xs opacity-70" data-testid="shell-domain-line">
           {line}
         </p>
       )}

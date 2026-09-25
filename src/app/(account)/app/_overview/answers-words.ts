@@ -56,7 +56,7 @@ export const MARK_ICON: Readonly<Record<AnswerMark, LucideIcon>> = Object.freeze
 export const MARK_TONE: Readonly<Record<AnswerMark, string>> = Object.freeze({
   links_to_you: "text-(--chart-you)",
   names_you: "text-(--chart-you)",
-  names_others: "text-base-content/60",
+  names_others: "text-base-content/70",
   no_answer: "text-base-content/40",
   not_measured: "text-base-content/30",
 });
