@@ -173,6 +173,29 @@ export async function readGallery(a: {
   };
 }
 
+/** One logo in the landing's strip: the company and whether it has a logo
+ *  — no score, no date (SPEC §1, owner on #1058). */
+export type StripEntry = Pick<GalleryEntry, "domain" | "company" | "hasLogo">;
+
+/** The `n` most recently scanned sites, newest first, for the landing's
+ *  *Recently scanned* strip — the same view as `/scans`, so a removed site
+ *  leaves both at once. */
+export async function readRecent(n: number): Promise<readonly StripEntry[]> {
+  const { data, error } = await untyped()
+    .from<Pick<Row, "domain" | "company" | "has_logo">>("free_scan_listing")
+    .select("domain, company, has_logo")
+    .order("scanned_at", { ascending: false })
+    .order("domain", { ascending: true })
+    .limit(n);
+  if (error)
+    throw new Error(`gallery: could not read the recent scans: ${error.message}`);
+  return (data ?? []).map((row) => ({
+    domain: row.domain,
+    company: row.company,
+    hasLogo: row.has_logo,
+  }));
+}
+
 /** Whether a domain is listed today — the logo route's one question, so a
  *  removed or unreadable site's logo leaves with its card. */
 export async function isListed(domain: string): Promise<boolean> {

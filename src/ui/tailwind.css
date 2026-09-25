@@ -101,6 +101,20 @@
   --brand-arc: #c3b2ff;
 }
 
+/* `dark:` is the theme's two dark states, as `theme.css` states them: the
+ * system's dark unless *Light* was picked, and *Dark* picked. Tailwind's
+ * own `dark:` reads the media query alone and would miss the switch. */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) & {
+      @slot;
+    }
+  }
+  :root[data-theme="dark"] & {
+    @slot;
+  }
+}
+
 /* The page's own ground and ink. Until something paints them, Tailwind's
  * preflight leaves the document white in both themes.
  *
@@ -162,7 +176,10 @@ body {
  *   chart draw                      1.4s  — `SERIES_DRAW` in `src/ui/motion.ts`
  *   the report's score ring         1.4s  — `animate-ring`, the same draw
  *   figure count-up                 1.4s  — `.figure`, below (#1079)
- *   *Live* / *Your review* dot      2.4s  — `animate-beacon`, the only loop
+ *   *Live* / *Your review* dot      2.4s  — `animate-beacon`
+ *   the landing's logo strip        80s   — `animate-drift`, the one other
+ *                                          loop (#1058, #1069): linear, as a
+ *                                          drift that eased would stutter
  *
  * Under `prefers-reduced-motion: reduce` nothing moves: `idiom.css` turns
  * every animation and transition off, `animate-rise` holds nothing back once
@@ -182,6 +199,9 @@ body {
    * registers as a `<percentage>`, so the fill can be drawn from nothing.
    * `backwards`, like `rise`: once drawn it lets go. */
   --animate-ring: ring 1.4s var(--ease-calm) backwards;
+  /* Two copies of the strip side by side: moving half the track brings
+   * the second exactly where the first began. */
+  --animate-drift: drift 80s linear infinite;
 
   @keyframes rise {
     from {
@@ -193,6 +213,12 @@ body {
   @keyframes ring {
     from {
       --radialprogress: 0%;
+    }
+  }
+
+  @keyframes drift {
+    to {
+      translate: -50% 0;
     }
   }
 
