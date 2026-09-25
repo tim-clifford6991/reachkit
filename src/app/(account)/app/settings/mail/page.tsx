@@ -21,7 +21,7 @@ export default async function SettingsMailTab(): Promise<React.JSX.Element> {
   const settings = await readSettings();
 
   return (
-    <div className="flex min-w-0 flex-col gap-4" data-testid="settings-tab-panel-mail">
+    <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-mail">
       <NotificationsPanel settings={settings} />
     </div>
   );

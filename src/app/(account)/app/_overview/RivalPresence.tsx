@@ -95,7 +95,7 @@ export function RivalPresence(p: {
   answersHref: string;
 }): React.JSX.Element {
   return (
-    <div className="grid min-w-0 gap-3 lg:grid-cols-2" data-testid="rivals-presence">
+    <div className="grid min-w-0 gap-4 lg:grid-cols-2" data-testid="rivals-presence">
       <Card
         titleKey={CARD.firstPage.titleKey}
         testId={CARD.firstPage.testId}

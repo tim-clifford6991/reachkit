@@ -39,6 +39,7 @@ import { useActionState, useState } from "react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
+import { SettingRow } from "./SettingRow";
 import { beginEmailChangeAction, cancelEmailChangeAction } from "../account-actions";
 import { EMAIL_CHANGE_INITIAL, NEW_EMAIL_FIELD, refusalKeyOf } from "../account-state";
 import type { SettingsModel } from "../model";
@@ -64,9 +65,10 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
           {copy("settings.account.title")}
         </h2>
 
-        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-name">
-          <span className="text-sm text-base-content/70">{copy("settings.account.name")}</span>
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
+        {/* The settable rows every Settings tab draws (`SettingRow`): the
+            name at the near edge, the value at the far one (#1089). */}
+        <div className="flex min-w-0 flex-col">
+          <SettingRow name={copy("settings.account.name")} testId="setting-name">
             {/* An account with no stated name shows an empty value, never an
                 invented one.
                 **And no Edit beside it** (SPEC §4, 2026-09-20, #908, issue
@@ -77,14 +79,13 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
                 and could never have stored a name. It returns with its
                 writer, on the same footing as the calendar's Move. */}
             <span className="min-w-0 wrap-anywhere">{p.account.name ?? ""}</span>
-          </div>
-        </div>
+          </SettingRow>
 
-        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-email">
-          <span className="text-sm text-base-content/70">{copy("settings.account.email")}</span>
-          {/* The address the account signs in with — never the one awaiting
-              confirmation (REQ-077 c2). */}
-          <span className="num min-w-0 wrap-anywhere">{p.account.email}</span>
+          <SettingRow name={copy("settings.account.email")} testId="setting-email">
+            {/* The address the account signs in with — never the one awaiting
+                confirmation (REQ-077 c2). */}
+            <span className="num min-w-0 wrap-anywhere">{p.account.email}</span>
+          </SettingRow>
         </div>
 
         {pending === null ? null : (

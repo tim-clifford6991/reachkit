@@ -18,12 +18,14 @@
 // and a crawl that has run once, and three zeroes read as a broken card
 // rather than as a new account.
 //
-// daisyUI in the route: `card`, `stat`. No library added, no chart — three
+// daisyUI in the route: `card`, and the Settings rows (`SettingRow`, #1089).
+// No library added, no chart — three
 // numbers are three numbers.
 import type React from "react";
 import { Library } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import type { KnownContentCounts } from "../business-provider";
+import { SettingRow } from "./SettingRow";
 
 const ICON = { strokeWidth: 1.75, "aria-hidden": true } as const;
 
@@ -53,18 +55,15 @@ export function KnownContentPanel(p: { known: KnownContentCounts }): React.JSX.E
             <p className="text-sm text-base-content/70" data-testid="settings-known-total">
               {copy("settings.known.total", { count: String(p.known.total) })}
             </p>
-            <ul className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
+            {/* The settable-row shape every Settings tab draws (#1089): the
+                source at the near edge, its count at the far one. */}
+            <div className="flex min-w-0 flex-col">
               {SOURCES.map((source) => (
-                <li
-                  key={source.key}
-                  className="flex min-w-0 flex-col gap-0.5 rounded-box bg-base-200 p-3"
-                  data-testid={`settings-known-${source.key}`}
-                >
-                  <span className="num text-lg font-semibold">{p.known[source.key]}</span>
-                  <span className="min-w-0 text-xs text-base-content/70">{copy(source.label)}</span>
-                </li>
+                <SettingRow key={source.key} name={copy(source.label)} testId={`settings-known-${source.key}`}>
+                  <span className="figure">{p.known[source.key]}</span>
+                </SettingRow>
               ))}
-            </ul>
+            </div>
           </>
         )}
 

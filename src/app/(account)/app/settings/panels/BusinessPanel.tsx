@@ -53,6 +53,7 @@ import {
   BUSINESS_LIST_FIELD,
 } from "../panel-state";
 import { SAVED_BADGE_CLASS, useSetting } from "./useSetting";
+import { SettingRow } from "./SettingRow";
 
 /**
  * Each group's head, the quiet note beside it where #926 gives one, and the
@@ -460,24 +461,23 @@ export function BusinessPanel(p: {
               />
             ))}
             {p.profile.tone === null && p.profile.person === null ? null : (
-              <dl className="border-base-300 grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 border-t pt-4 text-sm">
+              // The settable-row shape every Settings tab draws (#1089).
+              <div className="border-base-300 flex min-w-0 flex-col border-t pt-4">
                 {p.profile.tone === null ? null : (
-                  <>
-                    <dt className="text-base-content/70">{copy("settings.business.tone")}</dt>
-                    <dd className="wrap-anywhere" data-testid="business-tone">
+                  <SettingRow name={copy("settings.business.tone")} testId="business-row-tone">
+                    <span className="min-w-0 wrap-anywhere" data-testid="business-tone">
                       {p.profile.tone}
-                    </dd>
-                  </>
+                    </span>
+                  </SettingRow>
                 )}
                 {p.profile.person === null ? null : (
-                  <>
-                    <dt className="text-base-content/70">{copy("settings.business.person")}</dt>
-                    <dd className="wrap-anywhere" data-testid="business-person">
+                  <SettingRow name={copy("settings.business.person")} testId="business-row-person">
+                    <span className="min-w-0 wrap-anywhere" data-testid="business-person">
                       {p.profile.person}
-                    </dd>
-                  </>
+                    </span>
+                  </SettingRow>
                 )}
-              </dl>
+              </div>
             )}
           </>
         )}

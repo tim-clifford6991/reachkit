@@ -27,7 +27,7 @@ export default async function SettingsMarketTab(): Promise<React.JSX.Element> {
   const settings = await readSettings();
 
   return (
-    <div className="flex min-w-0 flex-col gap-4" data-testid="settings-tab-panel-market">
+    <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-market">
       <MarketPanel
         market={settings.market}
         domain={settings.domain}

@@ -63,10 +63,10 @@ export default async function SettingsBusinessTab(): Promise<React.JSX.Element> 
 
   return (
     <div
-      className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
+      className="grid min-w-0 grid-cols-1 items-start gap-x-4 gap-y-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
       data-testid="settings-tab-panel-business"
     >
-      <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-6">
         <BusinessPanel
           profile={business.profile}
           siteName={business.siteName}

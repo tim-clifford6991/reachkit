@@ -273,7 +273,7 @@ export function MarketPanel(p: {
           >
             {editing === "category" ? null : (
               <>
-                <span className="num min-w-0 wrap-anywhere">{p.market.category}</span>
+                <span className="min-w-0 wrap-anywhere">{p.market.category}</span>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => open("category")}>
                   {copy("settings.edit")}
                 </button>

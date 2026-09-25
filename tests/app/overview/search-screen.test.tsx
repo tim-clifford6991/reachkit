@@ -26,7 +26,7 @@ import { SearchTiles } from "@/app/(account)/app/_overview/SearchTiles";
 import { assembleSearch } from "@/app/(account)/app/_overview/search-model";
 import { FIXTURE_SEARCH_FACTS } from "@/app/(account)/app/_overview/search-fixture";
 import { copy } from "@/lib/presentation/copy";
-import { unmeasured } from "@/lib/measure/measured";
+import { measuredZero, unmeasured } from "@/lib/measure/measured";
 
 const AT = FIXTURE_SEARCH_FACTS.measuredAt ?? new Date(0);
 const MODEL = assembleSearch(FIXTURE_SEARCH_FACTS, AT);
@@ -249,3 +249,20 @@ describe("two tiles state this site's own reading, in the board's shape (#1039)"
 function el(root: Element, testId: string): Element | null {
   return root.querySelector(`[data-testid="${testId}"]`);
 }
+
+describe("a zero tile is quiet (the calm layer, #1089)", () => {
+  it("a week-0 zero is a flat cell with a small number; a measured count keeps its card", () => {
+    const container = document.createElement("div");
+    container.innerHTML = renderToStaticMarkup(
+      <SearchTiles
+        tiles={{ ...MODEL.tiles, firstPage: { ...MODEL.tiles.firstPage, value: measuredZero<number>(0, AT) } }}
+      />
+    );
+    const quiet = el(container, "search-tile-first-page");
+    expect(quiet?.hasAttribute("data-quiet")).toBe(true);
+    expect(el(container, "search-tile-first-page-value")?.className).not.toContain("text-3xl");
+
+    expect(MODEL.tiles.appearFor.value.kind).toBe("measured");
+    expect(el(container, "search-tile-appear-for")?.hasAttribute("data-quiet")).toBe(false);
+  });
+});

@@ -22,7 +22,7 @@ export default async function SettingsPublishingTab(): Promise<React.JSX.Element
   const settings = await readSettings();
 
   return (
-    <div className="flex min-w-0 flex-col gap-4" data-testid="settings-tab-panel-publishing">
+    <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-publishing">
       <PublishingPanel settings={settings} />
     </div>
   );

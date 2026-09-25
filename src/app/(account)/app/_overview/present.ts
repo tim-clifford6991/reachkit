@@ -112,3 +112,10 @@ export function carriedBy(headline: HeadlineNumber<number>, subjectKey: CopyKey)
     means: writtenLine(goal.meansKey, { goal: formatCount(goal.value) }),
   };
 }
+
+/** A filter chip on the Search and Rivals tables, as the calm layer draws it
+ *  (docs/DESIGN.md, 2026-09-24, #1063): a pill, and the chosen one solid ink
+ *  — the Plan's stage filter wears the same classes. The chips are daisyUI
+ *  `filter` radios, so `checked:` is the chosen state. */
+export const FILTER_PILL =
+  "btn btn-sm btn-ghost rounded-full checked:border-base-content checked:bg-base-content checked:text-base-100";
