@@ -22,6 +22,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ArrowUpDown, ChevronDown, Search } from "lucide-react";
+import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { SCORE_BANDS } from "@/lib/presentation/bands";
 import { bandOf } from "@/lib/measure/bands";
@@ -156,21 +157,21 @@ function Card(p: { entry: GalleryEntry }): React.JSX.Element {
         className="card group bg-base-100 h-full shadow-(--shadow-card) transition-[translate,box-shadow] duration-200 motion-safe:hover:-translate-y-0.5"
       >
         <div className="flex h-full flex-row items-center gap-4 p-4 sm:flex-col sm:items-stretch sm:p-0">
-          <div className="border-base-300 relative flex items-center gap-3 sm:h-28 sm:justify-center sm:border-b sm:px-4">
+          <div className="border-base-300 relative flex items-center gap-3 sm:min-h-28 sm:justify-center sm:pt-9 sm:pb-5 sm:border-b sm:px-4">
             <LogoTile entry={entry} />
-            <span className="hidden min-w-0 sm:block">
-              <span className="line-clamp-2 font-semibold">
-                {entry.company}
-              </span>
+            {/* Names wrap rather than clamp: the gate reads a clamp as a
+                cut, and a card may grow a line. */}
+            <span className="hidden min-w-0 font-semibold break-words sm:block">
+              {entry.company}
             </span>
             {entry.hasLogo ? null : (
-              <span className="badge badge-ghost badge-xs absolute end-2 top-2 hidden sm:inline-flex">
+              <span className="badge badge-ghost badge-sm absolute end-2 top-2 hidden sm:inline-flex">
                 {copy("gallery.card.no-logo")}
               </span>
             )}
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-1 sm:p-4">
-            <span className="truncate font-semibold sm:hidden">
+            <span className="font-semibold break-words sm:hidden">
               {entry.company}
             </span>
             <div className="flex items-baseline justify-between gap-2">
@@ -183,7 +184,7 @@ function Card(p: { entry: GalleryEntry }): React.JSX.Element {
               </span>
             </div>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-base-content/70 min-w-0 truncate text-xs">
+              <span className="text-base-content/70 min-w-0 text-xs break-words">
                 {meta}
               </span>
               {band === null ? null : (
@@ -278,141 +279,156 @@ export default async function ScansPage(props: {
   ];
 
   return (
-    <main className="flex flex-col">
-      <section className="mx-auto grid w-full max-w-6xl gap-8 px-4 pt-10 pb-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
-        <div className="flex min-w-0 flex-col gap-3">
-          <p className="flex items-center gap-2">
-            <span aria-hidden className="bg-success size-1.5 rounded-full" />
-            <span className="eyebrow">{copy("gallery.eyebrow")}</span>
-          </p>
-          <h1 className="text-4xl font-semibold">{copy("gallery.heading")}</h1>
-          <p className="text-base-content/70 max-w-2xl text-lg">
-            {copy("gallery.subline")}
-          </p>
-        </div>
-        <div className="card bg-base-100 order-last shadow-(--shadow-card) lg:order-none">
-          <div className="card-body gap-3 p-5">
-            <h2 className="text-base font-semibold">
-              {copy("gallery.next.heading")}
-            </h2>
-            <ScanForm words={scanFormWords()} />
-            <p className="text-base-content/70 font-mono text-xs">
-              {copy("landing.hero.assurance")}
+    // The surface declares its own edges: the toolbar and the card ground
+    // run the viewport's width, and each band keeps its own `max-w-6xl`.
+    <Surface
+      arms={{
+        compact: {
+          kind: "declared",
+          note: "full-width bands: header, sticky toolbar, card grid; each capped at max-w-6xl",
+        },
+        medium: { kind: "same-as-below" },
+        wide: { kind: "same-as-below" },
+      }}
+    >
+      <main className="flex flex-col">
+        <section className="mx-auto grid w-full max-w-6xl gap-8 px-4 pt-10 pb-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+          <div className="flex min-w-0 flex-col gap-3">
+            <p className="flex items-center gap-2">
+              <span aria-hidden className="bg-success size-1.5 rounded-full" />
+              <span className="eyebrow">{copy("gallery.eyebrow")}</span>
+            </p>
+            <h1 className="text-4xl font-semibold">
+              {copy("gallery.heading")}
+            </h1>
+            <p className="text-base-content/70 max-w-2xl text-lg">
+              {copy("gallery.subline")}
             </p>
           </div>
-        </div>
-      </section>
+          <div className="card bg-base-100 order-last shadow-(--shadow-card) lg:order-none">
+            <div className="card-body gap-3 p-5">
+              <h2 className="text-base font-semibold">
+                {copy("gallery.next.heading")}
+              </h2>
+              <ScanForm words={scanFormWords()} />
+              <p className="text-base-content/70 font-mono text-xs">
+                {copy("landing.hero.assurance")}
+              </p>
+            </div>
+          </div>
+        </section>
 
-      <div className="bg-base-100 border-base-300 sticky top-16 z-20 border-y backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <form
-              action="/scans"
-              method="get"
-              role="search"
-              className="min-w-0 flex-1 sm:max-w-md"
-            >
-              <label className="input w-full">
-                <Search
-                  size={16}
-                  strokeWidth={1.75}
-                  aria-hidden
-                  className="text-base-content/70"
-                />
-                <input
-                  type="search"
-                  name="q"
-                  defaultValue={view.q}
-                  placeholder={copy("gallery.search.label")}
-                  aria-label={copy("gallery.search.label")}
-                  autoComplete={SEARCH_AUTOCOMPLETE}
-                />
-              </label>
-              {view.cat === null ? null : (
-                <input type="hidden" name="cat" value={view.cat} />
-              )}
-              {view.sort === "newest" ? null : (
-                <input type="hidden" name="sort" value={view.sort} />
-              )}
-            </form>
-            <p
-              className="text-base-content/70 hidden flex-1 text-sm md:block"
-              aria-live="polite"
-            >
+        <div className="bg-base-100 border-base-300 sticky top-16 z-20 border-y backdrop-blur-md">
+          <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <form
+                action="/scans"
+                method="get"
+                role="search"
+                className="min-w-0 flex-1 sm:max-w-md"
+              >
+                <label className="input w-full">
+                  <Search
+                    size={16}
+                    strokeWidth={1.75}
+                    aria-hidden
+                    className="text-base-content/70"
+                  />
+                  <input
+                    type="search"
+                    name="q"
+                    defaultValue={view.q}
+                    placeholder={copy("gallery.search.label")}
+                    aria-label={copy("gallery.search.label")}
+                    autoComplete={SEARCH_AUTOCOMPLETE}
+                  />
+                </label>
+                {view.cat === null ? null : (
+                  <input type="hidden" name="cat" value={view.cat} />
+                )}
+                {view.sort === "newest" ? null : (
+                  <input type="hidden" name="sort" value={view.sort} />
+                )}
+              </form>
+              <p
+                className="text-base-content/70 hidden flex-1 text-sm md:block"
+                aria-live="polite"
+              >
+                {copy("gallery.showing", {
+                  shown: String(shown),
+                  total: String(gallery.total),
+                })}
+              </p>
+              <SortMenu view={view} />
+            </div>
+            <nav aria-label={copy("gallery.filter.label")}>
+              <ul className="flex flex-wrap gap-1">
+                {pills.map((pill) => {
+                  const current = pill.name === view.cat;
+                  return (
+                    <li key={pill.name ?? ""}>
+                      <Link
+                        href={href(view, { cat: pill.name, shown: PAGE })}
+                        aria-current={current ? "true" : undefined}
+                        className={`btn btn-sm rounded-full font-medium ${current ? "border-base-content bg-base-content text-base-100" : "btn-ghost"}`}
+                      >
+                        {pill.label}
+                        <span
+                          className={`num text-xs ${current ? "" : "text-base-content/70"}`}
+                        >
+                          {pill.count}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
+          </div>
+        </div>
+
+        <section className="bg-base-200 flex-1">
+          <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6">
+            <p className="text-base-content/70 text-sm md:hidden">
               {copy("gallery.showing", {
                 shown: String(shown),
                 total: String(gallery.total),
               })}
             </p>
-            <SortMenu view={view} />
-          </div>
-          <nav aria-label={copy("gallery.filter.label")}>
-            <ul className="flex flex-wrap gap-1">
-              {pills.map((pill) => {
-                const current = pill.name === view.cat;
-                return (
-                  <li key={pill.name ?? ""}>
-                    <Link
-                      href={href(view, { cat: pill.name, shown: PAGE })}
-                      aria-current={current ? "true" : undefined}
-                      className={`btn btn-sm rounded-full font-medium ${current ? "border-base-content bg-base-content text-base-100" : "btn-ghost"}`}
-                    >
-                      {pill.label}
-                      <span
-                        className={`num text-xs ${current ? "" : "text-base-content/70"}`}
-                      >
-                        {pill.count}
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-        </div>
-      </div>
-
-      <section className="bg-base-200 flex-1">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6">
-          <p className="text-base-content/70 text-sm md:hidden">
-            {copy("gallery.showing", {
-              shown: String(shown),
-              total: String(gallery.total),
-            })}
-          </p>
-          {shown === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-12 text-center">
-              <h2 className="text-lg font-semibold">
-                {copy("gallery.empty.heading")}
-              </h2>
-              <p className="text-base-content/70">
-                {copy("gallery.empty.body")}
-              </p>
-              <Link href="/" className="btn btn-soft btn-primary mt-2">
-                {copy("gallery.empty.cta")}
+            {shown === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-12 text-center">
+                <h2 className="text-lg font-semibold">
+                  {copy("gallery.empty.heading")}
+                </h2>
+                <p className="text-base-content/70">
+                  {copy("gallery.empty.body")}
+                </p>
+                <Link href="/" className="btn btn-soft btn-primary mt-2">
+                  {copy("gallery.empty.cta")}
+                </Link>
+              </div>
+            ) : (
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+                {gallery.entries.map((entry) => (
+                  <Card key={entry.domain} entry={entry} />
+                ))}
+              </ul>
+            )}
+            {shown < gallery.total && view.shown < MOST ? (
+              <Link
+                href={href(view, { shown: view.shown + PAGE })}
+                scroll={false}
+                className="btn btn-soft self-center"
+              >
+                {copy("gallery.more")}
               </Link>
-            </div>
-          ) : (
-            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
-              {gallery.entries.map((entry) => (
-                <Card key={entry.domain} entry={entry} />
-              ))}
-            </ul>
-          )}
-          {shown < gallery.total && view.shown < MOST ? (
-            <Link
-              href={href(view, { shown: view.shown + PAGE })}
-              scroll={false}
-              className="btn btn-soft self-center"
-            >
-              {copy("gallery.more")}
-            </Link>
-          ) : null}
-          <p className="text-base-content/70 text-center text-sm">
-            {copy("gallery.removal", { address: copy("removal.address") })}
-          </p>
-        </div>
-      </section>
-    </main>
+            ) : null}
+            <p className="text-base-content/70 text-center text-sm">
+              {copy("gallery.removal", { address: copy("removal.address") })}
+            </p>
+          </div>
+        </section>
+      </main>
+    </Surface>
   );
 }
