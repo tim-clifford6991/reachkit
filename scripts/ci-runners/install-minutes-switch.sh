@@ -24,7 +24,7 @@ User=root
 WorkingDirectory=/root/ops/reachkit
 Environment=HOME=/root
 Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin
-# The day of the month the Actions minutes reset (Settings -> Billing & plans).
+# The day of the month the Actions minutes reset — unconfirmed; read it in Settings -> Billing & plans.
 Environment=RK_CI_RESET_DAY=25
 ExecStart=/usr/bin/env bash /root/ops/reachkit/bin/ci-minutes-switch.sh
 StandardOutput=append:/root/ops/reachkit/log/ci-switch.log

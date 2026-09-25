@@ -74,7 +74,7 @@ runs on `reachkit-box` (label `reachkit`), the only runner that takes it.
 |---|---|
 | light jobs to the box (hosted jobs fail with *"recent account payments have failed or your spending limit needs to be increased"*) | `gh variable set CI_LIGHT_RUNNER --body '["self-hosted","reachkit-light"]'` |
 | light jobs back to hosted | `gh variable delete CI_LIGHT_RUNNER` |
-| see which | `gh variable get CI_LIGHT_RUNNER` (not found = hosted) |
+| see which | `gh variable list` (no `CI_LIGHT_RUNNER` = hosted) |
 
 **The runners on the box.** Both run as `ghrunner`, one directory each under `/home/ghrunner`:
 
@@ -94,20 +94,26 @@ killed for memory, the ceiling is too low for that job. Raise `MemoryMax` in the
 hourly, beside `rk-deployer` and `rk-guard`, and logs every flip to
 `/root/ops/reachkit/log/ci-switch.log`:
 
-- **To the box:** at 90% or more of the cycle's included Actions minutes, it sets
-  `CI_LIGHT_RUNNER`. It records the cycle in `/root/ops/reachkit/state/ci-switch`.
-- **Back to hosted:** when the next cycle begins, it deletes the variable. The cycle begins on
-  day `RK_CI_RESET_DAY` (25 in the unit; the minutes refreshed between 2026-09-22 and 2026-09-25).
-- **A value set by hand is left alone.**
+- **To the box:** it sets `CI_LIGHT_RUNNER` when a hosted job this cycle was refused for
+  billing, or at 90% or more of the cycle's included Actions minutes. A billing refusal is a
+  failed payment or the spending limit, and minutes have nothing to do with it (#1119). It
+  records the cycle and which of the two it was in `/root/ops/reachkit/state/ci-switch`.
+- **Back to hosted, after minutes:** only in a new cycle (day `RK_CI_RESET_DAY` of the month,
+  UTC), with the minutes readable and below 90%, and with the last hosted job not refused for
+  billing. Minutes it cannot read count as unavailable.
+- **Back to hosted, after billing: by hand only**, once Billing & plans is fixed. Run
+  `gh variable delete CI_LIGHT_RUNNER` and `rm /root/ops/reachkit/state/ci-switch`. A failed
+  payment does not reset with the month.
+- **A value set by hand is left alone.** On 2026-09-25 the orchestrator set
+  `["self-hosted","reachkit"]` after #1119's hosted jobs were refused for billing.
 
 To recreate it, run `sudo bash scripts/ci-runners/install-minutes-switch.sh`. It ends with a dry
 run, which says what the switch can read.
 
 **What it cannot read yet.** The minutes are `GET /users/tim-clifford6991/settings/billing/actions`,
 which needs the `user` scope. The box's `gh` token lacks it. Until someone runs
-`gh auth refresh -h github.com -s user` as root, the switch cannot flip at 90%. It flips only after
-the fact, when a hosted job in the current cycle has been refused with GitHub's billing annotation.
-In the meantime, a refusal can also be handled by hand with the one command above.
+`gh auth refresh -h github.com -s user` as root, the switch cannot flip at 90%. It still flips to
+the box on a billing refusal, and it never flips back by itself.
 
 ---
 
