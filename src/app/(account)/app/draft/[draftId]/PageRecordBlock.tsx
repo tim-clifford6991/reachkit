@@ -72,8 +72,8 @@ function Row(p: {
   children: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <div className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] items-baseline gap-3">
-      <span className="text-xs font-semibold uppercase tracking-wide opacity-60">
+    <div className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] items-baseline gap-x-4 text-sm">
+      <span className="text-base-content/70">
         {p.label}
       </span>
       <span className="flex min-w-0 flex-col gap-1">{p.children}</span>
@@ -99,7 +99,7 @@ export function PageRecordBlock(p: {
     >
       <div className="card-body min-w-0 gap-3">
         {title === null ? null : (
-          <h2 className="text-xs font-semibold uppercase tracking-wide opacity-70">
+          <h2 className="eyebrow">
             {title}
           </h2>
         )}

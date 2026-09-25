@@ -84,7 +84,10 @@ function Row(p: {
         : `rk-cal-label ${p.lines === 2 ? "line-clamp-2" : "truncate"}`;
   return (
     <>
-      <dt className="min-w-0 self-center text-xs font-semibold opacity-60">{p.label}</dt>
+      {/* The one key/value style (SPEC §7, 2026-09-24, #1072): a
+          sentence-case label in the quiet ink at the value's size, on this
+          panel, the page's cards and the page record alike. */}
+      <dt className="min-w-0 self-center text-sm text-base-content/70">{p.label}</dt>
       <dd
         className={`min-w-0 self-center text-sm ${shape}`}
         title={p.kind === "clamp" ? p.value : undefined}
@@ -179,7 +182,7 @@ export function TargetRows(p: { facts: TargetFacts }): React.JSX.Element {
       data-testid="target-rows"
     >
       <Eyebrow>{copy("calendar.panel.search")}</Eyebrow>
-      <dl className="grid min-w-0 grid-cols-[6rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1.5">
+      <dl className="grid min-w-0 grid-cols-[7rem_minmax(0,1fr)] items-center gap-x-4 gap-y-2">
         <Row
           label={copy("calendar.why.search")}
           value={facts.search}

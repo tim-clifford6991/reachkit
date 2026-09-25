@@ -7,8 +7,9 @@
 //
 // *Why this page* is `TargetBlock`'s and the checks are `DecidePanel`'s, both
 // already on this screen. The three here are the ones §7 names that nothing
-// drew: what a search result looks like, what the page stands on, and what
-// actually leaves the building.
+// drew: what a search result looks like (drawn inside `TargetBlock`'s card
+// since #1072), what the page stands on, and what actually leaves the
+// building.
 //
 // daisyUI in the route: `card`, `card-body`, `list`, `list-row`, `badge`,
 // `link`. lucide at 1.75. No library added and no stylesheet.
@@ -70,52 +71,56 @@ const VALUE_BOX = "min-w-0 max-w-full overflow-x-auto";
  * title as the link, description under it — so the customer reads the thing
  * a searcher will read rather than three form fields.
  *
+ * **Half of a card, not a card** (board `R12-6-Page`, #1072): it shares one
+ * card with *What this page is for* (`TargetBlock`), on a quiet ground of
+ * its own the way a result sits on a results page. The description is
+ * drawn whole rather than clamped to two lines as the board draws it: the
+ * layout sweep's check 5 does not admit a clamp on this card.
+ *
  * **It is a rendering of their own text, not a judgement of it.** No length
  * warning, no score, no "too long": the editor is where a length count
  * belongs (SPEC §7's editor line), and a verdict here would be this
  * product's opinion dressed as a preview.
  */
-export function SearchResultCard(p: {
+export function SearchResult(p: {
   title: string;
   description: string;
   publisher: Publisher;
 }): React.JSX.Element {
   return (
     <section
-      className="card card-border bg-base-100 min-w-0"
+      className="flex min-w-0 flex-col gap-3"
       data-testid="draft-search-result"
     >
-      <div className="card-body min-w-0 gap-3">
-        <h2 className={CARD_HEAD}>
-          <Search size={20} strokeWidth={1.75} aria-hidden />
-          {copy("draft.search-result.title")}
-        </h2>
+      <h2 className={CARD_HEAD}>
+        <Search size={14} strokeWidth={1.75} aria-hidden />
+        {copy("draft.search-result.title")}
+      </h2>
 
-        <div className="flex min-w-0 flex-col gap-1">
+      <div className="rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-4">
+        <span
+          className={`num text-xs text-base-content/70 ${VALUE_BOX}`}
+          tabIndex={0}
+        >
+          {readableAddress(p.publisher.url)}
+        </span>
+        {/* The title as a result draws it: the one blue line. Not a link —
+            there is nowhere to send a reviewer, and a dead link in a
+            preview reads as a broken page. */}
+        <span
+          className="text-primary text-lg font-medium wrap-anywhere"
+          data-testid="search-result-title"
+        >
+          {p.title}
+        </span>
+        {p.description === "" ? null : (
           <span
-            className={`num text-xs text-base-content/60 ${VALUE_BOX}`}
-            tabIndex={0}
+            className="text-sm text-base-content/70 wrap-anywhere"
+            data-testid="search-result-description"
           >
-            {readableAddress(p.publisher.url)}
+            {p.description}
           </span>
-          {/* The title as a result draws it: the one blue line. Not a link —
-              there is nowhere to send a reviewer, and a dead link in a
-              preview reads as a broken page. */}
-          <span
-            className="text-primary text-lg wrap-anywhere"
-            data-testid="search-result-title"
-          >
-            {p.title}
-          </span>
-          {p.description === "" ? null : (
-            <span
-              className="text-sm text-base-content/70 wrap-anywhere"
-              data-testid="search-result-description"
-            >
-              {p.description}
-            </span>
-          )}
-        </div>
+        )}
       </div>
     </section>
   );
@@ -152,7 +157,7 @@ export function WrittenFromCard(p: {
     >
       <div className="card-body min-w-0 gap-3">
         <h2 className={CARD_HEAD}>
-          <Quote size={20} strokeWidth={1.75} aria-hidden />
+          <Quote size={14} strokeWidth={1.75} aria-hidden />
           {copy("draft.written-from.title")}
         </h2>
         <p className="text-sm text-base-content/70 wrap-anywhere">
@@ -317,7 +322,7 @@ export function WhatPublishesCard(p: {
     >
       <div className="card-body min-w-0 gap-3">
         <h2 className={CARD_HEAD}>
-          <FileText size={20} strokeWidth={1.75} aria-hidden />
+          <FileText size={14} strokeWidth={1.75} aria-hidden />
           {copy("draft.publishes.title")}
         </h2>
         {/* `dt`/`dd` are the grid's own children — **no `display: contents`

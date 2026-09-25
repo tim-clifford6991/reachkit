@@ -264,6 +264,9 @@ describe("REQ-045 c3 and c11 — the claim outcome, in every case", () => {
     expect(root.querySelector('[data-testid="draft-claim-passed"]')).toBeNull();
     expect(root.querySelector('[data-testid="draft-claim-failed"]')).toBeNull();
     expect(root.querySelector('[data-testid="draft-claim-entry"]')).toBeNull();
+    // The checks list names it as running, and draws no pass for it.
+    expect(textOf(root, "draft-check-pending")).toBe(copy("draft.claim.outstanding"));
+    expect(root.querySelector('[data-testid="draft-check-do_not_claim"]')).toBeNull();
   });
 });
 
@@ -282,7 +285,7 @@ describe("REQ-045 c4 — told what happens if nothing is done, and able to appro
   // §9.1 gives one solid primary. The classes are the ranks: `btn-primary`
   // is the solid fill, `btn-outline` the outline secondary (carrying the
   // one tone a rank may take), `btn-ghost` the quiet arm.
-  it("§9.1 — Approve is the one solid primary, Veto a ghost in warning, Edit the quiet arm", () => {
+  it("§9.1 — Approve is the one solid primary, Stop a ghost in warning, Edit the quiet arm", () => {
     const root = markup();
     const button = (key: string): Element | null =>
       root.querySelector(`button[data-testid="draft-action-${key}"]`);
@@ -296,17 +299,20 @@ describe("REQ-045 c4 — told what happens if nothing is done, and able to appro
     expect(veto?.className).toContain("btn-warning");
 
     const edit = button("draft.action.edit");
-    expect(edit?.className).toContain("btn-ghost");
+    expect(edit?.className).toContain("btn-soft");
     expect(edit?.className).not.toContain("btn-primary");
 
     // One solid fill on the whole screen, not merely in this row.
     expect(root.querySelectorAll(".btn-primary:not(.btn-soft, .btn-outline, .btn-ghost)")).toHaveLength(1);
   });
 
-  it("the info box states what happens if you do nothing, with the time under autopilot", () => {
-    const box = markup().querySelector('[data-testid="draft-do-nothing"]');
-    expect(box?.textContent).toContain(copy("draft.do-nothing.title"));
-    expect(textOf(markup(), "draft-do-nothing-at")).toContain("Sep 16, 2026");
+  it("under autopilot the panel counts down to a stated time, and says what doing nothing means", () => {
+    const root = markup();
+    expect(textOf(root, "draft-countdown")).toContain(copy("draft.decide.goes-live-in"));
+    expect(textOf(root, "draft-do-nothing-at")).toContain("Sep 16, 2026");
+    expect(textOf(root, "draft-do-nothing")).toBe(copy("draft.do-nothing.schedule"));
+    // The phone bar has no countdown, so its one line carries the time.
+    expect(textOf(root, "draft-do-nothing-bar")).toContain("Sep 16, 2026");
   });
 
   it("under copilot it states no time, because nothing happens", () => {
@@ -317,7 +323,7 @@ describe("REQ-045 c4 — told what happens if nothing is done, and able to appro
       doNothing: { key: "draft.do-nothing.copilot", publishesAt: null },
     });
     expect(root.querySelector('[data-testid="draft-do-nothing-at"]')).toBeNull();
-    expect(textOf(root, "draft-do-nothing")).toContain(copy("draft.do-nothing.title"));
+    expect(root.querySelector('[data-testid="draft-countdown"]')).toBeNull();
     expect(textOf(root, "draft-do-nothing")).toContain(copy("draft.do-nothing.copilot"));
   });
 
@@ -401,11 +407,11 @@ describe("S16 — the card the approved set draws", () => {
     expect(root.querySelector('[data-testid="draft-grounded-dropped"]')).toBeNull();
   });
 
-  it("the copy-out card names itself and says whose the words are", () => {
+  it("the copy-out is two ghosts at the foot of the Decide panel", () => {
     const root = markup();
-    const card = root.querySelector('[data-testid="draft-copy-card"]');
-    expect(card?.textContent).toContain(copy("draft.copy.title"));
-    expect(card?.textContent).toContain(copy("draft.copy.note"));
+    const group = root.querySelector('[data-testid="draft-decide"] [data-testid="draft-copy-out"]');
+    expect(group?.getAttribute("aria-label")).toBe(copy("draft.copy.title"));
+    for (const b of group?.querySelectorAll("button") ?? []) expect(b.className).toContain("btn-ghost");
   });
 });
 
@@ -432,14 +438,13 @@ describe("the Decide bar — one DOM, pinned only below `md`", () => {
         `${key} must exist exactly once in the document`
       ).toBe(1);
     }
-    // And one do-nothing line, in the same place as the controls: the
-    // sentence takes the row above them through `order`, not by being
-    // written a second time.
-    expect(root.querySelectorAll('[data-testid="draft-do-nothing"]').length).toBe(1);
+    // The bar carries its own one-line do-nothing sentence above the
+    // controls; the panel's sentence is outside it, below the checks.
     const bar = root.querySelector('[data-testid="draft-decide-bar"]');
     expect(bar).not.toBeNull();
     expect(bar?.querySelector('[data-testid="draft-actions"]')).not.toBeNull();
-    expect(bar?.querySelector('[data-testid="draft-do-nothing"]')).not.toBeNull();
+    expect(bar?.querySelector('[data-testid="draft-do-nothing-bar"]')).not.toBeNull();
+    expect(bar?.querySelector('[data-testid="draft-do-nothing"]')).toBeNull();
   });
 
   it("the checks are not in the bar: they stay below the page", () => {
@@ -482,6 +487,8 @@ describe("a published page on an autopilot site renders at all", () => {
     const root = markup(PUBLISHED);
     expect(root.querySelector('[data-testid="draft-body"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="draft-do-nothing"]')).toBeNull();
+    expect(root.querySelector('[data-testid="draft-do-nothing-bar"]')).toBeNull();
+    expect(root.querySelector('[data-testid="draft-countdown"]')).toBeNull();
   });
 });
 
@@ -642,18 +649,29 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     expect(save).not.toHaveBeenCalled();
   });
 
+  it("the countdown to going live ticks down each second (board R12-6-Page)", () => {
+    const at = VIEW.doNothing.publishesAt;
+    if (at === null) throw new Error("the fixture is on autopilot with a window");
+    vi.setSystemTime(at.getTime() - (6 * 3600 + 12 * 60 + 9) * 1000);
+    mount();
+    const left = (): string =>
+      container.querySelector('[data-testid="draft-countdown-left"]')?.textContent ?? "";
+    expect(left()).toBe(copy("draft.decide.countdown", { h: "6", m: "12", s: "09" }));
+    act(() => vi.advanceTimersByTime(1000));
+    expect(left()).toBe(copy("draft.decide.countdown", { h: "6", m: "12", s: "08" }));
+  });
+
   it("there is no save control anywhere in either arm", () => {
     mount();
-    // S16: the copy-out's two, then the rail's three — the page column
-    // stands before the rail in the document, which is the order the
-    // approved set puts them in and the order they are read in. The back
-    // link is a link and not a button, so it is not in this list.
+    // Board R12-6-Page: the panel's three, then its two copy-out ghosts at
+    // its foot. The back link is a link and not a button, so it is not in
+    // this list.
     expect([...container.querySelectorAll("button")].map((b) => b.textContent ?? "")).toEqual([
-      copy("draft.copy.markdown"),
-      copy("draft.copy.html"),
       copy("draft.action.approve"),
       copy("draft.action.edit"),
       copy("draft.action.veto"),
+      copy("draft.copy.markdown"),
+      copy("draft.copy.html"),
     ]);
 
     click("draft-action-draft.action.edit");

@@ -24,45 +24,45 @@
 //
 // daisyUI `card` in the route (docs/DESIGN.md rule 1): no new component, no
 // CSS of its own.
+// **One card, two halves** (board `R12-6-Page`, SPEC §7 2026-09-24, #1072):
+// *What this page is for* and *In search results* sit side by side under the
+// preview, and stack below `md`.
 import type React from "react";
 import { Target } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { TargetRows } from "../../calendar/TargetRows";
 import { targetFactsOf } from "../../calendar/target";
-import type { DraftTarget } from "./model";
-
-const EYEBROW = "card-title text-xs font-semibold uppercase tracking-wide text-base-content/60";
-
-function Card(p: { children: React.ReactNode }): React.JSX.Element {
-  return (
-    <section className="card card-border bg-base-100 min-w-0" data-testid="draft-target">
-      <div className="card-body min-w-0 gap-3">
-        <h2 className={`flex items-center gap-2 ${EYEBROW}`}>
-          <Target size={20} strokeWidth={1.75} aria-hidden />
-          {copy("draft.target.title")}
-        </h2>
-        {p.children}
-      </div>
-    </section>
-  );
-}
+import type { DraftTarget, Publisher } from "./model";
+import { SearchResult } from "./ReviewCards";
 
 /** The block, in each of the three states a draft's target can be in. A Fix
  *  page and an unreadable opportunity each say what is true of them; neither
  *  is drawn as an empty list. */
-export function TargetBlock(p: { target: DraftTarget }): React.JSX.Element {
-  if (p.target.kind === "target") {
-    return (
-      <Card>
-        <TargetRows facts={targetFactsOf(p.target.target)} />
-      </Card>
-    );
-  }
+export function TargetBlock(p: {
+  target: DraftTarget;
+  /** The search result's three facts, off the buffer the founder edits. */
+  title: string;
+  description: string;
+  publisher: Publisher;
+}): React.JSX.Element {
   return (
-    <Card>
-      <p className="text-sm opacity-70">
-        {copy(p.target.kind === "fix" ? "draft.target.fix" : "draft.target.unknown")}
-      </p>
-    </Card>
+    <div className="card card-border bg-base-100 min-w-0">
+      <div className="card-body grid min-w-0 gap-8 md:grid-cols-2">
+        <section className="flex min-w-0 flex-col gap-3" data-testid="draft-target">
+          <h2 className="eyebrow flex items-center gap-2">
+            <Target size={14} strokeWidth={1.75} aria-hidden />
+            {copy("draft.target.title")}
+          </h2>
+          {p.target.kind === "target" ? (
+            <TargetRows facts={targetFactsOf(p.target.target)} />
+          ) : (
+            <p className="text-sm text-base-content/70">
+              {copy(p.target.kind === "fix" ? "draft.target.fix" : "draft.target.unknown")}
+            </p>
+          )}
+        </section>
+        <SearchResult title={p.title} description={p.description} publisher={p.publisher} />
+      </div>
+    </div>
   );
 }
