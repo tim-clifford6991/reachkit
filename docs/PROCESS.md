@@ -2,7 +2,9 @@
 
 Speed to a working MVP is the measure. Delivered means a stranger completes landing → scan → pay → onboard → a page on their domain, live, with real copy.
 
-There is no factory and no artboard task. Do not read `docs/archive/`. The one canvas an issue may cite is the owner-approved redesign of 2026-09-20 named in `docs/DESIGN.md` (#908) — for structure and wording, never pixels.
+There is no factory and no artboard task. Do not read `docs/archive/`. An issue cites a screen's board in `docs/DESIGN.md` — for structure and wording, never pixels.
+
+2026-09-25  **Nothing survives because it is protected** (owner). Code, tokens, tests and rules stay only while they are the simplest thing for the product as it runs today. A test, a gate, a quoted ruling or an approved file is not a reason to keep something. When a library, framework or platform feature already does the job, the custom version is deleted, and so is the test that pinned it. Anyone may question anything: an agent that finds something kept only because it is guarded says so in its issue or PR instead of working around it. Owner decisions still need a dated line; this line is that decision for removing things that fail this test.
 
 ## Source of truth
 
@@ -99,7 +101,7 @@ The master session orchestrates only (#1026, above): it holds no implementation 
 ## Never
 
 - Invent a user-facing sentence.
-- Match the pixels or copy the markup of any artboard or canvas. (Citing the 2026-09-20 redesign canvas for what a screen holds is expected — `docs/DESIGN.md`.)
+- Match the pixels or copy the markup of any board or canvas. (Citing a screen's board for what it holds is expected — `docs/DESIGN.md`.)
 - Add a custom component, CSS sheet or SVG chart where daisyUI or Recharts exists.
 - Guess an owner decision.
 - Write under `docs/archive/`.
