@@ -92,7 +92,7 @@ export function ConnectDestination(p: { action: CredentialAction }): React.JSX.E
             setApplicationPassword,
             "password"
           )}
-          {help === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{help}</p>}
+          {help === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{help}</p>}
           <button type="button" className="btn btn-primary btn-sm" disabled={running} onClick={submit}>
             {copy("settings.destination.submit")}
           </button>

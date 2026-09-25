@@ -52,8 +52,8 @@ function Tile(p: {
   /** Zero, or never taken: drawn flat and small. */
   quiet: boolean;
 }): React.JSX.Element {
-  // /60 ink holds axe's contrast floor on white but not on the grey cell.
-  const ink = p.quiet ? "text-base-content/70" : "text-base-content/60";
+  // /70 ink: the softer 2026-09-25 ink at /60 is under axe's floor even on white.
+  const ink = "text-base-content/70";
   return (
     <section
       className={p.quiet ? "card min-w-0 bg-base-200" : "card card-border min-w-0 bg-base-100"}

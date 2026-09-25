@@ -181,7 +181,7 @@ function EngineNotAsked(p: { engine: BatteryEngine }): React.JSX.Element {
   return (
     <p className="flex grow-0 flex-wrap items-center gap-2 text-xs">
       <span className="badge badge-ghost">{copy(ENGINE_LABEL[p.engine])}</span>
-      <span className="opacity-60">{copy("ai-answers.engine.not-measured")}</span>
+      <span className="opacity-70">{copy("ai-answers.engine.not-measured")}</span>
     </p>
   );
 }
@@ -408,7 +408,7 @@ function QuestionRow(p: { row: { question: StoredQuestion; cell: AnswerCell } })
   return (
     <li className="border-base-300 flex flex-col gap-1 border-b py-2 last:border-b-0">
       <div className="flex items-start gap-2 text-sm">
-        <span className="text-base-content/60">
+        <span className="text-base-content/70">
           <Num>{String(question.n)}</Num>
         </span>
         <span className="min-w-0 flex-1">{wording.text}</span>
@@ -426,7 +426,7 @@ function QuestionRow(p: { row: { question: StoredQuestion; cell: AnswerCell } })
           <span className="badge badge-error badge-sm">{copy("ai-answers.question.not-you")}</span>
         )}
       </div>
-      <p className="text-base-content/60 text-xs">
+      <p className="text-base-content/70 text-xs">
         <Num phrase>{provenance.text}</Num>
       </p>
     </li>
@@ -522,7 +522,7 @@ export function AiAnswersCard(p: {
             rows. `measuredSearches` is the cells that came back, so a
             question the pass asked and could not read is not counted here —
             and neither is one it never reached. */}
-        <p className="text-base-content/60 grow-0 text-xs">
+        <p className="text-base-content/70 grow-0 text-xs">
           {copy("ai-answers.questions.measured", {
             measured: String(section.measuredSearches),
             total: String(section.rows.length),
@@ -541,7 +541,7 @@ export function AiAnswersCard(p: {
             </div>
           </details>
         )}
-        <p className="text-base-content/60 grow-0 text-xs">
+        <p className="text-base-content/70 grow-0 text-xs">
           {copy("ai-answers.method", { total: String(section.rows.length) })}
         </p>
       </div>

@@ -60,7 +60,7 @@ function carriedBadge(carried: Carried): React.JSX.Element {
 /** What reaching the goal means, under the row. A delta carries none. */
 function meansLine(carried: Carried): React.JSX.Element | null {
   if (carried.kind !== "goal" || carried.means === null) return null;
-  return <p className="text-xs text-base-content/60">{carried.means}</p>;
+  return <p className="text-xs text-base-content/70">{carried.means}</p>;
 }
 
 /** One tile: a card holding one daisyUI `stat`. `beside` rides on the
@@ -138,7 +138,7 @@ function ScoreTile(p: { score: ScoreModule; weekZero: WeekZeroDates | null }): R
       }
     >
       {value.isDash ? null : meansLine(carried)}
-      {firstDue === null ? null : <p className="text-xs text-base-content/60">{firstDue}</p>}
+      {firstDue === null ? null : <p className="text-xs text-base-content/70">{firstDue}</p>}
     </Tile>
   );
 }
@@ -285,10 +285,10 @@ export function TileRow(p: {
         beside={aiValue.isDash ? (aiValue.line ?? aiLabel) : carriedBadge(aiCarried)}
       >
         {aiValue.isDash ? null : meansLine(aiCarried)}
-        {firstPass === null ? null : <p className="text-xs text-base-content/60">{firstPass}</p>}
-        {windowLine === null ? null : <p className="num text-xs text-base-content/60">{windowLine}</p>}
+        {firstPass === null ? null : <p className="text-xs text-base-content/70">{firstPass}</p>}
+        {windowLine === null ? null : <p className="num text-xs text-base-content/70">{windowLine}</p>}
         {countedFrom === null ? null : (
-          <p className="text-xs text-base-content/60" data-testid="overview-ai-engines">
+          <p className="text-xs text-base-content/70" data-testid="overview-ai-engines">
             {countedFrom}
             {alsoMeasured === null ? null : ` ${alsoMeasured}`}
           </p>
@@ -318,8 +318,8 @@ export function TileRow(p: {
           )
         }
       >
-        {tooEarly === null ? null : <p className="text-xs text-base-content/60">{tooEarly}</p>}
-        {firstReview === null ? null : <p className="text-xs text-base-content/60">{firstReview}</p>}
+        {tooEarly === null ? null : <p className="text-xs text-base-content/70">{tooEarly}</p>}
+        {firstReview === null ? null : <p className="text-xs text-base-content/70">{firstReview}</p>}
       </Tile>
     </div>
   );

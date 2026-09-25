@@ -144,7 +144,7 @@ function Sample(p: { sample: VoiceSampleAnswer }): React.JSX.Element {
         )}
       </p>
       {sourceUrl === null ? null : (
-        <figcaption className="flex min-w-0 flex-wrap items-baseline gap-1.5 text-xs text-base-content/60">
+        <figcaption className="flex min-w-0 flex-wrap items-baseline gap-1.5 text-xs text-base-content/70">
           {copy("setup.panel.voice.source")}
           <span className="num min-w-0 break-all" data-testid="setup-voice-source">
             {sourceUrl}

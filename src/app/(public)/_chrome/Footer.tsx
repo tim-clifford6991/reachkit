@@ -29,14 +29,14 @@ export function Footer(): React.JSX.Element {
       <div className="footer mx-auto max-w-6xl px-4 py-10 text-sm sm:footer-horizontal">
         <aside className="max-w-sm">
           <Brand href="/" />
-          <p className="text-base-content/60">{copy("chrome.footer.rights")}</p>
-          <p className="text-base-content/60">
+          <p className="text-base-content/70">{copy("chrome.footer.rights")}</p>
+          <p className="text-base-content/70">
             {copy("chrome.footer.opt-out", { address: copy("removal.address") })}
           </p>
         </aside>
 
         <nav aria-label={copy("chrome.footer.product")}>
-          <div className="footer-title">{copy("chrome.footer.product")}</div>
+          <div className="footer-title opacity-70">{copy("chrome.footer.product")}</div>
           {/* The board's Product column opens with the free scan itself
               (#936) — the one thing on this site a stranger came for, and
               the only column entry that was missing. Its word is the
@@ -53,7 +53,7 @@ export function Footer(): React.JSX.Element {
         </nav>
 
         <nav aria-label={copy("chrome.footer.legal")}>
-          <div className="footer-title">{copy("chrome.footer.legal")}</div>
+          <div className="footer-title opacity-70">{copy("chrome.footer.legal")}</div>
           {LEGAL.map((link) => (
             <Link key={link.href} href={link.href} className="link link-hover">
               {copy(link.key)}

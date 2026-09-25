@@ -61,4 +61,4 @@ export function hostOf(canonical: string): string {
  *  bar: mono because each is a date, an address or a domain, quiet because
  *  none of them is the page, and free to fold anywhere because a canonical
  *  URL is one long token at 320. */
-export const QUIET_LINE = "num num-phrase text-base-content/60 m-0 text-sm wrap-anywhere";
+export const QUIET_LINE = "num num-phrase text-base-content/70 m-0 text-sm wrap-anywhere";

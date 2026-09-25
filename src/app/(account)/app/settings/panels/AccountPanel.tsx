@@ -131,7 +131,7 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
         {p.account.noteKeys.map((key) => {
           const note = writtenLine(key);
           return note === null ? null : (
-            <p key={key} className="text-xs text-base-content/60 wrap-anywhere">
+            <p key={key} className="text-xs text-base-content/70 wrap-anywhere">
               {note}
             </p>
           );
@@ -145,7 +145,7 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
           </span>
         </div>
 
-        {action.line === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{action.line}</p>}
+        {action.line === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{action.line}</p>}
       </div>
     </section>
   );

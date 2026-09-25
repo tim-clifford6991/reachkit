@@ -483,7 +483,7 @@ function PageDayPanel(p: {
       </div>
       <DayActions cell={shown} destination={p.destination} onCommand={command} busy={busy} />
       {provenance === null ? null : (
-        <p className="text-xs opacity-60" data-testid="day-provenance">
+        <p className="text-xs opacity-70" data-testid="day-provenance">
           {provenance}
         </p>
       )}

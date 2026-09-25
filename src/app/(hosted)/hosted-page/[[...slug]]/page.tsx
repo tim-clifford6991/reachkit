@@ -424,7 +424,7 @@ export default async function HostedPageRoute({
       <main>
         <article className="mx-auto w-full max-w-2xl px-5 py-12">
           {page.publisher.category === null ? null : (
-            <span className="text-base-content/60 text-xs font-semibold tracking-wide uppercase">
+            <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
               {page.publisher.category}
             </span>
           )}

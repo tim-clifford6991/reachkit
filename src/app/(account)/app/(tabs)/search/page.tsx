@@ -62,7 +62,7 @@ export default async function SearchTabPage(): Promise<React.JSX.Element> {
           // A sentence with a date inside it, not a value: the UI face, the
           // same way the shell states "re-measured 1 Oct 2026" beside the
           // site (owner's review of this PR).
-          <p className="text-xs text-base-content/60" data-testid="search-measured">
+          <p className="text-xs text-base-content/70" data-testid="search-measured">
             {measured}
           </p>
         )}

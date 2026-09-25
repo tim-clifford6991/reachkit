@@ -103,7 +103,7 @@ export function RivalPresence(p: {
         card={p.firstPage}
       >
         {p.startedLine === null ? null : (
-          <p className="text-xs text-base-content/60" data-testid="rivals-started">
+          <p className="text-xs text-base-content/70" data-testid="rivals-started">
             {p.startedLine}
           </p>
         )}

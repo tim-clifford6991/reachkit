@@ -151,7 +151,7 @@ function Row(p: { question: AnswerQuestion; engines: AnswersModel["engines"] }):
             {/* The engine's name, on the phone shape only: above `sm` the
                 column head above the cell already names it, and a name in
                 both places would be the same word twice down every row. */}
-            <span className="min-w-0 text-xs text-base-content/60 sm:hidden">
+            <span className="min-w-0 text-xs text-base-content/70 sm:hidden">
               {copy(ENGINE_LABEL[engine])}
             </span>
           </div>
@@ -203,7 +203,7 @@ export function AnswerGrid(p: { model: AnswersModel }): React.JSX.Element {
               <span
                 key={engine}
                 role="columnheader"
-                className="px-1 pb-1 text-center text-(length:--t-eyebrow) leading-tight font-semibold tracking-wide uppercase text-base-content/60"
+                className="px-1 pb-1 text-center text-(length:--t-eyebrow) leading-tight font-semibold tracking-wide uppercase text-base-content/70"
               >
                 {copy(ENGINE_LABEL[engine])}
               </span>

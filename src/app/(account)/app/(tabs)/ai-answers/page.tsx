@@ -87,7 +87,7 @@ export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
         </h1>
         <p className="max-w-prose text-sm text-base-content/70">{copy("overview.answers.lead")}</p>
         {measured === null ? null : (
-          <p className="text-xs text-base-content/60" data-testid="ai-answers-measured">
+          <p className="text-xs text-base-content/70" data-testid="ai-answers-measured">
             {measured}
           </p>
         )}

@@ -96,7 +96,7 @@ export default async function RivalsTabPage(): Promise<React.JSX.Element> {
         </h1>
         <p className="max-w-prose text-sm text-base-content/70">{copy("overview.rivals.lead")}</p>
         {measured === null ? null : (
-          <p className="text-xs text-base-content/60" data-testid="rivals-measured">
+          <p className="text-xs text-base-content/70" data-testid="rivals-measured">
             {measured}
           </p>
         )}
