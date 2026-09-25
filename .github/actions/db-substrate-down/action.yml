@@ -1,8 +1,9 @@
 # .github/actions/db-substrate-down/action.yml — this job's substrate, gone
 #
-# The other half of `../db-substrate` (#1013). The runner is the shared box,
-# so a job that left its PostgREST, proxy and postgres-meta running, or its
-# `reachkit_scratch_ci_*` database behind, would leave them there for good.
+# The other half of `../db-substrate` (#1013). On the shared box (either runner),
+# a job that left its PostgREST, proxy and postgres-meta running, or its
+# `reachkit_scratch_ci_*` database behind, would leave them there for good; on
+# a hosted runner it is harmless, the VM goes.
 # Every job that brings the substrate up calls this with `if: always()`.
 name: Take down the db substrate
 description: >-
