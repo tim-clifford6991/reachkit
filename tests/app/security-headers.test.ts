@@ -161,6 +161,11 @@ describe("issue #331 — the policy itself", () => {
     expect(policy).not.toContain("upgrade-insecure-requests");
   });
 
+  it("an image may come from any https origin on the gallery only, where a site is drawn by its own icon", () => {
+    expect(directive("img-src").split(" ")).not.toContain("https:");
+    expect(contentSecurityPolicy("N", false, true).split("; ").find((d) => d.startsWith("img-src"))?.split(" ")).toContain("https:");
+  });
+
   it("`'unsafe-eval'` exists in development and in no other build", () => {
     expect(contentSecurityPolicy("N", true)).toContain("'unsafe-eval'");
     expect(contentSecurityPolicy("N", false)).not.toContain("'unsafe-eval'");

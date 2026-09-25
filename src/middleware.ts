@@ -115,6 +115,12 @@ const VERCEL_LIVE_SOCKET = "wss://ws-us3.pusher.com";
 const STRIPE_CHECKOUT = "https://checkout.stripe.com";
 const STRIPE_BILLING = "https://billing.stripe.com";
 
+/** The pages that draw a listed site by its own icon, read from the site
+ *  itself where no logo is stored (#1110 §6, #1108): only there may an
+ *  image come from any `https:` origin. An image cannot run script, and
+ *  the `<img>` sends no referrer (`scans/SiteIcon.tsx`). */
+export const SITE_ICON_PATHS: readonly string[] = ["/scans"];
+
 /** 16 CSPRNG bytes, base64 — inside the character class Next's own
  *  extractor accepts (`/^'nonce-([A-Za-z0-9+/_-]+={0,2})'$/`). Web Crypto
  *  rather than `node:crypto` so this file keeps building on either runtime,
@@ -148,7 +154,7 @@ function mintNonce(): string {
  * `http://` render the layout sweep makes on a non-loopback hostname —
  * a check that cannot run is worse than a header that is not set.
  */
-export function contentSecurityPolicy(nonce: string, isDev: boolean): string {
+export function contentSecurityPolicy(nonce: string, isDev: boolean, siteIcons = false): string {
   return [
     "default-src 'self'",
     "base-uri 'self'",
@@ -159,7 +165,7 @@ export function contentSecurityPolicy(nonce: string, isDev: boolean): string {
     // nowhere else, which is the one thing that differs between the two.
     `script-src 'self' 'nonce-${nonce}' ${VERCEL_LIVE}${isDev ? " 'unsafe-eval'" : ""}`,
     `style-src 'self' 'unsafe-inline' ${VERCEL_LIVE}`,
-    `img-src 'self' data: blob: ${VERCEL_LIVE} ${VERCEL_LIVE_IMG}`,
+    `img-src 'self' data: blob: ${VERCEL_LIVE} ${VERCEL_LIVE_IMG}${siteIcons ? " https:" : ""}`,
     `font-src 'self' ${VERCEL_LIVE} ${VERCEL_LIVE_FONTS}`,
     // The dev server's hot-reload socket, and nothing else new.
     `connect-src 'self' ${VERCEL_LIVE} ${VERCEL_LIVE_SOCKET}${isDev ? " ws:" : ""}`,
@@ -662,7 +668,11 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   // header. So `x-nonce` is not set: an unread header is a claim nothing
   // holds true.
   const nonce = mintNonce();
-  const policy = contentSecurityPolicy(nonce, process.env.NODE_ENV === "development");
+  const policy = contentSecurityPolicy(
+    nonce,
+    process.env.NODE_ENV === "development",
+    SITE_ICON_PATHS.includes(pathname),
+  );
   const forwarded = new Headers(req.headers);
   forwarded.set(CSP_HEADER, policy);
 
