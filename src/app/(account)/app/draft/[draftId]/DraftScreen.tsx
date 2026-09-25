@@ -696,7 +696,7 @@ export function DraftScreen(p: {
       data-testid="draft-view"
     >
       <nav data-testid="draft-back">
-        <a href="/app/calendar" className="btn btn-sm btn-ghost -ms-3">
+        <a href="/app/calendar" className="btn btn-sm btn-ghost">
           <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
           {copy("draft.back")}
         </a>
