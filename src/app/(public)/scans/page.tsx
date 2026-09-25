@@ -39,6 +39,7 @@ import { ScanForm } from "../_landing/ScanForm";
 import { scanFormWords } from "../_landing/scan-form-words";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
+import { SiteIcon } from "./SiteIcon";
 
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.scans);
 
@@ -51,6 +52,7 @@ export const dynamic = "force-dynamic";
  *  decorative: the company's name is written beside it. */
 const IMG = { alt: "", loading: "lazy" } as const;
 const SEARCH_AUTOCOMPLETE = "off";
+const LOOK = "card";
 
 /** Cards per page, and per *Show more reports*: four rows of four. */
 const PAGE = 16;
@@ -117,7 +119,8 @@ function formatDay(at: Date): string {
   });
 }
 
-/** The site's own logo, served from our origin, or its first letter. */
+/** The site's own logo, served from our origin; with none stored, the
+ *  site's own icon, then its first letter (`SiteIcon`, #1110 §6). */
 function LogoTile(p: { entry: GalleryEntry }): React.JSX.Element {
   if (p.entry.hasLogo) {
     return (
@@ -135,12 +138,12 @@ function LogoTile(p: { entry: GalleryEntry }): React.JSX.Element {
     );
   }
   return (
-    <span
-      aria-hidden
-      className="bg-base-200 text-base-content/70 flex size-12 flex-none items-center justify-center rounded-box text-lg font-semibold sm:size-14"
-    >
-      {Array.from(p.entry.company.trim())[0]?.toUpperCase()}
-    </span>
+    <SiteIcon
+      domain={p.entry.domain}
+      look={LOOK}
+      letter={Array.from(p.entry.company.trim())[0]?.toUpperCase() ?? ""}
+      noLogo={copy("gallery.card.no-logo")}
+    />
   );
 }
 
@@ -164,11 +167,6 @@ function Card(p: { entry: GalleryEntry }): React.JSX.Element {
             <span className="hidden min-w-0 font-semibold break-words sm:block">
               {entry.company}
             </span>
-            {entry.hasLogo ? null : (
-              <span className="badge badge-ghost badge-sm absolute end-2 top-2 hidden sm:inline-flex">
-                {copy("gallery.card.no-logo")}
-              </span>
-            )}
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-1 sm:p-4">
             <span className="font-semibold break-words sm:hidden">

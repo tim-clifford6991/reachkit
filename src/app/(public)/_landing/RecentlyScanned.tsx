@@ -19,13 +19,15 @@
 // (under `DRIFT_FROM`) would leave a gap in the loop, so it stands still.
 //
 // **Greyscale until hover**, and in dark each logo is a light silhouette
-// (`R12-10`); the name is muted ink until hover. A site with no usable logo
-// gets its first letter on a tile, as its gallery card does.
+// (`R12-10`); the name is muted ink until hover. A site with no stored logo
+// is drawn by its own icon, then its first letter on a tile — `SiteIcon`,
+// the gallery card's own fallback (#1110 §6, #1108).
 import type React from "react";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import type { StripEntry } from "@/lib/scan/gallery";
+import { SiteIcon } from "../scans/SiteIcon";
 
 /** How many of the newest scans the strip carries. */
 const SHOWN = 16;
@@ -38,6 +40,7 @@ const DRIFT_FROM = 8;
 const IMG = { alt: "", loading: "lazy" } as const;
 const LABEL_ID = "recently-scanned";
 const GALLERY = "/scans";
+const LOOK = "strip";
 
 const SECTION = "col-span-full pb-10 lg:pb-12";
 const INNER =
@@ -49,14 +52,7 @@ function initial(company: string): string {
 
 function Logo(p: { entry: StripEntry }): React.JSX.Element {
   if (!p.entry.hasLogo) {
-    return (
-      <span
-        aria-hidden
-        className="bg-base-200 grid size-7 flex-none place-items-center rounded-field text-sm font-semibold"
-      >
-        {initial(p.entry.company)}
-      </span>
-    );
+    return <SiteIcon domain={p.entry.domain} letter={initial(p.entry.company)} look={LOOK} />;
   }
   return (
     <Image

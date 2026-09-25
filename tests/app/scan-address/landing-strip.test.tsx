@@ -31,7 +31,7 @@ async function render(): Promise<string> {
 }
 
 describe("the landing's Recently scanned strip", () => {
-  it("names each company, links every logo to /scans, and draws a letter where there is no logo", async () => {
+  it("names each company, links every logo to /scans, and draws the site's own icon where there is no stored logo", async () => {
     answer = async () => entries(3);
     const html = await render();
     expect(html).toContain("landing.strip.label");
@@ -42,7 +42,8 @@ describe("the landing's Recently scanned strip", () => {
     expect(new Set(hrefs)).toEqual(new Set(["/scans"]));
     expect(html).toContain('src="/scans/logo/site1.example"');
     expect(html).not.toContain("/scans/logo/site0.example");
-    expect(html).toMatch(/>H<\/span>/);
+    // The letter comes after both icons fail (tests/ui/scans-site-icon.test.tsx).
+    expect(html).toContain('src="https://site0.example/apple-touch-icon.png"');
   });
 
   it("a short list stands still: one copy, nothing hidden", async () => {
