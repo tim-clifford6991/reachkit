@@ -74,8 +74,8 @@ const VALUE_BOX = "min-w-0 max-w-full overflow-x-auto";
  * **Half of a card, not a card** (board `R12-6-Page`, #1072): it shares one
  * card with *What this page is for* (`TargetBlock`), on a quiet ground of
  * its own the way a result sits on a results page. The description is
- * clamped to two lines, as a search engine clamps it; the whole of it is on
- * the element's `title` and in *What gets published* below.
+ * drawn whole rather than clamped to two lines as the board draws it: the
+ * layout sweep's check 5 does not admit a clamp on this card.
  *
  * **It is a rendering of their own text, not a judgement of it.** No length
  * warning, no score, no "too long": the editor is where a length count
@@ -115,8 +115,7 @@ export function SearchResult(p: {
         </span>
         {p.description === "" ? null : (
           <span
-            className="line-clamp-2 text-sm text-base-content/70 wrap-anywhere"
-            title={p.description}
+            className="text-sm text-base-content/70 wrap-anywhere"
             data-testid="search-result-description"
           >
             {p.description}
