@@ -33,7 +33,10 @@ export function ThemeToggle(p: {
    *  Server Component that renders it — `themeNames()` in `./names.ts`. */
   names: ThemeNames;
   /** The menu opens above the control — the foot of the sidebar — rather
-   *  than under it. */
+   *  than under it, and from the control's start edge: the side is at the
+   *  viewport's left edge (#1100), so a menu aligned to the rail's 32px
+   *  button end would open off the screen. From the start it opens over
+   *  the content instead, which the side's `overflow-visible` allows. */
   up?: boolean;
 }): React.JSX.Element {
   // The server cannot know the stored choice, so it renders `system` and
@@ -50,7 +53,7 @@ export function ThemeToggle(p: {
   const Current = ICON[choice];
 
   return (
-    <div className={`dropdown dropdown-end ${p.up === true ? "dropdown-top" : ""}`} data-testid={TEST_ID}>
+    <div className={`dropdown ${p.up === true ? "dropdown-top dropdown-start" : "dropdown-end"}`} data-testid={TEST_ID}>
       <div
         tabIndex={0}
         role="button"

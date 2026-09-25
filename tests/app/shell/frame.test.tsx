@@ -604,8 +604,10 @@ describe("the frame is the route's one screen root, and it invents no sentence",
     expect(surfaces).toHaveLength(1);
     const surface = surfaces[0];
     expect(surface?.getAttribute("data-surface")).toBe("");
-    expect(surface?.getAttribute("data-arm-compact")).toBe("columns:1");
-    expect(surface?.getAttribute("data-arm-medium")).toBe("columns:2");
+    // Full width (#1100): the shell declares its own edges, so the surface
+    // draws no centred measure and no gutter around it.
+    expect(surface?.getAttribute("data-arm-compact")).toMatch(/^declared:/);
+    expect(surface?.getAttribute("data-arm-medium")).toBe("same-as-below");
     expect(surface?.getAttribute("data-arm-wide")).toBe("same-as-below");
   });
 
