@@ -14,6 +14,7 @@ Ship the paying path. Prefer a library over new code. Do not open `docs/archive/
 - Never edit `docs/archive/`.
 - Never reintroduce Master, Worker, dispatcher, lander, or an extra merge gate. One issue uses one worktree, removed when its pull request merges (`docs/PROCESS.md`).
 - Never copy a rule into a memory file or into `/root/ops` that these pages do not already state.
+- Never keep something only because a test, gate, ruling or approved file protects it; where a library does the job, delete the custom version and its test (owner 2026-09-25, `docs/PROCESS.md`, #1105).
 
 One issue, one worktree branched from `origin/main`, then stop. Merge when the four gates in `docs/PROCESS.md` are green: `typecheck · lint · unit`, `audit`, `schema · RLS`, and `no overflow · axe`.
 
