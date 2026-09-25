@@ -40,6 +40,7 @@ const DRIFT_FROM = 8;
 const IMG = { alt: "", loading: "lazy" } as const;
 const LABEL_ID = "recently-scanned";
 const GALLERY = "/scans";
+const LOOK = "strip";
 
 const SECTION = "col-span-full pb-10 lg:pb-12";
 const INNER =
@@ -51,7 +52,7 @@ function initial(company: string): string {
 
 function Logo(p: { entry: StripEntry }): React.JSX.Element {
   if (!p.entry.hasLogo) {
-    return <SiteIcon domain={p.entry.domain} letter={initial(p.entry.company)} look="strip" />;
+    return <SiteIcon domain={p.entry.domain} letter={initial(p.entry.company)} look={LOOK} />;
   }
   return (
     <Image

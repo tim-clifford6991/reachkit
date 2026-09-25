@@ -52,6 +52,7 @@ export const dynamic = "force-dynamic";
  *  decorative: the company's name is written beside it. */
 const IMG = { alt: "", loading: "lazy" } as const;
 const SEARCH_AUTOCOMPLETE = "off";
+const LOOK = "card";
 
 /** Cards per page, and per *Show more reports*: four rows of four. */
 const PAGE = 16;
@@ -139,7 +140,7 @@ function LogoTile(p: { entry: GalleryEntry }): React.JSX.Element {
   return (
     <SiteIcon
       domain={p.entry.domain}
-      look="card"
+      look={LOOK}
       letter={Array.from(p.entry.company.trim())[0]?.toUpperCase() ?? ""}
       noLogo={copy("gallery.card.no-logo")}
     />
