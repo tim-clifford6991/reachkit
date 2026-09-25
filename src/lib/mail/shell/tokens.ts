@@ -23,13 +23,13 @@
  *  font stacks `.rk-fonts` binds in `src/ui/type.css`. A name absent from
  *  this map is not available to a mail — deliberately narrow. */
 export const MAIL_TOKENS = Object.freeze({
-  "--bg": "#f6f6f9",
+  "--bg": "#f3f4fb",
   "--surface": "#ffffff",
-  "--sunk": "#efeff4",
-  "--line": "#eaeaf1",
-  "--ink": "#101019",
-  "--ink-2": "#5e5e73",
-  "--ink-3": "#676774",
+  "--sunk": "#eef0f8",
+  "--line": "#e8e9f3",
+  "--ink": "#1e2233",
+  "--ink-2": "#646579",
+  "--ink-3": "#6a6b80",
   "--accent": "#5b4be0",
   "--on-accent": "#ffffff",
   "--accent-bg": "#eeecfd",
