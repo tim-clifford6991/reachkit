@@ -32,7 +32,6 @@ import { SHELL_LOCALE } from "../_shell/format";
 import { BADGE } from "./badges";
 import { GOALS } from "./goals";
 import { carriedBy, formatCount, renderValue } from "./present";
-import { CountUp } from "./CountUp";
 import type { OverviewModel, ScoreModule } from "./model";
 
 const SCORE_LABEL = "overview.tile.score.label" satisfies CopyKey;
@@ -108,7 +107,7 @@ export function ScoreCard(p: { score: ScoreModule; className?: string }): React.
           <span className="text-sm text-base-content/70">{value.line ?? label}</span>
         ) : (
           <div className="flex min-w-0 flex-wrap items-baseline gap-2">
-            <CountUp text={value.text} className="figure text-4xl leading-none" />
+            <span className="figure text-4xl leading-none">{value.text}</span>
             <span className="num text-sm text-base-content/70">{goal}</span>
             {carried.kind === "delta" ? (
               <span className={`${BADGE.ok} ms-auto`}>
