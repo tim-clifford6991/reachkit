@@ -73,6 +73,7 @@ export function ScanForm(props: {
   const [problem, setProblem] = useState<DomainProblem | undefined>(initialProblem);
   const [submitting, setSubmitting] = useState(false);
   const problemId = useId();
+  const fieldId = useId();
 
   // `## Steps` step 4: with JavaScript, post JSON and navigate to
   // `location` on `ok: true`; on `ok: false`, re-render in place with the
@@ -102,20 +103,24 @@ export function ScanForm(props: {
 
   return (
     <form action="/api/scan" method="post" onSubmit={handleSubmit} className="flex w-full flex-col gap-2">
-      <div className="flex w-full flex-wrap gap-2">
+      <label htmlFor={fieldId} className="eyebrow">
+        {props.words.fieldLabel}
+      </label>
+      {/* One control: the field and its button joined (#1107). */}
+      <div className="join w-full">
         <input
+          id={fieldId}
           type="text"
           name="value"
-          aria-label={props.words.fieldLabel}
           placeholder={props.words.placeholder}
-          className={problem ? "input input-error w-auto min-w-0 flex-1" : "input w-auto min-w-0 flex-1"}
+          className={problem ? "input input-error join-item w-auto min-w-0 flex-1" : "input join-item w-auto min-w-0 flex-1"}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           aria-invalid={problem !== undefined}
           aria-describedby={problem ? problemId : undefined}
         />
         {/* The screen's one submit control and its one solid button. */}
-        <button type="submit" className="btn btn-primary" disabled={submitting} aria-busy={submitting || undefined}>
+        <button type="submit" className="btn btn-primary join-item" disabled={submitting} aria-busy={submitting || undefined}>
           {props.words.submit}
         </button>
       </div>

@@ -15,12 +15,17 @@
 //   3. *See it work*, the 2026-09-22 frame (#734), its title in the window
 //      bar, placed so its middle sits near the fold of a 1920×1080 screen;
 //   4. *Why you should care* — four features (`Features.tsx`);
-//   5. *What to do next* — three connected steps with their times;
+//   5. *What to do next* — three step cards with their times;
 //   6. the closing band, whose one button returns to the field.
 //
 // One solid button per section (DESIGN, the calm layer, #1063): the hero's
 // Scan and the closing band's button. The video's play disc is a `<span>`,
 // so it is not a control.
+//
+// The bands run the viewport's width (#1107): *Why you should care* is a
+// full-bleed `base-100` band, not an inset box, and each band keeps its
+// content at the footer's `max-w-6xl px-4`. So the surface declares its
+// edges, as `/scans` does.
 //
 // A Server Component. It reads no session and no cookie. `ScanForm`,
 // `InsideTabs` and `FieldCta` are the client leaves.
@@ -54,11 +59,10 @@ const STEPS = [
 /** Bound to a name: the copy sweep reads a bare JSX attribute string as voice. */
 const VIDEO_TEST_ID = "landing-video";
 
-/** No inline padding of its own: `[data-surface]` already pads by the
- *  band's step, and a second one inside it narrows the landing's measure
- *  under every other screen's (#258, #976). */
-const SECTION = "col-span-full border-t border-base-300 py-16 lg:py-24";
-const INNER = "mx-auto w-full max-w-6xl";
+/** The surface is `declared`, so it pads nothing: every band's content
+ *  takes the footer's own measure and gutter (#1107). */
+const SECTION = "border-t border-base-300 py-16 lg:py-24";
+const INNER = "mx-auto w-full max-w-6xl px-4";
 const LABEL = "flex items-baseline gap-2 text-xs font-semibold uppercase tracking-wide text-primary";
 /** Heading size and weight come from `type.css`'s element rules. */
 const HEADING = "mt-2 mb-3";
@@ -74,15 +78,18 @@ export default function LandingPage(props: {
   return (
     <Surface
       arms={{
-        compact: { kind: "columns", count: 1 },
-        medium: { kind: "columns", count: 2 },
+        compact: {
+          kind: "declared",
+          note: "full-width bands: hero, video, the white Why band, steps, closing card; each capped at max-w-6xl",
+        },
+        medium: { kind: "same-as-below" },
         wide: { kind: "same-as-below" },
       }}
     >
-      <main className="col-span-full grid grid-cols-subgrid">
+      <main className="flex flex-col">
         {/* ══ HERO ══ Two columns at the same height (SPEC §1, 2026-09-24):
             the grid stretches both, and the preview fills its column. */}
-        <section id={FIELD_SECTION_ID} className="col-span-full scroll-mt-20 pt-12 pb-10 lg:pt-16 lg:pb-8">
+        <section id={FIELD_SECTION_ID} className="scroll-mt-20 pt-12 pb-10 lg:pt-16 lg:pb-8">
           <div className={`${INNER} grid grid-cols-1 items-stretch gap-10 lg:grid-cols-2 lg:gap-12`}>
             <div className="flex min-w-0 flex-col items-center justify-center text-center lg:items-start lg:text-left">
               <h1 className="t-hero">{copy("landing.headline")}</h1>
@@ -96,15 +103,19 @@ export default function LandingPage(props: {
           </div>
         </section>
 
-        {/* ══ RECENTLY SCANNED ══ Logos and names only, each to `/scans`. */}
-        <Suspense fallback={<RecentlyScannedSkeleton />}>
-          <RecentlyScanned />
-        </Suspense>
+        {/* ══ RECENTLY SCANNED ══ Logos and names only, each to `/scans`.
+            Its own `max-w-6xl` sets the measure; the declared surface adds
+            no gutter, so this wrapper gives it the other bands' `px-4`. */}
+        <div className="px-4">
+          <Suspense fallback={<RecentlyScannedSkeleton />}>
+            <RecentlyScanned />
+          </Suspense>
+        </div>
 
         {/* ══ SEE IT WORK ══ The 2026-09-22 frame, empty until the owner
             supplies the video (#734). Its title sits in the window bar so
             the frame starts higher and its middle lands near the fold. */}
-        <section className="col-span-full pt-4 pb-16 lg:pt-8">
+        <section className="pt-4 pb-16 lg:pt-8">
           <div className={INNER}>
             <div
               data-testid={VIDEO_TEST_ID}
@@ -148,8 +159,8 @@ export default function LandingPage(props: {
           </div>
         </section>
 
-        {/* ══ 02 · WHAT TO DO NEXT ══ Three steps, connected: daisyUI's
-            `timeline`, down the page on a phone and across it at `lg`. */}
+        {/* ══ 02 · WHAT TO DO NEXT ══ Three step cards, each with its number
+            and its time inside it: a column on a phone, a row at `lg`. */}
         <section id={HOW_SECTION_ID} className={`${SECTION} scroll-mt-16`}>
           <div className={INNER}>
             <div className="mx-auto max-w-2xl text-left lg:text-center">
@@ -161,34 +172,29 @@ export default function LandingPage(props: {
               <p className={BODY}>{copy("landing.start.body")}</p>
             </div>
 
-            <ol className="timeline timeline-vertical timeline-compact lg:timeline-horizontal mt-10">
-              {STEPS.map((step, index) => (
-                <li key={step.n} className="lg:min-w-0 lg:flex-1">
-                  {index === 0 ? null : <hr className="bg-primary" />}
-                  <div className="timeline-middle">
-                    <span className="bg-primary text-primary-content grid size-7 place-items-center rounded-full text-sm font-semibold">
-                      {step.n}
-                    </span>
-                  </div>
-                  <div className="timeline-end mb-6 min-w-0 lg:mt-4 lg:mb-0 lg:self-stretch lg:justify-self-stretch lg:px-2">
-                    <div className="card card-border bg-base-100 h-full min-w-0">
-                      <div className="card-body gap-2">
-                        <span className="badge badge-soft badge-primary badge-sm font-mono">{copy(step.tag)}</span>
-                        <h3 className="card-title">{copy(step.title)}</h3>
-                        <p className="text-sm text-base-content/70">{copy(step.body)}</p>
-                      </div>
+            <ol className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {STEPS.map((step) => (
+                <li key={step.n} className="card card-border bg-base-100 min-w-0">
+                  <div className="card-body gap-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="bg-primary text-primary-content grid size-7 shrink-0 place-items-center rounded-full text-sm font-semibold">
+                        {step.n}
+                      </span>
+                      <span className="badge badge-soft badge-primary badge-sm font-mono">{copy(step.tag)}</span>
                     </div>
+                    <h3 className="card-title">{copy(step.title)}</h3>
+                    <p className="text-sm text-base-content/70">{copy(step.body)}</p>
                   </div>
-                  {index === STEPS.length - 1 ? null : <hr className="bg-primary" />}
                 </li>
               ))}
             </ol>
           </div>
         </section>
 
-        {/* ══ THE CLOSING BAND ══ The hero's own action, stated again: its
-            button brings the field into view, so it adds no second submit. */}
-        <section className={`${SECTION} bg-base-100`}>
+        {/* ══ THE CLOSING BAND ══ A tinted card on the ground, in no band of
+            its own. The hero's own action, stated again: its button brings
+            the field into view, so it adds no second submit. */}
+        <section className="pb-16 lg:pb-24">
           <div className={INNER}>
             <div className="card card-border bg-primary/5">
               <div className="card-body grid grid-cols-1 items-center gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-12 lg:p-12">
