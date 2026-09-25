@@ -486,7 +486,7 @@ export const REPORT_COPY = Object.freeze({
   "landing.video.heading": ["From scan to published page in one sitting.", { slots: {}, fixedBy: "issue 266 · L8" }],
   "landing.video.blocked": ["The video can’t play here. Everything it shows is on this page — read on, or start your scan.", { slots: {}, fixedBy: "issue 266 · L9" }],
   "landing.video.open": ["Play the demo", { slots: {}, fixedBy: "issue 266 · L10" }],
-  "landing.why.eyebrow": ["Why it matters", { slots: {}, fixedBy: "issue 266 · L11" }],
+  "landing.why.eyebrow": ["Why you should care", { slots: {}, fixedBy: "issue 266 · L11" }],
   "landing.why.heading": ["Your competitors are being found.", { slots: {}, fixedBy: "issue 266 · L12" }],
   "landing.why.body": ["Buyers now ask ChatGPT and Google’s AI what to use, and the answer names a handful of companies. If yours isn’t one of them, that buyer never meets you — and nothing on your side tells you it happened.", { slots: {}, fixedBy: "issue 266 · L13" }],
   "landing.does.eyebrow": ["What it does", { slots: {}, fixedBy: "issue 266 · L14" }],
@@ -497,9 +497,9 @@ export const REPORT_COPY = Object.freeze({
   "landing.does.item-2.line": ["One a day, answering a question buyers ask, built on your own site.", { slots: {}, fixedBy: "issue 266 · L19" }],
   "landing.does.item-3.title": ["Publishes on your schedule", { slots: {}, fixedBy: "issue 266 · L20" }],
   "landing.does.item-3.line": ["It waits 24 hours for your veto, then goes live. Cancel any time.", { slots: {}, fixedBy: "issue 266 · L21" }],
-  "landing.start.eyebrow": ["How to start", { slots: {}, fixedBy: "issue 266 · L22" }],
-  "landing.start.heading": ["Start with the scan", { slots: {}, fixedBy: "issue 266 · L23" }],
-  "landing.start.body": ["Free, under a minute", { slots: {}, fixedBy: "issue 266 · L24" }],
+  "landing.start.eyebrow": ["What to do next", { slots: {}, fixedBy: "issue 266 · L22" }],
+  "landing.start.heading": ["Start with the scan.", { slots: {}, fixedBy: "issue 266 · L23" }],
+  "landing.start.body": ["Free, under a minute. Then five minutes, once — and ReachKit does the rest.", { slots: {}, fixedBy: "issue 266 · L24" }],
   "landing.start.cta": ["Scan my site — free", { slots: {}, fixedBy: "issue 266 · L25" }],
 
   // ── S1, the owner-approved screen set (2026-09-08) ────────────────────
@@ -555,15 +555,15 @@ export const REPORT_COPY = Object.freeze({
    *  owner's approved sentences (2026-09-10, #459). */
   "landing.step.eyebrow": ["Step {n}", { slots: { n: "text" }, fixedBy: "approved set S1 · 11a" }],
   "landing.step.1.title": ["Scan your domain", { slots: {}, fixedBy: "approved set S1 · 11a" }],
-  "landing.step.1.body": ["Free, no account", { slots: {}, fixedBy: "approved set S1" }],
+  "landing.step.1.body": ["Free, no account. You get your score, your rivals and your first page — at a permanent link.", { slots: {}, fixedBy: "approved set S1" }],
   "landing.step.2.title": ["Pick your market and rivals", { slots: {}, fixedBy: "approved set S1 · 11a" }],
-  "landing.step.2.body": ["We suggest, you confirm.", { slots: {}, fixedBy: "approved set S1" }],
+  "landing.step.2.body": ["We suggest, you confirm. Site, business, rivals, voice, publishing — then straight to the app.", { slots: {}, fixedBy: "approved set S1" }],
   // Step 3's title is the one approved-set string on this screen the owner
   // has since replaced: the set promised a page a day, and the Autopilot
   // brief (DECISIONS 2026-09-10) rules that out — a page goes live when one
   // is ready, at most one a day. Approved 2026-09-11 (#516).
   "landing.step.3.title": ["Pages go live on your domain", { slots: {}, fixedBy: "approved set S1 · 11a" }],
-  "landing.step.3.body": ["You get 24 hours to stop it.", { slots: {}, fixedBy: "approved set S1" }],
+  "landing.step.3.body": ["One a day. You get 24 hours to stop each one, and every Monday you see what moved.", { slots: {}, fixedBy: "approved set S1" }],
   /** Under the closing CTA. Approved (11a). The pricing card carries the
    *  same sentence through `offer.cancel-line`, which is still empty and is
    *  #369's to fill — one key per screen, neither borrowed. */
@@ -631,6 +631,75 @@ export const REPORT_COPY = Object.freeze({
    *  thing of a card that named `example.com` and no business; this card
    *  names a business, so it says so of a business. */
   "landing.hero.example": ["An example business. It measures no site.", { slots: {}, fixedBy: "issue 935 · drafted" }],
+
+  /* ── The landing in its 2026-09-24 order (#1067) ─────────────────────
+     Boards `R12-1-Landing`, `R12-8-Phone-landing`, `R12-10-Dark-landing`
+     (SPEC §1, 2026-09-24). Where the board writes the sentence, it is the
+     board's; `drafted` marks a line the board draws and this issue wrote. */
+  /** The hero preview's name and its four tabs. */
+  "landing.inside.title": ["Inside ReachKit", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.inside.tab.week": ["Your week", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.inside.tab.score": ["Your score", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.inside.tab.answers": ["AI answers", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.inside.tab.page": ["Your page", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  /** *AI answers*: the line over the answer, and the one under it. */
+  "landing.inside.answers.head": ["What Google’s AI Overview says now", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.inside.answers.monday": [
+    "Every Monday: which of your market’s 12 biggest questions name you, and which name a rival.",
+    { slots: {}, fixedBy: "board R12-1 · issue 1067" },
+  ],
+  /** *Your page*: the page waiting for the owner's read. */
+  "landing.inside.page.due": ["Goes live in {in} unless you stop it", { slots: { in: "text" }, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.inside.page.why.label": ["Why this page:", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.inside.page.why.body": [
+    "people near you search it every month, and today a rival answers them.",
+    { slots: {}, fixedBy: "board R12-1 · issue 1067" },
+  ],
+  /** *Why you should care*: four features, each a title, a line and a
+   *  small drawing whose words follow it. */
+  "landing.feature.ai.title": ["Get named in AI answers", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.ai.body": [
+    "We ask AI your market’s 12 biggest questions every week and show which ones name you and which name a rival. Then we write the page that earns the mention.",
+    { slots: {}, fixedBy: "board R12-1 · issue 1067" },
+  ],
+  "landing.feature.ai.meter": ["named in {named} of {total} · goal {goal}", { slots: { named: "text", total: "text", goal: "text" }, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.google.title": ["Rank on Google", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.google.body": [
+    "We find the searches your buyers make that rivals rank for and you don’t, and go after the ones you can win — one page at a time.",
+    { slots: {}, fixedBy: "board R12-1 · issue 1067" },
+  ],
+  "landing.feature.google.rival": ["your rival", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.google.you": ["you", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.google.open": [
+    "Open — no rival holds these yet: the ones we go after first",
+    { slots: {}, fixedBy: "board R12-1 · issue 1067" },
+  ],
+  "landing.feature.fix.title": ["Fix what holds you back", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.fix.body": [
+    "Blocked AI readers, missing titles, no sitemap, slow pages. The report shows each one; the ten-minute fixes are free, and the rest ReachKit writes.",
+    { slots: {}, fixedBy: "board R12-1 · issue 1067" },
+  ],
+  "landing.feature.fix.readers": ["AI readers unblocked", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.fix.titles": ["Missing titles rewritten", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.fix.sitemap": ["Sitemap in place", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.fix.free": ["Free fix · 10 min", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.fix.ours": ["ReachKit rewrites", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.daily.title": ["Content, one page a day", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.daily.body": [
+    "Written from facts on your own site, in your voice, and published on your domain. Every page waits a day for you to read it — or stop it — before it goes live.",
+    { slots: {}, fixedBy: "board R12-1 · issue 1067" },
+  ],
+  /** *What to do next*: the time each step takes. */
+  "landing.step.1.tag": ["under a minute", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.step.2.tag": ["five minutes, once", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.step.3.tag": ["from tomorrow", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  /** The closing band: its heading, its line, and the line under its button. */
+  "landing.close.heading": ["See where you stand in under a minute.", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.close.body": [
+    "The report is free and yours to keep. ReachKit is €49 a month, VAT included, when you want the pages written.",
+    { slots: {}, fixedBy: "board R12-1 · issue 1067" },
+  ],
+  "landing.close.assurance": ["free · no account · cancel in one click", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
 
   /* ── The quiet pages (#936) ───────────────────────────────────────────
      A refusal, a scan that stopped, a removed report: the screens a

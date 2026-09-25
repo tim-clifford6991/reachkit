@@ -30,8 +30,10 @@ import { enumerateRoutes, headersFor, urlFor as routeUrl } from "./routes";
 
 const APP_ROOT = path.resolve(__dirname, "../../../src/app");
 const LANDING_PATH = "/";
-/** The hero card, by the test id `WeekHero.tsx` binds. */
-const HERO = '[data-testid="landing-hero-week"]';
+/** The hero card, by the test id `InsideReachKit.tsx` binds. */
+const HERO = '[data-testid="landing-inside"]';
+/** *Your score*, the second of the preview's four tabs (#1067). */
+const SCORE_TAB = `${HERO} [role="tab"] >> nth=1`;
 /** Chromium starts per call (`browser.ts`); the sweep's own bound. */
 const PER_ROUTE_BROWSER_MS = 60_000;
 /** Long enough for one same-origin chunk over loopback, short enough that a
@@ -41,7 +43,7 @@ const CHART_MS = 20_000;
  *  mid-way at the first read and finished at the second. */
 const DRAW_MS = 1_600;
 
-describe("#988 — the hero's Recharts line draws when the reader reaches it", () => {
+describe("#988 — the hero's Recharts line draws when the reader opens it", () => {
   it(
     "the card's chart mounts on scroll, with its surface and its readings",
     async () => {
@@ -68,8 +70,11 @@ describe("#988 — the hero's Recharts line draws when the reader reaches it", (
           expect(await page.locator(`${HERO} .${RECHARTS_CLASS.wrapper}`).count()).toBe(0);
           expect(await page.locator(`${HERO} .skeleton`).count()).toBeGreaterThan(0);
 
-          // The reader arrives at the card.
+          // The reader arrives at the card and opens *Your score* — the
+          // tab the line sits in since #1067. The layout run asks for
+          // reduced motion, so the preview never turns there by itself.
           await page.locator(HERO).scrollIntoViewIfNeeded();
+          await page.locator(SCORE_TAB).click();
 
           const surface = page.locator(`${HERO} svg.${RECHARTS_CLASS.surface}`).first();
           await surface.waitFor({ state: "attached", timeout: CHART_MS });

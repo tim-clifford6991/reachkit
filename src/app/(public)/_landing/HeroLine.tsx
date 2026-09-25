@@ -30,11 +30,12 @@
 "use client";
 
 import type React from "react";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useContext, useEffect, useRef, useState } from "react";
 // The module, not `@/ui/charts`: that barrel re-exports four `"use client"`
 // chart modules and importing one of them through it pulls the client graph
 // of all four into this chunk. The hero draws one line.
 import type { GrowthTarget, GrowthWeek } from "@/ui/charts/GrowthLine";
+import { PanelShown } from "./InsideTabs";
 
 const GrowthLine = lazy(async () => ({
   default: (await import("@/ui/charts/GrowthLine")).GrowthLine,
@@ -51,8 +52,13 @@ export function HeroLine(p: {
 }): React.JSX.Element {
   const [wanted, setWanted] = useState(false);
   const box = useRef<HTMLDivElement>(null);
+  // Since #1067 the line sits in the preview's *Your score* tab, and a tab
+  // that is not shown is still in the layout — so the observer waits until
+  // the tab is the one on screen as well as in the viewport.
+  const shown = useContext(PanelShown);
 
   useEffect(() => {
+    if (!shown) return;
     const node = box.current;
     // No observer (a browser too old to have one) is no reason to withhold
     // the chart: it is drawn straight away instead.
@@ -67,7 +73,7 @@ export function HeroLine(p: {
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [shown]);
 
   return (
     <div ref={box} className={BOX}>

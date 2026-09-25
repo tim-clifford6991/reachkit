@@ -62,9 +62,8 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
   // something is a claim.
   const LANDING_FILES = [
     "app/(public)/page.tsx",
-    "app/(public)/_landing/WeekHero.tsx",
-    "app/(public)/_landing/MatrixCard.tsx",
-    "app/(public)/_landing/WeekCard.tsx",
+    "app/(public)/_landing/InsideReachKit.tsx",
+    "app/(public)/_landing/Features.tsx",
     "app/(public)/_landing/ScanForm.tsx",
   ] as const;
 
@@ -88,32 +87,35 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     // a screen may draw the glyphs its own approved drawing names and no
     // others, because an icon that means something is a claim. The list is
     // still exact and still a closed set.
+    //
+    // The 2026-09-24 order (#1067, board `R12-1-Landing`) draws the four
+    // feature cards' glyphs — bot, search, shield, file — and the fix
+    // list's check; the steps carry numbers, not glyphs, so `Users` and
+    // `Calendar` went with the old step cards.
     expect(iconsImported()).toEqual([
       "Bot",
-      "Calendar",
+      "Check",
       "Clock",
       "FileText",
       "MessageSquare",
       "Play",
       "Search",
       "Send",
-      "Users",
+      "ShieldCheck",
       "Zap",
     ]);
   });
 
-  it("the three step cards take search, users and cal, in that order (L549)", () => {
-    const page = read("app/(public)/page.tsx");
-    const order = [...page.matchAll(/landing\.step\.\d\.body", Icon: (\w+)/g)].map((m) => m[1]);
-    expect(order).toEqual(["Search", "Users", "Calendar"]);
+  it("the four feature cards take bot, search, shield and file, in that order (#1067)", () => {
+    const source = read("app/(public)/_landing/Features.tsx");
+    const order = [...source.matchAll(/body: "landing\.feature\.\w+\.body", Icon: (\w+)/g)].map((m) => m[1]);
+    expect(order).toEqual(["Bot", "Search", "ShieldCheck", "FileText"]);
   });
 
   it("each card head takes its glyph, at lucide stroke 1.75", () => {
-    expect(read("app/(public)/_landing/WeekHero.tsx")).toMatch(/<Zap size=\{16\} strokeWidth=\{1\.75\}/);
-    expect(read("app/(public)/_landing/WeekHero.tsx")).toMatch(/<MessageSquare size=\{16\} strokeWidth=\{1\.75\}/);
-    expect(read("app/(public)/_landing/MatrixCard.tsx")).toMatch(/<Bot size=\{16\} strokeWidth=\{1\.75\}/);
-    expect(read("app/(public)/_landing/WeekCard.tsx")).toMatch(/<Calendar size=\{16\} strokeWidth=\{1\.75\}/);
-    expect(read("app/(public)/_landing/WeekCard.tsx")).toMatch(/<FileText size=\{20\} strokeWidth=\{1\.75\}/);
+    expect(read("app/(public)/_landing/InsideReachKit.tsx")).toMatch(/<Zap size=\{16\} strokeWidth=\{1\.75\}/);
+    expect(read("app/(public)/_landing/InsideReachKit.tsx")).toMatch(/<MessageSquare size=\{16\} strokeWidth=\{1\.75\}/);
+    expect(read("app/(public)/_landing/Features.tsx")).toMatch(/<Icon size=\{16\} strokeWidth=\{1\.75\}/);
   });
 
   it("the hero's own control carries no glyph — the set draws none on it", () => {
