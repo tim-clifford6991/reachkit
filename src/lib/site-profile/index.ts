@@ -39,10 +39,12 @@ import { crawlSite, type CrawlOutcome } from "./crawl";
 import { derivePurpose } from "./purpose";
 import { siteNameFromTitle, siteNameOf } from "./site-name";
 import { deriveVoice } from "./summary";
-import { writeSiteProfile } from "./store";
+import { writeSiteLogo, writeSiteProfile } from "./store";
+import { captureLogo } from "./logo";
 import type { InventoryRow, SiteProfile } from "./types";
 
-export { readSiteProfile, writeSiteProfile, adoptVoiceText, saveVoiceText } from "./store";
+export { readSiteProfile, writeSiteProfile, adoptVoiceText, saveVoiceText, readSiteLogo } from "./store";
+export { captureLogo, logoCandidates, sniffLogo, type SiteLogo } from "./logo";
 export { deriveVoice, type SiteReading } from "./summary";
 export { derivePurpose } from "./purpose";
 export { siteNameFromTitle, siteNameOf } from "./site-name";
@@ -138,5 +140,23 @@ export async function buildSiteProfileWithCrawl(
   };
 
   await writeSiteProfile(profile);
+
+  // The site's own mark for the gallery and the landing's strip (#1069),
+  // read off the same home document: 0¢ and inside `SITE_LOGO.BUDGET_MS`.
+  // A logo that could not be stored is not the profile's failure.
+  const homeHtml = a.homeHtml ?? crawl.homeHtml;
+  if (homeHtml !== null && homeHtml !== "") {
+    const logo = await captureLogo({ html: homeHtml, homeUrl: a.homeUrl });
+    if (logo !== null) {
+      await writeSiteLogo(a.domain, logo).catch((error: unknown) => {
+        console.log(
+          JSON.stringify({
+            event: "site_logo_unstored",
+            because: error instanceof Error ? error.message : String(error),
+          })
+        );
+      });
+    }
+  }
   return { profile, crawl };
 }

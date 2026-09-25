@@ -52,6 +52,9 @@ export const CHROME_COPY = Object.freeze({
    *  *Free scans* joins them with the gallery (#1069). */
   "chrome.nav.why": ["Why it matters", { slots: {}, fixedBy: "issue 1066" }],
   "chrome.nav.how": ["How to start", { slots: {}, fixedBy: "issue 1066" }],
+  /** The gallery's place in the nav, between *How to start* and *Pricing*
+   *  (SPEC §1 2026-09-24; boards `R12-1` / `R12-3`, #1069). */
+  "chrome.nav.scans": ["Free scans", { slots: {}, fixedBy: "issue 1069" }],
   "chrome.cta.start": ["Start free", { slots: {}, fixedBy: "issue 1066" }],
   /** The dismissible banner above every public header (#1066). The one
    *  line the owner edits is `chrome.banner`; the tag, the region's name

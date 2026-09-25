@@ -185,6 +185,10 @@ export const PUBLIC_PATHS: readonly string[] = [
   // control with a redirect to a sign-in screen.
   "/api/opt-out/:token",
   "/pricing",
+  // Issue #1069: the free-scans gallery (SPEC §2 2026-09-24), and the logo
+  // each of its cards is drawn with, served from our own origin.
+  "/scans",
+  "/scans/logo/:domain",
   // Issue #19: the sign-in address prompt now exists as a route
   // (`src/app/(public)/signin/page.tsx`), so it takes a row on this list
   // like every other public surface. `SIGNIN_PATH` stays used below: it is

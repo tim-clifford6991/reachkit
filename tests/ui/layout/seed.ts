@@ -553,6 +553,47 @@ export function seedHostedPublisher(): void {
  * for. Without it the screen is legal and emptier, which is a picture of
  * less.
  */
+/**
+ * The free-scans gallery's listing (#1069): enough finished free scans that
+ * `/scans` is measured with cards on it rather than its empty arm — one
+ * with a logo, one drawn as a letter, one a ceiling cut off, and a company
+ * name and a domain long enough to be clamped. Reserved `.example` names,
+ * so no report fixture and no account answers for any of them.
+ */
+const FREE_SCANS: readonly { domain: string; name: string | null; score: number | null; category: string | null; logo: boolean }[] = [
+  { domain: "harbourbikes.example", name: "Harbour Bike Repair", score: 47, category: "Local services", logo: true },
+  { domain: "northloop-dental-and-orthodontics-practice.example", name: "Northloop Dental & Orthodontics Practice of the Lower East Harbour", score: 58, category: "Health and wellbeing services for families", logo: false },
+  { domain: "tallyhq.example", name: "Tally", score: 71, category: "Software", logo: false },
+  { domain: "cedar-yoga.example", name: null, score: null, category: null, logo: false },
+];
+
+/** A 1×1 PNG, so the seeded logo is a picture the browser can draw. */
+const ONE_PIXEL_PNG =
+  "89504e470d0a1a0a0000000d4948445200000001000000010806000000" +
+  "1f15c4890000000d49444154789c63f8cfc0f01f0005000201a5f4d6f40000000049454e44ae426082";
+
+export function seedFreeScans(): void {
+  FREE_SCANS.forEach((row, index) => {
+    const report = JSON.stringify({
+      verdict: { scoreAndBand: { kind: row.score === null ? "unmeasured" : "measured" } },
+      market: row.category === null ? { kind: "unmeasured" } : { kind: "measured", value: { profile: { category: row.category } } },
+    });
+    const finished = new Date(Date.UTC(2026, 8, 23 - index, 10)).toISOString();
+    sql(
+      `insert into scans (domain, tier, status, score, report, finished_at, stopped_reason) values ` +
+        `('${row.domain}', 'free', '${row.score === null ? "degraded" : "done"}', ${row.score ?? "null"}, ` +
+        `'${report.replace(/'/g, "''")}'::jsonb, timestamptz '${finished}', '${row.score === null ? "time_ceiling" : "complete"}');`
+    );
+    if (row.name !== null || row.logo) {
+      sql(
+        `insert into site_profiles (domain, site_name, logo_image, logo_type) values ('${row.domain}', ` +
+          `${row.name === null ? "null" : `'${row.name.replace(/'/g, "''")}'`}, ` +
+          `${row.logo ? `'\\x${ONE_PIXEL_PNG}'::bytea, 'image/png'` : "null, null"});`
+      );
+    }
+  });
+}
+
 export function seedSetupAccount(): void {
   const { userId, siteId, domain, timeZone } = SETUP_ACCOUNT;
   const email = EMAIL_OF[userId];

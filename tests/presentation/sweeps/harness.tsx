@@ -59,6 +59,9 @@ interface HarnessRow {
 export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze({
   "(public)/page.tsx": { props: () => ({ searchParams: {}, async: false }), shell: false, async: false },
   "(public)/pricing/page.tsx": { props: () => ({}), shell: false, async: false },
+  // #1069: the free-scans gallery. The sweeps stand its reader in with an
+  // empty listing — the database is not theirs to reach.
+  "(public)/scans/page.tsx": { props: () => ({ searchParams: Promise.resolve({}) }), shell: false, async: true },
   "(public)/signin/page.tsx": { props: () => ({ searchParams: {}, async: false }), shell: false, async: false },
   // The three legal routes (issue #266). Each renders two owner-owed keys
   // and reads nothing — no params, no store, no session — so the row is the

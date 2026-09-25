@@ -130,13 +130,13 @@ describe("SPEC §1, 2026-09-24 (#1066) — the banner and the nav", () => {
     expect(banner).toContain(`aria-label="${COPY["chrome.banner.dismiss"]}"`);
   });
 
-  it("the nav is Why it matters · How to start · Pricing, then Sign in and Start free — no Free scans yet (#1069)", () => {
+  it("the nav is Why it matters · How to start · Free scans · Pricing, then Sign in and Start free (#1069)", () => {
     const bar = withoutDrawer(markup(ELSEWHERE));
-    const words = [COPY["chrome.nav.why"], COPY["chrome.nav.how"], COPY["chrome.nav.pricing"], COPY["chrome.nav.signin"], COPY["chrome.cta.start"]];
+    const words = [COPY["chrome.nav.why"], COPY["chrome.nav.how"], COPY["chrome.nav.scans"], COPY["chrome.nav.pricing"], COPY["chrome.nav.signin"], COPY["chrome.cta.start"]];
     const at = words.map((w) => bar.indexOf(w));
     expect(at.every((i) => i > 0)).toBe(true);
     expect([...at].sort((x, y) => x - y)).toEqual(at);
-    expect(bar).not.toContain('href="/scans"');
+    expect(bar).toContain('href="/scans"');
   });
 
   it("Start free is the header's one solid primary, on every arm; Sign in is a ghost", () => {

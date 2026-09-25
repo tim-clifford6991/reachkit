@@ -86,7 +86,7 @@ describe("ADR-002 / REQ-001 c8 — noindex twice over, and in no sitemap", () =>
     expect(existsSync(path.join(ROOT, "src/app/sitemap.ts"))).toBe(false);
     expect(existsSync(path.join(ROOT, "src/app/(public)/sitemap.ts"))).toBe(false);
     const { sitemapPaths } = await import("../../../src/app/(public)/_seo/routes.ts");
-    expect(sitemapPaths().some((route) => route.startsWith("/scan"))).toBe(false);
+    expect(sitemapPaths().some((route) => route.startsWith("/scan/"))).toBe(false);
   });
 });
 

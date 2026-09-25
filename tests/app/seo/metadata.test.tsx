@@ -78,6 +78,7 @@ function publicRoutePatterns(dir: string, prefix = ""): string[] {
 const OWNER: Readonly<Record<string, { module: string; generated?: true }>> = {
   "/": { module: "@/app/(public)/page" },
   "/pricing": { module: "@/app/(public)/pricing/page" },
+  "/scans": { module: "@/app/(public)/scans/page" },
   "/privacy": { module: "@/app/(public)/privacy/page" },
   "/terms": { module: "@/app/(public)/terms/page" },
   "/imprint": { module: "@/app/(public)/imprint/page" },
@@ -165,6 +166,7 @@ describe("the canonical address is the address, and never a pattern", () => {
   const ADDRESSED: Readonly<Record<string, string>> = {
     "/": "/",
     "/pricing": "/pricing",
+    "/scans": "/scans",
     "/privacy": "/privacy",
     "/terms": "/terms",
     "/imprint": "/imprint",
@@ -237,7 +239,7 @@ describe("indexing is one fact, read by the page and by the sitemap", () => {
   });
 
   it("no report address is in it (ADR-002 decision 1 · REQ-001 c8)", () => {
-    expect(sitemapPaths().some((route) => route.startsWith("/scan"))).toBe(false);
+    expect(sitemapPaths().some((route) => route.startsWith("/scan/"))).toBe(false);
   });
 });
 
@@ -256,7 +258,7 @@ describe("every sentence in a public <head> is a key, and the owner is told whic
     // title, so ruling 11a filled none of these; the owner approved every
     // one on 2026-09-10 (#459).
     const keys = PUBLIC_ROUTE_SEO_ROWS.flatMap((row) => [row.title, row.description]);
-    expect(keys).toHaveLength(18);
+    expect(keys).toHaveLength(20);
     for (const key of keys) {
       expect(AWAITING_COPY, key).not.toContain(key);
       expect(COPY[key], key).not.toBe("");

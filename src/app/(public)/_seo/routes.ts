@@ -59,6 +59,15 @@ export const PUBLIC_ROUTE_SEO = Object.freeze({
     description: "meta.pricing.description",
     indexable: true,
   },
+  // SPEC §2 2026-09-24 (#1058): the gallery is indexed — canonical and a
+  // sitemap entry for `/scans` itself — while every report it links to
+  // stays `noindex` and out of the sitemap (the `report` row below).
+  scans: {
+    route: "/scans",
+    title: "meta.scans.title",
+    description: "meta.scans.description",
+    indexable: true,
+  },
   privacy: {
     route: "/privacy",
     title: "meta.privacy.title",

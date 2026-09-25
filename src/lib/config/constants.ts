@@ -355,6 +355,21 @@ export const SITE_PROFILE = Object.freeze({
   VOICE_INPUT_MAX_CHARS: 4_000,
 } as const);
 
+/** SPEC §2 (2026-09-24, #1058/#1069): the one logo the free scan keeps per
+ *  site, for the gallery at `/scans` and the landing's strip. It is read
+ *  off the home document the crawl already holds, so choosing it costs
+ *  nothing; fetching it is at most `MAX_TRIES` image reads inside one
+ *  `BUDGET_MS`, and 0¢ — a read of the site's own server, like every
+ *  other own-document read. `MAX_BYTES` keeps a stored logo small enough
+ *  to serve from our own origin sixteen to a page; `MIN_ICON_PX` is what
+ *  makes a declared `icon` "large" rather than a 16px favicon. */
+export const SITE_LOGO = Object.freeze({
+  MAX_TRIES: 2,
+  BUDGET_MS: 3_000,
+  MAX_BYTES: 65_536,
+  MIN_ICON_PX: 96,
+} as const);
+
 /** SPEC §7 Rules (2026-09-12): "Every asset links to real inventory pages
  *  (pricing, about, features, product) and to earlier assets in its
  *  cluster." (`src/lib/generate/links/`)

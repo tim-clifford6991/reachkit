@@ -674,4 +674,39 @@ export const REPORT_COPY = Object.freeze({
   "control.scan-another": ["Scan a different site", { slots: {}, fixedBy: "issue 936" }],
   "control.example-report": ["Read an example report", { slots: {}, fixedBy: "issue 936" }],
   "control.back-to-start": ["Back to the start", { slots: {}, fixedBy: "issue 936" }],
+
+  /* ── The free-scans gallery, `/scans`, and the landing's strip (#1069) ── */
+  // SPEC §2 2026-09-24 (#1058, #1059). The board's words where boards
+  // `R12-3-Gallery` / `R12-9-Phone-gallery` / `R12-1-Landing` write them;
+  // the rest drafted in the registry's voice for the owner to correct.
+  "gallery.eyebrow": ["Free scans · live", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.heading": ["Every free scan, in the open.", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.subline": [
+    "Each report is a permanent public link. See how any business here shows up in AI answers and Google search — and where its rivals are found instead.",
+    { slots: {}, fixedBy: "issue 1069 · R12-3" },
+  ],
+  "gallery.next.heading": ["Your site next?", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.search.label": ["Search by company or domain", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.filter.label": ["Category", { slots: {}, fixedBy: "issue 1069 · drafted" }],
+  "gallery.filter.all": ["All", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.showing": ["Showing {shown} of {total} reports", { slots: { shown: "text", total: "text" }, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.sort.label": ["Sort", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.sort.newest": ["Newest first", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.sort.highest": ["Highest score", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.sort.lowest": ["Lowest score", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.sort.az": ["A–Z", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.card.view": ["View report", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.card.no-logo": ["no logo found", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.card.no-score": ["—", { slots: {}, fixedBy: "issue 1069 · drafted" }],
+  "gallery.more": ["Show more reports", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.removal": [
+    "Own a site listed here and want its report taken down? Write to {address}.",
+    { slots: { address: "text" }, fixedBy: "issue 1069 · R12-3" },
+  ],
+  "gallery.empty.heading": ["No free scan matches that yet.", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  "gallery.empty.body": [
+    "Scan it now — it takes under a minute, and it will be listed here.",
+    { slots: {}, fixedBy: "issue 1069 · R12-3" },
+  ],
+  "gallery.empty.cta": ["Scan this site", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
 }) satisfies CopyPartition;

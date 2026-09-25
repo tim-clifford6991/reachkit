@@ -73,6 +73,10 @@ export const MIGRATION_SUBTOKENS: readonly MigrationSubtoken[] = [
   { token: "sites_erasure", parent: "sites", owner: "BP-063" },
   { token: "scans_freepath", parent: "scans", owner: "BP-023" },
   { token: "scans_verdict", parent: "scans", owner: "BP-024" },
+  // The free-scans gallery's listing (issue #1069) — SPEC §2 2026-09-24.
+  // A sub-token of `scans` under rule 3a: the listing is a reading of the
+  // free scans, narrows that topic, and owns its own file.
+  { token: "scans_gallery", parent: "scans", owner: "SPEC.md §2 2026-09-24" },
   { token: "opportunities_core", parent: "opportunities", owner: "BP-040" },
   { token: "opportunities_supply", parent: "opportunities", owner: "BP-041" },
   { token: "opportunities_verdicts", parent: "opportunities", owner: "BP-051" },

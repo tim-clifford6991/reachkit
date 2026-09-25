@@ -93,6 +93,11 @@ vi.mock("@/app/(account)/setup/_setup/store", async (importOriginal) => {
   return storeFactory(await importOriginal<Record<string, unknown>>());
 });
 
+vi.mock("@/lib/scan/gallery", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  readGallery: async () => ({ entries: [], total: 0, categories: [], all: 0 }),
+}));
+
 vi.mock("@/lib/scan/report", async (importOriginal) => {
   const { reportFactory } = await import("../../app/setup/session-door");
   return reportFactory(await importOriginal<Record<string, unknown>>());
