@@ -19,7 +19,9 @@
 // stylesheet added.
 //
 // The chosen chip says so twice: `aria-pressed` for a screen reader, the
-// solid ink pill for an eye, the rest ghost pills (#1063).
+// solid ink pill for an eye, the rest ghost pills (#1063). Each stage's
+// chip leads with the dot its cards carry (issue 1071, board R12-5-Plan),
+// so the filter and the grid speak one colour per stage; *All* has none.
 "use client";
 
 import type React from "react";
@@ -27,6 +29,8 @@ import { copy } from "@/lib/presentation/copy";
 import {
   STAGE_FILTERS,
   STAGE_FILTER_COPY_KEY,
+  STAGE_TONE,
+  TONE_DOT,
   type StageFilter as StageFilterId,
 } from "./stages";
 import type { MonthModel } from "./month";
@@ -49,8 +53,11 @@ export function StageFilter(p: {
             aria-pressed={pressed}
             onClick={() => p.onSelect(filter)}
           >
+            {filter === "all" ? null : (
+              <span className={`size-1.5 shrink-0 rounded-full ${TONE_DOT[STAGE_TONE[filter]]}`} aria-hidden />
+            )}
             <span>{copy(STAGE_FILTER_COPY_KEY[filter])}</span>
-            <span className="num" data-testid={`stage-count-${filter}`}>
+            <span className="num text-[11px] opacity-70" data-testid={`stage-count-${filter}`}>
               {p.counts[filter]}
             </span>
           </button>

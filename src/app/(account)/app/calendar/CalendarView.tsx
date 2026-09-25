@@ -89,12 +89,22 @@ export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
 
   return (
     <>
-      <StageFilter counts={p.model.counts} selected={filter} onSelect={setFilter} />
+      {/* The filters, and on the same row the one note about the month:
+          what the number on a live card is. Not a supply statement and
+          never a second one — §7 (issue 857) states supply once, at the
+          top of the screen. */}
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <StageFilter counts={p.model.counts} selected={filter} onSelect={setFilter} />
+        <p className="text-xs opacity-70" data-testid="calendar-live-number-note">
+          {copy("calendar.note.live-number")}
+        </p>
+      </div>
 
       <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
-          {/* The month, in the shape the width can read. */}
-          <div className="hidden md:block">
+          {/* The month, in the shape the width can read. From `md` it sits
+              in one card, so its flat empty days read against white. */}
+          <div className="card card-border bg-base-100 hidden p-2 md:block">
             <MonthGrid
               model={p.model}
               filter={filter}
@@ -127,13 +137,6 @@ export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
           />
         )}
       </div>
-
-      {/* The one note under the month: what the number on a live card is.
-          Not a supply statement and never a second one — §7 (issue 857)
-          states supply once, at the top of the screen. */}
-      <p className="text-xs opacity-70" data-testid="calendar-live-number-note">
-        {copy("calendar.note.live-number")}
-      </p>
     </>
   );
 }

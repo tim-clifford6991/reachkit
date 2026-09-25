@@ -47,13 +47,13 @@ describe("§0 10 — the calendar cell open in the panel", () => {
   // makes it a fixed-height card with five rules of its own, and
   // `CalendarView` is now the screen's state around it.
   //
-  it("keeps the hover edge, and today keeps its own ring", () => {
+  it("the open day carries the 2px accent ring, and today is tinted (issue 1071)", () => {
     const cell = read(DAY_CARD);
-    expect(cell).toContain("hover:border-primary");
     // `ring-inset` since issue 930: the card is 88px at its narrowest and
     // every pixel of it is spoken for, so the ring is drawn inside the
     // border box rather than outside it.
-    expect(cell).toContain("ring-2 ring-inset ring-primary");
+    expect(cell).toContain('p.selected ? "ring-2 ring-inset ring-primary"');
+    expect(cell).toContain('"bg-primary/10"');
   });
 
   it('carries aria-current="date", and no longer aria-pressed', () => {

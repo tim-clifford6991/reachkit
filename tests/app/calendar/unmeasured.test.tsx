@@ -184,14 +184,15 @@ describe("#784 — the calendar's one supply statement says which zero it is", (
     expect(await statement()).toBe(COPY["calendar.supply.unmeasured"]);
   });
 
-  it("a market never measured offers the broader categories that measure it again now (issue 837)", async () => {
+  it("a market never measured carries its two ways to measure again inline (issues 837, 1071)", async () => {
     setOpportunityStore(storeWith({ questions: 0, everHeld: false }));
     const page = render(await CalendarPage({ searchParams: Promise.resolve({ month: MONTH }) }));
-    const choice = page.querySelector('[data-testid="calendar-market-choice"]');
-    expect([...(choice?.querySelectorAll('[data-testid="category-suggestion"]') ?? [])].map((b) => b.textContent)).toEqual([
-      "bookkeeping software",
-      "therapist accounting",
-    ]);
+    const notice = page.querySelector('[data-testid="calendar-supply-notice"]');
+    const choice = notice?.querySelector('[data-testid="calendar-market-choice"]');
+    const tries = [...(choice?.querySelectorAll('[data-testid="category-suggestion"]') ?? [])];
+    expect(tries.map((b) => b.getAttribute("value"))).toEqual(["bookkeeping software"]);
+    expect(tries[0]?.textContent).toContain("bookkeeping software");
+    expect(choice?.querySelector('[data-testid="category-describe"]')).not.toBeNull();
     expect(page.querySelector('[data-testid="calendar-supply-statement"]')?.textContent).not.toMatch(/Monday/);
 
     setOpportunityStore(storeWith({ questions: 12, everHeld: true }));

@@ -49,7 +49,7 @@ import { EMPTY_ACCOUNT_COPY_KEY, HELD_BY_SETTING_COPY_KEY, isLawCause, isSupplyC
 import { kindWord } from "./card-lines";
 import { nextPublishStatement, stoppedWorkStatement, type WorkStop } from "@/lib/presentation/stopped";
 import { fullDate } from "./dates";
-import { STAGE_BEACON, STAGE_FILTER_COPY_KEY, STAGE_OF, STAGE_TONE, TONE_DOT, TONE_INK } from "./stages";
+import { STAGE_FILTER_COPY_KEY, STAGE_OF, STAGE_TONE, TONE_BADGE } from "./stages";
 import { COMMAND_TARGET, publishing } from "./publishing";
 import { say } from "../../../_toast/say";
 import { TargetRows } from "./TargetRows";
@@ -206,24 +206,26 @@ function DayActions(p: {
   );
 }
 
-/** The head: the stage as the card states it — a dot and a word, never a
- *  `badge` that cannot shrink (#944) — the date, and the close control. */
-function Heading(p: { word: string; tone: Tone; beacon?: string; date: string; onClose: () => void }): React.JSX.Element {
+/** The head (issue 1071, board R12-5-Plan): the date at the near edge, the
+ *  stage as a soft badge beside it, and the close control at the far one.
+ *  The panel is a whole column wide at every width it is drawn at, so the
+ *  badge that could not shrink inside a day card (#944) has room here; the
+ *  cards keep their dot and word. */
+function Heading(p: { word: string; tone: Tone; date: string; onClose: () => void }): React.JSX.Element {
+  const badge = p.tone === "neutral" ? "badge-ghost" : `badge-soft ${TONE_BADGE[p.tone]}`;
   return (
     <div className="flex min-w-0 items-center gap-2" data-testid="day-head">
-      <span className={`size-2 shrink-0 rounded-full ${TONE_DOT[p.tone]} ${p.beacon ?? ""}`} aria-hidden />
-      {/* A stage word is never truncated (owner, PR #961) — here as on the
-          card, so one stage is drawn one way. */}
+      <span className="num rk-cal-label min-w-0 truncate text-xs opacity-70">{p.date}</span>
+      {/* A stage word is never truncated (owner, PR #961). */}
       <span
-        className={`shrink-0 whitespace-nowrap text-sm font-semibold ${TONE_INK[p.tone]}`}
+        className={`badge badge-sm ml-auto shrink-0 whitespace-nowrap font-semibold ${badge}`}
         data-testid="panel-stage-word"
       >
         {p.word}
       </span>
-      <span className="num rk-cal-label min-w-0 truncate text-xs opacity-70">{p.date}</span>
       <button
         type="button"
-        className="btn btn-sm btn-ghost btn-square ml-auto shrink-0"
+        className="btn btn-sm btn-ghost btn-square shrink-0"
         aria-label={copy("calendar.panel.close")}
         data-testid="day-panel-close"
         onClick={p.onClose}
@@ -255,7 +257,8 @@ function Panel(p: {
       //   md–xl   in flow, under the month. A sheet fixed over a month
       //           that is still a seven-column grid would cover the very
       //           dates it is about.
-      //   xl      the card beside the month.
+      //   xl      the card beside the month, sticky as the month scrolls
+      //           (issue 1071, board R12-5-Plan).
       //
       // On the phone alone it is capped and scrolls. The cap is what keeps
       // a sheet from growing off the top of the screen, where its own head
@@ -264,7 +267,7 @@ function Panel(p: {
       // the same answer a `textarea` and an `overflow-x-auto` table give,
       // and the proof measures that neither the fixture's longest day nor
       // the owner's stress case reaches it.
-      className={`card card-border bg-base-100 fixed inset-x-2 bottom-[calc(80px+env(safe-area-inset-bottom,0px))] z-30 max-h-[calc(100dvh-104px)] min-w-0 overflow-y-auto shadow-2xl md:static md:z-auto md:max-h-none md:overflow-visible md:shadow-none ${
+      className={`card card-border bg-base-100 fixed inset-x-2 bottom-[calc(80px+env(safe-area-inset-bottom,0px))] z-30 max-h-[calc(100dvh-104px)] min-w-0 overflow-y-auto shadow-2xl md:static md:z-auto md:max-h-none md:overflow-visible md:shadow-none xl:sticky xl:top-6 ${
         p.hiddenOnPhone ? "max-md:hidden" : ""
       }`}
       data-testid="day-panel"
@@ -446,7 +449,6 @@ function PageDayPanel(p: {
         <Heading
           word={copy(stage === null ? "calendar.empty.day-badge" : STAGE_FILTER_COPY_KEY[stage])}
           tone={stage === null ? "neutral" : STAGE_TONE[stage]}
-          beacon={stage === null ? undefined : STAGE_BEACON[stage]}
           date={date}
           onClose={p.onClose}
         />
