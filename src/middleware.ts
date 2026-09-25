@@ -116,10 +116,11 @@ const STRIPE_CHECKOUT = "https://checkout.stripe.com";
 const STRIPE_BILLING = "https://billing.stripe.com";
 
 /** The pages that draw a listed site by its own icon, read from the site
- *  itself where no logo is stored (#1110 §6, #1108): only there may an
+ *  itself where no logo is stored — the landing's strip and the gallery
+ *  (#1110 §6, #1108): only there may an
  *  image come from any `https:` origin. An image cannot run script, and
  *  the `<img>` sends no referrer (`scans/SiteIcon.tsx`). */
-export const SITE_ICON_PATHS: readonly string[] = ["/scans"];
+export const SITE_ICON_PATHS: readonly string[] = ["/", "/scans"];
 
 /** 16 CSPRNG bytes, base64 — inside the character class Next's own
  *  extractor accepts (`/^'nonce-([A-Za-z0-9+/_-]+={0,2})'$/`). Web Crypto

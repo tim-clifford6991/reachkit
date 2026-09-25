@@ -10,7 +10,7 @@ import { SiteIcon } from "@/app/(public)/scans/SiteIcon";
 function mount(): HTMLElement {
   const host = document.createElement("div");
   document.body.append(host);
-  act(() => createRoot(host).render(<SiteIcon domain="harbour.example" letter="H" noLogo="no logo found" />));
+  act(() => createRoot(host).render(<SiteIcon domain="harbour.example" letter="H" look="card" noLogo="no logo found" />));
   return host;
 }
 

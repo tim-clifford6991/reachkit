@@ -139,6 +139,7 @@ function LogoTile(p: { entry: GalleryEntry }): React.JSX.Element {
   return (
     <SiteIcon
       domain={p.entry.domain}
+      look="card"
       letter={Array.from(p.entry.company.trim())[0]?.toUpperCase() ?? ""}
       noLogo={copy("gallery.card.no-logo")}
     />
