@@ -21,8 +21,7 @@
 // to that). Every sentence arrives already rendered from `compose.ts`;
 // this file contains no `copy()` call and authors no string.
 import type { ReactNode } from "react";
-import { Body, Column, Container, Head, Html, Link, Row, Section, Text } from "react-email";
-import { brandMarkSvg, MARK_CHIP } from "@/lib/brand/mark";
+import { Body, Column, Container, Head, Html, Img, Link, Row, Section, Text } from "react-email";
 import { token } from "./tokens";
 
 export interface DocumentParts {
@@ -80,8 +79,15 @@ const BAND_SEPARATOR = " · ";
  *  is a spacer. */
 const SPACER = "\u00a0";
 
-/** The mark, at the size the mail head draws it. */
-const MAIL_MARK_PX = 14;
+/** The mark, at the size the mail head draws it: the 96px render, so a
+ *  3× screen still gets a sharp one. */
+const MAIL_MARK_PX = 28;
+
+/** The mark's one stable address (#1121): `scripts/brand/render.mjs`
+ *  writes it into `public/brand/` from `src/lib/brand/mark.ts`. Absolute,
+ *  because a mail has no origin of its own to resolve a path against; the
+ *  production host, because a mail outlives any preview deployment. */
+const MAIL_MARK_SRC = "https://reachkit.app/brand/mark-96.png";
 
 /**
  * The card's own head: the brand mark and the wordmark, over a hairline.
@@ -89,18 +95,11 @@ const MAIL_MARK_PX = 14;
  * **Inside the card, not above it** — S20 draws it that way, and the owner's
  * render caught this sitting outside on the page ground (2026-09-09).
  *
- * **Inline SVG over a coloured cell, and never a remote image** (#982).
- * The owner's list allows an inline SVG or a PNG at 2×; a PNG has to be
- * fetched, and an inbox blocks remote images by default — a brand that
- * depends on one is a brand most readers never see, which is why this was
- * a bare accent square before the mark existed.
- *
- * So the mark is `src/lib/brand/mark.ts`'s own SVG, inlined, sitting on a
- * cell whose background is the chip's violet at the chip's radius. A
- * client that renders SVG shows the drawing; one that strips it is left
- * with exactly the square this head showed before — the same colour, the
- * same size, the same corner. The fallback is never worse than what
- * shipped, and no request leaves the inbox either way.
+ * **An image, not inline SVG** (#1121). Gmail, Outlook and most webmail
+ * strip `<svg>`, so the inline mark #982 drew left only the violet cell it
+ * sat on — a plain square. The mark is now the PNG at its public address,
+ * with nothing painted behind it: an inbox that blocks images shows the
+ * alt text and the wordmark beside it, never a coloured square.
  */
 function BrandHead({ wordmark }: { wordmark: string }): ReactNode {
   return (
@@ -109,16 +108,12 @@ function BrandHead({ wordmark }: { wordmark: string }): ReactNode {
         <Column style={{ padding: "0 0 14px 0", borderBottom: `1px solid ${token("--color-base-300")}` }}>
           <Row>
             <Column width={MAIL_MARK_PX} style={{ width: `${MAIL_MARK_PX}px`, padding: "0 8px 0 0" }}>
-              <div
-                style={{
-                  width: `${MAIL_MARK_PX}px`,
-                  height: `${MAIL_MARK_PX}px`,
-                  borderRadius: "4px",
-                  background: MARK_CHIP,
-                  overflow: "hidden",
-                  lineHeight: 0,
-                }}
-                dangerouslySetInnerHTML={{ __html: brandMarkSvg({ size: MAIL_MARK_PX }) }}
+              <Img
+                src={MAIL_MARK_SRC}
+                width={MAIL_MARK_PX}
+                height={MAIL_MARK_PX}
+                alt={wordmark}
+                style={{ display: "block", border: 0 }}
               />
             </Column>
             <Column

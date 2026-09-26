@@ -30,8 +30,9 @@
 // beside it moves. This is the one place that colour is written.
 //
 // Every consumer reads from here: `Brand.tsx` (the screens), the share
-// cards and the tab icon under `(public)/_seo/`, and `scripts/brand/` for
-// the committed raster set. `tests/ui/design/mark-and-glyphs.test.ts` keeps
+// cards under `(public)/_seo/`, and `scripts/brand/` for the committed
+// files — the tab icons and `public/brand/`, which the manifest and the
+// mail head name. `tests/ui/design/mark-and-glyphs.test.ts` keeps
 // it the only place.
 
 /** A shape carrying no fill of its own. Named because the copy sweep
@@ -100,7 +101,7 @@ export const MARK_FADE_ID = "rk-mark-fade";
 /**
  * The mark as a standalone SVG document.
  *
- * This is what `scripts/brand/` writes to `favicon.svg` and rasterises the
+ * This is what `scripts/brand/` writes to `icon.svg` and rasterises the
  * rest of the set from, so the committed PNGs and the screens cannot come
  * to show two different marks. The React rendering in `Brand.tsx` draws
  * the same four elements; `tests/ui/design/brand-mark.test.ts` holds the

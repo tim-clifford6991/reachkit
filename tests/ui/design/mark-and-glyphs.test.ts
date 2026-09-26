@@ -156,8 +156,10 @@ describe("issue #509 — the generated mark and the S12 figure, as the set draws
     const card = read("app/(public)/_seo/og-card.tsx");
     expect(card).toMatch(/<BrandMark size=\{\d+\} \/>/);
     expect(card).not.toContain('token("--r-pill")');
+    // At the root of `app/` since #1121, so `/app` names them too.
     for (const file of ["icon.svg", "icon.ico", "apple-icon.png"]) {
-      expect(existsSync(path.join(SRC, "app/(public)", file)), file).toBe(true);
+      expect(existsSync(path.join(SRC, "app", file)), file).toBe(true);
+      expect(existsSync(path.join(SRC, "app/(public)", file)), file).toBe(false);
     }
     // And the generators they replaced are gone, not left beside them.
     for (const file of ["icon.tsx", "apple-icon.tsx"]) {

@@ -45,11 +45,19 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { normaliseHost } from "./resolve-host";
 
+// **No icon of ours** (#1121). The favicon set sits at the root of
+// `src/app/` so every ReachKit route names it, and Next hands a root icon
+// to every layout beneath — this one included. Next adds the file icons
+// only when no segment set `icons` itself (`accumulateMetadata` in
+// `next/dist/lib/metadata/resolve-metadata.js`), so an empty list here
+// means a customer's page names no ReachKit mark.
+const NO_ICONS: Metadata["icons"] = [];
+
 export async function generateMetadata(): Promise<Metadata> {
   const host = normaliseHost((await headers()).get("host") ?? "");
   // A request with no `Host` at all states no title rather than an empty
   // one — there is nothing of the visitor's to put there.
-  return host === "" ? {} : { title: host };
+  return host === "" ? { icons: NO_ICONS } : { title: host, icons: NO_ICONS };
 }
 
 export default function HostedLayout({
