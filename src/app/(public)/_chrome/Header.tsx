@@ -28,12 +28,18 @@
 // and hold no copy key; every `copy()` call below runs on the server, and
 // each leaf is handed its sentence already written.
 //
+// **Signed in** (owner 2026-09-26, #1125) *Sign in* and *Start free* give
+// way to one solid *Your dashboard* into the app, in the bar and never in
+// the drawer. The caller reads the session (`./session.ts`) and hands the
+// destination in, so this stays a plain render; no destination is the
+// signed-out header, exactly as it was.
+//
 // **The blur is a layer, not the header's own style.** `backdrop-filter` on
 // an element makes it the containing block of its fixed descendants, and
 // the drawer's panel is one: on the header itself it would open inside the
 // bar instead of over the screen.
 import type React from "react";
-import { Menu } from "lucide-react";
+import { ArrowRight, Menu } from "lucide-react";
 import Link from "next/link";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { Brand } from "@/app/_brand/Brand";
@@ -41,6 +47,7 @@ import { ThemeSwitch } from "@/app/_theme/ThemeSwitch";
 import { themeNames } from "@/app/_theme/names";
 import { HOW_SECTION_ID, WHY_SECTION_ID } from "../_landing/FieldCta";
 import { BannerDismiss, BannerLink, DrawerLinks, HeaderCopyLink, HeaderCta } from "./HeaderArm";
+import type { AppEntry } from "./session";
 
 /** Which of the copy control's two homes a render is drawing — a slot
  *  name, never a sentence. Bound to a name because the copy sweep reads a
@@ -94,9 +101,10 @@ function Banner(): React.JSX.Element {
 
 /**
  * The drawer below `lg`: the links, the report's copy control and — below
- * `sm`, where the bar has no room for them — the theme switch and *Sign in*.
+ * `sm`, where the bar has no room for them — the theme switch and *Sign in*
+ * (signed out only).
  */
-function PhoneMenu(): React.JSX.Element {
+function PhoneMenu(p: { signedIn: boolean }): React.JSX.Element {
   const names = themeNames();
   return (
     <div className="drawer drawer-end w-auto lg:hidden" data-testid="public-header-menu">
@@ -122,9 +130,11 @@ function PhoneMenu(): React.JSX.Element {
               <span className="text-sm">{names.control}</span>
               <ThemeSwitch names={names} />
             </div>
-            <Link href="/signin" className="btn btn-ghost justify-start sm:hidden">
-              {copy("chrome.nav.signin")}
-            </Link>
+            {p.signedIn ? null : (
+              <Link href="/signin" className="btn btn-ghost justify-start sm:hidden">
+                {copy("chrome.nav.signin")}
+              </Link>
+            )}
           </DrawerLinks>
         </div>
       </div>
@@ -132,7 +142,8 @@ function PhoneMenu(): React.JSX.Element {
   );
 }
 
-export function Header(): React.JSX.Element {
+export function Header(p: { entry?: AppEntry }): React.JSX.Element {
+  const entry = p.entry ?? null;
   return (
     <>
       <Banner />
@@ -158,11 +169,20 @@ export function Header(): React.JSX.Element {
             <span className="hidden sm:inline-flex" data-testid="public-header-theme">
               <ThemeSwitch names={themeNames()} />
             </span>
-            <Link href="/signin" className="btn btn-ghost btn-sm hidden sm:inline-flex">
-              {copy("chrome.nav.signin")}
-            </Link>
-            <HeaderCta label={copy("chrome.cta.start")} />
-            <PhoneMenu />
+            {entry === null ? (
+              <>
+                <Link href="/signin" className="btn btn-ghost btn-sm hidden sm:inline-flex">
+                  {copy("chrome.nav.signin")}
+                </Link>
+                <HeaderCta label={copy("chrome.cta.start")} />
+              </>
+            ) : (
+              <Link href={entry} className="btn btn-primary btn-sm" data-testid="public-header-app">
+                {copy("chrome.cta.app")}
+                <ArrowRight aria-hidden size={16} strokeWidth={1.75} />
+              </Link>
+            )}
+            <PhoneMenu signedIn={entry !== null} />
           </div>
         </nav>
       </header>

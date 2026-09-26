@@ -175,3 +175,26 @@ describe("SPEC §1, 2026-09-24 (#1066) — the banner and the nav", () => {
     expect(withoutDrawer(html)).toContain(COPY["chrome.cta.start"]);
   });
 });
+
+describe("owner 2026-09-26 (#1125) — signed in, one button into the app", () => {
+  function signedIn(path: string, entry: "/app" | "/setup"): string {
+    pathname = path;
+    return renderToStaticMarkup(<Header entry={entry} />);
+  }
+
+  it("the bar holds one solid button to /app, and neither Sign in nor Start free, anywhere in the header", () => {
+    for (const path of [LANDING, ELSEWHERE, REPORT]) {
+      const html = signedIn(path, "/app");
+      expect(primaries(html)).toHaveLength(1);
+      expect(withoutDrawer(html)).toContain(`href="/app"`);
+      expect(withoutDrawer(html)).toContain(COPY["chrome.cta.app"]);
+      expect(html).not.toContain(COPY["chrome.nav.signin"]);
+      expect(html).not.toContain(COPY["chrome.cta.start"]);
+      expect(html).not.toContain('href="/signin"');
+    }
+  });
+
+  it("an account still in setup is sent to /setup", () => {
+    expect(withoutDrawer(signedIn(ELSEWHERE, "/setup"))).toContain('href="/setup"');
+  });
+});
