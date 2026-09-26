@@ -56,6 +56,10 @@ export const CHROME_COPY = Object.freeze({
    *  (SPEC §1 2026-09-24; boards `R12-1` / `R12-3`, #1069). */
   "chrome.nav.scans": ["Free scans", { slots: {}, fixedBy: "issue 1069" }],
   "chrome.cta.start": ["Start free", { slots: {}, fixedBy: "issue 1066" }],
+  /** Signed in, the header's one solid button into the app, in place of
+   *  *Sign in* and *Start free* (owner 2026-09-26, #1125). Drafted; the
+   *  owner's word is "dashboard". The arrow is the button's icon. */
+  "chrome.cta.app": ["Your dashboard", { slots: {}, fixedBy: "issue 1125" }],
   /** The dismissible banner above every public header (#1066). The one
    *  line the owner edits is `chrome.banner`; the tag, the region's name
    *  and the close button's name are the board's words. Its link is the

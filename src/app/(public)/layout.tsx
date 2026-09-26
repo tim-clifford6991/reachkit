@@ -42,22 +42,29 @@
 // keep offering the landing's field on a screen that has no field. What
 // changed is *who* reads it — `_chrome/HeaderArm.tsx`, two client leaves
 // that hold no copy key, below a server-rendered bar.
+//
+// **Owner 2026-09-26 (#1125): the header knows who is signed in.** Still no
+// session is *required* here; `_chrome/session.ts` only reads whether one is
+// present, so a signed-in customer gets one button into the app in place of
+// *Sign in* and *Start free*. Public pages already render per request (the
+// CSP nonce), so the read costs no cache and paints no second state.
 import type React from "react";
 import { Header } from "./_chrome/Header";
+import { appEntry } from "./_chrome/session";
 import { Footer } from "./_chrome/Footer";
 import { ENTER_PUBLIC } from "@/ui/motion";
 
-export default function PublicLayout({
+export default async function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
-}): React.JSX.Element {
+}): Promise<React.JSX.Element> {
   return (
     // A column at least the viewport tall, so the footer sits at the bottom
     // of a short page. `data-public-shell` is the hook `surface.css` reads
     // to let a declared screen (sign-in) fill what the chrome leaves.
     <div data-public-shell className={`flex min-h-svh flex-col ${ENTER_PUBLIC}`}>
-      <Header />
+      <Header entry={await appEntry()} />
       {children}
       <Footer />
     </div>
