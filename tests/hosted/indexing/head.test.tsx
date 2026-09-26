@@ -290,19 +290,27 @@ describe("#980 — a hosted response with no title of its own carries the visito
   it("the layout titles the response with the host, exactly as it arrived", async () => {
     const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/layout");
     state.host = "content.example.com";
-    expect(await layoutMetadata()).toEqual({ title: "content.example.com" });
+    expect(await layoutMetadata()).toEqual({ title: "content.example.com", icons: [] });
   });
 
   it("a port and a trailing dot are not part of the name", async () => {
     const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/layout");
     state.host = "Content.Example.com.:3000";
-    expect(await layoutMetadata()).toEqual({ title: "content.example.com" });
+    expect((await layoutMetadata()).title).toBe("content.example.com");
   });
 
   it("a request with no Host states no title rather than an empty one", async () => {
     const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/layout");
     state.host = "";
-    expect(await layoutMetadata()).toEqual({});
+    expect(await layoutMetadata()).toEqual({ icons: [] });
+  });
+
+  // #1121: the favicon set sits at the root of `app/` so every ReachKit
+  // route names it; an empty `icons` keeps it off a customer's domain.
+  it("the layout names no icon, so a customer's page carries no ReachKit mark", async () => {
+    const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/layout");
+    state.host = "content.example.com";
+    expect((await layoutMetadata()).icons).toEqual([]);
   });
 
   it("a published page's own title still wins — the layout's is only the floor", async () => {

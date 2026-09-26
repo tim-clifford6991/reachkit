@@ -283,16 +283,17 @@ describe("the favicon set and the manifest ship, and no file is owed to the owne
     "src/app/manifest.ts",
   ];
 
-  /** The committed set (#982). `icon` and `apple-icon` take image files in
-   *  any segment, so these sit in the `(public)` group for the reason
-   *  `icon.tsx` did: a `favicon.ico` at the root of `app/`, or anything in
-   *  `public/`, is served on every host this deployment answers — including
-   *  the `content.` host a customer's own page comes from, which BUILD §9
-   *  and §14's guardrail 6 forbid. */
+  /** The committed set (#982, #1121): Next's icon convention at the root
+   *  of `app/`, so every route names it, and the stable files third
+   *  parties read. All of it is written by `scripts/brand/render.mjs`. */
   const COMMITTED = [
-    "src/app/(public)/icon.svg",
-    "src/app/(public)/icon.ico",
-    "src/app/(public)/apple-icon.png",
+    "src/app/icon.svg",
+    "src/app/icon.ico",
+    "src/app/apple-icon.png",
+    ...["mark.svg", "mark-bimi.svg", "mark-maskable-512.png", "logo.png", "logo@2x.png", "logo-dark.png"].map(
+      (file) => `public/brand/${file}`
+    ),
+    ...[32, 96, 192, 512, 1024].map((size) => `public/brand/mark-${size}.png`),
   ];
 
   for (const file of [...GENERATED, ...COMMITTED]) {
@@ -301,37 +302,28 @@ describe("the favicon set and the manifest ship, and no file is owed to the owne
     });
   }
 
-  it("no owner-supplied asset is needed: every one is made from the drawing", () => {
-    // **The rule changed shape, not substance** (#982). It used to be
-    // "rendered rather than committed, so the colour has one home instead
-    // of being baked into bytes no check can read" — and the icons are
-    // committed now, because the owner's ruling asks for a real `.ico` and
-    // a real 180px PNG, which `ImageResponse` cannot serve.
-    //
-    // The reason that rule gave is what the row below answers: the bytes
-    // *are* checkable. They come from `scripts/brand/render.mjs`, which
-    // reads `src/lib/brand/mark.ts` — the one drawing — and whose
-    // `--check` re-renders and compares. What is still true is the
-    // Done-when it was written for: nothing here is a file the owner has
-    // to supply.
-    expect(existsSync(path.join(REPO_ROOT, "scripts/brand/render.mjs"))).toBe(true);
-    // And nothing is in `public/`, which would reach a customer's host.
-    expect(existsSync(path.join(REPO_ROOT, "public"))).toBe(false);
-  });
-
-  it("the committed SVG is the drawing, byte for byte", async () => {
+  it("the committed SVGs are the drawing, byte for byte — a changed mark.ts fails until re-rendered", async () => {
     const { brandMarkSvg } = (await import("@/lib/brand/mark")) as {
       brandMarkSvg: () => string;
     };
-    const committed = readFileSync(path.join(REPO_ROOT, "src/app/(public)/icon.svg"), "utf8");
-    expect(committed.trim()).toBe(brandMarkSvg());
+    for (const file of ["src/app/icon.svg", "public/brand/mark.svg"]) {
+      expect(readFileSync(path.join(REPO_ROOT, file), "utf8").trim(), file).toBe(brandMarkSvg());
+    }
+  });
+
+  it("the BIMI mark is SVG Tiny PS: square, titled, no script or outside reference", () => {
+    const bimi = readFileSync(path.join(REPO_ROOT, "public/brand/mark-bimi.svg"), "utf8");
+    expect(bimi).toContain('baseProfile="tiny-ps"');
+    expect(bimi).toContain("<title>ReachKit</title>");
+    expect(bimi).toMatch(/viewBox="0 0 (\d+) \1"/);
+    expect(bimi).not.toMatch(/<script|<image|href=|clipPath/);
   });
 
   it("the committed .ico holds the two sizes a browser asks a tab for", () => {
     // ICO: a 6-byte header (reserved, type 1, count), then one 16-byte
     // directory entry per image. Byte 0 of an entry is its width, and 0
     // means 256 — which is why the sizes are read and not assumed.
-    const ico = readFileSync(path.join(REPO_ROOT, "src/app/(public)/icon.ico"));
+    const ico = readFileSync(path.join(REPO_ROOT, "src/app/icon.ico"));
     expect(ico.readUInt16LE(0)).toBe(0);
     expect(ico.readUInt16LE(2)).toBe(1);
     const count = ico.readUInt16LE(4);
@@ -339,12 +331,19 @@ describe("the favicon set and the manifest ship, and no file is owed to the owne
     expect(sizes.sort((a, b) => a - b)).toEqual([16, 32]);
   });
 
-  it("the apple icon is the 180 iOS asks for, and a PNG", () => {
-    const png = readFileSync(path.join(REPO_ROOT, "src/app/(public)/apple-icon.png"));
-    expect(png.subarray(1, 4).toString()).toBe("PNG");
-    // IHDR's width and height, big-endian, at a fixed offset in every PNG.
-    expect(png.readUInt32BE(16)).toBe(180);
-    expect(png.readUInt32BE(20)).toBe(180);
+  it("every PNG is the size its name or the manifest says", async () => {
+    const { default: manifest } = await import("@/app/manifest");
+    const sized = (file: string, size: number) => {
+      const png = readFileSync(path.join(REPO_ROOT, file));
+      expect(png.subarray(1, 4).toString(), file).toBe("PNG");
+      // IHDR's width and height, big-endian, at a fixed offset in every PNG.
+      expect([png.readUInt32BE(16), png.readUInt32BE(20)], file).toEqual([size, size]);
+    };
+    sized("src/app/apple-icon.png", 180);
+    for (const size of [32, 96, 192, 512, 1024]) sized(`public/brand/mark-${size}.png`, size);
+    const icons = manifest().icons ?? [];
+    expect(icons.map((icon) => icon.purpose)).toEqual(["any", "any", "maskable"]);
+    for (const icon of icons) sized(`public${icon.src}`, Number(icon.sizes?.split("x")[0]));
   });
 
   it("both share images declare the Open Graph canvas, a type and non-empty alt text", async () => {

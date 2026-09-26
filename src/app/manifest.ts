@@ -6,8 +6,8 @@
 // `^[\\/]manifest…` in `next/dist/lib/metadata/is-metadata-route.js` — so a
 // `manifest.ts` inside a route group is not recognised as a metadata route
 // at all and is silently never served. `icon` and `opengraph-image` are
-// matched unanchored, which is why those three files live under `(public)`
-// where they belong and this one does not.
+// matched unanchored; the icons sit beside this file at the root so every
+// route names them (#1121), and the share image stays under `(public)`.
 //
 // The cost of the root is that Next writes `<link rel="manifest">` into
 // every route's document, `(hosted)` included. Nothing of ours is served
@@ -26,14 +26,12 @@
 // holds equal to `src/ui/theme.css`, for the same reason a mail reads it:
 // a manifest is JSON and resolves no custom property.
 //
-// **It names no icons.** The two the product draws are
-// `(public)/icon.tsx` and `(public)/apple-icon.tsx`, and Next gives a
-// metadata route under a route group a six-character build-time hash in
-// its address (`/icon-<hash>`), which is not an address this file can
-// know. The `<link rel="icon">` and `<link rel="apple-touch-icon">` tags
-// Next writes from those two conventions are what a browser actually reads
-// for a tab and a home screen; a guessed path here would be a broken icon
-// reference, which is worse than an absent one.
+// **Its icons are the stable files under `public/brand/`** (#1121), which
+// `scripts/brand/render.mjs` writes from `src/lib/brand/mark.ts`. Next's
+// own `icon` convention gives no fixed address a manifest can name; these
+// have one. Without them Android draws its own tile — the plain violet
+// square the owner saw. The maskable one is the chip to the edge with the
+// dome inside the 80% safe zone, for launchers that crop to their shape.
 import type { MetadataRoute } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { token } from "@/lib/mail/shell/tokens";
@@ -47,5 +45,10 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     background_color: token("--bg"),
     theme_color: token("--color-primary"),
+    icons: [
+      { src: "/brand/mark-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/brand/mark-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/brand/mark-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+    ],
   };
 }
