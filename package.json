@@ -20,7 +20,8 @@
     "land": "bash scripts/land.sh",
     "typecheck": "tsc --noEmit",
     "db:types": "bash scripts/db-substrate/gen-types.sh > src/lib/db/types.generated.ts",
-    "proof:live-drafts": "node scripts/live-drafts/run.mjs"
+    "proof:live-drafts": "node scripts/live-drafts/run.mjs",
+    "eval:content": "node scripts/eval-content.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.123.0",

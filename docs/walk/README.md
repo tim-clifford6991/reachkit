@@ -11,6 +11,7 @@ Where it quotes GO-LIVE or RUNBOOK and they disagree, those pages are right and 
 | `docs/walk/findings-form.md` | the tester fills it in; the owner files it | during the walk, one block per step |
 | `docs/walk/watch.md` | the owner | open in a second window for the whole walk |
 | `docs/walk/refund.md` | the owner | after the walk ends |
+| `docs/walk/content-eval.md` | whoever changes generation (#1127) | rewritten by `npm run eval:content -- --run`; not part of the walk |
 
 ## Readiness — what must be true before the walk starts
 

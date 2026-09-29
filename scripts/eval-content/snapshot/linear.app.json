@@ -1,0 +1,1961 @@
+{
+  "domain": "linear.app",
+  "scan": {
+    "id": "dfd1fc3c-aaf0-421f-8204-7f7379679575",
+    "tier": "free",
+    "status": "done",
+    "finishedAt": "2026-09-18T14:12:48.143Z"
+  },
+  "report": {
+    "tier": "free",
+    "serps": [
+      {
+        "at": "2026-09-18T14:12:36.608Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.icagile.com/resources/honest-review-of-6-personal-project-management-tools-with-kanban-view",
+              "title": "Honest Review of 6 Personal Project Management Tools ...",
+              "domain": "www.icagile.com",
+              "position": 1
+            },
+            {
+              "url": "https://www.reddit.com/r/projectmanagement/comments/1b0lfvi/what_is_the_best_free_project_management_tool/",
+              "title": "What is the best free project management tool, specifically ...",
+              "domain": "www.reddit.com",
+              "position": 2
+            },
+            {
+              "url": "https://www.openproject.org/",
+              "title": "OpenProject - Open Source Project Management Software",
+              "domain": "www.openproject.org",
+              "position": 3
+            },
+            {
+              "url": "https://project-management.com/free-project-management-software-tools/",
+              "title": "Best Free Project Management Tools in 2026: My Top 10 ...",
+              "domain": "project-management.com",
+              "position": 4
+            },
+            {
+              "url": "https://freedcamp.com/",
+              "title": "Freedcamp - Free Project Management",
+              "domain": "freedcamp.com",
+              "position": 5
+            },
+            {
+              "url": "https://www.atlassian.com/software/jira/features/free-project-management-software",
+              "title": "Free Project Management Software",
+              "domain": "www.atlassian.com",
+              "position": 6
+            },
+            {
+              "url": "https://zapier.com/blog/free-project-management-software/",
+              "title": "The best free project management software in 2026",
+              "domain": "zapier.com",
+              "position": 7
+            },
+            {
+              "url": "https://www.celoxis.com/article/free-project-management-software",
+              "title": "11+ Best Free Project Management Software 2026",
+              "domain": "www.celoxis.com",
+              "position": 8
+            },
+            {
+              "url": "https://www.projectmanager.com/",
+              "title": "Project & Work Management Software - ProjectManager",
+              "domain": "www.projectmanager.com",
+              "position": 9
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "www.icagile.com",
+              "zapier.com",
+              "www.openproject.org",
+              "www.youtube.com",
+              "www.airtable.com",
+              "www.pcmag.com"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      },
+      {
+        "at": "2026-09-18T14:12:41.752Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.icagile.com/resources/honest-review-of-6-personal-project-management-tools-with-kanban-view",
+              "title": "Honest Review of 6 Personal Project Management Tools ...",
+              "domain": "www.icagile.com",
+              "position": 1
+            },
+            {
+              "url": "https://www.reddit.com/r/projectmanagement/comments/1b0lfvi/what_is_the_best_free_project_management_tool/",
+              "title": "What is the best free project management tool, specifically ...",
+              "domain": "www.reddit.com",
+              "position": 2
+            },
+            {
+              "url": "https://www.openproject.org/",
+              "title": "OpenProject - Open Source Project Management Software",
+              "domain": "www.openproject.org",
+              "position": 3
+            },
+            {
+              "url": "https://project-management.com/free-project-management-software-tools/",
+              "title": "Best Free Project Management Tools in 2026: My Top 10 ...",
+              "domain": "project-management.com",
+              "position": 4
+            },
+            {
+              "url": "https://freedcamp.com/",
+              "title": "Freedcamp - Free Project Management",
+              "domain": "freedcamp.com",
+              "position": 5
+            },
+            {
+              "url": "https://www.atlassian.com/software/jira/features/free-project-management-software",
+              "title": "Free Project Management Software",
+              "domain": "www.atlassian.com",
+              "position": 6
+            },
+            {
+              "url": "https://zapier.com/blog/free-project-management-software/",
+              "title": "The best free project management software in 2026",
+              "domain": "zapier.com",
+              "position": 7
+            },
+            {
+              "url": "https://www.projectmanager.com/",
+              "title": "Project & Work Management Software - ProjectManager",
+              "domain": "www.projectmanager.com",
+              "position": 8
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "www.icagile.com",
+              "zapier.com",
+              "www.openproject.org",
+              "www.youtube.com",
+              "www.airtable.com",
+              "www.pcmag.com"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      },
+      {
+        "at": "2026-09-18T14:12:41.752Z",
+        "kind": "unmeasured",
+        "reason": "undeterminable",
+        "because": "timeout"
+      },
+      {
+        "at": "2026-09-18T14:12:41.751Z",
+        "kind": "unmeasured",
+        "reason": "undeterminable",
+        "because": "timeout"
+      }
+    ],
+    "domain": "linear.app",
+    "market": {
+      "at": "2026-09-18T14:12:24.079Z",
+      "kind": "measured",
+      "value": {
+        "pool": [
+          {
+            "rival": null,
+            "volume": 70,
+            "keyword": "add linear mcp to claude code",
+            "difficulty": 1
+          },
+          {
+            "rival": null,
+            "volume": 50,
+            "keyword": "claude code linear integration",
+            "difficulty": 0
+          },
+          {
+            "rival": null,
+            "volume": 110,
+            "keyword": "claude code linear mcp",
+            "difficulty": 3
+          },
+          {
+            "rival": null,
+            "volume": 70,
+            "keyword": "claude linear",
+            "difficulty": 0
+          },
+          {
+            "rival": null,
+            "volume": 50,
+            "keyword": "claude linear integration",
+            "difficulty": 0
+          },
+          {
+            "rival": null,
+            "volume": 110,
+            "keyword": "claude linear mcp",
+            "difficulty": 4
+          },
+          {
+            "rival": null,
+            "volume": 50,
+            "keyword": "codex linear mcp",
+            "difficulty": 0
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "coding sessions",
+            "difficulty": 10
+          },
+          {
+            "rival": null,
+            "volume": 90,
+            "keyword": "cursor linear",
+            "difficulty": 7
+          },
+          {
+            "rival": null,
+            "volume": 70,
+            "keyword": "cursor linear integration",
+            "difficulty": 1
+          },
+          {
+            "rival": null,
+            "volume": 70,
+            "keyword": "cursor linear mcp",
+            "difficulty": 1
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "customer requests linear",
+            "difficulty": 5
+          },
+          {
+            "rival": null,
+            "volume": 880,
+            "keyword": "download linear",
+            "difficulty": 19
+          },
+          {
+            "rival": null,
+            "volume": 90,
+            "keyword": "download linear app",
+            "difficulty": 14
+          },
+          {
+            "rival": null,
+            "volume": 40,
+            "keyword": "github linear",
+            "difficulty": 14
+          },
+          {
+            "rival": null,
+            "volume": 40,
+            "keyword": "github linear integration",
+            "difficulty": 8
+          },
+          {
+            "rival": null,
+            "volume": 140,
+            "keyword": "how to use linear",
+            "difficulty": 10
+          },
+          {
+            "rival": null,
+            "volume": 40,
+            "keyword": "integration linear",
+            "difficulty": 0
+          },
+          {
+            "rival": null,
+            "volume": 390,
+            "keyword": "is linear",
+            "difficulty": 16
+          },
+          {
+            "rival": null,
+            "volume": 110,
+            "keyword": "is linear free",
+            "difficulty": 4
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "jira linear",
+            "difficulty": 0
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "jira to linear migration",
+            "difficulty": 0
+          },
+          {
+            "rival": null,
+            "volume": 90500,
+            "keyword": "linear",
+            "difficulty": 16
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "linear account",
+            "difficulty": 10
+          },
+          {
+            "rival": null,
+            "volume": 720,
+            "keyword": "linear agent",
+            "difficulty": 5
+          },
+          {
+            "rival": null,
+            "volume": 720,
+            "keyword": "linear agents",
+            "difficulty": 18
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "linear ai agent",
+            "difficulty": 10
+          },
+          {
+            "rival": null,
+            "volume": 70,
+            "keyword": "linear ai agents",
+            "difficulty": 5
+          },
+          {
+            "rival": null,
+            "volume": 90,
+            "keyword": "linear ai tool",
+            "difficulty": 38
+          },
+          {
+            "rival": null,
+            "volume": 720,
+            "keyword": "linear api",
+            "difficulty": 24
+          },
+          {
+            "rival": null,
+            "volume": 110,
+            "keyword": "linear api docs",
+            "difficulty": 13
+          },
+          {
+            "rival": null,
+            "volume": 70,
+            "keyword": "linear api documentation",
+            "difficulty": 7
+          },
+          {
+            "rival": null,
+            "volume": 320,
+            "keyword": "linear api key",
+            "difficulty": 7
+          },
+          {
+            "rival": null,
+            "volume": 6600,
+            "keyword": "linear app",
+            "difficulty": 17
+          },
+          {
+            "rival": null,
+            "volume": 20,
+            "keyword": "linear app ai",
+            "difficulty": 36
+          },
+          {
+            "rival": null,
+            "volume": 50,
+            "keyword": "linear app api",
+            "difficulty": 22
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "linear app blog",
+            "difficulty": 21
+          },
+          {
+            "rival": null,
+            "volume": 90,
+            "keyword": "linear app careers",
+            "difficulty": 8
+          },
+          {
+            "rival": null,
+            "volume": 40,
+            "keyword": "linear app cli",
+            "difficulty": 22
+          },
+          {
+            "rival": null,
+            "volume": 40,
+            "keyword": "linear app dashboard",
+            "difficulty": 4
+          },
+          {
+            "rival": null,
+            "volume": 110,
+            "keyword": "linear app demo",
+            "difficulty": 17
+          },
+          {
+            "rival": null,
+            "volume": 40,
+            "keyword": "linear app design",
+            "difficulty": 14
+          },
+          {
+            "rival": null,
+            "volume": 40,
+            "keyword": "linear app docs",
+            "difficulty": 18
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "linear app documentation",
+            "difficulty": 19
+          },
+          {
+            "rival": null,
+            "volume": 320,
+            "keyword": "linear app download",
+            "difficulty": 14
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "linear app download mac",
+            "difficulty": 13
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "linear app for mac",
+            "difficulty": 18
+          },
+          {
+            "rival": null,
+            "volume": 320,
+            "keyword": "linear app icon",
+            "difficulty": 0
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "linear app integrations",
+            "difficulty": 0
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "linear app jobs",
+            "difficulty": 11
+          }
+        ],
+        "profile": {
+          "job": "plan, track, and ship product development work as a team",
+          "category": "project management software",
+          "vocabulary": [
+            "issues",
+            "project management",
+            "product planning",
+            "roadmaps",
+            "cycles",
+            "initiatives",
+            "code reviews",
+            "triage",
+            "workflows",
+            "agent workflows",
+            "intake",
+            "backlog"
+          ],
+          "brandTokens": [
+            "Linear",
+            "Linear Agent",
+            "Loops",
+            "Triage Intelligence",
+            "Linear Pulse"
+          ],
+          "namedRivals": [],
+          "offeringType": "SaaS platform",
+          "audienceTerms": [
+            "product teams",
+            "engineering teams",
+            "AI-native teams",
+            "fast-moving startups"
+          ]
+        },
+        "suggestions": [
+          {
+            "volume": 9900,
+            "keyword": "agile software project management",
+            "difficulty": 47
+          },
+          {
+            "volume": 9900,
+            "keyword": "project management agile software",
+            "difficulty": 26
+          },
+          {
+            "volume": 9900,
+            "keyword": "agile software development project management",
+            "difficulty": 54
+          },
+          {
+            "volume": 8100,
+            "keyword": "project management software cloud",
+            "difficulty": 51
+          },
+          {
+            "volume": 8100,
+            "keyword": "project management software building industry",
+            "difficulty": 39
+          },
+          {
+            "volume": 8100,
+            "keyword": "cloud project management software",
+            "difficulty": 38
+          },
+          {
+            "volume": 8100,
+            "keyword": "project management software for construction",
+            "difficulty": 19
+          },
+          {
+            "volume": 8100,
+            "keyword": "project management software for construction projects",
+            "difficulty": 39
+          },
+          {
+            "volume": 8100,
+            "keyword": "project management cloud based software",
+            "difficulty": 51
+          },
+          {
+            "volume": 8100,
+            "keyword": "builder project management software",
+            "difficulty": 36
+          },
+          {
+            "volume": 8100,
+            "keyword": "construction and project management software",
+            "difficulty": 39
+          },
+          {
+            "volume": 8100,
+            "keyword": "project management cloud software",
+            "difficulty": 51
+          },
+          {
+            "volume": 8100,
+            "keyword": "project management construction software",
+            "difficulty": 19
+          },
+          {
+            "volume": 8100,
+            "keyword": "software construction project management",
+            "difficulty": 19
+          },
+          {
+            "volume": 8100,
+            "keyword": "project management software for building construction",
+            "difficulty": 22
+          },
+          {
+            "volume": 8100,
+            "keyword": "build project management software",
+            "difficulty": 34
+          },
+          {
+            "volume": 8100,
+            "keyword": "project management software construction",
+            "difficulty": 19
+          },
+          {
+            "volume": 8100,
+            "keyword": "software for project management construction",
+            "difficulty": 19
+          },
+          {
+            "volume": 8100,
+            "keyword": "project management software in construction",
+            "difficulty": 19
+          },
+          {
+            "volume": 6600,
+            "keyword": "project management software jira",
+            "difficulty": 38
+          },
+          {
+            "volume": 6600,
+            "keyword": "jira software project management",
+            "difficulty": 40
+          },
+          {
+            "volume": 6600,
+            "keyword": "jira project management software",
+            "difficulty": 40
+          },
+          {
+            "volume": 4400,
+            "keyword": "free software for project management",
+            "difficulty": 45
+          },
+          {
+            "volume": 4400,
+            "keyword": "project management software free",
+            "difficulty": 56
+          },
+          {
+            "volume": 4400,
+            "keyword": "free management project software",
+            "difficulty": 45
+          },
+          {
+            "volume": 4400,
+            "keyword": "software free project management",
+            "difficulty": 45
+          },
+          {
+            "volume": 4400,
+            "keyword": "free it project management software",
+            "difficulty": 47
+          },
+          {
+            "volume": 4400,
+            "keyword": "free project management software",
+            "difficulty": 45
+          },
+          {
+            "volume": 4400,
+            "keyword": "free software project management software",
+            "difficulty": 45
+          },
+          {
+            "volume": 4400,
+            "keyword": "software for project management free",
+            "difficulty": 45
+          },
+          {
+            "volume": 4400,
+            "keyword": "project software management free",
+            "difficulty": 45
+          },
+          {
+            "volume": 4400,
+            "keyword": "project management software for free",
+            "difficulty": 45
+          },
+          {
+            "volume": 4400,
+            "keyword": "management project software free",
+            "difficulty": 45
+          },
+          {
+            "volume": 4400,
+            "keyword": "free software project management",
+            "difficulty": 45
+          },
+          {
+            "volume": 4400,
+            "keyword": "monday com project management software",
+            "difficulty": 33
+          },
+          {
+            "volume": 4400,
+            "keyword": "monday.com project management software",
+            "difficulty": 33
+          },
+          {
+            "volume": 3600,
+            "keyword": "project management software tasks",
+            "difficulty": 51
+          },
+          {
+            "volume": 3600,
+            "keyword": "project management software best",
+            "difficulty": 34
+          },
+          {
+            "volume": 3600,
+            "keyword": "ppm project management software",
+            "difficulty": 39
+          },
+          {
+            "volume": 3600,
+            "keyword": "good project management software",
+            "difficulty": 34
+          },
+          {
+            "volume": 3600,
+            "keyword": "best project management software",
+            "difficulty": 34
+          },
+          {
+            "volume": 3600,
+            "keyword": "project management software task",
+            "difficulty": 51
+          },
+          {
+            "volume": 3600,
+            "keyword": "project portfolio management software",
+            "difficulty": 26
+          },
+          {
+            "volume": 3600,
+            "keyword": "best rated project management software",
+            "difficulty": 34
+          },
+          {
+            "volume": 3600,
+            "keyword": "ppm project portfolio management software",
+            "difficulty": 20
+          },
+          {
+            "volume": 3600,
+            "keyword": "portfolio and project management software",
+            "difficulty": 26
+          },
+          {
+            "volume": 3600,
+            "keyword": "project management portfolio software",
+            "difficulty": 25
+          },
+          {
+            "volume": 3600,
+            "keyword": "project portfolio management ppm software",
+            "difficulty": 20
+          },
+          {
+            "volume": 3600,
+            "keyword": "project and portfolio management software",
+            "difficulty": 26
+          },
+          {
+            "volume": 3600,
+            "keyword": "project management best software",
+            "difficulty": 34
+          }
+        ],
+        "totalVolume": 291100
+      }
+    },
+    "onPage": {
+      "at": "2026-09-18T14:12:24.079Z",
+      "kind": "measured",
+      "value": {
+        "url": "https://linear.app/",
+        "dates": 17,
+        "noindex": false,
+        "headings": 16,
+        "numerals": 129,
+        "schemaTypes": [],
+        "visibleChars": 10302,
+        "outboundCitations": 4,
+        "openGraphProperties": [
+          "og:title",
+          "og:description",
+          "og:image"
+        ],
+        "directAnswerHeadings": 0,
+        "questionShapedHeadings": 0,
+        "noindexAppliesToEveryReader": false
+      }
+    },
+    "rivals": {
+      "at": "2026-09-18T14:12:35.400Z",
+      "kind": "measured",
+      "value": [
+        {
+          "score": 6,
+          "domain": "icagile.com",
+          "aiCitations": 2,
+          "top10Appearances": 2
+        },
+        {
+          "score": 6,
+          "domain": "openproject.org",
+          "aiCitations": 2,
+          "top10Appearances": 2
+        },
+        {
+          "score": 6,
+          "domain": "zapier.com",
+          "aiCitations": 2,
+          "top10Appearances": 2
+        },
+        {
+          "score": 4,
+          "domain": "airtable.com",
+          "aiCitations": 2,
+          "top10Appearances": 0
+        },
+        {
+          "score": 4,
+          "domain": "pcmag.com",
+          "aiCitations": 2,
+          "top10Appearances": 0
+        }
+      ]
+    },
+    "robots": {
+      "at": "2026-09-18T14:12:24.079Z",
+      "kind": "measured",
+      "value": {
+        "ok": true,
+        "rules": {
+          "*": [
+            {
+              "allow": false,
+              "pattern": "/api/"
+            },
+            {
+              "allow": false,
+              "pattern": "/cdn-cgi/"
+            },
+            {
+              "allow": true,
+              "pattern": "/api/og/"
+            }
+          ]
+        },
+        "absent": false,
+        "origin": "https://linear.app",
+        "readAt": "2026-09-18T14:12:24.085Z",
+        "sitemaps": [
+          "https://linear.app/sitemap.xml"
+        ],
+        "disallowsAll": false,
+        "disallowedAgents": {
+          "*": false
+        },
+        "crawlDelaySeconds": {}
+      }
+    },
+    "scanId": "dfd1fc3c-aaf0-421f-8204-7f7379679575",
+    "supply": {
+      "missingPages": {
+        "at": "2026-09-18T14:12:24.079Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+      },
+      "unquotablePages": {
+        "at": "2026-09-18T14:12:24.079Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+      }
+    },
+    "sources": [
+      "reddit.com",
+      "youtube.com"
+    ],
+    "verdict": {
+      "domain": "linear.app",
+      "factors": {
+        "presence": {
+          "at": "2026-09-18T14:12:24.079Z",
+          "kind": "measured",
+          "value": 8.740366789625787
+        },
+        "foundations": {
+          "at": "2026-09-18T14:12:24.079Z",
+          "kind": "measured",
+          "value": 87.5
+        },
+        "answerability": {
+          "at": "2026-09-18T14:12:24.079Z",
+          "kind": "measured",
+          "value": 29.20098258513495
+        }
+      },
+      "missing": [],
+      "limiting": {
+        "kind": "factor",
+        "factor": "presence"
+      },
+      "measuredAt": "2026-09-18T14:12:24.079Z",
+      "scoreAndBand": {
+        "at": "2026-09-18T14:12:24.079Z",
+        "kind": "measured",
+        "value": {
+          "band": "hard-to-find",
+          "score": 28
+        }
+      },
+      "blockedReaders": {
+        "at": "2026-09-18T14:12:24.079Z",
+        "kind": "zero",
+        "value": 0
+      },
+      "unmeasuredElsewhere": []
+    },
+    "version": 10,
+    "complete": true,
+    "freePage": {
+      "slug": {
+        "text": "free-it-project-management-software",
+        "source": "model"
+      },
+      "beats": "icagile.com",
+      "title": {
+        "text": "What free IT project management software options are available?",
+        "source": "model"
+      },
+      "format": "answer_page",
+      "target": {
+        "volume": 4400,
+        "keyword": "free it project management software"
+      },
+      "totalPages": 2,
+      "opportunityId": "dfd1fc3c-aaf0-421f-8204-7f7379679575:free-it-project-management-software"
+    },
+    "presence": {
+      "you": {
+        "domain": "linear.app",
+        "top10Count": 0
+      },
+      "rivals": [
+        {
+          "domain": "icagile.com",
+          "top10Count": 2
+        },
+        {
+          "domain": "openproject.org",
+          "top10Count": 2
+        },
+        {
+          "domain": "zapier.com",
+          "top10Count": 2
+        },
+        {
+          "domain": "airtable.com",
+          "top10Count": 0
+        },
+        {
+          "domain": "pcmag.com",
+          "top10Count": 0
+        }
+      ],
+      "framing": "shown",
+      "absentFrom": [
+        {
+          "volume": 4400,
+          "keyword": "free it project management software",
+          "topHolder": "icagile.com"
+        },
+        {
+          "volume": 4400,
+          "keyword": "free software project management software",
+          "topHolder": "icagile.com"
+        }
+      ],
+      "measuredSearches": 2
+    },
+    "aiAnswers": {
+      "rows": [
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "icagile.com",
+              "zapier.com",
+              "openproject.org",
+              "youtube.com",
+              "airtable.com",
+              "pcmag.com"
+            ],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "icagile.com",
+                  "zapier.com",
+                  "openproject.org",
+                  "youtube.com",
+                  "airtable.com",
+                  "pcmag.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 1,
+            "search": "free it project management software",
+            "wording": {
+              "text": "What free IT project management software options are available?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "icagile.com",
+              "zapier.com",
+              "openproject.org",
+              "youtube.com",
+              "airtable.com",
+              "pcmag.com"
+            ],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "icagile.com",
+                  "zapier.com",
+                  "openproject.org",
+                  "youtube.com",
+                  "airtable.com",
+                  "pcmag.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 2,
+            "search": "free software project management software",
+            "wording": {
+              "text": "What free software project management tools can I use?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "unmeasured",
+            "reason": "undeterminable",
+            "because": "timeout"
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "undeterminable",
+                "because": "timeout"
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 3,
+            "search": "best project management software",
+            "wording": {
+              "text": "What is the best project management software?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "unmeasured",
+            "reason": "undeterminable",
+            "because": "timeout"
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "undeterminable",
+                "because": "timeout"
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 4,
+            "search": "good project management software",
+            "wording": {
+              "text": "What is good project management software?",
+              "source": "model"
+            }
+          }
+        }
+      ],
+      "rivals": [
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "icagile.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "icagile.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable",
+              "because": "timeout"
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable",
+              "because": "timeout"
+            }
+          ],
+          "domain": "icagile.com"
+        },
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "openproject.org"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "openproject.org"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable",
+              "because": "timeout"
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable",
+              "because": "timeout"
+            }
+          ],
+          "domain": "openproject.org"
+        },
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "zapier.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "zapier.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable",
+              "because": "timeout"
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable",
+              "because": "timeout"
+            }
+          ],
+          "domain": "zapier.com"
+        },
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "airtable.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "airtable.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable",
+              "because": "timeout"
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable",
+              "because": "timeout"
+            }
+          ],
+          "domain": "airtable.com"
+        },
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "pcmag.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "pcmag.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable",
+              "because": "timeout"
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable",
+              "because": "timeout"
+            }
+          ],
+          "domain": "pcmag.com"
+        }
+      ],
+      "coverage": "async_included",
+      "ownDomain": "linear.app",
+      "measuredAt": "2026-09-18T14:12:35.400Z",
+      "answeredSearches": 2,
+      "measuredSearches": 2,
+      "customerCitations": 0
+    },
+    "coherence": {
+      "verdict": "unjudgeable",
+      "measuredCount": 2
+    },
+    "ownRanked": {
+      "at": "2026-09-18T14:12:24.079Z",
+      "kind": "measured",
+      "value": 1136
+    },
+    "questions": {
+      "at": "2026-09-18T14:12:35.400Z",
+      "kind": "measured",
+      "value": [
+        {
+          "id": "q1",
+          "text": "What free IT project management software options are available?",
+          "search": {
+            "rank": 1,
+            "floor": 50,
+            "score": 10.930654105688834,
+            "intent": "solution",
+            "volume": 4400,
+            "keyword": "free it project management software",
+            "difficulty": 47
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q2",
+          "text": "What free software project management tools can I use?",
+          "search": {
+            "rank": 2,
+            "floor": 50,
+            "score": 10.930654105688834,
+            "intent": "solution",
+            "volume": 4400,
+            "keyword": "free software project management software",
+            "difficulty": 45
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q3",
+          "text": "What is the best project management software?",
+          "search": {
+            "rank": 3,
+            "floor": 50,
+            "score": 10.669269364113855,
+            "intent": "decision",
+            "volume": 3600,
+            "keyword": "best project management software",
+            "difficulty": 34
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q4",
+          "text": "What is good project management software?",
+          "search": {
+            "rank": 4,
+            "floor": 50,
+            "score": 10.669269364113855,
+            "intent": "solution",
+            "volume": 3600,
+            "keyword": "good project management software",
+            "difficulty": 34
+          },
+          "phrasing": "model"
+        }
+      ]
+    },
+    "rivalSizes": {
+      "at": "2026-09-18T14:12:23.769Z",
+      "kind": "unmeasured",
+      "reason": "not_attempted"
+    },
+    "siteIssues": {
+      "issues": [
+        {
+          "ran": true,
+          "doer": "reachkit_rewrites",
+          "over": 10,
+          "unit": "pages",
+          "check": "page_titles",
+          "count": 0,
+          "pages": [],
+          "parts": {
+            "missing": 0,
+            "duplicate": 0
+          },
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "reachkit_rewrites",
+          "over": 10,
+          "unit": "pages",
+          "check": "meta_descriptions",
+          "count": 0,
+          "pages": [],
+          "parts": {
+            "missing": 0,
+            "duplicate": 0
+          },
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 10,
+          "unit": "pages",
+          "check": "noindex_pages",
+          "count": 0,
+          "pages": [],
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 1,
+          "unit": "site",
+          "check": "sitemap",
+          "count": 0,
+          "pages": null,
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 9,
+          "unit": "pages",
+          "check": "slow_pages",
+          "count": 0,
+          "pages": [],
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 8,
+          "unit": "links",
+          "check": "broken_links",
+          "count": 0,
+          "pages": null,
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 10,
+          "unit": "pages",
+          "check": "phone_usability",
+          "count": 0,
+          "pages": [],
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "reachkit_writes",
+          "over": 10,
+          "unit": "pages",
+          "check": "structured_data",
+          "count": 10,
+          "pages": [
+            "https://linear.app/",
+            "https://linear.app/about",
+            "https://linear.app/agents",
+            "https://linear.app/ai",
+            "https://linear.app/now",
+            "https://linear.app/careers",
+            "https://linear.app/changelog",
+            "https://linear.app/coding-sessions",
+            "https://linear.app/resource-kit",
+            "https://linear.app/contact"
+          ],
+          "severity": "critical"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 6,
+          "unit": "ai_readers",
+          "check": "ai_readers_blocked",
+          "count": 0,
+          "pages": null,
+          "severity": "nothing_to_fix"
+        }
+      ],
+      "stoppedBy": "byte_cap",
+      "checkedPages": [
+        "https://linear.app/",
+        "https://linear.app/about",
+        "https://linear.app/agents",
+        "https://linear.app/ai",
+        "https://linear.app/now",
+        "https://linear.app/careers",
+        "https://linear.app/changelog",
+        "https://linear.app/coding-sessions",
+        "https://linear.app/resource-kit",
+        "https://linear.app/contact"
+      ],
+      "pagesChecked": 10
+    },
+    "blockedAgents": [],
+    "ownRankedRows": [
+      {
+        "url": "https://linear.app/integrations/claude",
+        "keyword": "add linear mcp to claude code",
+        "position": 1,
+        "difficulty": 1,
+        "searchVolume": 70
+      },
+      {
+        "url": "https://linear.app/integrations/claude",
+        "keyword": "claude code linear integration",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 50
+      },
+      {
+        "url": "https://linear.app/integrations/claude",
+        "keyword": "claude code linear mcp",
+        "position": 1,
+        "difficulty": 3,
+        "searchVolume": 110
+      },
+      {
+        "url": "https://linear.app/integrations/claude",
+        "keyword": "claude linear",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 70
+      },
+      {
+        "url": "https://linear.app/integrations/claude",
+        "keyword": "claude linear integration",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 50
+      },
+      {
+        "url": "https://linear.app/integrations/claude",
+        "keyword": "claude linear mcp",
+        "position": 1,
+        "difficulty": 4,
+        "searchVolume": 110
+      },
+      {
+        "url": "https://linear.app/integrations/codex-mcp",
+        "keyword": "codex linear mcp",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 50
+      },
+      {
+        "url": "https://linear.app/coding-sessions",
+        "keyword": "coding sessions",
+        "position": 1,
+        "difficulty": 10,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://linear.app/integrations/cursor",
+        "keyword": "cursor linear",
+        "position": 1,
+        "difficulty": 7,
+        "searchVolume": 90
+      },
+      {
+        "url": "https://linear.app/integrations/cursor",
+        "keyword": "cursor linear integration",
+        "position": 1,
+        "difficulty": 1,
+        "searchVolume": 70
+      },
+      {
+        "url": "https://linear.app/integrations/cursor-mcp",
+        "keyword": "cursor linear mcp",
+        "position": 1,
+        "difficulty": 1,
+        "searchVolume": 70
+      },
+      {
+        "url": "https://linear.app/customer-requests",
+        "keyword": "customer requests linear",
+        "position": 1,
+        "difficulty": 5,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://linear.app/download",
+        "keyword": "download linear",
+        "position": 1,
+        "difficulty": 19,
+        "searchVolume": 880
+      },
+      {
+        "url": "https://linear.app/download",
+        "keyword": "download linear app",
+        "position": 1,
+        "difficulty": 14,
+        "searchVolume": 90
+      },
+      {
+        "url": "https://linear.app/integrations/github",
+        "keyword": "github linear",
+        "position": 1,
+        "difficulty": 14,
+        "searchVolume": 40
+      },
+      {
+        "url": "https://linear.app/integrations/github",
+        "keyword": "github linear integration",
+        "position": 1,
+        "difficulty": 8,
+        "searchVolume": 40
+      },
+      {
+        "url": "https://linear.app/docs/start-guide",
+        "keyword": "how to use linear",
+        "position": 1,
+        "difficulty": 10,
+        "searchVolume": 140
+      },
+      {
+        "url": "https://linear.app/docs/integration-directory",
+        "keyword": "integration linear",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 40
+      },
+      {
+        "url": "https://linear.app/",
+        "keyword": "is linear",
+        "position": 1,
+        "difficulty": 16,
+        "searchVolume": 390
+      },
+      {
+        "url": "https://linear.app/pricing",
+        "keyword": "is linear free",
+        "position": 1,
+        "difficulty": 4,
+        "searchVolume": 110
+      },
+      {
+        "url": "https://linear.app/docs/jira",
+        "keyword": "jira linear",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://linear.app/docs/jira",
+        "keyword": "jira to linear migration",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://linear.app/",
+        "keyword": "linear",
+        "position": 1,
+        "difficulty": 16,
+        "searchVolume": 90500
+      },
+      {
+        "url": "https://linear.app/",
+        "keyword": "linear account",
+        "position": 1,
+        "difficulty": 10,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://linear.app/changelog/2026-03-24-introducing-linear-agent",
+        "keyword": "linear agent",
+        "position": 1,
+        "difficulty": 5,
+        "searchVolume": 720
+      },
+      {
+        "url": "https://linear.app/agents",
+        "keyword": "linear agents",
+        "position": 1,
+        "difficulty": 18,
+        "searchVolume": 720
+      },
+      {
+        "url": "https://linear.app/agents",
+        "keyword": "linear ai agent",
+        "position": 1,
+        "difficulty": 10,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://linear.app/agents",
+        "keyword": "linear ai agents",
+        "position": 1,
+        "difficulty": 5,
+        "searchVolume": 70
+      },
+      {
+        "url": "https://linear.app/",
+        "keyword": "linear ai tool",
+        "position": 1,
+        "difficulty": 38,
+        "searchVolume": 90
+      },
+      {
+        "url": "https://linear.app/developers",
+        "keyword": "linear api",
+        "position": 1,
+        "difficulty": 24,
+        "searchVolume": 720
+      },
+      {
+        "url": "https://linear.app/developers",
+        "keyword": "linear api docs",
+        "position": 1,
+        "difficulty": 13,
+        "searchVolume": 110
+      },
+      {
+        "url": "https://linear.app/developers",
+        "keyword": "linear api documentation",
+        "position": 1,
+        "difficulty": 7,
+        "searchVolume": 70
+      },
+      {
+        "url": "https://linear.app/developers",
+        "keyword": "linear api key",
+        "position": 1,
+        "difficulty": 7,
+        "searchVolume": 320
+      },
+      {
+        "url": "https://linear.app/",
+        "keyword": "linear app",
+        "position": 1,
+        "difficulty": 17,
+        "searchVolume": 6600
+      },
+      {
+        "url": "https://linear.app/ai",
+        "keyword": "linear app ai",
+        "position": 1,
+        "difficulty": 36,
+        "searchVolume": 20
+      },
+      {
+        "url": "https://linear.app/developers",
+        "keyword": "linear app api",
+        "position": 1,
+        "difficulty": 22,
+        "searchVolume": 50
+      },
+      {
+        "url": "https://linear.app/now",
+        "keyword": "linear app blog",
+        "position": 1,
+        "difficulty": 21,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://linear.app/careers",
+        "keyword": "linear app careers",
+        "position": 1,
+        "difficulty": 8,
+        "searchVolume": 90
+      },
+      {
+        "url": "https://linear.app/developers",
+        "keyword": "linear app cli",
+        "position": 1,
+        "difficulty": 22,
+        "searchVolume": 40
+      },
+      {
+        "url": "https://linear.app/docs/dashboards",
+        "keyword": "linear app dashboard",
+        "position": 1,
+        "difficulty": 4,
+        "searchVolume": 40
+      },
+      {
+        "url": "https://linear.app/docs/start-guide",
+        "keyword": "linear app demo",
+        "position": 1,
+        "difficulty": 17,
+        "searchVolume": 110
+      },
+      {
+        "url": "https://linear.app/now/how-we-redesigned-the-linear-ui",
+        "keyword": "linear app design",
+        "position": 1,
+        "difficulty": 14,
+        "searchVolume": 40
+      },
+      {
+        "url": "https://linear.app/docs",
+        "keyword": "linear app docs",
+        "position": 1,
+        "difficulty": 18,
+        "searchVolume": 40
+      },
+      {
+        "url": "https://linear.app/docs",
+        "keyword": "linear app documentation",
+        "position": 1,
+        "difficulty": 19,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://linear.app/download",
+        "keyword": "linear app download",
+        "position": 1,
+        "difficulty": 14,
+        "searchVolume": 320
+      },
+      {
+        "url": "https://linear.app/download",
+        "keyword": "linear app download mac",
+        "position": 1,
+        "difficulty": 13,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://linear.app/download",
+        "keyword": "linear app for mac",
+        "position": 1,
+        "difficulty": 18,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://linear.app/brand",
+        "keyword": "linear app icon",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 320
+      },
+      {
+        "url": "https://linear.app/docs/integration-directory",
+        "keyword": "linear app integrations",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://linear.app/careers",
+        "keyword": "linear app jobs",
+        "position": 1,
+        "difficulty": 11,
+        "searchVolume": 30
+      }
+    ],
+    "stoppedReason": "complete",
+    "correctionState": "none",
+    "measuredCategory": null,
+    "fromIncompleteRescan": false
+  },
+  "siteProfile": {
+    "siteName": "The system for product development",
+    "products": [],
+    "claims": [],
+    "voice": null
+  },
+  "site": null,
+  "pages": [
+    {
+      "url": "https://linear.app/",
+      "readAt": "2026-09-18T14:12:24.079Z",
+      "title": "Linear – The system for product development",
+      "h1": "The product development system for teams and agents The product development system for teams and agents The product development system for teams and agents",
+      "text": "Linear – The system for product development Skip to content → Product Resources Customers Pricing Now Contact Docs Open app Log in Sign up The product development system for teams and agents The product development system for teams and agents The product development system for teams and agents Purpose-built for planning and building products. Designed for the AI era. New Loops → New Loops → Linear Pulse Inbox My issues Reviews Workspace Initiatives Projects More Favorites Faster app launch Agent tasks Agent Insights UI Refresh DRV-8852 Faster app launch 1 / 84 Faster app launch Render UI before vehicle_state sync when minimum required state is present, instead of blocking on full refresh during iOS startup. Activity Linear created the issue via Slack on behalf of Karri · 2min ago Triage Intelligence added the labels Performance and iOS · 2min ago karri · 4 min ago Right now we show a spinner forever, which makes it look like the car disappeared... jori · just now @Linear can you take a stab at this? Linear connected by Jori · 2 min ago Changed 2 files Draft PR awaiting your review · 2 min ago Linear moved from Todo to In Progress · just now Reviews Revert Properties In Progress Medium Karri Linear Cycle 144 Labels Performance iOS Releases Linear App 1.6881... ⋅ Jun 25 Powering the companies building the future A new species of product tool. Purpose-built for modern teams with AI workflows at its core, Linear sets a new standard for planning and building products. Purpose-built Linear is shaped by the practices and principles of world-class product teams. Powered by agents Designed for workflows shared by humans and agents. From drafting PRDs to pushing PRs. Designed for speed Reduces noise and restores momentum to help teams ship with high velocity and focus. Fig 0.1 Purpose-built Linear is shaped by the practices and principles of world-class product teams. Fig 0.2 Powered by agents Designed for workflows shared by humans and agents. From drafting PRDs to pushing PRs. Designed for workflows shared by humans and agents. From drafting PRDs to pushing PRs. Fig 0.3 Designed for speed Reduces noise and restores momentum to help teams ship with high velocity and focus. Intake and integrations Automatically turn conversations and customer feedback into actionable issues that are instantly routed, labeled, and prioritized for the right team. Learn more → Backlog 8 ENG-2085 Reduce UI flicker during autonomy... ENG-2094 Add buffering for autonomy event streams ENG-2092 Reduce startup delay caused by vehicle sync ENG-2200 Fix delayed route updates during rerouting Todo 71 ENG-926 Remove UI inconsistencies Bug Design ENG-2088 TypeError: Cannot read properties Bug ENG-924 Upgrade to Claude Opus 5 AI ENG-1882 Optimize load times Performance In Progress 3 ENG-1487 Remove contentData from GraphQL API 61039 MKT-1028 Launch page assets Design ENG-2187 Prevent duplicate ride requests on poor... Bug 62048 Done 53 ENG-2074 Clean up deprecated APIs... API 61002 ENG-1912 Reduce latency in autonomy st... 61005 ENG-1951 Reduce ETA fluctuations durin... 61202 ENG-1960 Improve fallback messaging UI 61149 ENG-1991 Improve rider visibility into veh... Thread #product didier Has anyone been looking into the iOS startup performance issues? lena Anyone else noticing the iOS app feels slow to open if you haven’t used it in a bit? didier Yea, we’re still blocking initial render on a full vehicle_state sync every time… andreas Feels like we could render sooner and load the rest in the background. Probably also worth tracking startup timing so we know how often this happens! @Linear create issues and assign to me Features Linear Agent + Customer Requests + Triage + Linear Asks + Planning and monitoring Plan and navigate from idea to launch. Align your team with product initiatives, strategic roadmaps, and clear, up-to-date PRDs. Learn more → MAR APR MAY JUN JUL AUG SEP 2 9 16 23 6 13 20 27 4 11 18 25 1 8 15 22 6 13 20 27 3 10 17 24 7 14 21 28 UI Refresh Core screens Polish Split fares Internal Public Beta Autonomy status clarity Alpha Autonomy telemetry reliability Beta GA Cycle time by agent Oct 2025 Nov 2025 Dec 2025 Jan 2026 Feb 2026 Features Projects + Documents + Pulse + Initiatives + Visual planning + Insights + AI and automations Build and deploy AI agents that work alongside you as teammates. Work on complex tasks together or delegate entire issues end-to-end. Learn more → Linear Opus 5 what are the three most important customer requests around permissions? add them to the Access Controls project Worked for 8 sec Three issues ranked by customer impact: ENG-2298 Add granular project permissions ENG-2647 Let guests access multiple teams ENG-2352 Create custom roles with scoped access I’ve added them to Access Controls Cursor add retry handling for failed image uploads described in this issue ENG-2844 added to context Linear Opus 5 Review today’s mobile triage and group the issues by what should happen next Mobile Triage added to context ChatPRD review this issue, draft complete offline mode requirements, and break the work into sub-issues ENG-2521 added to context Worked for 1 min Updated the issue with requirements, open product decisions, and acceptance criteria. ENG-2920 Define offline mode requirements Features Linear Agent + Coding sessions + Triage + Linear MCP + Build, review, and ship Streamline code reviews with clear diffs, better context, and fewer back-and-forth comments. Keep PRs moving without sacrificing quality. Learn more → In Review 3 ENG-2498 Replace isFullySynced with a sync status #54910 iOS Oct 9 ENG-2380 Show a stale data banner while syncing #55167 Reliability Oct 9 ENG-2039 Pass sync status to the dashboard #55209 Bug Reliability Oct 8 In Progress 4 ENG-2076 Reduce ETA jitter #55423 Performance Working… Working… Oct 6 ENG-2108 Handle GPS dropouts gracefully #55409 Maps Working… Working… Oct 2 ENG-2143 Optimize map tile loading on initial app open Maps Oct 7 ENG-2187 Prevent duplicate ride requests on poor networks Bug Working… Working… Oct 5 Todo 4 ENG-2254 Reduce unnecessary map re-rendering on home screen Maps Oct 10 ENG-2291 Clean up deprecated APIs used by the rider app API Oct 9 ENG-2327 Speed up CI pipelines for mobile builds Performance Oct 9 ENG-2358 Reduce flakiness in mobile UI tests Reliability Oct 4 kinetic-ios/src/screens/Home/HomeScreen.tsx kinetic-ios/src/HomeScreen.tsx import React from ' react ' import { View , ActivityIndicator } from ' react-native ' import { useVehicleState } from ' @hooks/useVehicleState ' import { Dashboard } from ' @components/Dashboard ' export const HomeScreen = () => { const { vehicleState , isFullySynced } = useVehicleState () if ( ! isFullySynced ) { return < ActivityIndicator size = \" large \" /> } return ( < View > < Dashboard state = { vehicleState } /> </ View > ) } import React from ' react ' import { View , ActivityIndicator } from ' react-native ' import { useVehicleState , SyncStatus } from ' @hooks/useVehicleState ' import { Dashboard } from ' @components/Dashboard ' export const HomeScreen = () => { const { vehicleState , syncStatus } = useVehicleState () if ( syncStatus === SyncStatus . PENDING ) { return < ActivityIndicator size = \" large \" /> } return ( < View > < Dashboard state = { vehicleState } syncStatus = { syncStatus } /> </ View > ) } import React from 'react' import { View, ActivityIndicator } from 'react-native' import { useVehicleState, SyncStatus } from '@hooks/useVehicleState' import { Dashboard } from '@components/Dashboard' export const HomeScreen = () => { const { vehicleState, syncStatus } = useVehicleState() if (syncStatus === SyncStatus.PENDING) { return <ActivityIndicator size=\"large\" /> } return ( <View> <Dashboard state={vehicleState} syncStatus={syncStatus} /> </View> ) } export const CodeReview = () => { < Diff.Provider > < Slow /> < Fragmented /> < HumanOnly /> < Frictionless /> < Integrated /> < AgentReady /> </ Diff.Provider > }; Linear Features Issues + Git automations + Guided reviews + Cycles + Diffs + Releases + Changelog Loops for product management Loops are recurring agent workflows for teams. They now respond to more workspace activity, including changes to initiatives, projects, and cycles. They can also edit Linear documents and post updates to Slack. Sep 10, 2026 Priority inbox An active workspace can create a significant amount of notifications each day, and until now your inbox treated them all the same. The new Priority tab separates what needs your attention from what can wait, so something like a review blocking a release never gets buried. Sep 3, 2026 Coding sessions Linear Agent can now set up, run, and test your code before returning its work. That means fewer handoffs and changes that are further along when they come back to you. Aug 19, 2026 Team initiatives Initiatives are Linear's way to manage product strategy and high-level planning across projects. Strategy may start at the company level, but teams carry it forward. You can now assign a team to lead an initiative, making it clear who is responsible for driving the work and how it contributes to the broader direction. Aug 13, 2026 View all → You’ll probably build a better product, just because of the craft that using Linear infuses on your brain. Gabriel Peal OpenAI Our speed is intense and Linear helps us be action biased. Nik Koblov Ramp Linear is excellent, just excellent. It has the right opinions for fast moving teams. Kaz Nejatian Opendoor You’ll probably build a better product, just because of the craft that using Linear infuses on your brain. Gabriel Peal Staff Software Engineer, OpenAI Our speed is intense and Linear helps us be action biased. Nik Koblov Head of Engineering, Ramp Linear powers over 40,000 product teams. From ambitious startups to major enterprises. Customer stories → Built for the future. Available today. Get started Contact sales Open app Download Product Intake Plan AI Build Pricing Security Features Asks Agents Coding Sessions Customer Requests Insights Mobile Integrations Changelog Company About Customers Careers Now Method Quality Brand Resources Switch Download Documentation Docs Developers Status Enterprise Startups Connect Contact us Community X (Twitter) GitHub YouTube Legal Privacy Terms DPA AUP Privacy Terms DPA AUP"
+    },
+    {
+      "url": "https://linear.app/about",
+      "readAt": "2026-09-18T14:12:27.035Z",
+      "title": "About – Linear",
+      "h1": "Building tools for the next era of product development",
+      "text": "About – Linear Skip to content → Product Resources Customers Pricing Now Contact Docs Open app Log in Sign up Building tools for the next era of product development AI is fundamentally changing how products get built. We are shaping what comes next. Elapsed 00:00 Remaining time unknown − --:-- 0.25× 0.5× 0.75× 1× 1.25× 1.5× 1.75× 2× A new species of product tool Software development is at an inflection point. Artificial intelligence is fundamentally reshaping how products are built. AI increases what teams can create, but it also raises the bar for clarity and coordination. At Linear, we are building the tools for this new era of product development. A purpose-built system where teams and agents operate together in a shared, structured environment. Founded in 2019, Linear has become the tool of choice for more than 40,000 companies (including OpenAI, Coinbase, and Ramp) to plan, build, and ship their products. Our team is distributed across North America and Europe, and we’re continuing to grow internationally. What unites us is relentless focus, fast execution, and a deep care for software craftsmanship. Meet the team behind Linear We are designers and engineers. Problem solvers and storytellers. We are a diverse team of individuals, all makers at heart. We’re hiring → Karri Saarinen Co-founder, CEO Jori Lallo Co-founder, CPO Tuomas Artman Co-founder, CTO Cristina Cordova COO Tom Moor Head of Engineering Casey Bertenthal Head of Sales Jamie Finnigan Head of Security Conor Muirhead Head of Product Design Tim Qi Matthew Roberts Matthijs Wolting Josh Pyles Nathalie Alex Dominic Wong Meg Wayne Mingjie Jiang Nick Wijmenga Sarita Zhu Daniel Zhang Michelle Fung Sam Marley Komil Rehill Alan Doyle Alex Suevalov Anthony Vidalez Saneel Prabhu Sam Candanedo Max McKone Joseph Yoo Igor Sechyn Axel Niklasson Yun Davina Baker Jon Phey Duong Vu Rhea Purohit Mufeez Amjad Tony Wooster Ben Kinney Simone Jacobs Zoe Wellner Bojan Joveski Ben Light Ben Cooper Calum Webb Matthew Cunningham Matthew Flairty Yann-Edern Gillet Paul Macgregor Emiel Janson Dylan Hamilton Eitan Meisels Amelia Cellar Paco Coursey Kristin Boyer Peter Travers Maciek Pekala Skyline Lau Jesse Hartheimer Aaron Quinn Lena Vu Robb Böhnke Jacob Shumway Emil Kowalski Hilary Hobel Sean McGivern Andreas Eldh Allie Hughes Uros Smolnik Stephanie Yung Philip Siu Lauren Grant Mariah Bardo Romain Cascino Melissa Ross Maya Nedeljković Batić Sean Callahan Liam O’Connor Sarah Barnekow Adrien Griveau Brando Roche Katie Royer Bryan Stern Alexandra Lapinsky Wilson Tyler Black Lukas Eipert Daniel Warner Smith Sabin Roman Luke Schneider Craig Lewis Mac Watrous Angela King Ryan Delaney Maxime Heckel Cormac Flynn Emma Cox Adam Hutchinson TJ Murphy Vanessa Chung Steven Molchanov Chris Burke Devyn Galligher Zachary Chukwumah Brendan Carney Ian Guerin Jasdev Singh Angela Hottinger Marlene Guardado Emily Brody Marty McGettigan Megan Coale Nick Blackburn Jaden Schmeisser Hannes Moser Connie Mills Logan Mack Laeka Brenninkmeyer Haley Thurston Grace Leman Isha Kumar Didier Catz Drew Huppe Warner Price Sid Bhargava Jack Mangan Gino Fordiani Ema Milojkovic Kyle Ward Ivy Murphy Chris Maggio Colin Dunn Mel Mier Guglielmo D’Anna Brian Hendery Alessandro Oddone Zorast Gustavsp Beth Shecterle Veronika Fischer Yasha Mostofi Colin Rutan Julian Lehr Alyssa Garrison Allison Wei Kenneth Skovhus Doug Parker Marcos Fiscal Paul Dijou Guillaume Lachaud Natalie Stratton Ryan Walker Emer Moloney Charlie Aufmann Randall Koutnik Dima Zaytsev Logan Barragan Lasse Andersen Ari Mojdeh Mihir Parekh Seth Melchor Christopher Cohen James Smith Róża Zgiep Jeff Vaz Bojan Delić Andrew Moedinger Matt Robone Nathalie Marchino Miranda Chan Matt Beck Shannon Hu Backed by the best Miles Clements ↗ Partner, Accel Stephanie Zhan ↗ Partner, Sequoia Dylan Field CEO, Figma Patrick Collison CEO, Stripe Stewart Butterfield Former CEO, Slack Guillermo Rauch CEO, Vercel Dick Costolo Former CEO, Twitter Josh Miller CEO, Browser Company Andrew Mason CEO, Descript Immad Akhund CEO, Mercury Claire Hughes Johnson Former COO, Stripe Jorn van Dijk CEO, Framer Christina Cacioppo CEO, Vanta Job van der Voort CEO, Remote Ilkka Paananen CEO, Supercell Anthony Guo CTO, Retool Gustaf Alströmer Partner, Y Combinator Akash Garg Former CTO, Afterpay Alexis Ohanian Seven Seven Six Ben Blumenfeld Designer Fund Bryce Roberts Indie.vc Soleio Designer × Investor Built for the future. Available today. Get started Contact sales Open app Download Product Intake Plan AI Build Pricing Security Features Asks Agents Coding Sessions Customer Requests Insights Mobile Integrations Changelog Company About Customers Careers Now Method Quality Brand Resources Switch Download Documentation Docs Developers Status Enterprise Startups Connect Contact us Community X (Twitter) GitHub YouTube Legal Privacy Terms DPA AUP Privacy Terms DPA AUP"
+    },
+    {
+      "url": "https://linear.app/agents",
+      "readAt": "2026-09-18T14:12:27.035Z",
+      "title": "Linear for Agents",
+      "h1": "Artificial colleagues. Natural collaboration.",
+      "text": "Linear for Agents Skip to content → Product Resources Customers Pricing Now Contact Docs Open app Log in Sign up Linear for Agents Artificial colleagues. Natural collaboration. Build and deploy AI agents that work alongside you as teammates. Work on complex tasks together or delegate entire issues end-to-end. Watch example Linear Opus 5 what are the three most important customer requests around permissions? add them to the Access Controls project Reply… Skills Linear Opus 5 Review today’s mobile triage and group the issues by what should happen next Mobile Triage added to context Reply… Skills Linear Opus 5 What could delay the API launch? API launch added to context Reply… Skills Linear Opus 5 how does notification grouping work today, and where should we change it? Notification Grouping added to context Reply… Skills Cursor add retry handling for failed image uploads described in this issue ENG-2844 added to context Reply… Skills ChatPRD review this issue, draft complete offline mode requirements, and break the work into sub-issues ENG-2521 added to context Reply… Skills Linear Opus 5 Fix the dimmed ride rows that never reset and open a PR DRV-364 added to context Reply… Skills Linear Opus 5 what are the three most important customer requests around permissions? add them to the Access Controls project Reply… Skills Linear Opus 5 Review today’s mobile triage and group the issues by what should happen next Mobile Triage added to context Reply… Skills Linear Opus 5 What could delay the API launch? API launch added to context Reply… Skills Linear Opus 5 how does notification grouping work today, and where should we change it? Notification Grouping added to context Reply… Skills Cursor add retry handling for failed image uploads described in this issue ENG-2844 added to context Reply… Skills ChatPRD review this issue, draft complete offline mode requirements, and break the work into sub-issues ENG-2521 added to context Reply… Skills Linear Opus 5 Fix the dimmed ride rows that never reset and open a PR DRV-364 added to context Reply… Skills Linear Opus 5 what are the three most important customer requests around permissions? add them to the Access Controls project Reply… Skills Linear Opus 5 Review today’s mobile triage and group the issues by what should happen next Mobile Triage added to context Reply… Skills Linear Opus 5 What could delay the API launch? API launch added to context Reply… Skills Linear Opus 5 how does notification grouping work today, and where should we change it? Notification Grouping added to context Reply… Skills Cursor add retry handling for failed image uploads described in this issue ENG-2844 added to context Reply… Skills ChatPRD review this issue, draft complete offline mode requirements, and break the work into sub-issues ENG-2521 added to context Reply… Skills Linear Opus 5 Fix the dimmed ride rows that never reset and open a PR DRV-364 added to context Reply… Skills Linear Opus 5 what are the three most important customer requests around permissions? add them to the Access Controls project Reply… Skills Linear Opus 5 Review today’s mobile triage and group the issues by what should happen next Mobile Triage added to context Reply… Skills Linear Opus 5 What could delay the API launch? API launch added to context Reply… Skills Linear Opus 5 how does notification grouping work today, and where should we change it? Notification Grouping added to context Reply… Skills Cursor add retry handling for failed image uploads described in this issue ENG-2844 added to context Reply… Skills ChatPRD review this issue, draft complete offline mode requirements, and break the work into sub-issues ENG-2521 added to context Reply… Skills Linear Opus 5 Fix the dimmed ride rows that never reset and open a PR DRV-364 added to context Reply… Skills Linear Opus 5 what are the three most important customer requests around permissions? add them to the Access Controls project Reply… Skills Linear Opus 5 Review today’s mobile triage and group the issues by what should happen next Mobile Triage added to context Reply… Skills Linear Opus 5 What could delay the API launch? API launch added to context Reply… Skills Linear Opus 5 how does notification grouping work today, and where should we change it? Notification Grouping added to context Reply… Skills Cursor add retry handling for failed image uploads described in this issue ENG-2844 added to context Reply… Skills ChatPRD review this issue, draft complete offline mode requirements, and break the work into sub-issues ENG-2521 added to context Reply… Skills Linear Opus 5 Fix the dimmed ride rows that never reset and open a PR DRV-364 added to context Reply… Skills Identify urgent tasks Identify urgent tasks Delegate, automate, and orchestrate work Choose from a variety of AI agents and start ­delegating work, from code generation to other ­technical tasks. Fast, focused, and reliable. Just like the rest of your team. Agents are full members of your Linear workspace. Assign them to issues, add them to projects, or @mention them in comments. Delegate issues, but not accountability When an issue gets delegated to an agent, the human user remains the primary assignee, while the agent is added as a contributor. Stay in the loop every step of the way Agents act on your behalf, but never in the dark. Understand every change they make at a glance, or inspect the underlying reasoning. Orchestrate tasks at scale Agents can work across multiple issues simultaneously. Select tasks, assign them to an agent, and watch work move forward. Agents for every use case, ready to deploy From coding to QA, bring specialized agents into your Linear workspace and start delegating work across your team's workflows. Explore all agents → Linear Agent Triage issues, answer questions, and create follow-up work directly in Linear. Cursor Drafts branches from assigned issues, ready to finish in your editor. OpenAI Codex Coding agent that can take on entire tasks on your behalf, straight from Linear. Linear Agent Triage issues, answer questions, and create follow-up work directly in Linear. Cursor Drafts branches from assigned issues, ready to finish in your editor. OpenAI Codex Coding agent that can take on entire tasks on your behalf, straight from Linear. Devin Scopes issues ­and drafts PRs Sentry Runs root cause analysis ­and fixes issues with Seer ChatPRD Writes requirements, manages ­issues, and gives feedback Oz by Warp Answers questions, fixes ­bugs, and explores ideas Factory Codes, tests, and ­creates pull requests Charlie Plans, implements, and ­reviews your TypeScript PRs Ranger Enhance bug formatting ­and generate test plans Tembo Delegates work to ­any coding agent Create your own agents Build your own AI teammates with the Linear API. Keep them private or share with the Linear community. Start building Read guidelines Product Intake Plan AI Build Pricing Security Features Asks Agents Coding Sessions Customer Requests Insights Mobile Integrations Changelog Company About Customers Careers Now Method Quality Brand Resources Switch Download Documentation Docs Developers Status Enterprise Startups Connect Contact us Community X (Twitter) GitHub YouTube Legal Privacy Terms DPA AUP Privacy Terms DPA AUP"
+    },
+    {
+      "url": "https://linear.app/ai",
+      "readAt": "2026-09-18T14:12:27.035Z",
+      "title": "Linear – Agents that follow work from conversation to code",
+      "h1": "Agents that follow work from conversation to code",
+      "text": "Linear – Agents that follow work from conversation to code Skip to content → Product Resources Customers Pricing Now Contact Docs Open app Log in Sign up AI and automations Agents that follow work from conversation to code Linear Agent Artificial colleagues. Natural collaboration. Linear Agent understands your projects, issues, customer requests, docs, and code, so every decision is grounded with full context. Linear Agent + WEB-1842 Save button stays disabled after pasting content 2 / 15 Create issues from conversation Mention @Linear in Slack or Teams to turn discussions into scoped issues with the surrounding context. Draft project updates Summarize progress, risks, blockers, and recent changes into an update your team can review and post. Plan the next cycle Read the backlog, find repeated themes, and suggest what should move into the next cycle. Check project status See what’s at risk, what’s falling behind, and where your attention is needed. Save reusable skills Save useful agent conversations as skills your team can run again from chat or a slash command. Triage Stay ahead of incoming work Triage runs itself. Agent workflows refine, route, and follow up on new issues automatically, so nothing sits waiting on you. Triage + Triggered triage check Weekly review Daily summary Triggered triage check Weekly review Daily summary Put recurring work on a loop. Run agents on a schedule or when work matches your criteria. Each loop keeps its run history as context, so every pass builds on the last. Triage Intelligence Suggestions emil 🧹 Polish Website Duplicate ENG-2459 Submit button stuck on loading Triage Intelligence Suggestions nan 🚗 Rider app Bug Duplicate ENG-2317 App freezes on splash screen Triage Intelligence Suggestions karri ⚡ Platform Infra Duplicate ENG-2288 Dashboard takes seconds to load Triage Intelligence Suggestions emil 🧹 Polish Website Duplicate ENG-2459 Submit button stuck on loading Triage Intelligence Suggestions nan 🚗 Rider app Bug Duplicate ENG-2317 App freezes on splash screen Triage Intelligence Suggestions karri ⚡ Platform Infra Duplicate ENG-2288 Dashboard takes seconds to load Automate the overhead Triage Intelligence suggests assignees, teams, projects, labels, and related issues based on how your team already works. Linear, OpenAI, Coinbase, Ramp Put incoming issues on autopilot Use rules to prioritize key customers, escalate critical bugs, and route new work before it slows the team down. Coding sessions Linear speaks code Linear Agent reads your codebase, writes code with frontier models, and streams its work back as reviewable diffs, all visible across the org. Coding sessions → ENG-2498 Dimmed Status Cards +34 -18 Activity Guide Diff Submit review Preview Assign your issues to Linear Start a session from any issue or conversation. Linear gathers context, works in a secure cloud sandbox, and comes back with a diff your team can follow. Background automation Assign issues directly, or let Linear pick them up the moment they land in Triage. Answers from the source Ask about your codebase and get answers grounded in the implementation, recent changes, and people with context. Iterate with agents Review feedback, resolved at agent speed. Make changes from the diff and watch updates appear inline. Guided reviews Guided Reviews organize diffs by showing what changed and why, with a clear path through complex changes. See everything your agents are doing Every agent action leaves a record in Linear, so teams can follow progress, review outcomes, and step in when needed. All tasks Active Backlog Work in motion See what’s running, what shipped, and what needs a human across every team and agent. Linear MCP Open, by design Assign work to external agents, build your own with the API, and keep everything connected in one shared system. Linear MCP + Bring more context in Connect tools like Granola, Glean, Notion, and PostHog to ground investigations, specs, and updates in more context. Take your context anywhere Linear’s MCP server gives compatible AI tools secure access to your issues, projects, and comments. Make your product operations self-driving Intake and integrations → Plan and navigate from idea to launch Planning and monitoring → Agents that follow work from conversation to code AI and automations → Move work forward across teams and agents Build, review and ship → Triage is by far my favorite feature. It’s been a game changer for our team. Sam Sipe Coinbase Our speed is intense and Linear helps us be action biased. Nik Koblov Ramp Triage is by far my favorite feature. It’s been a game changer for our team. Sam Sipe Head of Engineering, Coinbase Our speed is intense and Linear helps us be action biased. Nik Koblov Head of Engineering, Ramp Linear powers over 40,000 product teams. From ambitious startups to major enterprises. Customer stories → Built for the future. Available today. Get started Contact sales Open app Download Product Intake Plan AI Build Pricing Security Features Asks Agents Coding Sessions Customer Requests Insights Mobile Integrations Changelog Company About Customers Careers Now Method Quality Brand Resources Switch Download Documentation Docs Developers Status Enterprise Startups Connect Contact us Community X (Twitter) GitHub YouTube Legal Privacy Terms DPA AUP Privacy Terms DPA AUP"
+    },
+    {
+      "url": "https://linear.app/careers",
+      "readAt": "2026-09-18T14:12:27.036Z",
+      "title": "We're hiring – Linear",
+      "h1": "Help us craft high-quality tools",
+      "text": "We're hiring – Linear Skip to content → Product Resources Customers Pricing Now Contact Docs Open app Log in Sign up Help us craft high-quality tools We are building a new species of product tool. Will you help us make it better? Open roles ↓ Elapsed 00:00 Remaining time unknown − --:-- 0.25× 0.5× 0.75× 1× 1.25× 1.5× 1.75× 2× On a quest for quality We believe that there is a lost art of building software. A craftsmanship that yields products of an exceptional, almost magical, quality. It’s difficult to describe this quality with words and impossible to measure it in numbers, but you can feel it when it’s there. You know it when you experience it. To bring back this level of quality, we are building a tool that empowers product teams to do their best work. A tool with unparalleled speed, focus, and design. Building this tool requires a team of talented individuals who care deeply about the quality of their work, no matter if it’s engineering, design, or customer support. We are looking for people who share our passion for software craftsmanship and getting even the smallest details right. If that sounds like you, please reach out and join us on our quest. ›_ README A conversation on quality Karri Saarinen → Building the sync engine Tuomas Artman → Inside design at Linear Designer Fund → At home with Karri Saarinen Indie → Move fast with little process The Pragmatic Engineer → A conversation on quality Karri Saarinen Building the sync engine Tuomas Artman Inside design at Linear Designer Fund At home with Karri Saarinen Indie Move fast with little process The Pragmatic Engineer How we think and work Linear’s mission is to inspire and accelerate builders. To turn that ambition into reality, we operate based on a set of core principles that keep us focused. 01. Ship early Simplify and ship smaller. 02. Build with users Listen carefully and understand their problems. 03. Know what good looks like Find and create good things. Know what needs to change to make it better. 04. Think in principles Not in playbooks. 05. Build things that last Put care into the foundation. Don’t make it a future person’s problem. 06. Avoid side quests Don’t fix every problem. Avoid adding unnecessary process or documents. 07. Say it as it is Get to the point and assume good intentions. 08. Keep the team small, do more with less We build better with fewer people. Wear multiple hats. 09. Hire the best people The best people hire the best people. Help recruit. 10. Create fans Build a community of people who use, love, and defend the product. 11. Fully remote The freedom to work remotely allows for more meaningful work. Open roles Sales ⁠ Account Executive, Startups North America Learn more → Customer Success Manager, Enterprise North America Learn more → Implementation Manager North America Learn more → Solutions Engineer, Europe London Learn more → Solutions Engineer, Growth North America Learn more → GTM ⁠ Analytics Engineer North America Learn more → Customer Success Manager, Growth North America Learn more → Operations ⁠ Deal Desk North America Learn more → Revenue Operations North America Learn more → Magic ⁠ Design Engineer (Web & Brand) Europe, North America Learn more → Production Designer Europe, North America Learn more → Marketing ⁠ Developer Relations Europe, North America Learn more → Design ⁠ Mobile Product Designer North America Learn more → Principal Product Designer Europe Learn more → Senior / Staff Product Designer North America Learn more → Engineering ⁠ Product Engineer North America Learn more → Senior / Staff Fullstack Engineer Europe, North America Learn more → Senior / Staff Product Engineer Europe, North America Learn more → Senior / Staff Product Engineer, AI North America Learn more → Product Management ⁠ Product Manager Europe, North America Learn more → Product Marketing Manager London, North America Learn more → Customer Experience ⁠ Product Support Specialist, Europe Europe Learn more → Product Support Specialist, Pacific/Mountain Time North America Learn more → People ⁠ Recruiting & HR Operations Specialist North America Learn more → Talent ⁠ Technical Recruiter North America Learn more → Product Intake Plan AI Build Pricing Security Features Asks Agents Coding Sessions Customer Requests Insights Mobile Integrations Changelog Company About Customers Careers Now Method Quality Brand Resources Switch Download Documentation Docs Developers Status Enterprise Startups Connect Contact us Community X (Twitter) GitHub YouTube Legal Privacy Terms DPA AUP Privacy Terms DPA AUP"
+    },
+    {
+      "url": "https://linear.app/changelog",
+      "readAt": "2026-09-18T14:12:28.474Z",
+      "title": "Changelog – Linear",
+      "h1": "Now",
+      "text": "Changelog – Linear Skip to content → Product Resources Customers Pricing Now Contact Docs Open app Log in Sign up Now All Changelog Product launches From the team From the community Press Search… September 14, 2026 Loops for product management Elapsed 00:00 Remaining time unknown − --:-- 0.25× 0.5× 0.75× 1× 1.25× 1.5× 1.75× 2× Loops are recurring agent workflows for teams. They now respond to more workspace activity, including changes to initiatives, projects, and cycles. They can also edit Linear documents and post updates to Slack. Teams change project plans all the time. It’s not the change itself that’s hard, but the follow-through: updating docs, creating issues, and keeping everyone informed. That’s where information falls out of sync and handoffs get missed. Loops can now handle that coordination for you. For example, when a project’s target date changes, a loop can automatically update the launch plan and post a Slack message explaining what changed, why, and who needs to act. Trigger from across your workspace ⁠ New triggers include: Project and initiative changes to status, ownership, target dates, milestones, membership, and labels, plus new updates and comments Cycles being created, started, or completed Issue changes to status, priority, assignee, cycle, project, or labels Edit documents ⁠ In addition to creating issues and updating projects and initiatives, Loops can now edit documents. When scope or timing changes, a loop can update the relevant Linear document so plans stay aligned. Share updates in Slack ⁠ A loop can now also draft and post tailored Slack updates using context from Linear and connected tools. Keep the right people informed about what changed and what happens next. Continue any run ⁠ Each loop run starts a conversation with Linear Agent. Once it finishes, you can continue that conversation like any other agent session to review the work, add context, or direct what happens next. Loops credits available until end of year ⁠ We’ve extended introductory Loops credits through December 31, giving teams more time to test Loops on their own workflows. See the docs for more details. Callout components ⁠ Use callout components to draw attention to important information in issue and project descriptions, as well as documents. Choose any color, icon, or emoji to match the context. In PR descriptions, Linear converts callouts to the closest matching GitHub callout type, so the emphasis carries over. Type /callout to get started. Fixes Diffs Reduced the number of false positives for issue suggestions Imports Preserved archive status in GitHub imports IOS Fixed issue list delegation confirmations showing internal user details instead of the agent’s name Issues Fixed issue copies omitting nested sub-issues MCP Updated Datadog MCP connections to use the supported v1 endpoints Settings Fixed SCIM-managed team members incorrectly showing a Non-SCIM label to members and team owners Slack Fixed a duplicate linkback when a message contained an issue identifier and a link to the same issue at the end of a sentence Templates Issues created from a form template now keep the status and labels of the board column they were created under Improvements Diffs Added a “Copy filename” action to the file tree context menu Diffs Added a hover explanation to the pull request status badge, so a “Blocked” badge states what is blocking the merge Diffs Added Diff issue suggestion dismissal button Diffs Added related diffs to the pull request sidebar Editor Added support for commenting on links and viewing existing threads from the link toolbar Filters Changed new label filters to default to “include any of” when all selected labels belong to the same group Search It is now possible to search projects by their synced Jira Epic key Keyboard shortcuts Diffs Fixed collapsed-code controls so Shift Up expands code above and Shift Down expands code below MCP server Hid the Active MCP connections link when the user cannot access workspace security settings list_teams and get_team now report each team’s visibility and retiredAt API Added new outbound IPs for webhooks, which will go live in the next few weeks. Visit the docs for the current list Fixed team updates for Asks email intake addresses September 3, 2026 Priority inbox An active workspace can create a significant amount of notifications each day, and until now your inbox treated them all the same. The new Priority tab separates what needs your attention from what can wait, so something like a review blocking a release never gets buried. Linear selects what appears in Priority by default, with the option to customize it by choosing notification sources or creating a filter. You can also continue using the inbox just as you do today. To get started, open the inbox display options or read the docs . Draft projects with Linear Agent ⁠ The new project composer lets you develop ideas with Linear Agent before creating a live project. Inside the composer, Linear can pull in relevant context from your workspace and connected tools to sharpen the brief and build out a plan. Drafts save automatically as you work, so you can return to the draft without losing progress. Select Create with Agent in the project creation page to get started. Document editing on mobile ⁠ Document creation and editing are now available in Linear’s iOS and Android apps. Start a doc while the context is fresh, update a plan as it changes, or fix a detail before it sends someone in the wrong direction, without waiting until you’re back at your desk. Rich previews in diffs ⁠ Images, fonts, Markdown, and PDFs now render directly inside Linear diffs. Reviewers can see the output alongside the code and understand what changed without leaving the pull request. Symlinks are also now supported, shown as file-based changes. Third-party app approvals ⁠ As more apps and agents connect to your workspace, admins need control over which ones can access company data. Third-party app approvals are now available on paid Linear plans, allowing admins to review and approve apps before they’re installed. Learn more in the docs. Fixes Agents Fixed triage suggestions now showing the team name instead of the key Agents Fixed an issue where Linear Agent was sometimes not linking a PR to the issue it was generated from Asks Fixed large inbound emails blocking workflow processing during quote detection Desktop Fixed an issue where opening documents in the desktop app navigated to their parent Diffs Reduced request spikes when opening very large pull requests Diffs Fixed changed lines sometimes missing from pull requests Diffs Fixed incremental PR Guide updates sometimes dropping unchanged sections IOS @-mentions now respect the full name display preference in comments and issue descriptions Linear Agent Fixed agent panel “use as context” button’s tooltip incorrectly formatting entity names like pull request Notifications Fixed bulk notification actions to show both read-state options when the selection contains read and unread notifications Projects Fixed the scroll position indicator jumping back to an earlier section while scrolling down a project overview Slack Fixed issue creation failing after updating fields in the Slack issue form Slack Fixed synced Slack replies being deleted when an issue is archived Teams Fixed team settings rejecting an unchanged team identifier that became reserved after it was initially claimed by the team Triage Fixed cases where future shifts did not appear in triage responsibility when using an external schedule Improvements Accessibility Improved accessibility of view display controls Asks Allowed reordering templates on Asks Web pages Command Menu Improved command menu to now use fuzzy search Desktop Added native creation commands, including documents, and made Cmd/CtrlN choose what to create from the current view Diffs Added compact activity updates for running and completed Codex reviews Favorites You can now add a loop to Favorites Favorites You can now right-click a favorites folder to copy the URLs of all items Favorites You can now drag items to add them to favorites Filters Added a “No labels” filter option Filters Added “My teams” filter value that matches the teams the current user belongs to Labels Removed the ability for labels to contain emojis Linear Agent Files dropped anywhere over an Agent chat now attach to the message composer Loops Notified loop owners when one of their loops is deleted or disabled by someone else Loops Added support for running scheduled Loops every hour or at custom hourly intervals Settings Added an option to start SLA timing when an issue is created instead of when it is escalated Settings Added CSV exports to workspace teams, team members, API keys, and usage history tables Settings Added support for adding multiple workspace members to one or more teams at once Settings Added support for selecting workspace members and changing roles, suspending, or activating them in bulk Slack Accents in Slack always use the color defined for the associated issue status Teams Added bulk member selection, team owner promotion, demotion, and removal to team member settings Workspaces Standardized search, filter, and display controls across workspace-level Teams, Members, Loops, and Releases views Keyboard shortcuts Fixed ShiftCmd/CtrlO opening sub-issue creation instead of the pull request preview Added O then G to open linked pull requests and synced GitHub issues from issue views API Added the startMode field and SLAStartMode enum to SLA configuration responses Added outbound IP addresses published at https://linear.app/.well-known/appspecific/app.linear.ips.json August 20, 2026 Coding sessions: environments, browser use, and updated pricing Elapsed 00:00 Remaining time unknown − --:-- 0.25× 0.5× 0.75× 1× 1.25× 1.5× 1.75× 2× Linear Agent can now set up, run, and test your code before returning its work. That means fewer handoffs and changes that are further along when they come back to you. We’re also introducing lower, more transparent pricing, making AI credit usage easier to understand and control. Configurable environments ⁠ Coding sessions now automatically adapt to each codebase’s configuration, with broader out-of-the-box support for Python, Ruby, Go, and more. During a session, Linear detects and installs the toolchains and dependencies it needs to complete the task. Teams can go further by pinning runtime versions, adding setup scripts, and defining environment variables. To get started, create an environment in settings . Visit the docs for more details. Browser testing ⁠ Once the application is running, Linear Agent tests its work where users experience it: in the browser. The agent opens the app, navigates through a flow, and verifies its implementation. It also captures before-and-after screenshots, making visual changes easier to review alongside the code. Browser testing can catch broken interactions and visual regressions that code review alone might miss. If the agent finds a problem, it can make a fix, rerun the test, and return the work with that validation complete. Transparent pricing ⁠ As coding sessions take on more work, costs need to be easy to understand and easy to control. Starting today, coding sessions use a lower-cost pricing model with two components: Model usage: Tokens are charged at the provider’s published rates, with no markup Sandbox runtime: Charged at $0.25 per 20-minute block Together, model usage and runtime determine the AI credit cost of a session. The usage dashboard shows the breakdown, along with token usage and cost by model. Admins can also set workspace-wide and per-user spend limits that reset daily, weekly, or monthly. When a limit is reached, additional AI credit usage is paused until the limit resets or an admin increases it. Learn more about AI credits in the docs . Fixes Agents Fixed an issue where Linear couldn’t find or assign a future cycle when referenced by its number (e.g. “Cycle 13”) in Slack and comments Android Fixed read AI conversations appearing bold in the conversation picker Desktop Fixed search and create issue buttons in the sidebar not responding to clicks at narrow window sizes Diffs Fixed merge queue duration tooltips appearing stuck Diffs Fixed guide sections with a lot of files in them not being scrollable Diffs Fixed Linear guest users with a connected GitHub account being able to edit Diff title and description if they have write access to that PR on GitHub Diffs Removed hover underlines from GitHub code embed header links, kept their link cursors when focused, and added external-link indicators to file names Diffs Fixed repeated review cache errors when IndexedDB is unavailable Improvements Asks Added a per-channel Asks setting that posts a message mentioning the new assignee in the synced Slack thread when an Ask is assigned Authentication Improved pending SAML domain verification from 24 hours to seven days Diffs Improved meaningful change count on PR tooltips as well IOS Improved error messages for unsupported media formats Issues Added the full issue copy menu to the issue header URL button Team Home Initiative documents pinned to a team’s overview now also appear in the team’s documents tab Views Added ability to subscribe to events in project views and receive notifications in Inbox or Slack Keyboard shortcuts Issues Open a GitHub-synced issue in GitHub with O G Issues Fixed Cmd/Ctrl Up/Down scrolling to the top or bottom of an issue after editing its title or description August 13, 2026 Team initiatives Initiatives are Linear’s way to manage product strategy and high-level planning across projects. Strategy may start at the company level, but teams carry it forward. You can now assign a team to lead an initiative, making it clear who is responsible for driving the work and how it contributes to the broader direction. For work that requires tighter access, initiatives led by private teams are only visible to team members. This creates a secure place for confidential planning, regulated projects, audits, and other restricted work. Learn more about initiatives in the docs . Enterprise-managed authorization for MCP ⁠ Linear’s MCP now supports managing employee access through your existing Okta-managed identity. When employees connect from a supported Anthropic agent, Linear verifies their identity through Okta and applies their existing Linear permissions. Admins can manage access centrally, without requiring employees to sign in or authorize Linear individually. Available to Enterprise workspaces with Okta SAML configured. Learn more in the docs . Fixes Agent Fixed agent sometimes not showing a progress indicator Agent Fixed Linear Agent sometimes claiming a Slack thread synced when it did not Comments Prevented document comment threads from shifting away from their referenced text when content changes size Cycles Fixed new cycle names with quarter or half-year labels not incrementing correctly Cycles Fixed fast issue creation while viewing completed cycles Diffs Fixed code review discussions crashing when a file path is missing Diffs Fixed comment links not opening the associated thread Diffs Fixed authored pull requests appearing in “To review” after commenting Diffs Fixed closing an already-closed GitHub pull request failing to remove it from review lists Diffs Fixed stale PR Guides not refreshing after a pull request update Editor Added support for comments on Mermaid diagrams GitHub Fixed closing an abandoned draft pull request changing the status of an issue already marked Done or Canceled GitLab Fixed merge requests from deleted users failing to process Integrations Fixed disconnecting a personal Notion account opening Notion instead of removing the connection Integrations Renaming an OAuth application now updates the name shown in the activity of issues it creates Issues Fixed imported recurring issues missing their recurring-series link in issue history Issues Fixed drag-and-drop for sub-issues in views sorted by status, title, or due date Issues Fixed “Copy as” prompt copying a parent issue instead of the selected sub-issue Notifications Fixed duplicate notifications for GitHub review requests Notifications Fixed members being unable to disable Slack alerts for shared custom views Projects Fixed blocking and blocked-by relationships appearing in the wrong direction in project activity Projects Fixed project and initiative update reminders being sent when an update was already posted on the previous business day Search Improved exact user name matches in search results Triage Added GitHub usernames to GitHub-sourced issues in triage Improvements Agent Linear Agent can now update releases Billing Added the ability to remove a previously set tax ID Coding sessions Added GPT-5.6 Luna as a model option Cycles Added an explanation of cycle success to the tooltip Diffs Added a branch-status widget showing whether a branch is up to date, behind, or has conflicts Diffs Grouped agent and bot review comments under Agents & Bots Diffs Made structural diff highlighting the default Diffs Showed merge-queue time on pull request hover Editor Added support for mentioning pull requests from the editor mention picker Editor Pressing Enter at the end of an issue or document title now starts a new line at the top of the content below it Git Updated relates to and related to magic words to mark pull requests as related rather than contributing Importer Added an option to skip workspace-level labels and templates during Linear-to-Linear imports Integrations Improved the channel connection labels across Slack and Microsoft Teams menus IOS We now indicate progress while importing photo library attachments for comments Loops Made the Disabled badge interactive so loops can be re-enabled directly Projects Added project milestone agent widgets on iOS API Added subscribers field on Document Added a subscription for user settings updates Keyboard shortcuts Teams Fixed Ctrl Shift 1–9 shortcuts for opening team home pages July 30, 2026 Coding sessions on mobile Elapsed 00:00 Remaining time unknown − --:-- 0.25× 0.5× 0.75× 1× 1.25× 1.5× 1.75× 2× Your coding session doesn’t have to stop when you leave your desk. Use the Linear mobile app to review code changes, comment on specific lines, and iterate with Linear Agent. Open any diff and switch to the Changes tab to inspect the code. When you spot something to change, tap the relevant line to add it to your message to steer the coding session in the direction you want. We’ve also added section under My Issues → Assigned for your delegated issues. It shows the status of each coding session, and gives you a quick way back into active work. Download the Linear mobile app for iOS and Android . Guided Reviews are now generally available ⁠ Guided Reviews break diffs into focused sections with explainers on what changed and why. As part of general availability, they are now generated for larger pull requests, with a bigger context window and better latency. Guided Reviews are available on Business and Enterprise plans at no additional cost. Support for GitHub teams in reviews ⁠ You can now assign reviews to GitHub teams. Review requests assigned to your GitHub teams appear in a dedicated section of the Reviews inbox. Learn more in the docs . Signed commits for coding sessions ⁠ Coding sessions now support signed commits. Add your SSH or GPG key in Settings to enable signing. Workspace admins can also require users to upload a signing key before using coding sessions. GitHub Copilot for Linear ⁠ GitHub Copilot users can assign issues directly to Copilot’s cloud agent from Linear. Copilot uses the issue context to work in its own development environment, open draft pull requests, and update the issue as it makes progress. Choose model and agent settings, set the base and working branches, then steer ongoing work through comments in Linear. To get started, install GitHub Copilot for Linear , or read the GitHub announcement for more details. Fixes Agents Queued agent messages now display readable text in previews instead of raw markup API Fixed issue SLA sort to order by the displayed SLA bucket (Breached / High / Medium / Low / Achieved / Failed) instead of raw slaBreachesAt , so mobile lists no longer show repeated SLA sections Comments Inline images no longer appear too large in iOS comments Diffs Pull request reviews no longer unexpectedly open an inline comment draft when the revision changes Diffs Dismissed issue suggestions no longer reappear on pull requests GitHub Pull request events now update issue statuses when a Git automation branch pattern contains unsupported regex syntax Inbox Fixed new project and initiative update notifications appearing as separate inbox entries for the same parent Integrations GitHub Enterprise Server setup no longer gets stuck on “Verifying installation” after the Linear app is created Integrations Prevented Slack Asks from responding to unmentioned thread messages after creating an Ask IOS File, image, and video attachments in document comments now open when tapped, and attachment cards have better contrast in the comments drawer Issues Issue boards now show an error instead of an empty state when too many issues match Reviews Structural diffs no longer mark entire reformatted statements as changed when only part of the statement changed Reviews Resolving a review thread that no longer exists in GitHub now shows a clear message instead of a generic error Search Searching for a GitHub URL now finds issues that reference the pull request Slack Fixed Slack review request notifications sometimes showing the wrong person as the requester Slack Fixed pasting a project milestone link into Slack now previewing that milestone instead of another milestone from the same project Teams Fixed internal custom view and dashboard links in Team Home displaying generic labels or icons Triage “Copy as prompt” no longer moves issues out of triage Improvements Diffs Diffs linked as Related no longer change the status of the issue Diffs AI can now generate a Linear issue from a pull request or suggest an existing issue to link Diffs Inline feedback can now be sent to the Linear Agent, added to a review, or posted to the diff Diffs New agent sessions can now be started from any pull request using the Agent panel Diffs TypeScript and JavaScript regular expressions can now be tested directly from the file where they’re introduced Diffs Pull requests now show the number of meaningful changes, excluding tests and documentation Diffs Improved Slack notifications for a pull request removed from the merge queue to include the reason it was removed Editor Updated the keyboard shortcut cheat sheet to show Cmd/CtrlEnter for toggling checklist items Importers It is now possible to import issues into a sub-team if it doesn’t inherit statuses from its parent team Issues You can now restore an archived or deleted issue from the iOS app Loops Improved the “Authenticated email intake” trusted source by renaming it to “Email intake” and explaining when an email is treated as trusted Loops Added ability for Loops to send user notification Zendesk Improved the Zendesk integration to allow connection using an agent role instead of an end-user role MCP server Added Zapier to the built-in MCP connector directory Keyboard shortcuts Editor Toggle a checklist item with Cmd/CtrlEnter when the cursor is inside it. Hold Shift to also toggle nested items Search Escape now clears the search input while keeping the current results, then dismisses search when the input is empty Triage Triage keyboard shortcuts now follow the order of the actions: 1 accepts, 2 declines, 3 marks as duplicate July 23, 2026 Text attribution and agent-assisted editing Documents and project descriptions are critical context for your teams and agents. You can now edit text with Linear Agent , and use Loops to keep docs and project descriptions up-to-date. Author name indicators let you check if text was written by a colleague or added by a loop. When editing, changes you make through Linear Agent highlight separately so they’re easy to review. If you need to revert to an earlier version, restore to any previous checkpoint from version history. Show author names or open version history from the ⌘ / Ctrl + K menu, or in document display options. Learn more in our documentation . Refreshed issue sidebar ⁠ The issue sidebar now closely integrates issue properties with the main content. We’ve pinned Diffs to the top of this panel so you can access the issue’s pull requests from anywhere on the page. Fixes Asks Fixed issues created through Slack Asks ignoring a chosen template’s default status Comments The resolved comments menu no longer appears when there are no resolved comments Diffs Submit review flyouts now properly close when clicking outside them GitHub Prevented revert pull requests from reopening issues linked to another GitHub repository GitHub Fixed linking GitHub pull requests to issues via pasted URLs. Initiatives Fixed oversized initiative titles Integrations Fixed a bug where removing a linked GitHub pull request disconnecting GitHub issue sync Integrations Fixed Slack project channel setup retrying after a project was deleted or archived Settings Fixed IP restrictions not appearing when searching for “IP” in settings Slack Fixed truncated issue summaries in Slack unfurls Views Fixed view filters (like Cmd/Ctrl F filtering) resetting when navigating to an item in a split view list Improvements Editor Added Backspace navigation from empty issue descriptions and document bodies back to the title Issues Improved issue composer to suggest templates as a quick suggestion, surfaced before other suggestions because they apply a bundle of issue properties Projects Added a way to view a project’s issues filtered by a specific milestone from the project overview on iOS Triage Added triage responsibility to the triage screen on iOS, showing who is responsible for incoming issues and letting you manage the action and responsible members Diffs “Quick to review” now shows up for slightly larger PRs and also appears for the author of the PR API Added bodyData to GraphQL pull request comments CycleCreate and CycleUpdate now prevent overlapping schedules and validate neighboring cycles using their dates. July 20, 2026 Introducing Loops Elapsed 00:00 Remaining time unknown − --:-- 0.25× 0.5× 0.75× 1× 1.25× 1.5× 1.75× 2× Loops are a new way for Linear Agent to take on recurring work for your team. Describe the job in plain language and then choose whether it should run on a schedule or in response to an event. From there, Loops use context from your workspace and connected tools to decide on the next best action. For example: Review incoming issues, research root causes, and dispatch to coding agents Create and coordinate follow-up work based on unstructured notes, like meeting transcripts or incident reports Keep launch plans and project specifications up-to-date See more ways to use Loops in the docs Elapsed 00:00 Remaining time unknown − --:-- 0.25× 0.5× 0.75× 1× 1.25× 1.5× 1.75× 2× Loops run at the team and workspace level, with shared visibility and control. Anyone with access can review their instructions, see how they are configured, and inspect what happened during each run. Loops are available today on Business and Enterprise plans and use AI credits. To help you get started and understand usage, we’re giving your workspace $20 per seat in promotional credits. These credits are applied automatically to runs, and expire on August 20, 2026. Read the blog post to learn more. Fixes Android Added a fallback page for auth redirects so users can reopen the app when browser handoff fails Asks Fixed Asks created by mentioning the Asks agent in private Slack channels weren’t syncing the originating thread to the issue Cycles Fixed archived cycles getting stuck behind persisted label and other view filters with no visible way to clear them Diffs Pull requests with more than 50 commits now loading up to 450 commits Documents Private team document templates now consistently appearing in the template selector Editor Fixed checklists pasted from Google Docs rendering incorrectly Email Prevented notification emails from being sent to deactivated users Inbox Fixed email intake issues not appearing in the assignee’s inbox when the intake template auto-assigned the issue back to the sender Integrations Fixed GitHub Enterprise Cloud installation webhooks routing to the wrong workspace region before the installation was known to Linear Integrations Fixed GitHub Enterprise Cloud setup showing a generic error when an IP allow list blocked Linear, with clearer guidance on allowing Linear IPs Notifications Fixed duplicate Slack notifications when a newly created issue is added to a view with Slack notifications enabled Projects Fixed project pages crashing when a graph tooltip referenced a stale date Pulse Added an unsubscribe action for Pulse items shown through team project update subscriptions Triage Intelligence Fixed Triage Intelligence no longer requiring destination teams to have workspace-wide scope to be eligible for suggestions Improvements Agent Linear Agent can now manage inbox notifications Asks Email intake threads can now be resolved and unresolved Asks Synced comment threads (Slack and Asks) can now be resolved and unresolved, and a new reply reopens a resolved thread Comments Added inline issue description comments on iOS, including highlights in the description, tap-to-scroll to the thread, and quoted text above description comments Desktop Added support for Cmd+Z to restore accidentally closed tabs, with timeline-ordered priority and batch restore for bulk close operations Diffs Added the Diffs inbox as a default home view option Diffs Improved visibility of auto-merge status in review controls Diffs Showed failed checks in merge queue removal events Diffs Showed GitHub force-push events in pull request timelines Interface Added an Underline links preference under Interface and theme to always underline links in issue descriptions, comments, and documents Teams Added display options to team member lists for sorting, filtering by member type, and choosing visible columns MCP server Improved attachment uploads to accept base64 payloads with whitespace or data: URL prefixes July 2, 2026 Initiative properties Initiatives define your company’s high-level goals and organize the projects that contribute to them. To help you manage initiatives as your roadmap grows, we’ve added a new set of focused initiative properties: Proposed and canceled statuses make it clear when an initiative is under consideration or has been intentionally set aside Priority communicates which initiatives are most important Labels group initiatives by product line, region, or other meaningful categories Use these properties to group and filter initiatives on any plan, or build custom initiative views on Enterprise plans. Learn more about initiative properties in the docs . Centrally manage access to Linear’s MCP server in Claude ⁠ Give employees secure access to Linear and other MCP servers in Claude, without requiring them to authenticate with each server individually. Enterprise-managed Authorization lets Okta administrators manage access and permissions centrally, and users automatically get access to the MCP servers they’re authorized to use when they sign in to Claude. Enterprise-Managed Authorization is available to Enterprise workspaces using Okta as an identity provider and Claude as an MCP client. Learn more in the docs or in the MCP specification . Share filtered views ⁠ You can now share any filtered view by copying its URL from your browser, or by pressing ⌘ / Ctrl Shift C on desktop. Share filtered views to discuss a subset of an existing view with someone else — like an issue view filtered by an assignee, or project or initiative view filtered by a label. Fixes Agents Fixed issues with editing collapsible sections inside documents and descriptions with the Linear agent API Stopped automatically cancelling and restarting active Triage Intelligence runs after issue content changes API Fixed fieldless GraphQL input metadata from turning persisted filters into match-all filters Asks Slack /asks commands now pre-fill the modals with the entered text Automations Fixed showing agent automation Show more prompt buttons only when hovering an automation block Comments Fixed a transient agent session wrapper appearing after mentioning an agent that only handles comment events Cycles Fixed renamed cycles showing their local generated cycle number in some client Chrome Desktop Fixed OAuth application creation form resetting when switching tabs on desktop Diffs Added Linear details comments for manually linked GitHub pull requests when the link is created or changed Diffs Kept combined code review diffs aligned with side-by-side view when inserted additions are followed by a later paired helper extraction Diffs Show pull request status icons for coding session inbox notifications tied to PRs Diffs Fixed review notifications to now open the diff at the relevant comment instead of the guide Diffs Fixed Team reviews settings appearing when Diffs were disabled Diffs Fixed poor contrast of JSDoc comments in the GitHub Light syntax theme Diffs Fixed scroll position jumping when expanding collapsed code sections in diff view Diffs Fixed commit navigation controls shifting when the changed file count changes between selected commits Diffs Comment filters on the PR Diffs tab no longer hide comments in the Guide Editor Fixed emoji rendering in italicized text so emojis remain upright Editor Improved autolink for a broader list of TLDs when pasting URLs in the editor Email Fixed email intake settings occasionally displaying an incomplete email address Initiatives Fixed initiative list with sub-initiatives correctly restoring scroll position on navigation Initiatives Fixed transparency issues with the icon picker when editing initiatives inline in the list Integrations Reverted a GitHub sync change that stopped updates from Linear to GitHub once an issue is synced via the one-way sync Integrations Added a warning to Slack issue dialogs when selected labels include multiple labels from the same label group Integrations Fixed Google Calendar out-of-office status labels showing an absence as starting today when it starts tomorrow in the user’s timezone Integrations Fixed GitHub issue sync sending Linear label updates back to repositories configured for one-way GitHub-to-Linear sync Integrations Fixed Linear user mentions in Slack unfurls notifying mentioned users Integrations Fixed Slack synced comment import retries when Slack returns missing scopes while fetching message replies Issue Activity Fixed issue activity history no longer briefly reordering or regrouping while loading when lots of labels are involved Issue templates Fixed blank optional-only form template submissions from creating empty issues Issues Fixed issue sidebar hover styles not updating after switching between dark and light mode Issues Fixed copied issues including sub-issues after the Include sub-issues option was disabled Issues Fixed SLA workflow triggers failing when a workflow condition did not include an issue filter Mobile Prevented synced email threads from being resolved from Android Project Views Fixed a problem where hidden groups could not be restored in timeline views Projects Fixed completed projects appearing in project dependency blocker counts Projects Fixed newly created projects now receiving varied default icon colors, matching initiatives Projects Fixed the project update editor border disappearing after Agent highlight interactions Releases Fixed started release stage rows appearing taller than other rows in release pipeline settings Settings Fixed existing application images now showing when editing an OAuth application Settings Fixed settings search input box now respecting custom sidebar theme colors Settings Fixed customer status and tier row dividers appearing brighter than the header divider in settings Settings Fixed workspace security settings copy incorrectly referencing recurring issues for workspace template management Sidebar Properly aligned controls in the sidebar into one consistent column and fixed their focus rings Slack Stopped retrying permanent Slack webhook errors for disabled app message tabs and invalid block payloads Teams Fixed duplicate favorite action in action menu on team views Triage Fixed Triage rules sometimes showing duplicate or missing rows immediately after saving Triage Fixed the issue preview closing when a new issue entered a label-filtered Triage queue Views Fixed some server-backed views not loading correctly with some complex filter conditions Projects Project and initiative overview latest updates no longer inherit the previous latest update’s open state Diffs Fixed commit titles of specific lengths from overflowing the commit selector dropdown Initiatives Initiative target dates now use the same completed date rendering semantics as project target dates Initiatives Show the notifications subscribe control on initiative pages Estimates Restored the selected issue’s estimate total in the bulk action toolbar Editor Fixed dragging URL-backed Linear content into editors that was inserting duplicated mentions Pulse Fixed Pulse summary item navigation inside the inbox and added a breadcrumb back to the originating summary Documents Fixed restoring deleted documents whose project parent is archived Pull requests Cmd-clicking linked pull requests now opens them in a new tab Diffs Fixed bug where some code in Code Review diffs could not be copied to the clipboard Improvements Android Added support for toggling todo checkboxes directly in issue descriptions and comments Diffs Added syntax highlighting for .gjs and .gts files in Diffs Diffs Added settings to control whether GitHub team review requests appear in Reviews and count as To Do Diffs Collapsed generated protobuf Go files in pull request diffs by default Diffs Changed PR comment copy menu label to refer to threads when copying prompts for comment threads Inbox Added ability to filter inbox notifications by related review status Issues Renamed canonical issue duplicate relation labels from “Duplicated by” to “Duplicates” Search Updated search tabs to show the search term with a Search prefix and a search-results icon Teams Improved the spacing between team home columns at medium-width resolutions Settings Clarified the keyboard preference for submitting comments and agent chat messages Insights Improved performance of issue and insights queries that filter by initiative GitHub Added Linear issue to the list of magic words linking pull requests to issues MCP server Added read-only MCP tools for listing and retrieving Linear Agent skills Added support for managing releases, release notes, and release issue associations through the MCP server Added source URL support to the save_customer_need tool API Added an external-user actor variant to the webhook actor union Included the top-level url field in data-change webhook payloads for remove actions when an entity URL is available Fixed entity webhooks for external-user actions so their top-level actor is populated Keyboard shortcuts Added the ] shortcut to show or hide the Agent sidebar from Diffs when an Agent session is available Fixed Shift Cmd/Ctrl ArrowDown not opening sub-issues in board view June 18, 2026 Agent assisted project updates Elapsed 00:00 Remaining time unknown − --:-- 0.25× 0.5× 0.75× 1× 1.25× 1.5× 1.75× 2× Project and initiative updates keep teams aligned, but writing them means pulling out recent changes from issues, documents, and discussions. Instead of finding that context manually, click Write with Agent to let Linear do it for you. The agent reviews changes made since the last update, checks messages in the linked Slack channel, and writes an update draft for you to refine. Add your own perspective by prompting for further changes or editing directly, then publish the update. Desktop navigation history and pinned tabs ⁠ We’ve rebuilt our desktop tabs to make navigation feel fluid and predictable. Each desktop tab now has its own history stack, so moving backwards won’t navigate you to another tab Pinned tabs are now a reliable home for important work. They stay anchored in the tab bar, persist after quitting and reopening the app, and aren’t replaced by new content you open. These changes are live for current desktop users. Try Linear on desktop by downloading the app . Private sub-teams ⁠ Private sub-teams organize groups that work together under one umbrella, like independent business units, skunkworks efforts, or teams handling sensitive data like People Ops. When you create a sub-team under a private team, you can now choose between two access options: Restricted to parent team members — parent team members can see and choose to join the sub-team. This makes it easy to manage private team structures without coordinating invitations to each sub-team. Private to team members — the team is hidden, except to members directly invited to that sub-team Private sub-teams are available on Business and Enterprise plans. Learn more in our documentation . Build agents with Vercel Eve ⁠ Vercel Eve is an open-source framework for building custom agents. Build agents that can investigate incidents, monitor SLAs, or analyze customer feedback. You can deploy agents on Vercel with the guided setup, or host them wherever you run your Eve app. Once connected to Linear, teammates can delegate issues to your agent or mention it in comments. Learn more about Eve in Vercel’s documentation . Release pipeline changelogs ⁠ Releases let you plan and track your software releases. Now, you can also keep your team aligned on what’s shipping with changelogs for each release pipeline. These changelogs bring a pipeline’s release notes together in one place, so progress is easy to review and share. Choose to auto-generate release notes in pipeline settings so your changelog is always up to date. Learn more in our documentation . OAuth application manifests ⁠ OAuth application manifests let platforms provide a one-click OAuth app setup experience for users creating integrations. Use URL parameters to send users directly to a pre-filled Create OAuth App form in Linear. An equivalent JSON manifest format lets you store configurations in files, validate them locally, or generate them programmatically. Find the details in our developer docs . Fixes Command menu Added the missing command menu action for recently deleted initiatives Comments Threaded comment highlight corners now match with the reply composer below the thread Customers Fixed stale customer request counts on issues and projects after archiving or restoring customer requests Desktop Middle-clicking a link to a document comment now properly navigates to the comment Diffs Fixed the Unified/Split layout toggle not taking effect when a narrow column had forced the diff into unified view Diffs The tooltip on group headers in the Reviews inbox now covers the entire clickable header Documents Creating an issue from a selection in a team document now creates it in the correct team Duplicates When you remove a duplicate relation, it now restores the issue’s last status Duplicates Fixed duplicate merges running concurrently for the same issue during bulk deduplication Filters Fixed the filter button not staying visually active while its menu is open Front Fixed processing Front conversation links for conversations without a primary recipient GitHub Fixed GitHub integrations being marked “disconnected” after a transient GitHub authentication blip Inbox We no longer send a removed from merge queue notification when a pull request is successfully merged by GitHub’s merge queue Inbox Fixed inbox notifications occasionally appearing as blank while the sender’s name was loading Insights Fixed release-filtered burn-up charts failing to render Issues Fixed oversized issue status icons in delete confirmation toasts Milestones Fixed a flicker in the milestone list when creating the first milestone from a project overview Notifications Each recipient’s name display preference is now respected in project and initiative update notifications Project Updates Fixed the project updates panel occasionally leaving an empty wrapper element on the page after navigating elsewhere Pull requests Right-clicking pull request pills in issue lists now opens the correct menu Pull requests Fixed pull request details overflowing their container when hovering over a PR badge SCIM Renaming a linked SCIM role group (e.g. linear-admins ) in the identity provider no longer causes Linear to stop managing the associated role Settings Prevented the language selector from overlapping the scrollbar in Code & Reviews settings Settings Fixed an odd transition when switching between the same settings page of different teams Slack Slack thread sync no longer fails to import a comment when one of its reactions came from a user without access to the issue Slack Underscores in pull request titles are now preserved in Slack notifications Slack Slack comment notifications now link out to unsupported images instead of sending invalid Slack image blocks Slack Slack pasted message links now sync to Linear threads as a clickable link Improvements Agents AI chat thinking steps are now shown as blockquotes when copying conversations as markdown Diffs Added a “Missing issue” PR filter that shows PRs without a linked issue Diffs Raised the size limit for generating Guides on larger pull request diffs Diffs Holding Opt and clicking the chevron in the file header now expands/collapses all files Diffs Review list approval copy now shows who approved a pull request Diffs Whole added/removed lines in diffs render more clearly with the same color as inline added/removed characters Diffs Added the ability to use custom font for code in diffs Diffs Added contextual help about the Reviews feature and related keyboard shortcuts Diffs Polished the pull request review layout — removed the divider between the conversation and code columns, and the Guide now has even horizontal padding with the scrollbar no longer overlapping content Diffs Added copy link to file actions in pull request diffs GitHub/GitLab Unassigned triage issues remain in triage for Git request and commit automations, unless the final merged change closes the issue PagerDuty Added support for PagerDuty shift-based schedules, so triage responsibility on-call now syncs from both shift-based (v3) and classic layer-based schedules (v2) Team documents The documents list now supports multi-select Views Updated the sort direction icons so the arrow direction matches the active sort order MCP server MCP project status update tools are now available in workspaces without recent project update history Fixed issue with fetches failing when descriptions contained Unicode line or paragraph separators API templateCreate and templateUpdate now reject unsupported form field payloads June 11, 2026 Coding sessions in Linear Elapsed 00:00 Remaining time unknown − --:-- 0.25× 0.5× 0.75× 1× 1.25× 1.5× 1.75× 2× Earlier this year, we launched Linear Agent , giving teams a new way to plan and coordinate their issues and projects. Since then, we’ve added Code Intelligence to extend that understanding to the codebase, and MCP support to bring all of your context together. Today we’re closing the loop: Linear Agent can now write code using Claude Code and Codex. You can triage, plan, review, and ship—all in Linear. Start a coding session by assigning an issue to Linear, or ask it to make a change in a chat, comment, or Slack thread. Each session is grounded in your workspace context, pulling in issue details, history, customer requests, discussions, and related work. A coding agent your team will love ⁠ Coding sessions run in the cloud, so you can prototype ideas and make changes without setting up a local development environment. When the change is ready, Linear returns a new diff for review. Share preview links , bring teammates into the discussion, and address feedback with further iterations in the same thread. Automate the first pass ⁠ When a new issue is reported, Linear Agent can investigate and attempt a fix before it reaches an engineer, reducing the load on your team. It follows your team’s guidance, gathers evidence from tools like Sentry or Datadog through MCP, and inspects the codebase to trace the root cause before producing a fix. Linear uses this workflow internally to resolve roughly 30% of incoming bug reports, mostly on the first pass. You can set up your own agent automation in your team’s Triage settings. Availability and pricing ⁠ Coding sessions are available on Basic, Business, and Enterprise plans. They require a GitHub connection with code access and use AI credits to run. Workspace admins can enable coding sessions in Settings and manage access, usage, and credits from the usage dashboard. Learn more in the docs . Fixes Agents Filled in the thumbs down button after submitting AI feedback Agents Fixed a missing space between the integrations link and surrounding text on the team agents settings page Agents Vertically centered the label and preview text in the agent session card’s status row Agents Fixed left padding of the agent session card header to match other activity cards Archive Fixed restoring a trashed issue or document failing in rare cases where the document’s trashed flag was stored as false Asks Allowed Slack workflows and external users using the Asks Agent to access private teams’ channel-configured templates Customers Fixed excessive row spacing and the limited customer list on the unfiltered customers page Customers Fixed the customer merge preview showing annual revenue under the monthly revenue label Customers Fixed a bug where linking a Slack channel to a customer failed for workspaces with multiple Slack connections but a single Asks connection Diffs Opening a linear.review link in a workspace without Diffs enabled now routes to enable-reviews instead of bouncing back to GitHub Diffs Fixed showing GitHub legacy commit statuses (e.g. external CI like RWX or Jenkins) in PR checks Diffs Fixed “Update branch → with rebase” creating a merge commit instead of rebasing Diffs Fixed the file list sidebar not scrolling when the file tree was taller than the viewport Display options Fixed the display options menu being slow to open on views grouped into a large number of items Editor Fixed customer and customer request mentions not loading their details in the iOS editor Editor Pasting linear.app/review/<owner>/<repo>/pull/<id> now properly embeds as a PR mention Editor Fixed the tooltip for plain links covering link controls GitHub Fixed Linear issues with comma-containing label names failing to sync to GitHub Initiatives Fixed Initiative projects table columns occasionally overlapping or taking up too much width Integrations Fixed an importer freeze when mapping a large number of users Issues Fixed a line break appearing between an issue’s status icon and its identifier in undo/redo toasts Labels Archived labels no longer appear in the form-template label group picker Links Fixed a crash when a link embed with a missing or invalid URL failed to load a preview Mobile Release, Release Note, and Release Pipeline mentions now display properly on mobile Notifications Fixed agent completion notifications not being delivered to the user who delegated the work Projects Project issue list deep links now redirect to the project overview instead of the filtered issue view Project Views Fixed saved project views unexpectedly showing empty groups when grouping and filtering projects Pulse Fixed daily Pulse summaries being skipped when a single feed update had a malformed body SCIM Fixed SCIM role group pushes not repairing a stale role when the user was already tracked in the role’s membership Settings AI settings dependent on the Linear Agent now show “Disabled” when the Linear Agent is turned off Slack Sharing a project comment link in Slack now unfurls the comment instead of the project SLAs Fixed missing SLAs for issues created from Slack asks Updates Fixed inconsistent icon spacing in the project/initiative update health control Improvements Asks Improved longer, cleaner fallback issue titles when creating Asks from Slack without an AI-generated title Diffs The “Copy pull request number” action now copies just the number, without the leading # Diffs Added a file action to open the full file in GitHub from the review diff Diffs Guided reviews now jump directly to a selected file instead of scrolling slowly through every file in between Documents Added “New document” and “New document from template” to the right click menu on the create issue button Team Documents Added cycle documents to the team documents tab, including support for grouping documents by cycle Triage On Android, choosing a status that requires a priority to leave triage now opens the priority picker automatically instead of hiding those statuses Keyboard shortcuts Editor Changed the strikethrough shortcut to Cmd/Ctrl Shift X MCP server list_comments now returns comments on archived issues Documents can now be listed and created under a team Older updates Product Intake Plan AI Build Pricing Security Features Asks Agents Coding Sessions Customer Requests Insights Mobile Integrations Changelog Company About Customers Careers Now Method Quality Brand Resources Switch Download Documentation Docs Developers Status Enterprise Startups Connect Contact us Community X (Twitter) GitHub YouTube Legal Privacy Terms DPA AUP Privacy Terms DPA AUP"
+    },
+    {
+      "url": "https://linear.app/coding-sessions",
+      "readAt": "2026-09-18T14:12:29.242Z",
+      "title": "Coding Sessions – Linear",
+      "h1": "Assign your issues to Linear",
+      "text": "Coding Sessions – Linear Skip to content → Product Resources Customers Pricing Now Contact Docs Open app Log in Sign up Coding Sessions Assign your issues to Linear Linear Agent can now write code using Claude Code and Codex. Triage, plan, build, and review all in one place. Watch video ENG-2498 Dimmed Status Cards +34 -18 Activity Guide Diff Submit review Preview useRideHistory.ts client/src/views/RideHistory +21 -14 76 77 // Build sections from ride history state - const dimmedIds : Set < string > = useComputed (() => { - const ids = new Set < string >(); - for ( const id of cancelledRideIds ) { - ids . add ( id ); - } 78 const waitingStatusById : Map < string , string > = useComputed (() => { 79 const map = new Map < string , string >(); 80 for ( const ride of ridesAwaitingPickup ) { - ids . add ( ride . id ); 81 map . set ( ride . id , \" Driver en route \" ); 82 } 83 for ( const ride of ridesInProgress ) { 84 map . set ( ride . id , \" Trip in progress \" ); 85 } 86 RideHistoryPage.tsx client/src/views/RideHistory +2 -1 36 background - color : $ { props . theme . color . bgBase }; 37 box - shadow : none ; 38 39 $ { props . highlighted && css ` 40 &:hover { 41 background-color: ${ props . theme . color . bgBaseHover } ; 42 opacity: 1; 43 } 44 ` } 45 ` ; 46 47 const RowContent = styled.div ` 48 display : flex ; 49 Linear Opus 5 Conor started this session Worked for 32s Pushed and opened a draft PR. Changes: useRideHistory.ts : build a waitingStatusById map and use it as the getLastAction byline RideHistoryPage.tsx : dimmed rows reset to full opacity Tell Linear what to do next... Start from anywhere. Kick off a coding session from an issue, a chat, a comment, or a Slack thread. Linear gathers the relevant context and gets to work. Linear Agent works where you work 01. Chat 02. Issues 03. Diffs 04. Mobile 05. Slack 06. Teams Delegate or automate. Assign issues directly, or let Linear pick them up the moment they land in Triage. Bugs can be investigated and fixed before anyone touches a keyboard. ENG-2498 DIMMED STATUS ENG-2486 TRIP COUNT Jori DIMMED STATUS CARDS FIX TRIP COUNT Automate Delegate ENG-2498 DIMMED STATUS ENG-2486 TRIP COUNT Jori DIMMED STATUS CARDS FIX TRIP COUNT Close your laptop. Every coding session runs in a secure cloud sandbox. No local setup or babysitting required. When the work is ready, review the diff, ask for changes, or merge the result. Delegate an issue from your backlog and get back a diff for review Built for teams. Linear Agent is part of your workspace and collaborative by default. Sessions are multiplayer and run on shared context. Steer the session while it runs, or iterate from the diff Steer the session while it runs, or iterate from the diff Point Linear Agent to a project and let it work from the spec Point Linear Agent to a project and let it work from the spec Full context Linear natively understands your issues, projects, documents, discussions, and customer requests. Frontier models Sessions are powered by Claude Code and Codex, configured at the workspace level. End-to-end Investigate, implement, and review in one continuous workflow. No handoffs between tools. Multiplayer Follow progress, ask questions, and steer the work together. Start a coding session today Get started Contact sales Open app Download Product Intake Plan AI Build Pricing Security Features Asks Agents Coding Sessions Customer Requests Insights Mobile Integrations Changelog Company About Customers Careers Now Method Quality Brand Resources Switch Download Documentation Docs Developers Status Enterprise Startups Connect Contact us Community X (Twitter) GitHub YouTube Legal Privacy Terms DPA AUP Privacy Terms DPA AUP"
+    },
+    {
+      "url": "https://linear.app/contact",
+      "readAt": "2026-09-18T14:12:30.077Z",
+      "title": "Contact us – Linear",
+      "h1": "How can we help?",
+      "text": "Contact us – Linear Skip to content → Product Resources Customers Pricing Now Contact Docs Open app Log in Sign up How can we help? Get in touch with our sales and support teams for demos, onboarding support, or product questions. Sales Speak to our sales team about plans, pricing, enterprise contracts, or request a demo. Support We are here to help. Ask us product questions, report problems, or leave feedback. Get in touch Community Connect with Linear users in Slack Join Slack ↗ General communication For other questions, email us hello@linear.app + Documentation Features, integrations, and usage Linear Docs → Developers Extend Linear with our API and SDK Linear API → System All systems operational Check status ↗ Product Intake Plan AI Build Pricing Security Features Asks Agents Coding Sessions Customer Requests Insights Mobile Integrations Changelog Company About Customers Careers Now Method Quality Brand Resources Switch Download Documentation Docs Developers Status Enterprise Startups Connect Contact us Community X (Twitter) GitHub YouTube Legal Privacy Terms DPA AUP Privacy Terms DPA AUP"
+    },
+    {
+      "url": "https://linear.app/now",
+      "readAt": "2026-09-18T14:12:27.035Z",
+      "title": "Now – Updates from the Linear team",
+      "h1": "Now",
+      "text": "Now – Updates from the Linear team Skip to content → Product Resources Customers Pricing Now Contact Docs Open app Log in Sign up Now All Changelog Product launches From the team From the community Press Search… The coding agent behind 75% of Ramp’s merged PRs Why and how Ramp built an internal coding agent that’s now responsible three of every four PRs the company merges. Customer story · Aug 31, 2026 → Styling Linear for the future with StyleX A long-running migration that became an exercise in tooling, automation, and designing clearer boundaries for both humans and agents. Kenneth Skovhus · Aug 26, 2026 → Sharing Linear’s growth with the people building it As Linear passes $100 million in ARR, we’re giving our team another opportunity to participate in the upside. Karri Saarinen · Aug 26, 2026 → Rebuilding Linear’s delta sync read path How we use turbopuffer to keep catch-up latency predictable across more than 20 TB of sync actions. Peter Travers · Aug 18, 2026 → How teams build AI usage patterns in software teams: who is adopting AI, how it reshapes where teams spend their time, and how much more they ship. Tim Qi · Aug 17, 2026 → Coinbase’s bet on agent-first development In January 2026, Chintan asked his entire engineering organisation to delete their IDEs and write zero lines of code. For two weeks, every engineer at Base would have to do their job without touching a code editor. Customer story · Aug 11, 2026 → Changelog Loops for product management Loops are recurring agent workflows for teams. They now respond to more workspace activity, including changes to initiatives, projects, and cycles. They can also edit Linear documents and post updates to Slack. Sep 10, 2026 Priority inbox An active workspace can create a significant amount of notifications each day, and until now your inbox treated them all the same. The new Priority tab separates what needs your attention from what can wait, so something like a review blocking a release never gets buried. Sep 3, 2026 Coding sessions Linear Agent can now set up, run, and test your code before returning its work. That means fewer handoffs and changes that are further along when they come back to you. Aug 19, 2026 Team initiatives Initiatives are Linear's way to manage product strategy and high-level planning across projects. Strategy may start at the company level, but teams carry it forward. You can now assign a team to lead an initiative, making it clear who is responsible for driving the work and how it contributes to the broader direction. Aug 13, 2026 View all → How we built Linear Agent The product and engineering decisions we made so Linear Agent can handle complex tasks without becoming unpredictable. Matthijs Wolting · Aug 10, 2026 → Introducing Loops Describe a recurring job in plain language and Linear Agent will run it on a schedule or in response to events, working from the full context of your workspace. Nan Yu · Jul 20, 2026 → Boom Supersonic builds as fast as it flies Boom Supersonic is bringing back supersonic flight before the end of the decade. To move that fast, its engineers borrowed the habits of software, building in short cycles and getting real parts in hand as quickly as they can. Customer story · Jul 15, 2026 → Teaching an agent to auto-fix bugs Some bugs at Linear now get fixed before a single engineer picks them up. Igor has been teaching Linear Agent to catch them in triage and ship the fix on its own. Igor Sechyn · Jun 12, 2026 → Now Linear writes the code, too Linear Agent can now write code. With Coding Sessions, it can take a bug from triage all the way to a reviewed fix, without the work ever leaving Linear. Karri Saarinen · Jun 11, 2026 → Reviewing code in the agent era Agentic coding has puts real pressure on review. One of our engineers shares how he uses Linear Diffs to hold his bar high without drowning in pull requests. Maciek Pekala · Jun 10, 2026 → Press Protecting the Thinking Behind Great Design, Inside Linear's Design Team YouTube · Aug 12, 2026 ↗ The New Standard: a talk with Linear, Raycast, and Anthropic YouTube · May 13, 2026 ↗ AI Agents and the Future of Software Teams with Linear + Sequoia Capital Startup Grind · May 05, 2026 ↗ How Karri Saarinen Redefined Product Design Grit Podcast · Apr 20, 2026 ↗ Protecting the Thinking Behind Great Design, Inside Linear's Design Team YouTube · Aug 12, 2026 ↗ The New Standard: a talk with Linear, Raycast, and Anthropic YouTube · May 13, 2026 ↗ AI Agents and the Future of Software Teams with Linear + Sequoia Capital Startup Grind · May 05, 2026 ↗ How Karri Saarinen Redefined Product Design Grit Podcast · Apr 20, 2026 ↗ View all → Code review should be fast Agents are forcing a change in how we review code. Diffs brings code reviews directly inside Linear, so that the review lives alongside all of your product context. Tuomas Artman · May 28, 2026 → Code Intelligence for Linear Agent Linear Agent can now read your codebase and answer questions from the source itself. Karri Saarinen · May 14, 2026 → Cars24’s push to being AI-native with Linear In October, Cars24 renewed its Jira license. A few weeks later, they treated that contract as a sunk cost and walked away from it. Customer story · May 13, 2026 → How we hire at Linear Hiring well matters more than hiring fast. We’re happy to take our time, and believe each person who joins the team should raise the bar for the next one. Doug Parker · Apr 28, 2026 → Output isn’t design Design keeps being misunderstood in our industry. New tools keep promising to generate interfaces faster, move words to product instantly, or collapse design directly into code. The assumption behind them is clear: that design is the act of producing. Karri Saarinen · Apr 17, 2026 → How we use Linear Agent at Linear The workflows that proved most useful across CX, Product, and Engineering, and what they tell us about working with agents. Rhea Purohit · Apr 10, 2026 → Archive Post mortem on Linear security incident on March 24th, 2026 Jamie Finnigan · Apr 06, 2026 → Issue tracking is dead Karri Saarinen · Mar 24, 2026 → A calmer interface for a product in motion Charlie Aufmann, Maxime Heckel · Mar 12, 2026 → How Cursor builds with Linear Customer story · Feb 04, 2026 → How Dandelion Chocolate scales craft Customer story · Jan 27, 2026 → Design is more than code Karri Saarinen · Dec 19, 2025 → How our Customer Experience team works in Linear Alexandra Lapinsky Wilson · Nov 06, 2025 → Continuous planning in Linear Nan Yu · Oct 30, 2025 → Designing remote work at Linear Karri Saarinen · Oct 29, 2025 → Self-driving SaaS: When software runs itself Karri Saarinen · Oct 22, 2025 → A Linear spin on Liquid Glass Robb Böhnke · Oct 21, 2025 → Best practices for designing Linear Dashboards Tim Qi · Oct 07, 2025 → Why we committed to a zero-bugs policy Tuomas Artman, Sabin Roman · Sep 24, 2025 → How Commure uses Dashboards to track performance and guide planning Kevin Hartnett · Sep 10, 2025 → How we built Triage Intelligence Yann-Edern Gillet, Matthijs Wolting · Sep 03, 2025 → Load more Built for the future. Available today. Get started Contact sales Open app Download Product Intake Plan AI Build Pricing Security Features Asks Agents Coding Sessions Customer Requests Insights Mobile Integrations Changelog Company About Customers Careers Now Method Quality Brand Resources Switch Download Documentation Docs Developers Status Enterprise Startups Connect Contact us Community X (Twitter) GitHub YouTube Legal Privacy Terms DPA AUP Privacy Terms DPA AUP"
+    },
+    {
+      "url": "https://linear.app/pricing",
+      "readAt": "2026-09-18T14:12:25.003Z",
+      "title": "Pricing – Linear",
+      "h1": "Pricing",
+      "text": "Pricing – Linear Skip to content → Product Resources Customers Pricing Now Contact Docs Open app Log in Sign up Pricing Free $0 Free for everyone Unlimited members 2 teams 250 issues Agent platform Linear Agent Get started Get started Basic $10 per user/month :host{display:inline-block;direction:ltr;white-space:nowrap;line-height:var(--number-flow-char-height, 1em) !important}span{display:inline-block}:host([data-will-change]) span{will-change:transform}.number,.digit{padding:calc(var(--number-flow-mask-height, 0.25em) / 2) 0}.symbol{white-space:pre} $ 1 0 per user/month $10 per user/month Billed yearly All Free features + 5 teams Unlimited issues Unlimited file uploads Admin roles Get started Get started Business $16 per user/month :host{display:inline-block;direction:ltr;white-space:nowrap;line-height:var(--number-flow-char-height, 1em) !important}span{display:inline-block}:host([data-will-change]) span{will-change:transform}.number,.digit{padding:calc(var(--number-flow-mask-height, 0.25em) / 2) 0}.symbol{white-space:pre} $ 1 6 per user/month $16 per user/month Billed yearly All Basic features + Unlimited teams Private teams and guests Triage Intelligence Loops Code Intelligence Linear Insights Linear Asks Zendesk and Intercom integrations Get started Get started Contact sales Enterprise Custom Annual billing only All Business features + Invoice/PO billing SAML and SCIM Granular admin controls Enterprise-grade security Advanced org modeling Migration & onboarding support Priority support Account management Contact sales Trusted by more than 40,000 companies Customer stories → Features Free Basic Business Enterprise Change Plan Free Basic Business Enterprise Members Unlimited Unlimited Unlimited Unlimited File upload 10MB Unlimited Unlimited Unlimited Issues 250 issues Unlimited Unlimited Unlimited Teams 2 teams 5 teams Unlimited Unlimited Core Issues, projects, cycles, initiatives Customer requests API and webhook access Import and export Triage Pulse Issue sync Diffs Guided reviews Issue SLAs Triage responsibility Triage rules Releases 15 pipelines Unlimited Sub-initiatives AI and agent workflows Agent platform MCP access Linear Agent Coding sessions** Loops** Code Intelligence Triage Intelligence Integrations Integrations Microsoft Teams integration Multiple tenants Support integrations Salesforce integration Add-on Team management Sub-teams 1 level 5 levels Private teams Guest accounts Analytics & Reporting Progress reports Insights Dashboards Data warehouse sync Linear Asks Slack intake Email intake Web forms Multiple Slack workspaces Private Slack channels Per-channel configurations Security SSO Google Google Google Google + SAML Admin roles Team owners Advanced authentication SCIM provisioning IP restrictions Domain claiming Audit log Third-party app management HIPAA compliance Support Priority support Account manager Custom terms Uptime SLA Get started Get started Get started Get started Get started Get started or contact sales Contact sales ** Requires AI credits View docs Built for the future. Available today. Get started Contact sales Open app Download Product Intake Plan AI Build Pricing Security Features Asks Agents Coding Sessions Customer Requests Insights Mobile Integrations Changelog Company About Customers Careers Now Method Quality Brand Resources Switch Download Documentation Docs Developers Status Enterprise Startups Connect Contact us Community X (Twitter) GitHub YouTube Legal Privacy Terms DPA AUP Privacy Terms DPA AUP"
+    },
+    {
+      "url": "https://linear.app/resource-kit",
+      "readAt": "2026-09-18T14:12:29.827Z",
+      "title": "Linear Resource Kit",
+      "h1": "Linear Resource Kit",
+      "text": "Linear Resource Kit Linear Resource Kit The product development system for teams and agents Sign up → Switch to Linear → Linear Learn → AI Workflows → Live Onboarding → Enterprise → Careers → Contact us →"
+    }
+  ]
+}

@@ -1,0 +1,4828 @@
+{
+  "domain": "reachkit.app",
+  "scan": {
+    "id": "325999e4-09f4-4466-afea-4b296c40d574",
+    "tier": "deep",
+    "status": "done",
+    "finishedAt": "2026-09-19T10:10:04.276Z"
+  },
+  "report": {
+    "tier": "deep",
+    "serps": [
+      {
+        "at": "2026-09-19T10:06:22.056Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://onelittleweb.com/top-tools/best-ai-seo-tools/",
+              "title": "17 Best AI SEO Tools in 2026: Tested by SEO Experts",
+              "domain": "onelittleweb.com",
+              "position": 1
+            },
+            {
+              "url": "https://www.rankability.com/blog/best-ai-seo-tools/",
+              "title": "We tested 15 best AI SEO tools. here's our favorite for 2026",
+              "domain": "www.rankability.com",
+              "position": 2
+            },
+            {
+              "url": "https://www.reddit.com/r/seogrowth/comments/1pva4y0/what_are_the_top_ai_powered_seo_services_to_boost/",
+              "title": "What are the top ai powered seo services to boost search ...",
+              "domain": "www.reddit.com",
+              "position": 3
+            },
+            {
+              "url": "https://seo.ai/",
+              "title": "AI SEO - done for you by an AI agent",
+              "domain": "seo.ai",
+              "position": 4
+            },
+            {
+              "url": "https://whatagraph.com/blog/articles/ai-seo-tools",
+              "title": "We Tested the 14 Best (& Underrated) AI SEO Tools in 2026",
+              "domain": "whatagraph.com",
+              "position": 5
+            },
+            {
+              "url": "https://athenahq.ai/blog/best-ai-seo-tools",
+              "title": "AI SEO Tools Comparison",
+              "domain": "athenahq.ai",
+              "position": 6
+            },
+            {
+              "url": "https://zapier.com/blog/best-seo-tools/",
+              "title": "The 11 Best SEO Tools in 2026",
+              "domain": "zapier.com",
+              "position": 7
+            },
+            {
+              "url": "https://www.youtube.com/watch?v=GXsM7sgNAsc&xstg=CAMSBhUD-7L2Hw%3D%3D",
+              "title": "Is This the Best AI-SEO Tool Yet? ($15/mo)",
+              "domain": "www.youtube.com",
+              "position": 8
+            },
+            {
+              "url": "https://www.youtube.com/watch?v=Ydo9yu6p7vA&xstg=CAMSBhUD-7L2Hw%3D%3D",
+              "title": "I Kept Switching AI Tools for SEO Until I Figured This Out",
+              "domain": "www.youtube.com",
+              "position": 9
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "onelittleweb.com",
+              "www.youtube.com",
+              "behindrankings.com",
+              "www.vezadigital.com",
+              "www.searchbloom.com",
+              "fritz.ai",
+              "rankcite.com"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      },
+      {
+        "at": "2026-09-19T10:06:22.056Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.marketermilk.com/blog/best-seo-tools",
+              "title": "24 best SEO tools I'm using in 2026 (free + paid)",
+              "domain": "www.marketermilk.com",
+              "position": 1
+            },
+            {
+              "url": "https://technologyadvice.com/blog/sales/best-seo-tools/",
+              "title": "Best SEO Tools for Keyword Research & Site Audits in 2026",
+              "domain": "technologyadvice.com",
+              "position": 2
+            },
+            {
+              "url": "https://www.reddit.com/r/SEO/comments/1ehb8w3/best_seo_tool/",
+              "title": "Best SEO tool : r/SEO",
+              "domain": "www.reddit.com",
+              "position": 3
+            },
+            {
+              "url": "https://morningscore.io/best-seo-tools/",
+              "title": "The 20 best SEO tools in 2026? I personally tested all tools",
+              "domain": "morningscore.io",
+              "position": 4
+            },
+            {
+              "url": "https://zapier.com/blog/best-seo-tools/",
+              "title": "The 11 Best SEO Tools in 2026",
+              "domain": "zapier.com",
+              "position": 5
+            },
+            {
+              "url": "https://www.gartner.com/reviews/market/enterprise-seo-platforms",
+              "title": "Best Enterprise SEO Platforms Reviews 2026",
+              "domain": "www.gartner.com",
+              "position": 6
+            },
+            {
+              "url": "https://targetinternet.com/resources/seo-tools-comparison-raven-seomoz-buzzstream/",
+              "title": "The 10 Best SEO Tools for 2026: Ranked and Compared",
+              "domain": "targetinternet.com",
+              "position": 7
+            },
+            {
+              "url": "https://seotesting.com/blog/best-seo-tools/",
+              "title": "The Best Free & Paid SEO Software Tools For Agencies in ...",
+              "domain": "seotesting.com",
+              "position": 8
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [],
+            "asynchronousAiOverview": true
+          }
+        }
+      },
+      {
+        "at": "2026-09-19T10:06:22.056Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.marketermilk.com/blog/best-seo-tools",
+              "title": "24 best SEO tools I'm using in 2026 (free + paid)",
+              "domain": "www.marketermilk.com",
+              "position": 1
+            },
+            {
+              "url": "https://technologyadvice.com/blog/sales/best-seo-tools/",
+              "title": "Best SEO Tools for Keyword Research & Site Audits in 2026",
+              "domain": "technologyadvice.com",
+              "position": 2
+            },
+            {
+              "url": "https://zapier.com/blog/best-seo-tools/",
+              "title": "The 11 Best SEO Tools in 2026",
+              "domain": "zapier.com",
+              "position": 3
+            },
+            {
+              "url": "https://www.reddit.com/r/SEO/comments/1269zj7/whats_the_best_seo_tools_right_now_in_the_market/",
+              "title": "What's the best SEO tools right now in the market?",
+              "domain": "www.reddit.com",
+              "position": 4
+            },
+            {
+              "url": "https://morningscore.io/best-seo-tools/",
+              "title": "The 20 best SEO tools in 2026? I personally tested all tools",
+              "domain": "morningscore.io",
+              "position": 5
+            },
+            {
+              "url": "https://www.gartner.com/reviews/market/enterprise-seo-platforms",
+              "title": "Best Enterprise SEO Platforms Reviews 2026",
+              "domain": "www.gartner.com",
+              "position": 6
+            },
+            {
+              "url": "https://onelittleweb.com/top-tools/best-seo-tools-for-agencies/",
+              "title": "16 Secret SEO Tools Top Agencies Use to Rank Fast",
+              "domain": "onelittleweb.com",
+              "position": 7
+            },
+            {
+              "url": "https://www.rankability.com/blog/best-seo-content-optimization-tools/",
+              "title": "15 best SEO content optimization tools for agencies (2026)",
+              "domain": "www.rankability.com",
+              "position": 8
+            },
+            {
+              "url": "https://targetinternet.com/resources/seo-tools-comparison-raven-seomoz-buzzstream/",
+              "title": "The 10 Best SEO Tools for 2026: Ranked and Compared",
+              "domain": "targetinternet.com",
+              "position": 9
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "zapier.com",
+              "www.gartner.com",
+              "onelittleweb.com",
+              "www.saffronedge.com",
+              "www.dreamhost.com",
+              "www.accuwebhosting.com"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      },
+      {
+        "at": "2026-09-19T10:06:22.056Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://onelittleweb.com/top-tools/best-ai-seo-tools/",
+              "title": "17 Best AI SEO Tools in 2026: Tested by SEO Experts",
+              "domain": "onelittleweb.com",
+              "position": 1
+            },
+            {
+              "url": "https://www.rankability.com/blog/best-ai-seo-tools/",
+              "title": "We tested 15 best AI SEO tools. here's our favorite for 2026",
+              "domain": "www.rankability.com",
+              "position": 2
+            },
+            {
+              "url": "https://www.reddit.com/r/seogrowth/comments/1pva4y0/what_are_the_top_ai_powered_seo_services_to_boost/",
+              "title": "What are the top ai powered seo services to boost search ...",
+              "domain": "www.reddit.com",
+              "position": 3
+            },
+            {
+              "url": "https://searchatlas.com/",
+              "title": "Search Atlas: AI SEO Automation Platform",
+              "domain": "searchatlas.com",
+              "position": 4
+            },
+            {
+              "url": "https://whatagraph.com/blog/articles/ai-seo-tools",
+              "title": "We Tested the 14 Best (& Underrated) AI SEO Tools in 2026",
+              "domain": "whatagraph.com",
+              "position": 5
+            },
+            {
+              "url": "https://seo.ai/",
+              "title": "AI SEO - done for you by an AI agent",
+              "domain": "seo.ai",
+              "position": 6
+            },
+            {
+              "url": "https://zapier.com/blog/best-seo-tools/",
+              "title": "The 11 Best SEO Tools in 2026",
+              "domain": "zapier.com",
+              "position": 7
+            },
+            {
+              "url": "https://freddiechatt.com/ai-seo-tools/",
+              "title": "I Tried 18 AI SEO Tools. Here Are The Ones That Really Work",
+              "domain": "freddiechatt.com",
+              "position": 8
+            },
+            {
+              "url": "https://www.eesel.ai/blog/seo-optimization-ai-tools",
+              "title": "I tested 6 top SEO optimization AI tools: My honest review ...",
+              "domain": "www.eesel.ai",
+              "position": 9
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "onelittleweb.com",
+              "www.youtube.com",
+              "searchatlas.com",
+              "behindrankings.com",
+              "fritz.ai",
+              "pikaseo.com"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      },
+      {
+        "at": "2026-09-19T10:06:22.056Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://onelittleweb.com/top-tools/best-ai-seo-tools/",
+              "title": "17 Best AI SEO Tools in 2026: Tested by SEO Experts",
+              "domain": "onelittleweb.com",
+              "position": 1
+            },
+            {
+              "url": "https://www.rankability.com/blog/best-ai-seo-tools/",
+              "title": "We tested 15 best AI SEO tools. here's our favorite for 2026",
+              "domain": "www.rankability.com",
+              "position": 2
+            },
+            {
+              "url": "https://whatagraph.com/blog/articles/ai-seo-tools",
+              "title": "We Tested the 14 Best (& Underrated) AI SEO Tools in 2026",
+              "domain": "whatagraph.com",
+              "position": 3
+            },
+            {
+              "url": "https://freddiechatt.com/ai-seo-tools/",
+              "title": "I Tried 18 AI SEO Tools. Here Are The Ones That Really Work",
+              "domain": "freddiechatt.com",
+              "position": 4
+            },
+            {
+              "url": "https://seo.ai/",
+              "title": "AI SEO - done for you by an AI agent",
+              "domain": "seo.ai",
+              "position": 5
+            },
+            {
+              "url": "https://www.eesel.ai/blog/seo-optimization-ai-tools",
+              "title": "I tested 6 top SEO optimization AI tools: My honest review ...",
+              "domain": "www.eesel.ai",
+              "position": 6
+            },
+            {
+              "url": "https://www.quattr.com/ai-seo-tools",
+              "title": "Free AI SEO Tools",
+              "domain": "www.quattr.com",
+              "position": 7
+            },
+            {
+              "url": "https://www.semrush.com/blog/best-ai-seo-tools/",
+              "title": "8 Best AI SEO Tools for 2026 (Tested Firsthand)",
+              "domain": "www.semrush.com",
+              "position": 8
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "seo.ai",
+              "onelittleweb.com",
+              "freddiechatt.com",
+              "www.quattr.com",
+              "athenahq.ai",
+              "www.youtube.com",
+              "www.namecheap.com",
+              "www.designrush.com",
+              "seointent.com"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      },
+      {
+        "at": "2026-09-19T10:06:22.057Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.marketermilk.com/blog/best-seo-tools",
+              "title": "24 best SEO tools I'm using in 2026 (free + paid)",
+              "domain": "www.marketermilk.com",
+              "position": 1
+            },
+            {
+              "url": "https://zapier.com/blog/best-seo-tools/",
+              "title": "The 11 Best SEO Tools in 2026",
+              "domain": "zapier.com",
+              "position": 2
+            },
+            {
+              "url": "https://apps.shopify.com/categories/store-design-site-optimization-seo/all",
+              "title": "Best SEO Apps For 2026 - Shopify App Store",
+              "domain": "apps.shopify.com",
+              "position": 3
+            },
+            {
+              "url": "https://www.reddit.com/r/SEO/comments/1ehb8w3/best_seo_tool/",
+              "title": "Best SEO tool : r/SEO",
+              "domain": "www.reddit.com",
+              "position": 4
+            },
+            {
+              "url": "https://seoapp.io/",
+              "title": "SEO App: Best SEO Analysis Tool | SEO Monitoring Tool",
+              "domain": "seoapp.io",
+              "position": 5
+            },
+            {
+              "url": "https://www.ecommerce-gold.com/shopify-seo-apps/",
+              "title": "The 7 Best Shopify SEO Apps 2026 (Tried & Tested)",
+              "domain": "www.ecommerce-gold.com",
+              "position": 6
+            },
+            {
+              "url": "https://www.gartner.com/reviews/market/enterprise-seo-platforms",
+              "title": "Best Enterprise SEO Platforms Reviews 2026",
+              "domain": "www.gartner.com",
+              "position": 7
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [],
+            "asynchronousAiOverview": true
+          }
+        }
+      },
+      {
+        "at": "2026-09-19T10:06:22.057Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.marketermilk.com/blog/best-seo-tools",
+              "title": "24 best SEO tools I'm using in 2026 (free + paid)",
+              "domain": "www.marketermilk.com",
+              "position": 1
+            },
+            {
+              "url": "https://www.reddit.com/r/SEO/comments/1705q7j/what_are_some_free_seo_tools_actually_free_that/",
+              "title": "What Are Some FREE SEO TOOLS (Actually Free) that ...",
+              "domain": "www.reddit.com",
+              "position": 2
+            },
+            {
+              "url": "https://ahrefs.com/free-seo-tools",
+              "title": "Free SEO Tools - Made by Ahrefs",
+              "domain": "ahrefs.com",
+              "position": 3
+            },
+            {
+              "url": "https://moz.com/free-seo-tools",
+              "title": "Drive Revenue with Free SEO Tools",
+              "domain": "moz.com",
+              "position": 4
+            },
+            {
+              "url": "https://backlinko.com/best-free-seo-tools",
+              "title": "12 Best SEO Tools for 2026 (Used by Our Team Daily)",
+              "domain": "backlinko.com",
+              "position": 5
+            },
+            {
+              "url": "https://seranking.com/free-tools.html",
+              "title": "Free SEO Tools",
+              "domain": "seranking.com",
+              "position": 6
+            },
+            {
+              "url": "https://zapier.com/blog/best-seo-tools/",
+              "title": "The 11 Best SEO Tools in 2026",
+              "domain": "zapier.com",
+              "position": 7
+            },
+            {
+              "url": "https://learn.g2.com/best-free-seo-tools",
+              "title": "10 Best Free SEO Tools for Small Businesses I Reviewed ...",
+              "domain": "learn.g2.com",
+              "position": 8
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [],
+            "asynchronousAiOverview": true
+          }
+        }
+      },
+      {
+        "at": "2026-09-19T10:06:22.057Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.marketermilk.com/blog/best-seo-tools",
+              "title": "24 best SEO tools I'm using in 2026 (free + paid)",
+              "domain": "www.marketermilk.com",
+              "position": 1
+            },
+            {
+              "url": "https://developers.google.com/search/docs/fundamentals/seo-starter-guide",
+              "title": "Search Engine Optimization (SEO) Starter Guide",
+              "domain": "developers.google.com",
+              "position": 2
+            },
+            {
+              "url": "https://morningscore.io/best-seo-tools/",
+              "title": "The 20 best SEO tools in 2026? I personally tested all tools",
+              "domain": "morningscore.io",
+              "position": 3
+            },
+            {
+              "url": "https://zapier.com/blog/best-seo-tools/",
+              "title": "The 11 Best SEO Tools in 2026",
+              "domain": "zapier.com",
+              "position": 4
+            },
+            {
+              "url": "https://backlinko.com/best-free-seo-tools",
+              "title": "12 Best SEO Tools for 2026 (Used by Our Team Daily)",
+              "domain": "backlinko.com",
+              "position": 5
+            },
+            {
+              "url": "https://onelittleweb.com/top-tools/best-seo-tool/",
+              "title": "30 Best SEO Tools We've Tested in 2026",
+              "domain": "onelittleweb.com",
+              "position": 6
+            },
+            {
+              "url": "https://thecmo.com/tools/best-seo-tools/",
+              "title": "10 Best SEO Tools To Rank on Google SERP In 2026",
+              "domain": "thecmo.com",
+              "position": 7
+            },
+            {
+              "url": "https://www.rankability.com/blog/best-seo-content-optimization-tools/",
+              "title": "15 best SEO content optimization tools for agencies (2026)",
+              "domain": "www.rankability.com",
+              "position": 8
+            },
+            {
+              "url": "https://developers.google.com/search",
+              "title": "Google Search Central (formerly Webmasters) | Web SEO ...",
+              "domain": "developers.google.com",
+              "position": 9
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "www.youtube.com",
+              "zapier.com",
+              "rankmath.com",
+              "www.elysiandigitalservices.com",
+              "www.semrush.com",
+              "www.intelegencia.com",
+              "www.techradar.com",
+              "onelittleweb.com",
+              "ahrefs.com",
+              "behindrankings.com"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      },
+      {
+        "at": "2026-09-19T10:06:22.057Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://onelittleweb.com/top-tools/best-ai-seo-tools/",
+              "title": "17 Best AI SEO Tools in 2026: Tested by SEO Experts",
+              "domain": "onelittleweb.com",
+              "position": 1
+            },
+            {
+              "url": "https://www.reddit.com/r/seogrowth/comments/1pva4y0/what_are_the_top_ai_powered_seo_services_to_boost/",
+              "title": "What are the top ai powered seo services to boost search ...",
+              "domain": "www.reddit.com",
+              "position": 2
+            },
+            {
+              "url": "https://seo.ai/",
+              "title": "AI SEO - done for you by an AI agent",
+              "domain": "seo.ai",
+              "position": 3
+            },
+            {
+              "url": "https://freddiechatt.com/ai-seo-tools/",
+              "title": "I Tried 18 AI SEO Tools. Here Are The Ones That Really Work",
+              "domain": "freddiechatt.com",
+              "position": 4
+            },
+            {
+              "url": "https://athenahq.ai/blog/best-ai-seo-tools",
+              "title": "AI SEO Tools Comparison",
+              "domain": "athenahq.ai",
+              "position": 5
+            },
+            {
+              "url": "https://www.rankability.com/blog/best-seo-content-optimization-tools/",
+              "title": "15 best SEO content optimization tools for agencies (2026)",
+              "domain": "www.rankability.com",
+              "position": 6
+            },
+            {
+              "url": "https://www.youtube.com/shorts/liv05juOudM",
+              "title": "What's the best SEO / AI Visibility Tool?",
+              "domain": "www.youtube.com",
+              "position": 7
+            },
+            {
+              "url": "https://whatagraph.com/blog/articles/ai-seo-tools",
+              "title": "We Tested the 14 Best (& Underrated) AI SEO Tools in 2026",
+              "domain": "whatagraph.com",
+              "position": 8
+            },
+            {
+              "url": "https://www.youtube.com/watch?v=5aosChLdurM",
+              "title": "Best AI plugins for SEO optimization",
+              "domain": "www.youtube.com",
+              "position": 9
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "onelittleweb.com",
+              "freddiechatt.com",
+              "www.youtube.com",
+              "www.sitepoint.com",
+              "athenahq.ai"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      },
+      {
+        "at": "2026-09-19T10:06:22.057Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.marketermilk.com/blog/best-rank-tracker-software",
+              "title": "14 best rank tracker software I'm using for SEO in 2026",
+              "domain": "www.marketermilk.com",
+              "position": 1
+            },
+            {
+              "url": "https://onelittleweb.com/top-tools/best-rank-tracking-software/",
+              "title": "15 Best Rank Tracking Software We're Using for 2026",
+              "domain": "onelittleweb.com",
+              "position": 2
+            },
+            {
+              "url": "https://developers.google.com/search/docs/appearance/ranking-systems-guide",
+              "title": "A Guide to Google Search Ranking Systems",
+              "domain": "developers.google.com",
+              "position": 3
+            },
+            {
+              "url": "https://www.seobility.net/en/rankingcheck/",
+              "title": "Free Website Ranking Checker | Google Keyword Rankings",
+              "domain": "www.seobility.net",
+              "position": 4
+            },
+            {
+              "url": "https://zapier.com/blog/best-rank-tracker/",
+              "title": "The 12 best rank tracker tools",
+              "domain": "zapier.com",
+              "position": 5
+            },
+            {
+              "url": "https://storychief.io/blog/rank-checker-tools",
+              "title": "Best SEO Rank Tracking Software: 6 Free Tools Tested",
+              "domain": "storychief.io",
+              "position": 6
+            },
+            {
+              "url": "https://apollodigital.io/blog/google-ranking-software/",
+              "title": "Google Ranking Software: 14 Best Tools for 2026 [Free & ...",
+              "domain": "apollodigital.io",
+              "position": 7
+            },
+            {
+              "url": "https://seranking.com/",
+              "title": "SE Ranking — AI SEO Software That Gets Results",
+              "domain": "seranking.com",
+              "position": 8
+            },
+            {
+              "url": "https://www.youtube.com/watch?v=-ptBOVo6Wbs",
+              "title": "How to Check Google Rankings (FREE Tools + Pro Tips)",
+              "domain": "www.youtube.com",
+              "position": 9
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [],
+            "asynchronousAiOverview": true
+          }
+        }
+      },
+      {
+        "at": "2026-09-19T10:06:22.057Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://boulderseomarketing.com/seo-costs-guide-understand-seo-pricing-models/",
+              "title": "SEO Costs in 2026 | Pricing Guide for Local Businesses",
+              "domain": "boulderseomarketing.com",
+              "position": 1
+            },
+            {
+              "url": "https://thedigitalelevator.com/blog/seo-pricing-guide/",
+              "title": "SEO Pricing Guide: How Much Should You Actually Budget ...",
+              "domain": "thedigitalelevator.com",
+              "position": 2
+            },
+            {
+              "url": "https://www.semrush.com/pricing/seo-ai-search/",
+              "title": "SEO & AI Search Plans and Pricing",
+              "domain": "www.semrush.com",
+              "position": 3
+            },
+            {
+              "url": "https://agencydashboard.io/blog/seo-software-pricing",
+              "title": "SEO Software Pricing: What Agencies Really Pay Per Client",
+              "domain": "agencydashboard.io",
+              "position": 4
+            },
+            {
+              "url": "https://coalitiontechnologies.com/seo-prices",
+              "title": "SEO Agency Pricing | Instant Estimate",
+              "domain": "coalitiontechnologies.com",
+              "position": 5
+            },
+            {
+              "url": "https://www.collaborada.com/blog/seo-pricing",
+              "title": "SEO Pricing: Real Costs, Common Traps, & Smarter Options",
+              "domain": "www.collaborada.com",
+              "position": 6
+            },
+            {
+              "url": "https://www.nutshell.com/marketing/resources/cost-of-seo",
+              "title": "SEO Pricing Guide: What's The Cost of SEO? - Nutshell",
+              "domain": "www.nutshell.com",
+              "position": 7
+            },
+            {
+              "url": "https://www.reddit.com/r/topseoagencies/comments/1siarhz/seo_pricing_packages_complete_guide_for_2026/",
+              "title": "SEO Pricing Packages: Complete Guide for 2026 : r ...",
+              "domain": "www.reddit.com",
+              "position": 8
+            },
+            {
+              "url": "https://aeoengine.ai/blog/seo-software-cost-guide-pricing-savings",
+              "title": "SEO Software Cost Guide 2026: Proven Pricing & Savings",
+              "domain": "aeoengine.ai",
+              "position": 9
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [],
+            "asynchronousAiOverview": true
+          }
+        }
+      },
+      {
+        "at": "2026-09-19T10:06:22.057Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.marketermilk.com/blog/ai-marketing-tools",
+              "title": "30 best AI marketing tools I'm using to get ahead in 2026",
+              "domain": "www.marketermilk.com",
+              "position": 1
+            },
+            {
+              "url": "https://zapier.com/blog/best-ai-productivity-tools/",
+              "title": "The best AI productivity tools in 2026",
+              "domain": "zapier.com",
+              "position": 2
+            },
+            {
+              "url": "https://manus.im/playbook/market-research-tool",
+              "title": "Market research tool - AI-powered market analysis",
+              "domain": "manus.im",
+              "position": 3
+            },
+            {
+              "url": "https://gs.statcounter.com/ai-chatbot-market-share",
+              "title": "AI Chatbot Market Share Worldwide",
+              "domain": "gs.statcounter.com",
+              "position": 4
+            },
+            {
+              "url": "https://www.lindy.ai/blog/ai-platforms",
+              "title": "17 Best AI Tools & Apps I Can't Stop Using in 2026 (Free/ ...",
+              "domain": "www.lindy.ai",
+              "position": 5
+            },
+            {
+              "url": "https://www.quantilope.com/resources/best-ai-market-research-tools",
+              "title": "10 AI Market Research Tools & How To Use Them",
+              "domain": "www.quantilope.com",
+              "position": 6
+            },
+            {
+              "url": "https://cloud.google.com/use-cases/free-ai-tools",
+              "title": "10+ Free AI tools for 2026",
+              "domain": "cloud.google.com",
+              "position": 7
+            },
+            {
+              "url": "https://www.youtube.com/watch?v=TDeUDhA2hBQ",
+              "title": "Top 3 AI Tools for a Smarter Market Analysis",
+              "domain": "www.youtube.com",
+              "position": 8
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "insiderone.com",
+              "zapier.com",
+              "cloud.google.com",
+              "ilampadmanabhan.medium.com",
+              "efficient.app",
+              "www.youtube.com",
+              "www.lindy.ai"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      }
+    ],
+    "domain": "reachkit.app",
+    "market": {
+      "at": "2026-09-17T09:18:18.660Z",
+      "kind": "measured",
+      "value": {
+        "pool": [
+          {
+            "rival": null,
+            "volume": 50,
+            "keyword": "meta data preview"
+          },
+          {
+            "rival": null,
+            "volume": 50,
+            "keyword": "meta preview"
+          },
+          {
+            "rival": null,
+            "volume": 50,
+            "keyword": "metadata preview"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 40,
+            "keyword": "4 internet browsers"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 50,
+            "keyword": "a zap"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 90,
+            "keyword": "accurate ai image generator"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 170,
+            "keyword": "acuity scheduling vs calendly"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 390,
+            "keyword": "acuity vs calendly"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 1600,
+            "keyword": "ad using ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 70,
+            "keyword": "ad with ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 6600,
+            "keyword": "ads ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 6600,
+            "keyword": "ads for ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 90,
+            "keyword": "ads that show ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 1600,
+            "keyword": "ads that use ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 1600,
+            "keyword": "ads using ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 6600,
+            "keyword": "advanced ai chat bot"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 260,
+            "keyword": "advanced ai video generator"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 140,
+            "keyword": "advanced chatbot"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 140,
+            "keyword": "advanced chatbots"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 6600,
+            "keyword": "advertisement ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 2400,
+            "keyword": "advertisement ethos examples"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 2400,
+            "keyword": "advertisement examples of ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 6600,
+            "keyword": "advertisement for ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 6600,
+            "keyword": "advertisement of ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 320,
+            "keyword": "advertisement that uses ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 1600,
+            "keyword": "advertisement using ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 6600,
+            "keyword": "advertisement with ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 6600,
+            "keyword": "advertisements ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 1600,
+            "keyword": "advertisements that use ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 1600,
+            "keyword": "advertisements using ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 6600,
+            "keyword": "advertisements with ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 6600,
+            "keyword": "advertising ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 2400,
+            "keyword": "advertising ethos examples"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 1000,
+            "keyword": "advertising on social media examples"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 1600,
+            "keyword": "advertising using ethos"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 40,
+            "keyword": "adwords management tools"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 70,
+            "keyword": "affordable sms marketing"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 70,
+            "keyword": "affordable social media management tools"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "agents zapier"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 110,
+            "keyword": "agile development software tools"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 70,
+            "keyword": "ai app development platforms"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 140,
+            "keyword": "ai app for images"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 90,
+            "keyword": "ai application image"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai applications for business"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 110,
+            "keyword": "ai appointment scheduling"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 50,
+            "keyword": "ai apps for productivity"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 40,
+            "keyword": "ai apps other than chatgpt"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 110,
+            "keyword": "ai apps similar to chatgpt"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai art generator subscription"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 50,
+            "keyword": "ai assistant for meeting notes"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 70,
+            "keyword": "ai assistant for sales"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 70,
+            "keyword": "ai assistant for scheduling"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 40,
+            "keyword": "ai assistant for social media"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai assistant person"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 40,
+            "keyword": "ai assisted tools"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 50,
+            "keyword": "ai based browser"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 40,
+            "keyword": "ai based chatbots"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 90,
+            "keyword": "ai booking assistant"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 70,
+            "keyword": "ai bots list"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 40,
+            "keyword": "ai browser list"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 40,
+            "keyword": "ai browsers list"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 40,
+            "keyword": "ai business apps"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 140,
+            "keyword": "ai by zapier"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 40,
+            "keyword": "ai calendar tools"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai chat bot creator"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 40,
+            "keyword": "ai chat bot maker"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai chat bots list"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 170,
+            "keyword": "ai chat companies"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 170,
+            "keyword": "ai chat list"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 140,
+            "keyword": "ai chat options"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 90,
+            "keyword": "ai chat programs"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 50,
+            "keyword": "ai chatbot applications"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai chatbot builder free"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 70,
+            "keyword": "ai chatbot builders"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 170,
+            "keyword": "ai chatbot companies"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 390,
+            "keyword": "ai chatbot examples"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 170,
+            "keyword": "ai chatbot list"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 90,
+            "keyword": "ai chatbot maker free"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai chatbot new"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai chatbot other than chatgpt"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 90,
+            "keyword": "ai chatbot similar to chatgpt"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 301000,
+            "keyword": "ai chatbots"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai checker google slides"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai code creation tools"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai code development"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 8100,
+            "keyword": "ai coding tools"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 70,
+            "keyword": "ai companies like chatgpt"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 50,
+            "keyword": "ai competitors to chatgpt"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai content creation for social media"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 70,
+            "keyword": "ai creating tools"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 70,
+            "keyword": "ai creation tools"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai data collection tools"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 90,
+            "keyword": "ai detector for google slides"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 40,
+            "keyword": "ai detector google slides"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 210,
+            "keyword": "ai dictation app"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai dictation free"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai dictation tool free"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 50,
+            "keyword": "ai driven software"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 70,
+            "keyword": "ai driven tools"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai email and calendar assistant"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 30,
+            "keyword": "ai email and meeting tool"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 70,
+            "keyword": "ai email manager"
+          },
+          {
+            "rival": "zapier.com",
+            "volume": 70,
+            "keyword": "ai email sorter"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 110,
+            "keyword": "0gomovies alternative"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "100 keyword"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 70,
+            "keyword": "a href account login recover"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 110,
+            "keyword": "a href backlink"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 720,
+            "keyword": "a href backlink checker"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 90,
+            "keyword": "a href backlink checker free"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "a href keyword"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "a href keyword research free"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "a href keywords"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 50,
+            "keyword": "a href seo tool"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 90,
+            "keyword": "a href tool"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 70,
+            "keyword": "a paraphrase"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "a1 writing tool"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 50,
+            "keyword": "about ahrefs"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 90,
+            "keyword": "advanced google operators"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 170,
+            "keyword": "advanced google search operators"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 50,
+            "keyword": "advanced operators"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 170,
+            "keyword": "advanced search operators"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 210,
+            "keyword": "advanced search operators google"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 210,
+            "keyword": "advanced search operators in google"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "advanced search operators meaning"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "advanced search syntax"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 170,
+            "keyword": "affiliate keyword research"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 170,
+            "keyword": "ahef"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "ahref account login recover reset your password a"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 70,
+            "keyword": "ahref ai"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "ahref ai rewriter"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "ahref api"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 260,
+            "keyword": "ahref authority checker"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 720,
+            "keyword": "ahref backlink check"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 90,
+            "keyword": "ahref backlink checker free"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 720,
+            "keyword": "ahref backlinks checker"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 70,
+            "keyword": "ahref black friday"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 50,
+            "keyword": "ahref blog"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 70,
+            "keyword": "ahref domain authority"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "ahref dr"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 210,
+            "keyword": "ahref dr checker"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 90,
+            "keyword": "ahref free"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 110,
+            "keyword": "ahref free backlink checker"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "ahref free keyword explorer"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 50,
+            "keyword": "ahref free keyword tool"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "ahref free tool"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "ahref free tools"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 210,
+            "keyword": "ahref free traffic checker"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 70,
+            "keyword": "ahref gratis"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 70,
+            "keyword": "ahref keyword explorer"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 170,
+            "keyword": "ahref keyword tool"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "ahref keywords"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 170,
+            "keyword": "ahref paragraph"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 210,
+            "keyword": "ahref paraphrase"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "ahref reword"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 140,
+            "keyword": "ahref rewrite"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 50,
+            "keyword": "ahref sentence"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 110,
+            "keyword": "ahref seo"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 50,
+            "keyword": "ahref seo tool"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 50,
+            "keyword": "ahref seo tools"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "ahref site explorer"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "ahref tool price"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 110,
+            "keyword": "ahref traffic"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 1300,
+            "keyword": "ahref traffic check"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 1300,
+            "keyword": "ahref traffic checker"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 110,
+            "keyword": "ahref website traffic"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40500,
+            "keyword": "ahrefs"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 20,
+            "keyword": "ahrefs #seo for beginners"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 50,
+            "keyword": "ahrefs 30 day free trial"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 50,
+            "keyword": "ahrefs 30-day free trial"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "ahrefs 7 day free trial"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "ahrefs 7-day free trial"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 140,
+            "keyword": "ahrefs academy"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "ahrefs academy blogging for business"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 90,
+            "keyword": "ahrefs account"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 320,
+            "keyword": "ahrefs account free"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 90,
+            "keyword": "ahrefs accounts"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 70,
+            "keyword": "ahrefs affiliate"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "ahrefs affiliate commission"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "ahrefs affiliate marketing course"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 90,
+            "keyword": "ahrefs affiliate program"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 50,
+            "keyword": "ahrefs agency"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "ahrefs agent a"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 50,
+            "keyword": "ahrefs ahrefs"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 260,
+            "keyword": "ahrefs ai"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 50,
+            "keyword": "ahrefs ai caption"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "ahrefs ai content helper"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 50,
+            "keyword": "ahrefs ai detector"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 480,
+            "keyword": "ahrefs ai humanizer"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "ahrefs ai paraphraser"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 110,
+            "keyword": "ahrefs ai rewriter"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 210,
+            "keyword": "ahrefs ai text humanizer"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "ahrefs ai visibility"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 70,
+            "keyword": "ahrefs ai writer"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "ahrefs ai writing tool"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "ahrefs ai writing tools"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "ahrefs alert"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "ahrefs alerts"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 90,
+            "keyword": "ahrefs alt text generator"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "ahrefs amazon"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "ahrefs amazon keyword tool"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 30,
+            "keyword": "ahrefs analytics"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 40,
+            "keyword": "ahrefs and semrush"
+          },
+          {
+            "rival": "ahrefs.com",
+            "volume": 320,
+            "keyword": "ahrefs api"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 210,
+            "keyword": "advanced seo tool"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 210,
+            "keyword": "advanced seo tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 30,
+            "keyword": "ahrefs semrush comparison"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 390,
+            "keyword": "ai based seo tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 110,
+            "keyword": "ai driven seo software"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 210,
+            "keyword": "ai driven seo tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 40,
+            "keyword": "ai powered seo software"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 880,
+            "keyword": "ai powered seo tool"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 390,
+            "keyword": "ai seo software"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 2400,
+            "keyword": "ai seo tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 880,
+            "keyword": "ai tool for seo"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 140,
+            "keyword": "ai tool seo"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 880,
+            "keyword": "ai tools for seo"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 90,
+            "keyword": "ai tools for website seo"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 70,
+            "keyword": "ai tools in seo"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 390,
+            "keyword": "ai-based seo tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 170,
+            "keyword": "all seo tools in one"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 170,
+            "keyword": "all seo tools in-one"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 70,
+            "keyword": "backlink builder tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 50,
+            "keyword": "backlinks building tool"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 40,
+            "keyword": "best ai for seo optimization"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 880,
+            "keyword": "best ai seo tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 50,
+            "keyword": "best backlink building tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 320,
+            "keyword": "best backlink tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 70,
+            "keyword": "best free seo ai tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 1300,
+            "keyword": "best rank tracking"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 880,
+            "keyword": "best rank tracking software"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 50,
+            "keyword": "best ranking tool"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 50,
+            "keyword": "best ranking tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 210,
+            "keyword": "best seo agency software"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 70,
+            "keyword": "best seo ai tools free"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 390,
+            "keyword": "best tools for seo agencies"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 390,
+            "keyword": "best tools for seo agency"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 210,
+            "keyword": "enterprise rank tracking software"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 50,
+            "keyword": "free alternative semrush"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 50,
+            "keyword": "free automatic natural link building tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 50,
+            "keyword": "free white label seo tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 140,
+            "keyword": "google rank software"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 40,
+            "keyword": "high pr backlinks service"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 30,
+            "keyword": "like semrush"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 50,
+            "keyword": "link building tools reviews"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 70,
+            "keyword": "onelittleweb"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 30,
+            "keyword": "rank tracking tool best"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 390,
+            "keyword": "responsive website development services"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 720,
+            "keyword": "search engine rank tracking software"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 720,
+            "keyword": "search rank tracking software"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 110,
+            "keyword": "search ranking tracking software"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 590,
+            "keyword": "semrush competitors"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 50,
+            "keyword": "semrush competitors free"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 30,
+            "keyword": "semrush like"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 590,
+            "keyword": "seo ai tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 40,
+            "keyword": "seo ai tools list"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 170,
+            "keyword": "seo outreach services"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 480,
+            "keyword": "seo tool white label"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 40,
+            "keyword": "small digital agencies"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 40,
+            "keyword": "small digital agency"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 110,
+            "keyword": "small digital marketing agencies"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 140,
+            "keyword": "small marketing agencies"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 50,
+            "keyword": "top digital marketers"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 20,
+            "keyword": "top internet marketers"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 30,
+            "keyword": "top semrush alternatives"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 40,
+            "keyword": "top seo expert in the world"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 40,
+            "keyword": "top seo experts in the world"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 480,
+            "keyword": "white label seo tool"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 480,
+            "keyword": "white label seo tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 140,
+            "keyword": "ai content optimization tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 210,
+            "keyword": "ai driven seo tool"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 50,
+            "keyword": "ai link building"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 30,
+            "keyword": "ai link building tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 140,
+            "keyword": "ai optimization tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 40,
+            "keyword": "ai seo app"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 260,
+            "keyword": "ai seo optimization tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 320,
+            "keyword": "ai seo platform"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 40,
+            "keyword": "ai seo tools 2025"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 140,
+            "keyword": "ai software for seo"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 50,
+            "keyword": "ai tool for seo free"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 110,
+            "keyword": "ai tool for seo optimization"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 110,
+            "keyword": "ai tools for seo optimization"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 140,
+            "keyword": "ai tools seo"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 30,
+            "keyword": "alternative of semrush"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 170,
+            "keyword": "automated link building tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 110,
+            "keyword": "backlink building tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 50,
+            "keyword": "backlink program"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 50,
+            "keyword": "backlinks building tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 210,
+            "keyword": "best ai search optimization platform for beginners"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 390,
+            "keyword": "best ai seo"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 140,
+            "keyword": "best ai tool for seo optimization"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 480,
+            "keyword": "best ai tools for seo"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 140,
+            "keyword": "best ai tools for seo optimization"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 140,
+            "keyword": "best automated seo software"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 70,
+            "keyword": "best free ai seo tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 70,
+            "keyword": "best link builder"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 320,
+            "keyword": "best link building tool"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 50,
+            "keyword": "best marketing expert"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 260,
+            "keyword": "best rank checker software"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 880,
+            "keyword": "best rank tracker software"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 1000,
+            "keyword": "best rank tracking tool"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 1000,
+            "keyword": "best rank tracking tools"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 90,
+            "keyword": "best ranking tracking software"
+          },
+          {
+            "rival": "onelittleweb.com",
+            "volume": 140,
+            "keyword": "best seo ai"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 90,
+            "keyword": "10 best seo tools"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "10 seo tools"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 70,
+            "keyword": "5 best seo tools"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 90,
+            "keyword": "a i marketing bot"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 40,
+            "keyword": "ad agency name ideas"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 30,
+            "keyword": "advertisement name examples"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 140,
+            "keyword": "advertising agencies names"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 140,
+            "keyword": "advertising agency name"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "advertising business names"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "advertising company names"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 260,
+            "keyword": "advertising name"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 260,
+            "keyword": "advertising names"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 40,
+            "keyword": "agencies name ideas"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 320,
+            "keyword": "agency names"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 30,
+            "keyword": "ai agent vendors"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 30,
+            "keyword": "ai agents providers"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 30,
+            "keyword": "ai apps for marketing"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "ai based marketing"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 30,
+            "keyword": "ai content strategy tools"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 110,
+            "keyword": "ai creation platform"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 70,
+            "keyword": "ai digital marketing tool"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 170,
+            "keyword": "ai driven marketing platform"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 170,
+            "keyword": "ai driven marketing platforms"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 30,
+            "keyword": "ai driven marketing solutions"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 110,
+            "keyword": "ai driven marketing strategies"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 90,
+            "keyword": "ai driven marketing tools"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "ai for marketing and sales"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 90,
+            "keyword": "ai for marketing automation"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "ai for marketing campaigns"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 30,
+            "keyword": "ai for marketing strategy"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "ai generated marketing"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 30,
+            "keyword": "ai marketing analytics tools"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 90,
+            "keyword": "ai marketing bot"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 30,
+            "keyword": "ai marketing business"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 40,
+            "keyword": "ai marketing content"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "ai marketing content generator"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 30,
+            "keyword": "ai marketing expert"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 1600,
+            "keyword": "ai marketing platforms"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 480,
+            "keyword": "ai marketing service"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 480,
+            "keyword": "ai marketing services"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 480,
+            "keyword": "ai marketing solutions"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 320,
+            "keyword": "ai marketing strategy"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 30,
+            "keyword": "ai marketing system"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "ai marketing tools free"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 30,
+            "keyword": "ai online marketing"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "ai platform for marketing"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "ai platforms for marketing"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 70,
+            "keyword": "ai powered marketing services"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 90,
+            "keyword": "ai powered tools for digital marketing"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 170,
+            "keyword": "ai powered tools for marketing"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 30,
+            "keyword": "ai solutions for marketing"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 40,
+            "keyword": "ai tools brands"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 30,
+            "keyword": "ai tools for advertising agencies"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 90,
+            "keyword": "ai tools for content marketing"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 260,
+            "keyword": "ai tools for digital marketing"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 30,
+            "keyword": "ai tools for digital marketing agency"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "ai tools for marketing automation"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 70,
+            "keyword": "ai tools market"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 110,
+            "keyword": "ai-driven marketing strategies"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 90,
+            "keyword": "ai-driven marketing tools"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "ai-generated marketing"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 390,
+            "keyword": "ai-powered marketing"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 70,
+            "keyword": "ai-powered marketing solutions"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "all google tools for seo"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 140,
+            "keyword": "all seo software"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 110,
+            "keyword": "analytics seo software"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "app seo tools"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 40,
+            "keyword": "article seo software"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 720,
+            "keyword": "auto seo tool"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 70,
+            "keyword": "automated ai seo"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 1900,
+            "keyword": "automated seo optimization"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 170,
+            "keyword": "automated seo software free"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 720,
+            "keyword": "automated seo tool"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 110,
+            "keyword": "b2b saas marketing strategy"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 140,
+            "keyword": "b2b software marketing"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 70,
+            "keyword": "best ad agency names"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 70,
+            "keyword": "best advertising agency names"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 70,
+            "keyword": "best agency name"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 140,
+            "keyword": "best app for seo"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 140,
+            "keyword": "best apps for seo"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 140,
+            "keyword": "best automated seo software"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 70,
+            "keyword": "best for seo"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 110,
+            "keyword": "best free ai tools for marketing"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "best free rank tracker tool"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 40,
+            "keyword": "best free seo tools for blogger"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 40,
+            "keyword": "best free seo tools for bloggers"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "best google seo software"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 140,
+            "keyword": "best google seo tools"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 210,
+            "keyword": "best keyword rank tracker software"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 260,
+            "keyword": "best keyword rank tracking software"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 40,
+            "keyword": "best marketing company names"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 70,
+            "keyword": "best name for advertising company"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 170,
+            "keyword": "best of seo"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 70,
+            "keyword": "best on page seo analysis tools"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "best online seo"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 590,
+            "keyword": "best online seo tools"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 590,
+            "keyword": "best paid seo tool"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 590,
+            "keyword": "best paid seo tools"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 50,
+            "keyword": "best premium seo tools"
+          },
+          {
+            "rival": "marketermilk.com",
+            "volume": 70,
+            "keyword": "best professional seo tools"
+          }
+        ],
+        "profile": {
+          "job": "Get your business found by AI and search engines when buyers look for solutions",
+          "category": "SEO and AI visibility tool",
+          "vocabulary": [
+            "AI answers",
+            "Google search visibility",
+            "discoverability score",
+            "competitor tracking",
+            "market scan",
+            "page publishing",
+            "content strategy",
+            "buyer discovery"
+          ],
+          "brandTokens": [
+            "ReachKit"
+          ],
+          "namedRivals": [],
+          "offeringType": "SaaS subscription",
+          "audienceTerms": [
+            "B2B companies losing visibility to competitors",
+            "Businesses trying to rank in AI answers",
+            "Owners concerned about ChatGPT and Google AI recommendations"
+          ]
+        },
+        "suggestions": [
+          {
+            "volume": 260,
+            "keyword": "seo software affiliate",
+            "difficulty": 0
+          },
+          {
+            "volume": 260,
+            "keyword": "seo report software",
+            "difficulty": 19
+          },
+          {
+            "volume": 260,
+            "keyword": "seo link builder software",
+            "difficulty": 16
+          },
+          {
+            "volume": 260,
+            "keyword": "private label seo software",
+            "difficulty": 9
+          },
+          {
+            "volume": 260,
+            "keyword": "seo link building software",
+            "difficulty": 22
+          },
+          {
+            "volume": 260,
+            "keyword": "best seo software for small businesses",
+            "difficulty": 7
+          },
+          {
+            "volume": 260,
+            "keyword": "seo mac software",
+            "difficulty": 10
+          },
+          {
+            "volume": 260,
+            "keyword": "best seo software for small business",
+            "difficulty": 30
+          },
+          {
+            "volume": 260,
+            "keyword": "onpage seo software",
+            "difficulty": 32
+          },
+          {
+            "volume": 260,
+            "keyword": "seo reporting software",
+            "difficulty": 16
+          },
+          {
+            "volume": 260,
+            "keyword": "seo software for mac",
+            "difficulty": 1
+          },
+          {
+            "volume": 260,
+            "keyword": "best seo software for agencies",
+            "difficulty": 24
+          },
+          {
+            "volume": 260,
+            "keyword": "best local seo software",
+            "difficulty": 26
+          },
+          {
+            "volume": 260,
+            "keyword": "mac seo software",
+            "difficulty": 9
+          },
+          {
+            "volume": 260,
+            "keyword": "seo software mac",
+            "difficulty": 1
+          },
+          {
+            "volume": 260,
+            "keyword": "seo reseller software",
+            "difficulty": 11
+          },
+          {
+            "volume": 210,
+            "keyword": "best seo software reviews",
+            "difficulty": 33
+          },
+          {
+            "volume": 210,
+            "keyword": "seo project management software",
+            "difficulty": 3
+          },
+          {
+            "volume": 210,
+            "keyword": "best seo software review",
+            "difficulty": 35
+          },
+          {
+            "volume": 210,
+            "keyword": "enterprise seo agency software",
+            "difficulty": 3
+          },
+          {
+            "volume": 210,
+            "keyword": "seo agency reporting software",
+            "difficulty": 10
+          },
+          {
+            "volume": 210,
+            "keyword": "seo dashboard software",
+            "difficulty": 14
+          },
+          {
+            "volume": 210,
+            "keyword": "best seo agency software",
+            "difficulty": 24
+          },
+          {
+            "volume": 210,
+            "keyword": "what is the best seo software",
+            "difficulty": 30
+          },
+          {
+            "volume": 210,
+            "keyword": "local seo software for agencies",
+            "difficulty": 4
+          },
+          {
+            "volume": 210,
+            "keyword": "web seo software free",
+            "difficulty": 32
+          },
+          {
+            "volume": 210,
+            "keyword": "best ai seo software",
+            "difficulty": 33
+          },
+          {
+            "volume": 170,
+            "keyword": "seo reporting software free",
+            "difficulty": 27
+          },
+          {
+            "volume": 170,
+            "keyword": "seo software trial",
+            "difficulty": 15
+          },
+          {
+            "volume": 170,
+            "keyword": "seo automation software free",
+            "difficulty": 22
+          },
+          {
+            "volume": 170,
+            "keyword": "seo content writing software",
+            "difficulty": 10
+          },
+          {
+            "volume": 170,
+            "keyword": "seo content writer software",
+            "difficulty": 20
+          },
+          {
+            "volume": 170,
+            "keyword": "seo buy software",
+            "difficulty": 25
+          },
+          {
+            "volume": 170,
+            "keyword": "best seo software uk",
+            "difficulty": 30
+          },
+          {
+            "volume": 170,
+            "keyword": "top rated seo software",
+            "difficulty": 36
+          },
+          {
+            "volume": 170,
+            "keyword": "search atlas ai seo software",
+            "difficulty": 13
+          },
+          {
+            "volume": 170,
+            "keyword": "seo ai software",
+            "difficulty": 35
+          },
+          {
+            "volume": 140,
+            "keyword": "best enterprise seo software",
+            "difficulty": 8
+          },
+          {
+            "volume": 140,
+            "keyword": "best seo automation software",
+            "difficulty": 26
+          },
+          {
+            "volume": 140,
+            "keyword": "seo software pricing",
+            "difficulty": 24
+          },
+          {
+            "volume": 140,
+            "keyword": "ai software for seo",
+            "difficulty": 23
+          },
+          {
+            "volume": 140,
+            "keyword": "free trial seo software",
+            "difficulty": 32
+          },
+          {
+            "volume": 140,
+            "keyword": "free seo content writing software",
+            "difficulty": 8
+          },
+          {
+            "volume": 140,
+            "keyword": "seo desktop software",
+            "difficulty": 35
+          },
+          {
+            "volume": 140,
+            "keyword": "seo software free trial",
+            "difficulty": 30
+          },
+          {
+            "volume": 140,
+            "keyword": "best free software for seo",
+            "difficulty": 33
+          },
+          {
+            "volume": 140,
+            "keyword": "best seo reporting software",
+            "difficulty": 14
+          },
+          {
+            "volume": 140,
+            "keyword": "best seo software free",
+            "difficulty": 32
+          },
+          {
+            "volume": 140,
+            "keyword": "seo client management software",
+            "difficulty": 0
+          },
+          {
+            "volume": 140,
+            "keyword": "best seo report software",
+            "difficulty": 29
+          }
+        ],
+        "totalVolume": 9990
+      }
+    },
+    "onPage": {
+      "at": "2026-09-17T09:18:18.660Z",
+      "kind": "measured",
+      "value": {
+        "url": "https://reachkit.app/",
+        "dates": 1,
+        "noindex": false,
+        "headings": 7,
+        "numerals": 164,
+        "schemaTypes": [],
+        "visibleChars": 4382,
+        "outboundCitations": 0,
+        "openGraphProperties": [
+          "og:title",
+          "og:description",
+          "og:url",
+          "og:site_name",
+          "og:image",
+          "og:image:type",
+          "og:image:width",
+          "og:image:height",
+          "og:image:alt",
+          "og:type"
+        ],
+        "directAnswerHeadings": 0,
+        "questionShapedHeadings": 0,
+        "noindexAppliesToEveryReader": false
+      }
+    },
+    "rivals": {
+      "at": "2026-09-19T10:06:20.094Z",
+      "kind": "measured",
+      "value": [
+        {
+          "score": 7,
+          "domain": "freddiechatt.com",
+          "aiCitations": 2,
+          "top10Appearances": 3
+        },
+        {
+          "score": 6,
+          "domain": "behindrankings.com",
+          "aiCitations": 3,
+          "top10Appearances": 0
+        },
+        {
+          "score": 6,
+          "domain": "athenahq.ai",
+          "aiCitations": 2,
+          "top10Appearances": 2
+        },
+        {
+          "score": 6,
+          "domain": "seo.ai",
+          "aiCitations": 1,
+          "top10Appearances": 4
+        },
+        {
+          "score": 6,
+          "domain": "rankability.com",
+          "aiCitations": 0,
+          "top10Appearances": 6
+        }
+      ]
+    },
+    "robots": {
+      "at": "2026-09-17T09:18:18.660Z",
+      "kind": "measured",
+      "value": {
+        "ok": true,
+        "rules": {
+          "*": [
+            {
+              "allow": true,
+              "pattern": "/"
+            }
+          ]
+        },
+        "absent": false,
+        "origin": "https://reachkit.app",
+        "readAt": "2026-09-19T10:06:08.772Z",
+        "sitemaps": [
+          "https://reachkit.app/sitemap.xml"
+        ],
+        "disallowsAll": false,
+        "disallowedAgents": {
+          "*": false
+        },
+        "crawlDelaySeconds": {}
+      }
+    },
+    "scanId": "325999e4-09f4-4466-afea-4b296c40d574",
+    "supply": {
+      "missingPages": {
+        "at": "2026-09-17T09:18:18.660Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+      },
+      "unquotablePages": {
+        "at": "2026-09-17T09:18:18.660Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+      }
+    },
+    "sources": [
+      "reddit.com",
+      "youtube.com",
+      "g2.com",
+      "medium.com"
+    ],
+    "verdict": {
+      "domain": "reachkit.app",
+      "factors": {
+        "presence": {
+          "at": "2026-09-17T09:18:18.660Z",
+          "kind": "measured",
+          "value": 2.877207827175417
+        },
+        "foundations": {
+          "at": "2026-09-17T09:18:18.660Z",
+          "kind": "measured",
+          "value": 87.5
+        },
+        "answerability": {
+          "at": "2026-09-17T09:18:18.660Z",
+          "kind": "measured",
+          "value": 33.333333333333336
+        }
+      },
+      "missing": [],
+      "limiting": {
+        "kind": "factor",
+        "factor": "presence"
+      },
+      "measuredAt": "2026-09-17T09:18:18.660Z",
+      "scoreAndBand": {
+        "at": "2026-09-17T09:18:18.660Z",
+        "kind": "measured",
+        "value": {
+          "band": "invisible",
+          "score": 20
+        }
+      },
+      "blockedReaders": {
+        "at": "2026-09-17T09:18:18.660Z",
+        "kind": "zero",
+        "value": 0
+      },
+      "unmeasuredElsewhere": []
+    },
+    "version": 10,
+    "complete": true,
+    "freePage": {
+      "slug": {
+        "text": "best-ai-seo-software",
+        "source": "model"
+      },
+      "beats": "onelittleweb.com",
+      "title": {
+        "text": "What is the best AI SEO software?",
+        "source": "model"
+      },
+      "format": "answer_page",
+      "target": {
+        "volume": 210,
+        "keyword": "best ai seo software"
+      },
+      "totalPages": 6,
+      "opportunityId": "325999e4-09f4-4466-afea-4b296c40d574:best-ai-seo-software"
+    },
+    "presence": {
+      "you": {
+        "domain": "reachkit.app",
+        "top10Count": 0
+      },
+      "rivals": [
+        {
+          "domain": "freddiechatt.com",
+          "top10Count": 3
+        },
+        {
+          "domain": "behindrankings.com",
+          "top10Count": 0
+        },
+        {
+          "domain": "athenahq.ai",
+          "top10Count": 2
+        },
+        {
+          "domain": "seo.ai",
+          "top10Count": 4
+        },
+        {
+          "domain": "rankability.com",
+          "top10Count": 6
+        }
+      ],
+      "framing": "shown",
+      "absentFrom": [
+        {
+          "volume": 210,
+          "keyword": "best ai seo software",
+          "topHolder": "onelittleweb.com"
+        },
+        {
+          "volume": 210,
+          "keyword": "best seo software review",
+          "topHolder": "marketermilk.com"
+        },
+        {
+          "volume": 210,
+          "keyword": "what is the best seo software",
+          "topHolder": "marketermilk.com"
+        },
+        {
+          "volume": 170,
+          "keyword": "seo ai software",
+          "topHolder": "onelittleweb.com"
+        },
+        {
+          "volume": 140,
+          "keyword": "ai tool seo",
+          "topHolder": "onelittleweb.com"
+        }
+      ],
+      "measuredSearches": 12
+    },
+    "aiAnswers": {
+      "rows": [
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "onelittleweb.com",
+              "youtube.com",
+              "behindrankings.com",
+              "vezadigital.com",
+              "searchbloom.com",
+              "fritz.ai",
+              "rankcite.com"
+            ],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "onelittleweb.com",
+                  "youtube.com",
+                  "behindrankings.com",
+                  "vezadigital.com",
+                  "searchbloom.com",
+                  "fritz.ai",
+                  "rankcite.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "onelittleweb.com",
+                  "freddiechatt.com",
+                  "youtube.com",
+                  "behindrankings.com",
+                  "athenahq.ai",
+                  "sitepoint.com",
+                  "zapier.com",
+                  "albato.com",
+                  "techradar.com",
+                  "seointent.com",
+                  "fritz.ai"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [],
+                "namesCustomer": false
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 1,
+            "search": "best ai seo software",
+            "wording": {
+              "text": "What is the best AI SEO software?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "zapier.com",
+                  "youtube.com",
+                  "targetinternet.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [],
+                "namesCustomer": false
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 2,
+            "search": "best seo software review",
+            "wording": {
+              "text": "Where can I find reviews of the best SEO software?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "zapier.com",
+              "gartner.com",
+              "onelittleweb.com",
+              "saffronedge.com",
+              "dreamhost.com",
+              "accuwebhosting.com"
+            ],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "zapier.com",
+                  "gartner.com",
+                  "onelittleweb.com",
+                  "saffronedge.com",
+                  "dreamhost.com",
+                  "accuwebhosting.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted",
+                "because": "timeout"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "semrush.com",
+                  "ahrefs.com",
+                  "google.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 3,
+            "search": "what is the best seo software",
+            "wording": {
+              "text": "What is the best SEO software?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "onelittleweb.com",
+              "youtube.com",
+              "searchatlas.com",
+              "behindrankings.com",
+              "fritz.ai",
+              "pikaseo.com"
+            ],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "onelittleweb.com",
+                  "youtube.com",
+                  "searchatlas.com",
+                  "behindrankings.com",
+                  "fritz.ai",
+                  "pikaseo.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted",
+                "because": "timeout"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "technologyadvice.com",
+                  "theaileaderboard.org",
+                  "albato.com",
+                  "nesyona.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 4,
+            "search": "seo ai software",
+            "wording": {
+              "text": "What SEO software uses AI?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "seo.ai",
+              "onelittleweb.com",
+              "freddiechatt.com",
+              "quattr.com",
+              "athenahq.ai",
+              "youtube.com",
+              "namecheap.com",
+              "designrush.com",
+              "seointent.com"
+            ],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "seo.ai",
+                  "onelittleweb.com",
+                  "freddiechatt.com",
+                  "quattr.com",
+                  "athenahq.ai",
+                  "youtube.com",
+                  "namecheap.com",
+                  "designrush.com",
+                  "seointent.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted",
+                "because": "timeout"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "semrush.com",
+                  "ahrefs.com",
+                  "surferseo.com",
+                  "clearscope.io",
+                  "frase.io",
+                  "google.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 5,
+            "search": "ai tool seo",
+            "wording": {
+              "text": "What AI tool can help with SEO?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted",
+                "because": "timeout"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "zapier.com",
+                  "g2.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 6,
+            "search": "best app for seo",
+            "wording": {
+              "text": "What is the best app for SEO?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted",
+                "because": "timeout"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "searchenginewatch.com",
+                  "dashthis.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 7,
+            "search": "best free software for seo",
+            "wording": {
+              "text": "What is the best free software for SEO?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "youtube.com",
+              "zapier.com",
+              "rankmath.com",
+              "elysiandigitalservices.com",
+              "semrush.com",
+              "intelegencia.com",
+              "techradar.com",
+              "onelittleweb.com",
+              "ahrefs.com",
+              "behindrankings.com"
+            ],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "youtube.com",
+                  "zapier.com",
+                  "rankmath.com",
+                  "elysiandigitalservices.com",
+                  "semrush.com",
+                  "intelegencia.com",
+                  "techradar.com",
+                  "onelittleweb.com",
+                  "ahrefs.com",
+                  "behindrankings.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted",
+                "because": "timeout"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "techradar.com",
+                  "seo.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 8,
+            "search": "best google seo tools",
+            "wording": {
+              "text": "What are the best Google SEO tools?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "onelittleweb.com",
+              "freddiechatt.com",
+              "youtube.com",
+              "sitepoint.com",
+              "athenahq.ai"
+            ],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "onelittleweb.com",
+                  "freddiechatt.com",
+                  "youtube.com",
+                  "sitepoint.com",
+                  "athenahq.ai"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted",
+                "because": "timeout"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "technologyadvice.com",
+                  "theairankings.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 9,
+            "search": "best seo ai",
+            "wording": {
+              "text": "What is the best SEO AI?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "reddit.com",
+                  "yotpo.com",
+                  "onelittleweb.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [],
+                "namesCustomer": false
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 10,
+            "search": "google rank software",
+            "wording": {
+              "text": "What software helps improve Google rankings?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "undeterminable",
+                "because": "timeout"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "ahrefs.com",
+                  "semrush.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 11,
+            "search": "seo software pricing",
+            "wording": {
+              "text": "How much does SEO software cost?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "insiderone.com",
+              "zapier.com",
+              "google.com",
+              "medium.com",
+              "efficient.app",
+              "youtube.com",
+              "lindy.ai"
+            ],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "insiderone.com",
+                  "zapier.com",
+                  "google.com",
+                  "medium.com",
+                  "efficient.app",
+                  "youtube.com",
+                  "lindy.ai"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "undeterminable",
+                "because": "timeout"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "gartner.com",
+                  "deloitte.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 12,
+            "search": "ai tools market",
+            "wording": {
+              "text": "What AI tools are available in the market?",
+              "source": "model"
+            }
+          }
+        }
+      ],
+      "rivals": [
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "freddiechatt.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "freddiechatt.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            }
+          ],
+          "domain": "freddiechatt.com"
+        },
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "behindrankings.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "behindrankings.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "behindrankings.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            }
+          ],
+          "domain": "behindrankings.com"
+        },
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "athenahq.ai"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "athenahq.ai"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            }
+          ],
+          "domain": "athenahq.ai"
+        },
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "seo.ai"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            }
+          ],
+          "domain": "seo.ai"
+        },
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            }
+          ],
+          "domain": "rankability.com"
+        }
+      ],
+      "coverage": "cached_only",
+      "ownDomain": "reachkit.app",
+      "measuredAt": "2026-09-19T10:06:20.094Z",
+      "answeredSearches": 12,
+      "measuredSearches": 12,
+      "customerCitations": 0
+    },
+    "coherence": {
+      "verdict": "coherent"
+    },
+    "ownRanked": {
+      "at": "2026-09-17T09:18:18.660Z",
+      "kind": "measured",
+      "value": 3
+    },
+    "questions": {
+      "at": "2026-09-19T10:06:20.094Z",
+      "kind": "measured",
+      "value": [
+        {
+          "id": "q1",
+          "text": "What is the best AI SEO software?",
+          "search": {
+            "rank": 1,
+            "floor": 50,
+            "score": 13.945694731786155,
+            "intent": "decision",
+            "volume": 210,
+            "keyword": "best ai seo software",
+            "difficulty": 33
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q2",
+          "text": "Where can I find reviews of the best SEO software?",
+          "search": {
+            "rank": 2,
+            "floor": 50,
+            "score": 13.945694731786155,
+            "intent": "decision",
+            "volume": 210,
+            "keyword": "best seo software review",
+            "difficulty": 35
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q3",
+          "text": "What is the best SEO software?",
+          "search": {
+            "rank": 3,
+            "floor": 50,
+            "score": 13.945694731786155,
+            "intent": "decision",
+            "volume": 210,
+            "keyword": "what is the best seo software",
+            "difficulty": 30
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q4",
+          "text": "What SEO software uses AI?",
+          "search": {
+            "rank": 4,
+            "floor": 50,
+            "score": 13.397976662352924,
+            "intent": "solution",
+            "volume": 170,
+            "keyword": "seo ai software",
+            "difficulty": 35
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q5",
+          "text": "What AI tool can help with SEO?",
+          "search": {
+            "rank": 5,
+            "floor": 50,
+            "score": 12.895314675932278,
+            "intent": "solution",
+            "volume": 140,
+            "keyword": "ai tool seo"
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q6",
+          "text": "What is the best app for SEO?",
+          "search": {
+            "rank": 6,
+            "floor": 50,
+            "score": 12.895314675932278,
+            "intent": "decision",
+            "volume": 140,
+            "keyword": "best app for seo"
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q7",
+          "text": "What is the best free software for SEO?",
+          "search": {
+            "rank": 7,
+            "floor": 50,
+            "score": 12.895314675932278,
+            "intent": "decision",
+            "volume": 140,
+            "keyword": "best free software for seo",
+            "difficulty": 33
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q8",
+          "text": "What are the best Google SEO tools?",
+          "search": {
+            "rank": 8,
+            "floor": 50,
+            "score": 12.895314675932278,
+            "intent": "decision",
+            "volume": 140,
+            "keyword": "best google seo tools"
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q9",
+          "text": "What is the best SEO AI?",
+          "search": {
+            "rank": 9,
+            "floor": 50,
+            "score": 12.895314675932278,
+            "intent": "decision",
+            "volume": 140,
+            "keyword": "best seo ai"
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q10",
+          "text": "What software helps improve Google rankings?",
+          "search": {
+            "rank": 10,
+            "floor": 50,
+            "score": 12.895314675932278,
+            "intent": "solution",
+            "volume": 140,
+            "keyword": "google rank software"
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q11",
+          "text": "How much does SEO software cost?",
+          "search": {
+            "rank": 11,
+            "floor": 50,
+            "score": 12.895314675932278,
+            "intent": "solution",
+            "volume": 140,
+            "keyword": "seo software pricing",
+            "difficulty": 24
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q12",
+          "text": "What AI tools are available in the market?",
+          "search": {
+            "rank": 12,
+            "floor": 50,
+            "score": 11.107550092314451,
+            "intent": "solution",
+            "volume": 70,
+            "keyword": "ai tools market"
+          },
+          "phrasing": "model"
+        }
+      ]
+    },
+    "rivalSizes": {
+      "at": "2026-09-17T09:18:18.660Z",
+      "kind": "measured",
+      "value": [
+        {
+          "at": "2026-09-17T09:18:18.660Z",
+          "band": "far",
+          "state": "sized",
+          "domain": "zapier.com",
+          "countIs": "total",
+          "current": true,
+          "rankedCount": 218224
+        },
+        {
+          "at": "2026-09-17T09:18:18.660Z",
+          "band": "far",
+          "state": "sized",
+          "domain": "ahrefs.com",
+          "countIs": "total",
+          "current": true,
+          "rankedCount": 59767
+        },
+        {
+          "at": "2026-09-17T09:18:18.660Z",
+          "band": "far",
+          "state": "sized",
+          "domain": "onelittleweb.com",
+          "countIs": "total",
+          "current": true,
+          "rankedCount": 3995
+        },
+        {
+          "at": "2026-09-17T09:18:18.660Z",
+          "band": "far",
+          "state": "sized",
+          "domain": "marketermilk.com",
+          "countIs": "total",
+          "current": true,
+          "rankedCount": 7070
+        }
+      ]
+    },
+    "siteIssues": {
+      "issues": [
+        {
+          "ran": true,
+          "doer": "reachkit_rewrites",
+          "over": 6,
+          "unit": "pages",
+          "check": "page_titles",
+          "count": 0,
+          "pages": [],
+          "parts": {
+            "missing": 0,
+            "duplicate": 0
+          },
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "reachkit_rewrites",
+          "over": 6,
+          "unit": "pages",
+          "check": "meta_descriptions",
+          "count": 0,
+          "pages": [],
+          "parts": {
+            "missing": 0,
+            "duplicate": 0
+          },
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 6,
+          "unit": "pages",
+          "check": "noindex_pages",
+          "count": 1,
+          "pages": [
+            "https://reachkit.app/signin"
+          ],
+          "severity": "worth_fixing"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 1,
+          "unit": "site",
+          "check": "sitemap",
+          "count": 0,
+          "pages": null,
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": false,
+          "check": "slow_pages",
+          "because": "no_timed_reads"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 6,
+          "unit": "links",
+          "check": "broken_links",
+          "count": 0,
+          "pages": null,
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 6,
+          "unit": "pages",
+          "check": "phone_usability",
+          "count": 0,
+          "pages": [],
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "reachkit_writes",
+          "over": 6,
+          "unit": "pages",
+          "check": "structured_data",
+          "count": 6,
+          "pages": [
+            "https://reachkit.app/",
+            "https://reachkit.app/pricing",
+            "https://reachkit.app/privacy",
+            "https://reachkit.app/terms",
+            "https://reachkit.app/imprint",
+            "https://reachkit.app/signin"
+          ],
+          "severity": "critical"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 6,
+          "unit": "ai_readers",
+          "check": "ai_readers_blocked",
+          "count": 0,
+          "pages": null,
+          "severity": "nothing_to_fix"
+        }
+      ],
+      "stoppedBy": "complete",
+      "checkedPages": [
+        "https://reachkit.app/",
+        "https://reachkit.app/pricing",
+        "https://reachkit.app/privacy",
+        "https://reachkit.app/terms",
+        "https://reachkit.app/imprint",
+        "https://reachkit.app/signin"
+      ],
+      "pagesChecked": 6
+    },
+    "blockedAgents": [],
+    "ownRankedRows": [
+      {
+        "url": "https://reachkit.app/tools/meta-preview",
+        "keyword": "meta data preview",
+        "position": 29,
+        "searchVolume": 50
+      },
+      {
+        "url": "https://reachkit.app/tools/meta-preview",
+        "keyword": "meta preview",
+        "position": 67,
+        "searchVolume": 50
+      },
+      {
+        "url": "https://reachkit.app/tools/meta-preview",
+        "keyword": "metadata preview",
+        "position": 88,
+        "searchVolume": 50
+      }
+    ],
+    "stoppedReason": "complete",
+    "correctionState": "none",
+    "measuredCategory": "SEO software",
+    "fromIncompleteRescan": false
+  },
+  "siteProfile": {
+    "siteName": "ReachKit",
+    "products": [
+      "free scans of AI answers and search results about your market",
+      "one page written and published for your site every day",
+      "weekly re-measure of your whole market",
+      "weekly movement email"
+    ],
+    "claims": [
+      "see what AI tells buyers about your market",
+      "a free scan shows where AI answers and Google search send buyers to your rivals instead of you",
+      "ReachKit writes one page a day to change that",
+      "1 page a day, written and published for you",
+      "weekly re-measure of your whole market"
+    ],
+    "voice": {
+      "text": "Your pages speak directly and plainly to site owners who want to know how AI and search engines rank them against rivals. You use short, declarative sentences and avoid jargon—words like 'scan', 'page', 'market', and 're-measure' name your actual work without dressing it up. You state what you do and what it costs (€49 a month, one page a day) and let the reader decide. There's no hype, no promises of overnight success; instead you offer to show the reader where they stand and then write their way in. You address the reader directly, in their own voice, and make it easy to try free.",
+      "tone": "straightforward, matter-of-fact, direct",
+      "person": "second person (you/your)",
+      "vocabulary": [
+        "scan",
+        "page",
+        "market",
+        "re-measure",
+        "AI answers",
+        "Google search",
+        "rivals"
+      ],
+      "claimsToKeep": [
+        "see what AI tells buyers about your market",
+        "a free scan shows where AI answers and Google search send buyers to your rivals instead of you",
+        "ReachKit writes one page a day to change that"
+      ],
+      "claimsToAvoid": [
+        "guaranteed results",
+        "instant rankings",
+        "secret algorithm",
+        "money-back guarantee"
+      ]
+    }
+  },
+  "site": {
+    "voiceText": "Your pages speak directly and plainly to site owners who need to know how findable they are. You use concrete language—the pages you publish, the scans you perform, the scores you measure—and you explain what each feature does in the plainest terms. You avoid jargon and speak as though the person reading already knows what matters: whether buyers can find them. Your tone is honest about the gap between where they are and where they should be, but confident that one page a day makes the difference. You address the reader as 'you' and speak in commands and promises: Scan my site free. ReachKit writes one page a day to change that. The whole voice is built on one idea—measurement and motion—and you stick to it.",
+    "doNotClaim": []
+  },
+  "pages": [
+    {
+      "url": "https://reachkit.app/",
+      "readAt": "2026-09-17T09:18:18.660Z",
+      "title": "ReachKit — see what AI tells buyers about your market",
+      "h1": "See what AI tells buyers about your market — and write your way in.",
+      "text": "ReachKit — see what AI tells buyers about your market ReachKit Sign in Free scan See what AI tells buyers about your market — and write your way in. A free scan shows where AI answers and Google search send buyers to your rivals instead of you. Then ReachKit writes one page a day to change that. Scan my site free · no account · permanent link reachkit.app/app The gap is closing. ▲ every week Searches you appear in 128 1 · 12 1 · 12 2 · 31 2 · 31 3 · 44 3 · 44 4 · 61 4 · 61 5 · 96 5 · 96 6 · 128 6 · 128 Discoverability Score 62 ▲ 8 AI answers 2 /12 Pages published 17 Demo video coming soon. Everything above it is the live product. The scan, the report, and one page going live — the whole loop, as a customer sees it. 01 Your competitors are being found. Buyers now ask ChatGPT and Google’s AI what to use, and the answer names a handful of companies. If yours isn’t one of them, that buyer never meets you — and nothing on your side tells you it happened. AI answers Sep 5 rival-one.example.net 6/9 rival-two.example.net 6/9 rival-three.example.org 6/9 example.com 0/9 1 2 3 4 5 6 7 8 9 10 11 12 rival-one.example.net · 1 rival-one.example.net · 1 rival-one.example.net · 2 rival-one.example.net · 2 rival-one.example.net · 3 rival-one.example.net · 3 rival-one.example.net · 4 rival-one.example.net · 4 rival-one.example.net · 5 rival-one.example.net · 5 rival-one.example.net · 6 rival-one.example.net · 6 rival-one.example.net · 7 rival-one.example.net · 7 rival-one.example.net · 8 rival-one.example.net · 8 rival-one.example.net · 9 rival-one.example.net · 9 rival-one.example.net · 10 rival-one.example.net · 10 rival-one.example.net · 11 rival-one.example.net · 11 rival-one.example.net · 12 rival-one.example.net · 12 rival-two.example.net · 1 rival-two.example.net · 1 rival-two.example.net · 2 rival-two.example.net · 2 rival-two.example.net · 3 rival-two.example.net · 3 rival-two.example.net · 4 rival-two.example.net · 4 rival-two.example.net · 5 rival-two.example.net · 5 rival-two.example.net · 6 rival-two.example.net · 6 rival-two.example.net · 7 rival-two.example.net · 7 rival-two.example.net · 8 rival-two.example.net · 8 rival-two.example.net · 9 rival-two.example.net · 9 rival-two.example.net · 10 rival-two.example.net · 10 rival-two.example.net · 11 rival-two.example.net · 11 rival-two.example.net · 12 rival-two.example.net · 12 rival-three.example.org · 1 rival-three.example.org · 1 rival-three.example.org · 2 rival-three.example.org · 2 rival-three.example.org · 3 rival-three.example.org · 3 rival-three.example.org · 4 rival-three.example.org · 4 rival-three.example.org · 5 rival-three.example.org · 5 rival-three.example.org · 6 rival-three.example.org · 6 rival-three.example.org · 7 rival-three.example.org · 7 rival-three.example.org · 8 rival-three.example.org · 8 rival-three.example.org · 9 rival-three.example.org · 9 rival-three.example.org · 10 rival-three.example.org · 10 rival-three.example.org · 11 rival-three.example.org · 11 rival-three.example.org · 12 rival-three.example.org · 12 example.com · 1 example.com · 1 example.com · 2 example.com · 2 example.com · 3 example.com · 3 example.com · 4 example.com · 4 example.com · 5 example.com · 5 example.com · 6 example.com · 6 example.com · 7 example.com · 7 example.com · 8 example.com · 8 example.com · 9 example.com · 9 example.com · 10 example.com · 10 example.com · 11 example.com · 11 example.com · 12 example.com · 12 Every filled row is a rival being recommended. The empty one is you. This week on schedule 26 27 28 29 30 01 02 What buyers ask before they switch, answered publishes in 6 h 12 m unless you say otherwise 02 One page a day closes the gap. ReachKit finds the questions your market asks that name rivals and not you, writes a page that answers each one from facts on your own site, and publishes it on your schedule. Every page waits a day for you to read it — or stop it — before it goes live. Every Monday you see what moved. 03 Start with the scan Free, under a minute Step 1 Scan your domain Free, no account Step 2 Pick your market and rivals We suggest, you confirm. Step 3 Pages go live on your domain You get 24 hours to stop it. Scan my site — free Cancel in one click. ReachKit © 2026 ReachKit. All rights reserved. Own this site and want its report taken down? Write to remove@reachkit.app. Product Pricing Sign in Legal Privacy Terms Imprint"
+    },
+    {
+      "url": "https://reachkit.app/imprint",
+      "readAt": "2026-09-13T09:14:47.028Z",
+      "title": "Imprint — ReachKit",
+      "h1": "Imprint",
+      "text": "Imprint — ReachKit ReachKit Sign in Free scan Legal Imprint updated 10 Sep 2026 [[imprint: owner fills legal entity, address, VAT id]] Responsible for the content of reachkit.app: the operator named above. Report removal: a site owner who wants the report about their domain taken down writes to remove@reachkit.app. ReachKit © 2026 ReachKit. All rights reserved. Own this site and want its report taken down? Write to remove@reachkit.app. Product Pricing Sign in Legal Privacy Terms Imprint"
+    },
+    {
+      "url": "https://reachkit.app/pricing",
+      "readAt": "2026-09-17T09:18:20.360Z",
+      "title": "Pricing — ReachKit, €49 a month",
+      "h1": "One plan. One page a day.",
+      "text": "Pricing — ReachKit, €49 a month ReachKit Sign in Free scan Start ReachKit One plan. One page a day. €49 a month, VAT included. A page written and published for your site every day, your market re-measured every week. Cancel any time. €49 per month, VAT included 1 page a day, written and published for you Weekly re-measure of your whole market Weekly movement email 24-hour veto window on every page Start ReachKit €49 Cancel in one click. No account before payment. Your site is asked for after — or confirmed, if you came from a report. ReachKit © 2026 ReachKit. All rights reserved. Own this site and want its report taken down? Write to remove@reachkit.app. Product Pricing Sign in Legal Privacy Terms Imprint"
+    },
+    {
+      "url": "https://reachkit.app/privacy",
+      "readAt": "2026-09-13T09:14:47.028Z",
+      "title": "Privacy — ReachKit",
+      "h1": "Privacy",
+      "text": "Privacy — ReachKit ReachKit Sign in Free scan Legal Privacy updated 10 Sep 2026 Who we are ReachKit (“ReachKit”, “we”, “us”) is operated by [[imprint: owner fills legal entity, address, VAT id]]. This notice explains how we handle personal data when you use the website and product at reachkit.app. For any question about it, or to exercise any of the rights below, write to the address in our Imprint. What we collect We collect as little as the product needs. Scan inputs. The website address you submit, and the report we build from it: its Discoverability Score, the searches and AI answers we measured, and the three problems we count. A free report is public at its own address from the moment it finishes and stays there; anyone holding the link can read it. Search engines are told not to index it. Your network address, hashed. Free scans are limited per network. We keep a salted one-way hash of the address the scan came from, never the address itself. Your email address. We receive it when you ask for the free page — that is your opt-in to receiving that page and up to three short follow-ups about that domain, sent at 24, 72 and 168 hours, which stop the moment you subscribe or opt out. Every one of those mails carries a working opt-out link. We also receive it when you pay: it is where your sign-in link and receipts go. There is no password; you sign in with a one-time emailed link. Billing data. Stripe collects and holds your card details. We store your subscription status, a Stripe customer reference, the billing country you gave and, if you entered one, your VAT number. Your site and market. Your domain, the market category and up to five rival domains you confirm, your publishing settings, the voice note and never-claim list you write, and — if you connect one — the WordPress credentials you give us, encrypted at rest, never logged, and revoked when you disconnect. The pages we write for you , their drafts, and the record of every publish: the search it targets, when it went live, and where. How we use it To run scans and render reports; to write and deliver the free page you asked for and its follow-ups; to sign you in; to take payment and run your subscription; to write, publish and verify your pages; to re-measure your market every week and tell you what moved; to limit free scans per network; and to protect the service from abuse. We do not sell personal data, and we send no marketing beyond the follow-ups described above. Language models ReachKit uses Anthropic’s language models for two things: to label your market and propose the questions it asks, and to write the pages we publish for you — each grounded in facts read from your own live pages, with the source of each fact recorded. Every word ReachKit says in its own voice — on a screen or in a mail — is written by a person, never by a model. Service providers Each receives only the data its job needs. Supabase — our database and the sign-in link system. Vercel — hosting for every request to reachkit.app and for the pages we serve for you. Stripe — checkout, subscription billing, invoices and the billing portal. Resend — delivery of every email we send. DataForSEO — search rankings, search volumes and AI-answer data used while measuring. Anthropic — the language models described above. Public reports and their removal A free report is public at its address. If you own a site and want its report taken down, write to remove@reachkit.app. A granted request takes the report offline within five working days, and the domain is not scanned again unless you ask us to make it scannable. Legal basis and retention Where the GDPR applies, we process your data to perform our contract with you — measuring, writing and publishing — and on our legitimate interest in limiting abuse and in following up on an action you started: the free page you asked for and its capped follow-ups. Free reports stay public until their owner asks for removal. Account, site and billing data stay for as long as your account exists. When you delete your account, your pages are exported to you first and then removed, and we act on the deletion at once, except for records the law requires us to keep, such as invoices. Your rights You can ask for access to, correction of, deletion of or a copy of your personal data, and object to or restrict certain processing. Settings lets you export everything you have and delete your account yourself; for anything else, write to the address in our Imprint and we will handle it by hand. If you are in the EU or EEA you can also complain to your local data protection authority. Cookies We set one cookie, to keep you signed in. We run no analytics cookies, no advertising cookies and no cross-site trackers. Changes We update this notice as the product changes; the date above is always the current version’s. ReachKit © 2026 ReachKit. All rights reserved. Own this site and want its report taken down? Write to remove@reachkit.app. Product Pricing Sign in Legal Privacy Terms Imprint"
+    },
+    {
+      "url": "https://reachkit.app/signin",
+      "readAt": "2026-09-13T09:14:47.028Z",
+      "title": "Sign in — ReachKit",
+      "h1": "Welcome back",
+      "text": "Sign in — ReachKit ReachKit Welcome back Enter the email you paid with and we'll send you a sign-in link. No password — accounts are created by payment, never by a signup form. you@company.com Send my link New to ReachKit? Start a free scan → One number tells you how findable you are. example.com Discoverability Score +6 pts est. 47 /100 Hard to find — and we'll show you the fixes that move it. ReachKit © 2026 ReachKit. All rights reserved. Own this site and want its report taken down? Write to remove@reachkit.app. Product Pricing Sign in Legal Privacy Terms Imprint"
+    },
+    {
+      "url": "https://reachkit.app/terms",
+      "readAt": "2026-09-13T09:14:47.028Z",
+      "title": "Terms — ReachKit",
+      "h1": "Terms",
+      "text": "Terms — ReachKit ReachKit Sign in Free scan Legal Terms updated 10 Sep 2026 1. The service ReachKit measures how findable a website is in Google search and in AI answers, and shows the result in a free public report. A paid subscription adds the product: one page a day written for your site and published on your schedule, a weekly re-measure of your market, and a Monday email saying what moved. These Terms govern your use of the website and product at reachkit.app. They are with [[imprint: owner fills legal entity, address, VAT id]]. 2. Accounts Accounts are created by payment — there is no sign-up form — and you sign in with a one-time link sent to the email you paid with. There is no password, so keeping your email secure is how you keep your account secure. 3. Acceptable use Use ReachKit for your own website or one you are authorised to work on. Do not scan domains in order to harass or harm anyone; do not attempt to break, overload, scrape or reverse-engineer the service; do not use the pages it writes for anything unlawful or deceptive; and do not resell its output as a bulk service without our written agreement. 4. Price, billing and cancellation The free report costs nothing and asks for no account. The subscription is €49 per month, VAT included, billed in advance through Stripe. Cancel any time from Settings, in one click: your access continues to the end of the period you have paid for and is not renewed after it. Payments already made are not refunded unless the law requires it. We may change the price with reasonable notice; a change never applies to a period you have already paid for. 4a. Right of withdrawal (EU consumers) By subscribing you ask us to begin at once — your site is measured the moment payment completes — and you acknowledge that once the service has been fully performed your statutory 14-day right of withdrawal ends. If you withdraw within 14 days before that, you may owe a proportionate amount for what was already provided. Independently of that, the plan is month to month and you can cancel at any time. 5. Your content and the pages we write You keep ownership of what you give us and of every page ReachKit writes for you. Each page is grounded in facts from your own live pages, names no invented author, avoids anything on your never-claim list, and is labelled as written by ReachKit wherever the product shows it to you. You are the publisher of record: a page goes live under your name, on your domain or your WordPress, and you are responsible for what is published there. Every page waits for the veto window you set (24 hours by default, from none up to seven days) before it publishes, and under Copilot nothing publishes until you approve it. You can edit, stop, unpublish or export any page at any time. 6. Where pages are published Pages are published either to a hosted address on a subdomain of your own domain that you point at us, or to a WordPress site you connect. Preview addresses under reachkit.app are never indexed. Credentials you give us are encrypted, never logged, and revoked when you disconnect. If your access ends, hosted pages stay served for 30 days and then stop; your export stays available after that. 7. Guidance, not guarantees Scores, verdicts and problems are measured from public signals — your site’s HTML, search rankings, search volumes and the AI answers we read — using fixed rules. AI answers and rankings change, and none of this is a guarantee of rankings, citations, traffic, revenue or any other outcome, nor legal, financial or professional advice. The service is provided “as is” and “as available” to the extent the law allows. 8. Liability To the maximum extent permitted by law, ReachKit is not liable for indirect, incidental, special or consequential damages, or for lost profits, revenue or data. Where liability cannot be excluded, our total liability is limited to the amount you paid us in the twelve months before the event giving rise to the claim. Nothing here limits liability that cannot be limited by law. 9. Ending things You may stop using ReachKit at any time. Cancelling takes effect at the end of your paid period. Deleting your account exports your pages to you first and then removes your data; hosted pages stop being served at once. We may suspend or end access if you breach these Terms or use the service in a way that risks harm to others or to the service. Sections that by their nature should survive — the disclaimer and the limits above — continue to apply. 10. Changes We may update these Terms as the product changes. The date above is the current version’s, and continued use after a change means you accept it. 11. Contact and governing law Questions about these Terms go to the address in our Imprint. Governing law and venue: [[imprint: owner fills legal entity, address, VAT id]]. ReachKit © 2026 ReachKit. All rights reserved. Own this site and want its report taken down? Write to remove@reachkit.app. Product Pricing Sign in Legal Privacy Terms Imprint"
+    }
+  ]
+}
