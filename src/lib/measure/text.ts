@@ -7,9 +7,10 @@
 // second copy of the text anywhere.
 //
 // **It fetches nothing and stores nothing.** No `safeFetch`, no vendor
-// call, no write. The extractor is `parse.ts`'s `visibleText`, imported —
-// the same one the measurement itself used, so the text handed to
-// generation cannot disagree with the text the page was scored on.
+// call, no write. The extractor is `prose.ts`'s `proseText`: the document
+// the measurement scored, without its navigation, header, footer, buttons
+// or example widgets (SPEC §5, 2026-09-29, #1130), because what is read
+// back here is what a page quotes as a fact about the business.
 //
 // The horizon is the site's own scans, plus the free scans of the same
 // domain: a site with no scans returns `[]` — a legitimate empty, not an
@@ -22,7 +23,7 @@
 // and a paid site grounds no fact and starts no draft.
 import { dbAdmin } from "@/lib/db";
 import { OWN_FETCH_SOURCE, isStoredDocument } from "./own-fetch";
-import { visibleText } from "./parse";
+import { proseText } from "./prose";
 
 export interface MeasuredText {
   url: string;
@@ -129,7 +130,7 @@ async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> 
     if (!isStoredDocument(row.payload)) continue;
     out.push({
       url: row.payload.url,
-      text: visibleText(row.payload.html),
+      text: proseText(row.payload.html),
       measuredAt: new Date(row.payload.readAt),
     });
   }

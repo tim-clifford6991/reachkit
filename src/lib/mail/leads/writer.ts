@@ -21,7 +21,7 @@ import { DRAFT_POLICY_VERSION } from "@/lib/generate/cost";
 import { runHardRules } from "@/lib/generate/rules";
 import { renderOf } from "@/lib/generate/rules/text";
 import { applyAnswerability } from "@/lib/generate/pipeline/answerability";
-import { orderedPassages } from "@/lib/generate/pipeline/grounding";
+import { sitePassages } from "@/lib/generate/pipeline/grounding";
 import { SKELETONS } from "@/lib/generate/pipeline/skeletons";
 import { answersMarketQuestion } from "@/lib/generate/rules/frame";
 import {
@@ -65,8 +65,8 @@ async function reportOf(scanId: string): Promise<StoredReport | null> {
 function factsOf(pages: readonly MeasuredText[]): { url: string; readAt: Date; passage: string; sourceText: string }[] {
   const out: { url: string; readAt: Date; passage: string; sourceText: string }[] = [];
   const seen = new Set<string>();
-  for (const page of [...pages].reverse()) {
-    for (const passage of orderedPassages(page.text)) {
+  for (const { page, passages } of sitePassages([...pages].reverse())) {
+    for (const passage of passages) {
       if (seen.has(passage)) continue;
       seen.add(passage);
       out.push({ url: page.url, readAt: page.measuredAt, passage, sourceText: page.text });

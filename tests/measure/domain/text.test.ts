@@ -2,9 +2,8 @@
 //
 // `readMeasuredText` — the re-read of the bytes the measurement already
 // bought (BUILD §6.5: "one `fetches` table is ledger + cache + raw
-// store"). It fetches nothing, stores nothing and extracts with
-// `parse.ts`'s own `visibleText`, so the text handed to generation cannot
-// disagree with the text the page was scored on.
+// store"). It fetches nothing, stores nothing, and returns each page's
+// prose (`prose.ts`).
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,7 +13,6 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import { dbAdmin } from "@/lib/db";
-import { visibleText } from "../../../src/lib/measure/parse.ts";
 import { OWN_FETCH_SOURCE, toStoredDocument } from "../../../src/lib/measure/own-fetch.ts";
 import { readMeasuredText } from "../../../src/lib/measure/text.ts";
 
@@ -256,20 +254,23 @@ describe('BP-010 decision 4 `## Consequences` — "the comparison set reaches ba
   });
 });
 
-describe('BP-010 decision 4 `## Alternatives considered` — a fresh fetch at generation "can disagree with the measurement the page was derived from"', () => {
-  it("the re-read text is the text the measurement was taken from", async () => {
+describe("#1130 — the re-read text is the page's prose, never its chrome or its example", () => {
+  it("drops navigation, header, footer, buttons, hidden text and a card captioned as an example", async () => {
+    const html = `<html><body>
+      <header><nav><a href="/pricing">Pricing</a> <a href="/in">Sign in</a></nav></header>
+      <main>
+        <h1>How ReachKit measures a site</h1>
+        <p>It reads the page &amp; counts what is there.</p>
+        <div class="card"><div class="stat">Discoverability Score 62</div><p>An example business. It measures no site.</p></div>
+        <button>Start free</button><span aria-hidden="true">decoration</span>
+      </main>
+      <footer>© ReachKit</footer>
+    </body></html>`;
     useDb({
       scans: [{ id: "scan-1", site_id: SITE }],
-      fetches: [{ scan_id: "scan-1", source: OWN_FETCH_SOURCE, payload: storedDocument("https://a.example/", HOME_HTML, READ_AT) }],
+      fetches: [{ scan_id: "scan-1", source: OWN_FETCH_SOURCE, payload: storedDocument("https://a.example/", html, READ_AT) }],
     });
     const rows = await readMeasuredText({ siteId: SITE });
-    expect(only(rows).text).toBe(visibleText(HOME_HTML));
-    // Neither the stylesheet nor the script survives the extractor.
-    expect(only(rows).text).not.toMatch(/not visible|color:red/);
-  });
-
-  it("`text.ts` declares no extractor of its own — it imports `visibleText`", () => {
-    expect(CODE_ONLY).toMatch(/import \{ visibleText \} from "\.\/parse"/);
-    expect(CODE_ONLY).not.toMatch(/replace\(\/</);
+    expect(only(rows).text).toBe("How ReachKit measures a site\nIt reads the page & counts what is there.");
   });
 });

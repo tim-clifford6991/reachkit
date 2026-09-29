@@ -121,3 +121,23 @@ describe("the uncapped read is what finds a passage a row already pinned", () =>
     expect(new Set(all.map((fact) => fact.fact.passage)).size).toBe(all.length);
   });
 });
+
+describe("#1130 — a fact is prose one page says, never a label or the site's chrome", () => {
+  it("drops a label, a figure and a sentence the site repeats on three pages", async () => {
+    const chrome = "Every plan comes with a thirty day refund and no questions asked.";
+    readMeasuredTextMock.mockResolvedValue(
+      [ABOUT_URL, GUIDE_URL, PRICING_URL].map((url, index) => ({
+        url,
+        text: [
+          "Discoverability Score 62 out of a possible hundred points",
+          "Searches you appear in this week across the market 128",
+          `Page ${index + 1} explains how the team plans a busy week of work.`,
+          chrome,
+        ].join("\n"),
+        measuredAt: new Date("2026-09-01T09:00:00.000Z"),
+      }))
+    );
+    const passages = (await readAllFacts({ siteId: SITE_ID })).map((sourced) => sourced.fact.passage);
+    expect(passages.sort()).toEqual([1, 2, 3].map((n) => `Page ${n} explains how the team plans a busy week of work.`));
+  });
+});
