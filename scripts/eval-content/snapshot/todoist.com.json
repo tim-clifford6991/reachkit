@@ -1,0 +1,2344 @@
+{
+  "domain": "todoist.com",
+  "scan": {
+    "id": "16b173ce-3768-46a2-9b9e-31d3f81e4780",
+    "tier": "free",
+    "status": "degraded",
+    "finishedAt": "2026-09-17T10:38:04.304Z"
+  },
+  "report": {
+    "tier": "free",
+    "serps": [
+      {
+        "at": "2026-09-17T10:37:51.140Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://zapier.com/blog/best-todo-list-apps/",
+              "title": "7 best to do list apps of 2026",
+              "domain": "zapier.com",
+              "position": 1
+            },
+            {
+              "url": "https://www.reddit.com/r/productivity/comments/13m46n8/best_simple_to_do_list_app/",
+              "title": "Best SIMPLE to do list app? : r/productivity",
+              "domain": "www.reddit.com",
+              "position": 2
+            },
+            {
+              "url": "https://play.google.com/store/apps/details?id=com.tasks.android&hl=en_US",
+              "title": "Tasks: To Do List & Reminders - Apps on Google Play",
+              "domain": "play.google.com",
+              "position": 3
+            },
+            {
+              "url": "https://www.todoist.com/",
+              "title": "Todoist | A To-Do List to Organize Your Work & Life",
+              "domain": "www.todoist.com",
+              "position": 4
+            },
+            {
+              "url": "https://apps.apple.com/us/app/todoist-to-do-list-calendar/id572688855",
+              "title": "Todoist: To Do List & Calendar - App Store - Apple",
+              "domain": "apps.apple.com",
+              "position": 5
+            },
+            {
+              "url": "https://www.nytimes.com/wirecutter/reviews/best-to-do-list-app/",
+              "title": "The 4 Apps That Help Us Get Stuff Done",
+              "domain": "www.nytimes.com",
+              "position": 6
+            },
+            {
+              "url": "https://www.youtube.com/watch?v=B2ZdsGQpNx0",
+              "title": "Best To-Do List Apps for 2026",
+              "domain": "www.youtube.com",
+              "position": 7
+            },
+            {
+              "url": "https://www.any.do/",
+              "title": "A simple to do list for you and your team",
+              "domain": "www.any.do",
+              "position": 8
+            },
+            {
+              "url": "https://www.microsoft.com/en-us/microsoft-365/microsoft-to-do-list-app",
+              "title": "To Do List and Task Management App | Microsoft To Do",
+              "domain": "www.microsoft.com",
+              "position": 9
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "zapier.com",
+              "www.youtube.com",
+              "www.todoist.com",
+              "www.microsoft.com",
+              "www.nytimes.com",
+              "ticktick.com",
+              "au.pcmag.com",
+              "www.saner.ai"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      },
+      {
+        "at": "2026-09-17T10:37:51.140Z",
+        "kind": "unmeasured",
+        "reason": "undeterminable"
+      },
+      {
+        "at": "2026-09-17T10:37:51.140Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.reddit.com/r/productivity/comments/10718h4/whats_the_best_free_to_do_list_app/",
+              "title": "What's the best free To do list App? : r/productivity",
+              "domain": "www.reddit.com",
+              "position": 1
+            },
+            {
+              "url": "https://www.todoist.com/",
+              "title": "Todoist | A To-Do List to Organize Your Work & Life",
+              "domain": "www.todoist.com",
+              "position": 2
+            },
+            {
+              "url": "https://play.google.com/store/apps/details?id=com.splendapps.splendo&hl=en_US",
+              "title": "To Do List - Apps on Google Play",
+              "domain": "play.google.com",
+              "position": 3
+            },
+            {
+              "url": "https://apps.apple.com/us/app/todoist-to-do-list-calendar/id572688855",
+              "title": "Todoist: To Do List & Calendar - App Store - Apple",
+              "domain": "apps.apple.com",
+              "position": 4
+            },
+            {
+              "url": "https://www.microsoft.com/en-us/microsoft-365/microsoft-to-do-list-app",
+              "title": "To Do List and Task Management App | Microsoft To Do",
+              "domain": "www.microsoft.com",
+              "position": 5
+            },
+            {
+              "url": "https://www.androidauthority.com/favorite-to-do-list-apps-3580545/",
+              "title": "After trying dozens of to-do apps, these 6 just clicked with me",
+              "domain": "www.androidauthority.com",
+              "position": 6
+            },
+            {
+              "url": "https://www.any.do/",
+              "title": "A simple to do list for you and your team",
+              "domain": "www.any.do",
+              "position": 7
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "www.todoist.com",
+              "www.microsoft.com",
+              "www.androidauthority.com",
+              "zapier.com",
+              "mytaskslistsandschedules.com"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      },
+      {
+        "at": "2026-09-17T10:37:51.140Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.reddit.com/r/productivity/comments/10718h4/whats_the_best_free_to_do_list_app/",
+              "title": "What's the best free To do list App? : r/productivity",
+              "domain": "www.reddit.com",
+              "position": 1
+            },
+            {
+              "url": "https://zapier.com/blog/best-todo-list-apps/",
+              "title": "7 best to do list apps of 2026",
+              "domain": "zapier.com",
+              "position": 2
+            },
+            {
+              "url": "https://www.androidauthority.com/favorite-to-do-list-apps-3580545/",
+              "title": "After trying dozens of to-do apps, these 6 just clicked with me",
+              "domain": "www.androidauthority.com",
+              "position": 3
+            },
+            {
+              "url": "https://www.todoist.com/",
+              "title": "Todoist | A To-Do List to Organize Your Work & Life",
+              "domain": "www.todoist.com",
+              "position": 4
+            },
+            {
+              "url": "https://play.google.com/store/apps/details?id=com.splendapps.splendo&hl=en_US",
+              "title": "To Do List - Apps on Google Play",
+              "domain": "play.google.com",
+              "position": 5
+            },
+            {
+              "url": "https://unito.io/blog/best-to-do-list-apps-free/",
+              "title": "The Best To-Do List and Note-Taking Apps - Unito.io",
+              "domain": "unito.io",
+              "position": 6
+            },
+            {
+              "url": "https://www.nytimes.com/wirecutter/reviews/best-to-do-list-app/",
+              "title": "The 4 Apps That Help Us Get Stuff Done",
+              "domain": "www.nytimes.com",
+              "position": 7
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "zapier.com",
+              "www.androidauthority.com",
+              "www.cnet.com"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      },
+      {
+        "at": "2026-09-17T10:37:54.977Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.todoist.com/",
+              "title": "Todoist | A To-Do List to Organize Your Work & Life",
+              "domain": "www.todoist.com",
+              "position": 1
+            },
+            {
+              "url": "https://zapier.com/blog/best-todo-list-apps/",
+              "title": "7 best to do list apps of 2026",
+              "domain": "zapier.com",
+              "position": 2
+            },
+            {
+              "url": "https://launchthedamnthing.com/blog/how-to-choose-perfect-task-management-app",
+              "title": "How to Find Your Perfect Task Management App (Finally!)",
+              "domain": "launchthedamnthing.com",
+              "position": 3
+            },
+            {
+              "url": "https://www.reddit.com/r/ProductivityApps/comments/1gyvf1w/help_me_find_a_good_task_management_app/",
+              "title": "Help me find a good task management app",
+              "domain": "www.reddit.com",
+              "position": 4
+            },
+            {
+              "url": "https://www.pcmag.com/picks/the-best-task-management-apps",
+              "title": "The Best Task Management Apps We've Tested for 2026",
+              "domain": "www.pcmag.com",
+              "position": 5
+            },
+            {
+              "url": "https://thedigitalprojectmanager.com/tools/best-personal-task-management-software/",
+              "title": "10 Best Personal Task Management Software Reviewed in ...",
+              "domain": "thedigitalprojectmanager.com",
+              "position": 6
+            },
+            {
+              "url": "https://faun.pub/i-tried-32-task-management-apps-my-top-list-what-i-chose-d145e1473e3e",
+              "title": "I Tried 32 Task Management Apps… My Top List & What I Chose",
+              "domain": "faun.pub",
+              "position": 7
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "www.pcmag.com",
+              "zapier.com",
+              "fabric.so",
+              "lifestack.ai",
+              "www.youtube.com"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      },
+      {
+        "at": "2026-09-17T10:37:56.769Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.todoist.com/",
+              "title": "Todoist | A To-Do List to Organize Your Work & Life",
+              "domain": "www.todoist.com",
+              "position": 1
+            },
+            {
+              "url": "https://www.reddit.com/r/ProductivityApps/comments/1gyvf1w/help_me_find_a_good_task_management_app/",
+              "title": "Help me find a good task management app",
+              "domain": "www.reddit.com",
+              "position": 2
+            },
+            {
+              "url": "https://zapier.com/blog/best-todo-list-apps/",
+              "title": "7 best to do list apps of 2026",
+              "domain": "zapier.com",
+              "position": 3
+            },
+            {
+              "url": "https://thedigitalprojectmanager.com/tools/best-task-management-software/",
+              "title": "I Tried 10 Task Management Software: Here's What Works ...",
+              "domain": "thedigitalprojectmanager.com",
+              "position": 4
+            },
+            {
+              "url": "https://faun.pub/i-tried-32-task-management-apps-my-top-list-what-i-chose-d145e1473e3e",
+              "title": "I Tried 32 Task Management Apps… My Top List & What I Chose",
+              "domain": "faun.pub",
+              "position": 5
+            },
+            {
+              "url": "https://www.pcmag.com/picks/the-best-task-management-apps",
+              "title": "The Best Task Management Apps We've Tested for 2026",
+              "domain": "www.pcmag.com",
+              "position": 6
+            },
+            {
+              "url": "https://play.google.com/store/apps/details?id=com.todoist&hl=en_US",
+              "title": "Todoist: To Do List & Calendar - Apps on Google Play",
+              "domain": "play.google.com",
+              "position": 7
+            },
+            {
+              "url": "https://launchthedamnthing.com/blog/how-to-choose-perfect-task-management-app",
+              "title": "How to Find Your Perfect Task Management App (Finally!)",
+              "domain": "launchthedamnthing.com",
+              "position": 8
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "www.pcmag.com",
+              "zapier.com",
+              "tmetric.com",
+              "www.youtube.com"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      },
+      {
+        "at": "2026-09-17T10:37:49.619Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+      }
+    ],
+    "domain": "todoist.com",
+    "market": {
+      "at": "2026-09-17T10:37:40.462Z",
+      "kind": "measured",
+      "value": {
+        "pool": [
+          {
+            "rival": null,
+            "volume": 590,
+            "keyword": "1 3 5 rule"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "1 3 5 rule time management"
+          },
+          {
+            "rival": null,
+            "volume": 590,
+            "keyword": "1-3-5 rule"
+          },
+          {
+            "rival": null,
+            "volume": 70,
+            "keyword": "1-3-5 rule examples"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "1-3-5 rule time management"
+          },
+          {
+            "rival": null,
+            "volume": 590,
+            "keyword": "135 rule"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "20 5 method"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "20 minute study method"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "4 weekly review"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "a to do"
+          },
+          {
+            "rival": null,
+            "volume": 50,
+            "keyword": "add to-do list"
+          },
+          {
+            "rival": null,
+            "volume": 40,
+            "keyword": "assignments to do list"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "automatic task manager"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "best task management app for individuals"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "best task management app for work"
+          },
+          {
+            "rival": null,
+            "volume": 40,
+            "keyword": "best to do list planner"
+          },
+          {
+            "rival": null,
+            "volume": 90,
+            "keyword": "best todo list online"
+          },
+          {
+            "rival": null,
+            "volume": 50,
+            "keyword": "big to do list"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "bite the frog"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "block out time"
+          },
+          {
+            "rival": null,
+            "volume": 50,
+            "keyword": "block scheduling for work"
+          },
+          {
+            "rival": null,
+            "volume": 50,
+            "keyword": "block work schedule"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "block your time"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "blocking out time"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "blocking strategy"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "blocking time meaning"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "blocking your calendar"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "blocking your time"
+          },
+          {
+            "rival": null,
+            "volume": 40,
+            "keyword": "blog pipeline"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "boards todoist"
+          },
+          {
+            "rival": null,
+            "volume": 140,
+            "keyword": "calendar view todoist"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "can todoist sync with google calendar"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "checklist programs"
+          },
+          {
+            "rival": null,
+            "volume": 40,
+            "keyword": "claude todoist integration"
+          },
+          {
+            "rival": null,
+            "volume": 320,
+            "keyword": "clock blocking"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "commitment inventory"
+          },
+          {
+            "rival": null,
+            "volume": 50,
+            "keyword": "completed tasks todoist"
+          },
+          {
+            "rival": null,
+            "volume": 480,
+            "keyword": "daily task"
+          },
+          {
+            "rival": null,
+            "volume": 590,
+            "keyword": "daily task list"
+          },
+          {
+            "rival": null,
+            "volume": 70,
+            "keyword": "daily task management"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "daily task organizer"
+          },
+          {
+            "rival": null,
+            "volume": 390,
+            "keyword": "daily task tracker"
+          },
+          {
+            "rival": null,
+            "volume": 40,
+            "keyword": "daily time blocking"
+          },
+          {
+            "rival": null,
+            "volume": 210,
+            "keyword": "daily to do"
+          },
+          {
+            "rival": null,
+            "volume": 1600,
+            "keyword": "daily to do list"
+          },
+          {
+            "rival": null,
+            "volume": 1600,
+            "keyword": "daily to-do list"
+          },
+          {
+            "rival": null,
+            "volume": 110,
+            "keyword": "daily todo list"
+          },
+          {
+            "rival": null,
+            "volume": 70,
+            "keyword": "daily work tracker"
+          },
+          {
+            "rival": null,
+            "volume": 480,
+            "keyword": "day tasks"
+          },
+          {
+            "rival": null,
+            "volume": 30,
+            "keyword": "digital task list"
+          }
+        ],
+        "profile": {
+          "job": "organize and manage tasks and projects for work and personal life",
+          "category": "to-do list app",
+          "vocabulary": [
+            "task management",
+            "project management",
+            "productivity",
+            "time management",
+            "habit tracking",
+            "collaboration",
+            "due dates",
+            "recurring tasks",
+            "task reminders",
+            "calendar view",
+            "filters",
+            "templates"
+          ],
+          "brandTokens": [
+            "Todoist",
+            "Todoist Pro",
+            "Todoist Business",
+            "Todoist Teams",
+            "Todoist Assist"
+          ],
+          "namedRivals": [],
+          "offeringType": "SaaS application with freemium model",
+          "audienceTerms": [
+            "individuals managing personal tasks",
+            "teams collaborating on projects",
+            "professionals organizing work",
+            "students managing assignments"
+          ]
+        },
+        "suggestions": [
+          {
+            "volume": 18100,
+            "keyword": "todoist to do list app"
+          },
+          {
+            "volume": 12100,
+            "keyword": "do to do list app"
+          },
+          {
+            "volume": 12100,
+            "keyword": "to do list mobile app"
+          },
+          {
+            "volume": 12100,
+            "keyword": "to do list app"
+          },
+          {
+            "volume": 12100,
+            "keyword": "to-do list app"
+          },
+          {
+            "volume": 4400,
+            "keyword": "best app for to do list"
+          },
+          {
+            "volume": 3600,
+            "keyword": "best to-do list app"
+          },
+          {
+            "volume": 3600,
+            "keyword": "best to do list app"
+          },
+          {
+            "volume": 3600,
+            "keyword": "best app for to-do list"
+          },
+          {
+            "volume": 1600,
+            "keyword": "app for to do list"
+          },
+          {
+            "volume": 1600,
+            "keyword": "app for a to do list"
+          },
+          {
+            "volume": 1600,
+            "keyword": "app list to do"
+          },
+          {
+            "volume": 1600,
+            "keyword": "list to do app"
+          },
+          {
+            "volume": 1600,
+            "keyword": "app to do list"
+          },
+          {
+            "volume": 720,
+            "keyword": "best to-do list app iphone"
+          },
+          {
+            "volume": 720,
+            "keyword": "free to-do list app"
+          },
+          {
+            "volume": 720,
+            "keyword": "best to do list app for iphone"
+          },
+          {
+            "volume": 720,
+            "keyword": "best to do list iphone app"
+          },
+          {
+            "volume": 720,
+            "keyword": "digital to do list app"
+          },
+          {
+            "volume": 720,
+            "keyword": "best to-do list app for iphone"
+          },
+          {
+            "volume": 720,
+            "keyword": "digital to-do list app"
+          },
+          {
+            "volume": 720,
+            "keyword": "best to do list app iphone"
+          },
+          {
+            "volume": 720,
+            "keyword": "free to do list app"
+          },
+          {
+            "volume": 720,
+            "keyword": "best to do list app on iphone"
+          },
+          {
+            "volume": 720,
+            "keyword": "best app to do list"
+          },
+          {
+            "volume": 480,
+            "keyword": "shared to do list app"
+          },
+          {
+            "volume": 480,
+            "keyword": "to do list app on mac"
+          },
+          {
+            "volume": 480,
+            "keyword": "google to-do list app"
+          },
+          {
+            "volume": 480,
+            "keyword": "to-do list app for mac"
+          },
+          {
+            "volume": 480,
+            "keyword": "shareable to do list app"
+          },
+          {
+            "volume": 480,
+            "keyword": "google to do list app"
+          },
+          {
+            "volume": 480,
+            "keyword": "share to-do list app"
+          },
+          {
+            "volume": 480,
+            "keyword": "sharing to do list app"
+          },
+          {
+            "volume": 480,
+            "keyword": "shared to-do list app"
+          },
+          {
+            "volume": 480,
+            "keyword": "to-do list app mac"
+          },
+          {
+            "volume": 480,
+            "keyword": "share to do list app"
+          },
+          {
+            "volume": 480,
+            "keyword": "to do list app mac"
+          },
+          {
+            "volume": 480,
+            "keyword": "shareable to-do list app"
+          },
+          {
+            "volume": 480,
+            "keyword": "to do list app for mac"
+          },
+          {
+            "volume": 390,
+            "keyword": "best to do list app mac"
+          },
+          {
+            "volume": 390,
+            "keyword": "to-do list free app"
+          },
+          {
+            "volume": 390,
+            "keyword": "best to-do list app mac"
+          },
+          {
+            "volume": 390,
+            "keyword": "to do list app for iphone"
+          },
+          {
+            "volume": 390,
+            "keyword": "best to-do list app free"
+          },
+          {
+            "volume": 390,
+            "keyword": "best to do list app for mac"
+          },
+          {
+            "volume": 390,
+            "keyword": "best to-do list app for mac"
+          },
+          {
+            "volume": 390,
+            "keyword": "to-do list app iphone"
+          },
+          {
+            "volume": 390,
+            "keyword": "best to do list app free"
+          },
+          {
+            "volume": 390,
+            "keyword": "best free to-do list app"
+          },
+          {
+            "volume": 390,
+            "keyword": "to do list app iphone"
+          }
+        ],
+        "totalVolume": 108630
+      }
+    },
+    "onPage": {
+      "at": "2026-09-17T10:37:40.462Z",
+      "kind": "measured",
+      "value": {
+        "url": "https://www.todoist.com/",
+        "dates": 0,
+        "noindex": false,
+        "headings": 4,
+        "numerals": 42,
+        "schemaTypes": [],
+        "visibleChars": 7235,
+        "outboundCitations": 9,
+        "openGraphProperties": [
+          "og:type",
+          "og:title",
+          "og:url",
+          "og:description",
+          "og:image",
+          "og:image:type",
+          "og:image:width",
+          "og:image:height",
+          "og:image:alt"
+        ],
+        "directAnswerHeadings": 0,
+        "questionShapedHeadings": 0,
+        "noindexAppliesToEveryReader": false
+      }
+    },
+    "rivals": {
+      "at": "2026-09-17T10:37:49.619Z",
+      "kind": "measured",
+      "value": [
+        {
+          "score": 14,
+          "domain": "zapier.com",
+          "aiCitations": 5,
+          "top10Appearances": 4
+        },
+        {
+          "score": 8,
+          "domain": "pcmag.com",
+          "aiCitations": 3,
+          "top10Appearances": 2
+        },
+        {
+          "score": 6,
+          "domain": "androidauthority.com",
+          "aiCitations": 2,
+          "top10Appearances": 2
+        },
+        {
+          "score": 6,
+          "domain": "microsoft.com",
+          "aiCitations": 2,
+          "top10Appearances": 2
+        },
+        {
+          "score": 4,
+          "domain": "nytimes.com",
+          "aiCitations": 1,
+          "top10Appearances": 2
+        }
+      ]
+    },
+    "robots": {
+      "at": "2026-09-17T10:37:40.462Z",
+      "kind": "measured",
+      "value": {
+        "ok": true,
+        "rules": {
+          "*": [
+            {
+              "allow": true,
+              "pattern": "/"
+            },
+            {
+              "allow": true,
+              "pattern": "/app/template/preview"
+            },
+            {
+              "allow": false,
+              "pattern": "/app/"
+            },
+            {
+              "allow": false,
+              "pattern": "/api/"
+            },
+            {
+              "allow": false,
+              "pattern": "/API/"
+            },
+            {
+              "allow": false,
+              "pattern": "/sync/"
+            },
+            {
+              "allow": false,
+              "pattern": "/rest/"
+            },
+            {
+              "allow": false,
+              "pattern": "/showTask"
+            },
+            {
+              "allow": false,
+              "pattern": "/showtask"
+            },
+            {
+              "allow": false,
+              "pattern": "/showProject"
+            },
+            {
+              "allow": false,
+              "pattern": "/showproject"
+            },
+            {
+              "allow": false,
+              "pattern": "/review_json"
+            },
+            {
+              "allow": false,
+              "pattern": "/psaccent/"
+            },
+            {
+              "allow": false,
+              "pattern": "/contact"
+            },
+            {
+              "allow": false,
+              "pattern": "/upgrade"
+            },
+            {
+              "allow": false,
+              "pattern": "/pro/upgrade"
+            },
+            {
+              "allow": false,
+              "pattern": "/product-ui"
+            },
+            {
+              "allow": false,
+              "pattern": "/pro/"
+            },
+            {
+              "allow": false,
+              "pattern": "/p/"
+            },
+            {
+              "allow": false,
+              "pattern": "/logout"
+            },
+            {
+              "allow": false,
+              "pattern": "/user-flags"
+            },
+            {
+              "allow": false,
+              "pattern": "/help/preview"
+            },
+            {
+              "allow": false,
+              "pattern": "/auth/"
+            },
+            {
+              "allow": false,
+              "pattern": "/user/"
+            }
+          ]
+        },
+        "absent": false,
+        "origin": "https://todoist.com",
+        "readAt": "2026-09-17T10:37:40.470Z",
+        "sitemaps": [
+          "https://www.todoist.com/sitemap.xml"
+        ],
+        "disallowsAll": false,
+        "disallowedAgents": {
+          "*": false
+        },
+        "crawlDelaySeconds": {}
+      }
+    },
+    "scanId": "16b173ce-3768-46a2-9b9e-31d3f81e4780",
+    "supply": {
+      "missingPages": {
+        "at": "2026-09-17T10:37:40.462Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+      },
+      "unquotablePages": {
+        "at": "2026-09-17T10:37:40.462Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+      }
+    },
+    "sources": [
+      "reddit.com",
+      "youtube.com"
+    ],
+    "verdict": {
+      "domain": "todoist.com",
+      "factors": {
+        "presence": {
+          "at": "2026-09-17T10:37:40.462Z",
+          "kind": "measured",
+          "value": 48.57138734725315
+        },
+        "foundations": {
+          "at": "2026-09-17T10:37:40.462Z",
+          "kind": "measured",
+          "value": 87.5
+        },
+        "answerability": {
+          "at": "2026-09-17T10:37:40.462Z",
+          "kind": "measured",
+          "value": 24.6296984319401
+        }
+      },
+      "missing": [],
+      "limiting": {
+        "kind": "factor",
+        "factor": "answerability"
+      },
+      "measuredAt": "2026-09-17T10:37:40.462Z",
+      "scoreAndBand": {
+        "at": "2026-09-17T10:37:40.462Z",
+        "kind": "measured",
+        "value": {
+          "band": "hard-to-find",
+          "score": 47
+        }
+      },
+      "blockedReaders": {
+        "at": "2026-09-17T10:37:40.462Z",
+        "kind": "zero",
+        "value": 0
+      },
+      "unmeasuredElsewhere": []
+    },
+    "version": 9,
+    "complete": true,
+    "freePage": {
+      "slug": {
+        "text": "best-free-to-do-list-app",
+        "source": "model"
+      },
+      "beats": "reddit.com",
+      "title": {
+        "text": "What is the best free to-do list app?",
+        "source": "model"
+      },
+      "format": "answer_page",
+      "target": {
+        "volume": 390,
+        "keyword": "best free to-do list app"
+      },
+      "totalPages": 3,
+      "opportunityId": "16b173ce-3768-46a2-9b9e-31d3f81e4780:best-free-to-do-list-app"
+    },
+    "presence": {
+      "you": {
+        "domain": "todoist.com",
+        "top10Count": 5
+      },
+      "rivals": [
+        {
+          "domain": "zapier.com",
+          "top10Count": 4
+        },
+        {
+          "domain": "pcmag.com",
+          "top10Count": 2
+        },
+        {
+          "domain": "androidauthority.com",
+          "top10Count": 2
+        },
+        {
+          "domain": "microsoft.com",
+          "top10Count": 2
+        },
+        {
+          "domain": "nytimes.com",
+          "top10Count": 2
+        }
+      ],
+      "framing": "shown",
+      "absentFrom": [],
+      "measuredSearches": 5
+    },
+    "aiAnswers": {
+      "rows": [
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "zapier.com",
+              "youtube.com",
+              "todoist.com",
+              "microsoft.com",
+              "nytimes.com",
+              "ticktick.com",
+              "pcmag.com",
+              "saner.ai"
+            ],
+            "namesCustomer": true
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "zapier.com",
+                  "youtube.com",
+                  "todoist.com",
+                  "microsoft.com",
+                  "nytimes.com",
+                  "ticktick.com",
+                  "pcmag.com",
+                  "saner.ai"
+                ],
+                "namesCustomer": true
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 1,
+            "search": "do to do list app",
+            "wording": {
+              "text": "What to-do list app should I use?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "unmeasured",
+            "reason": "undeterminable"
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "undeterminable"
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 2,
+            "search": "best app for to do list",
+            "wording": {
+              "text": "What is the best app for managing my to-do list?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "todoist.com",
+              "microsoft.com",
+              "androidauthority.com",
+              "zapier.com",
+              "mytaskslistsandschedules.com"
+            ],
+            "namesCustomer": true
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "todoist.com",
+                  "microsoft.com",
+                  "androidauthority.com",
+                  "zapier.com",
+                  "mytaskslistsandschedules.com"
+                ],
+                "namesCustomer": true
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 3,
+            "search": "free to-do list app",
+            "wording": {
+              "text": "What free to-do list app can I download?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "zapier.com",
+              "androidauthority.com",
+              "cnet.com"
+            ],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "zapier.com",
+                  "androidauthority.com",
+                  "cnet.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 4,
+            "search": "best free to-do list app",
+            "wording": {
+              "text": "What is the best free to-do list app?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "pcmag.com",
+              "zapier.com",
+              "fabric.so",
+              "lifestack.ai",
+              "youtube.com"
+            ],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "pcmag.com",
+                  "zapier.com",
+                  "fabric.so",
+                  "lifestack.ai",
+                  "youtube.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 5,
+            "search": "best task management app for individuals",
+            "wording": {
+              "text": "What is the best task management app for me as an individual?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "pcmag.com",
+              "zapier.com",
+              "tmetric.com",
+              "youtube.com"
+            ],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "pcmag.com",
+                  "zapier.com",
+                  "tmetric.com",
+                  "youtube.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 6,
+            "search": "best task management app for work",
+            "wording": {
+              "text": "What is the best task management app for work?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 7,
+            "search": "assignments to do list",
+            "wording": {
+              "text": "How do I create an assignments to-do list?",
+              "source": "model"
+            }
+          }
+        }
+      ],
+      "rivals": [
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "zapier.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable"
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "zapier.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "zapier.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "zapier.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "zapier.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "not_attempted"
+            }
+          ],
+          "domain": "zapier.com"
+        },
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "pcmag.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable"
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "pcmag.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "pcmag.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "not_attempted"
+            }
+          ],
+          "domain": "pcmag.com"
+        },
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable"
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "androidauthority.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "androidauthority.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "not_attempted"
+            }
+          ],
+          "domain": "androidauthority.com"
+        },
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "microsoft.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable"
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "microsoft.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "not_attempted"
+            }
+          ],
+          "domain": "microsoft.com"
+        },
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "nytimes.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable"
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "not_attempted"
+            }
+          ],
+          "domain": "nytimes.com"
+        }
+      ],
+      "coverage": "async_included",
+      "ownDomain": "todoist.com",
+      "measuredAt": "2026-09-17T10:37:49.619Z",
+      "answeredSearches": 5,
+      "measuredSearches": 5,
+      "customerCitations": 2
+    },
+    "coherence": {
+      "verdict": "coherent"
+    },
+    "ownRanked": {
+      "at": "2026-09-17T10:37:40.462Z",
+      "kind": "measured",
+      "value": 8549
+    },
+    "questions": {
+      "at": "2026-09-17T10:37:49.619Z",
+      "kind": "measured",
+      "value": [
+        {
+          "id": "q1",
+          "text": "What to-do list app should I use?",
+          "search": {
+            "rank": 1,
+            "floor": 50,
+            "score": 12.24846378281799,
+            "intent": "solution",
+            "volume": 12100,
+            "keyword": "do to do list app"
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q2",
+          "text": "What is the best app for managing my to-do list?",
+          "search": {
+            "rank": 2,
+            "floor": 50,
+            "score": 10.930654105688834,
+            "intent": "decision",
+            "volume": 4400,
+            "keyword": "best app for to do list"
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q3",
+          "text": "What free to-do list app can I download?",
+          "search": {
+            "rank": 3,
+            "floor": 50,
+            "score": 8.573805794158286,
+            "intent": "solution",
+            "volume": 720,
+            "keyword": "free to-do list app"
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q4",
+          "text": "What is the best free to-do list app?",
+          "search": {
+            "rank": 4,
+            "floor": 50,
+            "score": 7.7765302721876,
+            "intent": "decision",
+            "volume": 390,
+            "keyword": "best free to-do list app"
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q5",
+          "text": "What is the best task management app for me as an individual?",
+          "search": {
+            "rank": 5,
+            "floor": 20,
+            "score": 4.4740850815028175,
+            "intent": "decision",
+            "volume": 30,
+            "keyword": "best task management app for individuals"
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q6",
+          "text": "What is the best task management app for work?",
+          "search": {
+            "rank": 6,
+            "floor": 20,
+            "score": 4.4740850815028175,
+            "intent": "decision",
+            "volume": 30,
+            "keyword": "best task management app for work"
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q7",
+          "text": "How do I create an assignments to-do list?",
+          "search": {
+            "rank": 7,
+            "floor": 20,
+            "score": 1.6127838567197355,
+            "intent": "informational",
+            "volume": 40,
+            "keyword": "assignments to do list"
+          },
+          "phrasing": "model"
+        }
+      ]
+    },
+    "rivalSizes": {
+      "at": "2026-09-17T10:37:40.188Z",
+      "kind": "unmeasured",
+      "reason": "not_attempted"
+    },
+    "siteIssues": {
+      "issues": [
+        {
+          "ran": true,
+          "doer": "reachkit_rewrites",
+          "over": 14,
+          "unit": "pages",
+          "check": "page_titles",
+          "count": 0,
+          "pages": [],
+          "parts": {
+            "missing": 0,
+            "duplicate": 0
+          },
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "reachkit_rewrites",
+          "over": 14,
+          "unit": "pages",
+          "check": "meta_descriptions",
+          "count": 0,
+          "pages": [],
+          "parts": {
+            "missing": 0,
+            "duplicate": 0
+          },
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 14,
+          "unit": "pages",
+          "check": "noindex_pages",
+          "count": 0,
+          "pages": [],
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 1,
+          "unit": "site",
+          "check": "sitemap",
+          "count": 0,
+          "pages": null,
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 13,
+          "unit": "pages",
+          "check": "slow_pages",
+          "count": 0,
+          "pages": [],
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 2,
+          "unit": "links",
+          "check": "broken_links",
+          "count": 0,
+          "pages": null,
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 14,
+          "unit": "pages",
+          "check": "phone_usability",
+          "count": 0,
+          "pages": [],
+          "severity": "nothing_to_fix"
+        },
+        {
+          "ran": true,
+          "doer": "reachkit_writes",
+          "over": 14,
+          "unit": "pages",
+          "check": "structured_data",
+          "count": 4,
+          "pages": [
+            "https://www.todoist.com/",
+            "https://www.todoist.com/about-us",
+            "https://www.todoist.com/automations",
+            "https://www.todoist.com/bug-bounty"
+          ],
+          "severity": "critical"
+        },
+        {
+          "ran": true,
+          "doer": "free_fix",
+          "over": 6,
+          "unit": "ai_readers",
+          "check": "ai_readers_blocked",
+          "count": 0,
+          "pages": null,
+          "severity": "nothing_to_fix"
+        }
+      ],
+      "stoppedBy": "byte_cap",
+      "checkedPages": [
+        "https://www.todoist.com/",
+        "https://www.todoist.com/authors/amir-salihefendic",
+        "https://www.todoist.com/authors/anna-sonnenberg",
+        "https://www.todoist.com/authors/becky-kane",
+        "https://www.todoist.com/authors/brenna-loury",
+        "https://www.todoist.com/authors/chase-warrington",
+        "https://www.todoist.com/about-us",
+        "https://www.todoist.com/authors/elaine-meyer",
+        "https://www.todoist.com/authors/laura-scroggs",
+        "https://www.todoist.com/authors/rochi-zalani",
+        "https://www.todoist.com/authors/taylor-martin",
+        "https://www.todoist.com/authors/fadeke-adegbuyi",
+        "https://www.todoist.com/automations",
+        "https://www.todoist.com/bug-bounty"
+      ],
+      "pagesChecked": 14
+    },
+    "blockedAgents": [],
+    "ownRankedRows": [
+      {
+        "url": "https://www.todoist.com/productivity-methods/1-3-5-method",
+        "keyword": "1 3 5 rule",
+        "position": 1,
+        "searchVolume": 590
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/1-3-5-method",
+        "keyword": "1 3 5 rule time management",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/1-3-5-method",
+        "keyword": "1-3-5 rule",
+        "position": 1,
+        "searchVolume": 590
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/1-3-5-method",
+        "keyword": "1-3-5 rule examples",
+        "position": 1,
+        "searchVolume": 70
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/1-3-5-method",
+        "keyword": "1-3-5 rule time management",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/1-3-5-method",
+        "keyword": "135 rule",
+        "position": 1,
+        "searchVolume": 590
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/pomodoro-technique",
+        "keyword": "20 5 method",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/pomodoro-technique",
+        "keyword": "20 minute study method",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/weekly-review",
+        "keyword": "4 weekly review",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "a to do",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "add to-do list",
+        "position": 1,
+        "searchVolume": 50
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "assignments to do list",
+        "position": 1,
+        "searchVolume": 40
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "automatic task manager",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "best task management app for individuals",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "best task management app for work",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "best to do list planner",
+        "position": 1,
+        "searchVolume": 40
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "best todo list online",
+        "position": 1,
+        "searchVolume": 90
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "big to do list",
+        "position": 1,
+        "searchVolume": 50
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/eat-the-frog",
+        "keyword": "bite the frog",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/time-blocking",
+        "keyword": "block out time",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/time-blocking",
+        "keyword": "block scheduling for work",
+        "position": 1,
+        "searchVolume": 50
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/time-blocking",
+        "keyword": "block work schedule",
+        "position": 1,
+        "searchVolume": 50
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/time-blocking",
+        "keyword": "block your time",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/time-blocking",
+        "keyword": "blocking out time",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/time-blocking",
+        "keyword": "blocking strategy",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/time-blocking",
+        "keyword": "blocking time meaning",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/time-blocking",
+        "keyword": "blocking your calendar",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/time-blocking",
+        "keyword": "blocking your time",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/templates/content-pipeline",
+        "keyword": "blog pipeline",
+        "position": 1,
+        "searchVolume": 40
+      },
+      {
+        "url": "https://www.todoist.com/inspiration/kanban-board",
+        "keyword": "boards todoist",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/help/articles/use-the-calendar-layout-in-todoist-lPHRQTu0o",
+        "keyword": "calendar view todoist",
+        "position": 1,
+        "searchVolume": 140
+      },
+      {
+        "url": "https://www.todoist.com/help/articles/use-the-calendar-integration-rCqwLCt3G",
+        "keyword": "can todoist sync with google calendar",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "checklist programs",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/help/articles/use-claude-with-the-todoist-connector-ANlg7v13q",
+        "keyword": "claude todoist integration",
+        "position": 1,
+        "searchVolume": 40
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/time-blocking",
+        "keyword": "clock blocking",
+        "position": 1,
+        "searchVolume": 320
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/commitment-inventory",
+        "keyword": "commitment inventory",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/help/articles/view-completed-tasks-in-todoist-J19h2s",
+        "keyword": "completed tasks todoist",
+        "position": 1,
+        "searchVolume": 50
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "daily task",
+        "position": 1,
+        "searchVolume": 480
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "daily task list",
+        "position": 1,
+        "searchVolume": 590
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "daily task management",
+        "position": 1,
+        "searchVolume": 70
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "daily task organizer",
+        "position": 1,
+        "searchVolume": 30
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "daily task tracker",
+        "position": 1,
+        "searchVolume": 390
+      },
+      {
+        "url": "https://www.todoist.com/productivity-methods/time-blocking",
+        "keyword": "daily time blocking",
+        "position": 1,
+        "searchVolume": 40
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "daily to do",
+        "position": 1,
+        "searchVolume": 210
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "daily to do list",
+        "position": 1,
+        "searchVolume": 1600
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "daily to-do list",
+        "position": 1,
+        "searchVolume": 1600
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "daily todo list",
+        "position": 1,
+        "searchVolume": 110
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "daily work tracker",
+        "position": 1,
+        "searchVolume": 70
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "day tasks",
+        "position": 1,
+        "searchVolume": 480
+      },
+      {
+        "url": "https://www.todoist.com/",
+        "keyword": "digital task list",
+        "position": 1,
+        "searchVolume": 30
+      }
+    ],
+    "stoppedReason": "complete",
+    "correctionState": "none",
+    "fromIncompleteRescan": false
+  },
+  "siteProfile": {
+    "siteName": "A To-Do List to Organize Your Work & Life",
+    "products": [],
+    "claims": [],
+    "voice": null
+  },
+  "site": null,
+  "pages": [
+    {
+      "url": "https://www.todoist.com/",
+      "readAt": "2026-09-17T10:37:40.462Z",
+      "title": "Todoist | A To-Do List to Organize Your Work & Life",
+      "h1": "Clarity, finally.",
+      "text": "Todoist | A To-Do List to Organize Your Work & Life Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Start for free Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Clarity, finally. Join 50+ million professionals who simplify work and life with the world’s #1 to-do list app. 337K+ ★★★★★ reviews Start for free Upgrade to Pro “Simple, straightforward, and super powerful” “The best to-do list app on the market” “Nothing short of stellar” “Simple, straightforward, and super powerful” “The best to-do list app on the market” “Nothing short of stellar” “Simple, straightforward, and super powerful” “The best to-do list app on the market” “Nothing short of stellar” “Simple, straightforward, and super powerful” “The best to-do list app on the market” “Nothing short of stellar” Clear your mind Capture tasks at the speed of thought We’ve spent over a decade refining Todoist to be an extension of your mind. Capture and organize tasks instantly using easy-flowing, natural language. Focus on what’s important Stay organized and focused Achieve mental clarity by sorting tasks into Today, Upcoming, or using custom filters. See only what you need, when you need it. Plan with confidence Simplify your planning Make the most of your time. Schedule due dates, visualize your week in calendar view, and set recurring tasks with ease. Organize your teamwork, too A home for your team’s tasks Give your team a shared space to collaborate and stay on top of it all – alongside but separate from your personal tasks and projects. Learn more about teams Enterprise-grade security with SOC2 Type II certification. Todoist meets the compliance standards your company requires, without the complexity. Enterprise-grade security with SOC2 Type II certification. Todoist meets the compliance standards your company requires, without the complexity. Take a peek! Watch Todoist in action. Play Kickstart your next project with Todoist Templates No need to create projects or setups from scratch when we have 50+ templates made for you. Work Personal Education Management Marketing & Sales Customer Support Work Accounting Tasks Business Travel Packing Personal Appointments Elf on the Shelf Ideas Education Class Planning Educator Planning Management 1-on-1 Meeting Employee Onboarding Marketing & Sales Blog Post Campaign Tracker Customer Support Feature Requests Help Center Article Accounting Tasks Create a system to keep your books, receipts, and invoices organized. List Business Travel Packing Never forget your laptop charger, lucky shoes, or passport again. List Client Management Organize your work with clients from the smallest to largest details. List Deep Work Practice prioritizing focus and eliminating distraction with this template. List Meeting Agenda Waste less time in meetings, ensuring they're efficient and action-oriented. List Appointments Never forget (or forget to prepare for) another meeting or appointment. List Elf on the Shelf Ideas For when those pesky elves need some new ideas - ordered by effort 😉 List Fitness Make fitness a habit by adding your favorite exercises to your to-do list. List Goal Tracker Build a system that connects your high-level goals to your daily actions. List Grocery List Keep your grocery list wherever you go by adding it all to your Todoist. List Class Planning Keep all the many details of your class plans organized and in one place. List Educator Planning Stay productive as an educator whether you’re in front of the classroom or planning and grading after-hours. List Language Learning Set a goal, pick a method, and create a habit of learning a new language. List Student Planning Never forget a single reading or assignment with this handy checklist for organizing each course. List Student Project Share this project with your classmates and make your way towards an A. Board 1-on-1 Meeting Ensure priorities are clear and keep a pulse on how your team's feeling. List Employee Onboarding Make sure newcomers have the information they need to hit the ground running. List Goals & Feedback Meeting Encourage frequent feedback and goal-oriented guidance with this template. List Hiring Pipeline Stay organized and communicative as candidates progress through your hiring pipeline. Board Blog Post Go from inspiration to publication with this template for your blog. List Campaign Tracker Track ad campaigns and keep a pulse on your marketing initiatives. List Content Calendar Strategize, organize, and publish your marketing content on schedule. Calendar Content Pipeline Keep ideas flowing while making progress on content you're already drafting. Board Event Planning Don't let any crucial event planning details slip through the cracks. List Feature Requests Monitor (and act on) the valuable feedback that your Support team receives. List Help Center Article Follow this template to take a help center article from idea to published. List Issue Tracking Stay on top of the bugs and issues (both big and small) in your software. List See more templates Play Smart features that feel magical See how Todoist Assist works intelligently behind the scenes to transform scattered tasks into clear action plans. Learn about our thoughtful approach to AI In it for the long haul A task manager you can trust for life We’ve been building Todoist for 19 years and 232 days. Rest assured that we’ll never sell out to the highest bidder. Read about our long-term mission 30+ million app downloads 2+ billion tasks completed 160+ countries worldwide 1+ million Pro users 30+ million app downloads 2+ billion tasks completed 160+ countries worldwide 1+ million Pro users 30+ million app downloads 2+ billion tasks completed 160+ countries worldwide 1+ million Pro users 30+ million app downloads 2+ billion tasks completed 160+ countries worldwide 1+ million Pro users 30+ million app downloads 2+ billion tasks completed 160+ countries worldwide 1+ million Pro users 30+ million app downloads 2+ billion tasks completed 160+ countries worldwide 1+ million Pro users 30+ million app downloads 2+ billion tasks completed 160+ countries worldwide 1+ million Pro users Gain calmness and clarity with the world’s most beloved productivity app 337,000+ ★★★★★ reviews on Google Play and App Store Start for free Upgrade to Pro Download apps Join millions of people who organize work and life with Todoist. Features How It Works For Teams Pricing Compare Templates Resources Download Apps Teams Toolkit Help Center Customer Stories Productivity Methods Integrations Channel Partners Developer API Status Company About Us Careers Inspiration Hub Press Twist Security Privacy Terms Cookie preferences © Todoist Inc. Čeština Dansk Deutsch English Español Suomi Français Italiano 日本語 한국어 Norsk Nederlands Polski Português (Brazil) Pусский (Russian) Svenska Türkçe 中文 (简体) 中文 (繁體)"
+    },
+    {
+      "url": "https://www.todoist.com/about-us",
+      "readAt": "2026-09-17T10:37:44.926Z",
+      "title": "About Us | Todoist",
+      "h1": "Many walks of life, one shared mission",
+      "text": "About Us | Todoist about us Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Start for free Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Many walks of life, one shared mission From Minneapolis to the Philippines, Brazil to Bratislava, we’re united by one goal: Empowering humanity with simple yet powerful productivity tools. Phuket, Thailand ’25 Play video Phuket, Thailand ’25 Dublin, Ireland ’24 Artimino, Italy ’23 Pertisau, Austria ’22 Play video Pertisau, Austria ’22 Azores ’19 Santiago ’18 Greece ’17 Iceland ’16 Iceland ’16 Menorca, Spain ’15 Menorca, Spain ’15 Our story In the beginning, there was no company. No team. No bigger vision. There was just a stressed-out computer science student needing order amidst a demanding life and study schedule. So he built a simple tool to manage it all, which he named Todoist. Turns out, he wasn't alone in his need to get everything out of his head, and into an organized system. The audience grew. The team grew. And the tool and company evolved side by side out of the same original intentions: autonomy, flexibility, powerful leverage – never at the expense of simplicity. That ethos led to Todoist’s success as a market-leading task management tool, used by tens of millions of people and teams the world over. Does it solve all the world's problems? No. Does it make a whole lot of lives a whole lot better? According to our customers and team, who have been living in that future for well over a decade: hell yes it does. So much so, in fact, that we’ve expanded our vision: to be the end-to-end productivity platform that empowers a billion people to bring their ideas to life. Core Values Our values are genuinely operationalized in everything we do – we regularly call upon them when building processes, making decisions, and sharing feedback with and gratitude for each other. Ambition We aspire to put a dent in the universe. We set high standards for ourselves and those around us. We solve issues that have a high impact on our customers and our company. Mastery We care deeply about the quality of our work. We’re continuously learning and pushing ourselves to the limits of our abilities. As champions of our craft, we are also champions of our well-being – we work intensely, then disconnect completely. Independence Others can trust that we’ll deliver on time. We keep our word and trust our teammates to do the same. We are proactive, take ownership, and remain accountable with little or no direction. Communication Our communication is clear, concise, and engaging. We keep others in the loop and never go radio silent. We speak respectfully and foster warm relationships through our interactions. We’re culturally and socially aware and can appropriately navigate social situations. For more about how we work, check out Todoist’s public handbook . Remote by design We've been remote and async since 2011, before the pandemic normalized it. It was just how we thought good work should happen. Everyone gets the space to do deep, uninterrupted work. We cap the workweek at 40 hours. We get 40 work days and 12 health days off per year. (We all take it! Even our CEO.) And when we're out, we're actually out. Still, we never underestimate the value of in-person connection, which is why we meet up as an organization twice a year in special places around the globe. 108 team members · 43 nationalities · 94 cities · 38 countries Todoist Team Hangout Filter by team Android Development Backend Development CXO Customer Experience Design Finance Frontend Development Marketing Operations People Platform Product iOS Development Kris W. – Android Development Kris W. He/Him I’m from USA, and I live in Spain. Jacobo de V. – Head of Backend Jacobo de V. He/Him/His I’m from Tenerife, Spain. Alex R. – Head of Platform Alex R. He/Him/His I’m from Portugal. Michał F. – Backend Development Michał F. He/Him I’m from Poznań, Poland, and I live in Gran Canaria, Spain. Rikke L. – Customer Experience Rikke L. She/Her/Hers I’m from Tisvildeleje, Denmark, and I live in United Kingdom. Andris Z. – iOS Development Andris Z. He/Him/His I’m from Riga, Latvia Denise Y. – Product Marketing Denise Y. She/Her I’m from Eindhoven, Netherlands, and I live in Willemstad, Curaçao. Ana F. – Head of Design Ana F. She/Her/Hers I live in Porto, Portugal. Julia E. – Product Design Julia E. She/Her I’m from Vienna, Austria. Sally B. – Finance Sally B. She/Her I’m from New York City, USA Nolan W. – iOS Development Nolan W. He/Him I live in Seoul, South Korea. Galina S. – Customer Success Lead Galina S. She/Her/Hers I’m from Khokhlovo, Russia, and I live in Vancouver, Canada. Olivia T. – Customer Experience Olivia T. She/Her/Hers I’m from Poland Hiroki N. – iOS Development Hiroki N. He/Him/His I’m from Chiba, Japan, and I live in Kobe, Japan. Chase W. – Head of Operations Chase W. He/Him/His I’m from USA Heather A. – Motion Design Heather A. She/Her/Hers I live in Chicago, USA. Marija G. – Product Design Marija G. She/Her/Hers I live in Riga, Latvia. Francesca G. – Frontend Development Francesca G. She/Her I’m from Italy Nico V. – Frontend Development Nico V. He/Him/His I’m from Italy. Samara A. – Customer Experience Samara A. She/Her I’m from Baghdad, Iraq, and I live in Sydney, Australia. Dermot O. – Customer Experience Dermot O. He/Him I’m from Ireland, and I live in Netherlands. Carly H. – Social Media Marketing Carly H. She/Her I’m from Chicago, USA Omar S. – Fullstack Development Omar S. He/Him/His I’m from Portmore, Jamaica, and I live in Toronto, Canada. Luke M. – Backend Development Luke M. He/Him I’m from Bristol, UK Felipe R. – Backend Development Felipe R. He/Him/His I’m from Dracena, Brazil, and I live in Campinas, Brazil. Diane L. – Customer Education Lead Diane L. She/Her/Hers I’m from South Korea Chiara C. – Backend Development Chiara C. She/Her I’m from Malta. Andrew M. – Backend Development Andrew M. He/Him/His I’m from Poznań. Poland Michael M. – Product Design Michael M. He/Him/His I live in Toronto, Canada. Paweł G. – Frontend Development Paweł G. He/Him/His I’m from Poland, and I live in Minneapolis, USA. Scott E. – People Operations Scott E. He/Him I’m from USA, and I live in Düsseldorf, Germany. Rain S. – Product Management Rain S. She/Her I’m from Singapore, Singapore, and I live in London, United Kingdom. Juan C. – Growth Lead Juan C. He/Him/His I’m from Maracaibo, Venezuela, and I live in USA. Keita Y. – Customer Service Lead Keita Y. He/Him/His I’m from Japan, and I live in Greece. Amir S. – Founder & CEO Amir S. He/Him/His I’m from Jajce, Bosnia, and I live in Barcelona, Spain. Hugo F. – Product Management Hugo F. He/Him/His I’m from Biarritz, France. Rui M. – Frontend Development Rui M. He/Him I’m from Portugal Rachel R. – Customer Experience Rachel R. She/Her I’m from South Africa Stef G. – Customer Experience Stef G. She/Her I’m from Bacolod, Philippines, and I live in Cagayan de Oro, Philippines. Carrie H. – Android Development Carrie H. She/Her/Hers I’m from Liverpool, UK Rory O. – Backend Development Rory O. He/Him I’m from Ireland Brianny C. – Growth Marketing Brianny C. She/Her I’m from Managua, Nicaragua, and I live in Antigua, Guatemala. Enric E. – iOS Development Enric E. He/Him/His I’m from Menorca, Spain David M. – Fullstack Development David M. He/Him/His I’m from Le Touquet-Paris-Plage, France, and I live in Merlimont, France. Carlin S. – Product Marketing Carlin S. I’m from USA Erik L. – iOS Development Erik L. He/Him/His I’m from Virginia, USA, and I live in Charlottesville, USA. Anton B. – Fullstack Lead Anton B. He/Him/His I’m from Perth, Australia Lefteris C. – Backend Development Lefteris C. He/Him/His I’m from Greece João V. – Backend Development João V. He/Him/His I’m from Portugal Pedro A. – Frontend Development Pedro A. He/Him/His I’m from Azores, Portugal, and I live in Porto, Portugal. Gil G. – Backend Development Gil G. He/Him/His I’m from Portugal. Olga V. – Android Development Olga V. She/Her/Hers I’m from Kirov, Russia, and I live in Dubai, UAE. Emily T. – Head of Marketing Emily T. She/Her I live in California, USA. Maria A. – Lifecycle Marketer Maria A. She/Her/Hers I’m from Greece Manoj K. – Backend Development Manoj K. He/Him/His I’m from Coimbatore, India, and I live in Dubai, UAE. Alicia C. – Product Marketing Lead Alicia C. She/Her I’m from San Francisco, USA, and I live in London, UK. Gonçalo S. – CTO Gonçalo S. He/Him/His I’m from Porto, Portugal Natalie M. – Frontend Lead Natalie M. She/Her/Hers I’m from Gibraltar. Sergey K. – Android Development Sergey K. He/Him Alex M. – Product Design Lead Alex M. He/Him/His I’m from Germany. Summer T. – Customer Experience Summer T. She/Her/Hers I’m from Penang Island, Malaysia, and I live in Melbourne, Australia. Rastislav V. – Head of Android Rastislav V. He/Him/His I’m from Bratislava, Slovakia Stacey C. – Customer Experience Stacey C. She/Her I’m from UK, and I live in Spain. Anastasiia G. – Brand Design Anastasiia G. She/Her I’m from Tomsk, Russia, and I live in Groningen, The Netherlands. Janusz G. – Backend Development Janusz G. He/Him/His I’m from Szczecin, Poland. Sergio W. – Customer Experience Sergio W. He/Him/His I’m from Brazil Evert V. – Head of Customer Experience Evert V. He/Him/His I’m from Netherlands, and I live in Sweden. Henning M. – Head of Frontend Henning M. He/Him/His I’m from Hamburg, Germany Jef C. – Fullstack Development Jef C. He/Him/His I’m from Vancouver, Canada, and I live in Nanaimo, Canada. Jaime A. – Head of Apple Jaime A. He/Him/His I’m from Porto, Portugal Brenna L. – CRO Brenna L. She/Her/Hers I’m from Seattle, Washington. Panagiotis T. – Product Design Panagiotis T. He/Him/His I’m from Rhodes, Greece, and I live in Cambridge, UK. Giuliano F. – Data Engineer Giuliano F. He/Him I’m from São Paulo, Brasil Nadia V. – Head of People Nadia V. She/Her I’m from Vanderbijlpark (I’m a Vaalie), South Africa, and I live in Johannesburg, South Africa. Ricardo A. – Frontend Development Ricardo A. He/Him/His I’m from Vila do Conde, Portugal, and I live in Porto, Portugal. Naomi L. – Brand & Content Lead Naomi L. She/Her I’m from Belfast, N. Ireland, and I live in Scotland. Maeg V. – Finance Maeg V. She/Her I live in USA. Ben B. – Product Design Lead Ben B. He/Him/His I’m from Luxembourg. Miikka K. – Data Engineer Miikka K. He/Him I live in Helsinki, Finland. Frankie Y. – Frontend Lead Frankie Y. He/Him/His I’m from Hong Kong, and I live in Vancouver, Canada. Menghan Z. – Head of Finance Menghan Z. He/Him/His I’m from Hangzhou, China, and I live in San Francisco, USA. Ernesto G. – Frontend Lead Ernesto G. He/Him/His I’m from Cuba, and I live in Chile. Artyom P. – Platform Engineer Artyom P. He/Him/His I’m from Yekaterinburg, Russia, and I live in Stockholm, Sweden. Willian M. – Backend Development Willian M. He/Him/His I’m from São Paulo, Brazil Craig C. – Frontend Development Craig C. He/Him/His I live in Vancouver, Canada. Afzal N. – Android Developer Afzal N. He/Him/His I live in Toronto, Canada. Thomas J. – Backend Development Thomas J. He/Him/His I’m from Forbach, France, and I live in Nancy, France. Luciano F. – Platform Engineer Luciano F. He/Him I’m from Mercedes, Uruguay, and I live in Montevideo, Uruguay. Pedro S. – Android Lead Pedro S. He/Him/His I’m from Porto, Portugal Julia P. – Android Development Julia P. She/Her/Hers I’m from Saint Petersburg, Russia Luis A. – Product Design Luis A. He/Him/His I’m from Lisbon, Portugal, and I live in Brighton, UK. Nina Z. – Customer Experience Nina Z. She/Her/Hers I’m from Belgrade, Serbia Olivia N. – Brand Design Olivia N. She/Her/Hers I’m from Malaysia, and I live in Kuala Lumpur, Malaysia. Andrew G. – People Business Partner Andrew G. He/Him/His I live in Minneapolis, USA. Dominique J. – Head of Product Dominique J. He/Him/His I live in Bern, Switzerland. Marco V. – Customer Experience Marco V. He/Him/His I’m from Torino, Italy Caroline F. – Customer Experience Caroline F. She/Her/Hers I’m from Campinas/São Paulo, Brazil, and I live in Valinhos/São Paulo, Brazil. Samuel E. – Product Management Samuel E. He/Him/His I live in United Kingdom. Kaitlin A. – Product Management Kaitlin A. She/Her I live in USA. Seva Z. – Frontend Development Seva Z. He/Him/His I’m from Severodvinsk, Russia, and I live in Florence, USA. Modasser B. – Backend Development Modasser B. He/Him/His I’m from Bangladesh, and I live in Dhaka, Bangladesh. Dawid G. – Fullstack Development Dawid G. He/Him I’m from Wrocław, Poland Scott L. – Frontend Development Scott L. He/Him/His I’m from Poole, England Android Development Afzal N. Carrie H. Julia P. Kris W. Olga V. Pedro S. Rastislav V. Sergey K. Backend Development Andrew M. Chiara C. Felipe R. Gil G. Jacobo de V. Janusz G. João V. Lefteris C. Luke M. Manoj K. Michał F. Modasser B. Rory O. Thomas J. Willian M. Customer Experience Caroline F. Dermot O. Diane L. Evert V. Galina S. Keita Y. Marco V. Nina Z. Olivia T. Rachel R. Rikke L. Samara A. Sergio W. Stacey C. Stef G. Summer T. CXO Amir S. Brenna L. Gonçalo S. Design Alex M. Ana F. Anastasiia G. Ben B. Heather A. Julia E. Luis A. Marija G. Michael M. Olivia N. Panagiotis T. Finance Maeg V. Menghan Z. Sally B. Frontend Development Anton B. Craig C. David M. Dawid G. Ernesto G. Francesca G. Frankie Y. Henning M. Jef C. Natalie M. Nico V. Omar S. Paweł G. Pedro A. Ricardo A. Rui M. Scott L. Seva Z. iOS Development Andris Z. Enric E. Erik L. Hiroki N. Jaime A. Nolan W. Marketing Alicia C. Brianny C. Carlin S. Carly H. Denise Y. Emily T. Juan C. Maria A. Naomi L. Operations Chase W. People Andrew G. Nadia V. Scott E. Platform Alex R. Artyom P. Giuliano F. Luciano F. Miikka K. Product Dominique J. Hugo F. Kaitlin A. Rain S. Samuel E. Sound amazing? It truly is. Todoist is a truly special place to work. Join us and do the best work of your career, alongside the best team. See open roles Join millions of people who organize work and life with Todoist. Features How It Works For Teams Pricing Compare Templates Resources Download Apps Teams Toolkit Help Center Customer Stories Productivity Methods Integrations Channel Partners Developer API Status Company About Us Careers Inspiration Hub Press Twist Security Privacy Terms Cookie preferences © Todoist Inc. Čeština Dansk Deutsch English Español Suomi Français Italiano 日本語 한국어 Norsk Nederlands Polski Português (Brazil) Pусский (Russian) Svenska Türkçe 中文 (简体) 中文 (繁體)"
+    },
+    {
+      "url": "https://www.todoist.com/authors/amir-salihefendic",
+      "readAt": "2026-09-17T10:37:44.210Z",
+      "title": "Amir Salihefendic – Todoist",
+      "h1": "Amir Salihefendic",
+      "text": "Amir Salihefendic – Todoist inspiration Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Start for free Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Amir Salihefendic Founder & CEO, Todoist Amir Salihefendic is the founder and CEO of Todoist. He writes about productivity, remote work, async communication, and the lessons of building a distributed team for nearly two decades. All Amir's articles Why the Future of Work is Remote Why the Future of Work is Remote The founder of Todoist on why the future of work is remote, and what that could mean for tomorrow’s workers, companies, and communities. Remote Work What Most Remote Companies Don’t Tell You About Remote Work What Most Remote Companies Don’t Tell You About Remote Work One remote founder's struggle with isolation, depression, and anxiety. And what remote companies can do to address the mental health challenges of a remote workforce. Remote Work How to Become a Market Leader in 10 Years How to Become a Market Leader in 10 Years You hear about the overnight unicorn success stories, but what about growing a sustainable company that's profitable from Day 1? Here's how I did it.... Remote Work Why We Don’t Have an Exit Strategy Why We Don’t Have an Exit Strategy What’s better than an exit strategy? It’s a long-term mission that your company truly cares about. Productivity Remote Work Systemist Systemist Follow Todoist's founder's personal productivity system Let Todoist take the mental load Join millions of people who enjoy peace of mind, and getting things done. Start for free Upgrade to Pro Join millions of people who organize work and life with Todoist. Features How It Works For Teams Pricing Compare Templates Resources Download Apps Teams Toolkit Help Center Customer Stories Productivity Methods Integrations Channel Partners Developer API Status Company About Us Careers Inspiration Hub Press Twist Security Privacy Terms Cookie preferences © Todoist Inc. Čeština Dansk Deutsch English Español Suomi Français Italiano 日本語 한국어 Norsk Nederlands Polski Português (Brazil) Pусский (Russian) Svenska Türkçe 中文 (简体) 中文 (繁體)"
+    },
+    {
+      "url": "https://www.todoist.com/authors/anna-sonnenberg",
+      "readAt": "2026-09-17T10:37:44.210Z",
+      "title": "Anna Sonnenberg – Todoist",
+      "h1": "Anna Sonnenberg",
+      "text": "Anna Sonnenberg – Todoist inspiration Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Start for free Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Anna Sonnenberg Contributor Anna Sonnenberg is a writer, editor, and strategist with over a decade of experience creating content for B2B SaaS companies like Agorapulse, Komodo, and Relato. As a seasoned freelancer managing a dynamic client roster, she's always testing productivity and time management tactics. Website All Anna's articles How to Stop Being the Organized One on Your Team How to Stop Being the Organized One on Your Team Tired of being the organized one on your team? Learn how Todoist reduces invisible work and keeps teams aligned with shared tasks and clear ownership. Teams Todoist Tips How Small Teams Can Avoid Tool Overload How Small Teams Can Avoid Tool Overload Too many tools (or too much tool) slowing down your team? Fix tool overload, simplify workflows, and build a lean, effective productivity stack with Todoist. Teams Todoist Tips How to Plan Your Day with the 1-3-5 Method & Be More Intentional How to Plan Your Day with the 1-3-5 Method & Be More Intentional Plan your day using the 1-3-5 rule. Learn how to prioritize your to-do list with Todoist so you can do more meaningful work. The Ivy Lee Method: Focus Better with This 100-Year-Old Strategy The Ivy Lee Method: Focus Better with This 100-Year-Old Strategy Learn the Ivy Lee method: a century-old productivity technique that helps you prioritize six daily tasks, so you can finish the work that matters. How to Keep Projects on Track with Less Meetings How to Keep Projects on Track with Less Meetings Spend less time in meetings and more time getting important work done. Get practical tips to reduce meetings while keeping projects moving forward. Teams Time Management How to Achieve Inbox Zero: A Realistic Way to Handle Email How to Achieve Inbox Zero: A Realistic Way to Handle Email Learn the inbox zero method: how to process email decisively, reduce mental clutter, and reclaim your focus with help from Todoist. A Quick(ish) Guide to Completing Any Project in Todoist A Quick(ish) Guide to Completing Any Project in Todoist For big goals you need more than a to-do list. See how straightforward project management in Todoist can be and manage your project from idea to done. Teams Todoist Tips Todoist Tips Straight From Todoist Power Users Todoist Tips Straight From Todoist Power Users Get Todoist tips from real users. Learn small habits, personal workflows, and simple setups that make work and life feel calmer and more manageable. Todoist Tips Procrastination: Why We Put Things Off and How to Finally Stop Procrastination: Why We Put Things Off and How to Finally Stop Understand the \"why\" behind your inability to start Productivity Let Todoist take the mental load Join millions of people who enjoy peace of mind, and getting things done. Start for free Upgrade to Pro Join millions of people who organize work and life with Todoist. Features How It Works For Teams Pricing Compare Templates Resources Download Apps Teams Toolkit Help Center Customer Stories Productivity Methods Integrations Channel Partners Developer API Status Company About Us Careers Inspiration Hub Press Twist Security Privacy Terms Cookie preferences © Todoist Inc. Čeština Dansk Deutsch English Español Suomi Français Italiano 日本語 한국어 Norsk Nederlands Polski Português (Brazil) Pусский (Russian) Svenska Türkçe 中文 (简体) 中文 (繁體)"
+    },
+    {
+      "url": "https://www.todoist.com/authors/becky-kane",
+      "readAt": "2026-09-17T10:37:44.211Z",
+      "title": "Becky Kane – Todoist",
+      "h1": "Becky Kane",
+      "text": "Becky Kane – Todoist inspiration Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Start for free Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Becky Kane Former Todoist team member Becky writes, edits, and attempts to follow her own productivity advice from her home office in Minneapolis, USA. 🚲🛶☕️ All Becky's articles Why Time Management Won’t Solve Your Time Problems Why Time Management Won’t Solve Your Time Problems And 9 things that actually will Productivity It’s Time to Re-Examine the Office-Serendipity Theory of Innovation It’s Time to Re-Examine the Office-Serendipity Theory of Innovation One of the biggest concerns about remote work is that there's no more chance encounters. But is that really what drives innovation? Remote Work 7 Unsung Habits of Highly Respected Managers 7 Unsung Habits of Highly Respected Managers Doing good work is one thing. Helping your team do their best work is something else entirely. Productivity Ask Todoist: I Can’t Stay Focused During My Department’s Very Long Meetings No Matter What I Do Ask Todoist: I Can’t Stay Focused During My Department’s Very Long Meetings No Matter What I Do A university employee is struggling to get through her department's hour-plus meetings Productivity Ask Todoist: My Teammates Assume I’ll Be Immediately Available to Help Them 😫 Ask Todoist: My Teammates Assume I’ll Be Immediately Available to Help Them 😫 A manager and his team navigate the rocky transition to remote work Remote Work Should This Meeting Be an Email? A Handy Flowchart to Help You Decide Should This Meeting Be an Email? A Handy Flowchart to Help You Decide Meetings aren't bad, they're just wildly overused — and they cost your team more than you may realize Teams Ask Todoist: How Do I Address Employee Performance Issues with Empathy? Ask Todoist: How Do I Address Employee Performance Issues with Empathy? A manager wants to know how she can constructively address subpar work from her team Teams Why Unplugging During the Holidays is Imperative for Your Health Why Unplugging During the Holidays is Imperative for Your Health And how to do it this year guilt-free Productivity Why It’s So Hard to Focus at Work (Hint: It’s not you, it’s your workplace) Why It’s So Hard to Focus at Work (Hint: It’s not you, it’s your workplace) Few companies invest in protecting their most valuable asset — their team’s attention. Teams 15 Essential Chrome Extensions for Staying Productive in 2026 15 Essential Chrome Extensions for Staying Productive in 2026 These are Chrome’s best extensions for saving time, getting organized, and eliminating distractions while browsing the web Productivity I Declare To-Do List Bankruptcy! (and you should too) I Declare To-Do List Bankruptcy! (and you should too) Can't see your way out of your to-do list debt? Read this. Productivity The 39 Best Productivity Apps (by Category) The 39 Best Productivity Apps (by Category) These are the apps we recommend for building a complete productivity stack – for iOS, Android, Mac & Windows Productivity 7 Ways to Set and Track Your Goals in Todoist 7 Ways to Set and Track Your Goals in Todoist Keep your goals top-of-mind all year round Todoist Tips How to Make Virtual Networking Less Cringey (With Real-Life Examples to Help) How to Make Virtual Networking Less Cringey (With Real-Life Examples to Help) Connect with industry peers, potential clients, and future employers without feeling super awkward Remote Work The 9 Best Locations for Digital Nomads The 9 Best Locations for Digital Nomads Trade in your routine for the digital nomad lifestyle in one of these beautiful cities Remote Work 3 Proven Strategies to Help You Overcome Fear of Failure 3 Proven Strategies to Help You Overcome Fear of Failure Is a fear of failure keeping you from getting started? Productivity The Science of Analysis Paralysis The Science of Analysis Paralysis How overthinking kills your productivity and what you can do about it Productivity Here’s Why Everyone Should Have a Work Shutdown Ritual Here’s Why Everyone Should Have a Work Shutdown Ritual How you end your day is just as important as how you start it Remote Work Time Management Why Focus Is Your Greatest Competitive Advantage at Work (Plus 19 Ways To Actually Do It) Why Focus Is Your Greatest Competitive Advantage at Work (Plus 19 Ways To Actually Do It) Learn how to overcome distractions and hone your focus. Productivity How I Learned to Suck Less at GTD How I Learned to Suck Less at GTD Overwhelmed by your GTD task lists? Here are 2 overlooked tips for making the system stick Productivity The Case for Making Gratitude a Year-Round Habit The Case for Making Gratitude a Year-Round Habit A small habit with big benefits. For you and your team. Productivity The 15-Minute Habit Worth Making Time For The 15-Minute Habit Worth Making Time For The benefits of journaling on productivity, and what happens in your brain when you commit words to paper Productivity Present Bias: Why You Don’t Give a Damn About Your Future Self Present Bias: Why You Don’t Give a Damn About Your Future Self And 3 strategies for achieving your long-term goals anyway, according to science Productivity How to Trick Your Partner into Using Todoist How to Trick Your Partner into Using Todoist Nothing strengthens a relationship like a shared to-do list Todoist Tips How Adobe Principal Designer Khoi Vinh Gets Things Done How Adobe Principal Designer Khoi Vinh Gets Things Done Khoi Vinh doesn't believe in coffee Productivity Todoist Tips 26 Little-Known Todoist Features 26 Little-Known Todoist Features Test your Todoist knowledge and pick up a few tricks along the way Todoist Tips What to Do When Your Brain Is Too Tired to Think Straight What to Do When Your Brain Is Too Tired to Think Straight Why you feel mentally exhausted right now and 7 concrete ways to overcome (and work around) it Productivity 7 Cognitive Biases That Make Us Suck at Time Management 7 Cognitive Biases That Make Us Suck at Time Management Our brains are hardwired to sabotage our productivity. Can we do anything about it? Time Management How to Cook More at Home in 2026 How to Cook More at Home in 2026 Practical tips for those of us who don’t exactly like to cook Productivity Building a Fitness Empire One Time Block at a Time Building a Fitness Empire One Time Block at a Time Meg “Squats” Gallagher rarely has a Todoist task that takes longer than 45 minutes Todoist Tips Eat the Frog Eat the Frog If it's your job to eat a frog, it's best to do it first thing in the morning Objectives & Key Results (OKRs) Objectives & Key Results (OKRs) Set rigorous goals that align big-picture priorities with day-to-day actions Achieve peace of mind with Todoist Join millions of people who have finally organized their work and life. Start for free Upgrade to Pro Join millions of people who organize work and life with Todoist. Features How It Works For Teams Pricing Compare Templates Resources Download Apps Teams Toolkit Help Center Customer Stories Productivity Methods Integrations Channel Partners Developer API Status Company About Us Careers Inspiration Hub Press Twist Security Privacy Terms Cookie preferences © Todoist Inc. Čeština Dansk Deutsch English Español Suomi Français Italiano 日本語 한국어 Norsk Nederlands Polski Português (Brazil) Pусский (Russian) Svenska Türkçe 中文 (简体) 中文 (繁體)"
+    },
+    {
+      "url": "https://www.todoist.com/authors/brenna-loury",
+      "readAt": "2026-09-17T10:37:44.211Z",
+      "title": "Brenna Loury – Todoist",
+      "h1": "Brenna Loury",
+      "text": "Brenna Loury – Todoist inspiration Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Start for free Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Brenna Loury Chief Revenue Officer, Todoist Brenna Loury is the Chief Revenue Officer at Todoist. She has led marketing, growth, and revenue strategy. She writes about productivity, remote work, and building distributed teams. All Brenna's articles How Remote Teams Win With Retention How Remote Teams Win With Retention Learn how remote companies achieve high employee retention through a culture of trust, calm, and flexibility –– with advice from the Todoist team. Remote Work A Step-by-Step Guide to Having an Incredibly Efficient Day A Step-by-Step Guide to Having an Incredibly Efficient Day From morning to night, optimize your day for productivity. Todoist Tips Managing Remote Employees: Best Practices from Todoist’s Head of Marketing Managing Remote Employees: Best Practices from Todoist’s Head of Marketing Hint: If you’re asking how to monitor your remote employees, you’re starting with the wrong question. Remote Work How to Build Trust in the Remote “Workplace” How to Build Trust in the Remote “Workplace” The future of work is trust, not tracking Remote Work 10 Productive Things You Can Do in Under 10 Minutes 10 Productive Things You Can Do in Under 10 Minutes Who says there's no such thing as a quick fix? Productivity The Remote Working Parent’s Survival Guide The Remote Working Parent’s Survival Guide Lessons in work-life balance for remote working parents *and* their companies. Remote Work Ask Todoist: How Do You Stick to a Routine When Life Is Constantly Trying to Break It? Ask Todoist: How Do You Stick to a Routine When Life Is Constantly Trying to Break It? A remote working father of two asks how to create a routine when unexpected interruptions are inevitable Productivity Achieve peace of mind with Todoist Join millions of people who have finally organized their work and life. Start for free Upgrade to Pro Join millions of people who organize work and life with Todoist. Features How It Works For Teams Pricing Compare Templates Resources Download Apps Teams Toolkit Help Center Customer Stories Productivity Methods Integrations Channel Partners Developer API Status Company About Us Careers Inspiration Hub Press Twist Security Privacy Terms Cookie preferences © Todoist Inc. Čeština Dansk Deutsch English Español Suomi Français Italiano 日本語 한국어 Norsk Nederlands Polski Português (Brazil) Pусский (Russian) Svenska Türkçe 中文 (简体) 中文 (繁體)"
+    },
+    {
+      "url": "https://www.todoist.com/authors/chase-warrington",
+      "readAt": "2026-09-17T10:37:44.212Z",
+      "title": "Chase Warrington – Todoist",
+      "h1": "Chase Warrington",
+      "text": "Chase Warrington – Todoist inspiration Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Start for free Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Chase Warrington Head of Business Development, Todoist Chase Warrington is the Head of Operations at Todoist. He hosts About Abroad, a podcast about the future of work, and writes and speaks on remote leadership, company culture, and modern workplace topics. His work has been featured in Forbes, Harvard Business Review, and the World Economic Forum. All Chase's articles The 20/30/50 rule for remote team retreats The 20/30/50 rule for remote team retreats The most successful remote retreats optimize for soft work. Here’s how we approach it, including the actual agenda from a recent retreat. Remote Work How to build human connections in an async workplace How to build human connections in an async workplace Team culture is primarily built by how you work together, not how you socialize together. Remote Work The 13 Most Impactful Things Teams Can Do To Stay Productive While Working From Home The 13 Most Impactful Things Teams Can Do To Stay Productive While Working From Home Essential advice for both team leaders and individuals adapting to a new WFH reality Remote Work Building a Company Handbook Building a Company Handbook Teams Remote Work Achieve peace of mind with Todoist Join millions of people who have finally organized their work and life. Start for free Upgrade to Pro Join millions of people who organize work and life with Todoist. Features How It Works For Teams Pricing Compare Templates Resources Download Apps Teams Toolkit Help Center Customer Stories Productivity Methods Integrations Channel Partners Developer API Status Company About Us Careers Inspiration Hub Press Twist Security Privacy Terms Cookie preferences © Todoist Inc. Čeština Dansk Deutsch English Español Suomi Français Italiano 日本語 한국어 Norsk Nederlands Polski Português (Brazil) Pусский (Russian) Svenska Türkçe 中文 (简体) 中文 (繁體)"
+    },
+    {
+      "url": "https://www.todoist.com/authors/elaine-meyer",
+      "readAt": "2026-09-17T10:37:45.148Z",
+      "title": "Elaine Meyer – Todoist",
+      "h1": "Elaine Meyer",
+      "text": "Elaine Meyer – Todoist inspiration Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Start for free Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Elaine Meyer Contributor Elaine is a writer, editor, and content strategist who is interested in tech, health, and the future of work. Website All Elaine's articles How to Move Your Team Toward Async-First Communication How to Move Your Team Toward Async-First Communication Advice for team leaders and team members who want to bring more calm, focused productivity to the workplace Teams Burned Out and Fantasizing About a Big Life Reset? Start Here Burned Out and Fantasizing About a Big Life Reset? Start Here Honest (and realistic) advice from those who’ve been there. Productivity How To Support Your Employees During a Crisis How To Support Your Employees During a Crisis Here’s how leaders can set expectations for their team's productivity, support their well-being, and emerge stronger Teams How to Declutter Your Digital Life & Reclaim Your Attention How to Declutter Your Digital Life & Reclaim Your Attention Systematically reorganize your files, social media, email, and more and create more mental space for what's important to you Productivity How to Ask to Work From Home (With Exact Scripts & Email Templates to Aid Your Negotiation) How to Ask to Work From Home (With Exact Scripts & Email Templates to Aid Your Negotiation) Follow these 9 steps to secure a remote work arrangement even in the most skeptical of organizations Remote Work Paralyzed by Perfectionism? Try Rethinking Your To-Do List Paralyzed by Perfectionism? Try Rethinking Your To-Do List Strategies for dealing with perfection paralysis and achieving your biggest goals — despite your best efforts to get in your own way Productivity Remote Work While Traveling Abroad: Candid Advice From People Who’ve Done It Remote Work While Traveling Abroad: Candid Advice From People Who’ve Done It Tips, resources, and a Todoist checklist for being successful as a “digital nomad” Remote Work The Top 9 Productivity Myths That Just Aren’t True The Top 9 Productivity Myths That Just Aren’t True And 9 more helpful alternatives you should be doing instead Productivity How Entrepreneur and Tech Diversity Advocate Tracy Chou Gets Things Done How Entrepreneur and Tech Diversity Advocate Tracy Chou Gets Things Done The founder of Block Party on how she stays productive, whether she’s working from the West Coast or Europe Todoist Tips The Art of Manliness’s Brett McKay on How He Stays Productive The Art of Manliness’s Brett McKay on How He Stays Productive The founder of the popular life advice website uses Todoist for setting and sticking to routines in his work and family life Productivity How Presidential Campaign Strategist Alex Witt Manages Her Day How Presidential Campaign Strategist Alex Witt Manages Her Day Productivity profile of a former chief of staff for candidate Cory Booker Productivity Todoist Tips How Tech Founder Jim Morrison Gets Things Done How Tech Founder Jim Morrison Gets Things Done The Founder of OneSub, a platform that targets news bias, has used Todoist for 6+ years Productivity How a General Contractor Uses Todoist + GTD to Run His Small Business How a General Contractor Uses Todoist + GTD to Run His Small Business Task management isn't only for people who spend their workday on a computer Todoist Tips Girls’ Night In Founder & CEO Uses Her To-do List for…Self-Care? Girls’ Night In Founder & CEO Uses Her To-do List for…Self-Care? How Alisha Ramos uses Todoist to stay as committed to downtime as she is to growing her popular online brand Todoist Tips How to (Actually) Read More Books in 2026 How to (Actually) Read More Books in 2026 Lessons learned tripling the number of books I read last year Productivity How Context Switching Sabotages Your Productivity How Context Switching Sabotages Your Productivity Every time you switch between apps and tasks, you leave a little bit of your attention behind. Here's what you can do about it... Productivity Time Management How to Make Tax Season Less Terrible How to Make Tax Season Less Terrible Keep track of income, deductions, and deadlines with Todoist—and avoid being unpleasantly surprised at tax time Remote Work Todoist Tips Let Todoist take the mental load Join millions of people who enjoy peace of mind, and getting things done. Start for free Upgrade to Pro Join millions of people who organize work and life with Todoist. Features How It Works For Teams Pricing Compare Templates Resources Download Apps Teams Toolkit Help Center Customer Stories Productivity Methods Integrations Channel Partners Developer API Status Company About Us Careers Inspiration Hub Press Twist Security Privacy Terms Cookie preferences © Todoist Inc. Čeština Dansk Deutsch English Español Suomi Français Italiano 日本語 한국어 Norsk Nederlands Polski Português (Brazil) Pусский (Russian) Svenska Türkçe 中文 (简体) 中文 (繁體)"
+    },
+    {
+      "url": "https://www.todoist.com/authors/fadeke-adegbuyi",
+      "readAt": "2026-09-17T10:37:45.761Z",
+      "title": "Fadeke Adegbuyi – Todoist",
+      "h1": "Fadeke Adegbuyi",
+      "text": "Fadeke Adegbuyi – Todoist inspiration Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Start for free Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Fadeke Adegbuyi Former Todoist team member Fadeke is a writer and marketer. She's passionate about telling stories of better ways to live and work. All Fadeke's articles Makers vs Managers: The Battle Over Remote Work Makers vs Managers: The Battle Over Remote Work Managers want to go back to the office. Employees aren’t so sure. Remote Work How to Onboard Remote Team Members How to Onboard Remote Team Members Set up new employees for success with remote onboarding Remote Work Stop Fearing Critical Feedback — Fear Not Getting It Instead Stop Fearing Critical Feedback — Fear Not Getting It Instead “To avoid criticism, say nothing, do nothing, be nothing.” Teams Ask Todoist: How Do I Stay Motivated on a Project That Never Seems to End? Ask Todoist: How Do I Stay Motivated on a Project That Never Seems to End? A reader asks how to overcome project fatigue when \"break it down into smaller tasks\" just isn't cutting it Productivity How Can I Stay Connected with Remote Teammates? How Can I Stay Connected with Remote Teammates? A reader with a new remote job asks how to build relationships with coworkers authentically Productivity The Remote Worker’s Guide to Becoming a Better Writer The Remote Worker’s Guide to Becoming a Better Writer On a remote team, everyone is a writer. Here's how to do it well... Remote Work [Workflow Guide] Accomplish Your Big Goals With Don’t Break the Chain [Workflow Guide] Accomplish Your Big Goals With Don’t Break the Chain Build a productivity streak one day at a time (with monthly and annual calendar templates to help) Productivity How to Organize Your Life How to Organize Your Life 10 principles for organizing your work, home, health, fitness, hobbies, finances, and more... Productivity How to Organize Your Family’s Tasks and Projects With Todoist How to Organize Your Family’s Tasks and Projects With Todoist Families who to-do list together, stay together Todoist Tips A Masterclass in Getting Stuff Done, Straight from the Experts A Masterclass in Getting Stuff Done, Straight from the Experts Productivity essentials from Adam Grant, Laura Vanderkam, Chris Bailey, and Jill E Duffy! Productivity Time Management Todoist Integrations That Will Boost Your Productivity Todoist Integrations That Will Boost Your Productivity Start automating your life and getting more done with these apps. Todoist Tips Digital Minimalism and the Radical Power of Unplugging Digital Minimalism and the Radical Power of Unplugging What Cal Newport can (and can't) teach us about digitally decluttering our lives Productivity The Complete Guide to Deep Work The Complete Guide to Deep Work How to master the #1 job skill that will never be obsolete Productivity How The New York Times’ Smarter Living Editor Gets Things Done How The New York Times’ Smarter Living Editor Gets Things Done A Productivity Profile with Alan Henry Productivity Todoist Tips The Complete Guide to Mastery The Complete Guide to Mastery Begin the lifelong journey to become the best at your craft Productivity The Complete Guide to Planning Your Day The Complete Guide to Planning Your Day The 10-minute productivity practice for achieving more in work and life Productivity The Freelancer’s Guide to Todoist The Freelancer’s Guide to Todoist Tips for building a productivity system to run your business, keep clients happy, and do your best work Todoist Tips How to Prioritize When There’s Always More To Do How to Prioritize When There’s Always More To Do Advice for managing life's chaos and focusing on what's important Productivity Time Management The Manager’s Guide to Todoist The Manager’s Guide to Todoist Advice for staying productive and doing your best work while leading a team Teams Todoist Tips How to Organize Your Home in 2026 How to Organize Your Home in 2026 Take back your space with check-lists for every room in your place Productivity How to Complete Your Own Annual Review How to Complete Your Own Annual Review Reflect on work, health, finances, and more with a personal year in review Productivity Forget About SMART Goals: 5 Unconventional Goal Setting Methods to Try Instead Forget About SMART Goals: 5 Unconventional Goal Setting Methods to Try Instead Traditional goal setting didn’t work for you last year? Try on something new... Productivity A Realistic Guide to Time Management A Realistic Guide to Time Management Managing your time well isn't just about getting more done Productivity Use the Two-Minute Rule To Stop Procrastinating Use the Two-Minute Rule To Stop Procrastinating A simple technique to ensure your small tasks don’t become big headaches Productivity Time Management How to Learn Anything with the Feynman Technique How to Learn Anything with the Feynman Technique Why teaching is the key to understanding Productivity An Educator’s Guide to Todoist An Educator’s Guide to Todoist Organize your classes, complete your course prep, and win over your students this semester. Plus, advice from teachers who use Todoist. Todoist Tips A Student’s Guide to Todoist A Student’s Guide to Todoist Your comprehensive guide to avoiding all-nighters and staying (relatively) sane this semester Todoist Tips The Weekly Review The Weekly Review 10x your productivity with just one hour a week Kanban Kanban Move your project through a visual pipeline from start to finish Bring order to your work and life Join millions of people who are finally feeling the relief of getting organized. Start for free Upgrade to Pro Join millions of people who organize work and life with Todoist. Features How It Works For Teams Pricing Compare Templates Resources Download Apps Teams Toolkit Help Center Customer Stories Productivity Methods Integrations Channel Partners Developer API Status Company About Us Careers Inspiration Hub Press Twist Security Privacy Terms Cookie preferences © Todoist Inc. Čeština Dansk Deutsch English Español Suomi Français Italiano 日本語 한국어 Norsk Nederlands Polski Português (Brazil) Pусский (Russian) Svenska Türkçe 中文 (简体) 中文 (繁體)"
+    },
+    {
+      "url": "https://www.todoist.com/authors/laura-scroggs",
+      "readAt": "2026-09-17T10:37:45.148Z",
+      "title": "Laura Scroggs – Todoist",
+      "h1": "Laura Scroggs",
+      "text": "Laura Scroggs – Todoist inspiration Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Start for free Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Laura Scroggs Contributor Laura is a freelance writer, PhD candidate, and pug mom living in Minneapolis, MN. All Laura's articles The Pomodoro Technique The Pomodoro Technique Beat procrastination and improve your focus one pomodoro at a time Time Blocking Time Blocking ...and its cousins task batching and day theming. Control your schedule so it doesn't control you The Eisenhower Matrix The Eisenhower Matrix Avoid the \"Urgency Trap\" with Dwight D. Eisenhower's famous prioritization framework Getting Things Done (GTD) Getting Things Done (GTD) Systematize the clutter in your brain and get things done Bring order to your work and life Join millions of people who are finally feeling the relief of getting organized. Start for free Upgrade to Pro Join millions of people who organize work and life with Todoist. Features How It Works For Teams Pricing Compare Templates Resources Download Apps Teams Toolkit Help Center Customer Stories Productivity Methods Integrations Channel Partners Developer API Status Company About Us Careers Inspiration Hub Press Twist Security Privacy Terms Cookie preferences © Todoist Inc. Čeština Dansk Deutsch English Español Suomi Français Italiano 日本語 한국어 Norsk Nederlands Polski Português (Brazil) Pусский (Russian) Svenska Türkçe 中文 (简体) 中文 (繁體)"
+    },
+    {
+      "url": "https://www.todoist.com/authors/rochi-zalani",
+      "readAt": "2026-09-17T10:37:45.148Z",
+      "title": "Rochi Zalani – Todoist",
+      "h1": "Rochi Zalani",
+      "text": "Rochi Zalani – Todoist inspiration Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Start for free Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Rochi Zalani Contributor Rochi is a writer covering productivity, SaaS, and the freelance lifestyle. Website All Rochi's articles Death of the Dashboard: Why Project Visibility Should Be Automatic Death of the Dashboard: Why Project Visibility Should Be Automatic Dashboards cost your team time, focus, and trust. Learn why visibility should be automatic and how Todoist's Project Insights make it happen. Teams Productivity Todoist Tips Why SMBs Don’t Need Enterprise Project Management Software Why SMBs Don’t Need Enterprise Project Management Software More features don’t mean more progress. Learn how complex project management software creates hidden costs for SMBs and why simple tools drive better results. Teams Todoist Tips \"How to Work With Me\" Manuals: What They Are & Why Every Team Needs One \"How to Work With Me\" Manuals: What They Are & Why Every Team Needs One What is a \"how to work with me\" document and how do you make one? Here’s the structure, prompts, and pro tips to help teams work better together. Teams Resolution Hangover: How to Get Back on Track With Your New Year Resolutions After January Resolution Hangover: How to Get Back on Track With Your New Year Resolutions After January New Year’s resolutions get forgotten by the time February arrives. Make this year different. Here’s how. Productivity Team Rituals: The Small Habits That Build Big Culture Team Rituals: The Small Habits That Build Big Culture Learn the science behind team rituals and create meaningful ones that make employees feel engaged, valued, and connected. Remote Work Teams The Secret to Productive Meetings: How to Run Fewer & More Effective Meetings The Secret to Productive Meetings: How to Run Fewer & More Effective Meetings Drowning in meetings? Learn how to host more productive meetings where every minute counts. Productivity Teams Taking Breaks the Right Way: How to Rest Without Derailing Your Day Taking Breaks the Right Way: How to Rest Without Derailing Your Day Breaks can boost focus, reduce fatigue, and prevent burnout if you take them right. Learn how to take breaks during the workday that help (not hurt) your productivity. Productivity Time Management The Ultimate Guide to Increase Business Productivity (In a Humane Way) The Ultimate Guide to Increase Business Productivity (In a Humane Way) The conversation around business productivity often leaves out the humane part of productivity. Learn how to increase productivity in the workplace and ensure your employees are fulfilled. Productivity The PARA Method The PARA Method From Chaos to Control: How to Effectively Manage Your Time at Work From Chaos to Control: How to Effectively Manage Your Time at Work Time Management The Art and Science of Delegation: How to Delegate (With Advice from 11 Leaders) The Art and Science of Delegation: How to Delegate (With Advice from 11 Leaders) Teams Remote Work SMART Goals SMART Goals How to create goals you'll actually complete Achieve peace of mind with Todoist Join millions of people who have finally organized their work and life. Start for free Upgrade to Pro Join millions of people who organize work and life with Todoist. Features How It Works For Teams Pricing Compare Templates Resources Download Apps Teams Toolkit Help Center Customer Stories Productivity Methods Integrations Channel Partners Developer API Status Company About Us Careers Inspiration Hub Press Twist Security Privacy Terms Cookie preferences © Todoist Inc. Čeština Dansk Deutsch English Español Suomi Français Italiano 日本語 한국어 Norsk Nederlands Polski Português (Brazil) Pусский (Russian) Svenska Türkçe 中文 (简体) 中文 (繁體)"
+    },
+    {
+      "url": "https://www.todoist.com/authors/taylor-martin",
+      "readAt": "2026-09-17T10:37:45.148Z",
+      "title": "Taylor Martin – Todoist",
+      "h1": "Taylor Martin",
+      "text": "Taylor Martin – Todoist inspiration Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Start for free Subscribe Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Taylor Martin Contributor Taylor Martin is a content creator who covers technology, DIY projects, and life hacks. All Taylor's articles How to Not Quit Your Task Manager—and Make the Most of It How to Not Quit Your Task Manager—and Make the Most of It Learn several strategies for sticking to a task manager for the long haul. Productivity 15 Incredibly Simple Desk Exercises You Can Do at Work 15 Incredibly Simple Desk Exercises You Can Do at Work How to keep healthy even when your job has you sitting 8+ hours a day Productivity 10 Things You Can Do to Literally Change Your Brain 10 Things You Can Do to Literally Change Your Brain Think the brain you're born with is the brain you're stuck with? Think again... Productivity How Coffee Actually Affects Your Productivity How Coffee Actually Affects Your Productivity Don't worry – no one's taking your coffee away ☕️😅 Productivity Why Sleeping Is the Most Productive Thing You’ll Do All Day and How to Do It Better Why Sleeping Is the Most Productive Thing You’ll Do All Day and How to Do It Better Go from tossing and turning to restful sleep. Productivity Use “Temptation Bundling” to Achieve Your Goals Use “Temptation Bundling” to Achieve Your Goals Use the power of instant gratification to get through your least favorite tasks. Productivity How to Vanquish Busywork and Spend More Time on What Matters How to Vanquish Busywork and Spend More Time on What Matters These tips for improving your focus and productivity will help you avoid getting sucked into busywork. Productivity 10 Insights That Will Change the Way You Set (and Achieve) Your New Year’s Resolutions 10 Insights That Will Change the Way You Set (and Achieve) Your New Year’s Resolutions The definition of insanity is doing the same thing year after year and expecting different results. Productivity 11 Fast Ways to Get Tasks Off Your Mind and Into Your Todoist 11 Fast Ways to Get Tasks Off Your Mind and Into Your Todoist A clear mind does a better job at thinking. Todoist Tips Achieve peace of mind with Todoist Join millions of people who have finally organized their work and life. Start for free Upgrade to Pro Join millions of people who organize work and life with Todoist. Features How It Works For Teams Pricing Compare Templates Resources Download Apps Teams Toolkit Help Center Customer Stories Productivity Methods Integrations Channel Partners Developer API Status Company About Us Careers Inspiration Hub Press Twist Security Privacy Terms Cookie preferences © Todoist Inc. Čeština Dansk Deutsch English Español Suomi Français Italiano 日本語 한국어 Norsk Nederlands Polski Português (Brazil) Pусский (Russian) Svenska Türkçe 中文 (简体) 中文 (繁體)"
+    },
+    {
+      "url": "https://www.todoist.com/automations",
+      "readAt": "2026-09-17T10:37:45.888Z",
+      "title": "Todoist Automations | Automate your work in plain language",
+      "h1": "If you can type it, you can automate it",
+      "text": "Todoist Automations | Automate your work in plain language Beta Log in Join the waitlist Log in Join the waitlist By Todoist If you can type it, you can automate it You: Write a few sentences. We: Do everything else and then ping you when it's all ready. Join the waitlist Todoist Automations is still in beta. Expect a few quirks. Overdue → Today Reschedule overdue Todoist tasks to today. Automation preview Overdue Tasks Rescheduled to Today All overdue Todoist tasks will be moved to today's due date at midnight. Everything is set up and ready to go! Here's a summary: What it does: Every night at midnight, it finds all your overdue Todoist tasks and reschedules them to today — so you always wake up to a clean, up-to-date task list. Create automation How can I help with your automations? ⋮ Reschedule Overdue Todoist Tasks to Today At midnight, reschedule all overdue tasks to today so you start each day with a clean slate. HOW IT WORKS Need to change what this automation does or how it responds? Change in chat RUN CONDITIONS Runs every day at 00:00 Run now CONNECTIONS Details See Todoist Automations in action Play Finally, automations you can set up yourself No flowcharts or consultants needed. Try setups like these just by typing “ok.” Turn starred emails into tasks Gmail stars become Todoist tasks with context. “When I star a Gmail message, add it to Todoist for tomorrow” Track receipts Every receipt auto-logged in a Google Sheet. “When a receipt arrives in my inbox, log sender, date, and amount in my Sheet.” Sync deadlines Notion dates → Calendar + Slack nudge. “When a Notion page gets a due date, drop it on my Calendar and ping #team in Slack.” Auto-prioritize Weekly re-rank of your Todoist inbox. “Every Sunday, re-rank my Todoist inbox based on what’s due soonest.” Auto-unsubscribe Kill marketing noise from unopened senders. “Unsubscribe from marketing emails I haven’t opened in 30 days.” Turn sheets into posters Sheet rows become Canva posters, no clicks. “When I add an event to the spreadsheet, generate an event poster in Canva and drop the link back in the row.” Turn starred emails into tasks Gmail stars become Todoist tasks with context. “When I star a Gmail message, add it to Todoist for tomorrow” Track receipts Every receipt auto-logged in a Google Sheet. “When a receipt arrives in my inbox, log sender, date, and amount in my Sheet.” Sync deadlines Notion dates → Calendar + Slack nudge. “When a Notion page gets a due date, drop it on my Calendar and ping #team in Slack.” Auto-prioritize Weekly re-rank of your Todoist inbox. “Every Sunday, re-rank my Todoist inbox based on what’s due soonest.” Auto-unsubscribe Kill marketing noise from unopened senders. “Unsubscribe from marketing emails I haven’t opened in 30 days.” Turn sheets into posters Sheet rows become Canva posters, no clicks. “When I add an event to the spreadsheet, generate an event poster in Canva and drop the link back in the row.” A workflow doing exactly what you told it to, not AI guessing on your behalf Describe what you need to automate and it'll get up and running on its own. Just describe it. Write your automation in plain English, the way you'd tell a teammate. We turn your sentence into a working workflow, then step aside so it can run. Connect tools once. A single secure handshake per tool keeps your data private and your logins tucked away. Each automation runs as a predictable, pre-defined workflow you can count on, every time. And you're done. Automations hum along in the background, and we ping you the moment each one finishes. Calendar → Summary Every morning, check my calendar and send me a summary of my meetings for the day via email. I can set that up! Which calendar should I check, and what email address should I send the summary to? My work calendar and work email. I can set that up! Here&rsquo;s what this automation will do: Every day at 8:00 AM READY This automation runs each morning on your schedule. Check Google Calendar READY Pulls all events from your Work calendar for today. Write a summary READY Formats your meetings into a daily briefing. Send to Gmail READY Your Gmail connection is active and working. Want me to publish this? Looks great, publish it! Automation created! Everyday at 8:00 your automation will: Pull all events from your calendar for today Write a summary and send it to your Gmail Ask for any edits here A workflow doing exactly what you told it to, not AI guessing on your behalf Describe what you need to automate and it'll get up and running on its own. Just describe it. Write your automation in plain English, the way you'd tell a teammate. We turn your sentence into a working workflow, then step aside so it can run. Calendar → Summary Every morning, check my calendar and send me a summary of my meetings for the day via email. I can set that up! Which calendar should I check, and what email address should I send the summary to? Ask for any edits here Connect tools once. A single secure handshake per tool keeps your data private and your logins tucked away. Each automation runs as a predictable, pre-defined workflow you can count on, every time. Calendar → Summary My work calendar and work email. I can set that up! Here&rsquo;s what this automation will do: Every day at 8:00 AM READY This automation runs each morning on your schedule. Check Google Calendar READY Pulls all events from your Work calendar for today. Write a summary READY Formats your meetings into a daily briefing. Send to Gmail READY Your Gmail connection is active and working. Want me to publish this? Ask for any edits here And you're done. Automations hum along in the background, and we ping you the moment each one finishes. Calendar → Summary Looks great, publish it! Automation created! Everyday at 8:00 your automation will: Pull all events from your calendar for today Write a summary and send it to your Gmail Ask for any edits here You told us Zapier was too complicated, so we built something way simpler . Meloq Arai ★★★★★ “Todoist Automations let me expand my workflow creatively and intuitively, adapting to any challenge. They reduce the mental fatigue of micro-management [and] handle the tedious work for me, making the whole process feel almost like magic! ” David Hively ★★★★★ “ Smooth sailing , no problems. Actually, kind of amazing. A delight, really, compared to trying to set up something similar in IFTTT.” julesvbrtln “This tool could totally change the way we use Todoist because of the infinite possibilities. ” goomis_90 “It’s a fantastic tool. I briefly describe what I need, and the AI handles all the necessary connections, functions, etc., and spits out a ready-to-use automation.” Alpha user ★★★★★ “I think that everyone with good ideas can manage it . It’s just about indicating your idea with text. Todoist Automations does the rest.” Meloq Arai ★★★★★ “Todoist Automations let me expand my workflow creatively and intuitively, adapting to any challenge. They reduce the mental fatigue of micro-management [and] handle the tedious work for me, making the whole process feel almost like magic! ” David Hively ★★★★★ “ Smooth sailing , no problems. Actually, kind of amazing. A delight, really, compared to trying to set up something similar in IFTTT.” julesvbrtln “This tool could totally change the way we use Todoist because of the infinite possibilities. ” goomis_90 “It’s a fantastic tool. I briefly describe what I need, and the AI handles all the necessary connections, functions, etc., and spits out a ready-to-use automation.” Alpha user ★★★★★ “I think that everyone with good ideas can manage it . It’s just about indicating your idea with text. Todoist Automations does the rest.” Your first automation is just a few words away Coming soon to Todoist paid plans. Made by the team at Todoist, the world&rsquo;s #1 to-do list app No investors or shareholders to pander to. Just a team of 100+ people in 30+ countries dedicated to running a sustainable business for decades to come. Learn more about Doist Hey, it&rsquo;s us! Beta Stop doing manually what should be automatic Company About Us Careers Press Todoist Security Privacy Terms Cookie preferences © Todoist Inc. Čeština Dansk Deutsch English Español Suomi Français Italiano 日本語 한국어 Norsk Nederlands Polski Português (Brazil) Pусский (Russian) Svenska Türkçe 中文 (简体) 中文 (繁體)"
+    },
+    {
+      "url": "https://www.todoist.com/bug-bounty",
+      "readAt": "2026-09-17T10:37:46.027Z",
+      "title": "Bug Bounty Policy | Todoist",
+      "h1": "Todoist Bug Bounty Policy",
+      "text": "Bug Bounty Policy | Todoist Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Start for free Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Jump to section Program rules Eligibility Rewards Issue severity Submit a report Get in touch Todoist Bug Bounty Policy The Todoist bug bounty program is a critical component of our security efforts. We work hand-in-hand with folks who take the time to report issues that could put our customers' security and privacy at risk. If you've found vulnerabilities or security issues that we should know about, we'd love to work with you. You may even be eligible for a reward based on its severity. Read our bug bounty program guidelines thoroughly to know which type of security issues we'll be able to reward. Then, send a report using our contact form . Only reports submitted through our contact form will be considered for a bounty reward. Program rules Bug hunting can be a time-consuming process. To save time and effort when submitting your report, follow the bug bounty program rules: Follow HackerOne's disclosure guidelines . Delete any test data or accounts you have created as part of the research. Don't attack or interact with customers. Don't engage with stolen customer data, including credentials. Don't use automated scans or testing, like DoS attacks. Don't use social engineering attacks, like phishing. Don't engage in physical testing of Todoist employees or their equipment. All information should be filled out in the report form. Please do not submit details in a separate document. Any participant that doesn't comply with the program rules are disqualified immediately. Eligibility You may be eligible to receive a reward if: You've complied with all the program rules . You're the first person to submit a specific product vulnerability. The vulnerability is considered to be a valid security issue. You can provide additional information to reproduce and address the issue. These are the eligible targets for vulnerabilities and security risks: www.todoist.com app.todoist.com www.twist.com Latest versions of Todoist and Twist for macOS, Windows, Linux, iOS and Android For testing purposes, use todoistbounty@protonmail.com as the victim account. The Todoist Bug Bounty team retains the right to decide if the submitted vulnerability is eligible. Rewards All bounty amounts are determined by the Todoist Bug Bounty team. They evaluate each report and assign a severity level that determines the amount of the Todoist Pro time to be received. The Pro time can only be received on your personal Todoist account. As of February 16, 2026, these are the rewards we offer: App Low Medium High Critical Todoist 3 months 1 year 3 years 10 years Twist - - 3 years 10 years Note: Reports assessed as having no severity are not eligible for a reward. Note: For Twist, only high-severity and critical-severity issues are accepted for the bug bounty program. Issue severity The severity levels are decided internally based on the type of vulnerability and potential impact. Here are sample reports for each severity level: Severity level: None — no reward Issues not related to security, such as non-200 HTTP response codes, EXIF metadata exposure, application or server errors, etc. Issues related to bypassing plan limits or rate limits through parallel requests, or missing rate limits, unless it could lead to an exploitable vulnerability. Issues involving AI prompt disclosure, such as obtaining or exposing the system prompts used in our AI features (e.g., Ramble). Issues without a clear security impact, such as logged-out CSRF, missing HTTP security headers, SSL issues, password policy issues, session management issues or clickjacking on pages with no sensitive actions. Issues affecting outdated applications or components, no longer in use or maintained. Issues affecting third-parties, such as third-party apps or services we use (e.g., Firebase, ZenDesk). Issues involving Spam or Social Engineering techniques, such as SPF and DKIM, and lack of DNSSEC. Issues involving server information disclosure, namely X-Powered-by and Server response headers. Exceptions may exist whenever disclosed information contains a server version with an associated CVE disclosure. Issues involving server-side request forgery (SSRF) on services that perform active requests by design, unless it is proven that sensitive information can be leaked. Issues related to users uploading files containing malicious code (e.g., viruses or malware). Reports about vulnerabilities in the file upload mechanism itself are still in scope. Bugs requiring exceedingly unlikely user interaction. (eg. account takeover through SSO login). Reports that require privileged access to the target's devices or that are otherwise outside our control. These include but are not limited to: access to browser cookies and/or other tokens used to impersonate the user, access to user's email address, etc. Clickjacking issues that occur on pre-authenticated pages, or the lack of X-Frame-Options , or any other non-exploitable clickjacking issues. Cross-OriginResourceSharing (CORS) issues, where server does NOT respond with Access-Control-Allow-Credentials: true header. HTML injection in areas requiring unlikely interaction. Exposure of sensitive data on digital archives websites. User email enumeration on sign up, log in, and forgot password pages. Files available in URIs with a path starting with /.well-known (also known as well-known URIs ). 2FA bypass through password reset. Specific to client apps: User data stored unencrypted Lack of obfuscation Runtime hacking exploits that involve manipulation of running code or its environment CSV injection using Todoist template export feature which could be executed by the application opening the CSV file. Severity level: Low Open redirections Server misconfiguration or provisioning errors Information leaks or disclosure excluding sensitive user data Cross-OriginResourceSharing (CORS) issues, where server responds with Access-Control-Allow-Credentials: true header to a request with 3rd party Origin header (i.e. not *.todoist.com , *.twist.com ) Reflected XSS Mixed content issues, if the target URL doesn't respond with a 'Strict-Transport-Security' (aka HSTS ) header. The risk still exists but is limited to a single interaction per domain/subdomain (depending on HSTS value). Web browsers have been transitioning to an HTTPS default, further mitigating this problem. Other low-severity issues Severity level: Medium CSRF / XSRF SSRF to an internal service Stored XSS Other medium-severity issues Severity level: High Information leaks or disclosure including sensitive user data Other high-severity issues Severity level: Critical SQL injection Remote code execution Privilege escalation Broken authentication SSRF to an internal service, resulting in critical security risk Other critical-severity issues Submit a report Ready to submit your bug bounty report? These are the steps: Open the Todoist Bug Bounty contact form . Provide a detailed report that includes: Clear reproducible steps Impact on our products or customers Any test accounts you may have used Test data you gathered from your tests A video proof of concept demonstrating the vulnerability Report independent vulnerabilities in separate reports. Give the report a clear title that describes the vulnerability. Click Send to submit your report. Any report without clear reproduction steps or that includes only proof of concept video may be ineligible for a reward. Get in touch If you have any issues with the Bug Bounty contact form or have general questions about the bug bounty program that are not addressed here, get in touch with us . Table of Contents Program rules Eligibility Rewards Issue severity Submit a report Get in touch Join millions of people who organize work and life with Todoist. Features How It Works For Teams Pricing Compare Templates Resources Download Apps Teams Toolkit Help Center Customer Stories Productivity Methods Integrations Channel Partners Developer API Status Company About Us Careers Inspiration Hub Press Twist Security Privacy Terms Cookie preferences © Todoist Inc. Čeština Dansk Deutsch English Español Suomi Français Italiano 日本語 한국어 Norsk Nederlands Polski Português (Brazil) Pусский (Russian) Svenska Türkçe 中文 (简体) 中文 (繁體)"
+    },
+    {
+      "url": "https://www.todoist.com/pricing",
+      "readAt": "2026-09-17T10:37:40.772Z",
+      "title": "Pricing | Todoist",
+      "h1": "Plans and pricing",
+      "text": "Pricing | Todoist Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Start for free Made For Task Management Project Management Time Management Habit Forming Teamwork Resources Integrations Templates Getting Started Teams Toolkit Help Center Customer Stories Productivity Methods + Quiz Inspiration Hub Downloads Pricing Log in Start for free Plans and pricing 337K+ ★★★★★ reviews Prices in USD Plans Individuals Beginner Start organizing your life for free Get Started Manage subscription An account with: 5 personal projects Smart Quick Add Task reminders Flexible list & board layouts 3 filter views 1 week activity history Integrate email, calendar, and more Ramble Individuals Pro Organize your work and life per user/month Start for free Manage subscription Everything in Beginner, plus: 300 personal projects Calendar layout Task duration Custom task reminders 150 filter views Full reporting history Task Assist Deadlines Unlimited Ramble Teams Business Manage your teamwork, too Create a team for free, then plus local tax Start for free Manage subscription Everything in Pro for every member, plus: A shared team workspace Up to 500 team projects Calendar layout for team projects Granular team activity logs Shared templates 1000 team members & guests Team project folders Team roles & permissions Centralized team billing Enterprise-grade security with SOC2 Type II certification. Todoist meets the compliance standards your company requires, without the complexity. Show billing options Billing cycle Billed Yearly Billed Monthly Prices in USD Compare plans Read the plans FAQ Beginner Get Started Manage subscription Pro per user/month Start for free Manage subscription Business plus local tax Start for free Manage subscription Essentials Beginner Pro Business Personal projects 5 300 300 for each member * Due dates & times Priority levels Sub-tasks Task reminders File uploads 5 MB 100 MB 100 MB Task views Beginner Pro Business List layout Board layout In label, filter, and personal project views In team projects, too Calendar layout Custom filters 3 150 150 for each member Collaboration Beginner Pro Business People per personal project 5 5 5 Comments Assigned tasks A team workspace Team activity Team projects Up to 500 * People per team project 250 Project templates Shared templates, too Custom team filters 150 Team members 1,000 Team guests 1,000 Team project folders Team roles & permissions Centralized team billing Todoist Assist Beginner Pro Business Filter Assist Task Assist Email Assist Ramble Limited sessions Unlimited sessions Unlimited sessions Advanced Beginner Pro Business Recurring due dates Labels Task descriptions Productivity visualizations 90+ integrations Custom Reminders Task duration Auto backups Reporting history 1 week Full Full Themes 4 8 8 SOC2 Certification Now SOC2 Type II compliant App of the day Best To-Do List App Best Wear OS Join 30 million+ people who rely on Todoist to manage work and life Let Todoist do more of life’s heavy lifting Plus tens of thousands of teams from companies of all sizes. Get access to advanced features (and more efficient workdays) by upgrading your team or personal workspace. Start for free Upgrade to Pro Read the plans FAQ Join millions of people who organize work and life with Todoist. Features How It Works For Teams Pricing Compare Templates Resources Download Apps Teams Toolkit Help Center Customer Stories Productivity Methods Integrations Channel Partners Developer API Status Company About Us Careers Inspiration Hub Press Twist Security Privacy Terms Cookie preferences © Todoist Inc. Čeština Dansk Deutsch English Español Suomi Français Italiano 日本語 한국어 Norsk Nederlands Polski Português (Brazil) Pусский (Russian) Svenska Türkçe 中文 (简体) 中文 (繁體)"
+    }
+  ]
+}

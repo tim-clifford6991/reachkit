@@ -1,0 +1,477 @@
+{
+  "domain": "crisp.chat",
+  "scan": {
+    "id": "b1565f9c-65de-4c93-b960-3b626a9a5a08",
+    "tier": "free",
+    "status": "done",
+    "finishedAt": "2026-09-12T09:07:48.077Z"
+  },
+  "report": {
+    "tier": "free",
+    "serps": [
+      {
+        "at": "2026-09-12T09:07:42.577Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.freshworks.com/customer-service/support/ai/",
+              "title": "10 best AI tools for customer support in 2026",
+              "domain": "www.freshworks.com",
+              "position": 1
+            },
+            {
+              "url": "https://forethought.ai/",
+              "title": "The Customer Service AI Platform for Modern Support Teams",
+              "domain": "forethought.ai",
+              "position": 2
+            },
+            {
+              "url": "https://www.gumloop.com/blog/ai-agents-for-customer-support",
+              "title": "8 best AI agents for customer support tasks in 2026",
+              "domain": "www.gumloop.com",
+              "position": 3
+            },
+            {
+              "url": "https://www.ada.cx/",
+              "title": "AI Customer Service Agents for Enterprise CX | Ada",
+              "domain": "www.ada.cx",
+              "position": 4
+            },
+            {
+              "url": "https://www.zendesk.com/blog/ai/ai-customer-service/",
+              "title": "AI in customer service: Benefits, uses + best practices",
+              "domain": "www.zendesk.com",
+              "position": 5
+            },
+            {
+              "url": "https://botpress.com/blog/ai-agent-customer-support",
+              "title": "The 10 Best AI Agents for Customer Support in 2026",
+              "domain": "botpress.com",
+              "position": 6
+            },
+            {
+              "url": "https://helply.com/blog/best-ai-agent-for-customer-support",
+              "title": "AI Agents For Customer Service: 12 Tools And Pricing",
+              "domain": "helply.com",
+              "position": 7
+            },
+            {
+              "url": "https://yuma.ai/blogs/ai-customer-service-software",
+              "title": "AI Customer Service Software: Top 11 Tools for 2026",
+              "domain": "yuma.ai",
+              "position": 8
+            },
+            {
+              "url": "https://thecxlead.com/tools/best-ai-chatbot-for-customer-service/",
+              "title": "10 Best AI Chatbots for Customer Service in 2026",
+              "domain": "thecxlead.com",
+              "position": 9
+            }
+          ],
+          "aiOverview": {
+            "present": false,
+            "referenceDomains": [],
+            "asynchronousAiOverview": false
+          }
+        }
+      }
+    ],
+    "domain": "crisp.chat",
+    "market": {
+      "at": "2026-09-12T09:07:36.571Z",
+      "kind": "measured",
+      "value": {
+        "profile": {
+          "job": "Automate and manage customer support conversations across multiple channels",
+          "category": "AI customer support platform",
+          "vocabulary": [
+            "AI agent",
+            "chat widget",
+            "shared inbox",
+            "omnichannel",
+            "workflow automation",
+            "knowledge base",
+            "customer support",
+            "AI chatbot",
+            "customer CRM",
+            "automated conversations"
+          ],
+          "brandTokens": [
+            "Crisp",
+            "Hugo"
+          ],
+          "namedRivals": [],
+          "offeringType": "SaaS subscription with tiered pricing",
+          "audienceTerms": [
+            "solopreneurs and small businesses",
+            "medium-sized companies",
+            "ecommerce businesses",
+            "support teams"
+          ]
+        },
+        "suggestions": [
+          {
+            "volume": 390,
+            "keyword": "ai powered customer support platform"
+          },
+          {
+            "volume": 50,
+            "keyword": "ai customer support platform"
+          },
+          {
+            "volume": 10,
+            "keyword": "best ai customer support platform in 2025"
+          },
+          {
+            "volume": 10,
+            "keyword": "zomato ai customer support platform nugget"
+          },
+          {
+            "volume": 0,
+            "keyword": "zomato launches ai powered customer support platform nugget"
+          }
+        ],
+        "totalVolume": 460
+      }
+    },
+    "onPage": {
+      "at": "2026-09-12T09:07:36.571Z",
+      "kind": "measured",
+      "value": {
+        "url": "https://crisp.chat/en/",
+        "dates": 0,
+        "noindex": false,
+        "headings": 19,
+        "numerals": 18,
+        "schemaTypes": [
+          "webapplication",
+          "creativework",
+          "aggregaterating",
+          "aggregateoffer",
+          "offer",
+          "offer",
+          "offer",
+          "offer",
+          "organization",
+          "website"
+        ],
+        "visibleChars": 6101,
+        "outboundCitations": 26,
+        "openGraphProperties": [
+          "og:image",
+          "og:image:type",
+          "og:image:width",
+          "og:image:height",
+          "og:type",
+          "og:site_name",
+          "og:logo",
+          "og:url",
+          "og:locale",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:description",
+          "og:title"
+        ],
+        "directAnswerHeadings": 0,
+        "questionShapedHeadings": 1,
+        "noindexAppliesToEveryReader": false
+      }
+    },
+    "rivals": {
+      "at": "2026-09-12T09:07:41.605Z",
+      "kind": "measured",
+      "value": [
+        {
+          "score": 1,
+          "domain": "ada.cx",
+          "aiCitations": 0,
+          "top10Appearances": 1
+        },
+        {
+          "score": 1,
+          "domain": "botpress.com",
+          "aiCitations": 0,
+          "top10Appearances": 1
+        },
+        {
+          "score": 1,
+          "domain": "forethought.ai",
+          "aiCitations": 0,
+          "top10Appearances": 1
+        },
+        {
+          "score": 1,
+          "domain": "freshworks.com",
+          "aiCitations": 0,
+          "top10Appearances": 1
+        },
+        {
+          "score": 1,
+          "domain": "gumloop.com",
+          "aiCitations": 0,
+          "top10Appearances": 1
+        }
+      ]
+    },
+    "robots": {
+      "at": "2026-09-12T09:07:36.571Z",
+      "kind": "measured",
+      "value": {
+        "ok": true,
+        "absent": false,
+        "origin": "https://crisp.chat",
+        "readAt": "2026-09-12T09:07:36.578Z",
+        "sitemaps": [
+          "https://crisp.chat/sitemap.xml"
+        ],
+        "disallowsAll": false,
+        "disallowedAgents": {
+          "*": false
+        }
+      }
+    },
+    "scanId": "b1565f9c-65de-4c93-b960-3b626a9a5a08",
+    "supply": {
+      "missingPages": {
+        "at": "2026-09-12T09:07:36.571Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+      },
+      "unquotablePages": {
+        "at": "2026-09-12T09:07:36.571Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+      }
+    },
+    "sources": [],
+    "verdict": {
+      "domain": "crisp.chat",
+      "factors": {
+        "presence": {
+          "at": "2026-09-12T09:07:36.571Z",
+          "kind": "measured",
+          "value": 9.083770533057795
+        },
+        "foundations": {
+          "at": "2026-09-12T09:07:36.571Z",
+          "kind": "measured",
+          "value": 100
+        },
+        "answerability": {
+          "at": "2026-09-12T09:07:36.571Z",
+          "kind": "measured",
+          "value": 24.303976473126422
+        }
+      },
+      "missing": [],
+      "limiting": {
+        "kind": "factor",
+        "factor": "presence"
+      },
+      "measuredAt": "2026-09-12T09:07:36.571Z",
+      "scoreAndBand": {
+        "at": "2026-09-12T09:07:36.571Z",
+        "kind": "measured",
+        "value": {
+          "band": "hard-to-find",
+          "score": 28
+        }
+      },
+      "blockedReaders": {
+        "at": "2026-09-12T09:07:36.571Z",
+        "kind": "zero",
+        "value": 0
+      },
+      "unmeasuredElsewhere": []
+    },
+    "version": 6,
+    "complete": true,
+    "freePage": null,
+    "presence": {
+      "you": {
+        "domain": "crisp.chat",
+        "top10Count": 0
+      },
+      "rivals": [
+        {
+          "domain": "ada.cx",
+          "top10Count": 1
+        },
+        {
+          "domain": "botpress.com",
+          "top10Count": 1
+        },
+        {
+          "domain": "forethought.ai",
+          "top10Count": 1
+        },
+        {
+          "domain": "freshworks.com",
+          "top10Count": 1
+        },
+        {
+          "domain": "gumloop.com",
+          "top10Count": 1
+        }
+      ],
+      "framing": "shown",
+      "absentFrom": [
+        {
+          "volume": 50,
+          "keyword": "ai customer support platform",
+          "topHolder": "freshworks.com"
+        }
+      ],
+      "measuredSearches": 1
+    },
+    "aiAnswers": {
+      "rows": [
+        {
+          "cell": {
+            "kind": "no_answer"
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "no_answer"
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 1,
+            "search": "ai customer support platform",
+            "wording": {
+              "text": "What AI customer support platform should I use for my business?",
+              "source": "model"
+            }
+          }
+        }
+      ],
+      "rivals": [
+        {
+          "cells": [
+            {
+              "kind": "no_answer"
+            }
+          ],
+          "domain": "ada.cx"
+        },
+        {
+          "cells": [
+            {
+              "kind": "no_answer"
+            }
+          ],
+          "domain": "botpress.com"
+        },
+        {
+          "cells": [
+            {
+              "kind": "no_answer"
+            }
+          ],
+          "domain": "forethought.ai"
+        },
+        {
+          "cells": [
+            {
+              "kind": "no_answer"
+            }
+          ],
+          "domain": "freshworks.com"
+        },
+        {
+          "cells": [
+            {
+              "kind": "no_answer"
+            }
+          ],
+          "domain": "gumloop.com"
+        }
+      ],
+      "coverage": "async_included",
+      "ownDomain": "crisp.chat",
+      "measuredAt": "2026-09-12T09:07:41.605Z",
+      "answeredSearches": 0,
+      "measuredSearches": 1,
+      "customerCitations": 0
+    },
+    "coherence": {
+      "verdict": "unjudgeable",
+      "measuredCount": 1
+    },
+    "ownRanked": {
+      "at": "2026-09-12T09:07:36.571Z",
+      "kind": "measured",
+      "value": 1997
+    },
+    "questions": {
+      "at": "2026-09-12T09:07:41.605Z",
+      "kind": "measured",
+      "value": [
+        {
+          "id": "q1",
+          "text": "What AI customer support platform should I use for my business?",
+          "search": {
+            "rank": 1,
+            "score": 5.122710528293808,
+            "intent": "solution",
+            "volume": 50,
+            "keyword": "ai customer support platform"
+          },
+          "phrasing": "model"
+        }
+      ]
+    },
+    "rivalSizes": {
+      "at": "2026-09-12T09:07:36.350Z",
+      "kind": "unmeasured",
+      "reason": "not_attempted"
+    },
+    "blockedAgents": [],
+    "stoppedReason": "complete",
+    "correctionState": "none",
+    "fromIncompleteRescan": false
+  },
+  "siteProfile": null,
+  "site": null,
+  "pages": [
+    {
+      "url": "https://crisp.chat/en/",
+      "readAt": "2026-09-12T09:07:36.571Z",
+      "title": "The AI Customer Support Platform for Every Business - Crisp",
+      "h1": "Augment your customer experience. AI made to support your team & customers.",
+      "text": "The AI Customer Support Platform for Every Business - Crisp NEW Discover - the brand new AI-powered support agent Crisp The one complete suite for AI-first customer support, including Hugo. Hugo Your best AI support agent teammate. Features AI Agent Apps Pricing Integrations Help Search our website Search ⌘K Go to Dashboard ➡️ Log In Start Free Trial Go to Dashboard Features AI Agent Apps Pricing Integrations Help Widget AI Chatbot CRM Shared Inbox AI Campaigns Analytics Knowledge Ticketing system Status Page Chat SDK Help Center Crisp Unleash Developer Hub NEW! Build AI Agents with Crisp Augment your customer experience. AI made to support your team & customers. All-in-one Omnichannel inbox AI Agents Build your AI workflows Flat pricing Lower your cost per agent Get your AI Agent Signup 14 days free trial — All Crisp features — No card required Discover Crisp Video, 2 mins Trusted by 10,000 companies of all sizes One platform to delight your teams and customers Automate 50% of your inquiries with AI, let your teams focus on what matters. AI Helpdesk Give superpowers to your teams and customers. Chat widget Support from your website & mobile apps. Shared Inbox Centralize your inbound communications. Knowledge Base Make your customers more autonomous. Support CRM Organize your customer data in a CRM. Support Analytics Monitor and track your teams' performances. Included in the Crisp Plus plan Build your perfect AI Agent in 4 steps Step 1 Train your AI Teach Crisp about your product or business, using the public and private resources you already have. We automatically browse your website for you, but you can also import PDFs and write Knowledge Base articles. 2 Create a Workflow Create an AI Agent workflow, using our no-code AI Agent builder or browse through our library of templates to kickstart your new support experience. 3 Test & Deploy Workflow Deploy your AI Agent workflow, choosing which messaging channel you want it to trigger from: Web chat widget, WhatsApp, Messenger, Instagram, and even email. 4 Validate & Measure See the messages that your users exchanged with your AI Agent. Refine your AI Agent if an answer was invalid. Quickly iterate to automate most of your customer support. Create my AI Agent now Shared Inbox Centralize all your inbound messages All your inbound conversations from all channels go into one collaborative inbox. Your team can access, manage, and respond to messages efficiently. Chat Widget Email WhatsApp Messenger + 8 other channels See all messaging channels Knowledge Base Let your users search for answers themselves Leverage the power of asynchronous communication by creating, editing, and managing help articles. Create your own help center that fits your brand. Learn more on Crisp Knowledge Base Automations Craft tailor-made automated internal workflows Not ready for customer-facing AI agents? Crisp lets you craft internal workflows to speed up teams' replies and reduce manual work through a no-code solution. Learn more on the Crisp AI Chatbot As your business grows, you're facing more complex queries. Crisp makes it easy to solve them all. Chat Widget Instantly support leads and customers with a chat widget Add a chat widget to your website or Web app in minutes. From landing pages to native iOS, Android, or React apps, talk to visitors in real-time, offer support when it counts, and guide users all the way to conversion. Learn more Support CRM Keep information about your customers in Crisp's built-in CRM Synchronize leads and customer data in a single CRM. Whenever you communicate with someone, you have access to their data and past interactions, enabling more personal and personalized conversations. Learn more Artificial Intelligence AI that helps your teams and customers move faster Smart replies, auto-summaries, writing tools, and a support copilot trained on your content, and much more. That's everything your team needs to handle more conversations with less effort. Learn more Analytics See how efficient your customer support team is Get day-by-day metrics on how your support performs. Identify what you need to optimize to deliver a better service. Learn more Built for customer support, marketing, and sales teams. All together. Customer Support Cross-channel customer support experiences using modern messaging. Inbound Sales Sell more by automating your sales pipeline using chatbots and AI workflows. Marketing Retarget customers by sending marketing emails and in-app messages. 10,000 companies have already made the move See what they say about Crisp Emma Evaluated over 20 products, and Crisp came out on top Chris Sees Hoxton Mix Crisp has been amazing and the first thing that really attracted me to, as a techy, was the size of the chat widget. Edoardo Moreni Emma We chose Crisp from the begining because of its flexibility and level of automations it allowed. We really enjoy being able to play with the possibility of the api, so much that it has become a mini-backoffice for us. Hoxton Mix Crisp is probably one of my favorite part of my business. It's just so good. Reedsy Emmanuel Nataf Reedsy Crisp has become a central asset for Reedsy, empowering the team to provide fast, personalized responses and make customer support more effective through AI-powered solutions. Ready to build exceptional customer support? Get your AI Agent Signup 14 days free trial — All Crisp features — No card required Book a demo The AI Customer Support platform. Built for every company. Socials Facebook X (Twitter) YouTube Instagram LinkedIn GitHub English (United States) Product Testimonials 4.5 Comparisons Alternatives Integrations Developer Hub Ask a demo Features Chat Widget AI Agents AI Chatbot Shared Inbox CRM Company About us Contact us Careers Brand Assets Partnerships Resources Read our blog Security Terms of use Privacy policy Cookie policy Cookie settings Ready to build exceptional customer support? Get your AI agent Meet Hugo, your brand's most efficient support teammate. Discover Hugo System status © 2026 Crisp IM SAS Crisp is built from France 🇫🇷 Made in Europe"
+    },
+    {
+      "url": "https://crisp.chat/en/pricing/",
+      "readAt": "2026-09-12T09:07:37.114Z",
+      "title": "Pricing and plans - Crisp best deals - Crisp",
+      "h1": "Try any plan for free for 14 days",
+      "text": "Pricing and plans - Crisp best deals - Crisp NEW Discover - the brand new AI-powered support agent Crisp The one complete suite for AI-first customer support, including Hugo. Hugo Your best AI support agent teammate. Features AI Agent Apps Pricing Integrations Help Search our website Search ⌘K Go to Dashboard ➡️ Log In Start Free Trial Go to Dashboard Features AI Agent Apps Pricing Integrations Help Widget AI Chatbot CRM Shared Inbox AI Campaigns Analytics Knowledge Ticketing system Status Page Chat SDK Help Center Crisp Unleash Developer Hub Try any plan for free for 14 days Every new account unlocks full access to all Crisp features, letting you explore and see if we’re the right fit for your needs. Trusted by 10,000 companies worldwide Free For solopreneurs and entrepreneurs. Your first shared inbox. Free Forever Use Crisp for free Key features included: Website chat widget Engage with visitors directly on your website. 2 seats included No AI credits included Destroy silos, centralize conversations, improve internal collaboration and enhance customer satisfaction. Shared inbox Get everything related to your customer service right in your pocket. Mobile applications Integrate the chatbox the way you want and implement the behaviours you need to engage with your users. Chat SDKs Centralize answers from customizable contact forms within your Crisp Inbox. Contact form Sync each Crisp conversation with your e-commerce platform: Shopify, Adobe, WooCommerce, and Prestashop. E-Commerce integrations Stay up to date with your opened conversations. Push notifications Mini For early-stage companies who want to improve their customer service. $ 45 Per month, per workspace Start my trial for free All the free features, plus: Shared email inbox Manage all customer emails in one collaborative inbox. 4 seats included Around 90 automated conversations $ 5 included AI credits Create, manage and use a gallery of pre-existing messages that makes your team more efficient. Shortcuts Engage chat conversations automatically based on specific behaviors. Chat triggers Make internal collaboration easy, centralized and personalized for each conversation. Private notes Setup a custom domain to send your outbound emails and improve deliverability. Custom email domain Unlimited data retention Search for messages, articles, contacts or plugins using advanced filters. Internal search Essentials For small companies requiring a full-featured customer support platform. You get all our flagship features. $ 95 Per month, per workspace Start my trial for free All the Mini features, plus: Customer data management Organize and utilize customer information effectively. 10 seats included Around 450 automated conversations $ 25 included AI credits Connect your Crisp inbox with WhatsApp Business, Instagram DMs, SMS, Line, Viber, and more. Omnichannel inbox Create your ideal workflows in seconds using a visual builder powered by artificial intelligence. Workflow automation builder Build AI-powered omnichannel chatbot, with a super-advanced no-code workflow builder. Omnichannel AI Chatbot Write, manage and edit a dedicated help center that integrates deeply with Crisp. Knowledge base Measure conversational activity, customer satisfaction and operator's activity. Analytics Assign conversations automatically based on pre-defined or custom rules. Routing rules & Assignment Best value Plus For medium-sized businesses looking for an AI-powered omnichannel customer support software, plus all our features. $ 295 Per month, per workspace Start my trial for free All the Essentials features, plus: AI-First Support Suite Complete AI-first suite of tools for support 20+ seats (and more) Around 1350 automated conversations Best value $ 75 included AI credits Automate your most repetitive tasks by connecting your AI Agent to 3rd party tool Unlimited Task automations Offer a dedicated customer portal to your customers where they can open new tickets or follow existing ones. Ticketing system Connect your Crisp workspace with all the services your company uses. 100+ integrations Get rid of the Crisp watermark 'We run on Crisp'. White labelling Better control rate limits to make sure each and every features can fit with your intensive use-case. Enhanced rate limits Build your own custom dashboard and analytics to fit with your company's metrics and objectives. Advanced analytics See all features A flat pricing per workspace At Crisp, we offer a straightforward and easy-to-understand pricing model with a flat rate per workspace. This means you pay a single, consistent price regardless of the number of conversations you have each month. Our approach ensures that you can scale your customer support operations without overspending. With Crisp, you get all the essential tools and AI-powered features your team needs to provide exceptional customer service, all included in one simple, predictable subscription. Simplify your budgeting and focus on what matters most – growing your business and delighting your customers. Enterprise Need something more custom? Enterprise Created for large-scale companies willing to benefit from dedicated features, custom onboarding and personalized SLAs. Dedicated onboarding Personalized SLA Enhanced rate limits Custom features Unique pricing Team training Ask for a demo What plan is right for you? Choosing the right plan for your business can be tedious. This is why we built a suite of simple questions to help you decide which formula is the best for your company! Find my plan How many team members do you plan to be part of your Crisp Workspace? 0-2 people 2-10 people 10-20 people 20-50 people 50+ people Compare our plans Choose the best plan for your business with our detailed feature comparison. See exactly what's included in each plan to make an informed decision. Free Mini Essentials Plus Pricing The monthly or yearly cost of your Crisp subscription plan. Plan Price (per month) $ 0 $ 45 $ 95 $ 295 Number of agent licences included in your plan at no extra cost. Agents included 2 4 10 20+ Add more seats to your plan and scale your team as needed. Additional agents (per month) $ 10 Maximum number of unique customer profiles you can manage in your workspace. Customer Profiles 100 5000 50000 200000 Dedicated folders in your inbox that help organize conversations and keep your workspace clean. Sub-inboxes 0 0 2 5 Number of credits included with your plan to run AI support suit AI Credits $ 0 Around 90 automated conversations $ 5 Around 450 automated conversations $ 25 Around 1350 automated conversations $ 75 Team Inbox Your Crisp data and conversations are securely hosted in the cloud, always accessible and backed up. Cloud-based Get everything related to your customer service right in your pocket. Mobile Apps Use Crisp on Windows and Mac for a seamless desktop experience. Desktop Apps Receive alerts to stay up to date with your opened conversations. Real-time notifications Access Crisp APIs to build custom integrations and automate workflows. Developer APIs See all your active website visitors in real time and start conversations. Live Geolocation map Easily export or view the full transcript of customer conversations. Conversation transcript Automatically sort and organize incoming conversations for efficient handling. Conversation Triage Define your business hours to set expectations and automate responses outside those times. Working hours settings Handle as many customer conversations as you need, with no limits. Unlimited conversations Setup a custom domain to send your outbound emails and improve deliverability. Custom email domain Access the full history of your customer conversations for context and insights. Full conversations' history Make internal collaboration easy, centralized and personalized for each conversation. Internal notes Block users having disrespectful behavior on any channel. Visitor Banning Send and receive attachments directly within conversations. File Sharing Create, manage and use a gallery of pre-existing messages that makes your team more efficient. Canned responses Send automated surveys that measure customer satisfaction score. Conversation ratings Schedule pre-defined or custom reminders on each conversation with details attached. Follow-up reminders Assign conversations automatically to available agents in a fair, rotating manner. Round-robin routing Offer a dedicated portal to your customers where they can open new tickets or follow existing ones. Customer Portal Channels Engage with people that are browsing your website and get closer to your customers. Chat widget Centralize answers from customizable contact forms within your Crisp Inbox. Contact Form Receive and reply to your team's emails straight from your Crisp Inbox. Email Receive and reply to Telegram messages straight in your Crisp Inbox. Telegram Receive and reply to Facebook Messenger messages straight in your Crisp Inbox. Messenger Receive and reply to Twitter DMs straight in your Crisp Inbox. X (Twitter) Reply to your Instagram Direct Messages and stories from Crisp dashboard. Instagram Receive and reply to SMS messages straight in your Crisp Inbox. SMS Receive and reply to Viber messages straight in your Crisp Inbox. Viber Answer phone calls and trigger outbound calls right from Crisp. Phone Receive and reply to Line messages straight in your Crisp Inbox. Line Receive and reply to WhatsApp Business messages in your Crisp inbox. WhatsApp Business Integrations & Apps Easily install the Crisp chat widget on your WordPress website. WordPress Sync e-commerce data with your Crisp Inbox to benefit from dedicated features. Shopify Sync WooCommerce orders and customer data with Crisp for better support. WooCommerce Integrate Crisp with Adobe Commerce to centralize your customer communications. Adobe Commerce Integrate Crisp with Prestashop to sync orders and customer data. Prestashop Reply to any of your incoming messages straight from your Slack Workspace. Slack Synchronize Crisp with your Hubspot account. HubSpot Synchronize Crisp with your Pipedrive account. Pipedrive Synchronize Crisp with your Zoho account. Zoho CRM Connect Crisp as a source and collect customer data from 200 platforms, effortlessly. Segment Connect Crisp with more than 2000+ other apps without writing a line of code. Zapier Automate your workflows by connecting Crisp to hundreds of other apps with Make (formerly Integromat). Make Integrate Crisp with your no-code automation workflows using n8n. n8n Synchronize revenue details from Stripe straight in your Crisp inbox. Stripe Synchronize Crisp with your Salesforce account. Salesforce Chat Widget Integrate the chatbox widget and implement the behaviours you need to engage with your customers. Chat SDKs See what your users are typing before they hit send. Live Typing preview See when a user or agent is typing a message in real-time. Typing status indicator Adapt colors, text and live chat position so it fits with your brand identity. Widget customization Engage chat conversations automatically based on specific behaviors. Proactive chat messages Start a co-browsing session with people browsing on your website and share your screen if needed. MagicBrowse Translate instantly your messages in more than 50 different languages. LiveTranslate Engage with leads or customers through live audio or video message. Video & Audio chat Add a self-service help widget to your website for instant answers. Help widget Get rid of the Crisp watermark 'We run on Crisp'. White label Artificial intelligence Deploy a fully autonomous AI agent to handle customer conversations end-to-end. AI Agent Ingest all your internal data to train a custom AI model. AI Knowledge training Your support agents can ask questions to an internal AI chat, trained on your internal data. Internal AI Copilot Get immediate voice-to-text transcription for every audio message or recorded phone calls. Voice-to-text Translate your messages into over 50 languages on any channel. Multilingual AI Get AI-powered writing assistant tools for your teams. AI Writing Assistant Dedicated AI infrastructure for high-performance and privacy. MCP Server Let artificial intelligence classify your conversations automatically. Auto-tagging of conversations Let your users use AI-powered search to get an answer before they contact your support. AI-powered site search Gain access to a custom spam filter powered by AI that gets trained based on your settings. AI Inbox Spam filter Get access to a conversations' summary every time you need to. Conversation summary CRM Add and manage custom attributes to enrich your customer profiles. Custom attributes Store and manage detailed information about each of your customers. Customer Profile Group your users based on behavior, attributes, or custom tags. Customer Segmentation Search for messages, articles, contacts or plugins using advanced filters. Smart filters Leave internal notes on customer profiles for better team collaboration. Customer-based notes Track and analyze the journey of your users from lead to loyal customer. Customer lifecycle tracking View a chronological history of interactions and events for each customer. Customer timeline activity Workflow Build super-advanced automation flows on any channels connected to Crisp. No-code AI chatbot builder Provide instant, AI-powered answers to common customer queries. AI-generated answers Design and test chatbot scenarios before going live. Scenario drafts Collect structured data from users directly within the chat. Custom Input fields Create advanced workflows that adapt based on user responses or attributes. Conditional flows Trigger automated actions based on keywords detected in user messages. Keyword-based triggers Integrate external services and trigger workflows using APIs. Automation via APIs Push data to external systems in real time as events happen in Crisp. Webhook actions Automate actions in workflows based on CRM data or events. CRM-based triggers Embed external content or tools directly within the chat. Iframes Use AI-powered blocks to build smarter multi-channel chatbot flows. AI-agent blocks Build as many chatbot templates as your workflows require. Unlimited AI chatbot templates Automatically detect user intent using artificial intelligence. AI-based triggers Help Center Write, manage and edit a dedicated help center that integrates deeply with Crisp. Articles & Categories Adapt colors, text and layout of your help center to fit your brand. Customization Offer your help center in multiple languages to serve a global audience. Multilingual help center Integrate your help center anywhere using our SDK. Help center SDK Search for messages, articles, contacts or plugins using advanced filters. Search Let users rate and comment on your help articles. Article feedback Use your own branded domain for your help center. Custom domain name Optimize your help center for search engines with sitemaps and meta data. Sitemap & SEO meta data Analytics Measure conversational activity, customer satisfaction and operator's activity. Prebuilt analytics Export your data for reporting, analysis or backup. Data export Build your own custom dashboard and analytics to fit with your company's metrics and objectives. Custom dashboards Access, export and analyze your data programmatically via API. API Analytics Status Page Monitor the health of your infrastructure and services in real time. Node monitoring Customize your status page to match your brand and communication style. Customization Send alerts and updates to users when incidents or changes occur. Notifications Publish important updates or news to your users via your status page. Announcement Data & Security Add an extra layer of security to your account login. Double-Factor Authentication Your data is hosted on European servers for compliance and privacy. EU-Hosted A legal agreement to ensure your data is handled according to regulations. Data Processing Agreement All data is encrypted in transit using TLS. TLS Encryption Your data is backed up and replicated for increased reliability. Data replication Get started Get started Get started Get started Compare our plans Free Mini Essentials Plus Free Mini Essentials Plus Free Mini Pricing The monthly or yearly cost of your Crisp subscription plan. Plan Price (per month) $ 0 $ 45 Number of agent licences included in your plan at no extra cost. Agents included 2 4 Add more seats to your plan and scale your team as needed. Additional agents (per month) Maximum number of unique customer profiles you can manage in your workspace. Customer Profiles 100 5000 Dedicated folders in your inbox that help organize conversations and keep your workspace clean. Sub-inboxes 0 0 Number of credits included with your plan to run AI support suit AI Credits $ 0 Around 90 automated conversations $ 5 Team Inbox Your Crisp data and conversations are securely hosted in the cloud, always accessible and backed up. Cloud-based Get everything related to your customer service right in your pocket. Mobile Apps Use Crisp on Windows and Mac for a seamless desktop experience. Desktop Apps Receive alerts to stay up to date with your opened conversations. Real-time notifications Access Crisp APIs to build custom integrations and automate workflows. Developer APIs See all your active website visitors in real time and start conversations. Live Geolocation map Easily export or view the full transcript of customer conversations. Conversation transcript Automatically sort and organize incoming conversations for efficient handling. Conversation Triage Define your business hours to set expectations and automate responses outside those times. Working hours settings Handle as many customer conversations as you need, with no limits. Unlimited conversations Setup a custom domain to send your outbound emails and improve deliverability. Custom email domain Access the full history of your customer conversations for context and insights. Full conversations' history Make internal collaboration easy, centralized and personalized for each conversation. Internal notes Block users having disrespectful behavior on any channel. Visitor Banning Send and receive attachments directly within conversations. File Sharing Create, manage and use a gallery of pre-existing messages that makes your team more efficient. Canned responses Send automated surveys that measure customer satisfaction score. Conversation ratings Schedule pre-defined or custom reminders on each conversation with details attached. Follow-up reminders Assign conversations automatically to available agents in a fair, rotating manner. Round-robin routing Offer a dedicated portal to your customers where they can open new tickets or follow existing ones. Customer Portal Channels Engage with people that are browsing your website and get closer to your customers. Chat widget Centralize answers from customizable contact forms within your Crisp Inbox. Contact Form Receive and reply to your team's emails straight from your Crisp Inbox. Email Receive and reply to Telegram messages straight in your Crisp Inbox. Telegram Receive and reply to Facebook Messenger messages straight in your Crisp Inbox. Messenger Receive and reply to Twitter DMs straight in your Crisp Inbox. X (Twitter) Reply to your Instagram Direct Messages and stories from Crisp dashboard. Instagram Receive and reply to SMS messages straight in your Crisp Inbox. SMS Receive and reply to Viber messages straight in your Crisp Inbox. Viber Answer phone calls and trigger outbound calls right from Crisp. Phone Receive and reply to Line messages straight in your Crisp Inbox. Line Receive and reply to WhatsApp Business messages in your Crisp inbox. WhatsApp Business Integrations & Apps Easily install the Crisp chat widget on your WordPress website. WordPress Sync e-commerce data with your Crisp Inbox to benefit from dedicated features. Shopify Sync WooCommerce orders and customer data with Crisp for better support. WooCommerce Integrate Crisp with Adobe Commerce to centralize your customer communications. Adobe Commerce Integrate Crisp with Prestashop to sync orders and customer data. Prestashop Reply to any of your incoming messages straight from your Slack Workspace. Slack Synchronize Crisp with your Hubspot account. HubSpot Synchronize Crisp with your Pipedrive account. Pipedrive Synchronize Crisp with your Zoho account. Zoho CRM Connect Crisp as a source and collect customer data from 200 platforms, effortlessly. Segment Connect Crisp with more than 2000+ other apps without writing a line of code. Zapier Automate your workflows by connecting Crisp to hundreds of other apps with Make (formerly Integromat). Make Integrate Crisp with your no-code automation workflows using n8n. n8n Synchronize revenue details from Stripe straight in your Crisp inbox. Stripe Synchronize Crisp with your Salesforce account. Salesforce Chat Widget Integrate the chatbox widget and implement the behaviours you need to engage with your customers. Chat SDKs See what your users are typing before they hit send. Live Typing preview See when a user or agent is typing a message in real-time. Typing status indicator Adapt colors, text and live chat position so it fits with your brand identity. Widget customization Engage chat conversations automatically based on specific behaviors. Proactive chat messages Start a co-browsing session with people browsing on your website and share your screen if needed. MagicBrowse Translate instantly your messages in more than 50 different languages. LiveTranslate Engage with leads or customers through live audio or video message. Video & Audio chat Add a self-service help widget to your website for instant answers. Help widget Get rid of the Crisp watermark 'We run on Crisp'. White label Artificial intelligence Deploy a fully autonomous AI agent to handle customer conversations end-to-end. AI Agent Ingest all your internal data to train a custom AI model. AI Knowledge training Your support agents can ask questions to an internal AI chat, trained on your internal data. Internal AI Copilot Get immediate voice-to-text transcription for every audio message or recorded phone calls. Voice-to-text Translate your messages into over 50 languages on any channel. Multilingual AI Get AI-powered writing assistant tools for your teams. AI Writing Assistant Dedicated AI infrastructure for high-performance and privacy. MCP Server Let artificial intelligence classify your conversations automatically. Auto-tagging of conversations Let your users use AI-powered search to get an answer before they contact your support. AI-powered site search Gain access to a custom spam filter powered by AI that gets trained based on your settings. AI Inbox Spam filter Get access to a conversations' summary every time you need to. Conversation summary CRM Add and manage custom attributes to enrich your customer profiles. Custom attributes Store and manage detailed information about each of your customers. Customer Profile Group your users based on behavior, attributes, or custom tags. Customer Segmentation Search for messages, articles, contacts or plugins using advanced filters. Smart filters Leave internal notes on customer profiles for better team collaboration. Customer-based notes Track and analyze the journey of your users from lead to loyal customer. Customer lifecycle tracking View a chronological history of interactions and events for each customer. Customer timeline activity Workflow Build super-advanced automation flows on any channels connected to Crisp. No-code AI chatbot builder Provide instant, AI-powered answers to common customer queries. AI-generated answers Design and test chatbot scenarios before going live. Scenario drafts Collect structured data from users directly within the chat. Custom Input fields Create advanced workflows that adapt based on user responses or attributes. Conditional flows Trigger automated actions based on keywords detected in user messages. Keyword-based triggers Integrate external services and trigger workflows using APIs. Automation via APIs Push data to external systems in real time as events happen in Crisp. Webhook actions Automate actions in workflows based on CRM data or events. CRM-based triggers Embed external content or tools directly within the chat. Iframes Use AI-powered blocks to build smarter multi-channel chatbot flows. AI-agent blocks Build as many chatbot templates as your workflows require. Unlimited AI chatbot templates Automatically detect user intent using artificial intelligence. AI-based triggers Help Center Write, manage and edit a dedicated help center that integrates deeply with Crisp. Articles & Categories Adapt colors, text and layout of your help center to fit your brand. Customization Offer your help center in multiple languages to serve a global audience. Multilingual help center Integrate your help center anywhere using our SDK. Help center SDK Search for messages, articles, contacts or plugins using advanced filters. Search Let users rate and comment on your help articles. Article feedback Use your own branded domain for your help center. Custom domain name Optimize your help center for search engines with sitemaps and meta data. Sitemap & SEO meta data Analytics Measure conversational activity, customer satisfaction and operator's activity. Prebuilt analytics Export your data for reporting, analysis or backup. Data export Build your own custom dashboard and analytics to fit with your company's metrics and objectives. Custom dashboards Access, export and analyze your data programmatically via API. API Analytics Status Page Monitor the health of your infrastructure and services in real time. Node monitoring Customize your status page to match your brand and communication style. Customization Send alerts and updates to users when incidents or changes occur. Notifications Publish important updates or news to your users via your status page. Announcement Data & Security Add an extra layer of security to your account login. Double-Factor Authentication Your data is hosted on European servers for compliance and privacy. EU-Hosted A legal agreement to ensure your data is handled according to regulations. Data Processing Agreement All data is encrypted in transit using TLS. TLS Encryption Your data is backed up and replicated for increased reliability. Data replication Get started Get started Having a hard time deciding? Chat with your favorite AI chat assistant or book a demo with our experts to learn more about Crisp and how it can help your business! Ask ChatGPT Ask Claude Ask Perplexity Frequently asked questions Haven’t found what you’re looking for? Contact us Will I pay more for some features? Yes. We may provide some additional features that are not included in your plan, which you can subscribe to, but that's your choice to opt-in for them (eg. paid integrations for specific systems, additional contacts or more than 20 agents in your inbox). Is VAT included in plan prices? VAT is not included in our plan prices. As most Crisp customers are businesses, they do not owe VAT and thus we charge the advertised flat price. VAT is still due for consumers and may be applied on all plan prices (ie. non-business entities). If you are an EU business, make sure you enter your EU VAT number to prove your business status and thus remove VAT from the price. If you are located outside the EU, we won't charge any VAT, regardless of your business or consumer status. Do you offer discounts on multiple Crisp Workspaces? Yes! We offer discounts if you are subscribing multiple paid Crisp Workspaces (Crisp Plus and Essentials only) under the same account. We offer 20% off for 3 additional Workspaces. Come chat with us to find the best deal! What does a Crisp Workspace stand for? A Crisp Workspace is the place where you can invite operators to collaborate and answer customer questions. A Crisp workspace is tied to a unique identifier. Plans are billed per-Crisp workspace, not per domain and sub-domains. As an example, you can have one Crisp workspace which refers to one subscription and connect with the following channels: Instagram, Messenger, or Whatsapp Business, Viber, Line, Telegram, Emails. One and only one of each, except emails, can be centralized in one workspace. You can connect more by subscribing to higher limits. I’m running a nonprofit / I am a student. Do you offer discounts? We offer a 50% discount for nonprofits and students. Chat with us to get your promo code. Is it possible to pay yearly? Yes, it is possible! You can enable yearly payment mode on your Plans page in the Crisp app after you subscribed to a plan (click on the Monthly button, which then becomes Yearly once saved). Why are there no limits on the number of conversations? At Crisp, we believe existing chat platforms are still locked in the past. Why would we bill based on consumption (as all others do), while we are used to unlimited plans everywhere else (mobile carriers, Internet access providers, etc.)? Unlimited is peace of mind at the end of the month; this allows you to allocate more energy to your core business rather than petty subscription policies. 10,000 companies have already made the move See what they say about Crisp Emma Evaluated over 20 products, and Crisp came out on top Chris Sees Hoxton Mix Crisp has been amazing and the first thing that really attracted me to, as a techy, was the size of the chat widget. Edoardo Moreni Emma We chose Crisp from the begining because of its flexibility and level of automations it allowed. We really enjoy being able to play with the possibility of the api, so much that it has become a mini-backoffice for us. Hoxton Mix Crisp is probably one of my favorite part of my business. It's just so good. Reedsy Emmanuel Nataf Reedsy Crisp has become a central asset for Reedsy, empowering the team to provide fast, personalized responses and make customer support more effective through AI-powered solutions. Ready to build exceptional customer support? Get your AI Agent Signup 14 days free trial — All Crisp features — No card required Book a demo The AI Customer Support platform. Built for every company. Socials Facebook X (Twitter) YouTube Instagram LinkedIn GitHub English (United States) Product Testimonials 4.5 Comparisons Alternatives Integrations Developer Hub Ask a demo Features Chat Widget AI Agents AI Chatbot Shared Inbox CRM Company About us Contact us Careers Brand Assets Partnerships Resources Read our blog Security Terms of use Privacy policy Cookie policy Cookie settings Ready to build exceptional customer support? Get your AI agent Meet Hugo, your brand's most efficient support teammate. Discover Hugo System status © 2026 Crisp IM SAS Crisp is built from France 🇫🇷 Made in Europe"
+    }
+  ]
+}

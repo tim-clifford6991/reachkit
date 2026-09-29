@@ -1,0 +1,1328 @@
+{
+  "domain": "pipedrive.com",
+  "scan": {
+    "id": "98d404ee-9dd3-4bda-8d06-bfbbacb9261e",
+    "tier": "free",
+    "status": "degraded",
+    "finishedAt": "2026-09-12T20:07:01.570Z"
+  },
+  "report": {
+    "tier": "free",
+    "serps": [
+      {
+        "at": "2026-09-12T20:06:50.119Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.salesforce.com/crm/what-is-crm/software/",
+              "title": "What Is CRM Software? A Comprehensive Guide",
+              "domain": "www.salesforce.com",
+              "position": 1
+            },
+            {
+              "url": "https://www.superoffice.com/blog/best-sales-crm/",
+              "title": "Best sales CRM 2026: 10 tools tested against how B2B sell",
+              "domain": "www.superoffice.com",
+              "position": 2
+            },
+            {
+              "url": "https://www.hubspot.com/products/crm",
+              "title": "Streamline Your Entire Business With a Free CRM",
+              "domain": "www.hubspot.com",
+              "position": 3
+            },
+            {
+              "url": "https://www.salesforce.com/crm/what-is-crm/",
+              "title": "What Is CRM (Customer Relationship Management)?",
+              "domain": "www.salesforce.com",
+              "position": 4
+            },
+            {
+              "url": "https://www.uschamber.com/co/start/strategy/low-cost-crm-tools",
+              "title": "10 Free or Low-Cost CRM Tools for Small Businesses",
+              "domain": "www.uschamber.com",
+              "position": 5
+            },
+            {
+              "url": "https://www.creatio.com/glossary/sales-crm",
+              "title": "Features, Benefits & Best Sales CRM Software",
+              "domain": "www.creatio.com",
+              "position": 6
+            },
+            {
+              "url": "https://monday.com/blog/crm-and-sales/crm-software/",
+              "title": "Top 14 CRM software: The ultimate guide for 2026",
+              "domain": "monday.com",
+              "position": 7
+            },
+            {
+              "url": "https://www.microsoft.com/en-us/dynamics-365/resources/crm-software-for-small-business",
+              "title": "CRM Software for Small Business | Microsoft Dynamics 365",
+              "domain": "www.microsoft.com",
+              "position": 8
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "www.hubspot.com",
+              "www.salesforce.com",
+              "www.creatio.com",
+              "monday.com",
+              "www.zendesk.com",
+              "www.youtube.com",
+              "pipelinecrm.com",
+              "zapier.com",
+              "www.business.com"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      },
+      {
+        "at": "2026-09-12T20:06:50.119Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.superoffice.com/blog/best-sales-crm/",
+              "title": "Best sales CRM 2026: 10 tools tested against how B2B sell",
+              "domain": "www.superoffice.com",
+              "position": 1
+            },
+            {
+              "url": "https://www.hubspot.com/products/crm",
+              "title": "Streamline Your Entire Business With a Free CRM",
+              "domain": "www.hubspot.com",
+              "position": 2
+            },
+            {
+              "url": "https://www.reddit.com/r/CRM/comments/1ef6gj4/best_crm_for_sales_reps/",
+              "title": "Best CRM for Sales Reps?",
+              "domain": "www.reddit.com",
+              "position": 3
+            },
+            {
+              "url": "https://www.salesforce.com/crm/",
+              "title": "Salesforce CRM: Try The World's #1 Agentic CRM",
+              "domain": "www.salesforce.com",
+              "position": 4
+            },
+            {
+              "url": "https://www.creatio.com/glossary/sales-crm",
+              "title": "Features, Benefits & Best Sales CRM Software",
+              "domain": "www.creatio.com",
+              "position": 5
+            },
+            {
+              "url": "https://crm.org/crmland/sales-crm",
+              "title": "Best Sales CRM Software (Top 11 Sales Tools for 2026 ...",
+              "domain": "crm.org",
+              "position": 6
+            },
+            {
+              "url": "https://monday.com/blog/crm-and-sales/crm-tools-for-sales/",
+              "title": "CRM platforms for sales: the complete guide for 2026",
+              "domain": "monday.com",
+              "position": 7
+            },
+            {
+              "url": "https://pipelinecrm.com/blog/best-sales-crm-software/",
+              "title": "The 10 best sales CRMs of 2026",
+              "domain": "pipelinecrm.com",
+              "position": 8
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "www.creatio.com",
+              "pipelinecrm.com",
+              "monday.com",
+              "www.waalaxy.com",
+              "www.salesforce.com",
+              "www.youtube.com",
+              "zapier.com"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      },
+      {
+        "at": "2026-09-12T20:06:50.120Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://solutionsreview.com/crm/2026/01/05/best-crm-companies-to-know-about/",
+              "title": "27 of the Best CRM Software Companies to Know About for ...",
+              "domain": "solutionsreview.com",
+              "position": 1
+            },
+            {
+              "url": "https://www.superoffice.com/blog/best-sales-crm/",
+              "title": "Best sales CRM 2026: 10 tools tested against how B2B sell",
+              "domain": "www.superoffice.com",
+              "position": 2
+            },
+            {
+              "url": "https://monday.com/blog/crm-and-sales/crm-software/",
+              "title": "Top 14 CRM software: The ultimate guide for 2026",
+              "domain": "monday.com",
+              "position": 3
+            },
+            {
+              "url": "https://www.forbes.com/advisor/business/software/best-crm-software/",
+              "title": "10 Best CRM Software Of 2026",
+              "domain": "www.forbes.com",
+              "position": 4
+            },
+            {
+              "url": "https://www.salesforce.com/crm/best-crm/",
+              "title": "Choosing The Best CRM Software In 2026",
+              "domain": "www.salesforce.com",
+              "position": 5
+            },
+            {
+              "url": "https://www.g2.com/categories/crm",
+              "title": "Best CRM Software: User Reviews from September 2026",
+              "domain": "www.g2.com",
+              "position": 6
+            },
+            {
+              "url": "https://www.voicespin.com/blog/best-crm-for-sales-reps/",
+              "title": "Best CRM for Sales Reps in 2026",
+              "domain": "www.voicespin.com",
+              "position": 7
+            },
+            {
+              "url": "https://www.pcmag.com/picks/the-best-crm-software",
+              "title": "The Best CRM Software We've Tested for 2026",
+              "domain": "www.pcmag.com",
+              "position": 8
+            },
+            {
+              "url": "https://www.creatio.com/glossary/crm-tools",
+              "title": "16 Best CRM Tools for Your Business in 2026",
+              "domain": "www.creatio.com",
+              "position": 9
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "pipelinecrm.com",
+              "zapier.com",
+              "www.g2.com",
+              "www.pipedrive.com",
+              "www.business.com",
+              "www.businessnewsdaily.com",
+              "www.quora.com"
+            ],
+            "asynchronousAiOverview": false
+          }
+        }
+      },
+      {
+        "at": "2026-09-12T20:06:50.120Z",
+        "kind": "measured",
+        "value": {
+          "organic": [
+            {
+              "url": "https://www.hubspot.com/products/crm",
+              "title": "Streamline Your Entire Business With a Free CRM",
+              "domain": "www.hubspot.com",
+              "position": 1
+            },
+            {
+              "url": "https://www.freecrm.com/",
+              "title": "FreeCRM — Free Sales CRM: Email, Voice & SMS",
+              "domain": "www.freecrm.com",
+              "position": 2
+            },
+            {
+              "url": "https://www.reddit.com/r/CRMSoftware/comments/1s2xfnd/looking_for_a_free_crm_tool_for_a_small_business/",
+              "title": "Looking for a Free CRM tool for a Small Business ...",
+              "domain": "www.reddit.com",
+              "position": 3
+            },
+            {
+              "url": "https://monday.com/blog/crm-and-sales/free-crm/",
+              "title": "10 free CRMs that will grow your business",
+              "domain": "monday.com",
+              "position": 4
+            },
+            {
+              "url": "https://zapier.com/blog/best-free-crm/",
+              "title": "The 14 best free CRM software in 2026",
+              "domain": "zapier.com",
+              "position": 5
+            },
+            {
+              "url": "https://www.salesforce.com/crm/free-crm/",
+              "title": "Salesforce Free CRM: Get Started Today",
+              "domain": "www.salesforce.com",
+              "position": 6
+            },
+            {
+              "url": "https://capsulecrm.com/free-crm/",
+              "title": "Capsule's free CRM",
+              "domain": "capsulecrm.com",
+              "position": 7
+            },
+            {
+              "url": "https://genemarks.medium.com/whats-the-best-free-crm-for-your-small-business-e7d6cd2deb55",
+              "title": "What's The Best Free CRM For Your Small Business?",
+              "domain": "genemarks.medium.com",
+              "position": 8
+            }
+          ],
+          "aiOverview": {
+            "present": true,
+            "referenceDomains": [
+              "www.hubspot.com",
+              "www.reddit.com",
+              "zapier.com",
+              "www.freecrm.com",
+              "www.zoho.com",
+              "capsulecrm.com",
+              "www.youtube.com",
+              "mailchimp.com",
+              "play.google.com",
+              "www.zite.com",
+              "www.zendesk.com"
+            ],
+            "asynchronousAiOverview": true
+          }
+        }
+      },
+      {
+        "at": "2026-09-12T20:06:50.163Z",
+        "kind": "unmeasured",
+        "reason": "undeterminable"
+      }
+    ],
+    "domain": "pipedrive.com",
+    "market": {
+      "at": "2026-09-12T19:26:19.347Z",
+      "kind": "measured",
+      "value": {
+        "profile": {
+          "job": "manage sales pipeline, track leads, and close deals",
+          "category": "sales CRM software",
+          "vocabulary": [
+            "pipeline management",
+            "lead management",
+            "sales automation",
+            "deal tracking",
+            "sales pipeline",
+            "workflow automation",
+            "revenue forecasting",
+            "sales analytics",
+            "email sync",
+            "customer relationship management"
+          ],
+          "brandTokens": [
+            "Pipedrive",
+            "Pipedrive AI",
+            "LeadBooster"
+          ],
+          "namedRivals": [
+            "HubSpot",
+            "Salesforce",
+            "Monday.com"
+          ],
+          "offeringType": "cloud-based SaaS CRM platform",
+          "audienceTerms": [
+            "small business sales teams",
+            "startups",
+            "sales managers",
+            "large sales teams"
+          ]
+        },
+        "suggestions": [
+          {
+            "volume": 1900,
+            "keyword": "sales software crm"
+          },
+          {
+            "volume": 1900,
+            "keyword": "sales & crm software"
+          },
+          {
+            "volume": 1900,
+            "keyword": "crm software sales"
+          },
+          {
+            "volume": 1900,
+            "keyword": "crm and sales software"
+          },
+          {
+            "volume": 1900,
+            "keyword": "crm software for sales"
+          },
+          {
+            "volume": 1900,
+            "keyword": "sales crm software"
+          },
+          {
+            "volume": 1900,
+            "keyword": "crm for software sales"
+          },
+          {
+            "volume": 1900,
+            "keyword": "software sales crm"
+          },
+          {
+            "volume": 1900,
+            "keyword": "sales and crm software"
+          },
+          {
+            "volume": 1900,
+            "keyword": "crm sales software"
+          },
+          {
+            "volume": 390,
+            "keyword": "car sales crm software"
+          },
+          {
+            "volume": 320,
+            "keyword": "crm software for sales team"
+          },
+          {
+            "volume": 170,
+            "keyword": "inside sales crm software"
+          },
+          {
+            "volume": 90,
+            "keyword": "crm software for sales reps"
+          },
+          {
+            "volume": 70,
+            "keyword": "best crm sales software"
+          },
+          {
+            "volume": 70,
+            "keyword": "best crm software for sales"
+          },
+          {
+            "volume": 70,
+            "keyword": "best sales crm software"
+          },
+          {
+            "volume": 50,
+            "keyword": "sales crm free software"
+          },
+          {
+            "volume": 50,
+            "keyword": "sales and marketing crm software"
+          },
+          {
+            "volume": 50,
+            "keyword": "crm software for car sales"
+          },
+          {
+            "volume": 50,
+            "keyword": "free sales crm software"
+          },
+          {
+            "volume": 50,
+            "keyword": "free crm sales software"
+          },
+          {
+            "volume": 50,
+            "keyword": "sales crm software for small business"
+          },
+          {
+            "volume": 50,
+            "keyword": "crm sales software free"
+          },
+          {
+            "volume": 50,
+            "keyword": "sales crm software free"
+          },
+          {
+            "volume": 50,
+            "keyword": "crm software for sales and marketing"
+          },
+          {
+            "volume": 40,
+            "keyword": "free crm software for sales"
+          },
+          {
+            "volume": 30,
+            "keyword": "sales management crm software"
+          },
+          {
+            "volume": 20,
+            "keyword": "what is the best sales crm software"
+          },
+          {
+            "volume": 20,
+            "keyword": "sales pipeline crm software"
+          },
+          {
+            "volume": 20,
+            "keyword": "crm sales automation software"
+          },
+          {
+            "volume": 20,
+            "keyword": "real estate sales crm software"
+          },
+          {
+            "volume": 20,
+            "keyword": "crm software for medical sales"
+          },
+          {
+            "volume": 10,
+            "keyword": "sales crm software india"
+          },
+          {
+            "volume": 10,
+            "keyword": "best sales crm software for small business"
+          },
+          {
+            "volume": 10,
+            "keyword": "free sales crm software download"
+          },
+          {
+            "volume": 10,
+            "keyword": "what is sales crm software"
+          },
+          {
+            "volume": 10,
+            "keyword": "crm software sales jobs"
+          },
+          {
+            "volume": 10,
+            "keyword": "sales management software laravel crm nulled"
+          },
+          {
+            "volume": 10,
+            "keyword": "simple sales crm software"
+          },
+          {
+            "volume": 10,
+            "keyword": "crm sales tracking software"
+          },
+          {
+            "volume": 10,
+            "keyword": "best crm software for sales reps"
+          },
+          {
+            "volume": 10,
+            "keyword": "best crm sales automation software"
+          },
+          {
+            "volume": 10,
+            "keyword": "top 10 sales crm software"
+          },
+          {
+            "volume": 10,
+            "keyword": "best free sales crm software"
+          },
+          {
+            "volume": 10,
+            "keyword": "sales management software laravel crm"
+          },
+          {
+            "volume": 10,
+            "keyword": "top sales crm software"
+          },
+          {
+            "volume": 10,
+            "keyword": "crm software can help salespeople plan better sales calls"
+          },
+          {
+            "volume": 10,
+            "keyword": "crm software and sales tools"
+          },
+          {
+            "volume": 10,
+            "keyword": "zoho crm top rated sales crm software by customers"
+          }
+        ],
+        "totalVolume": 20970
+      }
+    },
+    "onPage": {
+      "at": "2026-09-12T19:26:19.347Z",
+      "kind": "measured",
+      "value": {
+        "url": "https://www.pipedrive.com/",
+        "dates": 0,
+        "noindex": false,
+        "headings": 34,
+        "numerals": 21,
+        "schemaTypes": [
+          "organization",
+          "definedterm",
+          "definedterm",
+          "subscribeaction",
+          "faqpage",
+          "question",
+          "answer",
+          "question",
+          "answer",
+          "question",
+          "answer",
+          "question",
+          "answer",
+          "question",
+          "answer"
+        ],
+        "visibleChars": 15146,
+        "outboundCitations": 22,
+        "openGraphProperties": [
+          "og:url",
+          "og:title",
+          "og:image",
+          "og:locale",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:locale:alternate",
+          "og:type",
+          "og:site_name"
+        ],
+        "directAnswerHeadings": 6,
+        "questionShapedHeadings": 12,
+        "noindexAppliesToEveryReader": false
+      }
+    },
+    "rivals": {
+      "at": "2026-09-12T20:06:48.167Z",
+      "kind": "measured",
+      "value": [
+        {
+          "score": 9,
+          "domain": "zapier.com",
+          "aiCitations": 4,
+          "top10Appearances": 1
+        },
+        {
+          "score": 8,
+          "domain": "monday.com",
+          "aiCitations": 2,
+          "top10Appearances": 4
+        },
+        {
+          "score": 8,
+          "domain": "salesforce.com",
+          "aiCitations": 2,
+          "top10Appearances": 4
+        },
+        {
+          "score": 7,
+          "domain": "pipelinecrm.com",
+          "aiCitations": 3,
+          "top10Appearances": 1
+        },
+        {
+          "score": 7,
+          "domain": "creatio.com",
+          "aiCitations": 2,
+          "top10Appearances": 3
+        }
+      ]
+    },
+    "robots": {
+      "at": "2026-09-12T19:26:19.347Z",
+      "kind": "measured",
+      "value": {
+        "ok": true,
+        "absent": false,
+        "origin": "https://pipedrive.com",
+        "readAt": "2026-09-12T20:06:45.138Z",
+        "sitemaps": [
+          "https://www.pipedrive.com/sitemap-index.xml"
+        ],
+        "disallowsAll": false,
+        "disallowedAgents": {
+          "*": false
+        }
+      }
+    },
+    "scanId": "98d404ee-9dd3-4bda-8d06-bfbbacb9261e",
+    "supply": {
+      "missingPages": {
+        "at": "2026-09-12T19:26:19.347Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+      },
+      "unquotablePages": {
+        "at": "2026-09-12T19:26:19.347Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+      }
+    },
+    "sources": [
+      "youtube.com",
+      "reddit.com",
+      "g2.com",
+      "quora.com",
+      "medium.com"
+    ],
+    "verdict": {
+      "domain": "pipedrive.com",
+      "factors": {
+        "presence": {
+          "at": "2026-09-12T19:26:19.347Z",
+          "kind": "measured",
+          "value": 38.72983346207417
+        },
+        "foundations": {
+          "at": "2026-09-12T19:26:19.347Z",
+          "kind": "measured",
+          "value": 100
+        },
+        "answerability": {
+          "at": "2026-09-12T19:26:19.347Z",
+          "kind": "measured",
+          "value": 32.37537441112111
+        }
+      },
+      "missing": [],
+      "limiting": {
+        "kind": "factor",
+        "factor": "answerability"
+      },
+      "measuredAt": "2026-09-12T19:26:19.347Z",
+      "scoreAndBand": {
+        "at": "2026-09-12T19:26:19.347Z",
+        "kind": "measured",
+        "value": {
+          "band": "findable",
+          "score": 50
+        }
+      },
+      "blockedReaders": {
+        "at": "2026-09-12T19:26:19.347Z",
+        "kind": "zero",
+        "value": 0
+      },
+      "unmeasuredElsewhere": []
+    },
+    "version": 6,
+    "complete": true,
+    "freePage": null,
+    "presence": {
+      "you": {
+        "domain": "pipedrive.com",
+        "top10Count": 0
+      },
+      "rivals": [
+        {
+          "domain": "zapier.com",
+          "top10Count": 1
+        },
+        {
+          "domain": "monday.com",
+          "top10Count": 4
+        },
+        {
+          "domain": "salesforce.com",
+          "top10Count": 4
+        },
+        {
+          "domain": "pipelinecrm.com",
+          "top10Count": 1
+        },
+        {
+          "domain": "creatio.com",
+          "top10Count": 3
+        }
+      ],
+      "framing": "shown",
+      "absentFrom": [
+        {
+          "volume": 1900,
+          "keyword": "crm and sales software",
+          "topHolder": "salesforce.com"
+        },
+        {
+          "volume": 320,
+          "keyword": "crm software for sales team",
+          "topHolder": "superoffice.com"
+        },
+        {
+          "volume": 70,
+          "keyword": "best crm sales software",
+          "topHolder": "solutionsreview.com"
+        },
+        {
+          "volume": 50,
+          "keyword": "crm sales software free",
+          "topHolder": "hubspot.com"
+        }
+      ],
+      "measuredSearches": 4
+    },
+    "aiAnswers": {
+      "rows": [
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "hubspot.com",
+              "salesforce.com",
+              "creatio.com",
+              "monday.com",
+              "zendesk.com",
+              "youtube.com",
+              "pipelinecrm.com",
+              "zapier.com",
+              "business.com"
+            ],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "hubspot.com",
+                  "salesforce.com",
+                  "creatio.com",
+                  "monday.com",
+                  "zendesk.com",
+                  "youtube.com",
+                  "pipelinecrm.com",
+                  "zapier.com",
+                  "business.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 1,
+            "search": "crm and sales software",
+            "wording": {
+              "text": "What CRM and sales software can help manage my business?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "creatio.com",
+              "pipelinecrm.com",
+              "monday.com",
+              "waalaxy.com",
+              "salesforce.com",
+              "youtube.com",
+              "zapier.com"
+            ],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "creatio.com",
+                  "pipelinecrm.com",
+                  "monday.com",
+                  "waalaxy.com",
+                  "salesforce.com",
+                  "youtube.com",
+                  "zapier.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 2,
+            "search": "crm software for sales team",
+            "wording": {
+              "text": "What CRM software should my sales team use?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "pipelinecrm.com",
+              "zapier.com",
+              "g2.com",
+              "pipedrive.com",
+              "business.com",
+              "businessnewsdaily.com",
+              "quora.com"
+            ],
+            "namesCustomer": true
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "pipelinecrm.com",
+                  "zapier.com",
+                  "g2.com",
+                  "pipedrive.com",
+                  "business.com",
+                  "businessnewsdaily.com",
+                  "quora.com"
+                ],
+                "namesCustomer": true
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 3,
+            "search": "best crm sales software",
+            "wording": {
+              "text": "What is the best CRM sales software?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "answered",
+            "citedDomains": [
+              "hubspot.com",
+              "reddit.com",
+              "zapier.com",
+              "freecrm.com",
+              "zoho.com",
+              "capsulecrm.com",
+              "youtube.com",
+              "mailchimp.com",
+              "google.com",
+              "zite.com",
+              "zendesk.com"
+            ],
+            "namesCustomer": false
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "answered",
+                "citedDomains": [
+                  "hubspot.com",
+                  "reddit.com",
+                  "zapier.com",
+                  "freecrm.com",
+                  "zoho.com",
+                  "capsulecrm.com",
+                  "youtube.com",
+                  "mailchimp.com",
+                  "google.com",
+                  "zite.com",
+                  "zendesk.com"
+                ],
+                "namesCustomer": false
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 4,
+            "search": "crm sales software free",
+            "wording": {
+              "text": "Is there free CRM sales software available?",
+              "source": "model"
+            }
+          }
+        },
+        {
+          "cell": {
+            "kind": "unmeasured",
+            "reason": "undeterminable"
+          },
+          "engines": [
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "undeterminable"
+              },
+              "engine": "ai_overview"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "ai_mode"
+            },
+            {
+              "cell": {
+                "kind": "unmeasured",
+                "reason": "not_attempted"
+              },
+              "engine": "chatgpt"
+            }
+          ],
+          "question": {
+            "n": 5,
+            "search": "sales crm software for small business",
+            "wording": {
+              "text": "What CRM sales software works for small businesses?",
+              "source": "model"
+            }
+          }
+        }
+      ],
+      "rivals": [
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "zapier.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "zapier.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "zapier.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "zapier.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable"
+            }
+          ],
+          "domain": "zapier.com"
+        },
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "monday.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "monday.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable"
+            }
+          ],
+          "domain": "monday.com"
+        },
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "salesforce.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "salesforce.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable"
+            }
+          ],
+          "domain": "salesforce.com"
+        },
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "pipelinecrm.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "pipelinecrm.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "pipelinecrm.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable"
+            }
+          ],
+          "domain": "pipelinecrm.com"
+        },
+        {
+          "cells": [
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "creatio.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [
+                "creatio.com"
+              ],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "answered",
+              "citedDomains": [],
+              "namesCustomer": false
+            },
+            {
+              "kind": "unmeasured",
+              "reason": "undeterminable"
+            }
+          ],
+          "domain": "creatio.com"
+        }
+      ],
+      "coverage": "async_included",
+      "ownDomain": "pipedrive.com",
+      "measuredAt": "2026-09-12T20:06:48.167Z",
+      "answeredSearches": 4,
+      "measuredSearches": 4,
+      "customerCitations": 1
+    },
+    "coherence": {
+      "verdict": "coherent"
+    },
+    "ownRanked": {
+      "at": "2026-09-12T19:26:19.347Z",
+      "kind": "measured",
+      "value": 37924
+    },
+    "questions": {
+      "at": "2026-09-12T20:06:48.167Z",
+      "kind": "measured",
+      "value": [
+        {
+          "id": "q1",
+          "text": "What CRM and sales software can help manage my business?",
+          "search": {
+            "rank": 1,
+            "score": 9.83694635059633,
+            "intent": "solution",
+            "volume": 1900,
+            "keyword": "crm and sales software"
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q2",
+          "text": "What CRM software should my sales team use?",
+          "search": {
+            "rank": 2,
+            "score": 7.519515097214615,
+            "intent": "solution",
+            "volume": 320,
+            "keyword": "crm software for sales team"
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q3",
+          "text": "What is the best CRM sales software?",
+          "search": {
+            "rank": 3,
+            "score": 5.5537750461572255,
+            "intent": "decision",
+            "volume": 70,
+            "keyword": "best crm sales software"
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q4",
+          "text": "Is there free CRM sales software available?",
+          "search": {
+            "rank": 4,
+            "score": 5.122710528293808,
+            "intent": "solution",
+            "volume": 50,
+            "keyword": "crm sales software free"
+          },
+          "phrasing": "model"
+        },
+        {
+          "id": "q5",
+          "text": "What CRM sales software works for small businesses?",
+          "search": {
+            "rank": 5,
+            "score": 5.122710528293808,
+            "intent": "solution",
+            "volume": 50,
+            "keyword": "sales crm software for small business"
+          },
+          "phrasing": "model"
+        }
+      ]
+    },
+    "rivalSizes": {
+      "at": "2026-09-12T20:06:44.690Z",
+      "kind": "unmeasured",
+      "reason": "not_attempted"
+    },
+    "blockedAgents": [],
+    "stoppedReason": "complete",
+    "correctionState": "none",
+    "fromIncompleteRescan": false
+  },
+  "siteProfile": null,
+  "site": null,
+  "pages": [
+    {
+      "url": "https://www.pipedrive.com/",
+      "readAt": "2026-09-12T19:26:19.347Z",
+      "title": "Sales CRM & Pipeline Management Software | Pipedrive",
+      "h1": "The easy and effective CRM for closing deals",
+      "text": "Sales CRM & Pipeline Management Software | Pipedrive Skip to main content Features Pipeline management Lead management Sales inbox Sales automation Projects Reporting and analytics Email sync and tracking Pipedrive AI LeadBooster Integrations and Marketplace Mobile CRM app Email marketing Security and permissions management Why Pipedrive HubSpot Salesforce Monday.com See all comparisons Tiffany Largie AI Bees Big Dog Solar See all case studies Real estate Travel agency Information technology See all industries Contact managers Lead managers Designers See all roles Resources About us Jobs Newsroom Partner Status Contact support Onboarding Knowledge base Blog Learn CRM Hub Developers Downloadable Contact sales Pricing All categories Marketplace apps Blog Knowledge Base Academy All results: 0 No results found. English Čeština Deutsch Eesti Español Français Magyar Bahasa Indonesia Italiano Japanese (日本語) Korean (한국어) Latviešu valoda Nederlands Norsk Polski Português (BR) Română Русский Suomi Svenska ภาษาไทย Türkçe Українська Chinese (繁體中文) Log in Try it free The easy and effective CRM for closing deals Pipedrive lets you track your sales pipeline, optimize leads, manage deals with AI and automate your entire sales process so you can focus on selling. 14-day free trial, no credit card required Trusted by over 100,000 companies 500+ integrations to boost workflows Built-in AI to close deals faster GDPR compliant and secure Try it free Contact sales Enter your work email Try it free By signing up, you agree to our Terms of Service Opens in new window and Privacy Notice Opens in new window . You'll get product updates and offers, and you can unsubscribe anytime. Full access. No credit card required. Used by over 100,000 companies. Trusted by 100,000+ companies in 179 countries CRM software sales teams will love I’ve used a CRM before I haven’t used a CRM before Save hours with automated lead nurturing Never miss a follow-up with automated sales conversations and AI-powered prompts to focus on the right leads. Pipedrive is the best tool I’ve ever found! From email tracking to workflow automations and game-changing integrations, Pipedrive has plenty of features that help us go beyond our sales targets. Nirmal Gyanwali Managing Director, Nirmal Web Studio Harness sales insights to drive your strategy Dive into real-time sales reports and grasp the ins and outs of your sales funnel with AI suggestions. Pipedrive’s forecasting, goal-setting, team monitoring and advanced sales metrics tools help you to make swift, informed decisions. Pipedrive has enabled us to have instant access to that data, so it’s not just quadrupling our revenue but ensuring that we have predictable revenue. Suds Singh Founder and MD, Interesting Content The CRM tailored to your business Seamlessly switch to a sales tool that matches every step of your buyer’s journey. Pipedrive is more than just a pipeline. Pipedrive adapts well to what we need, and I like that. Unlike other CRM solutions, it fits our needs and doesn’t force us to simply conform to what it can provide. Franziska Palumbo-Seidel CEO and Founder, Key Search See all features Compare CRMs Unlock sales success Simplify your workflow and unite your sales tasks in one workspace. Get AI-powered, personalized tips to help you focus on winning deals. Pipedrive has made me a salesperson with good habits. And without a doubt I am much more organized than before. Luis Carlos Rojas Sales Manager, Saleslatam México Refine your strategy with real-time performance insights Leverage real-time, visual data to easily make tough decisions and identify what works. Pipedrive has enabled us to have instant access to that data, so it’s not just quadrupling our revenue but ensuring that we have predictable revenue. Suds Singh Founder and MD, Interesting Content Customize Pipedrive to your unique sales process Discover the power of a CRM that adapts to your sales strategy, giving you the tools and tips you need to succeed. By customizing and automating the customer journey, we were able to remove so much clutter, bottlenecking, manual admin and confusion. Karl Brown Founder and CEO, Instyle Solar See all features Compare CRMs Join 100,000+ companies using Pipedrive to gain real-time insights and more! Less time managing, more time closing deals. Watch demo See how Pipedrive is helping customers Pipedrive is recognized as a top-rated CRM and, this year alone, has earned over 6 industry-leading awards Say hello to Pipedrive AI Boost your sales success with our AI-powered features. Phase out manual processes, streamline communication and make data-driven decisions for smarter, faster sales. Find out more Opens in new window Connect your tech stack and discover tools with Pipedrive’s Marketplace Integrate Pipedrive with the apps that drive your business. Seamlessly connect your favorite software or find new tools with tailored recommendations. Browse all apps Optimize your sales process Supercharge every step of your sales cycle and empower your team to win deals. Easily manage leads and deals One space for all your sales activities Automate and scale Instant sales insights Enhance your CRM experience Easily manage leads and deals Organize customer data and interactions in one simple tool and act fast when opportunity strikes. Customize your pipelines Pipedrive’s kanban-style dashboard lets you visualize your sales funnel. Adjust your pipelines to your sales process and move deals along as they progress. We’ll notify you when you need to follow up. Centralize your sales data and contact history Import data from spreadsheets or other pipeline management software in just a few clicks. Link products or services to deals to track negotiations and see the bigger picture. Add custom fields Shape your CRM to your business with custom fields. Capture must-have info for your sales team and automate calculations with smart formulas. Learn more One space for all your sales activities Easily track sales conversations and tasks in one tool, giving your salespeople the context they need to follow up faster. Your one-stop sales inbox Speed up response time and never miss an opportunity again with two-way email sync. Connect up to five email accounts and keep prospects hooked with customizable templates. Calendar sync and task reminders Manage your schedule from the comfort of your CRM. Calendar sync lets you link your business calendar to Pipedrive and reminds you of upcoming deadlines, helping you stay focused. Easy call scheduling Share your availability with leads and let them book calls on their schedule. Instantly generate meeting links for Google Meet, Zoom or Microsoft Teams. Learn more Automate and scale Streamline your sales process and use AI – get more done with less work. Automate your entire sales cycle Cut admin time in half and let reps focus on closing deals. Easily set up workflow automations for your team or choose from ready-made templates. Automate lead routing and increase conversion Automatically assign leads while they’re hot with custom rules. As they move through your sales funnel, Pipedrive will hand them off from one sales rep to the next so you can keep the ball rolling. Boost productivity with automated follow-ups Keep leads and prospects engaged with sales automation. Set up auto-sequences that trigger based on email interactions or use AI prompts to quickly respond to leads. Learn more Instant sales insights Take advantage of Pipedrive’s precise, real-time data analytics to track sales metrics and fine-tune your strategy. Monitor sales performance Set goals and measure progress with visual reports and dashboards. Quickly identify bottlenecks to keep your pipeline running smoothly. Forecast and track revenue Confidently predict earnings based on past performance, from recurring revenue to one-off deals. Gain a comprehensive view of predicted income, allowing for quick, tactical adjustments. Get smarter, actionable insights Pipedrive’s AI Sales Assistant predicts which deals you’re most likely to win, or lose. Get suggestions on which leads to pursue, along with daily snapshots of your sales team’s performance. Learn more Enhance your CRM experience Pipedrive’s simple, secure and flexible ecosystem helps you stay on track for sales success. Enrich your CRM tool with integrations, manage your pipeline on the go and onboard teammates without the learning curve. Discover 500+ integrations Optimize your revenue cycle with 500+ apps for lead generation, video calls, project management, marketing and more. Connect your favorite software in minutes and get tailored add-on suggestions with Pipedrive Marketplace. World-class security and robust account controls Keep your data safe with AES-256 encryption, full SOC 2 compliance and leading hosting infrastructure in Rackspace and AWS. Tailor your account permissions and security settings and receive instant alerts for peace of mind. Sell on the go With Pipedrive’s mobile apps for Android and iOS, sales efficiency is always at your fingertips, wherever you are. Access your data on the move, finalize meeting prep and impress leads with instant follow-ups. Learn more Popular blog posts CRM evaluations: How to choose the perfect system In this CRM evaluation guide, you’ll learn what to look for when selecting a CRM system and how to extract the most useful information from vendors. Opens in new window How to write a response worthy follow-up email (with 15 templates) We’ve compiled 15 of the best follow-up email samples you can use to cover almost any sales situation. Opens in new window Sales presentations: templates, examples and ideas on how to present like a pro In this guide, you’ll learn how to use the power of storytelling to drive decision-making and close more deals. Opens in new window CRM FAQs What is Pipedrive? Pipedrive is a sales pipeline CRM designed to help small businesses manage leads, track sales activities and close more deals. How does Pipedrive work? In a nutshell, Pipedrive enables sales teams in small businesses to: Streamline processes and consolidate sales data in one unified CRM sales tool. Automate follow-ups and ensure timely responses to leads. Keep an eye on sales achievements and assess team performance for ongoing improvement. How to set up Pipedrive? Setting up Pipedrive is straightforward. To get up and running with our CRM pipeline management tool, here’s a brief guide: Begin by importing existing data or building your leads database within Pipedrive’s sales CRM software. Explore our Marketplace integrations to infuse your pipeline with even more quality leads. Define your sales pipeline, create active deals, synchronize your business email and calendar and start scheduling your next activities. If collaboration is key, set up team access. Pipedrive offers granular permissions, allowing you to fine-tune who can view or modify your CRM data. As you progress, keep a close eye on your sales outcomes by creating real-time reports and dashboards. This will help you adapt and refine your strategies for even greater success. How will Pipedrive’s CRM solution help me improve sales? Pipedrive’s CRM sales pipeline makes customer relationship management a breeze by allowing you to track leads, spot opportunities, measure key activities, streamline sales workflows and focus on sales success. Automated reminders and follow-ups increase your productivity, eliminating repetitive, time-consuming tasks. Real-time reports show your sales reps and sales managers which business processes to prioritize. Will Pipedrive work for a big team? Yes! Pipedrive’s sales CRM software is well-suited for startups and larger teams alike. Our pipeline CRM helps large sales and marketing teams streamline their customer interactions. Sales managers and their teams can benefit from a progress tracker, sales automation, procession forecasting, an activity-based planner and top security. In addition, large teams have access to a dedicated account manager to help them make the most of Pipedrive. Your account manager can also help you onboard other team members to your sales CRM system and guide you on pipeline management best practices. What does CRM stand for in sales? “CRM“ in sales stands for “Customer relationship management.” Although the “C” in “CRM” stands for “customer,” the best CRM tools can help teams enhance every stage in the sales cycle. What is a CRM in sales? A CRM, or sales CRM tool, is a system sales teams use to manage customer data and nurture customer relationships. Several popular CRM and sales tools exist on the market, including Pipedrive. How does CRM help sales? A CRM for sales enables you and your reps to centralize contact information, track ongoing activities and boost customer retention. Pipedrive’s visual sales pipeline lets you see your entire sales cycle at a glance, highlighting key opportunities. Get notified when you need to follow up, helping you enhance your customer experience and drive more deals than ever. What is CRM software? CRM software is the technology organizations use to manage relationships and business processes. Typically, CRM software for sales teams lets users track their activities, manage communications with other parties, measure individual and team progress and forecast revenue. The top CRM sales software integrates with other business tools, such as email marketing, document management and website tracking software. How do I choose a CRM? Choosing a good CRM sales tool for your business requires research and testing. Many companies, including Pipedrive, offer new users a 14-day free CRM trial to see if the software suits their needs. When searching for the best CRM software, consider ease of use, onboarding and results orientation. You should also look for the best pipeline management software and sales management software to ensure your CRM has all the functionality your team needs to drive business growth. Which apps can I connect with Pipedrive? Pipedrive integrates with hundreds of tools and apps through the Pipedrive Marketplace, including Facebook, Zapier, Xero, Trello and Zoom. You can find Pipedrive integrations with lead generation software, sales and marketing tools, video calling apps, customer support solutions and social media platforms. Driving business growth Try it free Full access. No credit card needed. Skip footer navigation links Product Features Pipedrive AI Pricing Integrations API MCP Product updates Discover Partner program Referral program Case studies Sales pipeline course What is CRM? Resources Sales calculator Help Center Knowledge Base Academy FAQs Status Support (Available now) Company About Jobs Blog Newsroom Get our newsletter Trust center Legal hub Sub-processors English English Čeština Deutsch Eesti Español Français Magyar Bahasa Indonesia Italiano Japanese (日本語) Korean (한국어) Latviešu valoda Nederlands Norsk Polski Português (BR) Română Русский Suomi Svenska ภาษาไทย Türkçe Українська Chinese (繁體中文) © 2026 Pipedrive Pipedrive Terms of Service Pipedrive Privacy Notice Site map Cookie Notice Pipedrive is a Web-based Sales CRM."
+    }
+  ]
+}
