@@ -383,7 +383,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
 
     async earnGrounding(siteId) {
       try {
-        const [{ readMeasuredText }, { orderedPassages }, { readSiteProfile }, report] = await Promise.all([
+        const [{ readMeasuredText }, { sitePassages }, { readSiteProfile }, report] = await Promise.all([
           import("@/lib/measure/text"),
           import("@/lib/generate/pipeline/grounding"),
           import("@/lib/site-profile/store"),
@@ -394,7 +394,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
           report === null ? Promise.resolve(null) : readSiteProfile(report.domain),
         ]);
         return earnGroundingOf({
-          pages: measuredPages.map((page) => ({ url: page.url, passages: orderedPassages(page.text) })),
+          pages: sitePassages(measuredPages).map(({ page, passages }) => ({ url: page.url, passages })),
           inventory: profile?.inventory ?? [],
         });
       } catch {

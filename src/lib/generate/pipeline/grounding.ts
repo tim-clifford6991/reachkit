@@ -31,6 +31,7 @@
 // many of the customer's pages as there are; and where a target search is
 // known the pages that share its words are offered first, so the fact the
 // page stands on is about the question rather than about the seller.
+import nlp from "compromise";
 import { BRIEF_MAX_FACTS } from "@/lib/config/constants";
 import { readMeasuredText, type MeasuredText } from "@/lib/measure/text";
 import type { GroundedFact } from "../rules/types";
@@ -47,12 +48,30 @@ const NUMERAL_RE = /\d/;
 
 const SENTENCE_SPLIT_RE = /(?<=[.!?])\s+/;
 
+/** Ends as a sentence ends, allowing a closing quote or bracket. */
+const SENTENCE_END_RE = /[.!?]["'”’)\]]?$/;
+
+/** A passage repeated on this many of the site's pages is the site's
+ *  chrome, not something one page says (SPEC §5, 2026-09-29, drafted). */
+const REPEATED_ON_PAGES = 3;
+
+/** Prose, not a label: it ends in punctuation and it has a verb (SPEC §5,
+ *  2026-09-29 — "keeps a sentence only where it is prose"). Menus, tiles
+ *  and figures ("Discoverability Score 62") fail one or both. */
+function readsAsProse(sentence: string): boolean {
+  return SENTENCE_END_RE.test(sentence) && nlp(sentence).verbs().length > 0;
+}
+
+/** The text is one block per line (`@/lib/measure/prose`): a sentence
+ *  never runs across two blocks. */
 function candidateSentences(text: string): string[] {
   return text
-    .split(SENTENCE_SPLIT_RE)
+    .split("\n")
+    .flatMap((block) => block.split(SENTENCE_SPLIT_RE))
     .map((sentence) => sentence.replace(/\s+/g, " ").trim())
     .filter(
-      (sentence) => sentence.length >= PASSAGE_MIN_CHARS && sentence.length <= PASSAGE_MAX_CHARS
+      (sentence) =>
+        sentence.length >= PASSAGE_MIN_CHARS && sentence.length <= PASSAGE_MAX_CHARS && readsAsProse(sentence)
     );
 }
 
@@ -67,6 +86,25 @@ export function orderedPassages(text: string): string[] {
     ...sentences.filter((sentence) => NUMERAL_RE.test(sentence)),
     ...sentences.filter((sentence) => !NUMERAL_RE.test(sentence)),
   ];
+}
+
+/**
+ * Each page's passages, minus any the site repeats on three or more of its
+ * pages. Every caller that reads passages over a set of pages reads them
+ * here, so a footer's sentence is dropped however the facts are read.
+ */
+export function sitePassages<P extends { url: string; text: string }>(
+  pages: readonly P[]
+): { page: P; passages: string[] }[] {
+  const read = pages.map((page) => ({ page, passages: orderedPassages(page.text) }));
+  const onPages = new Map<string, Set<string>>();
+  for (const { page, passages } of read) {
+    for (const passage of passages) onPages.set(passage, (onPages.get(passage) ?? new Set()).add(page.url));
+  }
+  return read.map(({ page, passages }) => ({
+    page,
+    passages: passages.filter((passage) => (onPages.get(passage)?.size ?? 0) < REPEATED_ON_PAGES),
+  }));
 }
 
 /** Freshest first, so a page read this week grounds ahead of one read a
@@ -146,7 +184,7 @@ export async function readAllFacts(a: FactRead): Promise<SourcedFact[]> {
     await readMeasuredText({ siteId: a.siteId, scanId: a.scanId }),
     a.target
   );
-  const queues = pages.map((page) => ({ page, passages: orderedPassages(page.text) }));
+  const queues = sitePassages(pages);
   const out: SourcedFact[] = [];
   const seen = new Set<string>();
   const rounds = Math.max(0, ...queues.map((queue) => queue.passages.length));

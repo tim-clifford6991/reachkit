@@ -63,7 +63,7 @@ import type { SafeFetchOpts } from "@/lib/egress/safe-fetch";
 import { robotsTokensFor, safeFetch } from "@/lib/egress/safe-fetch";
 import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import { registrableDomain } from "@/lib/market/rivals/domains";
-import { visibleText } from "@/lib/measure/parse";
+import { proseText } from "@/lib/measure/prose";
 import { readPageFacts, type PageIssueFacts } from "@/lib/site-issues/facts";
 import {
   isStoredDocument,
@@ -697,7 +697,7 @@ function pageOf(url: string, html: string, site: string | null, fetchMs: number 
     url,
     title: firstText(html, TITLE_RE),
     h1: firstText(html, H1_RE),
-    text: visibleText(html).slice(0, SITE_PROFILE.PAGE_SAMPLE_CHARS),
+    text: proseText(html).slice(0, SITE_PROFILE.PAGE_SAMPLE_CHARS),
     facts: readPageFacts(url, html),
     links: [...links],
     fetchMs,

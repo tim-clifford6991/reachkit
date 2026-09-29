@@ -46,9 +46,8 @@ export async function buildComparisonSet(a: {
   return {
     published: published.map(renderedPage),
     queued: queued.map(renderedPage),
-    // Already rendered text — `readMeasuredText` extracts it with the same
-    // extractor the measurement scored the page on, so the comparison set
-    // cannot disagree with what the page was measured as.
+    // Already rendered text — `readMeasuredText` extracts each page's own
+    // prose, without the chrome every page repeats.
     measured: measured.slice(0, BATTERY.MEASURED_PAGES_MAX).map((page) => ({
       ref: page.url,
       title: page.url,

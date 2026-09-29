@@ -53,7 +53,7 @@ export type VoiceSampleResponse =
  *  enough that the prompt stays small: the same `BRIEF_MAX_FACTS` shape the
  *  page writer uses, read from the pin rather than spelled here. */
 async function passagesFor(domain: string): Promise<VoicePassage[]> {
-  const [{ readDomainText }, { orderedPassages }, { BRIEF_MAX_FACTS }] = await Promise.all([
+  const [{ readDomainText }, { sitePassages }, { BRIEF_MAX_FACTS }] = await Promise.all([
     import("@/lib/measure/text"),
     import("@/lib/generate/pipeline/grounding"),
     import("@/lib/config/constants"),
@@ -62,8 +62,8 @@ async function passagesFor(domain: string): Promise<VoicePassage[]> {
   const out: VoicePassage[] = [];
   const seen = new Set<string>();
   // Freshest page first, the order `writeLeadPage` already grounds in.
-  for (const page of [...pages].reverse()) {
-    for (const passage of orderedPassages(page.text)) {
+  for (const { page, passages } of sitePassages([...pages].reverse())) {
+    for (const passage of passages) {
       if (seen.has(passage)) continue;
       seen.add(passage);
       out.push({ url: page.url, passage });
