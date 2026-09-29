@@ -34,7 +34,7 @@ function inlineText(nodes: readonly Inline[]): string {
   return nodes.map((node) => ("text" in node ? node.text : inlineText(node.children))).join("");
 }
 
-function blockText(block: Block): string {
+export function blockText(block: Block): string {
   switch (block.kind) {
     case "heading":
     case "paragraph":
@@ -61,7 +61,7 @@ function links(nodes: readonly Inline[]): string[] {
   );
 }
 
-function blockLinks(block: Block): string[] {
+export function blockLinks(block: Block): string[] {
   switch (block.kind) {
     case "heading":
     case "paragraph":
