@@ -29,7 +29,7 @@ import type { DraftInsert, DraftPatch, DraftRow, GenerateStore } from "@/lib/gen
 import { setGenerateStore } from "@/lib/generate/store";
 import { promptProfile } from "@/lib/generate/voice/profile-block";
 import { measured } from "@/lib/measure/measured";
-import { bestFreePage, freePageOpportunity } from "@/lib/opportunities/free-page";
+import { bestFreePage, freePageOpportunity, type FreePagePick } from "@/lib/opportunities/free-page";
 import type { Opportunity } from "@/lib/opportunities/types";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { confirmedProfile } from "@/lib/site-profile/business/confirm";
@@ -49,7 +49,7 @@ export interface Options {
   tablePath: string;
 }
 
-interface Result {
+export interface Result {
   slot: EvalSlot;
   domain: string;
   scan: Snapshot["scan"];
@@ -60,6 +60,10 @@ interface Result {
   checklist: Checklist | null;
   grade: ModelGrade | null;
   costCents: number;
+  /** The business facts the draft stood on, and its buyer questions, as the
+   *  pipeline stored them on the row. */
+  factsUsed: { passage: string; url: string }[];
+  faq: unknown;
 }
 
 const cents = (n: number): string => `${n.toFixed(2)}¢`;
@@ -191,16 +195,24 @@ function siteIdOf(index: number): string {
   return `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`;
 }
 
-async function evaluate(ledger: ProofLedger, slot: EvalSlot, index: number, today: string): Promise<Result> {
+/** One page for one domain. `given` is a topic chosen elsewhere (#1153 runs
+ *  the ranking's second and third picks); without it, the report's first. */
+export async function evaluate(
+  ledger: ProofLedger,
+  slot: EvalSlot,
+  index: number,
+  today: string,
+  given?: FreePagePick
+): Promise<Result> {
   const domain = slot.domain!;
   const snapshot = readSnapshot(domain);
   const report = readStoredReport(snapshot.report);
-  const base = { slot, domain, scan: snapshot.scan, title: null, bodyMarkdown: null, checklist: null, grade: null, costCents: 0 };
+  const base = { slot, domain, scan: snapshot.scan, title: null, bodyMarkdown: null, checklist: null, grade: null, costCents: 0, factsUsed: [], faq: null };
   if (report.market.kind === "unmeasured") return { ...base, target: null, outcome: "no market reading in the report" };
   const market = report.market.value.profile;
 
   const siteId = siteIdOf(index);
-  const pick = bestFreePage(report);
+  const pick = given ?? bestFreePage(report);
   const opportunity = pick === null ? fallbackOpportunity(report, siteId) : { ...freePageOpportunity(report, pick), siteId };
   if (opportunity === null) return { ...base, target: null, outcome: "no topic, and no measured question to fall back on" };
   const target = { search: opportunity.targetQuery ?? "", type: opportunity.type };
@@ -297,7 +309,18 @@ async function evaluate(ledger: ProofLedger, slot: EvalSlot, index: number, toda
       bodyMarkdown: row.body_md,
       facts: factsUsed.map((fact) => fact.passage),
     });
-    return { ...base, target, outcome: said, title: row.title, bodyMarkdown: row.body_md, checklist: list, grade, costCents: cost.spentCents() };
+    return {
+      ...base,
+      target,
+      outcome: said,
+      title: row.title,
+      bodyMarkdown: row.body_md,
+      checklist: list,
+      grade,
+      costCents: cost.spentCents(),
+      factsUsed,
+      faq: meta?.faq ?? null,
+    };
   } finally {
     setGenerateStore(null);
     servePages(null);

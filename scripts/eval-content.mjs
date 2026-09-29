@@ -13,6 +13,8 @@
 //                                                 # stores a domain's snapshot from a
 //                                                 # connector export (snapshot.ts says how)
 //   npm run eval:content -- --run --env-file ../reachkitv3/.env.local
+//   npm run eval:content -- --ab [--run]          # #1153: A beside the prototype B
+//                                                 # and the reference C on reachkit.app
 //
 // The set, and the four slots the owner fills, are `scripts/eval-content/
 // set.ts`. Each domain's stored report and page text are committed under
@@ -54,6 +56,8 @@ const options = {
   tablePath: path.resolve(ROOT, "docs/walk/content-eval.md"),
 };
 const snapshotOf = flag("--snapshot", null);
+// #1153: today's pipeline beside the 2026-09-29 prototype, on reachkit.app.
+const ab = argv.includes("--ab");
 const envFile = path.resolve(ROOT, flag("--env-file", ".env.local"));
 
 function loadEnvFile(file) {
@@ -107,6 +111,10 @@ async function main() {
       const taken = snapshot.takeSnapshot(snapshotOf, path.resolve(from));
       console.log(`${snapshotOf}: scan ${taken.scan.id}, ${taken.pages.length} pages stored.`);
       return 0;
+    }
+    if (ab) {
+      const run = await server.ssrLoadModule("/scripts/eval-content/prototype/ab.ts");
+      return await run.main({ run: options.run, root: ROOT, priorCents: Number(flag("--prior-cents", "0")) });
     }
     const run = await server.ssrLoadModule("/scripts/eval-content/eval.ts");
     return await run.main(options);
