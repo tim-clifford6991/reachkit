@@ -185,6 +185,40 @@ describe("collapse — one survivor per cluster, over held rows and new candidat
     });
     expect(again).toEqual({ dismiss: [], update: [], insert: [] });
   });
+
+  describe("#1131 — one URL per question", () => {
+    const page = (n: number) => `example.org/page-${n}`;
+    const tens = new Map<string, readonly string[]>([
+      ["best seo software", [1, 2, 3, 4, 5, 6].map(page)],
+      ["what is the best seo software", [1, 2, 3, 4, 7, 8].map(page)],
+      ["best seo software for small business", [1, 2, 3, 9, 10].map(page)],
+    ]);
+
+    it("a search whose top ten shares four addresses with a held page folds into it; three shared stays its own topic", () => {
+      const plan = collapse({
+        existing: [held({ id: "live", type: "answer_page", family: "write", targetQuery: "best seo software", status: "queued" })],
+        candidates: [
+          candidate({ type: "keyword_page", family: "write", targetQuery: "what is the best seo software" }),
+          candidate({ type: "keyword_page", family: "write", targetQuery: "best seo software for small business" }),
+        ],
+        brandTokens: BRANDS,
+        topTens: tens,
+      });
+      expect(plan.insert.map((c) => c.targetQuery)).toEqual(["best seo software for small business"]);
+      expect(plan.update).toEqual([{ id: "live", clusterKey: "best seo software", absorbedQueries: ["what is the best seo software"] }]);
+    });
+
+    it("the stored same-question judgement joins two searches no top ten links", () => {
+      const plan = collapse({
+        existing: [held({ id: "open", type: "answer_page", family: "write", targetQuery: "best seo software" })],
+        candidates: [candidate({ type: "keyword_page", family: "write", targetQuery: "top rated seo tools" })],
+        brandTokens: BRANDS,
+        sameQuestion: new Map([["top rated seo tools", "best seo software"]]),
+      });
+      expect(plan.insert).toEqual([]);
+      expect(plan.update).toEqual([{ id: "open", clusterKey: "best seo software", absorbedQueries: ["top rated seo tools"] }]);
+    });
+  });
 });
 
 const CTX: ReadinessContext = {

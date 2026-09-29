@@ -33,6 +33,7 @@ import type {
   Winnability,
 } from "./types";
 import { OUTSIZED } from "./types";
+import { topTensOf } from "./cluster";
 import { earnGroundingOf, NO_EARN_GROUNDING, type EarnGrounding } from "./earn-grounding";
 import type { NotWorkingVerdict } from "./suppression";
 
@@ -114,6 +115,10 @@ export interface OpportunityStore {
   /** Open and queued non-Fix rows — the set a cluster collapse runs over
    *  alongside a pass's new candidates. */
   clusterable(siteId: string): Promise<readonly OpportunityRow[]>;
+  /** The top tens the given scans bought, by `queryKey`, a later scan's
+   *  over an earlier one's (#1131) — what a held row's search is compared
+   *  by. Only the questions and SERPs are read, never the whole report. */
+  topTens(scanIds: readonly string[]): Promise<ReadonlyMap<string, readonly string[]>>;
   /** Writes a row's cluster and the searches it absorbed. */
   setCluster(opportunityId: string, clusterKey: string, absorbedQueries: readonly string[]): Promise<void>;
   /** The site's current stored report, or `null` where it has no readable
@@ -362,6 +367,19 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .order("created_at", { ascending: true });
       if (error) throw new Error(`opportunities.clusterable: ${error.message}`);
       return data ?? [];
+    },
+
+    async topTens(scanIds) {
+      const topTens = new Map<string, readonly string[]>();
+      if (scanIds.length === 0) return topTens;
+      const { data, error } = await untyped()
+        .from<Pick<StoredReport, "questions" | "serps">>("scans")
+        .select("questions:report->questions, serps:report->serps")
+        .in("id", [...scanIds])
+        .order("created_at", { ascending: true });
+      if (error) throw new Error(`opportunities.topTens: ${error.message}`);
+      for (const report of data ?? []) for (const [query, urls] of topTensOf(report)) topTens.set(query, urls);
+      return topTens;
     },
 
     async setCluster(opportunityId, clusterKey, absorbedQueries) {
