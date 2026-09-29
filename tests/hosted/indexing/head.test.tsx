@@ -227,16 +227,10 @@ describe("the render itself — the whole page at first byte, and no sentence of
   });
 
   it("no ReachKit name, link or navigation stands on a customer's own page", async () => {
-    // **The one mention is the set's own** (UI-SPEC S19, issue #375): the
-    // canonical note states where this page is canonical and that our
-    // preview host is noindex — the guardrail §9 and §14 fix, written
-    // where a reader can check it. It is not a byline and not a link, and
-    // it is the only place the word occurs.
+    // SPEC §5 and §7 (2026-09-29, #1129): not even the canonical note the
+    // set once drew — the canonical is in `<head>`.
     const html = await render();
-    const mentions = html.toLowerCase().split("reachkit.app").length - 1;
-    expect(mentions).toBe(1);
-    expect(html).toContain("noindex on *.reachkit.app");
-    expect(html.toLowerCase().replaceAll("reachkit.app", "")).not.toContain("reachkit");
+    expect(html.toLowerCase()).not.toContain("reachkit");
     expect(html).not.toContain("<nav");
     expect(html).not.toContain('href="https://reachkit');
   });
@@ -290,7 +284,7 @@ describe("#980 — a hosted response with no title of its own carries the visito
   it("the layout titles the response with the host, exactly as it arrived", async () => {
     const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/layout");
     state.host = "content.example.com";
-    expect(await layoutMetadata()).toEqual({ title: "content.example.com", icons: [] });
+    expect((await layoutMetadata()).title).toBe("content.example.com");
   });
 
   it("a port and a trailing dot are not part of the name", async () => {
@@ -302,15 +296,17 @@ describe("#980 — a hosted response with no title of its own carries the visito
   it("a request with no Host states no title rather than an empty one", async () => {
     const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/layout");
     state.host = "";
-    expect(await layoutMetadata()).toEqual({ icons: [] });
+    expect((await layoutMetadata()).title).toBeUndefined();
   });
 
-  // #1121: the favicon set sits at the root of `app/` so every ReachKit
-  // route names it; an empty `icons` keeps it off a customer's domain.
-  it("the layout names no icon, so a customer's page carries no ReachKit mark", async () => {
+  // #1121, #1129: no ReachKit icon or manifest on a customer's domain, and
+  // no head link a customer's host would answer 404.
+  it("the layout names an empty icon and no manifest", async () => {
     const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/layout");
     state.host = "content.example.com";
-    expect((await layoutMetadata()).icons).toEqual([]);
+    const head = await layoutMetadata();
+    expect(head.icons).toEqual({ icon: "data:," });
+    expect(head.manifest).toBeNull();
   });
 
   it("a published page's own title still wins — the layout's is only the floor", async () => {
