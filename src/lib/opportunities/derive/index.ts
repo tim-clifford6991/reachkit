@@ -27,10 +27,11 @@ import type { Candidate } from "./candidate";
 import { earnCandidates } from "./earn";
 import { fixCandidates } from "./fix";
 import { improveCandidates } from "./improve";
-import { brandTokensOf, collapse, coveredTopics } from "../cluster";
+import { brandTokensOf, collapse, coveredTopics, topTensOf } from "../cluster";
 import { rebandFor } from "../readiness";
 import { opportunityStore, readOpportunity } from "../store";
 import { persist } from "./persist";
+import { judgeSameQuestion } from "./same-question";
 import { refineType } from "./typing";
 import { applyKnownContent, type KnownContentGate } from "./known";
 import { writeCandidates } from "./write";
@@ -160,11 +161,27 @@ export async function deriveOpportunities(
   const existing = (await store.clusterable(a.siteId)).map(readOpportunity);
   const brandTokens = brandTokensOf(a.report);
   const measuredOwnRanked = a.ownRanked.kind === "unmeasured" ? null : a.ownRanked.value;
+
+  // SPEC §6 (2026-09-29, #1131): one URL per question. Two searches are one
+  // topic where their stored top tens share four addresses — a held row's
+  // from the scan that derived it, this pass's own over any older one — or
+  // where the one small-tier judgement below says they ask the same
+  // question. Nothing is bought for either.
+  const topTens = new Map(await store.topTens([...new Set(existing.map((row) => row.scanId))]));
+  for (const [query, urls] of topTensOf(a.report)) topTens.set(query, urls);
+  const pages = (candidate: Candidate) => candidate.family === "write" || candidate.family === "earn";
+  const sameQuestion = await judgeSameQuestion(c, {
+    searches: labelled.filter(pages).flatMap((candidate) => candidate.targetQuery ?? []),
+    topics: existing.flatMap((row) => row.targetQuery ?? []),
+  });
+
   const plan = collapse({
     existing,
     candidates: labelled,
     brandTokens,
     pass: { scanId: a.scanId, covered: coveredTopics(a.report, brandTokens) },
+    topTens,
+    sameQuestion,
     ...(measuredOwnRanked === null
       ? {}
       : { today: (row: Opportunity) => rebandFor(row, measuredOwnRanked) }),

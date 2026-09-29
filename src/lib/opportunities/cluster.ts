@@ -6,9 +6,18 @@
 // trailing `s` removed, sorted and joined — and Improve uses the same key.
 // Nothing is bought to cluster: the key is a function of the words.
 //
+// Owner, 2026-09-29 (#1131): one URL per question. The word key is not the
+// only way two searches are one topic — "best seo software" and "what is
+// the best seo software" share no key and one top ten. Two members are one
+// topic where their stored top tens share `SAME_TOPIC_SHARED_ADDRESSES`
+// addresses, or where the pass's one small-tier judgement said they ask the
+// same question (`derive/same-question.ts`). Both are handed in; this file
+// still buys and asks nothing.
+//
 // Pure. No model, no fetch, no clock. Every family keys the same way, so a
 // family added later (an Earn row's readiness, say) clusters with no branch
 // here.
+import { SAME_TOPIC_SHARED_ADDRESSES } from "@/lib/config/constants";
 import { stemKey } from "@/lib/market/questions/select";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import type { StoredReport } from "@/lib/scan/report";
@@ -30,6 +39,33 @@ export function canonicalUrl(url: string): string {
     .replace(/^www\./, "")
     .replace(/#.*$/, "")
     .replace(/\/+$/, "");
+}
+
+/** How a search is looked up in a top-ten map or a judgement. */
+export function queryKey(query: string): string {
+  return query.trim().toLowerCase();
+}
+
+/** The top ten a report bought for each of its questions, as canonical
+ *  addresses, keyed by `queryKey`. A question whose SERP is unmeasured has
+ *  none. */
+export function topTensOf(report: Pick<StoredReport, "questions" | "serps">): Map<string, readonly string[]> {
+  const topTens = new Map<string, readonly string[]>();
+  if (report.questions?.kind !== "measured") return topTens;
+  report.questions.value.forEach((question, index) => {
+    const serp = report.serps?.[index];
+    if (serp === undefined || serp.kind !== "measured") return;
+    const urls = serp.value.organic.slice(0, 10).map((row) => canonicalUrl(row.url));
+    if (urls.length > 0) topTens.set(queryKey(question.search.keyword), urls);
+  });
+  return topTens;
+}
+
+/** SPEC §6 (2026-09-29): whether two top tens make their searches one
+ *  topic. */
+export function shareATopTen(a: readonly string[], b: readonly string[]): boolean {
+  const other = new Set(b);
+  return new Set(a.filter((url) => other.has(url))).size >= SAME_TOPIC_SHARED_ADDRESSES;
 }
 
 /** The brand tokens a cluster key drops: the customer's own (the profile's
@@ -141,6 +177,11 @@ function shapeOf(m: Member): { family: Family; type: OpportunityType } {
   return m.kind === "row" ? m.row : m.candidate;
 }
 
+function plansANewPage(m: Member): boolean {
+  const { family } = shapeOf(m);
+  return family === "write" || family === "earn";
+}
+
 function queryOf(m: Member): string | null {
   return m.kind === "row" ? m.row.targetQuery : m.candidate.targetQuery;
 }
@@ -210,15 +251,23 @@ export function collapse(a: {
    *  `rebandFor`), where the caller can compute one. Absent, the row's own
    *  column stands. */
   today?: (row: Opportunity) => Winnability | null;
+  /** The stored top ten of a search, by `queryKey` (#1131). Absent, or a
+   *  search with none, joins nothing by overlap. */
+  topTens?: ReadonlyMap<string, readonly string[]>;
+  /** The pass's same-question judgement (#1131): a search, by `queryKey`,
+   *  to the search it asks the same question as. */
+  sameQuestion?: ReadonlyMap<string, string>;
 }): CollapsePlan {
-  const groups = new Map<string, Member[]>();
+  const byKey = new Map<string, Member[]>();
   const insert: ClusteredCandidate[] = [];
+  const keyOf = new Map<Member, string>();
 
   const add = (key: string | null, member: Member): boolean => {
     if (key === null) return false;
-    const group = groups.get(key) ?? [];
+    const group = byKey.get(key) ?? [];
     group.push(member);
-    groups.set(key, group);
+    byKey.set(key, group);
+    keyOf.set(member, key);
     return true;
   };
 
@@ -230,6 +279,8 @@ export function collapse(a: {
     const key = candidate.family === "fix" ? null : clusterKey(candidate.targetQuery, a.brandTokens);
     if (!add(key, { kind: "candidate", candidate })) insert.push({ ...candidate, clusterKey: null, absorbedQueries: [] });
   }
+
+  const groups = joinTopics(byKey, a.topTens ?? new Map(), a.sameQuestion ?? new Map());
 
   const band = (m: Member): Winnability | null =>
     m.kind === "row" && a.today !== undefined ? a.today(m.row) ?? m.row.fitBand : bandOf(m);
@@ -245,9 +296,12 @@ export function collapse(a: {
 
   const dismiss: string[] = [];
   const update: { id: string; clusterKey: string; absorbedQueries: string[] }[] = [];
-  for (const [key, members] of groups) {
+  for (const members of groups) {
     const [survivor, ...rest] = [...members].sort((x, y) => compareMembers(x, y, band));
     if (survivor === undefined) continue;
+    // The topic takes the survivor's own key, so a held survivor keeps the
+    // key it has and the index never sees it move.
+    const key = keyOf.get(survivor) as string;
     const hadCandidate = members.some((member) => member.kind === "candidate");
 
     const own = queryOf(survivor)?.trim().toLowerCase() ?? null;
@@ -272,4 +326,57 @@ export function collapse(a: {
     }
   }
   return { dismiss, update, insert };
+}
+
+/**
+ * The word-key groups, joined where two are one topic (#1131): a member of
+ * one shares a top ten with a member of the other, or the judgement says one
+ * asks the same question as the other. Joining is transitive — a topic is
+ * everything connected to it.
+ *
+ * Only a member that plans a new page (Write, Earn) joins this way: the rule
+ * is "never a second page", and an Improve is already the update of a page
+ * that exists — folding it into a queued row would drop that page's refresh.
+ */
+function joinTopics(
+  byKey: ReadonlyMap<string, Member[]>,
+  topTens: ReadonlyMap<string, readonly string[]>,
+  sameQuestion: ReadonlyMap<string, string>
+): Member[][] {
+  const keys = [...byKey.keys()];
+  const parent = new Map(keys.map((key) => [key, key]));
+  const root = (key: string): string => {
+    let at = key;
+    while (parent.get(at) !== at) at = parent.get(at) as string;
+    return at;
+  };
+  const join = (x: string, y: string) => {
+    const [rx, ry] = [root(x), root(y)];
+    if (rx !== ry) parent.set(ry, rx);
+  };
+
+  const keyOfQuery = new Map<string, string>();
+  const tops: { key: string; urls: readonly string[] }[] = [];
+  for (const [key, members] of byKey) {
+    for (const member of members) {
+      const query = queryOf(member);
+      if (query === null || !plansANewPage(member)) continue;
+      keyOfQuery.set(queryKey(query), key);
+      const urls = topTens.get(queryKey(query));
+      if (urls !== undefined) tops.push({ key, urls });
+    }
+  }
+  for (let i = 0; i < tops.length; i++) {
+    for (let j = i + 1; j < tops.length; j++) {
+      if (tops[i]!.key !== tops[j]!.key && shareATopTen(tops[i]!.urls, tops[j]!.urls)) join(tops[i]!.key, tops[j]!.key);
+    }
+  }
+  for (const [search, sameAs] of sameQuestion) {
+    const [x, y] = [keyOfQuery.get(queryKey(search)), keyOfQuery.get(queryKey(sameAs))];
+    if (x !== undefined && y !== undefined) join(x, y);
+  }
+
+  const topics = new Map<string, Member[]>();
+  for (const [key, members] of byKey) topics.set(root(key), [...(topics.get(root(key)) ?? []), ...members]);
+  return [...topics.values()];
 }

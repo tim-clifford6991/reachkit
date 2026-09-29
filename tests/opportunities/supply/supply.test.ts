@@ -214,8 +214,9 @@ describe("§7: pursuing depth buys nothing and never fills a day", () => {
     });
     expect(result.stop).toBe("target_met");
     expect(result.unused).toBeGreaterThanOrEqual(5);
-    // The only spend is the typing call site — no SERP, no ranked rows.
-    expect(new Set(sources)).toEqual(new Set(["opportunity-typing"]));
+    // The only spend is the typing and same-question calls — no SERP, no
+    // ranked rows.
+    expect(new Set(sources)).toEqual(new Set(["opportunity-typing", "topic-same-question"]));
   });
 
   it("a report with less evidence than a month stops at evidence_spent and does not throw", async () => {

@@ -20,6 +20,7 @@ import type {
 } from "../../src/lib/opportunities/store";
 import type { Profile } from "../../src/lib/market/questions/profile";
 import type { HostedOwnPages } from "../../src/lib/publish/destinations/hosted/own-page";
+import { topTensOf } from "../../src/lib/opportunities/cluster";
 import type { EarnGrounding } from "../../src/lib/opportunities/earn-grounding";
 import type { NotWorkingVerdict } from "../../src/lib/opportunities/suppression";
 import type { StoredReport } from "../../src/lib/scan/report";
@@ -170,6 +171,10 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       return state.rows.filter(
         (row) => row.site_id === siteId && (row.status === "open" || row.status === "queued") && row.family !== "fix"
       );
+    },
+
+    async topTens() {
+      return state.report === null ? new Map() : topTensOf(state.report);
     },
 
     async setCluster(opportunityId, clusterKey, absorbedQueries) {

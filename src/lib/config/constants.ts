@@ -210,6 +210,9 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   profile: 700,
   "question-phrasing": 800,
   "opportunity-typing": 256,
+  /** `{ pairs: { search, sameAs }[] }` over at most the pass's candidates:
+   *  ~25 a pair (issue #1131). */
+  "topic-same-question": 512,
   "generate.brief": 1024,
   "generate.outline": 1536,
   "generate.draft": 4096,
@@ -1344,6 +1347,11 @@ export const WRITE_VOLUME_FLOOR_PER_MONTH = 10 as const;      // §7
  *  Write opportunities in that cluster for four weeks; Improve of the live
  *  URL in it stays allowed." */
 export const CLUSTER_SUPPRESS_WEEKS = 4 as const;             // §6
+
+/** SPEC §6 (2026-09-29, *Topics by business fit*): two searches whose
+ *  stored top tens share this many page addresses are one topic. Drafted
+ *  threshold; the owner may correct it (#1131). */
+export const SAME_TOPIC_SHARED_ADDRESSES = 4 as const;        // §6
 
 /** Issue 477: "two `not_working` verdicts on Improve of one URL retire that
  *  URL" — counted in distinct Monday weeks. */
