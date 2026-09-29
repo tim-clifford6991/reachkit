@@ -45,19 +45,27 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { normaliseHost } from "./resolve-host";
 
-// **No icon of ours** (#1121). The favicon set sits at the root of
-// `src/app/` so every ReachKit route names it, and Next hands a root icon
-// to every layout beneath — this one included. Next adds the file icons
-// only when no segment set `icons` itself (`accumulateMetadata` in
-// `next/dist/lib/metadata/resolve-metadata.js`), so an empty list here
-// means a customer's page names no ReachKit mark.
-const NO_ICONS: Metadata["icons"] = [];
+// **No icon of ours, and no head link that 404s** (#1121, #1129). The
+// favicon set sits at the root of `src/app/` so every ReachKit route names
+// it, and Next hands a root icon to every layout beneath — this one
+// included. Naming no icon at all is not enough: a browser that finds no
+// `<link rel="icon">` asks for `/favicon.ico`, which a customer's host
+// answers 404. `data:,` is an empty icon the browser never fetches, so the
+// page names no mark of ours and no address that fails.
+//
+// The web app manifest is ReachKit's (`src/app/manifest.ts`, #326), and
+// Next links it from the root to every page; `null` here unlinks it, since
+// `/manifest.webmanifest` on a customer's host is the hosted catch-all's 404.
+const HOSTED_HEAD = {
+  icons: { icon: "data:," },
+  manifest: null,
+} satisfies Metadata;
 
 export async function generateMetadata(): Promise<Metadata> {
   const host = normaliseHost((await headers()).get("host") ?? "");
   // A request with no `Host` at all states no title rather than an empty
   // one — there is nothing of the visitor's to put there.
-  return host === "" ? { icons: NO_ICONS } : { title: host, icons: NO_ICONS };
+  return host === "" ? HOSTED_HEAD : { title: host, ...HOSTED_HEAD };
 }
 
 export default function HostedLayout({

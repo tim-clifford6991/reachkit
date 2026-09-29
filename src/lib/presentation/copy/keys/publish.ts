@@ -312,10 +312,8 @@ export const PUBLISH_COPY = Object.freeze({
   // — the brand, the category, the imprint line — is the customer's data
   // and not the owner's copy, so none of it is minted as a key.
   //
-  // `hosted.canonical` is the one line that names `reachkit.app`. It is
-  // there in the set, and it is a statement about *our* preview host and
-  // not a byline: the guardrail §9 and §14 fix — customer content never
-  // ranks on our domain — written where a reader of the page can check it.
+  // The set also drew a canonical note naming `reachkit.app`; SPEC §5 puts
+  // no ReachKit text on a customer's page, so it is gone (#1129).
   "hosted.published": [
     "published {date} · by {publisher}",
     { slots: { date: "date", publisher: "text" }, fixedBy: "S19 (11a)" },
@@ -323,10 +321,6 @@ export const PUBLISH_COPY = Object.freeze({
   "hosted.source": [
     "source: {source} · retrieved {date}",
     { slots: { source: "text", date: "date" }, fixedBy: "S19 (11a)" },
-  ],
-  "hosted.canonical": [
-    "Written for {domain}. Canonical: {canonical} · noindex on *.reachkit.app",
-    { slots: { domain: "text", canonical: "text" }, fixedBy: "S19 (11a)" },
   ],
   // The customer's own footer line. A key rather than a bare "©" in the
   // markup, so this surface has no string outside the registry at all —

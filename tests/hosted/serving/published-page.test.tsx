@@ -162,7 +162,7 @@ describe("S19 — the customer is the publisher, and the page says so", () => {
     // date is written in the customer's zone too, so the two dates on the
     // page are read the same way.
     expect(html).toContain(
-      "source: https://example.org/onboarding-tools-compared · retrieved 27 Aug 2026"
+      "source: example.org/onboarding-tools-compared · retrieved 27 Aug 2026"
     );
   });
 
@@ -183,24 +183,25 @@ describe("S19 — the customer is the publisher, and the page says so", () => {
     expect(html).not.toContain("<mark");
   });
 
-  it("the canonical note names their domain, their address and our noindex", async () => {
-    expect(await render()).toContain(
-      "Written for example.com. Canonical: https://content.example.com/a-page · noindex on *.reachkit.app"
-    );
+  it("a body that opens with the title prints it once, and its headings sit under it", async () => {
+    state.page = livePage({ bodyMd: "# The Best Onboarding Tools\n\nIntro.\n\n## What to look for\n\nText." });
+    const html = await render();
+    expect(html.match(/<h1[ >]/g)).toHaveLength(1);
+    expect(html).toContain("<h2");
+    expect(html).not.toContain("The Best Onboarding Tools");
   });
 
   it("the footer is theirs", async () => {
     expect(await render()).toContain("© example.com");
   });
 
-  it("every sentence on the page is a key, and every one of the four is written", async () => {
+  it("every sentence on the page is a key, and every one of the three is written", async () => {
     // Rule 6 of UI-SPEC §4, on the one surface that had no key at all
-    // before this issue. Written, not owed: the set spells all four
+    // before this issue. Written, not owed: the set spells all three
     // unbracketed (11a).
     for (const key of [
       "hosted.published",
       "hosted.source",
-      "hosted.canonical",
       "hosted.footer",
     ] as const) {
       expect(COPY[key]).not.toBe("");

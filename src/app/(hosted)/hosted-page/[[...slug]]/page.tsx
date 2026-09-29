@@ -48,14 +48,13 @@
 // `GeneratedText`) — and every other value on the surface is theirs too.
 //
 // **Three sentences, and they are structure rather than voice.** The
-// byline, the source line and the canonical note are the only strings of
-// ours, all three written unbracketed in the approved set and therefore
-// approved copy under ruling 11a. They read as keys like every other
-// sentence in the product (`publish.ts`'s `hosted.*`), and none of them
-// names ReachKit except the one the set itself writes: the canonical note,
-// which states the guardrail §9 and §14 fix — customer content never ranks
-// on our domain — where a reader of the page can check it. There is no
-// heading of ours, no navigation, no link to us and no wordmark.
+// byline, the source line and the footer are the only strings of ours.
+// They read as keys like every other sentence in the product
+// (`publish.ts`'s `hosted.*`), and none of them names ReachKit: SPEC §5 and
+// §7 (2026-09-29, #1129) put no ReachKit text on a customer's page, so the
+// canonical note the set drew is gone — the canonical is in `<head>`,
+// where a crawler reads it. There is no heading of ours, no navigation, no
+// link to us and no wordmark.
 //
 // **Nothing on this surface is the primary colour.** The product's colour
 // would be our branding on a stranger's domain; the customer's mark is the
@@ -82,6 +81,7 @@ import type React from "react";
 import { HOSTED_BODY_CLASSES } from "../body-classes";
 import { copy } from "@/lib/presentation/copy";
 import {
+  headingsUnderTitle,
   markPassage,
   parseMarkdown,
   toHtml,
@@ -278,6 +278,18 @@ function faqSchema(page: HostedPage, canonical: string): string | null {
   });
 }
 
+/** The source's host and path, without the scheme, the query or a trailing
+ *  slash: `example.org/tools-compared`. An address that will not parse is
+ *  shown as it was recorded. */
+function sourceOf(url: string): string {
+  try {
+    const { host, pathname } = new URL(url);
+    return `${host}${pathname}`.replace(/\/$/, "");
+  } catch {
+    return url;
+  }
+}
+
 /** The set's source line, or `null` for a page generation recorded no
  *  grounding for. The address stands in for the set's `[source title]`:
  *  what §8 records is where the fact was read, and a title we do not hold
@@ -287,9 +299,26 @@ function sourceLineFor(page: HostedPage): string | null {
   if (grounded === null || grounded.url === "") return null;
   if (grounded.readAt === null) return null;
   return copy("hosted.source", {
-    source: grounded.url,
+    source: sourceOf(grounded.url),
     date: writeDate(grounded.readAt, page.publisher.timeZone),
   });
+}
+
+/** The words of a heading or title, for comparing the two: case, spacing
+ *  and a trailing full stop or colon do not make them different. */
+function titleKey(text: string): string {
+  return text.replace(/\s+/g, " ").trim().replace(/[.:]$/, "").toLowerCase();
+}
+
+/** The body without a leading heading that repeats the page's title (SPEC
+ *  §7, 2026-09-29): the title is the page's one `<h1>`, printed above the
+ *  body, and a writer that also opens the body with it prints it twice. */
+function withoutRepeatedTitle(blocks: readonly Block[], title: string): Block[] {
+  const [first, ...rest] = blocks;
+  if (first?.kind === "heading" && titleKey(inlineText(first.children)) === titleKey(title)) {
+    return rest;
+  }
+  return [...blocks];
 }
 
 /** One value from a query string that may repeat. A repeated `utm_source`
@@ -381,7 +410,7 @@ export default async function HostedPageRoute({
   // string is safe to set as HTML by construction rather than by a
   // sanitiser someone has to remember to call. A second renderer here is
   // exactly what that module's header forbids.
-  const blocks = parseMarkdown(page.bodyMd);
+  const blocks = headingsUnderTitle(withoutRepeatedTitle(parseMarkdown(page.bodyMd), page.title));
   const grounded = page.grounded;
   const body = toHtml(
     grounded === null ? blocks : markPassage(blocks, grounded.passage).blocks,
@@ -453,16 +482,11 @@ export default async function HostedPageRoute({
               `max-w-none` because the column's measure is the `Surface`'s
               already, and a second one would narrow it again. */}
           <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: body }} />
-          {sourceLine === null ? null : <p className={QUIET_LINE}>{sourceLine}</p>}
-
-          <hr className="border-base-300 my-6" />
-
-          <p className={QUIET_LINE}>
-            {copy("hosted.canonical", {
-              domain: page.publisher.name,
-              canonical,
-            })}
-          </p>
+          {/* The text face, not mono: it is a sentence, and the address
+              in it is a host and a path rather than a URL to copy. */}
+          {sourceLine === null ? null : (
+            <p className="text-base-content/70 mt-8 text-sm wrap-anywhere">{sourceLine}</p>
+          )}
         </article>
       </main>
 
