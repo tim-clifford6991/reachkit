@@ -40,6 +40,9 @@ export const SETUP_COPY = Object.freeze({
   /** REQ-025 c5's exception in one line: a founder whose account cannot be
    *  read is told so, and told they can still reach Settings, cancel and
    *  export with setup unfinished. */
+  /** Issue 1196: a step whose request never came back. Drafted; the owner
+   *  may correct it. */
+  "setup.refused.could-not-ask": ["We couldn’t reach ReachKit just now, so this step wasn’t saved. Check your connection and press again.", { slots: {}, fixedBy: "issue 1196" }],
   "setup.refused.no-access": ["We couldn’t find an active plan for this account, so setup can’t start. Settings is still open to you — cancel or export your content there at any time.", { slots: {}, fixedBy: "REQ-025 c5" }],
   // ── The progress strip (UI-SPEC S10 · S11, issue #356) ──────────────
   "setup.progress.paid": ["Paid", { slots: {}, fixedBy: "S10 · 11a" }],

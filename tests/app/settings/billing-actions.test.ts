@@ -31,6 +31,7 @@ vi.mock("@/lib/account/billing", () => ({ portalLink, billingSummary, resumeSubs
 // Identity is doubled at the same seam and for the same reason billing is —
 // what `currentSession()` verifies is `tests/account/identity/session.test.ts`'s.
 vi.mock("@/lib/account/identity", () => ({ currentSession }));
+vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
 
 const { openBillingSurface, cancelPlan, resumePlan } = await import(
   "@/app/(account)/app/settings/billing-actions"

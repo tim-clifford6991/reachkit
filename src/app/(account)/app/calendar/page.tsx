@@ -67,7 +67,7 @@ export default async function CalendarPage({
   // Issue 837: a calendar empty because the market was too small offers the
   // choice that fills it, unless the shell's panel already does.
   const choice =
-    onboarding.kind === "none" && supplyNotice?.kind === "unmeasured" ? await readCategoryChoice() : null;
+    (onboarding.kind === "none" || onboarding.kind === "ended") && supplyNotice?.kind === "unmeasured" ? await readCategoryChoice() : null;
 
   const previous = addMonths(month, -1);
   const next = addMonths(month, 1);

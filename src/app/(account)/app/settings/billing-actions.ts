@@ -45,6 +45,7 @@
 
 import { SIGNIN_PATH } from "@/lib/account/identity/addresses";
 import type { ActionOutcome } from "./actions";
+import { revalidatePath } from "next/cache";
 
 /** The signed-in account, or `null`. The import is at the call for the
  *  reason this file's header states of the other two: identity reaches
@@ -141,7 +142,10 @@ export async function resumePlan(): Promise<ActionOutcome> {
     if (read.summary.paidThrough.getTime() > Date.now()) return openPortal();
 
     const resumed = await resumeSubscription(userId);
-    return resumed.ok ? { done: "here" } : { done: "unreachable" };
+    if (!resumed.ok) return { done: "unreachable" };
+    // Issue 1196: the card that pressed re-reads, so it shows the plan running.
+    revalidatePath("/app/settings");
+    return { done: "here" };
   } catch {
     return { done: "unreachable" };
   }

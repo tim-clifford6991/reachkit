@@ -173,7 +173,9 @@ export const CALENDAR_COPY = Object.freeze({
   // there is no moment at which one of these is a guess.
   "calendar.answer.veto": ["Stopped. This page won’t go live.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
   "calendar.answer.skip": ["Skipped. We won’t write this one.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
-  "calendar.answer.regenerate": ["We’re writing it again — about two minutes.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  // Issue 1196: "about two minutes" was not true — a page written again is
+  // rewritten by the hourly draft tick (`src/jobs/draft-generate.ts`).
+  "calendar.answer.regenerate": ["We’re writing it again. It’s ready within the hour, and its page updates itself.", { slots: {}, fixedBy: "SPEC §7 2026-09-20 · issue 1196" }],
   // One refusal sentence for all three. What a refused write has in common
   // is the only thing the customer needs: nothing moved. The machine's own
   // word for why (`not_a_transition`, a guard name) is a developer's

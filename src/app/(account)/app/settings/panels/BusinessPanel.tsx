@@ -261,7 +261,7 @@ function AddField(p: {
         aria-label={copy("settings.business.add.label", { group: p.head })}
         disabled={p.writer.busy || p.entry.trim() === ""}
       >
-        <Plus size={16} strokeWidth={1.75} aria-hidden />
+        {p.writer.busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <Plus size={16} strokeWidth={1.75} aria-hidden />}
         {copy("settings.business.add")}
       </button>
     </form>
@@ -375,6 +375,7 @@ function Job(p: {
           />
           <div className="flex min-w-0 flex-wrap gap-2">
             <button type="submit" className="btn btn-primary btn-sm" disabled={p.writer.busy}>
+              {p.writer.busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
               {copy("settings.save")}
             </button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>

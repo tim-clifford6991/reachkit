@@ -38,7 +38,7 @@
 
 import type React from "react";
 import { Shield } from "lucide-react";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
@@ -119,6 +119,7 @@ function DangerStep(p: {
   row: (typeof DANGER)[number];
   action: ReturnType<typeof useAction>;
 }): React.JSX.Element {
+  const [running, startRunning] = useTransition();
   const [typed, setTyped] = useState("");
   const [handover, setHandover] = useState<HandoverState>({ taken: false });
   // Never the delete arm: that one navigates instead of rendering, because
@@ -168,9 +169,10 @@ function DangerStep(p: {
           <button
             type="button"
             className="btn btn-error btn-sm"
-            disabled={!armed}
+            disabled={!armed || running}
             onClick={() => {
-              void runDangerAction(p.row.action, typed).then((result) => {
+              startRunning(async () => {
+                const result = await runDangerAction(p.row.action, typed);
                 if (result.ran && result.action === "delete_account") {
                   window.location.assign(result.href);
                   return;
@@ -179,6 +181,7 @@ function DangerStep(p: {
               });
             }}
           >
+            {running ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
             {copy(p.row.label)}
           </button>
         </span>

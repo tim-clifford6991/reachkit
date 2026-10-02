@@ -36,6 +36,17 @@ The current look of every screen, drawn on board [`Calm`](design/boards/R12-0-Ca
 
 - 2026-09-25  `/app` is a daisyUI `drawer` (owner, #1110). From `lg` the sidebar is fixed to the left edge, full viewport height, and only the content scrolls, with a 40px gutter; the sidebar scrolls inside itself only when its own contents are taller than the screen, never horizontally, and the collapsed 72px rail behaves the same. Cards may grow with the screen, while a paragraph or a form keeps its own measure. Below `lg` the drawer and the `dock` stay as they are. `Surface` (`src/ui/layout/`) is the centred column for marketing and quiet pages; it is not the app shell. Settings is daisyUI `tabs` that wrap, or a `select` below `sm`, so all seven tabs are reachable at 390 and 320. No new stylesheet, wrapper or scroller for any of it.
 
+## Busy and done
+
+- 2026-10-02  **One busy pattern for every action that starts work** (owner, #1196). It covers Measure again now, Check connection, Write it again, Skip, Approve, Stop this page, setup's steps, every Save in Settings, and billing.
+  1. **Pressed.** The button is disabled at once and shows daisyUI `loading loading-spinner loading-xs` in place of its icon, so a second press cannot happen. The pending state comes from React: `useActionState`, `useFormStatus` or `useTransition`. A screen does not build its own flag for it.
+  2. **Background work.** A deep pass or a re-measure is described in one place only: the side panel's status line. That line shows the current step, the time the step started, and then its end, which is *done*, *failed* with its reason, or *stopped* with its cause. It never shows a step from an earlier pass. A press clears the previous pass's state before the new one is drawn. A page being written shows its own *writing* state on the screen that holds it. The press that started the work answers once; it does not leave a second status line behind.
+  3. **Done.** The screen that started the work refreshes itself when the work ends. The button becomes active again. A `sonner` toast or one inline line says what changed.
+  4. **Failed or refused.** One line beside the control that was pressed says why: a rate limit, a check that could not run, a vendor outage.
+  5. **Nothing silent.** Any action that can take longer than about a second shows this pattern. No work runs without a visible state.
+
+  Built from daisyUI `loading`, `alert` and `btn`, lucide icons, and `sonner`, with no wrapper component. *No loading screens* (SPEC §4) still applies to routes, which use skeletons. The spinner appears only inside a pressed button.
+
 ## Layout that cannot overflow
 
 - No element is wider than its container and no text is clipped by its card at 390, 768 and 1280 pixels, in light and dark. CI renders every route at those widths and fails on either; `@axe-core/playwright` runs in the same pass.

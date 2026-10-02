@@ -300,6 +300,12 @@ export const DRAFT_COPY = Object.freeze({
     "Back to the plan",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
+  /** Issue 1196: a page pressed *Write it again*, while the draft tick has
+   *  not written it yet. Drafted; the owner may correct it. */
+  "draft.rewriting": [
+    "We’re writing this page again. It’s ready within the hour, and this screen updates itself when it is.",
+    { slots: {}, fixedBy: "issue 1196" },
+  ],
   "draft.unsaved": [
     "could not save — your text is kept here; nothing unsaved publishes",
     { slots: {}, fixedBy: "REQ-045 c7 · S17 (11a)" },

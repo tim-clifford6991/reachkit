@@ -31,7 +31,8 @@ export function ContentPanel(p: { settings: SettingsModel }): React.JSX.Element 
         </div>
 
         <div className="min-w-0" data-testid="action-export">
-          <button type="button" className="btn btn-soft btn-primary btn-block" onClick={() => action.run("export")}>
+          <button type="button" className="btn btn-soft btn-primary btn-block" onClick={() => action.run("export")} disabled={action.pending !== null}>
+            {action.pending === "export" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
             {copy("settings.content.export")}
           </button>
         </div>

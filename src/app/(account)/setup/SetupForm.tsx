@@ -39,7 +39,7 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { ArrowLeft, Check } from "lucide-react";
@@ -86,8 +86,9 @@ const REFUSAL_COPY = {
   too_many_competitors: "setup.competitors.refused.set-full",
   invalid_label: "setup.destination.label.refused.invalid",
   label_taken: "setup.destination.label.refused.taken",
+  could_not_ask: "setup.refused.could-not-ask",
 } as const satisfies Record<
-  Exclude<SetupRefusal, "already_complete"> | "address_missing" | "market_missing",
+  Exclude<SetupRefusal, "already_complete"> | "address_missing" | "market_missing" | "could_not_ask",
   CopyKey
 >;
 
@@ -181,7 +182,9 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   // card is drawn with the default until they change it.
   const [label, setLabel] = useState(hostedLabel(p.model));
   const [refusal, setRefusal] = useState<keyof typeof REFUSAL_COPY | null>(null);
-  const [saving, setSaving] = useState(false);
+  // Issue 1196: React's pending state, so the step's button is disabled and
+  // spins from the press until the step answers or the screen moves on.
+  const [saving, startSaving] = useTransition();
 
   // The address given and the market known, as the server is asked about
   // them. The screen opens settled — a free upgrade's rivals came with the
@@ -291,7 +294,6 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   /** Leaving the step forward: the step's own save, then the next step — or,
    *  on the last, the finish. */
   async function onwards(): Promise<void> {
-    if (saving) return;
     const after = nextStep(step);
 
     if (after === null) {
@@ -300,7 +302,6 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         setRefusal(carried.because);
         return;
       }
-      setSaving(true);
       try {
         const answer = await post<SetupResult>({ step: "finish", ...carried.submission });
         // Issue #782: the finish leads straight into the app, where the side
@@ -315,8 +316,9 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
           return;
         }
         setRefusal(answer.refused);
-      } finally {
-        setSaving(false);
+      } catch {
+        // The request never came back: said, not swallowed.
+        setRefusal("could_not_ask");
       }
       return;
     }
@@ -330,7 +332,6 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
       return;
     }
 
-    setSaving(true);
     try {
       const answer = await post<SetupStepResult>(body);
       if (!answer.ok) {
@@ -341,8 +342,9 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         setRefusal(answer.refused);
         return;
       }
-    } finally {
-      setSaving(false);
+    } catch {
+      setRefusal("could_not_ask");
+      return;
     }
     setRefusal(null);
     void setStep(after);
@@ -565,8 +567,9 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               disabled={saving}
               aria-busy={saving}
               data-testid="setup-onwards"
-              onClick={() => void onwards()}
+              onClick={() => startSaving(onwards)}
             >
+              {saving ? <span className="loading loading-spinner loading-sm" aria-hidden /> : null}
               {copy(onwardsLabel(step))}
             </button>
           </div>

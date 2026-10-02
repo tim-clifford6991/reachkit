@@ -200,7 +200,7 @@ describe("onboardingPanel — one state from the pass and its notice", () => {
   it("a running pass is its stage, whatever else is true", () => {
     expect(
       onboardingPanel({ progress: { running: true, stage: "scoring", enteredAt: {} }, notice: tooSmall, weekZero: true })
-    ).toEqual({ kind: "running", stage: "scoring" });
+    ).toEqual({ kind: "running", stage: "scoring", since: null, remeasure: false });
   });
 
   it("a failed or thin pass states its reason in week zero only", () => {
@@ -228,7 +228,7 @@ describe("OnboardingPanel — polls the progress read and refreshes the app when
     // the one on screen.
     vi.spyOn(HTMLElement.prototype, "offsetParent", "get").mockReturnValue(document.body);
     const answers: unknown[] = [
-      { running: true, stage: "asking_the_twelve", enteredAt: {} },
+      { running: true, stage: "asking_the_twelve", enteredAt: { asking_the_twelve: "2026-10-02T14:05:00Z" } },
       { running: false, degraded: false },
     ];
     const asked: string[] = [];
@@ -240,7 +240,9 @@ describe("OnboardingPanel — polls the progress read and refreshes the app when
     const container = document.createElement("div");
     document.body.appendChild(container);
     await act(async () => {
-      createRoot(container).render(<OnboardingPanel heading="head" stage="reading_your_site" />);
+      createRoot(container).render(
+        <OnboardingPanel heading="head" stage="reading_your_site" since={null} timeZone="UTC" channel={null} />
+      );
     });
     // The rows carry their own words now (issue 912's `PassSteps`), and
     // the running one is marked rather than being the only one drawn — so
@@ -256,6 +258,8 @@ describe("OnboardingPanel — polls the progress read and refreshes the app when
     // `asking_the_twelve` is row three (issue 903): the twelve are bought to
     // find the pages worth writing, and they size no rival.
     expect(current()).toBe("pass-step-finding_pages");
+    // Issue 1196: the line says when the step it names began.
+    expect(container.querySelector("[data-testid='shell-onboarding-since']")?.textContent).toContain("2:05");
     expect(nav.refresh).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -309,5 +313,24 @@ describe("issue 903 — the step the panel names is the step the pass wrote", ()
     const { STAGES } = await import("@/lib/scan/stages");
     const { FIRST_DRAFT_STAGE } = await import("@/lib/scan/deep/progress");
     expect(Object.keys(SAID)).toEqual([...STAGES, FIRST_DRAFT_STAGE]);
+  });
+});
+
+describe("issue 1196 — the panel says how a pass ended, rather than going blank", () => {
+  it("names done, failed with its reason, and stopped with its cause", async () => {
+    const { passEndOf } = await import("@/lib/scan/deep/pass-end");
+    const { PassEndLine } = await import("@/app/(account)/app/_shell/OnboardingStatus");
+    const at = "2026-10-02T14:30:00Z";
+    const line = (stopped_reason: string | null): string => {
+      const end = passEndOf({ status: "complete", stopped_reason, finished_at: at });
+      if (end === null) throw new Error("no end");
+      return renderToStaticMarkup(<PassEndLine end={end} timeZone="UTC" />);
+    };
+    expect(line("complete")).toContain('data-outcome="done"');
+    expect(line("site_unreadable")).toContain("couldn’t read your site");
+    expect(line("time_ceiling")).toContain('data-outcome="stopped"');
+    expect(line("time_ceiling")).toContain("ran out of time");
+    expect(line(null)).toContain('data-outcome="failed"');
+    expect(passEndOf({ status: "running", stopped_reason: null, finished_at: null })).toBeNull();
   });
 });

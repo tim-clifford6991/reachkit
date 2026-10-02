@@ -35,7 +35,7 @@
 
 import type React from "react";
 import { Lock } from "lucide-react";
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
@@ -46,7 +46,8 @@ import type { SettingsModel } from "../model";
 
 export function AccountPanel(p: { account: SettingsModel["account"] }): React.JSX.Element {
   const action = useAction();
-  const [changeState, submitChange] = useActionState(beginEmailChangeAction, EMAIL_CHANGE_INITIAL);
+  const [changeState, submitChange, changing] = useActionState(beginEmailChangeAction, EMAIL_CHANGE_INITIAL);
+  const [cancelling, startCancelling] = useTransition();
   // The typed address, kept across a refusal — `Input`'s contract ("the
   // invalid value stays intact") and REQ-077's own shape: a customer told
   // "that address already belongs to an account" must not also have to
@@ -99,8 +100,9 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
             <p className="text-xs wrap-anywhere">
               {copy("settings.account.email-pending-expires", { at: pending.expiresAt })}
             </p>
-            <form action={cancelEmailChangeAction}>
-              <button type="submit" className="btn btn-ghost btn-sm">
+            <form action={() => startCancelling(() => cancelEmailChangeAction())}>
+              <button type="submit" className="btn btn-ghost btn-sm" disabled={cancelling}>
+                {cancelling ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
                 {copy("settings.account.cancel-change")}
               </button>
             </form>
@@ -122,7 +124,8 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
           </label>
           {refusalLine === null ? null : <p className="text-xs text-error wrap-anywhere">{refusalLine}</p>}
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <button type="submit" className="btn btn-soft btn-primary btn-sm">
+            <button type="submit" className="btn btn-soft btn-primary btn-sm" disabled={changing}>
+              {changing ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
               {copy("settings.account.change-email")}
             </button>
           </div>
@@ -139,7 +142,13 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
 
         <div className="border-base-300 flex min-w-0 flex-wrap items-center gap-2 border-t pt-4">
           <span data-testid="action-sign_out">
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => action.run("sign_out")}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => action.run("sign_out")}
+              disabled={action.pending !== null}
+            >
+              {action.pending === "sign_out" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
               {copy("settings.account.sign-out")}
             </button>
           </span>
@@ -150,3 +159,4 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
     </section>
   );
 }
+

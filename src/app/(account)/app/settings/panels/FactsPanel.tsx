@@ -117,6 +117,7 @@ function Fact(p: {
           className="btn btn-soft btn-primary btn-xs w-full whitespace-nowrap sm:w-auto"
           disabled={writer.busy}
         >
+          {writer.busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
           {copy(
             fact.on ? "settings.business.facts.switch-off" : "settings.business.facts.switch-on"
           )}

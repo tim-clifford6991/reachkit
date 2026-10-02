@@ -115,6 +115,7 @@ export function VoicePanel(): React.JSX.Element {
         disabled={writing || spent}
         onClick={() => void write()}
       >
+        {writing ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
         {copy(sample === null ? "setup.panel.voice.write" : "setup.panel.voice.again")}
       </button>
     </div>

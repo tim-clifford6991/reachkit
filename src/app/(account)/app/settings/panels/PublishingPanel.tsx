@@ -230,6 +230,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
                     defaultValue={publishing.publishTime}
                   />
                   <button type="submit" className="btn btn-primary btn-sm" disabled={writer.busy}>
+                    {writer.busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
                     {copy("settings.save")}
                   </button>
                   <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>
@@ -276,6 +277,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
                     ))}
                   </select>
                   <button type="submit" className="btn btn-primary btn-sm" disabled={writer.busy}>
+                    {writer.busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
                     {copy("settings.save")}
                   </button>
                   <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>

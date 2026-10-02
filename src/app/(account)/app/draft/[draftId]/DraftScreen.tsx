@@ -46,7 +46,8 @@
 
 import type React from "react";
 import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
-import { AUTOSAVE_DEBOUNCE_MS } from "@/lib/config/constants";
+import { AUTOSAVE_DEBOUNCE_MS, TIMING } from "@/lib/config/constants";
+import { useRouter } from "next/navigation";
 import { copy } from "@/lib/presentation/copy";
 import { ArrowLeft, LoaderCircle } from "lucide-react";
 import {
@@ -178,6 +179,9 @@ export function DraftScreen(p: {
    *  projections of it and must not disagree. */
   const [state, expect] = useOptimistic(view.state);
   const [deciding, startDeciding] = useTransition();
+  /** Which command the pending press is, so only its button spins (issue
+   *  1196). The pending state itself is the transition's. */
+  const [pressed, setPressed] = useState<DraftCommand | null>(null);
 
   /** What each decision says once the machine has answered. Approve names
    *  the moment the page goes live where the screen holds one, and says so
@@ -195,6 +199,7 @@ export function DraftScreen(p: {
   /** One press: show the state the command asks for, ask for it, and say
    *  what came back. Neither arm is silent. */
   function decide(command: DraftCommand): void {
+    setPressed(command);
     startDeciding(async () => {
       expect(COMMAND_TARGET[command]);
       const outcome = await ask(command, view.draftId);
@@ -760,6 +765,8 @@ export function DraftScreen(p: {
         </a>
       </nav>
 
+      {state === "generating" ? <Rewriting /> : null}
+
       {/* Board `R12-6-Page` (SPEC §7, 2026-09-24, #1072): the page and the
           cards under it on the left, the sticky Decide panel on the right
           from `xl`; one column, the panel under the page, below it. */}
@@ -848,6 +855,7 @@ export function DraftScreen(p: {
           view={view}
           state={state}
           deciding={deciding}
+          pressed={deciding ? pressed : null}
           grounded={grounded}
           claim={claim}
           recordedChecks={recordedChecks}
@@ -856,6 +864,27 @@ export function DraftScreen(p: {
           onCommand={decide}
         />
       </div>
+    </div>
+  );
+}
+
+/**
+ * Issue 1196: a page being written again is rewritten by the draft tick,
+ * not by the press. While it is, the screen says so and re-reads itself at
+ * the heartbeat, so the new draft appears when it lands rather than on the
+ * next navigation. Mounted only in that state, so no other state of the
+ * screen holds a router or a timer.
+ */
+function Rewriting(): React.JSX.Element {
+  const router = useRouter();
+  useEffect(() => {
+    const timer = setInterval(() => router.refresh(), TIMING.progressHeartbeatS * 1000);
+    return () => clearInterval(timer);
+  }, [router]);
+  return (
+    <div role="status" aria-live="polite" className="alert text-sm" data-testid="draft-rewriting">
+      <LoaderCircle size={20} strokeWidth={1.75} aria-hidden />
+      <span className="min-w-0 wrap-anywhere">{copy("draft.rewriting")}</span>
     </div>
   );
 }

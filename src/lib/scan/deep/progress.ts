@@ -40,6 +40,10 @@ export type DeepPassProgress =
        *  draws it as a dash rather than a clock. Empty where the pass
        *  recorded none. */
       enteredAt: Readonly<Partial<Record<StageName, string>>>;
+      /** A pass measured again after the founder's release (issue 837), as
+       *  opposed to the onboarding pass itself — the side panel heads the
+       *  two differently (issue 1196). */
+      remeasure?: boolean;
     }
   | { running: false; degraded: boolean };
 
@@ -91,7 +95,7 @@ export async function passProgressFor(
     if ((stage.setup_stage ?? null) === null || !(await remeasureUnderWay(siteId, release.at, now))) {
       return { running: false, degraded: release.reason !== "completed" };
     }
-    return running(stage);
+    return { ...running(stage), remeasure: true };
   }
   return running(await readStage(siteId));
 }
@@ -106,7 +110,7 @@ async function readStage(siteId: string): Promise<StageRow> {
   return data?.[0] ?? { setup_stage: null, setup_stage_times: null };
 }
 
-function running(row: StageRow): DeepPassProgress {
+function running(row: StageRow): Extract<DeepPassProgress, { running: true }> {
   const recorded = row.setup_stage ?? null;
   return {
     running: true,
@@ -130,3 +134,4 @@ function knownEntries(
   }
   return out;
 }
+

@@ -1085,6 +1085,10 @@ export const DESTINATION_HOSTNAME_CHECK_FLOOR_S = 30 as const; // SPEC §5 (2026
 export const REMEASURE = Object.freeze({                      // SPEC §6 (2026-09-17, issue 837)
   perDay: 3,
   runningHoldMin: 30,
+  /** How long the side panel states a finished pass's end — done, failed or
+   *  stopped — before it says nothing (issue 1196). Long enough to be read
+   *  by a founder who stepped away while it ran. */
+  endShownMin: 30,
   /** At most this many broader categories are offered. */
   suggestions: 3,
 });

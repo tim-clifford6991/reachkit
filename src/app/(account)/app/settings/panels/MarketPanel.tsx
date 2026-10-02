@@ -33,8 +33,9 @@
 "use client";
 
 import type React from "react";
-import { Globe } from "lucide-react";
-import { useState } from "react";
+import { Globe, RefreshCw } from "lucide-react";
+import { useState, useTransition } from "react";
+import { say } from "@/app/_toast/say";
 import { copy } from "@/lib/presentation/copy";
 import { formatDate } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
@@ -96,6 +97,9 @@ export function MarketPanel(p: {
   /** Issue 866's standalone measurement: what the last press answered. It
    *  changes no stored answer, so it has no field and no value to keep. */
   const [remeasure, setRemeasure] = useState<MarketRemeasureState>(MARKET_REMEASURE_INITIAL);
+  // Issue 1196: each press disables its button and spins until it answers.
+  const [saving, startSaving] = useTransition();
+  const [measuring, startMeasuring] = useTransition();
 
   const stated = (answer_: Answer): string =>
     answer_ === "domain" ? p.domain : p.market.category;
@@ -210,17 +214,22 @@ export function MarketPanel(p: {
         ? writtenLine("settings.market.effect")
         : null;
 
-  /** What the standalone control says: what it will do until it is pressed,
-   *  then what that press answered. */
+  /** What the standalone control says: what it will do, or why the last
+   *  press was refused. A started pass is answered once, by a toast, and
+   *  from then on the side panel is its one status line (issue 1196) — a
+   *  "we're measuring" line kept here would outlive the pass it named. */
   const remeasureLine =
-    remeasure.answer === "started"
-      ? writtenLine("settings.market.remeasure.started")
-      : remeasure.answer === "refused"
-        ? remeasure.line
-        : writtenLine("settings.market.remeasure.effect");
+    remeasure.answer === "refused" ? remeasure.line : writtenLine("settings.market.remeasure.effect");
 
-  async function pressRemeasure(): Promise<void> {
-    setRemeasure(await remeasureNowAction());
+  function pressRemeasure(): void {
+    startMeasuring(async () => {
+      const next = await remeasureNowAction();
+      if (next.answer === "started") {
+        setRemeasure(MARKET_REMEASURE_INITIAL);
+        const line = writtenLine("settings.market.remeasure.started");
+        if (line !== null) say(line, "ok");
+      } else setRemeasure(next);
+    });
   }
 
   const refusal = refusalKeyOf(answer);
@@ -233,7 +242,11 @@ export function MarketPanel(p: {
   function editingField(answer_: Answer): React.JSX.Element {
     const field = FIELD[answer_];
     return (
-      <form action={submit} className="flex min-w-0 flex-col gap-2" data-testid={`edit-${answer_}`}>
+      <form
+        action={(form) => startSaving(() => submit(form))}
+        className="flex min-w-0 flex-col gap-2"
+        data-testid={`edit-${answer_}`}
+      >
         <label className="flex min-w-0 flex-col gap-1">
           <span className="text-sm text-base-content/70">{copy(field.labelKey)}</span>
           <input
@@ -246,7 +259,8 @@ export function MarketPanel(p: {
         </label>
         {refusalLine === null ? null : <p className="text-xs text-error wrap-anywhere">{refusalLine}</p>}
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <button type="submit" className="btn btn-primary btn-sm">
+          <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
+            {saving ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
             {copy("settings.save")}
           </button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>
@@ -304,12 +318,26 @@ export function MarketPanel(p: {
             Outline rather than solid: this screen's one fill is a Save. */}
         <div className="flex min-w-0 flex-col gap-2" data-testid="market-remeasure">
           <form action={pressRemeasure}>
-            <button type="submit" className="btn btn-soft btn-primary btn-sm" data-testid="market-remeasure-press">
+            <button
+              type="submit"
+              className="btn btn-soft btn-primary btn-sm"
+              disabled={measuring}
+              data-testid="market-remeasure-press"
+            >
+              {measuring ? (
+                <span className="loading loading-spinner loading-xs" aria-hidden />
+              ) : (
+                <RefreshCw size={16} strokeWidth={1.75} aria-hidden />
+              )}
               {copy("settings.market.remeasure.action")}
             </button>
           </form>
           {remeasureLine === null ? null : (
-            <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="market-remeasure-line">
+            <p
+              className={`text-xs wrap-anywhere ${remeasure.answer === "refused" ? "text-error" : "text-base-content/70"}`}
+              role={remeasure.answer === "refused" ? "alert" : undefined}
+              data-testid="market-remeasure-line"
+            >
               {remeasureLine}
             </p>
           )}

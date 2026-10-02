@@ -43,6 +43,8 @@ import { readShell } from "./provider";
 import type { ShellModel } from "./model";
 import { readOnboarding } from "./onboarding";
 import { MARKET_TOO_SMALL, readCategoryChoice } from "./remeasure";
+import { requireSetUpAccount } from "../_session/account";
+import { setupChannelName } from "@/lib/scan/deep/channel";
 
 /** What every slot below takes: the one read, in flight. */
 interface Reading {
@@ -83,13 +85,28 @@ export async function PublishingSlot(p: Reading): Promise<React.JSX.Element> {
  * set it: the panel's running arm subscribes to a channel, and a state that
  * changes kind has to remount rather than re-subscribe.
  */
-export async function OnboardingSlot(): Promise<React.JSX.Element | null> {
+export async function OnboardingSlot(p: Reading): Promise<React.JSX.Element | null> {
   const onboarding = await readOnboarding();
   const choice =
     onboarding.kind === "notice" && onboarding.key === MARKET_TOO_SMALL
       ? await readCategoryChoice()
       : null;
-  return <OnboardingStatus key={onboarding.kind} state={onboarding} choice={choice} />;
+  const shell = await p.shell;
+  // Issue 1196: the running panel listens on the site's own channel. The
+  // name is composed here from the session's site, never in the browser.
+  let channel: string | null = null;
+  if (onboarding.kind === "running") {
+    channel = setupChannelName((await requireSetUpAccount()).siteId);
+  }
+  return (
+    <OnboardingStatus
+      key={onboarding.kind}
+      state={onboarding}
+      choice={choice}
+      timeZone={shell.timeZone}
+      channel={channel}
+    />
+  );
 }
 
 /**

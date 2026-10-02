@@ -231,7 +231,7 @@ export default async function AppLayout({
               {/* Issue #782: the deep pass and the first draft run in the
                   background; the panel says which step until they end. */}
               <Suspense fallback={<PanelCardSkeleton testId="shell-onboarding-skeleton" className="h-12 w-full" />}>
-                <OnboardingSlot />
+                <OnboardingSlot shell={shell} />
               </Suspense>
               <div className="mt-auto flex min-w-0 flex-col gap-3">
                 <Suspense fallback={<PanelCardSkeleton testId="shell-shortcuts-skeleton" className="h-8 w-full" />}>

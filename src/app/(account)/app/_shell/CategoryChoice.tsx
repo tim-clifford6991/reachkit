@@ -10,6 +10,7 @@
 
 import type React from "react";
 import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { RefreshCw } from "lucide-react";
 import { remeasureAction } from "./remeasure-actions";
 import { REMEASURE_CATEGORY_FIELD, REMEASURE_INITIAL } from "./remeasure-shared";
@@ -36,6 +37,7 @@ export function CategoryChoice(p: {
                 disabled={pending}
                 data-testid="category-suggestion"
               >
+                <PressedMark value={suggestion} />
                 {suggestion}
               </button>
             ))}
@@ -82,6 +84,7 @@ export function BroaderTry(p: { suggestion: string; label: string }): React.JSX.
         disabled={pending}
         data-testid="category-suggestion"
       >
+        {pending ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
         {p.label}
       </button>
       {state.answer === "refused" ? (
@@ -91,4 +94,13 @@ export function BroaderTry(p: { suggestion: string; label: string }): React.JSX.
       ) : null}
     </form>
   );
+}
+
+/** Issue 1196: the spinner inside the one suggestion that was pressed. The
+ *  form's own status says which value is being sent; every chip is
+ *  disabled by the action's pending state, and only the pressed one spins. */
+function PressedMark(p: { value: string }): React.JSX.Element | null {
+  const status = useFormStatus();
+  if (!status.pending || status.data?.get(REMEASURE_CATEGORY_FIELD) !== p.value) return null;
+  return <span className="loading loading-spinner loading-xs" aria-hidden />;
 }

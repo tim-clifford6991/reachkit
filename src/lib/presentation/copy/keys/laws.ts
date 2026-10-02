@@ -218,6 +218,31 @@ export const LAWS_COPY = Object.freeze({
   "shell.pass-step.done": ["done", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" }],
   "shell.pass-step.now": ["now", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" }],
   "shell.pass-step.next": ["next", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" }],
+  /** Issue 1196 — the side panel's one status line for a pass: when its
+   *  step began, and how it ended. Drafted in the registry's voice; the
+   *  owner may correct them. */
+  "shell.pass.remeasure-head": ["Measuring your market again", { slots: {}, fixedBy: "issue 1196" }],
+  "shell.pass.since": ["This step started at {time}.", { slots: { time: "text" }, fixedBy: "issue 1196" }],
+  "shell.pass.ended.done": [
+    "Measurement finished at {time}. Your screens show what it found.",
+    { slots: { time: "text" }, fixedBy: "issue 1196" },
+  ],
+  "shell.pass.ended.failed": [
+    "Measurement failed at {time}: something went wrong on our side. Nothing is needed from you, and the next measurement fills it in.",
+    { slots: { time: "text" }, fixedBy: "issue 1196" },
+  ],
+  "shell.pass.ended.site-unreadable": [
+    "Measurement failed at {time}: we couldn’t read your site. Check that it’s online, then measure again from Settings.",
+    { slots: { time: "text" }, fixedBy: "issue 1196" },
+  ],
+  "shell.pass.ended.time-ceiling": [
+    "Measurement stopped at {time} because it ran out of time. What it measured by then is shown, and the next measurement fills in the rest.",
+    { slots: { time: "text" }, fixedBy: "issue 1196" },
+  ],
+  "shell.pass.ended.spend-ceiling": [
+    "Measurement stopped at {time} because it reached its spending limit. What it measured by then is shown, and the next measurement fills in the rest.",
+    { slots: { time: "text" }, fixedBy: "issue 1196" },
+  ],
   // Both approved as written by the screen set (ruling 11a): S12's domain
   // block reads "Week 6 · re-measured Mon 1 Sep" and S13's — the week the
   // first Monday has not come — reads "not measured yet · first due Mon 8

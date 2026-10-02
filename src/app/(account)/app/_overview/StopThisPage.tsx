@@ -53,7 +53,11 @@ export function StopThisPage(p: { draftId: string }): React.JSX.Element {
         disabled={pending || answer === "stopped"}
         data-testid="overview-stop-action"
       >
-        <CircleStop size={20} strokeWidth={1.75} aria-hidden />
+        {pending ? (
+          <span className="loading loading-spinner loading-sm" aria-hidden />
+        ) : (
+          <CircleStop size={20} strokeWidth={1.75} aria-hidden />
+        )}
         {copy("overview.waiting.stop")}
       </button>
       {answer === "idle" ? null : (

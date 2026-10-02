@@ -26,11 +26,12 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { PenLine, X } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { saveVoiceAction } from "../change-actions";
+import { say } from "@/app/_toast/say";
 import { addClaimAction, removeClaimAction } from "../panel-actions";
 import { CLAIM_FIELD } from "../panel-state";
 import { VOICE_FIELD } from "../voice-state";
@@ -46,6 +47,19 @@ function formWith(entry: string): FormData {
 }
 
 export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
+  // Issue 1196: the voice text's own press — it answers, and spins while it
+  // is asked, like every other Settings save.
+  const [savingVoice, startSavingVoice] = useTransition();
+  function saveVoice(form: FormData): void {
+    startSavingVoice(async () => {
+      try {
+        await saveVoiceAction(form);
+        say(copy("settings.answer.saved"), "ok");
+      } catch {
+        say(copy("settings.answer.refused"), "bad");
+      }
+    });
+  }
   const filterNote = writtenLine("settings.voice.filter-note");
   const placeholder = writtenLine("settings.voice.placeholder");
   // SPEC §4 (2026-09-20, #908, issue #913): the never-claim list writes.
@@ -80,7 +94,7 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
 
         {/* SPEC §5 (2026-09-12): the summary setup showed, stored where
             drafting reads it. One field and one press. */}
-        <form action={saveVoiceAction} className="flex min-w-0 flex-col gap-3">
+        <form action={saveVoice} className="flex min-w-0 flex-col gap-3">
           <label className="flex min-w-0 flex-col gap-1" data-testid="setting-voice_text">
             <span className="text-sm text-base-content/70">{copy("settings.content.voice")}</span>
             <textarea
@@ -93,7 +107,8 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
             />
           </label>
           <span>
-            <button type="submit" className="btn btn-soft btn-primary btn-sm">
+            <button type="submit" className="btn btn-soft btn-primary btn-sm" disabled={savingVoice}>
+              {savingVoice ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
               {copy("settings.voice.save")}
             </button>
           </span>
@@ -149,6 +164,7 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
               aria-label={copy("settings.voice.add-claim")}
               disabled={writer.busy}
             >
+              {writer.busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
               {copy("settings.voice.add")}
             </button>
           </form>

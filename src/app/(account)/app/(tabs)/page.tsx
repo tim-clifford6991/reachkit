@@ -66,13 +66,13 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   // issue 784: the founder's reason when the pass released them short — what the
   // shell's panel is not already saying.
   const notice =
-    onboarding.kind === "none"
+    (onboarding.kind === "none" || onboarding.kind === "ended")
       ? overviewNotice({ onboarding, notice: await readReleaseNotice(), weekZero: shell.weeks.kind !== "counted" })
       : null;
   // Issue 837: an empty Overview over a market too small offers the choice
   // that fills it, unless the shell's panel already does.
   const choice =
-    onboarding.kind === "none" && (notice === MARKET_TOO_SMALL || overview.supply?.key === "overview.supply.unmeasured")
+    (onboarding.kind === "none" || onboarding.kind === "ended") && (notice === MARKET_TOO_SMALL || overview.supply?.key === "overview.supply.unmeasured")
       ? await readCategoryChoice()
       : null;
 
