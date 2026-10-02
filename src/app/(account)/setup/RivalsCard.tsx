@@ -1,5 +1,6 @@
-// SPEC §5 — the rivals step of `/setup`: pre-filled suggestions, removable,
-// add their own, at most five. daisyUI classes in the route (DESIGN.md
+// SPEC §5 — the rivals step of `/setup`: the rivals ReachKit concluded, each
+// with its reason, already chosen (D28, #1185) — removable, add their own, at
+// most five. daisyUI classes in the route (DESIGN.md
 // rule 1): `card`, `badge`, `btn`, `input`, `alert`; lucide glyphs at 1.75.
 //
 // The rules are `@/lib/market/setup/rivals`'s — what a refusal is called,
@@ -75,6 +76,11 @@ export function RivalsCard(p: {
   const shown: RivalRefusal | null = refusal ?? (full ? "set_full" : null);
   const status =
     p.suggestions.state === "offered" ? null : SUGGESTION_STATUS[p.suggestions.state];
+  // D28 (#1185): rivals ReachKit concluded arrive chosen, each with its
+  // reason; the pills then offer back only the ones the founder removed.
+  const reasons = p.suggestions.reasons ?? null;
+  const offered =
+    reasons === null ? p.suggestions.candidates : p.suggestions.candidates.filter((domain) => !chosen.has(domain));
 
   function remove(domain: string): void {
     setRefusal(null);
@@ -149,9 +155,15 @@ export function RivalsCard(p: {
           </p>
         )}
 
-        {p.suggestions.candidates.length === 0 ? null : (
+        {reasons === null ? null : (
+          <p className="text-sm text-base-content/70" data-testid="setup-competitors-concluded">
+            {copy("setup.competitors.concluded")}
+          </p>
+        )}
+
+        {offered.length === 0 ? null : (
           <div className="flex flex-wrap gap-2" data-testid="setup-competitors-suggested">
-            {p.suggestions.candidates.map((domain) => (
+            {offered.map((domain) => (
               <button
                 key={domain}
                 type="button"
@@ -167,20 +179,34 @@ export function RivalsCard(p: {
         )}
 
         {p.rivals.length === 0 ? null : (
-          <ul className="flex flex-wrap gap-2" data-testid="setup-competitors-selected">
-            {p.rivals.map((rival) => (
-              <li key={rival.domain} className="badge badge-primary badge-soft badge-lg num gap-1 pr-1">
-                {rival.domain}
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-xs btn-circle"
-                  aria-label={copy("setup.competitors.remove", { rival: rival.domain })}
-                  onClick={() => remove(rival.domain)}
-                >
-                  <X aria-hidden size={16} {...ICON} />
-                </button>
-              </li>
-            ))}
+          <ul
+            className={reasons === null ? "flex flex-wrap gap-2" : "flex flex-col gap-3"}
+            data-testid="setup-competitors-selected"
+          >
+            {p.rivals.map((rival) => {
+              const reason = reasons?.[rival.domain] ?? null;
+              const chip = (
+                <span className="badge badge-primary badge-soft badge-lg num h-auto max-w-full gap-1 pr-1">
+                  <span className="min-w-0 wrap-anywhere">{rival.domain}</span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs btn-circle"
+                    aria-label={copy("setup.competitors.remove", { rival: rival.domain })}
+                    onClick={() => remove(rival.domain)}
+                  >
+                    <X aria-hidden size={16} {...ICON} />
+                  </button>
+                </span>
+              );
+              return reason === null ? (
+                <li key={rival.domain}>{chip}</li>
+              ) : (
+                <li key={rival.domain} className="flex min-w-0 flex-col items-start gap-1">
+                  {chip}
+                  <p className="text-sm text-base-content/70 wrap-anywhere">{reason}</p>
+                </li>
+              );
+            })}
           </ul>
         )}
 

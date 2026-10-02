@@ -46,6 +46,8 @@ import { ArrowLeft, Check } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import {
+  onMarketConcluded,
+  onRivalsConcluded,
   onSuggestionsSettled,
   settledCategory,
   validateSetup,
@@ -193,24 +195,32 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     let current = true;
     seekRivals(soughtDomain, soughtCategory)
       .then(
-        (answer) => answer.candidates,
-        (): readonly string[] => [],
+        (answer) => answer,
+        (): SeekRivalsResponse => ({ candidates: [], reasons: {}, market: null }),
       )
-      .then((candidates) => {
+      .then((answer) => {
         if (!current) return;
         setState((now) => {
           if (now.siteDomain !== soughtDomain || statedCategory(now) !== soughtCategory) return now;
+          // D28 (#1185): the market ReachKit concluded takes the card, unless
+          // the founder stated one — then theirs stands.
+          const known = answer.market === null ? now : onMarketConcluded(now, answer.market);
           // Only a card that is seeking settles. `null` — no market known —
           // leaves a card waiting on its market as it is; a seeking card
           // told there is none settles as none found rather than seeking on.
-          if (now.suggestions.state !== "seeking") return now;
-          return onSuggestionsSettled(now, candidates ?? []);
+          if (known.suggestions.state !== "seeking") return known;
+          const candidates = answer.candidates ?? [];
+          // Rivals ReachKit concluded are the set; leaving the step as it is
+          // accepts them (D28). Anything else is offered to pick from.
+          return Object.keys(answer.reasons).length > 0
+            ? onRivalsConcluded(known, candidates, answer.reasons, p.model.competitorsMax)
+            : onSuggestionsSettled(known, candidates);
         });
       });
     return () => {
       current = false;
     };
-  }, [soughtDomain, soughtCategory, unsettled]);
+  }, [soughtDomain, soughtCategory, unsettled, p.model.competitorsMax]);
 
   /** The whole of what the finish carries — the five steps' answers as one
    *  closed shape (REQ-025 c1). `null` where an answer the finish needs is

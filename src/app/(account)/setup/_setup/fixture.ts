@@ -13,7 +13,7 @@
 // Where each field comes from for a live account:
 //
 //   measured        → §4.1's stored report, `readCurrentReport()`
-//   suggestedRivals → §6.6's `deriveRivals` over the confirmed market
+//   concluded       → `sites.market`, what ReachKit concluded (D28, #1185)
 //   the store       → the `users` and `sites` rows, through `liveSetupStore`
 //   the pass        → §6.3's `runScan` at tier `deep` and its stage stream
 //
@@ -163,7 +163,18 @@ export const FIXTURE_SETUP_FACTS: SetupFacts = Object.freeze({
       namedRivals: FIXTURE_MARKET.profile.namedRivals,
     }),
   }),
-  suggestedRivals: Object.freeze(["asana.com", "monday.com", "clickup.com", "notion.so"]),
+  // D28 (#1185): what ReachKit concluded, each with its reason. The same
+  // category the report measured, so the card keeps that report's twelve.
+  concluded: Object.freeze({
+    category: "project management software for agencies",
+    reason: "The site sells client project planning to agencies, and its pages say so first.",
+    rivals: Object.freeze([
+      Object.freeze({ domain: "asana.com", reason: "Work management that agencies use to plan client projects." }),
+      Object.freeze({ domain: "monday.com", reason: "Project boards sold to agencies for client delivery." }),
+      Object.freeze({ domain: "clickup.com", reason: "All-in-one project management that agencies compare against." }),
+      Object.freeze({ domain: "notion.so", reason: "Docs and project planning that small agencies run client work in." }),
+    ]),
+  }),
   questions: Object.freeze({ scanId: FIXTURE_SCAN_ID, items: FIXTURE_QUESTIONS, derivable: FIXTURE_MARKET }),
   profile: FIXTURE_SITE_PROFILE,
   // #970: the other two readings step two's lists are made of. The market's

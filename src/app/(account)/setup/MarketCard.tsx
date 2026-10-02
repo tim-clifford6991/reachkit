@@ -119,6 +119,17 @@ export function MarketCard(p: {
 
   const questionList = questions === null ? null : <QuestionList items={questions} />;
 
+  // D28 (#1185): a market ReachKit concluded says why, and that the founder
+  // need not change it.
+  const reason = state.market.state === "inferred" ? (state.market.reason ?? null) : null;
+  const concludedLine =
+    reason === null ? null : (
+      <div className="flex min-w-0 flex-col gap-1" data-testid="setup-market-concluded">
+        {reason === "" ? null : <p className="text-sm wrap-anywhere">{reason}</p>}
+        <p className={QUIET}>{copy("setup.market.concluded")}</p>
+      </div>
+    );
+
   // REQ-021 c6: a measured address and an inferred market are one card,
   // because both are known and each needs only a Change.
   if (
@@ -150,6 +161,7 @@ export function MarketCard(p: {
               {copy("setup.market.change")}
             </button>
           </div>
+          {concludedLine}
           {questionList}
         </div>
       </section>
@@ -272,6 +284,7 @@ export function MarketCard(p: {
               </button>
             </div>
           )}
+          {editingMarket ? null : concludedLine}
           {questionList}
         </div>
       </section>

@@ -61,10 +61,23 @@ vi.mock("@/lib/site-profile/business/confirmed", async () => {
   return { readConfirmedBusiness: async () => ({ profile: null, market: null, edits: NO_EDITS }) };
 });
 
+// D28 (#1185): what ReachKit concluded for the site is a read of
+// `sites.market`, doubled here like every other read this screen makes.
+let stored: unknown = null;
+vi.mock("@/lib/market/infer/stored", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/market/infer/stored")>();
+  return {
+    ...actual,
+    readSiteMarket: async () =>
+      stored === null ? null : { domain: "example.com", category: null, competitors: [], stored: actual.parseStoredMarket(stored) },
+  };
+});
+
 const provider = await import("@/app/(account)/setup/_setup/provider");
 
 beforeEach(() => {
   redirected.length = 0;
+  stored = null;
   resetSetupSession();
 });
 
@@ -94,12 +107,25 @@ describe("§4.3's screen is drawn for the founder who is signed in", () => {
     expect(JSON.stringify(model.cards)).toContain(process.env.HOSTED_EDGE_CNAME_TARGET);
   });
 
-  it("a measured address opens with its report's rivals offered — read from the report, not a fixture (issue 750)", async () => {
+  it("D28 — with nothing concluded yet, a measured address opens seeking, so the route concludes (#1185)", async () => {
     const model = await provider.readSetupScreen();
-    expect(model.state.suggestions).toEqual({
-      state: "offered",
-      candidates: ["asana.com", "monday.com", "clickup.com"],
-    });
+    expect(model.state.suggestions.state).toBe("seeking");
+    expect(model.state.rivals).toEqual([]);
+  });
+
+  it("D28 — what ReachKit already concluded opens chosen, with its reasons, and nothing is bought again", async () => {
+    stored = {
+      current: {
+        category: "client project management",
+        categoryReason: "The site sells client project planning.",
+        synonyms: [],
+        rivals: [{ domain: "asana.com", name: "Asana", basis: "same_job", reason: "Work management for agencies." }],
+      },
+    };
+    const model = await provider.readSetupScreen();
+    expect(model.state.market).toMatchObject({ state: "inferred", category: "client project management", reason: "The site sells client project planning." });
+    expect(model.state.rivals).toEqual([{ domain: "asana.com", origin: "suggested" }]);
+    expect(model.state.suggestions.reasons).toEqual({ "asana.com": "Work management for agencies." });
   });
 
   it("an address nobody measured opens waiting on the market, never on none found (REQ-026 c10)", async () => {

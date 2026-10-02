@@ -80,6 +80,20 @@ export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({
     "whatfix.com",
     "chameleon.io",
   ]),
+  // D28 (#1185): what ReachKit concluded, each with its reason.
+  concluded: Object.freeze({
+    category: "user onboarding software",
+    categoryReason: "The site sells in-app product tours and checklists that help new users get started.",
+    reasons: Object.freeze({
+      "appcues.com": "In-app onboarding flows sold to product teams.",
+      "userpilot.com": "Product tours and onboarding checklists for SaaS teams.",
+      "pendo.io": "Product analytics with in-app guides for onboarding.",
+      "whatfix.com": "Digital adoption platform with guided onboarding.",
+      "chameleon.io": "In-app tours and tooltips for product-led teams.",
+    }),
+    categoryOverridden: false,
+    rivalsOverridden: false,
+  }),
   mode: "autopilot",
   // `VETO.defaultHours`. Written as the stored value rather than imported,
   // because a fixture states what this site happens to hold, not what the

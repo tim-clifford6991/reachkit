@@ -382,6 +382,12 @@ interface Sections {
    *  the crawl has run — and after a crawl that raised, which the checks
    *  report as not run rather than as a site with no issues. */
   siteCrawl: CrawlReading | null;
+  /** The pages that crawl read, as the market conclusion reads them
+   *  (#1185). `null` until the crawl has run. */
+  pagesRead: readonly { url: string; title: string; h1: string; text: string }[] | null;
+  /** The category this pass concluded and measured under (#1185), where it
+   *  concluded one; the report records it as `measuredCategory`. */
+  concludedCategory: string | undefined;
   /**
    * **True from the moment the report is being composed** (issue 875).
    *
@@ -479,6 +485,8 @@ function freshSections(at: Date): Sections {
     presence: null,
     coherence: { verdict: "unjudgeable", measuredCount: 0 },
     siteCrawl: null,
+    pagesRead: null,
+    concludedCategory: undefined,
   };
 }
 
@@ -724,6 +732,11 @@ export interface RunScanArgs {
    *  "fixes the twelve questions"), and its words join the relevance guard's
    *  support set. Absent, the pass seeds from the profile as before. */
   category?: string;
+  /** SPEC §6 (owner D28, #1185): this pass re-checks the site's market
+   *  before it seeds one, and measures the market that stands after — the
+   *  deep and weekly passes. Needs `siteId`. A category the founder set
+   *  stands; see `market-conclusion.ts`. */
+  concludesMarket?: boolean;
   /**
    * Called as each stage is entered, before its work starts.
    *
@@ -883,6 +896,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
           ...(a.siteId === undefined ? {} : { siteId: a.siteId }),
           ...(a.onStage === undefined ? {} : { onStage: a.onStage }),
           ...(a.category === undefined ? {} : { category: a.category }),
+          ...(a.concludesMarket === true ? { concludesMarket: true } : {}),
           ...(retry === undefined ? {} : { retry }),
         });
       } finally {
@@ -899,11 +913,12 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   // the bounds have settled, so every answer that came back in time — the
   // late ones included — is in what follows.
   sections.sealed = true;
+  const measuredUnder = sections.concludedCategory ?? a.category;
   const composed = composeReport({
     scanId,
     domain,
     tier: a.tier,
-    ...(a.category === undefined ? {} : { category: a.category }),
+    ...(measuredUnder === undefined ? {} : { category: measuredUnder }),
     stoppedReason,
     fromIncompleteRescan,
     sections,
@@ -1053,6 +1068,8 @@ interface StageArgs {
   onStage?: (stage: StageName) => void | Promise<void>;
   /** `RunScanArgs.category`, carried to the market stage. */
   category?: string;
+  /** `RunScanArgs.concludesMarket`. */
+  concludesMarket?: boolean;
   /** SPEC §2's "Retry this part" (issue 715): the report this pass is
    *  re-measuring one part of, and which part. Its presence is what makes
    *  `reading_your_market` a read of the stored report rather than a
@@ -1182,7 +1199,15 @@ async function runStages(a: StageArgs): Promise<void> {
       });
       // SPEC §9: the technical-issue checks run over exactly this crawl —
       // the one run, nothing fetched beyond its set (2026-09-12).
-      if (!bounds.abandoned()) sections.siteCrawl = readingOf(crawl);
+      if (!bounds.abandoned()) {
+        sections.siteCrawl = readingOf(crawl);
+        sections.pagesRead = crawl.pages.map((page) => ({
+          url: page.url,
+          title: page.title,
+          h1: page.h1,
+          text: page.text,
+        }));
+      }
     } catch (error) {
       console.log(
         JSON.stringify({
@@ -1543,9 +1568,46 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   sections.profile = profile;
   if (profile.kind === "unmeasured") return;
 
+  // SPEC §6 (owner D28, #1185): the market is ReachKit's to keep current.
+  // Re-checked here, before anything is bought for it, so this pass seeds
+  // and measures the market that stands after the check.
+  let measuredUnder = a.category;
+  let synonyms: readonly string[] = [];
+  if (a.concludesMarket === true && a.siteId !== undefined && sections.pagesRead !== null) {
+    try {
+      const { concludeMarketForPass } = await import("./market-conclusion");
+      const concluded = await concludeMarketForPass({
+        siteId: a.siteId,
+        domain: a.domain,
+        scanId: a.scanId,
+        cost,
+        pages: sections.pagesRead,
+        at: a.startedAt,
+      });
+      if (abandoned()) return;
+      if (concluded !== null) {
+        measuredUnder = concluded.category;
+        synonyms = concluded.synonyms;
+        sections.concludedCategory = concluded.category;
+      }
+    } catch (error) {
+      console.log(
+        JSON.stringify({
+          event: "market_conclusion_failed",
+          because: error instanceof Error ? error.message : String(error),
+        })
+      );
+    }
+  }
+
   // SPEC §6 thin markets (#778): the first seed is the one every pass buys.
-  // The rest of the ladder is bought one seed at a time, only while short.
-  const seeds = seedLadder(profile.value, a.category);
+  // The rest of the ladder is bought one seed at a time, only while short —
+  // except a concluded market's synonyms, which are bought with the category
+  // inside the same three extra purchases (#1159).
+  const seeds = seedLadder(profile.value, measuredUnder, synonyms);
+  const isSynonym = (seed: string): boolean => synonyms.some((x) => x.trim().toLowerCase() === seed.toLowerCase());
+  const leading = seeds.slice(1).findIndex((seed) => !isSynonym(seed));
+  const upfront = Math.min(leading === -1 ? seeds.length - 1 : leading, a.parameters.extraSeeds);
   // The site's own footprint, the same number derivation bands by, read
   // before any market is bought: every suggestions purchase asks only for
   // rows inside its window (issue 846), and selection never takes a search
@@ -1553,13 +1615,13 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   const ownRanked = ownRankedValue(measurement.ownRanked);
   if (bounds.stopNow() !== null) return;
   const market = await attempt("reading_your_market", () =>
-    deriveMarketSet(cost, { seeds: seeds.slice(0, 1), ownRanked })
+    deriveMarketSet(cost, { seeds: seeds.slice(0, 1 + upfront), ownRanked })
   );
   if (failed(market) || abandoned()) return;
   sections.marketRows = market;
   if (market.kind === "unmeasured") return;
 
-  const category = a.category === undefined ? {} : { category: a.category };
+  const category = measuredUnder === undefined ? {} : { category: measuredUnder };
   sections.selected = selectTwelve({ profile: profile.value, market: [...market.value], ownRanked, ...category });
   if (!isShort(sections.selected)) return phrase(a, abandoned);
 
@@ -1584,7 +1646,7 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   const readEnough = (): boolean =>
     a.parameters.ladderStopsAt === "questions" ? widen().length > 0 : !isShort(sections.selected);
 
-  for (const seed of seeds.slice(1, 1 + a.parameters.extraSeeds)) {
+  for (const seed of seeds.slice(1 + upfront, 1 + a.parameters.extraSeeds)) {
     if (readEnough() || bounds.stopNow() !== null) break;
     // Widening never spends what the questions already selected are asked
     // with (issue 835).

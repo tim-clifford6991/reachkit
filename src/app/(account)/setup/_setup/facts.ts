@@ -6,7 +6,8 @@
 // of those facts is `provider.ts`'s, and today it reads `fixture.ts`.
 import {
   initialSetupState,
-  onSuggestionsSettled,
+  onMarketConcluded,
+  onRivalsConcluded,
   type ReportFacts,
   type SetupState,
 } from "@/lib/market/setup/state";
@@ -39,11 +40,14 @@ export interface SetupFacts {
    *  or `null` for a purchase with no report behind it, in which case the
    *  address field is empty and nothing is pre-filled from the payment. */
   measured: { domain: string; report: ReportFacts } | null;
-  /** REQ-026 c7's suggested rivals for the known market, or `null` where
-   *  no market is known yet and none has been sought. An empty array is
-   *  "sought and none came back" — a different state, with its own line
-   *  (REQ-026 c10). */
-  suggestedRivals: readonly string[] | null;
+  /** D28 (#1185): the market and rivals ReachKit already concluded for
+   *  this site, each with its reason, or `null` where it has concluded none
+   *  yet — and then the rivals card opens seeking. */
+  concluded: {
+    category: string;
+    reason: string;
+    rivals: readonly { domain: string; reason: string }[];
+  } | null;
   /** SPEC §5's read-only questions for the measured market, or `null`
    *  where no report phrased any. */
   questions: SetupQuestions | null;
@@ -134,8 +138,16 @@ export interface SetupScreenModel {
 
 export function assembleSetup(facts: SetupFacts): SetupScreenModel {
   const opened = initialSetupState(facts.measured);
+  const c = facts.concluded;
   const settled =
-    facts.suggestedRivals === null ? opened : onSuggestionsSettled(opened, facts.suggestedRivals);
+    c === null
+      ? opened
+      : onRivalsConcluded(
+          onMarketConcluded(opened, { category: c.category, reason: c.reason }),
+          c.rivals.map((rival) => rival.domain),
+          Object.fromEntries(c.rivals.map((rival) => [rival.domain, rival.reason])),
+          BATTERY.COMPETITORS_MAX
+        );
   const state = restored(settled, facts.saved);
 
   return {

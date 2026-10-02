@@ -73,7 +73,11 @@ function EmptyLine(): React.JSX.Element | null {
  *  (`AccountPanel`'s shape, since #134). */
 export function CompetitorsPanel(p: {
   competitors: SettingsModel["competitors"];
+  /** D28 (#1185): ReachKit's conclusion, for each rival's one line. */
+  concluded?: SettingsModel["concluded"];
 }): React.JSX.Element {
+  const concluded = p.concluded ?? null;
+  const reasons = concluded === null || concluded.rivalsOverridden ? null : concluded.reasons;
   const full = p.competitors.length >= BATTERY.COMPETITORS_MAX;
   // The typed domain, kept across a refusal, and the answer the last press
   // gave. Neither is a copy of the set: the set is the model's, re-read
@@ -118,9 +122,18 @@ export function CompetitorsPanel(p: {
 
         <div className="flex min-w-0 flex-col gap-3" data-testid="setting-competitors">
           {p.competitors.length > 0 ? null : <EmptyLine />}
-          <div className="flex min-w-0 flex-wrap gap-2">
+          {concluded === null ? null : (
+            <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="competitors-concluded">
+              {copy(concluded.rivalsOverridden ? "settings.competitors.overridden" : "settings.competitors.concluded")}
+            </p>
+          )}
+          <div className={reasons === null ? "flex min-w-0 flex-wrap gap-2" : "flex min-w-0 flex-col gap-3"}>
             {p.competitors.map((domain) => (
-              <div className="min-w-0 max-w-full" key={domain} data-testid={`competitor-${domain}`}>
+              <div
+                className={reasons === null ? "min-w-0 max-w-full" : "flex min-w-0 max-w-full flex-col items-start gap-1"}
+                key={domain}
+                data-testid={`competitor-${domain}`}
+              >
                 {/* Each rival is its own form's submit: pressing it removes
                     that one rival on the server. */}
                 <form action={remove} className="min-w-0 max-w-full">
@@ -134,6 +147,9 @@ export function CompetitorsPanel(p: {
                     <X size={16} strokeWidth={1.75} aria-hidden />
                   </button>
                 </form>
+                {reasons?.[domain] === undefined ? null : (
+                  <p className="text-sm text-base-content/70 wrap-anywhere">{reasons[domain]}</p>
+                )}
               </div>
             ))}
           </div>

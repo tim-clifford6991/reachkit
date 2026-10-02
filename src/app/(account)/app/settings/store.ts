@@ -253,6 +253,7 @@ export async function readLiveSettingsFacts(
     // states it and offers the control that names one.
     category: answers.category ?? "",
     competitors: answers.rivals,
+    concluded: await concludedFor(siteId),
 
     // §9's four publishing settings, and the switch.
     mode: publishing.mode,
@@ -277,4 +278,25 @@ export async function readLiveSettingsFacts(
     billing,
     publishedPages: pages,
   };
+}
+
+/** D28 (#1185): the market and rivals ReachKit concluded, with their
+ *  reasons. Fails soft: a read that raised states no reasons, and the two
+ *  cards stand as they did before. */
+async function concludedFor(siteId: string): Promise<SettingsFacts["concluded"]> {
+  try {
+    const { readSiteMarket } = await import("@/lib/market/infer/stored");
+    const stored = (await readSiteMarket(siteId))?.stored ?? null;
+    const current = stored?.current ?? null;
+    if (stored === null || current === null) return null;
+    return {
+      category: current.category,
+      categoryReason: current.categoryReason,
+      reasons: Object.fromEntries(current.rivals.map((rival) => [rival.domain, rival.reason])),
+      categoryOverridden: stored.categoryOverridden,
+      rivalsOverridden: stored.rivalsOverridden,
+    };
+  } catch {
+    return null;
+  }
 }

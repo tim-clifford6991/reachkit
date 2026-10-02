@@ -34,9 +34,15 @@ import { clearSuggested, type RivalSet } from "./rivals";
  *  so nothing can be pre-filled from it and nothing on it can be labelled
  *  inferred or measured. */
 export type MarketCard =
-  | { state: "inferred"; category: string; fromScanId: string }
+  /** `reason` is ReachKit's one line for a market it concluded itself
+   *  (D28, #1185); a report's category carries none. */
+  | { state: "inferred"; category: string; fromScanId: string; reason?: string }
   | { state: "empty" }
   | { state: "stated"; category: string };
+
+/** The `fromScanId` of a market ReachKit concluded rather than a report
+ *  measured: no report's twelve were asked in it, so none are shown. */
+export const CONCLUDED_MARKET = "concluded";
 
 /** REQ-026 c10. `awaiting_market` and `none_found` are two states and never
  *  merge: a card with no market yet says it is waiting on the market, never
@@ -82,7 +88,12 @@ export interface SetupState {
    *  the address card is `asked`. Derived from `address`; never set alone. */
   siteDomain: string | null;
   market: MarketCard;
-  suggestions: { state: SuggestionState; candidates: readonly string[] };
+  /** `reasons` is ReachKit's one line per candidate it concluded (D28). */
+  suggestions: {
+    state: SuggestionState;
+    candidates: readonly string[];
+    reasons?: Readonly<Record<string, string>>;
+  };
   rivals: RivalSet;
 }
 
@@ -200,13 +211,55 @@ export function onMarketStated(s: SetupState, category: string): SetupState {
 /** REQ-026 c7 and c10, second limb: suggestions sought for a known market
  *  either came back or did not, and "none came back" is its own state with
  *  its own written line. */
-export function onSuggestionsSettled(s: SetupState, candidates: readonly string[]): SetupState {
+export function onSuggestionsSettled(
+  s: SetupState,
+  candidates: readonly string[],
+  reasons?: Readonly<Record<string, string>>
+): SetupState {
   return {
     ...s,
     suggestions: {
       state: candidates.length === 0 ? "none_found" : "offered",
       candidates: Object.freeze([...candidates]),
+      ...(reasons === undefined ? {} : { reasons: Object.freeze({ ...reasons }) }),
     },
+  };
+}
+
+/**
+ * D28 (owner, 2026-10-02, #1185): the rivals ReachKit concluded are the
+ * set, and leaving the step unchanged accepts them. Each joins as
+ * `suggested` — so a domain change still clears it (REQ-026 c12) — behind
+ * whatever the founder typed, up to `max`. The founder may remove any; they
+ * never have to pick.
+ */
+export function onRivalsConcluded(
+  s: SetupState,
+  rivals: readonly string[],
+  reasons: Readonly<Record<string, string>>,
+  max: number
+): SetupState {
+  const settled = onSuggestionsSettled(s, rivals, reasons);
+  const held = new Set(s.rivals.map((rival) => rival.domain));
+  const joined = rivals
+    .filter((domain) => domain !== s.siteDomain && !held.has(domain))
+    .map((domain) => Object.freeze({ domain, origin: "suggested" as const }));
+  return { ...settled, rivals: Object.freeze([...s.rivals, ...joined].slice(0, max)) };
+}
+
+/** D28: the market ReachKit concluded replaces the card's report reading or
+ *  its empty state — never a market the founder stated, which stands. */
+export function onMarketConcluded(s: SetupState, market: { category: string; reason: string }): SetupState {
+  if (s.market.state === "stated" || market.category.trim() === "") return s;
+  // The market a report already measured keeps that report's twelve.
+  const fromScanId =
+    s.market.state === "inferred" && s.market.category.trim().toLowerCase() === market.category.trim().toLowerCase()
+      ? s.market.fromScanId
+      : CONCLUDED_MARKET;
+  return {
+    ...s,
+    market: { state: "inferred", category: market.category, fromScanId, reason: market.reason },
+    suggestions: s.suggestions.state === "awaiting_market" ? { state: "seeking", candidates: Object.freeze([]) } : s.suggestions,
   };
 }
 

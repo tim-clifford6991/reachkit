@@ -195,8 +195,9 @@ beforeEach(() => {
 });
 
 describe("free upgrade — the report's rivals are on the card when the screen opens", () => {
-  it("offers them as chips, and one can be accepted", async () => {
+  it("offers them as chips once the route answers (nothing read of the site to conclude from), and one can be accepted", async () => {
     const root = await mount("rivals");
+    await until(() => offered(root).length > 0, COLD_ROUTE_MS);
     expect(offered(root)).toEqual(["asana.com", "monday.com", "clickup.com"]);
     expect(shown(root, "setup-competitors-seeking")).toBe(false);
 
@@ -263,6 +264,7 @@ describe("SPEC §5 (2026-09-20) — each step saves as it is left", () => {
 
   it("leaving the rivals step writes the rivals the founder kept — the save the pass then reads", async () => {
     const root = await mount("rivals");
+    await until(() => offered(root).length > 0, COLD_ROUTE_MS);
     await act(async () => {
       (root.querySelector('[data-testid="setup-competitors-suggested"] button') as HTMLElement).click();
     });

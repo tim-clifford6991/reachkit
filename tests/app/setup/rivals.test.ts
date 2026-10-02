@@ -184,13 +184,10 @@ describe("direct purchase — the founder states the market, and competitors_dom
 });
 
 describe("free upgrade — the market is inferred from the report, and its rivals cost nothing", () => {
-  it("the screen opens with the report's rivals offered, and buys and claims nothing", async () => {
+  it("D28 — the screen opens seeking ReachKit's conclusion, and buys and claims nothing (#1185)", async () => {
     const model = await readSetupScreen();
     expect(model.state.market.state).toBe("inferred");
-    expect(model.state.suggestions).toEqual({
-      state: "offered",
-      candidates: ["asana.com", "monday.com", "clickup.com"],
-    });
+    expect(model.state.suggestions).toEqual({ state: "seeking", candidates: [] });
     expect(competitorsDomain).not.toHaveBeenCalled();
     expect(opened).toEqual([]);
     expect(db.tables.scans).toEqual([]);
@@ -221,19 +218,6 @@ describe("issue 838 — a report that found no rivals still offers them", () => 
     const row = db.tables.scans![0]!;
     expect(row).toMatchObject({ tier: "deep", status: "running", site_id: "site-1", domain: "example.com" });
     expect(opened).toEqual([{ scanId: row.id, cap: "DEEP", policyVersion: 1, rollUp: "add" }]);
-  });
-
-  it("the rivals the site names are offered on the screen for nothing, and nothing is bought", async () => {
-    setupSession.reports.set("example.com", {
-      scanId: "scan-1",
-      category: "SEO content software",
-      rivals: [],
-      namedRivals: ["surferseo.com", "Jasper"],
-    });
-    const model = await readSetupScreen();
-    expect(model.state.suggestions).toEqual({ state: "offered", candidates: ["surferseo.com"] });
-    expect(competitorsDomain).not.toHaveBeenCalled();
-    expect(opened).toEqual([]);
   });
 
   it("a vendor that finds none either settles the card as none found", async () => {

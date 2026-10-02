@@ -67,7 +67,7 @@ function model(over: Partial<SetupFacts> = {}) {
 // that is supposed to have read nothing.
 const SCANLESS: Partial<SetupFacts> = {
   measured: null,
-  suggestedRivals: null,
+  concluded: null,
   profile: null,
   market: null,
 };
@@ -197,7 +197,7 @@ describe("REQ-025 c1 — nothing on any step states how long anything takes", ()
 
   it("no rendered string on any step states a duration, an estimate or a percentage", () => {
     for (const step of SETUP_STEPS) {
-      for (const facts of [{}, SCANLESS, { suggestedRivals: [] }]) {
+      for (const facts of [{}, SCANLESS, { concluded: null }]) {
         expect(screenFor(step, facts).textContent ?? "", step).not.toMatch(TIME);
       }
     }
@@ -446,20 +446,23 @@ describe("step two — what we learned about your business (SPEC §5, 2026-09-20
 });
 
 describe("step three — the rivals (REQ-026 c9, c10)", () => {
-  it("suggested rivals are offered one by one, each acceptable or rejectable on its own", () => {
-    const chips = screenFor("rivals").querySelectorAll(
-      '[data-testid="setup-competitors-suggested"] button',
+  it("D28 — the rivals ReachKit concluded arrive chosen, each with its reason, so leaving the step accepts them", () => {
+    const concluded = FIXTURE_SETUP_FACTS.concluded?.rivals ?? [];
+    const chosen = screenFor("rivals").querySelector('[data-testid="setup-competitors-selected"]');
+    expect(chosen?.querySelectorAll("li")).toHaveLength(concluded.length);
+    for (const rival of concluded) {
+      expect(chosen?.textContent).toContain(rival.domain);
+      expect(chosen?.textContent).toContain(rival.reason);
+    }
+    expect(screenFor("rivals").querySelector('[data-testid="setup-competitors-concluded"]')?.textContent).toBe(
+      COPY["setup.competitors.concluded"],
     );
-    expect(chips).toHaveLength(FIXTURE_SETUP_FACTS.suggestedRivals?.length ?? 0);
-    expect([...chips].map((c) => c.textContent)).toEqual([
-      ...(FIXTURE_SETUP_FACTS.suggestedRivals ?? []),
-    ]);
   });
 
-  it("none is selected on arrival — no domain the founder did not choose ever joins the set", () => {
-    expect(
-      screenFor("rivals").querySelectorAll('[data-testid="setup-competitors-selected"] button'),
-    ).toHaveLength(0);
+  it("D28 — each concluded rival can be removed; nothing asks the founder to pick", () => {
+    const chosen = screenFor("rivals").querySelector('[data-testid="setup-competitors-selected"]');
+    expect(chosen?.querySelectorAll("button[aria-label]")).toHaveLength(FIXTURE_SETUP_FACTS.concluded?.rivals.length ?? 0);
+    expect(screenFor("rivals").querySelector('[data-testid="setup-competitors-suggested"]')).toBeNull();
   });
 
   it("a rival can be typed: the step carries its own field and action", () => {
@@ -484,7 +487,16 @@ describe("step three — the rivals (REQ-026 c9, c10)", () => {
   });
 
   it("c10 — a known market whose suggestions came back empty says none were found", () => {
-    const tree = screenFor("rivals", { suggestedRivals: [] });
+    const tree = render(
+      <RivalsCard
+        rivals={[]}
+        suggestions={{ state: "none_found", candidates: [] }}
+        ownDomain="example.com"
+        max={BATTERY.COMPETITORS_MAX}
+        resolveDomain={vi.fn()}
+        onRivals={vi.fn()}
+      />,
+    );
     expect(tree.querySelector('[data-testid="setup-competitors-none-found"]')).not.toBeNull();
     expect(tree.querySelector('[data-testid="setup-competitors-awaiting"]')).toBeNull();
   });

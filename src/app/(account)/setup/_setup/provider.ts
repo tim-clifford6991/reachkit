@@ -25,12 +25,12 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { env } from "@/lib/config/env";
-import { assembleSetup, type SetupQuestions, type SetupScreenModel } from "./facts";
+import { assembleSetup, type SetupFacts, type SetupQuestions, type SetupScreenModel } from "./facts";
 import type { StoredReport } from "@/lib/scan/report";
 import { liveSetupStore, savedSetupFor, siteAddressFor } from "./store";
 import type { PassProgress } from "./progress";
 import type { SetupStore } from "../submit";
-import { initialSetupState, type ReportFacts } from "@/lib/market/setup/state";
+import type { ReportFacts } from "@/lib/market/setup/state";
 import type { ConfirmedReadings } from "@/lib/site-profile/business/confirmed";
 import type { RivalGrid } from "./panel-rivals";
 import type { OnboardingStage } from "@/lib/scan/deep/progress";
@@ -69,14 +69,11 @@ const currentFounder = cache(async function currentFounder(): Promise<{
  * this account will use, or `null` for a purchase with no report behind it
  * — in which case the address field is empty and nothing is pre-filled.
  *
- * **`suggestedRivals` is settled here for a free upgrade, and only from
- * what is free** (issue 750): the report's own rivals and the ones the
- * site names — no vendor call, no row, nothing written while a page
- * renders. A report with neither opens seeking (issue 838): the card asks
- * `POST /api/setup/rivals`, which buys `competitors_domain` against the
- * claimed row. A purchase with no report opens on `null`, which is "no
- * market known yet": that card waits on the founder, and the route seeks
- * once they give an address or state a market.
+ * **`concluded` is what ReachKit already concluded for the site** (D28,
+ * #1185), read from `sites.market` — no vendor call, no model call, nothing
+ * written while a page renders. Where nothing is concluded yet the rivals
+ * card opens seeking and `POST /api/setup/rivals` concludes, once the
+ * founder has given an address.
  */
 export const readSetupScreen = cache(async function readSetupScreen(): Promise<SetupScreenModel> {
   const founder = await currentFounder();
@@ -88,17 +85,10 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
           return report === null ? null : { domain: founder.domain, report };
         })();
   const questions = measured === null ? null : await readQuestionsFor(founder.domain);
-  const suggestedRivals =
-    measured === null
-      ? null
-      : await (async () => {
-          const { rivalsForScreen } = await import("./rivals");
-          return rivalsForScreen({
-            state: initialSetupState(measured),
-            report: measured.report,
-            at: new Date(),
-          });
-        })();
+  // D28 (#1185): what ReachKit already concluded for this site, with its
+  // reasons — read, never bought again on a reload. Where it has concluded
+  // nothing yet the card opens seeking, and the route concludes.
+  const concluded = await concludedFor(founder.siteId);
 
   // SPEC §5 and §7 (2026-09-20, #970): the three readings step two's lists
   // are made of, through the one reader Settings › Your business goes
@@ -110,7 +100,7 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
 
   return assembleSetup({
     measured,
-    suggestedRivals,
+    concluded,
     questions,
     profile: business.profile,
     market: business.market,
@@ -343,3 +333,21 @@ const storedReportFor = cache(async function storedReportFor(
     return null;
   }
 });
+
+/** The market and rivals stored for this site, as setup shows them. Fails
+ *  soft: a read that raised opens the card seeking, as no conclusion does. */
+async function concludedFor(siteId: string): Promise<SetupFacts["concluded"]> {
+  if (siteId === "") return null;
+  try {
+    const { readSiteMarket } = await import("@/lib/market/infer/stored");
+    const current = (await readSiteMarket(siteId))?.stored.current ?? null;
+    if (current === null || current.rivals.length === 0) return null;
+    return {
+      category: current.category,
+      reason: current.categoryReason,
+      rivals: current.rivals.map((rival) => ({ domain: rival.domain, reason: rival.reason })),
+    };
+  } catch {
+    return null;
+  }
+}

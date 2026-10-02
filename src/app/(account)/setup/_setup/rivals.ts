@@ -1,21 +1,15 @@
-// §5 — the rivals setup offers, sought on the server for both ways in.
+// §5 — the rivals setup offers, sought on the server.
 //
-// `suggestRivals` decides which source a market's suggestions come from;
-// this is the adapter that gives it the facts and settles the card with
-// its answer (issue 750). Two callers:
-//
-//   - **The screen read** (`provider.ts`), for a free upgrade. The market
-//     is inferred from the report the purchase came from, so the rivals
-//     are that report's own and the ones the site names — no vendor call,
-//     no row, no write while a page renders. A report with neither leaves
-//     the card seeking, and the browser asks the route (issue 838).
-//   - **`POST /api/setup/rivals`**, whenever the founder gives an address
-//     or states a market. The report is read here from the domain, never
-//     taken from the browser. A stated market — or an inferred one whose
-//     report found no rivals (issue 838) — buys `competitors_domain`, spent under the `DEEP` cap against the
-//     deep pass's own `scans` row, which this claims when setup accepts the
-//     address (owner ruling, 2026-09-16), and counted in its `cost_cents`.
-//     The pass adopts that row later. The kill switch refuses the call.
+// `POST /api/setup/rivals` asks here whenever the founder gives an address
+// or states a market. The report is read from the domain, never taken from
+// the browser. ReachKit concludes the market and its rivals itself, each
+// with its reason (owner D28 of 2026-10-02, #1185), spent under the `DEEP`
+// cap against the deep pass's own `scans` row, which this claims when setup
+// accepts the address (owner ruling, 2026-09-16), and counted in its
+// `cost_cents`. The pass adopts that row later. The kill switch refuses the
+// call. Where nothing of the site has been read yet, or the conclusion did
+// not come back, the card is offered what it was before #1185: the rivals
+// the site names and `competitors_domain`.
 //
 // **Every missing fact settles to a written state.** No site, a finished
 // setup, an address that is not a domain, a claim that could not be
@@ -25,7 +19,6 @@
 // the card seeking.
 import type { Measured } from "@/lib/measure/measured";
 import type { Spend } from "@/lib/market/rivals/suggest";
-import type { ReportFacts, SetupState } from "@/lib/market/setup/state";
 
 /** What the card settles on: candidates (possibly none), or `null` where
  *  nothing was sought — no market is known (REQ-026 c10), or the screen
@@ -40,21 +33,13 @@ export function settledRivals(answer: Measured<string[]>): SettledRivals {
   return answer.value;
 }
 
-/** The free upgrade's suggestions, for the state the screen opens in. */
-export async function rivalsForScreen(a: {
-  state: SetupState;
-  report: ReportFacts | null;
-  at: Date;
-}): Promise<SettledRivals> {
-  try {
-    const { suggestRivals } = await import("@/lib/market/rivals/suggest");
-    // A screen read spends nothing: where only a paid call could answer,
-    // the card opens seeking and the route answers it.
-    return settledRivals(await suggestRivals(null, a));
-  } catch (error) {
-    logUnsought(error);
-    return null;
-  }
+/** What the route answers (§5, D28): the rivals to offer, ReachKit's one
+ *  line for each it concluded, and the market it concluded — `null` where it
+ *  concluded none and the card keeps what it has. */
+export interface SeekAnswer {
+  candidates: SettledRivals;
+  reasons: Readonly<Record<string, string>>;
+  market: { category: string; reason: string } | null;
 }
 
 /**
@@ -69,17 +54,18 @@ export async function seekRivals(a: {
   domain: string;
   category: string | null;
   at: Date;
-}): Promise<SettledRivals> {
+}): Promise<SeekAnswer> {
+  const unsought = (candidates: SettledRivals): SeekAnswer => ({ candidates, reasons: {}, market: null });
   try {
     const { setupStore } = await import("./provider");
     const progress = await setupStore().readProgress(a.userId);
     // Setup is where the deep pass is claimed, and a finished setup's pass
     // has already run: nothing is claimed or spent for it.
-    if (progress.complete) return [];
+    if (progress.complete) return unsought([]);
 
     const { registrableDomain } = await import("@/lib/market/rivals/domains");
     const domain = registrableDomain(a.domain);
-    if (domain === null) return [];
+    if (domain === null) return unsought([]);
 
     const { initialSetupState, onDomainChanged, onMarketStated } = await import(
       "@/lib/market/setup/state"
@@ -114,11 +100,37 @@ export async function seekRivals(a: {
             );
           };
 
+    // D28 (#1185): ReachKit concludes the market and its rivals itself,
+    // each with its reason, and the founder never has to. Where nothing of
+    // the site has been read yet, or the call did not come back, the card
+    // is offered what it was before.
+    if (scanId !== null) {
+      const { concludeAtSetup } = await import("@/lib/scan/market-conclusion");
+      const concluded = await concludeAtSetup({
+        siteId: progress.siteId,
+        domain,
+        stated: category === "" ? null : category,
+        spend,
+        at: a.at,
+      }).catch((error: unknown) => {
+        logUnsought(error);
+        return null;
+      });
+      if (concluded !== null && concluded.rivals.length > 0) {
+        return {
+          candidates: concluded.rivals.map((rival) => rival.domain),
+          reasons: Object.fromEntries(concluded.rivals.map((rival) => [rival.domain, rival.reason])),
+          market:
+            category === "" ? { category: concluded.category, reason: concluded.categoryReason } : null,
+        };
+      }
+    }
+
     const { suggestRivals } = await import("@/lib/market/rivals/suggest");
-    return settledRivals(await suggestRivals(spend, { state, report, at: a.at }));
+    return unsought(settledRivals(await suggestRivals(spend, { state, report, at: a.at })));
   } catch (error) {
     logUnsought(error);
-    return [];
+    return unsought([]);
   }
 }
 

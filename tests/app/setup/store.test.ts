@@ -198,8 +198,12 @@ describe("commitSetup — the transaction, the three answers, then the stamp", (
     // being last is what this row is for: a crash anywhere above it
     // leaves a founder who is asked again, never one whose choices are
     // half-written.
+    // D28 (#1185): after the answers, one read of what ReachKit concluded,
+    // to tell whether those answers override it (none is concluded here,
+    // so nothing more is written).
     expect(order).toEqual([
       "rpc:apply_setup_choice",
+      "sites",
       "sites",
       "site_profiles",
       "sites",
