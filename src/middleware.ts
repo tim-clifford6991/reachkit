@@ -48,7 +48,7 @@
 // a work order that touches BP-001's own `code:` list.
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { PREVIEW_HOST_SUFFIX } from "@/lib/config/constants";
+import { HOSTED_SUBDOMAIN_LABEL, PREVIEW_HOST_SUFFIX } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
 import { isDomainRemoved } from "@/lib/scan/removal";
 import { isFixtureDomain } from "@/app/(public)/scan/[domain]/_fixture/states";
@@ -315,6 +315,14 @@ const OURS_SUFFIX = `.${PREVIEW_HOST_SUFFIX}`;
 const PLATFORM_SUFFIX = ".vercel.app";
 const LOCAL_HOSTS: ReadonlySet<string> = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
+/** The dogfood's own hosted host (owner, 2026-10-02, #1045: "fix this to be
+ *  content.reachkit.app for dogfooding purposes"). ReachKit's own site is
+ *  `reachkit.app`, so its hosted host is under `PREVIEW_HOST_SUFFIX` and the
+ *  subtraction above would keep it as one of ours. Exactly this host is let
+ *  through; `resolveHost` still decides it from the destination row that
+ *  claims it, and no other `*.reachkit.app` address changes. */
+const DOGFOOD_HOSTED_HOST = `${HOSTED_SUBDOMAIN_LABEL}.${PREVIEW_HOST_SUFFIX}`;
+
 /** This deployment's own address, from the one binding that carries it.
  *  Computed per call rather than memoised: the suites that drive this file
  *  rebind the environment between cases, and the parse is one `URL`. An
@@ -378,6 +386,7 @@ function isHostedEdgeHost(req: NextRequest): boolean {
   // Before the two exclusions below, which would otherwise refuse it: the
   // test host is a `.vercel.app` address.
   if (name === hostedTestHost()) return true;
+  if (name === DOGFOOD_HOSTED_HOST) return true;
   if (name === PREVIEW_HOST_SUFFIX || name.endsWith(OURS_SUFFIX)) return false;
   if (name.endsWith(PLATFORM_SUFFIX)) return false;
   return !LOCAL_HOSTS.has(name);

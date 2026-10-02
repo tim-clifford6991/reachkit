@@ -101,7 +101,7 @@ describe("issue 762 — HOSTED_TEST_HOST names one platform host as a hosted hos
     TEST_HOST.replace(".vercel.app", "x.vercel.app"),
     "reachkit.vercel.app",
     "dev.reachkit.app",
-    "content.reachkit.app",
+    "blog.reachkit.app",
     "reachkit.app",
   ])("bound, %s is still not a hosted host", async (host) => {
     const middleware = await middlewareWith(TEST_HOST, "preview");
@@ -136,5 +136,22 @@ describe("issue 762 — HOSTED_TEST_HOST names one platform host as a hosted hos
       host: TEST_HOST,
       indexable: true,
     });
+  });
+});
+
+describe("issue 1045 — content.reachkit.app is the dogfood's hosted host", () => {
+  it("on production, its root is the hosted index and its paths are hosted pages", async () => {
+    const middleware = await middlewareWith(undefined, "production");
+    expect(rewrittenTo(await middleware(requestTo("/", "content.reachkit.app")))).toBe("/hosted-page");
+    expect(rewrittenTo(await middleware(requestTo("/a-page", "content.reachkit.app")))).toBe(
+      "/hosted-page/a-page"
+    );
+  });
+
+  it("no other reachkit.app address becomes hosted", async () => {
+    const middleware = await middlewareWith(undefined, "production");
+    for (const host of ["dev.reachkit.app", "blog.reachkit.app", "reachkit.app"]) {
+      expect(rewrittenTo(await middleware(requestTo("/a-page", host)))).toBeNull();
+    }
   });
 });
