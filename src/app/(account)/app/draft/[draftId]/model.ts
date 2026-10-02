@@ -192,6 +192,9 @@ export interface DraftView {
    *  label truthful and what an unedited page's copy-out is identical to. */
   bodyMdGenerated: string;
   state: State;
+  /** Whether the page ever entered review (#1180): a stopped page that
+   *  never did may be edited, written again or skipped. */
+  enteredReview: boolean;
   authorship: Authorship;
   grounded: Grounded;
   claim: ClaimState;
@@ -282,6 +285,8 @@ export interface DraftFacts {
   bodyMd: string;
   bodyMdGenerated: string;
   state: State;
+  /** Whether §9's record shows the page in review at any point (#1180). */
+  enteredReview: boolean;
   /** Set on the first save that changed the text; `null` on a draft the
    *  customer has not edited. */
   firstEditedAt: Date | null;
@@ -378,6 +383,7 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     bodyMd: facts.bodyMd,
     bodyMdGenerated: facts.bodyMdGenerated,
     state: facts.state,
+    enteredReview: facts.enteredReview,
     authorship:
       facts.firstEditedAt === null
         ? { edited: false }

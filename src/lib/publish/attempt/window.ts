@@ -87,11 +87,17 @@ async function liveDestination(siteId: string): Promise<DestinationRow | null> {
  * `generating → in_review`, with the window it opens and the telling it
  * owes. Called once per passing generation; a page anywhere but
  * `generating` is left where it is.
+ *
+ * With a customer as `by`, the same window opens from `needs_attention`
+ * instead (SPEC §7, #1180): the founder's edit of a page the rules stopped
+ * passed every hard rule, and the page enters review on a fresh window.
  */
-export async function enterReview(a: { draftId: string; at: Date }): Promise<ReviewEntry> {
+export async function enterReview(a: { draftId: string; at: Date; by?: Actor }): Promise<ReviewEntry> {
+  const by = a.by ?? OPENED_BY;
+  const from = by.kind === "customer" ? "needs_attention" : "generating";
   const draft = await machineDraftFor(a.draftId);
   if (draft === null) return { kind: "not_entered", reason: "no_draft" };
-  if (draft.state !== "generating") return { kind: "not_entered", reason: "not_generating" };
+  if (draft.state !== from) return { kind: "not_entered", reason: "not_generating" };
   // The edge carries no guard of its own; the battery's record is the
   // condition, and only the run that put the page through it may write it.
   if (!draft.hardRulesPassed) return { kind: "not_entered", reason: "hard_rules" };
@@ -107,12 +113,12 @@ export async function enterReview(a: { draftId: string; at: Date }): Promise<Rev
     .from<{ id: string }>("drafts")
     .update({ veto_deadline: deadline.toISOString() })
     .eq("id", a.draftId)
-    .eq("state", "generating");
+    .eq("state", from);
   if (stamped.error !== null) {
     throw new Error(`publish/window: could not stamp the veto deadline: ${stamped.error.message}`);
   }
 
-  const moved = await transition(a.draftId, "in_review", OPENED_BY, { at: a.at });
+  const moved = await transition(a.draftId, "in_review", by, { at: a.at });
   if (!moved.ok) return { kind: "not_entered", reason: "moved" };
 
   const { sendDraftReadyMail } = await import("@/lib/mail/draft-ready");

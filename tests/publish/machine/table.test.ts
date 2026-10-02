@@ -26,7 +26,7 @@ import type { State } from "@/lib/publish/types";
  *                          skipped            failed → retry ×3 → needs_attention
  *   published → unpublished (always available)
  */
-const FIFTEEN: [State, State][] = [
+const EDGES: [State, State][] = [
   ["planned", "generating"],
   ["planned", "skipped"],
   ["generating", "in_review"],
@@ -41,6 +41,7 @@ const FIFTEEN: [State, State][] = [
   ["needs_attention", "publishing"],
   ["needs_attention", "generating"],
   ["needs_attention", "skipped"],
+  ["needs_attention", "in_review"],
   ["published", "unpublished"],
 ];
 
@@ -67,15 +68,15 @@ describe("STATES is exactly §9's ten", () => {
   });
 });
 
-describe("TRANSITIONS is exactly the fifteen", () => {
-  it.each(FIFTEEN)("%s → %s is a member", (from, to) => {
+describe("TRANSITIONS is exactly the sixteen", () => {
+  it.each(EDGES)("%s → %s is a member", (from, to) => {
     expect(TRANSITIONS.some(([f, t]) => f === from && t === to)).toBe(true);
   });
 
-  it("there is no sixteenth edge", () => {
-    expect(TRANSITIONS.length).toBe(15);
+  it("there is no seventeenth edge", () => {
+    expect(TRANSITIONS.length).toBe(16);
     for (const [from, to] of TRANSITIONS) {
-      expect(FIFTEEN.some(([f, t]) => f === from && t === to)).toBe(true);
+      expect(EDGES.some(([f, t]) => f === from && t === to)).toBe(true);
     }
   });
 
@@ -118,7 +119,7 @@ describe("skipped and unpublished are the only states from which no change is po
 
   it("needs_attention has a way out whichever route brought a page to it", () => {
     const exits = TRANSITIONS.filter(([from]) => from === "needs_attention").map(([, to]) => to);
-    expect([...exits].sort()).toEqual(["generating", "publishing", "skipped"]);
+    expect([...exits].sort()).toEqual(["generating", "in_review", "publishing", "skipped"]);
   });
 });
 

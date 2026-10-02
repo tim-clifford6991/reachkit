@@ -250,6 +250,7 @@ const UNEDITED: DraftFacts = {
   bodyMd: BODY,
   bodyMdGenerated: BODY,
   state: "in_review",
+  enteredReview: true,
   firstEditedAt: null,
   groundedFact: {
     passage: GROUNDED_FACT,

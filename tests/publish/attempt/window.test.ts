@@ -127,6 +127,26 @@ describe("a passing page enters review, with its window and its telling", () => 
   });
 });
 
+describe("#1180 — a page the rules stopped, fixed by the founder, enters review", () => {
+  const FOUNDER = { kind: "customer", userId: "u1" } as const;
+  const STOPPED = [{ from: "generating", to: "needs_attention", at: EVENING.toISOString() }];
+
+  it("opens a fresh window from needs_attention, by the customer, and tells them", async () => {
+    seed({ draft: { state: "needs_attention", transitions: STOPPED } });
+    expect(await enterReview({ draftId: "d1", at: EVENING, by: FOUNDER })).toEqual({ kind: "told" });
+    expect(draft().state).toBe("in_review");
+    expect(draft().veto_deadline).toBe(new Date(EVENING.getTime() + VETO.defaultHours * HOUR).toISOString());
+    expect((draft().transitions as { actor: unknown }[]).at(-1)).toMatchObject({ actor: FOUNDER });
+  });
+
+  it("a page that was in review before is never sent back to it", async () => {
+    seed({ draft: { state: "needs_attention", transitions: [{ to: "in_review" }, ...STOPPED] } });
+    expect(await enterReview({ draftId: "d1", at: EVENING, by: FOUNDER })).toEqual({ kind: "not_entered", reason: "moved" });
+    expect(draft().state).toBe("needs_attention");
+    expect(mail.sends).toEqual([]);
+  });
+});
+
 describe("the hourly tick closes a window that has run out", () => {
   /** The first publish time at or after the 24-hour window: 09:00 New York
    *  on 3 September, which is 13:00 UTC. */

@@ -35,6 +35,16 @@ vi.mock("@/lib/costs", () => ({
     run({ cap: "DRAFT", capHit: () => false, spentCents: () => 0, degraded: () => false }),
 }));
 
+// #1180: a passing save of a stopped page opens its review window through
+// the publishing engine, and the route re-reads. Both doubled at the seam.
+const { enterReviewMock, schedulePublishMock } = vi.hoisted(() => ({
+  enterReviewMock: vi.fn(async () => ({ kind: "told" })),
+  schedulePublishMock: vi.fn(async () => ({ scheduled: true })),
+}));
+vi.mock("@/lib/publish/attempt/window", () => ({ enterReview: enterReviewMock }));
+vi.mock("@/jobs/engine", () => ({ schedulePublish: schedulePublishMock }));
+vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
+
 import { AT, SITE_ID, SOURCE_TEXT, GROUNDED, CLEAN_MARKDOWN, fakeCost, memoryStore, opportunity, siteInputs } from "../../generate/fixtures";
 import { generateDraft } from "@/lib/generate/pipeline";
 import { setGenerateStore } from "@/lib/generate/store";
@@ -196,6 +206,42 @@ describe("#789 — what a save refuses", () => {
   it("a draft that has left review is refused", async () => {
     const draftId = await draftInReview();
     store.rows.set(draftId, { ...store.rows.get(draftId)!, state: "approved" });
+    const result = await draftStore.save({ draftId, title: "Late", bodyMd: "x", description: "" });
+    expect(result).toEqual({ ok: false, refused: "not_editable" });
+  });
+});
+
+describe("#1180 — a page the rules stopped is fixed from the draft and enters review", () => {
+  const STOPPED = [{ from: "generating", to: "needs_attention", at: AT.toISOString() }];
+
+  async function stoppedDraft(transitions: unknown[] = STOPPED): Promise<string> {
+    const draftId = await draftInReview();
+    store.rows.set(draftId, { ...store.rows.get(draftId)!, state: "needs_attention", veto_deadline: null, transitions });
+    return draftId;
+  }
+
+  it("an edit that still breaks a rule is saved and the page stays where it is", async () => {
+    const draftId = await stoppedDraft();
+    const bodyMd = `${row(draftId).body_md}\n\nIn our tests it held up.`;
+    const result = await draftStore.save({ draftId, title: "A title", bodyMd, description: "A description." });
+    expect(result).toMatchObject({ ok: true, rulesFailed: true, entered: false });
+    expect(row(draftId).body_md).toBe(bodyMd);
+    expect(enterReviewMock).not.toHaveBeenCalled();
+  });
+
+  it("an edit that passes every rule takes the page into review, as the founder, and schedules it", async () => {
+    const draftId = await stoppedDraft();
+    const bodyMd = `${row(draftId).body_md}\n\nIt held up.`;
+    const result = await draftStore.save({ draftId, title: "A title", bodyMd, description: "A description." });
+    expect(result).toMatchObject({ ok: true, rulesFailed: false, entered: true });
+    expect(enterReviewMock).toHaveBeenCalledWith(
+      expect.objectContaining({ draftId, by: { kind: "customer", userId: LIVE_ACCOUNT.userId } })
+    );
+    expect(schedulePublishMock).toHaveBeenCalledWith({ draftId });
+  });
+
+  it("a page that was in review before it came back is not editable", async () => {
+    const draftId = await stoppedDraft([{ to: "in_review" }, { from: "failed", to: "needs_attention" }]);
     const result = await draftStore.save({ draftId, title: "Late", bodyMd: "x", description: "" });
     expect(result).toEqual({ ok: false, refused: "not_editable" });
   });

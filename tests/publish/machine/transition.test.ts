@@ -77,9 +77,9 @@ describe("every move outside the fifteen is refused with the state unchanged", (
   const members = new Set(TRANSITIONS.map(([f, t]) => `${f}→${t}`));
   const nonMembers = pairs.filter(([f, t]) => !members.has(`${f}→${t}`));
 
-  it("all 100 ordered pairs are accounted for: 15 members, 85 not", () => {
+  it("all 100 ordered pairs are accounted for: 16 members, 84 not", () => {
     expect(pairs.length).toBe(100);
-    expect(nonMembers.length).toBe(85);
+    expect(nonMembers.length).toBe(84);
   });
 
   it.each(nonMembers)("%s → %s is refused as not_a_transition", async (from, to) => {

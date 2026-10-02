@@ -19,14 +19,16 @@
 // attempt.
 //
 // **The veto window is not this module's.** An edit moves no state and
-// writes no `veto_deadline`.
+// writes no `veto_deadline`. A page the rules stopped (`needs_attention`,
+// never in review) is editable too (#1180); the outcome carries the state it
+// was saved in, and the caller takes a passing save into review.
 //
 // The brief the page was written from is not stored, so its three inputs
 // are read back from what is: the customer's own passages (`readFacts`, the
 // set the brief chose among), the headings of the page as ReachKit wrote it
 // (an edit may not add a question heading the written page did not have),
 // and the searches the opportunity targets.
-import { isTransition } from "@/lib/publish/machine/table";
+import { isEditableDraft } from "@/lib/publish/machine/table";
 import type { State } from "@/lib/publish/types";
 import { withDraftCost } from "./cost";
 import { claimCheck, type ClaimVerdict } from "./claims/check";
@@ -69,6 +71,8 @@ export type DraftEditOutcome =
       failed: readonly RuleFailure[] | null;
       /** Whether the saved text may publish — every rule and the claim check passed. */
       passed: boolean;
+      /** The page's state when the text was saved. */
+      state: State;
     }
   | { ok: false; refused: "not_editable" | "too_large" };
 
@@ -101,9 +105,10 @@ export async function saveDraftEdit(a: DraftEdit): Promise<DraftEditOutcome> {
   const row = await store.draftById(a.draftId);
   // Ownership and editability together: another site's draft reads exactly
   // like one that has left review.
-  if (row === null || row.site_id !== a.siteId || !isTransition(row.state as State, "approved")) {
+  if (row === null || row.site_id !== a.siteId || !isEditableDraft(row.state as State, enteredReview(row))) {
     return { ok: false, refused: "not_editable" };
   }
+  const state = row.state as State;
   if (a.bodyMd.length + a.title.length + a.description.length > DRAFT_EDIT_MAX_CHARS) {
     return { ok: false, refused: "too_large" };
   }
@@ -118,7 +123,7 @@ export async function saveDraftEdit(a: DraftEdit): Promise<DraftEditOutcome> {
     // Nothing to write and nothing to spend: the recorded verdict already
     // speaks for this text. A text whose last re-check could not run is
     // checked again.
-    return { ok: true, savedAt: at, ...recorded(row) };
+    return { ok: true, savedAt: at, state, ...recorded(row) };
   }
 
   const nextMeta: Meta = {
@@ -152,7 +157,7 @@ export async function saveDraftEdit(a: DraftEdit): Promise<DraftEditOutcome> {
     return null;
   });
   if (checked === null) {
-    return { ok: true, savedAt: at, claim: null, failed: null, passed: false };
+    return { ok: true, savedAt: at, state, claim: null, failed: null, passed: false };
   }
 
   const passed = checked.failed.length === 0 && checked.claim.state === "passed";
@@ -169,7 +174,13 @@ export async function saveDraftEdit(a: DraftEdit): Promise<DraftEditOutcome> {
     failed: checked.failed.map((failure) => failure.rule).join(","),
     passed,
   });
-  return { ok: true, savedAt: at, claim: checked.claim, failed: checked.failed, passed };
+  return { ok: true, savedAt: at, state, claim: checked.claim, failed: checked.failed, passed };
+}
+
+/** Whether the page ever entered review — the fact §9's
+ *  `never_entered_review` guard reads, off the same record. */
+function enteredReview(row: DraftRow): boolean {
+  return Array.isArray(row.transitions) && row.transitions.some((move: { to?: unknown } | null) => move?.to === "in_review");
 }
 
 /** An unchanged save answers with what the row already records. */

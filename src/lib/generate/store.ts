@@ -43,6 +43,9 @@ export interface DraftRow {
   scheduled_for: string | null;
   veto_deadline: string | null;
   created_at: string;
+  /** §9's append-only record of moves; read for whether the page ever
+   *  entered review (#1180). */
+  transitions?: unknown;
 }
 
 /** What the engine writes when it starts a page. `id`, `hard_rule_attempts`
@@ -233,7 +236,7 @@ function untyped(): MinimalClient {
 const DRAFT_COLUMNS =
   "id, site_id, opportunity_id, state, title, body_md, meta, grounded_fact, " +
   "attribution, hard_rule_attempts, rule_failures, claim_check, cost_cents, " +
-  "scheduled_for, veto_deadline, created_at";
+  "scheduled_for, veto_deadline, created_at, transitions";
 
 function pageOf(row: DraftRow): StoredPage {
   return { ref: row.id, title: row.title ?? "", markdown: row.body_md ?? "" };

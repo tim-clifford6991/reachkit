@@ -121,15 +121,13 @@ const DESCRIPTION_FIELD_ID = "draft-edit-description";
  *  count sits at the row's end); its weight is the one thing overridden. */
 const KEY_LABEL = "fieldset-legend text-sm font-normal text-base-content/70";
 
-/** The two writes this screen can ask for. Both are §9 edges and both go
- *  to the state machine through the seam. */
+/** The writes this screen can ask for. All are §9 edges and go to the
+ *  state machine through the seam. */
 function ask(
   command: DraftCommand,
   draftId: string,
 ): ReturnType<typeof publishing.approve> {
-  return command === "approve"
-    ? publishing.approve({ draftId })
-    : publishing.veto({ draftId });
+  return publishing[command]({ draftId });
 }
 
 export function DraftScreen(p: {
@@ -186,6 +184,8 @@ export function DraftScreen(p: {
    *  plainly where it does not — never a sentence with a blank in it. */
   function decisionLine(command: DraftCommand): string {
     if (command === "veto") return copy("draft.answer.veto");
+    if (command === "skip") return copy("calendar.answer.skip");
+    if (command === "regenerate") return copy("calendar.answer.regenerate");
     const at = view.doNothing.publishesAt;
     return at === null
       ? copy("draft.answer.approve-next")
@@ -229,6 +229,14 @@ export function DraftScreen(p: {
               rulesFailed: result.rulesFailed,
             });
             setRefused(false);
+            if (result.entered) {
+              // #1180: the fix passed every rule and the page is in review
+              // now. The save revalidated this route, so the stage and the
+              // window arrive from the server.
+              answerSaveRef.current = false;
+              say(copy("draft.edit.entered-review"), "ok");
+              return;
+            }
             if (answerSaveRef.current) {
               answerSaveRef.current = false;
               say(copy("draft.edit.saved", { at: formatTime(result.savedAt, view.timeZone) }), "ok");
