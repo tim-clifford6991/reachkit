@@ -555,6 +555,16 @@ describe("needs you (S12)", () => {
   });
 });
 
+describe("needs you — a hosted blog waiting for its DNS record (#1174)", () => {
+  it("renders the connect-blog line with its host, so Overview loads while the destination is pending_dns", () => {
+    const model = assembleOverview(
+      facts({ waiting: [{ kind: "connect_blog", hostname: "blog.example.com", since: AT(31), href: "/setup/connect" }] })
+    );
+    const markup = html(<NeedsYouModule alerts={model.alerts} />);
+    expect(markup).toContain("overview.alert.connect-blog.line(blog.example.com)");
+  });
+});
+
 describe("needs you — a technical issue the customer fixes (#572)", () => {
   const model = assembleOverview(
     facts({

@@ -79,14 +79,16 @@ function Panel(p: { alert: Alert }): React.JSX.Element | null {
   );
 }
 
-/** The veto line's one slot, from the model's own numbers. */
-function lineVars(alert: Alert): Record<string, string> {
-  if (alert.timeLeft === undefined) return {};
+/** The line's slots: the alert's own (#1174: the connect-blog line's
+ *  `{host}`), plus the veto line's one, from the model's own numbers. */
+function lineVars(alert: Alert): Record<string, string | number> {
+  const vars = { ...alert.vars };
+  if (alert.timeLeft === undefined) return vars;
   const left = writtenLine("overview.alert.pending-veto.left", {
     hours: formatCount(alert.timeLeft.hours),
     minutes: formatCount(alert.timeLeft.minutes),
   });
-  return left === null ? {} : { left };
+  return left === null ? vars : { ...vars, left };
 }
 
 export function NeedsYouModule(p: {
