@@ -50,6 +50,7 @@ import {
 } from "./links/select";
 import { generateDraft, type GenerateOutcome } from "./pipeline";
 import { generatePageFix } from "./pipeline/page-fix";
+import type { FixNote } from "./pipeline/repair";
 import { DraftDateTaken, generateStore, type RestartedDraft, type SiteFacts } from "./store";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
@@ -387,6 +388,9 @@ async function writePage(a: PageInput & { attempts: number }): Promise<DayPageOu
     // the first rewrites the row the first one wrote.
     let draftId = a.draftId;
     let ruleStopped = false;
+    // #1178: what the attempt before told the next one — its failures and
+    // the sentences that broke them.
+    let fix: FixNote[] | undefined;
     for (let attempt = 1; attempt <= a.attempts; attempt++) {
       last = await generateDraft(cost, {
         siteId: a.siteId,
@@ -401,6 +405,7 @@ async function writePage(a: PageInput & { attempts: number }): Promise<DayPageOu
         factsOff: confirmed.factsOff,
         scanId: report.scanId,
         ...(draftId === undefined ? {} : { draftId }),
+        ...(fix === undefined ? {} : { fix }),
       });
       if (last.draftId !== null) draftId = last.draftId;
       if (last.ok) return { ok: true, draftId: last.draftId };
@@ -421,6 +426,7 @@ async function writePage(a: PageInput & { attempts: number }): Promise<DayPageOu
         return { ok: false, because: "step_failed", draftId, step: last.step };
       }
       ruleStopped = true;
+      fix = last.fix;
       if (
         recoveryOutcome({
           failed: last.failed.map((failure) => failure.rule),

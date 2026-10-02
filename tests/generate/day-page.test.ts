@@ -228,6 +228,15 @@ describe("ADR-070 — one automatic regeneration, and no more", () => {
     expect(row).toMatchObject({ state: "generating", body_md: CLEAN_MARKDOWN, hard_rule_attempts: 1 });
   });
 
+  it("the regeneration is told what stopped the first attempt (#1178), and the first is not", async () => {
+    queueAttempt("Example wins everything, and always has.");
+    queueAttempt(CLEAN_MARKDOWN);
+    await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    const drafts = llmMock.mock.calls.map((call) => call[1]).filter((a) => a.site === "generate.draft");
+    expect(drafts[0].input.fix).toBeUndefined();
+    expect(drafts[1].input.fix).toEqual([{ rule: "brand_gap", sentences: [] }]);
+  });
+
   it("a second attempt stopped again comes to rest — never a third", async () => {
     queueAttempt("Example wins everything, and always has.");
     queueAttempt("Example wins everything, again, and always.");

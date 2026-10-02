@@ -31,13 +31,13 @@ export interface BriefRuleInputs {
   queries: readonly string[];
 }
 
-const INVENTED_TEST_RES: readonly RegExp[] = [
+export const INVENTED_TEST_RES: readonly RegExp[] = [
   /\b(?:we|i|our team)\s+(?:have\s+)?(?:tested|trialled|trialed|benchmarked|measured|tried out|put\b.{0,40}\bto the test)\b/i,
   /\bin our (?:own\s+)?(?:tests?|testing|trials?|benchmarks?|experiments?)\b/i,
   /\b(?:hands-on|after testing|after (?:weeks|months) of (?:use|testing))\b/i,
 ];
 
-const INVENTED_PROVENANCE_RES: readonly RegExp[] = [
+export const INVENTED_PROVENANCE_RES: readonly RegExp[] = [
   /^(?:by|written by|author:?)\s+\p{Lu}/iu,
   /\b(?:written|reviewed|edited|fact-checked)\s+by\b/i,
   /\b(?:last updated|updated on|published on|posted on|first published)\b/i,
@@ -49,7 +49,7 @@ function collapse(text: string): string {
 }
 
 /** A sentence that occurs inside one of the handed passages. */
-function isHandedWords(sentence: string, facts: readonly string[]): boolean {
+export function isHandedWords(sentence: string, facts: readonly string[]): boolean {
   const words = collapse(sentence);
   return words.length > 0 && facts.some((fact) => collapse(fact).includes(words));
 }
@@ -90,7 +90,7 @@ export function checkNewQuestionHeading(a: {
 }
 
 /** Every numeral a fact or a target search states, normalised. */
-function traceableNumerals(brief: BriefRuleInputs): Set<string> {
+export function traceableNumerals(brief: BriefRuleInputs): Set<string> {
   const out = new Set<string>();
   for (const text of [...brief.facts, ...brief.queries]) {
     for (const numeral of numeralsOf(text)) out.add(numeral.normalised);

@@ -1,0 +1,290 @@
+// #1178 — a stopped draft is repaired from its failures, not re-rolled blind.
+//
+// Two things, both read off the battery's own failures:
+//
+//   1. **A repair in code** for the four rules whose breach is mechanical —
+//      a sentence that should not be there, a heading that should not be
+//      there, or an opening block of the wrong shape. Nothing here writes a
+//      word: a repair drops a sentence or a heading, links a figure to the
+//      customer's own page that states it, or splits and joins the opening.
+//      The battery is then run again over the repaired text, so a repair is
+//      never trusted — it is checked by the same rules as the model's page.
+//
+//   2. **What the next attempt is told** (`fixNotes`): each rule the page
+//      broke and the sentences that broke it, so a regeneration is written
+//      against its failures rather than from the same inputs blind.
+//
+// Deterministic, no I/O. The rules' own text model (`../rules/text.ts`) is
+// the only notion of a block and a sentence used here, so a repair and the
+// check that reads it cannot disagree about where a sentence ends.
+import { ANSWER_FIRST_BLOCK_CHARS, ANSWERABILITY_MAX_NEW_QUESTIONS } from "@/lib/config/constants";
+import {
+  INVENTED_PROVENANCE_RES,
+  INVENTED_TEST_RES,
+  isHandedWords,
+  traceableNumerals,
+  type BriefRuleInputs,
+} from "../rules/brief";
+import { numeralsOf, REGISTER_FLOOR } from "../rules/figures";
+import {
+  blocksOf,
+  hasLink,
+  headingKey,
+  isQuestionShaped,
+  renderOf,
+  SENTENCE_END_RE,
+  sentencesOf,
+  sourceBlocksOf,
+} from "../rules/text";
+import type { HardRule, RuleFailure } from "../rules/types";
+
+/** The rules a repair in code is tried for, in the order it is applied. The
+ *  opening is last because dropping a sentence can change what opens. */
+export const MECHANICAL_RULES: readonly HardRule[] = Object.freeze([
+  "no_invented_provenance",
+  "no_new_question_heading",
+  "traceable_numerals",
+  "first_block_answers",
+] as const);
+
+/** A rule the first attempt broke and the sentences that broke it, as the
+ *  next attempt's prompt carries them. Model-facing only, never shown. */
+export interface FixNote {
+  rule: HardRule;
+  sentences: string[];
+}
+
+/** One rule's repair, as the row records it (`drafts.meta.repairs`). */
+export interface RepairRecord {
+  rule: HardRule;
+  cleared: boolean;
+}
+
+export interface RepairInputs {
+  brief: BriefRuleInputs;
+  /** The customer's own pages the page's facts were read from, by address,
+   *  with the text the measurement read on them. */
+  sources: readonly { url: string; text: string }[];
+}
+
+/** The block markers a sentence edit keeps: a quote, a heading, a list item. */
+const MARKER_RE = /^[ \t]*(?:>[ \t]?|#{1,6}[ \t]+|(?:[-*+]|\d+[.)])[ \t]+)/;
+const NOTE_SENTENCES_MAX = 5;
+
+function collapse(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function wordsOf(markdownFragment: string): string {
+  return collapse(renderOf(markdownFragment));
+}
+
+function escaped(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** The numeral standing alone — not the "12" inside "120" or "1.25". */
+function numeralRe(raw: string): RegExp {
+  return new RegExp(`(?<![\\d.,])${escaped(raw)}(?![\\d])`);
+}
+
+interface Edit {
+  from: number;
+  to: number;
+  text: string;
+}
+
+function applyEdits(markdown: string, edits: readonly Edit[]): string {
+  let out = markdown;
+  for (const edit of [...edits].sort((x, y) => y.from - x.from)) {
+    out = out.slice(0, edit.from) + edit.text + out.slice(edit.to);
+  }
+  return out.replace(/\n{3,}/g, "\n\n").replace(/^\n+/, "");
+}
+
+/** Each sentence of each block through `fn`: a string replaces it, `null`
+ *  drops it, and a block left with no sentence is dropped whole. */
+function mapSentences(markdown: string, fn: (piece: string) => string | null): string {
+  const edits: Edit[] = [];
+  for (const block of sourceBlocksOf(markdown)) {
+    const marker = MARKER_RE.exec(block.raw)?.[0] ?? "";
+    const pieces = block.raw.slice(marker.length).split(SENTENCE_END_RE);
+    const mapped = pieces.map(fn);
+    if (mapped.every((piece, index) => piece === pieces[index])) continue;
+    const kept = mapped.filter((piece): piece is string => piece !== null && piece.trim() !== "");
+    edits.push({ from: block.from, to: block.to, text: kept.length === 0 ? "" : marker + kept.join(" ") });
+  }
+  return applyEdits(markdown, edits);
+}
+
+function isPhraseBreach(words: string, patterns: readonly RegExp[], brief: BriefRuleInputs): boolean {
+  return patterns.some((pattern) => pattern.test(words)) && !isHandedWords(words, brief.facts);
+}
+
+/** The numerals in a sentence the traceable-numerals rule fails it for. */
+function untraceable(piece: string, traceable: ReadonlySet<string>): { raw: string; normalised: string }[] {
+  if (hasLink(piece)) return [];
+  return numeralsOf(wordsOf(piece)).filter(
+    (numeral) => Number(numeral.normalised) >= REGISTER_FLOOR && !traceable.has(numeral.normalised)
+  );
+}
+
+/** The customer's page that states this figure as the sentence uses it —
+ *  the numeral with the word beside it, so a "2024" in a footer is never
+ *  taken as the source of "2024 customers". `null` where none does. */
+function sourceOf(raw: string, words: string, sources: RepairInputs["sources"]): string | null {
+  const at = numeralRe(raw).exec(words);
+  if (at === null) return null;
+  const after = /^\s*(%|\p{L}+)/u.exec(words.slice(at.index + raw.length))?.[1];
+  const before = /(\p{L}+)\s*$/u.exec(words.slice(0, at.index))?.[1];
+  const needle =
+    after === "%" ? `${raw}%` : after !== undefined ? `${raw} ${after}` : before !== undefined ? `${before} ${raw}` : null;
+  if (needle === null) return null;
+  const wanted = needle.toLowerCase();
+  return sources.find((source) => collapse(source.text).toLowerCase().includes(wanted))?.url ?? null;
+}
+
+function repairNumerals(markdown: string, inputs: RepairInputs): string {
+  const traceable = traceableNumerals(inputs.brief);
+  return mapSentences(markdown, (piece) => {
+    const figures = untraceable(piece, traceable);
+    if (figures.length === 0) return piece;
+    const words = wordsOf(piece);
+    let out = piece;
+    for (const figure of figures) {
+      const url = sourceOf(figure.raw, words, inputs.sources);
+      // A figure no page of theirs states is dropped with its sentence.
+      if (url === null) return null;
+      out = out.replace(numeralRe(figure.raw), `[${figure.raw}](${url})`);
+    }
+    return out;
+  });
+}
+
+function addedQuestionHeadings(markdown: string, brief: BriefRuleInputs): Set<number> {
+  const outlined = new Set(brief.headings.map(headingKey));
+  const added: number[] = [];
+  blocksOf(markdown).forEach((block, index) => {
+    if (block.heading && isQuestionShaped(block.text) && !outlined.has(headingKey(block.text))) added.push(index);
+  });
+  return new Set(added.slice(ANSWERABILITY_MAX_NEW_QUESTIONS));
+}
+
+function repairQuestionHeadings(markdown: string, brief: BriefRuleInputs): string {
+  const drop = addedQuestionHeadings(markdown, brief);
+  const blocks = sourceBlocksOf(markdown);
+  return applyEdits(
+    markdown,
+    [...drop].map((index) => ({ from: blocks[index]!.from, to: blocks[index]!.to, text: "" }))
+  );
+}
+
+function fits(paragraph: string): boolean {
+  return wordsOf(paragraph).length <= ANSWER_FIRST_BLOCK_CHARS.max;
+}
+
+/** The opening, made a paragraph inside the answer bound: an opening list's
+ *  leading items are joined into one, and an over-long paragraph is split
+ *  after the sentences that fit. Nothing is dropped. */
+function repairFirstBlock(markdown: string): string {
+  const source = sourceBlocksOf(markdown);
+  const blocks = blocksOf(markdown);
+  const first = blocks.findIndex((block) => !block.heading);
+  const block = blocks[first];
+  if (block === undefined || block.quoted) return markdown;
+
+  if (block.listItem) {
+    let end = first;
+    while (blocks[end + 1]?.listItem === true) end++;
+    const items = source.slice(first, end + 1).map((item) => {
+      const text = item.raw.slice(MARKER_RE.exec(item.raw)?.[0].length ?? 0).trim();
+      return /[.!?]$/.test(text) ? text : `${text}.`;
+    });
+    let taken = 0;
+    while (taken < items.length && fits(items.slice(0, taken + 1).join(" "))) taken++;
+    const lead = items.slice(0, taken).join(" ");
+    if (taken === 0 || wordsOf(lead).length < ANSWER_FIRST_BLOCK_CHARS.min) return markdown;
+    // The items left over stay a list, a blank line below the paragraph.
+    const rest = taken <= end - first ? "\n" : "";
+    return applyEdits(markdown, [{ from: source[first]!.from, to: source[first + taken - 1]!.to, text: lead + rest }]);
+  }
+
+  if (block.text.length <= ANSWER_FIRST_BLOCK_CHARS.max) return markdown;
+  const sentences = source[first]!.raw.split(SENTENCE_END_RE);
+  let taken = 0;
+  while (taken < sentences.length && fits(sentences.slice(0, taken + 1).join(" "))) taken++;
+  const lead = sentences.slice(0, taken).join(" ");
+  if (taken === 0 || wordsOf(lead).length < ANSWER_FIRST_BLOCK_CHARS.min) return markdown;
+  return applyEdits(markdown, [
+    { from: source[first]!.from, to: source[first]!.to, text: `${lead}\n\n${sentences.slice(taken).join(" ")}` },
+  ]);
+}
+
+/** The repairable rules among a battery's failures, in repair order. */
+export function repairable(failed: readonly RuleFailure[]): HardRule[] {
+  const rules = new Set(failed.map((failure) => failure.rule));
+  return MECHANICAL_RULES.filter((rule) => rules.has(rule));
+}
+
+/** The page with each named rule repaired in code. Returns the input
+ *  unchanged where no repair applied; the caller re-runs the battery. */
+export function repairMechanical(markdown: string, rules: readonly HardRule[], inputs: RepairInputs): string {
+  let out = markdown;
+  for (const rule of MECHANICAL_RULES) {
+    if (!rules.includes(rule)) continue;
+    if (rule === "no_invented_provenance") {
+      out = mapSentences(out, (piece) =>
+        isPhraseBreach(wordsOf(piece), INVENTED_PROVENANCE_RES, inputs.brief) ? null : piece
+      );
+    } else if (rule === "no_new_question_heading") {
+      out = repairQuestionHeadings(out, inputs.brief);
+    } else if (rule === "traceable_numerals") {
+      out = repairNumerals(out, inputs);
+    } else {
+      out = repairFirstBlock(out);
+    }
+  }
+  return out;
+}
+
+function sentencesFor(markdown: string, failure: RuleFailure, brief: BriefRuleInputs): string[] {
+  const sentences = sentencesOf(markdown);
+  switch (failure.rule) {
+    case "no_invented_test":
+      return sentences.filter((s) => isPhraseBreach(s.text, INVENTED_TEST_RES, brief)).map((s) => s.text);
+    case "no_invented_provenance":
+      return sentences.filter((s) => isPhraseBreach(s.text, INVENTED_PROVENANCE_RES, brief)).map((s) => s.text);
+    case "traceable_numerals": {
+      const traceable = traceableNumerals(brief);
+      return sourceBlocksOf(markdown)
+        .flatMap((block) => block.raw.split(SENTENCE_END_RE))
+        .filter((piece) => untraceable(piece, traceable).length > 0)
+        .map(wordsOf);
+    }
+    case "rival_source":
+    case "no_private_figure": {
+      const figure = failure.detail !== undefined && "figure" in failure.detail ? failure.detail.figure : null;
+      if (figure === null) return [];
+      return sentences.filter((s) => !s.hasLink && numeralRe(figure).test(s.text)).map((s) => s.text);
+    }
+    case "no_new_question_heading": {
+      const blocks = blocksOf(markdown);
+      return [...addedQuestionHeadings(markdown, brief)].map((index) => blocks[index]!.text);
+    }
+    case "first_block_answers": {
+      const first = blocksOf(markdown).find((block) => !block.heading);
+      return first === undefined ? [] : [first.text];
+    }
+    default:
+      return [];
+  }
+}
+
+/** What the next attempt is told: every rule this page broke, with the
+ *  sentences that broke it where a rule can point at them. */
+export function fixNotes(markdown: string, failed: readonly RuleFailure[], brief: BriefRuleInputs): FixNote[] {
+  return failed.map((failure) => ({
+    rule: failure.rule,
+    sentences: [...new Set(sentencesFor(markdown, failure, brief))].slice(0, NOTE_SENTENCES_MAX),
+  }));
+}

@@ -104,7 +104,7 @@ export interface TextBlock extends Sentence {
  *  a draft that would otherwise pass (the link and the figure land in
  *  different pieces), and a hard rule that errs toward stopping a page is
  *  the safe direction. */
-const SENTENCE_END_RE = /(?<=[.!?])\s+/;
+export const SENTENCE_END_RE = /(?<=[.!?])\s+/;
 
 /**
  * One block of the draft as it stands **in the source**, with the offsets
