@@ -12,6 +12,7 @@ import { applyEnvFixture } from "../mail/env-fixture";
 applyEnvFixture();
 process.env.VERCEL_API_TOKEN = "vercel-token-fixture-do-not-leak";
 process.env.VERCEL_PROJECT_ID = "prj_fixture";
+process.env.VERCEL_TEAM_ID = "team_fixture";
 
 interface Call {
   url: string;
@@ -153,5 +154,19 @@ describe("a deployment that carries no token", () => {
       process.env.VERCEL_API_TOKEN = token;
       vi.resetModules();
     }
+  });
+});
+
+describe("#1045 — a team-owned project is named on every call", () => {
+  it("the add and the read behind a 409 both carry ?teamId=", async () => {
+    answers.push({ status: 409, body: {} });
+    answers.push({ status: 200, body: { name: "content.reachkit.app", verified: true } });
+    await addProjectDomain("content.reachkit.app");
+    expect(calls.map((c) => new URL(c.url).searchParams.get("teamId"))).toEqual([
+      "team_fixture",
+      "team_fixture",
+    ]);
+    expect(new URL(calls[0]!.url).pathname).toBe("/v10/projects/prj_fixture/domains");
+    expect(new URL(calls[1]!.url).pathname).toBe("/v9/projects/prj_fixture/domains/content.reachkit.app");
   });
 });

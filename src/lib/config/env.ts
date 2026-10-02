@@ -127,6 +127,10 @@ const schema = z.object({
   // than a secret — it names a project, it does not open one — so it is
   // not in the server-only set below.
   VERCEL_PROJECT_ID: z.string().min(1).optional(),
+  // The team that owns that project (#1045). A token is refused with 403
+  // for a team-owned project unless the call names the team, so every
+  // Domains API call carries it as `?teamId=`. An identifier, not a secret.
+  VERCEL_TEAM_ID: z.string().min(1).optional(),
   // Issue 336, owner 2026-09-16: three product events through PostHog. The
   // key is the project's own ingestion key and the host is the region's
   // address; both are `.optional()` for the reason the two above are — a

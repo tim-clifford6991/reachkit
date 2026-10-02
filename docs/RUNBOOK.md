@@ -133,6 +133,8 @@ the box on a billing refusal, and it never flips back by itself.
 | Hosted CMS | customers point `content.{their-domain}` at `HOSTED_EDGE_CNAME_TARGET` (`edge.reachkit.app`); per-customer domains are added to the project through the Vercel Domains API (#322) |
 | Local | `npm run dev` on `http://localhost:3000`, bindings from `.env.local` (names in `.env.example`) |
 
+2026-10-02  **The dogfood's hosted host is `content.reachkit.app`** (owner, #1045: "fix this to be content.reachkit.app for dogfooding purposes"). Its destination row (`9fae8a2d…`, site `reachkit.app`) is re-pointed from the preview-only `reachkit-hosted-test.vercel.app` with one SQL update through the Supabase connector, because no product path changes an existing hosted host: `hostname = 'content.reachkit.app'`, `hostname_state = 'pending_dns'`, `hostname_checked_at = null`. The row keeps its id, so its publications stay attached. The host is then attached to the project only through the product's own code (`checkHostnameNow` → `addProjectDomain`, the Settings › Publishing Check), never by hand in the Vercel dashboard, so the path is proven.
+
 **The Supabase Free plan pauses a project after seven idle days.** The hourly job ticks keep it
 awake once Inngest is registered (#315); until then, an untouched week pauses the database and
 every page 500s. Unpause is a button in the Supabase dashboard.
@@ -150,7 +152,7 @@ value; a real credential in that file is a defect (`tests/app/env-example.test.t
 (production and preview). Sensitive rows are write-only. **Every binding must exist on both
 targets**; a target missing one cannot build.
 
-Twenty-three names are in the schema. Two more sit outside it, for stated reasons.
+Twenty-four names are in the schema. Two more sit outside it, for stated reasons.
 
 | Binding | What it is for | Server-only | Notes |
 |---|---|---|---|
@@ -175,6 +177,7 @@ Twenty-three names are in the schema. Two more sit outside it, for stated reason
 | `HOSTED_EDGE_CNAME_TARGET` | what a customer points `content.{their-domain}` at | | `edge.reachkit.app` |
 | `VERCEL_API_TOKEN` | adds a customer's hosted host to the project's domain list and reads back whether it is verified (`src/lib/vendors/vercel/domains.ts`) | ● | optional in the schema, **required for any hosted host to reach "live"**. Absent, setup's save and the scheduled pass attach nothing, and the founder's "check connection" press answers "could not ask" (#757) |
 | `VERCEL_PROJECT_ID` | the project those hosts are added to | | same: optional in the schema, required with the token. An identifier, not a secret |
+| `VERCEL_TEAM_ID` | the team that owns the project (`team_lFEcKlyuKD5risdEnak7iRIm`), sent as `?teamId=` on every Domains API call | | optional in the schema, **required with the token for this team-owned project**: without it the vendor answered 403 to every attach on production (2026-10-02, #1045). Set on production and preview 2026-10-02. An identifier, not a secret |
 | `POSTHOG_API_KEY` | product analytics ingestion — the three events of issue 336 | ● | optional; absent, nothing is captured |
 | `POSTHOG_HOST` | the PostHog region's ingestion host | | optional; defaults to `https://us.i.posthog.com` |
 | `HOSTED_TEST_HOST` | one generated `*.vercel.app` host the middleware serves as a customer's hosted blog, so hosted publishing can be walked with no domain (#762) | | **a dev/preview testing aid only.** Optional; exact host, no pattern. Ignored when `VERCEL_ENV` is `production` and when it equals `NEXT_PUBLIC_APP_URL`'s host. A destination row whose hostname is this host is what it resolves to |
