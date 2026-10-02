@@ -1257,17 +1257,20 @@ async function runStages(a: StageArgs): Promise<void> {
     twelve = await inBudget(
       "asking_the_twelve",
       async (b, abandoned) => {
-        await askTheTwelve({ ...a, bounds: b }, abandoned);
-        // **After the twelve, in their stage, and that is what "degrade
-        // page questions first" means** (#919). The page questions run
-        // inside this same budget row — the same clock, the same `WEEKLY`
-        // cap and the same `stopNow()` between every call — and they ask
-        // *second*. So a pass that is running out of either time or money
-        // spends what is left on the market's twelve and stops before the
-        // pages, every time, with no second rule deciding it. A ceiling met
-        // here leaves the pages unasked, which their section says by being
-        // `null` or short.
-        await askThePageQuestions({ ...a, bounds: b }, abandoned);
+        // **Beside the twelve, not after them** (#1160). The page questions
+        // (#919) run inside this same budget row — the same clock, the same
+        // `WEEKLY` cap and the same `stopNow()` before every call — and the
+        // twelve are handed to the queue first. They used to ask *after*
+        // the twelve, and on the standard queue that is a second full wait
+        // of two to three minutes: the weekly passes of 2026-09-21 and
+        // 2026-09-28 met their ceiling inside it and never reached scoring,
+        // so rivals were never sized. A standard-queue ask costs its wait
+        // whether one question is in the queue or twenty-four, so asking
+        // both sets together costs the pass no time.
+        await Promise.all([
+          askTheTwelve({ ...a, bounds: b }, abandoned),
+          askThePageQuestions({ ...a, bounds: b }, abandoned),
+        ]);
       },
       twelveCents
     );
@@ -1285,7 +1288,15 @@ async function runStages(a: StageArgs): Promise<void> {
   // exist: the stage that asks them is the stage before. It runs at the
   // tiers whose `sizesRivals` says so and buys nothing at any other, so
   // the free path's 0¢ budget row for this stage still describes it.
-  if (bounds.stopNow() !== null) return;
+  // **A ceiling met during the asks still counts what they bought**
+  // (#1160). Scoring buys nothing and cannot be cut off. Skipping it left
+  // a pass that had paid for eleven AI Mode answers with no AI-answers
+  // section at all. Only the purchase in the stage (`sizeSerpRivals`) is
+  // what the ceiling stops.
+  if (bounds.stopNow() !== null) {
+    score(a);
+    return;
+  }
   await enter("scoring");
   await sizeSerpRivals(a);
   if (bounds.abandoned()) return;
@@ -1792,8 +1803,14 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
       const question = asked[i];
       if (question === undefined) return;
       if (bounds.stopNow() !== null) continue;
-      const got = await askOne(question.search.keyword);
-      const battery = await askTheBattery(a, question.search.keyword, questions.at, engines);
+      // The SERP and the battery at once (#1160): neither reads the other,
+      // and on the standard queue each is minutes of waiting. Asked one
+      // after the other, a weekly question cost a SERP's wait and then the
+      // engines' — longer than the whole ceiling.
+      const [got, battery] = await Promise.all([
+        askOne(question.search.keyword),
+        askTheBattery(a, question.search.keyword, questions.at, engines),
+      ]);
       // **A late answer is kept, and a sealed report is never written to**
       // (#539 review, re-cut by issue 875). The budget stops the pass
       // *waiting* for this stage; it cannot cancel a call already in
@@ -1950,18 +1967,20 @@ async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Prom
       const candidate = tracked.asked[i];
       if (candidate === undefined) return;
       if (bounds.stopNow() !== null) continue;
-      const serp = await attempt("asking_the_twelve", () =>
-        serpOrganic(a.cost, {
-          query: candidate.search,
-          mode: parameters.serpMode,
-          loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
-          scope: cacheScope(a),
-          freshnessDays: parameters.serpWindowDays,
-          abortMs: parameters.serpAbortMs,
-          untilMs: untilCeiling(bounds),
-        })
-      );
-      const battery = await askTheBattery(a, candidate.search, at, engines);
+      const [serp, battery] = await Promise.all([
+        attempt("asking_the_twelve", () =>
+          serpOrganic(a.cost, {
+            query: candidate.search,
+            mode: parameters.serpMode,
+            loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
+            scope: cacheScope(a),
+            freshnessDays: parameters.serpWindowDays,
+            abortMs: parameters.serpAbortMs,
+            untilMs: untilCeiling(bounds),
+          })
+        ),
+        askTheBattery(a, candidate.search, at, engines),
+      ]);
       // The same seal the twelve are written under: a late answer is kept,
       // and a composed report is never written into.
       if (sections.sealed) return;
@@ -2055,19 +2074,20 @@ async function askTheBattery(
   const { bounds, cost, parameters } = a;
   if (!parameters.battery) return noBattery(at);
 
-  const chatgpt =
+  // Both engines at once (#1160): one engine's queue wait never delays
+  // the other's answer, and a slow ChatGPT cannot cost AI Mode's column.
+  const [chatgpt, mode] = await Promise.all([
     bounds.stopNow() !== null
       ? unmeasured<AiAnswer>("not_attempted", at)
-      : await engineAnswer(at, "chatgpt", watch, bounds, (onFailure) =>
+      : engineAnswer(at, "chatgpt", watch, (onFailure) =>
           llmScraper(cost, { query, mode: "std", scope: cacheScope(a), onFailure, untilMs: untilCeiling(bounds) })
-        );
-
-  const mode =
+        ),
     bounds.stopNow() !== null
       ? unmeasured<AiAnswer>("not_attempted", at)
-      : await engineAnswer(at, "ai_mode", watch, bounds, (onFailure) =>
+      : engineAnswer(at, "ai_mode", watch, (onFailure) =>
           aiMode(cost, { query, mode: parameters.serpMode, scope: cacheScope(a), onFailure, untilMs: untilCeiling(bounds) })
-        );
+        ),
+  ]);
 
   return { chatgpt, aiMode: mode };
 }
@@ -2089,62 +2109,26 @@ type BatteryEngine = "chatgpt" | "ai_mode";
  * no AI Mode block for is measured (`TASK_NO_RESULTS`, issue 869), and an
  * engine answering "nothing here" for every question is answering.
  *
- * It bites where a pass asks more questions than its fan-out, and on the
- * ceiling-stopped waves after the first: at `PAID_SERP_FANOUT` the twelve
- * batteries are in flight at once, so the first wave is bought before any
- * refusal is known. That is a bound on what this can save, not a reason
- * not to have it.
+ * It bites on the asks that start after a refusal is known: the page
+ * questions' and #865's retries. The twelve are asked at once, so the first
+ * wave is bought before any refusal is known. Issue 869 also made an
+ * engine that had not answered yet take one question at a time. On the
+ * standard queue that cost a whole queue wait, one to three minutes, before
+ * the other eleven were asked, and a weekly pass could not fit it in its
+ * ceiling (#1160). That turn-taking is gone. An outage now costs at most
+ * one ask per question, 1.44¢ for ChatGPT across the twelve, inside the
+ * `WEEKLY` cap.
  */
 interface EngineWatch {
   readonly failures: Map<BatteryEngine, number>;
   readonly because: Map<BatteryEngine, string>;
-  /** Engines that have answered at least once this pass. Until an engine is
-   *  in here its asks take turns; afterwards they run with the rest of the
-   *  fan-out. */
-  readonly proven: Set<BatteryEngine>;
-  /** The tail of the queue of asks waiting their turn, per engine. */
-  readonly queue: Map<BatteryEngine, Promise<void>>;
 }
 
 /** Two in a row, counted per pass. */
 const ENGINE_GIVE_UP_AFTER = 2;
 
 function newEngineWatch(): EngineWatch {
-  return { failures: new Map(), because: new Map(), proven: new Set(), queue: new Map() };
-}
-
-/**
- * **An engine that has not answered yet is asked one question at a time**
- * (issue 869).
- *
- * The give-up rule below can only give up on something it has seen fail,
- * and at `PAID_SERP_FANOUT` every question's battery is in flight at once —
- * so a dead engine was bought twelve times before the first failure was
- * known, which is exactly what production did on 2026-09-17. Until an
- * engine has answered once this pass, its asks queue: the first question
- * pays for finding out, and what it finds out is true of the other eleven.
- * The moment an engine answers — with an answer or with a zero — the gate
- * opens and the rest run at the fan-out's own width.
- *
- * The cost is one engine call's latency on the first question of a pass,
- * and what it buys is that an outage costs `ENGINE_GIVE_UP_AFTER` calls
- * instead of one per question.
- */
-async function inEngineTurn<T>(engine: BatteryEngine, watch: EngineWatch, body: () => Promise<T>): Promise<T> {
-  if (watch.proven.has(engine)) return body();
-
-  const ahead = watch.queue.get(engine) ?? Promise.resolve();
-  let release = (): void => {};
-  const mine = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  watch.queue.set(engine, ahead.then(() => mine));
-  await ahead;
-  try {
-    return await body();
-  } finally {
-    release();
-  }
+  return { failures: new Map(), because: new Map() };
 }
 
 /** One engine's answer, with a raise turned into the arm that is true of
@@ -2157,7 +2141,6 @@ async function engineAnswer(
   at: Date,
   engine: BatteryEngine,
   watch: EngineWatch,
-  bounds: Bounds,
   work: (onFailure: (failure: VendorFailure) => void) => Promise<Measured<AiAnswer>>
 ): Promise<Measured<AiAnswer>> {
   const alreadyFailed = watch.failures.get(engine) ?? 0;
@@ -2166,29 +2149,11 @@ async function engineAnswer(
   }
 
   const heard: { failure: VendorFailure | null } = { failure: null };
-  const answer = await inEngineTurn(engine, watch, async () => {
-    // Re-read inside the turn: the asks ahead of this one may have been
-    // what gave the engine up.
-    if ((watch.failures.get(engine) ?? 0) >= ENGINE_GIVE_UP_AFTER) return GAVE_UP;
-    // **And re-read the ceilings, for the same reason** (issue 902). The
-    // caller read `stopNow()` before handing this ask over, and an
-    // unproven engine's asks take their turns one at a time — so the
-    // decision "the pass still has room for this" was made before a wait
-    // that is as long as every ask ahead of it. On the engine this matters
-    // for that is minutes: the ChatGPT scraper is standard-queue only.
-    // Nothing is bought against a ceiling that has fired since.
-    if (bounds.stopNow() !== null) return STOPPED;
-    return attempt("asking_the_twelve", () =>
-      work((failure) => {
-        heard.failure = failure;
-      })
-    );
-  });
-
-  if (answer === GAVE_UP) {
-    return unmeasured<AiAnswer>("not_attempted", at, watch.because.get(engine));
-  }
-  if (answer === STOPPED) return unmeasured<AiAnswer>("not_attempted", at);
+  const answer = await attempt("asking_the_twelve", () =>
+    work((failure) => {
+      heard.failure = failure;
+    })
+  );
 
   if (heard.failure !== null) {
     const failures = (watch.failures.get(engine) ?? 0) + 1;
@@ -2199,10 +2164,8 @@ async function engineAnswer(
     }
   } else if (!failed(answer) && answer.kind !== "unmeasured") {
     // An answer of any kind, a zero included: the engine is answering, so
-    // the count clears and the rest of the pass asks it at the fan-out's
-    // own width.
+    // the count clears.
     watch.failures.set(engine, 0);
-    watch.proven.add(engine);
   }
 
   if (failed(answer)) return unmeasured<AiAnswer>("undeterminable", at);
@@ -2211,15 +2174,6 @@ async function engineAnswer(
   }
   return answer;
 }
-
-/** The arm an ask takes when the engine was given up while it waited its
- *  turn (issue 869): nothing was bought and nothing was heard. */
-const GAVE_UP = Symbol("battery-engine-gave-up");
-
-/** The arm an ask takes when the pass's own ceiling fired while it waited
- *  its turn (issue 902): nothing was bought, and the cell says nobody got
- *  to it rather than naming an engine that never refused. */
-const STOPPED = Symbol("battery-ask-past-the-ceiling");
 
 /** One line the first time a pass gives up on an engine (issue 869),
  *  carrying the engine and what it last said — never the query. */
