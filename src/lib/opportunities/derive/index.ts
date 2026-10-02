@@ -169,9 +169,14 @@ export async function deriveOpportunities(
   // question. Nothing is bought for either.
   const topTens = new Map(await store.topTens([...new Set(existing.map((row) => row.scanId))]));
   for (const [query, urls] of topTensOf(a.report)) topTens.set(query, urls);
-  const pages = (candidate: Candidate) => candidate.family === "write" || candidate.family === "earn";
+  // #1181: the open rows already held are judged too, against each other
+  // and against every topic with a page behind it, published ones included.
+  const pages = (row: { family: Opportunity["family"] }) => row.family === "write" || row.family === "earn";
   const sameQuestion = await judgeSameQuestion(c, {
-    searches: labelled.filter(pages).flatMap((candidate) => candidate.targetQuery ?? []),
+    searches: [
+      ...labelled.filter(pages).flatMap((candidate) => candidate.targetQuery ?? []),
+      ...existing.filter((row) => row.status === "open" && pages(row)).flatMap((row) => row.targetQuery ?? []),
+    ],
     topics: existing.flatMap((row) => row.targetQuery ?? []),
   });
 

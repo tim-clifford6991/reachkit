@@ -112,9 +112,13 @@ export interface OpportunityStore {
    *  881). What tells a zero count of supply apart from a market that is
    *  simply too big for the site today. */
   countOutsized(siteId: string): Promise<number>;
-  /** Open and queued non-Fix rows — the set a cluster collapse runs over
-   *  alongside a pass's new candidates. */
+  /** Open, queued and done non-Fix rows — the set a cluster collapse runs
+   *  over alongside a pass's new candidates. A published topic is in it
+   *  (#1181), so a pass never plans a second page on it. */
   clusterable(siteId: string): Promise<readonly OpportunityRow[]>;
+  /** The non-Fix row whose page was drafted or published last — the day
+   *  before the first one the ranking plans (#1181). */
+  latestPage(siteId: string): Promise<OpportunityRow | null>;
   /** The top tens the given scans bought, by `queryKey`, a later scan's
    *  over an earlier one's (#1131) — what a held row's search is compared
    *  by. Only the questions and SERPs are read, never the whole report. */
@@ -362,11 +366,24 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .from<OpportunityRow>("opportunities")
         .select(COLUMNS)
         .eq("site_id", siteId)
-        .in("status", ["open", "queued"])
+        .in("status", ["open", "queued", "done"])
         .neq("family", "fix")
         .order("created_at", { ascending: true });
       if (error) throw new Error(`opportunities.clusterable: ${error.message}`);
       return data ?? [];
+    },
+
+    async latestPage(siteId) {
+      const { data, error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .select(COLUMNS)
+        .eq("site_id", siteId)
+        .in("status", ["queued", "done"])
+        .neq("family", "fix")
+        .order("status_changed_at", { ascending: false })
+        .limit(1);
+      if (error) throw new Error(`opportunities.latestPage: ${error.message}`);
+      return data?.[0] ?? null;
     },
 
     async topTens(scanIds) {

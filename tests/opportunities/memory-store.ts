@@ -169,8 +169,16 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async clusterable(siteId) {
       return state.rows.filter(
-        (row) => row.site_id === siteId && (row.status === "open" || row.status === "queued") && row.family !== "fix"
+        (row) => row.site_id === siteId && row.status !== "dismissed" && row.family !== "fix"
       );
+    },
+
+    async latestPage(siteId) {
+      const pages = state.rows.filter(
+        (row) => row.site_id === siteId && (row.status === "queued" || row.status === "done") && row.family !== "fix"
+      );
+      const at = (id: string) => state.statusChangedAt.get(id)?.getTime() ?? 0;
+      return pages.sort((a, b) => at(b.id) - at(a.id))[0] ?? null;
     },
 
     async topTens() {

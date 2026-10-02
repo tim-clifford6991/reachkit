@@ -120,6 +120,15 @@ describe("#928 — a topic their own blog already covers becomes an update of th
     expect(planned?.type).toBe("answer_page");
   });
 
+  it("#1181 — a page younger than 30 days is not refreshed; the candidate stays and is stored covered", () => {
+    const young = { page: knownPage({ source: "reachkit", publishedAt: new Date("2026-09-15T00:00:00.000Z") }), score: 1 };
+    const writing = { page: knownPage({ source: "reachkit", live: false, publishedAt: null }), score: 1 };
+    for (const covering of [young, writing]) {
+      const [planned] = applyKnownContent([writeCandidate()], { covered: () => covering, canUpdate: () => true, at: AT });
+      expect(planned?.family).toBe("write");
+    }
+  });
+
   it("an Improve row is never re-pointed at another page — it is already an update", () => {
     const improve = writeCandidate({
       family: "improve",
