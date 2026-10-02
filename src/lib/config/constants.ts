@@ -247,7 +247,26 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   /** SPEC §9 (#690): a page's own title and meta description, rewritten —
    *  `{ title, description }`, two short strings: ~80 needed. */
   "generate.page_fix": 256,
+  /** #1185: the market ReachKit concludes for a site — seven fields, the
+   *  longest a sentence: ~450 needed. */
+  "market-inference": 900,
+  /** #1185: its rivals — up to ten candidates with a reason each: ~800
+   *  needed. */
+  "rival-inference": 1400,
 } as const);
+
+/** A call site's sampling temperature, where it has one pinned (#1185).
+ *  Absent, the vendor's default (1.0) stands, as it always has. The market
+ *  a site is measured in must not change because one call drew a different
+ *  sample: nine profile calls on reachkit.app's same two pages gave nine
+ *  categories (#1159), and the stability rule of #1185 replaces a market
+ *  only on a conclusion seen twice — which a sampled answer would rarely
+ *  give. */
+export const INFERENCE_TEMPERATURE: Readonly<Partial<Record<keyof typeof INFERENCE_MAX_OUTPUT_TOKENS, number>>> =
+  Object.freeze({
+    "market-inference": 0,
+    "rival-inference": 0,
+  });
 
 /** How many entries each of the business profile's lists may carry (BUILD
  *  §6.7 step 1). The schema the model's answer is parsed against and the

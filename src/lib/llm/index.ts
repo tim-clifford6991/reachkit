@@ -47,7 +47,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createHash } from "node:crypto";
 import { z, type ZodType } from "zod";
-import { INFERENCE_MAX_OUTPUT_TOKENS, INFERENCE_MAX_RETRIES } from "@/lib/config/constants";
+import { INFERENCE_MAX_OUTPUT_TOKENS, INFERENCE_MAX_RETRIES, INFERENCE_TEMPERATURE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { costCentsFor, tierBinding, type Tier, type TierBinding } from "./tiers";
@@ -374,7 +374,10 @@ async function callModel(
   remainingMs: number,
   /** The call site's schema as one forced tool, or `null` for plain text
    *  (see `forcedToolFor`). */
-  tool: ForcedTool | null
+  tool: ForcedTool | null,
+  /** The call site's pinned `INFERENCE_TEMPERATURE`, or `undefined` for
+   *  the vendor's default — then nothing is sent, exactly as before. */
+  temperature: number | undefined
 ): Promise<{ answer: Answer; tokensIn: number; tokensOut: number }> {
   const client = new Anthropic({
     apiKey: binding.apiKey,
@@ -388,6 +391,7 @@ async function callModel(
     {
       model: binding.modelId,
       max_tokens: maxOutputTokens,
+      ...(temperature === undefined ? {} : { temperature }),
       system: "Respond with JSON only. No prose, no markdown fences, no commentary.",
       messages: [{ role: "user", content: inputText }],
       ...(tool === null
@@ -422,7 +426,8 @@ async function runAttempts<T>(
   schema: ZodType<T>,
   inputText: string,
   maxOutputTokens: number,
-  tool: ForcedTool | null
+  tool: ForcedTool | null,
+  temperature: number | undefined
 ): Promise<AttemptOutcome> {
   const startedAt = Date.now();
   const deadline = startedAt + binding.timeoutMs;
@@ -461,7 +466,7 @@ async function runAttempts<T>(
     }
     let response: { answer: Answer; tokensIn: number; tokensOut: number };
     try {
-      response = await callModel(binding, inputText, maxOutputTokens, remainingMs, tool);
+      response = await callModel(binding, inputText, maxOutputTokens, remainingMs, tool, temperature);
     } catch (error: unknown) {
       return {
         parseOutcome: "unavailable",
@@ -611,7 +616,7 @@ export async function llm<T>(
     freshnessDays: 0,
     costCents: reservedCents,
     settleCents: (outcome) => costCentsFor(call.tier, outcome.tokensIn, outcome.tokensOut),
-    run: () => runAttempts(binding, call.schema, inputText, maxOutputTokens, tool),
+    run: () => runAttempts(binding, call.schema, inputText, maxOutputTokens, tool, INFERENCE_TEMPERATURE[call.site]),
   });
 
   if ("skipped" in result) {
