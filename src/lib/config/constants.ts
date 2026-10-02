@@ -520,6 +520,10 @@ export const FREE_PASS_INFERENCE_CALLS = 2 as const;
 
 export const BATTERY = Object.freeze({
   QUESTIONS: 12, TARGET_SERPS_MAX: 13, MEASURED_PAGES_MAX: 25, COMPETITORS_MAX: 5,
+  /** #1195: the market's buyer prompts a deep pass asks AI Mode beside the
+   *  twelve, so the rivals are concluded from answers in the market it
+   *  measures (drafted default, the owner may correct it; ~1.6¢ live). */
+  MARKET_PROMPTS: 8,
 } as const);
 
 /**
@@ -685,6 +689,14 @@ export const TIMING = Object.freeze({
    *  report before the platform freezes the invocation. A deep pass read
    *  against the free 50 s stopped after three of its twelve SERPs. */
   paidPassCeilingS: 240,
+  /** How long before that ceiling a paid pass stops waiting on its asks
+   *  (#1195; drafted default, the owner may correct it). A ChatGPT task on
+   *  the standard queue waited 207 s on 2026-10-02 and ran the re-measure of
+   *  reachkit.app into its ceiling after one question, so the pass never
+   *  scored, sized its rivals or ended `complete`. An ask still queued here
+   *  is that engine's unmeasured cell; the pass goes on to score inside its
+   *  ceiling. No ceiling moves. */
+  paidPassAskReserveS: 25,
   /** How long before `platformCeilingS` a free pass still running in its
    *  request marks its own row `failed` (issue 798). Past the design
    *  ceiling a pass is only storing its partial report; one still going

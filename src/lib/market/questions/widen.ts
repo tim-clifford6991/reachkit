@@ -154,6 +154,8 @@ export function pooledMarket(suggestions: readonly SuggestionRow[], pool: readon
 export function selectWidened(a: {
   profile: Profile;
   category?: string;
+  /** A concluded market's other names (#1195), as `selectTwelve` reads them. */
+  synonyms?: readonly string[];
   suggestions: readonly SuggestionRow[];
   pool: readonly PoolRow[];
   floors?: readonly number[];
@@ -162,7 +164,10 @@ export function selectWidened(a: {
    *  searches survive (issue 830). */
   ownRanked: number;
 }): SelectedSearch[] {
-  const category = a.category === undefined ? {} : { category: a.category };
+  const category = {
+    ...(a.category === undefined ? {} : { category: a.category }),
+    ...(a.synonyms === undefined ? {} : { synonyms: a.synonyms }),
+  };
   const { ownRanked } = a;
   let best = selectTwelve({ profile: a.profile, market: a.suggestions, ownRanked, ...category });
   if (best.length >= BATTERY.QUESTIONS) return best;

@@ -40,6 +40,7 @@
 // running. A correction is not a re-scan: it re-measures inside the scan
 // it corrects and always runs.
 import {
+  BATTERY,
   CACHE_WINDOWS_D,
   FREE_RESCAN_WINDOW_D,
   PAGE_QUESTION_RETIRE_WEEKS,
@@ -55,6 +56,9 @@ import { dbAdmin } from "@/lib/db";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import { checkCoherence, type CoherenceVerdict } from "@/lib/market/coherence/check";
 import { nextCorrectionState, type CorrectionState } from "@/lib/market/coherence/state";
+import { EVIDENCE_BOUNDS } from "@/lib/market/infer/evidence";
+import type { MarketConclusion } from "@/lib/market/infer/types";
+import { buyerPrompts } from "@/lib/market/questions/buyer-prompts";
 import { buildAiAnswersCard, type BatteryAnswers } from "@/lib/market/questions/matrix";
 import {
   trackedQuestions,
@@ -116,7 +120,14 @@ import {
   type PageQuestionsSection,
   type RetiredPageQuestion,
 } from "./report";
-import type { AiAnswersSection, StoppedReason, StoredReport, SupplySection, Tier } from "./report";
+import type {
+  AiAnswersSection,
+  MarketPromptAnswer,
+  StoppedReason,
+  StoredReport,
+  SupplySection,
+  Tier,
+} from "./report";
 import { answersSectionOf, blockedAgentsOf, pageQuestionsSectionOf } from "./sections";
 import { checkSite, type CrawlReading } from "@/lib/site-issues/checks";
 import { emitEnding, enterStage, exitStage } from "./stages";
@@ -266,6 +277,16 @@ interface TierParameters {
    *  stated in weeks ("8 weeks without a mention"), so a second pass in the
    *  same week would spend a week of a question's life in an afternoon. */
   pageQuestions: boolean;
+  /** #1195: how long before the ceiling this tier's asks stop waiting
+   *  (`TIMING.paidPassAskReserveS`), so a slow queue costs one engine's
+   *  cell and never the pass's scoring. 0 on the free path, whose asks are
+   *  live and bounded by `serpAbortMs`. */
+  askReserveS: number;
+  /** #1195: how many of the market's buyer prompts this tier asks AI Mode
+   *  beside the twelve (`BATTERY.MARKET_PROMPTS`). The deep pass's: it is
+   *  the pass that concludes a new market's rivals at once, and the
+   *  weekly pass's 40¢ is not raised for it. */
+  marketPrompts: number;
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -288,6 +309,8 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     questionsFitThePurse: true,
     serpAbortMs: VENDOR.requestAbortMs,
     pageQuestions: false,
+    askReserveS: 0,
+    marketPrompts: 0,
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -308,6 +331,8 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     questionsFitThePurse: false,
     serpAbortMs: VENDOR.requestAbortMs,
     pageQuestions: false,
+    askReserveS: TIMING.paidPassAskReserveS,
+    marketPrompts: BATTERY.MARKET_PROMPTS,
   }),
   weekly: Object.freeze({
     cap: "WEEKLY",
@@ -328,6 +353,8 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     questionsFitThePurse: false,
     serpAbortMs: VENDOR.requestAbortMs,
     pageQuestions: true,
+    askReserveS: TIMING.paidPassAskReserveS,
+    marketPrompts: 0,
   }),
 } as const);
 
@@ -388,6 +415,17 @@ interface Sections {
   /** The category this pass concluded and measured under (#1185), where it
    *  concluded one; the report records it as `measuredCategory`. */
   concludedCategory: string | undefined;
+  /** The market this pass concluded and measures (#1185), where it
+   *  concluded one: the market's buyer prompts are built from it (#1195). */
+  market: MarketConclusion | null;
+  /** The rivals whose ranked rows may join this pass's pool (#1195): the
+   *  rivals concluded for the market in force. `null` admits every tracked
+   *  rival — a founder's own, or a pass with no concluded market. A rival
+   *  chosen under an earlier market is not evidence about this one. */
+  poolRivals: ReadonlySet<string> | null;
+  /** The market's buyer prompts, asked of AI Mode beside the twelve
+   *  (#1195) and stored for the rival conclusion; never in the score. */
+  marketPrompts: MarketPromptAnswer[];
   /**
    * **True from the moment the report is being composed** (issue 875).
    *
@@ -487,6 +525,9 @@ function freshSections(at: Date): Sections {
     siteCrawl: null,
     pagesRead: null,
     concludedCategory: undefined,
+    market: null,
+    poolRivals: null,
+    marketPrompts: [],
   };
 }
 
@@ -1292,9 +1333,12 @@ async function runStages(a: StageArgs): Promise<void> {
         // so rivals were never sized. A standard-queue ask costs its wait
         // whether one question is in the queue or twenty-four, so asking
         // both sets together costs the pass no time.
+        // The market's buyer prompts join them (#1195), so the rivals are
+        // concluded from answers in the market this pass measures.
         await Promise.all([
           askTheTwelve({ ...a, bounds: b }, abandoned),
           askThePageQuestions({ ...a, bounds: b }, abandoned),
+          askTheMarketPrompts({ ...a, bounds: b }),
         ]);
       },
       twelveCents
@@ -1589,6 +1633,10 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
         measuredUnder = concluded.category;
         synonyms = concluded.synonyms;
         sections.concludedCategory = concluded.category;
+        sections.market = concluded.market;
+        if (!concluded.rivalsOverridden) {
+          sections.poolRivals = new Set(concluded.market.rivals.map((r) => r.domain));
+        }
       }
     } catch (error) {
       console.log(
@@ -1621,7 +1669,9 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   sections.marketRows = market;
   if (market.kind === "unmeasured") return;
 
-  const category = measuredUnder === undefined ? {} : { category: measuredUnder };
+  // The market's other names are its words too (#1195): a search in them is
+  // about this market, not off it.
+  const category = { ...(measuredUnder === undefined ? {} : { category: measuredUnder }), synonyms };
   sections.selected = selectTwelve({ profile: profile.value, market: [...market.value], ownRanked, ...category });
   if (!isShort(sections.selected)) return phrase(a, abandoned);
 
@@ -1712,7 +1762,10 @@ function whatThePurseCanAsk(a: StageArgs): SelectedSearch[] {
 
 /** SPEC §6 thin markets: the ranked rows this pass already bought. */
 function poolOf(sections: Sections): PoolRow[] {
-  return poolFrom({ own: sections.measurement?.ownRankedRows ?? [], rivals: sections.rivalRows ?? new Map() });
+  const sized = sections.rivalRows ?? new Map<string, readonly RankedRow[]>();
+  const admitted = sections.poolRivals;
+  const rivals = admitted === null ? sized : new Map([...sized].filter(([domain]) => admitted.has(domain)));
+  return poolFrom({ own: sections.measurement?.ownRankedRows ?? [], rivals });
 }
 
 /** §6.2's free battery: the twelve question-SERPs, live, reading each
@@ -1781,8 +1834,8 @@ function cacheScope(a: StageArgs): CacheScope {
  * waited its turn asks with what is left now, not with what was left when
  * its question was taken.
  */
-function untilCeiling(bounds: Bounds): number {
-  return Date.now() + bounds.remainingMs();
+function untilCeiling(bounds: Bounds, parameters: TierParameters): number {
+  return Date.now() + Math.max(0, bounds.remainingMs() - parameters.askReserveS * 1000);
 }
 
 async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<void> {
@@ -1821,7 +1874,7 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
         scope: cacheScope(a),
         freshnessDays: parameters.serpWindowDays,
         abortMs: parameters.serpAbortMs,
-        untilMs: untilCeiling(bounds),
+        untilMs: untilCeiling(bounds, parameters),
         onFailure: (failure) => {
           heard.failure = failure;
         },
@@ -1950,6 +2003,48 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
 }
 
 /**
+ * The market's buyer prompts (#1195), asked of AI Mode beside the twelve
+ * and inside their budget: the same clock, the same cap and the same
+ * deadline before the ceiling. Built from the market this pass concluded
+ * (`buyerPrompts`), so a pass that moved the site to a new market reads
+ * who answers in it before its rivals are concluded — the twelve may still
+ * be thin there. Never in the score. A prompt that did not answer is left
+ * out; nothing here throws.
+ */
+async function askTheMarketPrompts(a: StageArgs): Promise<void> {
+  const { bounds, cost, parameters, sections } = a;
+  if (!parameters.battery || parameters.marketPrompts === 0 || sections.market === null) return;
+  const prompts = buyerPrompts(sections.market, parameters.marketPrompts);
+  const own = a.domain.toLowerCase().replace(/^www\./, "");
+  const brand = own.split(".")[0] ?? own;
+  await Promise.all(
+    prompts.map(async (prompt) => {
+      if (bounds.stopNow() !== null) return;
+      const got = await attempt("asking_the_twelve", () =>
+        aiMode(cost, {
+          query: prompt,
+          mode: parameters.serpMode,
+          scope: cacheScope(a),
+          untilMs: untilCeiling(bounds, parameters),
+        })
+      );
+      if (sections.sealed || failed(got) || got.kind === "unmeasured" || !got.value.answered) return;
+      const cited = got.value.citedDomains.map((d) => d.toLowerCase().replace(/^www\./, ""));
+      const text = got.value.text;
+      sections.marketPrompts.push({
+        prompt,
+        citedDomains: cited,
+        namesSite: cited.includes(own) || (brand.length >= 4 && text.toLowerCase().includes(brand)),
+        excerpt: text.slice(0, EVIDENCE_BOUNDS.excerptChars),
+      });
+    })
+  );
+  console.log(
+    JSON.stringify({ event: "market_prompts", asked: prompts.length, answered: sections.marketPrompts.length })
+  );
+}
+
+/**
  * SPEC §6 (2026-09-20, #908 · #919) — the published pages' own questions,
  * asked after the twelve and inside their budget.
  *
@@ -2038,7 +2133,7 @@ async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Prom
             scope: cacheScope(a),
             freshnessDays: parameters.serpWindowDays,
             abortMs: parameters.serpAbortMs,
-            untilMs: untilCeiling(bounds),
+            untilMs: untilCeiling(bounds, parameters),
           })
         ),
         askTheBattery(a, candidate.search, at, engines),
@@ -2142,12 +2237,12 @@ async function askTheBattery(
     bounds.stopNow() !== null
       ? unmeasured<AiAnswer>("not_attempted", at)
       : engineAnswer(at, "chatgpt", watch, (onFailure) =>
-          llmScraper(cost, { query, mode: "std", scope: cacheScope(a), onFailure, untilMs: untilCeiling(bounds) })
+          llmScraper(cost, { query, mode: "std", scope: cacheScope(a), onFailure, untilMs: untilCeiling(bounds, parameters) })
         ),
     bounds.stopNow() !== null
       ? unmeasured<AiAnswer>("not_attempted", at)
       : engineAnswer(at, "ai_mode", watch, (onFailure) =>
-          aiMode(cost, { query, mode: parameters.serpMode, scope: cacheScope(a), onFailure, untilMs: untilCeiling(bounds) })
+          aiMode(cost, { query, mode: parameters.serpMode, scope: cacheScope(a), onFailure, untilMs: untilCeiling(bounds, parameters) })
         ),
   ]);
 
@@ -2476,6 +2571,7 @@ function composeReport(a: {
     // can see a category change and see it cleared. `null` where the pass
     // seeded from the profile — the inferred category is not this fact.
     measuredCategory: a.category ?? null,
+    marketPrompts: s.marketPrompts,
   });
   // SPEC §2 (issue 787): the one first-page proposal is the best right-sized
   // Write target this pass measured — derived, never padded.
