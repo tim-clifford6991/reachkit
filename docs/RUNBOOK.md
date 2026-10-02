@@ -133,6 +133,8 @@ the box on a billing refusal, and it never flips back by itself.
 | Hosted CMS | customers point `content.{their-domain}` at `HOSTED_EDGE_CNAME_TARGET` (`edge.reachkit.app`); per-customer domains are added to the project through the Vercel Domains API (#322) |
 | Local | `npm run dev` on `http://localhost:3000`, bindings from `.env.local` (names in `.env.example`) |
 
+2026-10-02  **The dogfood's hosted host is `content.reachkit.app`** (owner, #1045: "fix this to be content.reachkit.app for dogfooding purposes"). Its destination row (`9fae8a2d…`, site `reachkit.app`) is re-pointed from the preview-only `reachkit-hosted-test.vercel.app` with one SQL update through the Supabase connector, because no product path changes an existing hosted host: `hostname = 'content.reachkit.app'`, `hostname_state = 'pending_dns'`, `hostname_checked_at = null`. The row keeps its id, so its publications stay attached. The host is then attached to the project only through the product's own code (`checkHostnameNow` → `addProjectDomain`, the Settings › Publishing Check), never by hand in the Vercel dashboard, so the path is proven.
+
 **The Supabase Free plan pauses a project after seven idle days.** The hourly job ticks keep it
 awake once Inngest is registered (#315); until then, an untouched week pauses the database and
 every page 500s. Unpause is a button in the Supabase dashboard.
