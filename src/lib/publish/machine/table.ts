@@ -7,7 +7,7 @@
 //                            skipped            failed → retry ×3 → needs_attention
 //     published → unpublished (always available)
 //
-// Fifteen edges, ten states, two terminal. The table is data and nothing
+// Sixteen edges, ten states, two terminal. The table is data and nothing
 // else — no function, no clock, no row read — so it can be asserted member
 // by member without a database. `transition()` (`./index.ts`) is the only
 // thing that moves a page along it.
@@ -30,9 +30,9 @@ export const STATES: readonly State[] = Object.freeze([
 ] as const);
 
 /**
- * The fifteen edges, transcribed — not derived, not sorted, not generated.
+ * The sixteen edges, transcribed — not derived, not sorted, not generated.
  *
- * Five are implied by §9's prose rather than drawn by its diagram, and each
+ * Six are implied by §9's prose rather than drawn by its diagram, and each
  * is stated with its source:
  *
  *  - `planned → skipped` — §9's draft-by-default: the customer may stop a
@@ -48,6 +48,9 @@ export const STATES: readonly State[] = Object.freeze([
  *    why §8's bound on *automatic* regeneration is not raised by it.
  *  - `needs_attention → skipped` — §9 c3's promise that no page is left in
  *    a state it has no way out of.
+ *  - `needs_attention → in_review` — SPEC §7 (#833, #1180): the founder
+ *    fixes a page the rules stopped, and a save that passes every hard rule
+ *    takes it into review with a fresh veto window.
  *
  * There is no edge back out of `skipped` or `unpublished`, and none into
  * `planned`: a page the customer stopped or took down is never returned to
@@ -68,6 +71,7 @@ export const TRANSITIONS: readonly (readonly [State, State])[] = Object.freeze([
   Object.freeze(["needs_attention", "publishing"] as const),
   Object.freeze(["needs_attention", "generating"] as const),
   Object.freeze(["needs_attention", "skipped"] as const),
+  Object.freeze(["needs_attention", "in_review"] as const),
   Object.freeze(["published", "unpublished"] as const),
 ] as const);
 
@@ -75,7 +79,7 @@ export const TRANSITIONS: readonly (readonly [State, State])[] = Object.freeze([
  *  `TRANSITIONS` rather than maintained as a second list. */
 export const TERMINAL: readonly State[] = Object.freeze(["skipped", "unpublished"] as const);
 
-/** Why a move was refused. Two members: the move is not one of the fifteen,
+/** Why a move was refused. Two members: the move is not one of the sixteen,
  *  or it is and a named guard said no. A refusal is never an exception and
  *  never leaves the page somewhere else. */
 export type Refusal = "not_a_transition" | "guard";
@@ -88,10 +92,12 @@ export type GuardId =
    *  stopped is never published by starting an attempt, and neither is a
    *  founder's edit that breaks one (SPEC §7, 2026-09-16, #789). */
   | "draft_passed_hard_rules"
-  /** needs_attention → generating: only a page whose draft never entered
-   *  review, so §8's bound on automatic regeneration is never raised. */
+  /** needs_attention → generating / in_review: only a page whose draft
+   *  never entered review, so §8's bound on automatic regeneration is never
+   *  raised and a page that went out is never sent back for review. */
   | "never_entered_review"
-  /** needs_attention → generating: and only when the customer starts it. */
+  /** needs_attention → generating / in_review: and only when the customer
+   *  starts it. */
   | "customer_initiated"
   /** approved/failed → publishing: the publishable rule (#46). */
   | "publishable_and_due"
@@ -130,7 +136,7 @@ export function edgeKey(from: State, to: State): string {
 }
 
 /**
- * Is this pair one of the fifteen? The one membership question about the
+ * Is this pair one of the sixteen? The one membership question about the
  * table, answered here beside it rather than at each caller — and answered
  * in the leaf that reaches nothing, so a surface may ask it without
  * pulling `transition()`'s database in behind the answer.
@@ -141,7 +147,7 @@ export function isTransition(from: State, to: State): boolean {
 
 /**
  * The guards each edge carries, keyed `'from→to'`. An absent key means no
- * guard: the move is open the moment it is one of the fifteen.
+ * guard: the move is open the moment it is one of the sixteen.
  *
  * Every edge whose target is `publishing` carries the same five ambient
  * guards — ReachKit's own stop, the outstanding claim re-check, the switch,
@@ -201,4 +207,20 @@ export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freez
     "never_entered_review",
     "customer_initiated",
   ] as const),
+  [edgeKey("needs_attention", "in_review")]: Object.freeze([
+    "never_entered_review",
+    "customer_initiated",
+    "draft_passed_hard_rules",
+  ] as const),
 });
+
+/**
+ * Whether the founder may edit a draft's text (SPEC §7, #789, #1180): while
+ * it can still be approved, or while it rests in `needs_attention` without
+ * ever having entered review — the page the rules stopped, which a passing
+ * save takes into review. A page that went out and came back is read, not
+ * edited.
+ */
+export function isEditableDraft(state: State, enteredReview: boolean): boolean {
+  return isTransition(state, "approved") || (state === "needs_attention" && !enteredReview);
+}

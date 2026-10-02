@@ -81,6 +81,7 @@ interface DraftRow {
   rule_failures: unknown;
   veto_deadline: string | null;
   created_at: string;
+  transitions: unknown;
 }
 
 interface MinimalResult<T> {
@@ -102,7 +103,7 @@ interface MinimalClient {
  *  column of another account's. */
 const DRAFT_COLUMNS =
   "id, site_id, opportunity_id, state, title, body_md, meta, grounded_fact, claim_check, rule_failures, " +
-  "veto_deadline, created_at";
+  "veto_deadline, created_at, transitions";
 
 /** §9's ten states, as this screen reads them. A row carrying anything else
  *  is a row this screen cannot draw, and it takes the `null` arm rather
@@ -406,6 +407,10 @@ export async function readDraftRow(a: {
     },
     domain: a.site.domain,
     state: row.state as State,
+    // The fact §9's `never_entered_review` guard reads (#1180).
+    enteredReview:
+      Array.isArray(row.transitions) &&
+      row.transitions.some((move: { to?: unknown } | null) => move?.to === "in_review"),
     firstEditedAt: firstEdited === null ? null : new Date(firstEdited),
     // §8's recorded fact, from its own column and through the one reader
     // (`@/lib/generate/fact`). `null` where generation recorded no

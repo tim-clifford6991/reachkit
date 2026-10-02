@@ -33,6 +33,7 @@ export interface SaveBody {
  * discards the buffer:
  *
  *  - `not_editable` — the draft has left review and its text is fixed.
+ *    A page the rules stopped before review is still editable (#1180).
  *  - `too_large` — the text is past what a draft may hold; refused rather
  *    than truncated, because truncating is losing the customer's words.
  *  - `store_unavailable` — the store could not be reached.
@@ -47,6 +48,8 @@ export type SaveResult =
       claim: ClaimState;
       recordedChecks: readonly RailCheck[];
       rulesFailed: boolean;
+      /** The save took a stopped page into review (#1180). */
+      entered: boolean;
     }
   | { ok: false; refused: "not_editable" | "too_large" | "store_unavailable" };
 

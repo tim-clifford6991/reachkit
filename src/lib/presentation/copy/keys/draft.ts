@@ -438,6 +438,12 @@ export const DRAFT_COPY = Object.freeze({
     "Your edit breaks one of the page rules, so this page won’t publish until the text passes them. Your words are saved.",
     { slots: {}, fixedBy: "SPEC §7 · issue 789" },
   ],
+  // #1180: a page the rules stopped, fixed by the founder, enters review
+  // on a passing save. Drafted (#759); the owner corrects the wording.
+  "draft.edit.entered-review": [
+    "Your edit passes every rule. This page is in review now.",
+    { slots: {}, fixedBy: "SPEC §7 · issue 1180" },
+  ],
   "draft.edit.done": [
     "Done editing",
     { slots: {}, fixedBy: "REQ-045 c5 · S17 (11a)" },

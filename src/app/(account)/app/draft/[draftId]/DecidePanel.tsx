@@ -1,5 +1,6 @@
-// SPEC §7 — the draft's rail: decide (Approve, Edit, Veto), what happens if
-// you do nothing, and the checks the draft passed.
+// SPEC §7 — the draft's rail: decide (Approve, Edit, Veto — or, on a page
+// the rules stopped, Edit, Write it again, Skip; #1180), what happens if you
+// do nothing, and the checks the draft passed.
 //
 // **Board `R12-6-Page` (SPEC §7, 2026-09-24, #1072)**, top to bottom: the
 // *Goes live in* countdown with the absolute time under it, Approve as the
@@ -43,7 +44,7 @@
 
 import type React from "react";
 import { useSyncExternalStore } from "react";
-import { Check, Info, LoaderCircle, Pencil, CircleStop } from "lucide-react";
+import { Check, Info, LoaderCircle, Pencil, CircleStop, RotateCcw } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { formatDateTime } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
@@ -140,7 +141,7 @@ export function DecidePanel(p: {
   onCommand: (command: DraftCommand) => void;
 }): React.JSX.Element {
   const { view } = p;
-  const actions = draftActionsFor(p.state);
+  const actions = draftActionsFor({ state: p.state, enteredReview: view.enteredReview });
   const rows = checkRows({
     grounded: p.grounded,
     groundedUrl: view.grounded.url,
@@ -230,16 +231,28 @@ export function DecidePanel(p: {
                     <Pencil size={14} strokeWidth={1.75} aria-hidden />
                     {copy(action.key)}
                   </button>
-                ) : action.command === "veto" ? (
+                ) : action.command === "veto" || action.command === "skip" ? (
                   <button
                     key={action.key}
                     type="button"
                     className="btn btn-sm btn-ghost btn-warning"
                     data-testid={`draft-action-${action.key}`}
                     disabled={p.deciding}
-                    onClick={() => p.onCommand("veto")}
+                    onClick={() => p.onCommand(action.command)}
                   >
                     <CircleStop size={14} strokeWidth={1.75} aria-hidden />
+                    {copy(action.key)}
+                  </button>
+                ) : action.command === "regenerate" ? (
+                  <button
+                    key={action.key}
+                    type="button"
+                    className="btn btn-sm btn-soft"
+                    data-testid={`draft-action-${action.key}`}
+                    disabled={p.deciding}
+                    onClick={() => p.onCommand("regenerate")}
+                  >
+                    <RotateCcw size={14} strokeWidth={1.75} aria-hidden />
                     {copy(action.key)}
                   </button>
                 ) : (

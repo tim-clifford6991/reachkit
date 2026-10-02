@@ -14,6 +14,8 @@
 // component, and the engine reaches `@/lib/db`.
 "use server";
 
+import { revalidatePath } from "next/cache";
+import { DESTINATION_HREF } from "../../_shell/destinations";
 import { isReservedFixtureAccount, requireAppAccount } from "../../_session/account";
 import type { SaveBody, SaveResult } from "./save";
 
@@ -31,6 +33,28 @@ export async function saveDraft(body: SaveBody): Promise<SaveResult> {
   });
   if (!outcome.ok) return outcome;
 
+  // SPEC §7 (#833, #1180): a page the rules stopped, fixed by the founder.
+  // A save that passed every hard rule takes it into review on a fresh
+  // window, told and scheduled exactly as the evening's generation is.
+  let entered = false;
+  if (outcome.passed && outcome.state === "needs_attention") {
+    const { enterReview } = await import("@/lib/publish/attempt/window");
+    const entry = await enterReview({
+      draftId: body.draftId,
+      at: outcome.savedAt,
+      by: { kind: "customer", userId: account.userId },
+    });
+    entered = entry.kind !== "not_entered";
+    if (entry.kind === "told") {
+      const { schedulePublish } = await import("@/jobs/engine");
+      await schedulePublish({ draftId: body.draftId });
+    }
+    if (entered) {
+      revalidatePath(DESTINATION_HREF.calendar);
+      revalidatePath(`/app/draft/${body.draftId}`);
+    }
+  }
+
   const { claimStateOf, recordedChecksOf } = await import("./store");
   const { recordedVerdictValue } = await import("@/lib/generate/record");
   return {
@@ -39,5 +63,6 @@ export async function saveDraft(body: SaveBody): Promise<SaveResult> {
     claim: claimStateOf(outcome.claim === null ? null : recordedVerdictValue(outcome.claim)),
     recordedChecks: recordedChecksOf(outcome.failed),
     rulesFailed: outcome.failed !== null && outcome.failed.length > 0,
+    entered,
   };
 }
