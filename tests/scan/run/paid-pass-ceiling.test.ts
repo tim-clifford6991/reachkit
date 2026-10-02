@@ -184,7 +184,7 @@ beforeEach(() => {
 afterEach(() => stages.restore());
 
 describe("a paid pass whose engine is slower than its ceiling (issue 902)", () => {
-  it("ends on `time_ceiling` with its report stored, inside the invocation it runs in", async () => {
+  it("stops waiting before its ceiling and ends `complete`, the slow engine's cells unmeasured (#1195)", async () => {
     // The pass's other modules are reached through `await import`, and a
     // module loaded for the first time takes real time the fake clock does
     // not wait for: loaded here, the timeline below is the pass's own.
@@ -214,15 +214,14 @@ describe("a paid pass whose engine is slower than its ceiling (issue 902)", () =
       const elapsedMs = settledMs - startedMs;
 
       const report = storedReport();
-      expect(report.stoppedReason).toBe("time_ceiling");
-      expect(report.complete).toBe(false);
-      // The whole reason issue 855 chose the figure it did: the pass ends
-      // with room left in the invocation to compose and store what it has.
-      expect(elapsedMs).toBeLessThan(TIMING.jobsCeilingS * 1000);
-      // It stopped because its own ceiling arrived, not because the clock
-      // ran out of the test's patience.
-      expect(elapsedMs).toBeGreaterThanOrEqual(CEILING_MS);
-      // And the report is there, with a slot for every question.
+      // Production 2026-10-02: a 207 s ChatGPT queue ran a re-measure into
+      // its ceiling after one question. The asks now stop waiting
+      // `paidPassAskReserveS` before it, and the pass scores what came back.
+      expect(report.stoppedReason).toBe("complete");
+      expect(elapsedMs).toBeLessThan(CEILING_MS);
+      const chatgpt = (report.aiAnswers?.rows ?? []).map((row) => row.engines.find((e) => e.engine === "chatgpt")?.cell.kind);
+      expect(chatgpt).toHaveLength(BATTERY_PINS.QUESTIONS);
+      expect(chatgpt.every((kind) => kind !== "answered")).toBe(true);
       expect(report.serps).toHaveLength(BATTERY_PINS.QUESTIONS);
     } finally {
       vi.useRealTimers();

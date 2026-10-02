@@ -50,7 +50,8 @@ export const MARKET_FIELDS = Object.freeze({
   buyer: "one string: who buys this, as specifically as the evidence allows",
   job: "one string: the job the buyer hires the product for",
   category: "one string: the category, 2-5 words, in a buyer's search words",
-  synonyms: "2 to 4 short strings: other names buyers use for the same category",
+  synonyms:
+    "2 to 4 short strings: the established names buyers and vendors use for this same category, each 2-4 words, as a buyer would type it into a search box",
   differentiators: "1 to 5 short strings: what this business does that its rivals do not, from its own pages",
   notOurMarket: "1 to 6 short strings: adjacent categories buyers might confuse this with, whose buyers want a different outcome",
   categoryReason: "one sentence: why this category, citing the evidence",
@@ -85,7 +86,7 @@ export type RivalsAnswer = z.infer<typeof RIVALS_SCHEMA>;
 export const RIVALS_TASK = [
   "You name a business's real competitors in the market given.",
   "A competitor is a company whose main product is this category, sold to this buyer for this job — closest first, at a broadly similar scale where you can tell. Name the real companies in this market from your knowledge of it.",
-  "The measured domains were bought for measuredUnder, an earlier guess at the market, so most of them may sell something else. A measured domain is a candidate only when its main product is this market's category; then its basis is ai_answer if an AI answer cited it, or ranks if it is in the top tens. A company you name from knowledge has basis same_job.",
+  "The measured domains were bought for measuredUnder, an earlier guess at the market, so most of them may sell something else. A measured domain is a candidate only when its main product is this market's category; then its basis is ai_answer if an AI answer cited it, or ranks if it is in the top tens. An answer's excerpt is what an AI assistant told a buyer in this market: a product it names there is a candidate with basis ai_answer. A company you name from knowledge has basis same_job.",
   "inMarket is false for a company whose main product is a category on notOurMarket, even when it has a feature in this market. A publisher, blog, review site, directory, marketplace, forum, social network, agency or general platform is never a competitor: give it its kind if you list it at all. Never list the business itself.",
   "Each reason is one short plain sentence a founder can read: what the company sells and why it competes.",
 ].join(" ");
@@ -107,6 +108,10 @@ export function concludeRivals(
   max: number = RIVALS_MAX
 ): RivalConclusion[] {
   const seen = evidenceDomains(evidence);
+  // An answer names products it does not link (#1195): a name read in an
+  // answer's excerpt is a sighting too.
+  const said = evidence.answers.map((a) => (a.excerpt ?? "").toLowerCase()).join(" ");
+  const named = (name: string): boolean => name.trim().length >= 3 && said.includes(name.trim().toLowerCase());
   const rivals: RivalConclusion[] = [];
   const taken = new Set<string>();
   for (const candidate of answer.candidates) {
@@ -115,7 +120,8 @@ export function concludeRivals(
     const domain = registrableDomain(candidate.domain);
     if (domain === null || taken.has(domain)) continue;
     if (isOwnDomain(domain, evidence.domain) || isPlatformDomain(domain)) continue;
-    const basis: RivalBasis = candidate.basis !== "same_job" && !seen.has(domain) ? "same_job" : candidate.basis;
+    const sighted = seen.has(domain) || (candidate.basis === "ai_answer" && named(candidate.name));
+    const basis: RivalBasis = candidate.basis !== "same_job" && !sighted ? "same_job" : candidate.basis;
     taken.add(domain);
     rivals.push({ domain, name: candidate.name.trim() || domain, basis, reason: candidate.reason.trim() });
   }

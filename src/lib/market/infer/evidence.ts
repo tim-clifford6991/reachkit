@@ -17,6 +17,9 @@ export interface EvidenceAnswer {
   question: string;
   citedDomains: readonly string[];
   namesSite: boolean;
+  /** The start of the answer's own text, where the pass kept it — a buyer
+   *  prompt's (#1195): an answer names products it does not link. */
+  excerpt?: string;
 }
 
 /** One search the site ranks for. */
@@ -57,6 +60,7 @@ export const EVIDENCE_BOUNDS = Object.freeze({
   allPageChars: 7000,
   answers: 24,
   domainsPerAnswer: 10,
+  excerptChars: 600,
   ownSearches: 25,
   topTens: 25,
   listItems: 8,
@@ -129,6 +133,7 @@ export function boundEvidence(e: MarketEvidence): MarketEvidence {
       question: clip(a.question, EVIDENCE_BOUNDS.itemChars),
       citedDomains: a.citedDomains.slice(0, EVIDENCE_BOUNDS.domainsPerAnswer),
       namesSite: a.namesSite,
+      ...(a.excerpt === undefined ? {} : { excerpt: clip(a.excerpt, EVIDENCE_BOUNDS.excerptChars) }),
     })),
     ownSearches: [...e.ownSearches]
       .sort((a, b) => a.position - b.position)

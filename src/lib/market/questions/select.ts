@@ -322,6 +322,10 @@ export function selectTwelve(a: {
   /** The founder's confirmed category, where the pass has one — it joins
    *  the relevance guard's support set. */
   category?: string;
+  /** A concluded market's other names (#1195): they join the support set
+   *  beside the category, so a search in the market's own words is not
+   *  dropped as off-topic. */
+  synonyms?: readonly string[];
   /** The volume floor, one of `SELECTION.volumeSteps`. Defaults to the
    *  first step. */
   floor?: number;
@@ -344,6 +348,8 @@ export function selectTwelve(a: {
   // searches lead: a new site wins "seo content brief template for
   // startups", not "seo software".
   const coldStart = ceiling === WINNABILITY.demandFloor;
+  const named = [a.category ?? "", ...(a.synonyms ?? [])].filter((n) => n.trim() !== "");
+  const marketWords = named.length === 0 ? undefined : named.join(" ");
 
   const survivors: Candidate[] = [];
   for (const row of a.market) {
@@ -353,7 +359,7 @@ export function selectTwelve(a: {
     const intent = classifyIntent(row.keyword, profile);
     if (intent === "own_brand") continue;
     const rivals = row.rivals ?? [];
-    if (!passesRelevanceGuard(row.keyword, profile, a.category, rivals)) continue;
+    if (!passesRelevanceGuard(row.keyword, profile, marketWords, rivals)) continue;
     const longTail = coldStart && contentTokens(row.keyword).length >= SELECTION.longTailWords;
     survivors.push({
       keyword: row.keyword,

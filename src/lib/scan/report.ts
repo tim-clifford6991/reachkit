@@ -517,6 +517,21 @@ export interface StoredReport {
    * member holds.
    */
   measuredCategory: string | null;
+  /** The market's buyer prompts a deep pass asked AI Mode beside the
+   *  twelve (#1195), each with the domains its answer cited and the start
+   *  of its text — the evidence the pass's rivals are concluded from.
+   *  Absent where a pass asked none, which every report before it is; the
+   *  score and every card read the twelve and never this. */
+  marketPrompts?: readonly MarketPromptAnswer[];
+}
+
+/** One buyer prompt as its AI answer read (#1195). */
+export interface MarketPromptAnswer {
+  prompt: string;
+  citedDomains: readonly string[];
+  namesSite: boolean;
+  /** The start of the answer's text: it names products it does not link. */
+  excerpt: string;
 }
 
 // ── Reading a stored blob (issue #25) ───────────────────────────────────

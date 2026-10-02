@@ -18,7 +18,7 @@
 // because a model call did not come back.
 import type { CostContext } from "@/lib/costs";
 import type { EvidencePage } from "@/lib/market/infer/evidence";
-import type { RivalConclusion } from "@/lib/market/infer/types";
+import type { MarketConclusion, RivalConclusion } from "@/lib/market/infer/types";
 import { marketEvidence } from "./market-evidence";
 import type { StoredReport } from "./report";
 
@@ -55,10 +55,19 @@ export function headlineOf(pages: readonly (EvidencePage & { h1?: string })[]): 
   return h1 !== "" && !home.title.includes(h1) ? `${home.title} — ${h1}` : home.title || null;
 }
 
+/** What the first moment hands the pass: the market it measures, and
+ *  whether the founder chose the rivals themselves. */
+export interface PassMarket {
+  category: string;
+  synonyms: readonly string[];
+  market: MarketConclusion;
+  rivalsOverridden: boolean;
+}
+
 /**
- * The first moment: the category this pass measures, or `null` to measure
- * the one already stored (`sites.category`) — where the founder set it, no
- * page was read, or the call did not come back.
+ * The first moment: the market this pass measures, or `null` to measure
+ * the category already stored (`sites.category`) — where the founder set
+ * it, no page was read, or no market was ever concluded.
  */
 export async function concludeMarketForPass(a: {
   siteId: string;
@@ -67,7 +76,7 @@ export async function concludeMarketForPass(a: {
   cost: CostContext;
   pages: readonly (EvidencePage & { h1?: string })[];
   at: Date;
-}): Promise<{ category: string; synonyms: readonly string[] } | null> {
+}): Promise<PassMarket | null> {
   const [{ readSiteMarket, writeSiteMarket }, { inferMarketFields }, { settleMarket }, { readCurrentReport }] =
     await Promise.all([
       import("@/lib/market/infer/stored"),
@@ -92,7 +101,7 @@ export async function concludeMarketForPass(a: {
   const fresh = await inferMarketFields(a.cost, evidence);
   if (fresh.kind === "unmeasured") {
     log("market_conclusion_unmeasured", { siteId: a.siteId, reason: fresh.reason });
-    return site.stored.current === null ? null : { category: site.stored.current.category, synonyms: site.stored.current.synonyms };
+    return passMarket(site.stored.current, site.stored.rivalsOverridden);
   }
 
   const settled = settleMarket({
@@ -113,7 +122,11 @@ export async function concludeMarketForPass(a: {
     adopted: settled.adopted,
     pending: settled.next.pending !== null,
   });
-  return current === null ? null : { category: current.category, synonyms: current.synonyms };
+  return passMarket(current, settled.next.rivalsOverridden);
+}
+
+function passMarket(market: MarketConclusion | null, rivalsOverridden: boolean): PassMarket | null {
+  return market === null ? null : { category: market.category, synonyms: market.synonyms, market, rivalsOverridden };
 }
 
 /**
@@ -134,6 +147,12 @@ export async function recheckRivals(a: {
     import("@/lib/market/infer/infer"),
     import("@/lib/market/infer/stability"),
   ]);
+  // A pass its ceiling stopped did not finish reading its market (#1195):
+  // its few answers are no measure of who competes in it.
+  if (a.report.stoppedReason === "time_ceiling") {
+    log("rival_conclusion_skipped", { siteId: a.siteId, because: "time_ceiling" });
+    return none;
+  }
   const site = await readSiteMarket(a.siteId);
   const market = site?.stored.current ?? null;
   if (site === null || market === null || site.stored.rivalsOverridden) return none;

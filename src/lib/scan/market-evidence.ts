@@ -11,11 +11,18 @@ function bare(domain: string): string {
   return domain.toLowerCase().replace(/^www\./, "");
 }
 
-/** The AI answers of a report: each question with every domain any engine
- *  cited for it, once. */
+/** The AI answers of a report: the market's buyer prompts first (#1195),
+ *  each with the start of its answer, then each question with every domain
+ *  any engine cited for it, once. */
 function answersOf(report: StoredReport | null): EvidenceAnswer[] {
+  const prompts: EvidenceAnswer[] = (report?.marketPrompts ?? []).map((p) => ({
+    question: p.prompt,
+    citedDomains: p.citedDomains,
+    namesSite: p.namesSite,
+    excerpt: p.excerpt,
+  }));
   const rows = report?.aiAnswers?.rows ?? [];
-  return rows.map((row) => {
+  return [...prompts, ...rows.map((row) => {
     const cited = new Set<string>();
     let namesSite = false;
     const cells = [row.cell, ...row.engines.map((e) => e.cell)];
@@ -25,7 +32,7 @@ function answersOf(report: StoredReport | null): EvidenceAnswer[] {
       namesSite ||= cell.namesCustomer;
     }
     return { question: row.question.search, citedDomains: [...cited], namesSite };
-  });
+  })];
 }
 
 /** The domains of a report's measured top tens, with how often each

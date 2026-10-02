@@ -40,6 +40,7 @@ import type {
   AiAnswersSection,
   PageQuestionsSection,
   FreePageSection,
+  MarketPromptAnswer,
   PresenceSection,
   StoppedReason,
   StoredReport,
@@ -91,6 +92,9 @@ export interface ReportSections {
   /** The category the pass was handed, or `null` where it seeded from the
    *  profile (issue 866). */
   measuredCategory: string | null;
+  /** #1195: the buyer prompts a pass asked, empty where it asked none;
+   *  the blob omits the member then. */
+  marketPrompts: readonly MarketPromptAnswer[];
 }
 
 /** Pure and total: a copy plus the two derived fields. No arithmetic, no
@@ -126,6 +130,7 @@ export function assembleReport(s: ReportSections): StoredReport {
     coherence: s.coherence,
     correctionState: s.correctionState,
     measuredCategory: s.measuredCategory,
+    ...(s.marketPrompts.length === 0 ? {} : { marketPrompts: s.marketPrompts }),
   };
 }
 
