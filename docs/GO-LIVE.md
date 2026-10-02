@@ -1,7 +1,7 @@
 # The go-live gate — what must be true before a stranger pays
 
-Two things stand between this product and a stranger paying for it, and neither has been exercised:
-**production runs Stripe in test mode**, and **no mail has ever been seen in a real inbox**. This
+Two things stood between this product and a stranger paying for it: Stripe in live mode and mail in
+a real inbox. **Production is on live Stripe, but no real payment has completed yet** (§1). This
 page is the checklist for both, plus the rest of the gate, written to be worked through in order.
 
 Operating the product afterwards is `docs/RUNBOOK.md`; what the product does is `docs/SPEC.md`.
@@ -15,19 +15,43 @@ looking again.
 
 ---
 
-## 1. Stripe: the switch from test mode to live
+## 1. Stripe: live mode, and what is still unproven
 
 ### 1.1 Where it stands
 
-`STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID` and `STRIPE_WEBHOOK_SECRET` on the production target are the
-test-mode values. Test-mode and live-mode objects are separate universes in Stripe: a test price id
-does not exist in live mode, a test key cannot read a live object, and a test-mode webhook secret
-verifies no live delivery. So **no real customer can pay today**, and the live path has never run.
+Read-only check through the Stripe and Vercel connectors, 2026-10-02 (comment on #1042). Nothing
+was created, changed or decrypted.
 
-The dogfood account carries `cs_test_…` and a test-mode `sub_…`, which is the same fact seen from
-the database.
+**Production is on live Stripe.** `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID` and
+`STRIPE_WEBHOOK_SECRET` on the production target are live-mode values:
 
-### 1.2 What must be re-created in live mode — nothing carries over
+- `reachkit.app` created `cs_live_…` checkout sessions at €49 on 2026-09-14 and 2026-09-25. All of
+  them expired unpaid, so **no live payment has completed**.
+- Production's `checkout` boot check logs `checked` on the current deployment, so the live key and
+  the live price agree.
+- The live product `prod_VDrq4jWvzRI8WY` and price `price_1UDQ7NIFnqPzUa4ct4p18FGT` match
+  `PRICE_OBJECT_SPEC`: 4900 · eur · month · `tax_behavior: inclusive`. Stripe Tax is off at
+  checkout.
+- The live webhook `we_1TiGhTIFnqPzUa4cwPcW7jaE` points at `https://reachkit.app/api/stripe/webhook`
+  and is subscribed to exactly the seven events in `src/lib/account/provisioning/events.ts`.
+
+The preview target, which `dev.reachkit.app` answers on, carries the test-mode trio. Its test-mode
+webhook points at `https://dev.reachkit.app/api/stripe/webhook` with the same seven events.
+
+**What remains**, all **[owner]**:
+
+1. §1.3 step 7, the Customer emails setting. The API cannot read it.
+2. §1.6, one real payment. It is also the only proof that production's `STRIPE_WEBHOOK_SECRET`
+   belongs to the live endpoint: the secret was last set 2026-07-21 and the endpoint was created
+   2026-06-14, so it probably does unless the secret was rolled. The log line must read
+   `"outcome":"provision"`, never `"signature"`.
+3. §1.7, the refund.
+
+**Housekeeping, not blocking:** two v2 prices are still `active` on archived products, "Solo Monthly
+€59" and "Growth Monthly €129". Nothing binds them. Deactivating them is a dashboard act, and it is
+not done by this page.
+
+### 1.2 What had to be re-created in live mode — nothing carries over
 
 | Object | Who | Notes |
 |---|---|---|
@@ -42,19 +66,29 @@ Whatever the test-mode dogfood holds, the first live payment is the first live c
 
 ### 1.3 The exact switch, in order
 
-1. **[owner]** Create the live product and price (1.2). Copy the new `price_…`.
-2. **[owner]** Create the live webhook endpoint (1.2). Copy the new `whsec_…`.
-3. **[owner]** Developers → API keys, live mode → copy the live secret key.
+Steps 1–6 are done for production (dates from the 2026-10-02 check in 1.1). Step 7 is open.
+
+1. **[owner]** Create the live product and price (1.2). Copy the new `price_…`. **Done** by
+   2026-09-08: production's `STRIPE_PRICE_ID` was set at 17:32 UTC that day, three hours after the
+   live price was created.
+2. **[owner]** Create the live webhook endpoint (1.2). Copy the new `whsec_…`. **Done:** the
+   endpoint was created 2026-06-14.
+3. **[owner]** Developers → API keys, live mode → copy the live secret key. **Done:** production's
+   `STRIPE_SECRET_KEY` was set 2026-09-13.
 4. **[owner]** In Vercel, on **both** targets (`docs/RUNBOOK.md` §3: every binding must exist on
    both, or a target cannot build), replace all three rows **together**:
    `STRIPE_SECRET_KEY` · `STRIPE_PRICE_ID` · `STRIPE_WEBHOOK_SECRET`.
    **The three move as one.** Any two of them crossed is a broken deployment, and two of the three
    crossings are silent without step 5's refusal.
+   **Done for production:** `STRIPE_PRICE_ID` 2026-09-08, `STRIPE_WEBHOOK_SECRET` 2026-07-21,
+   `STRIPE_SECRET_KEY` 2026-09-13. The preview target keeps the test-mode trio on purpose
+   (`docs/stripe-setup.md`).
 5. **[owner]** Redeploy. A binding is read once, at module load, so an existing instance keeps the
-   old value until it is replaced.
+   old value until it is replaced. **Done** by 2026-09-14, the first `cs_live_…` session.
 6. **[owner]** Watch the boot. The runtime log carries one line per invariant; the one to find is
    `{"event":"boot_invariants","check":"checkout","outcome":"checked"}`. Anything else is 1.5.
-7. **[owner]** Stripe's dashboard, live mode → Settings → **Customer emails**: decide whether
+   **Seen** on the current production deployment on 2026-10-02.
+7. **[owner]** **Open.** Stripe's dashboard, live mode → Settings → **Customer emails**: decide whether
    Stripe sends the paying customer their invoice and receipt. Stripe sends no customer email in
    test mode at all, so this is a setting the test-mode walk cannot have exercised, and ReachKit
    sends no receipt of its own — the only mail it sends after a payment is the sign-in link.
@@ -207,7 +241,7 @@ Everything else that must be true before a stranger pays. **This table is the on
 
 | # | Must be true | State | Whose |
 |---|---|---|---|
-| 1 | **Stripe is live** | Not done. Production is still test mode (§1). The boot refusal for a crossed price is on `main` (#889, closed). The switch itself is **#1042**, `blocked-on-owner`. | **[owner]** |
+| 1 | **Stripe is live** | Half done. Production is on live Stripe (§1.1, checked 2026-10-02), but no live payment has completed. Open: the Customer emails setting (§1.3 step 7), one real payment, which also proves the webhook secret (§1.6), and its refund (§1.7). **#1042**, `blocked-on-owner`. | **[owner]** |
 | 2 | **Mail reaches a real inbox** | Rendering is done (#339, closed 2026-09-22, §2.3). DMARC is published, report-only (#1043, closed 2026-09-23, §2.1). Tightening to `p=quarantine` is #1048 and is not on the launch queue. | **[protected]**, except #1048 |
 | 3 | **The legal pages carry real bodies** | `/privacy` and `/terms` have full written bodies. All three still carry `[[imprint: owner fills legal entity, address, VAT id]]`, and `/imprint` is little more than that placeholder. The same placeholder was in the footer of the mail the owner read on 2026-09-22. **#335**, `blocked-on-owner`. | **[owner]** |
 | 4 | **There is a way back from data loss** | The recovery runbook is written and roll-forward-only is the ruling (#887, closed). The project is still on the Supabase Free plan: **no PITR and no recorded restore drill**. **#334**, on the Launch milestone, not `later`. The procedure is `docs/RUNBOOK.md` §9. | **[owner]** |
