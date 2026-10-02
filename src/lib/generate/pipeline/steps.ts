@@ -38,6 +38,7 @@ import { FRAME_INSTRUCTION, answersMarketQuestion } from "../rules/frame";
 import type { DraftPromptInputs } from "../voice/inputs";
 import type { PromptProfile } from "../voice/profile-block";
 import type { AnswerabilityOps } from "./answerability";
+import type { FixNote } from "./repair";
 import { PAGE_JOB, SECTION_TASK, type SectionRole } from "./skeletons";
 
 /** §8's five steps, closed. `claim_check` is the fifth and is run by
@@ -328,7 +329,14 @@ export async function outline(
 export function draft(
   c: CostContext,
   inputs: DraftPromptInputs,
-  a: { brief: Brief; outline: Outline; facts: readonly { url: string; passage: string }[] }
+  a: {
+    brief: Brief;
+    outline: Outline;
+    facts: readonly { url: string; passage: string }[];
+    /** #1178: the rules the attempt before this one broke, and the sentences
+     *  that broke them. Absent on a first attempt, whose prompt is unchanged. */
+    fix?: readonly FixNote[];
+  }
 ): Promise<Measured<DraftBody>> {
   return step(c, {
     site: STEP_CALL_SITES.draft,
@@ -337,13 +345,18 @@ export function draft(
     input: promptFor(
       "Write the page from the outline: each section under its heading, exactly as given, " +
         "doing what its task says and what `pageJob` says the page is for. State only the " +
-        "facts supplied, word for word.",
+        "facts supplied, word for word." +
+        (a.fix === undefined
+          ? ""
+          : " An earlier attempt at this page was stopped: `fix` names each rule it broke and the " +
+            "sentences that broke it. Write the page so that none of them recurs and `rules` hold."),
       inputs,
       {
         brief: a.brief,
         outline: a.outline.sections.map((section) => ({ ...section, task: SECTION_TASK[section.role] })),
         facts: a.facts,
         rules: HOUSE_RULES,
+        ...(a.fix === undefined ? {} : { fix: a.fix }),
       }
     ),
   });

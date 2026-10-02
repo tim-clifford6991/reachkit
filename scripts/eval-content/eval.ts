@@ -68,7 +68,7 @@ export interface Result {
 
 const cents = (n: number): string => `${n.toFixed(2)}¢`;
 
-function memoryStore(a: { siteId: string; domain: string; report: StoredReport; inventory: InventoryRow[] }): GenerateStore {
+export function memoryStore(a: { siteId: string; domain: string; report: StoredReport; inventory: InventoryRow[] }): GenerateStore {
   const rows = new Map<string, DraftRow>();
   let next = 0;
   return {
@@ -191,33 +191,46 @@ function fallbackOpportunity(report: StoredReport, siteId: string): Opportunity 
 }
 
 /** A stable id per domain, so two runs write the same rows. */
-function siteIdOf(index: number): string {
+export function siteIdOf(index: number): string {
   return `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`;
 }
 
-/** One page for one domain. `given` is a topic chosen elsewhere (#1153 runs
- *  the ranking's second and third picks); without it, the report's first. */
-export async function evaluate(
-  ledger: ProofLedger,
+/** Everything one domain's draft is written from, in the product's own
+ *  shapes, and the in-memory store it is written to. `null` with the reason
+ *  where the report gives no page to write. */
+export function prepare(
   slot: EvalSlot,
   index: number,
   today: string,
   given?: FreePagePick
-): Promise<Result> {
+):
+  | { ok: false; outcome: string }
+  | {
+      ok: true;
+      snapshot: Snapshot;
+      report: StoredReport;
+      market: Extract<StoredReport["market"], { kind: "measured" }>["value"]["profile"];
+      siteId: string;
+      opportunity: Opportunity;
+      target: { search: string; type: string };
+      chose: string;
+      businessName: string;
+      store: GenerateStore;
+      pages: { url: string; text: string; measuredAt: Date }[];
+      args: Parameters<typeof generateDraft>[1];
+    } {
   const domain = slot.domain!;
   const snapshot = readSnapshot(domain);
   const report = readStoredReport(snapshot.report);
-  const base = { slot, domain, scan: snapshot.scan, title: null, bodyMarkdown: null, checklist: null, grade: null, costCents: 0, factsUsed: [], faq: null };
-  if (report.market.kind === "unmeasured") return { ...base, target: null, outcome: "no market reading in the report" };
+  if (report.market.kind === "unmeasured") return { ok: false, outcome: "no market reading in the report" };
   const market = report.market.value.profile;
 
   const siteId = siteIdOf(index);
   const pick = given ?? bestFreePage(report);
   const opportunity = pick === null ? fallbackOpportunity(report, siteId) : { ...freePageOpportunity(report, pick), siteId };
-  if (opportunity === null) return { ...base, target: null, outcome: "no topic, and no measured question to fall back on" };
+  if (opportunity === null) return { ok: false, outcome: "no topic, and no measured question to fall back on" };
   const target = { search: opportunity.targetQuery ?? "", type: opportunity.type };
   const chose = pick === null ? "the pass chose nothing; drafted for the report's first question. " : "";
-  if (!ledger.canStartDraft()) return { ...base, target, outcome: "not started: the run cap" };
 
   const inventory = inventoryOf(snapshot);
   const pages = snapshot.pages.map((page) => ({ url: page.url, text: page.text, measuredAt: new Date(page.readAt) }));
@@ -244,31 +257,51 @@ export async function evaluate(
   const rivals = report.rivals.kind === "unmeasured" ? [] : report.rivals.value.map((rival) => rival.domain);
 
   const store = memoryStore({ siteId, domain, report, inventory });
+  const args = {
+    siteId,
+    opportunity,
+    scheduledFor: today,
+    site: {
+      businessName,
+      domain,
+      doNotClaim: snapshot.site?.doNotClaim ?? [],
+      rivals,
+      report,
+      opportunities: [opportunity],
+    },
+    voiceText: snapshot.site?.voiceText ?? null,
+    category: market.category,
+    links: siteLinkTargets({ domain, inventory, query: target.search }),
+    known: [],
+    profile,
+    factsOff: [],
+    scanId: report.scanId,
+  };
+  return { ok: true, snapshot, report, market, siteId, opportunity, target, chose, businessName, store, pages, args };
+}
+
+/** One page for one domain. `given` is a topic chosen elsewhere (#1153 runs
+ *  the ranking's second and third picks); without it, the report's first. */
+export async function evaluate(
+  ledger: ProofLedger,
+  slot: EvalSlot,
+  index: number,
+  today: string,
+  given?: FreePagePick
+): Promise<Result> {
+  const domain = slot.domain!;
+  const prepared = prepare(slot, index, today, given);
+  const snapshot = readSnapshot(domain);
+  const base = { slot, domain, scan: snapshot.scan, title: null, bodyMarkdown: null, checklist: null, grade: null, costCents: 0, factsUsed: [], faq: null };
+  if (!prepared.ok) return { ...base, target: null, outcome: prepared.outcome };
+  const { report, market, siteId, opportunity, target, chose, businessName, store, pages } = prepared;
+  if (!ledger.canStartDraft()) return { ...base, target, outcome: "not started: the run cap" };
+
   setGenerateStore(store);
   servePages({ siteId, domain, pages });
   const cost = ledger.contextFor(index + 1);
   try {
-    const write = (): Promise<GenerateOutcome> =>
-      generateDraft(cost, {
-        siteId,
-        opportunity,
-        scheduledFor: today,
-        site: {
-          businessName,
-          domain,
-          doNotClaim: snapshot.site?.doNotClaim ?? [],
-          rivals,
-          report,
-          opportunities: [opportunity],
-        },
-        voiceText: snapshot.site?.voiceText ?? null,
-        category: market.category,
-        links: siteLinkTargets({ domain, inventory, query: target.search }),
-        known: [],
-        profile,
-        factsOff: [],
-        scanId: report.scanId,
-      });
+    const write = (): Promise<GenerateOutcome> => generateDraft(cost, prepared.args);
     // A step that did not answer gets the second attempt the product gives it
     // (#813), inside the same cost context. A rule stop is graded as written.
     let outcome = await write();

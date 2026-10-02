@@ -287,12 +287,16 @@ describe("the brief chooses facts and can write none (issue 475)", () => {
     expect(store.rows.size).toBe(0);
   });
 
-  it("the answerability pass cannot add a question heading: a draft that has one the outline did not is stopped", async () => {
+  it("a question heading the outline did not have is removed in code (#1178), and the page passes without another call", async () => {
     primeSteps(`${CLEAN_MARKDOWN}\n\n## Is it worth the money?\n\nThat depends on the seats.`);
+    const calls = llmMock.mock.calls.length;
     const outcome = await run();
-    expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed.map((f) => f.rule)).toContain(
-      "no_new_question_heading"
-    );
+    expect(outcome.ok).toBe(true);
+    const saved = store.patches.find((p) => typeof p.patch.body_md === "string" && p.patch.hard_rules_passed === true);
+    expect(saved?.patch.body_md).not.toContain("Is it worth the money?");
+    expect(saved?.patch.body_md).toContain("That depends on the seats.");
+    expect(saved?.patch.meta).toMatchObject({ repairs: [{ rule: "no_new_question_heading", cleared: true }] });
+    expect(llmMock.mock.calls.length - calls).toBe(4);
   });
 });
 

@@ -15,6 +15,9 @@
 //   npm run eval:content -- --run --env-file ../reachkitv3/.env.local
 //   npm run eval:content -- --ab [--run]          # #1153: A beside the prototype B
 //                                                 # and the reference C on reachkit.app
+//   npm run eval:content -- --repair [--run] [--rounds 2]
+//                                                 # #1178: a stopped draft re-rolled blind
+//                                                 # beside one repaired from its failures
 //
 // The set, and the four slots the owner fills, are `scripts/eval-content/
 // set.ts`. Each domain's stored report and page text are committed under
@@ -58,6 +61,8 @@ const options = {
 const snapshotOf = flag("--snapshot", null);
 // #1153: today's pipeline beside the 2026-09-29 prototype, on reachkit.app.
 const ab = argv.includes("--ab");
+// #1178: blind regeneration beside repair, on the same inputs.
+const repair = argv.includes("--repair");
 const envFile = path.resolve(ROOT, flag("--env-file", ".env.local"));
 
 function loadEnvFile(file) {
@@ -115,6 +120,15 @@ async function main() {
     if (ab) {
       const run = await server.ssrLoadModule("/scripts/eval-content/prototype/ab.ts");
       return await run.main({ run: options.run, root: ROOT, priorCents: Number(flag("--prior-cents", "0")) });
+    }
+    if (repair) {
+      const run = await server.ssrLoadModule("/scripts/eval-content/repair.ts");
+      return await run.main({
+        run: options.run,
+        only: options.only,
+        rounds: Number(flag("--rounds", "1")),
+        tablePath: path.resolve(ROOT, "docs/walk/content-repair.md"),
+      });
     }
     const run = await server.ssrLoadModule("/scripts/eval-content/eval.ts");
     return await run.main(options);
