@@ -77,8 +77,10 @@ do not edit the configuration there, because the next process to start recreates
 
 ## 6. Where the walk runs
 
-Test-mode keys never go on the production target — `reachkit.app` and `dev.reachkit.app` are one
-Vercel target holding live keys (`docs/RUNBOOK.md` §2). Two places will take them:
+Test-mode keys never go on the production target, which holds the live keys for `reachkit.app`
+(`docs/RUNBOOK.md` §2). On 2026-10-02 the preview target, which `dev.reachkit.app` answers on, carried
+the test-mode trio, with the test-mode webhook pointed at `dev.reachkit.app` (`docs/GO-LIVE.md` §1.1).
+Two other places will take them:
 
 - **Locally.** `.env.local` with the three test-mode Stripe rows, `npm run dev`, and
   `stripe listen --forward-to localhost:3000/api/stripe/webhook`, whose printed `whsec_…` is the
