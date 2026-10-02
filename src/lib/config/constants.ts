@@ -1353,6 +1353,10 @@ export const CLUSTER_SUPPRESS_WEEKS = 4 as const;             // §6
  *  threshold; the owner may correct it (#1131). */
 export const SAME_TOPIC_SHARED_ADDRESSES = 4 as const;        // §6
 
+/** SPEC §6 (2026-10-02, #1181): a page younger than this is never the
+ *  target of a refresh. Drafted default; the owner may correct it. */
+export const REFRESH_MIN_AGE_DAYS = 30 as const;               // §6
+
 /** Issue 477: "two `not_working` verdicts on Improve of one URL retire that
  *  URL" — counted in distinct Monday weeks. */
 export const IMPROVE_RETIRE_AFTER_NOT_WORKING = 2 as const;   // §6

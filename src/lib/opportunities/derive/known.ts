@@ -28,7 +28,7 @@
 // **A Fix and an Improve are never converted.** A Fix targets no search, and
 // an Improve is already an update of an existing page — converting one
 // against a *different* page would move a row's target under it.
-import { EFFORT_BY_TYPE } from "@/lib/config/constants";
+import { EFFORT_BY_TYPE, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { measured } from "@/lib/measure/measured";
 import type { KnownMatch } from "@/lib/known-content/types";
 import { FAMILY_OF, type Evidence } from "../types";
@@ -84,6 +84,15 @@ function asUpdate(candidate: Candidate, match: KnownMatch, at: Date): Candidate 
   };
 }
 
+/** SPEC §6 (2026-10-02, #1181): a page younger than `REFRESH_MIN_AGE_DAYS`
+ *  is not refreshed. A page of ours with no published date is still being
+ *  written, so it is young; a crawled page with none has an age we never
+ *  read, and is not held back by it. */
+function tooYoungToRefresh(page: KnownMatch["page"], at: Date): boolean {
+  if (page.publishedAt === null) return page.source === "reachkit";
+  return at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * 86_400_000;
+}
+
 /**
  * The candidates, with every repeat either turned into an update or left to
  * be stored as one the site already covers.
@@ -97,6 +106,10 @@ export function applyKnownContent(candidates: readonly Candidate[], gate: KnownC
     if (!plansANewPage(candidate)) return candidate;
     const match = gate.covered(candidate);
     if (match === null || match.page.url === null) return candidate;
+    // A young covering page is left alone: the candidate stays as it was,
+    // and readiness stores it `already_covered`, as for a page we cannot
+    // update.
+    if (tooYoungToRefresh(match.page, gate.at)) return candidate;
     return gate.canUpdate(match.page.url) ? asUpdate(candidate, match, gate.at) : candidate;
   });
 }

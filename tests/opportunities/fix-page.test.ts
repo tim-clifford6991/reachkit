@@ -81,7 +81,7 @@ describe("readiness — only where the destination can make the update", () => {
 });
 
 function opportunity(id: string, family: Opportunity["family"], clusterKey: string | null, createdAt = AT): Opportunity {
-  return { id, family, clusterKey, createdAt } as Opportunity;
+  return { id, family, clusterKey, createdAt, targetQuery: id, absorbedQueries: [] } as unknown as Opportunity;
 }
 
 describe("ranking — a ready fix outranks new writing for its cluster", () => {

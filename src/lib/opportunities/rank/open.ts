@@ -1,8 +1,9 @@
 // BUILD §7 — the one ranked list.
 //
 // "Ranking: `demand × intent × (1−effort) × fit`, one list." One list, and
-// one order: the score descending, then `created_at` ascending, then the
-// id. The last two keys are what make it a *total* order — without them
+// one order: the score descending, then family and type, then `created_at`
+// ascending, then the id — and no two consecutive days on one topic
+// (#1181). The last two keys are what make it a *total* order — without them
 // two opportunities with identical scores would come back in whatever
 // order Postgres happened to return them, and the day a calendar fills
 // from would move between two reads that measured nothing new.
@@ -32,16 +33,19 @@
 // fix that is not ready is not in the list.
 import { opportunityStore } from "../store";
 import { readOpportunity } from "../store";
-import { comparePrecedence } from "../cluster";
+import { comparePrecedence, sameTopic } from "../cluster";
 import type { Opportunity, Ranked } from "../types";
 import { rankScore } from "./score";
 
-/** Descending score; ties broken by age, then by id. */
+/** Descending score; ties broken by family and type (§6's order, owner
+ *  2026-09-15 — a tie-break only since #1181), then by age, then by id. */
 function byScore(
   a: { opportunity: Opportunity; score: number },
   b: { opportunity: Opportunity; score: number }
 ): number {
   if (b.score !== a.score) return b.score - a.score;
+  const precedence = comparePrecedence(a.opportunity, b.opportunity);
+  if (precedence !== 0) return precedence;
   const age = a.opportunity.createdAt.getTime() - b.opportunity.createdAt.getTime();
   if (age !== 0) return age;
   return a.opportunity.id < b.opportunity.id ? -1 : a.opportunity.id > b.opportunity.id ? 1 : 0;
@@ -49,35 +53,29 @@ function byScore(
 
 /** SPEC §7's daily decision (2026-09-16): an update of an existing page
  *  (Improve) against a new page (Earn, Write), whichever ranks higher for
- *  this site. The new pages keep their own order — Earn, then Write, and
- *  the Write types in the owner's order (2026-09-15) ahead of the score —
- *  and the updates are in score order; the two lists are merged by score,
- *  an update taking a tie. Both sides carry the same right-sized fit, so a
- *  target outsized for the site weighs nothing on either. Within one
- *  topic an update still wins outright (§6: the cluster step keeps it). */
+ *  this site — one list in score order, an update taking a tie (#1181: the
+ *  type no longer outranks the score).
+ *
+ *  **Rotation** (SPEC §6, 2026-10-02, #1181): no two consecutive days on
+ *  one topic. Each place takes the best-scoring row that is not the same
+ *  topic (`sameTopic`) as the day before it — `after`, the page drafted or
+ *  published last, for the first place. Where every row left is, the best
+ *  one takes the place: rotation orders and never empties a day. */
 export function orderRanked(
-  scored: readonly { opportunity: Opportunity; score: number }[]
+  scored: readonly { opportunity: Opportunity; score: number }[],
+  rotation: { after?: Opportunity | null; topTens?: ReadonlyMap<string, readonly string[]> } = {}
 ): Ranked[] {
-  const updates = scored.filter((entry) => entry.opportunity.family === "improve").sort(byScore);
-  const fresh = scored
-    .filter((entry) => entry.opportunity.family !== "improve")
-    .sort((a, b) => comparePrecedence(a.opportunity, b.opportunity) || byScore(a, b));
-
-  const merged: { opportunity: Opportunity; score: number }[] = [];
-  let u = 0;
-  let f = 0;
-  while (u < updates.length || f < fresh.length) {
-    const update = updates[u];
-    const next = fresh[f];
-    if (update !== undefined && (next === undefined || update.score >= next.score)) {
-      merged.push(update);
-      u += 1;
-    } else {
-      merged.push(next!);
-      f += 1;
-    }
+  const left = [...scored].sort(byScore);
+  const topTens = rotation.topTens ?? new Map<string, readonly string[]>();
+  const out: Ranked[] = [];
+  let previous = rotation.after ?? null;
+  while (left.length > 0) {
+    const at = previous === null ? 0 : left.findIndex((entry) => !sameTopic(entry.opportunity, previous!, topTens));
+    const [entry] = left.splice(at === -1 ? 0 : at, 1);
+    out.push({ opportunityId: entry!.opportunity.id, score: entry!.score });
+    previous = entry!.opportunity;
   }
-  return merged.map((entry) => ({ opportunityId: entry.opportunity.id, score: entry.score }));
+  return out;
 }
 
 function samePool(a: string | null, b: string | null): boolean {
@@ -87,9 +85,10 @@ function samePool(a: string | null, b: string | null): boolean {
 /** Oldest first, each ahead of the first Write row of its pool. Pure. */
 export function placeFixPages(
   scored: readonly { opportunity: Opportunity; score: number }[],
-  fixes: readonly Opportunity[]
+  fixes: readonly Opportunity[],
+  rotation: Parameters<typeof orderRanked>[1] = {}
 ): Ranked[] {
-  const ordered = orderRanked(scored);
+  const ordered = orderRanked(scored, rotation);
   const byId = new Map(scored.map((entry) => [entry.opportunity.id, entry.opportunity]));
   const pending = [...fixes].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
@@ -124,10 +123,11 @@ export function placeFixPages(
  */
 export async function rankOpen(siteId: string): Promise<Ranked[]> {
   const store = opportunityStore();
-  const [rows, profile, fixRows] = await Promise.all([
+  const [rows, profile, fixRows, latest] = await Promise.all([
     store.openRankable(siteId),
     store.profileForSite(siteId),
     store.openFixPages(siteId),
+    store.latestPage(siteId),
   ]);
   const fixes = fixRows.filter((row) => row.ready).map(readOpportunity);
   // No profile, no score — but a fix needs neither, and still takes its day.
@@ -158,5 +158,9 @@ export async function rankOpen(siteId: string): Promise<Ranked[]> {
       }),
     };
   });
-  return placeFixPages(scored, fixes);
+  // Rotation reads the top tens already stored for these searches (#1181).
+  const after = latest === null ? null : readOpportunity(latest);
+  const scanIds = new Set([...scored.map((entry) => entry.opportunity.scanId), ...(after === null ? [] : [after.scanId])]);
+  const topTens = await store.topTens([...scanIds]);
+  return placeFixPages(scored, fixes, { after, topTens });
 }

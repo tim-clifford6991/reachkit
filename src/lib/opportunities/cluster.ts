@@ -68,6 +68,46 @@ export function shareATopTen(a: readonly string[], b: readonly string[]): boolea
   return new Set(a.filter((url) => other.has(url))).size >= SAME_TOPIC_SHARED_ADDRESSES;
 }
 
+/** What `sameTopic` reads of a row. */
+type TopicOf = Pick<Opportunity, "targetQuery" | "clusterKey" | "absorbedQueries">;
+
+/**
+ * SPEC §6 (2026-10-02, #1181): whether two rows are one topic on what is
+ * already stored — one cluster key, one search, a search the other absorbed
+ * (the pass's same-question judgement, #1131), or top tens that share
+ * `SAME_TOPIC_SHARED_ADDRESSES` addresses. Nothing is bought or asked.
+ */
+export function sameTopic(a: TopicOf, b: TopicOf, topTens: ReadonlyMap<string, readonly string[]>): boolean {
+  if (a.clusterKey !== null && a.clusterKey === b.clusterKey) return true;
+  if (a.targetQuery === null || b.targetQuery === null) return false;
+  const [qa, qb] = [queryKey(a.targetQuery), queryKey(b.targetQuery)];
+  if (qa === qb) return true;
+  if (a.absorbedQueries.some((q) => queryKey(q) === qb) || b.absorbedQueries.some((q) => queryKey(q) === qa)) return true;
+  const [ta, tb] = [topTens.get(qa), topTens.get(qb)];
+  return ta !== undefined && tb !== undefined && shareATopTen(ta, tb);
+}
+
+/**
+ * SPEC §6 (2026-10-02, #1181): the open new-page rows a page just drafted
+ * makes repeats of. Each folds into that page — dismissed, its search
+ * absorbed — the same join #1131 makes in the pass, made the evening the
+ * page is written, so the next evening never drafts the same question
+ * again in other words.
+ */
+export function nearRepeatsOf(
+  page: Opportunity,
+  open: readonly Opportunity[],
+  topTens: ReadonlyMap<string, readonly string[]>
+): Opportunity[] {
+  return open.filter(
+    (row) =>
+      row.id !== page.id &&
+      row.status === "open" &&
+      (row.family === "write" || row.family === "earn") &&
+      sameTopic(page, row, topTens)
+  );
+}
+
 /** The brand tokens a cluster key drops: the customer's own (the profile's
  *  `brandTokens`) and each measured rival's name — its registrable domain's
  *  first label, the tokenisation the Write deriver already uses. */
@@ -194,8 +234,14 @@ function bandOf(m: Member): Winnability | null {
   return m.kind === "row" ? m.row.fitBand : m.candidate.fitBand;
 }
 
+/** A row with a page behind it — being written (`queued`) or published
+ *  (`done`, #1181). It is never dismissed and always survives its topic. */
+function hasAPage(m: Member): boolean {
+  return m.kind === "row" && (m.row.status === "queued" || m.row.status === "done");
+}
+
 function compareMembers(a: Member, b: Member, band: (m: Member) => Winnability | null): number {
-  const queued = Number(b.kind === "row" && b.row.status === "queued") - Number(a.kind === "row" && a.row.status === "queued");
+  const queued = Number(hasAPage(b)) - Number(hasAPage(a));
   if (queued !== 0) return queued;
   // Issue 881: the stale-evidence half. A re-measure **adds** to a site's
   // rows and recalculates none of them, so the targets derived before
@@ -220,8 +266,9 @@ function compareMembers(a: Member, b: Member, band: (m: Member) => Winnability |
 }
 
 /**
- * One survivor per cluster, over the site's existing open and queued non-Fix
- * rows and this pass's candidates together.
+ * One survivor per cluster, over the site's existing open, queued and done
+ * non-Fix rows and this pass's candidates together — a published topic
+ * folds a new candidate on it like a page being written does (#1181).
  *
  * The survivor absorbs every other member's search. A losing open row is
  * dismissed; a losing candidate is not written; a queued row is never
@@ -272,7 +319,7 @@ export function collapse(a: {
   };
 
   for (const row of a.existing) {
-    if (row.family === "fix" || (row.status !== "open" && row.status !== "queued")) continue;
+    if (row.family === "fix" || row.status === "dismissed") continue;
     add(row.clusterKey ?? clusterKey(row.targetQuery, a.brandTokens), { kind: "row", row });
   }
   for (const candidate of a.candidates) {
@@ -307,7 +354,7 @@ export function collapse(a: {
     const own = queryOf(survivor)?.trim().toLowerCase() ?? null;
     const absorbed = new Set<string>(survivor.kind === "row" ? survivor.row.absorbedQueries : []);
     for (const member of rest) {
-      if (member.kind === "row" && member.row.status === "queued") continue;
+      if (hasAPage(member)) continue;
       if (member.kind === "row") dismiss.push(member.row.id);
       for (const query of [queryOf(member), ...(member.kind === "row" ? member.row.absorbedQueries : [])]) {
         if (query !== null && query.trim().toLowerCase() !== own) absorbed.add(query);

@@ -113,14 +113,14 @@ describe("the counts add up, and every rejection lands in exactly one counter", 
     expect(state.rows).toHaveLength(1);
   });
 
-  it("a target whose earlier page is done may be proposed again", async () => {
+  it("a target whose page is published is never proposed as a second page (#1181)", async () => {
     const { ctx } = fakeCost();
     const first = await deriveOpportunities(ctx, input());
     setStatus(state, first.created[0]!.id, "done", new Date("2026-09-07T09:00:00.000Z"));
 
     const second = await deriveOpportunities(ctx, input());
-    expect(second.created).toHaveLength(1);
-    expect(second.rejected.duplicate_open).toBe(0);
+    expect(second.created).toEqual([]);
+    expect(second.rejected.duplicate_open).toBe(1);
   });
 });
 

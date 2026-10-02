@@ -330,7 +330,7 @@ describe("supply and next-work see only ready rows, in Improve > Earn > Write or
   });
   afterEach(() => setOpportunityStore(null));
 
-  it("orders by family and Write type ahead of the score, and leaves unready rows out", async () => {
+  it("orders by score, family and type only breaking a tie (#1181), and leaves unready rows out", async () => {
     state.rows.push(
       row({ id: "keyword", family: "write", type: "keyword_page", target_query: "best user onboarding software", volume: 9000 }),
       row({ id: "answer", family: "write", type: "answer_page", target_query: "what is a product tour" }),
@@ -338,7 +338,7 @@ describe("supply and next-work see only ready rows, in Improve > Earn > Write or
       row({ id: "glossary", family: "write", type: "format_page", target_query: "onboarding glossary" })
     );
     await assessReadiness(SITE_ID, { at: AT });
-    expect((await rankOpen(SITE_ID)).map((r) => r.opportunityId)).toEqual(["improve", "answer", "keyword"]);
+    expect((await rankOpen(SITE_ID)).map((r) => r.opportunityId)).toEqual(["keyword", "improve", "answer"]);
     expect((await supplyDepth(SITE_ID)).unused).toBe(3);
   });
 

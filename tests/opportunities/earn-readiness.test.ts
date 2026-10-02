@@ -121,7 +121,7 @@ describe("readiness refuses an Earn row the site's own pages cannot ground, and 
   });
   afterEach(() => setOpportunityStore(null));
 
-  it("a grounded Earn row is ready, and ranks after Improve and before Write", async () => {
+  it("a grounded Earn row is ready, and ranked by its score (#1181)", async () => {
     state.rows.push(
       row({ id: "write", family: "write", type: "answer_page", target_query: "what is a product tour", volume: 9000 }),
       row({ id: "earn", family: "earn", type: "listed_page", target_query: "user onboarding benchmarks" }),
@@ -130,7 +130,7 @@ describe("readiness refuses an Earn row the site's own pages cannot ground, and 
     await assessReadiness(SITE_ID, { at: AT });
     const earn = state.rows.find((r) => r.id === "earn");
     expect([earn?.ready, earn?.unready_reason]).toEqual([true, null]);
-    expect((await rankOpen(SITE_ID)).map((r) => r.opportunityId)).toEqual(["improve", "earn", "write"]);
+    expect((await rankOpen(SITE_ID)).map((r) => r.opportunityId)).toEqual(["improve", "write", "earn"]);
   });
 
   it("with no grounding fact the Earn row stores no_grounding_fact and fills no day", async () => {
