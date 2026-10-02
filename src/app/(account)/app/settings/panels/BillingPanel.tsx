@@ -107,7 +107,8 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
       : null;
 
   const pill = (key: CopyKey, run: () => void): React.JSX.Element => (
-    <button type="button" className="btn btn-soft btn-primary btn-sm" onClick={run}>
+    <button type="button" className="btn btn-soft btn-primary btn-sm" onClick={run} disabled={action.pending !== null}>
+      {action.pending === "resume" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
       {copy(key)}
     </button>
   );
@@ -116,8 +117,8 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
    *  card's only control and `docs/DESIGN.md` allows one solid primary per
    *  screen; the icon is the card's own, at the badge size a control takes. */
   const manage = (run: () => void): React.JSX.Element => (
-    <button type="button" className="btn btn-primary btn-sm" onClick={run}>
-      <ExternalLink size={16} strokeWidth={1.75} aria-hidden />
+    <button type="button" className="btn btn-primary btn-sm" onClick={run} disabled={action.pending !== null}>
+      {action.pending === "invoices" ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <ExternalLink size={16} strokeWidth={1.75} aria-hidden />}
       {copy("settings.billing.manage")}
     </button>
   );

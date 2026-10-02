@@ -55,6 +55,7 @@ export function SupplyNotice(p: { line: string; choice: SupplyChoiceWords | null
               />
             </label>
             <button type="submit" className="btn btn-sm btn-primary" disabled={pending}>
+              {pending ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
               {choice.submit}
             </button>
           </form>
@@ -77,6 +78,7 @@ export function SupplyNotice(p: { line: string; choice: SupplyChoiceWords | null
                 disabled={pending}
                 data-testid="category-suggestion"
               >
+                {pending ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
                 {choice.tryLabel}
               </button>
             </form>

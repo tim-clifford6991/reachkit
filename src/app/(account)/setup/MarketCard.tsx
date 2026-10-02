@@ -9,7 +9,7 @@
 "use client";
 
 import type React from "react";
-import { useId, useMemo, useState, type Dispatch, type KeyboardEvent, type SetStateAction } from "react";
+import { useId, useMemo, useState, useTransition, type Dispatch, type KeyboardEvent, type SetStateAction } from "react";
 import { Globe, ListOrdered } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { fromStored, renderQuestion } from "@/lib/presentation/generated";
@@ -59,7 +59,15 @@ export function MarketCard(p: {
   const [marketDraft, setMarketDraft] = useState("");
   const [editingMarket, setEditingMarket] = useState(state.market.state === "empty");
 
-  async function commitAddress(): Promise<void> {
+  // Issue 1196: the address check is a request; its button waits on it.
+  const [resolving, startResolving] = useTransition();
+
+  function commitAddress(): void {
+    if (resolving) return;
+    startResolving(commitAddressNow);
+  }
+
+  async function commitAddressNow(): Promise<void> {
     const answer = await p.resolveDomain(addressDraft);
     const checked = validateAddress(answer.domain, answer.resolves);
     if (!checked.ok) {
@@ -209,9 +217,15 @@ export function MarketCard(p: {
                       setAddressDraft(event.target.value);
                       setAddressRefusal(null);
                     }}
-                    onKeyDown={onEnter(() => void commitAddress())}
+                    onKeyDown={onEnter(commitAddress)}
                   />
-                  <button type="button" className="btn btn-soft btn-primary" onClick={() => void commitAddress()}>
+                  <button
+                    type="button"
+                    className="btn btn-soft btn-primary"
+                    disabled={resolving}
+                    onClick={commitAddress}
+                  >
+                    {resolving ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
                     {copy("setup.address.change")}
                   </button>
                 </div>

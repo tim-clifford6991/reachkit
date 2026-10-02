@@ -12,11 +12,24 @@
 import { cache } from "react";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { DeepPassProgress, OnboardingStage } from "@/lib/scan/deep/progress";
+import type { PassEnd } from "@/lib/scan/deep/pass-end";
 import { isReservedFixtureAccount, requireSetUpAccount } from "../_session/account";
 import { readShell } from "./provider";
 
 export type OnboardingState =
-  | { kind: "running"; stage: OnboardingStage }
+  | {
+      kind: "running";
+      stage: OnboardingStage;
+      /** When the current step began, where the pass recorded it (issue
+       *  1196: the panel says when the step started). */
+      since: string | null;
+      /** A pass measured again after release, not the onboarding pass. */
+      remeasure: boolean;
+    }
+  /** Issue 1196: how the founder's newest pass ended, for a short while
+   *  after it did — done, failed with its reason, or stopped with its
+   *  cause — so the panel never just goes blank. */
+  | { kind: "ended"; end: PassEnd }
   | { kind: "notice"; key: CopyKey }
   | { kind: "none" };
 
@@ -39,11 +52,23 @@ export function onboardingPanel(a: {
    *  this panel's to repeat. */
   weekZero: boolean;
 }): OnboardingState {
-  if (a.progress.running) return { kind: "running", stage: a.progress.stage };
+  if (a.progress.running) {
+    // `enteredAt` holds the scan's six handles only; the first draft's own
+    // stage has no recorded instant, so it states no time.
+    const since = (a.progress.enteredAt as Readonly<Record<string, string | undefined>>)[a.progress.stage] ?? null;
+    return { kind: "running", stage: a.progress.stage, since, remeasure: a.progress.remeasure === true };
+  }
   if (a.weekZero && a.notice !== null && PANEL_NOTICES.includes(a.notice.key)) {
     return { kind: "notice", key: a.notice.key };
   }
   return { kind: "none" };
+}
+
+/** Whether the panel is saying nothing of the founder's market — nothing at
+ *  all, or only how the last pass ended (issue 1196) — so a screen may state
+ *  the market's reason itself. */
+function quietPanel(state: OnboardingState): boolean {
+  return state.kind === "none" || state.kind === "ended";
 }
 
 /**
@@ -58,7 +83,7 @@ export function overviewNotice(a: {
   notice: { readonly key: CopyKey } | null;
   weekZero: boolean;
 }): CopyKey | null {
-  if (a.onboarding.kind !== "none" || a.notice === null) return null;
+  if (!quietPanel(a.onboarding) || a.notice === null) return null;
   if (a.weekZero || a.notice.key === "setup.release.market-too-small") return a.notice.key;
   return null;
 }
@@ -84,6 +109,12 @@ export const readOnboarding = cache(async function readOnboarding(): Promise<Onb
 
   const shell = await readShell();
   const weekZero = shell.weeks.kind !== "counted";
-  if (!weekZero) return { kind: "none" };
-  return onboardingPanel({ progress, notice: await readReleaseNotice(), weekZero });
+  const state = weekZero
+    ? onboardingPanel({ progress, notice: await readReleaseNotice(), weekZero })
+    : ({ kind: "none" } as const);
+  if (state.kind !== "none") return state;
+  // Issue 1196: a pass that just ended says how, rather than vanishing.
+  const { recentPassEnd } = await import("@/lib/scan/deep/pass-end");
+  const end = await recentPassEnd(account.siteId);
+  return end === null ? state : { kind: "ended", end };
 });

@@ -125,6 +125,8 @@ export function DecidePanel(p: {
   /** Whether a decision this rail asked for is still in flight. Both
    *  controls are inert while one is. */
   deciding: boolean;
+  /** The command whose press is pending, which alone shows the spinner. */
+  pressed: DraftCommand | null;
   /** Whether the recorded fact is still in the body as it now stands —
    *  the same value the highlight is drawn from, so the grounded row and
    *  the mark cannot disagree. */
@@ -240,7 +242,11 @@ export function DecidePanel(p: {
                     disabled={p.deciding}
                     onClick={() => p.onCommand(action.command)}
                   >
-                    <CircleStop size={14} strokeWidth={1.75} aria-hidden />
+                    {p.pressed === action.command ? (
+                      <span className="loading loading-spinner loading-xs" aria-hidden />
+                    ) : (
+                      <CircleStop size={14} strokeWidth={1.75} aria-hidden />
+                    )}
                     {copy(action.key)}
                   </button>
                 ) : action.command === "regenerate" ? (
@@ -252,7 +258,11 @@ export function DecidePanel(p: {
                     disabled={p.deciding}
                     onClick={() => p.onCommand("regenerate")}
                   >
-                    <RotateCcw size={14} strokeWidth={1.75} aria-hidden />
+                    {p.pressed === "regenerate" ? (
+                      <span className="loading loading-spinner loading-xs" aria-hidden />
+                    ) : (
+                      <RotateCcw size={14} strokeWidth={1.75} aria-hidden />
+                    )}
                     {copy(action.key)}
                   </button>
                 ) : (
@@ -267,7 +277,11 @@ export function DecidePanel(p: {
                     disabled={p.deciding}
                     onClick={() => p.onCommand("approve")}
                   >
-                    <Check size={16} strokeWidth={1.75} aria-hidden />
+                    {p.pressed === "approve" ? (
+                      <span className="loading loading-spinner loading-xs" aria-hidden />
+                    ) : (
+                      <Check size={16} strokeWidth={1.75} aria-hidden />
+                    )}
                     {copy(action.key)}
                   </button>
                 ),

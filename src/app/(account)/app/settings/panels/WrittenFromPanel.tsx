@@ -26,12 +26,13 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { FileText, RefreshCw } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { formatDate } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
 import { remeasureNowAction } from "../change-actions";
+import { say } from "@/app/_toast/say";
 import { MARKET_REMEASURE_INITIAL, type MarketRemeasureState } from "../market-state";
 import type { BusinessProfile } from "@/lib/site-profile/business/types";
 
@@ -67,23 +68,32 @@ export function WrittenFromPanel(p: {
   /** What the last press answered. It changes no stored value, so it keeps
    *  no value — the same shape `MarketPanel` gives the same action. */
   const [remeasure, setRemeasure] = useState<MarketRemeasureState>(MARKET_REMEASURE_INITIAL);
-  const [busy, setBusy] = useState(false);
+  // Issue 1196: React's own pending state, not a hand-built flag.
+  const [busy, startReading] = useTransition();
+  const [failed, setFailed] = useState(false);
 
-  async function readAgain(): Promise<void> {
-    setBusy(true);
-    try {
-      setRemeasure(await remeasureNowAction());
-    } finally {
-      setBusy(false);
-    }
+  function readAgain(): void {
+    startReading(async () => {
+      setFailed(false);
+      try {
+        const next = await remeasureNowAction();
+        // A started pass answers once; the side panel then carries it.
+        if (next.answer === "started") {
+          const started = writtenLine("settings.market.remeasuring");
+          if (started !== null) say(started, "ok");
+          setRemeasure(MARKET_REMEASURE_INITIAL);
+        } else setRemeasure(next);
+      } catch {
+        setFailed(true);
+      }
+    });
   }
 
-  const line =
-    remeasure.answer === "started"
-      ? writtenLine("settings.market.remeasuring")
-      : remeasure.answer === "refused"
-        ? remeasure.line
-        : null;
+  const line = failed
+    ? copy("settings.answer.could-not-ask")
+    : remeasure.answer === "refused"
+      ? remeasure.line
+      : null;
 
   return (
     <section
@@ -141,7 +151,7 @@ export function WrittenFromPanel(p: {
             type="button"
             className="btn btn-soft btn-primary btn-sm self-start"
             disabled={busy}
-            onClick={() => void readAgain()}
+            onClick={readAgain}
             // `business-read-again`, not `action-read-again`: the seven
             // `action-*` ids are the closed offer REQ-070 c2 names, and
             // `tests/app/settings/screen.test.tsx` asserts that every
@@ -150,11 +160,11 @@ export function WrittenFromPanel(p: {
             // `market-remeasure-press` for the same reason.
             data-testid="business-read-again"
           >
-            <RefreshCw size={16} strokeWidth={1.75} aria-hidden />
+            {busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <RefreshCw size={16} strokeWidth={1.75} aria-hidden />}
             {copy("settings.business.read-again")}
           </button>
           {line === null ? null : (
-            <p className="text-xs text-base-content/70 wrap-anywhere" data-testid="business-read-again-line">
+            <p role="alert" className="text-xs text-error wrap-anywhere" data-testid="business-read-again-line">
               {line}
             </p>
           )}

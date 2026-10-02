@@ -20,7 +20,9 @@
 // or their session is touched.
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useTransition } from "react";
+import { copy } from "@/lib/presentation/copy";
+import { say } from "@/app/_toast/say";
 import { SETTINGS_ACTIONS, type ActionOutcome } from "../actions";
 import { UNREACHABLE_BILLING_KEYS } from "../billing";
 import type { ActionKey } from "../settable";
@@ -28,6 +30,9 @@ import { writtenLine } from "../../_shell/written";
 
 export interface ActionRunner {
   run: (key: ActionKey) => void;
+  /** Issue 1196: the action whose press is pending, or `null`. Its button
+   *  spins and every action button is disabled until it answers. */
+  pending: ActionKey | null;
   /** The written line for the last outcome, or `null` — either because
    *  nothing has been pressed, or because the owner has not written the
    *  sentence that arm needs. */
@@ -44,24 +49,35 @@ function unreachableLine(): string | null {
   return written.length === 0 ? null : written.join(" ");
 }
 
-function lineFor(outcome: ActionOutcome | null): string | null {
+function lineFor(outcome: ActionOutcome | "failed" | null): string | null {
   if (outcome === null) return null;
+  if (outcome === "failed") return copy("settings.answer.could-not-ask");
   if (outcome.done === "unreachable") return unreachableLine();
   return null;
 }
 
 export function useAction(): ActionRunner {
-  const [outcome, setOutcome] = useState<ActionOutcome | null>(null);
+  const [outcome, setOutcome] = useState<ActionOutcome | "failed" | null>(null);
+  const [busy, startRunning] = useTransition();
+  const [pressed, setPressed] = useState<ActionKey | null>(null);
 
   const run = useCallback((key: ActionKey) => {
-    void SETTINGS_ACTIONS[key]().then((result) => {
-      if (result.done === "elsewhere") {
+    setPressed(key);
+    startRunning(async () => {
+      setOutcome(null);
+      const result = await SETTINGS_ACTIONS[key]().catch((): "failed" => "failed");
+      if (result !== "failed" && result.done === "elsewhere") {
         window.location.assign(result.href);
         return;
+      }
+      // Issue 1196: a plan resumed in place answers, rather than settling
+      // silently.
+      if (result !== "failed" && result.done === "here" && key === "resume") {
+        say(copy("settings.billing.resumed"), "ok");
       }
       setOutcome(result);
     });
   }, []);
 
-  return { run, line: lineFor(outcome) };
+  return { run, pending: busy ? pressed : null, line: lineFor(outcome) };
 }

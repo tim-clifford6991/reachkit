@@ -48,6 +48,9 @@ const { pressed, reply, remeasureReply } = vi.hoisted(() => ({
 
 /** The four Server Functions, doubled at the module boundary — the last
  *  line of this screen's own code before the request leaves it. */
+const said = vi.hoisted((): [string, string][] => []);
+vi.mock("@/app/_toast/say", () => ({ say: (line: string, tone: string) => void said.push([line, tone]) }));
+
 vi.mock("@/app/(account)/app/settings/change-actions", () => {
   const record = (action: string, field: string) => async (form: FormData) => {
     pressed.push({ action, value: String(form.get(field) ?? "") });
@@ -160,6 +163,7 @@ const line = (root: HTMLElement): string =>
   root.querySelector('[data-testid="market-change-line"]')?.textContent ?? "";
 
 beforeEach(() => {
+  said.length = 0;
   document.body.innerHTML = "";
   pressed.length = 0;
   reply.next = { answer: "idle" };
@@ -263,11 +267,12 @@ describe("issue 866 — the standalone 'measure again now'", () => {
     expect(pressed).toEqual([]);
   });
 
-  it("a press starts the pass and the card says it is measuring", async () => {
+  it("a press starts the pass, answers once by toast, and leaves no status line behind (issue 1196)", async () => {
     const root = await market();
     await press(root.querySelector('[data-testid="market-remeasure-press"]'));
     expect(pressed).toEqual([{ action: "remeasure", value: "" }]);
-    expect(answerLine(root)).toBe("settings.market.remeasure.started");
+    expect(said).toEqual([["settings.market.remeasure.started", "ok"]]);
+    expect(answerLine(root)).toBe("settings.market.remeasure.effect");
   });
 
   it("a refused press states the refusal it was given, and nothing about Monday", async () => {

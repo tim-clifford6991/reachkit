@@ -82,6 +82,9 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.answer.saved": ["Saved. It takes effect straight away.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "settings.answer.saved-next-page": ["Saved. Your next page goes live at the new time.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "settings.answer.refused": ["That didn’t save. Nothing changed.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  /** Issue 1196: a press whose request never came back — the network or the
+   *  server failed, not a refusal. Drafted; the owner may correct it. */
+  "settings.answer.could-not-ask": ["We couldn’t reach ReachKit just now. Nothing changed. Try again in a moment.", { slots: {}, fixedBy: "issue 1196" }],
   // The canvas's own badge on a settings card (R4-11), shown where the
   // last change on that card was stored. It is the quiet half of the same
   // answer the toast speaks — a customer who looked away still sees that
@@ -666,6 +669,8 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "REQ-097 c6" },
   ],
   "settings.billing.try-again": ["Try again in a moment.", { slots: {}, fixedBy: "REQ-097 c6" }],
+  /** Issue 1196: a plan resumed in place. Drafted; the owner may correct it. */
+  "settings.billing.resumed": ["Your plan is running again.", { slots: {}, fixedBy: "issue 1196" }],
   "settings.billing.reach-a-person": [
     "Or write to hello@reachkit.app.",
     { slots: {}, fixedBy: "REQ-097 c6" },

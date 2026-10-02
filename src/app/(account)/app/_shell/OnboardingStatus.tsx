@@ -6,21 +6,28 @@
 // pass and the first draft run, the screen says the first page is being
 // written rather than drawing an empty app with no reason.
 import type React from "react";
-import { PenLine } from "lucide-react";
+import { CircleAlert, CircleCheck, CirclePause, PenLine } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { CategoryChoice } from "./CategoryChoice";
 import { PassSteps, stepsFor } from "./PassSteps";
 import { OnboardingPanel } from "./OnboardingPanel";
 import type { OnboardingState } from "./onboarding";
 import type { CategoryChoiceModel } from "./remeasure";
+import { formatTime } from "./format";
+import type { PassEnd } from "@/lib/scan/deep/pass-end";
 
 export function OnboardingStatus(p: {
   state: OnboardingState;
   /** Issue 837: the broader categories a market too small is offered, where
    *  the notice is that one. */
   choice?: CategoryChoiceModel | null;
+  /** The site's zone, for the times the panel states (issue 1196). */
+  timeZone: string;
+  /** The site's setup channel, so the running panel hears the pass. */
+  channel: string | null;
 }): React.JSX.Element | null {
   if (p.state.kind === "none") return null;
+  if (p.state.kind === "ended") return <PassEndLine end={p.state.end} timeZone={p.timeZone} />;
 
   if (p.state.kind === "notice") {
     return (
@@ -33,7 +40,52 @@ export function OnboardingStatus(p: {
 
   // The rows carry their own words now (`PassSteps`), so the panel is
   // handed the step and nothing else (issue 912).
-  return <OnboardingPanel heading={copy("setup.waiting.head")} stage={p.state.stage} />;
+  return (
+    <OnboardingPanel
+      heading={copy(p.state.remeasure ? "shell.pass.remeasure-head" : "setup.waiting.head")}
+      stage={p.state.stage}
+      since={p.state.since}
+      timeZone={p.timeZone}
+      channel={p.channel}
+    />
+  );
+}
+
+/** Issue 1196: the one line for each way a pass ends, with the alert tone
+ *  and the icon that carry it. The icon makes the state readable without
+ *  colour. */
+const END_LINE = {
+  done: { key: "shell.pass.ended.done", tone: "alert-success", Icon: CircleCheck },
+  failed: { key: "shell.pass.ended.failed", tone: "alert-error", Icon: CircleAlert },
+  site_unreadable: { key: "shell.pass.ended.site-unreadable", tone: "alert-error", Icon: CircleAlert },
+  time_ceiling: { key: "shell.pass.ended.time-ceiling", tone: "alert-warning", Icon: CirclePause },
+  spend_ceiling: { key: "shell.pass.ended.spend-ceiling", tone: "alert-warning", Icon: CirclePause },
+} as const satisfies Record<string, { key: CopyKey; tone: string; Icon: typeof CircleCheck }>;
+
+function endLineOf(end: PassEnd): (typeof END_LINE)[keyof typeof END_LINE] {
+  if (end.outcome === "done") return END_LINE.done;
+  if (end.reason === "site_unreadable" || end.reason === "time_ceiling" || end.reason === "spend_ceiling") {
+    return END_LINE[end.reason];
+  }
+  return END_LINE.failed;
+}
+
+/** Issue 1196: how the founder's newest pass ended — done, failed with its
+ *  reason, or stopped with its cause — for a while after it did, in the
+ *  place the running steps stood. */
+export function PassEndLine(p: { end: PassEnd; timeZone: string }): React.JSX.Element {
+  const { key, tone, Icon } = endLineOf(p.end);
+  return (
+    <div
+      role="status"
+      className={`alert alert-soft ${tone} items-start text-sm`}
+      data-testid="shell-pass-ended"
+      data-outcome={p.end.outcome}
+    >
+      <Icon size={20} strokeWidth={1.75} className="shrink-0" aria-hidden />
+      <span className="min-w-0 wrap-anywhere">{copy(key, { time: formatTime(new Date(p.end.at), p.timeZone) })}</span>
+    </div>
+  );
 }
 
 /**

@@ -12,7 +12,7 @@
 "use client";
 
 import type React from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { connectWordPress } from "../destination-actions";
@@ -38,19 +38,23 @@ export function ConnectDestination(p: { action: CredentialAction }): React.JSX.E
   const [siteUrl, setSiteUrl] = useState("");
   const [username, setUsername] = useState("");
   const [applicationPassword, setApplicationPassword] = useState("");
-  const [running, setRunning] = useState(false);
+  // Issue 1196: React's pending state, and a line when the request never
+  // came back — a rejected promise used to leave the button disabled forever.
+  const [running, startRunning] = useTransition();
+  const [failed, setFailed] = useState(false);
   const help = writtenLine("settings.destination.app-password.help");
 
   const submit = useCallback(() => {
-    setRunning(true);
-    void connectWordPress({ siteUrl, username, applicationPassword }).then((outcome) => {
+    startRunning(async () => {
+      setFailed(false);
+      const outcome = await connectWordPress({ siteUrl, username, applicationPassword }).catch(() => null);
       // Cleared on both arms. The card is redrawn from the server either
       // way, and what it then says about this destination is the state the
       // check found — including on a refusal, which is a state and not a
       // rejected form (ADR-086).
       setApplicationPassword("");
-      setRunning(false);
-      if (outcome.connected) setOpen(false);
+      if (outcome === null) setFailed(true);
+      else if (outcome.connected) setOpen(false);
     });
   }, [applicationPassword, siteUrl, username]);
 
@@ -94,8 +98,14 @@ export function ConnectDestination(p: { action: CredentialAction }): React.JSX.E
           )}
           {help === null ? null : <p className="text-xs text-base-content/70 wrap-anywhere">{help}</p>}
           <button type="button" className="btn btn-primary btn-sm" disabled={running} onClick={submit}>
+            {running ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
             {copy("settings.destination.submit")}
           </button>
+          {failed ? (
+            <p role="alert" className="text-xs text-error wrap-anywhere">
+              {copy("settings.answer.could-not-ask")}
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>

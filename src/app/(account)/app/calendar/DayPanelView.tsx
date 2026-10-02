@@ -32,7 +32,7 @@
 "use client";
 
 import type React from "react";
-import { useOptimistic, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { X } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { Tone } from "@/ui/types";
@@ -169,6 +169,7 @@ function DayActions(p: {
    *  machine for an edge the page has already left, and would answer with
    *  a refusal for a write that in fact worked. */
   busy: boolean;
+  pressed: DayCommand | null;
 }): React.JSX.Element | null {
   const actions = actionsFor(p.cell, p.destination);
   if (actions.length === 0) return null;
@@ -198,6 +199,7 @@ function DayActions(p: {
             disabled={p.busy}
             onClick={() => p.onCommand(action.command, action.draftId)}
           >
+            {p.pressed === action.command ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
             {copy(action.key)}
           </button>
         );
@@ -393,11 +395,14 @@ function PageDayPanel(p: {
   const { cell, date, page, timeZone, stopped } = p;
   const [state, expect] = useOptimistic<State>(page.state);
   const [busy, startTransition] = useTransition();
+  /** Which button the pending press is, so only it spins (issue 1196). */
+  const [pressed, setPressed] = useState<DayCommand | null>(null);
 
   /** One press: show what the command asks for, ask for it, and say what
    *  came back. The sentence is read from the registry either way — there
    *  is no silent arm and no arm that invents a line. */
   function command(asked: DayCommand, draftId: string): void {
+    setPressed(asked);
     startTransition(async () => {
       expect(COMMAND_TARGET[asked]);
       const outcome = await ask(asked, draftId);
@@ -481,7 +486,7 @@ function PageDayPanel(p: {
         )}
         <TargetRows facts={page.why} />
       </div>
-      <DayActions cell={shown} destination={p.destination} onCommand={command} busy={busy} />
+      <DayActions cell={shown} destination={p.destination} onCommand={command} busy={busy} pressed={busy ? pressed : null} />
       {provenance === null ? null : (
         <p className="text-xs opacity-70" data-testid="day-provenance">
           {provenance}

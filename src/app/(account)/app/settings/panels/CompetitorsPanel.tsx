@@ -45,7 +45,7 @@
 
 import type React from "react";
 import { Users, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { copy } from "@/lib/presentation/copy";
 import { BATTERY } from "@/lib/config/constants";
 import { writtenLine } from "../../_shell/written";
@@ -85,6 +85,9 @@ export function CompetitorsPanel(p: {
   // step with it.
   const [value, setValue] = useState("");
   const [answer, setAnswer] = useState<MarketChangeState>(MARKET_CHANGE_INITIAL);
+  // Issue 1196: one press at a time, and the pressed control spins.
+  const [busy, startWriting] = useTransition();
+  const [removing, setRemoving] = useState<string | null>(null);
 
   async function add(form: FormData): Promise<void> {
     const next = await addRivalAction(form);
@@ -136,15 +139,26 @@ export function CompetitorsPanel(p: {
               >
                 {/* Each rival is its own form's submit: pressing it removes
                     that one rival on the server. */}
-                <form action={remove} className="min-w-0 max-w-full">
+                <form
+                  action={(form) => {
+                    setRemoving(domain);
+                    startWriting(() => remove(form));
+                  }}
+                  className="min-w-0 max-w-full"
+                >
                   <input type="hidden" name={RIVAL_FIELD} value={domain} readOnly />
                   <button
                     type="submit"
                     className="badge badge-outline badge-lg h-auto max-w-full cursor-pointer gap-1"
                     aria-label={copy("setup.competitors.remove", { rival: domain })}
+                    disabled={busy}
                   >
                     <span className="num min-w-0 wrap-anywhere">{domain}</span>
-                    <X size={16} strokeWidth={1.75} aria-hidden />
+                    {busy && removing === domain ? (
+                      <span className="loading loading-spinner loading-xs" aria-hidden />
+                    ) : (
+                      <X size={16} strokeWidth={1.75} aria-hidden />
+                    )}
                   </button>
                 </form>
                 {reasons?.[domain] === undefined ? null : (
@@ -155,7 +169,14 @@ export function CompetitorsPanel(p: {
           </div>
 
           {full ? null : (
-            <form action={add} className="flex min-w-0 flex-col gap-2" data-testid="add-competitor">
+            <form
+              action={(form) => {
+                setRemoving(null);
+                startWriting(() => add(form));
+              }}
+              className="flex min-w-0 flex-col gap-2"
+              data-testid="add-competitor"
+            >
               <label className="flex min-w-0 flex-col gap-1">
                 <span className="text-sm text-base-content/70">{copy("settings.competitors.add-label")}</span>
                 <input
@@ -173,7 +194,9 @@ export function CompetitorsPanel(p: {
                   type="submit"
                   className="btn btn-soft btn-primary btn-sm"
                   aria-label={copy("settings.competitors.add-label")}
+                  disabled={busy}
                 >
+                  {busy && removing === null ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null}
                   {copy("settings.competitors.add")}
                 </button>
               </div>
