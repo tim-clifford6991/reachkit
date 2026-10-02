@@ -11,10 +11,13 @@
 // every battery ask of it is a standard-queue `task_post` and then a poll
 // that ran to `VENDOR.stdQueueDeadlineMin` — forty-five minutes, eleven
 // times the whole ceiling — and the weekly pass buys its question SERPs
-// and its AI Mode answers the same way. And an engine that has not
-// answered yet is asked one question at a time (issue 869), so an ask
-// could wait behind every ask ahead of it and then buy against a
-// `stopNow()` read before that wait began.
+// and its AI Mode answers the same way.
+//
+// Issue 1160: those three asks used to queue behind one another, a SERP's
+// wait and then each engine's, and an engine that had not answered yet was
+// asked one question at a time (issue 869). The weekly passes of 2026-09-21
+// and 2026-09-28 spent their whole ceiling waiting and never measured AI
+// answers or rivals. A question's three asks now wait together.
 //
 // The mutations this suite exists to kill:
 //
@@ -24,8 +27,9 @@
 //    twelve questions come to buy more than twelve questions' worth;
 //  - dropping the pass's deadline on the way into any of the three calls a
 //    question costs, so the bound is declared and never applied;
-//  - buying an engine ask that won its turn after the ceiling had fired;
-//  - asking a question more times than its three columns need.
+//  - asking a question more times than its three columns need;
+//  - a slow engine costing the other engine's column;
+//  - a weekly pass at production's measured queue waits missing its ceiling.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureStages, fakeDb } from "./harness";
 import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured";
@@ -65,11 +69,13 @@ vi.mock("@/lib/market/questions/phrase", async (importOriginal) => ({
 const serpOrganic = vi.fn();
 const aiMode = vi.fn();
 const llmScraper = vi.fn();
+const rankedKeywords = vi.fn();
 vi.mock("@/lib/vendors/dataforseo", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../src/lib/vendors/dataforseo")>()),
   serpOrganic: (...a: unknown[]) => serpOrganic(...a),
   aiMode: (...a: unknown[]) => aiMode(...a),
   llmScraper: (...a: unknown[]) => llmScraper(...a),
+  rankedKeywords: (...a: unknown[]) => rankedKeywords(...a),
 }));
 
 const readCurrentReport = vi.fn();
@@ -164,6 +170,9 @@ beforeEach(() => {
   serpOrganic.mockResolvedValue(measured(SERP, AT));
   aiMode.mockResolvedValue(measured(answered(["appcues.com"]), AT));
   llmScraper.mockResolvedValue(measured(answered(["example.com"]), AT));
+  rankedKeywords.mockResolvedValue(
+    measured({ rows: [{ keyword: "k0", position: 1, searchVolume: 10, url: "https://appcues.com/" }], total: 40 }, AT)
+  );
   readCurrentReport.mockResolvedValue(null);
   storeCurrentReport.mockImplementation(async (a: { report: StoredReport }) => ({
     scanId: a.report.scanId,
@@ -220,7 +229,7 @@ describe("a paid pass whose engine is slower than its ceiling (issue 902)", () =
     }
   });
 
-  it("buys the slow engine once, not once per question: an ask that wins its turn past the ceiling buys nothing", async () => {
+  it("a slow engine never costs the other engine its column: AI Mode answers every question", async () => {
     await import("@/lib/site-profile");
     await import("@/lib/site-issues");
     llmScraper.mockImplementation(stillQueueing());
@@ -231,13 +240,12 @@ describe("a paid pass whose engine is slower than its ceiling (issue 902)", () =
       await vi.advanceTimersByTimeAsync(TIMING.jobsCeilingS * 1000);
       await pass;
 
-      // One ask spent the whole ceiling. The eleven behind it waited their
-      // turn on an engine that has not answered yet (issue 869) and found
-      // the ceiling fired when their turn came: nothing more is bought.
-      expect(llmScraper).toHaveBeenCalledTimes(1);
-      // And the second engine is never reached either — `stopNow()` is
-      // read before it, as §6.5 requires between every call.
-      expect(aiMode).not.toHaveBeenCalled();
+      // Each engine is asked once per question and never twice.
+      expect(llmScraper).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
+      expect(aiMode).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
+      const modes = (storedReport().aiAnswers?.rows ?? []).map((row) => row.engines[1]?.cell.kind);
+      expect(modes).toHaveLength(BATTERY_PINS.QUESTIONS);
+      expect(modes.every((kind) => kind === "answered")).toBe(true);
     } finally {
       vi.useRealTimers();
     }
@@ -269,5 +277,58 @@ describe("what a twelve-question pass costs when nothing goes wrong", () => {
     const asked = llmScraper.mock.calls.map((call) => (call as unknown as [unknown, { query: string }])[1].query);
     expect(new Set(asked).size).toBe(BATTERY_PINS.QUESTIONS);
     expect(storedReport().stoppedReason).toBe("complete");
+  });
+});
+
+/** A standard-queue ask that answers after `waitS`, polled the way the
+ *  vendor seam polls (`VENDOR.stdQueuePollIntervalS`). */
+function answersAfter<T>(waitS: number, value: T) {
+  return async () => {
+    const polls = Math.ceil(waitS / VENDOR.stdQueuePollIntervalS);
+    for (let i = 0; i < polls; i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, VENDOR.stdQueuePollIntervalS * 1000));
+    }
+    return value;
+  };
+}
+
+describe("the weekly pass at production's measured queue waits (issue 1160)", () => {
+  // The slowest answered ask of each kind on the two weekly passes that
+  // stopped on `time_ceiling` (`fetches.duration_ms`, scans c74551df and
+  // eece5dd1): a question SERP 177 s, ChatGPT 166 s, AI Mode 187 s. Asked
+  // one after another, a question cost more than the 240 s ceiling. Asked
+  // together, it costs the slowest of the three.
+  it("ends `complete` inside its ceiling, with every AI answer measured and its rivals sized", async () => {
+    await import("@/lib/site-profile");
+    await import("@/lib/site-issues");
+    serpOrganic.mockImplementation(answersAfter(177, measured(SERP, AT)));
+    llmScraper.mockImplementation(answersAfter(166, measured(answered(["example.com"]), AT)));
+    aiMode.mockImplementation(answersAfter(187, measured(answered(["appcues.com"]), AT)));
+
+    vi.useFakeTimers();
+    try {
+      const startedMs = Date.now();
+      let settledMs = -1;
+      const pass = runScan({ domain: DOMAIN, siteId: "site-1160", tier: "weekly" }).then((result) => {
+        settledMs = Date.now();
+        return result;
+      });
+      await vi.advanceTimersByTimeAsync(TIMING.jobsCeilingS * 1000);
+      await pass;
+
+      const report = storedReport();
+      expect(report.stoppedReason).toBe("complete");
+      expect(settledMs - startedMs).toBeLessThan(CEILING_MS);
+      const rows = report.aiAnswers?.rows ?? [];
+      expect(rows).toHaveLength(BATTERY_PINS.QUESTIONS);
+      for (const row of rows) {
+        expect(row.engines.map((engine) => engine.cell.kind)).toEqual(["answered", "answered", "answered"]);
+      }
+      // Scoring was reached and sized the domains the twelve's top tens hold.
+      expect(rankedKeywords).toHaveBeenCalled();
+      expect(report.rivalSizes.kind).not.toBe("unmeasured");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

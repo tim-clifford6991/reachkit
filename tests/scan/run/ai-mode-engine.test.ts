@@ -247,10 +247,11 @@ describe("issue 869 — an engine that is refusing stops being bought in the sam
 
     await runScan({ domain: DOMAIN, tier: "deep" });
 
-    // Bought while it might still answer, and not after.
+    // The twelve are asked at once (#1160), so each question is bought at
+    // most once, and the engine is not bought again after it is dropped.
     const asks = vendor.requests.filter((r) => r.url.includes("/serp/google/ai_mode")).length;
     expect(asks).toBeGreaterThan(0);
-    expect(asks).toBeLessThan(BATTERY_PINS.QUESTIONS);
+    expect(asks).toBeLessThanOrEqual(BATTERY_PINS.QUESTIONS);
     expect(logged.filter((line) => line.event === "battery_engine_dropped")).toEqual([
       { event: "battery_engine_dropped", engine: "ai_mode", because: "timeout", after: 2 },
     ]);
