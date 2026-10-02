@@ -127,6 +127,10 @@ export function buildWeekly(a: {
    *  checks, and then the rows are absent; a week with no movement has
    *  none either. */
   issues?: Measured<readonly IssueChange[]>;
+  /** D28 (#1185): what ReachKit changed about the market it measures this
+   *  week — its category, a rival added or dropped — one line each, with
+   *  the reason. Absent or empty: nothing changed, and nothing is said. */
+  marketChanges?: readonly { readonly line: CopyKey; readonly vars: CopyVars }[];
 }): WeeklyMail {
   const issues = a.issues === undefined ? [] : issueChangeRows(a.issues);
   const unknownAt = unmeasured<number>("undeterminable", new Date(0));
@@ -159,6 +163,7 @@ export function buildWeekly(a: {
       // took.
       ...movementBlock(a.scoreDelta),
       { block: "paragraph", text: BODY },
+      ...(a.marketChanges ?? []).map((change) => ({ block: "paragraph", text: change.line, vars: change.vars }) as const),
       // The other three Overview numbers, with their change. Two to a row;
       // each is dropped on its own, and the group goes when none is left.
       {

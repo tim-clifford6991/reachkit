@@ -7,16 +7,15 @@
 // the server's — nothing about a report is taken from the body.
 import { adapter } from "../../_adapter";
 import { currentSession } from "@/lib/account/identity";
-import { seekRivals, type SettledRivals } from "@/app/(account)/setup/_setup/rivals";
+import { seekRivals, type SeekAnswer } from "@/app/(account)/setup/_setup/rivals";
 
 const BAD_REQUEST = 400;
 const UNAUTHENTICATED = 401;
 
-export interface SeekRivalsResponse {
-  /** Candidates to offer — possibly none — or `null` where no market is
-   *  known yet and nothing was sought (REQ-026 c10). */
-  candidates: SettledRivals;
-}
+/** Candidates to offer — possibly none — or `null` where no market is
+ *  known yet and nothing was sought (REQ-026 c10); ReachKit's reason for
+ *  each it concluded, and the market it concluded (D28, #1185). */
+export type SeekRivalsResponse = SeekAnswer;
 
 export const POST = adapter("POST /api/setup/rivals", async (request: Request): Promise<Response> => {
   const session = await currentSession();
@@ -38,13 +37,11 @@ export const POST = adapter("POST /api/setup/rivals", async (request: Request): 
     return Response.json({ error: "malformed_body" }, { status: BAD_REQUEST });
   }
 
-  const answer: SeekRivalsResponse = {
-    candidates: await seekRivals({
-      userId: session.userId,
-      domain: b.domain,
-      category: b.category,
-      at: new Date(),
-    }),
-  };
+  const answer: SeekRivalsResponse = await seekRivals({
+    userId: session.userId,
+    domain: b.domain,
+    category: b.category,
+    at: new Date(),
+  });
   return Response.json(answer);
 });

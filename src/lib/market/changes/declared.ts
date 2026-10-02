@@ -44,6 +44,7 @@ import { dbAdmin } from "@/lib/db";
 import { resolvesInDns } from "@/lib/egress";
 import type { RivalSet } from "../setup/rivals";
 import { registrableDomain } from "../rivals/domains";
+import { markOverride } from "../infer/stored";
 import { effectiveOn } from "./pending";
 
 /** The three answers, and no fourth. Each is a thing every number is a
@@ -298,6 +299,9 @@ export async function saveCategory(a: {
   category: string;
 }): Promise<SaveOk> {
   await writeSite(a.siteId, { category: a.category });
+  // D28 (#1185): the founder's category stands until they change it; a
+  // category cleared hands the market back to ReachKit's conclusion.
+  await markOverride(a.siteId, "category", a.category.trim() !== "");
   return { ok: true, effectiveOn: await effectiveAfterWrite(a.siteId) };
 }
 
@@ -315,5 +319,7 @@ export async function saveRivals(a: {
   rivals: RivalSet;
 }): Promise<SaveOk> {
   await writeSite(a.siteId, { competitors: a.rivals.map((rival) => rival.domain) });
+  // D28 (#1185): a set the founder edited is theirs; no pass replaces it.
+  await markOverride(a.siteId, "rivals", true);
   return { ok: true, effectiveOn: await effectiveAfterWrite(a.siteId) };
 }

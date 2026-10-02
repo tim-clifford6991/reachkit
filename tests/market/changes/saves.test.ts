@@ -82,9 +82,11 @@ describe("a save writes the declared answer and nothing else (ADR-030)", () => {
     await saveDomain({ siteId: "site-1", domain: "newname.com" });
     await saveCategory({ siteId: "site-1", category: "x" });
     await saveRivals({ siteId: "site-1", rivals: [] });
+    // D28 (#1185): a category or rival save also marks the founder's
+    // override on `sites.market` — a flag, never a pending change.
     const columns = db.writes.flatMap((w) => Object.keys(w.values));
-    expect([...new Set(columns)].sort()).toEqual(["category", "competitors", "domain"]);
-    expect(db.writes.map((w) => w.table)).toEqual(["sites", "sites", "sites"]);
+    expect([...new Set(columns)].sort()).toEqual(["category", "competitors", "domain", "market"]);
+    expect(new Set(db.writes.map((w) => w.table))).toEqual(new Set(["sites"]));
   });
 
   it("the write is addressed to the one site, never to a set of them", async () => {
@@ -116,7 +118,9 @@ describe("the effective date is recomputed after the write, never before it", ()
     // the date happens after the update reached the row.
     await saveCategory({ siteId: "site-1", category: "x" });
     expect(db.rows("sites")[0]!.category).toBe("x");
-    expect(db.writes).toHaveLength(1);
+    // The answer, then the override flag (D28, #1185).
+    expect(db.writes).toHaveLength(2);
+    expect(db.rows("sites")[0]!.market).toMatchObject({ categoryOverridden: true });
   });
 
   it("a site that has stated no zone is a throw, never a date in the server's (REQ-073 c1)", async () => {

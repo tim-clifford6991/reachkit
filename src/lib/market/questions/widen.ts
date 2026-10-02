@@ -92,11 +92,12 @@ export function headTermOf(category: string): string | null {
 /**
  * The seeds in the order SPEC §6 buys them. The first is the one every pass
  * buys (#767): the confirmed category, else the profile's category, else its
- * first vocabulary term. The rest — the head term, then the vocabulary — are
- * bought only while short. Case-insensitively distinct; empty where the
+ * first vocabulary term. Then a concluded market's synonyms (#1185), the
+ * head term and the vocabulary — bought only while short, except the
+ * synonyms, which the pass buys with the category. Case-insensitively distinct; empty where the
  * profile names nothing.
  */
-export function seedLadder(profile: Profile, confirmed?: string): string[] {
+export function seedLadder(profile: Profile, confirmed?: string, synonyms: readonly string[] = []): string[] {
   const seeds: string[] = [];
   const add = (candidate: string): void => {
     const seed = candidate.trim();
@@ -108,6 +109,10 @@ export function seedLadder(profile: Profile, confirmed?: string): string[] {
     return seeds;
   }
   add(category);
+  // A concluded market's other names come next (#1159, #1185): each is the
+  // same market in a buyer's other words, so each is a seed before the
+  // head term narrows any of them.
+  for (const synonym of synonyms) add(synonym);
   const head = headTermOf(category);
   if (head !== null) add(head);
   for (const term of profile.vocabulary) add(term);

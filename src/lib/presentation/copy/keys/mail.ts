@@ -669,6 +669,20 @@ export const MAIL_COPY = Object.freeze({
     "Only what was measured. A number that was not measured is not here.",
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
+  // D28 (owner, 2026-10-02, #1185): what ReachKit changed about the market
+  // it measures. Drafted, named in the pull request.
+  "mail.weekly.market.changed": [
+    "ReachKit now measures you in {category}. {reason}",
+    { slots: { category: "text", reason: "text" }, fixedBy: "SPEC §8 2026-10-02 D28, issue 1185" },
+  ],
+  "mail.weekly.rival.added": [
+    "New rival: {rival}. {reason}",
+    { slots: { rival: "text", reason: "text" }, fixedBy: "SPEC §8 2026-10-02 D28, issue 1185" },
+  ],
+  "mail.weekly.rival.dropped": [
+    "No longer measured as a rival: {rival}.",
+    { slots: { rival: "text" }, fixedBy: "SPEC §8 2026-10-02 D28, issue 1185" },
+  ],
   "mail.weekly.action": ["Open the overview", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.nurture.action": ["Start ReachKit €49", { slots: {}, fixedBy: "S20 (11a)" }],
 

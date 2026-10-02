@@ -96,6 +96,15 @@ export const SETUP_COPY = Object.freeze({
 
   // ── Competitors (REQ-026) ───────────────────────────────────────────
   "setup.competitors.title": ["Competitors", { slots: {}, fixedBy: "REQ-026 c7" }],
+  // D28 (owner, 2026-10-02, #1185): drafted, named in the pull request.
+  "setup.competitors.concluded": [
+    "ReachKit found these rivals in your market and keeps them current each week. Remove or add any if you like — you don’t have to.",
+    { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
+  ],
+  "setup.market.concluded": [
+    "ReachKit read this from your site and keeps it current each week. Change it only if it’s wrong.",
+    { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
+  ],
   /** REQ-026 c10, first limb: waiting on the market, never "none found". */
   "setup.competitors.awaiting-market": ["Suggested once your market is stated.", { slots: {}, fixedBy: "REQ-026 c10" }],
   "setup.competitors.seeking": ["Looking for rivals in your market…", { slots: {}, fixedBy: "REQ-026 c10" }],

@@ -166,13 +166,21 @@ export async function rankedKeywords(
     // payload's *shape* changed with #117, not its meaning: an entry
     // written before it is a bare array, and reading one back as
     // `{ rows, total }` would report a cached rival as having no rows.
-    cacheKey: `${a.domain}|${a.rows}|${LOCALE_KEY}|p${VENDOR.rankedPayloadVersion}`,
+    // `|etv`: rows bought before #1161 were the vendor's unordered first
+    // rows, and are never served as a domain's top keywords.
+    cacheKey: `${a.domain}|${a.rows}|${LOCALE_KEY}|p${VENDOR.rankedPayloadVersion}|etv`,
     freshnessDays: rankedFreshnessDays(a.rows),
     costCents: rankedCostCents(a.rows),
     fetch: () =>
       callEndpoint({ live: `${LABS}/ranked_keywords/live` }, "live", {
         target: a.domain,
         limit: a.rows,
+        // #1161: without an order the vendor answers its rows near
+        // alphabetically — zapier.com's from "4 internet browsers" to "ai
+        // email sorter" — so the limit kept a slice, not the domain's top
+        // keywords. Estimated traffic first, at the same price per row
+        // (docs.dataforseo.com, ranked_keywords/live: `order_by`).
+        order_by: ["ranked_serp_element.serp_item.etv,desc"],
       }),
     parse: parseRanked,
   });

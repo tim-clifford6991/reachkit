@@ -129,6 +129,16 @@ export interface MarketChange {
   kind: "domain" | "category";
 }
 
+/** D28 (#1185): ReachKit's conclusion, as Settings' *Market and rivals*
+ *  states it — one line of reason for the category and for each rival. */
+export interface MarketConcluded {
+  category: string;
+  categoryReason: string;
+  reasons: Readonly<Record<string, string>>;
+  categoryOverridden: boolean;
+  rivalsOverridden: boolean;
+}
+
 export interface SettingsModel {
   market: {
     category: string;
@@ -161,6 +171,10 @@ export interface SettingsModel {
     wouldTakeEffectOn: string;
   };
   competitors: readonly string[];
+  /** D28 (#1185): what ReachKit concluded — the category's reason and each
+   *  rival's — and whether the founder overrode either. `null` where
+   *  ReachKit has concluded nothing for this site yet. */
+  concluded: MarketConcluded | null;
   domain: string;
   publishing: PublishingSettings;
   destinations: readonly SettingsDestination[];
@@ -234,6 +248,8 @@ export interface SettingsFacts {
   editing: "domain" | "category" | null;
   category: string;
   competitors: readonly string[];
+  /** D28 (#1185), from `sites.market`. */
+  concluded: MarketConcluded | null;
   mode: PublishingMode;
   vetoHours: number;
   publishTime: string;
@@ -356,6 +372,7 @@ export function assembleSettings(facts: SettingsFacts): SettingsModel {
     // precedence is decided in one place whichever side settled it.
     market: { ...market, change: marketChange(market, facts.editing) },
     competitors: facts.competitors,
+    concluded: facts.concluded,
     domain: facts.domain,
     publishing: {
       mode: facts.mode,

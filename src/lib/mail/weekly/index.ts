@@ -219,6 +219,8 @@ async function measuredWeek(
     // SPEC §9 on Monday: the checks whose count moved, from the same two
     // stored weeks the deltas are read from.
     issues: movement.issueChanges,
+    // D28 (#1185): what ReachKit changed about the market this week.
+    marketChanges: await marketChangesSince(a.siteId, a.weekStart),
   });
   return { mail, measurement: measurementStateOf(account) };
 }
@@ -364,5 +366,28 @@ async function oneNeedsYou(siteId: string): Promise<WeeklyNeedsYou | undefined> 
     };
   } catch {
     return undefined;
+  }
+}
+
+/** D28 (#1185): the change ReachKit's latest conclusion made, where it was
+ *  made this week — the category it now measures and the rivals it added or
+ *  dropped, each with its reason. Fails soft: no line rather than no mail. */
+async function marketChangesSince(
+  siteId: string,
+  weekStart: string
+): Promise<{ line: "mail.weekly.market.changed" | "mail.weekly.rival.added" | "mail.weekly.rival.dropped"; vars: Record<string, string> }[]> {
+  try {
+    const { readSiteMarket } = await import("@/lib/market/infer/stored");
+    const change = (await readSiteMarket(siteId))?.stored.lastChange ?? null;
+    if (change === null || change.at.slice(0, 10) < weekStart) return [];
+    return [
+      ...(change.category === null
+        ? []
+        : [{ line: "mail.weekly.market.changed" as const, vars: { category: change.category.to, reason: change.category.reason } }]),
+      ...change.added.map((rival) => ({ line: "mail.weekly.rival.added" as const, vars: { rival: rival.name, reason: rival.reason } })),
+      ...change.dropped.map((rival) => ({ line: "mail.weekly.rival.dropped" as const, vars: { rival } })),
+    ];
+  } catch {
+    return [];
   }
 }

@@ -166,9 +166,14 @@ export async function runDeepPass(a: {
   // The pass's measurements become supply, on the pass's own money and
   // under its own cap, from the report the first step stored. A derivation
   // that throws is logged: zero proposals is legal, never faked (§4.3).
-  await step("opportunities", async () => {
+  const rivals = await step("opportunities", async () => {
+    let rivalsChanged = false;
     try {
       await spendOnStoredReport({ scanId: result.scanId, tier: "deep" }, async ({ report, cost }) => {
+        // SPEC §6 (owner D28, #1185): the rivals, re-checked from this
+        // pass's own answers before anything is derived against them.
+        const { recheckRivalsOf } = await import("../market-conclusion");
+        rivalsChanged = await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
         await deriveForPass(cost, {
           tier: "deep",
           siteId: a.siteId,
@@ -200,7 +205,7 @@ export async function runDeepPass(a: {
     } catch {
       // Settings and the next weekly refresh read it again.
     }
-    return null;
+    return { rivalsChanged };
   });
 
   const reason = await step("first-draft", async () => {
@@ -221,6 +226,15 @@ export async function runDeepPass(a: {
     await recordStage(a.siteId, null);
     return released;
   });
+
+  // #1185 point 4: a rival change is measured at once, as a founder's own
+  // change is (§6, #837) — once: a re-measure never starts another.
+  if (rivals.rivalsChanged && a.remeasure !== true) {
+    await step("rivals-remeasure", async () => {
+      const { remeasureForRivals } = await import("../market-conclusion");
+      return remeasureForRivals({ siteId: a.siteId, domain: a.domain, scanId: result.scanId });
+    });
+  }
 
   return { scanId: result.scanId, status: result.status, reason };
 }
@@ -258,6 +272,7 @@ async function measure(a: {
     siteId: a.siteId,
     tier: "deep",
     ...(category === undefined ? {} : { category }),
+    concludesMarket: true,
     onStage: (stage) => recordStage(a.siteId, stage),
   });
 }

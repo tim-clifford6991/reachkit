@@ -117,6 +117,7 @@ export async function runWeekly(a: {
   //    standard queue, the `WEEKLY` cap, which stages degrade — is
   //    `TIER_PARAMETERS.weekly`'s and is not restated here.
   let status: "done" | "degraded" | "failed";
+  let rivalsChanged = false;
   try {
     ({ status } = await runScan({
       scanId: claim.scanId,
@@ -124,7 +125,12 @@ export async function runWeekly(a: {
       domain: a.domain,
       tier: "weekly",
       ...(category === undefined ? {} : { category }),
+      concludesMarket: true,
       afterReport: async ({ report, cost }) => {
+        // SPEC §6 (owner D28, #1185): the rivals, re-checked from this
+        // week's own answers before anything is derived against them.
+        const { recheckRivalsOf } = await import("../market-conclusion");
+        rivalsChanged = await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
         await deriveForPass(cost, {
           tier: "weekly",
           siteId: a.siteId,
@@ -174,6 +180,13 @@ export async function runWeekly(a: {
     await releaseWeek(claim.scanId);
     logWeekly({ siteId: a.siteId, weekStart, outcome: "failed" });
     return { ran: true, scanId: claim.scanId, status: "failed" };
+  }
+
+  // #1185 point 4: a rival change is measured at once, as a founder's own
+  // change is (§6, #837), under the same daily bound.
+  if (rivalsChanged) {
+    const { remeasureForRivals } = await import("../market-conclusion");
+    await remeasureForRivals({ siteId: a.siteId, domain: a.domain, scanId: claim.scanId });
   }
 
   // 3. What came back, read through the one account of the week — so the

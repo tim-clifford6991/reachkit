@@ -6,6 +6,9 @@
 // offline proof can all name these without a runtime edge into the model
 // seam.
 
+/** §0: a site has 3–5 rivals. */
+export const RIVALS_MAX = 5;
+
 /** What a rival was concluded from — the three kinds of evidence #1185
  *  names, in its own order. */
 export type RivalBasis = "ai_answer" | "ranks" | "same_job";

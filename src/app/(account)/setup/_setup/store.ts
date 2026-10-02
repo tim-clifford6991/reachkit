@@ -28,6 +28,7 @@
 // `provider.ts` says why.
 import { sendDeepPass } from "@/jobs/deep-pass-backstop";
 import { hasActiveAccess } from "@/lib/account/billing";
+import { BATTERY } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import { resolvesInDns } from "@/lib/egress/dns";
 import { applySetupChoice } from "@/lib/publish/setup/apply";
@@ -386,6 +387,7 @@ export function liveSetupStore(): SetupStore {
         category: a.submission.category,
         competitors: [...a.submission.competitors],
       });
+      await markSetupOverride(a.siteId, { category: a.submission.category, competitors: a.submission.competitors });
 
       await writeVoice({
         siteId: a.siteId,
@@ -432,8 +434,10 @@ export function liveSetupStore(): SetupStore {
       const step = a.save.step;
       if (step === "site") {
         await updateSite(a.siteId, { domain: a.save.domain, category: a.save.category });
+        await markSetupOverride(a.siteId, { category: a.save.category });
       } else if (step === "rivals") {
         await updateSite(a.siteId, { competitors: [...a.save.competitors] });
+        await markSetupOverride(a.siteId, { competitors: a.save.competitors });
       } else if (step === "business") {
         const site = await siteById(a.siteId);
         await writeBusinessLists({
@@ -477,4 +481,44 @@ export function liveSetupStore(): SetupStore {
       await sendDeepPass({ siteId, domain: row.domain });
     },
   };
+}
+
+/**
+ * D28 (#1185): an answer setup saves is the founder's override only where it
+ * differs from what ReachKit concluded — leaving a step as it was shown
+ * accepts ReachKit's market or rivals, and the passes go on keeping them
+ * current. With nothing concluded there is nothing to override. Fails soft:
+ * a missed flag leaves the conclusion in charge, which is the default.
+ */
+async function markSetupOverride(
+  siteId: string,
+  answer: { category?: string; competitors?: readonly string[] }
+): Promise<void> {
+  try {
+    const { readSiteMarket, writeSiteMarket } = await import("@/lib/market/infer/stored");
+    const site = await readSiteMarket(siteId);
+    const current = site?.stored.current ?? null;
+    if (site === null || current === null) return;
+    let stored = site.stored;
+    if (answer.category !== undefined) {
+      const same = answer.category.trim().toLowerCase() === current.category.trim().toLowerCase();
+      stored = { ...stored, categoryOverridden: !same };
+    }
+    if (answer.competitors !== undefined) {
+      const concluded = new Set(current.rivals.map((rival) => rival.domain));
+      const same =
+        answer.competitors.length === Math.min(concluded.size, BATTERY.COMPETITORS_MAX) &&
+        answer.competitors.every((domain) => concluded.has(domain));
+      stored = { ...stored, rivalsOverridden: !same };
+    }
+    await writeSiteMarket(siteId, { stored });
+  } catch (error) {
+    console.log(
+      JSON.stringify({
+        event: "setup_override_unmarked",
+        siteId,
+        because: error instanceof Error ? error.message : String(error),
+      })
+    );
+  }
 }

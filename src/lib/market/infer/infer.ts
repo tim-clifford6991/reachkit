@@ -18,10 +18,7 @@ import { llm } from "@/lib/llm";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { isOwnDomain, isPlatformDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { boundEvidence, evidenceDomains, type MarketEvidence } from "./evidence";
-import type { MarketConclusion, RivalBasis, RivalConclusion } from "./types";
-
-/** §0: a site has 3–5 rivals. */
-export const RIVALS_MAX = 5;
+import { RIVALS_MAX, type MarketConclusion, type RivalBasis, type RivalConclusion } from "./types";
 
 function bounded(min: number, max: number) {
   return z.preprocess(
@@ -104,12 +101,16 @@ export const RIVALS_FIELDS = Object.freeze({
  *  `ai_answer` or `ranks` basis the evidence does not bear out is restated
  *  as `same_job`, so a reason never claims a sighting that did not
  *  happen. */
-export function concludeRivals(answer: RivalsAnswer, evidence: MarketEvidence): RivalConclusion[] {
+export function concludeRivals(
+  answer: RivalsAnswer,
+  evidence: MarketEvidence,
+  max: number = RIVALS_MAX
+): RivalConclusion[] {
   const seen = evidenceDomains(evidence);
   const rivals: RivalConclusion[] = [];
   const taken = new Set<string>();
   for (const candidate of answer.candidates) {
-    if (rivals.length >= RIVALS_MAX) break;
+    if (rivals.length >= max) break;
     if (candidate.kind !== "product" || !candidate.inMarket) continue;
     const domain = registrableDomain(candidate.domain);
     if (domain === null || taken.has(domain)) continue;
@@ -135,12 +136,13 @@ export function concludeMarket(answer: MarketAnswer): Omit<MarketConclusion, "ri
   };
 }
 
-/** The two calls, at the `haiku` tier, under the caller's cap. A market
- *  that did not come back is handed back unmeasured: no default market is
- *  ever made up in its place. Rivals that did not come back leave the
- *  market standing with none, which the caller reads as "keep the rivals
- *  you have". */
-export async function inferMarket(c: CostContext, e: MarketEvidence): Promise<Measured<MarketConclusion>> {
+/** The first call: the market, from the site's own words. An answer that
+ *  did not come back is handed back unmeasured — no default market is ever
+ *  made up in its place. */
+export async function inferMarketFields(
+  c: CostContext,
+  e: MarketEvidence
+): Promise<Measured<Omit<MarketConclusion, "rivals">>> {
   const evidence = boundEvidence(e);
   const answer = await llm(c, {
     site: "market-inference",
@@ -149,9 +151,20 @@ export async function inferMarket(c: CostContext, e: MarketEvidence): Promise<Me
     tier: "haiku",
   });
   if (answer.kind === "unmeasured") return unmeasured(answer.reason, answer.at, answer.because);
-  const market = concludeMarket(answer.value);
+  return measured(concludeMarket(answer.value), answer.at);
+}
 
-  const rivals = await llm(c, {
+/** The second call: the rivals for `market`, from the measured AI answers
+ *  and top tens and the model's knowledge of the market, checked by
+ *  `concludeRivals`. Up to `max` of them, closest first. */
+export async function inferRivals(
+  c: CostContext,
+  e: MarketEvidence,
+  market: Omit<MarketConclusion, "rivals">,
+  max: number = RIVALS_MAX
+): Promise<Measured<RivalConclusion[]>> {
+  const evidence = boundEvidence(e);
+  const answer = await llm(c, {
     site: "rival-inference",
     input: {
       task: RIVALS_TASK,
@@ -164,8 +177,17 @@ export async function inferMarket(c: CostContext, e: MarketEvidence): Promise<Me
     schema: RIVALS_SCHEMA,
     tier: "haiku",
   });
-  return measured(
-    { ...market, rivals: rivals.kind === "unmeasured" ? [] : concludeRivals(rivals.value, evidence) },
-    answer.at
-  );
+  if (answer.kind === "unmeasured") return unmeasured(answer.reason, answer.at, answer.because);
+  return measured(concludeRivals(answer.value, evidence, max), answer.at);
+}
+
+/** Both calls in turn, at the `haiku` tier, under the caller's cap — what
+ *  setup and the offline proof ask for. Rivals that did not come back
+ *  leave the market standing with none, which a caller reads as "keep the
+ *  rivals you have". */
+export async function inferMarket(c: CostContext, e: MarketEvidence): Promise<Measured<MarketConclusion>> {
+  const market = await inferMarketFields(c, e);
+  if (market.kind === "unmeasured") return unmeasured(market.reason, market.at, market.because);
+  const rivals = await inferRivals(c, e, market.value);
+  return measured({ ...market.value, rivals: rivals.kind === "unmeasured" ? [] : rivals.value }, market.at);
 }

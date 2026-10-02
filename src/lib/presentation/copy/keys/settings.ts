@@ -358,6 +358,23 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.market.refused.unreachable": ["We can’t reach that domain, so it wasn’t saved. Check the spelling.", { slots: {}, fixedBy: "REQ-071 c9" }],
 
   // ── Competitors ────────────────────────────────────────────────────────
+  // D28 (owner, 2026-10-02, #1185): drafted, named in the pull request.
+  "settings.market.concluded": [
+    "ReachKit identified this market from your site and re-checks it every week. Edit it only if it’s wrong.",
+    { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
+  ],
+  "settings.market.overridden": [
+    "This is the market you set. ReachKit measures it until you change it.",
+    { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
+  ],
+  "settings.competitors.concluded": [
+    "ReachKit found these rivals in your market and re-checks them every week. Remove or add any if you like.",
+    { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
+  ],
+  "settings.competitors.overridden": [
+    "These are the rivals you set. ReachKit keeps your list as it is.",
+    { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
+  ],
   "settings.competitors.title": ["Competitors", { slots: {}, fixedBy: "BUILD §4.7" }],
   // S18's head count, in the set's own words (11a): "5 of 5". A key and not
   // a slash written in code — "of" is a word, and a word the product speaks

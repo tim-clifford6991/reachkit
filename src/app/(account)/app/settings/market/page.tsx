@@ -30,10 +30,11 @@ export default async function SettingsMarketTab(): Promise<React.JSX.Element> {
     <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-market">
       <MarketPanel
         market={settings.market}
+        concluded={settings.concluded}
         domain={settings.domain}
         timeZone={settings.publishing.timeZone}
       />
-      <CompetitorsPanel competitors={settings.competitors} />
+      <CompetitorsPanel competitors={settings.competitors} concluded={settings.concluded} />
     </div>
   );
 }

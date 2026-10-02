@@ -315,9 +315,9 @@ describe("a founder who left comes back where they stopped (SPEC §5, 2026-09-20
   it("restoring a market buys no suggestions — the ones this read settled are kept", () => {
     const model = saved({ category: "bookkeeping for dentists" });
     expect(model.state.suggestions.state).toBe("offered");
-    expect(model.state.suggestions.candidates).toEqual([
-      ...(FIXTURE_SETUP_FACTS.suggestedRivals ?? []),
-    ]);
+    expect(model.state.suggestions.candidates).toEqual(
+      (FIXTURE_SETUP_FACTS.concluded?.rivals ?? []).map((rival) => rival.domain),
+    );
   });
 
   it("a category they never changed leaves the card inferred, so the report's rivals stay on offer", () => {

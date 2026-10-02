@@ -74,6 +74,8 @@ const FIELD: Record<
  *  billing and all, for a card that states three values. */
 export function MarketPanel(p: {
   market: SettingsModel["market"];
+  /** D28 (#1185): ReachKit's conclusion, for the category's one line. */
+  concluded?: SettingsModel["concluded"];
   domain: string;
   /** REQ-073 c1's stated zone — the one this card writes a date in when a
    *  save answers before the re-read comes back. */
@@ -97,6 +99,21 @@ export function MarketPanel(p: {
 
   const stated = (answer_: Answer): string =>
     answer_ === "domain" ? p.domain : p.market.category;
+
+  // D28 (#1185): why ReachKit measures this market, and whether it keeps it
+  // current or the founder's own category stands.
+  const concluded = p.concluded ?? null;
+  const concludedLine =
+    concluded === null ? null : (
+      <div className="flex min-w-0 flex-col gap-1 pb-2" data-testid="market-concluded">
+        {concluded.categoryOverridden || concluded.categoryReason === "" ? null : (
+          <p className="text-sm wrap-anywhere">{concluded.categoryReason}</p>
+        )}
+        <p className="text-xs text-base-content/70 wrap-anywhere">
+          {copy(concluded.categoryOverridden ? "settings.market.overridden" : "settings.market.concluded")}
+        </p>
+      </div>
+    );
 
   function open(next: Answer): void {
     setEditing(next);
@@ -269,7 +286,7 @@ export function MarketPanel(p: {
           <SettingRow
             name={copy("settings.market.category")}
             testId="setting-category"
-            below={editing === "category" ? editingField("category") : null}
+            below={editing === "category" ? editingField("category") : concludedLine}
           >
             {editing === "category" ? null : (
               <>

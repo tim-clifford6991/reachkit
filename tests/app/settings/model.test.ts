@@ -91,6 +91,9 @@ describe("REQ-070 c1 — the model carries a value for each settable key and not
         "account",
         "billing",
         "competitors",
+        // D28 (#1185): read-only — ReachKit's reasons beside the two
+        // settable answers; no control binds to it.
+        "concluded",
         "content",
         "destinations",
         "doNotClaim",
