@@ -69,13 +69,23 @@ export type DomainState =
   | { ok: true; attached: true; verified: boolean }
   | { ok: false; because: "not_configured" | "elsewhere" | "no_answer" };
 
-/** The two bindings, read once per call and never held. `null` where the
- *  deployment carries neither — see the header. */
-function credentials(): { token: string; projectId: string } | null {
+/** The bindings, read once per call and never held. `null` where the
+ *  deployment carries neither token nor project — see the header. The team
+ *  is optional: a project owned by a personal account needs none. */
+function credentials(): { token: string; projectId: string; teamId: string | null } | null {
   const token = env.VERCEL_API_TOKEN;
   const projectId = env.VERCEL_PROJECT_ID;
   if (token === undefined || projectId === undefined) return null;
-  return { token, projectId };
+  return { token, projectId, teamId: env.VERCEL_TEAM_ID ?? null };
+}
+
+/** The call's address. A team-owned project answers 403 to a call that
+ *  does not name its team (#1045, production 2026-10-02), so the team rides
+ *  on every call as `?teamId=`. */
+function urlFor(path: string, teamId: string | null): string {
+  const url = new URL(path, VERCEL_API);
+  if (teamId !== null) url.searchParams.set("teamId", teamId);
+  return url.toString();
 }
 
 /** Whether this deployment carries both bindings at all — a yes or no,
@@ -127,7 +137,7 @@ export async function addProjectDomain(hostname: string): Promise<DomainState> {
   const held = credentials();
   if (held === null) return { ok: false, because: "not_configured" };
 
-  const outcome = await safeFetch(`${VERCEL_API}${ADD_PATH(held.projectId)}`, {
+  const outcome = await safeFetch(urlFor(ADD_PATH(held.projectId), held.teamId), {
     method: "POST",
     respectRobots: false,
     headers: {
@@ -162,7 +172,7 @@ export async function projectDomainState(hostname: string): Promise<DomainState>
   const held = credentials();
   if (held === null) return { ok: false, because: "not_configured" };
 
-  const outcome = await safeFetch(`${VERCEL_API}${READ_PATH(held.projectId, hostname)}`, {
+  const outcome = await safeFetch(urlFor(READ_PATH(held.projectId, hostname), held.teamId), {
     respectRobots: false,
     headers: { Authorization: authorization(held.token), Accept: "application/json" },
   });

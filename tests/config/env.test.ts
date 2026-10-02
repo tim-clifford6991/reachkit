@@ -59,6 +59,7 @@ const BINDING_NAMES = [
   // to boot.
   "VERCEL_API_TOKEN",
   "VERCEL_PROJECT_ID",
+  "VERCEL_TEAM_ID",
   // Issue 336 — the owner's three product events (2026-09-16). Optional for
   // the same reason the two pairs above are: a deployment carrying neither
   // captures nothing rather than failing to boot.
@@ -74,7 +75,7 @@ const JOBS_BINDING_NAMES = ["INNGEST_SIGNING_KEY", "INNGEST_EVENT_KEY"] as const
 
 /** Issue #322's pair. Optional for their own reason (see above), so they
  *  are out of the no-default set exactly as the jobs pair is. */
-const DOMAIN_BINDING_NAMES = ["VERCEL_API_TOKEN", "VERCEL_PROJECT_ID"] as const;
+const DOMAIN_BINDING_NAMES = ["VERCEL_API_TOKEN", "VERCEL_PROJECT_ID", "VERCEL_TEAM_ID"] as const;
 
 /** Issue 336's pair, optional on the same footing. */
 const ANALYTICS_BINDING_NAMES = ["POSTHOG_API_KEY", "POSTHOG_HOST"] as const;
@@ -140,6 +141,7 @@ const VALID_ENV: Record<(typeof BINDING_NAMES)[number], string> = {
   INNGEST_EVENT_KEY: "event-key-fixture",
   VERCEL_API_TOKEN: "vercel-token-fixture-do-not-leak",
   VERCEL_PROJECT_ID: "prj_fixture",
+  VERCEL_TEAM_ID: "team_fixture",
   POSTHOG_API_KEY: "phc_fixture",
   POSTHOG_HOST: "https://eu.i.posthog.com",
   HOSTED_TEST_HOST: "reachkit-git-main-fixture.vercel.app",
