@@ -224,7 +224,7 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   /** `{ scores: { i, fit, title }[], strongest: number[] }` over at most
    *  `TOPIC_FIT.maxCandidates` searches: ~12 a score, ~25 a title on the
    *  ones scored 2 or 3 (issue 1134). */
-  "topic-fit": 4096,
+  "topic-fit": 3072,
   "generate.brief": 1024,
   "generate.outline": 1536,
   "generate.draft": 4096,
@@ -796,10 +796,13 @@ export const RIVAL_SIZE_BANDS = Object.freeze({
  *  opportunities out of the same cap after its report is stored (issue
  *  798), and four Haiku calls at `INFERENCE_PRICE_BOOK.haiku` come to
  *  about a cent; four cents is several times that and is the only spend
- *  the pass still owes this cap. A candidate the reserve leaves no room
- *  for is recorded `unsized` with `budget_reached`, never guessed at. */
+ *  the pass still owes this cap. Issue 1134 adds the pass's one fit
+ *  judgement to what it owes: its up-front reservation is about six cents
+ *  (`INFERENCE_MAX_OUTPUT_TOKENS["topic-fit"]` at the Sonnet price, plus
+ *  its input), so the reserve is twelve. A candidate the reserve leaves no
+ *  room for is recorded `unsized` with `budget_reached`, never guessed at. */
 export const SERP_RIVAL_SIZING = Object.freeze({
-  candidatesMax: 12, reserveCents: 4,
+  candidatesMax: 12, reserveCents: 12,
 } as const);
 
 /** `BUILD.md` §5's four score bands, as lower bounds on a 0–100 score:
