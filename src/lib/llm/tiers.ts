@@ -70,7 +70,7 @@
 import { env } from "@/lib/config/env";
 import { INFERENCE_PRICE_BOOK, INFERENCE_TIMEOUT_MS } from "@/lib/config/constants";
 
-export type Tier = "nano" | "haiku" | "sonnet";
+export type Tier = "nano" | "haiku" | "sonnet" | "writer";
 
 /** Not exported — the only way a caller reaches a model id is through
  *  `tierBinding()`, keyed by the closed `Tier` union. There is no second
@@ -92,13 +92,26 @@ const TIER_MODEL_IDS: Readonly<Record<Tier, string>> = Object.freeze({
   // it on Sonnet"). 4.6 and not a later Sonnet because `llm()` forces its
   // one tool and pins a temperature, and the later ones refuse both.
   sonnet: "claude-sonnet-4-6",
+  // The page's sections and its critic (SPEC §7, 2026-09-29, *Length and
+  // the writer*; issue 1138). Sonnet 5 takes the forced tool; it refuses a
+  // sampling parameter and thinks unless told not to — `FIXED_REQUEST`.
+  writer: "claude-sonnet-5",
 });
+
+/** The tiers whose model refuses a sampling parameter and runs adaptive
+ *  thinking when the request does not say otherwise (Sonnet 5). `llm()`
+ *  sends such a tier no temperature and turns thinking off: the call's
+ *  `max_tokens` and its clock are sized for the answer, and thinking would
+ *  spend both. */
+const FIXED_REQUEST: ReadonlySet<Tier> = new Set<Tier>(["writer"]);
 
 export interface TierBinding {
   tier: Tier;
   modelId: string;
   apiKey: string;
   timeoutMs: number;
+  /** No temperature is sent and thinking is turned off (`FIXED_REQUEST`). */
+  fixedRequest: boolean;
   inCentsPerM: number;
   outCentsPerM: number;
 }
@@ -114,6 +127,7 @@ export function tierBinding(tier: Tier): TierBinding {
     modelId: TIER_MODEL_IDS[tier],
     apiKey: tier === "nano" ? env.NANO_API_KEY : env.ANTHROPIC_API_KEY,
     timeoutMs: INFERENCE_TIMEOUT_MS[tier],
+    fixedRequest: FIXED_REQUEST.has(tier),
     inCentsPerM: priceBook.inCentsPerM,
     outCentsPerM: priceBook.outCentsPerM,
   });

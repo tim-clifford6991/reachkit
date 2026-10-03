@@ -391,7 +391,8 @@ async function callModel(
     {
       model: binding.modelId,
       max_tokens: maxOutputTokens,
-      ...(temperature === undefined ? {} : { temperature }),
+      ...(temperature === undefined || binding.fixedRequest ? {} : { temperature }),
+      ...(binding.fixedRequest ? { thinking: { type: "disabled" as const } } : {}),
       system: "Respond with JSON only. No prose, no markdown fences, no commentary.",
       messages: [{ role: "user", content: inputText }],
       ...(tool === null

@@ -530,7 +530,9 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
       // #813: a row a step stopped takes the automatic second attempt a
       // rule stop takes — a model that did not answer may answer now. The
       // ceiling would stop that attempt too, so it rests at once.
-      if (attempt < a.attempts && !cost.capHit()) continue;
+      // A page held for its length is not that (issue 1138): it was written
+      // and written again, and SPEC §7 holds it there.
+      if (attempt < a.attempts && !cost.capHit() && last.step !== "length") continue;
       return { ok: false, because: "step_failed", draftId, step: last.step };
     }
     ruleStopped = true;

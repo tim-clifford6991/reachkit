@@ -45,6 +45,10 @@ const {
   transitionMock: vi.fn(),
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
+vi.mock("@/lib/generate/pipeline/write", async () => {
+  const { draftOnly } = await import("./fixtures");
+  return { writeDraft: draftOnly };
+});
 
 // #927: `writePage` reads the confirmed business profile and the passages
 // the customer switched off. This suite is about the day's decision, not
@@ -201,6 +205,26 @@ describe("SPEC §7 (2026-09-15, issue 712) — a written draft queues its opport
     queueAttempt(CLEAN_MARKDOWN);
     await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     expect(queueForDraftMock.mock.calls).toEqual([[opportunity().id]]);
+  });
+
+  it("a page still short of its floor is held where the customer can see it, and is not written a third time (issue 1138)", async () => {
+    llmMock.mockResolvedValueOnce(measured(BRIEF));
+    llmMock.mockResolvedValueOnce(measured(OUTLINE));
+    const answers = draftAnswers(draftParts(CLEAN_MARKDOWN, { held: true }));
+    for (const answer of answers) llmMock.mockResolvedValueOnce(measured(answer));
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(outcome).toMatchObject({ ok: false, because: "step_failed", step: "length" });
+    // Brief, outline, the draft: no answerability pass, no rules, no second attempt.
+    expect(llmMock).toHaveBeenCalledTimes(2 + answers.length);
+    const [row] = [...store.rows.values()];
+    expect(row).toMatchObject({ state: "needs_attention", hard_rules_passed: false });
+    expect(transitionMock).toHaveBeenCalledWith(
+      row?.id,
+      "needs_attention",
+      { kind: "system", job: "draft/generate" },
+      { reason: "step_failed:length" }
+    );
+    expect(queueForDraftMock).not.toHaveBeenCalled();
   });
 
   it("a draft the battery stopped twice rests in needs_attention and its topic rests, not queued (#788, D26)", async () => {

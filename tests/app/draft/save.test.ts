@@ -15,6 +15,10 @@ const { llmMock, readMeasuredTextMock } = vi.hoisted(() => ({
   readMeasuredTextMock: vi.fn(),
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
+vi.mock("@/lib/generate/pipeline/write", async () => {
+  const { draftOnly } = await import("../../generate/fixtures");
+  return { writeDraft: draftOnly };
+});
 
 // #927: `writePage` reads the confirmed business profile and the passages
 // the customer switched off. This suite is about the day's decision, not

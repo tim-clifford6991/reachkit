@@ -311,7 +311,7 @@ describe("llm() — spend accounting seam (mutation probe 1)", () => {
 // whole.
 
 describe("llm() — tier -> model id (mutation probe 2)", () => {
-  it("the Tier union is exactly {'nano', 'haiku', 'sonnet'} — compile-time exhaustiveness, never another member added silently", () => {
+  it("the Tier union is exactly {'nano', 'haiku', 'sonnet', 'writer'} — compile-time exhaustiveness, never another member added silently", () => {
     const check = (tier: Tier): "ok" => {
       switch (tier) {
         case "nano":
@@ -319,6 +319,8 @@ describe("llm() — tier -> model id (mutation probe 2)", () => {
         case "haiku":
           return "ok";
         case "sonnet":
+          return "ok";
+        case "writer":
           return "ok";
         default:
           return assertNever(tier);
@@ -401,6 +403,18 @@ describe("llm() — tier -> model id (mutation probe 2)", () => {
     const sentParams = createMock.mock.calls[0]![0] as { model: string };
     expect(sentParams.model).toBe("claude-haiku-4-5");
     expect(sentParams.model).not.toBe("claude-fable-5");
+  });
+});
+
+describe("llm() — the writer tier's request (issue 1138)", () => {
+  it("calls Sonnet 5 with thinking off and no temperature, even from a call site that pins one", async () => {
+    createMock.mockResolvedValueOnce(textMessage({ headline: "ok" }));
+    const { ctx } = fakeCostContext();
+    await llm(ctx, { site: "topic-fit", input: {}, schema: SCHEMA, tier: "writer" });
+    const sent = createMock.mock.calls[0]![0] as Record<string, unknown>;
+    expect(sent.model).toBe("claude-sonnet-5");
+    expect(sent.thinking).toEqual({ type: "disabled" });
+    expect("temperature" in sent).toBe(false);
   });
 });
 

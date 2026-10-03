@@ -31,6 +31,7 @@ import { z } from "zod";
 import { DRAFT_SECTIONS_PER_CALL, PAGE_BLOCKS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm, type LlmCallSite } from "@/lib/llm";
+import type { Tier } from "@/lib/llm/tiers";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
 import type { SitePage } from "@/lib/opportunities/site-pages";
@@ -42,6 +43,7 @@ import type { PromptProfile } from "../voice/profile-block";
 import { answerBoxOf, answerBoxWords } from "../rules/blocks";
 import type { AnswerabilityOps } from "./answerability";
 import { composePage, sentenceCase, tidyText, withAnswer, type TidyInputs } from "./compose";
+import type { LengthTarget } from "../length";
 import type { FixNote } from "./repair";
 import { isQuestionShaped } from "../rules/text";
 import { pageJobFor, SECTION_ROLES, SECTION_TASK, type SectionRole } from "./skeletons";
@@ -53,6 +55,9 @@ export type PipelineStep =
   | "brief"
   | "outline"
   | "draft"
+  /** The page was written twice and is still short of its floor (issue
+   *  1138). Not a model that did not answer: nothing writes it a third time. */
+  | "length"
   | "answerability"
   | "claim_check"
   | "fit_check"
@@ -62,13 +67,18 @@ export type PipelineStep =
 /** The `llm()` call site each step ledgers under. One string per step, so a
  *  cost report reads by step without anyone joining a table. */
 export const STEP_CALL_SITES: Readonly<
-  Record<Exclude<PipelineStep, "claim_check" | "fit_check" | "page_read"> | "sections" | "answer_box", LlmCallSite>
+  Record<
+    Exclude<PipelineStep, "claim_check" | "fit_check" | "page_read" | "length"> | "sections" | "answer_box" | "critic",
+    LlmCallSite
+  >
 > = Object.freeze({
   brief: "generate.brief",
   outline: "generate.outline",
   draft: "generate.draft",
   // The section bodies, a few to a call. Part of the draft step.
   sections: "generate.sections",
+  // Issue 1138: the critic's read of the written page.
+  critic: "generate.critic",
   answerability: "generate.answerability",
   page_fix: "generate.page_fix",
   // Issue 1137: the short-answer box alone, rewritten to its word count. It
@@ -133,6 +143,20 @@ export interface DraftBody {
   description: string;
   bodyMarkdown: string;
 }
+
+const SCORE = z.number().int().min(0).max(3);
+/** The critic's five scores (SPEC §7, 2026-09-29), and the sections it would
+ *  have written again. It writes no text of the page: a section it names is
+ *  written again by `sectionsAgain`, on a clock of its own. */
+const CRITIC_SCHEMA = z.strictObject({
+  adds: SCORE,
+  specificity: SCORE,
+  fit: SCORE,
+  blocks: SCORE,
+  length: SCORE,
+  revise: z.array(z.strictObject({ section: z.number().int(), instruction: z.string() })),
+});
+export type CriticRead = z.infer<typeof CRITIC_SCHEMA>;
 
 const ANSWER_BOX_SCHEMA = z.strictObject({ answer: z.string() });
 
@@ -356,7 +380,7 @@ const HOUSE_RULES = [
 
 async function step<T>(
   c: CostContext,
-  a: { site: LlmCallSite; tier: "nano" | "haiku"; schema: z.ZodType<T>; input: Record<string, unknown> }
+  a: { site: LlmCallSite; tier: Tier; schema: z.ZodType<T>; input: Record<string, unknown> }
 ): Promise<Measured<T>> {
   // The ceiling, re-read between calls (BUILD §6.5). A step we cannot
   // afford is `not_attempted` — never a 0 and never an estimate.
@@ -475,6 +499,14 @@ export async function outline(
  * frame and one for every `DRAFT_SECTIONS_PER_CALL` sections, all asked at
  * once. Each is told the whole outline, so a section is written knowing what
  * stands beside it. Any call that did not answer is the step's failure.
+ *
+ * **A customer's page is written on the writer tier** (SPEC §7, 2026-09-29,
+ * *Length and the writer*; issue 1138): `tier: "writer"`. Its section calls
+ * are then made one after another, each handed the bodies already written,
+ * and each section is told its share of the page's length in `words`. The
+ * lead's free first page (SPEC §2) stays on the small tier, its calls all
+ * asked at once: it is paid under `CAPS.FREE_C`, which the writer tier does
+ * not fit inside.
  */
 export async function draft(
   c: CostContext,
@@ -490,8 +522,12 @@ export async function draft(
     /** #1178: the rules the attempt before this one broke, and the sentences
      *  that broke them. Absent on a first attempt, whose prompt is unchanged. */
     fix?: readonly FixNote[];
+    tier?: "haiku" | "writer";
+    /** Each section's share of the page's length target, by index. */
+    words?: readonly ({ min: number; max: number } | null)[];
   }
 ): Promise<Measured<DraftParts>> {
+  const tier = a.tier ?? "haiku";
   const fixed =
     a.fix === undefined
       ? ""
@@ -499,7 +535,12 @@ export async function draft(
         "sentences that broke it. Write so that none of them recurs and `rules` hold.";
   const shared = {
     brief: a.brief,
-    outline: a.outline.sections.map((section, index) => ({ index, ...section, task: SECTION_TASK[section.role] })),
+    outline: a.outline.sections.map((section, index) => ({
+      index,
+      ...section,
+      task: SECTION_TASK[section.role],
+      ...(a.words?.[index] ? { words: a.words[index] } : {}),
+    })),
     facts: a.facts,
     marketFacts: a.marketFacts ?? [],
     products: a.products ?? [],
@@ -508,7 +549,7 @@ export async function draft(
   };
   const frame = step(c, {
     site: STEP_CALL_SITES.draft,
-    tier: "haiku",
+    tier,
     schema: FRAME_SCHEMA,
     input: promptFor(
       "Write the page's frame, doing what `pageJob` says the page is for. Its sections are written " +
@@ -531,10 +572,17 @@ export async function draft(
   for (let at = 0; at < indexes.length; at += DRAFT_SECTIONS_PER_CALL) {
     batches.push(indexes.slice(at, at + DRAFT_SECTIONS_PER_CALL));
   }
-  const bodies = batches.map((write) =>
+  const lengthTask =
+    a.words === undefined
+      ? ""
+      : " Each section's `words` in `outline` is the length to write it to: between `min` and `max` " +
+        "words, every paragraph telling the reader something they can use — detail, an example, a " +
+        "comparison or a consequence drawn from the facts and `profile`. Never pad, and never restate a " +
+        "point to reach the length.";
+  const batch = (write: number[], written: readonly string[]) =>
     step(c, {
       site: STEP_CALL_SITES.sections,
-      tier: "haiku",
+      tier,
       schema: SECTIONS_SCHEMA,
       input: promptFor(
         "Write the sections of `outline` whose indexes are in `write`, and no others: one Markdown body " +
@@ -542,23 +590,147 @@ export async function draft(
           "the body only, without its heading, which the page already has. The other sections are " +
           "written separately: say nothing here that belongs under another heading. State the business's " +
           "`facts` word for word, and cite each of `marketFacts` you use beside the sentence that uses it." +
+          (tier === "writer"
+            ? " `written` holds the bodies of the sections before these, in the outline's order: say nothing they already say."
+            : "") +
+          lengthTask +
           fixed,
         inputs,
-        { ...shared, write }
+        { ...shared, write, ...(tier === "writer" ? { written } : {}) }
       ),
-    })
-  );
+    });
 
-  const [framed, ...written] = await Promise.all([frame, ...bodies]);
-  if (framed === undefined || framed.kind === "unmeasured") return framed ?? unmeasured("undeterminable", new Date());
   const sections: string[] = [];
-  for (const [index, batch] of written.entries()) {
-    if (batch.kind === "unmeasured") return batch;
+  if (tier === "writer") {
+    // In turn: each call reads what the ones before it wrote.
+    for (const write of batches) {
+      const wrote = await batch(write, [...sections]);
+      if (wrote.kind === "unmeasured") return wrote;
+      if (wrote.value.sections.length !== write.length) return unmeasured("undeterminable", wrote.at);
+      sections.push(...wrote.value.sections);
+    }
+    const framed = await frame;
+    return framed.kind === "unmeasured" ? framed : { ...framed, value: { ...framed.value, sections } };
+  }
+
+  const [framed, ...written] = await Promise.all([frame, ...batches.map((write) => batch(write, []))]);
+  if (framed === undefined || framed.kind === "unmeasured") return framed ?? unmeasured("undeterminable", new Date());
+  for (const [index, wrote] of written.entries()) {
+    if (wrote.kind === "unmeasured") return wrote;
     // A call that returned other than what it was asked for wrote no page.
-    if (batch.value.sections.length !== batches[index]!.length) return unmeasured("undeterminable", batch.at);
-    sections.push(...batch.value.sections);
+    if (wrote.value.sections.length !== batches[index]!.length) return unmeasured("undeterminable", wrote.at);
+    sections.push(...wrote.value.sections);
   }
   return { ...framed, value: { ...framed.value, sections } };
+}
+
+/**
+ * Sections written a second time (issue 1138), on the writer tier: the ones
+ * short of their share of the page's floor, or the ones the critic asked
+ * for. One call, the bodies back in the order of `write`.
+ */
+export async function sectionsAgain(
+  c: CostContext,
+  inputs: DraftPromptInputs,
+  a: {
+    brief: Brief;
+    outline: Outline;
+    /** Every section's body as it stands, by index. */
+    bodies: readonly string[];
+    words: readonly ({ min: number; max: number } | null)[];
+    write: readonly { index: number; note: string }[];
+    facts: readonly { url: string; passage: string }[];
+    marketFacts?: readonly { url: string; source: string; passage: string; readAt: string }[];
+    products?: readonly { domain: string; pages: readonly string[] }[];
+  }
+): Promise<Measured<string[]>> {
+  const wrote = await step(c, {
+    site: STEP_CALL_SITES.sections,
+    tier: "writer",
+    schema: SECTIONS_SCHEMA,
+    input: promptFor(
+      "The page in `outline` is written; each section's `body` is as it stands. Write again the " +
+        "sections named in `write`, and no others: one Markdown body for each, in that order, without " +
+        "its heading. Each entry's `note` says why — do what it asks, keep what the section states " +
+        "where the note does not say otherwise, and keep every link it has. Write each to its `words`, " +
+        "between `min` and `max`, never padding and never repeating another section. State the " +
+        "business's `facts` word for word, and cite each of `marketFacts` you use beside the sentence " +
+        "that uses it.",
+      inputs,
+      {
+        brief: a.brief,
+        outline: a.outline.sections.map((section, index) => ({
+          index,
+          ...section,
+          task: SECTION_TASK[section.role],
+          ...(a.words[index] ? { words: a.words[index] } : {}),
+          body: a.bodies[index] ?? "",
+        })),
+        write: a.write,
+        facts: a.facts,
+        marketFacts: a.marketFacts ?? [],
+        products: a.products ?? [],
+        rules: HOUSE_RULES,
+      }
+    ),
+  });
+  if (wrote.kind === "unmeasured") return wrote;
+  if (wrote.value.sections.length !== a.write.length) return unmeasured("undeterminable", wrote.at);
+  return { ...wrote, value: wrote.value.sections };
+}
+
+/**
+ * The critic (SPEC §7, 2026-09-29; issue 1138): five scores for the page as
+ * written, and the sections it would have written again — to add as well as
+ * to cut. `words` is counted in code and `target` is the one the writer was
+ * given, so the critic and the writer cannot hold different lengths.
+ */
+export function critic(
+  c: CostContext,
+  inputs: DraftPromptInputs,
+  a: {
+    brief: Brief;
+    outline: Outline;
+    parts: DraftParts;
+    words: number;
+    target: LengthTarget | null;
+    marketFacts?: readonly { url: string; source: string; passage: string; readAt: string }[];
+    maxRevisions: number;
+  }
+): Promise<Measured<CriticRead>> {
+  return step(c, {
+    site: STEP_CALL_SITES.critic,
+    tier: "writer",
+    schema: CRITIC_SCHEMA,
+    input: promptFor(
+      "Read the page — its `answer`, `takeaways` and `sections` — as its editor and score five things " +
+        "from 0 to 3. `adds`: what the page tells a reader that the top results do not — `marketFacts` " +
+        "holds what those pages say. `specificity`: concrete detail in place of generalities. `fit`: " +
+        "whether it is plainly written for this business's readers, per `profile`. `blocks`: whether " +
+        "every section does what its `task` asks. `length`: `words` against `target` — the count is " +
+        "exact, do not recount it. Then, in `revise`, name at most `maxRevisions` sections, by `index`, " +
+        "whose rewriting would most improve those scores, with one or two sentences each saying what to " +
+        "add, cut or change. You may ask for more as well as for less. Never ask for a fact that " +
+        "`marketFacts`, `profile` and the page do not already hold, and never for a cut that would take " +
+        "the page under `target.floor` words. Leave `revise` empty where the page needs nothing.",
+      inputs,
+      {
+        brief: a.brief,
+        answer: a.parts.answer,
+        takeaways: a.parts.takeaways,
+        sections: a.outline.sections.map((section, index) => ({
+          index,
+          ...section,
+          task: SECTION_TASK[section.role],
+          body: a.parts.sections[index] ?? "",
+        })),
+        words: a.words,
+        target: a.target,
+        marketFacts: a.marketFacts ?? [],
+        maxRevisions: a.maxRevisions,
+      }
+    ),
+  });
 }
 
 /** The short-answer box alone, written again to its word count — the
