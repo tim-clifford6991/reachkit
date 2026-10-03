@@ -404,6 +404,16 @@ export async function readDraftRow(a: {
     writtenFrom: {
       profileItems: textsAt(row.meta, "profileItems"),
       facts: factsUsedAt(row.meta),
+      ...(Array.isArray(row.meta?.marketFacts)
+        ? {
+            marketFacts: (row.meta.marketFacts as unknown[]).flatMap((entry) => {
+              const fact = entry as { passage?: unknown; url?: unknown } | null;
+              return typeof fact?.passage === "string" && typeof fact.url === "string"
+                ? [{ passage: fact.passage, url: fact.url }]
+                : [];
+            }),
+          }
+        : {}),
     },
     domain: a.site.domain,
     state: row.state as State,

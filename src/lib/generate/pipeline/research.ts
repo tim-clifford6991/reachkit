@@ -1,0 +1,362 @@
+// SPEC §7 (2026-09-29, *Two pools of facts*; issue 1135) — the research
+// step: the second pool.
+//
+// The business facts are the customer's own pages (`./grounding.ts`). The
+// market facts are read here, at writing time, from public pages: the
+// target's top results out of the stored top ten, each named rival's **own**
+// pricing and feature pages, and at most two studies found by one search.
+// Each claim is kept with the address it was read from and the date it was
+// read, and is cited beside the sentence that uses it.
+//
+// **A claim is a quotation, checked in code.** The small tier is asked to
+// copy claims out of the pages; a claim is kept only where its words occur
+// on the page it names, so a model that paraphrased or invented yields
+// nothing. A statistic whose data is older than three years is dropped.
+//
+// **A rival's page is read from the rival** (owner, 2026-10-02, round 1): a
+// comparison's cells are sourced to the product's own pricing and feature
+// pages, never to a listicle about it. `/pricing` and `/features` are tried
+// first; where one does not answer, the rival's home page is read once for a
+// link that does. A rival neither read reaches is not offered to the table.
+//
+// **Every read is ledgered and free**, like the crawl's: a page read through
+// `safeFetch` lands in `fetches` at zero cents, and is not read again inside
+// `RESEARCH.freshnessDays`. The network runs in parallel and the ledger is
+// written one row at a time, which is the cost seam's own contract
+// (`src/lib/site-profile/crawl.ts` states it). The claim calls and the one
+// search are paid, inside `CAPS.DRAFT_C`; a ceiling reached mid-step ends the
+// step with what it has.
+//
+// **Research never stops a page.** A site whose market yields no readable
+// page is written from its business facts alone, as before this step.
+import { z } from "zod";
+import { CACHE_WINDOWS_D, RESEARCH } from "@/lib/config/constants";
+import type { CostContext } from "@/lib/costs";
+import { safeFetch } from "@/lib/egress";
+import { llm } from "@/lib/llm";
+import { visibleText } from "@/lib/measure/parse";
+import type { StoredReport } from "@/lib/scan/report";
+import { serpOrganic } from "@/lib/vendors/dataforseo";
+
+/** The `fetches.source` of every public page this step reads. */
+export const RESEARCH_READ_SOURCE = "generate.research.read";
+
+export type MarketPageKind = "top_result" | "rival_pricing" | "rival_features" | "study";
+
+/** One claim read off a public page, word for word. */
+export interface MarketFact {
+  url: string;
+  /** The page's own title, which is what the sources list names it by. */
+  title: string;
+  readAt: Date;
+  passage: string;
+  kind: MarketPageKind;
+  /** The rival whose own page this is, where it is one. */
+  product?: string;
+}
+
+/** A product whose own pages were read: what a comparison table may name. */
+export interface ResearchedProduct {
+  domain: string;
+  pages: string[];
+}
+
+export interface MarketResearch {
+  facts: MarketFact[];
+  products: ResearchedProduct[];
+}
+
+export const NO_RESEARCH: MarketResearch = Object.freeze({ facts: [], products: [] });
+
+interface ReadPage {
+  url: string;
+  title: string;
+  text: string;
+  readAt: string;
+}
+
+interface Wanted {
+  url: string;
+  kind: MarketPageKind;
+  product?: string;
+}
+
+export function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+const sameSite = (host: string, domain: string): boolean => host === domain || host.endsWith(`.${domain}`);
+
+function words(text: string, limit: number): string {
+  return text.split(/\s+/).filter(Boolean).slice(0, limit).join(" ");
+}
+
+/** One page off the network, or `null` where it did not answer with enough
+ *  to read. Nothing is thrown: a page that cannot be read is not a fact. */
+async function fetchPage(url: string): Promise<{ page: ReadPage; html: string } | null> {
+  try {
+    const outcome = await safeFetch(url, { userAgent: "reachkit-measure", timeoutMs: RESEARCH.readTimeoutMs });
+    if (!outcome.ok) return null;
+    const text = visibleText(outcome.html);
+    if (text.split(/\s+/).length < RESEARCH.minWords) return null;
+    const title = visibleText(/<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(outcome.html)?.[1] ?? "").trim();
+    return {
+      page: {
+        url: outcome.url,
+        title: title.length === 0 ? hostOf(outcome.url) : title,
+        text: words(text, RESEARCH.readWords),
+        readAt: outcome.readAt.toISOString(),
+      },
+      html: outcome.html,
+    };
+  } catch {
+    return null;
+  }
+}
+
+const RIVAL_PATHS = { rival_pricing: "/pricing", rival_features: "/features" } as const;
+const RIVAL_LINK_RES = {
+  rival_pricing: /pric|plans/i,
+  rival_features: /feature|product|platform/i,
+} as const;
+const ANCHOR_RE = /<a\b[^>]*\bhref\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+
+/** The rival's own page of this kind, as its home page links it. */
+export function linkedPage(homeHtml: string, homeUrl: string, kind: keyof typeof RIVAL_PATHS): string | null {
+  const domain = hostOf(homeUrl);
+  ANCHOR_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = ANCHOR_RE.exec(homeHtml)) !== null) {
+    let href: URL;
+    try {
+      href = new URL(match[1]!, homeUrl);
+    } catch {
+      continue;
+    }
+    if (!sameSite(hostOf(href.href), domain) || href.pathname === "/" || href.pathname === RIVAL_PATHS[kind]) continue;
+    if (RIVAL_LINK_RES[kind].test(href.pathname) || RIVAL_LINK_RES[kind].test(visibleText(match[2] ?? ""))) {
+      return href.href;
+    }
+  }
+  return null;
+}
+
+/** The stored top ten of the search the page targets, where the pass that
+ *  wrote this report bought one. */
+export function storedTopTen(report: StoredReport, searches: readonly string[]): string[] {
+  if (report.questions.kind === "unmeasured") return [];
+  const wanted = new Set(searches.map((search) => search.trim().toLowerCase()));
+  const at = report.questions.value.findIndex((question) => wanted.has(question.search.keyword.trim().toLowerCase()));
+  const serp = at === -1 ? undefined : report.serps[at];
+  return serp === undefined || serp.kind === "unmeasured" ? [] : serp.value.organic.map((row) => row.url);
+}
+
+const CLAIMS_SCHEMA = z.strictObject({
+  claims: z.array(
+    z.strictObject({
+      page: z.number().int(),
+      quote: z.string(),
+      /** For a statistic, the year its data is from. */
+      year: z.number().int().nullable(),
+    })
+  ),
+});
+
+/** Quotation marks and whitespace are not a different claim. */
+const squash = (text: string): string =>
+  text.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ").trim();
+
+const YEAR_RE = /\b(?:19|20)\d{2}\b/g;
+
+/** The year a statistic's data is from: the one the model read, else the
+ *  latest year the quotation itself names. `null` for a claim with no figure
+ *  besides a year — a date is not a statistic. */
+export function statisticYear(quote: string, stated: number | null): number | null {
+  if (!/\d/.test(quote.replace(YEAR_RE, ""))) return null;
+  if (stated !== null) return stated;
+  const years = [...quote.matchAll(YEAR_RE)].map((match) => Number(match[0]));
+  return years.length === 0 ? null : Math.max(...years);
+}
+
+/** The claims the model returned that are on their page word for word and
+ *  not too old to use, at most `RESEARCH.claimsPerPage` a page. */
+export function admittedClaims(
+  claims: readonly z.infer<typeof CLAIMS_SCHEMA>["claims"][number][],
+  pages: readonly (ReadPage & Wanted)[],
+  today: Date
+): MarketFact[] {
+  const floor = today.getUTCFullYear() - RESEARCH.statisticMaxAgeYears;
+  const out: MarketFact[] = [];
+  const perPage = new Map<string, number>();
+  for (const claim of claims) {
+    const page = pages[claim.page - 1];
+    const passage = squash(claim.quote);
+    if (page === undefined || passage.length < 20 || passage.length > 400) continue;
+    if (!squash(page.text).includes(passage)) continue;
+    const year = statisticYear(passage, claim.year);
+    if (year !== null && year < floor) continue;
+    if (out.some((fact) => fact.passage === passage)) continue;
+    const held = perPage.get(page.url) ?? 0;
+    if (held >= RESEARCH.claimsPerPage) continue;
+    perPage.set(page.url, held + 1);
+    out.push({
+      url: page.url,
+      title: page.title,
+      readAt: new Date(page.readAt),
+      passage,
+      kind: page.kind,
+      ...(page.product === undefined ? {} : { product: page.product }),
+    });
+  }
+  return out;
+}
+
+/** One claim from each page in turn, so no page is the whole pool. */
+function inTurn(facts: readonly MarketFact[], pages: readonly { url: string }[]): MarketFact[] {
+  const queues = pages.map((page) => facts.filter((fact) => fact.url === page.url));
+  const out: MarketFact[] = [];
+  for (let round = 0; out.length < RESEARCH.briefFacts && queues.some((queue) => queue[round] !== undefined); round++) {
+    for (const queue of queues) {
+      const fact = queue[round];
+      if (fact !== undefined && out.length < RESEARCH.briefFacts) out.push(fact);
+    }
+  }
+  return out;
+}
+
+function logResearch(detail: Record<string, string | number | boolean | null>): void {
+  console.log(JSON.stringify({ event: "draft_researched", ...detail }));
+}
+
+export async function researchMarket(
+  c: CostContext,
+  a: {
+    siteId: string;
+    domain: string;
+    /** The target search and every search the row absorbed. */
+    searches: readonly string[];
+    report: StoredReport;
+    /** The rival domains and names recorded for the site. */
+    rivals: readonly string[];
+    today: Date;
+  }
+): Promise<MarketResearch> {
+  const target = a.searches[0];
+  if (target === undefined || c.capHit()) return NO_RESEARCH;
+  const own = a.domain.replace(/^www\./, "").toLowerCase();
+  const rivalDomains = [...new Set(a.rivals.map((rival) => rival.trim().toLowerCase()).filter((rival) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(rival)))]
+    .filter((rival) => !sameSite(rival, own))
+    .slice(0, RESEARCH.rivals);
+  const notOurs = (url: string): boolean => {
+    const host = hostOf(url);
+    return host.length > 0 && !sameSite(host, own);
+  };
+
+  // 1. The network, in parallel: the top results in order until enough are
+  //    readable, and each rival's two pages.
+  const topTen = storedTopTen(a.report, a.searches).filter(notOurs);
+  const topReads = await Promise.all(topTen.slice(0, RESEARCH.topResults * 2).map(fetchPage));
+  const rivalReads = await Promise.all(
+    rivalDomains.flatMap((domain) =>
+      (Object.keys(RIVAL_PATHS) as (keyof typeof RIVAL_PATHS)[]).map(async (kind) => {
+        const first = await fetchPage(`https://${domain}${RIVAL_PATHS[kind]}`);
+        if (first !== null) return { domain, kind, read: first };
+        // Retry once, through the rival's own home page.
+        const home = await fetchPage(`https://${domain}/`);
+        const linked = home === null ? null : linkedPage(home.html, home.page.url, kind);
+        return { domain, kind, read: linked === null ? null : await fetchPage(linked) };
+      })
+    )
+  );
+
+  // 2. The one search for studies, and the two it finds that are nobody's
+  //    sales page.
+  const studyUrls: string[] = [];
+  if (!c.capHit()) {
+    const serp = await serpOrganic(c, {
+      query: `${target} statistics study`,
+      mode: "live",
+      loadAsyncAiOverview: false,
+      scope: { site: a.siteId },
+      freshnessDays: CACHE_WINDOWS_D.serp,
+    });
+    if (serp.kind !== "unmeasured") {
+      const taken = new Set(topTen);
+      for (const row of serp.value.organic) {
+        const host = hostOf(row.url);
+        if (!notOurs(row.url) || taken.has(row.url) || rivalDomains.some((rival) => sameSite(host, rival))) continue;
+        studyUrls.push(row.url);
+      }
+    }
+  }
+  const studyReads = await Promise.all(studyUrls.slice(0, RESEARCH.studies * 2).map(fetchPage));
+
+  const prefetched: (ReadPage & Wanted)[] = [
+    ...topReads.filter((read) => read !== null).slice(0, RESEARCH.topResults).map((read) => ({ ...read.page, kind: "top_result" as const })),
+    ...rivalReads.flatMap((row) => (row.read === null ? [] : [{ ...row.read.page, kind: row.kind, product: row.domain }])),
+    ...studyReads.filter((read) => read !== null).slice(0, RESEARCH.studies).map((read) => ({ ...read.page, kind: "study" as const })),
+  ];
+
+  // 3. The ledger, one row at a time. A page already read inside the window
+  //    is served as it was read then, with that read's date.
+  const pages: (ReadPage & Wanted)[] = [];
+  for (const page of prefetched) {
+    const row = await c.recordFetch<ReadPage>({
+      source: RESEARCH_READ_SOURCE,
+      cacheKey: page.url,
+      freshnessDays: RESEARCH.freshnessDays,
+      costCents: 0,
+      run: async () => ({ url: page.url, title: page.title, text: page.text, readAt: page.readAt }),
+    });
+    if ("skipped" in row) break;
+    pages.push({ ...page, ...row.payload });
+  }
+
+  // 4. The claims, a few pages a call, each kept only where its page says it.
+  const facts: MarketFact[] = [];
+  for (let at = 0; at < pages.length; at += RESEARCH.pagesPerCall) {
+    if (c.capHit()) break;
+    const batch = pages.slice(at, at + RESEARCH.pagesPerCall);
+    const answer = await llm(c, {
+      site: "generate.research",
+      tier: "haiku",
+      schema: CLAIMS_SCHEMA,
+      input: {
+        task:
+          "Copy out the claims a writer answering `search` could cite from these pages: prices and what " +
+          "each plan includes, features, limits, statistics, dates, named findings, definitions. At most " +
+          `${RESEARCH.claimsPerPage} a page, each one or two sentences copied exactly, character for ` +
+          "character — never paraphrase, never join text from two places. On a pricing page copy each " +
+          "plan's name with its price. Skip menus, cookie notices, author biographies and calls to action. " +
+          "For a statistic give the year its data is from; otherwise null.",
+        search: target,
+        today: a.today.toISOString().slice(0, 10),
+        pages: batch.map((page, index) => ({ page: index + 1, url: page.url, text: page.text })),
+      },
+    });
+    if (answer.kind === "unmeasured") continue;
+    facts.push(...admittedClaims(answer.value.claims, batch, a.today));
+  }
+
+  const ordered = inTurn(facts, pages);
+  const products = rivalDomains
+    .map((domain) => ({
+      domain,
+      pages: [...new Set(ordered.filter((fact) => fact.product === domain).map((fact) => fact.url))],
+    }))
+    .filter((product) => product.pages.length > 0);
+  logResearch({
+    siteId: a.siteId,
+    pagesRead: pages.length,
+    topResults: pages.filter((page) => page.kind === "top_result").length,
+    rivalPages: pages.filter((page) => page.kind === "rival_pricing" || page.kind === "rival_features").length,
+    studies: pages.filter((page) => page.kind === "study").length,
+    facts: ordered.length,
+    products: products.length,
+  });
+  return { facts: ordered, products };
+}

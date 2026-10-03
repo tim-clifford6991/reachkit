@@ -117,6 +117,11 @@ export interface WrittenFrom {
     readonly passage: string;
     readonly url: string | null;
   }[];
+  /** The market facts the page was handed, each with the public page it
+   *  was read from (issue 1135). Read by the editor's live rules, so a
+   *  number a cited page states is not marked. Absent on a page written
+   *  before the research step. */
+  readonly marketFacts?: readonly { readonly passage: string; readonly url: string }[];
 }
 
 /** Whether there is anything to show. A page whose record carries neither

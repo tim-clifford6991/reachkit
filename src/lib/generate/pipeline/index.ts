@@ -4,7 +4,10 @@
 //
 //   1. the ceiling, read before anything runs;
 //   2. the facts read — passages of the customer's own live pages, out of
-//      the measurement ledger, never fetched again;
+//      the measurement ledger, never fetched again — and, beside them, the
+//      market facts the research step read from public pages (SPEC §7,
+//      2026-09-29, *Two pools of facts*; issue 1135), handed in by the
+//      caller so every attempt at a date is written from one read;
 //   3. brief (nano), handed a closed projection, choosing facts by index →
 //      outline (nano) over the type's fixed skeleton → grounded draft
 //      (Haiku) → answerability + SEO pass (Haiku), which returns operations
@@ -55,7 +58,11 @@ import { buildComparisonSet } from "./comparison";
 import { applyAnswerability } from "./answerability";
 import { allowedFacts, readAllFacts } from "./grounding";
 import { fixNotes, repairable, repairMechanical, type FixNote, type RepairRecord } from "./repair";
+import { NO_RESEARCH, hostOf, type MarketFact, type MarketResearch } from "./research";
 import { skeletonFor } from "./skeletons";
+import { completeTables, withSources } from "./sources";
+import { contentKindOf } from "@/lib/opportunities/content-kind";
+import { RESEARCH } from "@/lib/config/constants";
 import { answersMarketQuestion } from "../rules/frame";
 import {
   answerability,
@@ -64,6 +71,7 @@ import {
   draft,
   outline,
   selectedFactIndexes,
+  selectedMarketIndexes,
   targetSearches,
   type PipelineStep,
 } from "./steps";
@@ -144,6 +152,9 @@ export async function generateDraft(
     /** #1178: the failures of the attempt this one follows, so it is written
      *  against them rather than re-rolled blind. */
     fix?: readonly FixNote[];
+    /** The market pool (issue 1135): what `./research.ts` read for this
+     *  target. Absent is a page written from its business facts alone. */
+    market?: MarketResearch;
   }
 ): Promise<GenerateOutcome> {
   const store = generateStore();
@@ -174,6 +185,7 @@ export async function generateDraft(
   );
   const facts = all.slice(0, BRIEF_MAX_FACTS);
   if (facts.length === 0) return noFact(a.siteId);
+  const market = a.market ?? NO_RESEARCH;
 
   // The page's shape is its kind's and its type's, never the model's (issue
   // 475; the weekly mix's kinds, issue 1209).
@@ -188,6 +200,7 @@ export async function generateDraft(
     briefProjection({
       opportunity: a.opportunity,
       facts: facts.map((sourced) => sourced.fact.passage),
+      marketFacts: market.facts.map((fact) => ({ source: hostOf(fact.url), claim: fact.passage })),
       doNotClaim: a.site.doNotClaim,
       voice: a.voiceText,
       profile: a.profile,
@@ -213,6 +226,11 @@ export async function generateDraft(
   const grounding = selected[0];
   if (grounding === undefined) return noFact(a.siteId);
   const passages = selected.map((sourced) => sourced.fact.passage);
+  const cited = chosenMarketFacts(
+    selectedMarketIndexes(briefResult.value, market.facts.length).map((index) => market.facts[index]!),
+    market.facts,
+    contentKindOf(a.opportunity) === "comparison"
+  );
 
   const inputs = buildPromptInputs({
     businessName: a.site.businessName,
@@ -236,6 +254,13 @@ export async function generateDraft(
     brief: briefResult.value,
     outline: outlineResult.value,
     facts: selected.map((sourced) => ({ url: sourced.fact.url, passage: sourced.fact.passage })),
+    marketFacts: cited.map((fact) => ({
+      url: fact.url,
+      source: fact.title,
+      passage: fact.passage,
+      readAt: fact.readAt.toISOString().slice(0, 10),
+    })),
+    products: market.products.filter((product) => cited.some((fact) => fact.product === product.domain)),
     ...(a.fix === undefined || a.fix.length === 0 ? {} : { fix: a.fix }),
   });
   if (draftResult.kind === "unmeasured") return stepFailed(a.siteId, "draft", a.draftId);
@@ -247,14 +272,23 @@ export async function generateDraft(
   // and to none it guessed — held in code after the bounded answerability
   // pass, before the row is written, so the battery reads and the store
   // keeps the body a reader will meet.
+  //
+  // Then the two things the market pool asks of a finished body (issue
+  // 1135): no table cell left empty, and the sources list of the market
+  // pages the body cites, written here and never by the model.
   const answered = applyAnswerability(draftResult.value, ops.value, passages);
   const body = {
     ...answered,
-    bodyMarkdown: applyLinks(answered.bodyMarkdown, {
-      domain: a.site.domain,
-      targets: a.links,
-      groundedUrl: grounding.fact.url,
-    }),
+    bodyMarkdown: withSources(
+      completeTables(
+        applyLinks(answered.bodyMarkdown, {
+          domain: a.site.domain,
+          targets: a.links,
+          groundedUrl: grounding.fact.url,
+        })
+      ),
+      cited
+    ),
   };
 
   // 4. The row. `attribution` is the name **recorded** for the site and
@@ -298,6 +332,16 @@ export async function generateDraft(
         passage: sourced.fact.passage,
         url: sourced.fact.url,
       })),
+      // Issue 1135: the market facts the page was handed, each with the
+      // page and the date it was read — what an edit's rules are re-run
+      // against, and what the review screen can show beside the business
+      // facts. Written on every page since the research step, empty or not.
+      marketFacts: cited.map((fact) => ({
+        passage: fact.passage,
+        url: fact.url,
+        title: fact.title,
+        readAt: fact.readAt.toISOString(),
+      })),
       // #1178: an earlier attempt's repairs survive the rewrite.
       ...(priorRepairs.length === 0 ? {} : { repairs: priorRepairs }),
     },
@@ -332,6 +376,7 @@ export async function generateDraft(
     facts: passages,
     headings: outlineResult.value.sections.map((section) => section.heading),
     queries: searches,
+    marketFacts: cited.map((fact) => ({ url: fact.url, passage: fact.passage })),
   };
   const battery = (markdown: string) =>
     runHardRules(c, {
@@ -344,6 +389,7 @@ export async function generateDraft(
       grounded: grounding.fact,
       sourceText: grounding.sourceText,
       brief: briefRead,
+      factPages: selected.map((sourced) => sourced.fact.url),
     });
   let markdown = body.bodyMarkdown;
   let outcome = await battery(markdown);
@@ -357,14 +403,22 @@ export async function generateDraft(
   if (tried.length > 0) {
     const repaired = repairMechanical(markdown, tried, {
       brief: briefRead,
-      sources: selected.map((sourced) => ({ url: sourced.fact.url, text: sourced.sourceText })),
+      // A number a market fact states is linked to the page it was read
+      // from, as one of the customer's own is.
+      sources: [
+        ...selected.map((sourced) => ({ url: sourced.fact.url, text: sourced.sourceText })),
+        ...cited.map((fact) => ({ url: fact.url, text: fact.passage })),
+      ],
+      rivals: a.site.rivals,
     });
-    const again = repaired === markdown ? null : await battery(repaired);
+    // A repair that moved a citation moves the sources list with it.
+    const resourced = withSources(repaired, cited);
+    const again = resourced === markdown ? null : await battery(resourced);
     const still = new Set(again === null || again.passed ? [] : again.failed.map((failure) => failure.rule));
     for (const rule of tried) repairs.push({ rule, cleared: again !== null && !still.has(rule) });
     console.log(JSON.stringify({ event: "draft_repaired", siteId: a.siteId, draftId, repairs }));
     if (again !== null && again.passed && again.claim.state === "passed") {
-      markdown = repaired;
+      markdown = resourced;
       outcome = again;
     }
   }
@@ -431,6 +485,25 @@ export async function generateDraft(
     recovery,
     fix: fixNotes(markdown, outcome.failed, briefRead),
   };
+}
+
+/** The market facts the page is handed: the brief's choice, and — on a page
+ *  that compares options — the first of the rest until it stands on
+ *  `RESEARCH.comparisonMinFacts`, the rivals' own pages first, so a
+ *  comparison is never written with nothing to cite about what it compares. */
+function chosenMarketFacts(
+  chosen: readonly MarketFact[],
+  all: readonly MarketFact[],
+  comparison: boolean
+): MarketFact[] {
+  const out = [...chosen];
+  if (!comparison) return out;
+  const rest = all.filter((fact) => !out.includes(fact));
+  for (const fact of [...rest.filter((f) => f.product !== undefined), ...rest.filter((f) => f.product === undefined)]) {
+    if (out.length >= RESEARCH.comparisonMinFacts) break;
+    out.push(fact);
+  }
+  return out;
 }
 
 /** The repairs an earlier attempt recorded on this row. */

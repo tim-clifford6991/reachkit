@@ -17,9 +17,13 @@
 // passage still occurs there word for word — which it does by construction,
 // and would not if any later step rewrote it.
 //
-// **There is no fallback.** A rival's page is not an admissible source and
-// the model's knowledge is not. A site with no readable measured text
-// yields `no_fact`, and the day has no page.
+// **There is no fallback for the business fact.** A page stands on at least
+// one passage of the customer's own, and the model's knowledge is never a
+// source: a site with no readable measured text yields `no_fact`, and the
+// day has no page. What a rival's page or a study says is the *second* pool
+// (SPEC §7, 2026-09-29, *Two pools of facts*; issue 1135) — read by
+// `./research.ts`, cited beside the sentence that uses it, and never a
+// substitute for this one.
 //
 // **The report's measurements are business facts** (SPEC §7, 2026-10-03,
 // issue 1163): what the latest complete report measured is stated in

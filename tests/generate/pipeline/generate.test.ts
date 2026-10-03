@@ -119,6 +119,34 @@ describe("a draft that clears every rule", () => {
     expect(row?.grounded_fact).toMatchObject({ url: GROUNDED.url, passage: GROUNDED.passage });
   });
 
+  it("a page handed market facts cites the rival's own page, passes, and ends with its sources (issue 1135)", async () => {
+    const pricing = "The Standard plan costs $24 per user per month and includes 250 automation runs.";
+    const market = {
+      facts: [
+        { url: "https://rival.example/pricing", title: "Pricing — Rival", readAt: AT, passage: pricing, kind: "rival_pricing" as const, product: "rival.example" },
+      ],
+      products: [{ domain: "rival.example", pages: ["https://rival.example/pricing"] }],
+    };
+    const cited = `${CLEAN_MARKDOWN}\n\nRival's Standard plan includes [250 automation runs](https://rival.example/pricing) at $24 per user.`;
+    llmMock.mockReset();
+    llmMock.mockResolvedValueOnce(measured({ ...BRIEF, marketFactIndexes: [0] }));
+    llmMock.mockResolvedValueOnce(measured(OUTLINE));
+    llmMock.mockResolvedValueOnce(measured(body(cited)));
+    llmMock.mockResolvedValueOnce(measured(NO_OPS));
+    llmMock.mockResolvedValue(measured({ matches: false, matchedIndex: null }));
+
+    const outcome = await run({ market, site: siteInputs({ rivals: ["rival.example"] }) });
+    expect(outcome.ok).toBe(true);
+    const row = outcome.ok === true ? store.rows.get(outcome.draftId) : undefined;
+    expect(row?.body_md?.endsWith("## Sources\n\n- [Pricing — Rival](https://rival.example/pricing), read on 5 September 2026\n")).toBe(true);
+    expect((row?.meta as { marketFacts: unknown[] }).marketFacts).toEqual([
+      { passage: pricing, url: "https://rival.example/pricing", title: "Pricing — Rival", readAt: AT.toISOString() },
+    ]);
+    // The brief chose among both pools; the writer was handed the claim and its page.
+    expect(llmMock.mock.calls[0]?.[1].input.marketFacts).toEqual([{ source: "rival.example", claim: pricing }]);
+    expect(llmMock.mock.calls[2]?.[1].input.marketFacts[0]).toMatchObject({ url: "https://rival.example/pricing", passage: pricing });
+  });
+
   it("leaves the row in `generating` — the edge into review, and the veto clock, are the publishing engine's", async () => {
     primeSteps(CLEAN_MARKDOWN);
     const outcome = await run();

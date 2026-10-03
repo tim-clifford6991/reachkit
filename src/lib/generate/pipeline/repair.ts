@@ -22,14 +22,17 @@ import {
   INVENTED_PROVENANCE_RES,
   INVENTED_TEST_RES,
   isHandedWords,
+  isYear,
   traceableNumerals,
   type BriefRuleInputs,
 } from "../rules/brief";
 import { numeralsOf, REGISTER_FLOOR } from "../rules/figures";
+import { factPageKeys, unsourcedRivalFigure } from "../rules/rivals";
 import {
   blocksOf,
   hasLink,
   headingKey,
+  linksOf,
   isQuestionShaped,
   renderOf,
   SENTENCE_END_RE,
@@ -44,6 +47,9 @@ export const MECHANICAL_RULES: readonly HardRule[] = Object.freeze([
   "no_invented_provenance",
   "no_new_question_heading",
   "traceable_numerals",
+  // Issue 1135: a rival's figure left without its page is linked to the
+  // fact's page that states it. Nothing is dropped.
+  "rival_source",
   "first_block_answers",
 ] as const);
 
@@ -65,6 +71,8 @@ export interface RepairInputs {
   /** The customer's own pages the page's facts were read from, by address,
    *  with the text the measurement read on them. */
   sources: readonly { url: string; text: string }[];
+  /** The rivals recorded for the site, for the rival-figure repair. */
+  rivals?: readonly string[];
 }
 
 /** The block markers a sentence edit keeps: a quote, a heading, a list item. */
@@ -125,7 +133,8 @@ function isPhraseBreach(words: string, patterns: readonly RegExp[], brief: Brief
 function untraceable(piece: string, traceable: ReadonlySet<string>): { raw: string; normalised: string }[] {
   if (hasLink(piece)) return [];
   return numeralsOf(wordsOf(piece)).filter(
-    (numeral) => Number(numeral.normalised) >= REGISTER_FLOOR && !traceable.has(numeral.normalised)
+    (numeral) =>
+      Number(numeral.normalised) >= REGISTER_FLOOR && !isYear(numeral.normalised) && !traceable.has(numeral.normalised)
   );
 }
 
@@ -158,6 +167,25 @@ function repairNumerals(markdown: string, inputs: RepairInputs): string {
       out = out.replace(numeralRe(figure.raw), `[${figure.raw}](${url})`);
     }
     return out;
+  });
+}
+
+/** A rival's figure with no fact's page beside it, linked to the page among
+ *  the facts' that states that figure. One no page states is left for the
+ *  next attempt to be told about. */
+function repairRivalFigures(markdown: string, inputs: RepairInputs): string {
+  const rivals = inputs.rivals ?? [];
+  if (rivals.length === 0) return markdown;
+  const pages = factPageKeys(inputs.sources.map((source) => source.url));
+  return mapSentences(markdown, (piece) => {
+    const figure = unsourcedRivalFigure(
+      { text: wordsOf(piece), hasLink: hasLink(piece), links: linksOf(piece) },
+      rivals,
+      pages
+    );
+    if (figure === null || !piece.includes(figure)) return piece;
+    const url = inputs.sources.find((source) => collapse(source.text).includes(figure))?.url;
+    return url === undefined ? piece : piece.replace(figure, `[${figure}](${url})`);
   });
 }
 
@@ -240,6 +268,8 @@ export function repairMechanical(markdown: string, rules: readonly HardRule[], i
       out = repairQuestionHeadings(out, inputs.brief);
     } else if (rule === "traceable_numerals") {
       out = repairNumerals(out, inputs);
+    } else if (rule === "rival_source") {
+      out = repairRivalFigures(out, inputs);
     } else {
       out = repairFirstBlock(out);
     }

@@ -315,7 +315,7 @@ describe("§8's battery — the record the pipeline wrote is the record the draf
     // site has none, so there is no `profileItems` key — a draft written for
     // an unread site records only the facts.
     expect(Object.keys((row.meta ?? {}) as object).sort()).toEqual(
-      ["description", "factsUsed"].sort()
+      ["description", "factsUsed", "marketFacts"].sort()
     );
     // A rule record is still not one of them, under any spelling.
     expect(Object.keys((row.meta ?? {}) as object)).not.toContain("rule_failures");

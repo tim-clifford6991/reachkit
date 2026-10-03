@@ -607,6 +607,18 @@ export const DRAFT_COPY = Object.freeze({
     "The page has to open with a short, plain answer to the question it targets — a paragraph, not a heading, a list or a question.",
     { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
   ],
+  // The sources list a page ends with (SPEC §7, 2026-09-29, *Two pools of
+  // facts*; issue 1135): its heading, and what follows each linked page
+  // title. Written into the page's own body, so a reader of the published
+  // page meets them. Drafted; the owner corrects the wording.
+  "body.sources.heading": [
+    "Sources",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-29) · issue 1135 · drafted" },
+  ],
+  "body.sources.read": [
+    "read on {date}",
+    { slots: { date: "date" }, fixedBy: "SPEC §7 (2026-09-29) · issue 1135 · drafted" },
+  ],
   // The report's measurements, stated as facts a page may quote (SPEC §7,
   // 2026-10-03, issue 1163). Each is composed from stored figures only and
   // is sourced to the report's own address. Drafted; the owner corrects
