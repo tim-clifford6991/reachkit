@@ -27,6 +27,7 @@
 // Nothing here is a customer-facing sentence. `SECTION_TASK` is what the
 // model is told a section is for, and the model's heading is what the reader
 // meets.
+import { isCloseUpdate } from "@/lib/opportunities/close";
 import { contentKindOf, type ContentKind } from "@/lib/opportunities/content-kind";
 import type { Opportunity, OpportunityType } from "@/lib/opportunities/types";
 
@@ -120,7 +121,12 @@ export const KIND_JOB: Readonly<Record<Exclude<ContentKind, "update">, string>> 
     "Show the reader how to do what the search asks, as numbered steps in order, each drawn from the business's own product or process as the facts state it; where the facts hold no step, say what the reader needs and never invent one.",
 });
 
-type Typed = Pick<Opportunity, "type" | "targetQuery">;
+/** SPEC §6 (2026-09-29, D15, issue 1146) — what the update of a page that
+ *  is close to being quoted adds, appended to its type's job. */
+export const CLOSE_UPDATE_JOB =
+  "This page already ranks close to the top for its search. Add what makes it quotable: facts with their source, quotations and statistics, each from the selected facts and inside the blocks the page already carries. Invent none.";
+
+type Typed = Pick<Opportunity, "type" | "targetQuery"> & Partial<Pick<Opportunity, "evidence">>;
 
 /** The blocks the page's outline must carry: its kind's for a new page, its
  *  type's for an update, and the business's own section on both. `null`
@@ -134,5 +140,7 @@ export function skeletonFor(o: Typed): readonly SectionRole[] | null {
 /** The page's job, chosen as `skeletonFor` chooses its outline. */
 export function pageJobFor(o: Typed): string | null {
   const kind = contentKindOf(o);
-  return kind === null || kind === "update" ? PAGE_JOB[o.type] : KIND_JOB[kind];
+  if (kind !== null && kind !== "update") return KIND_JOB[kind];
+  const job = PAGE_JOB[o.type];
+  return job !== null && o.evidence !== undefined && isCloseUpdate({ evidence: o.evidence }) ? `${job} ${CLOSE_UPDATE_JOB}` : job;
 }

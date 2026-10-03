@@ -145,6 +145,10 @@ export interface OpportunityStore {
    *  the row it was written for (issue 1209). What the weekly mix counts and
    *  what a brief is told the site already covers. */
   draftedPages(siteId: string, limit: number): Promise<readonly DraftedPage[]>;
+  /** The site's own pages an answer to a tracked prompt cited in the four
+   *  weeks ending at `at` (SPEC §6, D15, issue 1146), read from the stored
+   *  passes. Nothing is bought. */
+  citedPages(siteId: string, at: Date): Promise<readonly string[]>;
   /** The top tens the given scans bought, by `queryKey`, a later scan's
    *  over an earlier one's (#1131) — what a held row's search is compared
    *  by. Only the questions and SERPs are read, never the whole report. */
@@ -524,6 +528,19 @@ export function supabaseOpportunityStore(): OpportunityStore {
         pages.map((page) => page.row)
       );
       return pages.map((page, index) => ({ ...page, row: rows[index] ?? page.row }));
+    },
+
+    async citedPages(siteId, at) {
+      // Lazy: the weekly reader reaches the db and the report module.
+      const [{ readPromptWindow }, { weekStartFor }, { readSiteZone }] = await Promise.all([
+        import("@/lib/scan/weekly/prompts"),
+        import("@/lib/scan/weekly/week"),
+        import("@/lib/scan/weekly/store"),
+      ]);
+      const zone = await readSiteZone(siteId);
+      if (zone === null) return [];
+      const window = await readPromptWindow({ siteId, zone, weekStart: weekStartFor({ at, zone }) });
+      return [...new Set(window.weeks.flatMap((week) => week.samples.flatMap((sample) => sample.ownUrls)))];
     },
 
     async topTens(scanIds) {

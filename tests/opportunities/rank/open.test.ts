@@ -52,6 +52,53 @@ describe("orderRanked — update against new", () => {
   });
 });
 
+describe("orderRanked — a page close to being quoted is updated first (D15, issue 1146)", () => {
+  const POST = "https://example.com/blog/post";
+  const update = (id: string, shortfall: unknown, businessFit: number | null = null) =>
+    ({
+      ...opportunity(id, "improve", "answerable_page"),
+      businessFit,
+      evidence: { family: "improve", pageUrl: POST, shortfall },
+    }) as unknown as Opportunity;
+  const position = (value: number) => ({ kind: "position", position: { kind: "measured", value, at: AT } });
+  const fresh = (businessFit: number | null = null) =>
+    ({ ...opportunity("new", "write", "answer_page", "a fresh topic"), businessFit }) as unknown as Opportunity;
+
+  it("the update of a page at position 11 goes ahead of a new page on a fresh topic that scores higher", () => {
+    expect(
+      order([
+        { opportunity: fresh(), score: 0.9 },
+        { opportunity: update("close", position(11)), score: 0.1 },
+      ])
+    ).toEqual(["close", "new"]);
+  });
+
+  it("a page at 25 keeps its scored place, and a new page of higher fit still goes first", () => {
+    expect(
+      order([
+        { opportunity: fresh(), score: 0.9 },
+        { opportunity: update("far", position(25)), score: 0.1 },
+      ])
+    ).toEqual(["new", "far"]);
+    expect(
+      order([
+        { opportunity: fresh(3), score: 0.2 },
+        { opportunity: update("close", position(11), 2), score: 0.9 },
+      ])
+    ).toEqual(["new", "close"]);
+  });
+
+  it("a page a tracked AI answer cited in the last four weeks is close too", () => {
+    const thin = { kind: "thin", words: { kind: "measured", value: 300, at: AT } };
+    const scored = [
+      { opportunity: fresh(), score: 0.9 },
+      { opportunity: update("cited", thin), score: 0.1 },
+    ];
+    expect(order(scored)).toEqual(["new", "cited"]);
+    expect(order(scored, { cited: new Set(["example.com/blog/post"]) })).toEqual(["cited", "new"]);
+  });
+});
+
 describe("orderRanked — rotation (#1181)", () => {
   const SAME = ["zapier.com/a", "marketermilk.com/b", "morningscore.io/c", "gartner.com/d"];
   const topTens = new Map([

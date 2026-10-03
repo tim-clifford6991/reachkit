@@ -134,27 +134,26 @@ describe("§6.6's cold-start law: nothing to improve is not something invented",
     expect(result.assessed).toBe(0);
   });
 
-  it("a page the scan never read yields nothing — the shortfall must be measured", () => {
+  it("a page the scan never read is never called thin — its measured position is the only shortfall", () => {
     const report = reportOf(
       { questions: [question()], serps: [rankingSerp(5)] },
       { onPage: unmeasured("undeterminable", AT) }
     );
     expect(
-      improveCandidates({ ...base, report, rankedCounts: smallCounts() }).candidates
-    ).toEqual([]);
+      improveCandidates({ ...base, report, rankedCounts: smallCounts() }).candidates.map((c) => c.type)
+    ).toEqual(["answerable_page"]);
   });
 
   it("a thin measurement of the home page is never attached to a different ranking page", () => {
     // `onPage` measured the home document alone: a blog post ranking in the
-    // band is not "thin" on that evidence, and with no answer ignoring the
-    // customer it has no shortfall on record.
+    // band is not "thin" on that evidence.
     const report = reportOf(
       { questions: [question()], serps: [rankingSerp(5, "https://example.com/blog/post")] },
       { onPage: measured(facts({ visibleChars: 400 }), AT) }
     );
     expect(
-      improveCandidates({ ...base, report, rankedCounts: smallCounts() }).candidates
-    ).toEqual([]);
+      improveCandidates({ ...base, report, rankedCounts: smallCounts() }).candidates.map((c) => c.type)
+    ).not.toContain("expand_page");
   });
 });
 
@@ -307,6 +306,22 @@ describe("SPEC §7 (2026-09-16): update candidates are the site's own pages, not
       { ownRankedRows: ranked([{ keyword: "pricing page examples", position: 12, url: POST }]) }
     );
     expect(improveCandidates({ ...base, report: unrelated, rankedCounts: smallCounts() }).candidates).toEqual([]);
+  });
+
+  it("a page at 11 is close to being quoted: its update is offered whatever the answer said; at 25 only an answer that ignores the site offers one (D15)", () => {
+    const noAnswer = serp({ aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] } });
+    const at = (position: number) =>
+      improveCandidates({
+        ...base,
+        report: reportOf(
+          { questions: [question()], serps: [noAnswer] },
+          { ownRankedRows: ranked([{ keyword: "best user onboarding software", position, url: POST }]) }
+        ),
+        rankedCounts: smallCounts(),
+      }).candidates;
+    expect(at(11)).toHaveLength(1);
+    expect(at(11)[0]).toMatchObject({ targetRef: POST, evidence: { shortfall: { kind: "position", position: measured(11, AT) } } });
+    expect(at(25)).toEqual([]);
   });
 
   it("outside the 4–30 band, or already top three for the search, there is nothing to update", () => {

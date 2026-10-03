@@ -9,7 +9,9 @@
 //   answerable_page  "Page has search value, low answerability" — the same
 //                    page ranks for a tracked question's search, and the
 //                    AI answer for that question does not name the
-//                    customer. The shortfall is its own position.
+//                    customer. The shortfall is its own position. A page
+//                    at 4–20 is one whatever the answer said (SPEC §6,
+//                    2026-09-29, D15): it is close to being quoted.
 //   refresh_page     "Ranking page stale vs rivals'" — **not derived
 //                    here.** Staleness is a comparison of last-changed
 //                    dates, and nothing the measurement engine stores is
@@ -45,7 +47,12 @@
 // for the home document, the one page whose length `onPage` measured;
 // `answerable_page` for any ranked page, with its own position. A page
 // with neither shortfall on record is not a candidate.
-import { EFFORT_BY_TYPE, IMPROVE_POSITION_BAND, THIN_PAGE_VISIBLE_CHARS } from "@/lib/config/constants";
+import {
+  CLOSE_PAGE_POSITION_BAND,
+  EFFORT_BY_TYPE,
+  IMPROVE_POSITION_BAND,
+  THIN_PAGE_VISIBLE_CHARS,
+} from "@/lib/config/constants";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { measured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
@@ -159,7 +166,10 @@ export function improveCandidates(a: ImproveInput): DerivationResult {
         if (home !== null && canonicalUrl(row.url) === canonicalUrl(home.url) && home.visibleChars < THIN_PAGE_VISIBLE_CHARS) {
           return { row, type: "expand_page", shortfall: { kind: "thin", words: measured(home.visibleChars, at) } };
         }
-        if (ignoredByTheAnswer) {
+        // SPEC §6 (2026-09-29, D15, issue 1146): a page at 4–20 is close
+        // to being quoted, and its update is offered whatever the answer
+        // said. Below that band the answer still has to ignore the site.
+        if (ignoredByTheAnswer || row.position <= CLOSE_PAGE_POSITION_BAND.max) {
           return { row, type: "answerable_page", shortfall: { kind: "position", position: measured(row.position, at) } };
         }
         return null;
