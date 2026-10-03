@@ -1,0 +1,39 @@
+{
+  "note": "The structured market of each measured site, in the shape of MarketConclusion (src/lib/market/infer/types.ts). This box cannot read sites.market, so these are transcribed: category, synonyms, buyer and job from docs/walk/market-inference.md (2026-10-02); reachkit.app's rivals from the owner's comment on issue 1162 of 2026-10-03 (the production re-measure, scan 2415236e); plausible.io's rivals from docs/walk/market-inference.md.",
+  "sites": [
+    {
+      "domain": "reachkit.app",
+      "name": "ReachKit",
+      "role": "subject",
+      "market": {
+        "category": "AI discovery and search visibility",
+        "synonyms": ["AI answer visibility", "search discoverability", "AI and search ranking"],
+        "buyer": "B2B SaaS founders and marketing leaders whose sites are not appearing in AI answers and Google search results",
+        "job": "get their site discovered by AI and search engines so buyers find them instead of competitors",
+        "rivals": [
+          { "name": "AEO Engine" },
+          { "name": "MaxAEO" },
+          { "name": "Meltwater" }
+        ]
+      }
+    },
+    {
+      "domain": "plausible.io",
+      "name": "Plausible",
+      "role": "control",
+      "market": {
+        "category": "privacy-friendly web analytics",
+        "synonyms": ["GDPR-compliant analytics", "privacy-first analytics", "lightweight analytics"],
+        "buyer": "Website owners and SaaS companies seeking privacy-compliant analytics",
+        "job": "Track website visitor behavior and performance without compromising visitor privacy",
+        "rivals": [
+          { "name": "Matomo" },
+          { "name": "Fathom Analytics" },
+          { "name": "Simple Analytics" },
+          { "name": "GoatCounter" },
+          { "name": "PostHog" }
+        ]
+      }
+    }
+  ]
+}

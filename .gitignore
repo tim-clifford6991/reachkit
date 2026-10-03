@@ -21,3 +21,7 @@ zz-shots/
 # The LLM Mentions pilot's raw vendor responses (issue #920): bought evidence
 # for a spike report, re-readable without paying again, never a commit.
 .llm-mentions/
+
+# The D19 cost measurement's raw vendor answers (issue 1162): bought evidence,
+# re-readable without paying again, never a commit.
+.d19-cost/

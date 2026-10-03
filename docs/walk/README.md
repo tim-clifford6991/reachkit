@@ -12,6 +12,7 @@ Where it quotes GO-LIVE or RUNBOOK and they disagree, those pages are right and 
 | `docs/walk/watch.md` | the owner | open in a second window for the whole walk |
 | `docs/walk/refund.md` | the owner | after the walk ends |
 | `docs/walk/content-eval.md` | whoever changes generation (#1127) | rewritten by `npm run eval:content -- --run`; not part of the walk |
+| `docs/walk/d19-cost.md` | the owner, ruling on issue 1162 | rewritten by `node scripts/d19-cost.mjs --run`; not part of the walk |
 
 ## Readiness — what must be true before the walk starts
 
