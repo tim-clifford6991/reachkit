@@ -15,14 +15,14 @@ const NOT_A_PAGE_RE = /\.(?:xml|txt|json)$/i;
 
 /** The site's own pages, each once, as it was last read. */
 export function ownPages(
-  texts: readonly { url: string; text: string }[],
+  texts: readonly { url: string; text: string; examples?: readonly string[] }[],
   domain: string
 ): readonly KnowledgePage[] {
   const site = registrableDomain(domain);
   const latest = new Map<string, KnowledgePage>();
   // `readMeasuredText` answers oldest first, so a later read replaces an
   // earlier one of the same address.
-  for (const { url, text } of texts) {
+  for (const { url, text, examples } of texts) {
     let parsed: URL;
     try {
       parsed = new URL(url);
@@ -30,7 +30,7 @@ export function ownPages(
       continue;
     }
     if (NOT_A_PAGE_RE.test(parsed.pathname) || registrableDomain(parsed.hostname) !== site) continue;
-    latest.set(url, { url, text });
+    latest.set(url, { url, text, ...(examples === undefined ? {} : { examples }) });
   }
   return [...latest.values()];
 }

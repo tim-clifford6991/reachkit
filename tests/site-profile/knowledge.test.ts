@@ -92,6 +92,13 @@ describe("only what a page says is kept, with the page it was read from", () => 
     expect(base.proof).toEqual([]);
   });
 
+  it("a legal page is never asked about", async () => {
+    answers({});
+    const privacy = { url: "https://example.com/privacy", text: PRICING.text };
+    await readKnowledge(cost(), { domain: "example.com", pages: [privacy], previous: NO_KNOWLEDGE, now: AT });
+    expect(llmMock).not.toHaveBeenCalled();
+  });
+
   it("a line the site repeats on three pages is not sent to any call", () => {
     const footer = "Start free today and cancel whenever you like, no card needed.";
     const pages = ["a", "b", "c"].map((name) => ({

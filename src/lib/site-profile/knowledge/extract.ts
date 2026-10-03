@@ -24,13 +24,17 @@ import { z } from "zod";
 import { KNOWLEDGE_BASE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
+import { derivePurpose } from "../purpose";
 import { readFirstRank } from "./priority";
 import type { PageReading, StoredKnowledge, StoredPage } from "./types";
 
 export const KNOWLEDGE_CALL_SITE = "site-knowledge" as const;
 
-/** A line on this many of the site's pages is the site's chrome (§5). */
+/** A line on this many of the site's pages, and on more than this share of
+ *  them, is the site's chrome (§5, 2026-10-03 — the passages' own rule,
+ *  `@/lib/generate/pipeline/grounding`). */
 const REPEATED_ON_PAGES = 3;
+const REPEATED_ON_SHARE = 0.5;
 
 const items = z.array(z.string()).max(KNOWLEDGE_BASE.PAGE_ITEMS);
 
@@ -74,15 +78,24 @@ export const PAGE_READING_TASK =
 export interface KnowledgePage {
   readonly url: string;
   readonly text: string;
+  /** What the page shows inside an element marked as an example (§5). */
+  readonly examples?: readonly string[];
 }
 
 function hashOf(text: string): string {
   return createHash("sha256").update(text).digest("hex").slice(0, 16);
 }
 
-/** Each page's text without the lines the site repeats, cut to what one
- *  call carries. A page left with too little to read is not returned. */
-export function readablePages(pages: readonly KnowledgePage[]): readonly KnowledgePage[] {
+/** Each page's text without the lines the site repeats or shows as a demo,
+ *  cut to what one call carries. A legal page is never read for facts (§5,
+ *  2026-10-03), and a page left with too little to read is not returned. */
+export function readablePages(all: readonly KnowledgePage[]): readonly KnowledgePage[] {
+  const pages = all.filter((page) => derivePurpose({ url: page.url, title: "", h1: "" }) !== "legal");
+  const demo = new Set(pages.flatMap((page) => (page.examples ?? []).map((line) => line.replace(/\s+/g, " ").trim())));
+  const repeated = (line: string): boolean => {
+    const count = onPages.get(line) ?? 0;
+    return count >= REPEATED_ON_PAGES && count > pages.length * REPEATED_ON_SHARE;
+  };
   const onPages = new Map<string, number>();
   const lines = pages.map((page) => [...new Set(page.text.split("\n"))]);
   for (const own of lines) for (const line of own) onPages.set(line, (onPages.get(line) ?? 0) + 1);
@@ -90,7 +103,7 @@ export function readablePages(pages: readonly KnowledgePage[]): readonly Knowled
   const out: KnowledgePage[] = [];
   pages.forEach((page, i) => {
     const text = (lines[i] ?? [])
-      .filter((line) => (onPages.get(line) ?? 0) < REPEATED_ON_PAGES)
+      .filter((line) => !repeated(line) && !demo.has(line))
       .join("\n")
       .slice(0, KNOWLEDGE_BASE.PAGE_INPUT_CHARS);
     if (text.length >= KNOWLEDGE_BASE.PAGE_MIN_CHARS) out.push({ url: page.url, text });
