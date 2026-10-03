@@ -21,6 +21,9 @@ vi.mock("@/lib/db", () => ({
       update: (values: Record<string, unknown>) => ({
         eq: async (_column: string, id: unknown) => {
           updates.push({ values, id });
+          // The row holds what the close wrote, so the next context to open
+          // on it reads that — and nothing a close did not write.
+          rowCents.value = values.cost_cents;
           return { error: null };
         },
       }),
@@ -32,8 +35,8 @@ vi.mock("../../src/lib/costs/ledger", () => ({ writeFetchRow: async () => undefi
 
 const { withCostContext } = await import("../../src/lib/costs/index");
 
-function call(costCents: number) {
-  return { source: "vendor", cacheKey: `k${costCents}`, freshnessDays: 0, costCents, run: async () => ({}) };
+function call(costCents: number, source = "vendor") {
+  return { source, cacheKey: `k${costCents}`, freshnessDays: 0, costCents, run: async () => ({}) };
 }
 
 beforeEach(() => {
@@ -67,5 +70,40 @@ describe("`priorCents` — a pass that adopts a row setup already spent against"
       await cost.recordFetch(call(0.2));
     });
     expect(updates).toEqual([{ values: { cost_cents: expect.closeTo(1.7, 6), status: "done" }, id: "scan-1" }]);
+  });
+});
+
+// Issue 1204. A draft has no scan of its own, so its `generate.*` rows are
+// ledgered under the weekly pass that grounds the page: the pass of
+// 2026-09-28 carries 13.03¢ of them beside its own 17.53¢. The weekly cap
+// is counted from the row's `cost_cents`, which a draft's close never
+// writes, so those rows are the draft's spend and not the pass's.
+describe("a week of drafts ledgered under the weekly pass's row", () => {
+  it("leaves the weekly cap where the pass's own calls left it", async () => {
+    const passOwnCents = 17.53;
+    await withCostContext({ scanId: "scan-1", cap: "WEEKLY", policyVersion: 1 }, async (cost) => {
+      await cost.recordFetch(call(passOwnCents, "serpOrganic"));
+    });
+    updates.length = 0;
+
+    // Seven evenings, each draft spending its whole cap against that row.
+    for (let day = 0; day < 7; day++) {
+      await withCostContext({ scanId: "scan-1", cap: "DRAFT", policyVersion: 1, rollUp: "none" }, async (cost) => {
+        expect(cost.spentCents()).toBe(0);
+        expect(await cost.recordFetch(call(CAPS.DRAFT_C, "generate.draft"))).not.toEqual({ skipped: "cap" });
+      });
+    }
+    expect(updates).toEqual([]);
+
+    // What the pass buys last against its own row (§6: the tracked prompts'
+    // 12¢, the mentions read) still fits, with the room the pass left.
+    const run = vi.fn(async () => ({}));
+    await withCostContext({ scanId: "scan-1", cap: "WEEKLY", policyVersion: 1, rollUp: "add" }, async (cost) => {
+      expect(cost.spentCents()).toBeCloseTo(passOwnCents, 6);
+      expect(await cost.recordFetch({ ...call(12, "battery"), run })).not.toEqual({ skipped: "cap" });
+      expect(cost.capHit()).toBe(false);
+    });
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(updates).toEqual([{ values: { cost_cents: expect.closeTo(passOwnCents + 12, 6) }, id: "scan-1" }]);
   });
 });
