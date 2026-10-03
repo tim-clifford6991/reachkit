@@ -18,6 +18,7 @@ import type {
   OpportunityRow,
   OpportunityStore,
 } from "../../src/lib/opportunities/store";
+import type { MarketConclusion } from "../../src/lib/market/infer/types";
 import type { Profile } from "../../src/lib/market/questions/profile";
 import type { HostedOwnPages } from "../../src/lib/publish/destinations/hosted/own-page";
 import { topTensOf } from "../../src/lib/opportunities/cluster";
@@ -27,6 +28,8 @@ import type { StoredReport } from "../../src/lib/scan/report";
 import type { InventoryRow } from "../../src/lib/site-profile/types";
 
 export interface MemoryState {
+  /** The site's concluded market (issue 1134); absent reads as none. */
+  market?: MarketConclusion | null;
   rows: OpportunityRow[];
   statusChangedAt: Map<string, Date>;
   profile: Profile | null;
@@ -128,6 +131,8 @@ export function memoryStore(state: MemoryState): OpportunityStore {
         evidence: JSON.parse(JSON.stringify(insert.evidence)) as unknown,
         acceptance: JSON.parse(JSON.stringify(insert.acceptance)) as unknown,
         fit_band: insert.fit_band,
+        business_fit: insert.business_fit ?? null,
+        source: insert.source ?? null,
         effort: insert.effort,
         // The readiness migration's defaults: nothing has clustered or
         // assessed a row at the moment it is written.
@@ -240,6 +245,17 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       const row = state.rows.find((r) => r.id === opportunityId);
       if (row === undefined) return;
       row.fit_band = band;
+    },
+
+    async setBusinessFit(opportunityId, fit, source) {
+      const row = state.rows.find((r) => r.id === opportunityId);
+      if (row === undefined) return;
+      row.business_fit = fit;
+      row.source = source;
+    },
+
+    async marketFor() {
+      return { market: state.market ?? null, competitors: [] };
     },
 
     async setReadiness(opportunityId, reason) {

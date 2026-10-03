@@ -38,10 +38,6 @@ function keywords(market: SuggestionRow[]): string[] {
   return selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market }).map((s) => s.keyword);
 }
 
-function countIntent(market: SuggestionRow[], intent: Intent): number {
-  return selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market }).filter((s) => s.intent === intent).length;
-}
-
 /** A seeded LCG — the property tests generate the same markets on every run
  *  and on every machine, which is the point of a determinism suite. */
 function lcg(seed: number): () => number {
@@ -155,17 +151,11 @@ describe("selectTwelve — what never reaches the ranking", () => {
 });
 
 describe("selectTwelve — the composition constraints (a portfolio, not a leaderboard)", () => {
-  it("meets both floors and breaks neither cap on the fixture", () => {
+  it("breaks neither cap on the fixture", () => {
     const selected = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market });
     const namesRival = (keyword: string) =>
       PROFILE.namedRivals.some((rival) => keyword.toLowerCase().includes(rival));
 
-    expect(selected.filter((s) => s.intent === "decision").length).toBeGreaterThanOrEqual(
-      SELECTION.minDecision
-    );
-    expect(selected.filter((s) => s.intent === "solution").length).toBeGreaterThanOrEqual(
-      SELECTION.minSolution
-    );
     expect(selected.filter((s) => namesRival(s.keyword)).length).toBeLessThanOrEqual(
       SELECTION.maxRivalBrand
     );
@@ -202,7 +192,7 @@ describe("selectTwelve — the composition constraints (a portfolio, not a leade
     expect(selected.map((s) => s.keyword)).toContain("user onboarding software");
   });
 
-  it("enforces a floor by promoting the next-ranked search of that intent over a surplus one", () => {
+  it("holds no quota of best and vs searches — the twelve are the twelve best-scoring (SPEC §6, 2026-09-29)", () => {
     const market: SuggestionRow[] = [];
     for (let i = 0; i < 12; i++) {
       market.push({ keyword: `user onboarding software ${"tour ".repeat(i)}tool`, volume: 9000 - i });
@@ -212,13 +202,13 @@ describe("selectTwelve — the composition constraints (a portfolio, not a leade
     }
 
     const selected = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market });
+    const decision: Intent = "decision";
 
     expect(selected).toHaveLength(BATTERY.QUESTIONS);
-    expect(countIntent(market, "decision")).toBe(SELECTION.minDecision);
-    expect(countIntent(market, "solution")).toBe(BATTERY.QUESTIONS - SELECTION.minDecision);
+    expect(selected.filter((s) => s.intent === decision)).toHaveLength(0);
   });
 
-  it("relaxes the floor rather than the cap — a market whose only decision searches are rival-brand ones keeps the cap and returns fewer decisions", () => {
+  it("a market whose only decision searches are rival-brand ones keeps the rival cap", () => {
     const market: SuggestionRow[] = [
       { keyword: "appcues alternatives", volume: 900 },
       { keyword: "userpilot alternatives", volume: 800 },
@@ -236,9 +226,6 @@ describe("selectTwelve — the composition constraints (a portfolio, not a leade
     );
 
     expect(rivals).toHaveLength(SELECTION.maxRivalBrand);
-    expect(selected.filter((s) => s.intent === "decision").length).toBeLessThan(
-      SELECTION.minDecision
-    );
   });
 });
 

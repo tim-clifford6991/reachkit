@@ -11,7 +11,11 @@
 //   - a `keyword_page` is ready only when volume ≥ `KEYWORD_PAGE_MIN_VOLUME`,
 //     the band is `winnable`, the intent is commercial or transactional, and
 //     no owned URL ranks for it (else it is Improve's) — otherwise
-//     `keyword_gate`;
+//     `keyword_gate`. At business fit 3 the volume, the band's tighter half
+//     and the intent are waived: a fit-3 search is a write target below the
+//     floor, a problem or how-to included (owner, 2026-10-03, issue 1134);
+//   - a row whose stored business fit is below 2 is `low_fit`, whatever its
+//     family (§6, 2026-09-29). A row no pass has judged is read as before;
 //   - a `format_page` is ready only when its query contains comparison / vs /
 //     alternative / integration / template — otherwise `format_not_allowed`;
 //   - a `listed_page` (Earn) is ready only when the site's own pages hold a
@@ -30,7 +34,7 @@
 //
 // The Fix family keeps its own predicate (`fixPageReadiness`): its readiness
 // is a question about the destination, not about the market.
-import { FORMAT_PAGE_ALLOWED, KEYWORD_PAGE_MIN_VOLUME } from "@/lib/config/constants";
+import { FORMAT_PAGE_ALLOWED, KEYWORD_PAGE_MIN_VOLUME, TOPIC_FIT } from "@/lib/config/constants";
 import { classifyIntent } from "@/lib/market/questions/select";
 import type { Profile } from "@/lib/market/questions/profile";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
@@ -99,6 +103,10 @@ export function opportunityReady(o: Opportunity, ctx: ReadinessContext): Unready
   // its grounding says. An Improve row is exempt by construction: it *is*
   // the update of an existing page, and the page it covers is its own.
   if (o.family !== "improve" && ctx.coveredBy(o) !== null) return "already_covered";
+  // SPEC §6 (2026-09-29, issue 1134): the fit the pass judged and stored. A
+  // target the business is not the answer to is never a day of supply.
+  const fit = o.businessFit ?? null;
+  if (o.family !== "fix" && fit !== null && fit < TOPIC_FIT.gate) return "low_fit";
   if (!ctx.grounded) return "no_grounding_fact";
   if (o.evidence.family === "earn" && !ctx.earnGrounding[o.evidence.asset]) return "no_grounding_fact";
 
@@ -108,11 +116,13 @@ export function opportunityReady(o: Opportunity, ctx: ReadinessContext): Unready
     // The band the keyword gate asks for is `winnable` — tighter than the
     // shared rule above, which admits `reach` too. It stays here because it
     // is this type's own gate (§6, 2026-09-15) and not the right-sizing law.
+    const atTopFit = fit !== null && fit >= TOPIC_FIT.writeAt;
     const passes =
-      volumeOf(o) >= KEYWORD_PAGE_MIN_VOLUME &&
-      o.fitBand === "winnable" &&
-      intent !== null &&
-      COMMERCIAL_INTENTS.has(intent) &&
+      (atTopFit ||
+        (volumeOf(o) >= KEYWORD_PAGE_MIN_VOLUME &&
+          o.fitBand === "winnable" &&
+          intent !== null &&
+          COMMERCIAL_INTENTS.has(intent))) &&
       !ctx.ownRanks(query);
     if (!passes) return "keyword_gate";
   }

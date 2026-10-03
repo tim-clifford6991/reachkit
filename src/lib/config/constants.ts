@@ -130,6 +130,10 @@ const HAIKU_INFERENCE_PRICE = Object.freeze({ inCentsPerM: 100, outCentsPerM: 50
 export const INFERENCE_PRICE_BOOK = Object.freeze({
   nano: HAIKU_INFERENCE_PRICE,
   haiku: HAIKU_INFERENCE_PRICE,
+  /** `claude-sonnet-4-6`'s list price per million tokens, in cents. The one
+   *  call on it is the pass's business-fit judgement (SPEC §6, 2026-10-03,
+   *  issue 1134): about 5¢ a site, once a pass. */
+  sonnet: Object.freeze({ inCentsPerM: 300, outCentsPerM: 1500 } as const),
 } as const);
 
 /** The wall clock one `llm()` call may hold, per tier, in milliseconds —
@@ -168,6 +172,10 @@ export const INFERENCE_PRICE_BOOK = Object.freeze({
  *  route's own literal. */
 export const INFERENCE_TIMEOUT_MS = Object.freeze({
   nano: 15_000, haiku: 20_000,
+  /** One judgement over every candidate of a pass (issue 1134): a longer
+   *  answer on a slower model, made once, in the paid pass's derivation
+   *  step and never on the free path. */
+  sonnet: 60_000,
 } as const);
 
 /** The vendor SDK's own retry layer, off — stated here rather than
@@ -213,6 +221,10 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   /** `{ pairs: { search, sameAs }[] }` over at most the pass's candidates:
    *  ~25 a pair (issue #1131). */
   "topic-same-question": 512,
+  /** `{ scores: { i, fit, title }[], strongest: number[] }` over at most
+   *  `TOPIC_FIT.maxCandidates` searches: ~12 a score, ~25 a title on the
+   *  ones scored 2 or 3 (issue 1134). */
+  "topic-fit": 3072,
   "generate.brief": 1024,
   "generate.outline": 1536,
   "generate.draft": 4096,
@@ -266,6 +278,7 @@ export const INFERENCE_TEMPERATURE: Readonly<Partial<Record<keyof typeof INFEREN
   Object.freeze({
     "market-inference": 0,
     "rival-inference": 0,
+    "topic-fit": 0,
   });
 
 /** How many entries each of the business profile's lists may carry (BUILD
@@ -783,10 +796,13 @@ export const RIVAL_SIZE_BANDS = Object.freeze({
  *  opportunities out of the same cap after its report is stored (issue
  *  798), and four Haiku calls at `INFERENCE_PRICE_BOOK.haiku` come to
  *  about a cent; four cents is several times that and is the only spend
- *  the pass still owes this cap. A candidate the reserve leaves no room
- *  for is recorded `unsized` with `budget_reached`, never guessed at. */
+ *  the pass still owes this cap. Issue 1134 adds the pass's one fit
+ *  judgement to what it owes: its up-front reservation is about six cents
+ *  (`INFERENCE_MAX_OUTPUT_TOKENS["topic-fit"]` at the Sonnet price, plus
+ *  its input), so the reserve is twelve. A candidate the reserve leaves no
+ *  room for is recorded `unsized` with `budget_reached`, never guessed at. */
 export const SERP_RIVAL_SIZING = Object.freeze({
-  candidatesMax: 12, reserveCents: 4,
+  candidatesMax: 12, reserveCents: 12,
 } as const);
 
 /** `BUILD.md` §5's four score bands, as lower bounds on a 0–100 score:
@@ -864,13 +880,23 @@ export const SELECTION = Object.freeze({                    // BP-025 · REQ-006
    *  (owner ruling 2026-09-17, issue 835). */
   maxExtraSeeds: 3,
   intentWeights: Object.freeze({ decision: 3, solution: 3, problem: 2, informational: 1 } as const),
-  minDecision: 4, minSolution: 3, maxRivalBrand: 3, maxHowTo: 2,
+  maxRivalBrand: 3, maxHowTo: 2,
   /** SPEC §6 right-sizing (owner walk 2026-09-17, issue 858): while the
    *  site's demand ceiling sits at its cold-start floor, a specific search
    *  of at least `longTailWords` content words scores `longTailWeight` ×
    *  its intent score, so long-tail searches carrying the profile's words
    *  lead the twelve. Owner-correctable defaults. */
   longTailWords: 3, longTailWeight: 2,
+} as const);
+
+/** SPEC §6 *Topics by business fit* (2026-09-29, 2026-10-03; issue 1134).
+ *  `gate`: below it a target is `low_fit` and never supply. `writeAt`: the
+ *  fit at which a search is a write target whatever its volume. `topShare`:
+ *  the most of one pass's candidates that may hold the top fit — the owner's
+ *  "under about 25%" — and `topMin` the floor of that count on a small set.
+ *  `maxCandidates` bounds the one call. */
+export const TOPIC_FIT = Object.freeze({
+  gate: 2, writeAt: 3, topShare: 0.25, topMin: 3, maxCandidates: 80,
 } as const);
 
 export const COHERENCE = Object.freeze({                    // BP-028 · REQ-094 c2 · BUILD §6.7 step 5

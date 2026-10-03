@@ -39,6 +39,8 @@ export function insertFor(candidate: Candidate | ClusteredCandidate): Opportunit
     evidence: candidate.evidence,
     acceptance: candidate.acceptance,
     fit_band: candidate.fitBand,
+    business_fit: candidate.businessFit ?? null,
+    source: candidate.source ?? null,
     effort: candidate.effort,
     // SPEC §6: the parent topic and the siblings it absorbed, where the
     // collapse gave the row one.

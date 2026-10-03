@@ -49,13 +49,13 @@ function threeTargets() {
     questions: [
       question({
         id: "q1",
-        text: "What is the best onboarding software?",
-        search: search({ keyword: "best onboarding software", volume: 20 }),
+        text: "Which onboarding software fits a startup?",
+        search: search({ keyword: "onboarding software for startups", volume: 20 }),
       }),
       question({
         id: "q2",
-        text: "What is the best onboarding platform?",
-        search: search({ keyword: "best onboarding platform", volume: 95 }),
+        text: "Which onboarding platform should a product team use?",
+        search: search({ keyword: "onboarding platform", volume: 95 }),
       }),
       question({
         id: "q3",
@@ -87,7 +87,7 @@ describe("§7: one list, ordered by the formula", () => {
     expect(ranked).toHaveLength(3);
 
     const first = state.rows.find((row) => row.id === ranked[0]!.opportunityId)!;
-    expect(first.target_query).toBe("best onboarding platform");
+    expect(first.target_query).toBe("onboarding platform");
     // Descending, with no equal pair out of order.
     for (let n = 1; n < ranked.length; n++) {
       expect(ranked[n - 1]!.score).toBeGreaterThanOrEqual(ranked[n]!.score);
@@ -150,7 +150,7 @@ describe("§4.6: the calendar requests; it never creates", () => {
 
     expect(next).not.toBeNull();
     expect(next!.id).toBe(ranked[0]!.opportunityId);
-    expect(next!.targetQuery).toBe("best onboarding platform");
+    expect(next!.targetQuery).toBe("onboarding platform");
     expect(next!.evidence).toBeDefined();
     expect(next!.acceptance).toBeDefined();
     expect(next!.createdAt).toBeInstanceOf(Date);

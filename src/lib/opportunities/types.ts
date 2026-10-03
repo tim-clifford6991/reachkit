@@ -274,6 +274,25 @@ export function qualifiesForADay(fitBand: Winnability | null): boolean {
   return fitBand !== null && fitBand !== OUTSIZED;
 }
 
+/** SPEC §0 *Business fit*: 0–3, how much the business's own offering is the
+ *  answer to a search. Judged once by the pass and stored (§6, 2026-09-29). */
+export type BusinessFit = 0 | 1 | 2 | 3;
+
+/** Where a topic came from, in the order SPEC §6 offers them (2026-09-29):
+ *  an AI answer that names a rival and not the site; a search anchored on
+ *  the product; a problem it solves; a plain category search; and a
+ *  category's "best X", which ranks last. Decided in code from the search
+ *  and its evidence — never by the model, and never from an intent kind. */
+export type TopicSource = "ai_gap" | "product" | "problem" | "category" | "best_x";
+
+export const TOPIC_SOURCES: readonly TopicSource[] = Object.freeze([
+  "ai_gap",
+  "product",
+  "problem",
+  "category",
+  "best_x",
+]);
+
 export type OpportunityStatus = "open" | "queued" | "done" | "dismissed";
 
 /** Why a row has not passed readiness, as handles — SPEC §6's clauses, one
@@ -306,7 +325,8 @@ export type UnreadyReason =
    *  covers it becomes a link target instead (`known-content/links.ts`).
    *  Where the destination *can* publish to it the row is not this: it was
    *  derived as the update itself. */
-  | "already_covered";
+  | "already_covered"
+  | "low_fit";
 
 export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([
   "not_assessed",
@@ -318,6 +338,7 @@ export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([
   "outsized",
   "destination_cannot_address",
   "already_covered",
+  "low_fit",
 ]);
 
 export interface Opportunity {
@@ -342,6 +363,12 @@ export interface Opportunity {
   acceptance: Acceptance;
   /** Null only for `unblock`, which is unranked and unbanded. */
   fitBand: Winnability | null;
+  /** SPEC §0 business fit, as the pass that judged it stored it. Absent or
+   *  `null` on a row no pass has judged — a Fix row, or one from before
+   *  issue 1134 — which the gates read as they did before. */
+  businessFit?: BusinessFit | null;
+  /** Where the topic came from. Absent or `null` as above. */
+  source?: TopicSource | null;
   /** 0..1, from `EFFORT_BY_TYPE`. */
   effort: number;
   status: OpportunityStatus;

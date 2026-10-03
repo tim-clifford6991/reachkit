@@ -1,7 +1,8 @@
 // BUILD §7 — the one ranked list.
 //
 // "Ranking: `demand × intent × (1−effort) × fit`, one list." One list, and
-// one order: the score descending, then family and type, then `created_at`
+// one order: business fit first (SPEC §6, 2026-09-29), then the source, then
+// the score descending, then family and type, then `created_at`
 // ascending, then the id — and no two consecutive days on one topic
 // (#1181). The last two keys are what make it a *total* order — without them
 // two opportunities with identical scores would come back in whatever
@@ -37,12 +38,30 @@ import { comparePrecedence, sameTopic } from "../cluster";
 import type { Opportunity, Ranked } from "../types";
 import { rankScore } from "./score";
 
-/** Descending score; ties broken by family and type (§6's order, owner
- *  2026-09-15 — a tie-break only since #1181), then by age, then by id. */
+/** A row no pass has judged ranks with the rows that plainly help: it was
+ *  ready under the gates it was derived by, and is neither lifted above a
+ *  judged 3 nor dropped below a judged 2. */
+const UNJUDGED_FIT = 2;
+
+/** SPEC §6 (2026-09-29): a category's "best X" ranks last within its fit.
+ *  The other sources are ordered by the score, where a measured AI-answer
+ *  gap carries demand and a proposal nothing measured carries none. */
+function sourcePlace(o: Opportunity): number {
+  return o.source === "best_x" ? 1 : 0;
+}
+
+/** Business fit first (SPEC §6, 2026-09-29, issue 1134): volume orders
+ *  targets of equal fit and never lifts a lower one. Then the source, then
+ *  the score; ties broken by family and type (§6's order, owner 2026-09-15 —
+ *  a tie-break only since #1181), then by age, then by id. */
 function byScore(
   a: { opportunity: Opportunity; score: number },
   b: { opportunity: Opportunity; score: number }
 ): number {
+  const fit = (b.opportunity.businessFit ?? UNJUDGED_FIT) - (a.opportunity.businessFit ?? UNJUDGED_FIT);
+  if (fit !== 0) return fit;
+  const source = sourcePlace(a.opportunity) - sourcePlace(b.opportunity);
+  if (source !== 0) return source;
   if (b.score !== a.score) return b.score - a.score;
   const precedence = comparePrecedence(a.opportunity, b.opportunity);
   if (precedence !== 0) return precedence;

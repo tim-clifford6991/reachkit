@@ -4,8 +4,11 @@
 //
 //   answer_page      "AI answer for a question names rivals, not customer"
 //                    — the question's answer cell is `answered`, does not
-//                    name the customer, and cites a domain that is not
-//                    theirs.
+//                    name the customer, and cites a **rival**: one of the
+//                    report's rivals or the concluded market's (SPEC §6,
+//                    2026-09-29; issue 1134). An answer citing a publisher,
+//                    an aggregator or a platform is not a gap — that loose
+//                    reading put "what is the best seo software" first.
 //   keyword_page     "Rival top-20 for a query >=10/mo; customer absent"
 //                    — no organic row in the bought top ten is on the
 //                    customer's domain, and the search clears the volume
@@ -39,9 +42,10 @@ import type { StoredReport } from "@/lib/scan/report";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { assess, rightSizedBand } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
-import { FAMILY_OF, noRejections, type Evidence, type OpportunityType } from "../types";
+import { FAMILY_OF, noRejections, type Evidence, type OpportunityType, type TopicSource } from "../types";
 import { emptyDerivation, slugify, type Candidate, type DerivationResult } from "./candidate";
 import { targetFactsOf } from "./target";
+import { sourceOf } from "./topics";
 
 /** §7's comparison trigger, second half: "contains vs/alternative". */
 const COMPARISON_SHAPES = [/\bvs\b/, /\bversus\b/, /\balternatives?\b/];
@@ -52,6 +56,12 @@ interface WriteInput {
   report: StoredReport;
   ownRanked: number;
   rankedCounts: RankedCounts;
+  /** The concluded market's rivals, as registrable domains — they count as
+   *  rivals an answer may cite beside the report's own. Absent reads as none. */
+  marketRivals?: readonly string[];
+  /** The brands a search may name (the site's and its rivals'), which make
+   *  its source `product`. Absent reads as none. */
+  brands?: readonly string[];
 }
 
 /** The rival row a Write candidate points at: the best-placed organic
@@ -70,14 +80,19 @@ function bestRival(
   return null;
 }
 
-/** The rival named by an AI answer that ignored the customer: the first
- *  cited domain that is not theirs. */
-function citedRival(citedDomains: readonly string[], ownDomain: string): string | null {
+/** The rival cited by an AI answer that ignored the customer: the first
+ *  cited domain that is one of the site's rivals. */
+function citedRival(citedDomains: readonly string[], rivals: ReadonlySet<string>): string | null {
   for (const cited of citedDomains) {
     const domain = registrableDomain(cited) ?? cited;
-    if (!isOwnDomain(domain, ownDomain)) return domain;
+    if (rivals.has(domain)) return domain;
   }
   return null;
+}
+
+function sourceFor(query: string, ignoredByTheAnswer: boolean, brands: readonly string[]): TopicSource {
+  const worded = sourceOf(query, { brands });
+  return ignoredByTheAnswer && worded !== "best_x" ? "ai_gap" : worded;
 }
 
 function namesARival(query: string, rivalDomains: readonly string[]): boolean {
@@ -109,6 +124,11 @@ export function writeCandidates(a: WriteInput): DerivationResult {
   const rivalDomains =
     report.rivals.kind === "unmeasured" ? [] : report.rivals.value.map((rival) => rival.domain);
   const answerRows = report.aiAnswers?.rows ?? [];
+  const rivalSet = new Set(
+    [...rivalDomains, ...(a.marketRivals ?? [])]
+      .map((domain) => registrableDomain(domain) ?? domain)
+      .filter((domain) => !isOwnDomain(domain, ownDomain))
+  );
 
   const result: DerivationResult = {
     candidates: [],
@@ -155,7 +175,7 @@ export function writeCandidates(a: WriteInput): DerivationResult {
       (answerCell) =>
         answerCell.kind === "answered" &&
         !answerCell.namesCustomer &&
-        citedRival(answerCell.citedDomains, ownDomain) !== null
+        citedRival(answerCell.citedDomains, rivalSet) !== null
     );
 
     const customerAbsent = !serp.organic.some((row) =>
@@ -207,6 +227,11 @@ export function writeCandidates(a: WriteInput): DerivationResult {
           ? { form: "named_on", question: question.text }
           : { form: "top20", query },
       fitBand: verdict.qualified ? verdict.band : rightSizedBand(sizing),
+      // An AI-answer gap is the one source measured here; every other is
+      // read off the search's own words. A category's "best X" stays one
+      // whatever its answer cited (round 1 review, 2026-10-02): it ranks
+      // last in its fit, and a gap must not lift it back to the front.
+      source: sourceFor(query, ignoredByTheAnswer, a.brands ?? []),
       effort: EFFORT_BY_TYPE[type],
     } satisfies Candidate);
   });

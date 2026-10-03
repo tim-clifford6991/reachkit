@@ -41,6 +41,8 @@ const OUTSIZED_REASON = "20260918120000_opportunities_outsized_reason.sql";
  *  one topic per migration, and this suite applies the `opportunities` one
  *  alone. */
 const ALREADY_COVERED = "20260921150100_opportunities_already_covered.sql";
+/** Issue 1134: business fit, the topic's source and `low_fit`. */
+const BUSINESS_FIT = "20261003120000_opportunities_business_fit.sql";
 const BASELINE_MIGRATION = path.join(MIGRATIONS, "00000000000001_baseline.sql");
 
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
@@ -75,6 +77,7 @@ beforeAll(() => {
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, FIX_PAGE)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, OUTSIZED_REASON)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, ALREADY_COVERED)]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, BUSINESS_FIT)]);
   const [user] = psqlRows(
     `insert into users (email, plan_status) values ('opps@example.com', 'active') returning id;`
   );

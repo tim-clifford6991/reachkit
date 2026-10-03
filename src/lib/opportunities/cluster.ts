@@ -18,7 +18,7 @@
 // family added later (an Earn row's readiness, say) clusters with no branch
 // here.
 import { SAME_TOPIC_SHARED_ADDRESSES } from "@/lib/config/constants";
-import { stemKey } from "@/lib/market/questions/select";
+import { GENERIC_TOKENS, stemKey } from "@/lib/market/questions/select";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import type { StoredReport } from "@/lib/scan/report";
 import type { Candidate } from "./derive/candidate";
@@ -161,8 +161,14 @@ export function coveredTopics(report: StoredReport, brandTokens: readonly string
 export function clusterKey(query: string | null, brandTokens: readonly string[]): string | null {
   if (query === null) return null;
   const brands = new Set(brandTokens.flatMap((token) => stemKey(token).split(" ")).filter((t) => t !== ""));
-  const words = [...new Set(stemKey(query).split(" "))].filter((token) => token !== "" && !brands.has(token));
-  return words.length === 0 ? null : words.sort().join(" ");
+  const all = [...new Set(stemKey(query).split(" "))].filter((token) => token !== "");
+  const words = all.filter((token) => !brands.has(token));
+  if (words.length === 0) return null;
+  // Where only a shape is left — "alternatives", "vs", "pricing" — the brand
+  // is the topic: one rival's alternatives are not another's (SPEC §6,
+  // 2026-10-03, issue 1134), so the brands stay in the key.
+  const topic = words.every((token) => GENERIC_TOKENS.has(token)) ? all : words;
+  return topic.sort().join(" ");
 }
 
 /** SPEC §6: Improve of an owned URL, then an Earn asset, then new writing. */

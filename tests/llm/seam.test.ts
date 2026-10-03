@@ -311,12 +311,14 @@ describe("llm() — spend accounting seam (mutation probe 1)", () => {
 // whole.
 
 describe("llm() — tier -> model id (mutation probe 2)", () => {
-  it("the Tier union is exactly {'nano', 'haiku'} — compile-time exhaustiveness, never a third member added silently", () => {
+  it("the Tier union is exactly {'nano', 'haiku', 'sonnet'} — compile-time exhaustiveness, never another member added silently", () => {
     const check = (tier: Tier): "ok" => {
       switch (tier) {
         case "nano":
           return "ok";
         case "haiku":
+          return "ok";
+        case "sonnet":
           return "ok";
         default:
           return assertNever(tier);

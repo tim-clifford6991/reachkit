@@ -95,8 +95,20 @@ describe("issue 858 — the answer_page trigger reads every answer column the pa
 
   it("no AI Overview, but ChatGPT answered citing a rival and not the customer: an answer_page", () => {
     const report = withEngines({ kind: "answered", citedDomains: ["briefkit.io"], namesCustomer: false });
+    const { candidates } = writeCandidates({
+      ...base,
+      report,
+      rankedCounts: unreadableCounts(),
+      marketRivals: ["briefkit.io"],
+    });
+    expect(candidates.map((c) => [c.type, c.source])).toEqual([["answer_page", "ai_gap"]]);
+  });
+
+  it("an answer that cites only a publisher is no AI-answer gap (SPEC §6, 2026-09-29, issue 1134)", () => {
+    const report = withEngines({ kind: "answered", citedDomains: ["youtube.com", "gartner.com"], namesCustomer: false });
     const { candidates } = writeCandidates({ ...base, report, rankedCounts: unreadableCounts() });
-    expect(candidates.map((c) => c.type)).toEqual(["answer_page"]);
+    expect(candidates.map((c) => c.type)).not.toContain("answer_page");
+    expect(candidates.map((c) => c.source)).not.toContain("ai_gap");
   });
 
   it("an engine that names the customer, or answered nothing, is no trigger", () => {

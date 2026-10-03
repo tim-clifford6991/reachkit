@@ -25,6 +25,11 @@ describe("clusterKey — the query's content words, one key per parent topic", (
     expect(clusterKey("appcues vs acme onboarding", BRANDS)).toBe("onboarding vs");
   });
 
+  it("keeps the brand where only a shape is left: one rival's alternatives are not another's (issue 1134)", () => {
+    expect(clusterKey("appcues alternatives", BRANDS)).toBe("alternative appcue");
+    expect(clusterKey("appcues alternatives", BRANDS)).not.toBe(clusterKey("userpilot alternatives", [...BRANDS, "userpilot"]));
+  });
+
   it("has no key for no query, or for a query that is only brands and stop words", () => {
     expect(clusterKey(null, BRANDS)).toBeNull();
     expect(clusterKey("the acme", BRANDS)).toBeNull();

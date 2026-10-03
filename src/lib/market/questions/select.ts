@@ -120,8 +120,8 @@ export const GENERIC_TOKENS: ReadonlySet<string> = Object.freeze(
   new Set([
     "best", "top", "vs", "versus", "alternative", "comparison", "compare",
     "review", "software", "tool", "app", "platform", "solution", "how",
-    "what", "why", "which", "who", "when", "where", "free", "online",
-    "cheap", "cheapest", "price", "pricing", "cost", "guide", "example",
+    "what", "why", "which", "who", "when", "where", "online",
+    "price", "pricing", "cost", "guide", "example",
     "template", "list", "near", "me", "new", "good", "great", "not",
     "working", "fix", "problem", "issue", "error", "broken", "troubleshoot",
   ])
@@ -295,11 +295,6 @@ function byRank(a: Candidate, b: Candidate): number {
   return a.keyword < b.keyword ? -1 : a.keyword > b.keyword ? 1 : 0;
 }
 
-const FLOORS: ReadonlyArray<readonly [Intent, number]> = Object.freeze([
-  ["decision", SELECTION.minDecision],
-  ["solution", SELECTION.minSolution],
-] as const);
-
 /**
  * The twelve — or as many as the market yielded.
  *
@@ -311,10 +306,8 @@ const FLOORS: ReadonlyArray<readonly [Intent, number]> = Object.freeze([
  * dropped, relevance guard against the profile's vocabulary, near-duplicate
  * collapse, composition constraints. Pure: no context, no clock, no I/O.
  *
- * Constraints are **relaxed in one fixed order — floors first**: a floor that
- * cannot be met means the market yielded fewer than twelve of that intent,
- * which is legal, whereas exceeding a cap would put a leaderboard where a
- * portfolio belongs.
+ * The two caps (rival-brand, how-to) hold; the floors that forced best, top
+ * and vs searches into the twelve are gone (SPEC §6, 2026-09-29, issue 1134).
  */
 export function selectTwelve(a: {
   profile: Profile;
@@ -407,33 +400,6 @@ export function selectTwelve(a: {
     if (admits(candidate)) picked.add(candidate);
   }
 
-  const unmetFloors: Intent[] = [];
-  for (const [intent, floor] of FLOORS) {
-    while (count((c) => c.intent === intent) < floor) {
-      const promote = ranked.find((c) => c.intent === intent && !picked.has(c) && admits(c));
-      // The market yielded no more of this intent: the floor is relaxed, and
-      // the shorter set is the honest answer.
-      if (promote === undefined) {
-        unmetFloors.push(intent);
-        break;
-      }
-      if (picked.size < BATTERY.QUESTIONS) {
-        picked.add(promote);
-        continue;
-      }
-      // Make room by evicting the lowest-ranked picked search that no floor
-      // needs. Where none exists, this floor is relaxed rather than another
-      // floor broken to satisfy it.
-      const evict = ranked.filter((c) => picked.has(c)).reverse().find((c) => isSurplus(c, intent, count));
-      if (evict === undefined) {
-        unmetFloors.push(intent);
-        break;
-      }
-      picked.delete(evict);
-      picked.add(promote);
-    }
-  }
-
   const selected = ranked
     .filter((candidate) => picked.has(candidate))
     .map((candidate, index) => ({
@@ -446,29 +412,16 @@ export function selectTwelve(a: {
       ...difficultyField(candidate.difficulty),
     }));
 
-  logSelection(ranked.length, selected.length, unmetFloors, floor);
+  logSelection(ranked.length, selected.length, floor);
   return selected;
-}
-
-/** A picked search a floor does not need: not of the intent being filled, and
- *  either carrying no floor of its own or standing above it. */
-function isSurplus(
-  candidate: Candidate,
-  filling: Intent,
-  count: (predicate: (c: Candidate) => boolean) => number
-): boolean {
-  if (candidate.intent === filling) return false;
-  const floor = FLOORS.find(([intent]) => intent === candidate.intent);
-  if (floor === undefined) return true;
-  return count((c) => c.intent === candidate.intent) > floor[1];
 }
 
 /** BP-025 `## NFR budget`: "selected count and which constraint bound it".
  *  Counts and constraint names only — never a keyword. */
-function logSelection(eligible: number, selected: number, unmetFloors: readonly Intent[], floor: number): void {
+function logSelection(eligible: number, selected: number, floor: number): void {
   const boundBy =
     selected >= BATTERY.QUESTIONS ? "questions" : selected === eligible ? "market" : "caps";
-  console.log(JSON.stringify({ event: "selection", eligible, selected, boundBy, unmetFloors, floor }));
+  console.log(JSON.stringify({ event: "selection", eligible, selected, boundBy, floor }));
 }
 
 /** The step a search was admitted at: the highest volume step its volume
