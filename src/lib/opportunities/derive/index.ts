@@ -38,7 +38,8 @@ import { refineType } from "./typing";
 import { applyKnownContent, type KnownContentGate } from "./known";
 import { writeCandidates } from "./write";
 import { judgeFit, type FitSearch } from "./fit";
-import { brandsOf, candidateFor, proposedTopics, sourceOf } from "./topics";
+import { brandsOf, candidateFor, proposedTopics, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
+import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 
 export interface DeriveInput {
   siteId: string;
@@ -85,6 +86,10 @@ export interface DeriveInput {
    *  pass keeps a far-banded one out of the report's rivals (#858), and it
    *  is still a rival an answer may cite. Absent reads as none. */
   competitors?: readonly string[];
+  /** The site's tracked buyer prompts (D19, `sites.tracked_prompts`), the
+   *  branded ones left out: what its buyers ask answer engines, which the
+   *  buyer's searches are written from (issue 1208). Absent reads as none. */
+  prompts?: readonly string[];
 }
 
 /** How many held rows one pass's judgement may also score. */
@@ -154,34 +159,86 @@ export async function deriveOpportunities(
   // — the rule is about what the day would publish, and only one candidate
   // per search survives to be it.
   const planned = onePerSearch([...improve.candidates, ...earn.candidates, ...write.candidates]);
+  const store = opportunityStore();
+  const held = (await store.clusterable(a.siteId)).map(readOpportunity);
+
+  // SPEC §6 (2026-10-03, issue 1208): a rival's own price is never a page
+  // about the rival alone. A new page planned on one — this pass's or an
+  // open row's — gives way to the product against that rival at its price,
+  // which is proposed below like any other search nothing measured.
+  const rivalNames = rivalNamesOf({ report: a.report, market });
+  const comparisons: { query: string; rival: string }[] = [];
+  const aRivalsPrice = (row: { family: Candidate["family"]; targetQuery: string | null }): boolean => {
+    if (row.family !== "write" || row.targetQuery === null) return false;
+    const priced = rivalPriceOf(row.targetQuery, { own: named.own, rivals: rivalNames });
+    if (priced === null) return false;
+    if (priced.comparison !== null) comparisons.push({ query: priced.comparison, rival: priced.rival });
+    return true;
+  };
+  const gone = new Set<string>();
+  for (const row of held) {
+    if (row.status === "open" && aRivalsPrice(row)) gone.add(row.id);
+  }
+  const mine = planned.filter((candidate) => !aRivalsPrice(candidate));
   const derived: Candidate[] = [
-    ...(a.known === undefined ? planned : applyKnownContent(planned, a.known)),
+    ...(a.known === undefined ? mine : applyKnownContent(mine, a.known)),
     ...fix.candidates,
   ];
-  const store = opportunityStore();
-  const existing = (await store.clusterable(a.siteId)).map(readOpportunity);
 
   // SPEC §6 *Topics by business fit* (2026-09-29, 2026-10-03; issue 1134):
   // one judgement a pass, over what it derived, what it proposes from the
   // market's own vocabulary and the searches it read, and the open rows no
   // pass has judged yet. Stored on the row; nothing downstream asks again.
   const judgedHere = derived.filter((candidate) => candidate.family !== "fix" && candidate.targetQuery !== null);
-  const held = existing
+  const written = await writeBuyerSearches(c, { market, prompts: a.prompts ?? [], brands });
+  const offered = proposedTopics({
+    report: a.report,
+    market,
+    taken: [...derived, ...held].flatMap((row) => row.targetQuery ?? []),
+    ownRanked,
+    max: Math.max(0, TOPIC_FIT.maxCandidates - judgedHere.length - HELD_ROWS_JUDGED),
+    comparisons,
+    written,
+  });
+
+  // SPEC §6 (2026-10-03, issue 1208): "would a buyer search this?" — one
+  // small-tier judgement over every search nothing measured: what this pass
+  // offers, and the open rows an earlier pass wrote down the same way. One
+  // that fails is not proposed, and a row that fails is dismissed; no
+  // judgement proposes none of them and dismisses nothing.
+  const unmeasuredOffers = offered.filter((topic) => topic.volume === null);
+  const unmeasuredRows = held.filter(
+    (row) =>
+      row.status === "open" &&
+      !gone.has(row.id) &&
+      row.family === "write" &&
+      row.targetQuery !== null &&
+      row.source !== "ai_gap" &&
+      (row.volume === null || row.volume.kind === "unmeasured")
+  );
+  const typed = await judgeTyped(c, {
+    searches: [...unmeasuredOffers.map((topic) => topic.query), ...unmeasuredRows.map((row) => row.targetQuery!)],
+    market,
+    brands,
+  });
+  const proposals = offered.filter((topic) => topic.volume !== null || typed?.has(unmeasuredOffers.indexOf(topic)) === true);
+  if (typed !== null) {
+    unmeasuredRows.forEach((row, index) => {
+      if (!typed.has(unmeasuredOffers.length + index)) gone.add(row.id);
+    });
+  }
+  for (const id of gone) await store.markDismissed(id);
+  const existing = held.filter((row) => !gone.has(row.id));
+
+  const unjudged = existing
     .filter((row) => row.status === "open" && row.family !== "fix" && row.targetQuery !== null)
     .filter((row) => (row.businessFit ?? null) === null)
     .slice(0, HELD_ROWS_JUDGED);
-  const proposals = proposedTopics({
-    report: a.report,
-    market,
-    taken: [...derived, ...existing].flatMap((row) => row.targetQuery ?? []),
-    ownRanked,
-    max: Math.max(0, TOPIC_FIT.maxCandidates - judgedHere.length - held.length),
-  });
   const sourceFor = (row: { targetQuery: string | null; source?: Candidate["source"] }) =>
     row.source ?? sourceOf(row.targetQuery ?? "", { brands });
   const searches: FitSearch[] = [
     ...judgedHere.map((candidate) => ({ query: candidate.targetQuery!, source: sourceFor(candidate) })),
-    ...held.map((row) => ({ query: row.targetQuery!, source: sourceFor(row) })),
+    ...unjudged.map((row) => ({ query: row.targetQuery!, source: sourceFor(row) })),
     ...proposals.map((topic) => ({ query: topic.query, source: topic.source })),
   ];
   const fits = await judgeFit(c, {
@@ -202,7 +259,7 @@ export async function deriveOpportunities(
     if (judged.title !== null) angle.set(withFit, judged.title);
     return withFit;
   });
-  for (const [index, row] of held.entries()) {
+  for (const [index, row] of unjudged.entries()) {
     const judged = fits.get(judgedHere.length + index);
     if (judged !== undefined) await store.setBusinessFit(row.id, judged.fit, sourceFor(row));
   }
@@ -210,7 +267,7 @@ export async function deriveOpportunities(
   // was never measured, and nothing but its fit speaks for it.
   const proposed: Candidate[] = [];
   for (const [index, topic] of proposals.entries()) {
-    const judged = fits.get(judgedHere.length + held.length + index);
+    const judged = fits.get(judgedHere.length + unjudged.length + index);
     if (judged === undefined || judged.fit < TOPIC_FIT.writeAt) continue;
     const candidate = candidateFor(topic, { ...base, market, ownRanked });
     if (candidate !== null) proposed.push({ ...candidate, title: judged.title });

@@ -65,6 +65,50 @@ export function sourceOf(
   return "category";
 }
 
+const PRICE_SHAPES = /\b(?:pricing|prices?|costs?)\b/;
+const PRICE_FILLER = new Set(["pricing", "price", "prices", "cost", "costs", "how", "much", "is", "does", "do", "the", "a", "plan", "plans"]);
+
+/**
+ * SPEC §6 (2026-10-03, issue 1208): a rival's own price is a topic only as
+ * a comparison. Where `query` asks nothing but what one rival costs, the
+ * rival it names and the comparison that stands in for it ("reachkit vs
+ * meltwater pricing"; `null` where the site has no name to set against it).
+ * `null` for every other search — the site's own price and a comparison
+ * that already names both included.
+ */
+export function rivalPriceOf(
+  query: string,
+  a: { own: readonly string[]; rivals: readonly { name: string; domain: string }[] }
+): { rival: string; comparison: string | null } | null {
+  const text = normalise(query);
+  if (!PRICE_SHAPES.test(text) || COMPARISON_SHAPES.test(text) || names(text, a.own)) return null;
+  for (const rival of a.rivals) {
+    const name = normalise(rival.name);
+    if (name.length <= 2 || !` ${text} `.includes(` ${name} `)) continue;
+    const rest = ` ${text} `.replace(` ${name} `, " ").trim().split(" ").filter((word) => !PRICE_FILLER.has(word));
+    if (rest.length > 0) return null;
+    const product = a.own[0] ?? null;
+    return { rival: rival.domain, comparison: product === null ? null : `${product} vs ${name} pricing` };
+  }
+  return null;
+}
+
+/** Each rival as a search may name it: its product name and its domain's
+ *  label, with the domain a row points at. */
+export function rivalNamesOf(a: {
+  report: StoredReport;
+  market: MarketConclusion | null;
+}): { name: string; domain: string }[] {
+  const out: { name: string; domain: string }[] = [];
+  for (const rival of a.market?.rivals ?? []) {
+    out.push({ name: rival.name, domain: rival.domain }, { name: brandOf(rival.domain), domain: rival.domain });
+  }
+  if (a.report.rivals.kind !== "unmeasured") {
+    for (const rival of a.report.rivals.value) out.push({ name: brandOf(rival.domain), domain: rival.domain });
+  }
+  return out;
+}
+
 /** A search the pass proposes, before its fit is known. */
 export interface ProposedTopic {
   query: string;
@@ -119,6 +163,13 @@ export function proposedTopics(a: {
   taken: readonly string[];
   ownRanked: number;
   max: number;
+  /** The comparisons that stand in for a rival's own price (`rivalPriceOf`),
+   *  first in the order. Absent reads as none. */
+  comparisons?: readonly { query: string; rival: string }[];
+  /** The buyer's own searches the pass had written
+   *  (`derive/buyer-searches.ts`), after the rival comparisons and before
+   *  the market's own names. Absent reads as none. */
+  written?: readonly string[];
 }): ProposedTopic[] {
   const { own, rivals } = brandsOf(a);
   const brands = [...own, ...rivals];
@@ -135,6 +186,8 @@ export function proposedTopics(a: {
     seen.add(key);
     out.push({ query: key, source, volume: volumes.get(key) ?? null, rival });
   };
+
+  for (const comparison of a.comparisons ?? []) add(comparison.query, "product", comparison.rival);
 
   const market = a.market;
   if (market !== null) {
@@ -153,6 +206,10 @@ export function proposedTopics(a: {
       add(`${name} alternatives`, "product", rival.domain);
       if (product !== null) add(`${product} vs ${name}`, "product", rival.domain);
     }
+    // The job and its problems as the buyer words them (issue 1208).
+    for (const search of a.written ?? []) add(search, sourceOf(search, { brands }), null);
+    // The market's own names. They are the vendor's words until the pass's
+    // "would a buyer search this?" check says a buyer types them.
     for (const name of namesOfMarket) {
       if (buyer !== null) add(`${name} for ${buyer}`, "product", null);
       add(`${name} pricing`, "product", null);

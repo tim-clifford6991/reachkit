@@ -153,6 +153,8 @@ export function coveredTopics(report: StoredReport, brandTokens: readonly string
   return topics;
 }
 
+const PRICE_WORDS: ReadonlySet<string> = new Set(["price", "pricing", "cost"]);
+
 /**
  * The parent topic of a query, or `null` where it has none: no query (a Fix
  * targets no search), or nothing left once stop words and brands are gone —
@@ -161,7 +163,11 @@ export function coveredTopics(report: StoredReport, brandTokens: readonly string
 export function clusterKey(query: string | null, brandTokens: readonly string[]): string | null {
   if (query === null) return null;
   const brands = new Set(brandTokens.flatMap((token) => stemKey(token).split(" ")).filter((t) => t !== ""));
-  const all = [...new Set(stemKey(query).split(" "))].filter((token) => token !== "");
+  // A price is one word however it is asked (issue 1208): "x pricing" and
+  // "x cost" are one topic by their words, with no judgement needed.
+  const all = [...new Set(stemKey(query).split(" ").map((token) => (PRICE_WORDS.has(token) ? "pricing" : token)))]
+    .filter((token) => token !== "")
+    .sort();
   const words = all.filter((token) => !brands.has(token));
   if (words.length === 0) return null;
   // Where only a shape is left — "alternatives", "vs", "pricing" — the brand

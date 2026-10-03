@@ -11,7 +11,10 @@ import { opportunityReady, type ReadinessContext } from "../../../src/lib/opport
 import { orderRanked } from "../../../src/lib/opportunities/rank/open";
 import type { Opportunity } from "../../../src/lib/opportunities/types";
 import { memoryStore, newMemoryState, type MemoryState } from "../memory-store";
-import { AT, PROFILE, SCAN_ID, SITE_ID, defaultReport, smallCounts } from "../fixtures";
+import { AT, PROFILE, SCAN_ID, SITE_ID, defaultReport, question, reportOf, search, serp, smallCounts } from "../fixtures";
+
+/** The site's own name as a search carries it. */
+const OWN = PROFILE.brandTokens[0]!.toLowerCase();
 
 const { createMock } = vi.hoisted(() => ({ createMock: vi.fn() }));
 
@@ -23,6 +26,8 @@ vi.mock("@anthropic-ai/sdk", () => ({
 
 const { deriveOpportunities } = await import("../../../src/lib/opportunities/derive");
 const { boundTopFit, topFitAllowance, FIT_CALL_SITE } = await import("../../../src/lib/opportunities/derive/fit");
+const { BUYER_SEARCHES_CALL_SITE, TYPED_CALL_SITE } = await import("../../../src/lib/opportunities/derive/buyer-searches");
+const { clusterKey } = await import("../../../src/lib/opportunities/cluster");
 
 const MARKET: MarketConclusion = {
   buyer: "SaaS product teams",
@@ -45,13 +50,23 @@ beforeEach(() => {
 
 afterEach(() => setOpportunityStore(null));
 
-/** Answers the fit call from `fitOf`, and no other call. */
-function judgeWith(fitOf: (search: string) => number): void {
+/** Answers the fit call from `fitOf`; the buyer's searches are `written`,
+ *  and a buyer types every search `typed` does not refuse. */
+function judgeWith(
+  fitOf: (search: string) => number,
+  buyer: { written?: string[]; typed?: (search: string) => boolean } = {}
+): void {
   createMock.mockImplementation(async (request: { messages: { content: string }[]; tools?: { name: string }[] }) => {
     const input = JSON.parse(request.messages[0]!.content) as { searches?: { i: number; search: string }[] };
-    if (request.tools?.[0]?.name !== FIT_CALL_SITE.replace(/[^a-zA-Z0-9_-]/g, "_") || input.searches === undefined) {
-      throw new Error("no model for this call");
+    const site = request.tools?.[0]?.name;
+    if (site === BUYER_SEARCHES_CALL_SITE) {
+      return toolUseMessage({ problems: buyer.written ?? [], solutions: [] }, 300, 100, BUYER_SEARCHES_CALL_SITE);
     }
+    if (site === TYPED_CALL_SITE && input.searches !== undefined) {
+      const typed = input.searches.filter(({ search }) => buyer.typed?.(search) ?? true).map(({ i }) => i);
+      return toolUseMessage({ typed }, 300, 50, TYPED_CALL_SITE);
+    }
+    if (site !== FIT_CALL_SITE || input.searches === undefined) throw new Error("no model for this call");
     const scores = input.searches.map(({ i, search }) => {
       const fit = fitOf(search);
       return { i, fit, title: fit >= 2 ? `The angle for ${search}` : "" };
@@ -110,6 +125,62 @@ describe("a pass writes targets from the market's own vocabulary at fit 3", () =
 
     expect(created.map((row) => row.targetQuery)).toEqual(["best user onboarding software"]);
     expect(created[0]!.businessFit ?? null).toBeNull();
+  });
+});
+
+describe("write targets are the words a buyer types (issue 1208)", () => {
+  const LABEL = "user onboarding software pricing";
+  const HOW_TO = "how to stop new users dropping off after signup";
+
+  it("a problem in the buyer's words is written at fit 3; the market's own label a buyer would not type is not", async () => {
+    judgeWith((search) => (search === HOW_TO || search === LABEL ? 3 : 2), { written: [HOW_TO], typed: (search) => search !== LABEL });
+    const { ctx } = fakeCost();
+    await deriveOpportunities(ctx, input());
+
+    const written = state.rows.find((row) => row.target_query === HOW_TO)!;
+    expect(written).toMatchObject({ source: "problem", business_fit: 3, volume: null });
+    expect(state.rows.map((row) => row.target_query)).not.toContain(LABEL);
+  });
+
+  it("a label an earlier pass wrote down is dismissed once a buyer is found not to type it", async () => {
+    const fit = (search: string) => (search === LABEL || search === "appcues alternatives" ? 3 : 2);
+    judgeWith(fit);
+    const { ctx } = fakeCost();
+    await deriveOpportunities(ctx, input());
+    expect(state.rows.find((row) => row.target_query === LABEL)!.status).toBe("open");
+
+    judgeWith(fit, { typed: (search) => search !== LABEL });
+    await deriveOpportunities(ctx, input());
+    expect(state.rows.find((row) => row.target_query === LABEL)!.status).toBe("dismissed");
+    expect(state.rows.find((row) => row.target_query === "appcues alternatives")!.status).toBe("open");
+  });
+
+  it("with no check, nothing unmeasured is proposed", async () => {
+    judgeWith(() => 3, { typed: () => { throw new Error("model unavailable"); } });
+    const { ctx } = fakeCost();
+    await deriveOpportunities(ctx, input());
+    expect(state.rows.map((row) => row.target_query)).toEqual(["best user onboarding software"]);
+  });
+
+  it("a rival's own price is never a page about the rival: it becomes the product against that rival's price", async () => {
+    judgeWith((search) => (search.endsWith("vs appcues pricing") ? 3 : 2));
+    const { ctx } = fakeCost();
+    const report = reportOf({
+      questions: [question({ search: search({ keyword: "appcues pricing" }) }), question({ id: "q2", search: search({ keyword: "appcues cost" }) })],
+      serps: [serp(), serp()],
+    });
+    await deriveOpportunities(ctx, { ...input(), report });
+
+    const targets = state.rows.map((row) => row.target_query);
+    expect(targets).not.toContain("appcues pricing");
+    expect(targets).not.toContain("appcues cost");
+    expect(targets.filter((target) => /appcues pricing$/.test(target ?? ""))).toEqual([`${OWN} vs appcues pricing`]);
+    expect(state.rows.find((row) => row.target_query === `${OWN} vs appcues pricing`)!.type).toBe("comparison_page");
+  });
+
+  it("one price asked two ways is one topic by its words", () => {
+    expect(clusterKey("meltwater pricing", [])).toBe(clusterKey("meltwater cost", []));
+    expect(clusterKey("meltwater pricing", [])).not.toBe(clusterKey("meltwater alternatives", []));
   });
 });
 

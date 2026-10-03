@@ -20,40 +20,50 @@ import { queryKey } from "../cluster";
 export const SAME_QUESTION_CALL_SITE = "topic-same-question";
 
 const SAME_QUESTION_SCHEMA = z.strictObject({
-  pairs: z.array(z.strictObject({ search: z.string(), sameAs: z.string() })),
+  pairs: z.array(z.strictObject({ i: z.number().int(), sameAs: z.number().int() })),
 });
+
+const TASK = [
+  "Each entry of `topics` is a search with its index `i`. For each one marked `ask`, name the index of one **other** topic that asks the same question in different words, so that one page answers both.",
+  "Never pair a search with itself. Leave a search out when no other topic asks its question.",
+  "A narrower audience, a different product or a comparison is a different question, and so is a thing's price against the thing itself.",
+  "Two wordings of one price are the same question: 'acme pricing', 'acme cost' and 'how much is acme' are one.",
+].join(" ");
 
 /**
  * `search → sameAs`, by `queryKey`, for each of `searches` the model judged
- * to ask the same question as one of `topics`. No call where there is
+ * to ask the same question as another of `topics`. No call where there is
  * nothing to compare.
+ *
+ * The topics are shown by index and a search is never offered itself (issue
+ * 1208): shown as two lists of strings, the model paired every search with
+ * its own copy among the topics — ten pairs on reachkit.app's pass of
+ * 2026-10-03, all dropped — and "meltwater pricing" and "meltwater cost"
+ * both became pages.
  */
 export async function judgeSameQuestion(
   c: CostContext,
   a: { searches: readonly string[]; topics: readonly string[] }
 ): Promise<ReadonlyMap<string, string>> {
-  const searches = [...new Set(a.searches.map(queryKey))];
-  const topics = [...new Set([...a.topics, ...a.searches].map(queryKey))];
+  const asked = new Set(a.searches.map(queryKey));
+  const topics = [...new Set([...a.searches, ...a.topics].map(queryKey))];
   const judged = new Map<string, string>();
-  if (searches.length === 0 || topics.length < 2) return judged;
+  if (asked.size === 0 || topics.length < 2) return judged;
 
   const answer = await llm(c, {
     site: SAME_QUESTION_CALL_SITE,
     input: {
-      task: "For each search in `searches`, name the one search in `topics` that asks the same question in different words, so that one page answers both. Leave a search out when no topic asks its question. A narrower audience, a different product, a price or a comparison is a different question.",
-      searches,
-      topics,
+      task: TASK,
+      topics: topics.map((search, i) => (asked.has(search) ? { i, search, ask: true } : { i, search })),
     },
     schema: SAME_QUESTION_SCHEMA,
     tier: "haiku",
   });
   if (answer.kind === "unmeasured") return judged;
 
-  const shown = new Set(topics);
-  const asked = new Set(searches);
   for (const pair of answer.value.pairs) {
-    const [search, sameAs] = [queryKey(pair.search), queryKey(pair.sameAs)];
-    if (asked.has(search) && shown.has(sameAs) && search !== sameAs) judged.set(search, sameAs);
+    const [search, sameAs] = [topics[pair.i], topics[pair.sameAs]];
+    if (search !== undefined && sameAs !== undefined && search !== sameAs && asked.has(search)) judged.set(search, sameAs);
   }
   return judged;
 }
