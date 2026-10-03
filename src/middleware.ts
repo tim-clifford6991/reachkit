@@ -402,10 +402,10 @@ function isHostedEdgeHost(req: NextRequest): boolean {
  * ReachKit address is decided from the allow-list and the cookie with no
  * await on the way, exactly as before.
  *
- * **Bounded, and fails towards rendering.** A read that is slow or that
- * throws rewrites to the page, which answers 404 when it finds none. A 410
- * asserts that a page was taken down; it is never something to say because
- * a query was slow. The failure direction is safe in the one case that
+ * **Bounded, and fails towards rendering.** A read that outlasts
+ * `HOSTED_READ_DEADLINE_MS` or that throws rewrites to the page, which
+ * answers 404 when it finds none. A 410 asserts that a page was taken
+ * down; it is never something to say because a query was slow. The failure direction is safe in the one case that
  * matters: the page route resolves the Host again for itself, so a
  * departed customer's address that missed this deadline answers 404 —
  * never their page.
@@ -419,7 +419,10 @@ async function hostedRewrite(req: NextRequest, forwarded: Headers): Promise<Next
   let answer: "gone" | "page" = "page";
   try {
     const { hostedAnswer } = await import("@/app/(hosted)/edge");
-    answer = await withDeadline(hostedAnswer(req.headers.get("host") ?? "", pathname));
+    answer = await withDeadline(
+      hostedAnswer(req.headers.get("host") ?? "", pathname),
+      HOSTED_READ_DEADLINE_MS
+    );
   } catch {
     answer = "page";
   }
@@ -539,6 +542,16 @@ function isPublic(pathname: string): boolean {
 // against a healthy indexed lookup on a tiny table, short against a
 // visitor waiting for a page.
 const REMOVAL_READ_DEADLINE_MS = 800;
+
+// How long the hosted edge's reads may take before the address renders
+// anyway (issue 1194). Its own bound, not the removal read's: that one is a
+// single lookup, and this is the host, the customer's serving state and the
+// address — three round trips, on a connection a cold function has not
+// opened yet. At 800 ms a crawler's first request after a quiet spell missed
+// it and a taken-down page answered 404 where SPEC §7 promises 410. It only
+// bounds: a healthy read returns as soon as it has its answer, so a live
+// page waits no longer than before.
+const HOSTED_READ_DEADLINE_MS = 3000;
 
 // How long Supabase may take to verify a session (#468) before the request
 // is treated as signed out. Local for the same reason as the one above: it

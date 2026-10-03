@@ -33,7 +33,7 @@ import {
   readDescription,
   readFaq,
   tags,
-  wasEverLive,
+  hostedAddressState,
 } from "@/lib/publish/destinations/hosted";
 import type { Publication } from "@/lib/publish/types";
 
@@ -308,7 +308,7 @@ describe("live is one predicate, and every reader shares it", () => {
     db.rows("publications")[0]!.unpublished_at = "2026-09-02T00:00:00.000Z";
     expect(await livePagesForSite("site-1", "content.example.com")).toEqual([]);
     expect(await livePageBySlug("site-1", "a-page", "content.example.com")).toBeNull();
-    expect(await wasEverLive("site-1", "a-page")).toBe(true);
+    expect(await hostedAddressState("site-1", "a-page")).toBe("retired");
   });
 
   it("another site's pages are never returned", async () => {
@@ -318,7 +318,16 @@ describe("live is one predicate, and every reader shares it", () => {
 
   it("a slug that never served a page is not `gone` — it was never there", async () => {
     seedOnePublishedPage();
-    expect(await wasEverLive("site-1", "never-published")).toBe(false);
+    expect(await hostedAddressState("site-1", "never-published")).toBe("none");
+  });
+
+  it("a slug published again after a takedown is live, not `gone`", async () => {
+    seedOnePublishedPage();
+    db.seed("publications", [
+      { ...db.rows("publications")[0]!, id: "pub-0", unpublished_at: "2026-08-30T00:00:00.000Z" },
+      db.rows("publications")[0]!,
+    ]);
+    expect(await hostedAddressState("site-1", "a-page")).toBe("live");
   });
 });
 

@@ -400,23 +400,48 @@ export async function livePageBySlug(
   return pages.find((page) => page.slug === slug) ?? null;
 }
 
+/** What one address on a site's host is: serving a page now, retired from
+ *  serving one, or neither. */
+export type HostedAddressState = "live" | "retired" | "none";
+
 /**
- * Whether this site has ever served a page at this slug and has stopped.
+ * Whether this site serves a page at this slug, served one and has
+ * stopped, or neither — the 410's own fact, in one read.
  *
- * The 410's own fact. `unpublished_at` is the whole test: an address that
- * served a page and no longer does is `Gone`, and an address that never
- * served one is not — it is a 404, and answering 410 for it would be a
- * claim about a page that never existed.
+ * **One narrow read, because it runs before routing on every request to a
+ * customer's host** (issue 1194). It selects three short columns and no
+ * relationship, so it costs one round trip however long the site's pages
+ * are. The read it replaced was the whole page list, bodies and all,
+ * followed by a second query, and on a cold function the pair outlasted
+ * the caller's deadline — a taken-down address then answered 404.
+ *
+ * **Live comes first**, by `livePagesForSite`'s own predicate: a slug that
+ * was unpublished and later published again is live, and the `unpublished`
+ * rows behind it are history. `retired` is `unpublished_at` and nothing
+ * else: an address that never served a page is `none` — a 404, and
+ * answering 410 for it would be a claim about a page that never existed.
+ *
+ * **A read that fails is `none`.** No answer is not a takedown.
  */
-export async function wasEverLive(siteId: string, slug: string): Promise<boolean> {
+export async function hostedAddressState(
+  siteId: string,
+  slug: string
+): Promise<HostedAddressState> {
   const { data, error } = await publishDb()
-    .from<{ live_url: string | null }>("publications")
-    .select("live_url")
+    .from<{ live_url: string | null; published_at: string | null; unpublished_at: string | null }>(
+      "publications"
+    )
+    .select("live_url, published_at, unpublished_at")
     .eq("site_id", siteId)
-    .eq("destination", "hosted")
-    .not("unpublished_at", "is", null);
-  if (error !== null || data === null) return false;
-  return data.some((row) => row.live_url !== null && slugOf(row.live_url) === slug);
+    .eq("destination", "hosted");
+  if (error !== null || data === null) return "none";
+  let retired = false;
+  for (const row of data) {
+    if (row.live_url === null || slugOf(row.live_url) !== slug) continue;
+    if (row.unpublished_at !== null) retired = true;
+    else if (row.published_at !== null) return "live";
+  }
+  return retired ? "retired" : "none";
 }
 
 /**

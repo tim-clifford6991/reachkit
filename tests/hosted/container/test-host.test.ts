@@ -31,8 +31,8 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     },
     livePagesForSite: async () => [],
     livePageBySlug: async () => null,
-    wasEverLive: async (siteId: string, slug: string) =>
-      (everLive.get(siteId) ?? []).includes(slug),
+    hostedAddressState: async (siteId: string, slug: string) =>
+      (everLive.get(siteId) ?? []).includes(slug) ? "retired" : "none",
   };
 });
 

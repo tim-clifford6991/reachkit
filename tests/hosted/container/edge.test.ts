@@ -3,7 +3,7 @@
 // The hosted edge's rewrite: which destination an address on a `content.`
 // host reaches, and — the property the rewrite exists for — that no path on
 // a customer's own domain can reach a ReachKit screen.
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import "../../scan/run/harness";
 
@@ -13,6 +13,8 @@ const sites = new Map<string, string>();
 const live = new Map<string, string[]>();
 const everLive = new Map<string, string[]>();
 const serving = new Map<string, { serve: boolean; because?: string }>();
+/** How long the address read takes — nothing, unless a test says otherwise. */
+const addressRead = { wait: async (): Promise<void> => {} };
 
 vi.mock("@/lib/publish/destinations/hosted", async () => {
   const address = await import("@/lib/publish/destinations/hosted/address");
@@ -32,8 +34,12 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     livePagesForSite: async () => [],
     livePageBySlug: async (siteId: string, slug: string) =>
       (live.get(siteId) ?? []).includes(slug) ? { slug } : null,
-    wasEverLive: async (siteId: string, slug: string) =>
-      (everLive.get(siteId) ?? []).includes(slug),
+    // Live first, as the store answers it: a re-published slug is live.
+    hostedAddressState: async (siteId: string, slug: string) => {
+      await addressRead.wait();
+      if ((live.get(siteId) ?? []).includes(slug)) return "live";
+      return (everLive.get(siteId) ?? []).includes(slug) ? "retired" : "none";
+    },
   };
 });
 
@@ -58,6 +64,7 @@ beforeEach(() => {
   live.clear();
   everLive.clear();
   serving.clear();
+  addressRead.wait = async () => {};
   sites.set("example.com", "site-1");
   live.set("site-1", ["a-page"]);
   everLive.set("site-1", ["taken-down"]);
@@ -163,6 +170,30 @@ describe("410 rather than 404, and only where a page was actually taken down", (
   });
 });
 
+describe("a cold function's slow read (issue 1194)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("a taken-down address still answers 410 when the read takes over a second", async () => {
+    // The first request to a cold function: the read was correct and late,
+    // and the address answered 404 — "never existed" — to a crawler.
+    vi.useFakeTimers();
+    addressRead.wait = () => new Promise((resolve) => setTimeout(resolve, 1500));
+    const response = middleware(requestTo("/taken-down", "content.example.com"));
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(rewrittenTo(await response)).toBe("/hosted-gone");
+  });
+
+  it("a read that never answers renders — it is never a 410 on a guess", async () => {
+    vi.useFakeTimers();
+    addressRead.wait = () => new Promise(() => {});
+    const response = middleware(requestTo("/taken-down", "content.example.com"));
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(rewrittenTo(await response)).toBe("/hosted-page/taken-down");
+  });
+});
+
 describe("the runtime this file is built for", () => {
   it("middleware runs on Node.js, because the hosted edge asks a question the Edge runtime cannot carry", async () => {
     // `hostedServingState` is reached through `@/lib/account/billing` —
@@ -185,7 +216,7 @@ describe("the decision itself", () => {
 
   it("it fails towards rendering, never towards a 410", async () => {
     const hosted = await import("@/lib/publish/destinations/hosted");
-    const spy = vi.spyOn(hosted, "livePageBySlug").mockRejectedValue(new Error("unreachable"));
+    const spy = vi.spyOn(hosted, "hostedAddressState").mockRejectedValue(new Error("unreachable"));
     try {
       await expect(hostedAnswer("content.example.com", "/taken-down")).resolves.toBe("page");
     } finally {

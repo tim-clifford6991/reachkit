@@ -109,6 +109,6 @@ export async function hostedModuleMock(
     livePageBySlug: async (_siteId: string, slug: string) =>
       slug === HOSTED_SWEEP_SLUG ? HOSTED_SWEEP_PAGE : null,
     livePagesForSite: async () => [HOSTED_SWEEP_PAGE],
-    wasEverLive: async () => false,
+    hostedAddressState: async () => "none",
   };
 }
