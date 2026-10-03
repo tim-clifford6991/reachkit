@@ -29,7 +29,7 @@ const {
   nextForDayMock,
   withCostContextMock,
   queueForDraftMock,
-  releaseForDraftMock,
+  restTopicMock,
   transitionMock,
 } = vi.hoisted(() => ({
   llmMock: vi.fn(),
@@ -37,7 +37,7 @@ const {
   nextForDayMock: vi.fn(),
   withCostContextMock: vi.fn(),
   queueForDraftMock: vi.fn(),
-  releaseForDraftMock: vi.fn(),
+  restTopicMock: vi.fn(),
   transitionMock: vi.fn(),
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
@@ -56,7 +56,7 @@ vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async (
 vi.mock("@/lib/opportunities", () => ({
   nextForDay: nextForDayMock,
   queueForDraft: queueForDraftMock,
-  releaseForDraft: releaseForDraftMock,
+  restTopic: restTopicMock,
   opportunityById: async () => null,
   sitePagesFor: async () => [],
   assessFixPages: async () => ({ done: 0, ready: 0 }),
@@ -105,7 +105,7 @@ beforeEach(async () => {
   readMeasuredTextMock.mockReset();
   nextForDayMock.mockReset();
   queueForDraftMock.mockReset();
-  releaseForDraftMock.mockReset();
+  restTopicMock.mockReset();
   transitionMock.mockReset();
   transitionMock.mockImplementation(async (draftId: string, to: string) => {
     const row = store.rows.get(draftId);
@@ -194,7 +194,7 @@ describe("SPEC §7 (2026-09-15, issue 712) — a written draft queues its opport
     expect(queueForDraftMock.mock.calls).toEqual([[opportunity().id]]);
   });
 
-  it("a draft the battery stopped twice rests in needs_attention and holds its opportunity queued (#788, issue 833)", async () => {
+  it("a draft the battery stopped twice rests in needs_attention and its topic rests, not queued (#788, D26)", async () => {
     queueAttempt("Example wins everything, and always has.");
     queueAttempt("Example wins everything, again, and always.");
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
@@ -207,8 +207,8 @@ describe("SPEC §7 (2026-09-15, issue 712) — a written draft queues its opport
       { kind: "system", job: "draft/generate" },
       { reason: expect.stringMatching(/^rules:.+/) }
     );
-    expect(queueForDraftMock.mock.calls).toEqual([[opportunity().id]]);
-    expect(releaseForDraftMock).not.toHaveBeenCalled();
+    expect(queueForDraftMock).not.toHaveBeenCalled();
+    expect(restTopicMock.mock.calls).toEqual([[opportunity().id, expect.any(Date)]]);
   });
 
   it("a run that wrote no draft leaves the opportunity open for the next evening", async () => {

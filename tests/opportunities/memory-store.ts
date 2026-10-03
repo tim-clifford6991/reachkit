@@ -298,11 +298,14 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       state.statusChangedAt.set(row.id, state.now);
     },
 
-    async markOpen(opportunityId) {
+    async rest(opportunityId, until) {
       const row = state.rows.find((r) => r.id === opportunityId);
-      if (row === undefined || row.status !== "queued") return;
+      if (row === undefined || (row.status !== "open" && row.status !== "queued")) return;
+      if (row.status !== "open") state.statusChangedAt.set(row.id, state.now);
       row.status = "open";
-      state.statusChangedAt.set(row.id, state.now);
+      row.rest_until = until.toISOString();
+      row.ready = false;
+      row.unready_reason = "resting";
     },
 
     async hostedHostFor() {

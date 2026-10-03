@@ -32,6 +32,10 @@
 // can update only a page ReachKit itself published there (a new version at
 // the same address); WordPress updates any page of the site, as before.
 //
+// And SPEC §7's rest (D26, issue 1179): a topic whose draft was stopped for
+// the last time, or skipped, is `resting` until its `restUntil` — whatever
+// else is true of it (`isResting`, read by both assessments).
+//
 // The Fix family keeps its own predicate (`fixPageReadiness`): its readiness
 // is a question about the destination, not about the market.
 import { FORMAT_PAGE_ALLOWED, KEYWORD_PAGE_MIN_VOLUME, TOPIC_FIT } from "@/lib/config/constants";
@@ -41,7 +45,7 @@ import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import type { StoredReport } from "@/lib/scan/report";
 import { addressesOwnPage, type HostedOwnPages } from "@/lib/publish/destinations/hosted/own-page";
 import { opportunityStore, readOpportunity } from "./store";
-import { OUTSIZED, qualifiesForADay, type Winnability } from "./types";
+import { isResting, OUTSIZED, qualifiesForADay, type Winnability } from "./types";
 import { demandBand } from "./winnability/band";
 import { difficultyCeiling } from "./winnability/bars";
 import { NO_EARN_GROUNDING, type EarnGrounding } from "./earn-grounding";
@@ -268,8 +272,14 @@ async function coveredTopics(
  */
 export async function assessReadiness(
   siteId: string,
-  a: { at: Date }
+  a: {
+    at: Date;
+    /** The clock a topic's rest is read against. `at` is the report's own
+     *  moment on the evening run, which can be a week old. */
+    now?: Date;
+  }
 ): Promise<{ ready: number; unready: number }> {
+  const now = a.now ?? new Date();
   const store = opportunityStore();
   const rows = await store.openRankable(siteId);
   if (rows.length === 0) return { ready: 0, unready: 0 };
@@ -312,7 +322,7 @@ export async function assessReadiness(
     const band = ownRanked === null ? null : rebandFor(stored, ownRanked);
     if (band !== null && band !== stored.fitBand) await store.setFitBand(stored.id, band);
     const opportunity = band === null ? stored : { ...stored, fitBand: band };
-    const reason = opportunityReady(opportunity, ctx);
+    const reason = isResting(stored, now) ? "resting" : opportunityReady(opportunity, ctx);
     if (reason === null) ready += 1;
     if (stored.ready !== (reason === null) || stored.unreadyReason !== reason) {
       await store.setReadiness(opportunity.id, reason);

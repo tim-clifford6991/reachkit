@@ -91,6 +91,10 @@ export interface DraftPatch {
    *  fact about what the rules decided, and the engine that decided them
    *  is the only one that may assert it. */
   hard_rules_passed?: boolean;
+  /** SPEC §7 (D26, issue 1179): only ever set to `null`, and only on a row
+   *  the generator stopped — the stopped draft keeps its row and gives up
+   *  its date, so the same run can write the next topic for it. */
+  scheduled_for?: null;
 }
 
 /** The site fields generation reads. `voiceText` is carried to the prompt
@@ -145,7 +149,9 @@ export interface GenerateStore {
   clusterPages(siteId: string, clusterKey: string): Promise<ClusterPage[]>;
   /** Whether the site already holds a draft for this calendar date, in any
    *  state. A date has at most one asset (SPEC §7), and both the first
-   *  draft's kickoff and the evening tick can ask for the same date. */
+   *  draft's kickoff and the evening tick can ask for the same date. A
+   *  stopped draft the run moved on from carries no date (D26, issue 1179)
+   *  and is not counted. */
   draftOnDate(siteId: string, date: string): Promise<boolean>;
   /** Drafts on these sites the customer restarted — `needs_attention →
    *  generating`, the last move on the row — that no run has regenerated

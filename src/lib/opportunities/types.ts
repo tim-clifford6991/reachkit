@@ -326,7 +326,11 @@ export type UnreadyReason =
    *  Where the destination *can* publish to it the row is not this: it was
    *  derived as the update itself. */
   | "already_covered"
-  | "low_fit";
+  | "low_fit"
+  /** SPEC §7 (D26, issue 1179): the generator stopped this topic's draft for
+   *  the last time, or the founder skipped that draft, and the topic rests
+   *  until `restUntil`. */
+  | "resting";
 
 export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([
   "not_assessed",
@@ -339,6 +343,7 @@ export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([
   "destination_cannot_address",
   "already_covered",
   "low_fit",
+  "resting",
 ]);
 
 export interface Opportunity {
@@ -383,6 +388,9 @@ export interface Opportunity {
    *  decided it; exactly one of these two carries the answer. */
   ready: boolean;
   unreadyReason: UnreadyReason | null;
+  /** SPEC §7 (D26, issue 1179): the moment a rested topic may fill a day
+   *  again. Absent or past: it is not resting. */
+  restUntil?: Date | null;
   createdAt: Date;
 }
 
@@ -413,4 +421,9 @@ export function addRejections(a: RejectionCount, b: RejectionCount): RejectionCo
 export interface Ranked {
   opportunityId: string;
   score: number;
+}
+
+/** Whether a rested topic is still inside its rest at `now` (SPEC §7, D26). */
+export function isResting(o: Pick<Opportunity, "restUntil">, now: Date): boolean {
+  return o.restUntil != null && now.getTime() < o.restUntil.getTime();
 }

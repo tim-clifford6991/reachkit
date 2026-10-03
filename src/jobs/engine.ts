@@ -389,7 +389,7 @@ export async function generateDraft(a: {
   readonly now: Date;
 }): Promise<EngineResult> {
   const { generateDayPage } = await import("@/lib/generate");
-  const outcome = await generateDayPage({ siteId: a.siteId, publishDate: a.publishDate });
+  const outcome = await generateDayPage({ siteId: a.siteId, publishDate: a.publishDate, now: a.now });
   // A date that already holds its draft is a day already done, not a
   // degraded tick.
   if (!outcome.ok && outcome.because === "already_drafted") return { done: true };
@@ -414,7 +414,7 @@ export async function regenerateDraft(a: {
   readonly now: Date;
 }): Promise<EngineResult> {
   const { regenerateRestarted } = await import("@/lib/generate");
-  return reviewWritten(await regenerateRestarted({ siteId: a.siteId, draftId: a.draftId }), a.now);
+  return reviewWritten(await regenerateRestarted({ siteId: a.siteId, draftId: a.draftId, now: a.now }), a.now);
 }
 
 async function reviewWritten(

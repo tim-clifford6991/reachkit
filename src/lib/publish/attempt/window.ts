@@ -40,6 +40,7 @@
 // keeps a page nobody told about in review, where the customer can still
 // see and stop it.
 import { VETO } from "@/lib/config/constants";
+import { localClock } from "@/lib/scan/weekly/week";
 import { publishDb } from "../db";
 import { machineDraftFor, transition } from "../machine";
 import { becomesPublishable } from "../publishable/predicate";
@@ -118,12 +119,40 @@ export async function enterReview(a: { draftId: string; at: Date; by?: Actor }):
     throw new Error(`publish/window: could not stamp the veto deadline: ${stamped.error.message}`);
   }
 
+  await takeDate(a.draftId, localClock(deadline, draft.governing.timezone ?? "UTC").date);
+
   const moved = await transition(a.draftId, "in_review", by, { at: a.at });
   if (!moved.ok) return { kind: "not_entered", reason: "moved" };
 
   const { sendDraftReadyMail } = await import("@/lib/mail/draft-ready");
   const told = await sendDraftReadyMail({ draftId: a.draftId, destination: destination.kind, at: a.at });
   return told.sent ? { kind: "told" } : { kind: "untold", reason: told.reason };
+}
+
+const MS_PER_DAY = 24 * MS_PER_HOUR;
+const UNIQUE_VIOLATION = "23505";
+
+/**
+ * SPEC §7 (D26, issue 1179): a stopped draft the run moved on from gave its
+ * date to the page written in its place. Rewritten or edited until it
+ * passes, it takes the first date no page of the site holds, from the day
+ * its window ends. A row that carries a date keeps it: the update matches
+ * no row.
+ */
+async function takeDate(draftId: string, from: string): Promise<void> {
+  const start = Date.parse(`${from}T00:00:00.000Z`);
+  for (let day = 0; day < 31; day++) {
+    const date = new Date(start + day * MS_PER_DAY).toISOString().slice(0, 10);
+    const taken = await publishDb()
+      .from<{ id: string }>("drafts")
+      .update({ scheduled_for: date })
+      .eq("id", draftId)
+      .is("scheduled_for", null);
+    if (taken.error === null) return;
+    if (taken.error.code !== UNIQUE_VIOLATION) {
+      throw new Error(`publish/window: could not date the page: ${taken.error.message}`);
+    }
+  }
 }
 
 interface WaitingRow {

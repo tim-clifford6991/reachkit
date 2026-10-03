@@ -64,7 +64,7 @@ export function draftActionsFor(page: DraftStanding): readonly DraftAction[] {
     actions.push({ key: "draft.action.veto", kind: "command", command: "veto" });
   } else if (stop === "skip" && state === "needs_attention") {
     // A planned page has no draft to open; Skip on this screen is the
-    // stopped page's (#833: "Skip releases the opportunity").
+    // stopped page's (D26, issue 1179: Skip rests its topic for 28 days).
     actions.push({ key: "calendar.action.skip", kind: "command", command: "skip" });
   }
 

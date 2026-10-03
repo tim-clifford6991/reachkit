@@ -10,6 +10,7 @@ import type { Candidate } from "../../src/lib/opportunities/derive/candidate";
 import { opportunityReady, type ReadinessContext } from "../../src/lib/opportunities/readiness";
 import { rankOpen } from "../../src/lib/opportunities/rank/open";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
+import { restTopic } from "../../src/lib/opportunities/drafted";
 import { supplyDepth } from "../../src/lib/opportunities/supply/depth";
 import { assessReadiness, canUpdateFrom } from "../../src/lib/opportunities/readiness";
 import type { Opportunity } from "../../src/lib/opportunities/types";
@@ -345,6 +346,21 @@ describe("supply and next-work see only ready rows, in Improve > Earn > Write or
     await assessReadiness(SITE_ID, { at: AT });
     expect((await rankOpen(SITE_ID)).map((r) => r.opportunityId)).toEqual(["keyword", "improve", "answer"]);
     expect((await supplyDepth(SITE_ID)).unused).toBe(3);
+  });
+
+  it("a rested topic is not a day of supply until its 28 days are over, then ranks again (D26)", async () => {
+    state.rows.push(
+      row({ id: "rested", family: "write", type: "answer_page", target_query: "what is a product tour", status: "queued" }),
+      row({ id: "improve", family: "improve", type: "expand_page", target_query: "user onboarding checklist", volume: 20 })
+    );
+    await restTopic("rested", AT);
+    const day = 86_400_000;
+    await assessReadiness(SITE_ID, { at: AT, now: new Date(AT.getTime() + 27 * day) });
+    expect(state.rows[0]).toMatchObject({ status: "open", ready: false, unready_reason: "resting" });
+    expect((await rankOpen(SITE_ID)).map((r) => r.opportunityId)).toEqual(["improve"]);
+
+    await assessReadiness(SITE_ID, { at: AT, now: new Date(AT.getTime() + 28 * day) });
+    expect((await rankOpen(SITE_ID)).map((r) => r.opportunityId)).toEqual(["improve", "rested"]);
   });
 
   it("a site whose pages ground no fact has zero supply", async () => {

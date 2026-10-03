@@ -751,7 +751,12 @@ describe("a cold-start site is offered right-sized questions, reachable rivals a
       // ── Write opportunities follow: at least one ready, winnable or reach.
       const writes = db
         .rows("opportunities")
-        .filter((row) => row.site_id === SITE_ID && row.family === "write" && row.ready === true);
+        // The pass's first-draft kickoff has no model here, so its page is
+        // stopped and the target derivation made ready now rests (D26).
+        .filter(
+          (row) =>
+            row.site_id === SITE_ID && row.family === "write" && (row.ready === true || row.unready_reason === "resting")
+        );
       expect(writes.length).toBeGreaterThanOrEqual(1);
       for (const row of writes) expect(["winnable", "reach"]).toContain(row.fit_band);
       // No SERP carries an AI Overview; ChatGPT and AI Mode cite the small

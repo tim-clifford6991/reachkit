@@ -88,7 +88,7 @@ export async function generatePageFix(
   a: {
     siteId: string;
     opportunity: Opportunity;
-    scheduledFor: string;
+    scheduledFor: string | null;
     domain: string;
     doNotClaim: readonly string[];
     voiceText: string | null;

@@ -9,22 +9,24 @@
 //
 // A published page's row keeps what the weekly verdict already does to it
 // (`markDone` on an acceptance test that passed). A draft the generator
-// stopped for the last time rests in `needs_attention` and counts as queued
-// (owner, 2026-09-17, issue 833): its row stays `queued`, so the evening
-// does not write a second page for the same target. The founder resolves
-// it — Regenerate keeps the one row; Skip releases the row back to `open`.
+// stopped for the last time rests in `needs_attention`, and its topic rests
+// with it (owner, D26, 2026-10-02, issue 1179; rewrites issue 833): the row
+// is `open` and not ready for `TOPIC_REST_DAYS`, so the next evening ranks
+// another topic instead of failing the same one. The founder resolves the
+// draft — a rewrite or an edit that passes queues the row as any written
+// draft does; Skip rests the topic from that day.
 //
 // A page drafted folds its open repeats (#1181, SPEC §6 2026-10-02): every
 // open Write or Earn row that is the same topic as it — by the stored top
 // tens, the cluster key or a search it absorbed — is dismissed and its
 // search absorbed into the page's row. The next evening ranks what is left,
 // so a week never drafts one question twice in other words.
+import { TOPIC_REST_DAYS } from "@/lib/config/constants";
 import { nearRepeatsOf } from "./cluster";
 import { opportunityStore, readOpportunity } from "./store";
 
-/** A draft now exists for this opportunity — written, or stopped and
- *  resting in `needs_attention` (issue 833): it leaves the open set, and
- *  takes its open repeats with it. */
+/** A draft that passed now exists for this opportunity: it leaves the open
+ *  set, and takes its open repeats with it. */
 export async function queueForDraft(opportunityId: string): Promise<void> {
   const store = opportunityStore();
   await store.markQueued(opportunityId);
@@ -52,9 +54,12 @@ export async function dismissForVeto(opportunityId: string): Promise<void> {
   await opportunityStore().markDismissed(opportunityId);
 }
 
-/** The founder skipped a draft the generator stopped (issue 833): the
- *  target was never refused, only the page, so the row goes back to the
- *  open set. Only `queued` moves. */
-export async function releaseForDraft(opportunityId: string): Promise<void> {
-  await opportunityStore().markOpen(opportunityId);
+const MS_PER_DAY = 86_400_000;
+
+/** SPEC §7 (D26, issue 1179): the generator stopped this topic's draft for
+ *  the last time, or the founder skipped that draft. The target was never
+ *  refused, only the page, so the row stays on file — and is not offered
+ *  for a day again until the rest is over. */
+export async function restTopic(opportunityId: string, at: Date): Promise<void> {
+  await opportunityStore().rest(opportunityId, new Date(at.getTime() + TOPIC_REST_DAYS * MS_PER_DAY));
 }
