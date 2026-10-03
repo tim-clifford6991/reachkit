@@ -764,6 +764,12 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.job-stale": ["A scheduled job has not run for more than twice its usual interval.", { slots: {}, fixedBy: "issue 799" }],
   "mail.ops.incident.fact.last-run": ["Last run", { slots: {}, fixedBy: "issue 799" }],
   "mail.ops.incident.fact.interval": ["Runs every (minutes)", { slots: {}, fixedBy: "issue 799" }],
+  // Issue 1187: a draft the writing rules stopped twice (owner, D27).
+  "mail.ops.incident.draft-stopped-twice": ["The writing rules stopped a page twice, so it was not published. Read the sentences below and decide whether the page or the rule is wrong.", { slots: {}, fixedBy: "issue 1187" }],
+  "mail.ops.incident.fact.site": ["Site", { slots: {}, fixedBy: "issue 1187" }],
+  "mail.ops.incident.fact.draft": ["Draft", { slots: {}, fixedBy: "issue 1187" }],
+  "mail.ops.incident.fact.rule": ["Rule", { slots: {}, fixedBy: "issue 1187" }],
+  "mail.ops.incident.fact.sentence": ["Sentence", { slots: {}, fixedBy: "issue 1187" }],
 
   // ── SPEC §8, Retention (issue 569). Owner-owed: the copy sheet is issue
   // 568. `sendEmail` refuses a mail that still carries the marker, so none of

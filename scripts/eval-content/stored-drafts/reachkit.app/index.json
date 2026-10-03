@@ -1,0 +1,198 @@
+{
+  "domain": "reachkit.app",
+  "readOn": "2026-10-03",
+  "rivals": ["aeoengine.ai", "meltwater.com"],
+  "doNotClaim": [],
+  "drafts": [
+    {
+      "file": "01-290d12ba.md",
+      "created": "2026-09-18",
+      "state": "needs_attention",
+      "type": "answer_page",
+      "query": "best seo software",
+      "absorbed": [],
+      "title": "Best SEO Software",
+      "factUrl": "https://reachkit.app/pricing",
+      "grounded": "Pricing — ReachKit, €49 a month ReachKit Sign in Free scan Start ReachKit One plan.",
+      "facts": null,
+      "recorded": ["no_private_figure", "no_unsourced_testimonial", "brand_gap"]
+    },
+    {
+      "file": "02-1aa3e4bb.md",
+      "created": "2026-09-19",
+      "state": "needs_attention",
+      "type": "listed_page",
+      "query": "best ai seo software",
+      "absorbed": [],
+      "title": "Best AI SEO Software",
+      "factUrl": "https://reachkit.app/pricing",
+      "grounded": "Pricing — ReachKit, €49 a month ReachKit Sign in Free scan Start ReachKit One plan.",
+      "facts": null,
+      "recorded": ["no_private_figure", "brand_gap"]
+    },
+    {
+      "file": "03-1aadd832.md",
+      "created": "2026-09-20",
+      "state": "unpublished",
+      "type": "listed_page",
+      "query": "best seo software review",
+      "absorbed": ["best google seo tools", "best seo software for small business", "free seo optimization software", "free seo software", "seo software comparison", "seo software tool"],
+      "title": "Best SEO Software Review",
+      "factUrl": "https://reachkit.app/pricing",
+      "grounded": "Pricing — ReachKit, €49 a month ReachKit Sign in Free scan Start ReachKit One plan.",
+      "facts": null,
+      "recorded": []
+    },
+    {
+      "file": "04-b9de6399.md",
+      "created": "2026-09-21",
+      "state": "unpublished",
+      "type": "listed_page",
+      "query": "what is the best seo software",
+      "absorbed": [],
+      "title": "Best SEO Software",
+      "factUrl": "https://reachkit.app/",
+      "grounded": "▲ every week Searches you appear in 128 1 · 12 1 · 12 2 · 31 2 · 31 3 · 44 3 · 44 4 · 61 4 · 61 5 · 96 5 · 96 6 · 128 6 · 128 Discoverability Score 62 ▲ 8 AI answers 2 /12 Pages published 17 Demo video coming soon.",
+      "facts": null,
+      "recorded": []
+    },
+    {
+      "file": "05-07ee19c4.md",
+      "created": "2026-09-22",
+      "state": "needs_attention",
+      "type": "listed_page",
+      "query": "seo ai software",
+      "absorbed": ["ai tool seo", "best seo ai"],
+      "title": "What SEO software uses AI?",
+      "factUrl": "https://reachkit.app/signin",
+      "grounded": "example.com Discoverability Score +6 pts est.",
+      "facts": [
+        "example.com Discoverability Score +6 pts est.",
+        "Pricing — ReachKit, €49 a month ReachKit Sign in Free scan Start ReachKit One plan.",
+        "▲ every week Searches you appear in 128 1 · 12 1 · 12 2 · 31 2 · 31 3 · 44 3 · 44 4 · 61 4 · 61 5 · 96 5 · 96 6 · 128 6 · 128 Discoverability Score 62 ▲ 8 AI answers 2 /12 Pages published 17 Demo video coming soon."
+      ],
+      "recorded": ["no_private_figure", "no_unsourced_testimonial", "page_frame"]
+    },
+    {
+      "file": "06-4978ae38.md",
+      "created": "2026-09-23",
+      "state": "unpublished",
+      "type": "listed_page",
+      "query": "best free software for seo",
+      "absorbed": [],
+      "title": "Best Free Software for SEO",
+      "factUrl": "https://reachkit.app/pricing",
+      "grounded": "Pricing — ReachKit, €49 a month ReachKit Sign in Free scan Start ReachKit One plan.",
+      "facts": [
+        "Pricing — ReachKit, €49 a month ReachKit Sign in Free scan Start ReachKit One plan.",
+        "▲ every week Searches you appear in 128 1 · 12 1 · 12 2 · 31 2 · 31 3 · 44 3 · 44 4 · 61 4 · 61 5 · 96 5 · 96 6 · 128 6 · 128 Discoverability Score 62 ▲ 8 AI answers 2 /12 Pages published 17 Demo video coming soon."
+      ],
+      "recorded": []
+    },
+    {
+      "file": "07-82d6b624.md",
+      "created": "2026-09-24",
+      "state": "needs_attention",
+      "type": "listed_page",
+      "query": "seo software pricing",
+      "absorbed": [],
+      "title": "SEO Software Pricing",
+      "factUrl": "https://reachkit.app/signin",
+      "grounded": "example.com Discoverability Score +6 pts est.",
+      "facts": [
+        "example.com Discoverability Score +6 pts est.",
+        "Pricing — ReachKit, €49 a month ReachKit Sign in Free scan Start ReachKit One plan.",
+        "▲ every week Searches you appear in 128 1 · 12 1 · 12 2 · 31 2 · 31 3 · 44 3 · 44 4 · 61 4 · 61 5 · 96 5 · 96 6 · 128 6 · 128 Discoverability Score 62 ▲ 8 AI answers 2 /12 Pages published 17 Demo video coming soon."
+      ],
+      "recorded": ["page_frame"]
+    },
+    {
+      "file": "08-f9d1acd9.md",
+      "created": "2026-09-28",
+      "state": "needs_attention",
+      "type": "refresh_page",
+      "query": "best local seo software",
+      "absorbed": [],
+      "title": "Best Local SEO Software",
+      "factUrl": "https://reachkit.app/scans?cat=sustainable+shoes+and+apparel&sort=highest",
+      "grounded": "Free scans — every ReachKit report, in the open Free Every scan comes with your first page, proposed and free — see it at the end of your report.",
+      "facts": [
+        "Free scans — every ReachKit report, in the open Free Every scan comes with your first page, proposed and free — see it at the end of your report.",
+        "Scan my site ReachKit Why it matters How to start Free scans Pricing Copy link Sign in Start free Why it matters How to start Free scans Pricing Copy link Theme Sign in Loading… ReachKit © 2026 ReachKit.",
+        "Discoverability Score 47 / 100 +6 pts est."
+      ],
+      "recorded": ["brand_gap"]
+    },
+    {
+      "file": "09-3e3929f9.md",
+      "created": "2026-09-29",
+      "state": "needs_attention",
+      "type": "refresh_page",
+      "query": "best seo software review",
+      "absorbed": [],
+      "title": "What is the best SEO software?",
+      "factUrl": "https://reachkit.app/terms",
+      "grounded": "The subscription is €49 per month, VAT included, billed in advance through Stripe.",
+      "facts": [
+        "The subscription is €49 per month, VAT included, billed in advance through Stripe.",
+        "We ask AI your market’s 12 biggest questions every week and show which ones name you and which name a rival.",
+        "See what AI tells buyers about your market — and write your way in.",
+        "A page written and published for your site every day, your market re-measured every week."
+      ],
+      "recorded": ["no_private_figure", "brand_gap"]
+    },
+    {
+      "file": "10-c9eaf64f.md",
+      "created": "2026-09-30",
+      "state": "needs_attention",
+      "type": "refresh_page",
+      "query": "best free software for seo",
+      "absorbed": [],
+      "title": "Best Free Software for SEO",
+      "factUrl": "https://reachkit.app/",
+      "grounded": "We ask AI your market’s 12 biggest questions every week and show which ones name you and which name a rival.",
+      "facts": [
+        "We ask AI your market’s 12 biggest questions every week and show which ones name you and which name a rival.",
+        "A page written and published for your site every day, your market re-measured every week.",
+        "See what AI tells buyers about your market — and write your way in."
+      ],
+      "recorded": ["no_private_figure", "brand_gap"]
+    },
+    {
+      "file": "11-4fa9e7cf.md",
+      "created": "2026-10-01",
+      "state": "needs_attention",
+      "type": "listed_page",
+      "query": "seo content writing software",
+      "absorbed": [],
+      "title": "Best SEO Content Writing Software",
+      "factUrl": "https://reachkit.app/",
+      "grounded": "We ask AI your market’s 12 biggest questions every week and show which ones name you and which name a rival.",
+      "facts": [
+        "We ask AI your market’s 12 biggest questions every week and show which ones name you and which name a rival.",
+        "A page written and published for your site every day, your market re-measured every week.",
+        "See what AI tells buyers about your market — and write your way in.",
+        "By subscribing you ask us to begin at once — your site is measured the moment payment completes — and you acknowledge that once the service has been fully performed your statutory 14-day right of withdrawal ends."
+      ],
+      "recorded": ["no_private_figure", "first_block_answers"]
+    },
+    {
+      "file": "12-d28e1ac9.md",
+      "created": "2026-10-02",
+      "state": "published",
+      "type": "listed_page",
+      "query": "best answer engine optimization services for ai visibility",
+      "absorbed": [],
+      "title": "Best Answer Engine Optimization Services for AI Visibility",
+      "factUrl": "https://reachkit.app/",
+      "grounded": "See what AI tells buyers about your market — and write your way in.",
+      "facts": [
+        "See what AI tells buyers about your market — and write your way in.",
+        "A page written and published for your site every day, your market re-measured every week.",
+        "The subscription is €49 per month, VAT included, billed in advance through Stripe.",
+        "A free scan shows where AI answers and Google search send buyers to your rivals instead of you."
+      ],
+      "recorded": []
+    }
+  ]
+}

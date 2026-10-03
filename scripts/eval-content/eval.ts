@@ -268,8 +268,6 @@ export function prepare(
       domain,
       doNotClaim: snapshot.site?.doNotClaim ?? [],
       rivals,
-      report,
-      opportunities: [opportunity],
     },
     voiceText: snapshot.site?.voiceText ?? null,
     category: market.category,

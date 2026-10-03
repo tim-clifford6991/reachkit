@@ -28,7 +28,6 @@ import path from "node:path";
 import { CAPS, INFERENCE_MAX_OUTPUT_TOKENS, INFERENCE_PRICE_BOOK } from "@/lib/config/constants";
 import { generateDraft, type GenerateOutcome } from "@/lib/generate/pipeline";
 import { readRecordedRules, readRecordedVerdict } from "@/lib/generate/record";
-import { buildPrivateFigureRegister } from "@/lib/generate/rules/figures";
 import { HARD_RULES, type HardRule } from "@/lib/generate/rules/types";
 import { setGenerateStore } from "@/lib/generate/store";
 import { proofLedger, type ProofLedger } from "./cost";
@@ -123,11 +122,6 @@ function plan(opts: Options): void {
   for (const [index, target] of TARGETS.entries()) {
     console.log(`  ${index + 1}. ${target.search.padEnd(34)} ${target.type}`);
   }
-  const register = buildPrivateFigureRegister({
-    report: siteRuleInputs().report,
-    opportunities: siteRuleInputs().opportunities,
-  });
-  console.log(`\nprivate figures the battery holds against a draft (${register.length}): ${register.join(", ")}`);
   console.log(`output         ${opts.outDir} (gitignored)`);
   console.log(`publishes      nothing — the run writes files and stops\n`);
 }

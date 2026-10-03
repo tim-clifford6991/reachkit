@@ -532,7 +532,7 @@ export async function generateDraft(
     failed: outcome.failed,
     attempt,
     recovery,
-    fix: fixNotes(markdown, outcome.failed, briefRead),
+    fix: fixNotes(markdown, outcome.failed, briefRead, a.site),
   };
 }
 

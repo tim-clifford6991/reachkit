@@ -1,0 +1,141 @@
+{
+  "takenAt": "2026-10-03",
+  "pages": {
+    "reachkit.app/01-290d12ba.md": [
+      "no_private_figure",
+      "no_unsourced_testimonial",
+      "brand_gap",
+      "page_frame",
+      "traceable_numerals"
+    ],
+    "reachkit.app/02-1aa3e4bb.md": [
+      "no_private_figure",
+      "brand_gap",
+      "page_frame",
+      "traceable_numerals"
+    ],
+    "reachkit.app/03-1aadd832.md": [],
+    "reachkit.app/04-b9de6399.md": [],
+    "reachkit.app/05-07ee19c4.md": [
+      "no_private_figure",
+      "no_unsourced_testimonial",
+      "page_frame"
+    ],
+    "reachkit.app/06-4978ae38.md": [],
+    "reachkit.app/07-82d6b624.md": [
+      "page_frame"
+    ],
+    "reachkit.app/08-f9d1acd9.md": [
+      "brand_gap"
+    ],
+    "reachkit.app/09-3e3929f9.md": [
+      "no_private_figure",
+      "brand_gap"
+    ],
+    "reachkit.app/10-c9eaf64f.md": [
+      "no_private_figure",
+      "brand_gap"
+    ],
+    "reachkit.app/11-4fa9e7cf.md": [
+      "no_private_figure",
+      "first_block_answers"
+    ],
+    "reachkit.app/12-d28e1ac9.md": [],
+    "ab-reachkit/A1.md": [
+      "no_private_figure"
+    ],
+    "ab-reachkit/A2.md": [
+      "no_unsourced_testimonial"
+    ],
+    "ab-reachkit/A3.md": [
+      "first_block_answers"
+    ],
+    "ab-reachkit/B1-before-critic.md": [
+      "no_private_figure",
+      "no_invented_people",
+      "no_unsourced_testimonial",
+      "brand_gap",
+      "page_frame",
+      "no_invented_test",
+      "traceable_numerals",
+      "first_block_answers"
+    ],
+    "ab-reachkit/B1.md": [
+      "no_private_figure",
+      "no_unsourced_testimonial",
+      "page_frame",
+      "no_invented_test",
+      "traceable_numerals",
+      "first_block_answers"
+    ],
+    "ab-reachkit/B2-before-critic.md": [
+      "no_private_figure",
+      "brand_gap",
+      "page_frame",
+      "traceable_numerals",
+      "first_block_answers"
+    ],
+    "ab-reachkit/B2.md": [
+      "no_private_figure",
+      "brand_gap",
+      "page_frame",
+      "traceable_numerals",
+      "first_block_answers"
+    ],
+    "ab-reachkit/B3-before-critic.md": [
+      "no_private_figure",
+      "no_unsourced_testimonial",
+      "page_frame",
+      "no_invented_provenance",
+      "traceable_numerals",
+      "first_block_answers"
+    ],
+    "ab-reachkit/B3.md": [
+      "no_private_figure",
+      "no_unsourced_testimonial",
+      "page_frame",
+      "traceable_numerals",
+      "first_block_answers"
+    ],
+    "ab-reachkit/C-reference.md": [
+      "no_private_figure",
+      "no_unsourced_testimonial",
+      "page_frame",
+      "no_invented_provenance",
+      "traceable_numerals",
+      "first_block_answers"
+    ]
+  },
+  "ownPages": {
+    "reachkit.app": {
+      "blocks": 119,
+      "no_private_figure": 13,
+      "no_unsourced_testimonial": 1
+    },
+    "linear.app": {
+      "blocks": 376,
+      "no_unsourced_testimonial": 59,
+      "no_private_figure": 41
+    },
+    "plausible.io": {
+      "blocks": 2836,
+      "no_private_figure": 114,
+      "no_unsourced_testimonial": 54,
+      "no_invented_people": 2
+    },
+    "todoist.com": {
+      "blocks": 519,
+      "no_private_figure": 14,
+      "no_unsourced_testimonial": 10,
+      "no_invented_people": 1
+    },
+    "pipedrive.com": {
+      "blocks": 112
+    },
+    "crisp.chat": {
+      "blocks": 246,
+      "no_private_figure": 11,
+      "no_unsourced_testimonial": 10
+    }
+  }
+}

@@ -426,16 +426,8 @@ describe("a page answers the question it targets (issue 900)", () => {
   });
 
   it("a draft that makes the seller its subject is stopped by `page_frame` and nothing else is weakened", async () => {
-    const advert = [
-      "The best ai seo software closes the gap between what buyers ask and what a site",
-      "answers, and the place to start is measuring where you already appear today.",
-      "",
-      "## What the options are",
-      "",
-      "Acme measures where answers send buyers to rivals instead of you. Acme then",
-      "writes one page a day to change that, and Acme publishes it on your own domain.",
-    ].join("\n");
-    primeSteps(advert);
+    // The frame is what the page announces: its title names the seller.
+    primeSteps(CLEAN_MARKDOWN, undefined, { title: "Best AI SEO Software: Acme Writes Your Way In" });
     const outcome = await run({ opportunity: LISTED });
     expect(outcome.ok).toBe(false);
     expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed.map((f) => f.rule)).toContain(

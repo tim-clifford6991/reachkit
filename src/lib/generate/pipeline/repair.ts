@@ -21,24 +21,26 @@ import { ANSWER_FIRST_BLOCK_CHARS, ANSWERABILITY_MAX_NEW_QUESTIONS } from "@/lib
 import {
   INVENTED_PROVENANCE_RES,
   INVENTED_TEST_RES,
-  isHandedWords,
-  isYear,
-  traceableNumerals,
+  isPhraseBreach,
+  pageTraceableNumerals,
+  untraceableIn,
   type BriefRuleInputs,
 } from "../rules/brief";
 import { answerBoxOf } from "../rules/blocks";
-import { numeralsOf, REGISTER_FLOOR } from "../rules/figures";
+import { brandTokens, namesBrand, openingOf } from "../rules/brandgap";
+import { checkInventedPeople, checkUnsourcedTestimonial } from "../rules/people";
 import { factPageKeys, unsourcedRivalFigure } from "../rules/rivals";
 import {
   blocksOf,
   hasLink,
   headingKey,
+  headingsOf,
   linksOf,
   isQuestionShaped,
   renderOf,
-  SENTENCE_END_RE,
   sentencesOf,
   sourceBlocksOf,
+  splitSentences,
 } from "../rules/text";
 import type { HardRule, RuleFailure } from "../rules/types";
 
@@ -59,6 +61,12 @@ export const MECHANICAL_RULES: readonly HardRule[] = Object.freeze([
 export interface FixNote {
   rule: HardRule;
   sentences: string[];
+}
+
+/** What the two rules about the business's own name read. */
+export interface SiteNames {
+  businessName: string | null;
+  domain: string;
 }
 
 /** One rule's repair, as the row records it (`drafts.meta.repairs`). */
@@ -117,7 +125,7 @@ function mapSentences(markdown: string, fn: (piece: string) => string | null): s
   const edits: Edit[] = [];
   for (const block of sourceBlocksOf(markdown)) {
     const marker = MARKER_RE.exec(block.raw)?.[0] ?? "";
-    const pieces = block.raw.slice(marker.length).split(SENTENCE_END_RE);
+    const pieces = splitSentences(block.raw.slice(marker.length));
     const mapped = pieces.map(fn);
     if (mapped.every((piece, index) => piece === pieces[index])) continue;
     const kept = mapped.filter((piece): piece is string => piece !== null && piece.trim() !== "");
@@ -126,17 +134,9 @@ function mapSentences(markdown: string, fn: (piece: string) => string | null): s
   return applyEdits(markdown, edits);
 }
 
-function isPhraseBreach(words: string, patterns: readonly RegExp[], brief: BriefRuleInputs): boolean {
-  return patterns.some((pattern) => pattern.test(words)) && !isHandedWords(words, brief.facts);
-}
-
 /** The numerals in a sentence the traceable-numerals rule fails it for. */
 function untraceable(piece: string, traceable: ReadonlySet<string>): { raw: string; normalised: string }[] {
-  if (hasLink(piece)) return [];
-  return numeralsOf(wordsOf(piece)).filter(
-    (numeral) =>
-      Number(numeral.normalised) >= REGISTER_FLOOR && !isYear(numeral.normalised) && !traceable.has(numeral.normalised)
-  );
+  return hasLink(piece) ? [] : untraceableIn(wordsOf(piece), traceable);
 }
 
 /** The customer's page that states this figure as the sentence uses it —
@@ -155,7 +155,7 @@ function sourceOf(raw: string, words: string, sources: RepairInputs["sources"]):
 }
 
 function repairNumerals(markdown: string, inputs: RepairInputs): string {
-  const traceable = traceableNumerals(inputs.brief);
+  const traceable = pageTraceableNumerals(markdown, inputs.brief);
   return mapSentences(markdown, (piece) => {
     const figures = untraceable(piece, traceable);
     if (figures.length === 0) return piece;
@@ -242,7 +242,7 @@ function repairFirstBlock(markdown: string): string {
   }
 
   if (block.text.length <= ANSWER_FIRST_BLOCK_CHARS.max) return markdown;
-  const sentences = source[first]!.raw.split(SENTENCE_END_RE);
+  const sentences = splitSentences(source[first]!.raw);
   let taken = 0;
   while (taken < sentences.length && fits(sentences.slice(0, taken + 1).join(" "))) taken++;
   const lead = sentences.slice(0, taken).join(" ");
@@ -266,7 +266,7 @@ export function repairMechanical(markdown: string, rules: readonly HardRule[], i
     if (!rules.includes(rule)) continue;
     if (rule === "no_invented_provenance") {
       out = mapSentences(out, (piece) =>
-        isPhraseBreach(wordsOf(piece), INVENTED_PROVENANCE_RES, inputs.brief) ? null : piece
+        isPhraseBreach({ raw: piece, text: wordsOf(piece) }, INVENTED_PROVENANCE_RES, inputs.brief) ? null : piece
       );
     } else if (rule === "no_new_question_heading") {
       out = repairQuestionHeadings(out, inputs.brief);
@@ -281,22 +281,35 @@ export function repairMechanical(markdown: string, rules: readonly HardRule[], i
   return out;
 }
 
-function sentencesFor(markdown: string, failure: RuleFailure, brief: BriefRuleInputs): string[] {
+function sentencesFor(markdown: string, failure: RuleFailure, brief: BriefRuleInputs, site?: SiteNames): string[] {
   const sentences = sentencesOf(markdown);
   switch (failure.rule) {
+    // The rule is its own oracle: the blocks it still fails when handed each
+    // alone are the ones that broke it.
+    case "no_invented_people":
+      return blocksOf(markdown)
+        .filter((_, index) => checkInventedPeople({ markdown: sourceBlocksOf(markdown)[index]!.raw, businessName: site?.businessName ?? null }) !== null)
+        .map((block) => block.text);
+    case "no_unsourced_testimonial":
+      return blocksOf(markdown)
+        .filter((_, index) => checkUnsourcedTestimonial({ markdown: sourceBlocksOf(markdown)[index]!.raw }) !== null)
+        .map((block) => block.text);
+    case "brand_gap":
+      return site === undefined ? [] : openingOf(markdown).filter((words) => namesBrand(words, brandTokens(site)));
+    case "page_frame":
+      return site === undefined ? [] : headingsOf(markdown).filter((heading) => namesBrand(heading, brandTokens(site)));
     case "no_invented_test":
-      return sentences.filter((s) => isPhraseBreach(s.text, INVENTED_TEST_RES, brief)).map((s) => s.text);
+      return sentences.filter((s) => isPhraseBreach(s, INVENTED_TEST_RES, brief)).map((s) => s.text);
     case "no_invented_provenance":
-      return sentences.filter((s) => isPhraseBreach(s.text, INVENTED_PROVENANCE_RES, brief)).map((s) => s.text);
+      return sentences.filter((s) => isPhraseBreach(s, INVENTED_PROVENANCE_RES, brief)).map((s) => s.text);
     case "traceable_numerals": {
-      const traceable = traceableNumerals(brief);
+      const traceable = pageTraceableNumerals(markdown, brief);
       return sourceBlocksOf(markdown)
-        .flatMap((block) => block.raw.split(SENTENCE_END_RE))
+        .flatMap((block) => splitSentences(block.raw))
         .filter((piece) => untraceable(piece, traceable).length > 0)
         .map(wordsOf);
     }
-    case "rival_source":
-    case "no_private_figure": {
+    case "rival_source": {
       const figure = failure.detail !== undefined && "figure" in failure.detail ? failure.detail.figure : null;
       if (figure === null) return [];
       return sentences.filter((s) => !s.hasLink && numeralRe(figure).test(s.text)).map((s) => s.text);
@@ -319,9 +332,14 @@ function sentencesFor(markdown: string, failure: RuleFailure, brief: BriefRuleIn
 
 /** What the next attempt is told: every rule this page broke, with the
  *  sentences that broke it where a rule can point at them. */
-export function fixNotes(markdown: string, failed: readonly RuleFailure[], brief: BriefRuleInputs): FixNote[] {
+export function fixNotes(
+  markdown: string,
+  failed: readonly RuleFailure[],
+  brief: BriefRuleInputs,
+  site?: SiteNames
+): FixNote[] {
   return failed.map((failure) => ({
     rule: failure.rule,
-    sentences: [...new Set(sentencesFor(markdown, failure, brief))].slice(0, NOTE_SENTENCES_MAX),
+    sentences: [...new Set(sentencesFor(markdown, failure, brief, site))].slice(0, NOTE_SENTENCES_MAX),
   }));
 }

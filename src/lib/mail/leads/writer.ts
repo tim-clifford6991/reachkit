@@ -192,8 +192,6 @@ export const writeLeadPage: DraftWriter = async (a) => {
           domain: report.domain,
           doNotClaim: [],
           rivals: report.rivals.kind === "unmeasured" ? [] : report.rivals.value.map((rival) => rival.domain),
-          report,
-          opportunities: [opportunity],
         },
         // A lead has no published or queued pages; its own measured pages are
         // the set a page must not duplicate.

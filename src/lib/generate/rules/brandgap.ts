@@ -2,17 +2,27 @@
 //
 // BUILD §14 guardrail 4 — no doorway pages.
 //
-// "Answers the target question before naming the product (checked: first
-// 300 chars contain no brand mention)." The 300 is `GENERATION.brandGapChars`
-// and is counted over the words a reader of the published page meets — not
-// over the Markdown that produces them, because a link's address is not
-// something a reader reads and a heading's `##` is not a character they
-// count.
+// "Answers the target question before naming the product." The page's first
+// sentence — and any heading standing above it — is where it answers or
+// advertises: "Acme is the best CRM because…" has named the product before
+// it has answered anything.
+//
+// **It was a 300-character window until issue 1187.** Measured, the window
+// stopped three of the ten evaluation drafts for an answer box that names
+// the options and has the business among them in its second or third
+// sentence — which SPEC §7 (2026-09-29, *honesty by page type*) asks a page
+// to do. Every real advert the window caught among the stored drafts names
+// the business in its first sentence or the heading above it, and those are
+// what the rule reads now.
+//
+// **A search that names the business is the customer's own question**, and
+// its page opens on them. The rule decides nothing there, as `./frame.ts`
+// decides nothing there.
 //
 // The brand is two stored values: the business name recorded for the site
 // and its domain. A site that records neither has no brand to name, and the
 // rule passes rather than guessing one.
-import { GENERATION } from "@/lib/config/constants";
+import { blocksOf, sourceBlocksOf, splitSentences, renderOf } from "./text";
 import type { RuleFailure } from "./types";
 
 /** The domain matches on its own registrable label as well as whole — a
@@ -38,14 +48,50 @@ export function brandTokens(a: { businessName: string | null; domain: string }):
   return tokens;
 }
 
+const REGEXP_SPECIAL_RE = /[.*+?^${}()|[\]\\]/g;
+
+/** One alternation, longest token first, so `example.com` is one mention and
+ *  not also a second one for the `example` inside it — and bounded at both
+ *  ends, so a site whose registrable label is an ordinary word is not read as
+ *  naming itself every time that word appears inside another. */
+export function brandRegExp(tokens: readonly string[]): RegExp {
+  const ordered = [...tokens]
+    .sort((x, y) => y.length - x.length)
+    .map((token) => token.replace(REGEXP_SPECIAL_RE, "\\$&"));
+  return new RegExp(`\\b(?:${ordered.join("|")})\\b`, "gi");
+}
+
+export function namesBrand(text: string, tokens: readonly string[]): boolean {
+  return tokens.length > 0 && brandRegExp(tokens).test(text);
+}
+
+/** The words the page opens on: every heading above its first paragraph, and
+ *  that paragraph's first sentence. */
+export function openingOf(markdown: string): string[] {
+  const source = sourceBlocksOf(markdown);
+  const blocks = blocksOf(markdown);
+  const out: string[] = [];
+  for (let at = 0; at < blocks.length; at++) {
+    const block = blocks[at]!;
+    if (block.heading) {
+      out.push(block.text);
+      continue;
+    }
+    const first = splitSentences(source[at]!.raw)[0] ?? "";
+    out.push(renderOf(first).replace(/\s+/g, " ").trim());
+    break;
+  }
+  return out;
+}
+
 export function checkBrandGap(a: {
-  rendered: string;
+  markdown: string;
   businessName: string | null;
   domain: string;
+  /** The target search and every search the row absorbed. */
+  queries: readonly string[];
 }): RuleFailure | null {
-  const opening = a.rendered.slice(0, GENERATION.brandGapChars).toLowerCase();
-  for (const token of brandTokens(a)) {
-    if (opening.includes(token.toLowerCase())) return { rule: "brand_gap" };
-  }
-  return null;
+  const tokens = brandTokens(a);
+  if (a.queries.some((query) => namesBrand(query, tokens))) return null;
+  return openingOf(a.markdown).some((words) => namesBrand(words, tokens)) ? { rule: "brand_gap" } : null;
 }

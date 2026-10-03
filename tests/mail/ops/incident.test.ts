@@ -50,6 +50,30 @@ describe("the template — three occasions, closed names only", () => {
     });
   });
 
+  it("a draft stopped twice names the site, each rule, and the sentences that broke it (issue 1187)", () => {
+    const mail = buildIncidentAlert({
+      occasion: "draft-stopped-twice",
+      domain: "example.com",
+      draftId: "3e3929f9-f280-4ca2-8a3a-f0e992caf451",
+      attempts: 2,
+      failed: [
+        { rule: "brand_gap", sentences: ["Acme is the best CRM\n because it is simple."] },
+        { rule: "near_duplicate", sentences: [] },
+      ],
+    });
+    expect(mail.blocks.find((b) => b.block === "facts")).toEqual({
+      block: "facts",
+      items: [
+        { label: "mail.ops.incident.fact.site", value: "example.com" },
+        { label: "mail.ops.incident.fact.draft", value: "3e3929f9-f280-4ca2-8a3a-f0e992caf451" },
+        { label: "mail.ops.incident.fact.attempt", value: "2" },
+        { label: "mail.ops.incident.fact.rule", value: "brand_gap" },
+        { label: "mail.ops.incident.fact.sentence", value: "Acme is the best CRM because it is simple." },
+        { label: "mail.ops.incident.fact.rule", value: "near_duplicate" },
+      ],
+    });
+  });
+
   it("a value that is not a name — a message, an address — is written as Error", () => {
     expect(closedName("TypeError")).toBe("TypeError");
     expect(closedName("could not reach owner@example.com")).toBe("Error");

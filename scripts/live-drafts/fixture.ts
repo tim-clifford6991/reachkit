@@ -257,16 +257,13 @@ export function opportunityFor(target: Target): Opportunity {
   };
 }
 
-/** Every site-scoped input the battery reads. The report is the fixture's
- *  own, so the private-figure register holds the fixture's own figures. */
+/** Every site-scoped input the battery reads. */
 export function siteRuleInputs(): SiteRuleInputs {
   return {
     businessName: BUSINESS_NAME,
     domain: DOMAIN,
     doNotClaim: [...DO_NOT_CLAIM],
     rivals: ["appcues.com", "userpilot.com"],
-    report: assembleReport(fullSections()),
-    opportunities: TARGETS.map(opportunityFor),
   };
 }
 

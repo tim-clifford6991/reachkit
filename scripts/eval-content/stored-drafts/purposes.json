@@ -1,0 +1,70 @@
+{
+  "grounding": {
+    "guards": "Invented facts: the page stands on at least one passage that is word for word on the customer's own page.",
+    "decision": "Kept, unchanged."
+  },
+  "rival_source": {
+    "guards": "Invented facts: a figure about a named rival with no link beside it.",
+    "decision": "Kept, unchanged. Never fired on stored text; its year and label matching are #1135's."
+  },
+  "no_invented_people": {
+    "guards": "Invented people: a quoted remark attributed to someone who is not the customer, with no link.",
+    "decision": "Narrowed. A dash counts as an attribution only after the closing quotation mark or closing the block; \"its data source — DataForSEO, for instance\" is punctuation."
+  },
+  "no_unsourced_testimonial": {
+    "guards": "Invented reviews: what customers are said to say, a rating or a recommendation, or a block quote, with no link.",
+    "decision": "Narrowed. The bare words (review, testimonial, endorsement, our customers) are gone; each pattern is now a claim. The unlinked block quote stays."
+  },
+  "brand_gap": {
+    "guards": "An advert posing as an answer: the page names the business before it has answered.",
+    "decision": "Narrowed from a 300-character window to the first sentence and the headings above it, and it decides nothing where the target search names the business. Retires with `page_frame` when #1136 ships honesty by page type."
+  },
+  "page_frame": {
+    "guards": "An advert posing as an answer: on a market question, the business is the page's subject.",
+    "decision": "Narrowed to the title, or half or more of the headings. The count of mentions was a style check and is removed; one heading naming the business is the section SPEC §7 requires."
+  },
+  "no_hidden_text": {
+    "guards": "Unsafe markup: text handed to the destination that no reader sees.",
+    "decision": "Kept, unchanged."
+  },
+  "no_machine_address": {
+    "guards": "Unsafe markup: a sentence addressed to an assistant, a crawler or a ranking system.",
+    "decision": "Kept, unchanged."
+  },
+  "near_duplicate": {
+    "guards": "Structure: the page is not a repeat of one the site already has.",
+    "decision": "Kept, unchanged."
+  },
+  "no_invented_test": {
+    "guards": "Invented facts: a test nobody ran.",
+    "decision": "Narrowed. A cited page's title inside a link is that page's claim, not ours, and \"hands-on\" alone is an adjective."
+  },
+  "no_invented_provenance": {
+    "guards": "Invented facts: a case study the page was never given. (A byline and the page's dates are the page's own since #1137.)",
+    "decision": "Narrowed. A case study has to be claimed or offered as evidence; \"look for case studies on the vendor's site\" claims none. Before #1137 took bylines and dates out of this rule, it also stopped \"written by a person\" and \"published on your domain\"."
+  },
+  "no_new_question_heading": {
+    "guards": "Structure: the page keeps the outline's sections; the answerability pass adds none.",
+    "decision": "Kept, unchanged. Not re-measurable: no stored draft keeps its outline. It is not among the stop reasons of any of the 12 stored drafts or the 18 recorded evaluation runs (`content-eval.md`, `content-repair.md`)."
+  },
+  "traceable_numerals": {
+    "guards": "Invented figures: a number of 10 or more that no handed fact, no target search and no link carries.",
+    "decision": "Narrowed. A figure the page cites beside a link may be repeated without one; a year is not a number (SPEC §7, 2026-09-29); digits glued to a letter are a name, not a figure; and a link is no longer cut in two at a full stop inside its label. Now also the one rule for a figure only ReachKit measured."
+  },
+  "first_block_answers": {
+    "guards": "Structure: the page opens with an answer — a short-answer box of 40–60 words (#1137), or with no box a paragraph inside 320 characters or 60 words.",
+    "decision": "Narrowed. With no box, an opening inside 60 words passes even past 320 characters. An opening past both is still stopped, and #1178 splits it in code."
+  },
+  "required_blocks": {
+    "guards": "Structure: the blocks every generated page carries (SPEC §7, 2026-09-29).",
+    "decision": "Added by #1137 while this review was open. It asks nothing of a page that was not handed its block inputs, so no stored page can fire it; not measured here."
+  },
+  "do_not_claim": {
+    "guards": "False claims about the business: anything on the customer's never-claim list.",
+    "decision": "Kept, unchanged."
+  },
+  "no_private_figure": {
+    "guards": "Meant: a figure only ReachKit measured, stated with no source. Did: failed any number that also appears anywhere in the stored report.",
+    "decision": "Removed. Every fire was a coincidence (24-hour, 12 questions, 40% more). A measured figure no source states is a number no fact holds, which `traceable_numerals` stops."
+  }
+}

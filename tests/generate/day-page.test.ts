@@ -73,6 +73,10 @@ vi.mock("@/lib/publish/machine", () => ({ transition: transitionMock }));
 // Issue 737: a page is written from the stored inventory, never a new crawl.
 const crawlMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/site-profile/crawl", () => ({ crawlSite: crawlMock }));
+// Issue 1187: the owner's alert, at its door. What the mail says is the
+// template's own test.
+const reportIncidentMock = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/mail/ops", () => ({ reportIncident: reportIncidentMock }));
 
 let generateDayPage: typeof import("../../src/lib/generate").generateDayPage;
 let setGenerateStore: typeof import("../../src/lib/generate/store").setGenerateStore;
@@ -109,6 +113,8 @@ beforeEach(async () => {
   nextForDayMock.mockReset();
   queueForDraftMock.mockReset();
   restTopicMock.mockReset();
+  reportIncidentMock.mockReset();
+  reportIncidentMock.mockResolvedValue(true);
   transitionMock.mockReset();
   transitionMock.mockImplementation(async (draftId: string, to: string) => {
     const row = store.rows.get(draftId);
@@ -256,6 +262,40 @@ describe("ADR-070 — one automatic regeneration, and no more", () => {
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     expect(outcome).toMatchObject({ ok: false, because: "rules", attempts: 2 });
     expect(store.rows.size).toBe(1);
+  });
+
+  it("a draft stopped twice mails the owner the site, the rule and the sentence that broke it (issue 1187)", async () => {
+    queueAttempt("We tested every tool for months, and this one won.");
+    queueAttempt("We tested every tool again, and this one won.");
+    await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    const [row] = [...store.rows.values()];
+    expect(reportIncidentMock.mock.calls).toEqual([
+      [
+        {
+          occasion: "draft-stopped-twice",
+          domain: "example.com",
+          draftId: row?.id,
+          attempts: 2,
+          failed: [{ rule: "no_invented_test", sentences: ["We tested every tool again, and this one won."] }],
+        },
+      ],
+    ]);
+  });
+
+  it("a draft stopped once and then written clean alerts nobody", async () => {
+    queueAttempt("We tested every tool for months, and this one won.");
+    queueAttempt(CLEAN_MARKDOWN);
+    await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(reportIncidentMock).not.toHaveBeenCalled();
+  });
+
+  it("an alert that cannot be sent does not fail the run: the page still rests", async () => {
+    reportIncidentMock.mockRejectedValue(new Error("mail down"));
+    queueAttempt("We tested every tool for months, and this one won.");
+    queueAttempt("We tested every tool again, and this one won.");
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(outcome).toMatchObject({ ok: false, because: "rules" });
+    expect([...store.rows.values()].map((r) => r.state)).toEqual(["needs_attention"]);
   });
 
   it("a regeneration that cannot run leaves the first stop standing: the row rests, never waits in generating", async () => {

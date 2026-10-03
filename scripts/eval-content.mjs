@@ -18,6 +18,8 @@
 //   npm run eval:content -- --repair [--run] [--rounds 2]
 //                                                 # #1178: a stopped draft re-rolled blind
 //                                                 # beside one repaired from its failures
+//   npm run eval:content -- --rules [--baseline]  # issue 1187: each hard rule's false
+//                                                 # positives on stored text; no model, 0¢
 //
 // The set, and the four slots the owner fills, are `scripts/eval-content/
 // set.ts`. Each domain's stored report and page text are committed under
@@ -63,6 +65,8 @@ const snapshotOf = flag("--snapshot", null);
 const ab = argv.includes("--ab");
 // #1178: blind regeneration beside repair, on the same inputs.
 const repair = argv.includes("--repair");
+// Issue 1187: the rule battery over stored drafts. Code only.
+const rules = argv.includes("--rules");
 const envFile = path.resolve(ROOT, flag("--env-file", ".env.local"));
 
 function loadEnvFile(file) {
@@ -120,6 +124,14 @@ async function main() {
     if (ab) {
       const run = await server.ssrLoadModule("/scripts/eval-content/prototype/ab.ts");
       return await run.main({ run: options.run, root: ROOT, priorCents: Number(flag("--prior-cents", "0")) });
+    }
+    if (rules) {
+      const run = await server.ssrLoadModule("/scripts/eval-content/rules.ts");
+      return await run.main({
+        root: ROOT,
+        tablePath: path.resolve(ROOT, "docs/walk/rule-review.md"),
+        baseline: argv.includes("--baseline"),
+      });
     }
     if (repair) {
       const run = await server.ssrLoadModule("/scripts/eval-content/repair.ts");

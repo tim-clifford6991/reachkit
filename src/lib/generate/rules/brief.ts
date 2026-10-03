@@ -23,7 +23,7 @@
 import { ANSWER_FIRST_BLOCK_CHARS, ANSWERABILITY_MAX_NEW_QUESTIONS, PAGE_BLOCKS } from "@/lib/config/constants";
 import { answerBoxOf } from "./blocks";
 import { numeralsOf, REGISTER_FLOOR } from "./figures";
-import { blocksOf, headingKey, headingsOf, isQuestionShaped, sentencesOf } from "./text";
+import { blocksOf, headingKey, headingsOf, isQuestionShaped, ownWordsOf, sentencesOf } from "./text";
 import type { RuleFailure } from "./types";
 
 /** What the brief handed the model, as the rules read it. */
@@ -53,10 +53,18 @@ export function isYear(normalised: string): boolean {
 export const INVENTED_TEST_RES: readonly RegExp[] = [
   /\b(?:we|i|our team)\s+(?:have\s+)?(?:tested|trialled|trialed|benchmarked|measured|tried out|put\b.{0,40}\bto the test)\b/i,
   /\bin our (?:own\s+)?(?:tests?|testing|trials?|benchmarks?|experiments?)\b/i,
-  /\b(?:hands-on|after testing|after (?:weeks|months) of (?:use|testing))\b/i,
+  // "hands-on" alone is an adjective; beside a test it is a claim of one.
+  /\b(?:hands-on (?:tests?|testing|trials?|reviews?)|after testing|after (?:weeks|months) of (?:use|testing))\b/i,
 ];
 
-export const INVENTED_PROVENANCE_RES: readonly RegExp[] = [/\bcase stud(?:y|ies)\b/i];
+/** A history claimed, never a word (issue 1187): a case study the page says
+ *  exists, or one it offers as its evidence. "Look for case studies on the
+ *  vendor's site" claims none. A byline and the page's dates are the page's
+ *  own (issue 1137). */
+export const INVENTED_PROVENANCE_RES: readonly RegExp[] = [
+  /\b(?:our|in (?:a|one|another|this)|according to (?:a|our|one|this))\s+(?:recent\s+|own\s+)?case stud(?:y|ies)\b/i,
+  /\bcase stud(?:y|ies)\s+(?:shows?|showed|proves?|proved|finds?|found|demonstrates?|demonstrated|reveals?|revealed|confirms?|confirmed)\b/i,
+];
 
 function collapse(text: string): string {
   return text.replace(/\s+/g, " ").trim();
@@ -68,17 +76,29 @@ export function isHandedWords(sentence: string, facts: readonly string[]): boole
   return words.length > 0 && facts.some((fact) => collapse(fact).includes(words));
 }
 
+/**
+ * Does this sentence make the claim — in the page's own words?
+ *
+ * A link's label is the cited page's title or its words: "[We tested 15
+ * tools](…)" reports somebody else's test, with its address beside it. So the
+ * patterns read the sentence without its labels. A sentence that is itself
+ * one of the handed passages is the customer's own and never a breach.
+ */
+export function isPhraseBreach(
+  sentence: { raw: string; text: string },
+  patterns: readonly RegExp[],
+  brief: BriefRuleInputs
+): boolean {
+  const own = ownWordsOf(sentence.raw);
+  return patterns.some((pattern) => pattern.test(own)) && !isHandedWords(sentence.text, poolPassages(brief));
+}
+
 function phraseRule(
   rule: "no_invented_test" | "no_invented_provenance",
   patterns: readonly RegExp[],
   a: { markdown: string; brief: BriefRuleInputs }
 ): RuleFailure | null {
-  for (const sentence of sentencesOf(a.markdown)) {
-    if (!patterns.some((pattern) => pattern.test(sentence.text))) continue;
-    if (isHandedWords(sentence.text, poolPassages(a.brief))) continue;
-    return { rule };
-  }
-  return null;
+  return sentencesOf(a.markdown).some((sentence) => isPhraseBreach(sentence, patterns, a.brief)) ? { rule } : null;
 }
 
 export function checkInventedTest(a: { markdown: string; brief: BriefRuleInputs }): RuleFailure | null {
@@ -112,21 +132,49 @@ export function traceableNumerals(brief: BriefRuleInputs): Set<string> {
   return out;
 }
 
+/**
+ * Every numeral this page can state: what the brief carries, and every
+ * figure the page itself states beside a link.
+ *
+ * A page cites a figure where it first uses it and repeats it in its
+ * takeaways or its buyer questions. The repeat is the same sourced figure,
+ * and the reader finds its source on the page — measured, holding each repeat
+ * to a link of its own stopped the hand-written reference page and every
+ * prototype page for figures none of which was invented (issue 1187).
+ */
+export function pageTraceableNumerals(markdown: string, brief: BriefRuleInputs): Set<string> {
+  const out = traceableNumerals(brief);
+  for (const sentence of sentencesOf(markdown)) {
+    if (!sentence.hasLink) continue;
+    for (const numeral of numeralsOf(sentence.text)) out.add(numeral.normalised);
+  }
+  return out;
+}
+
+/** The numerals a sentence states that nothing carries: at or above the
+ *  floor — below it a numeral is a count or an ordinal ("three steps",
+ *  "step 2") — not a year, and not among the traceable ones. */
+export function untraceableIn(
+  words: string,
+  traceable: ReadonlySet<string>
+): { raw: string; normalised: string }[] {
+  return numeralsOf(words).filter(
+    (numeral) => Number(numeral.normalised) >= REGISTER_FLOOR && !isYear(numeral.normalised) && !traceable.has(numeral.normalised)
+  );
+}
+
 export function checkTraceableNumerals(a: {
   markdown: string;
   brief: BriefRuleInputs;
 }): RuleFailure | null {
-  const traceable = traceableNumerals(a.brief);
+  const traceable = pageTraceableNumerals(a.markdown, a.brief);
   for (const sentence of sentencesOf(a.markdown)) {
     // A figure beside the address it was read from is sourced where it
     // stands — the rival-sourcing rule's own allowance.
     if (sentence.hasLink) continue;
-    for (const numeral of numeralsOf(sentence.text)) {
-      // Below the floor a numeral is a count or an ordinal ("three steps",
-      // "step 2"), the same line the private-figure register draws.
-      if (Number(numeral.normalised) < REGISTER_FLOOR) continue;
-      if (isYear(numeral.normalised) || traceable.has(numeral.normalised)) continue;
-      return { rule: "traceable_numerals", detail: { rule: "traceable_numerals", figure: numeral.raw } };
+    const figure = untraceableIn(sentence.text, traceable)[0];
+    if (figure !== undefined) {
+      return { rule: "traceable_numerals", detail: { rule: "traceable_numerals", figure: figure.raw } };
     }
   }
   return null;
@@ -146,11 +194,17 @@ export function checkFirstBlockAnswers(a: { markdown: string }): RuleFailure | n
   const first = blocksOf(a.markdown).find((block) => !block.heading);
   if (first === undefined) return { rule: "first_block_answers" };
   const length = first.text.length;
+  // Sixty words run to about 380 characters, past the older 320-character
+  // bound, so an opening inside either answers: a 55-word, one-sentence
+  // answer of 335 characters was stopped for fifteen of them, with no
+  // sentence to split it at (issue 1187).
+  const short =
+    length <= ANSWER_FIRST_BLOCK_CHARS.max || first.text.split(/\s+/).length <= PAGE_BLOCKS.answerWords.max;
   const answers =
     !first.quoted &&
     !first.listItem &&
     !first.text.endsWith("?") &&
     length >= ANSWER_FIRST_BLOCK_CHARS.min &&
-    length <= ANSWER_FIRST_BLOCK_CHARS.max;
+    short;
   return answers ? null : { rule: "first_block_answers" };
 }

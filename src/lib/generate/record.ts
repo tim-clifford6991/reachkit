@@ -107,8 +107,8 @@ export function checkedAgainstNothing(verdict: ClaimVerdict): boolean {
 
 // ── Hard rules 1–3, 5–7: the battery's own record ───────────────────────
 
-/** The sixteen rules `runHardRules` decides on every run. `do_not_claim` is
- *  the seventeenth and is recorded in `drafts.claim_check` instead — it is the
+/** The fifteen rules `runHardRules` decides on every run. `do_not_claim` is
+ *  the sixteenth and is recorded in `drafts.claim_check` instead — it is the
  *  one rule that is re-run after generation. */
 export const RECORDED_RULES: readonly HardRule[] = Object.freeze(
   HARD_RULES.filter((rule) => rule !== "do_not_claim")

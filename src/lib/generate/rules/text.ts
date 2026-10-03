@@ -106,6 +106,13 @@ export interface Sentence {
   links?: readonly string[];
 }
 
+/** A sentence, with the Markdown it was read from — what a rule needs to tell
+ *  the page's own words from a cited source's, which stand inside a link's
+ *  label. A block carries no `raw`: its Markdown is `sourceBlocksOf`'s. */
+export interface SourceSentence extends Sentence {
+  raw: string;
+}
+
 /** One block of a draft — a paragraph, a heading, a block quote, or one
  *  list item. Blocks are the scope of the people rules: a quotation and its
  *  attribution belong to one block, and a link three paragraphs away does
@@ -127,6 +134,31 @@ export interface TextBlock extends Sentence {
  *  different pieces), and a hard rule that errs toward stopping a page is
  *  the safe direction. */
 export const SENTENCE_END_RE = /(?<=[.!?])\s+/;
+
+/**
+ * A block's Markdown, cut into its sentences.
+ *
+ * **A link is never cut in two** (issue 1187). A cited page's title is often
+ * a sentence of its own — `[We tested 15 tools. Here are the best.](…)` —
+ * and cutting at its full stop left the first half a sentence with no
+ * address beside it: a sourced figure read as an unsourced one, and the
+ * source's words as the page's.
+ */
+export function splitSentences(blockMarkdown: string): string[] {
+  const links: string[] = [];
+  MD_LINK_RE.lastIndex = 0;
+  const held = blockMarkdown.replace(MD_LINK_RE, (link) => `\u0000${links.push(link) - 1}\u0000`);
+  return held
+    .split(SENTENCE_END_RE)
+    .map((piece) => piece.replace(/\u0000(\d+)\u0000/g, (_, index: string) => links[Number(index)] ?? ""));
+}
+
+/** The reader's words of a fragment that are the page's own: a link's label
+ *  is the cited page's words, or its name, and is left out. */
+export function ownWordsOf(markdownFragment: string): string {
+  MD_LINK_RE.lastIndex = 0;
+  return renderOf(markdownFragment.replace(MD_LINK_RE, " ")).replace(/\s+/g, " ").trim();
+}
 
 /**
  * One block of the draft as it stands **in the source**, with the offsets
@@ -285,15 +317,15 @@ export function withoutReferenceLists(markdown: string): string {
 
 /** Every sentence of the draft, in document order. A sentence never spans
  *  a block boundary. */
-export function sentencesOf(markdown: string): Sentence[] {
-  const out: Sentence[] = [];
+export function sentencesOf(markdown: string): SourceSentence[] {
+  const out: SourceSentence[] = [];
   for (const fragment of sourceBlocksOf(markdown)) {
     // Split the Markdown itself, so each piece keeps the addresses that
     // stand inside it; then render each piece to the reader's words.
-    for (const piece of fragment.raw.split(SENTENCE_END_RE)) {
+    for (const piece of splitSentences(fragment.raw)) {
       const text = renderOf(piece).replace(/\s+/g, " ").trim();
       if (text.length === 0 && !hasLink(piece)) continue;
-      out.push({ text, hasLink: hasLink(piece), links: linksOf(piece) });
+      out.push({ text, hasLink: hasLink(piece), links: linksOf(piece), raw: piece });
     }
   }
   return out;

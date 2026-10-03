@@ -2,9 +2,9 @@
 // vocabulary.
 //
 // §8 states seven hard rules; read as checks over finished text they are
-// ten, because three of the seven are two checks each. Issue 475 added five
-// that read the brief, issue 900 added `page_frame` and issue 1137 added
-// `required_blocks`. What this suite pins
+// nine, because one of the seven is two checks. Issue 475 added five that
+// read the brief, issue 900 added `page_frame` and issue 1137 added
+// `required_blocks`; issue 1187 removed `no_private_figure`. What this suite pins
 // is that the list is *closed* and *ordered*: a further member, or a
 // reordering, changes what a stored `rule_failures` blob means, and a
 // failure list has to be comparable across runs.
@@ -13,16 +13,15 @@ import { describe, expect, it } from "vitest";
 import { HARD_RULES, type HardRule } from "../../../src/lib/generate/rules/types";
 
 describe("BUILD §8 — the hard rules are a closed, ordered list", () => {
-  it("has exactly seventeen members and lists each once", () => {
-    expect(HARD_RULES).toHaveLength(17);
-    expect(new Set(HARD_RULES).size).toBe(17);
+  it("has exactly sixteen members and lists each once", () => {
+    expect(HARD_RULES).toHaveLength(16);
+    expect(new Set(HARD_RULES).size).toBe(16);
   });
 
   it("is in the order §8 states the rules, with the two-check rules split where they split", () => {
     expect([...HARD_RULES]).toEqual([
       "grounding",
       "rival_source",
-      "no_private_figure",
       "no_invented_people",
       "no_unsourced_testimonial",
       "brand_gap",
@@ -51,7 +50,6 @@ describe("BUILD §8 — the hard rules are a closed, ordered list", () => {
     const every: Record<HardRule, true> = {
       grounding: true,
       rival_source: true,
-      no_private_figure: true,
       no_invented_people: true,
       no_unsourced_testimonial: true,
       brand_gap: true,

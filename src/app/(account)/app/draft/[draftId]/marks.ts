@@ -16,7 +16,7 @@
 // avoid: the mark a founder sees while typing and the verdict that holds
 // the page would then be two opinions about the same words.
 //
-// **Thirteen of the seventeen run here. Four do not, and are named.**
+// **Thirteen of the sixteen run here. Three do not, and are named.**
 //
 //   `grounding`          reads the *source page's* text as the measurement
 //                        fetched it — a document this screen does not hold
@@ -29,15 +29,12 @@
 //                        browser to underline one sentence is not a trade
 //                        worth making, and the rule is not sentence-shaped
 //                        in any case — its answer is about the page.
-//   `no_private_figure`  is built from the stored report and every
-//                        opportunity (`buildPrivateFigureRegister`). Same
-//                        objection, same size.
 //
 //   `required_blocks`    binds what ReachKit generates and asks nothing of
 //                        a founder's own edit (issue 1137): a page they
 //                        rewrote into five sections has broken no rule.
 //
-// The first three still run on every save, where they always have, and all three
+// The first two still run on every save, where they always have, and both
 // still hold the page. What this file changes is *when the founder hears
 // about the other thirteen*, not which rules decide.
 //
@@ -47,7 +44,7 @@
 // ways, in this order:
 //
 //   1. **By the value it names.** `do_not_claim` names the customer's own
-//      entry; `rival_source`, `traceable_numerals` and `no_private_figure`
+//      entry; `rival_source` and `traceable_numerals`
 //      name the numeral as it appears. The value is found in the source and
 //      the mark is widened to the sentence holding it. That is the one the
 //      done-when asks for: "typing a never-claim phrase underlines it".
@@ -58,8 +55,8 @@
 //      blocks are `sourceBlocksOf`'s — the splitter the rules themselves
 //      use, now carrying the offsets it always computed.
 //   3. **Not at all.** A rule whose answer is about the page rather than a
-//      sentence — `brand_gap` reads an opening window, `page_frame` counts
-//      mentions across the whole of it — gets a mark at the head of the
+//      sentence — `brand_gap` reads how the page opens, `page_frame` reads
+//      its title and its headings together — gets a mark at the head of the
 //      document and a sentence that says so. Guessing a span for one of
 //      those would be the rule implemented a second time, badly.
 "use client";
@@ -91,7 +88,7 @@ import type { OpportunityType } from "@/lib/opportunities/types";
  * customer's own lists, their own brand and domain, the searches the row
  * targets, the passages the brief chose and the headings of the page as
  * ReachKit wrote it. Nothing here is a corpus, a report or a register —
- * which is the whole reason those three rules are the save's.
+ * which is the whole reason those two rules are the save's.
  */
 export interface MarkInputs {
   /** The title as it now stands. The frame rule reads it. */
@@ -111,7 +108,7 @@ export interface MarkInputs {
  *
  * A total record over the subset, so a rule added to `marks.ts` with no
  * sentence is a compile error rather than a mark that underlines a
- * sentence and says nothing about why. The three the save keeps are
+ * sentence and says nothing about why. The two the save keeps are
  * deliberately absent: this screen never speaks for a check it did not
  * run, which is `checks.ts`'s own rule applied to a lint mark.
  */
@@ -278,17 +275,16 @@ export function liveBreaks(source: string, inputs: MarkInputs): Break[] {
     if (failure !== null) failures.push(failure);
   };
 
-  // The battery's own order (`HARD_RULES`), minus the three named in the
+  // The battery's own order (`HARD_RULES`), minus the two named in the
   // header, so a break list reads the way a recorded failure list reads.
   push(checkRivalSource({ markdown: body, rivals: [...inputs.rivals] }));
   push(checkInventedPeople({ markdown: body, businessName: inputs.businessName }));
   push(checkUnsourcedTestimonial({ markdown: body }));
-  push(checkBrandGap({ rendered, ...site }));
+  push(checkBrandGap({ markdown: body, ...site, queries: inputs.brief.queries }));
   push(
     checkPageFrame({
       title: inputs.title,
       markdown: body,
-      rendered,
       ...site,
       opportunityType: inputs.opportunityType,
       queries: inputs.brief.queries,

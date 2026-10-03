@@ -356,8 +356,7 @@ export function DraftScreen(p: {
    *
    * **Either source holds the page.** A live break is one of the thirteen
    * `marks.ts` can decide as the founder types; a recorded one is the save
-   * reporting a rule the editor cannot run (`grounding`, `near_duplicate`,
-   * `no_private_figure`). Both are the same fact about the same page, so
+   * reporting a rule the editor cannot run (`grounding`, `near_duplicate`). Both are the same fact about the same page, so
    * they draw the same sentence under the same name — #789's
    * `draft.edit.rules-held`, unchanged, because what it says is still
    * exactly true.
