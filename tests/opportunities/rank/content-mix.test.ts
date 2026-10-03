@@ -3,7 +3,7 @@
 // days running, and an update each week where one is ready.
 import "../env";
 import { describe, expect, it } from "vitest";
-import { CONTENT_MIX } from "../../../src/lib/config/constants";
+import { CONTENT_MIX, PACE } from "../../../src/lib/config/constants";
 import { contentKindOf, type ContentKind } from "../../../src/lib/opportunities/content-kind";
 import { skeletonFor } from "../../../src/lib/generate/pipeline/skeletons";
 import { mixOf, orderRanked } from "../../../src/lib/opportunities/rank/open";
@@ -14,7 +14,8 @@ const AT = new Date("2026-10-03T18:00:00.000Z");
 
 function opportunity(id: string, type: Opportunity["type"], targetQuery: string): Opportunity {
   const family = type.endsWith("_page") && ["expand_page", "answerable_page", "refresh_page"].includes(type) ? "improve" : "write";
-  return { id, family, type, status: "open", clusterKey: null, targetQuery, absorbedQueries: [], createdAt: AT } as unknown as Opportunity;
+  const evidence = family === "improve" ? { family, shortfall: { kind: "position" } } : { family };
+  return { id, family, type, status: "open", clusterKey: null, targetQuery, absorbedQueries: [], evidence, createdAt: AT } as unknown as Opportunity;
 }
 
 /** What reachkit.app's supply looked like: almost all "best X", a few of the
@@ -73,18 +74,20 @@ describe("two weeks of pages hold the mix", () => {
     .slice(0, 14)
     .map((entry) => contentKindOf(byId.get(entry.opportunityId)!)!);
 
-  it("never the same kind two days running", () => {
+  it("never the same kind of new page two days running", () => {
+    // An update may follow an update: once the week's four new pages are
+    // in, the pace gives the day to an update (issue 1139).
     kinds.forEach((kind, day) => {
-      if (day > 0) expect(kind, `day ${day}`).not.toBe(kinds[day - 1]);
+      if (day > 0 && kind !== "update") expect(kind, `day ${day}`).not.toBe(kinds[day - 1]);
     });
   });
 
-  it("at most two of one kind in any seven days", () => {
+  it("at most two of one kind of new page in any seven days, and the updates the pace leaves room for", () => {
     for (let start = 0; start + CONTENT_MIX.WINDOW_DAYS <= kinds.length; start++) {
       const window = kinds.slice(start, start + CONTENT_MIX.WINDOW_DAYS);
       for (const kind of new Set(window)) {
         expect(window.filter((k) => k === kind).length, `${kind} from day ${start}`).toBeLessThanOrEqual(
-          CONTENT_MIX.MAX_PER_KIND
+          kind === "update" ? CONTENT_MIX.WINDOW_DAYS - PACE.NEW_PAGES_PER_WEEK : CONTENT_MIX.MAX_PER_KIND
         );
       }
     }

@@ -16,6 +16,7 @@
 // request, so there is no `auth.uid()` for a row policy to match. Every
 // call below is site-scoped by an explicit `site_id` predicate — the
 // scoping the policy would have applied, applied here instead.
+import type { RefreshInputs } from "./refresh";
 import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { dbAdmin } from "@/lib/db";
 import type { KnownPage } from "@/lib/known-content/types";
@@ -256,6 +257,11 @@ export interface OpportunityStore {
     domain: string;
     inventory: readonly InventoryRow[];
   }): Promise<void>;
+  /** SPEC §7 (*Pace*, issue 1139): the live pages ReachKit wrote for this
+   *  site, each at its current version, and the two pools a newer fact is
+   *  read from. Optional: a store that holds no published pages has nothing
+   *  to answer, and `planRefreshes` then plans nothing. */
+  refreshInputs?(siteId: string): Promise<RefreshInputs>;
 }
 
 // ── Reviving a row ──────────────────────────────────────────────────────
@@ -326,7 +332,7 @@ interface QueryResult<T> {
   error: { message: string; code?: string } | null;
 }
 
-interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
+export interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   select(columns: string): MinimalQueryBuilder<T>;
   insert(rows: object): MinimalQueryBuilder<T>;
   update(values: object): MinimalQueryBuilder<T>;
@@ -348,11 +354,13 @@ interface NotWorkingRow {
   } | null;
 }
 
-interface MinimalClient {
+export interface MinimalClient {
   from<T>(table: string): MinimalQueryBuilder<T>;
 }
 
-function untyped(): MinimalClient {
+/** The cast client, for the reads of this directory that are not the
+ *  store's own (`refresh.ts`). */
+export function untyped(): MinimalClient {
   return dbAdmin() as unknown as MinimalClient;
 }
 
@@ -408,7 +416,7 @@ function evidenceAt(evidence: unknown, now: (url: string) => string): unknown {
   };
 }
 
-const COLUMNS =
+export const COLUMNS =
   "id, site_id, scan_id, type, family, target_query, target_ref, proposed_slug, " +
   "title, volume, evidence, acceptance, fit_band, business_fit, source, page_type, effort, status, cluster_key, " +
   "absorbed_queries, ready, unready_reason, rest_until, created_at";
@@ -766,6 +774,11 @@ export function supabaseOpportunityStore(): OpportunityStore {
         // `refreshKnownContentFor` logs what it could not read; a pass does
         // not fail because a customer's blog did not answer.
       }
+    },
+
+    async refreshInputs(siteId) {
+      const { readRefreshInputs } = await import("./refresh");
+      return readRefreshInputs(siteId);
     },
 
     async inventoryFor(domain) {

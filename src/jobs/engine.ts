@@ -156,8 +156,12 @@ export async function startWeeklyScan(a: DueSite & { readonly now: Date }): Prom
   // §6's verdict on every page published so far, written before the digest
   // reads it. A failed pass stored no report, so its week judges nothing.
   if (outcome.ran && outcome.status !== "failed") {
-    const { judgeWeek, assessReadiness } = await import("@/lib/opportunities");
+    const { judgeWeek, assessReadiness, planRefreshes } = await import("@/lib/opportunities");
     await judgeWeek({ siteId: a.siteId, week: a.weekStart });
+    // SPEC §7 (*Pace*, issue 1139): the live pages of ours that are due a
+    // refresh — 90 days old, a worse place in the verdict just written, or
+    // a newer fact — planned before readiness is recorded on them.
+    await planRefreshes({ siteId: a.siteId, at: a.now });
     // SPEC §6: this Monday's "not working" holds back this week's supply —
     // a Write in that cluster for `CLUSTER_SUPPRESS_WEEKS`, a twice-failed
     // Improve URL for good — before the digest ranks the next three.

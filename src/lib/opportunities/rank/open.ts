@@ -32,12 +32,12 @@
 // one pool, so it goes ahead of the first Write row at all. Improve and Earn
 // keep their scored places. A fix with no Write row to precede goes last. A
 // fix that is not ready is not in the list.
-import { CONTENT_MIX } from "@/lib/config/constants";
+import { CONTENT_MIX, PACE } from "@/lib/config/constants";
 import { opportunityStore } from "../store";
 import { readOpportunity, type DraftedPage } from "../store";
 import { comparePrecedence, sameTopic } from "../cluster";
 import { contentKindOf, type ContentKind } from "../content-kind";
-import type { Opportunity, OpportunityType, Ranked } from "../types";
+import { isOwnRefresh, type Opportunity, type OpportunityType, type Ranked } from "../types";
 import { rankScore } from "./score";
 
 /** A row no pass has judged ranks with the rows that plainly help: it was
@@ -90,7 +90,15 @@ function byScore(
  *  once the site has had pages for a whole window and none of them is an
  *  update, the day takes the best update. Where
  *  no row fits, the count is given up first, then the kind, then the topic —
- *  the mix orders and never empties a day either. */
+ *  the mix orders and never empties a day either.
+ *
+ *  **Pace** (SPEC §7, 2026-09-29, issue 1139): a day whose window already
+ *  holds `PACE.NEW_PAGES_PER_WEEK` new pages takes the best update instead —
+ *  a refresh of one of ReachKit's own live pages first, then an Improve of
+ *  the site's own — the mix's count and its turn of kinds give way to it,
+ *  as they do wherever no row fits. Where no update is left the day takes a
+ *  new page: a site with nothing to refresh yet fills its week with new
+ *  pages. */
 export function orderRanked(
   scored: readonly { opportunity: Opportunity; score: number }[],
   rotation: {
@@ -118,8 +126,14 @@ export function orderRanked(
     // site has had pages for a whole window and none of them is one.
     const updateDue =
       held("update") === 0 && placed.some((page) => page.day <= day - (CONTENT_MIX.WINDOW_DAYS - 1));
+    const isUpdate = (entry: Entry) => kindOf(entry) === "update";
+    const own = (entry: Entry) => isOwnRefresh(entry.opportunity);
+    // The week's new pages are in: the day takes an update, one of our own
+    // live pages first, and the topic gives way before the pace does.
+    const paced = window.filter((page) => page.kind !== "update").length >= PACE.NEW_PAGES_PER_WEEK;
     const tiers: ((entry: Entry) => boolean)[] = [
-      ...(updateDue ? [(entry: Entry) => fresh(entry) && kindOf(entry) === "update"] : []),
+      ...(updateDue ? [(entry: Entry) => fresh(entry) && isUpdate(entry)] : []),
+      ...(paced ? [(entry: Entry) => fresh(entry) && own(entry), own, (entry: Entry) => fresh(entry) && isUpdate(entry), isUpdate] : []),
       (entry) => fresh(entry) && turns(entry) && room(entry),
       (entry) => fresh(entry) && turns(entry),
       fresh,
