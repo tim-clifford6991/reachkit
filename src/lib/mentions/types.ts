@@ -27,9 +27,20 @@
  *                 a written line.
  *   `skipped_cap` the weekly cap had no room for the reservation. Nothing
  *                 was asked and nothing was spent.
+ *   `skipped_footprint` the site ranks for fewer than
+ *                 `LLM_MENTIONS_MIN_FOOTPRINT` keywords, so the read is not
+ *                 bought (SPEC §6, owner D32 of 2026-10-03, #1162).
+ *   `skipped_monthly` it was bought inside the last
+ *                 `LLM_MENTIONS_EVERY_WEEKS` weeks (D32).
  *   `failed`      the vendor was reached and could not be read.
  */
-export type MentionReadStatus = "measured" | "zero" | "skipped_cap" | "failed";
+export type MentionReadStatus =
+  | "measured"
+  | "zero"
+  | "skipped_cap"
+  | "skipped_footprint"
+  | "skipped_monthly"
+  | "failed";
 
 /** One row: a buyer's question an engine answered, citing one of the
  *  site's own pages. Everything but the question may be absent — the

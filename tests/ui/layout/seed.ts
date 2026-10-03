@@ -45,6 +45,7 @@ import { readdirSync } from "node:fs";
 import path from "node:path";
 import { LIVE_ACCOUNT, RESERVED_ACCOUNT, WEEK_ZERO_ACCOUNT } from "../../app/accounts";
 import { VERDICT, fullSections } from "../../scan/report/fixtures";
+import type { PromptAnswer, PromptsSection } from "../../../src/lib/scan/report";
 import { bandRivalSize } from "@/lib/market/rivals/band";
 import { measured } from "@/lib/measure/measured";
 import type { CanonicalDomain } from "@/lib/scan/domain";
@@ -716,6 +717,10 @@ function seedMeasuredWeeks(account: AppAccount): void {
         base.aiAnswers === null
           ? null
           : { ...base.aiAnswers, measuredAt, ownDomain: domain, customerCitations: figures.citations },
+      // D19 (issue 1162): each week's tracked buyer prompts, so the gate
+      // measures the mention-rate tile and the AI answers tab's prompt
+      // cards rather than the arm they replace.
+      prompts: seededPrompts(domain, index),
     });
     // `scans.score` is not decoration here: `scans_verdict_score_consistency`
     // makes the column and the blob's own `scoreAndBand` agree, so a row
@@ -726,6 +731,40 @@ function seedMeasuredWeeks(account: AppAccount): void {
         `'${JSON.stringify(report).replaceAll("'", "''")}'::jsonb);`
     );
   }
+}
+
+/** One week's tracked prompts: a rate that rises by the week, both rivals
+ *  named, two of the site's pages cited, a branded prompt and one prompt
+ *  whose wording is as long as the generator writes them. */
+function seededPrompts(domain: string, week: number): PromptsSection {
+  const asked: PromptsSection["asked"] = [
+    { id: "s1", kind: "category", text: "What are the best onboarding software tools right now, and what is each one good at?" },
+    { id: "s2", kind: "use-case", text: "Which tools help me get my new users to their first win within a single day of setup?" },
+    { id: "s3", kind: "persona", text: "I work with product teams at small SaaS companies. Which onboarding software product should I recommend to them?" },
+    { id: "s4", kind: "comparison", text: `Which is better value for onboarding software: ${LIVE_RIVALS.map((rival) => rival.domain).join(", ")}?` },
+    { id: "s5", kind: "problem", text: "Nothing I have tried helps me get my new users to their first win. What software should I try next?" },
+    { id: "s6", kind: "branded", text: "What is this product, and is it any good for onboarding software?" },
+  ];
+  const rivals = LIVE_RIVALS.map((rival) => rival.domain);
+  const answers: PromptAnswer[] = [];
+  for (const [p, prompt] of asked.entries()) {
+    for (const engine of ["ai_mode", "chatgpt"] as const) {
+      for (const run of [1, 2]) {
+        const hit = prompt.kind === "branded" || (p + run + (engine === "chatgpt" ? 1 : 0)) % 5 < Math.min(week, 3);
+        const linked = hit && run === 1;
+        answers.push({
+          promptId: prompt.id,
+          engine,
+          run,
+          named: hit,
+          linked,
+          ownUrls: linked ? [`https://${domain}/${p % 2 === 0 ? "pricing" : "guides/a-first-week-checklist-for-new-users"}`] : [],
+          rivals: hit ? rivals.slice(0, 1) : rivals,
+        });
+      }
+    }
+  }
+  return { siteName: domain, asked, asks: asked.length * 4, answers };
 }
 
 /**

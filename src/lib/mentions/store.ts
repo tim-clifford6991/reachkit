@@ -229,6 +229,24 @@ export async function readMentionWeeks(a: {
   return weeks;
 }
 
+/**
+ * Whether the site's LLM Mentions were bought in any of these weeks (SPEC
+ * §6, owner D32, #1162): a week the vendor answered, with rows or with
+ * none. A read that fails says "not bought", so the pass buys it — a
+ * month that is bought twice costs 10¢, a month never bought loses the
+ * card.
+ */
+export async function boughtInWeeks(a: { siteId: string; weekStarts: readonly string[] }): Promise<boolean> {
+  if (a.weekStarts.length === 0) return false;
+  const { data, error } = await untyped()
+    .from<ReadRow>(READS)
+    .select("week_start, status, total_count, rows_stored")
+    .eq("site_id", a.siteId)
+    .in("week_start", a.weekStarts);
+  if (error !== null || data === null) return false;
+  return data.some((row) => row.status === "measured" || row.status === "zero");
+}
+
 /** The column's four words, and nothing else. A row carrying a fifth is
  *  read as `failed`: it is a week whose reading this build cannot make
  *  sense of, which is exactly what that arm says. The check constraint
@@ -239,6 +257,8 @@ function statusOf(value: string): MentionReadStatus {
     case "measured":
     case "zero":
     case "skipped_cap":
+    case "skipped_footprint":
+    case "skipped_monthly":
       return value;
     default:
       return "failed";

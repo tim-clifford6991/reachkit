@@ -21,18 +21,18 @@ function ofTotal(n: number, total: number): string {
   return `${n}/${total}`;
 }
 
-/** Twelve questions, the ones that name the business filled. */
+/** The buyer prompts, the ones whose answers name the business filled. */
 function AnswersDrawing(): React.JSX.Element {
-  const { named, total, goal } = SPECIMEN_FEATURES.answers;
+  const { named, total, prompts, named_prompts: filled } = SPECIMEN_FEATURES.answers;
   return (
     <div className="flex flex-col gap-2">
-      <div className="grid grid-cols-12 gap-1">
-        {Array.from({ length: total }, (_, i) => (
-          <span key={i} aria-hidden className={`h-3 rounded-sm ${i < named ? "bg-primary" : "bg-base-200"}`} />
+      <div className="grid grid-cols-[repeat(25,minmax(0,1fr))] gap-0.5">
+        {Array.from({ length: prompts }, (_, i) => (
+          <span key={i} aria-hidden className={`h-3 rounded-sm ${i < filled ? "bg-primary" : "bg-base-200"}`} />
         ))}
       </div>
       <p className="text-base-content/70 font-mono text-xs">
-        {copy("landing.feature.ai.meter", { named: String(named), total: String(total), goal: String(goal) })}
+        {copy("landing.feature.ai.meter", { named: String(named), total: String(total) })}
       </p>
     </div>
   );

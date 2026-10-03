@@ -35,6 +35,7 @@ import { FileText, MessageCircleQuestion } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
 import { formatCount, formatMonthDay } from "./present";
+import { LLM_MENTIONS_MIN_FOOTPRINT } from "@/lib/config/constants";
 import { MENTIONS_WINDOW_WEEKS, type MentionsModel } from "./mentions-model";
 
 /** One card's shell: its head, the line under it, and whatever it holds.
@@ -77,6 +78,20 @@ export function MentionCards(p: {
   // empty card is a claim that there was something to measure, and there
   // has not been a pass that bought this yet.
   if (p.model.kind === "never_queried") return null;
+
+  if (p.model.kind === "small_footprint") {
+    return (
+      <Card
+        testId="mentions-also"
+        title={copy("overview.mentions.also.title")}
+        lead={copy("overview.mentions.also.lead")}
+      >
+        <p className="max-w-prose text-sm text-base-content/70" data-testid="mentions-state">
+          {copy("overview.mentions.small-footprint", { min: formatCount(LLM_MENTIONS_MIN_FOOTPRINT) })}
+        </p>
+      </Card>
+    );
+  }
 
   if (p.model.kind === "unread" || p.model.kind === "zero") {
     // One card, one written line. A measured zero and a window nobody could

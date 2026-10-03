@@ -156,6 +156,8 @@ export async function runWeekly(a: {
             domain: a.domain,
             weekStart,
             scanId: claim.scanId,
+            // D32 (#1162): bought only at a footprint of 30 or more.
+            ownRanked: report.ownRanked.kind === "unmeasured" ? null : report.ownRanked.value,
           });
         } catch (error) {
           console.log(

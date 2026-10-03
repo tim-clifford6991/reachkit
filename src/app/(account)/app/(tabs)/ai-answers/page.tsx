@@ -51,6 +51,8 @@ import { AnswerTiles } from "../../_overview/AnswerTiles";
 import { BlogReads } from "../../_overview/BlogReads";
 import { readMentions } from "../../_overview/mentions-provider";
 import { MentionCards } from "../../_overview/MentionCards";
+import { readPrompts } from "../../_overview/prompts-provider";
+import { PromptCards } from "../../_overview/PromptCards";
 
 /** /app/ai-answers's own `<title>` (#945). Without it this screen announced
  *  nothing at all — the `(account)` layout's fallback is the floor, not
@@ -65,11 +67,12 @@ export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
   // `readMentions` reads `readAnswers` for the tracked set, and both are
   // `cache`d — so this is three reads for the request, not four, and the
   // questions the cards exclude are exactly the questions the grid draws.
-  const [shell, model, blogReads, mentions] = await Promise.all([
+  const [shell, model, blogReads, mentions, prompts] = await Promise.all([
     readShell(),
     readAnswers(),
     readBlogReads(),
     readMentions(),
+    readPrompts(),
   ]);
   // A sentence with a date inside it, not a value — the same line, from the
   // same key, the Search tab states over its own table. One sentence, one
@@ -93,7 +96,10 @@ export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
         )}
       </header>
 
-      <AnswerTiles model={model} />
+      {/* D19 (#1162): once a weekly pass has asked the buyer prompts, they
+          are the AI measure and their rate replaces the twelve's. */}
+      <PromptCards model={prompts} />
+      <AnswerTiles model={model} rate={prompts.kind !== "measured"} />
       <AnswerGrid model={model} />
       <MentionCards model={mentions} timeZone={shell.timeZone} />
       <BlogReads model={blogReads} />

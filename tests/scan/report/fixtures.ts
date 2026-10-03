@@ -144,6 +144,7 @@ export function fullSections(over: Partial<ReportSections> = {}): ReportSections
     // from the profile, so it recorded none.
     measuredCategory: null,
     marketPrompts: [],
+    prompts: null,
     ...over,
   };
 }

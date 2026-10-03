@@ -157,6 +157,7 @@ import type { CoherenceVerdict } from "@/lib/market/coherence/check";
 import type { CorrectionState } from "@/lib/market/coherence/state";
 import type { EngineCell } from "@/lib/market/questions/matrix";
 import type { MarketSet } from "@/lib/market/questions/market-set";
+import type { PromptKind } from "@/lib/market/prompts/generate";
 import type { Question } from "@/lib/market/questions/phrase";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
 import type { RivalSize } from "@/lib/market/rivals/size";
@@ -523,6 +524,42 @@ export interface StoredReport {
    *  Absent where a pass asked none, which every report before it is; the
    *  score and every card read the twelve and never this. */
   marketPrompts?: readonly MarketPromptAnswer[];
+  /** The tracked buyer prompts a weekly pass asked and what each answer
+   *  said (D19, #1162) — what the AI mention rate, share of voice and
+   *  *your pages cited* are read from. Absent where a pass asked none. */
+  prompts?: PromptsSection;
+}
+
+/** The two engines a tracked prompt is asked on (D19, #1162). */
+export const PROMPT_ENGINES = ["ai_mode", "chatgpt"] as const;
+export type PromptEngine = (typeof PROMPT_ENGINES)[number];
+
+/** One answer to one tracked prompt, as it was read (D19, #1162): whether
+ *  it named or linked the site, which of the site's pages it cited and
+ *  which of the market's rivals it named. Never the engine's prose, never
+ *  a position. */
+export interface PromptAnswer {
+  promptId: string;
+  engine: PromptEngine;
+  /** 1-based: which of the week's asks of this prompt on this engine. */
+  run: number;
+  named: boolean;
+  linked: boolean;
+  ownUrls: readonly string[];
+  rivals: readonly string[];
+}
+
+/** One weekly pass's tracked prompts (SPEC §6, D19, #1162). */
+export interface PromptsSection {
+  /** The name the answers were read for. */
+  siteName: string;
+  /** The set as this pass asked it. */
+  asked: readonly { id: string; kind: PromptKind; text: string }[];
+  /** How many asks the set is: prompts × engines × runs. */
+  asks: number;
+  /** The asks that answered. One that did not is absent, so it leaves the
+   *  rate's denominator and is never a miss. */
+  answers: readonly PromptAnswer[];
 }
 
 /** One buyer prompt as its AI answer read (#1195). */

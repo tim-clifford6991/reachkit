@@ -546,6 +546,17 @@ export function referenceDomain(ref: unknown): string | undefined {
   }
 }
 
+/** Addresses from a list of references, de-duplicated in vendor order
+ *  (#1162). A reference that carries a domain and no address has none. */
+export function referenceUrls(refs: unknown): string[] {
+  const seen = new Set<string>();
+  for (const ref of asArray(refs)) {
+    const url = isRecord(ref) ? asString(ref.url) : undefined;
+    if (url) seen.add(url.trim());
+  }
+  return [...seen];
+}
+
 /** Domains from a list of references, de-duplicated in vendor order. */
 export function referenceDomains(refs: unknown): string[] {
   const seen = new Set<string>();

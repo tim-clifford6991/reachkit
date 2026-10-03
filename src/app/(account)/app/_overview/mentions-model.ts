@@ -94,6 +94,9 @@ export type MentionsModel =
   /** Every week in the window was skipped for the cap or failed. Nothing
    *  was measured, and the card says that rather than "nobody named you". */
   | { readonly kind: "unread"; readonly weeks: number }
+  /** D32 (#1162): the site ranks for too few searches for the read to be
+   *  bought. Its own sentence — "the next pass buys it" would be untrue. */
+  | { readonly kind: "small_footprint" }
   /** The window was read and the engines answered nobody with this site. A
    *  measurement, stated in a written line. */
   | { readonly kind: "zero"; readonly weeks: number }
@@ -173,7 +176,15 @@ export function assembleMentions(facts: MentionsFacts): MentionsModel {
   // A week that was skipped or failed was not read. If none of the window's
   // weeks was read, nothing here is a measurement of the market.
   const read = facts.weeks.filter((week) => week.status === "measured" || week.status === "zero");
-  if (read.length === 0) return { kind: "unread", weeks: facts.weeks.length };
+  if (read.length === 0) {
+    return facts.weeks.at(-1)?.status === "skipped_footprint"
+      ? { kind: "small_footprint" }
+      : { kind: "unread", weeks: facts.weeks.length };
+  }
+  // D32: the read is bought once a month, and the weeks it was not bought
+  // again in are weeks it still covers — the vendor's record is of every
+  // mention it holds, not of one week's.
+  const covered = read.length + facts.weeks.filter((week) => week.status === "skipped_monthly").length;
 
   const tracked = new Set(facts.tracked.map(normaliseQuestion));
   const mentions = read.flatMap((week) => week.mentions.map((mention) => ({ week, mention })));
@@ -254,11 +265,11 @@ export function assembleMentions(facts: MentionsFacts): MentionsModel {
     .map(([url, questions]): CitedPageRow => ({ url, label: pathOf(url), questions: questions.size }))
     .sort((a, b) => b.questions - a.questions || a.url.localeCompare(b.url));
 
-  if (alsoAll.length === 0 && citedPages.length === 0) return { kind: "zero", weeks: read.length };
+  if (alsoAll.length === 0 && citedPages.length === 0) return { kind: "zero", weeks: covered };
 
   return {
     kind: "rows",
-    weeks: read.length,
+    weeks: covered,
     alsoAppearing: alsoAll.slice(0, ALSO_APPEARING_MAX),
     alsoAppearingTotal: alsoAll.length,
     citedPages,

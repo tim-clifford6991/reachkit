@@ -86,7 +86,35 @@ function Legend(): React.JSX.Element {
 /** One question's row: its number and wording, the search it was phrased
  *  from, the page ReachKit published for that search where there is one,
  *  and one cell per engine. */
-function Row(p: { question: AnswerQuestion; engines: AnswersModel["engines"] }): React.JSX.Element {
+/** One engine column, with its place in a row's `marks`. */
+interface Column {
+  engine: AnswersModel["engines"][number];
+  index: number;
+}
+
+/** The grid's shape per column count: static strings, so Tailwind sees
+ *  each one. */
+const GRID_COLUMNS: Readonly<Record<number, string>> = Object.freeze({
+  1: "sm:grid-cols-[minmax(0,40rem)_repeat(1,minmax(5.5rem,1fr))]",
+  2: "sm:grid-cols-[minmax(0,40rem)_repeat(2,minmax(5.5rem,1fr))]",
+  3: "sm:grid-cols-[minmax(0,40rem)_repeat(3,minmax(5.5rem,1fr))]",
+});
+
+/**
+ * The engines the pass put these questions to (D19, #1162). A weekly pass
+ * reads the twelve in Google's AI Overview and asks the other two engines
+ * the buyer prompts instead, so a column nobody asked is not drawn as a
+ * column of "not measured". Where nothing was asked at all, every column
+ * stays and says so.
+ */
+function askedColumns(model: AnswersModel): readonly Column[] {
+  const all = model.engines.map((engine, index) => ({ engine, index }));
+  const rows = [...model.questions, ...model.pageQuestions];
+  const asked = all.filter((column) => rows.some((row) => (row.marks[column.index] ?? "not_measured") !== "not_measured"));
+  return asked.length === 0 ? all : asked;
+}
+
+function Row(p: { question: AnswerQuestion; columns: readonly Column[] }): React.JSX.Element {
   const [wording, provenance] = renderQuestion({
     wording: p.question.wording,
     provenance: copy("overview.answers.from", { search: p.question.search }),
@@ -133,8 +161,8 @@ function Row(p: { question: AnswerQuestion; engines: AnswersModel["engines"] }):
           </span>
         )}
       </div>
-      {p.engines.map((engine, i) => {
-        const mark = p.question.marks[i] ?? "not_measured";
+      {p.columns.map(({ engine, index }) => {
+        const mark = p.question.marks[index] ?? "not_measured";
         return (
           <div
             key={engine}
@@ -173,6 +201,7 @@ export function AnswerGrid(p: { model: AnswersModel }): React.JSX.Element {
     );
   }
 
+  const columns = askedColumns(p.model);
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid="answers-grid">
       <div className="flex min-w-0 flex-col gap-3 p-4">
@@ -192,14 +221,14 @@ export function AnswerGrid(p: { model: AnswersModel }): React.JSX.Element {
         <div
           role="table"
           aria-label={copy("overview.answers.grid.label")}
-          className="grid min-w-0 grid-cols-1 items-center sm:grid-cols-[minmax(0,40rem)_repeat(3,minmax(5.5rem,1fr))]"
+          className={`grid min-w-0 grid-cols-1 items-center ${GRID_COLUMNS[columns.length] ?? GRID_COLUMNS[3]}`}
         >
           {/* The column heads belong to the four-column shape. On the phone
               shape each cell names its own engine instead, so this row is
               not drawn at all rather than drawn and ignored. */}
           <div role="row" className="hidden sm:col-span-full sm:grid sm:grid-cols-subgrid">
             <div aria-hidden />
-            {p.model.engines.map((engine) => (
+            {columns.map(({ engine }) => (
               <span
                 key={engine}
                 role="columnheader"
@@ -210,7 +239,7 @@ export function AnswerGrid(p: { model: AnswersModel }): React.JSX.Element {
             ))}
           </div>
           {[...p.model.questions, ...p.model.pageQuestions].map((question) => (
-            <Row key={question.n} question={question} engines={p.model.engines} />
+            <Row key={question.n} question={question} columns={columns} />
           ))}
         </div>
       </div>

@@ -34,12 +34,13 @@
 // different week from the one it announces.
 import { dbAdmin } from "@/lib/db";
 import { env } from "@/lib/config/env";
-import { WEEKLY_NEXT_COUNT } from "@/lib/config/constants";
+import { ANSWER_RATE_WEEKS, WEEKLY_NEXT_COUNT } from "@/lib/config/constants";
+import { measurePrompts } from "@/lib/market/prompts/rate";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { rankOpen, weeklyDigest } from "@/lib/opportunities";
 import { opportunityStore, readOpportunity } from "@/lib/opportunities/store";
-import { accountForWeek, weekMovement, type UnmeasuredPart } from "@/lib/scan/weekly";
+import { accountForWeek, readPromptWindow, weekMovement, type UnmeasuredPart } from "@/lib/scan/weekly";
 import type { MeasurementState } from "../shell/compose";
 import { sendEmail } from "../send";
 import { buildWeekly, type WeeklyNeedsYou, type WeeklyPage } from "../templates/weekly";
@@ -221,8 +222,40 @@ async function measuredWeek(
     issues: movement.issueChanges,
     // D28 (#1185): what ReachKit changed about the market this week.
     marketChanges: await marketChangesSince(a.siteId, a.weekStart),
+    ...(await mentionRateOf(a.siteId, a.weekStart)),
   });
   return { mail, measurement: measurementStateOf(account) };
+}
+
+/**
+ * D22 · D19 (#1162): the AI mention rate as the Overview states it — the
+ * same window, the same measure — or nothing where no pass in the window
+ * asked the prompts. A window that cannot be read says nothing either: the
+ * mail is never held back for one line.
+ */
+async function mentionRateOf(
+  siteId: string,
+  weekStart: string
+): Promise<Pick<Parameters<typeof buildWeekly>[0], "mentionRate">> {
+  try {
+    const window = await readPromptWindow({ siteId, weekStart });
+    const measure = measurePrompts(window.weeks.flatMap((week) => week.samples));
+    if (measure.rate === null) return {};
+    const percent = (fraction: number): number => Math.round(fraction * 100);
+    return {
+      mentionRate: {
+        rate: percent(measure.rate.rate),
+        low: percent(measure.rate.low),
+        high: percent(measure.rate.high),
+        mentioned: measure.rate.linked + measure.rate.named,
+        answers: measure.rate.samples,
+        weeks: ANSWER_RATE_WEEKS,
+        pagesCited: measure.pages.length,
+      },
+    };
+  } catch {
+    return {};
+  }
 }
 
 /** §12's "next 3", by the ranking as it stands. Measured-and-empty where
