@@ -261,17 +261,91 @@ describe("crawlSite", () => {
     expect(out.pages.map((p) => p.url)).toEqual([HOME, "https://example.com/pricing"]);
   });
 
-  it("keeps the query of a query-addressed page, so two products are two rows (issue 609)", async () => {
+  it("keeps a query-addressed page whose own canonical keeps the query, so two products are two rows (issue 609)", async () => {
     const home = page("Home", `<a href="/product?id=1">a</a><a href="/product?id=2&utm_source=x">b</a>`);
+    const product = (id: number, title: string) =>
+      `<html><head><title>${title}</title><link rel="canonical" href="https://example.com/product?id=${id}"></head><body></body></html>`;
     const ports = fakePorts({
-      "https://example.com/product?id=1": ok("https://example.com/product?id=1", page("One")),
-      "https://example.com/product?id=2&utm_source=x": ok("https://example.com/product?id=2&utm_source=x", page("Two")),
+      "https://example.com/product?id=1": ok("https://example.com/product?id=1", product(1, "One")),
+      "https://example.com/product?id=2&utm_source=x": ok("https://example.com/product?id=2&utm_source=x", product(2, "Two")),
     });
 
     const out = await crawlSite(fakeCost(), { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [] }, ports);
 
     expect(out.pages.map((p) => p.title)).toEqual(["Home", "One", "Two"]);
     expect(out.pages[0]?.links).toEqual(["https://example.com/product?id=1", "https://example.com/product?id=2"]);
+  });
+
+  it("counts a gallery once: its sort and filter variants are the page their canonical names, and one fetch learns that (issue 1169)", async () => {
+    const gallery = `<html><head><title>Gallery</title><link rel="canonical" href="https://example.com/scans"/></head><body><a href="/scans?sort=az">a</a><a href="/scans?cat=crm">b</a></body></html>`;
+    const variants = ["sort=highest", "sort=lowest", "sort=az", "cat=%3CUNKNOWN%3E", "cat=crm"];
+    const home = page("Home", variants.map((q) => `<a href="/scans?${q}">v</a>`).join(""));
+    const documents: Record<string, FetchOutcome> = { "https://example.com/scans": ok("https://example.com/scans", gallery) };
+    for (const q of variants) documents[`https://example.com/scans?${q}`] = ok(`https://example.com/scans?${q}`, gallery);
+    const ports = fakePorts(documents);
+
+    const out = await crawlSite(fakeCost(), { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [] }, ports);
+
+    expect(out.pages.map((p) => p.url)).toEqual([HOME, "https://example.com/scans"]);
+    expect(ports.fetched.filter((u) => u.includes("/scans?"))).toHaveLength(1);
+    expect(out.stoppedBy).toBe("complete");
+  });
+
+  it("a query variant that declares no canonical is the page without the query", async () => {
+    const home = page("Home", `<a href="/blog?sort=new">a</a><a href="/blog?sort=old">b</a>`);
+    const ports = fakePorts({
+      "https://example.com/blog?sort=new": ok("https://example.com/blog?sort=new", page("Blog")),
+      "https://example.com/blog?sort=old": ok("https://example.com/blog?sort=old", page("Blog")),
+      "https://example.com/blog": ok("https://example.com/blog", page("Blog")),
+    });
+
+    const out = await crawlSite(fakeCost(), { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [] }, ports);
+
+    expect(out.pages.map((p) => p.url)).toEqual([HOME, "https://example.com/blog"]);
+  });
+
+  it("skips a page whose canonical points off the site, and keeps one whose canonical differs only by scheme or www", async () => {
+    const withCanonical = (title: string, href: string) =>
+      `<html><head><title>${title}</title><link rel='canonical' href='${href}'></head><body></body></html>`;
+    const home = page("Home", `<a href="/syndicated">a</a><a href="/about">b</a>`);
+    const ports = fakePorts({
+      "https://example.com/syndicated": ok("https://example.com/syndicated", withCanonical("Syndicated", "https://publisher.example.org/original")),
+      "https://example.com/about": ok("https://example.com/about", withCanonical("About", "http://www.example.com/about/")),
+    });
+
+    const out = await crawlSite(fakeCost(), { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [] }, ports);
+
+    expect(out.pages.map((p) => p.title)).toEqual(["Home", "About"]);
+  });
+
+  it("leaves out a page the site keeps out of search on purpose, and keeps a noindex page its own sitemap lists", async () => {
+    const noindex = (title: string, body = "") =>
+      `<html><head><title>${title}</title><meta name="robots" content="noindex, nofollow"></head><body>${body}</body></html>`;
+    const home = page("Home", `<a href="/signin">a</a><a href="/scan/rival.example.org">b</a>`);
+    const ports = fakePorts({
+      "https://example.com/sitemap.xml": ok("https://example.com/sitemap.xml", `<urlset><url><loc>https://example.com/pricing</loc></url></urlset>`),
+      "https://example.com/pricing": ok("https://example.com/pricing", noindex("Pricing")),
+      "https://example.com/signin": ok("https://example.com/signin", noindex("Sign in")),
+      "https://example.com/scan/rival.example.org": ok(
+        "https://example.com/scan/rival.example.org",
+        noindex("Rival report", `<a href="/scan/other.example.org">next</a>`)
+      ),
+    });
+
+    const out = await crawlSite(fakeCost(), { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [] }, ports);
+
+    expect(out.pages.map((p) => p.title)).toEqual(["Home", "Pricing"]);
+    expect(out.pages[1]?.facts.noindex).toBe(true);
+    expect(ports.fetched).not.toContain("https://example.com/scan/other.example.org");
+  });
+
+  it("keeps a noindex home page as row one — the whole site kept out of search is the fault, not a page to skip", async () => {
+    const home = `<html><head><title>Home</title><meta name="robots" content="noindex"></head><body></body></html>`;
+
+    const out = await crawlSite(fakeCost(), { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [] }, fakePorts({}));
+
+    expect(out.pages).toHaveLength(1);
+    expect(out.pages[0]?.facts.noindex).toBe(true);
   });
 
   it("stops at a hundred pages and says so", async () => {

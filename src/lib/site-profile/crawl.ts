@@ -56,6 +56,17 @@
 // can never pass it. The time bound is enforced, not merely checked
 // between batches: at `CRAWL_MS` every read still in flight is aborted and
 // the crawl returns what it has.
+//
+// **One row per page the site means to be found** (owner, issue 1169,
+// SPEC §9 2026-10-03). An address is not a page. A query-string variant is
+// a row only when the document's own `<link rel="canonical">` keeps the
+// query; where the canonical names another address the document is an
+// alias of that address, which is read instead. A page that tells every
+// reader `noindex` is one the site keeps out of search on purpose and is no
+// row either — unless it is the home page or the site's own sitemap lists
+// it, which is the contradiction §9's `noindex` check exists to name. One
+// variant of a path is read to learn which it is; its siblings are then
+// dropped unread, so a gallery's forty filters cost one fetch, not forty.
 import { CACHE_WINDOWS_D, SITE_PROFILE } from "@/lib/config/constants";
 import { refusalOf, type CostContext, type FetchRefusal } from "@/lib/costs";
 import { crawlDelayMs, readRobots, robotsAllows } from "@/lib/egress/robots";
@@ -145,6 +156,10 @@ const ANCHOR_HREF_RE = /<a\b[^>]*?\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>/gi;
 const LOC_RE = /<loc>\s*([\s\S]*?)\s*<\/loc>/gi;
 const SITEMAP_INDEX_RE = /<sitemapindex\b/i;
 const TAG_RE = /<[^>]*>/g;
+const COMMENT_RE = /<!--[\s\S]*?-->/g;
+const LINK_TAG_RE = /<link\b[^>]*>/gi;
+const REL_RE = /\brel\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
+const HREF_RE = /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
 
 /** Addresses that are not pages. A crawl that fetched these would spend
  *  its budget on bytes no inventory row can be made from. */
@@ -218,16 +233,21 @@ async function crawl(
 
   const fetched = new Set<string>();
   const broken = new Set<string>();
-  // The identities that already have a row, by the address the document was
-  // finally served from — one row per real page, however many addresses
-  // redirect to it (issue 609).
+  // The identities already decided, by the address the document was finally
+  // served from — one row per real page, however many addresses redirect to
+  // it (issue 609), and one decision per address that is no row at all.
   const rows = new Set<string>();
+  // Whether a path's query addresses a page of its own: `keep` where a
+  // variant's canonical carried its query, `drop` where it did not.
+  const queries = new Map<string, "keep" | "drop">();
   const homeKey = dedupeKey(home.url);
   if (homeKey !== null) {
     seen.add(homeKey);
     fetched.add(homeKey);
     rows.add(homeKey);
   }
+  // The home page is row one whatever it says about itself: a `noindex`
+  // home is the site-wide fault §9 names, never a page skipped.
   pages.push(pageOf(home.url, home.html, site, home.fetchMs));
 
   // The frontier, in discovery order: the site's own sitemap first, then
@@ -242,8 +262,44 @@ async function crawl(
     frontier.push(url);
   };
 
+  // Up to `n` addresses off the front of the frontier. A query variant of a
+  // path already known to ignore its query is dropped unread, and a batch
+  // carries one variant of an undecided path — the rest wait for what that
+  // one says.
+  const take = (n: number): string[] => {
+    const out: string[] = [];
+    const held: string[] = [];
+    const probing = new Set<string>();
+    while (out.length < n && frontier.length > 0) {
+      const url = frontier.shift();
+      if (url === undefined) break;
+      const path = withoutQuery(url);
+      if (path !== null) {
+        const decided = queries.get(path);
+        if (decided === "drop") continue;
+        if (decided === undefined) {
+          if (probing.has(path)) {
+            held.push(url);
+            continue;
+          }
+          probing.add(path);
+        }
+      }
+      out.push(url);
+    }
+    frontier.unshift(...held);
+    return out;
+  };
+
   const sitemap = await sitemapUrls(c, a, reader);
-  for (const url of sitemap.urls) enqueue(url, home.url);
+  // What the site itself asks to have indexed: the pages its sitemap lists.
+  const listed = new Set<string>();
+  for (const url of sitemap.urls) {
+    const inScope = inScopeUrl(url, home.url, site);
+    const key = inScope === null ? null : dedupeKey(inScope);
+    if (key !== null) listed.add(key);
+    enqueue(url, home.url);
+  }
   for (const href of anchorHrefs(home.html)) enqueue(href, home.url);
 
   let stoppedBy: CrawlOutcome["stoppedBy"] = "complete";
@@ -273,7 +329,7 @@ async function crawl(
 
     const room = SITE_PROFILE.MAX_PAGES - pages.length;
     const candidates =
-      alone.length > 0 ? alone.splice(0, 1) : frontier.splice(0, Math.min(reader.concurrency(), room));
+      alone.length > 0 ? alone.splice(0, 1) : take(Math.min(reader.concurrency(), room));
 
     // A path the site's robots.txt disallows is never read (issue 610). It
     // stays discovered — it is the site's page — and is not fetched.
@@ -317,13 +373,27 @@ async function crawl(
       // already has a row is an alias of it: neither is a second row.
       const final = inScopeUrl(stored.url, stored.url, site);
       const finalKey = final === null ? null : dedupeKey(final);
-      if (finalKey === null || rows.has(finalKey)) continue;
+      if (final === null || finalKey === null || rows.has(finalKey)) continue;
       rows.add(finalKey);
       seen.add(finalKey);
+      // The document says which page it is. An alias is read at the address
+      // it names, where that is on the site, and is no row here.
+      const standing = aliasOf(final, stored.html, site);
+      for (const address of [url, final]) {
+        const path = withoutQuery(address);
+        if (path !== null) queries.set(path, standing.alias ? "drop" : "keep");
+      }
+      if (standing.alias) {
+        if (standing.of !== null) enqueue(standing.of, final);
+        continue;
+      }
       // A document the ledger served from its window was not this fetch's
       // bytes, so this fetch's time is not its time.
       const timed = outcome.ok && outcome.readAt.toISOString() === stored.readAt ? fetchMs : null;
       const page = pageOf(stored.url, stored.html, site, timed);
+      // Kept out of search on purpose: not the customer's content, and not
+      // a page a check may count — unless the sitemap asks for it indexed.
+      if (page.facts.noindex && !listed.has(finalKey)) continue;
       pages.push(page);
       for (const href of anchorHrefs(stored.html)) enqueue(href, stored.url);
     }
@@ -659,13 +729,13 @@ function absoluteUrl(raw: string, from: string): string | null {
 /** Query parameters that track a click and never address a page. */
 const TRACKING_PARAM_RE = /^(?:utm_.*|gclid|fbclid|msclkid)$/i;
 
-/** The identity two addresses share when they are the same page: scheme
+/** The identity two addresses share when they are the same address: scheme
  *  and host lower-cased by the URL parser, no fragment, no trailing slash
  *  below the root, and the query without its tracking parameters, sorted.
- *  The query stays because `/product?id=1` and `/product?id=2` are two
- *  pages (issue 609); the tracking parameters go because a crawl that read
- *  `/blog?page=1` and `/blog?page=1&utm_source=x` twice would spend two of
- *  its hundred on one page. */
+ *  The query stays here because `/product?id=1` and `/product?id=2` may be
+ *  two pages (issue 609) — whether they are is the document's own canonical
+ *  to say (`aliasOf`); the tracking parameters go because they never
+ *  address a page. */
 function dedupeKey(url: string): string | null {
   let parsed: URL;
   try {
@@ -680,6 +750,52 @@ function dedupeKey(url: string): string | null {
   parsed.searchParams.sort();
   const query = parsed.searchParams.toString();
   return `${parsed.protocol}//${parsed.host}${path === "" ? "/" : path}${query === "" ? "" : `?${query}`}`;
+}
+
+/** The address with its query removed, as an identity — `null` for an
+ *  address that carries no query once its tracking parameters are gone. */
+function withoutQuery(url: string): string | null {
+  const key = dedupeKey(url);
+  if (key === null) return null;
+  const at = key.indexOf("?");
+  return at === -1 ? null : key.slice(0, at);
+}
+
+/** Two addresses of one page, whatever scheme or `www.` label each was
+ *  written with — a canonical that says `http://www.` on a page served at
+ *  `https://` names that same page. */
+function sameAddress(a: string, b: string): boolean {
+  const bare = (url: string): string | null => dedupeKey(url)?.replace(/^https?:\/\/(?:www\.)?/, "") ?? null;
+  const left = bare(a);
+  return left !== null && left === bare(b);
+}
+
+/** The document's `<link rel="canonical">`, absolute; `null` where it
+ *  declares none or one that is not an address. */
+function canonicalOf(html: string, url: string): string | null {
+  for (const tag of html.replace(COMMENT_RE, "").match(LINK_TAG_RE) ?? []) {
+    const rel = REL_RE.exec(tag);
+    if (!/(?:^|\s)canonical(?:\s|$)/i.test(rel?.[1] ?? rel?.[2] ?? rel?.[3] ?? "")) continue;
+    const href = HREF_RE.exec(tag);
+    const value = decodeEntities((href?.[1] ?? href?.[2] ?? href?.[3] ?? "").trim());
+    return value === "" ? null : absoluteUrl(value, url);
+  }
+  return null;
+}
+
+/** Whether the document at `url` is a page of its own or an alias of
+ *  another address. Its canonical decides; where it declares none, a query
+ *  string is not part of a page's address, so a variant is an alias of the
+ *  address without it. `of` is the address to read instead, `null` where
+ *  that address is not on this site. */
+function aliasOf(url: string, html: string, site: string | null): { alias: false } | { alias: true; of: string | null } {
+  const canonical = canonicalOf(html, url);
+  if (canonical !== null) {
+    if (sameAddress(canonical, url)) return { alias: false };
+    return { alias: true, of: inScopeUrl(canonical, url, site) };
+  }
+  const path = withoutQuery(url);
+  return path === null ? { alias: false } : { alias: true, of: path };
 }
 
 /** One read page, parsed. Never throws: a document that carries no title
