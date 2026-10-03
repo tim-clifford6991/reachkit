@@ -22,7 +22,7 @@ import { runHardRules } from "@/lib/generate/rules";
 import { renderOf } from "@/lib/generate/rules/text";
 import { applyAnswerability } from "@/lib/generate/pipeline/answerability";
 import { sitePassages } from "@/lib/generate/pipeline/grounding";
-import { SKELETONS } from "@/lib/generate/pipeline/skeletons";
+import { skeletonFor } from "@/lib/generate/pipeline/skeletons";
 import { answersMarketQuestion } from "@/lib/generate/rules/frame";
 import {
   answerability,
@@ -84,7 +84,7 @@ export const writeLeadPage: DraftWriter = async (a) => {
     return FAILED;
   }
   const opportunity = freePageOpportunity(report, pick);
-  const skeleton = SKELETONS[opportunity.type];
+  const skeleton = skeletonFor(opportunity);
   if (skeleton === null) return FAILED;
 
   const pages = await readDomainText(report.domain);

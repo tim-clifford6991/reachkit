@@ -100,7 +100,9 @@ describe("the prompt's whole knowledge of the customer is the closed struct", ()
       // `profile` since #927: the brief chooses which products, audience and
       // promises the page speaks to, which is what makes the page this
       // business's rather than the market's.
-      ["task", "cluster", "type", "target", "absorbedQueries", "facts", "doNotClaim", "voice", "acceptance", "pageJob", "frame", "profile"].sort()
+      // `sitePages` since issue 1209: every page the site has published or
+      // planned, so the brief takes an angle none of them already takes.
+      ["task", "cluster", "type", "target", "absorbedQueries", "facts", "doNotClaim", "voice", "acceptance", "pageJob", "frame", "profile", "sitePages"].sort()
     );
     expect(input.voice).toBe("Plain and direct.");
     expect(input.facts).toEqual([GROUNDED.passage]);

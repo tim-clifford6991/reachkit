@@ -31,6 +31,7 @@ import {
   nextForDay,
   opportunityById,
   queueForDraft,
+  sitePagesFor,
   type Opportunity,
 } from "@/lib/opportunities";
 import type { StoredReport } from "@/lib/scan/report";
@@ -381,6 +382,9 @@ async function writePage(a: PageInput & { attempts: number }): Promise<DayPageOu
   // but as topics this site has covered, so the page is written beside them
   // and never over them. Titles and addresses only.
   const knownBriefs = nearestKnown(known, opportunity.targetQuery ?? "");
+  // SPEC §7 (2026-10-03, D36, issue 1209): and the brief is told every page
+  // the site has published or planned. Read once for the day, like the rest.
+  const sitePages = await sitePagesFor(a.siteId, { except: opportunity.id });
 
   return withDraftCost({ scanId: report.scanId }, async (cost): Promise<DayPageOutcome> => {
     let last: GenerateOutcome | null = null;
@@ -401,6 +405,7 @@ async function writePage(a: PageInput & { attempts: number }): Promise<DayPageOu
         category,
         links,
         known: knownBriefs,
+        sitePages,
         profile: confirmed.profile,
         factsOff: confirmed.factsOff,
         scanId: report.scanId,

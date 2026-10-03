@@ -43,6 +43,8 @@ export { assessReadiness, opportunityReady, ownRanksFrom, type ReadinessContext 
 export { canonicalUrl, clusterKey, collapse, comparePrecedence } from "./cluster";
 export { suppressionOf, verdictReason, type NotWorkingVerdict, type Suppression } from "./suppression";
 export { nextForDay, opportunityById } from "./next";
+export { contentKindOf, CONTENT_KINDS, type ContentKind } from "./content-kind";
+export { sitePagesFor, type SitePage } from "./site-pages";
 export { dismissForVeto, queueForDraft, releaseForDraft } from "./drafted";
 
 export { deriveOpportunities, type DeriveInput, type DeriveOutcome } from "./derive";

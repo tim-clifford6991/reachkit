@@ -13,6 +13,7 @@
 import "./env";
 import type { KnownPage } from "@/lib/known-content/types";
 import type {
+  DraftedPage,
   InsertOutcome,
   OpportunityInsert,
   OpportunityRow,
@@ -31,6 +32,9 @@ export interface MemoryState {
   /** The site's concluded market (issue 1134); absent reads as none. */
   market?: MarketConclusion | null;
   rows: OpportunityRow[];
+  /** The site's own drafted pages, newest first (issue 1209); absent reads
+   *  as none. */
+  drafted?: DraftedPage[];
   statusChangedAt: Map<string, Date>;
   profile: Profile | null;
   latestScanAt: Date | null;
@@ -184,6 +188,10 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       );
       const at = (id: string) => state.statusChangedAt.get(id)?.getTime() ?? 0;
       return pages.sort((a, b) => at(b.id) - at(a.id))[0] ?? null;
+    },
+
+    async draftedPages(_siteId, limit) {
+      return (state.drafted ?? []).slice(0, limit);
     },
 
     async topTens() {

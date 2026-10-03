@@ -26,7 +26,7 @@ import {
   type MemoryStore,
 } from "../fixtures";
 import { FRAME_INSTRUCTION } from "../../../src/lib/generate/rules/frame";
-import { PAGE_JOB } from "../../../src/lib/generate/pipeline/skeletons";
+import { KIND_JOB } from "../../../src/lib/generate/pipeline/skeletons";
 
 const { llmMock, readMeasuredTextMock } = vi.hoisted(() => ({
   llmMock: vi.fn(),
@@ -340,14 +340,14 @@ describe("a page answers the question it targets (issue 900)", () => {
   it("the brief prompt carries the type's job and the frame instruction", async () => {
     primeSteps(CLEAN_MARKDOWN);
     await run({ opportunity: LISTED });
-    expect(promptOf(0).pageJob).toBe(PAGE_JOB.listed_page);
+    expect(promptOf(0).pageJob).toBe(KIND_JOB.comparison);
     expect(promptOf(0).frame).toBe(FRAME_INSTRUCTION);
   });
 
   it("the draft prompt carries them too — the instruction is not dropped after the brief", async () => {
     primeSteps(CLEAN_MARKDOWN);
     await run({ opportunity: LISTED });
-    expect(promptOf(2).pageJob).toBe(PAGE_JOB.listed_page);
+    expect(promptOf(2).pageJob).toBe(KIND_JOB.comparison);
     expect(promptOf(2).frame).toBe(FRAME_INSTRUCTION);
   });
 
@@ -356,7 +356,7 @@ describe("a page answers the question it targets (issue 900)", () => {
     await run({
       opportunity: opportunity({ ...LISTED, targetQuery: "acme pricing", absorbedQueries: [] }),
     });
-    expect(promptOf(0).pageJob).toBe(PAGE_JOB.listed_page);
+    expect(promptOf(0).pageJob).toBe(KIND_JOB.comparison);
     expect(promptOf(0).frame).toBeNull();
   });
 
