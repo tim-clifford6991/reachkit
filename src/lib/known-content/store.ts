@@ -158,7 +158,29 @@ export async function readKnownContent(siteId: string): Promise<KnownPage[]> {
     .eq("site_id", siteId)
     .order("published_at", { ascending: false, nullsFirst: false });
   if (error) throw new Error(`known content: reading ${siteId}: ${error.message}`);
-  return (data ?? []).map(pageOf).filter((page): page is KnownPage => page !== null);
+  return atCurrentHost(siteId, (data ?? []).map(pageOf).filter((page): page is KnownPage => page !== null));
+}
+
+/**
+ * Our own pages, at the address they answer at now (SPEC §7, 2026-09-18;
+ * issue 1182).
+ *
+ * This table is a copy, written when the site was last re-read, and a
+ * hosted page follows its site's host: a host that moves after the copy was
+ * written leaves the row naming the old one until the next refresh. A new
+ * page links to these addresses and a refresh is derived against them, so
+ * they are read through the current host. The customer's own pages and a
+ * WordPress post are theirs and are handed back as stored.
+ */
+async function atCurrentHost(siteId: string, pages: KnownPage[]): Promise<KnownPage[]> {
+  if (!pages.some((page) => page.source === "reachkit" && page.url !== null)) return pages;
+  const { storedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
+  const now = await storedAddressesNow(siteId);
+  return pages.map((page) => {
+    if (page.source !== "reachkit" || page.url === null) return page;
+    const url = now(page.url);
+    return url === page.url ? page : { ...page, url, ref: page.ref === page.url ? url : page.ref };
+  });
 }
 
 /**
@@ -177,7 +199,7 @@ export async function nearKnownContent(a: { siteId: string; query: string }): Pr
     p_limit: KNOWN_CONTENT.NEAR_ROWS,
   });
   if (error) throw new Error(`known content: matching ${a.siteId}: ${error.message}`);
-  return (data ?? []).map(pageOf).filter((page): page is KnownPage => page !== null);
+  return atCurrentHost(a.siteId, (data ?? []).map(pageOf).filter((page): page is KnownPage => page !== null));
 }
 
 /** How many pages the site already has, all sources. The one number
@@ -208,6 +230,7 @@ const WAITING_STATES = ["generating", "in_review", "approved", "failed", "needs_
 
 interface PublicationRow {
   live_url: string | null;
+  destination: string | null;
   published_at: string | null;
   drafts: { title: string | null } | { title: string | null }[] | null;
 }
@@ -236,7 +259,7 @@ export async function readOurPages(siteId: string): Promise<KnownPage[]> {
   const client = untyped();
   const live = await client
     .from<PublicationRow>("publications")
-    .select("live_url, published_at, drafts(title)")
+    .select("live_url, destination, published_at, drafts(title)")
     .eq("site_id", siteId)
     .not("published_at", "is", null)
     .not("live_url", "is", null)
@@ -250,14 +273,22 @@ export async function readOurPages(siteId: string): Promise<KnownPage[]> {
     .in("state", [...WAITING_STATES]);
   if (waiting.error) throw new Error(`known content: reading drafts for ${siteId}: ${waiting.error.message}`);
 
+  // SPEC §7 (2026-09-18): a hosted page is at its site's host now. A new
+  // page links to this address and a refresh is derived against it, so the
+  // one stored on the day it was published would send both to a host that
+  // may no longer serve it (issue 1182).
+  const { hostedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
+  const addressNow = await hostedAddressesNow(siteId);
+
   const pages: KnownPage[] = [];
   for (const row of live.data ?? []) {
     const title = titleOf(row.drafts);
     if (row.live_url === null || title === "") continue;
+    const url = addressNow({ destination: row.destination, liveUrl: row.live_url });
     pages.push({
       source: "reachkit",
-      ref: row.live_url,
-      url: row.live_url,
+      ref: url,
+      url,
       title,
       headings: [],
       live: true,

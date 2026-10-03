@@ -103,11 +103,25 @@ export function supabaseExportStore(): ExportStore {
 
     async publications(siteId) {
       const { data, error } = await untyped()
-        .from<ExportPublicationRow>("publications")
-        .select(PUBLICATION_COLUMNS)
+        .from<ExportPublicationRow & { destination: string | null }>("publications")
+        .select(`${PUBLICATION_COLUMNS}, destination`)
         .eq("site_id", siteId);
       if (error !== null || data === null) return { ok: false };
-      return { ok: true, publications: data };
+      // SPEC §7 (2026-09-18): a live hosted page is at its site's host now,
+      // never at the one stored when it was published. A page taken down
+      // keeps the address it was last live at.
+      const { hostedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
+      const addressNow = await hostedAddressesNow(siteId);
+      return {
+        ok: true,
+        publications: data.map(({ destination, ...row }) => ({
+          ...row,
+          live_url:
+            row.live_url === null || row.unpublished_at !== null
+              ? row.live_url
+              : addressNow({ destination, liveUrl: row.live_url }),
+        })),
+      };
     },
   };
 }

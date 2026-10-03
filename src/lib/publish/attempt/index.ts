@@ -37,6 +37,7 @@ import { PUBLISH_DELIVER_TIMEOUT_MS, PUBLISH_VERIFY_DELAY_H } from "@/lib/config
 import { publishDb } from "../db";
 import { adapterFor as defaultAdapterFor, withConfig } from "../destinations";
 import { NoConfigError } from "../destinations/config";
+import { hostedAddressesNow, storedAddressesNow } from "../destinations/hosted/store";
 import type { GuardDeps } from "../machine";
 import { transition } from "../machine";
 import type {
@@ -118,7 +119,9 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
     return {
       ok: true,
       publicationId: claimed.publicationId,
-      ...(row?.live_url === null || row?.live_url === undefined ? {} : { liveUrl: row.live_url }),
+      ...(row?.live_url === null || row?.live_url === undefined
+        ? {}
+        : { liveUrl: (await hostedAddressesNow(row.site_id))({ destination: row.destination, liveUrl: row.live_url }) }),
       alreadyPublished: true,
     };
   }
@@ -230,13 +233,15 @@ async function failWith(
 
 interface OutcomeRow {
   id: string;
+  site_id: string;
+  destination: string | null;
   live_url: string | null;
 }
 
 async function readOutcome(publicationId: string): Promise<OutcomeRow | null> {
   const { data, error } = await publishDb()
     .from<OutcomeRow>("publications")
-    .select("id, live_url")
+    .select("id, site_id, destination, live_url")
     .eq("id", publicationId)
     .single();
   if (error !== null || data === null) return null;
@@ -244,6 +249,7 @@ async function readOutcome(publicationId: string): Promise<OutcomeRow | null> {
 }
 
 interface DraftPageRow {
+  site_id: string;
   title: string;
   body_md: string | null;
   attribution?: string | null;
@@ -294,7 +300,7 @@ function slugOfUrl(url: string): string | null {
 async function renderedPage(draftId: string): Promise<RenderedPage | null> {
   const { data, error } = await publishDb()
     .from<DraftPageRow>("drafts")
-    .select("title, body_md, attribution, meta, opportunities(family, type, proposed_slug, target_ref)")
+    .select("site_id, title, body_md, attribution, meta, opportunities(family, type, proposed_slug, target_ref)")
     .eq("id", draftId)
     .single();
   if (error !== null || data === null) return null;
@@ -318,8 +324,13 @@ async function renderedPage(draftId: string): Promise<RenderedPage | null> {
   }
 
   if (opportunity?.family === "improve") {
-    const updateOf = opportunity.target_ref;
-    if (typeof updateOf !== "string" || updateOf.length === 0) return null;
+    const stored = opportunity.target_ref;
+    if (typeof stored !== "string" || stored.length === 0) return null;
+    // SPEC §7 (2026-09-18): one of the site's own hosted pages is updated at
+    // the host it answers at now. The address stored when the update was
+    // derived may name a host that has since moved (issue 1182), and the
+    // adapter refuses an address that is not on the site's host.
+    const updateOf = (await storedAddressesNow(data.site_id))(stored);
     return { ...page, slug: slugOfUrl(updateOf) ?? "", updateOf };
   }
 
