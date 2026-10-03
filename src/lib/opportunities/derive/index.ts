@@ -17,6 +17,7 @@
 // The engine spends nothing here beyond the rows the scan already bought:
 // winnability reads counts already in `fetches`, and the only model call is
 // `opportunity-typing`, inside the pass's own cap.
+import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { TOPIC_FIT } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { MarketConclusion } from "@/lib/market/infer/types";
@@ -82,6 +83,9 @@ export interface DeriveInput {
    *  has concluded a market for: fit is then judged against the report's
    *  profile, and only the searches the pass read are proposed. */
   market?: MarketConclusion | null;
+  /** The site's knowledge base, as fit is shown it (SPEC §6, 2026-09-29,
+   *  issue 1133). Absent or `null` is a site nothing has been read for. */
+  knowledge?: KnowledgeDigest | null;
   /** The rivals the site is measured against (`sites.competitors`). A paid
    *  pass keeps a far-banded one out of the report's rivals (#858), and it
    *  is still a rival an answer may cite. Absent reads as none. */
@@ -246,6 +250,7 @@ export async function deriveOpportunities(
     market,
     profile: a.report.market.kind === "unmeasured" ? null : a.report.market.value.profile,
     domain: a.report.domain,
+    knowledge: a.knowledge ?? null,
   });
 
   const angle = new Map<Candidate, string>();

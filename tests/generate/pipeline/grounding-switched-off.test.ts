@@ -52,12 +52,14 @@ vi.mock("@/lib/site-profile/business/confirmed", () => ({
   readConfirmedBusiness: readingsMock,
 }));
 
+const NO_KNOWLEDGE = { pages: [], readAt: null };
 const NO_EDITS = {
   removed: {},
   added: {},
   job: null,
   seen: {},
   factsOff: [] as readonly string[],
+  answers: {},
 };
 
 describe("#927 — `allowedFacts` subtracts what the customer refused", () => {
@@ -99,6 +101,7 @@ describe("#927 — the refusals come back with the profile, so the draft path re
       profile: null,
       market: null,
       edits: NO_EDITS,
+      knowledge: NO_KNOWLEDGE,
       editsRead: true,
     });
   });
@@ -108,6 +111,7 @@ describe("#927 — the refusals come back with the profile, so the draft path re
       profile: null,
       market: null,
       edits: { ...NO_EDITS, factsOff: [BASIC] },
+      knowledge: NO_KNOWLEDGE,
       editsRead: true,
     });
     const { confirmedForWriting } = await import("../../../src/lib/generate/voice/confirmed");
@@ -135,6 +139,7 @@ describe("#927 — the refusals come back with the profile, so the draft path re
         vocabulary: [],
       },
       edits: NO_EDITS,
+      knowledge: NO_KNOWLEDGE,
       editsRead: false,
     });
     const { confirmedForWriting } = await import("../../../src/lib/generate/voice/confirmed");

@@ -272,6 +272,10 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   /** #1185: its rivals — up to ten candidates with a reason each: ~800
    *  needed. */
   "rival-inference": 1400,
+  /** SPEC §5 (2026-09-29, #1133): one page's share of the knowledge base —
+   *  eight short lists bounded by `KNOWLEDGE_BASE.PAGE_ITEMS`, each item a
+   *  phrase or one sentence: ~900 needed on a full pricing page. */
+  "site-knowledge": 1400,
 } as const);
 
 /** A call site's sampling temperature, where it has one pinned (#1185).
@@ -288,6 +292,8 @@ export const INFERENCE_TEMPERATURE: Readonly<Partial<Record<keyof typeof INFEREN
     "topic-fit": 0,
     "topic-buyer-searches": 0,
     "topic-typed": 0,
+    // The same page read twice says the same thing about the business.
+    "site-knowledge": 0,
   });
 
 /** How many entries each of the business profile's lists may carry (BUILD
@@ -328,11 +334,17 @@ export const PROFILE_LIST_BOUNDS = Object.freeze({
  * or a promise, not a paragraph, and *what you do* is one sentence.
  *
  * `blockChars` is the ceiling over all of it together, applied last, so the
- * worst case is one number rather than the product of six. Five lists at
- * their caps with every item at its own cap would be about 2.6 kB; 1,200
- * characters is what a real profile needs and is what the prompt is held to
- * — the lists are trimmed in the order they are named, so what survives is
- * what the page is most likely to need.
+ * worst case is one number rather than the product of six. It was 1,200
+ * while the profile was five short lists; the knowledge base (SPEC §5,
+ * 2026-09-29, #1133) is offerings with their features and prices, proof,
+ * buyers' questions and the founder's answers, and 6,000 characters —
+ * about 1,500 tokens, under half a cent a call on the small tier — is the
+ * drafted cap the issue names. What is trimmed first is named in
+ * `src/lib/generate/voice/profile-block.ts`.
+ *
+ * `knowledgeItems` is how many entries each knowledge list may carry, and
+ * `knowledgeItemChars` how long one may be: a differentiator or a customer
+ * result is a sentence, not a product name.
  */
 export const PROFILE_PROMPT_CAPS = Object.freeze({
   products: 8,
@@ -341,7 +353,40 @@ export const PROFILE_PROMPT_CAPS = Object.freeze({
   vocabulary: 12,
   itemChars: 80,
   jobChars: 200,
-  blockChars: 1200,
+  knowledgeItems: 12,
+  knowledgeItemChars: 240,
+  blockChars: 6000,
+} as const);
+
+/**
+ * The knowledge base's bounds — SPEC §5 (2026-09-29, #1133): "the profile
+ * crawl reads up to 100 pages" and one small-tier call per page. The
+ * numbers are drafted defaults the owner may correct.
+ *
+ * `PAGE_INPUT_CHARS` is how much of one page's cleaned prose a call
+ * carries: a pricing or features page is rarely longer, and at ~4
+ * characters a token it is 2,000 tokens of input, 0.2¢. `BUDGET_C` is the
+ * most one pass spends on the whole read — a hundred pages settle near
+ * 30¢, inside the 150¢ of a deep pass that spends about 30¢ on everything
+ * else. `STEP_MS` is the step's own clock, inside the 300 s a job
+ * invocation has. A page whose text has not changed since the last read is
+ * not asked about again.
+ *
+ * `PAGE_ITEMS` bounds what one page may answer with, per list, and
+ * `ITEMS` what the whole base keeps per list once the pages are merged.
+ */
+export const KNOWLEDGE_BASE = Object.freeze({
+  MAX_PAGES: 100,
+  PAGE_INPUT_CHARS: 8_000,
+  PAGE_MIN_CHARS: 200,
+  CONCURRENCY: 6,
+  BUDGET_C: 40,
+  STEP_MS: 200_000,
+  PAGE_ITEMS: 8,
+  ITEMS: 40,
+  OFFERINGS: 12,
+  ITEM_CHARS: 300,
+  ANSWER_CHARS: 600,
 } as const);
 
 /** The most of the customer's own page text one `profile` call may carry,

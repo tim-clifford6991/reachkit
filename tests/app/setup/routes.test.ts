@@ -227,6 +227,8 @@ describe("POST /api/setup — the five step saves (SPEC §5, 2026-09-20)", () =>
       { step: "business", lists: { products: ["Full service"] } },
       // #1038: *What you do* travels beside the lists.
       { step: "business", lists: { audienceTerms: ["Commuters"] }, job: "We fix bikes." },
+      // #1133: the five optional questions travel beside them.
+      { step: "business", lists: {}, answers: { buyers: "Commuters, because they ride daily." } },
       // #970: a step left with nothing shown touches no list, and is not a
       // founder's mistake — it saves like any other.
       { step: "business" },
@@ -264,6 +266,7 @@ describe("POST /api/setup — the five step saves (SPEC §5, 2026-09-20)", () =>
       { step: "business", lists: { products: [1, 2] } },
       { step: "business", lists: ["products"] },
       { step: "business", lists: {}, job: 7 },
+      { step: "business", lists: {}, answers: ["buyers"] },
       { step: "voice" },
       // Publishing has no save of its own: leaving it forward is the finish.
       { step: "publishing", destination: { kind: "hosted", label: "content" } },

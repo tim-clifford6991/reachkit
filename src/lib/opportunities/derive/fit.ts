@@ -16,6 +16,7 @@
 // change one — a score for an index it was not shown does not count. An
 // unavailable model or a reached cap is no judgement at all: nothing is
 // scored, nothing is proposed, and the pass derives what it derived before.
+import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { z } from "zod";
 import { TOPIC_FIT } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
@@ -105,6 +106,7 @@ export async function judgeFit(
     market: MarketConclusion | null;
     profile: Profile | null;
     domain: string;
+    knowledge?: KnowledgeDigest | null;
   }
 ): Promise<ReadonlyMap<number, FitJudgement>> {
   const searches = a.searches.slice(0, TOPIC_FIT.maxCandidates);
@@ -127,7 +129,12 @@ export async function judgeFit(
     site: FIT_CALL_SITE,
     input: {
       task: TASK,
-      product: { domain: a.domain, offering: a.profile?.offeringType ?? null },
+      product: {
+        domain: a.domain,
+        offering: a.profile?.offeringType ?? null,
+        // The knowledge base, where the site has one (SPEC §6, 2026-09-29).
+        ...(a.knowledge == null ? {} : { knowledge: a.knowledge }),
+      },
       market,
       searches: searches.map((search, i) => ({ i, search: search.query, source: search.source })),
     },

@@ -37,6 +37,14 @@
 // which is what `promises` already is; a second list of the same sentences
 // would spend the block's budget saying them twice.
 //
+// **The knowledge base rides in it** (SPEC §5, 2026-09-29, #1133): the
+// writer's `profile` "becomes the knowledge base". `knowledge` is the
+// offerings with their features, prices and uses, who the business serves,
+// the problems it solves, how it differs, its proof, its buyers' questions,
+// integrations and places — each with the address it was read from, or
+// `founder` where the founder gave it. It is absent, not empty, on a site
+// nothing has been read for, so that site's prompt is unchanged.
+//
 // **Every fact rule stands.** This block carries what the business *is* — no
 // price, no figure, no person, no review. Those still come only from the
 // grounded passages, word for word and linked, and the hard rules still
@@ -48,6 +56,31 @@
 // whole behaviour be asserted without a substrate.
 import { PROFILE_PROMPT_CAPS } from "@/lib/config/constants";
 import type { BusinessProfile } from "@/lib/site-profile/business/types";
+import {
+  KNOWLEDGE_LISTS,
+  type KnowledgeBase,
+  type KnowledgeList,
+  type KnowledgeSource,
+} from "@/lib/site-profile/knowledge/types";
+
+/** An item of the knowledge base as a prompt carries it: its text and
+ *  where it is from — a page's address, or `founder`. */
+export interface PromptKnowledgeItem {
+  readonly text: string;
+  readonly from: string;
+}
+
+export interface PromptKnowledge extends Readonly<Record<KnowledgeList, readonly PromptKnowledgeItem[]>> {
+  readonly offerings: readonly {
+    readonly name: string;
+    readonly features: readonly string[];
+    readonly prices: readonly string[];
+    readonly uses: readonly string[];
+    readonly from: string;
+  }[];
+  readonly differentiators: readonly (PromptKnowledgeItem & { readonly rival: string | null })[];
+  readonly byline: string | null;
+}
 
 /** The five members, as the prompt carries them. Every list is already
  *  trimmed to its cap and every string to its own, so a consumer cannot
@@ -58,6 +91,8 @@ export interface PromptProfile {
   readonly audience: readonly string[];
   readonly promises: readonly string[];
   readonly vocabulary: readonly string[];
+  /** The knowledge base (#1133). Absent where nothing was read or said. */
+  readonly knowledge?: PromptKnowledge;
 }
 
 /** One string, trimmed to `chars` at a word boundary where there is one.
@@ -85,13 +120,61 @@ function list(values: readonly string[], max: number): string[] {
  *  make the budget depend on this file's field names rather than on the
  *  customer's content. */
 function weight(p: PromptProfile): number {
+  const k = p.knowledge;
+  const knowledge =
+    k === undefined
+      ? []
+      : [
+          ...k.offerings.flatMap((o) => [o.name, o.from, ...o.features, ...o.prices, ...o.uses]),
+          ...k.differentiators.flatMap((d) => [d.text, d.from, d.rival ?? ""]),
+          ...KNOWLEDGE_LISTS.flatMap((name) => k[name].flatMap((item) => [item.text, item.from])),
+          k.byline ?? "",
+        ];
   return (
     (p.job?.length ?? 0) +
-    [...p.products, ...p.audience, ...p.promises, ...p.vocabulary].reduce(
+    [...p.products, ...p.audience, ...p.promises, ...p.vocabulary, ...knowledge].reduce(
       (total, item) => total + item.length,
       0
     )
   );
+}
+
+function fromOf(source: KnowledgeSource): string {
+  return source.kind === "founder" ? "founder" : source.url;
+}
+
+/** The knowledge base, bounded per list and per item; `undefined` where it
+ *  says nothing. */
+function promptKnowledge(base: KnowledgeBase | null): PromptKnowledge | undefined {
+  if (base === null) return undefined;
+  const max = PROFILE_PROMPT_CAPS.knowledgeItems;
+  const text = (value: string): string => cut(value, PROFILE_PROMPT_CAPS.knowledgeItemChars);
+  const short = (values: readonly string[]): string[] => values.map(text).filter((v) => v !== "").slice(0, max);
+  const built: PromptKnowledge = {
+    offerings: base.offerings.slice(0, max).map((offering) => ({
+      name: text(offering.name),
+      features: short(offering.features),
+      prices: short(offering.prices),
+      uses: short(offering.uses),
+      from: fromOf(offering.source),
+    })),
+    differentiators: base.differentiators
+      .slice(0, max)
+      .map((entry) => ({ text: text(entry.text), rival: entry.rival, from: fromOf(entry.source) })),
+    ...(Object.fromEntries(
+      KNOWLEDGE_LISTS.map((name) => [
+        name,
+        base[name].slice(0, max).map((item) => ({ text: text(item.text), from: fromOf(item.source) })),
+      ])
+    ) as Record<KnowledgeList, PromptKnowledgeItem[]>),
+    byline: base.byline === null ? null : text(base.byline),
+  };
+  const empty =
+    built.offerings.length === 0 &&
+    built.differentiators.length === 0 &&
+    built.byline === null &&
+    KNOWLEDGE_LISTS.every((name) => built[name].length === 0);
+  return empty ? undefined : built;
 }
 
 /**
@@ -111,32 +194,41 @@ function weight(p: PromptProfile): number {
  * the business does is the smallest thing that makes a page specific, which
  * is the owner's bar for this issue.
  */
-export function promptProfile(confirmed: BusinessProfile | null): PromptProfile | null {
-  if (confirmed === null) return null;
+export function promptProfile(
+  confirmed: BusinessProfile | null,
+  base: KnowledgeBase | null = null
+): PromptProfile | null {
+  const knowledge = promptKnowledge(base);
+  if (confirmed === null && knowledge === undefined) return null;
 
   const built: PromptProfile = {
-    job: confirmed.job === null ? null : cut(confirmed.job.text, PROFILE_PROMPT_CAPS.jobChars),
+    job:
+      confirmed === null || confirmed.job === null
+        ? null
+        : cut(confirmed.job.text, PROFILE_PROMPT_CAPS.jobChars),
     products: list(
-      confirmed.lists.products.map((item) => item.text),
+      (confirmed?.lists.products ?? []).map((item) => item.text),
       PROFILE_PROMPT_CAPS.products
     ),
     audience: list(
-      confirmed.lists.audienceTerms.map((item) => item.text),
+      (confirmed?.lists.audienceTerms ?? []).map((item) => item.text),
       PROFILE_PROMPT_CAPS.audience
     ),
     promises: list(
-      confirmed.lists.claims.map((item) => item.text),
+      (confirmed?.lists.claims ?? []).map((item) => item.text),
       PROFILE_PROMPT_CAPS.promises
     ),
     vocabulary: list(
-      confirmed.lists.vocabulary.map((item) => item.text),
+      (confirmed?.lists.vocabulary ?? []).map((item) => item.text),
       PROFILE_PROMPT_CAPS.vocabulary
     ),
+    ...(knowledge === undefined ? {} : { knowledge }),
   };
 
   // Nothing read: the same `null` a site with no profile row gets, for the
   // same reason. A `job` of nothing and five empty lists is not a profile.
   if (
+    knowledge === undefined &&
     (built.job === null || built.job === "") &&
     built.products.length === 0 &&
     built.audience.length === 0 &&
@@ -149,26 +241,52 @@ export function promptProfile(confirmed: BusinessProfile | null): PromptProfile 
   return fitBlock(built);
 }
 
-/** The whole-block ceiling, by the order named above. */
+/** What the knowledge base gives up first, least load-bearing first. The
+ *  offerings go last of all: what the business sells is what a page is
+ *  about. A founder's answer leads its list, so it is the last of that list
+ *  to go. */
+const KNOWLEDGE_TRIM_ORDER = [
+  "places",
+  "integrations",
+  "questions",
+  "problems",
+  "audience",
+  "proof",
+  "differentiators",
+] as const satisfies readonly (KnowledgeList | "differentiators")[];
+
+/** The whole-block ceiling: the knowledge base's own lists first, then the
+ *  order named above, then the offerings. */
 function fitBlock(p: PromptProfile): PromptProfile {
-  const order: readonly (keyof Omit<PromptProfile, "job">)[] = [
+  const over = (out: PromptProfile): boolean => weight(out) > PROFILE_PROMPT_CAPS.blockChars;
+  let out: PromptProfile = p;
+
+  for (const key of KNOWLEDGE_TRIM_ORDER) {
+    while (over(out) && out.knowledge !== undefined && out.knowledge[key].length > 0) {
+      out = { ...out, knowledge: { ...out.knowledge, [key]: out.knowledge[key].slice(0, -1) } };
+    }
+    if (!over(out)) return out;
+  }
+
+  const order: readonly ("vocabulary" | "promises" | "audience" | "products")[] = [
     "vocabulary",
     "promises",
     "audience",
     "products",
   ];
-  let out: PromptProfile = p;
   for (const key of order) {
-    while (weight(out) > PROFILE_PROMPT_CAPS.blockChars && out[key].length > 0) {
+    while (over(out) && out[key].length > 0) {
       out = { ...out, [key]: out[key].slice(0, -1) };
     }
-    if (weight(out) <= PROFILE_PROMPT_CAPS.blockChars) return out;
+    if (!over(out)) return out;
+  }
+
+  while (over(out) && out.knowledge !== undefined && out.knowledge.offerings.length > 0) {
+    out = { ...out, knowledge: { ...out.knowledge, offerings: out.knowledge.offerings.slice(0, -1) } };
   }
   // Every list emptied and the job alone still over the ceiling: the job is
   // never dropped (it is what makes a page specific at all), and it is
-  // already capped at `jobChars`, which is well inside `blockChars`. So
-  // this is unreachable and is written as the honest end of the loop
-  // rather than as a throw nobody could trigger.
+  // already capped at `jobChars`, which is well inside `blockChars`.
   return out;
 }
 
@@ -185,5 +303,13 @@ export function profileItemsUsed(p: PromptProfile | null): readonly string[] {
     ...p.audience,
     ...p.promises,
     ...p.vocabulary,
+    // Of the knowledge base, what the business sells and what the founder
+    // said: the two a reader of "written from" can check at a glance.
+    ...(p.knowledge?.offerings.map((offering) => offering.name) ?? []),
+    ...(p.knowledge === undefined
+      ? []
+      : [...KNOWLEDGE_LISTS.flatMap((name) => p.knowledge![name]), ...p.knowledge.differentiators]
+          .filter((item) => item.from === "founder")
+          .map((item) => item.text)),
   ];
 }

@@ -20,7 +20,9 @@ const MIGRATIONS = path.resolve(import.meta.dirname, "../../supabase/migrations"
 const APPLIED = [
   "00000000000001_baseline.sql",
   "00000000000002_rls.sql",
+  "20260912090000_sites_profile.sql",
   "20260921120000_sites_profile_edits.sql",
+  "20261003130000_sites_profile_knowledge.sql",
 ];
 
 function raises(sql: string): boolean {
@@ -199,6 +201,16 @@ describe("#926 — a shape no reader could use is refused", () => {
         `insert into site_profile_edits (site_id, job) values ('${OTHER_SITE}', '${tooLong}');`
       )
     ).toBe(true);
+  });
+
+  it("the founder's answers and a site's knowledge are objects, empty until written (issue 1133)", () => {
+    expect(columnOf("answers")).toEqual(["jsonb", "NO", "'{}'::jsonb"]);
+    expect(
+      raises(`insert into site_profile_edits (site_id, answers) values ('${OTHER_SITE}', '[]'::jsonb);`)
+    ).toBe(true);
+    expect(raises(`insert into site_profiles (domain, knowledge) values ('k.example', '[]'::jsonb);`)).toBe(true);
+    expect(raises(`insert into site_profiles (domain) values ('k.example');`)).toBe(false);
+    expect(psqlRows(`select knowledge::text from site_profiles where domain = 'k.example';`)).toEqual([["{}"]]);
   });
 
   it("a well-formed row is taken", () => {

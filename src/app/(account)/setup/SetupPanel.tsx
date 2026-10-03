@@ -30,6 +30,7 @@ import { BusinessPanel } from "./BusinessPanel";
 import { RivalsPanel } from "./RivalsPanel";
 import { VoicePanel } from "./VoicePanel";
 import type { BusinessDraft } from "./_setup/business";
+import type { FounderAnswers } from "@/lib/site-profile/knowledge/types";
 import type { RivalGrid } from "./_setup/panel-rivals";
 import type { SetupStepId } from "./steps";
 
@@ -66,6 +67,8 @@ export function SetupPanel(p: {
   onDraft: (next: BusinessDraft) => void;
   job: string;
   onJob: (next: string) => void;
+  answers: FounderAnswers;
+  onAnswers: (next: FounderAnswers) => void;
 }): React.JSX.Element {
   return (
     // A flex column whose body grows (the calm layer's rhythm, #1091): the
@@ -89,7 +92,14 @@ export function SetupPanel(p: {
         </h2>
 
         {p.step === "business" ? (
-          <BusinessPanel draft={p.draft} onDraft={p.onDraft} job={p.job} onJob={p.onJob} />
+          <BusinessPanel
+            draft={p.draft}
+            onDraft={p.onDraft}
+            job={p.job}
+            onJob={p.onJob}
+            answers={p.answers}
+            onAnswers={p.onAnswers}
+          />
         ) : p.step === "rivals" ? (
           <RivalsPanel grid={p.rivalGrid} />
         ) : p.step === "voice" ? (

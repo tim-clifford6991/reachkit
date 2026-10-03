@@ -257,6 +257,35 @@ export const SETTINGS_COPY = Object.freeze({
     "{count} pages read",
     { slots: { count: "text" }, fixedBy: "SPEC §7 2026-09-20" },
   ],
+  // SPEC §0 and §5 (2026-09-29, issue 1133): the knowledge base — what the
+  // pages were read to say, each with its page, and the founder's five
+  // answers. Every line is drafted for the owner; the five questions
+  // themselves are `setup.business.question.*`.
+  "settings.knowledge.title": [
+    "What we know about your business",
+    { slots: {}, fixedBy: "issue 1133 (drafted)" },
+  ],
+  "settings.knowledge.lead": [
+    "Read from your own pages, each with the page it came from. Your pages are written from this.",
+    { slots: {}, fixedBy: "issue 1133 (drafted)" },
+  ],
+  "settings.knowledge.none": [
+    "Nothing read yet. Read your site again and this fills in.",
+    { slots: {}, fixedBy: "issue 1133 (drafted)" },
+  ],
+  "settings.knowledge.offerings": ["What you sell", { slots: {}, fixedBy: "issue 1133 (drafted)" }],
+  "settings.knowledge.audience": ["Who you serve", { slots: {}, fixedBy: "issue 1133 (drafted)" }],
+  "settings.knowledge.problems": ["Problems you solve", { slots: {}, fixedBy: "issue 1133 (drafted)" }],
+  "settings.knowledge.differentiators": ["How you differ", { slots: {}, fixedBy: "issue 1133 (drafted)" }],
+  "settings.knowledge.proof": ["Proof", { slots: {}, fixedBy: "issue 1133 (drafted)" }],
+  "settings.knowledge.questions": ["What buyers ask", { slots: {}, fixedBy: "issue 1133 (drafted)" }],
+  "settings.knowledge.integrations": ["Works with", { slots: {}, fixedBy: "issue 1133 (drafted)" }],
+  "settings.knowledge.places": ["Places", { slots: {}, fixedBy: "issue 1133 (drafted)" }],
+  "settings.knowledge.from-you": ["You told us", { slots: {}, fixedBy: "issue 1133 (drafted)" }],
+  "settings.knowledge.against": [
+    "against {rival}",
+    { slots: { rival: "text" }, fixedBy: "issue 1133 (drafted)" },
+  ],
   "settings.business.read-again": [
     "Read my site again now",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },

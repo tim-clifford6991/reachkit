@@ -16,6 +16,7 @@
 // request, so there is no `auth.uid()` for a row policy to match. Every
 // call below is site-scoped by an explicit `site_id` predicate — the
 // scoping the policy would have applied, applied here instead.
+import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { dbAdmin } from "@/lib/db";
 import type { KnownPage } from "@/lib/known-content/types";
 import type { Profile } from "@/lib/market/questions/profile";
@@ -188,6 +189,9 @@ export interface OpportunityStore {
     /** The site's tracked buyer prompts, the branded ones left out (issue
      *  1208). Absent reads as none. */
     prompts?: readonly string[];
+    /** The site's knowledge base as fit is shown it (issue 1133). Absent
+     *  or `null` reads as none. */
+    knowledge?: KnowledgeDigest | null;
   }>;
   /** SPEC §6: every `not_working` verdict for one site, each joined through
    *  its publication to the opportunity the page was written for. One read
@@ -569,7 +573,12 @@ export function supabaseOpportunityStore(): OpportunityStore {
       const prompts = await readPromptSet(siteId)
         .then((set) => set.prompts.filter((prompt) => prompt.kind !== "branded").map((prompt) => prompt.text))
         .catch(() => []);
-      return { market: site?.stored.current ?? null, competitors: site?.competitors ?? [], prompts };
+      // SPEC §6 (2026-09-29, issue 1133): the knowledge base beside it. A
+      // read that fails is `null` (`readKnowledgeBase` never throws).
+      const { readKnowledgeBase, knowledgeDigest } = await import("@/lib/site-profile/knowledge/read");
+      const base = site == null ? null : await readKnowledgeBase({ siteId, domain: site.domain });
+      const knowledge = base === null ? null : knowledgeDigest(base);
+      return { market: site?.stored.current ?? null, competitors: site?.competitors ?? [], prompts, knowledge };
     },
 
     async setReadiness(opportunityId, reason) {

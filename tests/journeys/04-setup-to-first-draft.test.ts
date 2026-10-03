@@ -914,7 +914,7 @@ describe("three decisions → deep pass → the first page already on the calend
       // Issue 798: the derivation is a step of its own, after the pass's,
       // and the typing it paid for is in the row's cost — every ledgered
       // call, not only the stages'.
-      expect(steps).toEqual(["deep-pass", "opportunities", "first-draft"]);
+      expect(steps).toEqual(["deep-pass", "knowledge-base", "opportunities", "first-draft"]);
       const spent = ledger().reduce((total, row) => total + row.costCents, 0);
       const typingCents = ledger()
         .filter((row) => row.source === "opportunity-typing")

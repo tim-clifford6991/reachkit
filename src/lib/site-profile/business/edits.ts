@@ -20,6 +20,7 @@
 // anything: the decisions are applied by `./confirm.ts`, which is pure. This
 // file moves rows.
 import { dbAdmin } from "@/lib/db";
+import { founderAnswers } from "../knowledge/types";
 import { BUSINESS_LISTS, NO_EDITS, type BusinessEdits, type BusinessList } from "./types";
 
 interface EditsRow {
@@ -29,9 +30,10 @@ interface EditsRow {
   job: string | null;
   seen: unknown;
   facts_off: unknown;
+  answers: unknown;
 }
 
-const COLUMNS = "site_id, removed, added, job, seen, facts_off";
+const COLUMNS = "site_id, removed, added, job, seen, facts_off, answers";
 
 /** The generated `Database` type does not carry `site_profile_edits` — the
  *  same narrow cast `../store.ts` documents for `site_profiles`, kept to the
@@ -102,6 +104,7 @@ export async function readBusinessEdits(siteId: string): Promise<BusinessEdits> 
     job: row.job,
     seen: listRecord(row.seen),
     factsOff: stringList(row.facts_off),
+    answers: founderAnswers(row.answers),
   };
 }
 
@@ -132,6 +135,7 @@ export async function writeBusinessEdits(a: {
         job: a.edits.job,
         seen: Object.fromEntries(BUSINESS_LISTS.map((list) => [list, [...(a.seen[list] ?? [])]])),
         facts_off: [...a.edits.factsOff],
+        answers: founderAnswers(a.edits.answers),
         edited_at: new Date().toISOString(),
       },
       { onConflict: "site_id" }

@@ -17,6 +17,7 @@ import { setupCards, type SetupCards } from "@/lib/publish/setup/cards";
 import { BATTERY } from "@/lib/config/constants";
 import type { SiteProfile } from "@/lib/site-profile/types";
 import type { BusinessEdits, BusinessProfile } from "@/lib/site-profile/business/types";
+import type { FounderAnswers } from "@/lib/site-profile/knowledge/types";
 import { confirmedProfile, type MarketReading } from "@/lib/site-profile/business/confirm";
 import type { StoredQuestion } from "@/lib/scan/report";
 import type { DerivableMarket } from "@/lib/market/questions/rederive";
@@ -112,6 +113,9 @@ export interface SetupScreenModel {
    *  with the customer's removals and additions applied. Step two's four
    *  lists open on it, so a correction made in Settings is already here. */
   business: BusinessProfile;
+  /** SPEC §5 (2026-09-29, #1133): the five questions' answers as stored,
+   *  which the fields open on. */
+  answers: FounderAnswers;
   /** REQ-026 c9: the limit is stated on screen, so the screen is given it
    *  rather than spelling the number itself. */
   competitorsMax: number;
@@ -163,6 +167,7 @@ export function assembleSetup(facts: SetupFacts): SetupScreenModel {
       market: facts.market,
       edits: facts.edits,
     }),
+    answers: facts.edits.answers,
     competitorsMax: BATTERY.COMPETITORS_MAX,
     questions: facts.questions,
     voiceText: facts.saved?.voiceText ?? facts.profile?.voice?.text ?? "",

@@ -22,6 +22,7 @@
 // must not blank the others. A screen states which parts have not been read
 // rather than showing an error where a fact should be.
 import type { SiteProfile } from "../types";
+import type { FounderAnswers, StoredKnowledge } from "../knowledge/types";
 import type { BusinessEdits, BusinessList } from "./types";
 import type { MarketReading } from "./confirm";
 
@@ -30,6 +31,8 @@ export interface ConfirmedReadings {
   readonly profile: SiteProfile | null;
   readonly market: MarketReading | null;
   readonly edits: BusinessEdits;
+  /** What the pages were read to say (#1133); nothing where no read ran. */
+  readonly knowledge: StoredKnowledge;
   /**
    * Whether the customer's decisions were actually read (#927).
    *
@@ -153,7 +156,7 @@ export async function readConfirmedBusiness(a: {
   siteId: string;
   domain: string;
 }): Promise<ConfirmedReadings> {
-  const [profile, report, edits] = await Promise.all([
+  const [profile, report, edits, knowledge] = await Promise.all([
     soft(async () => {
       const { readSiteProfile } = await import("../store");
       return a.domain === "" ? null : readSiteProfile(a.domain);
@@ -163,13 +166,19 @@ export async function readConfirmedBusiness(a: {
       const { readBusinessEdits } = await import("./edits");
       return a.siteId === "" ? null : readBusinessEdits(a.siteId);
     }),
+    soft(async () => {
+      const { readStoredKnowledge } = await import("../knowledge/store");
+      return a.domain === "" ? null : readStoredKnowledge(a.domain);
+    }),
   ]);
 
   const { NO_EDITS } = await import("./types");
+  const { NO_KNOWLEDGE } = await import("../knowledge/types");
   return {
     profile,
     market: marketReadingOf(report),
     edits: edits ?? NO_EDITS,
+    knowledge: knowledge ?? NO_KNOWLEDGE,
     editsRead: edits !== null,
   };
 }
@@ -195,6 +204,9 @@ export async function saveChosenLists(a: {
   domain: string;
   chosen: Readonly<Partial<Record<BusinessList, readonly string[]>>>;
   job?: string;
+  /** The five questions as the screen left them (#1133). Absent, the
+   *  stored answers stand; present, an emptied field clears its answer. */
+  answers?: FounderAnswers;
 }): Promise<void> {
   const readings = await readConfirmedBusiness({ siteId: a.siteId, domain: a.domain });
   const { editsForJob, editsForLists, seenNow } = await import("./confirm");
@@ -205,12 +217,11 @@ export async function saveChosenLists(a: {
     market: readings.market,
     chosen: a.chosen,
   });
+  const worded =
+    a.job === undefined ? lists : editsForJob({ stored: lists, market: readings.market, chosen: a.job });
   await writeBusinessEdits({
     siteId: a.siteId,
-    edits:
-      a.job === undefined
-        ? lists
-        : editsForJob({ stored: lists, market: readings.market, chosen: a.job }),
+    edits: a.answers === undefined ? worded : { ...worded, answers: a.answers },
     seen: seenNow({ profile: readings.profile, market: readings.market }),
   });
 }

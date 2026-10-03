@@ -26,6 +26,7 @@
 // `POST /api/setup` resolves the founder from the session and this store
 // reads and writes that founder's own rows. The two are one switch —
 // `provider.ts` says why.
+import type { FounderAnswers } from "@/lib/site-profile/knowledge/types";
 import { sendDeepPass } from "@/jobs/deep-pass-backstop";
 import { hasActiveAccess } from "@/lib/account/billing";
 import { BATTERY } from "@/lib/config/constants";
@@ -190,6 +191,7 @@ async function writeBusinessLists(a: {
   domain: string;
   lists: Readonly<Partial<Record<BusinessList, readonly string[]>>>;
   job: string | undefined;
+  answers: FounderAnswers | undefined;
 }): Promise<void> {
   try {
     const { saveChosenLists } = await import("@/lib/site-profile/business/confirmed");
@@ -198,6 +200,7 @@ async function writeBusinessLists(a: {
       domain: a.domain,
       chosen: a.lists,
       ...(a.job === undefined ? {} : { job: a.job }),
+      ...(a.answers === undefined ? {} : { answers: a.answers }),
     });
   } catch (error) {
     console.log(
@@ -445,6 +448,7 @@ export function liveSetupStore(): SetupStore {
           domain: site.domain,
           lists: a.save.lists,
           job: a.save.job,
+          answers: a.save.answers,
         });
       } else if (step === "voice") {
         const site = await siteById(a.siteId);

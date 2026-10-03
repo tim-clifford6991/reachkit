@@ -42,6 +42,8 @@ export const BUSINESS_LIST_FIELD = "business_list";
 export const BUSINESS_ITEM_FIELD = "business_item";
 export const BUSINESS_JOB_FIELD = "business_job";
 export const BUSINESS_FACT_FIELD = "business_fact";
+/** #1133: the five answers' fields are this prefix and the question's name. */
+export const BUSINESS_ANSWER_FIELD = "business_answer_";
 
 /** The value a boolean field carries. A checkbox's own `"on"` is not used:
  *  these controls send the state they are asking *for*, which is the

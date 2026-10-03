@@ -22,11 +22,13 @@ import type { AppAccount } from "../_session/account";
 import type { SiteProfile } from "@/lib/site-profile/types";
 import type { BusinessEdits } from "@/lib/site-profile/business/types";
 import type { MarketReading } from "@/lib/site-profile/business/confirm";
+import type { StoredKnowledge } from "@/lib/site-profile/knowledge/types";
 
 export interface BusinessFacts {
   readonly profile: SiteProfile | null;
   readonly market: MarketReading | null;
   readonly edits: BusinessEdits;
+  readonly knowledge: StoredKnowledge;
   readonly quotable: readonly { readonly passage: string; readonly url: string }[];
   readonly edited: boolean;
 }
@@ -75,12 +77,14 @@ export async function readBusinessFacts(
     profile: readings.profile,
     market: readings.market,
     edits: stored,
+    knowledge: readings.knowledge,
     quotable: quotable ?? [],
     // Whether they have ever corrected anything — any decision at all,
     // including a fact switched off.
     edited:
       stored.job !== null ||
       stored.factsOff.length > 0 ||
+      Object.keys(stored.answers).length > 0 ||
       Object.values(stored.removed).some((entry) => (entry ?? []).length > 0) ||
       Object.values(stored.added).some((entry) => (entry ?? []).length > 0),
   };
