@@ -225,7 +225,22 @@ export function supabaseLifecycleStore(): LifecycleStore {
         .not("published_at", "is", null)
         .is("unpublished_at", null);
       if (error !== null || data === null) return { ok: false };
-      return { ok: true, publications: data };
+      // SPEC §7 (2026-09-18): the pages named as still live are named at
+      // the host they answer at now.
+      const { hostedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
+      const addressNow = await hostedAddressesNow(siteId);
+      return {
+        ok: true,
+        publications: data.map((row) => ({
+          ...row,
+          // Carried, never compared (ADR-084): a row with no address has
+          // none to re-address.
+          live_url:
+            typeof row.live_url === "string"
+              ? addressNow({ destination: row.destination, liveUrl: row.live_url })
+              : row.live_url,
+        })),
+      };
     },
 
     async destinations(siteId) {

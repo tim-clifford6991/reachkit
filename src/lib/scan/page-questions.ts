@@ -68,6 +68,7 @@ function untyped(): MinimalClient {
 interface LivePageRow {
   id: string;
   live_url: string | null;
+  destination: string | null;
   unpublished_at: string | null;
   drafts: {
     opportunities: { target_query: string | null; acceptance: unknown } | null;
@@ -106,7 +107,7 @@ export async function pageQuestionCandidates(a: {
 }): Promise<readonly PageQuestionCandidate[]> {
   const { data, error } = await untyped()
     .from<LivePageRow>("publications")
-    .select("id, live_url, unpublished_at, drafts(opportunities(target_query, acceptance))")
+    .select("id, live_url, destination, unpublished_at, drafts(opportunities(target_query, acceptance))")
     .eq("site_id", a.siteId)
     .not("published_at", "is", null);
   if (error !== null || data === null) return [];
@@ -121,6 +122,12 @@ export async function pageQuestionCandidates(a: {
     const held = places.get(key);
     if (held === undefined || row.position < held) places.set(key, row.position);
   }
+
+  // SPEC §7 (2026-09-18): the page a tracked question is asked about is
+  // named at its site's host now, which is the address an answer would cite.
+  // A site with no page costs no read.
+  const { hostedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
+  const addressNow = data.length === 0 ? null : await hostedAddressesNow(a.siteId).catch(() => null);
 
   const candidates: PageQuestionCandidate[] = [];
   const seen = new Set<string>();
@@ -137,7 +144,8 @@ export async function pageQuestionCandidates(a: {
     seen.add(key);
     candidates.push({
       publicationId: row.id,
-      liveUrl: row.live_url,
+      liveUrl:
+        addressNow === null ? row.live_url : addressNow({ destination: row.destination, liveUrl: row.live_url }),
       question: askedAsOf(opportunity?.acceptance, search),
       search,
       position: places.get(key) ?? null,

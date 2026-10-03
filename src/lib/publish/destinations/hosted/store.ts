@@ -559,6 +559,49 @@ export async function hostedAddressesNow(siteId: string): Promise<AddressNow> {
   };
 }
 
+/**
+ * The re-addresser for an address that was **copied off** a publication
+ * (issue 1182).
+ *
+ * `hostedAddressesNow` is handed a publication row and knows its
+ * destination. A refresh's `target_ref` is not a row: it is the address the
+ * page had on the day the refresh was derived, written onto an opportunity,
+ * and a host that moves afterwards leaves it naming the old one — which
+ * `addressesOwnPage` then rightly refuses, so the refresh can never be
+ * delivered (SPEC §7, 2026-09-18: "every live page is served at whatever
+ * host the site's hosted destination carries **now**").
+ *
+ * **Only an address this site's hosted publications were recorded at is
+ * moved.** Anything else — a page on the customer's own site, a WordPress
+ * post — comes straight back: composing another address for it would be a
+ * guess about somebody else's site. A read that fails moves nothing.
+ */
+export async function storedAddressesNow(siteId: string): Promise<(url: string) => string> {
+  const same = (url: string): string => url;
+  const host = await hostedHostOfSite(siteId);
+  if (host === null) return same;
+  const { data, error } = await publishDb()
+    .from<{ live_url: string | null }>("publications")
+    .select("live_url")
+    .eq("site_id", siteId)
+    .eq("destination", "hosted")
+    .not("live_url", "is", null);
+  if (error !== null || data === null) return same;
+  const now = new Map<string, string>();
+  for (const row of data) {
+    if (row.live_url === null) continue;
+    const slug = slugOf(row.live_url);
+    if (slug !== null) now.set(addressKey(row.live_url), liveUrlOnHost({ host, slug }));
+  }
+  return (url) => now.get(addressKey(url)) ?? url;
+}
+
+/** One address in the form two spellings of it share: no trailing slash,
+ *  and no case, which a host does not have. */
+function addressKey(url: string): string {
+  return url.trim().replace(/\/+$/, "").toLowerCase();
+}
+
 /** The host a site's live hosted destination serves at, or `null`. Read
  *  here rather than through `hostname.ts` so that the delivery path — and
  *  everything else the edge's module graph reaches — stays clear of the

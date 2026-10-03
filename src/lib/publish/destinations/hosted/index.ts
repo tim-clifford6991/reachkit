@@ -46,6 +46,7 @@ export {
   hostedHostOfSite,
   hostedSiteForDomain,
   hostedOwnPagesOfSite,
+  storedAddressesNow,
   hostedSiteForHostname,
   livePageBySlug,
   livePagesForSite,

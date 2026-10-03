@@ -353,6 +353,54 @@ function untyped(): MinimalClient {
  *  and it is the one error this module reports as an outcome. */
 const UNIQUE_VIOLATION = "23505";
 
+/**
+ * The rows, with an update's page named at the address it answers at **now**
+ * (SPEC §7, 2026-09-18; issue 1182).
+ *
+ * An Improve row's `target_ref` — and the page its evidence names — is an
+ * address copied off a page on the day the row was derived. Where that page
+ * is one of the site's own hosted publications and its host has moved
+ * since, the stored address names a host that serves nothing: readiness
+ * would refuse the row as a page the destination cannot address, and the
+ * calendar would name a dead link. So every read of a row goes through
+ * here, and the address stays stored as it was written.
+ *
+ * A site with no Improve row costs no read, and a failure moves nothing.
+ */
+async function atCurrentHost<T extends { family: string; target_ref: string; evidence?: unknown }>(
+  siteId: string,
+  rows: readonly T[]
+): Promise<T[]> {
+  if (!rows.some((row) => row.family === "improve")) return [...rows];
+  let now: (url: string) => string;
+  try {
+    const { storedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
+    now = await storedAddressesNow(siteId);
+  } catch {
+    return [...rows];
+  }
+  return rows.map((row) => {
+    if (row.family !== "improve") return row;
+    const targetRef = now(row.target_ref);
+    if (targetRef === row.target_ref) return row;
+    return { ...row, target_ref: targetRef, evidence: evidenceAt(row.evidence, now) };
+  });
+}
+
+/** The two places an Improve row's evidence repeats its page's address. */
+function evidenceAt(evidence: unknown, now: (url: string) => string): unknown {
+  if (typeof evidence !== "object" || evidence === null) return evidence;
+  const held = evidence as { pageUrl?: unknown; shortfall?: { page?: { url?: unknown } } };
+  const page = held.shortfall?.page;
+  return {
+    ...held,
+    ...(typeof held.pageUrl === "string" ? { pageUrl: now(held.pageUrl) } : {}),
+    ...(typeof page?.url === "string"
+      ? { shortfall: { ...held.shortfall, page: { ...page, url: now(page.url) } } }
+      : {}),
+  };
+}
+
 const COLUMNS =
   "id, site_id, scan_id, type, family, target_query, target_ref, proposed_slug, " +
   "title, volume, evidence, acceptance, fit_band, business_fit, source, page_type, effort, status, cluster_key, " +
@@ -383,7 +431,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .neq("family", "fix")
         .order("created_at", { ascending: true });
       if (error) throw new Error(`opportunities.openRankable: ${error.message}`);
-      return data ?? [];
+      return atCurrentHost(siteId, data ?? []);
     },
 
     async countUnused(siteId) {
@@ -423,7 +471,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .neq("family", "fix")
         .order("created_at", { ascending: true });
       if (error) throw new Error(`opportunities.clusterable: ${error.message}`);
-      return data ?? [];
+      return atCurrentHost(siteId, data ?? []);
     },
 
     async latestPage(siteId) {
@@ -436,7 +484,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .order("status_changed_at", { ascending: false })
         .limit(1);
       if (error) throw new Error(`opportunities.latestPage: ${error.message}`);
-      return data?.[0] ?? null;
+      return (await atCurrentHost(siteId, data ?? []))[0] ?? null;
     },
 
     async draftedPages(siteId, limit) {
@@ -451,11 +499,16 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .order("scheduled_for", { ascending: false })
         .limit(limit);
       if (error) throw new Error(`opportunities.draftedPages: ${error.message}`);
-      return (data ?? []).flatMap((draft) =>
+      const pages = (data ?? []).flatMap((draft) =>
         draft.scheduled_for === null || draft.opportunities === null
           ? []
           : [{ date: draft.scheduled_for, state: draft.state, title: draft.title, row: draft.opportunities }]
       );
+      const rows = await atCurrentHost(
+        siteId,
+        pages.map((page) => page.row)
+      );
+      return pages.map((page, index) => ({ ...page, row: rows[index] ?? page.row }));
     },
 
     async topTens(scanIds) {
@@ -542,7 +595,8 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .eq("id", opportunityId)
         .limit(1);
       if (error) throw new Error(`opportunities.byId: ${error.message}`);
-      return data?.[0] ?? null;
+      const row = data?.[0] ?? null;
+      return row === null ? null : ((await atCurrentHost(row.site_id, [row]))[0] ?? row);
     },
 
     async openFixPages(siteId) {
@@ -605,15 +659,21 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .eq("verdict", "not_working")
         .order("week_start", { ascending: false });
       if (error) throw new Error(`opportunities.notWorkingVerdicts: ${error.message}`);
-      return (data ?? []).map((row) => {
-        const o = row.publications?.drafts?.opportunities ?? null;
-        return {
-          week: row.week_start,
-          clusterKey: o?.cluster_key ?? null,
-          family: (o?.family as Family | undefined) ?? null,
-          targetRef: o?.target_ref ?? null,
-        };
-      });
+      const judged = (data ?? []).map((row) => ({
+        week: row.week_start,
+        o: row.publications?.drafts?.opportunities ?? null,
+      }));
+      // A retired page is compared with a row's own target, and the rows
+      // are read at the current host — so this one is too.
+      const held = judged.flatMap(({ o }) => (o === null ? [] : [o]));
+      const now = await atCurrentHost(siteId, held);
+      const targetOf = new Map(held.map((o, index) => [o, now[index]?.target_ref ?? o.target_ref]));
+      return judged.map(({ week, o }) => ({
+        week,
+        clusterKey: o?.cluster_key ?? null,
+        family: (o?.family as Family | undefined) ?? null,
+        targetRef: o === null ? null : (targetOf.get(o) ?? null),
+      }));
     },
 
     async markDone(opportunityId) {
