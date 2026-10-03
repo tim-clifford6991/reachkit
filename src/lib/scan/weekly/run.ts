@@ -56,7 +56,7 @@ import { sitesWithActiveAccess } from "./access";
 import { claimWeek, readSiteZone, releaseWeek } from "./store";
 import { runScan } from "../run";
 import { readSiteCategory } from "../site-category";
-import { isWeeklyDue, localClock, weekStartFor } from "./week";
+import { isWeeklyDue, localClock, weekStartFor, weekStartInstant } from "./week";
 
 /** Why a week was not measured, before anything was spent. */
 export type WeeklyRefusal = "week_not_begun" | "already_measured" | "no_active_access" | "kill_switch";
@@ -124,6 +124,9 @@ export async function runWeekly(a: {
       siteId: a.siteId,
       domain: a.domain,
       tier: "weekly",
+      // SPEC §6 (issue 1170): only values measured this week, each dated
+      // this week — a read from before the site's Monday is last week's.
+      measuredSince: weekStartInstant({ weekStart, zone }),
       ...(category === undefined ? {} : { category }),
       concludesMarket: true,
       afterReport: async ({ report, cost }) => {

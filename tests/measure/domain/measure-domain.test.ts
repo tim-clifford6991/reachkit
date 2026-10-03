@@ -105,6 +105,7 @@ interface LedgeredCall {
   cacheKey: string;
   costCents: number;
   payload: unknown;
+  freshnessDays: number;
 }
 
 /** A `CostContext` double that records every call, runs each `run()` once
@@ -123,7 +124,13 @@ function fakeCost(opts: { capped?: boolean } = {}): CostContext & { calls: Ledge
       run: () => Promise<P>;
     }) {
       const payload = await call.run();
-      calls.push({ source: call.source, cacheKey: call.cacheKey, costCents: call.costCents, payload });
+      calls.push({
+        source: call.source,
+        cacheKey: call.cacheKey,
+        costCents: call.costCents,
+        payload,
+        freshnessDays: call.freshnessDays,
+      });
       return { payload, fresh: true, costCents: call.costCents };
     },
     capHit: () => opts.capped === true,
@@ -135,7 +142,7 @@ function fakeCost(opts: { capped?: boolean } = {}): CostContext & { calls: Ledge
 
 interface PortLog {
   fetched: string[];
-  ranked: { domain: string; rows: number }[];
+  ranked: { domain: string; rows: number; windowDays?: number }[];
   robots: string[];
 }
 
@@ -154,8 +161,8 @@ function fakePorts(
       log.robots.push(origin);
       return over.robots ?? policy({ absent: true });
     },
-    async rankedKeywords(_c: CostContext, a: { domain: string; rows: 50 | 100 | 300 }) {
-      log.ranked.push({ domain: a.domain, rows: a.rows });
+    async rankedKeywords(_c: CostContext, a: { domain: string; rows: 50 | 100 | 300; windowDays?: number }) {
+      log.ranked.push({ domain: a.domain, rows: a.rows, ...(a.windowDays === undefined ? {} : { windowDays: a.windowDays }) });
       return (
         over.ranked ??
         measured<RankedResult>(
@@ -266,6 +273,27 @@ describe('BP-010 `## Error & edge behavior` — "Determinism is a test, not an a
     const { cost } = await measure(FULL_SITE);
     const ownReads = cost.calls.filter((call) => call.source === OWN_FETCH_SOURCE);
     expect(ownReads.map((call) => call.cacheKey)).toEqual([HOME, "https://reachkit.app/pricing"]);
+  });
+});
+
+describe("issue 1170 — a pass is served no read from before its own period", () => {
+  it("the caller's window narrows every own read and the ranked rows, so a stored read cannot date this pass", async () => {
+    const cost = fakeCost();
+    const ports = fakePorts(FULL_SITE);
+    await measureDomain(cost, { domain: DOMAIN, tier: "weekly", ownWindowDays: 0.25 }, ports);
+    const ownReads = cost.calls.filter((call) => call.source === OWN_FETCH_SOURCE);
+    expect(ownReads.length).toBeGreaterThan(0);
+    expect(ownReads.every((call) => call.freshnessDays === 0.25)).toBe(true);
+    expect(ports.log.ranked).toEqual([{ domain: DOMAIN, rows: 300, windowDays: 0.25 }]);
+  });
+
+  it("never widens the own window, and leaves it alone where the caller names none", async () => {
+    const wide = fakeCost();
+    await measureDomain(wide, { domain: DOMAIN, tier: "weekly", ownWindowDays: 90 }, fakePorts(FULL_SITE));
+    const { cost, ports } = await measure(FULL_SITE);
+    const windows = [...wide.calls, ...cost.calls].filter((call) => call.source === OWN_FETCH_SOURCE);
+    expect(new Set(windows.map((call) => call.freshnessDays)).size).toBe(1);
+    expect(ports.log.ranked[0]).not.toHaveProperty("windowDays");
   });
 });
 

@@ -154,6 +154,9 @@ export async function rankedKeywords(
   a: {
     domain: string;
     rows: RankedRows;
+    /** Issue 1170: a narrower window than the row count's own, for a pass
+     *  that may not be served a read from before its week. Never wider. */
+    windowDays?: number;
     /** The stage that asked, told why the call failed where it did (issue
      *  #504) — so its own reason is the vendor's, never a ledger error. */
     onFailure?: OnVendorFailure;
@@ -169,7 +172,10 @@ export async function rankedKeywords(
     // `|etv`: rows bought before #1161 were the vendor's unordered first
     // rows, and are never served as a domain's top keywords.
     cacheKey: `${a.domain}|${a.rows}|${LOCALE_KEY}|p${VENDOR.rankedPayloadVersion}|etv`,
-    freshnessDays: rankedFreshnessDays(a.rows),
+    freshnessDays:
+      a.windowDays === undefined
+        ? rankedFreshnessDays(a.rows)
+        : Math.min(rankedFreshnessDays(a.rows), a.windowDays),
     costCents: rankedCostCents(a.rows),
     fetch: () =>
       callEndpoint({ live: `${LABS}/ranked_keywords/live` }, "live", {

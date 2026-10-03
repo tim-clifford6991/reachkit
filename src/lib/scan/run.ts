@@ -810,6 +810,13 @@ export interface RunScanArgs {
    *  pass also asks the site's tracked buyer prompts, as a weekly pass
    *  does, so no founder waits for Monday to see a mention rate. */
   asksTrackedPrompts?: boolean;
+  /** SPEC §6 (issue 1170): "Missing values omit the row, never repeat last
+   *  week." The instant this pass's own period began — a weekly pass's
+   *  site-local Monday. The site's own documents, its ranked rows and the
+   *  twelve's SERPs are served from the cache only where they were read
+   *  since; anything older is read again, so every factor is this pass's
+   *  and carries this pass's date. Absent, the cache windows stand. */
+  measuredSince?: Date;
   /**
    * Called as each stage is entered, before its work starts.
    *
@@ -971,6 +978,9 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
           ...(a.category === undefined ? {} : { category: a.category }),
           ...(a.concludesMarket === true ? { concludesMarket: true } : {}),
           ...(a.asksTrackedPrompts === true ? { asksTrackedPrompts: true } : {}),
+          ...(a.measuredSince === undefined
+            ? {}
+            : { sinceDays: Math.max(0, (startedAt.getTime() - a.measuredSince.getTime()) / MS_PER_DAY) }),
           ...(retry === undefined ? {} : { retry }),
         });
       } finally {
@@ -986,6 +996,15 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   // flight writes nothing more. Set immediately before the read, and after
   // the bounds have settled, so every answer that came back in time — the
   // late ones included — is in what follows.
+  // Issue 1170: **the card and the score's AI input are one read.**
+  // `composeReport` reads AI Presence off `sections.serps`; a pass that
+  // stopped before its scoring stage held those SERPs and no card, so the
+  // report said "Presence 0/10" beside "AI answers couldn't be measured".
+  // Scoring buys nothing and reads only `sections`, so wherever a SERP was
+  // read and nothing scored it, it is counted here.
+  if (sections.aiAnswers === null && sections.serps.some((serp) => serp.kind !== "unmeasured")) {
+    score({ domain, sections, parameters, correction: a.correctionOf !== undefined });
+  }
   sections.sealed = true;
   const measuredUnder = sections.concludedCategory ?? a.category;
   const composed = composeReport({
@@ -1146,6 +1165,9 @@ interface StageArgs {
   concludesMarket?: boolean;
   /** `RunScanArgs.asksTrackedPrompts`. */
   asksTrackedPrompts?: boolean;
+  /** `RunScanArgs.measuredSince`, as days before the pass started: the
+   *  oldest stored read this pass may be served (issue 1170). */
+  sinceDays?: number;
   /** SPEC §2's "Retry this part" (issue 715): the report this pass is
    *  re-measuring one part of, and which part. Its presence is what makes
    *  `reading_your_market` a read of the stored report rather than a
@@ -1202,7 +1224,13 @@ async function runStages(a: StageArgs): Promise<void> {
   if (bounds.stopNow() !== null) return;
   await enter("reading_your_site");
   const read = await inBudget("reading_your_site", () =>
-    attempt("reading_your_site", () => measureDomain(cost, { domain, tier: a.tier }))
+    attempt("reading_your_site", () =>
+      measureDomain(cost, {
+        domain,
+        tier: a.tier,
+        ...(a.sinceDays === undefined ? {} : { ownWindowDays: a.sinceDays }),
+      })
+    )
   );
   // **A pass whose deadline fired writes nothing more** (issue 607). The
   // report is composed from `sections` the moment the deadline wins, and
@@ -1848,6 +1876,14 @@ function cacheScope(a: StageArgs): CacheScope {
   return a.siteId === undefined ? { domain: a.domain } : { site: a.siteId };
 }
 
+/** The tier's SERP window, narrowed to the pass's own period where it has
+ *  one (issue 1170): a weekly pass's AI input is never a SERP bought before
+ *  its week wearing this week's date. */
+function serpWindowOf(a: StageArgs): number {
+  const days = a.parameters.serpWindowDays;
+  return a.sinceDays === undefined ? days : Math.min(days, a.sinceDays);
+}
+
 /**
  * The instant this pass's ceiling runs out, for a call that waits inside
  * itself (issue 902).
@@ -1908,7 +1944,7 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
         mode: parameters.serpMode,
         loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
         scope: cacheScope(a),
-        freshnessDays: parameters.serpWindowDays,
+        freshnessDays: serpWindowOf(a),
         abortMs: parameters.serpAbortMs,
         untilMs: untilCeiling(bounds, parameters),
         onFailure: (failure) => {
@@ -2319,7 +2355,7 @@ async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Prom
             mode: parameters.serpMode,
             loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
             scope: cacheScope(a),
-            freshnessDays: parameters.serpWindowDays,
+            freshnessDays: serpWindowOf(a),
             abortMs: parameters.serpAbortMs,
             untilMs: untilCeiling(bounds, parameters),
           })
@@ -2543,7 +2579,7 @@ function rescore(a: StageArgs): void {
   score(a);
 }
 
-function score(a: StageArgs): void {
+function score(a: Pick<StageArgs, "domain" | "sections" | "parameters" | "correction">): void {
   const { domain, sections } = a;
   const serps = sections.serps as readonly Measured<MarketSerp>[];
   const readSerps: MarketSerp[] = [];

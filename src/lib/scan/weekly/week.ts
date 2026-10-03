@@ -179,6 +179,12 @@ function instantOfLocal(a: { date: string; hour: number; zone: string }): Date {
   return new Date(instant);
 }
 
+/** The instant a site's week began: its own Monday at 00:00 (issue 1170).
+ *  A weekly pass is served nothing read before it. */
+export function weekStartInstant(a: { weekStart: string; zone: string }): Date {
+  return instantOfLocal({ date: a.weekStart, hour: 0, zone: a.zone });
+}
+
 /**
  * The next moment a weekly measurement is due for this zone: the site's
  * own Monday at `WEEKLY_DUE_HOUR_LOCAL`, this week if that hour has not
