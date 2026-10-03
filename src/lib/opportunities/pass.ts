@@ -74,6 +74,7 @@ function inputFor(a: {
   known: DeriveInput["known"];
   market: DeriveInput["market"];
   competitors: readonly string[];
+  prompts: readonly string[];
 }): DeriveInput {
   return {
     siteId: a.siteId,
@@ -85,6 +86,7 @@ function inputFor(a: {
     inventory: a.inventory,
     market: a.market ?? null,
     competitors: a.competitors,
+    prompts: a.prompts,
     ...(a.known === undefined ? {} : { known: a.known }),
   };
 }
@@ -172,10 +174,10 @@ export async function deriveForPass(
   // SPEC §6 (2026-10-03, issue 1134): the market in force, which fit is
   // judged against. A read that fails is a pass with no market to judge
   // against, never a pass that derives nothing.
-  const { market, competitors } = await store
+  const { market, competitors, prompts } = await store
     .marketFor(a.siteId)
-    .catch(() => ({ market: null, competitors: [] as readonly string[] }));
-  const input = inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known, market, competitors });
+    .catch(() => ({ market: null, competitors: [] as readonly string[], prompts: [] as readonly string[] }));
+  const input = inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known, market, competitors, prompts: prompts ?? [] });
 
   // SPEC §9 (#690): this pass's scan retires the fixes it shows cleared
   // before anything is derived, so a page fixed last week is not re-derived

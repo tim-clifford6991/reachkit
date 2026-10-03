@@ -225,6 +225,13 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
    *  `TOPIC_FIT.maxCandidates` searches: ~12 a score, ~25 a title on the
    *  ones scored 2 or 3 (issue 1134). */
   "topic-fit": 3072,
+  /** `{ problems: string[], solutions: string[] }`, at most
+   *  `BUYER_SEARCHES.max` searches of under ten words: ~15 each (issue
+   *  1208). */
+  "topic-buyer-searches": 700,
+  /** `{ typed: number[] }` over at most `BUYER_SEARCHES.maxChecked`
+   *  indexes: ~4 each (issue 1208). */
+  "topic-typed": 400,
   "generate.brief": 1024,
   "generate.outline": 1536,
   "generate.draft": 4096,
@@ -279,6 +286,8 @@ export const INFERENCE_TEMPERATURE: Readonly<Partial<Record<keyof typeof INFEREN
     "market-inference": 0,
     "rival-inference": 0,
     "topic-fit": 0,
+    "topic-buyer-searches": 0,
+    "topic-typed": 0,
   });
 
 /** How many entries each of the business profile's lists may carry (BUILD
@@ -823,10 +832,12 @@ export const RIVAL_SIZE_BANDS = Object.freeze({
  *  the pass still owes this cap. Issue 1134 adds the pass's one fit
  *  judgement to what it owes: its up-front reservation is about six cents
  *  (`INFERENCE_MAX_OUTPUT_TOKENS["topic-fit"]` at the Sonnet price, plus
- *  its input), so the reserve is twelve. A candidate the reserve leaves no
+ *  its input), so the reserve was twelve. Issue 1208 adds two small-tier
+ *  calls before that judgement — the buyer searches and their check, about
+ *  1.2¢ reserved together — so it is fourteen. A candidate the reserve leaves no
  *  room for is recorded `unsized` with `budget_reached`, never guessed at. */
 export const SERP_RIVAL_SIZING = Object.freeze({
-  candidatesMax: 12, reserveCents: 12,
+  candidatesMax: 12, reserveCents: 14,
 } as const);
 
 /** `BUILD.md` §5's four score bands, as lower bounds on a 0–100 score:
@@ -919,6 +930,14 @@ export const SELECTION = Object.freeze({                    // BP-025 · REQ-006
  *  the most of one pass's candidates that may hold the top fit — the owner's
  *  "under about 25%" — and `topMin` the floor of that count on a small set.
  *  `maxCandidates` bounds the one call. */
+/** SPEC §6 *Write targets in the buyer's words* (2026-10-03, issue 1208):
+ *  how many buyer searches a pass asks the small tier to write, how many of
+ *  them must be problems or how-tos, the words one may run to, and how many
+ *  proposals one "would a buyer search this?" check reads. */
+export const BUYER_SEARCHES = Object.freeze({
+  max: 16, minProblems: 6, minWords: 2, maxWords: 10, maxChecked: 60,
+} as const);
+
 export const TOPIC_FIT = Object.freeze({
   gate: 2, writeAt: 3, topShare: 0.25, topMin: 3, maxCandidates: 80,
 } as const);

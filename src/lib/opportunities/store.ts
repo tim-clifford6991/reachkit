@@ -167,7 +167,13 @@ export interface OpportunityStore {
   /** The site's structured market in force (`null` where none has been
    *  concluded) — what the fit is judged against — and the rivals it is
    *  measured against, as registrable domains. */
-  marketFor(siteId: string): Promise<{ market: MarketConclusion | null; competitors: readonly string[] }>;
+  marketFor(siteId: string): Promise<{
+    market: MarketConclusion | null;
+    competitors: readonly string[];
+    /** The site's tracked buyer prompts, the branded ones left out (issue
+     *  1208). Absent reads as none. */
+    prompts?: readonly string[];
+  }>;
   /** SPEC §6: every `not_working` verdict for one site, each joined through
    *  its publication to the opportunity the page was written for. One read
    *  on `page_verdicts (site_id, week_start)`; the window is applied by
@@ -520,7 +526,12 @@ export function supabaseOpportunityStore(): OpportunityStore {
     async marketFor(siteId) {
       const { readSiteMarket } = await import("@/lib/market/infer/stored");
       const site = await readSiteMarket(siteId);
-      return { market: site?.stored.current ?? null, competitors: site?.competitors ?? [] };
+      const { readPromptSet } = await import("@/lib/market/prompts/store");
+      // A site with no set yet, or one that could not be read, has none.
+      const prompts = await readPromptSet(siteId)
+        .then((set) => set.prompts.filter((prompt) => prompt.kind !== "branded").map((prompt) => prompt.text))
+        .catch(() => []);
+      return { market: site?.stored.current ?? null, competitors: site?.competitors ?? [], prompts };
     },
 
     async setReadiness(opportunityId, reason) {
