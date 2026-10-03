@@ -249,8 +249,10 @@ interface TierParameters {
   /** When the seed ladder has read enough to stop buying seeds. `twelve`:
    *  SPEC §6's own rule, twelve questions at the first volume step.
    *  `questions`: the free path's (owner ruling 2026-09-17, issue 835) —
-   *  "stopping as soon as it has questions", at any step: its 12¢ is
-   *  spent on the report a visitor reads, not on a fuller twelve. */
+   *  it stops once it has `SELECTION.freeLadderMinQuestions` at any step
+   *  (issue 1235; one was enough before, and a report of one question is
+   *  one timed-out SERP from having no score): its 12¢ is spent on the
+   *  report a visitor reads, not on a fuller twelve. */
   ladderStopsAt: "twelve" | "questions";
   /** Issues 770 and 796: how the owner hears of a pass that found too little
    *  market. `immediate` mails at once (a site's first, deep pass);
@@ -1757,14 +1759,20 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
     });
   };
   sections.selected = widen([SELECTION.volumeFloorPerMonth]);
+  // What the pass would ask if it stopped here. The free path reads every
+  // volume step, because that is what it falls back to below.
+  const held = (): number =>
+    a.parameters.ladderStopsAt === "questions" ? widen().length : sections.selected.length;
   const readEnough = (): boolean =>
-    a.parameters.ladderStopsAt === "questions" ? widen().length > 0 : !isShort(sections.selected);
+    a.parameters.ladderStopsAt === "questions"
+      ? held() >= SELECTION.freeLadderMinQuestions
+      : !isShort(sections.selected);
 
   for (const seed of seeds.slice(1 + upfront, 1 + a.parameters.extraSeeds)) {
     if (readEnough() || bounds.stopNow() !== null) break;
-    // Widening never spends what the questions already selected are asked
-    // with (issue 835).
-    if (!affordsSeed({ remainingCents: bounds.remainingCents(), selected: sections.selected.length })) break;
+    // Widening never spends what the questions already held are asked
+    // with (issues 835 and 1235).
+    if (!affordsSeed({ remainingCents: bounds.remainingCents(), selected: held() })) break;
     const more = await attempt("reading_your_market", () => deriveMarketSet(cost, { seeds: [seed], ownRanked }));
     if (abandoned()) return;
     if (failed(more)) break;

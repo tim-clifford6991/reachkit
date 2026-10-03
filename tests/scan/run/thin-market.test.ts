@@ -377,14 +377,70 @@ describe("a new site's free report walks the same ladder inside 12¢ (owner ruli
     await runScan({ domain: DOMAIN, tier: "free" });
 
     const seeds = keywordSuggestions.mock.calls.map((call) => (call[1] as { seed: string }).seed);
-    // It stops as soon as it has questions: the vocabulary is never bought.
-    expect(seeds).toEqual([CATEGORY, HEAD_TERM]);
+    // Three questions are under the ladder's four (issue 1235), so the
+    // next seed is bought too — and no further than leaves every question
+    // its SERP.
+    expect(seeds).toEqual([CATEGORY, HEAD_TERM, "onboarding"]);
 
     const report = storedReport();
     const questions = report.questions.kind === "measured" ? report.questions.value : [];
     expect(questions.length).toBeGreaterThan(0);
     expect(serpOrganic).toHaveBeenCalledTimes(questions.length);
     expect(report.serps.filter((serp) => serp.kind === "measured").length).toBe(questions.length);
+    expect(spentCents()).toBeLessThanOrEqual(CAPS.FREE_C);
+  });
+
+  it("one question is not enough: a seed that answers a single search buys the next, and the report asks four or more (issue 1235)", async () => {
+    // gumroad.com's stored scan of 2026-10-03: its category seed answered
+    // one search, the ladder stopped there, and that search's SERP timed out.
+    const GUMROAD = {
+      ...PROFILE,
+      category: "digital product sales platform",
+      job: "sell digital products and build income online",
+      vocabulary: ["digital products", "e-books", "courses", "memberships", "storefront"],
+      audienceTerms: ["creators", "side hustlers"],
+      namedRivals: [],
+      brandTokens: ["Gumroad"],
+    };
+    const BY_SEED: Record<string, readonly (readonly [string, number])[]> = {
+      "digital product sales platform": [["digital product sales platform", 170]],
+      "digital products": [
+        ["sell digital products online", 2400],
+        ["digital products marketplace", 880],
+        ["platform to sell digital products", 590],
+        ["digital products storefront for creators", 320],
+        ["digital products to sell", 1900],
+        ["where to sell digital products", 1300],
+      ],
+    };
+    measureDomain.mockImplementation(
+      charged(PRICE_BOOK.RANKED_FREE_COST_C, "ranked_keywords", () => ({ ...NEW_SITE, ownRanked: measured(60_737, AT) }))
+    );
+    deriveProfile.mockImplementation(charged(0.5, "profile", () => measured(GUMROAD, AT)));
+    keywordSuggestions.mockImplementation(
+      charged(PRICE_BOOK.SUGGESTIONS_COST_C, "keyword_suggestions", (a: { seed: string }) =>
+        suggestions(BY_SEED[a.seed] ?? [])
+      )
+    );
+    phraseQuestions.mockImplementation(
+      charged(0.2, "question-phrasing", (a: { selected: SelectedSearch[] }) =>
+        measured(
+          a.selected.map((search, i) => ({ id: `q${i + 1}`, text: `${search.keyword}?`, search, phrasing: "model" })),
+          AT
+        )
+      )
+    );
+
+    await runScan({ domain: DOMAIN, tier: "free" });
+
+    const seeds = keywordSuggestions.mock.calls.map((call) => (call[1] as { seed: string }).seed);
+    expect(seeds).toEqual(["digital product sales platform", "product sales platform", "digital products"]);
+
+    const report = storedReport();
+    const questions = report.questions.kind === "measured" ? report.questions.value : [];
+    expect(questions.length).toBeGreaterThanOrEqual(SELECTION.freeLadderMinQuestions);
+    expect(report.serps.filter((serp) => serp.kind === "measured").length).toBe(questions.length);
+    expect(report.verdict.scoreAndBand.kind).toBe("measured");
     expect(spentCents()).toBeLessThanOrEqual(CAPS.FREE_C);
   });
 

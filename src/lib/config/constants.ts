@@ -1026,6 +1026,11 @@ export const SELECTION = Object.freeze({                    // BP-025 · REQ-006
    *  purchases per pass, inside that pass's own cap — the free scan's too
    *  (owner ruling 2026-09-17, issue 835). */
   maxExtraSeeds: 3,
+  /** SPEC §2 (2026-10-04, issue 1235): the free scan's ladder keeps buying
+   *  seeds while it holds fewer questions than this and its purse still
+   *  affords one. One question was enough before, and one SERP that timed
+   *  out then left the whole report with no score. */
+  freeLadderMinQuestions: 4,
   intentWeights: Object.freeze({ decision: 3, solution: 3, problem: 2, informational: 1 } as const),
   maxRivalBrand: 3, maxHowTo: 2,
   /** SPEC §6 right-sizing (owner walk 2026-09-17, issue 858): while the
