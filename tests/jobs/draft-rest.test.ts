@@ -39,6 +39,7 @@ const { llmMock, readMeasuredTextMock, sitesForDailyTickMock, draftReadyMock, ne
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
+vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
 vi.mock("@/lib/costs", () => ({
   withCostContext: async (_ctx: unknown, run: (c: unknown) => Promise<unknown>) =>
     run({ capHit: () => false, spentCents: () => 0, degraded: () => false }),

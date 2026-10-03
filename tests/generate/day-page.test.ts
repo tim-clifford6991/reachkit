@@ -52,6 +52,7 @@ vi.mock("@/lib/generate/voice/confirmed", () => ({
   refusedPassages: async () => [],
 }));
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
+vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
 vi.mock("@/lib/opportunities", () => ({
   nextForDay: nextForDayMock,
   queueForDraft: queueForDraftMock,

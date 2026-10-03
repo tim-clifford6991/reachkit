@@ -38,6 +38,7 @@ const { llmMock, readMeasuredTextMock } = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
+vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
 
 // The save seam, as `view.test.tsx` holds it: this file renders statically
 // and never saves, and the mock only keeps the module out of the way.

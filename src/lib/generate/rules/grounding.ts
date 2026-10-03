@@ -6,12 +6,13 @@
 // source URL + read date." The check is that the recorded passage occurs,
 // word for word, in the content fetched from that page that day.
 //
-// **There is no fallback, and no branch in this file reads one.** The
-// stored report is not an admissible source, a rival's page is not, and the
-// model's own knowledge is not: §8's fact is the customer's own live page
-// or the draft does not ship. That is why this function takes the fetched
-// text as a parameter rather than reaching for anything itself — there is
-// nowhere else for it to reach.
+// **There is no fallback, and no branch in this file reads one.** A
+// rival's page is not an admissible source and the model's own knowledge is
+// not: §8's fact is the customer's own live page, or a sentence the site's
+// own report states (SPEC §7, 2026-10-03, issue 1163), or the draft does
+// not ship. That is why this function takes the source text as a parameter
+// rather than reaching for anything itself — there is nowhere else for it
+// to reach.
 import type { GroundedFact, RuleFailure } from "./types";
 
 /** Whitespace differences are not a different passage: a page's HTML is

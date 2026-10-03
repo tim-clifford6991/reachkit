@@ -26,6 +26,7 @@ vi.mock("@/lib/generate/voice/confirmed", () => ({
   refusedPassages: async () => [],
 }));
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
+vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
 vi.mock("@/lib/opportunities", async () => {
   const { opportunity } = await import("../../generate/fixtures");
   return { opportunityById: async () => opportunity() };

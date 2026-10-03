@@ -7,7 +7,7 @@
 // second copy of the text anywhere.
 //
 // **It fetches nothing and stores nothing.** No `safeFetch`, no vendor
-// call, no write. The extractor is `prose.ts`'s `proseText`: the document
+// call, no write. The extractor is `prose.ts`'s `prose`: the document
 // the measurement scored, without its navigation, header, footer, buttons
 // or example widgets (SPEC §5, 2026-09-29, #1130), because what is read
 // back here is what a page quotes as a fact about the business.
@@ -23,13 +23,16 @@
 // and a paid site grounds no fact and starts no draft.
 import { dbAdmin } from "@/lib/db";
 import { OWN_FETCH_SOURCE, isStoredDocument } from "./own-fetch";
-import { proseText } from "./prose";
+import { prose } from "./prose";
 
 export interface MeasuredText {
   url: string;
   text: string;
   /** The date the document was read — the stored outcome's own `readAt`. */
   measuredAt: Date;
+  /** What the page's example and demo elements said (`prose.ts`). Never
+   *  part of `text`; the facts read drops these phrases site-wide. */
+  examples?: readonly string[];
 }
 
 // `fetches` is outside the generated `Database` type (the same schema gap
@@ -128,10 +131,12 @@ async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> 
     // text was measured, so none is returned. Any other shape under this
     // source is skipped the same way, never thrown on.
     if (!isStoredDocument(row.payload)) continue;
+    const read = prose(row.payload.html);
     out.push({
       url: row.payload.url,
-      text: proseText(row.payload.html),
+      text: read.text,
       measuredAt: new Date(row.payload.readAt),
+      examples: read.examples,
     });
   }
   return out.sort(compareMeasuredText);

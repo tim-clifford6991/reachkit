@@ -17,9 +17,14 @@
 // passage still occurs there word for word — which it does by construction,
 // and would not if any later step rewrote it.
 //
-// **There is no fallback.** The stored report is not an admissible source,
-// a rival's page is not, and the model's knowledge is not. A site with no
-// readable measured text yields `no_fact`, and the day has no page.
+// **There is no fallback.** A rival's page is not an admissible source and
+// the model's knowledge is not. A site with no readable measured text
+// yields `no_fact`, and the day has no page.
+//
+// **The report's measurements are business facts** (SPEC §7, 2026-10-03,
+// issue 1163): what the latest complete report measured is stated in
+// sentences by `report-facts.ts` and read here as one more page, sourced to
+// the report's own address and dated by the measurement.
 //
 // **One page may not be the whole grounding** (issue 900). The read used to
 // walk pages freshest first and take every passage one page yielded before
@@ -34,6 +39,8 @@
 import nlp from "compromise";
 import { BRIEF_MAX_FACTS } from "@/lib/config/constants";
 import { readMeasuredText, type MeasuredText } from "@/lib/measure/text";
+import { derivePurpose } from "@/lib/site-profile/purpose";
+import { readReportPage } from "./report-facts";
 import type { GroundedFact } from "../rules/types";
 
 /** A passage short enough to quote and long enough to say something. */
@@ -51,9 +58,21 @@ const SENTENCE_SPLIT_RE = /(?<=[.!?])\s+/;
 /** Ends as a sentence ends, allowing a closing quote or bracket. */
 const SENTENCE_END_RE = /[.!?]["'”’)\]]?$/;
 
-/** A passage repeated on this many of the site's pages is the site's
- *  chrome, not something one page says (SPEC §5, 2026-09-29, drafted). */
+/** A passage is the site's chrome, not something one page says, where it
+ *  repeats on at least this many of the site's pages **and** on more than
+ *  half of them (SPEC §5, 2026-10-03, issue 1163). The count alone cut real
+ *  claims on a small site: on six pages, a promise made on three is the
+ *  site saying it three times, not a menu. */
 const REPEATED_ON_PAGES = 3;
+const REPEATED_ON_SHARE = 0.5;
+
+/** A legal page — privacy, terms, imprint, cookies — is tagged by its
+ *  address, with the crawl's own table (`site-profile/purpose.ts`), and is
+ *  never read for facts (SPEC §5, 2026-10-03, issue 1163): a removal clause
+ *  or a processor list is not what a business says about itself. */
+function isLegalPage(url: string): boolean {
+  return derivePurpose({ url, title: "", h1: "" }) === "legal";
+}
 
 /** Prose, not a label: it ends in punctuation and it has a verb (SPEC §5,
  *  2026-09-29 — "keeps a sentence only where it is prose"). Menus, tiles
@@ -88,12 +107,22 @@ export function orderedPassages(text: string): string[] {
   ];
 }
 
+/** A line of an example, as the passages are normalised: its sentences and
+ *  the whole line, so a caption is matched however the page breaks it. */
+function examplePhrases(line: string): string[] {
+  const whole = line.replace(/\s+/g, " ").trim();
+  return [whole, ...whole.split(SENTENCE_SPLIT_RE).map((sentence) => sentence.trim())];
+}
+
 /**
- * Each page's passages, minus any the site repeats on three or more of its
- * pages. Every caller that reads passages over a set of pages reads them
- * here, so a footer's sentence is dropped however the facts are read.
+ * Each page's passages, minus what is not the business speaking: a legal
+ * page yields none, a passage the site repeats on three or more pages and
+ * on more than half of them is chrome, and a phrase any page of the site
+ * shows inside an example is an example wherever it appears. Every caller
+ * that reads passages over a set of pages reads them here, so a footer's
+ * sentence is dropped however the facts are read.
  */
-export function sitePassages<P extends { url: string; text: string }>(
+export function sitePassages<P extends { url: string; text: string; examples?: readonly string[] }>(
   pages: readonly P[]
 ): { page: P; passages: string[] }[] {
   const read = pages.map((page) => ({ page, passages: orderedPassages(page.text) }));
@@ -101,9 +130,16 @@ export function sitePassages<P extends { url: string; text: string }>(
   for (const { page, passages } of read) {
     for (const passage of passages) onPages.set(passage, (onPages.get(passage) ?? new Set()).add(page.url));
   }
+  const repeated = (passage: string): boolean => {
+    const count = onPages.get(passage)?.size ?? 0;
+    return count >= REPEATED_ON_PAGES && count > pages.length * REPEATED_ON_SHARE;
+  };
+  const demo = new Set(pages.flatMap((page) => (page.examples ?? []).flatMap(examplePhrases)));
   return read.map(({ page, passages }) => ({
     page,
-    passages: passages.filter((passage) => (onPages.get(passage)?.size ?? 0) < REPEATED_ON_PAGES),
+    passages: isLegalPage(page.url)
+      ? []
+      : passages.filter((passage) => !repeated(passage) && !demo.has(passage)),
   }));
 }
 
@@ -180,11 +216,18 @@ export interface FactRead {
  * prompt and is applied by `readFacts`.
  */
 export async function readAllFacts(a: FactRead): Promise<SourcedFact[]> {
-  const pages = aboutTheQuestionFirst(
-    await readMeasuredText({ siteId: a.siteId, scanId: a.scanId }),
-    a.target
-  );
-  const queues = sitePassages(pages);
+  const [measured, report] = await Promise.all([
+    readMeasuredText({ siteId: a.siteId, scanId: a.scanId }),
+    readReportPage(a.siteId),
+  ]);
+  const own = sitePassages(aboutTheQuestionFirst(measured, a.target));
+  // The report is one more page in the rotation, after the site's own — and
+  // only beside them: a site none of whose pages yields a passage is not
+  // written from its measurements alone.
+  const queues =
+    report === null || own.every((queue) => queue.passages.length === 0)
+      ? own
+      : [...own, ...sitePassages([report])];
   const out: SourcedFact[] = [];
   const seen = new Set<string>();
   const rounds = Math.max(0, ...queues.map((queue) => queue.passages.length));

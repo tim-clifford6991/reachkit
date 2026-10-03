@@ -34,6 +34,7 @@ const { llmMock, readMeasuredTextMock } = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
+vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
 
 let generateDraft: typeof import("../../../src/lib/generate/pipeline").generateDraft;
 let rejectionCause: typeof import("../../../src/lib/generate/pipeline/rejection").rejectionCause;
