@@ -17,7 +17,11 @@ export const readPrompts = cache(async function readPrompts(): Promise<PromptsMo
   // leaves the screens showing what they showed before, never an error.
   try {
     return assemblePrompts(
-      await readPromptWindow({ siteId: account.siteId, weekStart: weekStartFor({ at: now(), zone: account.timeZone }) })
+      await readPromptWindow({
+        siteId: account.siteId,
+        zone: account.timeZone,
+        weekStart: weekStartFor({ at: now(), zone: account.timeZone }),
+      })
     );
   } catch {
     return { kind: "none" };

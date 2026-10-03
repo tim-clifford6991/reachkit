@@ -273,6 +273,9 @@ async function measure(a: {
     tier: "deep",
     ...(category === undefined ? {} : { category }),
     concludesMarket: true,
+    // Owner, 2026-10-03 (#1162): a re-measure also asks the site's tracked
+    // buyer prompts, so the mention rate does not wait for Monday.
+    ...(a.remeasure === true ? { asksTrackedPrompts: true } : {}),
     onStage: (stage) => recordStage(a.siteId, stage),
   });
 }
