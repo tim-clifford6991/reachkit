@@ -157,6 +157,27 @@ function stillQueueing(onFailure?: (failure: { vendorFailure: string; endpoint: 
   };
 }
 
+/** A site whose market yields the full set of 25 tracked prompts. */
+const SITE_WITH_A_MARKET = {
+        domain: DOMAIN,
+        category: "user onboarding software",
+        competitors: [],
+        tracked_prompts: null,
+        market: {
+          current: {
+            category: "user onboarding software",
+            synonyms: ["product tours", "onboarding checklists", "in-app guidance"],
+            buyer: "Product teams who ship SaaS",
+            job: "Get their new users to the first win",
+            rivals: [
+              { domain: "appcues.com", name: "Appcues", basis: "ranks", reason: "" },
+              { domain: "userpilot.com", name: "Userpilot", basis: "ranks", reason: "" },
+              { domain: "pendo.io", name: "Pendo", basis: "ranks", reason: "" },
+            ],
+          },
+        },
+      };
+
 let stages: { lines: string[]; restore: () => void };
 
 beforeEach(() => {
@@ -308,27 +329,7 @@ describe("the weekly pass at production's measured queue waits (issue 1160)", ()
     await import("@/lib/market/prompts/store");
     await import("@/lib/market/infer/stored");
     await import("@/lib/site-profile/store");
-    db.rows.set("sites", [
-      {
-        domain: DOMAIN,
-        category: "user onboarding software",
-        competitors: [],
-        tracked_prompts: null,
-        market: {
-          current: {
-            category: "user onboarding software",
-            synonyms: ["product tours", "onboarding checklists", "in-app guidance"],
-            buyer: "Product teams who ship SaaS",
-            job: "Get their new users to the first win",
-            rivals: [
-              { domain: "appcues.com", name: "Appcues", basis: "ranks", reason: "" },
-              { domain: "userpilot.com", name: "Userpilot", basis: "ranks", reason: "" },
-              { domain: "pendo.io", name: "Pendo", basis: "ranks", reason: "" },
-            ],
-          },
-        },
-      },
-    ]);
+    db.rows.set("sites", [SITE_WITH_A_MARKET]);
     serpOrganic.mockImplementation(answersAfter(177, measured(SERP, AT)));
     llmScraper.mockImplementation(answersAfter(166, measured(answered(["example.com"]), AT)));
     aiMode.mockImplementation(answersAfter(187, measured(answered(["appcues.com"]), AT)));
@@ -375,5 +376,35 @@ describe("the weekly pass at production's measured queue waits (issue 1160)", ()
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("Measure again now asks the tracked prompts too (owner, 2026-10-03, issue 1162)", () => {
+  it("a re-measure stores the full set's answers, each day its own sample; the onboarding pass asks none", async () => {
+    db.rows.set("sites", [SITE_WITH_A_MARKET]);
+    await runScan({ domain: DOMAIN, siteId: "site-1162", tier: "deep", asksTrackedPrompts: true });
+
+    const report = storedReport();
+    expect(report.stoppedReason).toBe("complete");
+    expect(report.prompts?.asked).toHaveLength(25);
+    expect(report.prompts?.answers).toHaveLength(100);
+    // The deep pass's own battery on the twelve, and the set beside it.
+    expect(llmScraper).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS + 50);
+    const tracked = (aiMode.mock.calls as unknown as [unknown, { asOf?: string; mode: string }][])
+      .map((call) => call[1])
+      .filter((call) => call.asOf !== undefined);
+    expect(tracked).toHaveLength(50);
+    // The standard queue, as the weekly pass asks them, and keyed by day.
+    expect(tracked.every((call) => call.mode === "std" && /^\d{4}-\d{2}-\d{2}$/.test(call.asOf ?? ""))).toBe(true);
+
+    vi.clearAllMocks();
+    db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false }]);
+    storeCurrentReport.mockImplementation(async (a: { report: StoredReport }) => ({
+      scanId: a.report.scanId,
+      status: "done" as const,
+    }));
+    await runScan({ domain: DOMAIN, siteId: "site-1162", tier: "deep" });
+    expect(storedReport().prompts).toBeUndefined();
+    expect(llmScraper).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
   });
 });

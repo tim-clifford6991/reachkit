@@ -806,6 +806,10 @@ export interface RunScanArgs {
    *  deep and weekly passes. Needs `siteId`. A category the founder set
    *  stands; see `market-conclusion.ts`. */
   concludesMarket?: boolean;
+  /** The founder's *Measure again now* (owner, 2026-10-03, #1162): this
+   *  pass also asks the site's tracked buyer prompts, as a weekly pass
+   *  does, so no founder waits for Monday to see a mention rate. */
+  asksTrackedPrompts?: boolean;
   /**
    * Called as each stage is entered, before its work starts.
    *
@@ -966,6 +970,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
           ...(a.onStage === undefined ? {} : { onStage: a.onStage }),
           ...(a.category === undefined ? {} : { category: a.category }),
           ...(a.concludesMarket === true ? { concludesMarket: true } : {}),
+          ...(a.asksTrackedPrompts === true ? { asksTrackedPrompts: true } : {}),
           ...(retry === undefined ? {} : { retry }),
         });
       } finally {
@@ -1139,6 +1144,8 @@ interface StageArgs {
   category?: string;
   /** `RunScanArgs.concludesMarket`. */
   concludesMarket?: boolean;
+  /** `RunScanArgs.asksTrackedPrompts`. */
+  asksTrackedPrompts?: boolean;
   /** SPEC §2's "Retry this part" (issue 715): the report this pass is
    *  re-measuring one part of, and which part. Its presence is what makes
    *  `reading_your_market` a read of the stored report rather than a
@@ -2077,7 +2084,8 @@ async function askTheMarketPrompts(a: StageArgs): Promise<void> {
 
 /**
  * SPEC §6 (owner, D19 final and D33 of 2026-10-03, #1162) — the site's
- * tracked buyer prompts, asked beside the twelve and inside their budget:
+ * tracked buyer prompts, asked by the weekly pass and by a founder's
+ * re-measure (owner, 2026-10-03), beside the twelve and inside their budget:
  * the same clock, the same `WEEKLY` cap and the same deadline before the
  * ceiling.
  *
@@ -2097,7 +2105,13 @@ async function askTheMarketPrompts(a: StageArgs): Promise<void> {
  */
 async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
   const { bounds, cost, parameters, sections, siteId } = a;
-  if (!parameters.trackedPrompts || siteId === undefined || bounds.stopNow() !== null) return;
+  const asks = parameters.trackedPrompts || (a.asksTrackedPrompts === true && parameters.battery);
+  if (!asks || siteId === undefined || bounds.stopNow() !== null) return;
+  // Each day's asks are their own samples: without the day in the key, a
+  // Monday pass two days after a re-measure would be served the
+  // re-measure's answers as a second week's measurement. A retry the same
+  // day is served what it already bought.
+  const asOf = a.startedAt.toISOString().slice(0, 10);
   try {
     const [{ readPromptSet, writePromptSet }, { readSiteMarket }, { readSiteProfile }] = await Promise.all([
       import("@/lib/market/prompts/store"),
@@ -2125,8 +2139,10 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
       const untilMs = untilCeiling(bounds, parameters);
       const got = await attempt("asking_the_twelve", () =>
         engine === "chatgpt"
-          ? llmScraper(cost, { query: prompt.text, mode: "std", scope, untilMs, run })
-          : aiMode(cost, { query: prompt.text, mode: parameters.serpMode, scope, untilMs, run })
+          ? llmScraper(cost, { query: prompt.text, mode: "std", scope, untilMs, run, asOf })
+          : // The standard queue on every tier: the measure is the same
+            // ask whichever pass makes it, at the price D19 was costed at.
+            aiMode(cost, { query: prompt.text, mode: "std", scope, untilMs, run, asOf })
       );
       if (failed(got) || got.kind === "unmeasured" || !got.value.answered) return;
       const reading = readPromptAnswer({

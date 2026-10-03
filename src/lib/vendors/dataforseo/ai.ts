@@ -98,8 +98,8 @@ export function parseLlmScraper(result: unknown): AiAnswer[] | undefined {
   return [];
 }
 
-function runKey(run: number | undefined): string {
-  return run === undefined || run <= 1 ? "" : `|run:${run}`;
+function runKey(run: number | undefined, asOf?: string): string {
+  return `${asOf === undefined ? "" : `|asof:${asOf}`}${run === undefined || run <= 1 ? "" : `|run:${run}`}`;
 }
 
 function paidOnly<T>(c: CostContext, at: Date): Measured<T> | undefined {
@@ -121,6 +121,10 @@ export async function aiMode(
      *  under the first one's key would be served the first one's answer.
      *  Absent and 1 are the same key the battery has always used. */
     run?: number;
+    /** The day the sample belongs to, `YYYY-MM-DD` (#1162): a tracked
+     *  prompt is a fresh sample each pass day, never last week's answer
+     *  served again inside the battery's cache window. */
+    asOf?: string;
     /** When the caller's own ceiling runs out, as epoch milliseconds
      *  (issue 902). On the standard queue this call's wait is a poll that
      *  otherwise runs to `VENDOR.stdQueueDeadlineMin` — forty-five minutes,
@@ -133,7 +137,7 @@ export async function aiMode(
   if (refused) return refused;
   const rows = await ledgered<AiAnswer>(c, {
     source: "serp/google/ai_mode",
-    cacheKey: `${a.query}|${LOCALE_KEY}|${scopeKey(a.scope)}${runKey(a.run)}`,
+    cacheKey: `${a.query}|${LOCALE_KEY}|${scopeKey(a.scope)}${runKey(a.run, a.asOf)}`,
     freshnessDays: CACHE_WINDOWS_D.aiBattery,
     costCents: a.mode === "live" ? PRICE_BOOK.AI_MODE_LIVE_C : PRICE_BOOK.AI_MODE_STD_C,
     fetch: () => callEndpoint(AI_MODE_PATHS, a.mode, { keyword: a.query }, undefined, a.untilMs),
@@ -145,13 +149,13 @@ export async function aiMode(
 
 export async function llmScraper(
   c: CostContext,
-  a: { query: string; mode: "std"; scope: CacheScope; onFailure?: OnVendorFailure; untilMs?: number; run?: number }
+  a: { query: string; mode: "std"; scope: CacheScope; onFailure?: OnVendorFailure; untilMs?: number; run?: number; asOf?: string }
 ): Promise<Measured<AiAnswer>> {
   const refused = paidOnly<AiAnswer>(c, new Date());
   if (refused) return refused;
   const rows = await ledgered<AiAnswer>(c, {
     source: "ai_optimization/chat_gpt/llm_scraper",
-    cacheKey: `${a.query}|${LOCALE_KEY}|${scopeKey(a.scope)}${runKey(a.run)}`,
+    cacheKey: `${a.query}|${LOCALE_KEY}|${scopeKey(a.scope)}${runKey(a.run, a.asOf)}`,
     freshnessDays: CACHE_WINDOWS_D.aiBattery,
     costCents: PRICE_BOOK.CHATGPT_SCRAPE_STD_C,
     fetch: () => callEndpoint(LLM_SCRAPER_PATHS, a.mode, { keyword: a.query }, undefined, a.untilMs),

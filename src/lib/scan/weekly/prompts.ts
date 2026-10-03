@@ -8,7 +8,9 @@ import { ANSWER_RATE_WEEKS } from "@/lib/config/constants";
 import type { PromptSample, PromptWeek, PromptWindow } from "@/lib/market/prompts/rate";
 import type { PromptsSection } from "../report";
 import { previousWeekStart } from "./movement";
-import { readWeekScans } from "./store";
+import { dbAdmin } from "@/lib/db";
+import { readSiteZone, readWeekScans } from "./store";
+import { weekStartFor } from "./week";
 
 /** One stored section as samples: each answer beside its prompt's kind. An
  *  answer whose prompt has since left the stored set is left out. */
@@ -37,13 +39,77 @@ export function promptWindowWeeks(weekStart: string): string[] {
   return weeks;
 }
 
-export async function readPromptWindow(a: { siteId: string; weekStart: string }): Promise<PromptWindow> {
+interface DeepRow {
+  created_at: string;
+  prompts: unknown;
+}
+
+interface DeepQuery extends PromiseLike<{ data: DeepRow[] | null; error: { message: string } | null }> {
+  select(columns: string): DeepQuery;
+  eq(column: string, value: string): DeepQuery;
+  gte(column: string, value: string): DeepQuery;
+}
+
+function isSection(value: unknown): value is PromptsSection {
+  if (typeof value !== "object" || value === null) return false;
+  const section = value as Record<string, unknown>;
+  return Array.isArray(section.asked) && Array.isArray(section.answers);
+}
+
+/**
+ * The re-measures inside the window that asked the prompts (owner,
+ * 2026-10-03, #1162), each under the site-local week it ran in. Only the
+ * prompts member is read, never the whole report. Degrades to none: the
+ * weekly passes are still the window.
+ */
+async function readRemeasures(a: {
+  siteId: string;
+  zone: string;
+  weekStarts: readonly string[];
+}): Promise<{ weekStart: string; at: number; section: PromptsSection }[]> {
+  const since = new Date(Date.parse(`${a.weekStarts[0]}T00:00:00.000Z`) - 86_400_000).toISOString();
+  const client = dbAdmin() as unknown as { from(table: string): DeepQuery };
+  const { data, error } = await client
+    .from("scans")
+    .select("created_at, prompts:report->prompts")
+    .eq("site_id", a.siteId)
+    .eq("tier", "deep")
+    .gte("created_at", since);
+  if (error !== null || data === null) return [];
+  const out: { weekStart: string; at: number; section: PromptsSection }[] = [];
+  for (const row of data) {
+    if (!isSection(row.prompts)) continue;
+    const at = new Date(row.created_at);
+    const weekStart = weekStartFor({ at, zone: a.zone });
+    if (a.weekStarts.includes(weekStart)) out.push({ weekStart, at: at.getTime(), section: row.prompts });
+  }
+  return out;
+}
+
+/**
+ * The rolling window ending at `weekStart`. **One pass a week**: where a
+ * week holds a weekly pass and a re-measure, or two re-measures, the newest
+ * that asked the prompts is that week's sample. Counting both would double
+ * the answers read without doubling what was learned.
+ */
+export async function readPromptWindow(a: { siteId: string; weekStart: string; zone?: string }): Promise<PromptWindow> {
   const weekStarts = promptWindowWeeks(a.weekStart);
-  const scans = await readWeekScans({ siteId: a.siteId, weekStarts });
+  const zone = a.zone ?? (await readSiteZone(a.siteId));
+  const [scans, remeasures] = await Promise.all([
+    readWeekScans({ siteId: a.siteId, weekStarts }),
+    zone === null ? [] : readRemeasures({ siteId: a.siteId, zone, weekStarts }).catch(() => []),
+  ]);
   const weeks: PromptWeek[] = [];
   let prompts: PromptWindow["prompts"] = [];
   for (const weekStart of weekStarts) {
-    const section = scans.get(weekStart)?.report?.prompts;
+    const report = scans.get(weekStart)?.report;
+    let section = report?.prompts;
+    let at = section === undefined || report == null ? -1 : report.verdict.measuredAt.getTime();
+    for (const remeasure of remeasures) {
+      if (remeasure.weekStart !== weekStart || remeasure.at <= at) continue;
+      section = remeasure.section;
+      at = remeasure.at;
+    }
     if (section === undefined) continue;
     weeks.push({ weekStart, asks: section.asks, samples: samplesOf(section) });
     prompts = section.asked;
