@@ -22,7 +22,7 @@
 // reach a model.
 //
 // **What the page is *for* is stated, per type** (SPEC §7, 2026-09-19, issue
-// 900). `PAGE_JOB` is carried by every prompt built here, and where the
+// 900). `pageJobFor` is carried by every prompt built here, and where the
 // target search is the market's question rather than the customer's own
 // brand, `FRAME_INSTRUCTION` is carried with it. Both are derived from the
 // closed struct — the opportunity's own type and target searches, against the
@@ -32,6 +32,7 @@ import { ANSWER_FIRST_BLOCK_CHARS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm, type LlmCallSite } from "@/lib/llm";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
+import type { SitePage } from "@/lib/opportunities/site-pages";
 import type { Acceptance, Opportunity } from "@/lib/opportunities/types";
 import { REGISTER_FLOOR } from "../rules/figures";
 import { FRAME_INSTRUCTION, answersMarketQuestion } from "../rules/frame";
@@ -39,7 +40,7 @@ import type { DraftPromptInputs } from "../voice/inputs";
 import type { PromptProfile } from "../voice/profile-block";
 import type { AnswerabilityOps } from "./answerability";
 import type { FixNote } from "./repair";
-import { PAGE_JOB, SECTION_TASK, type SectionRole } from "./skeletons";
+import { pageJobFor, SECTION_TASK, type SectionRole } from "./skeletons";
 
 /** §8's five steps, closed. `claim_check` is the fifth and is run by
  *  `claims/check.ts`; it is a member here because a caller reporting "which
@@ -131,6 +132,11 @@ export interface BriefProjection {
   /** The confirmed business profile, bounded, or `null` where nothing has
    *  been read of the site (#927). */
   profile: PromptProfile | null;
+  /** SPEC §7 (2026-10-03, D36, issue 1209): every page the site has
+   *  published or planned — its title, the question it answers and its kind
+   *  — so the brief takes an angle none of them already takes. Empty on a
+   *  site with no page yet. */
+  sitePages: readonly SitePage[];
 }
 
 /** The acceptance test as one line the model can aim at. Model-facing only. */
@@ -165,6 +171,7 @@ export function briefProjection(a: {
    *  which holds the brand this projection deliberately does not. */
   marketQuestion: boolean;
   profile: PromptProfile | null;
+  sitePages?: readonly SitePage[];
 }): BriefProjection {
   const o = a.opportunity;
   return {
@@ -176,9 +183,10 @@ export function briefProjection(a: {
     doNotClaim: a.doNotClaim,
     voice: a.voice,
     acceptance: acceptanceText(o.acceptance),
-    pageJob: PAGE_JOB[o.type],
+    pageJob: pageJobFor(o),
     frame: a.marketQuestion ? FRAME_INSTRUCTION : null,
     profile: a.profile,
+    sitePages: a.sitePages ?? [],
   };
 }
 
@@ -213,7 +221,7 @@ function promptFor(
     // SPEC §7 (2026-09-19, issue 900): what this page is for, and — where
     // the search is the market's question and not this business's own — that
     // the business is one option in it and never its frame.
-    pageJob: PAGE_JOB[inputs.opportunity.type],
+    pageJob: pageJobFor(inputs.opportunity),
     frame: answersMarketQuestion({
       opportunityType: inputs.opportunity.type,
       queries: targetSearches(inputs.opportunity),
@@ -296,7 +304,11 @@ export function brief(c: CostContext, projection: BriefProjection): Promise<Meas
         "its products, audience and promises this page should speak to, and say so in " +
         "the points — the page must be specific to this business and relevant to its " +
         "readers, never generic. Answer the target search first: the profile tells you " +
-        "who is answering, never what the page is about.",
+        "who is answering, never what the page is about. `sitePages` lists every page " +
+        "this site has published or planned, with the question each answers and its " +
+        "kind: take an angle none of them already takes, and where one of them answers " +
+        "something this page raises, make sending the reader to it one of the points " +
+        "rather than answering it again.",
       ...projection,
     },
   });

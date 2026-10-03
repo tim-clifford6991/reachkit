@@ -104,6 +104,15 @@ export type InsertOutcome =
    *  weekly top-up re-deriving the same target must add nothing. */
   | { outcome: "duplicate" };
 
+/** One of the site's own pages, as `draftedPages` returns it. */
+export interface DraftedPage {
+  /** The site-local date the page holds, `YYYY-MM-DD`. */
+  date: string;
+  state: string;
+  title: string | null;
+  row: OpportunityRow;
+}
+
 export interface OpportunityStore {
   insert(row: OpportunityInsert): Promise<InsertOutcome>;
   /** Open, non-`fix` rows for one site — the unused-supply set, and the
@@ -126,6 +135,11 @@ export interface OpportunityStore {
   /** The non-Fix row whose page was drafted or published last — the day
    *  before the first one the ranking plans (#1181). */
   latestPage(siteId: string): Promise<OpportunityRow | null>;
+  /** The site's own pages that have a draft row, newest date first, at most
+   *  `limit`: each with the date it holds, its state, its written title and
+   *  the row it was written for (issue 1209). What the weekly mix counts and
+   *  what a brief is told the site already covers. */
+  draftedPages(siteId: string, limit: number): Promise<readonly DraftedPage[]>;
   /** The top tens the given scans bought, by `queryKey`, a later scan's
    *  over an earlier one's (#1131) — what a held row's search is compared
    *  by. Only the questions and SERPs are read, never the whole report. */
@@ -296,6 +310,7 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   eq(column: string, value: string | boolean): MinimalQueryBuilder<T>;
   neq(column: string, value: string): MinimalQueryBuilder<T>;
   is(column: string, value: boolean | null): MinimalQueryBuilder<T>;
+  not(column: string, operator: string, value: null): MinimalQueryBuilder<T>;
   in(column: string, values: readonly unknown[]): MinimalQueryBuilder<T>;
   order(column: string, options: { ascending: boolean }): MinimalQueryBuilder<T>;
   limit(count: number): MinimalQueryBuilder<T>;
@@ -406,6 +421,25 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .limit(1);
       if (error) throw new Error(`opportunities.latestPage: ${error.message}`);
       return data?.[0] ?? null;
+    },
+
+    async draftedPages(siteId, limit) {
+      const { data, error } = await untyped()
+        .from<{ scheduled_for: string | null; state: string; title: string | null; opportunities: OpportunityRow | null }>(
+          "drafts"
+        )
+        .select(`scheduled_for, state, title, opportunities(${COLUMNS})`)
+        .eq("site_id", siteId)
+        // A descending order puts a row with no date first.
+        .not("scheduled_for", "is", null)
+        .order("scheduled_for", { ascending: false })
+        .limit(limit);
+      if (error) throw new Error(`opportunities.draftedPages: ${error.message}`);
+      return (data ?? []).flatMap((draft) =>
+        draft.scheduled_for === null || draft.opportunities === null
+          ? []
+          : [{ date: draft.scheduled_for, state: draft.state, title: draft.title, row: draft.opportunities }]
+      );
     },
 
     async topTens(scanIds) {

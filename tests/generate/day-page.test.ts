@@ -57,6 +57,7 @@ vi.mock("@/lib/opportunities", () => ({
   queueForDraft: queueForDraftMock,
   releaseForDraft: releaseForDraftMock,
   opportunityById: async () => null,
+  sitePagesFor: async () => [],
   assessFixPages: async () => ({ done: 0, ready: 0 }),
   assessReadiness: async () => ({ ready: 1, unready: 0 }),
 }));

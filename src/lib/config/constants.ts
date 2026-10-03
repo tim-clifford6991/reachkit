@@ -1461,6 +1461,18 @@ export const SAME_TOPIC_SHARED_ADDRESSES = 4 as const;        // §6
  *  target of a refresh. Drafted default; the owner may correct it. */
 export const REFRESH_MIN_AGE_DAYS = 30 as const;               // §6
 
+/** SPEC §7 (2026-10-03, D36, issue 1209): the rolling weekly content mix.
+ *  Over any `WINDOW_DAYS` days a site publishes at most `MAX_PER_KIND` pages
+ *  of one kind, never the same kind two days running, and at least one
+ *  update where one is ready. Drafted defaults; the owner may correct them. */
+export const CONTENT_MIX = Object.freeze({
+  WINDOW_DAYS: 7,
+  MAX_PER_KIND: 2,
+  /** How many of the site's own published and planned pages a brief is
+   *  handed, newest first. */
+  BRIEF_PAGES_MAX: 100,
+});                                                            // §7
+
 /** Issue 477: "two `not_working` verdicts on Improve of one URL retire that
  *  URL" — counted in distinct Monday weeks. */
 export const IMPROVE_RETIRE_AFTER_NOT_WORKING = 2 as const;   // §6

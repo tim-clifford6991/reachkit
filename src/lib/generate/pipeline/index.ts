@@ -39,7 +39,7 @@
 // customer saves does not come through here.
 import { BRIEF_MAX_FACTS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
-import type { Opportunity } from "@/lib/opportunities";
+import type { Opportunity, SitePage } from "@/lib/opportunities";
 import { readRecordedFact, recordedFactValue } from "../fact";
 import { recoveryOutcome, type Recovery } from "../claims/recovery";
 import { recordedRulesValue, recordedVerdictValue } from "../record";
@@ -55,7 +55,7 @@ import { buildComparisonSet } from "./comparison";
 import { applyAnswerability } from "./answerability";
 import { allowedFacts, readAllFacts } from "./grounding";
 import { fixNotes, repairable, repairMechanical, type FixNote, type RepairRecord } from "./repair";
-import { SKELETONS } from "./skeletons";
+import { skeletonFor } from "./skeletons";
 import { answersMarketQuestion } from "../rules/frame";
 import {
   answerability,
@@ -124,6 +124,8 @@ export async function generateDraft(
      *  than read here for the reason `profile` is: the caller holds the
      *  index it chose the links from. */
     known?: readonly KnownPageBrief[];
+    /** Every page the site has published or planned (issue 1209). */
+    sitePages?: readonly SitePage[];
     /** The confirmed business profile, bounded, or `null` where nothing has
      *  been read of the site (#927). Passed rather than read here: the
      *  caller already holds the market reading it is half made of, so
@@ -171,8 +173,9 @@ export async function generateDraft(
   const facts = all.slice(0, BRIEF_MAX_FACTS);
   if (facts.length === 0) return noFact(a.siteId);
 
-  // The page's shape is its type's, never the model's (issue 475).
-  const skeleton = SKELETONS[a.opportunity.type];
+  // The page's shape is its kind's and its type's, never the model's (issue
+  // 475; the weekly mix's kinds, issue 1209).
+  const skeleton = skeletonFor(a.opportunity);
   if (skeleton === null) return stepFailed(a.siteId, "outline", a.draftId);
 
   // 3. The brief, handed the closed projection and nothing else. It picks
@@ -186,6 +189,7 @@ export async function generateDraft(
       doNotClaim: a.site.doNotClaim,
       voice: a.voiceText,
       profile: a.profile,
+      ...(a.sitePages === undefined ? {} : { sitePages: a.sitePages }),
       marketQuestion: answersMarketQuestion({
         opportunityType: a.opportunity.type,
         queries: searches,

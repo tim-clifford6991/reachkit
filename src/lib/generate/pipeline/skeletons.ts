@@ -23,7 +23,8 @@
 // Nothing here is a customer-facing sentence. `SECTION_TASK` is what the
 // model is told a section is for, and the model's heading is what the reader
 // meets.
-import type { OpportunityType } from "@/lib/opportunities/types";
+import { contentKindOf, type ContentKind } from "@/lib/opportunities/content-kind";
+import type { Opportunity, OpportunityType } from "@/lib/opportunities/types";
 
 export type SectionRole = "answer" | "detail" | "comparison" | "steps" | "evidence";
 
@@ -76,3 +77,38 @@ export const PAGE_JOB: Readonly<Record<OpportunityType, string | null>> = Object
   unblock: null,
   fix_page: null,
 });
+
+/** SPEC §7 (2026-10-03, D36, issue 1209) — the outline of each kind of new
+ *  page the weekly mix rotates. An update keeps its type's own skeleton
+ *  above: what it does to a page is the type's, not the mix's. */
+export const KIND_SKELETON: Readonly<Record<Exclude<ContentKind, "update">, readonly SectionRole[]>> =
+  Object.freeze({
+    comparison: ["answer", "comparison", "evidence"],
+    explainer: ["answer", "detail", "evidence"],
+    how_to: ["answer", "steps", "detail", "evidence"],
+  });
+
+/** What each kind of new page is for, in the one sentence the prompts carry. */
+export const KIND_JOB: Readonly<Record<Exclude<ContentKind, "update">, string>> = Object.freeze({
+  comparison:
+    "Help the reader choose: put the options side by side on the criteria a reader would actually use, say what distinguishes them, and say which case each one suits.",
+  explainer:
+    "Explain the subject the search names to a reader new to it: what it is, why it matters, what decides it, and what they do next.",
+  how_to:
+    "Show the reader how to do what the search asks, as numbered steps in order, each drawn from the business's own product or process as the facts state it; where the facts hold no step, say what the reader needs and never invent one.",
+});
+
+type Typed = Pick<Opportunity, "type" | "targetQuery">;
+
+/** The page's outline: its kind's for a new page, its type's for an update.
+ *  `null` where the type writes no body. */
+export function skeletonFor(o: Typed): readonly SectionRole[] | null {
+  const kind = contentKindOf(o);
+  return kind === null || kind === "update" ? SKELETONS[o.type] : KIND_SKELETON[kind];
+}
+
+/** The page's job, chosen as `skeletonFor` chooses its outline. */
+export function pageJobFor(o: Typed): string | null {
+  const kind = contentKindOf(o);
+  return kind === null || kind === "update" ? PAGE_JOB[o.type] : KIND_JOB[kind];
+}

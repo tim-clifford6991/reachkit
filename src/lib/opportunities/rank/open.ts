@@ -4,7 +4,7 @@
 // one order: business fit first (SPEC §6, 2026-09-29), then the source, then
 // the score descending, then family and type, then `created_at`
 // ascending, then the id — and no two consecutive days on one topic
-// (#1181). The last two keys are what make it a *total* order — without them
+// (#1181), inside the weekly content mix (issue 1209). The last two keys are what make it a *total* order — without them
 // two opportunities with identical scores would come back in whatever
 // order Postgres happened to return them, and the day a calendar fills
 // from would move between two reads that measured nothing new.
@@ -32,10 +32,12 @@
 // one pool, so it goes ahead of the first Write row at all. Improve and Earn
 // keep their scored places. A fix with no Write row to precede goes last. A
 // fix that is not ready is not in the list.
+import { CONTENT_MIX } from "@/lib/config/constants";
 import { opportunityStore } from "../store";
-import { readOpportunity } from "../store";
+import { readOpportunity, type DraftedPage } from "../store";
 import { comparePrecedence, sameTopic } from "../cluster";
-import type { Opportunity, Ranked } from "../types";
+import { contentKindOf, type ContentKind } from "../content-kind";
+import type { Opportunity, OpportunityType, Ranked } from "../types";
 import { rankScore } from "./score";
 
 /** A row no pass has judged ranks with the rows that plainly help: it was
@@ -79,22 +81,97 @@ function byScore(
  *  one topic. Each place takes the best-scoring row that is not the same
  *  topic (`sameTopic`) as the day before it — `after`, the page drafted or
  *  published last, for the first place. Where every row left is, the best
- *  one takes the place: rotation orders and never empties a day. */
+ *  one takes the place: rotation orders and never empties a day.
+ *
+ *  **The weekly mix** (SPEC §7, 2026-10-03, D36, issue 1209): each place is
+ *  a day, the first one `mix.from`, and the days before it are `mix.recent`.
+ *  A day takes the best-scoring row whose kind is not the kind of the day
+ *  before and has fewer than `MAX_PER_KIND` pages in the days of its window;
+ *  once the site has had pages for a whole window and none of them is an
+ *  update, the day takes the best update. Where
+ *  no row fits, the count is given up first, then the kind, then the topic —
+ *  the mix orders and never empties a day either. */
 export function orderRanked(
   scored: readonly { opportunity: Opportunity; score: number }[],
-  rotation: { after?: Opportunity | null; topTens?: ReadonlyMap<string, readonly string[]> } = {}
+  rotation: {
+    after?: Opportunity | null;
+    topTens?: ReadonlyMap<string, readonly string[]>;
+    mix?: Mix;
+  } = {}
 ): Ranked[] {
   const left = [...scored].sort(byScore);
   const topTens = rotation.topTens ?? new Map<string, readonly string[]>();
+  const placed = [...(rotation.mix?.recent ?? [])];
+  const from = rotation.mix?.from ?? 0;
   const out: Ranked[] = [];
   let previous = rotation.after ?? null;
-  while (left.length > 0) {
-    const at = previous === null ? 0 : left.findIndex((entry) => !sameTopic(entry.opportunity, previous!, topTens));
+  for (let day = from; left.length > 0; day++) {
+    const window = placed.filter((page) => page.day < day && page.day > day - CONTENT_MIX.WINDOW_DAYS);
+    const yesterday = placed.find((page) => page.day === day - 1)?.kind ?? null;
+    const held = (kind: ContentKind | null) => window.filter((page) => page.kind === kind).length;
+    type Entry = (typeof left)[number];
+    const kindOf = (entry: Entry) => contentKindOf(entry.opportunity);
+    const fresh = (entry: Entry) => previous === null || !sameTopic(entry.opportunity, previous, topTens);
+    const turns = (entry: Entry) => kindOf(entry) !== yesterday;
+    const room = (entry: Entry) => held(kindOf(entry)) < CONTENT_MIX.MAX_PER_KIND;
+    // Due on the last day that can still keep the window's one update: the
+    // site has had pages for a whole window and none of them is one.
+    const updateDue =
+      held("update") === 0 && placed.some((page) => page.day <= day - (CONTENT_MIX.WINDOW_DAYS - 1));
+    const tiers: ((entry: Entry) => boolean)[] = [
+      ...(updateDue ? [(entry: Entry) => fresh(entry) && kindOf(entry) === "update"] : []),
+      (entry) => fresh(entry) && turns(entry) && room(entry),
+      (entry) => fresh(entry) && turns(entry),
+      fresh,
+    ];
+    let at = -1;
+    for (const tier of tiers) {
+      at = left.findIndex(tier);
+      if (at !== -1) break;
+    }
     const [entry] = left.splice(at === -1 ? 0 : at, 1);
     out.push({ opportunityId: entry!.opportunity.id, score: entry!.score });
     previous = entry!.opportunity;
+    const kind = kindOf(entry!);
+    if (kind !== null) placed.push({ day, kind });
   }
   return out;
+}
+
+/** The days the mix reads: the first day the list plans, and the kind of
+ *  page each day before it holds. A day is a count of days, so two of them
+ *  subtract. */
+export interface Mix {
+  from: number;
+  recent: readonly { day: number; kind: ContentKind }[];
+}
+
+const DAY_MS = 86_400_000;
+
+/** The draft states whose page holds its date in the mix: a page that was
+ *  stopped, skipped or taken down did not publish that day. */
+const HOLDS_ITS_DAY: ReadonlySet<string> = new Set([
+  "planned",
+  "generating",
+  "in_review",
+  "approved",
+  "publishing",
+  "published",
+]);
+
+/** The mix as the site's own drafted pages state it. The first day planned
+ *  is the day after the latest date that has a draft, and never before
+ *  `at`'s own day. */
+export function mixOf(drafted: readonly DraftedPage[], at: Date): Mix {
+  const dayOf = (date: string) => Math.floor(Date.parse(`${date}T00:00:00Z`) / DAY_MS);
+  const today = Math.floor(at.getTime() / DAY_MS);
+  const days = drafted.map((page) => dayOf(page.date));
+  const from = Math.max(today, ...days.map((day) => day + 1));
+  const recent = drafted.flatMap((page) => {
+    const kind = contentKindOf({ type: page.row.type as OpportunityType, targetQuery: page.row.target_query });
+    return kind === null || !HOLDS_ITS_DAY.has(page.state) ? [] : [{ day: dayOf(page.date), kind }];
+  });
+  return { from, recent };
 }
 
 function samePool(a: string | null, b: string | null): boolean {
@@ -140,13 +217,15 @@ export function placeFixPages(
  * caller reads as "no supply to order", never as an order derived from a
  * classification we could not make.
  */
-export async function rankOpen(siteId: string): Promise<Ranked[]> {
+export async function rankOpen(siteId: string, at: Date = new Date()): Promise<Ranked[]> {
   const store = opportunityStore();
-  const [rows, profile, fixRows, latest] = await Promise.all([
+  const [rows, profile, fixRows, latest, drafted] = await Promise.all([
     store.openRankable(siteId),
     store.profileForSite(siteId),
     store.openFixPages(siteId),
     store.latestPage(siteId),
+    // The weekly mix reads the pages of the days before (issue 1209).
+    store.draftedPages(siteId, 2 * CONTENT_MIX.WINDOW_DAYS),
   ]);
   const fixes = fixRows.filter((row) => row.ready).map(readOpportunity);
   // No profile, no score — but a fix needs neither, and still takes its day.
@@ -181,5 +260,5 @@ export async function rankOpen(siteId: string): Promise<Ranked[]> {
   const after = latest === null ? null : readOpportunity(latest);
   const scanIds = new Set([...scored.map((entry) => entry.opportunity.scanId), ...(after === null ? [] : [after.scanId])]);
   const topTens = await store.topTens([...scanIds]);
-  return placeFixPages(scored, fixes, { after, topTens });
+  return placeFixPages(scored, fixes, { after, topTens, mix: mixOf(drafted, at) });
 }
