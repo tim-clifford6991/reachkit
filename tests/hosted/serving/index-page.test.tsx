@@ -31,7 +31,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     hostedSiteForHostname: async () => null,
     livePageBySlug: async () => null,
     livePagesForSite: async () => state.pages,
-    wasEverLive: async () => false,
+    hostedAddressState: async () => "none",
   };
 });
 

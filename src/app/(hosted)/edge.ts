@@ -18,10 +18,15 @@
 // slug that was unpublished and later published again answers with the
 // page — the `unpublished` rows behind it are history, not a verdict.
 //
+// **One narrow read for the address** (issue 1194). This runs before
+// routing on every request to a customer's host, inside the middleware's
+// deadline, so it asks `hostedAddressState` — three short columns — and
+// never loads a page. The page route loads the page, once, if there is one.
+//
 // **It fails towards rendering.** A read that throws yields `page`, and the
 // page route answers 404 when it cannot find one. A 410 asserts that a page
 // was taken down; it is never something to say because a query failed.
-import { livePageBySlug, wasEverLive } from "@/lib/publish/destinations/hosted";
+import { hostedAddressState } from "@/lib/publish/destinations/hosted";
 import { resolveHost } from "./resolve-host";
 
 export type HostedAnswer = "gone" | "page";
@@ -44,8 +49,7 @@ export async function hostedAnswer(host: string, pathname: string): Promise<Host
     const slug = pageSlug(pathname);
     if (slug === null) return "page";
 
-    if ((await livePageBySlug(disposition.siteId, slug, disposition.host)) !== null) return "page";
-    return (await wasEverLive(disposition.siteId, slug)) ? "gone" : "page";
+    return (await hostedAddressState(disposition.siteId, slug)) === "retired" ? "gone" : "page";
   } catch {
     return "page";
   }

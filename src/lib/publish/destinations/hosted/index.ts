@@ -53,7 +53,7 @@ export {
   readDescription,
   readFaq,
   siteForDraft,
-  wasEverLive,
+  hostedAddressState,
 } from "./store";
 export type {
   AddressNow,
