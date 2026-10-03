@@ -10,7 +10,7 @@ import type { CostContext } from "../../src/lib/costs";
 import type { Opportunity } from "../../src/lib/opportunities";
 import type { StoredReport } from "../../src/lib/scan/report";
 import { assembleReport } from "../../src/lib/scan/store";
-import { measured } from "../../src/lib/measure/measured";
+import { measured, unmeasured } from "../../src/lib/measure/measured";
 import type {
   ComparisonSet,
   GroundedFact,
@@ -140,6 +140,31 @@ export async function draftOnly(c: unknown, inputs: unknown, a: Record<string, u
 /** `recordFetch` throws: everything in this engine that spends must go
  *  through `llm()`, and a module that called `recordFetch` directly would
  *  be caught here rather than merely unexercised. */
+// ── What the page adds, as a stated answer ──────────────────────────────
+
+/** The list `listAdds` (issue 1143) answers with in the suites whose subject
+ *  is what happens around it: three claims, one about the business, so a
+ *  page passes the bar. A test that needs a page short of it empties
+ *  `addsAnswer.claims`, or sets it `null` for a listing that did not run. The
+ *  listing itself, its code check and the bar are `pipeline/adds.test.ts`. */
+export const ENOUGH_ADDS = Object.freeze([
+  { claim: "The fixed price is quoted before any work starts.", business: true },
+  { claim: "A team of five pays for the second seat onward.", business: false },
+  { claim: "Ask every vendor for a full export in an open format.", business: false },
+]);
+export const addsAnswer: { claims: readonly { claim: string; business: boolean }[] | null } = {
+  claims: ENOUGH_ADDS,
+};
+
+/** The `pipeline/adds` module with `listAdds` stood in for by `addsAnswer`. */
+export function addsStandIn<T extends object>(actual: T): T {
+  return {
+    ...actual,
+    listAdds: async () =>
+      addsAnswer.claims === null ? unmeasured("undeterminable", AT) : measured([...addsAnswer.claims], AT),
+  };
+}
+
 export function fakeCost(over: Partial<CostContext> = {}): CostContext {
   return {
     cap: "DRAFT",

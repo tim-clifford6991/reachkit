@@ -198,6 +198,9 @@ export type GroundingRead =
 export interface SourcedFact {
   fact: GroundedFact;
   sourceText: string;
+  /** Read off the report's own page, not one of the customer's (issue
+   *  1163): a measurement, which no page of theirs states. */
+  report?: true;
 }
 
 export interface FactRead {
@@ -243,6 +246,7 @@ export async function readAllFacts(a: FactRead): Promise<SourcedFact[]> {
       out.push({
         fact: { url: queue.page.url, readAt: queue.page.measuredAt, passage },
         sourceText: queue.page.text,
+        ...(report !== null && queue.page.url === report.url ? { report: true as const } : {}),
       });
     }
   }

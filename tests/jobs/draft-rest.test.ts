@@ -42,6 +42,12 @@ vi.mock("@/lib/generate/pipeline/write", async () => {
   const { draftOnly } = await import("../generate/fixtures");
   return { writeDraft: draftOnly };
 });
+// Issue 1143: what the page adds is `tests/generate/pipeline/adds.test.ts`;
+// here the listing answers with a page that adds enough.
+vi.mock("@/lib/generate/pipeline/adds", async (importOriginal) => {
+  const { addsStandIn } = await import("../generate/fixtures");
+  return addsStandIn(await importOriginal<object>());
+});
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
 vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
 vi.mock("@/lib/costs", () => ({

@@ -22,6 +22,8 @@ import {
   OUTLINE_ANSWER,
   draftAnswers,
   draftParts,
+  ENOUGH_ADDS,
+  addsAnswer,
   memoryStore,
   opportunity,
   type MemoryStore,
@@ -35,7 +37,9 @@ const {
   queueForDraftMock,
   restTopicMock,
   transitionMock,
+  updateInsteadMock,
 } = vi.hoisted(() => ({
+  updateInsteadMock: vi.fn(),
   llmMock: vi.fn(),
   readMeasuredTextMock: vi.fn(),
   nextForDayMock: vi.fn(),
@@ -48,6 +52,12 @@ vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 vi.mock("@/lib/generate/pipeline/write", async () => {
   const { draftOnly } = await import("./fixtures");
   return { writeDraft: draftOnly };
+});
+// Issue 1143: what the page adds is `tests/generate/pipeline/adds.test.ts`;
+// here the listing answers with a page that adds enough.
+vi.mock("@/lib/generate/pipeline/adds", async (importOriginal) => {
+  const { addsStandIn } = await import("./fixtures");
+  return addsStandIn(await importOriginal<object>());
 });
 
 // #927: `writePage` reads the confirmed business profile and the passages
@@ -65,6 +75,7 @@ vi.mock("@/lib/opportunities", () => ({
   nextForDay: nextForDayMock,
   queueForDraft: queueForDraftMock,
   restTopic: restTopicMock,
+  updateInstead: updateInsteadMock,
   opportunityById: async () => null,
   sitePagesFor: async () => [],
   assessFixPages: async () => ({ done: 0, ready: 0 }),
@@ -120,6 +131,9 @@ beforeEach(async () => {
   reportIncidentMock.mockReset();
   reportIncidentMock.mockResolvedValue(true);
   transitionMock.mockReset();
+  updateInsteadMock.mockReset();
+  updateInsteadMock.mockResolvedValue(null);
+  addsAnswer.claims = ENOUGH_ADDS;
   transitionMock.mockImplementation(async (draftId: string, to: string) => {
     const row = store.rows.get(draftId);
     if (row !== undefined) store.rows.set(draftId, { ...row, state: to });
@@ -506,5 +520,64 @@ describe("issue 737 — the first draft, for a paid site with a free-scan cache"
     expect(nextForDayMock).not.toHaveBeenCalled();
     expect(llmMock).not.toHaveBeenCalled();
     expect(store.rows.size).toBe(1);
+  });
+});
+
+describe("a new page adds what the web does not say (SPEC §7, D12; issue 1143)", () => {
+  const RESTATED = [{ claim: "Ask every vendor for a full export in an open format.", business: false }];
+
+  it("a page that only restates the top results and the site waits for the founder, with its list on the row, and is not written again", async () => {
+    addsAnswer.claims = RESTATED;
+    queueAttempt(CLEAN_MARKDOWN);
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+
+    expect(outcome).toMatchObject({ ok: false, because: "step_failed", step: "adds" });
+    // One attempt: the same page written again would add the same nothing.
+    expect(llmMock.mock.calls.filter((call) => call[1].site === "generate.brief")).toHaveLength(1);
+    const [row] = [...store.rows.values()];
+    expect(row).toMatchObject({ state: "needs_attention", hard_rules_passed: false });
+    expect((row?.meta as { adds: unknown }).adds).toEqual({ claims: RESTATED, short: true });
+    expect(transitionMock).toHaveBeenCalledWith(
+      row?.id,
+      "needs_attention",
+      { kind: "system", job: "draft/generate" },
+      { reason: "step_failed:adds" }
+    );
+    expect(queueForDraftMock).not.toHaveBeenCalled();
+  });
+
+  it("where the site has a close page it can update, the day becomes an update of it on the same row", async () => {
+    const planned = opportunity();
+    const update = opportunity({
+      id: planned.id,
+      type: "refresh_page",
+      family: "improve",
+      targetRef: "https://example.com/blog/crm-for-small-teams",
+      title: null,
+    });
+    updateInsteadMock.mockResolvedValueOnce(update);
+    addsAnswer.claims = RESTATED;
+    queueAttempt(CLEAN_MARKDOWN);
+    queueAttempt(CLEAN_MARKDOWN);
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+
+    // An update is held to no bar: the same thin list passes.
+    expect(outcome).toMatchObject({ ok: true });
+    expect(updateInsteadMock).toHaveBeenCalledTimes(1);
+    expect(store.rows.size).toBe(1);
+    const [row] = [...store.rows.values()];
+    expect(row).toMatchObject({ hard_rules_passed: true });
+    expect((row?.meta as { adds: unknown }).adds).toEqual({ claims: RESTATED, short: false });
+    expect(queueForDraftMock).toHaveBeenCalledWith(planned.id);
+  });
+
+  it("a page whose list could not be made does not go on as though it had passed", async () => {
+    addsAnswer.claims = null;
+    queueAttempt(CLEAN_MARKDOWN);
+    queueAttempt(CLEAN_MARKDOWN);
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(outcome).toMatchObject({ ok: false, because: "step_failed", step: "adds_check" });
+    expect(updateInsteadMock).not.toHaveBeenCalled();
+    expect([...store.rows.values()][0]).toMatchObject({ hard_rules_passed: false });
   });
 });

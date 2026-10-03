@@ -56,7 +56,7 @@ function plansANewPage(candidate: Candidate): boolean {
  *  repeated it. Everything the candidate measured about the search is kept
  *  — its volume, its band, its acceptance test — because the search has not
  *  changed; what changes is which page answers it. */
-function asUpdate(candidate: Candidate, match: KnownMatch, at: Date): Candidate {
+export function asUpdate(candidate: Candidate, match: KnownMatch, at: Date): Candidate {
   const url = match.page.url as string;
   const evidence: Evidence = {
     family: "improve",
@@ -88,7 +88,7 @@ function asUpdate(candidate: Candidate, match: KnownMatch, at: Date): Candidate 
  *  is not refreshed. A page of ours with no published date is still being
  *  written, so it is young; a crawled page with none has an age we never
  *  read, and is not held back by it. */
-function tooYoungToRefresh(page: KnownMatch["page"], at: Date): boolean {
+export function tooYoungToRefresh(page: KnownMatch["page"], at: Date): boolean {
   if (page.publishedAt === null) return page.source === "reachkit";
   return at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * 86_400_000;
 }

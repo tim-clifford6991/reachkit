@@ -19,7 +19,11 @@
 //   4. the draft row, written with the grounded fact and the body;
 //   5. the comparison set, and the hard-rule battery over the finished text
 //      — including the claim check, which is step five;
-//   6. `passed: true` and nothing else lets the item move toward review.
+//   6. what the page adds (`./adds.ts`, issue 1143): each claim it makes
+//      that neither the target's top results nor the customer's pages state,
+//      listed on the row — and a new page short of three, one of them a
+//      business fact, held;
+//   7. `passed: true` and nothing else lets the item move toward review.
 //
 // **A failing draft is never queued and takes no day.** Nothing partial is
 // published or handed to a destination. The row is written before the
@@ -60,6 +64,7 @@ import type { LinkTarget } from "../links/select";
 import { buildPromptInputs, type KnownPageBrief } from "../voice/inputs";
 import { profileItemsUsed, type PromptProfile } from "../voice/profile-block";
 import { buildComparisonSet } from "./comparison";
+import { addsEnough, listAdds, plansNewPage, type AddsRecord } from "./adds";
 import { applyAnswerability } from "./answerability";
 import { composePage, properNouns, withClosing } from "./compose";
 import { allowedFacts, readAllFacts } from "./grounding";
@@ -494,13 +499,41 @@ export async function generateDraft(
     }
   }
 
+  // 6. What the page adds (SPEC §7, D12; issue 1143), read off the text the
+  //    battery read — every page that reached it, so the review screen and
+  //    the evaluation list it whether or not the rules passed. The report's
+  //    own page is not one of the customer's: a measurement the page states
+  //    is something it adds.
+  const listed = c.capHit()
+    ? null
+    : await listAdds(c, {
+        search: searches[0] ?? a.opportunity.targetRef,
+        markdown,
+        topResults: market.topResults ?? [],
+        sitePages: [
+          ...new Map(
+            all.filter((sourced) => sourced.report !== true).map((sourced) => [sourced.fact.url, sourced.sourceText])
+          ).entries(),
+        ].map(([url, text]) => ({ url, text })),
+      });
+  const adds: AddsRecord | null =
+    listed === null || listed.kind === "unmeasured"
+      ? null
+      : { claims: listed.value, short: plansNewPage(a.opportunity) && !addsEnough(listed.value) };
+
   await store.patchDraft(draftId, {
     ...(markdown === body.bodyMarkdown ? {} : { body_md: markdown }),
     // Every repair this date's row has been through, across its attempts,
     // so how often each rule's repair clears it can be read off the rows.
-    ...(repairs.length === 0
+    ...(repairs.length === 0 && adds === null
       ? {}
-      : { meta: { ...page.meta, repairs: [...priorRepairs, ...repairs] } }),
+      : {
+          meta: {
+            ...page.meta,
+            ...(repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...repairs] }),
+            ...(adds === null ? {} : { adds }),
+          },
+        }),
     claim_check: recordedVerdictValue(outcome.claim),
     // The battery's own record, written on every run — the empty array on
     // a run that found nothing, because "a battery ran and passed this
@@ -512,7 +545,9 @@ export async function generateDraft(
     // here and nowhere else: only the run that put the page through the
     // battery may say the battery passed it. An unrun claim check or fit
     // check leaves it false, because "we could not check" is not "it passed".
-    hard_rules_passed: batteryCleared(outcome),
+    // And a page whose list could not be made, or a new page short of the
+    // bar, never publishes as it stands (issue 1143).
+    hard_rules_passed: batteryCleared(outcome) && adds !== null && !adds.short,
   });
 
   // An unrun claim check is a step that did not run, not a rule that
@@ -524,6 +559,19 @@ export async function generateDraft(
   if (outcome.fit.state === "unrun") {
     logRun({ siteId: a.siteId, draftId, step: "fit_check", outcome: outcome.fit.reason });
     return { ok: false, reason: "step_failed", draftId, step: "fit_check" };
+  }
+
+  if (outcome.passed && (adds === null || adds.short)) {
+    const step: PipelineStep = adds === null ? "adds_check" : "adds";
+    logRun({
+      siteId: a.siteId,
+      draftId,
+      step,
+      outcome: adds === null ? "unrun" : "short",
+      claims: adds?.claims.length ?? null,
+      business: adds?.claims.filter((each) => each.business).length ?? null,
+    });
+    return { ok: false, reason: "step_failed", draftId, step };
   }
 
   if (outcome.passed) {

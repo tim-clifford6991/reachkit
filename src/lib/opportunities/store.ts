@@ -218,6 +218,13 @@ export interface OpportunityStore {
    *  `open` and not ready (`resting`) until `until`. `open` and `queued`
    *  move; `done` and `dismissed` stay. */
   rest(opportunityId: string, until: Date): Promise<void>;
+  /** A planned new page that becomes an update of a page the site already
+   *  has (SPEC §7, D12, issue 1143): the row keeps its search, its status
+   *  and its cluster, and takes the update's type, target and evidence. */
+  becomeUpdate(
+    opportunityId: string,
+    update: Pick<OpportunityInsert, "type" | "family" | "target_ref" | "proposed_slug" | "title" | "effort" | "evidence">
+  ): Promise<void>;
   /** The host the site's live hosted destination serves at, or `null`. */
   hostedHostFor(siteId: string): Promise<string | null>;
   /** The pages the site's hosted destination could update — its host and
@@ -709,6 +716,14 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .eq("id", opportunityId)
         .in("status", ["open", "queued"]);
       if (error) throw new Error(`opportunities.rest: ${error.message}`);
+    },
+
+    async becomeUpdate(opportunityId, update) {
+      const { error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .update(update)
+        .eq("id", opportunityId);
+      if (error) throw new Error(`opportunities.becomeUpdate: ${error.message}`);
     },
 
     async hostedHostFor(siteId) {

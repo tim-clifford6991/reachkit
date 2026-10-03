@@ -59,6 +59,12 @@ export type PipelineStep =
    *  1138). Not a model that did not answer: nothing writes it a third time. */
   | "length"
   | "answerability"
+  /** A new page that adds fewer than three things the top results and the
+   *  customer's pages do not say (SPEC §7, D12; issue 1143). Not a model
+   *  that did not answer: it becomes an update, or waits for the founder. */
+  | "adds"
+  /** The listing that decides it did not run. */
+  | "adds_check"
   | "claim_check"
   | "fit_check"
   | "page_read"
@@ -68,7 +74,7 @@ export type PipelineStep =
  *  cost report reads by step without anyone joining a table. */
 export const STEP_CALL_SITES: Readonly<
   Record<
-    Exclude<PipelineStep, "claim_check" | "fit_check" | "page_read" | "length"> | "sections" | "answer_box" | "critic",
+    Exclude<PipelineStep, "claim_check" | "fit_check" | "page_read" | "length" | "adds" | "adds_check"> | "sections" | "answer_box" | "critic",
     LlmCallSite
   >
 > = Object.freeze({

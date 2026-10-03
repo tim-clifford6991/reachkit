@@ -310,6 +310,11 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       row.unready_reason = "resting";
     },
 
+    async becomeUpdate(opportunityId, update) {
+      const row = state.rows.find((r) => r.id === opportunityId);
+      if (row !== undefined) Object.assign(row, update);
+    },
+
     async hostedHostFor() {
       return state.hostedHost;
     },

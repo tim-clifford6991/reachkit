@@ -150,6 +150,26 @@ export const DRAFT_COPY = Object.freeze({
     "Read from your site; the page wasn’t recorded",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
+  // SPEC §7 (2026-09-29, D12; issue 1143): what the page says that neither
+  // the top results for its search nor the customer's own pages say, and —
+  // where a new page says too little of that — the one line that asks the
+  // founder for the missing fact. Drafted under issue 759's ruling; the
+  // owner corrects the wording.
+  "draft.adds.title": ["What this page adds", { slots: {}, fixedBy: "issue 1143 (drafted)" }],
+  "draft.adds.lead": [
+    "What this page says that the top results for its search and your own pages don’t.",
+    { slots: {}, fixedBy: "issue 1143 (drafted)" },
+  ],
+  "draft.adds.none": [
+    "Nothing yet. Everything on this page is already on your site or in the top results for its search.",
+    { slots: {}, fixedBy: "issue 1143 (drafted)" },
+  ],
+  "draft.adds.business": ["About your business", { slots: {}, fixedBy: "issue 1143 (drafted)" }],
+  "draft.adds.ask": [
+    "This page is held until it says something only you can: a price, how you work, or a result you’ve had. Tell us one, then write the page again.",
+    { slots: {}, fixedBy: "issue 1143 (drafted)" },
+  ],
+  "draft.adds.ask.action": ["Add it in Your business", { slots: {}, fixedBy: "issue 1143 (drafted)" }],
   "draft.publishes.title": [
     "What gets published",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },

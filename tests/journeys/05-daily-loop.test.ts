@@ -320,6 +320,12 @@ vi.mock("@/lib/generate/pipeline/write", async () => {
   const { draftOnly } = await import("../generate/fixtures");
   return { writeDraft: draftOnly };
 });
+// Issue 1143: what the page adds is `tests/generate/pipeline/adds.test.ts`;
+// here the listing answers with a page that adds enough.
+vi.mock("@/lib/generate/pipeline/adds", async (importOriginal) => {
+  const { addsStandIn } = await import("../generate/fixtures");
+  return addsStandIn(await importOriginal<object>());
+});
 
 vi.mock("@anthropic-ai/sdk", () => {
   class FakeAnthropic {

@@ -64,6 +64,9 @@ export interface ResearchedProduct {
 export interface MarketResearch {
   facts: MarketFact[];
   products: ResearchedProduct[];
+  /** The target's top results as they were read (issue 1143): what a new
+   *  page's claims are compared with. Absent is none read. */
+  topResults?: { url: string; text: string }[];
 }
 
 export const NO_RESEARCH: MarketResearch = Object.freeze({ facts: [], products: [] });
@@ -358,5 +361,9 @@ export async function researchMarket(
     facts: ordered.length,
     products: products.length,
   });
-  return { facts: ordered, products };
+  return {
+    facts: ordered,
+    products,
+    topResults: pages.filter((page) => page.kind === "top_result").map((page) => ({ url: page.url, text: page.text })),
+  };
 }

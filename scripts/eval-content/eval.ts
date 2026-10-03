@@ -21,9 +21,10 @@
 // table at `docs/walk/content-eval.md`.
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { CAPS, EFFORT_BY_TYPE } from "@/lib/config/constants";
+import { CAPS, EFFORT_BY_TYPE, ADDS } from "@/lib/config/constants";
 import { generateDraft, type GenerateOutcome } from "@/lib/generate/pipeline";
 import { readRecordedRules } from "@/lib/generate/record";
+import type { AddsRecord } from "@/lib/generate/pipeline/adds";
 import { NO_RESEARCH, researchMarket } from "@/lib/generate/pipeline/research";
 import { targetSearches } from "@/lib/generate/pipeline/steps";
 import { siteLinkTargets } from "@/lib/generate/links/select";
@@ -66,6 +67,9 @@ export interface Result {
    *  pipeline stored them on the row. */
   factsUsed: { passage: string; url: string }[];
   faq: unknown;
+  /** What the page adds (issue 1143), as the pipeline listed it on the row:
+   *  `null` where no page reached the listing. */
+  adds: AddsRecord | null;
 }
 
 const cents = (n: number): string => `${n.toFixed(2)}¢`;
@@ -144,6 +148,7 @@ export function memoryStore(a: { siteId: string; domain: string; report: StoredR
 function describe(outcome: GenerateOutcome): string {
   if (outcome.ok) return "passed";
   if (outcome.reason === "rules") return `stopped: ${outcome.failed.map((f) => f.rule).join(", ")}`;
+  if (outcome.step === "adds") return "held: adds too little";
   return `step failed: ${outcome.step}`;
 }
 
@@ -292,7 +297,7 @@ export async function evaluate(
   const domain = slot.domain!;
   const prepared = prepare(slot, index, today, given);
   const snapshot = readSnapshot(domain);
-  const base = { slot, domain, scan: snapshot.scan, title: null, bodyMarkdown: null, checklist: null, grade: null, costCents: 0, factsUsed: [], faq: null };
+  const base = { slot, domain, scan: snapshot.scan, title: null, bodyMarkdown: null, checklist: null, grade: null, costCents: 0, factsUsed: [], faq: null, adds: null };
   if (!prepared.ok) return { ...base, target: null, outcome: prepared.outcome };
   const { report, market, siteId, opportunity, target, chose, businessName, store, pages } = prepared;
   if (!ledger.canStartDraft()) return { ...base, target, outcome: "not started: the run cap" };
@@ -321,7 +326,7 @@ export async function evaluate(
     }
 
     const row = outcome.draftId === null ? null : await store.draftById(outcome.draftId);
-    const meta = (row?.meta ?? null) as { factsUsed?: { passage: string; url: string }[]; faq?: unknown } | null;
+    const meta = (row?.meta ?? null) as { factsUsed?: { passage: string; url: string }[]; faq?: unknown; adds?: AddsRecord } | null;
     const failed = readRecordedRules(row?.rule_failures ?? null) ?? [];
     const said = chose + (outcome.ok ? "passed" : failed.length > 0 ? `stopped: ${failed.map((f) => f.rule).join(", ")}` : describe(outcome));
     if (row === null || row.body_md === null) return { ...base, target, outcome: said, costCents: cost.spentCents() };
@@ -364,6 +369,7 @@ export async function evaluate(
       costCents: cost.spentCents(),
       factsUsed,
       faq: meta?.faq ?? null,
+      adds: meta?.adds ?? null,
     };
   } finally {
     setGenerateStore(null);
@@ -374,6 +380,13 @@ export async function evaluate(
 // ── The table ──────────────────────────────────────────────────────────
 
 const esc = (text: string): string => text.replace(/\|/g, "\\|").replace(/\n/g, " ");
+
+/** The list's size, how many of it are about the business, and whether a new
+ *  page of that list is short of the bar. */
+function addsCell(adds: AddsRecord | null): string {
+  if (adds === null) return "not listed";
+  return `${adds.claims.length} (${adds.claims.filter((each) => each.business).length})${adds.short ? "; short" : ""}`;
+}
 
 function blocksCell(list: Checklist): string {
   const required = Object.values(list.blocks).filter((value) => value !== null);
@@ -388,8 +401,8 @@ function table(results: readonly Result[], ledger: ProofLedger, today: string): 
     `Written by \`node scripts/eval-content.mjs --run\` on ${today} (#1132). It is a tool, not a gate. Each row is one draft by today's pipeline for the page the stored report would write first. Nothing was published. How the grades are made: \`scripts/eval-content/grade.ts\`. One draft per site is noisy: the same pipeline passed a different set of sites on each of three runs on 2026-09-29, so compare runs, not single rows.`
   );
   lines.push("");
-  lines.push("| Site | Target search (type) | Outcome | Fit 0–3 | Words / target | Blocks | Business facts | Market facts | Adds 0–3 | Nav text | Invented figures | Cost |");
-  lines.push("|---|---|---|---|---|---|---|---|---|---|---|---|");
+  lines.push("| Site | Target search (type) | Outcome | Fit 0–3 | Words / target | Blocks | Business facts | Market facts | Adds 0–3 | New claims (business) | Nav text | Invented figures | Cost |");
+  lines.push("|---|---|---|---|---|---|---|---|---|---|---|---|---|");
   for (const r of results) {
     const list = r.checklist;
     const grade = r.grade;
@@ -397,11 +410,11 @@ function table(results: readonly Result[], ledger: ProofLedger, today: string): 
     const words = list === null ? "—" : list.target === null ? String(list.words) : `${list.words} / ${list.target.floor}–${list.target.ceiling}`;
     const nav = list === null ? "—" : `${list.navigationFacts > 0 ? `${list.navigationFacts} fact(s) on 3+ pages` : "none in facts"}${grade === null ? "" : grade.navigationText ? "; grader: yes" : "; grader: no"}`;
     lines.push(
-      `| ${r.domain} | ${target} | ${esc(r.outcome)} | ${grade?.fit ?? (list === null ? "—" : "not graded")} | ${words} | ${list === null ? "—" : blocksCell(list)} | ${list?.businessFacts ?? "—"} | ${list?.marketFacts ?? "—"} | ${grade?.adds ?? "—"} | ${nav} | ${grade === null ? "—" : grade.inventedFigures ? "yes" : "no"} | ${cents(r.costCents)} |`
+      `| ${r.domain} | ${target} | ${esc(r.outcome)} | ${grade?.fit ?? (list === null ? "—" : "not graded")} | ${words} | ${list === null ? "—" : blocksCell(list)} | ${list?.businessFacts ?? "—"} | ${list?.marketFacts ?? "—"} | ${grade?.adds ?? "—"} | ${addsCell(r.adds)} | ${nav} | ${grade === null ? "—" : grade.inventedFigures ? "yes" : "no"} | ${cents(r.costCents)} |`
     );
   }
   for (const slot of EVAL_SET.filter((s) => s.domain === null)) {
-    lines.push(`| *${slot.kind}* | waiting for the owner's pick | | | | | | | | | | |`);
+    lines.push(`| *${slot.kind}* | waiting for the owner's pick | | | | | | | | | | | |`);
   }
   lines.push("");
   lines.push(`Total spend ${cents(ledger.spentCents())}; each page is capped at \`CAPS.DRAFT_C\` = ${cents(CAPS.DRAFT_C)} for its draft and its grade together.`);
@@ -420,6 +433,18 @@ function table(results: readonly Result[], ledger: ProofLedger, today: string): 
       });
       lines.push(`| ${name} | ${cells.join(" | ")} |`);
     }
+    lines.push("");
+  }
+  lines.push("## What each page adds");
+  lines.push("");
+  lines.push(
+    `The pipeline's own list (#1143): each sentence of the draft that neither the target's top results nor the site's pages state, kept only where its words are on the page. A new page needs ${ADDS.min}, at least ${ADDS.businessMin} of them about the business; short of that it is held or becomes an update.`
+  );
+  lines.push("");
+  for (const r of results) {
+    if (r.bodyMarkdown === null) continue;
+    lines.push(`**${r.domain}** (${addsCell(r.adds)})`);
+    for (const each of r.adds?.claims ?? []) lines.push(`- ${each.business ? "business" : "other"}: ${esc(each.claim)}`);
     lines.push("");
   }
   lines.push("## What the grader said");

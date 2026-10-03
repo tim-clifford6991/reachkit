@@ -108,7 +108,12 @@ describe("what waits on the destination, and what does not", () => {
 });
 
 describe("one sentence per cause, and every one of them written", () => {
-  it("five causes, five keys, no two the same", () => {
+  it("a new page that adds too little is its own cause, not a step that failed (issue 1143)", () => {
+    expect(needsYouCauseOf("step_failed:adds")).toEqual({ kind: "adds" });
+    expect(waitsOnDestination({ kind: "adds" })).toBe(false);
+  });
+
+  it("six causes, six keys, no two the same", () => {
     const keys = Object.values(NEEDS_YOU_COPY);
     expect(new Set(keys).size).toBe(keys.length);
     for (const key of keys) expect(COPY[key], key).not.toBe("");
