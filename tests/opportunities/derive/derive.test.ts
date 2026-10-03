@@ -196,10 +196,10 @@ describe("a Fix instruction is stored beside the pages and is none of them", () 
 });
 
 describe("§7: the derivation buys nothing beyond what the pass already measured", () => {
-  it("no vendor call is made other than the one typing call site", async () => {
+  it("no vendor call is made other than the fit and typing call sites", async () => {
     const { ctx, sources } = fakeCost();
     await deriveOpportunities(ctx, input());
-    expect(new Set(sources)).toEqual(new Set(["opportunity-typing"]));
+    expect(new Set(sources)).toEqual(new Set(["topic-fit", "opportunity-typing"]));
   });
 });
 

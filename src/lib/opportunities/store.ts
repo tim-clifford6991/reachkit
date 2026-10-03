@@ -22,13 +22,16 @@ import type { Profile } from "@/lib/market/questions/profile";
 import type { HostedOwnPages } from "@/lib/publish/destinations/hosted/own-page";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
+import type { MarketConclusion } from "@/lib/market/infer/types";
 import type {
   Acceptance,
+  BusinessFit,
   Evidence,
   Family,
   Opportunity,
   OpportunityStatus,
   OpportunityType,
+  TopicSource,
   UnreadyReason,
   Winnability,
 } from "./types";
@@ -58,6 +61,8 @@ export interface OpportunityRow {
   evidence: unknown;
   acceptance: unknown;
   fit_band: string | null;
+  business_fit?: number | null;
+  source?: string | null;
   effort: string | number;
   status: string;
   cluster_key: string | null;
@@ -83,6 +88,8 @@ export interface OpportunityInsert {
   evidence: Evidence;
   acceptance: Acceptance;
   fit_band: Winnability | null;
+  business_fit?: BusinessFit | null;
+  source?: TopicSource | null;
   effort: number;
   /** Optional because the database defaults both: a row nothing has
    *  clustered carries no cluster and no absorbed sibling. */
@@ -154,6 +161,13 @@ export interface OpportunityStore {
    *  and never from a new measurement — `rebandFor` is arithmetic over
    *  stored numbers. */
   setFitBand(opportunityId: string, band: Winnability): Promise<void>;
+  /** Stores the pass's business-fit judgement on a row it already held
+   *  (issue 1134): judged once, read by readiness and the ranking. */
+  setBusinessFit(opportunityId: string, fit: BusinessFit, source: TopicSource): Promise<void>;
+  /** The site's structured market in force (`null` where none has been
+   *  concluded) — what the fit is judged against — and the rivals it is
+   *  measured against, as registrable domains. */
+  marketFor(siteId: string): Promise<{ market: MarketConclusion | null; competitors: readonly string[] }>;
   /** SPEC §6: every `not_working` verdict for one site, each joined through
    *  its publication to the opportunity the page was written for. One read
    *  on `page_verdicts (site_id, week_start)`; the window is applied by
@@ -243,6 +257,8 @@ export function readOpportunity(row: OpportunityRow): Opportunity {
     evidence,
     acceptance: reviveDates(row.acceptance) as Acceptance,
     fitBand: row.fit_band as Winnability | null,
+    businessFit: (row.business_fit ?? null) as BusinessFit | null,
+    source: (row.source ?? null) as TopicSource | null,
     effort: typeof row.effort === "number" ? row.effort : Number(row.effort),
     status: row.status as OpportunityStatus,
     clusterKey: row.cluster_key,
@@ -302,7 +318,7 @@ const UNIQUE_VIOLATION = "23505";
 
 const COLUMNS =
   "id, site_id, scan_id, type, family, target_query, target_ref, proposed_slug, " +
-  "title, volume, evidence, acceptance, fit_band, effort, status, cluster_key, " +
+  "title, volume, evidence, acceptance, fit_band, business_fit, source, effort, status, cluster_key, " +
   "absorbed_queries, ready, unready_reason, created_at";
 
 export function supabaseOpportunityStore(): OpportunityStore {
@@ -491,6 +507,20 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .update({ fit_band: band })
         .eq("id", opportunityId);
       if (error) throw new Error(`opportunities.setFitBand: ${error.message}`);
+    },
+
+    async setBusinessFit(opportunityId, fit, source) {
+      const { error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .update({ business_fit: fit, source })
+        .eq("id", opportunityId);
+      if (error) throw new Error(`opportunities.setBusinessFit: ${error.message}`);
+    },
+
+    async marketFor(siteId) {
+      const { readSiteMarket } = await import("@/lib/market/infer/stored");
+      const site = await readSiteMarket(siteId);
+      return { market: site?.stored.current ?? null, competitors: site?.competitors ?? [] };
     },
 
     async setReadiness(opportunityId, reason) {

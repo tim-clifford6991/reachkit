@@ -101,6 +101,12 @@ export function reportOf(
       blockedAgents: [],
       questions,
       serps,
+      // The site's rivals: an answer that cites one and not the site is an
+      // AI-answer gap (SPEC §6, 2026-09-29) — a cited publisher is not.
+      rivals: measured(
+        ["appcues.com", "userpilot.com"].map((domain) => ({ domain, top10Appearances: 1, aiCitations: 1, score: 3 })),
+        AT
+      ),
       aiAnswers: answersSectionOf({
         card,
         questions,

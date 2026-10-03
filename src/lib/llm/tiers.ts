@@ -70,7 +70,7 @@
 import { env } from "@/lib/config/env";
 import { INFERENCE_PRICE_BOOK, INFERENCE_TIMEOUT_MS } from "@/lib/config/constants";
 
-export type Tier = "nano" | "haiku";
+export type Tier = "nano" | "haiku" | "sonnet";
 
 /** Not exported — the only way a caller reaches a model id is through
  *  `tierBinding()`, keyed by the closed `Tier` union. There is no second
@@ -88,6 +88,10 @@ export type Tier = "nano" | "haiku";
 const TIER_MODEL_IDS: Readonly<Record<Tier, string>> = Object.freeze({
   nano: "claude-haiku-4-5",
   haiku: "claude-haiku-4-5",
+  // The business-fit judgement's tier (owner, issue 1134, 2026-10-02: "Run
+  // it on Sonnet"). 4.6 and not a later Sonnet because `llm()` forces its
+  // one tool and pins a temperature, and the later ones refuse both.
+  sonnet: "claude-sonnet-4-6",
 });
 
 export interface TierBinding {
