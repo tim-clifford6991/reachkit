@@ -46,20 +46,21 @@ const { unwireSuppressionReader } = await import("@/lib/mail/leads/wire");
 const { POST } = await import("@/app/api/lead/route");
 const { freePageOf } = await import("@/lib/opportunities/free-page");
 const { defaultReport } = await import("../../opportunities/fixtures");
-const { CLEAN_MARKDOWN, GROUNDED, SOURCE_TEXT } = await import("../../generate/fixtures");
+const { CLEAN_MARKDOWN, GROUNDED, SOURCE_TEXT, NO_OPS, OUTLINE_ANSWER, draftAnswers, draftParts } = await import("../../generate/fixtures");
 
 const SCAN_ID = "11111111-1111-4111-8111-111111111111";
 const NOW = new Date("2026-09-16T10:00:00.000Z");
 
 const BRIEF = { readerQuestion: "Which tool?", angle: "count seats", mustCover: ["seats"], factIndexes: [0] };
-const OUTLINE = { headings: ["Which tool should a small team pick?", "What decides it", "What the plan includes"] };
-const NO_OPS = { title: "", description: "", order: [0], firstBlock: "", insertFacts: [] };
+const OUTLINE = OUTLINE_ANSWER;
 const at = (value: unknown) => ({ kind: "measured", value, at: NOW });
 
 function queuePage(markdown: string): void {
   llmMock.mockResolvedValueOnce(at(BRIEF));
   llmMock.mockResolvedValueOnce(at(OUTLINE));
-  llmMock.mockResolvedValueOnce(at({ title: "Picking a tool", slug: "picking-a-tool", description: "How.", bodyMarkdown: markdown }));
+  for (const answer of draftAnswers(draftParts(markdown, { title: "Picking a tool", slug: "picking-a-tool", description: "How." }))) {
+    llmMock.mockResolvedValueOnce(at(answer));
+  }
   llmMock.mockResolvedValueOnce(at(NO_OPS));
 }
 
@@ -113,7 +114,7 @@ describe("an address on the report's card becomes a written, mailed first page a
     expect(await tick()).toEqual({ outcome: "ran", subjectId: null });
 
     expect(opened).toEqual([{ scanId: SCAN_ID, cap: "FREE", policyVersion: 1, rollUp: "none" }]);
-    expect(llmMock).toHaveBeenCalledTimes(4);
+    expect(llmMock).toHaveBeenCalledTimes(6);
     expect(readDomainTextMock).toHaveBeenCalledWith("example.com");
 
     expect(sendCalls.map((mail) => mail.kind)).toEqual(["first-page"]);
@@ -127,7 +128,7 @@ describe("an address on the report's card becomes a written, mailed first page a
 
     // One page, once: the next tick writes nothing and mails no second page.
     await tick();
-    expect(llmMock).toHaveBeenCalledTimes(4);
+    expect(llmMock).toHaveBeenCalledTimes(6);
     expect(sendCalls.filter((mail) => mail.kind === "first-page")).toHaveLength(1);
   });
 
@@ -160,7 +161,7 @@ describe("an address on the report's card becomes a written, mailed first page a
     queuePage(CLEAN_MARKDOWN);
     await tick();
 
-    expect(llmMock).toHaveBeenCalledTimes(4);
+    expect(llmMock).toHaveBeenCalledTimes(6);
     expect(opened).toEqual([{ scanId: SCAN_ID, cap: "FREE", policyVersion: 1, rollUp: "none" }]);
     const pages = sendCalls.filter((mail) => mail.kind === "first-page");
     expect(pages.map((mail) => mail.to)).toEqual(["anna@example.com", "ben@example.com"]);
@@ -171,7 +172,7 @@ describe("an address on the report's card becomes a written, mailed first page a
     // A lead arriving a day later costs nothing either.
     await submit("cleo@example.com");
     await tick();
-    expect(llmMock).toHaveBeenCalledTimes(4);
+    expect(llmMock).toHaveBeenCalledTimes(6);
     expect(opened).toHaveLength(1);
     expect(sendCalls.filter((mail) => mail.kind === "first-page")).toHaveLength(3);
   });
@@ -186,7 +187,7 @@ describe("an address on the report's card becomes a written, mailed first page a
     await submit("ben@example.com");
     await tick();
 
-    expect(llmMock).toHaveBeenCalledTimes(4);
+    expect(llmMock).toHaveBeenCalledTimes(6);
     expect(opened).toHaveLength(1);
     expect(sendCalls.map((mail) => mail.kind)).toEqual(["first-page-unavailable", "first-page-unavailable"]);
     expect(state.leads[1]!.first_page_failure).toBe("no-page-to-write");

@@ -150,6 +150,9 @@ export type Block =
   /** SPEC §7 (2026-09-20) — the short-answer box. It holds ordinary blocks
    *  and never another container: a box inside a box says nothing. */
   | { kind: "answer"; label: string; children: readonly Block[] }
+  /** SPEC §7 (owner, 2026-09-29, D4) — the key takeaways: the same box
+   *  under its own label, holding the page's three to five points. */
+  | { kind: "takeaways"; label: string; children: readonly Block[] }
   /** SPEC §7 (2026-09-20) — related guides. Minted by `guidesBlock` and
    *  never by the parser. */
   | { kind: "guides"; label: string; items: readonly GuideLink[] };
@@ -245,6 +248,8 @@ export function parseInline(text: string): Inline[] {
 
 /** SPEC §7's short-answer box, as a body writes it. */
 const SHORT_ANSWER = "answer";
+/** SPEC §7's key takeaways (2026-09-29, D4), as a body writes them. */
+const TAKEAWAYS = "takeaways";
 
 function parse(md: string): ReturnType<typeof fromMarkdown> {
   return fromMarkdown(md.replace(/\r\n?/g, "\n"), {
@@ -322,6 +327,14 @@ function blocksOf(nodes: readonly RootContent[], src: string, insideAnswer: bool
           out.push({
             kind: "answer",
             label: copy("body.answer.heading"),
+            children: blocksOf(node.children, src, true),
+          });
+          break;
+        }
+        if (node.name === TAKEAWAYS && !insideAnswer) {
+          out.push({
+            kind: "takeaways",
+            label: copy("body.takeaways.heading"),
             children: blocksOf(node.children, src, true),
           });
           break;
@@ -416,6 +429,7 @@ function markBlock(block: Block, passage: string, done: { hit: boolean }): Block
         rows: block.rows.map((row) => row.map((cell) => markInline(cell, passage, done))),
       };
     case "answer":
+    case "takeaways":
       return { ...block, children: block.children.map((child) => markBlock(child, passage, done)) };
     default:
       return { ...block, children: markInline(block.children, passage, done) };
@@ -471,7 +485,7 @@ export function escapeHtml(text: string): string {
  * parse, same element structure** — which is exactly the promise a second
  * renderer would break (the archived BP-044 decision 3).
  *
- * Five keys are not element names: `tableWrap`, `answer` and `guides` name
+ * Seven keys are not element names: `tableWrap`, `answer`, `takeaways` and `guides` name
  * the containers SPEC §7's new blocks are drawn in, and `answerLabel` and
  * `guidesLabel` the eyebrow each carries. They are a `div` and a `p`
  * whichever map is passed, so the structure is still the parse's.
@@ -482,7 +496,7 @@ export type HtmlClasses = Partial<
     | "p" | "ul" | "ol" | "li" | "blockquote" | "pre" | "code" | "hr"
     | "a" | "mark" | "strong" | "em"
     | "table" | "thead" | "tbody" | "tr" | "th" | "td"
-    | "tableWrap" | "answer" | "answerLabel" | "guides" | "guidesLabel",
+    | "tableWrap" | "answer" | "answerLabel" | "takeaways" | "takeawaysLabel" | "guides" | "guidesLabel",
     string
   >
 >;
@@ -603,6 +617,13 @@ export function toHtml(blocks: readonly Block[], classes: HtmlClasses = {}): str
             `${openAs("p", "answerLabel", classes)}${escapeHtml(block.label)}</p>` +
             `${toHtml(block.children, classes)}</div>`
           );
+        // The key takeaways: the same container under its own label.
+        case "takeaways":
+          return (
+            `${openAs("div", "takeaways", classes)}` +
+            `${openAs("p", "takeawaysLabel", classes)}${escapeHtml(block.label)}</p>` +
+            `${toHtml(block.children, classes)}</div>`
+          );
         // Related guides. Every item is a link, because `guidesBlock` drops
         // any whose address this product would not publish.
         case "guides": {
@@ -694,7 +715,7 @@ function shallowestHeading(blocks: readonly Block[]): number | null {
     const level =
       block.kind === "heading"
         ? block.level
-        : block.kind === "answer"
+        : block.kind === "answer" || block.kind === "takeaways"
           ? shallowestHeading(block.children)
           : null;
     if (level !== null && (found === null || level < found)) found = level;
@@ -705,7 +726,9 @@ function shallowestHeading(blocks: readonly Block[]): number | null {
 /** Every heading `by` levels along, clamped to the six that exist. */
 function shiftHeadings(blocks: readonly Block[], by: number): Block[] {
   return blocks.map((block) => {
-    if (block.kind === "answer") return { ...block, children: shiftHeadings(block.children, by) };
+    if (block.kind === "answer" || block.kind === "takeaways") {
+      return { ...block, children: shiftHeadings(block.children, by) };
+    }
     if (block.kind !== "heading") return block;
     const level = Math.min(6, Math.max(1, block.level + by)) as 1 | 2 | 3 | 4 | 5 | 6;
     return { ...block, level };
@@ -714,7 +737,9 @@ function shiftHeadings(blocks: readonly Block[], by: number): Block[] {
 
 export function demoteHeadings(blocks: readonly Block[]): Block[] {
   return blocks.map((block) => {
-    if (block.kind === "answer") return { ...block, children: demoteHeadings(block.children) };
+    if (block.kind === "answer" || block.kind === "takeaways") {
+      return { ...block, children: demoteHeadings(block.children) };
+    }
     return block.kind === "heading" && block.level < 6
       ? { ...block, level: (block.level + 1) as 2 | 3 | 4 | 5 | 6 }
       : block;

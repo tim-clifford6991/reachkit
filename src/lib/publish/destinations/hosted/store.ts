@@ -136,7 +136,15 @@ export interface HostedPage {
   /** Whose page it is — the header, the eyebrow, the byline and the
    *  footer are drawn from this and from nothing else. */
   publisher: HostedPublisher;
+  /** SPEC §7 (2026-09-29): the page's byline as generation recorded it
+   *  (`drafts.attribution`), or `null` for a page with none. */
+  byline: string | null;
+  /** When this version went live. On a page that has been refreshed it is
+   *  the update's date, and `firstPublishedAt` is the page's own. */
   publishedAt: Date;
+  /** When the address first carried a page: the oldest live publication at
+   *  this slug (issue 781 — an update is a new publication at the slug). */
+  firstPublishedAt: Date;
   liveUrl: string;
   record: PublishedPageRecord;
 }
@@ -164,6 +172,7 @@ interface PublicationRow {
   drafts: {
     title: string | null;
     body_md: string | null;
+    attribution: string | null;
     meta: Record<string, unknown> | null;
     grounded_fact: Record<string, unknown> | null;
     opportunity_id: string;
@@ -184,7 +193,7 @@ const PAGE_COLUMNS =
   // the byline's date is written in. `user_id` and every
   // credential-adjacent column stay absent by construction.
   "sites!inner(domain, category, timezone), " +
-  "drafts!inner(title, body_md, meta, grounded_fact, opportunity_id, " +
+  "drafts!inner(title, body_md, attribution, meta, grounded_fact, opportunity_id, " +
   "opportunities!inner(id, target_query, scans(created_at)))";
 
 /**
@@ -282,7 +291,9 @@ function toPage(row: PublicationRow, host: string): HostedPage | null {
       category: emptyToNull(row.sites?.category ?? null),
       timeZone: emptyToNull(row.sites?.timezone ?? null),
     },
+    byline: emptyToNull(draft.attribution ?? null),
     publishedAt: new Date(row.published_at),
+    firstPublishedAt: new Date(row.published_at),
     liveUrl,
     record: {
       opportunityId: opportunity.id,
@@ -357,15 +368,17 @@ export async function livePagesForSite(siteId: string, host: string): Promise<Ho
     .is("unpublished_at", null)
     .order("published_at", { ascending: false });
   if (error !== null || data === null) return [];
-  const seen = new Set<string>();
-  return data
-    .map((row) => toPage(row, host))
-    .filter((page): page is HostedPage => page !== null)
-    .filter((page) => {
-      if (seen.has(page.slug)) return false;
-      seen.add(page.slug);
-      return true;
-    });
+  // Newest first, so the first row at a slug is the page and every later
+  // one an older version of it — whose date is when the page was published.
+  const bySlug = new Map<string, HostedPage>();
+  for (const row of data) {
+    const page = toPage(row, host);
+    if (page === null) continue;
+    const newest = bySlug.get(page.slug);
+    if (newest === undefined) bySlug.set(page.slug, page);
+    else if (page.publishedAt < newest.firstPublishedAt) newest.firstPublishedAt = page.publishedAt;
+  }
+  return [...bySlug.values()];
 }
 
 /**

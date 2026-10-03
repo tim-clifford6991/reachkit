@@ -61,7 +61,7 @@ const PASSAGE = "a non-engineer can ship a change";
 /** One live page, with everything S19 draws: a category, a stated zone, a
  *  recorded grounding whose passage occurs in the body verbatim. */
 function livePage(over: Record<string, unknown> = {}): unknown {
-  return {
+  const page = {
     publicationId: "pub-1",
     siteId: "site-1",
     slug: "a-page",
@@ -90,6 +90,8 @@ function livePage(over: Record<string, unknown> = {}): unknown {
     },
     ...over,
   };
+  // A page never refreshed: the day it went live is the day it was published.
+  return { byline: null, firstPublishedAt: page.publishedAt, ...page };
 }
 
 async function render(): Promise<string> {
@@ -131,6 +133,17 @@ describe("S19 — the customer is the publisher, and the page says so", () => {
     // 11:00 UTC on 4 Sep is 07:00 in New York, so the day is the same one
     // either way — and the zone is still read, which the next case proves.
     expect(await render()).toContain("published 4 Sep 2026 · by example.com");
+  });
+
+  it("the byline setup recorded replaces the domain, and a refreshed page states both dates (SPEC §7, 2026-09-29)", async () => {
+    state.page = livePage({
+      byline: "Ada Lovelace · Founder, Example",
+      firstPublishedAt: new Date("2026-09-04T11:00:00.000Z"),
+      publishedAt: new Date("2026-09-20T11:00:00.000Z"),
+    });
+    const html = await render();
+    expect(html).toContain("published 4 Sep 2026 · updated 20 Sep 2026 · by Ada Lovelace · Founder, Example");
+    expect(html).toContain('"datePublished":"2026-09-04T11:00:00.000Z","dateModified":"2026-09-20T11:00:00.000Z"');
   });
 
   it("a moment that falls on a different day in the customer's zone is written in theirs", async () => {

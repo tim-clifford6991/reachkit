@@ -50,6 +50,8 @@ function page(slug: string, title: string, body: string, publishedAt: string): u
     grounded: null,
     publisher: { name: "example.com", category: null, timeZone: null },
     publishedAt: new Date(publishedAt),
+    firstPublishedAt: new Date(publishedAt),
+    byline: null,
     liveUrl: `https://content.example.com/${slug}`,
     record: {},
   };

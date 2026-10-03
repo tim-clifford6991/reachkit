@@ -28,7 +28,7 @@
 // closed struct — the opportunity's own type and target searches, against the
 // brand already in it — so neither is a new channel into a model.
 import { z } from "zod";
-import { ANSWER_FIRST_BLOCK_CHARS } from "@/lib/config/constants";
+import { DRAFT_SECTIONS_PER_CALL, PAGE_BLOCKS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm, type LlmCallSite } from "@/lib/llm";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
@@ -38,9 +38,12 @@ import { REGISTER_FLOOR } from "../rules/figures";
 import { FRAME_INSTRUCTION, answersMarketQuestion } from "../rules/frame";
 import type { DraftPromptInputs } from "../voice/inputs";
 import type { PromptProfile } from "../voice/profile-block";
+import { answerBoxOf, answerBoxWords } from "../rules/blocks";
 import type { AnswerabilityOps } from "./answerability";
+import { composePage, sentenceCase, tidyText, withAnswer, type TidyInputs } from "./compose";
 import type { FixNote } from "./repair";
-import { pageJobFor, SECTION_TASK, type SectionRole } from "./skeletons";
+import { isQuestionShaped } from "../rules/text";
+import { pageJobFor, SECTION_ROLES, SECTION_TASK, type SectionRole } from "./skeletons";
 
 /** §8's five steps, closed. `claim_check` is the fifth and is run by
  *  `claims/check.ts`; it is a member here because a caller reporting "which
@@ -49,14 +52,20 @@ export type PipelineStep = "brief" | "outline" | "draft" | "answerability" | "cl
 
 /** The `llm()` call site each step ledgers under. One string per step, so a
  *  cost report reads by step without anyone joining a table. */
-export const STEP_CALL_SITES: Readonly<Record<Exclude<PipelineStep, "claim_check" | "page_read">, LlmCallSite>> =
-  Object.freeze({
-    brief: "generate.brief",
-    outline: "generate.outline",
-    draft: "generate.draft",
-    answerability: "generate.answerability",
-    page_fix: "generate.page_fix",
-  });
+export const STEP_CALL_SITES: Readonly<
+  Record<Exclude<PipelineStep, "claim_check" | "page_read"> | "sections" | "answer_box", LlmCallSite>
+> = Object.freeze({
+  brief: "generate.brief",
+  outline: "generate.outline",
+  draft: "generate.draft",
+  // The section bodies, a few to a call. Part of the draft step.
+  sections: "generate.sections",
+  answerability: "generate.answerability",
+  page_fix: "generate.page_fix",
+  // Issue 1137: the short-answer box alone, rewritten to its word count. It
+  // is part of the draft step — a failure of it is the draft's.
+  answer_box: "generate.answer_box",
+});
 
 /** `factIndexes` is how the brief chooses facts: by position in the list it
  *  was handed. It has no field through which to write one (issue 475). */
@@ -71,22 +80,52 @@ const BRIEF_SCHEMA = z.strictObject({
 });
 export type Brief = z.infer<typeof BRIEF_SCHEMA>;
 
-/** The model writes one heading per skeleton section and nothing else. */
-const OUTLINE_SCHEMA = z.strictObject({ headings: z.array(z.string()) });
+/** The model chooses the sections: a role from the block set and the
+ *  question a reader asks, for each (SPEC §7, 2026-09-29). */
+const OUTLINE_SCHEMA = z.strictObject({
+  sections: z.array(z.strictObject({ role: z.string(), heading: z.string() })),
+});
 
-/** The outline as the draft reads it: the skeleton's sections, in the
- *  skeleton's order, each with the heading the model wrote for it. */
+/** The outline as the draft reads it: six to ten sections, each a block of
+ *  the set under the question it answers. */
 export interface Outline {
   sections: readonly { role: SectionRole; heading: string }[];
 }
 
-const DRAFT_SCHEMA = z.strictObject({
+/** One buyer question and its answer, as `drafts.meta.faq` holds it. */
+export interface FaqEntry {
+  question: string;
+  answer: string;
+}
+
+/** The page's frame: everything the writer returns but the section bodies.
+ *  It has no field for a heading, so it cannot write one the outline did
+ *  not have. */
+const FRAME_SCHEMA = z.strictObject({
   title: z.string(),
   slug: z.string(),
   description: z.string(),
-  bodyMarkdown: z.string(),
+  answer: z.string(),
+  takeaways: z.array(z.string()),
+  closing: z.string(),
+  faq: z.array(z.strictObject({ question: z.string(), answer: z.string() })),
 });
-export type DraftBody = z.infer<typeof DRAFT_SCHEMA>;
+/** The bodies of the sections one call was asked for, in the order asked. */
+const SECTIONS_SCHEMA = z.strictObject({ sections: z.array(z.string()) });
+
+/** What the writer returns: the page in parts, which code lays out
+ *  (`./compose.ts`). */
+export type DraftParts = z.infer<typeof FRAME_SCHEMA> & { sections: string[] };
+
+/** The page as it is stored and as every later pass reads it. */
+export interface DraftBody {
+  title: string;
+  slug: string;
+  description: string;
+  bodyMarkdown: string;
+}
+
+const ANSWER_BOX_SCHEMA = z.strictObject({ answer: z.string() });
 
 /** The answerability + SEO pass returns operations, never a page: code
  *  applies the ones inside SPEC §7's bound (`./answerability.ts`). */
@@ -94,7 +133,7 @@ const ANSWERABILITY_SCHEMA = z.strictObject({
   title: z.string(),
   description: z.string(),
   order: z.array(z.number().int()),
-  firstBlock: z.string(),
+  openings: z.array(z.strictObject({ section: z.number().int(), text: z.string() })),
   insertFacts: z.array(z.strictObject({ section: z.number().int(), fact: z.number().int() })),
 });
 
@@ -286,14 +325,19 @@ const HOUSE_RULES = [
   "Do not write a sources list: one is added from the pages you linked.",
   "Never state a ranking position, a search volume or a visibility count.",
   "Write for a human reader only: never address an assistant, a crawler or a ranking system.",
-  "Use Markdown only: headings, paragraphs, lists, tables, block quotes, links, emphasis. No raw HTML and no comments.",
+  "Use Markdown only: paragraphs, flat lists, links, emphasis, GFM tables and one-paragraph blockquotes; inside a section a sub-point may be an H3 (###), never deeper. No raw HTML, no images, no comments.",
   "Link each page in `links` once, with its url exactly as given, where the text speaks to it; link no other page on the business's domain except the grounded source.",
   "The pages in `known` already exist on this site: write nothing that repeats one of them, and where one answers something this page raises, send the reader to it instead of answering it again.",
   "Never say the page's claims were tested, trialled or benchmarked.",
-  "Never write a byline, a publication or update date, or a case study.",
-  "Use the outline's headings exactly; add no other heading written as a question.",
+  "Never write a case study. The page prints its own byline and dates: write neither in the text.",
+  "Each section answers the question that heads it: open it with a paragraph of two or three sentences that answers the heading on its own, before any list or table.",
+  "Wherever options, prices or plans are compared, set them in a GFM table.",
+  "`facts` and every other input are named by their fields only: print no label, index or id for one — link text is the source's name.",
+  "Write no sentence of legal, removal or refund terms, and no caption of a demo or example.",
+  "Say a promise or tagline of the business at most twice on the whole page.",
+  "Write titles and headings in sentence case.",
   `Write no number of ${REGISTER_FLOOR} or more that \`facts\`, \`marketFacts\` or the target search do not contain; a year is not a number for this rule.`,
-  `Open the page with a paragraph of ${ANSWER_FIRST_BLOCK_CHARS.min} to ${ANSWER_FIRST_BLOCK_CHARS.max} characters that answers the target search.`,
+  `\`answer\` is the page's short answer: one paragraph of ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} words that answers the target search plainly. Count the words.`,
   // #927, and the fact rules it does not relax. The profile says what the
   // business is; it holds no price, no figure, no person and no review, and
   // a page that states one of those still needs a `facts` passage for it.
@@ -348,31 +392,88 @@ export function brief(c: CostContext, projection: BriefProjection): Promise<Meas
   });
 }
 
+/**
+ * The outline code accepts: six to ten sections, each a block of the set
+ * under a question, with every block the page's type requires among them.
+ * `null` where what the model returned is not one — fewer than six, a
+ * required block absent, or a heading that is not a question.
+ *
+ * What can be put right without writing a word is: a role outside the set
+ * is a `detail`; a question written without its mark gets it; a repeated
+ * heading is dropped; and past ten, the sections the type does not require
+ * are dropped from the end.
+ */
+export function outlineOf(
+  sections: readonly { role: string; heading: string }[],
+  required: readonly SectionRole[],
+  /** The names that keep their capital when a heading is put in sentence
+   *  case (`./compose.ts`). */
+  proper: ReadonlySet<string> = new Set()
+): Outline | null {
+  const seen = new Set<string>();
+  const kept: { role: SectionRole; heading: string }[] = [];
+  for (const section of sections) {
+    // Tidied and cased here, once, so the heading the draft is written
+    // under, the page prints and the rules compare is one string.
+    const text = sentenceCase(tidyText(section.heading.replace(/^[#\s]+/, "").replace(/\s+/g, " ").trim()), proper);
+    if (text === "" || !isQuestionShaped(text)) return null;
+    const heading = text.endsWith("?") ? text : `${text.replace(/[.:!]+$/, "")}?`;
+    const key = heading.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const role = SECTION_ROLES.find((known) => known === section.role) ?? "detail";
+    kept.push({ role, heading });
+  }
+  const owed = new Set(required);
+  for (let index = kept.length - 1; index >= 0 && kept.length > PAGE_BLOCKS.sections.max; index--) {
+    const role = kept[index]!.role;
+    const only = kept.filter((section) => section.role === role).length === 1;
+    if (!(owed.has(role) && only)) kept.splice(index, 1);
+  }
+  if (kept.length < PAGE_BLOCKS.sections.min || kept.length > PAGE_BLOCKS.sections.max) return null;
+  if (required.some((role) => !kept.some((section) => section.role === role))) return null;
+  return { sections: kept };
+}
+
 export async function outline(
   c: CostContext,
   inputs: DraftPromptInputs,
-  a: { brief: Brief; skeleton: readonly SectionRole[] }
+  a: { brief: Brief; skeleton: readonly SectionRole[]; proper?: ReadonlySet<string> }
 ): Promise<Measured<Outline>> {
   const written = await step(c, {
     site: STEP_CALL_SITES.outline,
     tier: "nano",
     schema: OUTLINE_SCHEMA,
     input: promptFor(
-      "Write one heading for each section, in the order given. Do not add, drop or reorder sections.",
+      `Choose the page's sections: ${PAGE_BLOCKS.sections.min} to ${PAGE_BLOCKS.sections.max} of them, in the order a reader ` +
+        "needs them, for the job `pageJob` states and the points the brief must cover. Each section is one " +
+        "of `blocks` — give its `role` — under a `heading` written as the question a reader asks, in the " +
+        "reader's words, in sentence case, ending in a question mark. Every role in `required` must appear " +
+        "at least once; `detail` may appear as often as the page needs. No two headings ask the same thing, " +
+        "and none repeats the target search itself: the page's title asks that and its short answer answers it.",
       inputs,
-      { brief: a.brief, sections: a.skeleton.map((role) => ({ role, task: SECTION_TASK[role] })) }
+      {
+        brief: a.brief,
+        blocks: SECTION_ROLES.map((role) => ({ role, task: SECTION_TASK[role] })),
+        required: a.skeleton,
+      }
     ),
   });
   if (written.kind === "unmeasured") return written;
-  // A heading list that does not fit the skeleton is not an outline of it.
-  if (written.value.headings.length !== a.skeleton.length) return unmeasured("undeterminable", written.at);
-  return {
-    ...written,
-    value: { sections: a.skeleton.map((role, index) => ({ role, heading: written.value.headings[index]! })) },
-  };
+  // A section list that is not six to ten questions over the required
+  // blocks is not an outline of this page.
+  const value = outlineOf(written.value.sections, a.skeleton, a.proper);
+  return value === null ? unmeasured("undeterminable", written.at) : { ...written, value };
 }
 
-export function draft(
+/**
+ * The draft, written in turn (SPEC §7, 2026-09-29: "sections are written in
+ * turn so no single call's clock caps the page"): one call for the page's
+ * frame and one for every `DRAFT_SECTIONS_PER_CALL` sections, all asked at
+ * once. Each is told the whole outline, so a section is written knowing what
+ * stands beside it. Any call that did not answer is the step's failure.
+ */
+export async function draft(
   c: CostContext,
   inputs: DraftPromptInputs,
   a: {
@@ -387,31 +488,132 @@ export function draft(
      *  that broke them. Absent on a first attempt, whose prompt is unchanged. */
     fix?: readonly FixNote[];
   }
-): Promise<Measured<DraftBody>> {
-  return step(c, {
+): Promise<Measured<DraftParts>> {
+  const fixed =
+    a.fix === undefined
+      ? ""
+      : " An earlier attempt at this page was stopped: `fix` names each rule it broke and the " +
+        "sentences that broke it. Write so that none of them recurs and `rules` hold.";
+  const shared = {
+    brief: a.brief,
+    outline: a.outline.sections.map((section, index) => ({ index, ...section, task: SECTION_TASK[section.role] })),
+    facts: a.facts,
+    marketFacts: a.marketFacts ?? [],
+    products: a.products ?? [],
+    rules: HOUSE_RULES,
+    ...(a.fix === undefined ? {} : { fix: a.fix }),
+  };
+  const frame = step(c, {
     site: STEP_CALL_SITES.draft,
     tier: "haiku",
-    schema: DRAFT_SCHEMA,
+    schema: FRAME_SCHEMA,
     input: promptFor(
-      "Write the page from the outline: each section under its heading, exactly as given, " +
-        "doing what its task says and what `pageJob` says the page is for. State the business's " +
-        "`facts` word for word, and cite each of `marketFacts` you use beside the sentence that uses it." +
-        (a.fix === undefined
-          ? ""
-          : " An earlier attempt at this page was stopped: `fix` names each rule it broke and the " +
-            "sentences that broke it. Write the page so that none of them recurs and `rules` hold."),
+      "Write the page's frame, doing what `pageJob` says the page is for. Its sections are written " +
+        "separately from `outline`; write none of them here. `title`: the buyer's question, in the " +
+        "buyer's words. `answer`: the short answer. `takeaways`: " +
+        `${PAGE_BLOCKS.takeaways.min} to ${PAGE_BLOCKS.takeaways.max} key takeaways, one sentence each. ` +
+        "`closing`: one line that points the reader to the one action this page's reader should take, " +
+        "linking the page in `links` where they take it. `faq`: " +
+        `${PAGE_BLOCKS.faq.min} to ${PAGE_BLOCKS.faq.max} questions buyers ask about the target search that ` +
+        "the outline's headings do not already ask, each answered in two or three sentences under the " +
+        "same `rules`; they are stored with the page, not printed in it. State the business's `facts` " +
+        "word for word, and cite each of `marketFacts` you use beside the sentence that uses it." +
+        fixed,
       inputs,
-      {
-        brief: a.brief,
-        outline: a.outline.sections.map((section) => ({ ...section, task: SECTION_TASK[section.role] })),
-        facts: a.facts,
-        marketFacts: a.marketFacts ?? [],
-        products: a.products ?? [],
-        rules: HOUSE_RULES,
-        ...(a.fix === undefined ? {} : { fix: a.fix }),
-      }
+      shared
     ),
   });
+  const indexes = a.outline.sections.map((_section, index) => index);
+  const batches: number[][] = [];
+  for (let at = 0; at < indexes.length; at += DRAFT_SECTIONS_PER_CALL) {
+    batches.push(indexes.slice(at, at + DRAFT_SECTIONS_PER_CALL));
+  }
+  const bodies = batches.map((write) =>
+    step(c, {
+      site: STEP_CALL_SITES.sections,
+      tier: "haiku",
+      schema: SECTIONS_SCHEMA,
+      input: promptFor(
+        "Write the sections of `outline` whose indexes are in `write`, and no others: one Markdown body " +
+          "for each, in that order, doing what its task says and what `pageJob` says the page is for — " +
+          "the body only, without its heading, which the page already has. The other sections are " +
+          "written separately: say nothing here that belongs under another heading. State the business's " +
+          "`facts` word for word, and cite each of `marketFacts` you use beside the sentence that uses it." +
+          fixed,
+        inputs,
+        { ...shared, write }
+      ),
+    })
+  );
+
+  const [framed, ...written] = await Promise.all([frame, ...bodies]);
+  if (framed === undefined || framed.kind === "unmeasured") return framed ?? unmeasured("undeterminable", new Date());
+  const sections: string[] = [];
+  for (const [index, batch] of written.entries()) {
+    if (batch.kind === "unmeasured") return batch;
+    // A call that returned other than what it was asked for wrote no page.
+    if (batch.value.sections.length !== batches[index]!.length) return unmeasured("undeterminable", batch.at);
+    sections.push(...batch.value.sections);
+  }
+  return { ...framed, value: { ...framed.value, sections } };
+}
+
+/** The short-answer box alone, written again to its word count — the
+ *  round-1 review's "over the limit, rewrite only the box, with its count
+ *  stated" (owner, 2026-10-02). */
+export function answerBoxRewrite(
+  c: CostContext,
+  inputs: DraftPromptInputs,
+  a: { answer: string; words: number }
+): Promise<Measured<{ answer: string }>> {
+  return step(c, {
+    site: STEP_CALL_SITES.answer_box,
+    tier: "haiku",
+    schema: ANSWER_BOX_SCHEMA,
+    input: promptFor(
+      `\`answer\` is this page's short answer and it is ${a.words} words long. Write it again as one paragraph of ` +
+        `${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} words — aim for 50 — that answers the ` +
+        "target search plainly. Keep what it states and state nothing it does not; `rules` hold.",
+      inputs,
+      { answer: a.answer, rules: HOUSE_RULES }
+    ),
+  });
+}
+
+/** The page a draft's parts make, as every later pass reads it. */
+export interface WrittenPage {
+  body: DraftBody;
+  /** The closing line, apart: it is laid out after the body's links. */
+  closing: string;
+  faq: FaqEntry[];
+}
+
+/**
+ * The draft's parts laid out as the page (`./compose.ts`), with the short
+ * answer held to its 40–60 words: counted here, and outside that the box
+ * alone is written again — once. A box still outside it is
+ * `first_block_answers`'s to stop.
+ */
+export async function writtenPage(
+  c: CostContext,
+  inputs: DraftPromptInputs,
+  a: { parts: DraftParts; outline: Outline; tidy: TidyInputs }
+): Promise<Measured<WrittenPage>> {
+  const at = new Date();
+  const composed = composePage(a.parts, a.outline, a.tidy);
+  const words = answerBoxWords(composed.body.bodyMarkdown);
+  if (words >= PAGE_BLOCKS.answerWords.min && words <= PAGE_BLOCKS.answerWords.max) {
+    return { kind: "measured", value: composed, at };
+  }
+  const again = await answerBoxRewrite(c, inputs, { answer: answerBoxOf(composed.body.bodyMarkdown) ?? "", words });
+  if (again.kind === "unmeasured") return again;
+  return {
+    ...again,
+    value: {
+      ...composed,
+      body: { ...composed.body, bodyMarkdown: withAnswer(composed.body.bodyMarkdown, again.value.answer) },
+    },
+  };
 }
 
 export function answerability(
@@ -426,10 +628,12 @@ export function answerability(
     input: promptFor(
       "Make the page easier for an answer engine to lift, using only these operations: " +
         "`order` reorders the page's heading sections (a permutation of their indexes); " +
-        `\`firstBlock\` shortens the first section's opening paragraph to ${ANSWER_FIRST_BLOCK_CHARS.min}–${ANSWER_FIRST_BLOCK_CHARS.max} characters ` +
-        "where its heading is a question (\"\" for none); `insertFacts` adds a fact from " +
-        "`facts`, by index, to a section. Also write a title and description that name the " +
-        "question. You cannot add a heading or any other text.",
+        "`openings` gives a section, by index, the paragraph of two or three sentences that answers " +
+        "its heading on its own — add one where the section opens with a list, a table or anything " +
+        "that is not its answer, and write a shorter one where its opening paragraph runs past three " +
+        "sentences; leave a section that already opens with its answer out; `insertFacts` adds a fact " +
+        "from `facts`, by index, to a section. Also write a title and description that name the " +
+        "question. You cannot add a heading, and you cannot change the short answer or the takeaways.",
       inputs,
       { body: a.body, facts: a.facts, rules: HOUSE_RULES }
     ),

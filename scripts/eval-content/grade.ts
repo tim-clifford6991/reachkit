@@ -47,6 +47,7 @@ export function blockText(block: Block): string {
     case "table":
       return [block.head, ...block.rows].map((row) => row.map(inlineText).join(" ")).join(" ");
     case "answer":
+    case "takeaways":
       return block.children.map(blockText).join(" ");
     case "guides":
       return block.items.map((item) => item.label).join(" ");
@@ -72,6 +73,7 @@ export function blockLinks(block: Block): string[] {
     case "table":
       return [block.head, ...block.rows].flatMap((row) => row.flatMap(links));
     case "answer":
+    case "takeaways":
       return block.children.flatMap(blockLinks);
     default:
       return [];
@@ -134,15 +136,21 @@ export function checklist(a: {
   const first = blocks[0];
   const answerWords = first?.kind === "answer" ? words(blockText(first)) : 0;
   const lead = blocks.slice(0, firstH2);
-  const takeaways = lead.find((block) => block.kind === "list");
+  // The `:::takeaways` box's list (issue 1137), or — on a page written
+  // before it — the first list above the first section.
+  const box = lead.find((block) => block.kind === "takeaways");
+  const takeaways = (box?.kind === "takeaways" ? box.children : lead).find((block) => block.kind === "list");
   const takeawayCount = takeaways?.kind === "list" ? takeaways.items.length : 0;
 
   let levelsInOrder = headings.length > 0 && headings[0]!.block.level === 2;
   for (let i = 1; i < headings.length; i++) {
     if (headings[i]!.block.level > headings[i - 1]!.block.level + 1 || headings[i]!.block.level < 2) levelsInOrder = false;
   }
+  // The Sources list is the one heading that is not a question and the one
+  // section that opens with a list (#1153's finding): it is asked neither.
+  const asked = h2.filter(({ block }) => !/^(sources|references)$/i.test(inlineText(block.children).trim()));
   const opensWithAnswer =
-    h2.length > 0 && h2.every(({ index }) => blocks[index + 1]?.kind === "paragraph" || blocks[index + 1]?.kind === "answer");
+    asked.length > 0 && asked.every(({ index }) => blocks[index + 1]?.kind === "paragraph" || blocks[index + 1]?.kind === "answer");
 
   const name = a.businessName.toLowerCase();
   const businessSection = h2.some(({ block, index }) => {
@@ -176,10 +184,10 @@ export function checklist(a: {
     blocks: {
       "short answer (40–60 words)": answerWords >= 40 && answerWords <= 60,
       "3–5 takeaways": takeawayCount >= 3 && takeawayCount <= 5,
-      "question headings": h2.length > 0 && h2.every(({ block }) => inlineText(block.children).trim().endsWith("?")),
+      "question headings": asked.length > 0 && asked.every(({ block }) => inlineText(block.children).trim().endsWith("?")),
       "H2 then H3, in order": levelsInOrder,
       "sections open with an answer": opensWithAnswer,
-      "6–10 sections": h2.length >= 6 && h2.length <= 10,
+      "6–10 sections": asked.length >= 6 && asked.length <= 10,
       "a table": target?.kind === "comparison" ? blocks.some((block) => block.kind === "table") : null,
       "how the business handles it": businessSection,
       "3–6 buyer questions (meta.faq)": faq >= 3 && faq <= 6,

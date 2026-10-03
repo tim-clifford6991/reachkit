@@ -46,7 +46,7 @@ vi.mock("@/lib/publish/attempt/window", () => ({ enterReview: enterReviewMock })
 vi.mock("@/jobs/engine", () => ({ schedulePublish: schedulePublishMock }));
 vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
 
-import { AT, SITE_ID, SOURCE_TEXT, GROUNDED, CLEAN_MARKDOWN, fakeCost, memoryStore, opportunity, siteInputs } from "../../generate/fixtures";
+import { AT, SITE_ID, SOURCE_TEXT, GROUNDED, CLEAN_MARKDOWN, NO_OPS, OUTLINE_ANSWER, draftAnswers, draftParts, fakeCost, memoryStore, opportunity, siteInputs } from "../../generate/fixtures";
 import { generateDraft } from "@/lib/generate/pipeline";
 import { setGenerateStore } from "@/lib/generate/store";
 import { draftStore } from "@/app/(account)/app/draft/[draftId]/save";
@@ -66,12 +66,10 @@ async function draftInReview(): Promise<string> {
     measured({ readerQuestion: "Which tool?", angle: "seats", mustCover: ["seats"], factIndexes: [0] })
   );
   llmMock.mockResolvedValueOnce(
-    measured({ headings: ["Which tool should a small team pick?", "What decides it", "What the plan includes"] })
+    measured(OUTLINE_ANSWER)
   );
-  llmMock.mockResolvedValueOnce(
-    measured({ title: "A title", slug: "a-title", description: "A description.", bodyMarkdown: CLEAN_MARKDOWN })
-  );
-  llmMock.mockResolvedValueOnce(measured({ title: "", description: "", order: [0], firstBlock: "", insertFacts: [] }));
+  for (const answer of draftAnswers(draftParts(CLEAN_MARKDOWN, { title: "A title", slug: "a-title", description: "A description." }))) llmMock.mockResolvedValueOnce(measured(answer));
+  llmMock.mockResolvedValueOnce(measured(NO_OPS));
   const outcome = await generateDraft(fakeCost(), {
     siteId: SITE_ID,
     opportunity: opportunity(),

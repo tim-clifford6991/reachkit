@@ -295,6 +295,7 @@ vi.mock("@anthropic-ai/sdk", () => {
           opportunity?: { targetQuery?: string };
         };
         modelCalls.push(asked.task);
+        const { draftAnswerFor, outlineFor, partsFromPage } = await import("../generate/fixtures");
         const page = pageFor(asked.opportunity?.targetQuery ?? "");
         const answerFor = asked.task.startsWith("Write the brief")
           ? {
@@ -303,11 +304,11 @@ vi.mock("@anthropic-ai/sdk", () => {
               mustCover: ["seats"],
               factIndexes: [0],
             }
-          : asked.task.startsWith("Write one heading")
-            ? { headings: (asked.sections ?? []).map((_s, i) => (i === 0 ? page.title : `Section ${i + 1}`)) }
+          : asked.task.startsWith("Choose the page's sections")
+            ? outlineFor(page, page.slug)
             : asked.task.startsWith("Make the page")
-              ? { title: "", description: "", order: [0], firstBlock: "", insertFacts: [] }
-              : page;
+              ? { title: "", description: "", order: [0, 1, 2, 3, 4, 5], openings: [], insertFacts: [] }
+              : draftAnswerFor(partsFromPage(page, page.slug), asked as { write?: number[] });
         return {
           content: [{ type: "text", text: JSON.stringify(answerFor) }],
           usage: { input_tokens: 800, output_tokens: 400 },
@@ -686,7 +687,7 @@ describe("one site, left alone for a week (issue 323)", () => {
         "2026-09-14": ["weekly/refresh:ran", "publish/execute:ran", "publish/verify:ran", "draft/generate:ran"],
       });
       // Four model steps a page, seven pages, and not one regeneration.
-      expect(modelCalls).toHaveLength(7 * 4);
+      expect(modelCalls).toHaveLength(7 * 6);
     },
     WEEK_TIMEOUT_MS
   );

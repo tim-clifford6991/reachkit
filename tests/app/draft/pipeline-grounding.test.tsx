@@ -79,7 +79,7 @@ vi.mock("@/lib/db", () => {
   return { dbAdmin: () => ({ from: (table: string) => builder(table) }) };
 });
 
-import { AT, SITE_ID, fakeCost, memoryStore, opportunity, siteInputs } from "../../generate/fixtures";
+import { AT, NO_OPS, OUTLINE_ANSWER, SITE_ID, draftAnswers, draftParts, fakeCost, memoryStore, opportunity, siteInputs } from "../../generate/fixtures";
 import { generateDraft, type GenerateOutcome } from "@/lib/generate/pipeline";
 import { sweepOutstandingRechecks } from "@/lib/generate/claims/sweep";
 import { setGenerateStore } from "@/lib/generate/store";
@@ -119,12 +119,7 @@ const BODY_MD = [
   "teams notice last and feel most.",
 ].join("\n");
 
-const PAGE = {
-  title: "Which tool should a small team pick?",
-  slug: "which-tool-small-team",
-  description: "How to choose by seat count.",
-  bodyMarkdown: BODY_MD,
-};
+const PAGE = draftParts(BODY_MD);
 
 function measured(value: unknown) {
   return { kind: "measured", value, at: AT };
@@ -138,9 +133,9 @@ function primeSteps(): void {
   llmMock.mockResolvedValueOnce(
     measured({ readerQuestion: "Which tool?", angle: "seats", mustCover: ["seats"], factIndexes: [0] })
   );
-  llmMock.mockResolvedValueOnce(measured({ headings: [PAGE.title, "What decides it", "What the plan includes"] }));
-  llmMock.mockResolvedValueOnce(measured(PAGE));
-  llmMock.mockResolvedValueOnce(measured({ title: "", description: "", order: [0], firstBlock: "", insertFacts: [] }));
+  llmMock.mockResolvedValueOnce(measured(OUTLINE_ANSWER));
+  for (const answer of draftAnswers(PAGE)) llmMock.mockResolvedValueOnce(measured(answer));
+  llmMock.mockResolvedValueOnce(measured(NO_OPS));
   llmMock.mockResolvedValue(measured({ matches: false, matchedIndex: null }));
 }
 
@@ -315,7 +310,7 @@ describe("§8's battery — the record the pipeline wrote is the record the draf
     // site has none, so there is no `profileItems` key — a draft written for
     // an unread site records only the facts.
     expect(Object.keys((row.meta ?? {}) as object).sort()).toEqual(
-      ["description", "factsUsed", "marketFacts"].sort()
+      ["description", "factsUsed", "faq", "marketFacts"].sort()
     );
     // A rule record is still not one of them, under any spelling.
     expect(Object.keys((row.meta ?? {}) as object)).not.toContain("rule_failures");
@@ -378,7 +373,10 @@ describe("§8's battery — the record the pipeline wrote is the record the draf
     // the customer never reads it in review. The row is put in front of the
     // read anyway, because what is under test is the reader: a recorded
     // failure must not come back as a pass just because the other eight did.
-    store.published = [{ ref: "page-1", title: "Which tool?", markdown: BODY_MD }];
+    // The page as the pipeline lays it out is already live on this site.
+    const live = await runPipeline(siteInputs({ doNotClaim: [FORBIDDEN] }));
+    const liveBody = live.ok ? String(store.rows.get(live.draftId)?.body_md ?? "") : "";
+    store.published = [{ ref: "page-1", title: "Which tool?", markdown: liveBody }];
     const outcome = await runPipeline(siteInputs({ doNotClaim: [FORBIDDEN] }));
     const draftId = outcome.ok === false && outcome.reason === "rules" ? outcome.draftId : null;
     expect(draftId).not.toBeNull();

@@ -11,7 +11,7 @@
 // second channel a derived profile could arrive through.
 import "../env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { GROUNDED, fakeCost, opportunity } from "../fixtures";
+import { GROUNDED, OUTLINE_ANSWER, draftAnswers, fakeCost, opportunity } from "../fixtures";
 import { buildPromptInputs, DRAFT_PROMPT_KEYS } from "../../../src/lib/generate/voice/inputs";
 
 const { llmMock } = vi.hoisted(() => ({ llmMock: vi.fn() }));
@@ -24,7 +24,7 @@ const AT = new Date("2026-09-06T00:00:00.000Z");
 
 const BRIEF = { readerQuestion: "Which tool?", angle: "count the seats", mustCover: ["seats"], factIndexes: [0] };
 const OUTLINE = { sections: [{ role: "answer" as const, heading: "Seats" }] };
-const OPS = { title: "", description: "", order: [0], firstBlock: "", insertFacts: [] };
+const OPS = { title: "", description: "", order: [0], openings: [], insertFacts: [] };
 const BODY = {
   title: "Which tool should a small team pick?",
   slug: "which-tool-small-team",
@@ -62,10 +62,12 @@ function measured(value: unknown) {
 }
 
 describe("each step calls its own site at the tier §8 names", () => {
-  it("brief and outline are nano; draft and the answerability pass are Haiku", async () => {
+  it("brief and outline are nano; the draft's calls and the answerability pass are Haiku", async () => {
     llmMock.mockResolvedValueOnce(measured(BRIEF));
-    llmMock.mockResolvedValueOnce(measured({ headings: ["Seats"] }));
-    llmMock.mockResolvedValueOnce(measured(BODY));
+    llmMock.mockResolvedValueOnce(measured(OUTLINE_ANSWER));
+    // The draft is written in turn: its frame, then its one section.
+    llmMock.mockResolvedValueOnce(measured(draftAnswers()[0]));
+    llmMock.mockResolvedValueOnce(measured({ sections: ["Count the seats."] }));
     llmMock.mockResolvedValueOnce(measured(OPS));
 
     const cost = fakeCost();
@@ -78,11 +80,12 @@ describe("each step calls its own site at the tier §8 names", () => {
       [steps.STEP_CALL_SITES.brief, "nano"],
       [steps.STEP_CALL_SITES.outline, "nano"],
       [steps.STEP_CALL_SITES.draft, "haiku"],
+      [steps.STEP_CALL_SITES.sections, "haiku"],
       [steps.STEP_CALL_SITES.answerability, "haiku"],
     ]);
   });
 
-  it("the four call sites are distinct, so a cost report reads by step", () => {
+  it("the call sites are distinct, so a cost report reads by step", () => {
     const sites = Object.values(steps.STEP_CALL_SITES);
     expect(new Set(sites).size).toBe(sites.length);
   });
@@ -109,14 +112,33 @@ describe("the prompt's whole knowledge of the customer is the closed struct", ()
     expect(input.facts).toEqual([GROUNDED.passage]);
   });
 
-  it("an outline whose headings do not fit the type's skeleton is not an outline", async () => {
-    llmMock.mockResolvedValue(measured({ headings: ["One", "Two"] }));
-    const outcome = await steps.outline(fakeCost(), INPUTS, { brief: BRIEF, skeleton: ["answer", "detail", "evidence"] });
-    expect(outcome.kind).toBe("unmeasured");
+  it("an outline is six to ten questions over the blocks the type requires — anything else is not one", async () => {
+    const six = OUTLINE_ANSWER.sections;
+    const required = ["answer", "comparison", "business"] as const;
+    const asked = async (sections: readonly { role: string; heading: string }[]) => {
+      llmMock.mockResolvedValue(measured({ sections }));
+      return steps.outline(fakeCost(), INPUTS, { brief: BRIEF, skeleton: required });
+    };
+
+    expect((await asked(six)).kind).toBe("measured");
+    // Five sections, a required block absent, a heading that is not a question.
+    expect((await asked(six.slice(0, 5))).kind).toBe("unmeasured");
+    expect((await asked(six.map((s) => (s.role === "comparison" ? { ...s, role: "detail" } : s)))).kind).toBe("unmeasured");
+    expect((await asked([{ role: "detail", heading: "The seat limit" }, ...six.slice(1)])).kind).toBe("unmeasured");
+
+    // Twelve are cut to ten from the end, and never at the cost of a required block.
+    const twelve = [
+      ...six.filter((s) => s.role !== "business"),
+      ...[1, 2, 3, 4, 5, 6].map((n) => ({ role: "detail", heading: `What about point ${n}?` })),
+      { role: "business", heading: "How is it handled here?" },
+    ];
+    const cut = await asked(twelve);
+    expect(cut.kind === "measured" && cut.value.sections).toHaveLength(10);
+    expect(cut.kind === "measured" && cut.value.sections.at(-1)?.role).toBe("business");
   });
 
   it("carries the voice text verbatim and nothing derived from the customer", async () => {
-    llmMock.mockResolvedValue(measured({ headings: ["Seats"] }));
+    llmMock.mockResolvedValue(measured(OUTLINE_ANSWER));
     await steps.outline(fakeCost(), INPUTS, { brief: BRIEF, skeleton: ["answer"] });
     const input = llmMock.mock.calls[0]?.[1].input as Record<string, unknown>;
     expect(input.voice).toBe("Plain and direct.");
@@ -127,14 +149,14 @@ describe("the prompt's whole knowledge of the customer is the closed struct", ()
       // `pageJob` and `frame` join this list, not the allowed struct keys:
       // they are this step's own instruction text (issue 900), fixed
       // sentences carrying nothing of the customer's.
-      (key) => !["task", "rules", "brief", "outline", "body", "sections", "facts", "pageJob", "frame"].includes(key)
+      (key) => !["task", "rules", "brief", "outline", "body", "blocks", "required", "facts", "pageJob", "frame"].includes(key)
     );
     const allowed = new Set([...Object.keys(DRAFT_PROMPT_KEYS), "voice"]);
     for (const key of customerKeys) expect(allowed.has(key)).toBe(true);
   });
 
   it("carries the grounded passage word for word", async () => {
-    llmMock.mockResolvedValue(measured(BODY));
+    llmMock.mockResolvedValue(measured({ sections: ["Count the seats."] }));
     await steps.draft(fakeCost(), INPUTS, { brief: BRIEF, outline: OUTLINE, facts: [GROUNDED] });
     const input = llmMock.mock.calls[0]?.[1].input as { grounded: { passage: string } };
     expect(input.grounded.passage).toBe(GROUNDED.passage);

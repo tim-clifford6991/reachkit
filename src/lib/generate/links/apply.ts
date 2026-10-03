@@ -32,7 +32,20 @@ const FENCE_RE = /^```/;
 
 export function applyLinks(
   markdown: string,
-  a: { domain: string; targets: readonly LinkTarget[]; groundedUrl: string }
+  a: {
+    domain: string;
+    targets: readonly LinkTarget[];
+    groundedUrl: string;
+    /** `false` holds the text to the chosen pages without appending the
+     *  ones it did not reach — for a line that is not the body (issue 1137:
+     *  the page's closing line, laid out after the body's links). */
+    appendMissing?: boolean;
+    /** The heading of the section the unreached pages are listed under —
+     *  the page's own section on how the business handles the question
+     *  (SPEC §7, 2026-09-29: "with links to its product, pricing and the
+     *  cluster's hub page"). Absent, or not found, they close the body. */
+    appendUnder?: string;
+  }
 ): string {
   const chosen = new Map<string, string>();
   for (const target of a.targets) {
@@ -70,10 +83,19 @@ export function applyLinks(
     linked.add(key);
     return true;
   });
-  if (missing.length === 0) return lines.join("\n");
+  if (missing.length === 0 || a.appendMissing === false) return lines.join("\n");
 
-  const body = lines.join("\n").replace(/\s+$/, "");
   const list = missing.map((target) => `- [${safeLabel(target.label)}](${safeHref(target.url)})`);
+  const under = a.appendUnder === undefined ? -1 : lines.findIndex((line) => line.trim() === `## ${a.appendUnder}`);
+  if (under >= 0) {
+    // The end of that section: the next H2, or the end of the body.
+    const next = lines.findIndex((line, index) => index > under && /^##[ \t]/.test(line));
+    const end = next < 0 ? lines.length : next;
+    const before = lines.slice(0, end).join("\n").replace(/\s+$/, "");
+    const after = lines.slice(end).join("\n");
+    return `${before}\n\n${list.join("\n")}\n${after === "" ? "" : `\n${after}`}`;
+  }
+  const body = lines.join("\n").replace(/\s+$/, "");
   return `${body}\n\n${list.join("\n")}\n`;
 }
 

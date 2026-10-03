@@ -51,6 +51,8 @@ function page(slug: string, domain = "example.com"): unknown {
     bodyMd: "",
     faq: [],
     publishedAt: new Date("2026-09-01T09:00:00.000Z"),
+    firstPublishedAt: new Date("2026-09-01T09:00:00.000Z"),
+    byline: null,
     liveUrl: `https://content.${domain}/${slug}`,
     record: {
       opportunityId: "opp",

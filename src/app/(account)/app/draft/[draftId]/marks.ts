@@ -16,7 +16,7 @@
 // avoid: the mark a founder sees while typing and the verdict that holds
 // the page would then be two opinions about the same words.
 //
-// **Thirteen of the sixteen run here. Three cannot, and are named.**
+// **Thirteen of the seventeen run here. Four do not, and are named.**
 //
 //   `grounding`          reads the *source page's* text as the measurement
 //                        fetched it — a document this screen does not hold
@@ -33,7 +33,11 @@
 //                        opportunity (`buildPrivateFigureRegister`). Same
 //                        objection, same size.
 //
-// All three still run on every save, where they always have, and all three
+//   `required_blocks`    binds what ReachKit generates and asks nothing of
+//                        a founder's own edit (issue 1137): a page they
+//                        rewrote into five sections has broken no rule.
+//
+// The first three still run on every save, where they always have, and all three
 // still hold the page. What this file changes is *when the founder hears
 // about the other thirteen*, not which rules decide.
 //

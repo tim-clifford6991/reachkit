@@ -1,38 +1,38 @@
-// SPEC §7 · issue 475 — the answerability pass, bounded in code.
+// SPEC §7 · issue 475, issue 1137 — the answerability pass, bounded in code.
 //
-// "An answerability pass may only reorder existing sections, shorten a first
-// block to 40–320 characters where a question heading already exists, and
-// insert evidence already in the brief; it adds no question-shaped headings
-// and never stuffs numerals."
+// The model does not rewrite the page. It returns operations, and this pure
+// function applies the ones inside the bound and drops the rest:
 //
-// So the model no longer rewrites the page. It returns operations, and this
-// pure function applies the ones inside the bound and drops the rest:
-//
-//   · `order`        a permutation of the page's heading sections. Anything
-//                    that is not exactly a permutation is ignored.
-//   · `firstBlock`   a shorter opening paragraph, taken only where the page's
-//                    first section has a question-shaped heading, the text is
-//                    within `ANSWER_FIRST_BLOCK_CHARS`, and it is shorter than
-//                    the paragraph it replaces.
+//   · `order`        a permutation of the page's H2 sections. Anything that
+//                    is not exactly a permutation is ignored.
+//   · `openings`     a section's opening answer (SPEC §7, 2026-09-29: "each
+//                    section opening with its own two- or three-sentence
+//                    answer"). Since issue 1137 the pass may **add** one, not
+//                    only shorten: where a section opens with a list, a
+//                    table or a sub-heading the paragraph is put before it,
+//                    and where it opens with a paragraph the new one replaces
+//                    it only if it is shorter. One to three sentences, one
+//                    paragraph, never a question, never a heading.
 //   · `insertFacts`  a selected passage, word for word, appended to a
 //                    section. An index outside the brief's facts, or a
 //                    passage the page already carries, is ignored.
 //   · `title`, `description`  the SEO half of the pass: the page's metadata,
 //                    never its body.
 //
-// No operation can write a heading, so the pass cannot add a question-shaped
-// one; the only words it can add to the body are the customer's own passages
-// or a shortening of an opening paragraph, which the hard rules still read.
-import { ANSWER_FIRST_BLOCK_CHARS } from "@/lib/config/constants";
-import { isQuestionShaped } from "../rules/text";
+// No operation can write a heading, and none reaches what stands above the
+// first section — the short-answer box and the takeaways are the writer's
+// and are counted where they were written. An opening is the one text the
+// pass can add that is not the customer's own passage, and the hard rules
+// read it like every other sentence on the page.
+import { SENTENCE_END_RE } from "../rules/text";
 import type { DraftBody } from "./steps";
 
 export interface AnswerabilityOps {
   title: string;
   description: string;
   order: readonly number[];
-  /** The shortened opening paragraph, or `""` for none. */
-  firstBlock: string;
+  /** A section's opening answer, by the section's index as written. */
+  openings: readonly { section: number; text: string }[];
   insertFacts: readonly { section: number; fact: number }[];
 }
 
@@ -43,7 +43,24 @@ interface Section {
   blocks: string[];
 }
 
-const HEADING_RE = /^[ \t]*#{1,6}[ \t]+(.*)$/;
+/** A section is an H2: an H3 under it moves with it. */
+const HEADING_RE = /^[ \t]*##[ \t]+(.*)$/;
+/** A block that is not a paragraph of prose. */
+const NOT_PROSE_RE = /^[ \t]*(?:#{1,6}[ \t]|[-*+][ \t]|\d+[.)][ \t]|>|\||:::)/;
+const OPENING = Object.freeze({ minChars: 40, maxChars: 600, maxSentences: 3 } as const);
+
+/** An opening answer the pass may place: one paragraph of prose, one to
+ *  three sentences, that states rather than asks. */
+function isOpening(text: string): boolean {
+  return (
+    !text.includes("\n") &&
+    !NOT_PROSE_RE.test(text) &&
+    !text.endsWith("?") &&
+    text.length >= OPENING.minChars &&
+    text.length <= OPENING.maxChars &&
+    text.split(SENTENCE_END_RE).length <= OPENING.maxSentences
+  );
+}
 
 function sectionsOf(markdown: string): Section[] {
   const sections: Section[] = [{ heading: null, blocks: [] }];
@@ -71,10 +88,6 @@ function markdownOf(sections: readonly Section[]): string {
   return sections
     .flatMap((section) => [...(section.heading === null ? [] : [section.heading]), ...section.blocks])
     .join("\n\n");
-}
-
-function headingText(line: string): string {
-  return HEADING_RE.exec(line)?.[1]?.trim() ?? "";
 }
 
 function isPermutation(order: readonly number[], length: number): boolean {
@@ -108,28 +121,26 @@ export function applyAnswerability(
     inserted.add(fact);
   }
 
+  // Openings next, against the same indexes, once a section.
+  const opened = new Set<number>();
+  for (const { section, text } of ops.openings) {
+    const target = headed[section];
+    const opening = text.trim();
+    if (target === undefined || opened.has(section) || !isOpening(opening)) continue;
+    const original = target.blocks[0];
+    if (original === undefined || NOT_PROSE_RE.test(original)) {
+      target.blocks.unshift(opening);
+    } else if (opening.length < collapse(original).length) {
+      target.blocks[0] = opening;
+    } else {
+      continue;
+    }
+    opened.add(section);
+  }
+
   const ordered = isPermutation(ops.order, headed.length)
     ? ops.order.map((index) => headed[index]!)
     : headed;
-
-  const first = ordered[0];
-  const shortened = ops.firstBlock.trim();
-  const original = first?.blocks[0];
-  if (
-    preamble?.blocks.length === 0 &&
-    first !== undefined &&
-    first.heading !== null &&
-    isQuestionShaped(headingText(first.heading)) &&
-    original !== undefined &&
-    !HEADING_RE.test(original) &&
-    !HEADING_RE.test(shortened) &&
-    !shortened.includes("\n") &&
-    shortened.length >= ANSWER_FIRST_BLOCK_CHARS.min &&
-    shortened.length <= ANSWER_FIRST_BLOCK_CHARS.max &&
-    shortened.length < collapse(original).length
-  ) {
-    first.blocks[0] = shortened;
-  }
 
   return {
     title: ops.title.trim() === "" ? body.title : ops.title,

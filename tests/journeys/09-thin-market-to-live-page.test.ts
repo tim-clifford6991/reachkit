@@ -509,15 +509,15 @@ vi.mock("@anthropic-ai/sdk", () => {
         if (task.startsWith("Write the brief")) {
           return text({ readerQuestion: page.title, angle: "start from the deposits", mustCover: ["deposits"], factIndexes: [0] });
         }
-        if (task.startsWith("Write one heading")) {
-          const sections = (asked.sections as unknown[] | undefined) ?? [];
-          return text({ headings: sections.map((_s, i) => (i === 0 ? page.title : `Section ${i + 1}`)) });
-        }
+        const { draftAnswerFor, outlineFor, partsFromPage } = await import("../generate/fixtures");
+        if (task.startsWith("Choose the page's sections")) return text(outlineFor(page, page.slug));
         if (task.startsWith("Make the page")) {
-          return text({ title: "", description: "", order: [0], firstBlock: "", insertFacts: [] });
+          return text({ title: "", description: "", order: [0, 1, 2, 3, 4, 5], openings: [], insertFacts: [] });
         }
         if (task.startsWith("Decide whether the page states")) return text({ matches: false, matchedIndex: null });
-        if (task.startsWith("Write the page")) return text(page);
+        if (task.startsWith("Write the page") || task.startsWith("Write the sections")) {
+          return text(draftAnswerFor(partsFromPage(page, page.slug), asked as { write?: number[] }));
+        }
         throw new Error(`journey 09: no model answer for task: ${task.slice(0, 80)}`);
       },
     };

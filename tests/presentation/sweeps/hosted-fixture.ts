@@ -61,7 +61,11 @@ export const HOSTED_SWEEP_PAGE: HostedPage = Object.freeze({
     category: "user onboarding software",
     timeZone: "America/New_York",
   }),
-  publishedAt: new Date("2026-09-01T09:00:00.000Z"),
+  // SPEC §7 (2026-09-29): a recorded byline, and a page refreshed since it
+  // was published — the arm that prints both dates.
+  byline: "Ada Lovelace · Founder, Example",
+  publishedAt: new Date("2026-09-08T09:00:00.000Z"),
+  firstPublishedAt: new Date("2026-09-01T09:00:00.000Z"),
   liveUrl: `https://${HOSTED_SWEEP_HOST}/${HOSTED_SWEEP_SLUG}`,
   record: Object.freeze({
     opportunityId: "opp-sweep-fixture",

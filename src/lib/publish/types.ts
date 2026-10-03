@@ -340,6 +340,9 @@ export interface RenderedPage {
   slug: string;
   bodyMd: string;
   meta: Readonly<Record<string, unknown>>;
+  /** SPEC §7 (2026-09-29): the page's byline as generation recorded it
+   *  (`drafts.attribution`). Absent or `null` for a page with none. */
+  byline?: string | null;
   /** The existing page this delivery updates — §7's third asset kind — as
    *  the URL the opportunity recorded. Absent on a new post or page. An
    *  adapter that sees it changes that address and never mints a second. */

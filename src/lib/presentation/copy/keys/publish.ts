@@ -318,6 +318,14 @@ export const PUBLISH_COPY = Object.freeze({
     "published {date} · by {publisher}",
     { slots: { date: "date", publisher: "text" }, fixedBy: "S19 (11a)" },
   ],
+  // SPEC §7 (2026-09-29, issue 1137): the same line once the page has been
+  // refreshed. `{publisher}` is the byline — the founder's name and line
+  // from setup, else the business's name — on both. Drafted under #759's
+  // ruling; the owner corrects it.
+  "hosted.updated": [
+    "published {date} · updated {updated} · by {publisher}",
+    { slots: { date: "date", updated: "date", publisher: "text" }, fixedBy: "issue 1137" },
+  ],
   "hosted.source": [
     "source: {source} · retrieved {date}",
     { slots: { source: "text", date: "date" }, fixedBy: "S19 (11a)" },
@@ -344,6 +352,10 @@ export const PUBLISH_COPY = Object.freeze({
   // outline — a structural claim about the page is not theirs to make.
   // Drafted under the 2026-09-16 ruling (#759); the owner corrects them.
   "body.answer.heading": ["The short answer", { slots: {}, fixedBy: "issue 929" }],
+  // SPEC §7 (owner, 2026-09-29, D4): the label over the `:::takeaways` box,
+  // an eyebrow like the one above. Drafted under #759's ruling (issue 1137);
+  // the owner corrects it.
+  "body.takeaways.heading": ["Key takeaways", { slots: {}, fixedBy: "issue 1137" }],
   // The name the table's own scrolling box carries (owner, PR #973). It is
   // a **landmark label**, not a caption: a box that scrolls has to be
   // reachable from a keyboard (axe `scrollable-region-focusable`, the rule

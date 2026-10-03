@@ -9,9 +9,11 @@
 //      2026-09-29, *Two pools of facts*; issue 1135), handed in by the
 //      caller so every attempt at a date is written from one read;
 //   3. brief (nano), handed a closed projection, choosing facts by index →
-//      outline (nano) over the type's fixed skeleton → grounded draft
-//      (Haiku) → answerability + SEO pass (Haiku), which returns operations
-//      that code applies inside SPEC §7's bound (issue 475);
+//      outline (nano), six to ten sections chosen from the block set with
+//      the type's required blocks among them → grounded draft (Haiku),
+//      returned in parts and laid out in code (`./compose.ts`, issue 1137)
+//      → answerability + SEO pass (Haiku), which returns operations that
+//      code applies inside SPEC §7's bound (issue 475);
 //   4. the draft row, written with the grounded fact and the body;
 //   5. the comparison set, and the hard-rule battery over the finished text
 //      — including the claim check, which is step five;
@@ -56,6 +58,7 @@ import { buildPromptInputs, type KnownPageBrief } from "../voice/inputs";
 import { profileItemsUsed, type PromptProfile } from "../voice/profile-block";
 import { buildComparisonSet } from "./comparison";
 import { applyAnswerability } from "./answerability";
+import { properNouns, withClosing } from "./compose";
 import { allowedFacts, readAllFacts } from "./grounding";
 import { fixNotes, repairable, repairMechanical, type FixNote, type RepairRecord } from "./repair";
 import { NO_RESEARCH, hostOf, type MarketFact, type MarketResearch } from "./research";
@@ -73,6 +76,7 @@ import {
   selectedFactIndexes,
   selectedMarketIndexes,
   targetSearches,
+  writtenPage,
   type PipelineStep,
 } from "./steps";
 
@@ -141,6 +145,11 @@ export async function generateDraft(
      *  caller already holds the market reading it is half made of, so
      *  reading it again would be a second query for a fact in hand. */
     profile: PromptProfile | null;
+    /** SPEC §7 (2026-09-29): the page's byline — the founder's name and
+     *  line from setup, else the business's name. Recorded on the row
+     *  (`drafts.attribution`) and printed by the page, never written by a
+     *  model. `null` where the site has neither. */
+    byline?: string | null;
     /** The passages the customer switched off (#926, #927), from the same
      *  read as the profile. Subtracted from the grounding list below. */
     factsOff: readonly string[];
@@ -247,7 +256,15 @@ export async function generateDraft(
   // 4. The skeleton's outline, the draft, and the bounded answerability
   //    pass. Each re-reads the ceiling; an `unmeasured` result from any of
   //    them is that step's failure and never a rule's.
-  const outlineResult = await outline(c, inputs, { brief: briefResult.value, skeleton });
+  const names = [a.site.businessName ?? "", a.site.domain.split(".")[0] ?? "", ...a.site.rivals];
+  const outlineResult = await outline(c, inputs, {
+    brief: briefResult.value,
+    skeleton,
+    proper: properNouns([...passages, ...cited.map((fact) => fact.passage)], [
+      ...names,
+      ...market.products.map((product) => product.domain.split(".")[0] ?? ""),
+    ]),
+  });
   if (outlineResult.kind === "unmeasured") return stepFailed(a.siteId, "outline", a.draftId);
 
   const draftResult = await draft(c, inputs, {
@@ -265,39 +282,66 @@ export async function generateDraft(
   });
   if (draftResult.kind === "unmeasured") return stepFailed(a.siteId, "draft", a.draftId);
 
-  const ops = await answerability(c, inputs, { body: draftResult.value, facts: passages });
+  // The page, laid out in code from the parts the writer returned (issue
+  // 1137): the short-answer box held to its word count, the takeaways, each
+  // section under the outline's own heading — tidied of what a page never
+  // says.
+  const laidOut = await writtenPage(c, inputs, {
+    parts: draftResult.value,
+    outline: outlineResult.value,
+    tidy: {
+      // Both pools: a quotation stands where it is either's exact words.
+      facts: [...passages, ...cited.map((fact) => fact.passage)],
+      promises: a.profile?.promises ?? [],
+      queries: searches,
+      names,
+    },
+  });
+  if (laidOut.kind === "unmeasured") return stepFailed(a.siteId, "draft", a.draftId);
+  const composed = laidOut.value;
+
+  const ops = await answerability(c, inputs, { body: composed.body, facts: passages });
   if (ops.kind === "unmeasured") return stepFailed(a.siteId, "answerability", a.draftId);
 
   // SPEC §7: the page links to the chosen pages of the customer's own site
   // and to none it guessed — held in code after the bounded answerability
   // pass, before the row is written, so the battery reads and the store
-  // keeps the body a reader will meet.
+  // keeps the body a reader will meet. The closing line is the page's last
+  // word, so it is laid out after the body's links are settled.
   //
   // Then the two things the market pool asks of a finished body (issue
   // 1135): no table cell left empty, and the sources list of the market
   // pages the body cites, written here and never by the model.
-  const answered = applyAnswerability(draftResult.value, ops.value, passages);
+  const answered = applyAnswerability(composed.body, ops.value, passages);
+  const linking = { domain: a.site.domain, targets: a.links, groundedUrl: grounding.fact.url };
   const body = {
     ...answered,
     bodyMarkdown: withSources(
-      completeTables(
-        applyLinks(answered.bodyMarkdown, {
-          domain: a.site.domain,
-          targets: a.links,
-          groundedUrl: grounding.fact.url,
-        })
+      withClosing(
+        completeTables(
+          // The chosen pages the text did not reach are listed in the
+          // section on how the business itself handles the question.
+          applyLinks(answered.bodyMarkdown, {
+            ...linking,
+            appendUnder: outlineResult.value.sections.find((section) => section.role === "business")?.heading,
+          })
+        ),
+        applyLinks(composed.closing, { ...linking, appendMissing: false }),
+        a.links[0]?.url ?? `https://${a.site.domain}/`
       ),
       cited
     ),
   };
+  const blockInputs = {
+    compares: outlineResult.value.sections.some((section) => section.role === "comparison"),
+    faq: composed.faq,
+    domain: a.site.domain,
+  };
 
-  // 4. The row. `attribution` is the name **recorded** for the site and
-  //    nothing else. No column records one today, so it is null and the page
-  //    publishes with no attribution rather than a derived one — which is
-  //    §8 hard rule 2 holding, not a gap in it. The brand the profile
-  //    measured is a measurement and is read by the rules; it is not an
-  //    author, and writing it here would be the generated byline the rule
-  //    exists to prevent.
+  // 4. The row. `attribution` is the page's byline (SPEC §7, 2026-09-29):
+  //    the founder's name and line from setup, else the business's name —
+  //    what the caller read, never what a model wrote. `null` where the
+  //    site has neither, and the page then publishes under its domain.
   const priorRepairs = recordedRepairs(existing?.meta);
   const page = {
     title: body.title,
@@ -327,6 +371,10 @@ export async function generateDraft(
     // measurement that may have moved.
     meta: {
       description: body.description,
+      // SPEC §7 (2026-09-29): "three to six questions buyers ask, stored as
+      // `drafts.meta.faq`" — beside the page, never in its body. The hosted
+      // page's `FAQPage` data is built from this and from nothing else.
+      faq: composed.faq,
       ...(a.profile === null ? {} : { profileItems: profileItemsUsed(a.profile) }),
       factsUsed: selected.map((sourced) => ({
         passage: sourced.fact.passage,
@@ -361,7 +409,7 @@ export async function generateDraft(
       site_id: a.siteId,
       opportunity_id: a.opportunity.id,
       state: GENERATING,
-      attribution: null,
+      attribution: a.byline ?? null,
       scheduled_for: a.scheduledFor,
     });
   } else {
@@ -390,6 +438,7 @@ export async function generateDraft(
       sourceText: grounding.sourceText,
       brief: briefRead,
       factPages: selected.map((sourced) => sourced.fact.url),
+      blocks: blockInputs,
     });
   let markdown = body.bodyMarkdown;
   let outcome = await battery(markdown);

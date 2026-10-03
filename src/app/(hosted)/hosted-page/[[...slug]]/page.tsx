@@ -96,6 +96,7 @@ import {
 import { Surface } from "@/ui/layout";
 import { resolveHost } from "../../resolve-host";
 import { HostedIndex, queryOf } from "./listing";
+import { bylineLine } from "@/lib/publish/render/byline";
 import { hostOf, PAGE_LOCALE, QUIET_LINE, writeDate } from "./present";
 import { classifyBlogRead } from "@/lib/publish/reads/classify";
 
@@ -253,7 +254,9 @@ function articleSchema(page: HostedPage, canonical: string): string {
     ...(description === undefined ? {} : { description }),
     url: canonical,
     mainEntityOfPage: canonical,
-    datePublished: page.publishedAt.toISOString(),
+    // The dates the page itself prints (SPEC §7, 2026-09-29).
+    datePublished: page.firstPublishedAt.toISOString(),
+    dateModified: page.publishedAt.toISOString(),
     inLanguage: PAGE_LOCALE,
     publisher: {
       "@type": "Organization",
@@ -461,10 +464,15 @@ export default async function HostedPageRoute({
             {page.title}
           </h1>
           <p className={QUIET_LINE}>
-            <time dateTime={page.publishedAt.toISOString().slice(0, 10)}>
-              {copy("hosted.published", {
-                date: writeDate(page.publishedAt, page.publisher.timeZone),
-                publisher: page.publisher.name,
+            {/* SPEC §7 (2026-09-29): the byline setup recorded, else the
+                publisher's own name; the day the address first carried a
+                page, and the day it was last refreshed where it has been. */}
+            <time dateTime={page.firstPublishedAt.toISOString().slice(0, 10)}>
+              {bylineLine({
+                byline: page.byline ?? page.publisher.name,
+                published: page.firstPublishedAt,
+                updated: page.publishedAt,
+                timeZone: page.publisher.timeZone,
               })}
             </time>
           </p>

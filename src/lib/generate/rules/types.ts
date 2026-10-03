@@ -7,8 +7,9 @@
 // rival sourcing are joined by the register of figures only ReachKit holds,
 // which is the same promise ("every figure a reader meets is one they can
 // open a source for") applied to the customer's own numbers. Issue 475 adds
-// five more that read the brief, and issue 900 adds `page_frame` — the one
-// rule about stance rather than about a claim — sixteen in all.
+// five more that read the brief, issue 900 adds `page_frame` — the one rule
+// about stance rather than about a claim — and issue 1137 adds
+// `required_blocks`, the one about structure: seventeen in all.
 //
 // Nothing in this file computes and nothing in it speaks: it is types plus
 // one frozen list, so an eleventh rule is a compile error at every call
@@ -21,8 +22,9 @@
 // sentence a model wrote is not shown at all.
 import type { Opportunity } from "@/lib/opportunities";
 import type { StoredReport } from "@/lib/scan/report";
+import type { RequiredBlock } from "./blocks";
 
-/** The sixteen checks, in the order they run. `do_not_claim` is §8's fourth
+/** The seventeen checks, in the order they run. `do_not_claim` is §8's fourth
  *  rule and lives in `../claims/`; every other member is a deterministic
  *  pass over finished text in this directory. */
 export type HardRule =
@@ -46,6 +48,9 @@ export type HardRule =
   | "no_new_question_heading"
   | "traceable_numerals"
   | "first_block_answers"
+  /** SPEC §7 (2026-09-29, issue 1137): the blocks every generated page
+   *  carries (`./blocks.ts`). The one rule about structure. */
+  | "required_blocks"
   | "do_not_claim";
 
 /** The closed list, in the order `runHardRules` runs them — so a failure
@@ -66,6 +71,7 @@ export const HARD_RULES: readonly HardRule[] = Object.freeze([
   "no_new_question_heading",
   "traceable_numerals",
   "first_block_answers",
+  "required_blocks",
   "do_not_claim",
 ] as const);
 
@@ -98,7 +104,9 @@ export interface RuleFailure {
     /** The numeral as it appears in the draft. */
     | { rule: "rival_source"; figure: string }
     | { rule: "no_private_figure"; figure: string }
-    | { rule: "traceable_numerals"; figure: string };
+    | { rule: "traceable_numerals"; figure: string }
+    /** Which block the page lacks — a handle, never a sentence. */
+    | { rule: "required_blocks"; block: RequiredBlock };
 }
 
 /** Every site-scoped input the battery is called with — the **raw stored**

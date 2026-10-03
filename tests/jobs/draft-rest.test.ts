@@ -79,7 +79,7 @@ const EVENING = new Date("2026-09-07T18:00:00.000Z");
 /** The next morning — no site's evening, so only a restart is work. */
 const MORNING = new Date("2026-09-08T09:00:00.000Z");
 
-const STOPPED = "Example wins everything, and always has.";
+const STOPPED = "We tested every tool for months, and this one won.";
 
 function measured(value: unknown) {
   return { kind: "measured", value, at: fixtures.AT };
@@ -91,12 +91,10 @@ function modelWrites(markdown: string): void {
     measured({ readerQuestion: "Which tool?", angle: "count seats", mustCover: ["seats"], factIndexes: [0] })
   );
   llmMock.mockResolvedValueOnce(
-    measured({ headings: ["Which tool should a small team pick?", "What decides it", "What the plan includes"] })
+    measured(fixtures.OUTLINE_ANSWER)
   );
-  llmMock.mockResolvedValueOnce(
-    measured({ title: "A title", slug: "a-title", description: "A description.", bodyMarkdown: markdown })
-  );
-  llmMock.mockResolvedValueOnce(measured({ title: "", description: "", order: [0], firstBlock: "", insertFacts: [] }));
+  for (const answer of fixtures.draftAnswers(fixtures.draftParts(markdown, { title: "A title", slug: "a-title", description: "A description." }))) llmMock.mockResolvedValueOnce(measured(answer));
+  llmMock.mockResolvedValueOnce(measured(fixtures.NO_OPS));
 }
 
 let opportunities: ReturnType<typeof opportunityDoubles.newMemoryState>;
@@ -208,7 +206,7 @@ describe("#788 — Regenerate is carried out by the draft tick", () => {
       id: draftId,
       scheduled_for: "2026-09-08",
       state: "in_review",
-      body_md: fixtures.CLEAN_MARKDOWN,
+      body_md: expect.stringContaining("Start by counting the people who will open it"),
       hard_rules_passed: true,
     });
     expect(statusOf(opportunityId)).toBe("queued");
@@ -262,7 +260,7 @@ describe("#813 — a draft whose claim check cannot run rests in needs_attention
   it("the automatic second attempt runs first, then the date's one row rests and its topic rests", async () => {
     const outcome = await uncheckedEvening();
     expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:step_failed" });
-    expect(llmMock).toHaveBeenCalledTimes(10);
+    expect(llmMock).toHaveBeenCalledTimes(14);
 
     const drafts = db.rows("drafts");
     expect(drafts).toHaveLength(1);
@@ -395,7 +393,10 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     const written = drafts.find((row) => row.state === "in_review");
     // The stopped draft keeps its row and no longer holds the date.
     expect(stopped).toMatchObject({ scheduled_for: null, hard_rule_attempts: 2 });
-    expect(written).toMatchObject({ scheduled_for: "2026-09-08", body_md: fixtures.CLEAN_MARKDOWN });
+    expect(written).toMatchObject({
+      scheduled_for: "2026-09-08",
+      body_md: expect.stringContaining("Start by counting the people who will open it"),
+    });
     expect(written?.opportunity_id).not.toBe(stopped?.opportunity_id);
     expect(statusOf(String(written?.opportunity_id))).toBe("queued");
     expect(statusOf(String(stopped?.opportunity_id))).not.toBe("queued");
@@ -425,7 +426,7 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     for (let attempt = 0; attempt < 4; attempt++) modelWrites(`${STOPPED} ${"Again. ".repeat(attempt)}`);
     const outcome = await draftGenerate.run({ data: {}, now: EVENING });
     expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:rules" });
-    expect(llmMock).toHaveBeenCalledTimes(16);
+    expect(llmMock).toHaveBeenCalledTimes(24);
 
     const drafts = db.rows("drafts");
     expect(drafts.map((row) => row.state)).toEqual(["needs_attention", "needs_attention"]);

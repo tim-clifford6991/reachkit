@@ -66,6 +66,9 @@ export function linksOf(markdownFragment: string): string[] {
  *  less. */
 export function renderOf(markdown: string): string {
   let out = markdown;
+  // A container's fence (`:::answer`, `:::`) is not words: the box's label
+  // is the renderer's, and what a reader meets is what stands inside.
+  out = out.replace(DIRECTIVE_FENCE_RE, "");
   // Fenced code: keep the code's own lines, drop the fence.
   out = out.replace(/^[ \t]*(?:```|~~~)[^\n]*$/gm, "");
   // HTML comments and embedded markup: neither is words the reader meets.
@@ -85,6 +88,11 @@ export function renderOf(markdown: string): string {
   out = out.replace(/`+([^`]+)`+/g, "$1");
   return out;
 }
+
+/** The opening or closing line of a container block (SPEC §7, 2026-09-20):
+ *  `:::answer`, `:::takeaways`, `:::`. */
+const DIRECTIVE_FENCE_RE = /^[ \t]*:::[ \t]*[\w-]*[ \t]*$/gm;
+const DIRECTIVE_LINE_RE = /^[ \t]*:::[ \t]*[\w-]*[ \t]*$/;
 
 /** One sentence of a draft, in both projections. */
 export interface Sentence {
@@ -173,7 +181,9 @@ export function sourceBlocksOf(markdown: string): SourceBlock[] {
   for (const line of markdown.split("\n")) {
     const lineAt = at;
     at += line.length + 1;
-    const isBlank = line.trim().length === 0;
+    // A container's fence separates blocks exactly as a blank line does, so
+    // what stands in a box is read as the paragraph or the list it is.
+    const isBlank = line.trim().length === 0 || DIRECTIVE_LINE_RE.test(line);
     const isQuote = /^[ \t]*>/.test(line);
     const isListItem = /^[ \t]*(?:[-*+]|\d+[.)])[ \t]+/.test(line);
     const isHeading = /^[ \t]*#{1,6}[ \t]+/.test(line);
