@@ -69,6 +69,7 @@ export interface OpportunityRow {
   absorbed_queries: string[];
   ready: boolean;
   unready_reason: string | null;
+  rest_until?: string | null;
   created_at: string;
 }
 
@@ -201,9 +202,11 @@ export interface OpportunityStore {
   /** A row whose draft the customer stopped: `open` or `queued` moves to
    *  `dismissed`, and `done` stays done (SPEC §7, 2026-09-15 — issue 712). */
   markDismissed(opportunityId: string): Promise<void>;
-  /** A row whose stopped draft the founder skipped: `queued` moves back to
-   *  `open`, and no other status moves (issue 833). */
-  markOpen(opportunityId: string): Promise<void>;
+  /** A row whose draft the generator stopped for the last time, or whose
+   *  stopped draft the founder skipped (SPEC §7, D26, issue 1179): it is
+   *  `open` and not ready (`resting`) until `until`. `open` and `queued`
+   *  move; `done` and `dismissed` stay. */
+  rest(opportunityId: string, until: Date): Promise<void>;
   /** The host the site's live hosted destination serves at, or `null`. */
   hostedHostFor(siteId: string): Promise<string | null>;
   /** The pages the site's hosted destination could update — its host and
@@ -285,6 +288,7 @@ export function readOpportunity(row: OpportunityRow): Opportunity {
     absorbedQueries: row.absorbed_queries ?? [],
     ready: row.ready,
     unreadyReason: row.unready_reason as UnreadyReason | null,
+    restUntil: typeof row.rest_until === "string" ? new Date(row.rest_until) : null,
     createdAt: new Date(row.created_at),
   };
 }
@@ -340,7 +344,7 @@ const UNIQUE_VIOLATION = "23505";
 const COLUMNS =
   "id, site_id, scan_id, type, family, target_query, target_ref, proposed_slug, " +
   "title, volume, evidence, acceptance, fit_band, business_fit, source, effort, status, cluster_key, " +
-  "absorbed_queries, ready, unready_reason, created_at";
+  "absorbed_queries, ready, unready_reason, rest_until, created_at";
 
 export function supabaseOpportunityStore(): OpportunityStore {
   return {
@@ -621,13 +625,13 @@ export function supabaseOpportunityStore(): OpportunityStore {
       if (error) throw new Error(`opportunities.markDismissed: ${error.message}`);
     },
 
-    async markOpen(opportunityId) {
+    async rest(opportunityId, until) {
       const { error } = await untyped()
         .from<OpportunityRow>("opportunities")
-        .update({ status: "open" })
+        .update({ status: "open", rest_until: until.toISOString(), ready: false, unready_reason: "resting" })
         .eq("id", opportunityId)
-        .eq("status", "queued");
-      if (error) throw new Error(`opportunities.markOpen: ${error.message}`);
+        .in("status", ["open", "queued"]);
+      if (error) throw new Error(`opportunities.rest: ${error.message}`);
     },
 
     async hostedHostFor(siteId) {

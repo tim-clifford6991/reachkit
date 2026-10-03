@@ -112,7 +112,9 @@ export async function generateDraft(
     opportunity: Opportunity;
     /** The site-local calendar date this page is for. §8: the day's page is
      *  generated the evening before its publish date. */
-    scheduledFor: string;
+    /** `null` only for a stopped row that gave up its date (issue 1179),
+     *  which is rewritten and never inserted. */
+    scheduledFor: string | null;
     site: SiteRuleInputs;
     voiceText: string | null;
     category: string;

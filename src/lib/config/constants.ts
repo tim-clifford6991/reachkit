@@ -1452,6 +1452,14 @@ export const WRITE_VOLUME_FLOOR_PER_MONTH = 10 as const;      // §7
  *  URL in it stays allowed." */
 export const CLUSTER_SUPPRESS_WEEKS = 4 as const;             // §6
 
+/** SPEC §7 (owner, D26, 2026-10-02): "A topic stopped twice, or skipped by
+ *  the founder, rests for 28 days." */
+export const TOPIC_REST_DAYS = 28 as const;                   // §7
+
+/** SPEC §7 (owner, D26): when the day's draft is stopped, the same run
+ *  tries the next-ranked opportunity for the date "at most once more". */
+export const DAY_TOPICS_MAX = 2 as const;                     // §7
+
 /** SPEC §6 (2026-09-29, *Topics by business fit*): two searches whose
  *  stored top tens share this many page addresses are one topic. Drafted
  *  threshold; the owner may correct it (#1131). */

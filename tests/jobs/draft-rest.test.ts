@@ -159,6 +159,13 @@ function statusOf(id: string): string | undefined {
   return opportunities.rows.find((row) => row.id === id)?.status;
 }
 
+/** D26 (issue 1179): the topic is on file, open, and not offered for a day. */
+function restingUntil(id: string): string | null {
+  const row = opportunities.rows.find((candidate) => candidate.id === id);
+  if (row?.status !== "open" || row.ready || row.unready_reason !== "resting") return null;
+  return row.rest_until ?? null;
+}
+
 async function stoppedEvening() {
   modelWrites(STOPPED);
   modelWrites(`${STOPPED} Again.`);
@@ -166,7 +173,7 @@ async function stoppedEvening() {
 }
 
 describe("#788 — a draft the rules stop twice ends in needs_attention, on one row", () => {
-  it("the evening tick leaves one row for the date, resting with its rules, and the opportunity held queued", async () => {
+  it("the evening tick leaves one row for the date, resting with its rules, and its topic rests for 28 days", async () => {
     const outcome = await stoppedEvening();
     expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:rules" });
 
@@ -177,7 +184,7 @@ describe("#788 — a draft the rules stop twice ends in needs_attention, on one 
     expect(draft?.rule_failures).not.toEqual([]);
     const moves = draft?.transitions as { from: string; to: string; reason?: string }[];
     expect(moves.at(-1)).toMatchObject({ from: "generating", to: "needs_attention", reason: expect.stringMatching(/^rules:.+/) });
-    expect(statusOf(opportunityId)).toBe("queued");
+    expect(restingUntil(opportunityId)).toBe("2026-10-05T18:00:00.000Z");
     expect(draftReadyMock).not.toHaveBeenCalled();
   });
 });
@@ -226,7 +233,7 @@ describe("#788 — Regenerate is carried out by the draft tick", () => {
     expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:rules" });
     expect(db.rows("drafts")).toHaveLength(1);
     expect(draft?.state).toBe("needs_attention");
-    expect(statusOf(opportunityId)).toBe("queued");
+    expect(restingUntil(opportunityId)).not.toBeNull();
   });
 });
 
@@ -251,7 +258,7 @@ describe("#813 — a draft whose claim check cannot run rests in needs_attention
     return draftGenerate.run({ data: {}, now: EVENING });
   }
 
-  it("the automatic second attempt runs first, then the date's one row rests and the opportunity stays queued", async () => {
+  it("the automatic second attempt runs first, then the date's one row rests and its topic rests", async () => {
     const outcome = await uncheckedEvening();
     expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:step_failed" });
     expect(llmMock).toHaveBeenCalledTimes(10);
@@ -262,7 +269,7 @@ describe("#813 — a draft whose claim check cannot run rests in needs_attention
     expect(draft).toMatchObject({ scheduled_for: "2026-09-08", state: "needs_attention", hard_rules_passed: false });
     const moves = draft?.transitions as { from: string; to: string; reason?: string }[];
     expect(moves.at(-1)).toMatchObject({ from: "generating", to: "needs_attention", reason: "step_failed:claim_check" });
-    expect(statusOf(opportunityId)).toBe("queued");
+    expect(restingUntil(opportunityId)).not.toBeNull();
     expect(draftReadyMock).not.toHaveBeenCalled();
   });
 
@@ -293,7 +300,7 @@ describe("#813 — a draft whose claim check cannot run rests in needs_attention
     await draftGenerate.run({ data: {}, now: MORNING });
     expect(db.rows("drafts")).toHaveLength(1);
     expect(draft?.state).toBe("needs_attention");
-    expect(statusOf(opportunityId)).toBe("queued");
+    expect(restingUntil(opportunityId)).not.toBeNull();
 
     llmMock.mockClear();
     await draftGenerate.run({ data: {}, now: new Date(MORNING.getTime() + 3_600_000) });
@@ -301,11 +308,9 @@ describe("#813 — a draft whose claim check cannot run rests in needs_attention
   });
 });
 
-describe("issue 833 — a stopped draft counts as queued: no second page for its target", () => {
+describe("D26 (issue 1179) — a stopped draft does not cost its day, and its topic rests", () => {
   /** The evening after the first: the tick drafts for 2026-09-09. */
   const NEXT_EVENING = new Date("2026-09-08T18:00:00.000Z");
-  /** And the one after that, for 2026-09-10. */
-  const THIRD_EVENING = new Date("2026-09-09T18:00:00.000Z");
 
   beforeEach(() => {
     // The day is picked by the real ranking here, over the rows the store holds.
@@ -316,11 +321,34 @@ describe("issue 833 — a stopped draft counts as queued: no second page for its
     for (const row of opportunities.rows) row.ready = true;
   });
 
-  it("the next evening does not pick the held target and states its empty day; after Skip it is picked again", async () => {
+  async function secondTopic(): Promise<string> {
+    const seed = fixtures.opportunity();
+    const other = await opportunityDoubles.memoryStore(opportunities).insert({
+      site_id: fixtures.SITE_ID,
+      scan_id: fixtures.SCAN_ID,
+      type: seed.type,
+      family: seed.family,
+      target_query: "project management software for small teams",
+      target_ref: "project-management-software-for-small-teams",
+      proposed_slug: "project-management-software-for-small-teams",
+      title: "Which project management software suits a small team?",
+      volume: 320,
+      evidence: { ...seed.evidence, query: "project management software for small teams" } as never,
+      acceptance: { form: "top20", query: "project management software for small teams" },
+      fit_band: seed.fitBand,
+      effort: seed.effort,
+    });
+    if (other.outcome !== "created") throw new Error("the second opportunity was refused");
+    for (const row of opportunities.rows) row.ready = true;
+    return other.row.id;
+  }
+
+  it("the next evening does not pick the rested topic and states its empty day; Skip rests it from the skip", async () => {
     await stoppedEvening();
     const [stopped] = db.rows("drafts");
-    expect(stopped?.state).toBe("needs_attention");
-    expect(statusOf(opportunityId)).toBe("queued");
+    expect(stopped).toMatchObject({ state: "needs_attention", scheduled_for: "2026-09-08" });
+    const rested = restingUntil(opportunityId);
+    expect(rested).toBe("2026-10-05T18:00:00.000Z");
 
     llmMock.mockClear();
     const empty = await draftGenerate.run({ data: {}, now: NEXT_EVENING });
@@ -330,13 +358,7 @@ describe("issue 833 — a stopped draft counts as queued: no second page for its
 
     expect(await skipDraft(String(stopped?.id))).toBeNull();
     expect(stopped?.state).toBe("skipped");
-    expect(statusOf(opportunityId)).toBe("open");
-
-    modelWrites(fixtures.CLEAN_MARKDOWN);
-    expect(await draftGenerate.run({ data: {}, now: THIRD_EVENING })).toEqual({ outcome: "ran", subjectId: null });
-    const written = db.rows("drafts").find((row) => row.id !== stopped?.id);
-    expect(written).toMatchObject({ opportunity_id: opportunityId, scheduled_for: "2026-09-10", state: "in_review" });
-    expect(statusOf(opportunityId)).toBe("queued");
+    expect(Date.parse(String(restingUntil(opportunityId)))).toBeGreaterThan(Date.parse(String(rested)));
   });
 
   it("Skip on a page resting after a failed publish still dismisses its target", async () => {
@@ -359,54 +381,81 @@ describe("issue 833 — a stopped draft counts as queued: no second page for its
     expect(statusOf(opportunityId)).toBe("dismissed");
   });
 
-  it("the next evening fills from another target, and the near-duplicate check counts the stopped draft as queued", async () => {
-    const seed = fixtures.opportunity();
-    const other = await opportunityDoubles.memoryStore(opportunities).insert({
+  it("a site whose first-ranked topic is stopped still gets a page that day when the second topic passes", async () => {
+    await secondTopic();
+    modelWrites(STOPPED);
+    modelWrites(`${STOPPED} Again.`);
+    modelWrites(fixtures.CLEAN_MARKDOWN);
+    expect(await draftGenerate.run({ data: {}, now: EVENING })).toEqual({ outcome: "ran", subjectId: null });
+
+    const drafts = db.rows("drafts");
+    expect(drafts).toHaveLength(2);
+    const stopped = drafts.find((row) => row.state === "needs_attention");
+    const written = drafts.find((row) => row.state === "in_review");
+    // The stopped draft keeps its row and no longer holds the date.
+    expect(stopped).toMatchObject({ scheduled_for: null, hard_rule_attempts: 2 });
+    expect(written).toMatchObject({ scheduled_for: "2026-09-08", body_md: fixtures.CLEAN_MARKDOWN });
+    expect(written?.opportunity_id).not.toBe(stopped?.opportunity_id);
+    expect(statusOf(String(written?.opportunity_id))).toBe("queued");
+    expect(statusOf(String(stopped?.opportunity_id))).not.toBe("queued");
+    expect(draftReadyMock).toHaveBeenCalledWith(expect.objectContaining({ draftId: written?.id }));
+  });
+
+  it("the next topic is tried once: a second stop holds the date and no third topic is written", async () => {
+    await secondTopic();
+    const third = await opportunityDoubles.memoryStore(opportunities).insert({
       site_id: fixtures.SITE_ID,
       scan_id: fixtures.SCAN_ID,
-      type: seed.type,
-      family: seed.family,
-      target_query: "project management software for small teams",
-      target_ref: "project-management-software-for-small-teams",
-      proposed_slug: "project-management-software-for-small-teams",
-      title: "Which project management software suits a small team?",
-      volume: 320,
-      evidence: { ...seed.evidence, query: "project management software for small teams" } as never,
-      acceptance: { form: "top20", query: "project management software for small teams" },
-      fit_band: seed.fitBand,
-      effort: seed.effort,
+      type: fixtures.opportunity().type,
+      family: fixtures.opportunity().family,
+      target_query: "kanban board for agencies",
+      target_ref: "kanban-board-for-agencies",
+      proposed_slug: "kanban-board-for-agencies",
+      title: "Which kanban board suits an agency?",
+      volume: 210,
+      evidence: { ...fixtures.opportunity().evidence, query: "kanban board for agencies" } as never,
+      acceptance: { form: "top20", query: "kanban board for agencies" },
+      fit_band: fixtures.opportunity().fitBand,
+      effort: fixtures.opportunity().effort,
     });
-    if (other.outcome !== "created") throw new Error("the second opportunity was refused");
+    if (third.outcome !== "created") throw new Error("the third opportunity was refused");
     for (const row of opportunities.rows) row.ready = true;
 
-    // The evening's page is stopped when its claim check cannot run, so it
-    // rests holding a whole, clean body.
-    const [site] = db.rows("sites");
-    if (site !== undefined) site.do_not_claim = ["ReachKit is the cheapest tool on the market"];
-    for (let attempt = 0; attempt < 2; attempt++) {
-      modelWrites(fixtures.CLEAN_MARKDOWN);
-      llmMock.mockResolvedValueOnce({ kind: "unmeasured", reason: "undeterminable", at: fixtures.AT });
-    }
-    await draftGenerate.run({ data: {}, now: EVENING });
-    const [stopped] = db.rows("drafts");
-    expect(stopped?.state).toBe("needs_attention");
-    const held = String(stopped?.opportunity_id);
-    expect(statusOf(held)).toBe("queued");
+    for (let attempt = 0; attempt < 4; attempt++) modelWrites(`${STOPPED} ${"Again. ".repeat(attempt)}`);
+    const outcome = await draftGenerate.run({ data: {}, now: EVENING });
+    expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:rules" });
+    expect(llmMock).toHaveBeenCalledTimes(16);
 
-    // The next evening writes the same text for the other target: the page
-    // is stopped as a near-duplicate of the draft that waits for the founder.
-    if (site !== undefined) site.do_not_claim = [];
+    const drafts = db.rows("drafts");
+    expect(drafts.map((row) => row.state)).toEqual(["needs_attention", "needs_attention"]);
+    expect(drafts.map((row) => row.scheduled_for)).toEqual([null, "2026-09-08"]);
+    expect(statusOf(third.row.id)).toBe("open");
+    expect(restingUntil(third.row.id)).toBeNull();
+
+    // A second delivery of the tick finds the date held and spends nothing.
+    llmMock.mockClear();
+    await draftGenerate.run({ data: {}, now: EVENING });
+    expect(llmMock).not.toHaveBeenCalled();
+    expect(db.rows("drafts")).toHaveLength(2);
+  });
+
+  it("Write it again on a stopped draft that gave up its date puts it in review on a date of its own", async () => {
+    await secondTopic();
+    modelWrites(STOPPED);
+    modelWrites(`${STOPPED} Again.`);
     modelWrites(fixtures.CLEAN_MARKDOWN);
+    await draftGenerate.run({ data: {}, now: EVENING });
+    const stopped = db.rows("drafts").find((row) => row.state === "needs_attention");
+    // The model double writes one clean text; the page already in review is
+    // set aside so the rewrite is not stopped as its near-duplicate.
+    const written = db.rows("drafts").find((row) => row.state === "in_review");
+    if (written !== undefined) written.state = "skipped";
+
+    expect(await regenerateDraft(String(stopped?.id))).toBeNull();
     modelWrites(fixtures.CLEAN_MARKDOWN);
-    await draftGenerate.run({ data: {}, now: NEXT_EVENING });
-    const next = db.rows("drafts").find((row) => row.id !== stopped?.id);
-    expect(next).toMatchObject({ scheduled_for: "2026-09-09", state: "needs_attention" });
-    expect(next?.opportunity_id).not.toBe(held);
-    expect(next?.rule_failures).toContainEqual(
-      expect.objectContaining({
-        rule: "near_duplicate",
-        detail: expect.objectContaining({ duplicateOf: expect.objectContaining({ kind: "queued", ref: stopped?.id }) }),
-      })
-    );
+    expect(await draftGenerate.run({ data: {}, now: MORNING })).toEqual({ outcome: "ran", subjectId: null });
+    // Its window ends on 2026-09-09, a day no page holds.
+    expect(stopped).toMatchObject({ state: "in_review", scheduled_for: "2026-09-09" });
+    expect(statusOf(String(stopped?.opportunity_id))).toBe("queued");
   });
 });

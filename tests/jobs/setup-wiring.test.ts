@@ -240,7 +240,7 @@ describe("§4.3 — the deep pass is `scan/run` at tier deep", () => {
     selection.mockResolvedValueOnce({ sites: [{ siteId: "site-1", timeZone: "America/New_York" }], held: null });
     const outcome = await engine.kickOffFirstDraft({ siteId: "site-1", now: NOW });
     // 12:00 UTC is 08:00 in New York on 6 Sep, so tomorrow there is the 7th.
-    expect(dayPage).toHaveBeenCalledWith({ siteId: "site-1", publishDate: "2026-09-07" });
+    expect(dayPage).toHaveBeenCalledWith({ siteId: "site-1", publishDate: "2026-09-07", now: NOW });
     expect(outcome).toEqual({ degraded: "first-draft:generate:no_opportunity" });
   });
 

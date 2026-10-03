@@ -14,7 +14,7 @@
 import type { StoredReport } from "@/lib/scan/report";
 import { pageFixesCleared } from "./verdicts/evaluate";
 import { opportunityStore, readOpportunity } from "./store";
-import type { Opportunity, PageFix, UnreadyReason } from "./types";
+import { isResting, type Opportunity, type PageFix, type UnreadyReason } from "./types";
 
 /** Where a fix could be delivered. */
 export type FixDelivery = { kind: "wordpress"; host: string } | { kind: "none" };
@@ -86,8 +86,9 @@ function fixOf(o: Opportunity): { pageUrl: string; issues: readonly PageFix[] } 
  */
 export async function assessFixPages(
   siteId: string,
-  a: { report: StoredReport | null; delivery?: FixDelivery }
+  a: { report: StoredReport | null; delivery?: FixDelivery; now?: Date }
 ): Promise<{ done: number; ready: number }> {
+  const now = a.now ?? new Date();
   const store = opportunityStore();
   const rows = await store.openFixPages(siteId);
   if (rows.length === 0) return { done: 0, ready: 0 };
@@ -114,7 +115,9 @@ export async function assessFixPages(
       }
     }
 
-    const reason = fixPageReadiness(fix, delivery);
+    // SPEC §7 (D26, issue 1179): a fix whose draft was stopped or skipped
+    // rests like any other topic.
+    const reason = isResting(opportunity, now) ? "resting" : fixPageReadiness(fix, delivery);
     if (reason === null) ready += 1;
     if (opportunity.ready !== (reason === null) || opportunity.unreadyReason !== reason) {
       await store.setReadiness(opportunity.id, reason);

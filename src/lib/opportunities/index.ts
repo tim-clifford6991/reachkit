@@ -45,7 +45,7 @@ export { suppressionOf, verdictReason, type NotWorkingVerdict, type Suppression 
 export { nextForDay, opportunityById } from "./next";
 export { contentKindOf, CONTENT_KINDS, type ContentKind } from "./content-kind";
 export { sitePagesFor, type SitePage } from "./site-pages";
-export { dismissForVeto, queueForDraft, releaseForDraft } from "./drafted";
+export { dismissForVeto, queueForDraft, restTopic } from "./drafted";
 
 export { deriveOpportunities, type DeriveInput, type DeriveOutcome } from "./derive";
 export { explainChoice, type Choice } from "./derive/explain";

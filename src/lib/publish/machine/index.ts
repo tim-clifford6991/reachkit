@@ -164,25 +164,33 @@ export async function transition(
   }
 
   log({ draftId, from, to, actor: by.kind, outcome: "moved" });
-  if (to === "skipped") await dismissOpportunityOf(draftId, from);
+  if (to === "skipped" || (from === "needs_attention" && to === "in_review")) {
+    await settleOpportunityOf(draftId, from, to, at);
+  }
   return { ok: true, state: to };
 }
 
 /**
  * SPEC §7 (2026-09-15, issue 712): "a vetoed draft dismisses" its
- * opportunity. One exception (owner, 2026-09-17, issue 833): a draft the
- * generator stopped rests in `needs_attention` holding its opportunity
- * queued, and skipping *that* draft refuses the page, not the target — the
- * opportunity is released to `open` and can fill a later day. Here rather than at each door a page is stopped through —
- * the stop link, the draft screen, the calendar — because every one of them
- * is a move into `skipped` and this is the one place every move is made.
+ * opportunity. Two exceptions, both for a draft the generator stopped,
+ * whose topic rests while the draft waits in `needs_attention` (owner, D26,
+ * 2026-10-02, issue 1179):
  *
- * After the move, and never able to undo it: the page is stopped whether or
- * not the opportunity's row could be written, and a row left `queued` is
- * never offered again anyway. Imported at the call for the reason
- * `guards.ts` imports `@/lib/generate` at its call.
+ *   - skipping *that* draft refuses the page, not the target — the topic
+ *     rests for `TOPIC_REST_DAYS` from the skip and can fill a later day;
+ *   - the founder's edit that passes takes it into review (#1180), and the
+ *     topic is queued behind its page as any written draft's is, so the
+ *     rest does not end with a second page on it.
+ *
+ * Here rather than at each door a page is moved through — the stop link,
+ * the draft screen, the calendar — because this is the one place every
+ * move is made.
+ *
+ * After the move, and never able to undo it: the page is moved whether or
+ * not the opportunity's row could be written. Imported at the call for the
+ * reason `guards.ts` imports `@/lib/generate` at its call.
  */
-async function dismissOpportunityOf(draftId: string, from: State): Promise<void> {
+async function settleOpportunityOf(draftId: string, from: State, to: State, at: Date): Promise<void> {
   try {
     const { data } = await publishDb()
       .from<{ opportunity_id: string | null; transitions: unknown }>("drafts")
@@ -191,9 +199,11 @@ async function dismissOpportunityOf(draftId: string, from: State): Promise<void>
       .limit(1);
     const opportunityId = data?.[0]?.opportunity_id ?? null;
     if (opportunityId === null) return;
-    const { dismissForVeto, releaseForDraft } = await import("@/lib/opportunities");
-    if (from === "needs_attention" && restedFromGenerating(data?.[0]?.transitions)) {
-      await releaseForDraft(opportunityId);
+    const { dismissForVeto, queueForDraft, restTopic } = await import("@/lib/opportunities");
+    if (to === "in_review") {
+      await queueForDraft(opportunityId);
+    } else if (from === "needs_attention" && restedFromGenerating(data?.[0]?.transitions)) {
+      await restTopic(opportunityId, at);
     } else {
       await dismissForVeto(opportunityId);
     }
