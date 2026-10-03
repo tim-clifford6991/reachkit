@@ -140,6 +140,7 @@ beforeEach(async () => {
     type: seed.type,
     family: seed.family,
     target_query: seed.targetQuery,
+    page_type: seed.pageType ?? null,
     target_ref: seed.targetRef,
     proposed_slug: seed.targetRef,
     title: seed.title,

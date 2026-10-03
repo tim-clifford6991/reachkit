@@ -3,10 +3,11 @@
 // §8 states seven hard rules "enforced in code, not prompts". Read as
 // checks over a finished draft they are nine, because rule 2 ("no invented
 // people") is two checks: an attributed quotation and an unsourced
-// testimonial. Issue 475 adds five more that read the brief, issue 900 adds
-// `page_frame` — the one rule about stance rather than about a claim — and
-// issue 1137 adds `required_blocks`, the one about structure: sixteen in
-// all. `no_private_figure` was one more until issue 1187 measured it:
+// testimonial. Issue 475 adds five more that read the brief. Issue 900 added
+// `page_frame` beside `brand_gap`; issue 1136 retired both for *honesty by
+// page type* (SPEC §7, 2026-09-29; D20): `honest_row`, which reads a market
+// comparison, and `fit_claim`, the one other rule a model decides. Issue
+// 1137 adds `required_blocks`, the one about structure: sixteen in all. `no_private_figure` was one more until issue 1187 measured it:
 // `./figures.ts` says why it went.
 //
 // **What a rule is for** (owner, 2026-10-02, D27): to stop an obvious
@@ -27,18 +28,17 @@
 import type { RequiredBlock } from "./blocks";
 
 /** The sixteen checks, in the order they run. `do_not_claim` is §8's fourth
- *  rule and lives in `../claims/`; every other member is a deterministic
- *  pass over finished text in this directory. */
+ *  rule and `fit_claim` is the fit check; both live in `../claims/`. Every
+ *  other member is a deterministic pass over finished text in this
+ *  directory. */
 export type HardRule =
   | "grounding"
   | "rival_source"
   | "no_invented_people"
   | "no_unsourced_testimonial"
-  | "brand_gap"
-  /** SPEC §7 (2026-09-19, issue 900): the page's stance, beside `brand_gap`'s
-   *  opening bound, because they are the same promise at two scales — the
-   *  reader's question comes first, and stays first. */
-  | "page_frame"
+  /** SPEC §7 (D20, issue 1136): on a market comparison the business is in
+   *  the table and never ranks itself "#1 best" (`./honest.ts`). */
+  | "honest_row"
   | "no_hidden_text"
   | "no_machine_address"
   | "near_duplicate"
@@ -52,6 +52,9 @@ export type HardRule =
   /** SPEC §7 (2026-09-29, issue 1137): the blocks every generated page
    *  carries (`./blocks.ts`). The one rule about structure. */
   | "required_blocks"
+  /** SPEC §7 (issue 1136): no claim that the business serves a case the
+   *  knowledge base does not support (`../claims/fit.ts`). */
+  | "fit_claim"
   | "do_not_claim";
 
 /** The closed list, in the order `runHardRules` runs them — so a failure
@@ -61,8 +64,7 @@ export const HARD_RULES: readonly HardRule[] = Object.freeze([
   "rival_source",
   "no_invented_people",
   "no_unsourced_testimonial",
-  "brand_gap",
-  "page_frame",
+  "honest_row",
   "no_hidden_text",
   "no_machine_address",
   "near_duplicate",
@@ -72,8 +74,13 @@ export const HARD_RULES: readonly HardRule[] = Object.freeze([
   "traceable_numerals",
   "first_block_answers",
   "required_blocks",
+  "fit_claim",
   "do_not_claim",
 ] as const);
+
+/** The rules a model decides, each in `../claims/`. Every other rule is a
+ *  deterministic arm of the battery. */
+export type ModelRule = "do_not_claim" | "fit_claim";
 
 /** §8 hard rule 1: "≥1 verifiable fact from the customer's own live pages,
  *  carried with its source URL + read date". The passage is copied word for
@@ -101,6 +108,8 @@ export interface RuleFailure {
       }
     /** The customer's own recorded words, read back from their list. */
     | { rule: "do_not_claim"; matchedEntry: string }
+    /** The page's own sentences that claim a fit, as written. */
+    | { rule: "fit_claim"; sentences: string[] }
     /** The numeral as it appears in the draft. */
     | { rule: "rival_source"; figure: string }
     | { rule: "traceable_numerals"; figure: string }

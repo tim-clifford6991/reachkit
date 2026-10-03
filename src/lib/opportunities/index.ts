@@ -44,6 +44,7 @@ export { canonicalUrl, clusterKey, collapse, comparePrecedence } from "./cluster
 export { suppressionOf, verdictReason, type NotWorkingVerdict, type Suppression } from "./suppression";
 export { nextForDay, opportunityById } from "./next";
 export { contentKindOf, CONTENT_KINDS, type ContentKind } from "./content-kind";
+export { pageTypeOf, PAGE_TYPES, type PageType } from "./page-type";
 export { sitePagesFor, type SitePage } from "./site-pages";
 export { dismissForVeto, queueForDraft, restTopic } from "./drafted";
 

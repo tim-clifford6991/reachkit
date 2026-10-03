@@ -22,20 +22,21 @@
 // reach a model.
 //
 // **What the page is *for* is stated, per type** (SPEC §7, 2026-09-19, issue
-// 900). `pageJobFor` is carried by every prompt built here, and where the
-// target search is the market's question rather than the customer's own
-// brand, `FRAME_INSTRUCTION` is carried with it. Both are derived from the
-// closed struct — the opportunity's own type and target searches, against the
-// brand already in it — so neither is a new channel into a model.
+// 900). `pageJobFor` is carried by every prompt built here, and beside it
+// how the business may appear on a page of this type (`HONESTY_INSTRUCTION`,
+// SPEC §7 *honesty by page type*, issue 1136). Both are derived from the
+// closed struct — the opportunity's own type, search and source — so neither
+// is a new channel into a model.
 import { z } from "zod";
 import { DRAFT_SECTIONS_PER_CALL, PAGE_BLOCKS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm, type LlmCallSite } from "@/lib/llm";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
+import { pageTypeOf } from "@/lib/opportunities/page-type";
 import type { SitePage } from "@/lib/opportunities/site-pages";
 import type { Acceptance, Opportunity } from "@/lib/opportunities/types";
 import { REGISTER_FLOOR } from "../rules/figures";
-import { FRAME_INSTRUCTION, answersMarketQuestion } from "../rules/frame";
+import { HONESTY_INSTRUCTION } from "../rules/honest";
 import type { DraftPromptInputs } from "../voice/inputs";
 import type { PromptProfile } from "../voice/profile-block";
 import { answerBoxOf, answerBoxWords } from "../rules/blocks";
@@ -48,12 +49,20 @@ import { pageJobFor, SECTION_ROLES, SECTION_TASK, type SectionRole } from "./ske
 /** §8's five steps, closed. `claim_check` is the fifth and is run by
  *  `claims/check.ts`; it is a member here because a caller reporting "which
  *  step did not run" has to be able to name it. */
-export type PipelineStep = "brief" | "outline" | "draft" | "answerability" | "claim_check" | "page_read" | "page_fix";
+export type PipelineStep =
+  | "brief"
+  | "outline"
+  | "draft"
+  | "answerability"
+  | "claim_check"
+  | "fit_check"
+  | "page_read"
+  | "page_fix";
 
 /** The `llm()` call site each step ledgers under. One string per step, so a
  *  cost report reads by step without anyone joining a table. */
 export const STEP_CALL_SITES: Readonly<
-  Record<Exclude<PipelineStep, "claim_check" | "page_read"> | "sections" | "answer_box", LlmCallSite>
+  Record<Exclude<PipelineStep, "claim_check" | "fit_check" | "page_read"> | "sections" | "answer_box", LlmCallSite>
 > = Object.freeze({
   brief: "generate.brief",
   outline: "generate.outline",
@@ -151,9 +160,7 @@ const ANSWERABILITY_SCHEMA = z.strictObject({
  * which is the thing this issue exists to end.
  *
  * It still learns no business *name*: `PromptProfile` carries what the
- * business does, sells, promises, serves and says — never who it is. The
- * frame rule of #900 is unaffected, and the brief has no more ability to
- * make the seller the subject than it had before.
+ * business does, sells, promises, serves and says — never who it is.
  */
 export interface BriefProjection {
   cluster: string | null;
@@ -172,10 +179,11 @@ export interface BriefProjection {
   /** What a page of this type is for (issue 900). `null` for a type that
    *  writes no body. */
   pageJob: string | null;
-  /** The frame instruction, where the target is the market's question, and
-   *  `null` where it is the customer's own. A fixed sentence either way — it
-   *  names no business, so the brief still learns nothing of one. */
-  frame: string | null;
+  /** How the business may appear on a page of this type (SPEC §7 *honesty
+   *  by page type*, issue 1136), and `null` for a page with no type — an
+   *  update of the customer's own page. A fixed sentence per type: it names
+   *  no business, so the brief still learns nothing of one. */
+  honesty: string | null;
   /** The confirmed business profile, bounded, or `null` where nothing has
    *  been read of the site (#927). */
   profile: PromptProfile | null;
@@ -214,14 +222,12 @@ export function briefProjection(a: {
   facts: readonly string[];
   doNotClaim: readonly string[];
   voice: string | null;
-  /** Whether the target is the market's question — decided by the caller,
-   *  which holds the brand this projection deliberately does not. */
-  marketQuestion: boolean;
   profile: PromptProfile | null;
   sitePages?: readonly SitePage[];
   marketFacts?: readonly { source: string; claim: string }[];
 }): BriefProjection {
   const o = a.opportunity;
+  const pageType = pageTypeOf(o);
   return {
     cluster: o.clusterKey,
     type: o.type,
@@ -233,7 +239,7 @@ export function briefProjection(a: {
     voice: a.voice,
     acceptance: acceptanceText(o.acceptance),
     pageJob: pageJobFor(o),
-    frame: a.marketQuestion ? FRAME_INSTRUCTION : null,
+    honesty: pageType === null ? null : HONESTY_INSTRUCTION[pageType],
     profile: a.profile,
     sitePages: a.sitePages ?? [],
   };
@@ -258,6 +264,12 @@ export function selectedMarketIndexes(brief: Brief, factCount: number): number[]
   return out;
 }
 
+/** `HONESTY_INSTRUCTION` for the row's page type; `null` where it has none. */
+function honestyFor(opportunity: DraftPromptInputs["opportunity"]): string | null {
+  const pageType = pageTypeOf(opportunity);
+  return pageType === null ? null : HONESTY_INSTRUCTION[pageType];
+}
+
 /** The one shape a prompt takes: the closed struct, plus this step's own
  *  task text and its own upstream artifacts. The struct is spread at the
  *  top level so a reader of a request body can see that it carries exactly
@@ -276,18 +288,11 @@ function promptFor(
     domain: inputs.domain,
     category: inputs.category,
     opportunity: inputs.opportunity,
-    // SPEC §7 (2026-09-19, issue 900): what this page is for, and — where
-    // the search is the market's question and not this business's own — that
-    // the business is one option in it and never its frame.
+    // SPEC §7 (2026-09-19, issue 900; *honesty by page type*, issue 1136):
+    // what this page is for, and how the business may appear on a page of
+    // its type.
     pageJob: pageJobFor(inputs.opportunity),
-    frame: answersMarketQuestion({
-      opportunityType: inputs.opportunity.type,
-      queries: targetSearches(inputs.opportunity),
-      businessName: inputs.businessName,
-      domain: inputs.domain,
-    })
-      ? FRAME_INSTRUCTION
-      : null,
+    honesty: honestyFor(inputs.opportunity),
     grounded: {
       url: inputs.grounded.url,
       readAt: inputs.grounded.readAt.toISOString(),
@@ -312,8 +317,8 @@ function promptFor(
  *  waste the one automatic regeneration on a rule the model would have
  *  respected if asked. */
 const HOUSE_RULES = [
-  "Answer the reader's question before naming the business; its name and domain must not appear in the first 300 characters.",
-  "Do the job `pageJob` states; where `frame` is given it binds, and the page's subject is the reader's question and the options in it, never this business.",
+  "Do the job `pageJob` states; where `honesty` is given it binds, and says how this business appears on the page.",
+  "Never claim this business serves a use, an audience or a market that `profile.knowledge` does not support, and never call it \"#1\" or the best of a category.",
   "State only the facts supplied about the business, each word for word and linked to its source url.",
   "Never invent a byline, an author biography, a persona, a quotation, a testimonial or a review.",
   "Never state a figure about a competitor without linking the page in `marketFacts` it was read from.",
@@ -341,8 +346,6 @@ const HOUSE_RULES = [
   // #927, and the fact rules it does not relax. The profile says what the
   // business is; it holds no price, no figure, no person and no review, and
   // a page that states one of those still needs a `facts` passage for it.
-  // The last clause restates for this input what #900 found: a profile is
-  // a reason a page is specific, never a reason it is an advertisement.
   "Where `profile` is given, write about this business and not a generic one: use its own words from `profile.vocabulary`, and speak to the products, audience and promises the brief chose.",
   "A promise from `profile.promises` may be repeated only in the customer's own wording as given; never sharpen it, never quantify it, and never present it as tested or guaranteed beyond those words.",
   // #1133: the knowledge base. It widens what the page can be specific
@@ -369,7 +372,7 @@ export function brief(c: CostContext, projection: BriefProjection): Promise<Meas
     input: {
       task:
         "Write the brief for one page answering the target search, doing the job " +
-        "`pageJob` states and obeying `frame` where one is given: the question a " +
+        "`pageJob` states and obeying `honesty` where one is given: the question a " +
         "reader arrives with, the angle that answers it, and the points the page must " +
         "cover. Choose the facts the page will state by their index in `facts`; you " +
         "cannot write a fact of your own. `marketFacts` are claims read from public pages " +

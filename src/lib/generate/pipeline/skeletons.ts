@@ -19,10 +19,10 @@
 // stated its *job*, so a page whose shape was answer → comparison → evidence
 // could be filled as an advertisement and still fit. Each type now says, in
 // one sentence the brief, the outline and the draft all carry, what the page
-// is for. Where the target search is the market's question rather than the
-// customer's own brand, `FRAME_INSTRUCTION` (`../rules/frame.ts`) is carried
-// beside it — held there, next to the rule that enforces it, so the sentence
-// the model is given and the bar it is judged against cannot drift apart.
+// is for. How the business may appear on it is the page type's
+// (`HONESTY_INSTRUCTION`, `../rules/honest.ts`, issue 1136) — held there,
+// next to the rule that enforces it, so the sentence the model is given and
+// the bar it is judged against cannot drift apart.
 //
 // Nothing here is a customer-facing sentence. `SECTION_TASK` is what the
 // model is told a section is for, and the model's heading is what the reader

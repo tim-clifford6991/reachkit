@@ -30,7 +30,8 @@ import path from "node:path";
 import { fixNotes } from "@/lib/generate/pipeline/repair";
 import { runDeterministicRules } from "@/lib/generate/rules";
 import { headingsOf, renderOf, sourceBlocksOf } from "@/lib/generate/rules/text";
-import { HARD_RULES, type ComparisonSet, type HardRule } from "@/lib/generate/rules/types";
+import { HARD_RULES, type ComparisonSet, type HardRule, type ModelRule } from "@/lib/generate/rules/types";
+import { pageTypeOf } from "@/lib/opportunities/page-type";
 import type { OpportunityType } from "@/lib/opportunities/types";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { EVAL_SET } from "./set";
@@ -42,8 +43,8 @@ export interface RulesOptions {
   baseline: boolean;
 }
 
-type Deterministic = Exclude<HardRule, "do_not_claim">;
-const RULES = HARD_RULES.filter((rule): rule is Deterministic => rule !== "do_not_claim");
+type Deterministic = Exclude<HardRule, ModelRule>;
+const RULES = HARD_RULES.filter((rule): rule is Deterministic => rule !== "do_not_claim" && rule !== "fit_claim");
 
 interface Page {
   /** Stable across runs: the key verdicts and the baseline are held under. */
@@ -181,7 +182,7 @@ function firesOn(
     markdown: page.markdown,
     title: page.title,
     rendered: renderOf(page.markdown),
-    opportunityType: page.type,
+    pageType: pageTypeOf({ type: page.type, targetQuery: page.queries[0] ?? null }),
     site: {
       businessName: brandOf(a.report),
       domain: page.domain,
@@ -231,7 +232,7 @@ function ownPageFires(domain: string): { blocks: number; fires: Record<string, n
         markdown: block,
         title: "",
         rendered: block,
-        opportunityType: null,
+        pageType: null,
         site: { businessName: brandOf(report), domain, doNotClaim: [], rivals },
         comparison: { published: [], measured: [], queued: [] },
         grounded: { url: page.url, readAt: new Date(page.readAt), passage: block },
@@ -321,7 +322,7 @@ export async function main(opts: RulesOptions): Promise<number> {
     "",
     "**How a false positive is counted.** A rule that fires is read against the page. It is a violation where the page does what the rule exists to stop, and a false positive otherwise; each reading and its reason is in `scripts/eval-content/stored-drafts/verdicts.json`. A fire nobody has read counts as a false positive. The rate is false positives over all pages in the set.",
     "",
-    `**Result.** After the change no rule fires wrongly on any of the ${storedCount + keptCount} pages. Pages no deterministic rule stops: stored ${passing("stored", baseline.pages)} of ${storedCount} before, ${passing("stored", fires)} after; evaluation ${passing("evaluation", baseline.pages)} of ${keptCount} before, ${passing("evaluation", fires)} after. The five stored drafts still stopped are the five adverts.`,
+    `**Result.** After the change no rule fires wrongly on any of the ${storedCount + keptCount} pages. Pages no deterministic rule stops: stored ${passing("stored", baseline.pages)} of ${storedCount} before, ${passing("stored", fires)} after; evaluation ${passing("evaluation", baseline.pages)} of ${keptCount} before, ${passing("evaluation", fires)} after. Since #1136 the five stored adverts are no longer a deterministic rule's to stop: \`honest_row\` stops the one that ranks the business in its title, and the fit check — a model call, not re-run here — stopped four of the five on 2026-10-03 (\`fit_claim\`, below).`,
     "",
     "## Each rule: what it guards, and how often it was wrong",
     "",
@@ -330,7 +331,7 @@ export async function main(opts: RulesOptions): Promise<number> {
   ];
   for (const rule of HARD_RULES) {
     const purpose = purposes[rule]!;
-    if (rule === "do_not_claim") {
+    if (rule === "do_not_claim" || rule === "fit_claim") {
       lines.push(`| \`${rule}\` | ${purpose.guards} | not re-run: it is a model call | — | not re-run | — | — | ${purpose.decision} |`);
       continue;
     }

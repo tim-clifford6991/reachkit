@@ -29,6 +29,10 @@
     "page_frame": {
       "falsePositive": false,
       "why": "All three headings name ReachKit."
+    },
+    "honest_row": {
+      "falsePositive": false,
+      "why": "Its title is \"Best AI SEO Software: ReachKit Writes Your Way to Discovery\": the page ranks the business best by its own word."
     }
   },
   "reachkit.app/05-07ee19c4.md": {

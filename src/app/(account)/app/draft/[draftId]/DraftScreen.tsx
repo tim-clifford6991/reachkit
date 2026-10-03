@@ -326,7 +326,7 @@ export function DraftScreen(p: {
       domain: view.domain,
       doNotClaim: view.ruleFacts.doNotClaim,
       rivals: view.ruleFacts.rivals,
-      opportunityType: view.ruleFacts.opportunityType,
+      pageType: view.ruleFacts.pageType,
       brief: {
         // The brief's passages, off the record #931 already reads for
         // *Written from your business* — one `drafts.meta` key, read once.

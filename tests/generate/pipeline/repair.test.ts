@@ -58,9 +58,9 @@ describe("fixNotes", () => {
   it("names the sentences that broke each rule", () => {
     const markdown = `${OPENING}\n\nIt once won 47 awards. Seats matter most.`;
     const failed = checkTraceableNumerals({ markdown, brief: BRIEF })!;
-    expect(fixNotes(markdown, [failed, { rule: "brand_gap" }], BRIEF)).toEqual([
+    expect(fixNotes(markdown, [failed, { rule: "honest_row" }], BRIEF)).toEqual([
       { rule: "traceable_numerals", sentences: ["It once won 47 awards."] },
-      { rule: "brand_gap", sentences: [] },
+      { rule: "honest_row", sentences: [] },
     ]);
   });
 });

@@ -213,7 +213,10 @@ export const INFERENCE_MAX_RETRIES = 0 as const;
  *  - `generate.outline` — one `{ heading, covers }` per point: ~600 needed.
  *  - `generate.draft`, `generate.answerability` — a whole page of
  *    Markdown; the seam's old ceiling, unchanged.
- *  - `generate.claim_check` — `{ matches, matchedIndex }`: ~20 needed. */
+ *  - `generate.claim_check` — `{ matches, matchedIndex }`: ~20 needed.
+ *  - `generate.fit_check` — `{ unsupported: { index, claims }[] }`, a few
+ *    words a sentence, and few sentences on a page that fails: ~20 each
+ *    (issue 1136). */
 export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   profile: 700,
   "question-phrasing": 800,
@@ -248,6 +251,7 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
    *  pages — up to `RESEARCH.claimsPerPage` quotations of a sentence or two
    *  each, ~60 tokens a claim. */
   "generate.research": 2048,
+  "generate.fit_check": 512,
   /** The site profile's one call (issue #577, SPEC.md §2 "The scan builds
    *  the site profile"): the site name, its products and claims, and the
    *  five-member brand-voice summary with the paragraph the customer
@@ -927,6 +931,11 @@ export const SCORING = Object.freeze({                    // BP-010 d2 · BUILD 
 export const GENERATION = Object.freeze({
   duplicateThreshold: 0.85, regenerations: 1,
 } as const);
+
+/** SPEC §7 *honesty by page type* (issue 1136): the most sentences naming
+ *  the business one fit check reads. A page of 2,500 words that names it in
+ *  every paragraph stays inside the check's one small call. */
+export const FIT_CHECK_MAX_SENTENCES = 40;
 
 export const SUPPLY = Object.freeze({
   deepTarget: 30, shortThreshold: 7,

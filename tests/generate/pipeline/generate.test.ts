@@ -30,8 +30,9 @@ import {
   siteInputs,
   type MemoryStore,
 } from "../fixtures";
-import { FRAME_INSTRUCTION } from "../../../src/lib/generate/rules/frame";
+import { HONESTY_INSTRUCTION } from "../../../src/lib/generate/rules/honest";
 import { KIND_JOB } from "../../../src/lib/generate/pipeline/skeletons";
+import type { PromptProfile } from "../../../src/lib/generate/voice/profile-block";
 
 const { llmMock, readMeasuredTextMock } = vi.hoisted(() => ({
   llmMock: vi.fn(),
@@ -54,8 +55,8 @@ function body(markdown: string, over: Record<string, unknown> = {}) {
   return draftParts(markdown, over);
 }
 
-/** A short answer that names the business before answering. */
-const BRAND_ANSWER = { answer: `Acme is the answer. ${CLEAN_ANSWER}` };
+/** A short answer that claims a test nobody ran. */
+const STOPPED_ANSWER = { answer: `We tested every tool for months. ${CLEAN_ANSWER}` };
 
 function measured(value: unknown) {
   return { kind: "measured", value, at: AT };
@@ -172,14 +173,14 @@ describe("a draft that clears every rule", () => {
 
 describe("a draft that fails a rule is never queued and takes no day", () => {
   it("returns `ok: false` with the rules that stopped it and the attempt number", async () => {
-    primeSteps(CLEAN_MARKDOWN, undefined, BRAND_ANSWER);
+    primeSteps(CLEAN_MARKDOWN, undefined, STOPPED_ANSWER);
     const outcome = await run();
     expect(outcome.ok).toBe(false);
     expect(outcome).toMatchObject({ reason: "rules", attempt: 1, recovery: "regenerate_once" });
   });
 
   it("a second automatic attempt that fails again comes to rest", async () => {
-    primeSteps(CLEAN_MARKDOWN, undefined, BRAND_ANSWER);
+    primeSteps(CLEAN_MARKDOWN, undefined, STOPPED_ANSWER);
     const first = await run();
     const draftId = first.ok === false && first.reason === "rules" ? first.draftId : null;
     expect(draftId).not.toBeNull();
@@ -366,6 +367,9 @@ describe("a page answers the question it targets (issue 900)", () => {
   const LISTED = opportunity({
     type: "listed_page",
     family: "earn",
+    // Not stored, so the type is read off the row: a "best X" is a market
+    // comparison.
+    pageType: null,
     targetQuery: "best ai seo software",
     targetRef: "best-ai-seo-software",
     acceptance: { form: "top20", query: "best ai seo software" },
@@ -377,27 +381,19 @@ describe("a page answers the question it targets (issue 900)", () => {
     return llmMock.mock.calls[index]?.[1].input as Record<string, unknown>;
   }
 
-  it("the brief prompt carries the type's job and the frame instruction", async () => {
+  it("the brief and the draft prompts carry the type's job and how the business appears on a market comparison", async () => {
     primeSteps(CLEAN_MARKDOWN);
     await run({ opportunity: LISTED });
-    expect(promptOf(0).pageJob).toBe(KIND_JOB.comparison);
-    expect(promptOf(0).frame).toBe(FRAME_INSTRUCTION);
+    for (const index of [0, 2]) {
+      expect(promptOf(index).pageJob).toBe(KIND_JOB.comparison);
+      expect(promptOf(index).honesty).toBe(HONESTY_INSTRUCTION.market_comparison);
+    }
   });
 
-  it("the draft prompt carries them too — the instruction is not dropped after the brief", async () => {
+  it("a search anchored on the product is told the product is the subject", async () => {
     primeSteps(CLEAN_MARKDOWN);
-    await run({ opportunity: LISTED });
-    expect(promptOf(2).pageJob).toBe(KIND_JOB.comparison);
-    expect(promptOf(2).frame).toBe(FRAME_INSTRUCTION);
-  });
-
-  it("a target that names the business carries the job but no frame instruction — it is their own question", async () => {
-    primeSteps(CLEAN_MARKDOWN);
-    await run({
-      opportunity: opportunity({ ...LISTED, targetQuery: "acme pricing", absorbedQueries: [] }),
-    });
-    expect(promptOf(0).pageJob).toBe(KIND_JOB.comparison);
-    expect(promptOf(0).frame).toBeNull();
+    await run({ opportunity: opportunity({ ...LISTED, targetQuery: "acme vs rival", source: "product" }) });
+    expect(promptOf(0).honesty).toBe(HONESTY_INSTRUCTION.product);
   });
 
   it("the grounding offered is not only the pricing page", async () => {
@@ -425,13 +421,84 @@ describe("a page answers the question it targets (issue 900)", () => {
     expect(facts.some((fact) => fact.startsWith("The starter plan includes"))).toBe(true);
   });
 
-  it("a draft that makes the seller its subject is stopped by `page_frame` and nothing else is weakened", async () => {
-    // The frame is what the page announces: its title names the seller.
-    primeSteps(CLEAN_MARKDOWN, undefined, { title: "Best AI SEO Software: Acme Writes Your Way In" });
-    const outcome = await run({ opportunity: LISTED });
-    expect(outcome.ok).toBe(false);
-    expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed.map((f) => f.rule)).toContain(
-      "page_frame"
-    );
+  /** A comparison that is in the business's favour and honest about it. */
+  const COMPARISON = [
+    "The best ai seo software for a small team is the one that measures where buyers",
+    "are sent today and then writes the pages that change it, without a second hire.",
+    "",
+    "## The options compared",
+    "",
+    "| Option | Writes pages | Publishes on your domain |",
+    "| --- | --- | --- |",
+    "| Acme | Yes | Yes |",
+    "| Rival | Yes | No |",
+    "",
+    "Acme is the best fit for a team with nobody to write, and Rival suits a team that",
+    "already has an editor.",
+  ].join("\n");
+
+  it("a product-anchored page that names the business in its title and opening is not stopped", async () => {
+    primeSteps("Acme and Rival both measure where buyers are sent, and Acme also writes the page that answers them for you.");
+    llmMock.mockResolvedValueOnce(measured({ ...NO_OPS, title: "Acme vs Rival: which one writes the page?" }));
+    const outcome = await run({
+      opportunity: opportunity({ ...LISTED, pageType: null, targetQuery: "acme vs rival", source: "product" }),
+    });
+    expect(outcome.ok).toBe(true);
+  });
+
+  it("a market comparison that leads with the business and says who it suits passes", async () => {
+    primeSteps(COMPARISON);
+    expect((await run({ opportunity: LISTED })).ok).toBe(true);
+  });
+
+  it("a market comparison that leaves the business out of its table, or ranks it #1, is stopped by `honest_row`", async () => {
+    for (const page of [COMPARISON.replace("| Acme | Yes | Yes |\n", ""), `${COMPARISON}\n\nAcme is the #1 ai seo software.`]) {
+      primeSteps(page);
+      const outcome = await run({ opportunity: LISTED, site: siteInputs({ rivals: ["rival.example"] }) });
+      expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed.map((f) => f.rule)).toContain(
+        "honest_row"
+      );
+    }
+  });
+
+  const PROFILE: PromptProfile = {
+    job: "writes pages that get a business named in AI answers",
+    products: ["Acme"],
+    audience: ["small software teams"],
+    promises: [],
+    vocabulary: [],
+    knowledge: {
+      offerings: [{ name: "Acme", features: ["daily pages"], prices: [], uses: ["AI answer visibility"], from: "https://example.com/" }],
+      audience: [{ text: "small software teams", from: "https://example.com/" }],
+      problems: [],
+      proof: [],
+      questions: [],
+      integrations: [],
+      places: [],
+      differentiators: [],
+      byline: null,
+    },
+  };
+
+  it("a claim of a fit the knowledge base does not support is stopped by the fit check, in the page's own words", async () => {
+    const claim = "Acme is the best local SEO software for plumbers.";
+    primeSteps(`${CLEAN_MARKDOWN}\n\n${claim}`, { unsupported: [{ index: 0, claims: "local SEO software" }] });
+    const outcome = await run({ profile: PROFILE });
+    expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed).toEqual([
+      { rule: "fit_claim", detail: { rule: "fit_claim", sentences: [claim] } },
+    ]);
+    // Only the sentences that name the business were sent, beside the knowledge base.
+    const asked = llmMock.mock.calls.find((call) => call[1].site === "generate.fit_check")?.[1].input;
+    expect(asked.sentences).toEqual([{ index: 0, sentence: claim }]);
+    expect(asked.knowledge).toBe(PROFILE.knowledge);
+  });
+
+  it("a fit check that could not run holds the page without counting an attempt", async () => {
+    primeSteps(`${CLEAN_MARKDOWN}\n\nAcme writes the page for you.`);
+    llmMock.mockResolvedValue({ kind: "unmeasured", reason: "vendor_error", at: AT });
+    const outcome = await run({ profile: PROFILE });
+    expect(outcome).toMatchObject({ ok: false, reason: "step_failed", step: "fit_check" });
+    const row = outcome.ok === false && outcome.draftId !== null ? store.rows.get(outcome.draftId) : undefined;
+    expect(row).toMatchObject({ hard_rule_attempts: 0, hard_rules_passed: false });
   });
 });

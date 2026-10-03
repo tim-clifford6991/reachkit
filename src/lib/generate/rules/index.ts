@@ -1,16 +1,17 @@
 // BUILD §8 — the hard-rule battery.
 //
 // §8's rules are "enforced in code, not prompts", and this is the one place
-// they are all run. Fifteen of the sixteen are deterministic passes over finished
-// text and cost nothing; the last is the do-not-claim check, which owns
-// its own module and is called from here rather than re-implemented.
+// they are all run. Fourteen of the sixteen are deterministic passes over finished
+// text and cost nothing; the last two are the fit check and the do-not-claim
+// check, which own their modules and are called from here rather than
+// re-implemented.
 //
 // **Every rule runs, and the failure list carries all of them** — not the
 // first. A draft stopped by three rules is one the customer's next
 // regeneration has to clear three times, and reporting one at a time would
 // spend the single automatic attempt learning that.
 //
-// **An unrun claim check is not a rule failure.** "We could not check" is
+// **An unrun claim check or fit check is not a rule failure.** "We could not check" is
 // not "it failed": it does not populate `failed`, it does not consume the
 // one automatic regeneration, and it is returned to the caller as a step
 // that did not run. Regenerating would not make an unavailable model
@@ -31,8 +32,9 @@ import {
   type BriefRuleInputs,
 } from "./brief";
 import { checkRequiredBlocks, type BlockRuleInputs } from "./blocks";
-import { checkBrandGap } from "./brandgap";
-import { checkPageFrame } from "./frame";
+import { fitCheck, type FitVerdict } from "../claims/fit";
+import type { PromptKnowledge } from "../voice/profile-block";
+import { checkHonestRow } from "./honest";
 import { checkGrounding } from "./grounding";
 import { checkHiddenText } from "./hidden";
 import { checkMachineAddress } from "./machine";
@@ -41,37 +43,48 @@ import { checkInventedPeople, checkUnsourcedTestimonial } from "./people";
 import { checkRivalSource } from "./rivals";
 import { renderOf, withoutReferenceLists } from "./text";
 import { HARD_RULES } from "./types";
-import type { ComparisonSet, GroundedFact, HardRule, RuleFailure, SiteRuleInputs } from "./types";
-import type { OpportunityType } from "@/lib/opportunities/types";
+import type { ComparisonSet, GroundedFact, HardRule, ModelRule, RuleFailure, SiteRuleInputs } from "./types";
+import type { PageType } from "@/lib/opportunities/types";
 
+/** `fit` is the fit check's own verdict, carried beside the claim check's
+ *  for the same reason: `unrun` is neither a pass nor a failure, and the
+ *  caller holds the page on it. */
 export type BatteryOutcome =
-  | { passed: true; claim: ClaimVerdict }
-  | { passed: false; failed: RuleFailure[]; claim: ClaimVerdict };
+  | { passed: true; claim: ClaimVerdict; fit: FitVerdict }
+  | { passed: false; failed: RuleFailure[]; claim: ClaimVerdict; fit: FitVerdict };
+
+/** Whether the battery both ran in full and found nothing: the one answer
+ *  that lets a page move toward review. */
+export function batteryCleared(outcome: BatteryOutcome): boolean {
+  return outcome.passed && outcome.claim.state === "passed" && outcome.fit.state === "passed";
+}
 
 /** Observability: which rules failed and the duplicated ref. **Never** the
  *  draft body, the grounded passage, or a list entry. */
-function logBattery(a: { failed: readonly RuleFailure[]; claimState: string }): void {
+function logBattery(a: { failed: readonly RuleFailure[]; claimState: string; fitState: string }): void {
   console.log(
     JSON.stringify({
       event: "hard_rules_ran",
       failed: a.failed.map((failure) => failure.rule),
       claim: a.claimState,
+      fit: a.fitState,
     })
   );
 }
 
-/** Everything the fifteen deterministic rules read. */
+/** Everything the fourteen deterministic rules read. */
 export interface DeterministicInputs {
   markdown: string;
-  /** The title as written. The frame rule reads it: a title is the first
-   *  place a page announces whose story it is (issue 900). */
+  /** The title as written. The honest row and the fit check read it: a
+   *  title is the first place a page says what the business is. */
   title: string;
   /** What a reader of the published page meets. */
   rendered: string;
-  /** The type of the opportunity the page answers, which decides whether
-   *  the frame rule applies at all. `null` where the caller holds no row
-   *  for it — and then that rule decides nothing (issue 900). */
-  opportunityType: OpportunityType | null;
+  /** The page's type (SPEC §7, issue 1136), which chooses the rule set:
+   *  `honest_row` reads a market comparison. `null` where the page has
+   *  none — an Improve page, or a caller that holds no row — and then
+   *  that rule decides nothing. */
+  pageType: PageType | null;
   site: SiteRuleInputs;
   comparison: ComparisonSet;
   grounded: GroundedFact | null;
@@ -91,19 +104,19 @@ export interface DeterministicInputs {
 }
 
 /**
- * The fifteen deterministic arms, keyed by the rule they answer for. No
+ * The fourteen deterministic arms, keyed by the rule they answer for. No
  * model and no I/O, so the same call re-measures a stored draft
  * (`scripts/eval-content/rules.ts`, issue 1187).
  *
  * **Total, not partial** (issue #424). A rule with no arm here would be
  * read as one that failed nothing — by the battery's loop, which is how
  * `passed` is decided, and by the record the draft view's Checks list is
- * drawn from. Spelling the fifteen as a total record makes an undecided rule
+ * drawn from. Spelling the fourteen as a total record makes an undecided rule
  * a compile error rather than a pass the product hands out for free.
  */
 export function runDeterministicRules(
   given: DeterministicInputs
-): Record<Exclude<HardRule, "do_not_claim">, RuleFailure | null> {
+): Record<Exclude<HardRule, ModelRule>, RuleFailure | null> {
   const a = withoutSources(given);
   return {
     grounding: checkGrounding({ grounded: a.grounded, sourceText: a.sourceText }),
@@ -122,19 +135,13 @@ export function runDeterministicRules(
       markdown: a.markdown,
       ...(a.brief.marketFacts === undefined ? {} : { quotable: poolPassages(a.brief) }),
     }),
-    brand_gap: checkBrandGap({
-      markdown: a.markdown,
-      businessName: a.site.businessName,
-      domain: a.site.domain,
-      queries: a.brief.queries,
-    }),
-    page_frame: checkPageFrame({
+    honest_row: checkHonestRow({
       title: a.title,
       markdown: a.markdown,
       businessName: a.site.businessName,
       domain: a.site.domain,
-      opportunityType: a.opportunityType,
-      queries: a.brief.queries,
+      rivals: a.site.rivals,
+      pageType: a.pageType,
     }),
     no_hidden_text: checkHiddenText({ markdown: a.markdown }),
     no_machine_address: checkMachineAddress({ rendered: a.rendered }),
@@ -155,14 +162,30 @@ function withoutSources(given: DeterministicInputs): DeterministicInputs {
   return markdown === given.markdown ? given : { ...given, markdown, rendered: renderOf(markdown) };
 }
 
-export async function runHardRules(c: CostContext, given: DeterministicInputs): Promise<BatteryOutcome> {
-  const a = withoutSources(given);
+export async function runHardRules(
+  c: CostContext,
+  given: DeterministicInputs & {
+    /** The knowledge base the fit check judges against. Absent where
+     *  nothing was read or said of the business, and where the page is the
+     *  founder's own edit — what a founder writes of their business is the
+     *  founder's word, not a claim to check against what was read of it. */
+    knowledge?: PromptKnowledge;
+  }
+): Promise<BatteryOutcome> {
+  const a = { ...withoutSources(given), knowledge: given.knowledge };
   // Assembled in `HARD_RULES` order below rather than in whatever order the
   // calls happen to be written in.
   const deterministic = runDeterministicRules(a);
 
-  // The last. `claimCheck` owns the match; this file holds no second
-  // implementation of it.
+  // The last two, each owning its own judgement; this file holds no second
+  // implementation of either.
+  const fit = await fitCheck(c, {
+    title: a.title,
+    markdown: a.markdown,
+    businessName: a.site.businessName,
+    domain: a.site.domain,
+    knowledge: a.knowledge,
+  });
   const claim = await claimCheck(c, { text: a.markdown, list: a.site.doNotClaim });
 
   const failed: RuleFailure[] = [];
@@ -176,10 +199,16 @@ export async function runHardRules(c: CostContext, given: DeterministicInputs): 
       }
       continue;
     }
+    if (rule === "fit_claim") {
+      if (fit.state === "failed") {
+        failed.push({ rule: "fit_claim", detail: { rule: "fit_claim", sentences: fit.sentences } });
+      }
+      continue;
+    }
     const failure = deterministic[rule];
     if (failure != null) failed.push(failure);
   }
 
-  logBattery({ failed, claimState: claim.state });
-  return failed.length === 0 ? { passed: true, claim } : { passed: false, failed, claim };
+  logBattery({ failed, claimState: claim.state, fitState: fit.state });
+  return failed.length === 0 ? { passed: true, claim, fit } : { passed: false, failed, claim, fit };
 }

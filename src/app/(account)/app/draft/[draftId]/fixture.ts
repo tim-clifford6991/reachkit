@@ -112,7 +112,7 @@ const FIXTURE_RULE_FACTS: RuleFacts = Object.freeze({
   doNotClaim: ["the best CRM on the market", "guaranteed results"],
   rivals: ["hubspot.com", "pipedrive.com"],
   queries: ["best crm for small teams", "crm for a five person team"],
-  opportunityType: "answer_page",
+  pageType: "answer",
 });
 
 

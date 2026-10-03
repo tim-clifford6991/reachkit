@@ -5,7 +5,7 @@
 // was offered "Reconnect WordPress", whatever put it there and whatever
 // the site publishes to. The owner's dogfood page (2026-09-18) rests in
 // `needs_attention` because three §8 hard rules stopped the writing —
-// `rules:no_private_figure,no_unsourced_testimonial,brand_gap` — on a site
+// `rules:no_private_figure,no_unsourced_testimonial,honest_row` — on a site
 // whose destination is hosted, healthy and live. The founder was told to
 // fix a connection that is not broken and never told the real reason,
 // which was on the row the whole time.

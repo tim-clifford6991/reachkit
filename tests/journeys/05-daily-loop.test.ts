@@ -620,6 +620,7 @@ async function seedOneOpportunity(): Promise<string> {
     type: seedRow.type,
     family: seedRow.family,
     target_query: seedRow.targetQuery,
+    page_type: seedRow.pageType ?? null,
     target_ref: seedRow.targetRef,
     proposed_slug: seedRow.targetRef,
     title: seedRow.title,

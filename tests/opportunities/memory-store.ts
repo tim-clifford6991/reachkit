@@ -137,6 +137,7 @@ export function memoryStore(state: MemoryState): OpportunityStore {
         fit_band: insert.fit_band,
         business_fit: insert.business_fit ?? null,
         source: insert.source ?? null,
+        page_type: insert.page_type ?? null,
         effort: insert.effort,
         // The readiness migration's defaults: nothing has clustered or
         // assessed a row at the moment it is written.
@@ -255,11 +256,12 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       row.fit_band = band;
     },
 
-    async setBusinessFit(opportunityId, fit, source) {
+    async setBusinessFit(opportunityId, fit, source, pageType) {
       const row = state.rows.find((r) => r.id === opportunityId);
       if (row === undefined) return;
       row.business_fit = fit;
       row.source = source;
+      row.page_type = pageType;
     },
 
     async marketFor() {

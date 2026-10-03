@@ -45,6 +45,8 @@ const ALREADY_COVERED = "20260921150100_opportunities_already_covered.sql";
 const BUSINESS_FIT = "20261003120000_opportunities_business_fit.sql";
 /** Issue 1179: a topic's rest and `resting`. */
 const REST = "20261003130000_opportunities_rest.sql";
+/** Issue 1136: the page's type. */
+const PAGE_TYPE = "20261003140000_opportunities_page_type.sql";
 const BASELINE_MIGRATION = path.join(MIGRATIONS, "00000000000001_baseline.sql");
 
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
@@ -81,6 +83,7 @@ beforeAll(() => {
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, ALREADY_COVERED)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, BUSINESS_FIT)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, REST)]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, PAGE_TYPE)]);
   const [user] = psqlRows(
     `insert into users (email, plan_status) values ('opps@example.com', 'active') returning id;`
   );

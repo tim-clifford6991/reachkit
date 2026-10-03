@@ -394,7 +394,7 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
 
   // The one name the product holds for the business is the brand the
   // profile measured off their own home page — what the site calls itself.
-  // It is a measurement, and the brand-gap and quotation rules read it as
+  // It is a measurement, and the honest-row and quotation rules read it as
   // one. It is also the byline of a page whose founder gave setup no name
   // (SPEC §7, 2026-09-29: "the founder's name and line from setup, else the
   // business's name").

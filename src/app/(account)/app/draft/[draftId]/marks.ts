@@ -16,7 +16,7 @@
 // avoid: the mark a founder sees while typing and the verdict that holds
 // the page would then be two opinions about the same words.
 //
-// **Thirteen of the sixteen run here. Three do not, and are named.**
+// **Twelve of the sixteen run here. Four do not, and are named.**
 //
 //   `grounding`          reads the *source page's* text as the measurement
 //                        fetched it — a document this screen does not hold
@@ -29,6 +29,9 @@
 //                        browser to underline one sentence is not a trade
 //                        worth making, and the rule is not sentence-shaped
 //                        in any case — its answer is about the page.
+//   `fit_claim`          is a model's judgement against the knowledge base
+//                        (`claims/fit.ts`), made when ReachKit writes the
+//                        page. A founder's own edit is the founder's word.
 //
 //   `required_blocks`    binds what ReachKit generates and asks nothing of
 //                        a founder's own edit (issue 1137): a page they
@@ -36,7 +39,7 @@
 //
 // The first two still run on every save, where they always have, and both
 // still hold the page. What this file changes is *when the founder hears
-// about the other thirteen*, not which rules decide.
+// about the other twelve*, not which rules decide.
 //
 // **Where a break is placed.** A `RuleFailure` carries a handle and, for
 // four of the rules, a recorded value — never a sentence and never an
@@ -55,15 +58,14 @@
 //      blocks are `sourceBlocksOf`'s — the splitter the rules themselves
 //      use, now carrying the offsets it always computed.
 //   3. **Not at all.** A rule whose answer is about the page rather than a
-//      sentence — `brand_gap` reads how the page opens, `page_frame` reads
-//      its title and its headings together — gets a mark at the head of the
+//      sentence — `honest_row` reads the title, the headings and the
+//      comparison table together — gets a mark at the head of the
 //      document and a sentence that says so. Guessing a span for one of
 //      those would be the rule implemented a second time, badly.
 "use client";
 
 import type { CopyKey } from "@/lib/presentation/copy";
 import { literalClaimMatch } from "@/lib/generate/claims/literal";
-import { checkBrandGap } from "@/lib/generate/rules/brandgap";
 import {
   checkFirstBlockAnswers,
   checkInventedProvenance,
@@ -72,43 +74,44 @@ import {
   checkTraceableNumerals,
   type BriefRuleInputs,
 } from "@/lib/generate/rules/brief";
-import { checkPageFrame } from "@/lib/generate/rules/frame";
+import { checkHonestRow } from "@/lib/generate/rules/honest";
 import { checkHiddenText } from "@/lib/generate/rules/hidden";
 import { checkMachineAddress } from "@/lib/generate/rules/machine";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "@/lib/generate/rules/people";
 import { checkRivalSource } from "@/lib/generate/rules/rivals";
 import { renderOf, sourceBlocksOf, withoutReferenceLists } from "@/lib/generate/rules/text";
 import type { HardRule, RuleFailure } from "@/lib/generate/rules/types";
-import type { OpportunityType } from "@/lib/opportunities/types";
+import type { PageType } from "@/lib/opportunities/types";
 
 /**
- * Every site-scoped fact the thirteen live rules read, and no more.
+ * Every site-scoped fact the twelve live rules read, and no more.
  *
  * All of them are small and all of them are already on this screen: the
  * customer's own lists, their own brand and domain, the searches the row
  * targets, the passages the brief chose and the headings of the page as
  * ReachKit wrote it. Nothing here is a corpus, a report or a register —
- * which is the whole reason those two rules are the save's.
+ * which is the whole reason those rules are the save's.
  */
 export interface MarkInputs {
-  /** The title as it now stands. The frame rule reads it. */
+  /** The title as it now stands. The honest row reads it. */
   title: string;
   businessName: string | null;
   domain: string;
   /** The customer's own never-claim list, word for word as they recorded it. */
   doNotClaim: readonly string[];
   rivals: readonly string[];
-  opportunityType: OpportunityType | null;
+  /** The page's type (SPEC §7, issue 1136); `null` where it has none. */
+  pageType: PageType | null;
   /** What the brief handed the writer — rules 8–12 read nothing else. */
   brief: BriefRuleInputs;
 }
 
 /**
- * The thirteen rules this file can decide, and the sentence each speaks.
+ * The twelve rules this file can decide, and the sentence each speaks.
  *
  * A total record over the subset, so a rule added to `marks.ts` with no
  * sentence is a compile error rather than a mark that underlines a
- * sentence and says nothing about why. The two the save keeps are
+ * sentence and says nothing about why. The four the save keeps are
  * deliberately absent: this screen never speaks for a check it did not
  * run, which is `checks.ts`'s own rule applied to a lint mark.
  */
@@ -116,8 +119,7 @@ export const BREAK_COPY_KEY = Object.freeze({
   rival_source: "draft.editor.break.rival-source",
   no_invented_people: "draft.editor.break.no-invented-people",
   no_unsourced_testimonial: "draft.editor.break.no-unsourced-testimonial",
-  brand_gap: "draft.editor.break.brand-gap",
-  page_frame: "draft.editor.break.page-frame",
+  honest_row: "draft.editor.break.honest-row",
   no_hidden_text: "draft.editor.break.no-hidden-text",
   no_machine_address: "draft.editor.break.no-machine-address",
   no_invented_test: "draft.editor.break.no-invented-test",
@@ -275,21 +277,12 @@ export function liveBreaks(source: string, inputs: MarkInputs): Break[] {
     if (failure !== null) failures.push(failure);
   };
 
-  // The battery's own order (`HARD_RULES`), minus the two named in the
+  // The battery's own order (`HARD_RULES`), minus the four named in the
   // header, so a break list reads the way a recorded failure list reads.
   push(checkRivalSource({ markdown: body, rivals: [...inputs.rivals] }));
   push(checkInventedPeople({ markdown: body, businessName: inputs.businessName }));
   push(checkUnsourcedTestimonial({ markdown: body }));
-  push(checkBrandGap({ markdown: body, ...site, queries: inputs.brief.queries }));
-  push(
-    checkPageFrame({
-      title: inputs.title,
-      markdown: body,
-      ...site,
-      opportunityType: inputs.opportunityType,
-      queries: inputs.brief.queries,
-    })
-  );
+  push(checkHonestRow({ title: inputs.title, markdown: body, ...site, rivals: inputs.rivals, pageType: inputs.pageType }));
   push(checkHiddenText({ markdown: body }));
   push(checkMachineAddress({ rendered }));
   // The three that read the brief's **passages** run only where the brief

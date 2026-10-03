@@ -59,6 +59,9 @@ export function opportunity(over: Partial<Opportunity> = {}): Opportunity {
     },
     acceptance: { form: "top20", query: "best project management software" },
     fitBand: "winnable",
+    // Stored, so a suite about the pipeline's shape runs a page whose type
+    // asks nothing of it; the suites about honesty by page type set their own.
+    pageType: "answer",
     effort: 0.5,
     status: "open",
     clusterKey: null,

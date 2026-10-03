@@ -288,10 +288,11 @@ async function ruleFactsOf(siteId: string, opportunityId: string | null): Promis
     if (site === null) return NO_RULE_FACTS;
 
     if (opportunityId === null) {
-      return { doNotClaim: site.doNotClaim, rivals: site.rivals, queries: [], opportunityType: null };
+      return { doNotClaim: site.doNotClaim, rivals: site.rivals, queries: [], pageType: null };
     }
     const { opportunityById } = await import("@/lib/opportunities");
     const { targetSearches } = await import("@/lib/generate/pipeline/steps");
+    const { pageTypeOf } = await import("@/lib/opportunities/page-type");
     const opportunity = await opportunityById(opportunityId);
     return {
       doNotClaim: site.doNotClaim,
@@ -299,7 +300,7 @@ async function ruleFactsOf(siteId: string, opportunityId: string | null): Promis
       // The battery's own projection of "the searches this row targets",
       // not a second reading of the same columns.
       queries: opportunity === null ? [] : targetSearches(opportunity),
-      opportunityType: opportunity?.type ?? null,
+      pageType: opportunity === null ? null : pageTypeOf(opportunity),
     };
   } catch (error) {
     console.warn(JSON.stringify({ event: "draft_rule_facts_unread", detail: String(error) }));

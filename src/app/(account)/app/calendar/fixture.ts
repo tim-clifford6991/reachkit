@@ -229,7 +229,7 @@ const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state]
     // the owner's own dogfood case, on a hosted destination.
     needsYou:
       state === "needs_attention"
-        ? { kind: "rules" as const, rules: ["no_private_figure", "brand_gap"] }
+        ? { kind: "rules" as const, rules: ["no_private_figure", "honest_row"] }
         : null,
     // Issue 930: where the site stands for this page's search this week.
     // Only a live page has one, and only where the week measured it.

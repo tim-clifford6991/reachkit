@@ -21,7 +21,7 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import type { RecordedFact } from "@/lib/generate/fact";
 import type { PageRecord } from "@/lib/publish/record";
 import type { PageTarget } from "../../_shell/page-target";
-import type { OpportunityType } from "@/lib/opportunities/types";
+import type { PageType } from "@/lib/opportunities/types";
 import type { RailCheck } from "./checks";
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
@@ -160,10 +160,11 @@ export interface RuleFacts {
   readonly rivals: readonly string[];
   /** The target search and every search the row absorbed. */
   readonly queries: readonly string[];
-  /** The opportunity's type, which decides whether the frame rule applies
-   *  at all. `null` where the row could not be read — and then that rule
-   *  decides nothing, exactly as it decides nothing in the battery. */
-  readonly opportunityType: OpportunityType | null;
+  /** The page's type (SPEC §7, issue 1136), which decides whether the
+   *  honest row applies at all. `null` where the row could not be read or
+   *  has none — and then that rule decides nothing, exactly as it decides
+   *  nothing in the battery. */
+  readonly pageType: PageType | null;
 }
 
 /** What `RuleFacts` reads as where nothing could be read. Every list empty
@@ -176,7 +177,7 @@ export const NO_RULE_FACTS: RuleFacts = Object.freeze({
   doNotClaim: [],
   rivals: [],
   queries: [],
-  opportunityType: null,
+  pageType: null,
 });
 
 export interface DraftView {

@@ -24,7 +24,7 @@ import { applyAnswerability } from "@/lib/generate/pipeline/answerability";
 import { withClosing } from "@/lib/generate/pipeline/compose";
 import { sitePassages } from "@/lib/generate/pipeline/grounding";
 import { skeletonFor } from "@/lib/generate/pipeline/skeletons";
-import { answersMarketQuestion } from "@/lib/generate/rules/frame";
+import { pageTypeOf } from "@/lib/opportunities/page-type";
 import {
   answerability,
   brief,
@@ -119,14 +119,6 @@ export const writeLeadPage: DraftWriter = async (a) => {
           // reading and the lead's own passages, exactly as it was before
           // this issue.
           profile: null,
-          // The lead's page answers the market's question the same way a
-          // paid site's does, and the same frame binds it (issue 900).
-          marketQuestion: answersMarketQuestion({
-            opportunityType: opportunity.type,
-            queries: targetSearches(opportunity),
-            businessName,
-            domain: report.domain,
-          }),
         })
       );
       if (briefResult.kind === "unmeasured") return stepFailed(a.leadId, "brief");
@@ -186,7 +178,10 @@ export const writeLeadPage: DraftWriter = async (a) => {
         markdown: body.bodyMarkdown,
         title: body.title,
         rendered: renderOf(body.bodyMarkdown),
-        opportunityType: opportunity.type,
+        // The lead's page follows its type's honesty rule as a paid site's
+        // does (SPEC §7, issue 1136). A lead has no knowledge base, so the
+        // fit check decides nothing here.
+        pageType: pageTypeOf(opportunity),
         site: {
           businessName,
           domain: report.domain,

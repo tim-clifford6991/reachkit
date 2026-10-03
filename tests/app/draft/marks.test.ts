@@ -45,7 +45,7 @@ const INPUTS: MarkInputs = {
   domain: "example.com",
   doNotClaim: ["the best CRM on the market", "guaranteed results"],
   rivals: ["hubspot.com"],
-  opportunityType: "answer_page",
+  pageType: "answer",
   brief: {
     facts: ["A five-person team runs out of limits long before it runs out of features."],
     headings: ["What to look at"],
@@ -147,11 +147,14 @@ describe("where a break is placed", () => {
   });
 
   it("a rule whose answer is about the page carries no span rather than a guessed one", () => {
-    // `brand_gap` reads an opening window and `page_frame` counts mentions
-    // across the whole page: neither names a sentence, and inventing one
-    // would be the rule implemented a second time.
-    const md = `example.com is the CRM for small teams, and this page is about example.com.\n\n${CLEAN}`;
-    const found = liveBreaks(md, INPUTS).find((b) => b.rule === "brand_gap");
+    // `honest_row` reads the title, the headings and the comparison table
+    // together: a comparison table with no row for the business names no
+    // sentence, and inventing one would be the rule implemented a second
+    // time.
+    const md = `${CLEAN}\n\n| Tool | Seats |\n| --- | --- |\n| HubSpot | Unlimited |`;
+    const found = liveBreaks(md, { ...INPUTS, pageType: "market_comparison" }).find(
+      (b) => b.rule === "honest_row"
+    );
     expect(found).toBeDefined();
     expect(found && isPlaced(found)).toBe(false);
   });
@@ -182,7 +185,7 @@ describe("what it declines to run", () => {
       domain: "",
       doNotClaim: [],
       rivals: [],
-      opportunityType: null,
+      pageType: null,
       brief: { facts: [], headings: [], queries: [] },
     };
     expect(rules("Short.", bare)).toContain("first_block_answers");
