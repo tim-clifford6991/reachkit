@@ -24,7 +24,7 @@ const FOUNDER = { kind: "founder" } as const;
 /** Which list each answer joins. The byline is not an item: it is §7's. */
 const ANSWER_LIST = {
   buyers: "audience",
-  questions: "questions",
+  asked: "questions",
   result: "proof",
 } as const satisfies Partial<Record<keyof FounderAnswers, KnowledgeList>>;
 

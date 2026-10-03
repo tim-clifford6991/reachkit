@@ -14,7 +14,7 @@
 import { KNOWLEDGE_BASE } from "@/lib/config/constants";
 
 /** §5's five optional questions, in the order the step asks them. */
-export const FOUNDER_QUESTIONS = ["buyers", "edge", "questions", "result", "byline"] as const;
+export const FOUNDER_QUESTIONS = ["buyers", "edge", "asked", "result", "byline"] as const;
 
 export type FounderQuestion = (typeof FOUNDER_QUESTIONS)[number];
 

@@ -176,13 +176,9 @@ export async function deriveForPass(
   // SPEC §6 (2026-10-03, issue 1134): the market in force, which fit is
   // judged against. A read that fails is a pass with no market to judge
   // against, never a pass that derives nothing.
-  const { market, competitors, prompts } = await store
+  const { market, competitors, prompts, knowledge } = await store
     .marketFor(a.siteId)
-    .catch(() => ({ market: null, competitors: [] as readonly string[], prompts: [] as readonly string[] }));
-  // SPEC §6 (2026-09-29, issue 1133): and the knowledge base beside it.
-  const { readKnowledgeBase, knowledgeDigest } = await import("@/lib/site-profile/knowledge/read");
-  const base = await readKnowledgeBase({ siteId: a.siteId, domain: a.report.domain });
-  const knowledge = base === null ? null : knowledgeDigest(base);
+    .catch(() => ({ market: null, competitors: [] as readonly string[], prompts: [] as readonly string[], knowledge: null }));
   const input = inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known, market, knowledge, competitors, prompts: prompts ?? [] });
 
   // SPEC §9 (#690): this pass's scan retires the fixes it shows cleared

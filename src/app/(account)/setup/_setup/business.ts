@@ -129,7 +129,7 @@ export function jobFrom(profile: BusinessProfile | null): string {
 export const QUESTION_COPY = {
   buyers: "setup.business.question.buyers",
   edge: "setup.business.question.edge",
-  questions: "setup.business.question.questions",
+  asked: "setup.business.question.asked",
   result: "setup.business.question.result",
   byline: "setup.business.question.byline",
 } as const satisfies Record<FounderQuestion, CopyKey>;

@@ -617,7 +617,7 @@ export const SETUP_COPY = Object.freeze({
     "What do you do that your rivals don’t?",
     { slots: {}, fixedBy: "SPEC §5 (2026-09-29, issue 1133, drafted)" },
   ],
-  "setup.business.question.questions": [
+  "setup.business.question.asked": [
     "What do buyers ask before they buy?",
     { slots: {}, fixedBy: "SPEC §5 (2026-09-29, issue 1133, drafted)" },
   ],

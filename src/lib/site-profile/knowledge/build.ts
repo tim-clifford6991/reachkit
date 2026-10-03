@@ -6,6 +6,7 @@
 import type { CostContext } from "@/lib/costs";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { readMeasuredText } from "@/lib/measure/text";
+import { readSiteProfile } from "../store";
 import { readKnowledge, type KnowledgePage, type KnowledgeRead } from "./extract";
 import { readStoredKnowledge, writeStoredKnowledge } from "./store";
 
@@ -34,13 +35,27 @@ export function ownPages(
   return [...latest.values()];
 }
 
+/** An address as the inventory and the ledger both spell it. */
+function sameAddress(url: string): string {
+  return url.replace(/\/+$/, "");
+}
+
 /** Reads and stores. A read that came back with nothing leaves what was
  *  stored: an empty base written over a real one would delete a reading. */
 export async function buildKnowledge(
   c: CostContext,
   a: { siteId: string; domain: string }
 ): Promise<KnowledgeRead> {
-  const pages = ownPages(await readMeasuredText({ siteId: a.siteId }), a.domain);
+  // Every read of the site's pages the ledger holds, narrowed to the pages
+  // the pass's crawl has just listed: a pass inside the own-document window
+  // ledgers no page of its own (`@/lib/measure/text`), and a page the site
+  // has since taken down must not stay in the base.
+  const held = ownPages(await readMeasuredText({ siteId: a.siteId }), a.domain);
+  const listed = new Set(
+    ((await readSiteProfile(a.domain).catch(() => null))?.inventory ?? []).map((row) => sameAddress(row.url))
+  );
+  const current = held.filter((page) => listed.has(sameAddress(page.url)));
+  const pages = current.length > 0 ? current : held;
   const previous = await readStoredKnowledge(a.domain);
   const read = await readKnowledge(c, { domain: a.domain, pages, previous });
   if (read.knowledge.pages.length > 0) await writeStoredKnowledge(a.domain, read.knowledge);
