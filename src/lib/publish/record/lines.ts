@@ -152,6 +152,7 @@ export function unpublishedLine(outcome: UnpublishOutcome): CopyKey {
 export const NEEDS_YOU_COPY: Readonly<Record<NeedsYouKind, CopyKey>> = Object.freeze({
   rules: "publish.needs-you.rules",
   step: "publish.needs-you.step",
+  adds: "publish.needs-you.adds",
   destination: "publish.needs-you.destination",
   delivery: "publish.needs-you.delivery",
   unknown: "publish.needs-you.unknown",

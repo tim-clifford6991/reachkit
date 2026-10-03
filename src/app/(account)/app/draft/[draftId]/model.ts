@@ -124,6 +124,19 @@ export interface WrittenFrom {
   readonly marketFacts?: readonly { readonly passage: string; readonly url: string }[];
 }
 
+/**
+ * What this page adds (SPEC §7, 2026-09-29, D12; issue 1143): the sentences
+ * of the page that say something neither the target's top results nor the
+ * customer's own pages say, as generation listed them (`drafts.meta.adds`).
+ * Absent on a page written before the list was made.
+ */
+export interface PageAdds {
+  readonly claims: readonly { readonly claim: string; readonly business: boolean }[];
+  /** The page is held for adding too little, and waits on a fact only the
+   *  founder has. */
+  readonly ask: boolean;
+}
+
 /** Whether there is anything to show. A page whose record carries neither
  *  list draws no card, rather than an empty one — a draft written before
  *  the record existed is not a page written from nothing. */
@@ -241,6 +254,8 @@ export interface DraftView {
   timeZone: string;
   /** What this page was written from (#931). */
   writtenFrom: WrittenFrom;
+  /** What this page adds (issue 1143). */
+  adds?: PageAdds;
   /** The customer's own frame: the name and the address the page publishes
    *  at, so the viewer can draw the page as a reader will meet it (#931). */
   publisher: Publisher;
@@ -298,6 +313,8 @@ export interface DraftFacts {
   firstEditedAt: Date | null;
   /** What the page was written from, as generation recorded it (#931). */
   writtenFrom: WrittenFrom;
+  /** What the page adds, as generation listed it (issue 1143). */
+  adds?: PageAdds;
   /** The customer's own domain (#931). */
   domain: string;
   /** The passage and its source, as recorded at generation — `null` where
@@ -414,6 +431,7 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     target: facts.target,
     timeZone: facts.timeZone,
     writtenFrom: facts.writtenFrom,
+    ...(facts.adds === undefined ? {} : { adds: facts.adds }),
     publisher: publisherOf(facts),
     ruleFacts: facts.ruleFacts,
     domain: facts.domain,

@@ -256,6 +256,9 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   /** Five scores and at most `WRITER.maxRevisions` short instructions
    *  (issue 1138). */
   "generate.critic": 1024,
+  /** At most `ADDS.maxClaims` sentences copied off the page, ~60 tokens
+   *  each (issue 1143). */
+  "generate.adds": 1536,
   "generate.answerability": 4096,
   /** One paragraph of 40–60 words (issue 1137): ~90 needed. */
   "generate.answer_box": 256,
@@ -1671,6 +1674,28 @@ export const RESEARCH = Object.freeze({
   readTimeoutMs: 10_000,
   /** A public page read today is not read again inside this window. */
   freshnessDays: 7,
+} as const);
+
+/** SPEC §7 (2026-09-29, D12; issue 1143) — *a new page adds what the web
+ *  does not say*.
+ *
+ *  `min` and `businessMin` are the ruling's: at least three claims found
+ *  neither in the target's top results nor on the customer's pages, at least
+ *  one of them a business fact. The rest are drafted bounds: how much of the
+ *  customer's own pages the listing is shown, how many claims it may return,
+ *  and how close an existing page has to be before a page short of the bar
+ *  becomes an update of it rather than waiting — half of
+ *  `KNOWN_CONTENT.COVERED_MIN`, at and above which the topic was already an
+ *  update before it was ever written. */
+export const ADDS = Object.freeze({
+  min: 3,
+  businessMin: 1,
+  maxClaims: 12,
+  /** Words of one of the customer's pages shown to the listing, and of all
+   *  of them together. The code check reads every page whole. */
+  sitePageWords: 600,
+  siteWords: 3000,
+  updateMin: 0.3,
 } as const);
 
 /** §7's Improve trigger, transcribed: "Customer ranks 4–30, page thin".

@@ -296,6 +296,17 @@ const UNEDITED: DraftFacts = {
   },
   timeZone: FIXTURE_TIME_ZONE,
   writtenFrom: FIXTURE_WRITTEN_FROM,
+  // What the page adds (issue 1143): two sentences of the fixture's body
+  // would be a claim the body does not make, so these are stated as the
+  // list generation would have kept — one of them about the business.
+  adds: {
+    claims: [
+      { claim: "A fixed-price migration is quoted before any work starts, so the cost is known on day one.", business: true },
+      { claim: "Per-seat pricing changes the comparison from the second paid seat.", business: false },
+      { claim: "A full export in an open format is the one thing to ask every vendor for.", business: false },
+    ],
+    ask: false,
+  },
   // What the editor's live rule pass reads (issue 932). The never-claim
   // list is the reserved account's own two entries, so the owner can walk
   // the done-when on `dev` — type "the best CRM on the market" into the

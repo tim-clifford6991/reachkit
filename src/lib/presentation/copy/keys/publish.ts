@@ -145,6 +145,12 @@ export const PUBLISH_COPY = Object.freeze({
     "We couldn’t finish writing this page — a step of the work failed twice. Nothing was published. Write it again to start it over.",
     { slots: {}, fixedBy: "issue 880" },
   ],
+  // Issue 1143 (drafted): a new page that adds too little the web and the
+  // site do not already say. Not a step that failed — the page was written.
+  "publish.needs-you.adds": [
+    "This page says too little that isn’t already on your site or in the top results, so it wasn’t published. Add a fact about your business, then write it again.",
+    { slots: {}, fixedBy: "issue 1143 (drafted)" },
+  ],
   "publish.needs-you.destination": [
     "This page is written and couldn’t be delivered to your site. It goes out as soon as the connection to your site works again.",
     { slots: {}, fixedBy: "issue 880" },

@@ -41,6 +41,12 @@ vi.mock("@/lib/generate/pipeline/write", async () => {
   const { draftOnly } = await import("../../generate/fixtures");
   return { writeDraft: draftOnly };
 });
+// Issue 1143: what the page adds is `tests/generate/pipeline/adds.test.ts`;
+// here the listing answers with a page that adds enough.
+vi.mock("@/lib/generate/pipeline/adds", async (importOriginal) => {
+  const { addsStandIn } = await import("../../generate/fixtures");
+  return addsStandIn(await importOriginal<object>());
+});
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
 vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
 
@@ -314,8 +320,9 @@ describe("§8's battery — the record the pipeline wrote is the record the draf
     // site has none, so there is no `profileItems` key — a draft written for
     // an unread site records only the facts.
     expect(Object.keys((row.meta ?? {}) as object).sort()).toEqual(
-      // `length` since issue 1138: the page's words against its target.
-      ["description", "factsUsed", "faq", "length", "marketFacts"].sort()
+      // `length` since issue 1138: the page's words against its target. `adds`
+      // since issue 1143: what the page says that the web and the site do not.
+      ["adds", "description", "factsUsed", "faq", "length", "marketFacts"].sort()
     );
     // A rule record is still not one of them, under any spelling.
     expect(Object.keys((row.meta ?? {}) as object)).not.toContain("rule_failures");

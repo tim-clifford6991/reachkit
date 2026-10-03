@@ -73,6 +73,7 @@ const CALL_SITES = [
   "generate.answer_box",
   "generate.answerability",
   "generate.claim_check",
+  "generate.adds",
 ] as const;
 
 const cents = (n: number): string => `${n.toFixed(3)}c`;

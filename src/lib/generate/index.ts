@@ -24,7 +24,11 @@
 //   * a stopped draft does not cost its day (D26): the same run writes the
 //     next-ranked opportunity for the date, at most once more and inside
 //     the one `CAP_DRAFT` context. The stopped row keeps its place in
-//     `needs_attention` and gives up its date to the page that replaces it.
+//     `needs_attention` and gives up its date to the page that replaces it;
+//   * a new page that adds too little the web and the site do not already
+//     say (owner, D12, issue 1143) is written again, on its own row, as an
+//     update of the closest existing page where the site has one; otherwise
+//     it rests in `needs_attention`, asking the founder for the missing fact.
 //
 // `regenerateRestarted` is the customer's Regenerate carried out: the
 // restart moves the row back into `generating`, and the next draft tick
@@ -37,6 +41,7 @@ import {
   queueForDraft,
   restTopic,
   sitePagesFor,
+  updateInstead,
   type Opportunity,
 } from "@/lib/opportunities";
 import type { StoredReport } from "@/lib/scan/report";
@@ -390,7 +395,8 @@ async function fixPage(a: PageInput, cost: CostContext): Promise<DayPageOutcome>
 
 async function writePage(a: PageInput & { attempts: number }, cost: CostContext): Promise<DayPageOutcome> {
   const store = generateStore();
-  const { site, report, opportunity } = a;
+  const { site, report } = a;
+  let opportunity = a.opportunity;
 
   // The one name the product holds for the business is the brand the
   // profile measured off their own home page — what the site calls itself.
@@ -451,7 +457,7 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
   // ours — after the two lists that were already chosen, and never one of
   // those twice.
   const known = await store.knownPages(a.siteId);
-  const links = [
+  let links = [
     ...chosen,
     ...knownContentTargets(known, {
       domain: site.domain,
@@ -494,7 +500,8 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
   // #1178: what the attempt before told the next one — its failures and
   // the sentences that broke them.
   let fix: FixNote[] | undefined;
-  for (let attempt = 1; attempt <= a.attempts; attempt++) {
+  let attempts = a.attempts;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
     last = await generateDraft(cost, {
       siteId: a.siteId,
       opportunity,
@@ -526,13 +533,29 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
       // After a rule already stopped this date's row, a regeneration that
       // could not run leaves that stop standing: the row rests on it
       // rather than waiting in `generating` for a run nothing will make.
-      if (ruleStopped) return { ok: false, because: "rules", draftId, attempts: attempt - 1 };
+      if (ruleStopped && last.step !== "adds") return { ok: false, because: "rules", draftId, attempts: attempt - 1 };
+      // SPEC §7 (D12, issue 1143): a new page short of what it must add is
+      // not written again as it was. Where the site has a close page the
+      // destination can update, the day becomes an update of it — on the
+      // same row, once, and held to no bar of its own; otherwise the row
+      // rests and the draft asks the founder for the missing fact.
+      if (last.step === "adds") {
+        const update = cost.capHit() ? null : await updateInstead(opportunity, known, new Date());
+        if (update === null) return { ok: false, because: "step_failed", draftId, step: last.step };
+        console.log(JSON.stringify({ event: "draft_became_update", siteId: a.siteId, draftId, page: update.targetRef }));
+        opportunity = update;
+        links = links.filter((link) => link.url !== update.targetRef);
+        ruleStopped = false;
+        fix = undefined;
+        attempts = attempt + 1;
+        continue;
+      }
       // #813: a row a step stopped takes the automatic second attempt a
       // rule stop takes — a model that did not answer may answer now. The
       // ceiling would stop that attempt too, so it rests at once.
       // A page held for its length is not that (issue 1138): it was written
       // and written again, and SPEC §7 holds it there.
-      if (attempt < a.attempts && !cost.capHit() && last.step !== "length") continue;
+      if (attempt < attempts && !cost.capHit() && last.step !== "length") continue;
       return { ok: false, because: "step_failed", draftId, step: last.step };
     }
     ruleStopped = true;
@@ -549,7 +572,7 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
   }
   const stopped = last;
   if (stopped === null || stopped.ok || stopped.reason !== "rules") {
-    return { ok: false, because: "rules", draftId: draftId ?? null, attempts: a.attempts };
+    return { ok: false, because: "rules", draftId: draftId ?? null, attempts };
   }
   return {
     ok: false,

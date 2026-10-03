@@ -25,9 +25,9 @@
 // a value and carries `.num`, so where it will not fit the box grows taller
 // (`src/ui/type.css` states that rule and why).
 import type React from "react";
-import { FileText, Quote, Search } from "lucide-react";
+import { FileText, Quote, Search, Sparkles } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
-import { writtenFromIsEmpty, type Publisher, type WrittenFrom } from "./model";
+import { writtenFromIsEmpty, type PageAdds, type Publisher, type WrittenFrom } from "./model";
 
 /** The eyebrow every card on this screen heads itself with. Matches the
  *  rows already on it rather than minting a second heading style. */
@@ -231,6 +231,67 @@ export function WrittenFromCard(p: {
             </div>
           </div>
         )}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * What this page adds (SPEC §7, 2026-09-29, D12; issue 1143).
+ *
+ * The sentences of the page that say something neither the top results for
+ * its search nor the customer's own pages say — each one a sentence the
+ * reader can find on the page beside it, with a mark on the ones that are
+ * facts about the business. A new page with fewer than three, or with none
+ * about the business, is held; the one line under the list then asks the
+ * founder for the fact that is missing and says where to give it.
+ *
+ * **Absent on a page written before the list was made**, like the card
+ * above it: no list is not a page that adds nothing.
+ */
+export function WhatAddsCard(p: { adds: PageAdds | undefined }): React.JSX.Element | null {
+  if (p.adds === undefined) return null;
+  const { claims, ask } = p.adds;
+
+  return (
+    <section className="card card-border bg-base-100 min-w-0" data-testid="draft-adds">
+      <div className="card-body min-w-0 gap-3">
+        <h2 className={CARD_HEAD}>
+          <Sparkles size={14} strokeWidth={1.75} aria-hidden />
+          {copy("draft.adds.title")}
+        </h2>
+        <p className="text-sm text-base-content/70 wrap-anywhere">
+          {copy(claims.length === 0 ? "draft.adds.none" : "draft.adds.lead")}
+        </p>
+
+        {claims.length === 0 ? null : (
+          <ul className="list bg-base-100 min-w-0 rounded-box" data-testid="draft-adds-claims">
+            {claims.map((each) => (
+              <li className="list-row min-w-0" key={each.claim}>
+                <span className="list-col-grow min-w-0 text-sm wrap-anywhere">{each.claim}</span>
+                {each.business ? (
+                  <span className="list-col-wrap min-w-0">
+                    <span className="badge badge-ghost h-auto max-w-full py-1 whitespace-normal wrap-anywhere">
+                      {copy("draft.adds.business")}
+                    </span>
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {ask ? (
+          <div
+            className="flex min-w-0 flex-col items-start gap-1 border-t border-base-300 pt-3 text-sm"
+            data-testid="draft-adds-ask"
+          >
+            <p className="min-w-0 wrap-anywhere">{copy("draft.adds.ask")}</p>
+            <a className="link" href="/app/settings">
+              {copy("draft.adds.ask.action")}
+            </a>
+          </div>
+        ) : null}
       </div>
     </section>
   );

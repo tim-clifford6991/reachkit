@@ -78,7 +78,7 @@ import { PageRecordBlock } from "./PageRecordBlock";
 import { TargetBlock } from "./TargetBlock";
 import { factPresentIn } from "./grounded";
 import { PublishedPageView } from "./PublishedPageView";
-import { WhatPublishesCard, WrittenFromCard } from "./ReviewCards";
+import { WhatAddsCard, WhatPublishesCard, WrittenFromCard } from "./ReviewCards";
 import { publishedCounts } from "./publishes";
 import { useDebounced } from "./useDebounced";
 import { wordCount, type ClaimState, type DraftView } from "./model";
@@ -837,6 +837,9 @@ export function DraftScreen(p: {
               where each sentence was read, and what actually leaves the
               building. The checks are `DecidePanel`'s. */}
           <WrittenFromCard writtenFrom={view.writtenFrom} />
+          {/* What the page says that the web and the site do not (SPEC §7,
+              D12, issue 1143). */}
+          <WhatAddsCard adds={view.adds} />
           <WhatPublishesCard
             publisher={view.publisher}
             title={view.title}

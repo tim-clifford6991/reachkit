@@ -127,7 +127,7 @@ describe("the research step reads the market's pages and keeps only what they sa
       rivals: ["rival.example"],
       today: TODAY,
     });
-    expect(found).toEqual({ facts: [], products: [] });
+    expect(found).toEqual({ facts: [], products: [], topResults: [] });
     expect(llmMock).not.toHaveBeenCalled();
   });
 

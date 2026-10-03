@@ -19,6 +19,12 @@ vi.mock("@/lib/generate/pipeline/write", async () => {
   const { draftOnly } = await import("../../generate/fixtures");
   return { writeDraft: draftOnly };
 });
+// Issue 1143: what the page adds is `tests/generate/pipeline/adds.test.ts`;
+// here the listing answers with a page that adds enough.
+vi.mock("@/lib/generate/pipeline/adds", async (importOriginal) => {
+  const { addsStandIn } = await import("../../generate/fixtures");
+  return addsStandIn(await importOriginal<object>());
+});
 
 // #927: `writePage` reads the confirmed business profile and the passages
 // the customer switched off. This suite is about the day's decision, not

@@ -47,6 +47,7 @@ export { contentKindOf, CONTENT_KINDS, type ContentKind } from "./content-kind";
 export { pageTypeOf, PAGE_TYPES, type PageType } from "./page-type";
 export { sitePagesFor, type SitePage } from "./site-pages";
 export { dismissForVeto, queueForDraft, restTopic } from "./drafted";
+export { updateInstead } from "./update-instead";
 
 export { deriveOpportunities, type DeriveInput, type DeriveOutcome } from "./derive";
 export { explainChoice, type Choice } from "./derive/explain";

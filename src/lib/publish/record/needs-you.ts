@@ -16,6 +16,7 @@
 //   `rules:<rule,rule>`      §8 rule 4 — the hard rules stopped the writing
 //                            (`src/lib/generate/index.ts`'s `rulesReason`)
 //   `step_failed:<step>`     issue 813 — a step could not run twice
+//   `step_failed:adds`       issue 1143 — the page adds too little
 //   `reason_needs_customer`  §9 — a publish failure no retry could clear
 //                            (`attempt/retry.ts`'s `decideRetry`)
 //   `retries_exhausted`      §9 — the publish was tried ×3 and did not go
@@ -40,6 +41,10 @@ export type NeedsYouCause =
   | { kind: "rules"; rules: readonly string[] }
   /** A step of the pipeline could not run, twice (issue 813). */
   | { kind: "step"; step: string }
+  /** A new page was written and adds too little that the web and the site
+   *  do not already say (SPEC §7, D12, issue 1143). It waits on a fact only
+   *  the founder has. */
+  | { kind: "adds" }
   /** The page could not be delivered, for a reason no retry clears — an
    *  expired or invalid credential, a record that does not point here, a
    *  destination that refused it, or no destination at all. Which of those
@@ -85,6 +90,7 @@ export function needsYouCauseOf(reason: string | null): NeedsYouCause {
   }
   if (reason.startsWith("step_failed:")) {
     const step = reason.slice("step_failed:".length).trim();
+    if (step === "adds") return { kind: "adds" };
     return { kind: "step", step };
   }
   if (reason === "reason_needs_customer") return { kind: "destination" };

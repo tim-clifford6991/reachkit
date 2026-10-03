@@ -188,7 +188,7 @@ describe("issue 1163 — the knowledge base is the business speaking, and what R
     readReportPageMock.mockResolvedValue({ url: reportUrl, text: measured, measuredAt: at });
     const all = await readAllFacts({ siteId: SITE_ID });
     const fact = all.find((sourced) => sourced.fact.url === reportUrl);
-    expect(fact).toEqual({ fact: { url: reportUrl, readAt: at, passage: measured }, sourceText: measured });
+    expect(fact).toEqual({ fact: { url: reportUrl, readAt: at, passage: measured }, sourceText: measured, report: true });
     expect(all[0]!.fact.url).not.toBe(reportUrl);
   });
 

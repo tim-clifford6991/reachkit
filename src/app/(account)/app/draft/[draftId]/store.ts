@@ -63,6 +63,7 @@ import {
   NO_RULE_FACTS,
   type ClaimState,
   type DraftFacts,
+  type PageAdds,
   type DraftTarget,
   type KnownCheck,
   type RuleFacts,
@@ -120,6 +121,19 @@ const DRAFT_STATES: readonly string[] = [
   "needs_attention",
   "unpublished",
 ];
+
+/** What the page adds (`meta.adds`, issue 1143), read as defensively as
+ *  every other key here. The ask stands only while the page is still held:
+ *  one the founder has since edited into review is no longer waiting. */
+function addsAt(meta: Record<string, unknown> | null, state: string): { adds?: PageAdds } {
+  const value = meta?.adds as { claims?: unknown; short?: unknown } | null | undefined;
+  if (value === null || value === undefined || !Array.isArray(value.claims)) return {};
+  const claims = (value.claims as unknown[]).flatMap((entry) => {
+    const each = entry as { claim?: unknown; business?: unknown } | null;
+    return typeof each?.claim === "string" ? [{ claim: each.claim, business: each.business === true }] : [];
+  });
+  return { adds: { claims, ask: value.short === true && state === "needs_attention" } };
+}
 
 function stringAt(meta: Record<string, unknown> | null, key: string): string | null {
   const value = meta?.[key];
@@ -416,6 +430,7 @@ export async function readDraftRow(a: {
           }
         : {}),
     },
+    ...addsAt(row.meta, row.state),
     domain: a.site.domain,
     state: row.state as State,
     // The fact §9's `never_entered_review` guard reads (#1180).
