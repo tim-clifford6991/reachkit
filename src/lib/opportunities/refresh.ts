@@ -30,7 +30,6 @@
 // one open or queued refresh a page.
 import { EFFORT_BY_TYPE, PACE, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { measured } from "@/lib/measure/measured";
-import { addressesOwnPage, type HostedOwnPages } from "@/lib/publish/destinations/hosted/own-page";
 import type { Candidate } from "./derive/candidate";
 import { persist } from "./derive/persist";
 import { COLUMNS, opportunityStore, readOpportunity, untyped, type OpportunityRow } from "./store";
@@ -159,15 +158,6 @@ function passagesOf(value: unknown): (RecordedPassage & { readAt: Date | null })
   });
 }
 
-/** The address the page answers at now: a hosted page follows its site's
- *  host (SPEC §7, 2026-09-18), any other keeps the one it was published at. */
-function addressOf(liveUrl: string, own: HostedOwnPages | null): string {
-  if (own === null || own.host === "") return liveUrl;
-  const slug = liveUrl.split(/[?#]/)[0]!.split("/").filter((segment) => segment !== "").pop() ?? "";
-  const moved = `https://${own.host}/${slug}`;
-  return addressesOwnPage(moved, own) ? moved : liveUrl;
-}
-
 /** The site's live pages that ReachKit wrote, each at its current version. */
 async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
   const client = untyped();
@@ -191,14 +181,16 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
   const declined = new Map<string, boolean>();
   for (const row of verdicts.data ?? []) declined.set(row.publication_id, row.movement?.declined === true);
 
-  const own = await opportunityStore().hostedOwnPages(siteId);
+  // The address each page answers at now (SPEC §7, 2026-09-18; issue 1182).
+  const { storedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
+  const now = await storedAddressesNow(siteId);
   const pages = new Map<string, OwnLivePage>();
   const ours = new Set<string>();
   for (const publication of live.data ?? []) {
     const opportunity = publication.drafts?.opportunities ?? null;
     if (publication.live_url === null || publication.published_at === null || opportunity === null) continue;
     if (typeof opportunity.family !== "string" || typeof opportunity.id !== "string") continue;
-    const url = addressOf(publication.live_url, own);
+    const url = now(publication.live_url);
     if (opportunity.family === "write" || opportunity.family === "earn") ours.add(url);
     // A fix of a page's metadata is not a version of its content.
     if (opportunity.family === "fix") continue;
