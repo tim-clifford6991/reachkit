@@ -31,7 +31,7 @@ describe("repairMechanical", () => {
   });
 
   it("drops a provenance sentence and an added question heading, keeping the section's text", () => {
-    const markdown = `${OPENING} Last updated on 3 March.\n\n## Why does this matter?\n\nSeats decide the price.`;
+    const markdown = `${OPENING} A case study proves it.\n\n## Why does this matter?\n\nSeats decide the price.`;
     const repaired = repairMechanical(markdown, ["no_invented_provenance", "no_new_question_heading"], {
       brief: BRIEF,
       sources: [],

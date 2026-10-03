@@ -79,6 +79,7 @@ import {
   updatePost,
 } from "./client";
 import { NOT_PUBLISHED, reasonFor, succeeded } from "./errors";
+import { bylineHtml } from "../../render/byline";
 import { renderMarkdownHtml } from "../../render/markdown";
 import { bodyWithMarker, carriesMarker, markerToken } from "./marks";
 import { detectSeoPlugins, seoMetaFor, seoWrittenIn, type SeoPlugin } from "./seo";
@@ -177,6 +178,17 @@ function tagIds(post: unknown): readonly number[] {
 function descriptionOf(page: RenderedPage): string {
   const description = page.meta.description;
   return typeof description === "string" ? description : "";
+}
+
+/**
+ * The post's content: the byline and the page's dates (SPEC §7, 2026-09-29,
+ * issue 1137), then the body through the one renderer. A WordPress post has
+ * no template of ours to print the line, so it is the content's first
+ * paragraph; a page with no recorded name carries none. The dates are in
+ * UTC: the adapter holds the site's address, not its zone.
+ */
+function contentOf(page: RenderedPage, dates: { published: Date; updated: Date | null }): string {
+  return bylineHtml({ byline: page.byline ?? null, ...dates, timeZone: null }) + renderMarkdownHtml(page.bodyMd);
 }
 
 function deliveredAtOf(post: unknown): Date {
@@ -297,7 +309,8 @@ async function updated(
   // `existingPost` and writes nothing a second time.
   const written = await updatePost(cfg, id, {
     title: page.title,
-    content: bodyWithMarker(renderMarkdownHtml(page.bodyMd), idempotencyKey),
+    // The page they already had keeps its own date; today is its update.
+    content: bodyWithMarker(contentOf(page, { published: deliveredAtOf(target), updated: new Date() }), idempotencyKey),
     ...(Object.keys(meta).length === 0 ? {} : { meta }),
   });
   if (!succeeded(written)) return failed(reasonFor(written));
@@ -469,7 +482,7 @@ async function deliver(
       // one the draft view's preview, the copy-as-HTML control and the
       // hosted template read, so what the customer saw before approving is
       // what their site gets.
-      content: bodyWithMarker(renderMarkdownHtml(page.bodyMd), idempotencyKey),
+      content: bodyWithMarker(contentOf(page, { published: new Date(), updated: null }), idempotencyKey),
       ...(stampTermId === null ? {} : { tags: [stampTermId] }),
       ...(Object.keys(meta).length === 0 ? {} : { meta }),
     });

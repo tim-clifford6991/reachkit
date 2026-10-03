@@ -351,10 +351,9 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
   // The one name the product holds for the business is the brand the
   // profile measured off their own home page — what the site calls itself.
   // It is a measurement, and the brand-gap and quotation rules read it as
-  // one. It is deliberately **not** written to `drafts.attribution`: an
-  // attribution has to be a name the customer recorded, and no column
-  // records one yet, so a page publishes with no attribution rather than a
-  // derived one (§8 hard rule 2).
+  // one. It is also the byline of a page whose founder gave setup no name
+  // (SPEC §7, 2026-09-29: "the founder's name and line from setup, else the
+  // business's name").
   const measuredBrand =
     report.market.kind === "unmeasured" ? null : (report.market.value.profile.brandTokens[0] ?? null);
 
@@ -469,6 +468,9 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
       known: knownBriefs,
       sitePages,
       profile: confirmed.profile,
+      // The founder's own line from setup's fifth question (#1133), else
+      // the business's name.
+      byline: confirmed.profile?.knowledge?.byline ?? measuredBrand,
       factsOff: confirmed.factsOff,
       scanId: report.scanId,
       market,

@@ -21,6 +21,7 @@ import { DRAFT_POLICY_VERSION } from "@/lib/generate/cost";
 import { runHardRules } from "@/lib/generate/rules";
 import { renderOf } from "@/lib/generate/rules/text";
 import { applyAnswerability } from "@/lib/generate/pipeline/answerability";
+import { withClosing } from "@/lib/generate/pipeline/compose";
 import { sitePassages } from "@/lib/generate/pipeline/grounding";
 import { skeletonFor } from "@/lib/generate/pipeline/skeletons";
 import { answersMarketQuestion } from "@/lib/generate/rules/frame";
@@ -32,6 +33,7 @@ import {
   outline,
   selectedFactIndexes,
   targetSearches,
+  writtenPage,
 } from "@/lib/generate/pipeline/steps";
 import { buildPromptInputs } from "@/lib/generate/voice/inputs";
 import { readDomainText, type MeasuredText } from "@/lib/measure/text";
@@ -158,10 +160,28 @@ export const writeLeadPage: DraftWriter = async (a) => {
         facts: selected.map((fact) => ({ url: fact.url, passage: fact.passage })),
       });
       if (draftResult.kind === "unmeasured") return stepFailed(a.leadId, "draft");
-      const ops = await answerability(cost, inputs, { body: draftResult.value, facts: passages });
+      // The same blocks a paid site's page carries (SPEC §7, 2026-09-29,
+      // issue 1137), laid out by the same code. A lead's page has no row, so
+      // its buyer questions have nowhere to be stored and are not kept.
+      const laidOut = await writtenPage(cost, inputs, {
+        parts: draftResult.value,
+        outline: outlineResult.value,
+        tidy: {
+          facts: passages,
+          promises: [],
+          queries: targetSearches(opportunity),
+          names: [businessName ?? "", report.domain.split(".")[0] ?? ""],
+        },
+      });
+      if (laidOut.kind === "unmeasured") return stepFailed(a.leadId, "draft");
+      const ops = await answerability(cost, inputs, { body: laidOut.value.body, facts: passages });
       if (ops.kind === "unmeasured") return stepFailed(a.leadId, "answerability");
 
-      const body = applyAnswerability(draftResult.value, ops.value, passages);
+      const answered = applyAnswerability(laidOut.value.body, ops.value, passages);
+      const body = {
+        ...answered,
+        bodyMarkdown: withClosing(answered.bodyMarkdown, laidOut.value.closing, `https://${report.domain}/`),
+      };
       const outcome = await runHardRules(cost, {
         markdown: body.bodyMarkdown,
         title: body.title,

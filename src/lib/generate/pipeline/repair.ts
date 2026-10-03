@@ -26,6 +26,7 @@ import {
   traceableNumerals,
   type BriefRuleInputs,
 } from "../rules/brief";
+import { answerBoxOf } from "../rules/blocks";
 import { numeralsOf, REGISTER_FLOOR } from "../rules/figures";
 import { factPageKeys, unsourcedRivalFigure } from "../rules/rivals";
 import {
@@ -215,6 +216,9 @@ function fits(paragraph: string): boolean {
  *  leading items are joined into one, and an over-long paragraph is split
  *  after the sentences that fit. Nothing is dropped. */
 function repairFirstBlock(markdown: string): string {
+  // A short-answer box is counted in words and written again by the model
+  // that wrote it (`answerBoxRewrite`); cutting it here would cut an answer.
+  if (answerBoxOf(markdown) !== null) return markdown;
   const source = sourceBlocksOf(markdown);
   const blocks = blocksOf(markdown);
   const first = blocks.findIndex((block) => !block.heading);
@@ -305,6 +309,9 @@ function sentencesFor(markdown: string, failure: RuleFailure, brief: BriefRuleIn
       const first = blocksOf(markdown).find((block) => !block.heading);
       return first === undefined ? [] : [first.text];
     }
+    // Not a sentence: the block the page lacks, by its handle.
+    case "required_blocks":
+      return failure.detail !== undefined && "block" in failure.detail ? [failure.detail.block] : [];
     default:
       return [];
   }

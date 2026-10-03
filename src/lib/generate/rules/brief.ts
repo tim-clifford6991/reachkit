@@ -6,17 +6,22 @@
 // each rule fails a page that reaches past them:
 //
 //   no_invented_test         "we tested", "in our trials" — a test nobody ran;
-//   no_invented_provenance   a byline, a publication or update date, a case
-//                            study — a history the page was never given;
+//   no_invented_provenance   a case study — a history the page was never
+//                            given. (A byline and the page's dates are the
+//                            page's own since SPEC §7 of 2026-09-29: setup
+//                            records the one, publishing the other.)
 //   no_new_question_heading  a question-shaped heading the outline did not
 //                            have (the answerability pass may add none);
 //   traceable_numerals       a numeral no fact and no target search carries;
-//   first_block_answers      an opening block that is not a paragraph inside
-//                            the answer bound, or that asks instead of answers.
+//   first_block_answers      an opening that does not answer: a short-answer
+//                            box outside 40–60 words, or — on a page with no
+//                            box — an opening block that is not a paragraph
+//                            inside the older bound, or that asks.
 //
 // A sentence that is itself one of the handed passages is the customer's own
 // words and is never failed by the two phrase rules. Deterministic, no I/O.
-import { ANSWER_FIRST_BLOCK_CHARS, ANSWERABILITY_MAX_NEW_QUESTIONS } from "@/lib/config/constants";
+import { ANSWER_FIRST_BLOCK_CHARS, ANSWERABILITY_MAX_NEW_QUESTIONS, PAGE_BLOCKS } from "@/lib/config/constants";
+import { answerBoxOf } from "./blocks";
 import { numeralsOf, REGISTER_FLOOR } from "./figures";
 import { blocksOf, headingKey, headingsOf, isQuestionShaped, sentencesOf } from "./text";
 import type { RuleFailure } from "./types";
@@ -51,12 +56,7 @@ export const INVENTED_TEST_RES: readonly RegExp[] = [
   /\b(?:hands-on|after testing|after (?:weeks|months) of (?:use|testing))\b/i,
 ];
 
-export const INVENTED_PROVENANCE_RES: readonly RegExp[] = [
-  /^(?:by|written by|author:?)\s+\p{Lu}/iu,
-  /\b(?:written|reviewed|edited|fact-checked)\s+by\b/i,
-  /\b(?:last updated|updated on|published on|posted on|first published)\b/i,
-  /\bcase stud(?:y|ies)\b/i,
-];
+export const INVENTED_PROVENANCE_RES: readonly RegExp[] = [/\bcase stud(?:y|ies)\b/i];
 
 function collapse(text: string): string {
   return text.replace(/\s+/g, " ").trim();
@@ -133,6 +133,16 @@ export function checkTraceableNumerals(a: {
 }
 
 export function checkFirstBlockAnswers(a: { markdown: string }): RuleFailure | null {
+  // SPEC §7 (2026-09-29): "a short-answer box of 40–60 words that answers
+  // the target plainly". Counted here, in words, on the page as it stands —
+  // so after the writer and after every pass that follows it.
+  const box = answerBoxOf(a.markdown);
+  if (box !== null) {
+    const words = (box.match(/\S+/g) ?? []).length;
+    const answers =
+      !box.endsWith("?") && words >= PAGE_BLOCKS.answerWords.min && words <= PAGE_BLOCKS.answerWords.max;
+    return answers ? null : { rule: "first_block_answers" };
+  }
   const first = blocksOf(a.markdown).find((block) => !block.heading);
   if (first === undefined) return { rule: "first_block_answers" };
   const length = first.text.length;

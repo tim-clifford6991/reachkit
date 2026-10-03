@@ -91,6 +91,7 @@ function walk(block: Block, totals: { links: number; questions: number; characte
       }
       return;
     case "answer":
+    case "takeaways":
       // The short-answer box's label is the product's word, not the
       // customer's page, so it is not length. Its blocks are.
       for (const inner of block.children) walk(inner, totals);

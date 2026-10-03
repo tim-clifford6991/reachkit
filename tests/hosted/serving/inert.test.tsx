@@ -77,6 +77,8 @@ function pageWith(over: Record<string, unknown>): unknown {
     grounded: null,
     publisher: { name: "example.com", category: "user onboarding software", timeZone: "UTC" },
     publishedAt: new Date("2026-09-04T11:00:00.000Z"),
+    firstPublishedAt: new Date("2026-09-04T11:00:00.000Z"),
+    byline: null,
     liveUrl: "https://content.example.com/a-page",
     record: {
       opportunityId: "opp-1",

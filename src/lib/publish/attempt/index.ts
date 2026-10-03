@@ -246,6 +246,7 @@ async function readOutcome(publicationId: string): Promise<OutcomeRow | null> {
 interface DraftPageRow {
   title: string;
   body_md: string | null;
+  attribution?: string | null;
   meta: Record<string, unknown> | null;
   opportunities?: {
     family?: string | null;
@@ -293,13 +294,18 @@ function slugOfUrl(url: string): string | null {
 async function renderedPage(draftId: string): Promise<RenderedPage | null> {
   const { data, error } = await publishDb()
     .from<DraftPageRow>("drafts")
-    .select("title, body_md, meta, opportunities(family, type, proposed_slug, target_ref)")
+    .select("title, body_md, attribution, meta, opportunities(family, type, proposed_slug, target_ref)")
     .eq("id", draftId)
     .single();
   if (error !== null || data === null) return null;
 
   const opportunity = data.opportunities ?? null;
-  const page = { title: data.title, bodyMd: data.body_md ?? "", meta: data.meta ?? {} };
+  const page = {
+    title: data.title,
+    bodyMd: data.body_md ?? "",
+    meta: data.meta ?? {},
+    byline: data.attribution ?? null,
+  };
 
   // SPEC §9 (#690): a `fix_page` updates the page it names, and only that
   // page's metadata. A draft with nothing recorded to change has nothing to

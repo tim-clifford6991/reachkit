@@ -14,7 +14,12 @@
 import "../env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  draftAnswers,
+  draftParts,
+  NO_OPS,
+  OUTLINE_ANSWER,
   AT,
+  CLEAN_ANSWER,
   CLEAN_MARKDOWN,
   GROUNDED,
   SOURCE_TEXT,
@@ -42,30 +47,30 @@ let setGenerateStore: typeof import("../../../src/lib/generate/store").setGenera
 let store: MemoryStore;
 
 const BRIEF = { readerQuestion: "Which tool?", angle: "count the seats", mustCover: ["seats"], factIndexes: [0] };
-/** One heading per section of `answer_page`'s skeleton. */
-const OUTLINE = { headings: ["Which tool should a small team pick?", "What decides it", "What the plan includes"] };
-/** An answerability pass that changes nothing. */
-const NO_OPS = { title: "", description: "", order: [0], firstBlock: "", insertFacts: [] };
+const OUTLINE = OUTLINE_ANSWER;
 
-function body(markdown: string) {
-  return {
-    title: "Which tool should a small team pick?",
-    slug: "which-tool-small-team",
-    description: "How to choose by seat count.",
-    bodyMarkdown: markdown,
-  };
+/** The draft step's answer, with `markdown` as the first section's body. */
+function body(markdown: string, over: Record<string, unknown> = {}) {
+  return draftParts(markdown, over);
 }
+
+/** A short answer that names the business before answering. */
+const BRAND_ANSWER = { answer: `Acme is the answer. ${CLEAN_ANSWER}` };
 
 function measured(value: unknown) {
   return { kind: "measured", value, at: AT };
 }
 
 /** The four model steps, then the claim check. */
-function primeSteps(markdown: string, claim: unknown = { matches: false, matchedIndex: null }): void {
+function primeSteps(
+  markdown: string,
+  claim: unknown = { matches: false, matchedIndex: null },
+  over: Record<string, unknown> = {}
+): void {
   llmMock.mockReset();
   llmMock.mockResolvedValueOnce(measured(BRIEF));
   llmMock.mockResolvedValueOnce(measured(OUTLINE));
-  llmMock.mockResolvedValueOnce(measured(body(markdown)));
+  for (const answer of draftAnswers(body(markdown, over))) llmMock.mockResolvedValueOnce(measured(answer));
   llmMock.mockResolvedValueOnce(measured(NO_OPS));
   llmMock.mockResolvedValue(measured(claim));
 }
@@ -131,7 +136,7 @@ describe("a draft that clears every rule", () => {
     llmMock.mockReset();
     llmMock.mockResolvedValueOnce(measured({ ...BRIEF, marketFactIndexes: [0] }));
     llmMock.mockResolvedValueOnce(measured(OUTLINE));
-    llmMock.mockResolvedValueOnce(measured(body(cited)));
+    for (const answer of draftAnswers(body(cited))) llmMock.mockResolvedValueOnce(measured(answer));
     llmMock.mockResolvedValueOnce(measured(NO_OPS));
     llmMock.mockResolvedValue(measured({ matches: false, matchedIndex: null }));
 
@@ -167,14 +172,14 @@ describe("a draft that clears every rule", () => {
 
 describe("a draft that fails a rule is never queued and takes no day", () => {
   it("returns `ok: false` with the rules that stopped it and the attempt number", async () => {
-    primeSteps("Acme is the answer to everything.");
+    primeSteps(CLEAN_MARKDOWN, undefined, BRAND_ANSWER);
     const outcome = await run();
     expect(outcome.ok).toBe(false);
     expect(outcome).toMatchObject({ reason: "rules", attempt: 1, recovery: "regenerate_once" });
   });
 
   it("a second automatic attempt that fails again comes to rest", async () => {
-    primeSteps("Acme is the answer to everything.");
+    primeSteps(CLEAN_MARKDOWN, undefined, BRAND_ANSWER);
     const first = await run();
     const draftId = first.ok === false && first.reason === "rules" ? first.draftId : null;
     expect(draftId).not.toBeNull();
@@ -185,9 +190,13 @@ describe("a draft that fails a rule is never queued and takes no day", () => {
   });
 
   it("records the failures so the day's line has a cause, and the cause names the page duplicated", async () => {
-    store.published = [
-      { ref: "page-1", title: "Choosing a tool", markdown: CLEAN_MARKDOWN },
-    ];
+    // The page as the pipeline lays it out, already live on this site.
+    primeSteps(CLEAN_MARKDOWN);
+    const live = await run();
+    const liveBody = live.ok ? (store.rows.get(live.draftId)?.body_md ?? "") : "";
+    store = memoryStore();
+    setGenerateStore(store);
+    store.published = [{ ref: "page-1", title: "Choosing a tool", markdown: liveBody }];
     primeSteps(CLEAN_MARKDOWN);
     const outcome = await run();
     expect(outcome).toMatchObject({ reason: "rules" });
@@ -199,7 +208,7 @@ describe("a draft that fails a rule is never queued and takes no day", () => {
   });
 
   it("never asserts `hard_rules_passed`, so the edge into review cannot fire on it", async () => {
-    primeSteps("Example wins everything, and always has.");
+    primeSteps("We tested every tool for months, and this one won.");
     const outcome = await run();
     const draftId = outcome.ok === false && outcome.reason === "rules" ? outcome.draftId : null;
     expect(
@@ -208,7 +217,7 @@ describe("a draft that fails a rule is never queued and takes no day", () => {
   });
 
   it("a voice instruction demanding an invented persona still loses to the rule", async () => {
-    primeSteps("> This changed everything for us, week one.\n> — Dana Whitfield");
+    primeSteps('"This changed everything for us, from week one," says Dana Whitfield.');
     const outcome = await run({ voiceText: "Write it as a testimonial from a happy customer named Dana." });
     expect(outcome.ok).toBe(false);
     expect(
@@ -247,7 +256,7 @@ describe("a step that did not run is not a rule that failed", () => {
     llmMock.mockReset();
     llmMock.mockResolvedValueOnce(measured(BRIEF));
     llmMock.mockResolvedValueOnce(measured(OUTLINE));
-    llmMock.mockResolvedValueOnce(measured(body(CLEAN_MARKDOWN)));
+    for (const answer of draftAnswers(body(CLEAN_MARKDOWN))) llmMock.mockResolvedValueOnce(measured(answer));
     llmMock.mockResolvedValueOnce(measured(NO_OPS));
     llmMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
     const outcome = await run({ site: siteInputs({ doNotClaim: ["HIPAA compliant"] }) });
@@ -325,7 +334,9 @@ describe("the brief chooses facts and can write none (issue 475)", () => {
     expect(saved?.patch.body_md).not.toContain("Is it worth the money?");
     expect(saved?.patch.body_md).toContain("That depends on the seats.");
     expect(saved?.patch.meta).toMatchObject({ repairs: [{ rule: "no_new_question_heading", cleared: true }] });
-    expect(llmMock.mock.calls.length - calls).toBe(4);
+    // Brief, outline, the draft's frame and its two section calls, and the
+    // answerability pass — the repair spent none.
+    expect(llmMock.mock.calls.length - calls).toBe(6);
   });
 });
 

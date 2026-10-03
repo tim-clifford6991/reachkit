@@ -437,6 +437,17 @@ describe("issue #158 — the body leaves as HTML, at one point, through the one 
     expect(created.content.replace(/\n*<!--[^>]*-->$/, "")).toBe(renderMarkdownHtml(PAGE.bodyMd));
   });
 
+  it("a page with a recorded byline opens with it and the day it was published; one without carries no line (SPEC §7, 2026-09-29)", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-03T09:00:00.000Z") });
+    try {
+      await WORDPRESS_ADAPTER.deliver({ ...PAGE, byline: "Ada <Lovelace> · Founder" }, CFG, "draft-1");
+    } finally {
+      vi.useRealTimers();
+    }
+    const created = postWrites()[0]!.body as { content: string };
+    expect(created.content.startsWith("<p>published 3 Oct 2026 · by Ada &lt;Lovelace&gt; · Founder</p>\n<h1>")).toBe(true);
+  });
+
   it("**no raw HTML reaches the customer's site**: markup in a body is escaped, never passed through", async () => {
     const nasty = {
       ...PAGE,

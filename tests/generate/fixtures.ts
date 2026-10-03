@@ -270,3 +270,123 @@ export function memoryStore(over: Partial<MemoryStore> = {}): MemoryStore {
   };
   return store;
 }
+
+// ── The model steps' answers since issue 1137 ───────────────────────────
+
+/** The outline step's answer: six questions over the whole block set, so it
+ *  satisfies every type's required blocks. */
+export const OUTLINE_ANSWER = {
+  sections: [
+    { role: "answer", heading: "Which tool should a small team pick?" },
+    { role: "detail", heading: "What decides the choice?" },
+    { role: "comparison", heading: "How do the plans compare?" },
+    { role: "steps", heading: "How does a team check a plan?" },
+    { role: "evidence", heading: "What does the starter plan include?" },
+    { role: "business", heading: "How is the seat limit handled here?" },
+  ],
+};
+export const OUTLINE_HEADINGS = OUTLINE_ANSWER.sections.map((section) => section.heading);
+
+/** A short answer inside 40–60 words that names nobody. */
+export const CLEAN_ANSWER =
+  "The right tool for a small team is the one whose plan covers every person who opens it each day. " +
+  "Count those people first, then read what the plan includes, because a seat limit is the constraint " +
+  "teams notice last and feel most once the work has moved in.";
+
+const FILLER_SECTIONS = [
+  "The choice turns on how many people need a seat. A plan that fits the team today can stop fitting after one hire.",
+  "The plans differ in who they are built for. The table sets the two side by side.\n\n| Plan | Built for |\n| --- | --- |\n| Starter | A small team |\n| Larger | A growing team |",
+  "A team checks a plan in order. Each step takes a few minutes.\n\n1. Count the people who open the tool daily.\n2. Read the plan's seat limit.\n3. Compare the two.",
+  "The starter plan is stated on the pricing page. Teams on the starter plan get 25 seats and unlimited projects for a flat monthly fee, per [the published pricing page](https://example.com/pricing).",
+  "The seat limit is published openly. It is on [the published pricing page](https://example.com/pricing) for anyone to read before choosing.",
+];
+
+/** The draft step's answer: the page in parts. `first` is the body of the
+ *  first section — where a suite puts the text it is about. */
+export function draftParts(first: string = CLEAN_MARKDOWN, over: Record<string, unknown> = {}) {
+  return {
+    title: "Which tool should a small team pick?",
+    slug: "which-tool-small-team",
+    description: "How to choose by seat count.",
+    answer: CLEAN_ANSWER,
+    takeaways: [
+      "Count the people who open the tool every day.",
+      "Read what the plan includes before choosing.",
+      "A seat limit is felt last and most.",
+    ],
+    sections: [first, ...FILLER_SECTIONS],
+    closing: "Count your seats before you choose a plan.",
+    faq: [
+      { question: "Does a small team need a paid plan?", answer: "It depends on how many people need a seat. Count them first." },
+      { question: "What is a seat?", answer: "A seat is one person's place in the tool. Each daily user needs one." },
+      { question: "When should a team change plan?", answer: "When the people who need a seat outnumber the seats the plan has." },
+    ],
+    ...over,
+  };
+}
+
+/** An answerability pass that changes nothing. */
+export const NO_OPS = { title: "", description: "", order: [0, 1, 2, 3, 4, 5], openings: [], insertFacts: [] };
+
+/**
+ * The outline and the parts for a journey's page, built from the single
+ * body those suites already hold. Every sentence of the filler carries the
+ * page's own `topic`, so two pages of one site share no run of five words
+ * and the near-duplicate gate reads them as the different pages they are.
+ */
+export function outlineFor(page: { title: string }, topic: string) {
+  const roles = OUTLINE_ANSWER.sections.map((section) => section.role);
+  return {
+    sections: roles.map((role, index) => ({
+      role,
+      heading: index === 0 ? page.title : `Which ${topic} point ${["one", "two", "three", "four", "five", "six"][index]} matters?`,
+    })),
+  };
+}
+
+export function partsFromPage(
+  page: { title: string; slug: string; description: string; bodyMarkdown: string },
+  topic: string
+) {
+  const t = topic.charAt(0).toUpperCase() + topic.slice(1);
+  const say = (...tails: string[]): string => tails.map((tail) => `${t}: ${tail}.`).join(" ");
+  return {
+    title: page.title,
+    slug: page.slug,
+    description: page.description,
+    // Twelve four-word sentences: 48 words, inside the box's 40–60.
+    answer: say(
+      "count the people", "read the plan", "compare the two", "check the seats", "ask the team", "note the limit",
+      "weigh the cost", "list the needs", "match the work", "pick the fit", "watch the growth", "revisit each year"
+    ),
+    takeaways: [say("count the people"), say("read the plan"), say("compare the two")],
+    sections: [
+      page.bodyMarkdown,
+      say("people decide it", "seats decide it"),
+      `${say("plans differ here")}\n\n| ${t} plan | ${t} fit |\n| --- | --- |\n| ${t} starter | ${t} small team |`,
+      `${say("steps come next")}\n\n1. ${t}: count.\n2. ${t}: read.\n3. ${t}: compare.`,
+      say("facts stand here", "sources stand here"),
+      say("limits stay open", "plans stay published"),
+    ],
+    closing: say("count your seats"),
+    faq: ["first", "second", "third"].map((nth) => ({ question: `${t}: the ${nth} question?`, answer: say("the answer") })),
+  };
+}
+
+/**
+ * The draft step's answers in the order it asks: the page's frame, then the
+ * section bodies three to a call (`DRAFT_SECTIONS_PER_CALL`).
+ */
+export function draftAnswers(parts: ReturnType<typeof draftParts> = draftParts()): unknown[] {
+  const { sections, ...frame } = parts;
+  const batches: unknown[] = [];
+  for (let at = 0; at < sections.length; at += 3) batches.push({ sections: sections.slice(at, at + 3) });
+  return [frame, ...batches];
+}
+
+/** One draft call's answer for a suite that reads the request: the frame,
+ *  or the bodies of the sections `write` names. */
+export function draftAnswerFor(parts: { sections: string[] }, asked: { write?: readonly number[] }): unknown {
+  if (asked.write !== undefined) return { sections: asked.write.map((index) => parts.sections[index] ?? "") };
+  return Object.fromEntries(Object.entries(parts).filter(([key]) => key !== "sections"));
+}

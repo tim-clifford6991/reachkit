@@ -86,7 +86,8 @@ async function draftPromptText(a: {
   llmMock.mockReset();
   llmMock.mockResolvedValue({
     kind: "measured",
-    value: { title: "t", slug: "s", description: "d", bodyMarkdown: "## t\n\nx" },
+    // One answer for both of the draft's calls: the frame's and the one section's.
+    value: { title: "t", slug: "s", description: "d", sections: ["x"] },
     at: new Date("2026-09-06T00:00:00.000Z"),
   });
   const inputs = buildPromptInputs({

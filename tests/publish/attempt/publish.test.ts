@@ -430,6 +430,8 @@ describe("the page handed to the adapter is the draft's own facts", () => {
       slug: "best-widgets",
       bodyMd: "# Best widgets",
       meta: {},
+      // The byline generation recorded, read off the row; this draft has none.
+      byline: null,
     });
   });
 

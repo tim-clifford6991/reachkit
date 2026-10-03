@@ -31,12 +31,14 @@ describe("no_invented_test", () => {
 });
 
 describe("no_invented_provenance", () => {
-  it.each(["By Jordan Lee", "Last updated on 3 March.", "This case study shows the difference."])(
-    "fails %j",
-    (markdown) => {
-      expect(checkInventedProvenance({ markdown, brief: BRIEF })).toEqual({ rule: "no_invented_provenance" });
+  it("fails a case study, and no longer a byline or a date — those are the page's own since 2026-09-29", () => {
+    expect(checkInventedProvenance({ markdown: "This case study shows the difference.", brief: BRIEF })).toEqual({
+      rule: "no_invented_provenance",
+    });
+    for (const markdown of ["By Jordan Lee", "Last updated on 3 March."]) {
+      expect(checkInventedProvenance({ markdown, brief: BRIEF })).toBeNull();
     }
-  );
+  });
 });
 
 describe("no_new_question_heading", () => {
@@ -67,6 +69,16 @@ describe("traceable_numerals", () => {
 });
 
 describe("first_block_answers", () => {
+  it.each([
+    [39, false],
+    [40, true],
+    [60, true],
+    [61, false],
+  ])("a short-answer box of %i words answers: %s", (words, answers) => {
+    const markdown = `:::answer\n${"word ".repeat(words).trim()}.\n:::\n\n## Which tool?\n\n${OPENING}`;
+    expect(checkFirstBlockAnswers({ markdown }) === null).toBe(answers);
+  });
+
   it("passes an opening paragraph inside the bound", () => {
     expect(checkFirstBlockAnswers({ markdown: `## Which tool?\n\n${OPENING}` })).toBeNull();
   });

@@ -286,7 +286,7 @@ const BRIEF = {
   factIndexes: [0],
 };
 /** The answerability pass's operations: none, so the page stands as drafted. */
-const NO_OPS = { title: "", description: "", order: [0], firstBlock: "", insertFacts: [] };
+const NO_OPS = { title: "", description: "", order: [0, 1, 2, 3, 4, 5], openings: [], insertFacts: [] };
 
 /** A page that passes every one of §8's deterministic rules: the brand is
  *  not named in the opening, the grounded passage is stated word for word
@@ -320,17 +320,16 @@ vi.mock("@anthropic-ai/sdk", () => {
         const input = request.messages[0]?.content ?? "";
         const asked = JSON.parse(input) as { task: string; sections?: unknown[] };
         modelCalls.push({ task: asked.task, tokens: input.length });
-        // One heading per skeleton section; the first is the page's own.
-        const outline = {
-          headings: (asked.sections ?? []).map((_s, i) => (i === 0 ? PAGE_BODY.title : `Section ${i + 1}`)),
-        };
+        // Six question sections over the block set; the first is the page's own.
+        const { draftAnswerFor, outlineFor, partsFromPage } = await import("../generate/fixtures");
+        const outline = outlineFor(PAGE_BODY, "tool");
         const answer = asked.task.startsWith("Write the brief")
           ? BRIEF
-          : asked.task.startsWith("Write one heading")
+          : asked.task.startsWith("Choose the page's sections")
             ? outline
             : asked.task.startsWith("Make the page")
               ? NO_OPS
-              : PAGE_BODY;
+              : draftAnswerFor(partsFromPage(PAGE_BODY, "tool"), asked as { write?: number[] });
         return {
           content: [{ type: "text", text: JSON.stringify(answer) }],
           usage: { input_tokens: 800, output_tokens: 400 },
@@ -768,9 +767,10 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(stored?.rule_failures).toEqual([]);
       expect(row.hard_rules_passed).toBe(true);
 
-      // Four model steps, each at its own call site, all ledgered against
-      // the scan that grounds the page — and the whole day inside §8's cap.
-      expect(modelCalls).toHaveLength(4);
+      // Four model steps — the draft written in turn, its frame and then
+      // its sections three to a call — all ledgered against the scan that
+      // grounds the page, and the whole day inside §8's cap.
+      expect(modelCalls).toHaveLength(6);
       const rows = ledger();
       expect(rows.map((r) => r.source)).toEqual([
         // Issue 1135: the research step's one search for studies, bought
@@ -779,6 +779,8 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
         "generate.brief",
         "generate.outline",
         "generate.draft",
+        "generate.sections",
+        "generate.sections",
         "generate.answerability",
       ]);
       const spent = rows.reduce((total, r) => total + r.costCents, 0);

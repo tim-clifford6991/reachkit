@@ -234,8 +234,15 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   "topic-typed": 400,
   "generate.brief": 1024,
   "generate.outline": 1536,
-  "generate.draft": 4096,
+  /** Since issue 1137 the draft is written in turn: this call writes the
+   *  page's frame — title, short answer, takeaways, closing line and buyer
+   *  questions, ~900 needed — and `generate.sections` writes the bodies. */
+  "generate.draft": 2048,
+  /** At most `DRAFT_SECTIONS_PER_CALL` section bodies: ~450 each. */
+  "generate.sections": 2048,
   "generate.answerability": 4096,
+  /** One paragraph of 40–60 words (issue 1137): ~90 needed. */
+  "generate.answer_box": 256,
   "generate.claim_check": 128,
   /** Issue 1135: the claims read off at most `RESEARCH.pagesPerCall` public
    *  pages — up to `RESEARCH.claimsPerPage` quotations of a sentence or two
@@ -1555,6 +1562,25 @@ export const ANSWERABILITY_MAX_NEW_QUESTIONS = 0 as const;    // §7
  *  characters where a question heading already exists". The same bound is
  *  what a draft's opening block must fall inside to count as an answer. */
 export const ANSWER_FIRST_BLOCK_CHARS = Object.freeze({ min: 40, max: 320 } as const); // §7
+
+/** SPEC §7 (2026-09-29, *What every page carries*): the counts a generated
+ *  page is held to, in code. The answer box is counted in words; a section
+ *  is an H2. `taglineRepeats` is the round-1 review's cap (2026-10-02,
+ *  issue 1137): a promise of the business's own is said at most twice. */
+export const PAGE_BLOCKS = Object.freeze({
+  answerWords: { min: 40, max: 60 },
+  takeaways: { min: 3, max: 5 },
+  sections: { min: 6, max: 10 },
+  faq: { min: 3, max: 6 },
+  taglineRepeats: 2,
+} as const);                                                   // §7 · issue 1137
+
+/** How many of the page's sections one writer call is asked for (issue
+ *  1137). The Haiku tier's clock is 20 s (`INFERENCE_TIMEOUT_MS`) and it
+ *  writes about 80 tokens a second: the whole page in one call ran 19.5 s
+ *  and timed out on the next (eval run of 2026-10-03). Three sections is
+ *  about 1,300 tokens, inside the clock with room. */
+export const DRAFT_SECTIONS_PER_CALL = 3 as const;             // §7 · issue 1137
 
 /** How many of the customer's own passages one brief is handed to choose
  *  from. Chosen, not transcribed: enough for a page to stand on more than one

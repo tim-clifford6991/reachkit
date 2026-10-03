@@ -53,6 +53,10 @@ export const HOSTED_BODY_CLASSES: HtmlClasses = Object.freeze({
   mark: MARK_CLASS,
   answer: "not-prose bg-base-200 rounded-box my-6 p-5",
   answerLabel: "eyebrow mb-2",
+  // The key takeaways (SPEC §7, 2026-09-29, D4): the same box. Its list is
+  // inside `not-prose`, so the markers `prose` would have set are named.
+  takeaways: "not-prose bg-base-200 rounded-box my-6 p-5 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5",
+  takeawaysLabel: "eyebrow mb-2",
   // No `not-prose` here, unlike the box: the guides **are** a list, and
   // `prose` already knows how to set one — markers, spacing between items,
   // the theme's own link colour. What the page adds is the rule above it,

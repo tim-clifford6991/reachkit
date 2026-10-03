@@ -62,7 +62,7 @@ describe("a page's kind is read off its row", () => {
   it("a how-to page is outlined as steps, a comparison as a comparison", () => {
     expect(skeletonFor({ type: "keyword_page", targetQuery: "how to get cited by chatgpt" })).toContain("steps");
     expect(skeletonFor({ type: "listed_page", targetQuery: "best ai seo software" })).toContain("comparison");
-    expect(skeletonFor({ type: "keyword_page", targetQuery: "what is geo" })).toEqual(["answer", "detail", "evidence"]);
+    expect(skeletonFor({ type: "keyword_page", targetQuery: "what is geo" })).toEqual(["answer", "detail", "evidence", "business"]);
   });
 });
 

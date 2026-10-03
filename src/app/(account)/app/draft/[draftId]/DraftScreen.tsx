@@ -342,7 +342,7 @@ export function DraftScreen(p: {
   /**
    * What the rules say about the buffer **as it now stands** (issue 932).
    *
-   * `marks.ts` runs thirteen of the sixteen in this process, so the answer
+   * `marks.ts` runs thirteen of the seventeen in this process, so the answer
    * is a render old rather than a save old. It is the editor's banner and
    * nothing else: it does not decide whether the page publishes — the
    * saved battery does that, and `rulesHeld` above is still the sentence

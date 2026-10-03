@@ -1,10 +1,14 @@
-// SPEC §7 · issue 475 — one closed outline skeleton per opportunity type.
+// SPEC §7 (2026-09-29, *What every page carries*; issue 1137) — the block
+// set a page's outline is chosen from, and the blocks each type requires.
 //
-// The outline step used to return an open list of sections, so the model
-// chose the page's shape — and a blog post is the shape it reaches for. Here
-// the shape is fixed by the opportunity's type: the model is handed the
-// sections in order and writes only a heading for each. It cannot add a
-// section, drop one or reorder them.
+// Issue 475 fixed one outline per opportunity type: the model was handed
+// three or four sections and wrote a heading for each. The 2026-09-29 ruling
+// ends that — "the outline is chosen per page from these blocks and the
+// type's job, six to ten sections; no type has one fixed outline". So the
+// outline step now chooses the sections, each of them one of the roles
+// below, and what stays fixed per type is the blocks a page of that type
+// cannot go without: `outlineOf` (`./steps.ts`) refuses an outline that
+// lacks one, or that is not six to ten question headings.
 //
 // Total over the type enum, so a new type is a compile error here. `null` is
 // a type that writes no page body: an `unblock` is an instruction, and a
@@ -26,19 +30,37 @@
 import { contentKindOf, type ContentKind } from "@/lib/opportunities/content-kind";
 import type { Opportunity, OpportunityType } from "@/lib/opportunities/types";
 
-export type SectionRole = "answer" | "detail" | "comparison" | "steps" | "evidence";
+export type SectionRole = "answer" | "detail" | "comparison" | "steps" | "evidence" | "business";
+
+/** The block set, in the order the outline prompt lists it. */
+export const SECTION_ROLES: readonly SectionRole[] = Object.freeze([
+  "answer",
+  "detail",
+  "comparison",
+  "steps",
+  "evidence",
+  "business",
+] as const);
 
 /** What each section is for, as the outline and draft prompts state it. */
 export const SECTION_TASK: Readonly<Record<SectionRole, string>> = Object.freeze({
-  answer: "Answer the target search directly in the section's first paragraph.",
-  detail: "Explain what decides the answer, one idea per paragraph.",
-  comparison: "Compare the options the search names, criterion by criterion, as a table or a list.",
-  steps: "Give the steps a reader takes, in order, as a numbered list.",
+  answer: "Answer the target search in full: what the short answer says, with what a reader needs to act on it.",
+  detail: "Explain one thing that decides the answer, one idea per paragraph.",
+  comparison:
+    "Compare the options, prices or plans the search names, criterion by criterion: after the opening paragraph, a GFM table — a header row, a delimiter row with one `---` for every column, then one row per option.",
+  steps: "Say in an opening paragraph what the steps achieve, then give the steps a reader takes, in order, as a numbered list.",
   // Not "facts about the business": the section's job is to stand the page
   // on something checkable, and a section briefed to be about the seller is
   // how a page answering the market's question became a brochure (issue 900).
   evidence: "State the selected facts, word for word, each linked to the page it was read from.",
+  // SPEC §7 (2026-09-29): "a section on how the business itself handles the
+  // question, with links to its product, pricing and the cluster's hub page".
+  business:
+    "Say how this business itself handles the question, from the selected facts only, linking its product and pricing pages from `links`.",
 });
+
+/** The block every page carries whatever its type (SPEC §7, 2026-09-29). */
+const EVERY_PAGE: readonly SectionRole[] = Object.freeze(["business"] as const);
 
 export const SKELETONS: Readonly<Record<OpportunityType, readonly SectionRole[] | null>> = Object.freeze({
   answer_page: ["answer", "detail", "evidence"],
@@ -78,9 +100,9 @@ export const PAGE_JOB: Readonly<Record<OpportunityType, string | null>> = Object
   fix_page: null,
 });
 
-/** SPEC §7 (2026-10-03, D36, issue 1209) — the outline of each kind of new
- *  page the weekly mix rotates. An update keeps its type's own skeleton
- *  above: what it does to a page is the type's, not the mix's. */
+/** SPEC §7 (2026-10-03, D36, issue 1209) — the blocks each kind of new page
+ *  the weekly mix rotates requires. An update keeps its type's own above:
+ *  what it does to a page is the type's, not the mix's. */
 export const KIND_SKELETON: Readonly<Record<Exclude<ContentKind, "update">, readonly SectionRole[]>> =
   Object.freeze({
     comparison: ["answer", "comparison", "evidence"],
@@ -100,11 +122,13 @@ export const KIND_JOB: Readonly<Record<Exclude<ContentKind, "update">, string>> 
 
 type Typed = Pick<Opportunity, "type" | "targetQuery">;
 
-/** The page's outline: its kind's for a new page, its type's for an update.
- *  `null` where the type writes no body. */
+/** The blocks the page's outline must carry: its kind's for a new page, its
+ *  type's for an update, and the business's own section on both. `null`
+ *  where the type writes no body. */
 export function skeletonFor(o: Typed): readonly SectionRole[] | null {
   const kind = contentKindOf(o);
-  return kind === null || kind === "update" ? SKELETONS[o.type] : KIND_SKELETON[kind];
+  const required = kind === null || kind === "update" ? SKELETONS[o.type] : KIND_SKELETON[kind];
+  return required === null ? null : [...required, ...EVERY_PAGE];
 }
 
 /** The page's job, chosen as `skeletonFor` chooses its outline. */

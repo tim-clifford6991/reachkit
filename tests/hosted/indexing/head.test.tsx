@@ -69,6 +69,8 @@ function livePage(faq: { question: string; answer: string }[]): unknown {
     },
     publisher: { name: "example.com", category: "onboarding software", timeZone: "UTC" },
     publishedAt: new Date("2026-09-01T09:00:00.000Z"),
+    firstPublishedAt: new Date("2026-09-01T09:00:00.000Z"),
+    byline: null,
     liveUrl: "https://content.example.com/a-page",
     record: {
       opportunityId: "opp-1",
@@ -144,6 +146,7 @@ describe("issue 697 — every page describes itself in structured data", () => {
       url: "https://content.example.com/a-page",
       mainEntityOfPage: "https://content.example.com/a-page",
       datePublished: "2026-09-01T09:00:00.000Z",
+      dateModified: "2026-09-01T09:00:00.000Z",
       inLanguage: "en-US",
       publisher: { "@type": "Organization", name: "example.com", url: "https://example.com" },
     });

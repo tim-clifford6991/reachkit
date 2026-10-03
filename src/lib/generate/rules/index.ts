@@ -1,7 +1,7 @@
 // BUILD §8 — the hard-rule battery.
 //
 // §8's rules are "enforced in code, not prompts", and this is the one place
-// they are all run. Fifteen of the sixteen are deterministic passes over finished
+// they are all run. Sixteen of the seventeen are deterministic passes over finished
 // text and cost nothing; the last is the do-not-claim check, which owns
 // its own module and is called from here rather than re-implemented.
 //
@@ -31,6 +31,7 @@ import {
   traceableNumerals,
   type BriefRuleInputs,
 } from "./brief";
+import { checkRequiredBlocks, type BlockRuleInputs } from "./blocks";
 import { checkBrandGap } from "./brandgap";
 import { checkPageFrame } from "./frame";
 import { buildPrivateFigureRegister, checkPrivateFigure } from "./figures";
@@ -87,6 +88,9 @@ export async function runHardRules(
      *  market facts' pages, what a rival's figure may be sourced to (issue
      *  1135). */
     factPages?: readonly string[];
+    /** What the page's structure is held to (issue 1137). Passed only for a
+     *  page this product generated; absent, `required_blocks` asks nothing. */
+    blocks?: BlockRuleInputs;
   }
 ): Promise<BatteryOutcome> {
   // The sources list is code's, not the page's own words (issue 1135): the
@@ -98,14 +102,14 @@ export async function runHardRules(
     opportunities: a.site.opportunities,
   });
 
-  // The fifteen deterministic arms, keyed by the rule they answer for, so the
+  // The sixteen deterministic arms, keyed by the rule they answer for, so the
   // battery is assembled in `HARD_RULES` order below rather than in
   // whatever order the calls happen to be written in.
   //
   // **Total, not partial** (issue #424). A rule with no arm here would be
   // read as one that failed nothing — by the loop below, which is how
   // `passed` is decided, and by the record the draft view's Checks list is
-  // drawn from. Spelling the fifteen as a total record makes an undecided rule
+  // drawn from. Spelling the sixteen as a total record makes an undecided rule
   // a compile error rather than a pass the product hands out for free.
   const deterministic: Record<Exclude<HardRule, "do_not_claim">, RuleFailure | null> = {
     grounding: checkGrounding({ grounded: a.grounded, sourceText: a.sourceText }),
@@ -151,6 +155,7 @@ export async function runHardRules(
     no_new_question_heading: checkNewQuestionHeading({ markdown: a.markdown, brief: a.brief }),
     traceable_numerals: checkTraceableNumerals({ markdown: a.markdown, brief: a.brief }),
     first_block_answers: checkFirstBlockAnswers({ markdown: a.markdown }),
+    required_blocks: checkRequiredBlocks({ markdown: a.markdown, title: a.title, blocks: a.blocks ?? null }),
   };
 
   // The last. `claimCheck` owns the match; this file holds no second

@@ -55,6 +55,7 @@ function textOf(block: Block): string {
       // Every cell, header first, in the order they are drawn.
       return [block.head, ...block.rows].map((row) => row.map(inlinesOf).join(" ")).join(" ");
     case "answer":
+    case "takeaways":
       // The short-answer box is the page's own opening answer, so its text
       // is the page's text.
       return block.children.map(textOf).join(" ");

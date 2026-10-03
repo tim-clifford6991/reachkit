@@ -61,13 +61,16 @@ export interface Options {
   regenerate: number | null;
 }
 
-/** The five `llm()` call sites one draft uses, in the order the pipeline
- *  reaches them. Named so the dry run can show what each is allowed to
+/** The `llm()` call sites one draft uses, in the order the pipeline
+ *  reaches them (`generate.answer_box` only where the short answer is
+ *  outside its 40–60 words). Named so the dry run can show what each is allowed to
  *  generate before a penny is spent. */
 const CALL_SITES = [
   "generate.brief",
   "generate.outline",
   "generate.draft",
+  "generate.sections",
+  "generate.answer_box",
   "generate.answerability",
   "generate.claim_check",
 ] as const;
