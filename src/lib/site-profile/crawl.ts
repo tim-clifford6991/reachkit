@@ -264,12 +264,34 @@ async function crawl(
     if (known === undefined) rank.set(url, (known = readFirstRank(url)));
     return known;
   };
-  /** The next `count` addresses, best first; discovery order among equals. */
+  // The next `count` addresses, best first; discovery order among equals.
+  // A query variant of a path already known to ignore its query is dropped
+  // unread, and a batch carries one variant of an undecided path — the rest
+  // keep their place and wait for what that one says.
   const take = (count: number): string[] => {
     const order = frontier.map((url, i) => ({ url, i })).sort((a, b) => rankOf(a.url) - rankOf(b.url) || a.i - b.i);
-    const taken = order.slice(0, count);
-    for (const i of taken.map((entry) => entry.i).sort((a, b) => b - a)) frontier.splice(i, 1);
-    return taken.map((entry) => entry.url);
+    const out: string[] = [];
+    const gone: number[] = [];
+    const probing = new Set<string>();
+    for (const { url, i } of order) {
+      if (out.length >= count) break;
+      const path = withoutQuery(url);
+      if (path !== null) {
+        const decided = queries.get(path);
+        if (decided === "drop") {
+          gone.push(i);
+          continue;
+        }
+        if (decided === undefined) {
+          if (probing.has(path)) continue;
+          probing.add(path);
+        }
+      }
+      out.push(url);
+      gone.push(i);
+    }
+    for (const i of gone.sort((a, b) => b - a)) frontier.splice(i, 1);
+    return out;
   };
   const enqueue = (raw: string, from: string): void => {
     const url = inScopeUrl(raw, from, site);
@@ -278,35 +300,6 @@ async function crawl(
     if (key === null || seen.has(key)) return;
     seen.add(key);
     frontier.push(url);
-  };
-
-  // Up to `n` addresses off the front of the frontier. A query variant of a
-  // path already known to ignore its query is dropped unread, and a batch
-  // carries one variant of an undecided path — the rest wait for what that
-  // one says.
-  const take = (n: number): string[] => {
-    const out: string[] = [];
-    const held: string[] = [];
-    const probing = new Set<string>();
-    while (out.length < n && frontier.length > 0) {
-      const url = frontier.shift();
-      if (url === undefined) break;
-      const path = withoutQuery(url);
-      if (path !== null) {
-        const decided = queries.get(path);
-        if (decided === "drop") continue;
-        if (decided === undefined) {
-          if (probing.has(path)) {
-            held.push(url);
-            continue;
-          }
-          probing.add(path);
-        }
-      }
-      out.push(url);
-    }
-    frontier.unshift(...held);
-    return out;
   };
 
   const sitemap = await sitemapUrls(c, a, reader);
