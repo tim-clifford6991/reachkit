@@ -44,6 +44,16 @@ export function hasLink(markdownFragment: string): boolean {
   );
 }
 
+/** Every address a fragment of Markdown links or states. */
+export function linksOf(markdownFragment: string): string[] {
+  // `matchAll` starts where a shared global pattern was last left.
+  MD_LINK_RE.lastIndex = 0;
+  BARE_URL_RE.lastIndex = 0;
+  const out = [...markdownFragment.matchAll(MD_LINK_RE)].map((match) => match[2]!);
+  for (const match of markdownFragment.replace(MD_LINK_RE, " ").matchAll(BARE_URL_RE)) out.push(match[0]);
+  return out;
+}
+
 /** Markdown syntax removed, leaving the words. Applied to a fragment or to
  *  a whole document; `renderOf` is the whole-document name for it, kept
  *  separate only so call sites read as what they mean.
@@ -82,6 +92,10 @@ export interface Sentence {
   text: string;
   /** Whether the Markdown it came from carried an address. */
   hasLink: boolean;
+  /** The addresses it links, as written (issue 1135): what the sourcing
+   *  rules hold against the pages the facts were read from. Only
+   *  `sentencesOf` fills it. */
+  links?: readonly string[];
 }
 
 /** One block of a draft — a paragraph, a heading, a block quote, or one
@@ -220,6 +234,45 @@ export function headingKey(heading: string): string {
   return heading.replace(/[?!.:]+$/, "").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
+/** One item of a reference list: a linked page title and a short tail —
+ *  "- [Pricing — Rival](https://…), read on 3 October 2026". */
+const REFERENCE_ITEM_RE = /^[ \t]*[-*+][ \t]+\[[^\]\n]*\]\([^)\s]+\)[^\n]{0,40}$/;
+
+/**
+ * The draft with every reference list blanked: a heading whose section is
+ * nothing but linked page titles — the sources list code writes at the foot
+ * of a page (SPEC §7, 2026-09-29; issue 1135).
+ *
+ * The rules judge what the page says, and a cited page's title is not the
+ * page saying it: "We tested 15 tools", the title of a source, is neither an
+ * invented test nor an untraceable number. Each blanked character becomes a
+ * space, so every offset into the Markdown still points where it did — the
+ * editor's marks are placed in the same coordinates.
+ */
+export function withoutReferenceLists(markdown: string): string {
+  const lines = markdown.split("\n");
+  const out = [...lines];
+  for (let at = 0; at < lines.length; at++) {
+    if (!HEADING_LINE_RE.test(lines[at]!)) continue;
+    let end = at + 1;
+    let items = 0;
+    while (end < lines.length && !HEADING_LINE_RE.test(lines[end]!)) {
+      if (lines[end]!.trim().length > 0) {
+        if (!REFERENCE_ITEM_RE.test(lines[end]!)) {
+          items = -1;
+          break;
+        }
+        items++;
+      }
+      end++;
+    }
+    if (items <= 0) continue;
+    for (let line = at; line < end; line++) out[line] = " ".repeat(lines[line]!.length);
+    at = end - 1;
+  }
+  return out.join("\n");
+}
+
 /** Every sentence of the draft, in document order. A sentence never spans
  *  a block boundary. */
 export function sentencesOf(markdown: string): Sentence[] {
@@ -230,7 +283,7 @@ export function sentencesOf(markdown: string): Sentence[] {
     for (const piece of fragment.raw.split(SENTENCE_END_RE)) {
       const text = renderOf(piece).replace(/\s+/g, " ").trim();
       if (text.length === 0 && !hasLink(piece)) continue;
-      out.push({ text, hasLink: hasLink(piece) });
+      out.push({ text, hasLink: hasLink(piece), links: linksOf(piece) });
     }
   }
   return out;

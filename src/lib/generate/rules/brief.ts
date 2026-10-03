@@ -29,6 +29,20 @@ export interface BriefRuleInputs {
   headings: readonly string[];
   /** The target search and every search the row absorbed. */
   queries: readonly string[];
+  /** The market facts the brief selected, each with the public page it was
+   *  read from (SPEC §7, 2026-09-29; issue 1135). Absent on a page written
+   *  before the research step, whose rules read as they did then. */
+  marketFacts?: readonly { url: string; passage: string }[];
+}
+
+/** Every passage the page was handed, from either pool. */
+export function poolPassages(brief: BriefRuleInputs): string[] {
+  return [...brief.facts, ...(brief.marketFacts ?? []).map((fact) => fact.passage)];
+}
+
+/** A year is not a number for the figure rules (SPEC §7, 2026-09-29). */
+export function isYear(normalised: string): boolean {
+  return /^(?:19|20)\d{2}$/.test(normalised);
 }
 
 export const INVENTED_TEST_RES: readonly RegExp[] = [
@@ -61,7 +75,7 @@ function phraseRule(
 ): RuleFailure | null {
   for (const sentence of sentencesOf(a.markdown)) {
     if (!patterns.some((pattern) => pattern.test(sentence.text))) continue;
-    if (isHandedWords(sentence.text, a.brief.facts)) continue;
+    if (isHandedWords(sentence.text, poolPassages(a.brief))) continue;
     return { rule };
   }
   return null;
@@ -89,10 +103,10 @@ export function checkNewQuestionHeading(a: {
   return added.length > ANSWERABILITY_MAX_NEW_QUESTIONS ? { rule: "no_new_question_heading" } : null;
 }
 
-/** Every numeral a fact or a target search states, normalised. */
+/** Every numeral a fact of either pool or a target search states, normalised. */
 export function traceableNumerals(brief: BriefRuleInputs): Set<string> {
   const out = new Set<string>();
-  for (const text of [...brief.facts, ...brief.queries]) {
+  for (const text of [...poolPassages(brief), ...brief.queries]) {
     for (const numeral of numeralsOf(text)) out.add(numeral.normalised);
   }
   return out;
@@ -111,7 +125,7 @@ export function checkTraceableNumerals(a: {
       // Below the floor a numeral is a count or an ordinal ("three steps",
       // "step 2"), the same line the private-figure register draws.
       if (Number(numeral.normalised) < REGISTER_FLOOR) continue;
-      if (traceable.has(numeral.normalised)) continue;
+      if (isYear(numeral.normalised) || traceable.has(numeral.normalised)) continue;
       return { rule: "traceable_numerals", detail: { rule: "traceable_numerals", figure: numeral.raw } };
     }
   }

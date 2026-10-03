@@ -2,7 +2,10 @@
 //
 // "No rival metrics invented; every rival claim links its public source."
 // A statement that names a rival and carries a numeral must carry a link in
-// **the same sentence**.
+// **the same sentence** — and, since the two pools (SPEC §7, 2026-09-29;
+// issue 1135), that link is to a page one of the page's facts was read from.
+// The research step supplies those pages; an address the model reached for
+// on its own sources nothing.
 //
 // Sentence rather than paragraph, deliberately: a paragraph-wide scope lets
 // one sourced figure legitimise three unsourced ones standing beside it,
@@ -11,6 +14,7 @@
 // The figure the failure carries is the numeral as it appears in the draft
 // — a stored value read straight out of the text, never a sentence and
 // never anything a model wrote.
+import { urlKey } from "../links/select";
 import { sentencesOf } from "./text";
 import type { RuleFailure } from "./types";
 
@@ -40,15 +44,35 @@ function firstFigure(sentence: string): string | null {
   return match === null ? null : match[0].trim();
 }
 
+/** The figure a sentence states about a rival with no fact's page beside
+ *  it, or `null`. `pages` is the fact pages' keys; `null` is a page written
+ *  before the research step, where any link sources it. */
+export function unsourcedRivalFigure(
+  sentence: { text: string; hasLink: boolean; links?: readonly string[] },
+  rivals: readonly string[],
+  pages: ReadonlySet<string | null> | null
+): string | null {
+  const cited = pages === null ? sentence.hasLink : (sentence.links ?? []).some((link) => pages.has(urlKey(link)));
+  if (cited || !namesRival(sentence.text, rivals)) return null;
+  return firstFigure(sentence.text);
+}
+
+/** The fact pages, as the rule compares them. */
+export function factPageKeys(factPages: readonly string[] | undefined): ReadonlySet<string | null> | null {
+  return factPages === undefined ? null : new Set(factPages.map(urlKey));
+}
+
 export function checkRivalSource(a: {
   markdown: string;
   rivals: string[];
+  /** The pages the page's facts were read from, either pool. Absent on a
+   *  page written before the research step: any link sources it, as then. */
+  factPages?: readonly string[];
 }): RuleFailure | null {
   if (a.rivals.length === 0) return null;
+  const pages = factPageKeys(a.factPages);
   for (const sentence of sentencesOf(a.markdown)) {
-    if (sentence.hasLink) continue;
-    if (!namesRival(sentence.text, a.rivals)) continue;
-    const figure = firstFigure(sentence.text);
+    const figure = unsourcedRivalFigure(sentence, a.rivals, pages);
     if (figure === null) continue;
     return { rule: "rival_source", detail: { rule: "rival_source", figure } };
   }

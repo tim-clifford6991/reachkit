@@ -108,13 +108,18 @@ export function numeralsOf(sentence: string): Array<{ raw: string; normalised: s
 export function checkPrivateFigure(a: {
   markdown: string;
   register: readonly string[];
+  /** The numerals the page's facts state, from either pool (SPEC §7,
+   *  2026-09-29; issue 1135): a number a fact holds is one a reader can open
+   *  a source for, whatever the report also counts — "12 questions" on the
+   *  customer's own home page is not a private figure. */
+  traceable?: ReadonlySet<string>;
 }): RuleFailure | null {
   if (a.register.length === 0) return null;
   const registered = new Set(a.register);
   for (const sentence of sentencesOf(a.markdown)) {
     if (sentence.hasLink) continue;
     for (const numeral of numeralsOf(sentence.text)) {
-      if (registered.has(numeral.normalised)) {
+      if (registered.has(numeral.normalised) && a.traceable?.has(numeral.normalised) !== true) {
         return { rule: "no_private_figure", detail: { rule: "no_private_figure", figure: numeral.raw } };
       }
     }

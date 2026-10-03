@@ -333,6 +333,7 @@ export function DraftScreen(p: {
         facts: view.writtenFrom.facts.map((fact) => fact.passage),
         headings: headingsOf(view.bodyMdGenerated),
         queries: view.ruleFacts.queries,
+        ...(view.writtenFrom.marketFacts === undefined ? {} : { marketFacts: view.writtenFrom.marketFacts }),
       },
     }),
     [text.title, view.domain, view.ruleFacts, view.writtenFrom, view.bodyMdGenerated]

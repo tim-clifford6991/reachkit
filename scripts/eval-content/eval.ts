@@ -24,6 +24,8 @@ import path from "node:path";
 import { CAPS, EFFORT_BY_TYPE } from "@/lib/config/constants";
 import { generateDraft, type GenerateOutcome } from "@/lib/generate/pipeline";
 import { readRecordedRules } from "@/lib/generate/record";
+import { NO_RESEARCH, researchMarket } from "@/lib/generate/pipeline/research";
+import { targetSearches } from "@/lib/generate/pipeline/steps";
 import { siteLinkTargets } from "@/lib/generate/links/select";
 import type { DraftInsert, DraftPatch, DraftRow, GenerateStore } from "@/lib/generate/store";
 import { setGenerateStore } from "@/lib/generate/store";
@@ -301,7 +303,18 @@ export async function evaluate(
   servePages({ siteId, domain, pages });
   const cost = ledger.contextFor(index + 1);
   try {
-    const write = (): Promise<GenerateOutcome> => generateDraft(cost, prepared.args);
+    // The market pool (issue 1135), read once as the product reads it: the
+    // public pages are fetched live and free; the claim calls are inside the
+    // page's cap. A read that fails leaves the page to its business facts.
+    const research = await researchMarket(cost, {
+      siteId,
+      domain,
+      searches: targetSearches(opportunity),
+      report,
+      rivals: prepared.args.site.rivals,
+      today: new Date(today),
+    }).catch(() => NO_RESEARCH);
+    const write = (): Promise<GenerateOutcome> => generateDraft(cost, { ...prepared.args, market: research });
     // A step that did not answer gets the second attempt the product gives it
     // (#813), inside the same cost context. A rule stop is graded as written.
     let outcome = await write();

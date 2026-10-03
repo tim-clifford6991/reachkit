@@ -6,9 +6,10 @@
 // source URL + read date." The check is that the recorded passage occurs,
 // word for word, in the content fetched from that page that day.
 //
-// **There is no fallback, and no branch in this file reads one.** A
-// rival's page is not an admissible source and the model's own knowledge is
-// not: §8's fact is the customer's own live page, or a sentence the site's
+// **There is no fallback, and no branch in this file reads one.** The
+// model's own knowledge is not a source, and a market fact (SPEC §7,
+// 2026-09-29, issue 1135) is a second pool beside this one, never in its
+// place: §8's fact is the customer's own live page, or a sentence the site's
 // own report states (SPEC §7, 2026-10-03, issue 1163), or the draft does
 // not ship. That is why this function takes the source text as a parameter
 // rather than reaching for anything itself — there is nowhere else for it

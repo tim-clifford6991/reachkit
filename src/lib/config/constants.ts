@@ -237,6 +237,10 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   "generate.draft": 4096,
   "generate.answerability": 4096,
   "generate.claim_check": 128,
+  /** Issue 1135: the claims read off at most `RESEARCH.pagesPerCall` public
+   *  pages — up to `RESEARCH.claimsPerPage` quotations of a sentence or two
+   *  each, ~60 tokens a claim. */
+  "generate.research": 2048,
   /** The site profile's one call (issue #577, SPEC.md §2 "The scan builds
    *  the site profile"): the site name, its products and claims, and the
    *  five-member brand-voice summary with the paragraph the customer
@@ -1556,6 +1560,37 @@ export const ANSWER_FIRST_BLOCK_CHARS = Object.freeze({ min: 40, max: 320 } as c
  *  from. Chosen, not transcribed: enough for a page to stand on more than one
  *  fact, few enough that the nano brief call's input stays small. */
 export const BRIEF_MAX_FACTS = 8 as const;                     // §7 · issue 475
+
+/** SPEC §7 (2026-09-29, *Two pools of facts*; issue 1135) — the research
+ *  step's bounds. Chosen, not transcribed, except where the ruling names
+ *  the figure: "at most two primary studies found by one search", and "a
+ *  market statistic older than three years is not used". The rest are sized
+ *  so the step stays a fraction of `CAPS.DRAFT_C`: thirteen pages of
+ *  `readWords` words are four small-tier calls, about 7¢. */
+export const RESEARCH = Object.freeze({
+  /** The target's top results that are read, from the stored top ten. */
+  topResults: 3,
+  /** The named rivals whose own pricing and feature pages are read. */
+  rivals: 4,
+  /** Ruled: at most two, found by one search. */
+  studies: 2,
+  /** Ruled: a statistic older than this many years is not used. */
+  statisticMaxAgeYears: 3,
+  /** A page is read for claims up to this many words. */
+  readWords: 1500,
+  /** A page with fewer readable words than this states nothing to cite. */
+  minWords: 80,
+  pagesPerCall: 4,
+  claimsPerPage: 8,
+  /** The market facts one brief is handed to choose from. */
+  briefFacts: 24,
+  /** A market comparison stands on at least this many cited market facts
+   *  (issue 1135's done-when). */
+  comparisonMinFacts: 3,
+  readTimeoutMs: 10_000,
+  /** A public page read today is not read again inside this window. */
+  freshnessDays: 7,
+} as const);
 
 /** §7's Improve trigger, transcribed: "Customer ranks 4–30, page thin".
  *  The band is inclusive at both ends. The bought SERP is a top ten

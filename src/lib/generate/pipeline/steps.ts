@@ -65,6 +65,9 @@ const BRIEF_SCHEMA = z.strictObject({
   angle: z.string(),
   mustCover: z.array(z.string()),
   factIndexes: z.array(z.number().int()),
+  /** SPEC §7 (2026-09-29, issue 1135): the second pool, chosen the same way
+   *  — by position in `marketFacts`. Absent is none. */
+  marketFactIndexes: z.array(z.number().int()).optional(),
 });
 export type Brief = z.infer<typeof BRIEF_SCHEMA>;
 
@@ -119,6 +122,11 @@ export interface BriefProjection {
   target: string;
   absorbedQueries: readonly string[];
   facts: readonly string[];
+  /** The market facts the research step read (issue 1135): each claim with
+   *  the site whose page states it, so the brief can tell a rival's own
+   *  price from a third party's remark about it. Empty where nothing was
+   *  read. */
+  marketFacts: readonly { source: string; claim: string }[];
   doNotClaim: readonly string[];
   voice: string | null;
   acceptance: string;
@@ -172,6 +180,7 @@ export function briefProjection(a: {
   marketQuestion: boolean;
   profile: PromptProfile | null;
   sitePages?: readonly SitePage[];
+  marketFacts?: readonly { source: string; claim: string }[];
 }): BriefProjection {
   const o = a.opportunity;
   return {
@@ -180,6 +189,7 @@ export function briefProjection(a: {
     target: o.targetQuery ?? o.targetRef,
     absorbedQueries: o.absorbedQueries,
     facts: a.facts,
+    marketFacts: a.marketFacts ?? [],
     doNotClaim: a.doNotClaim,
     voice: a.voice,
     acceptance: acceptanceText(o.acceptance),
@@ -195,6 +205,15 @@ export function briefProjection(a: {
 export function selectedFactIndexes(brief: Brief, factCount: number): number[] {
   const out: number[] = [];
   for (const index of brief.factIndexes) {
+    if (index >= 0 && index < factCount && !out.includes(index)) out.push(index);
+  }
+  return out;
+}
+
+/** The same for the market pool (issue 1135). */
+export function selectedMarketIndexes(brief: Brief, factCount: number): number[] {
+  const out: number[] = [];
+  for (const index of brief.marketFactIndexes ?? []) {
     if (index >= 0 && index < factCount && !out.includes(index)) out.push(index);
   }
   return out;
@@ -258,16 +277,22 @@ const HOUSE_RULES = [
   "Do the job `pageJob` states; where `frame` is given it binds, and the page's subject is the reader's question and the options in it, never this business.",
   "State only the facts supplied about the business, each word for word and linked to its source url.",
   "Never invent a byline, an author biography, a persona, a quotation, a testimonial or a review.",
-  "Never state a figure about a competitor without linking the public page it was read from.",
+  "Never state a figure about a competitor without linking the page in `marketFacts` it was read from.",
+  // SPEC §7 (2026-09-29, *Two pools of facts*; issue 1135).
+  "`marketFacts` are claims read from public pages. State one in your own sentence or quote it exactly, and link its `url` in that same sentence; state nothing about the market, a competitor or a price that no market fact carries.",
+  "Name a competing product only where `marketFacts` holds a claim from that product's own page (`products` lists them), and say what that page says.",
+  "Quote nobody but a source: a block quote is the exact words of one fact, with a link to its url.",
+  "A comparison table names only this business and the products in `products`. Every cell states what a fact says, with each price or figure linked to that fact's url inside the cell, and never \"not stated\", \"n/a\" or a blank: where a fact is missing for one product, leave that column out for every product. Keep prices in one currency per table as the facts state them; where you convert one, state the rate and its date beside the table.",
+  "Do not write a sources list: one is added from the pages you linked.",
   "Never state a ranking position, a search volume or a visibility count.",
   "Write for a human reader only: never address an assistant, a crawler or a ranking system.",
-  "Use Markdown only: headings, paragraphs, lists, links, emphasis. No raw HTML and no comments.",
+  "Use Markdown only: headings, paragraphs, lists, tables, block quotes, links, emphasis. No raw HTML and no comments.",
   "Link each page in `links` once, with its url exactly as given, where the text speaks to it; link no other page on the business's domain except the grounded source.",
   "The pages in `known` already exist on this site: write nothing that repeats one of them, and where one answers something this page raises, send the reader to it instead of answering it again.",
   "Never say the page's claims were tested, trialled or benchmarked.",
   "Never write a byline, a publication or update date, or a case study.",
   "Use the outline's headings exactly; add no other heading written as a question.",
-  `Write no number of ${REGISTER_FLOOR} or more that the facts or the target search do not contain, unless it is linked to its source.`,
+  `Write no number of ${REGISTER_FLOOR} or more that \`facts\`, \`marketFacts\` or the target search do not contain; a year is not a number for this rule.`,
   `Open the page with a paragraph of ${ANSWER_FIRST_BLOCK_CHARS.min} to ${ANSWER_FIRST_BLOCK_CHARS.max} characters that answers the target search.`,
   // #927, and the fact rules it does not relax. The profile says what the
   // business is; it holds no price, no figure, no person and no review, and
@@ -303,7 +328,11 @@ export function brief(c: CostContext, projection: BriefProjection): Promise<Meas
         "`pageJob` states and obeying `frame` where one is given: the question a " +
         "reader arrives with, the angle that answers it, and the points the page must " +
         "cover. Choose the facts the page will state by their index in `facts`; you " +
-        "cannot write a fact of your own. Where `profile` is given, choose which of " +
+        "cannot write a fact of your own. `marketFacts` are claims read from public pages " +
+        "— the top results for this search, competing products' own pricing and feature " +
+        "pages, and studies: choose the ones the page will cite by their index, in " +
+        "`marketFactIndexes`, at least three where the page compares options. " +
+        "Where `profile` is given, choose which of " +
         "its products, audience and promises — and, where `profile.knowledge` is given, " +
         "which of its offerings, problems, differences and buyers' questions — this page " +
         "should speak to, and say so in " +
@@ -350,6 +379,10 @@ export function draft(
     brief: Brief;
     outline: Outline;
     facts: readonly { url: string; passage: string }[];
+    /** The market facts the brief chose, and the products whose own pages
+     *  were read (issue 1135). */
+    marketFacts?: readonly { url: string; source: string; passage: string; readAt: string }[];
+    products?: readonly { domain: string; pages: readonly string[] }[];
     /** #1178: the rules the attempt before this one broke, and the sentences
      *  that broke them. Absent on a first attempt, whose prompt is unchanged. */
     fix?: readonly FixNote[];
@@ -361,8 +394,8 @@ export function draft(
     schema: DRAFT_SCHEMA,
     input: promptFor(
       "Write the page from the outline: each section under its heading, exactly as given, " +
-        "doing what its task says and what `pageJob` says the page is for. State only the " +
-        "facts supplied, word for word." +
+        "doing what its task says and what `pageJob` says the page is for. State the business's " +
+        "`facts` word for word, and cite each of `marketFacts` you use beside the sentence that uses it." +
         (a.fix === undefined
           ? ""
           : " An earlier attempt at this page was stopped: `fix` names each rule it broke and the " +
@@ -372,6 +405,8 @@ export function draft(
         brief: a.brief,
         outline: a.outline.sections.map((section) => ({ ...section, task: SECTION_TASK[section.role] })),
         facts: a.facts,
+        marketFacts: a.marketFacts ?? [],
+        products: a.products ?? [],
         rules: HOUSE_RULES,
         ...(a.fix === undefined ? {} : { fix: a.fix }),
       }

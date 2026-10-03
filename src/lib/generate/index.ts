@@ -58,6 +58,8 @@ import {
 import { generateDraft, type GenerateOutcome } from "./pipeline";
 import { generatePageFix } from "./pipeline/page-fix";
 import type { FixNote } from "./pipeline/repair";
+import { NO_RESEARCH, researchMarket } from "./pipeline/research";
+import { targetSearches } from "./pipeline/steps";
 import { DraftDateTaken, generateStore, type RestartedDraft, type SiteFacts } from "./store";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
@@ -430,6 +432,23 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
   // the site has published or planned. Read once for the day, like the rest.
   const sitePages = await sitePagesFor(a.siteId, { except: opportunity.id });
 
+  // SPEC §7 (2026-09-29, *Two pools of facts*; issue 1135): the market
+  // facts, read once for the day — the target's top results, each rival's own
+  // pricing and feature pages, and two studies — so a second attempt cites
+  // what the first was handed. A read that fails leaves the page to its
+  // business facts and never stops it.
+  const market = await researchMarket(cost, {
+    siteId: a.siteId,
+    domain: site.domain,
+    searches: targetSearches(opportunity),
+    report,
+    rivals: site.rivals,
+    today: new Date(),
+  }).catch((error: unknown) => {
+    console.warn(JSON.stringify({ event: "draft_research_failed", siteId: a.siteId, error: String(error).slice(0, 200) }));
+    return NO_RESEARCH;
+  });
+
   let last: GenerateOutcome | null = null;
   // #788: one row for the date across every attempt — an attempt after
   // the first rewrites the row the first one wrote.
@@ -452,6 +471,7 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
       profile: confirmed.profile,
       factsOff: confirmed.factsOff,
       scanId: report.scanId,
+      market,
       ...(draftId === undefined ? {} : { draftId }),
       ...(fix === undefined ? {} : { fix }),
     });

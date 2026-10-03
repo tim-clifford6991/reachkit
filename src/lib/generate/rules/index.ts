@@ -27,6 +27,8 @@ import {
   checkInventedTest,
   checkNewQuestionHeading,
   checkTraceableNumerals,
+  poolPassages,
+  traceableNumerals,
   type BriefRuleInputs,
 } from "./brief";
 import { checkBrandGap } from "./brandgap";
@@ -38,6 +40,7 @@ import { checkMachineAddress } from "./machine";
 import { checkNearDuplicate } from "./nearduplicate";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "./people";
 import { checkRivalSource } from "./rivals";
+import { renderOf, withoutReferenceLists } from "./text";
 import { HARD_RULES } from "./types";
 import type { ComparisonSet, GroundedFact, HardRule, RuleFailure, SiteRuleInputs } from "./types";
 import type { OpportunityType } from "@/lib/opportunities/types";
@@ -60,7 +63,7 @@ function logBattery(a: { failed: readonly RuleFailure[]; claimState: string }): 
 
 export async function runHardRules(
   c: CostContext,
-  a: {
+  given: {
     markdown: string;
     /** The title as written. The frame rule reads it: a title is the first
      *  place a page announces whose story it is (issue 900). */
@@ -80,8 +83,16 @@ export async function runHardRules(
     sourceText: string;
     /** What the brief handed the model — rules 8–12 read nothing else. */
     brief: BriefRuleInputs;
+    /** The customer's own pages the business facts were read from: with the
+     *  market facts' pages, what a rival's figure may be sourced to (issue
+     *  1135). */
+    factPages?: readonly string[];
   }
 ): Promise<BatteryOutcome> {
+  // The sources list is code's, not the page's own words (issue 1135): the
+  // rules read the page without it.
+  const markdown = withoutReferenceLists(given.markdown);
+  const a = { ...given, markdown, rendered: markdown === given.markdown ? given.rendered : renderOf(markdown) };
   const register = buildPrivateFigureRegister({
     report: a.site.report,
     opportunities: a.site.opportunities,
@@ -98,13 +109,26 @@ export async function runHardRules(
   // a compile error rather than a pass the product hands out for free.
   const deterministic: Record<Exclude<HardRule, "do_not_claim">, RuleFailure | null> = {
     grounding: checkGrounding({ grounded: a.grounded, sourceText: a.sourceText }),
-    rival_source: checkRivalSource({ markdown: a.markdown, rivals: a.site.rivals }),
-    no_private_figure: checkPrivateFigure({ markdown: a.markdown, register }),
+    rival_source: checkRivalSource({
+      markdown: a.markdown,
+      rivals: a.site.rivals,
+      ...(a.brief.marketFacts === undefined
+        ? {}
+        : { factPages: [...(a.factPages ?? []), ...a.brief.marketFacts.map((fact) => fact.url)] }),
+    }),
+    no_private_figure: checkPrivateFigure({
+      markdown: a.markdown,
+      register,
+      traceable: traceableNumerals(a.brief),
+    }),
     no_invented_people: checkInventedPeople({
       markdown: a.markdown,
       businessName: a.site.businessName,
     }),
-    no_unsourced_testimonial: checkUnsourcedTestimonial({ markdown: a.markdown }),
+    no_unsourced_testimonial: checkUnsourcedTestimonial({
+      markdown: a.markdown,
+      ...(a.brief.marketFacts === undefined ? {} : { quotable: poolPassages(a.brief) }),
+    }),
     brand_gap: checkBrandGap({
       rendered: a.rendered,
       businessName: a.site.businessName,

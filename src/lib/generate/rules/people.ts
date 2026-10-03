@@ -18,13 +18,19 @@
 //
 //   * a quoted remark — quotation marks or a block quote — attributed to
 //     anyone other than the customer, with no link in the same block;
-//   * a testimonial-, review- or endorsement-shaped block with no link in
-//     the same block, whether or not it names a speaker.
+//   * a testimonial- or endorsement-shaped block with no link in the same
+//     block, whether or not it names a speaker;
+//   * a block quote that is not, word for word, a passage the page was
+//     handed — a cited source's or the customer's own testimonial page's —
+//     with its link (SPEC §7, 2026-09-29; issue 1135).
+//
+// The word "review" alone is not a testimonial: "a review of the options"
+// stopped pages that quoted nobody.
 //
 // A persona named only in body prose, with no quotation and no attribution,
 // is not caught here. It is caught by the grounding rule where it makes a
 // claim, and the residual is stated rather than papered over.
-import { blocksOf } from "./text";
+import { blocksOf, renderOf, sourceBlocksOf } from "./text";
 import type { RuleFailure } from "./types";
 
 /** Long enough to be a remark rather than a quoted term. */
@@ -44,8 +50,6 @@ const ATTRIBUTION_RES: readonly RegExp[] = Object.freeze([
  *  A closed list: a form found later is added here. */
 const TESTIMONIAL_WORDS: readonly string[] = Object.freeze([
   "testimonial",
-  "review",
-  "reviews",
   "endorsement",
   "endorses",
   "endorsed",
@@ -95,8 +99,47 @@ export function checkInventedPeople(a: {
   return null;
 }
 
-export function checkUnsourcedTestimonial(a: { markdown: string }): RuleFailure | null {
-  for (const block of blocksOf(a.markdown)) {
+/** Quotation marks and whitespace are not different words. */
+function squash(text: string): string {
+  return text.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ").trim();
+}
+
+/** A block quote's own words: its links (the source line) and the dash or
+ *  quotation marks around the remark set aside. */
+function quotedWords(raw: string): string {
+  return squash(renderOf(raw.replace(/\[[^\]\n]*\]\([^)\s]+\)/g, " ")))
+    .replace(/[\s—–-]+$/, "")
+    .replace(/^["']+|["']+$/g, "")
+    .trim();
+}
+
+/** Word for word from a passage the page was handed: the quote holds a
+ *  whole passage, or a passage holds the whole quote. */
+function isQuotation(raw: string, quotable: readonly string[]): boolean {
+  const words = quotedWords(raw);
+  if (words.length < REMARK_MIN_CHARS) return false;
+  return quotable.some((passage) => {
+    const held = squash(passage);
+    return held.length > 0 && (words.includes(held) || held.includes(words));
+  });
+}
+
+export function checkUnsourcedTestimonial(a: {
+  markdown: string;
+  /** Every passage the page was handed, from either pool. Absent on a page
+   *  written before the research step, where a linked block quote passes as
+   *  it did then. */
+  quotable?: readonly string[];
+}): RuleFailure | null {
+  const sources = sourceBlocksOf(a.markdown);
+  for (const [index, block] of blocksOf(a.markdown).entries()) {
+    // A linked block quote is admitted only word for word.
+    if (block.quoted && block.hasLink && a.quotable !== undefined) {
+      if (block.text.trim().length >= REMARK_MIN_CHARS && !isQuotation(sources[index]!.raw, a.quotable)) {
+        return { rule: "no_unsourced_testimonial" };
+      }
+      continue;
+    }
     if (block.hasLink) continue;
     const haystack = block.text.toLowerCase();
     if (TESTIMONIAL_WORDS.some((word) => haystack.includes(word))) {

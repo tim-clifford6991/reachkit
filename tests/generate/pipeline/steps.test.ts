@@ -102,7 +102,8 @@ describe("the prompt's whole knowledge of the customer is the closed struct", ()
       // business's rather than the market's.
       // `sitePages` since issue 1209: every page the site has published or
       // planned, so the brief takes an angle none of them already takes.
-      ["task", "cluster", "type", "target", "absorbedQueries", "facts", "doNotClaim", "voice", "acceptance", "pageJob", "frame", "profile", "sitePages"].sort()
+      // `marketFacts` since issue 1135: the second pool, chosen by index too.
+      ["task", "cluster", "type", "target", "absorbedQueries", "facts", "marketFacts", "doNotClaim", "voice", "acceptance", "pageJob", "frame", "profile", "sitePages"].sort()
     );
     expect(input.voice).toBe("Plain and direct.");
     expect(input.facts).toEqual([GROUNDED.passage]);

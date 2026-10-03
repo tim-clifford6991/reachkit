@@ -76,7 +76,7 @@ import { checkHiddenText } from "@/lib/generate/rules/hidden";
 import { checkMachineAddress } from "@/lib/generate/rules/machine";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "@/lib/generate/rules/people";
 import { checkRivalSource } from "@/lib/generate/rules/rivals";
-import { renderOf, sourceBlocksOf } from "@/lib/generate/rules/text";
+import { renderOf, sourceBlocksOf, withoutReferenceLists } from "@/lib/generate/rules/text";
 import type { HardRule, RuleFailure } from "@/lib/generate/rules/types";
 import type { OpportunityType } from "@/lib/opportunities/types";
 
@@ -262,8 +262,11 @@ function askWithInputs(
  * nothing else — so the editor can run it on a pause, the tests can run it
  * with no DOM, and the answer is the same in both.
  */
-export function liveBreaks(bodyMd: string, inputs: MarkInputs): Break[] {
-  const rendered = renderOf(bodyMd);
+export function liveBreaks(source: string, inputs: MarkInputs): Break[] {
+  // The sources list is not the page's own words (issue 1135): blanked,
+  // with every offset kept, exactly as the battery reads the page.
+  const body = withoutReferenceLists(source);
+  const rendered = renderOf(body);
   const site = { businessName: inputs.businessName, domain: inputs.domain };
 
   const failures: RuleFailure[] = [];
@@ -273,21 +276,21 @@ export function liveBreaks(bodyMd: string, inputs: MarkInputs): Break[] {
 
   // The battery's own order (`HARD_RULES`), minus the three named in the
   // header, so a break list reads the way a recorded failure list reads.
-  push(checkRivalSource({ markdown: bodyMd, rivals: [...inputs.rivals] }));
-  push(checkInventedPeople({ markdown: bodyMd, businessName: inputs.businessName }));
-  push(checkUnsourcedTestimonial({ markdown: bodyMd }));
+  push(checkRivalSource({ markdown: body, rivals: [...inputs.rivals] }));
+  push(checkInventedPeople({ markdown: body, businessName: inputs.businessName }));
+  push(checkUnsourcedTestimonial({ markdown: body }));
   push(checkBrandGap({ rendered, ...site }));
   push(
     checkPageFrame({
       title: inputs.title,
-      markdown: bodyMd,
+      markdown: body,
       rendered,
       ...site,
       opportunityType: inputs.opportunityType,
       queries: inputs.brief.queries,
     })
   );
-  push(checkHiddenText({ markdown: bodyMd }));
+  push(checkHiddenText({ markdown: body }));
   push(checkMachineAddress({ rendered }));
   // The three that read the brief's **passages** run only where the brief
   // was recorded. Empty is "not recorded", never "no facts": against an
@@ -297,21 +300,21 @@ export function liveBreaks(bodyMd: string, inputs: MarkInputs): Break[] {
   // what it was told to say. The save still runs all three, against the
   // set the brief actually chose.
   if (inputs.brief.facts.length > 0) {
-    push(checkInventedTest({ markdown: bodyMd, brief: inputs.brief }));
-    push(checkInventedProvenance({ markdown: bodyMd, brief: inputs.brief }));
-    push(checkTraceableNumerals({ markdown: bodyMd, brief: inputs.brief }));
+    push(checkInventedTest({ markdown: body, brief: inputs.brief }));
+    push(checkInventedProvenance({ markdown: body, brief: inputs.brief }));
+    push(checkTraceableNumerals({ markdown: body, brief: inputs.brief }));
   }
   // This one reads the brief's *headings*, which are `headingsOf` the page
   // as ReachKit wrote it — a value every draft has, recorded or not.
-  push(checkNewQuestionHeading({ markdown: bodyMd, brief: inputs.brief }));
-  push(checkFirstBlockAnswers({ markdown: bodyMd }));
+  push(checkNewQuestionHeading({ markdown: body, brief: inputs.brief }));
+  push(checkFirstBlockAnswers({ markdown: body }));
 
-  const breaks = failures.map((failure) => place(bodyMd, failure, inputs));
+  const breaks = failures.map((failure) => place(body, failure, inputs));
 
   // §8's fourth rule, string half. Last, as the battery runs it last.
-  const matched = literalClaimMatch(bodyMd, inputs.doNotClaim);
+  const matched = literalClaimMatch(body, inputs.doNotClaim);
   if (matched !== null) {
-    const at = placeValue(bodyMd, matched);
+    const at = placeValue(body, matched);
     breaks.push({ rule: "do_not_claim", entry: matched, from: at?.from ?? 0, to: at?.to ?? 0 });
   }
   return breaks;

@@ -87,6 +87,19 @@ function stringAt(meta: Meta, key: string): string | null {
   return typeof value === "string" ? value : null;
 }
 
+/** The market facts the page was handed (`meta.marketFacts`, issue 1135).
+ *  `null` on a row written before the research step. */
+function recordedMarketFacts(meta: Meta): { url: string; passage: string }[] | null {
+  const value = meta.marketFacts;
+  if (!Array.isArray(value)) return null;
+  return value.flatMap((entry) => {
+    const fact = entry as { url?: unknown; passage?: unknown } | null;
+    return typeof fact?.url === "string" && typeof fact.passage === "string"
+      ? [{ url: fact.url, passage: fact.passage }]
+      : [];
+  });
+}
+
 /** A `fix_page` draft (#690) records what the update carries in `meta.fix`,
  *  and delivery reads it from there. */
 function fixOf(meta: Meta): Meta | null {
@@ -245,6 +258,7 @@ async function recheck(
       opportunities: opportunity === null ? [] : [opportunity],
     };
 
+    const marketFacts = recordedMarketFacts(meta);
     const outcome = await runHardRules(cost, {
       markdown: a.bodyMd,
       title: a.title,
@@ -261,7 +275,12 @@ async function recheck(
         facts: facts.map((sourced) => sourced.fact.passage),
         headings: headingsOf(stringAt(meta, "body_md_generated") ?? ""),
         queries: opportunity === null ? [] : targetSearches(opportunity),
+        // Issue 1135: the market facts the page was handed, as its row
+        // records them. A row written before the research step records
+        // none, and its rules read as they did then.
+        ...(marketFacts === null ? {} : { marketFacts }),
       },
+      factPages: facts.map((sourced) => sourced.fact.url),
     });
     return { claim: outcome.claim, failed: recordedRulesValue(outcome), spentCents: cost.spentCents() };
   });

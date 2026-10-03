@@ -773,6 +773,9 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(modelCalls).toHaveLength(4);
       const rows = ledger();
       expect(rows.map((r) => r.source)).toEqual([
+        // Issue 1135: the research step's one search for studies, bought
+        // before the brief and paid from the same ceiling.
+        "serp/google/organic",
         "generate.brief",
         "generate.outline",
         "generate.draft",
