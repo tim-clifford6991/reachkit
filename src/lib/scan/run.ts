@@ -2255,7 +2255,7 @@ function promptSiteName(siteName: string | null, domain: string): string {
  * live page, it returns having bought nothing and leaves the section
  * `null`. Per question, at the standard queue's prices: one SERP
  * (`SERP_STD_C` 0.06¢) plus ChatGPT (`CHATGPT_SCRAPE_STD_C` 0.12¢) and AI
- * Mode (`AI_MODE_STD_C` 0.06¢) — 0.24¢, so a full twelve is 2.88¢ against
+ * Mode (`AI_MODE_STD_C` 0.12¢) — 0.3¢, so a full twelve is 3.6¢ against
  * `CAPS.WEEKLY_C`'s 40¢, and the figure does not move with how many pages
  * the customer has published, which is the cap's whole purpose.
  */

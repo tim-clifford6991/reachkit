@@ -193,7 +193,7 @@ interface WeekReportRow {
  *
  * Returns an empty map on any failure: no miss is counted, which retires
  * nothing. The honest direction — a question kept a week longer costs
- * 0.24¢, and one retired on a database error loses its slot for good.
+ * 0.3¢, and one retired on a database error loses its slot for good.
  */
 export async function pageQuestionMisses(siteId: string): Promise<MissesByPage> {
   const { data, error } = await untyped()
