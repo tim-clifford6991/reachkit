@@ -116,7 +116,9 @@ export default function LandingPage(props: {
             supplies the video (#734). Its title sits in the window bar so
             the frame starts higher and its middle lands near the fold. */}
         <section className="pt-4 pb-16 lg:pt-8">
-          <div className={INNER}>
+          {/* Marked as a demo (issue 1163): the frame's lines caption a
+              video, and are never read as facts about the business. */}
+          <div className={INNER} data-demo>
             <div
               data-testid={VIDEO_TEST_ID}
               className="card card-border bg-base-100 mx-auto w-full max-w-3xl overflow-hidden"

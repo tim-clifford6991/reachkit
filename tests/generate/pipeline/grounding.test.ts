@@ -16,8 +16,12 @@ import "../env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SITE_ID } from "../fixtures";
 
-const { readMeasuredTextMock } = vi.hoisted(() => ({ readMeasuredTextMock: vi.fn() }));
+const { readMeasuredTextMock, readReportPageMock } = vi.hoisted(() => ({
+  readMeasuredTextMock: vi.fn(),
+  readReportPageMock: vi.fn(),
+}));
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
+vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: readReportPageMock }));
 
 let readFacts: typeof import("../../../src/lib/generate/pipeline/grounding").readFacts;
 let readAllFacts: typeof import("../../../src/lib/generate/pipeline/grounding").readAllFacts;
@@ -64,6 +68,8 @@ function pages() {
 beforeEach(async () => {
   readMeasuredTextMock.mockReset();
   readMeasuredTextMock.mockResolvedValue(pages());
+  readReportPageMock.mockReset();
+  readReportPageMock.mockResolvedValue(null);
   ({ readFacts, readAllFacts } = await import("../../../src/lib/generate/pipeline/grounding"));
 });
 
@@ -139,5 +145,60 @@ describe("#1130 — a fact is prose one page says, never a label or the site's c
     );
     const passages = (await readAllFacts({ siteId: SITE_ID })).map((sourced) => sourced.fact.passage);
     expect(passages.sort()).toEqual([1, 2, 3].map((n) => `Page ${n} explains how the team plans a busy week of work.`));
+  });
+});
+
+describe("issue 1163 — the knowledge base is the business speaking, and what ReachKit measured of it", () => {
+  const at = new Date("2026-09-01T09:00:00.000Z");
+  const page = (url: string, lines: string[], examples?: string[]) => ({ url, text: lines.join("\n"), measuredAt: at, examples });
+  const passagesOf = async () => (await readAllFacts({ siteId: SITE_ID })).map((sourced) => sourced.fact.passage);
+
+  it("reads no fact off a privacy, terms, imprint or cookies page", async () => {
+    const clause = "We remove a report within thirty days of a written request from its owner.";
+    readMeasuredTextMock.mockResolvedValue([
+      page(ABOUT_URL, ["The company was started by two people who ran projects on spreadsheets."]),
+      ...["privacy", "terms", "imprint", "cookies"].map((slug) =>
+        page(`https://example.com/${slug}`, [`${clause} This applies to the ${slug} page as written here.`])
+      ),
+    ]);
+    expect(await passagesOf()).toEqual(["The company was started by two people who ran projects on spreadsheets."]);
+  });
+
+  it("keeps a claim a six-page site makes on three of its pages, and still drops its chrome", async () => {
+    const claim = "We write one page a day for your site and publish it on your domain.";
+    const chrome = "Every plan comes with a thirty day refund and no questions asked.";
+    readMeasuredTextMock.mockResolvedValue(
+      [1, 2, 3, 4, 5, 6].map((n) => page(`https://example.com/page-${n}`, n <= 3 ? [claim, chrome] : [chrome]))
+    );
+    expect(await passagesOf()).toEqual([claim]);
+  });
+
+  it("drops a phrase one page shows inside an example wherever the site says it", async () => {
+    const caption = "The empty slot in this answer is the place your business takes.";
+    readMeasuredTextMock.mockResolvedValue([
+      page(ABOUT_URL, ["The company was started by two people who ran projects on spreadsheets."], [caption]),
+      page(GUIDE_URL, [caption]),
+    ]);
+    expect(await passagesOf()).toEqual(["The company was started by two people who ran projects on spreadsheets."]);
+  });
+
+  it("offers the report's measurements as facts sourced to the report, after the site's own pages", async () => {
+    const measured = "ReachKit measured example.com on 1 September 2026 and gave it a Discoverability Score of 41 out of 100.";
+    const reportUrl = "https://reachkit.app/scan/example.com";
+    readReportPageMock.mockResolvedValue({ url: reportUrl, text: measured, measuredAt: at });
+    const all = await readAllFacts({ siteId: SITE_ID });
+    const fact = all.find((sourced) => sourced.fact.url === reportUrl);
+    expect(fact).toEqual({ fact: { url: reportUrl, readAt: at, passage: measured }, sourceText: measured });
+    expect(all[0]!.fact.url).not.toBe(reportUrl);
+  });
+
+  it("writes nothing from the measurements alone, where the site's own pages yield no fact", async () => {
+    readMeasuredTextMock.mockResolvedValue([]);
+    readReportPageMock.mockResolvedValue({
+      url: "https://reachkit.app/scan/example.com",
+      text: "ReachKit measured example.com on 1 September 2026 and gave it a Discoverability Score of 41 out of 100.",
+      measuredAt: at,
+    });
+    expect(await readAllFacts({ siteId: SITE_ID })).toEqual([]);
   });
 });

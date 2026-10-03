@@ -34,6 +34,7 @@ vi.mock("@/lib/generate/voice/confirmed", () => ({
   refusedPassages: async () => [],
 }));
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
+vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
 vi.mock("@/lib/costs", () => ({ withCostContext: withCostContextMock }));
 vi.mock("@/lib/publish/machine", () => ({ transition: transitionMock }));
 vi.mock("@/lib/site-profile/crawl", () => ({ crawlSite: vi.fn() }));

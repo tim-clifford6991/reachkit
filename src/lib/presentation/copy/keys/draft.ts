@@ -607,4 +607,24 @@ export const DRAFT_COPY = Object.freeze({
     "The page has to open with a short, plain answer to the question it targets — a paragraph, not a heading, a list or a question.",
     { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
   ],
+  // The report's measurements, stated as facts a page may quote (SPEC §7,
+  // 2026-10-03, issue 1163). Each is composed from stored figures only and
+  // is sourced to the report's own address. Drafted; the owner corrects
+  // the wording.
+  "fact.report.score": [
+    "ReachKit measured {domain} on {date} and gave it a Discoverability Score of {score} out of 100.",
+    { slots: { domain: "text", date: "date", score: "text" }, fixedBy: "SPEC §7 (2026-10-03) · issue 1163 · drafted" },
+  ],
+  "fact.report.answers": [
+    "On {date}, AI answers named {domain} for {count} of the {total} buyer questions they answered in ReachKit's measurement.",
+    { slots: { domain: "text", date: "date", count: "text", total: "text" }, fixedBy: "SPEC §7 (2026-10-03) · issue 1163 · drafted" },
+  ],
+  "fact.report.rival": [
+    "On {date}, AI answers cited {rival} for {count} of the {total} buyer questions they answered in ReachKit's measurement of {domain}.",
+    { slots: { domain: "text", date: "date", rival: "text", count: "text", total: "text" }, fixedBy: "SPEC §7 (2026-10-03) · issue 1163 · drafted" },
+  ],
+  "fact.report.method": [
+    "ReachKit's measurement of {domain} on {date} read Google's top ten results and the answers of {engines}; it does not measure Perplexity.",
+    { slots: { domain: "text", date: "date", engines: "text" }, fixedBy: "SPEC §7 (2026-10-03) · issue 1163 · drafted" },
+  ],
 }) satisfies CopyPartition;

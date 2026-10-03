@@ -24,6 +24,7 @@ const { llmMock, readDomainTextMock, opened } = vi.hoisted(() => ({
 vi.mock("@/lib/mail/send", () => sendMock());
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 vi.mock("@/lib/measure/text", () => ({ readDomainText: readDomainTextMock, readMeasuredText: async () => [] }));
+vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
 vi.mock("@/lib/costs", () => ({
   withCostContext: async (ctx: { scanId: string; cap: string; rollUp?: string }, run: (c: unknown) => Promise<unknown>) => {
     opened.push(ctx);
