@@ -78,6 +78,18 @@ The full matrix itself stays a tool, not a job: `npm run test:layout:full` sets 
 
 Tests prove customer-observable behaviour. Until a paying user, tests are at most one third of a product PR. A test that transcribes a markdown row is deleted.
 
+## Testing budget
+
+2026-10-03  **The smallest test that gives the same result** (owner, D34, #1210): *"we should continue testing to find our sweet spot but be conscious not to run all api calls when not necessary. the smaller the test that gives the same results, the better."* Seven rules:
+
+1. **Stored evidence first.** A question is answered from stored rows and stored vendor responses where they can answer it. A live run happens once, as proof after the merge.
+2. **One dogfood site.** Live tests run on `reachkit.app`, plus at most one control site.
+3. **Every live test has a cap.** The issue states it (default 50¢), and the pull request reports the actual spend.
+4. **€2 a day across all live testing**, checked against the `fetches` ledger (`docs/RUNBOOK.md` §8). An agent that would exceed it stops and asks the owner first.
+5. **At most three implementation agents at once.** No new issue is started while a proof is pending.
+6. **One smoke test per deploy batch.**
+7. **The Monday weekly pass is the default live proof.**
+
 ## Deploys
 
 Vercel Hobby, Git deployments off. `rk-deployer` deploys `main` (dev every SHA, production at most every two hours). Production is deployed with each merge batch (`/root/ops/reachkit/bin/redeploy.sh`) as well as dev — no freeze (2026-09-17, #844). The file `/root/ops/reachkit/state/prod-frozen` does not exist and is not a gate. Manual: `bash /root/ops/reachkit/bin/deploy-dev-once.sh`.
