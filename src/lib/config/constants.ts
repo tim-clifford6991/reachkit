@@ -134,6 +134,10 @@ export const INFERENCE_PRICE_BOOK = Object.freeze({
    *  call on it is the pass's business-fit judgement (SPEC §6, 2026-10-03,
    *  issue 1134): about 5¢ a site, once a pass. */
   sonnet: Object.freeze({ inCentsPerM: 300, outCentsPerM: 1500 } as const),
+  /** `claude-sonnet-5`'s list price per million tokens, in cents — the tier
+   *  a customer's page and its critic are written on (SPEC §7, 2026-09-29,
+   *  *Length and the writer*; issue 1138). */
+  writer: Object.freeze({ inCentsPerM: 200, outCentsPerM: 1000 } as const),
 } as const);
 
 /** The wall clock one `llm()` call may hold, per tier, in milliseconds —
@@ -176,6 +180,10 @@ export const INFERENCE_TIMEOUT_MS = Object.freeze({
    *  answer on a slower model, made once, in the paid pass's derivation
    *  step and never on the free path. */
   sonnet: 60_000,
+  /** One call of a page's draft, or its critic (issue 1138). A page is
+   *  written a few sections to a call, so this bounds those sections and
+   *  never the page. */
+  writer: 60_000,
 } as const);
 
 /** The vendor SDK's own retry layer, off — stated here rather than
@@ -241,8 +249,13 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
    *  page's frame — title, short answer, takeaways, closing line and buyer
    *  questions, ~900 needed — and `generate.sections` writes the bodies. */
   "generate.draft": 2048,
-  /** At most `DRAFT_SECTIONS_PER_CALL` section bodies: ~450 each. */
-  "generate.sections": 2048,
+  /** At most `DRAFT_SECTIONS_PER_CALL` section bodies. 4 096 since issue
+   *  1138: a section of a 2,500-word page runs to about 450 words, and
+   *  three of them are about 2,400 tokens on the writer tier. */
+  "generate.sections": 4096,
+  /** Five scores and at most `WRITER.maxRevisions` short instructions
+   *  (issue 1138). */
+  "generate.critic": 1024,
   "generate.answerability": 4096,
   /** One paragraph of 40–60 words (issue 1137): ~90 needed. */
   "generate.answer_box": 256,
@@ -310,6 +323,43 @@ export const INFERENCE_TEMPERATURE: Readonly<Partial<Record<keyof typeof INFEREN
     // The same page read twice says the same thing about the business.
     "site-knowledge": 0,
   });
+
+/**
+ * SPEC §7 (2026-09-29, *Length and the writer*; issue 1138) — the length a
+ * new page is written to, in words of body text, by the kind of page it is
+ * (`contentKindOf`). An explainer is the SPEC's answer page, a how-to its
+ * problem or how-to page. An update has no row: it keeps to the page it
+ * updates.
+ *
+ * **The one length target** (owner, 2026-10-02, round 1). The writer, the
+ * critic, the floor check and the evaluation's grader all read this through
+ * `lengthTargetFor` (`src/lib/generate/length.ts`) — round 1 told a page
+ * 1,200–1,800 and graded it against 1,500–2,500.
+ */
+export const LENGTH_TARGETS = Object.freeze({
+  explainer: Object.freeze({ floor: 1200, ceiling: 1800 } as const),
+  comparison: Object.freeze({ floor: 1500, ceiling: 2500 } as const),
+  how_to: Object.freeze({ floor: 1200, ceiling: 2000 } as const),
+} as const);
+
+/** How a customer's page is written (issue 1138).
+ *
+ *  `share` is each section's part of the page's length, by its block: the
+ *  evidence states facts and little else, and the sections that explain,
+ *  compare or walk the steps carry the page.
+ *
+ *  `maxRevisions`: the most sections the critic may have written again —
+ *  one more writer call, paid inside `CAPS.DRAFT_C`.
+ *
+ *  `criticAfterMs`: the critic is the one part of the writing a page can go
+ *  without, so it is not started once the writing has taken this long — a
+ *  draft is one job step under `jobsCeilingS`, with the answerability pass
+ *  and the rules still to run after it. */
+export const WRITER = Object.freeze({
+  share: Object.freeze({ answer: 2, detail: 4, comparison: 4, steps: 3, evidence: 1, business: 2 } as const),
+  maxRevisions: 2,
+  criticAfterMs: 150_000,
+} as const);
 
 /** How many entries each of the business profile's lists may carry (BUILD
  *  §6.7 step 1). The schema the model's answer is parsed against and the
@@ -1582,7 +1632,9 @@ export const PAGE_BLOCKS = Object.freeze({
  *  1137). The Haiku tier's clock is 20 s (`INFERENCE_TIMEOUT_MS`) and it
  *  writes about 80 tokens a second: the whole page in one call ran 19.5 s
  *  and timed out on the next (eval run of 2026-10-03). Three sections is
- *  about 1,300 tokens, inside the clock with room. */
+ *  about 1,300 tokens, inside the clock with room. A customer's page is
+ *  written on the writer tier since issue 1138, still three to a call: one
+ *  to a call would carry the page's whole brief six to ten times. */
 export const DRAFT_SECTIONS_PER_CALL = 3 as const;             // §7 · issue 1137
 
 /** How many of the customer's own passages one brief is handed to choose

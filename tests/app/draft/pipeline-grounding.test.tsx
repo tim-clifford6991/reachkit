@@ -37,6 +37,10 @@ const { llmMock, readMeasuredTextMock } = vi.hoisted(() => ({
   readMeasuredTextMock: vi.fn(),
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
+vi.mock("@/lib/generate/pipeline/write", async () => {
+  const { draftOnly } = await import("../../generate/fixtures");
+  return { writeDraft: draftOnly };
+});
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
 vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
 
@@ -310,7 +314,8 @@ describe("§8's battery — the record the pipeline wrote is the record the draf
     // site has none, so there is no `profileItems` key — a draft written for
     // an unread site records only the facts.
     expect(Object.keys((row.meta ?? {}) as object).sort()).toEqual(
-      ["description", "factsUsed", "faq", "marketFacts"].sort()
+      // `length` since issue 1138: the page's words against its target.
+      ["description", "factsUsed", "faq", "length", "marketFacts"].sort()
     );
     // A rule record is still not one of them, under any spelling.
     expect(Object.keys((row.meta ?? {}) as object)).not.toContain("rule_failures");

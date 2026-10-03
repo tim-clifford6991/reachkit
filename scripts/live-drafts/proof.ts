@@ -69,6 +69,7 @@ const CALL_SITES = [
   "generate.outline",
   "generate.draft",
   "generate.sections",
+  "generate.critic",
   "generate.answer_box",
   "generate.answerability",
   "generate.claim_check",

@@ -10,8 +10,10 @@
 //      caller so every attempt at a date is written from one read;
 //   3. brief (nano), handed a closed projection, choosing facts by index →
 //      outline (nano), six to ten sections chosen from the block set with
-//      the type's required blocks among them → grounded draft (Haiku),
-//      returned in parts and laid out in code (`./compose.ts`, issue 1137)
+//      the type's required blocks among them → grounded draft, on the
+//      writer tier, held to its length and read by a critic (`./write.ts`,
+//      issue 1138), returned in parts and laid out in code (`./compose.ts`,
+//      issue 1137)
 //      → answerability + SEO pass (Haiku), which returns operations that
 //      code applies inside SPEC §7's bound (issue 475);
 //   4. the draft row, written with the grounded fact and the body;
@@ -59,11 +61,12 @@ import { buildPromptInputs, type KnownPageBrief } from "../voice/inputs";
 import { profileItemsUsed, type PromptProfile } from "../voice/profile-block";
 import { buildComparisonSet } from "./comparison";
 import { applyAnswerability } from "./answerability";
-import { properNouns, withClosing } from "./compose";
+import { composePage, properNouns, withClosing } from "./compose";
 import { allowedFacts, readAllFacts } from "./grounding";
 import { fixNotes, repairable, repairMechanical, type FixNote, type RepairRecord } from "./repair";
 import { NO_RESEARCH, hostOf, type MarketFact, type MarketResearch } from "./research";
 import { skeletonFor } from "./skeletons";
+import { writeDraft } from "./write";
 import { completeTables, withSources } from "./sources";
 import { contentKindOf } from "@/lib/opportunities/content-kind";
 import { RESEARCH } from "@/lib/config/constants";
@@ -71,7 +74,6 @@ import {
   answerability,
   brief,
   briefProjection,
-  draft,
   outline,
   selectedFactIndexes,
   selectedMarketIndexes,
@@ -261,7 +263,18 @@ export async function generateDraft(
   });
   if (outlineResult.kind === "unmeasured") return stepFailed(a.siteId, "outline", a.draftId);
 
-  const draftResult = await draft(c, inputs, {
+  // Both pools: a quotation stands where it is either's exact words.
+  const tidy = {
+    facts: [...passages, ...cited.map((fact) => fact.passage)],
+    promises: a.profile?.promises ?? [],
+    queries: searches,
+    names,
+  };
+  // The draft, on the writer tier: written a few sections to a call, held
+  // to its length and read by a critic (`./write.ts`, issue 1138).
+  const written = await writeDraft(c, inputs, {
+    opportunity: a.opportunity,
+    tidy,
     brief: briefResult.value,
     outline: outlineResult.value,
     facts: selected.map((sourced) => ({ url: sourced.fact.url, passage: sourced.fact.passage })),
@@ -274,28 +287,28 @@ export async function generateDraft(
     products: market.products.filter((product) => cited.some((fact) => fact.product === product.domain)),
     ...(a.fix === undefined || a.fix.length === 0 ? {} : { fix: a.fix }),
   });
-  if (draftResult.kind === "unmeasured") return stepFailed(a.siteId, "draft", a.draftId);
+  if (written.kind === "failed") return stepFailed(a.siteId, "draft", a.draftId);
 
   // The page, laid out in code from the parts the writer returned (issue
   // 1137): the short-answer box held to its word count, the takeaways, each
   // section under the outline's own heading — tidied of what a page never
   // says.
-  const laidOut = await writtenPage(c, inputs, {
-    parts: draftResult.value,
-    outline: outlineResult.value,
-    tidy: {
-      // Both pools: a quotation stands where it is either's exact words.
-      facts: [...passages, ...cited.map((fact) => fact.passage)],
-      promises: a.profile?.promises ?? [],
-      queries: searches,
-      names,
-    },
-  });
-  if (laidOut.kind === "unmeasured") return stepFailed(a.siteId, "draft", a.draftId);
-  const composed = laidOut.value;
+  //
+  // A page still short of its floor after its one rewrite is held as it
+  // stands (SPEC §7, 2026-09-29): no further pass is spent on a page that
+  // will not go on, and its row is written below so the hold has somewhere
+  // to live.
+  let composed = composePage(written.parts, outlineResult.value, tidy);
+  let answered = composed.body;
+  if (written.kind === "written") {
+    const laidOut = await writtenPage(c, inputs, { parts: written.parts, outline: outlineResult.value, tidy });
+    if (laidOut.kind === "unmeasured") return stepFailed(a.siteId, "draft", a.draftId);
+    composed = laidOut.value;
 
-  const ops = await answerability(c, inputs, { body: composed.body, facts: passages });
-  if (ops.kind === "unmeasured") return stepFailed(a.siteId, "answerability", a.draftId);
+    const ops = await answerability(c, inputs, { body: composed.body, facts: passages });
+    if (ops.kind === "unmeasured") return stepFailed(a.siteId, "answerability", a.draftId);
+    answered = applyAnswerability(composed.body, ops.value, passages);
+  }
 
   // SPEC §7: the page links to the chosen pages of the customer's own site
   // and to none it guessed — held in code after the bounded answerability
@@ -306,7 +319,6 @@ export async function generateDraft(
   // Then the two things the market pool asks of a finished body (issue
   // 1135): no table cell left empty, and the sources list of the market
   // pages the body cites, written here and never by the model.
-  const answered = applyAnswerability(composed.body, ops.value, passages);
   const linking = { domain: a.site.domain, targets: a.links, groundedUrl: grounding.fact.url };
   const body = {
     ...answered,
@@ -384,6 +396,12 @@ export async function generateDraft(
         title: fact.title,
         readAt: fact.readAt.toISOString(),
       })),
+      // Issue 1138: the page's length against its target as the writer left
+      // it, and the critic's five scores — numbers only, so how often a
+      // page is rewritten for length, and what the critic made of it, can
+      // be read off the rows.
+      length: written.length,
+      ...(written.kind === "written" && written.critic !== null ? { critic: written.critic } : {}),
       // #1178: an earlier attempt's repairs survive the rewrite.
       ...(priorRepairs.length === 0 ? {} : { repairs: priorRepairs }),
     },
@@ -409,6 +427,12 @@ export async function generateDraft(
   } else {
     draftId = existing.id;
     await store.patchDraft(draftId, page);
+  }
+
+  if (written.kind === "short") {
+    await store.patchDraft(draftId, { hard_rules_passed: false });
+    logRun({ siteId: a.siteId, draftId, step: "length", outcome: "short", words: written.length.words, floor: written.length.floor });
+    return { ok: false, reason: "step_failed", draftId, step: "length" };
   }
 
   // 5. The battery, over the finished text, against this customer's own

@@ -118,6 +118,23 @@ export const CLEAN_MARKDOWN = [
   "constraint teams notice last and feel most.",
 ].join("\n");
 
+// ── The draft writer, without its floor and its critic ──────────────────
+
+/** `writeDraft` (issue 1138) stood in for by the draft step alone, for the
+ *  suites whose subject is what happens around the writing: the same calls
+ *  in the same order, on the writer tier, with no length floor and no
+ *  critic — those are `pipeline/write.test.ts`. A frame answered with
+ *  `held: true` is a page still short of its floor. */
+export async function draftOnly(c: unknown, inputs: unknown, a: Record<string, unknown>): Promise<unknown> {
+  const { draft } = await import("../../src/lib/generate/pipeline/steps");
+  // `opportunity` and `tidy` are the writer's own; the draft step ignores them.
+  const wrote = await draft(c as never, inputs as never, { ...a, tier: "writer" } as never);
+  if (wrote.kind === "unmeasured") return { kind: "failed" };
+  const { held, ...parts } = wrote.value as typeof wrote.value & { held?: boolean };
+  const length = { words: 0, floor: null, ceiling: null, rewritten: 0 };
+  return held === true ? { kind: "short", parts, length } : { kind: "written", parts, length, critic: null };
+}
+
 // ── A `CostContext` that refuses the vendor ─────────────────────────────
 
 /** `recordFetch` throws: everything in this engine that spends must go

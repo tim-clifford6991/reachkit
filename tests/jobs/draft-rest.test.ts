@@ -38,6 +38,10 @@ const { llmMock, readMeasuredTextMock, sitesForDailyTickMock, draftReadyMock, ne
   nextForDayMock: vi.fn(),
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
+vi.mock("@/lib/generate/pipeline/write", async () => {
+  const { draftOnly } = await import("../generate/fixtures");
+  return { writeDraft: draftOnly };
+});
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
 vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
 vi.mock("@/lib/costs", () => ({

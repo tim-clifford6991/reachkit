@@ -464,6 +464,14 @@ function pageFor(asked: { opportunity?: { targetQuery?: string | null }; grounde
   };
 }
 
+// Issue 1138: the page's length floor and its critic are
+// `tests/generate/pipeline/write.test.ts`; here the draft is the draft
+// step alone, still through the real `llm()` seam and the fake vendor below.
+vi.mock("@/lib/generate/pipeline/write", async () => {
+  const { draftOnly } = await import("../generate/fixtures");
+  return { writeDraft: draftOnly };
+});
+
 vi.mock("@anthropic-ai/sdk", () => {
   class FakeAnthropic {
     messages = {

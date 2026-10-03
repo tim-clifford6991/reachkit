@@ -13,22 +13,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import type { CostContext } from "@/lib/costs";
 import { costCentsFor, tierBinding } from "@/lib/llm/tiers";
+import { lengthTargetFor } from "@/lib/generate/length";
 import type { OpportunityType } from "@/lib/opportunities/types";
 import { headingsUnderTitle, parseMarkdown, type Block, type Inline } from "@/lib/publish/render/markdown";
-
-/** SPEC §7 (2026-09-29) *Length and the writer*, in words of body text. The
- *  SPEC names three kinds of page; each Write type is read as the nearest
- *  one: a listing or a format page compares options, a keyword page answers
- *  a problem or a how-to. A search that asks for the best, the top, an
- *  alternative or a versus compares options whatever its type
- *  (`targetOf`). */
-export const LENGTH_TARGETS: Readonly<Record<string, { floor: number; ceiling: number; kind: string }>> = Object.freeze({
-  answer_page: { floor: 1200, ceiling: 1800, kind: "answer" },
-  comparison_page: { floor: 1500, ceiling: 2500, kind: "comparison" },
-  listed_page: { floor: 1500, ceiling: 2500, kind: "comparison" },
-  format_page: { floor: 1500, ceiling: 2500, kind: "comparison" },
-  keyword_page: { floor: 1200, ceiling: 2000, kind: "problem or how-to" },
-});
 
 function inlineText(nodes: readonly Inline[]): string {
   return nodes.map((node) => ("text" in node ? node.text : inlineText(node.children))).join("");
@@ -90,12 +77,10 @@ function hostOf(href: string): string | null {
   }
 }
 
-const COMPARATIVE = /\b(best|top|vs|versus|alternatives?|compar\w*)\b/i;
-
-/** The length a page is held to: a comparison's where the search compares
- *  options, else its type's. */
+/** The length a page is held to: the product's own target (issue 1138), so
+ *  the grader and the writer cannot hold different ones. */
 export function targetOf(type: OpportunityType, query: string): { floor: number; ceiling: number; kind: string } | null {
-  return COMPARATIVE.test(query) ? LENGTH_TARGETS.comparison_page! : (LENGTH_TARGETS[type] ?? null);
+  return lengthTargetFor({ type, targetQuery: query });
 }
 
 export interface Checklist {
