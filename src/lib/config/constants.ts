@@ -30,7 +30,7 @@ export const PRICE_BOOK = Object.freeze({
   RANKED_RIVAL_ROWS: 100, RANKED_RIVAL_COST_C: 2.4,
   COMPETITORS_DOMAIN_COST_C: 1.5, SUGGESTIONS_COST_C: 1.8,
   SERP_LIVE_C: 0.2, SERP_STD_C: 0.06,
-  CHATGPT_SCRAPE_STD_C: 0.12, AI_MODE_LIVE_C: 0.2, AI_MODE_STD_C: 0.06,
+  CHATGPT_SCRAPE_STD_C: 0.12, AI_MODE_LIVE_C: 0.2, AI_MODE_STD_C: 0.12,
   LLM_MENTIONS_ROWS: 100, LLM_MENTIONS_REQUEST_C: 10, LLM_MENTIONS_ROW_C: 0.1,
 } as const);
 
@@ -525,6 +525,30 @@ export const BATTERY = Object.freeze({
    *  measures (drafted default, the owner may correct it; ~1.6¢ live). */
   MARKET_PROMPTS: 8,
 } as const);
+
+/**
+ * SPEC §6 (owner, D19 final, D32 and D33 of 2026-10-03, #1162) — the tracked
+ * buyer prompts, which are the weekly AI measure.
+ *
+ * `SPLIT` is the set's shape, 25 in all. `ENGINES × RUNS` is how often each
+ * prompt is asked in one weekly pass: at the measured 0.12¢ an ask that is
+ * 0.48¢ a prompt and 12¢ a full set (`docs/walk/d19-cost.md`). At most
+ * `ROTATION_SHARE` of the set is replaced in any `ROTATION_WEEKS`, and only
+ * a prompt added that way is pre-checked (D33).
+ */
+export const TRACKED_PROMPTS = Object.freeze({
+  SPLIT: Object.freeze({ category: 5, "use-case": 7, persona: 4, comparison: 4, problem: 3, branded: 2 }),
+  ENGINES: 2,
+  RUNS: 2,
+  ROTATION_SHARE: 0.2,
+  ROTATION_WEEKS: 13,
+} as const);
+
+/** SPEC §6 (owner, D32 of 2026-10-03, #1162): LLM Mentions is bought only
+ *  for a site whose own ranked footprint is at least this many keywords,
+ *  and then once in this many weeks. */
+export const LLM_MENTIONS_MIN_FOOTPRINT = 30 as const;
+export const LLM_MENTIONS_EVERY_WEEKS = 4 as const;
 
 /**
  * SPEC §6 (2026-09-20, #908) — how many AI questions this product tracks

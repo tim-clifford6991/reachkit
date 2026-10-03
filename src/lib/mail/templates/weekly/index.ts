@@ -57,6 +57,8 @@ const SEARCHES = "mail.weekly.searches" satisfies CopyKey;
 const PAGES_LIVE = "mail.weekly.pagesLive" satisfies CopyKey;
 const SCORE = "mail.weekly.score" satisfies CopyKey;
 const AI_ANSWERS = "mail.weekly.aiAnswers" satisfies CopyKey;
+const MENTION_RATE = "mail.weekly.mentionRate" satisfies CopyKey;
+const PAGES_CITED = "mail.weekly.pagesCited" satisfies CopyKey;
 const VERDICTS = "mail.weekly.verdicts" satisfies CopyKey;
 const VERDICTS_NONE = "mail.weekly.verdicts.none" satisfies CopyKey;
 const NEXT = "mail.weekly.next" satisfies CopyKey;
@@ -131,6 +133,19 @@ export function buildWeekly(a: {
    *  week — its category, a rival added or dropped — one line each, with
    *  the reason. Absent or empty: nothing changed, and nothing is said. */
   marketChanges?: readonly { readonly line: CopyKey; readonly vars: CopyVars }[];
+  /** D22 · D19 (#1162): the AI mention rate over the tracked buyer prompts
+   *  with its range, and how many of the site's pages those answers cited.
+   *  Whole percentages and counts, as the app states them. Absent where no
+   *  weekly pass has asked the prompts, and then nothing is said. */
+  mentionRate?: {
+    readonly rate: number;
+    readonly low: number;
+    readonly high: number;
+    readonly mentioned: number;
+    readonly answers: number;
+    readonly weeks: number;
+    readonly pagesCited: number;
+  };
 }): WeeklyMail {
   const issues = a.issues === undefined ? [] : issueChangeRows(a.issues);
   const unknownAt = unmeasured<number>("undeterminable", new Date(0));
@@ -164,6 +179,23 @@ export function buildWeekly(a: {
       ...movementBlock(a.scoreDelta),
       { block: "paragraph", text: BODY },
       ...(a.marketChanges ?? []).map((change) => ({ block: "paragraph", text: change.line, vars: change.vars }) as const),
+      ...(a.mentionRate === undefined
+        ? []
+        : ([
+            {
+              block: "paragraph",
+              text: MENTION_RATE,
+              vars: {
+                rate: String(a.mentionRate.rate),
+                low: String(a.mentionRate.low),
+                high: String(a.mentionRate.high),
+                mentioned: String(a.mentionRate.mentioned),
+                answers: String(a.mentionRate.answers),
+                weeks: String(a.mentionRate.weeks),
+              },
+            },
+            { block: "paragraph", text: PAGES_CITED, vars: { pages: String(a.mentionRate.pagesCited) } },
+          ] as const)),
       // The other three Overview numbers, with their change. Two to a row;
       // each is dropped on its own, and the group goes when none is left.
       {

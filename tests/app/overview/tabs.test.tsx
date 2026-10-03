@@ -74,7 +74,7 @@ describe("SPEC §4 — every part of the Overview tab opens the tab behind it", 
     const html = renderToStaticMarkup(await OverviewPage());
     for (const [testId, tab] of [
       ["overview-tile-searches", "search"],
-      ["overview-tile-questions", "ai_answers"],
+      ["overview-tile-mention-rate", "ai_answers"],
       ["overview-tile-rivals", "rivals"],
     ] as const) {
       const tile = new RegExp(`<a[^>]*href="${TAB_HREF[tab]}"[^>]*data-testid="${testId}"`);

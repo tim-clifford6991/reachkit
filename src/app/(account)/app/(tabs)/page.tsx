@@ -38,6 +38,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import { readShell } from "../_shell/provider";
 import { readOverview } from "../_overview/provider";
+import { readPrompts } from "../_overview/prompts-provider";
 import { overviewNotice, readOnboarding, readReleaseNotice } from "../_shell/onboarding";
 import { FirstPageNotice, ReleaseNoticeLine } from "../_shell/OnboardingStatus";
 import { MARKET_TOO_SMALL, readCategoryChoice } from "../_shell/remeasure";
@@ -62,7 +63,12 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   // the shell's own request-cached provider rather than restated here: two
   // readers of a customer's time zone is how two parts of one screen come to
   // state two different days.
-  const [shell, overview, onboarding] = await Promise.all([readShell(), readOverview(), readOnboarding()]);
+  const [shell, overview, onboarding, prompts] = await Promise.all([
+    readShell(),
+    readOverview(),
+    readOnboarding(),
+    readPrompts(),
+  ]);
   // issue 784: the founder's reason when the pass released them short — what the
   // shell's panel is not already saying.
   const notice =
@@ -119,6 +125,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         aiAnswers={overview.aiAnswers}
         rivals={overview.rivals}
         engineLine={engineLine}
+        prompts={prompts}
       />
 
       {/* The week takes the wider of the two columns: seven day cells each

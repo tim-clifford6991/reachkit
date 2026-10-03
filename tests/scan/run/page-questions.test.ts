@@ -31,7 +31,6 @@ import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/mea
 import {
   BATTERY as BATTERY_PINS,
   PAGE_QUESTION_RETIRE_WEEKS,
-  PRICE_BOOK,
   TRACKED_QUESTIONS_MAX,
 } from "../../../src/lib/config/constants";
 import type { DomainMeasurement } from "../../../src/lib/measure";
@@ -255,8 +254,10 @@ describe("SPEC §6 — with 30 live pages the pass still asks exactly 24 questio
     await runScan({ domain: DOMAIN, siteId: SITE_ID, scanId: CLAIMED_ID, tier: "weekly" });
 
     expect(serpOrganic).toHaveBeenCalledTimes(TRACKED_QUESTIONS_MAX);
-    expect(llmScraper).toHaveBeenCalledTimes(TRACKED_QUESTIONS_MAX);
-    expect(aiMode).toHaveBeenCalledTimes(TRACKED_QUESTIONS_MAX);
+    // D19 (issue 1162): the weekly twelve keep their Google searches alone;
+    // a page's own question still asks both engines.
+    expect(llmScraper).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
+    expect(aiMode).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
 
     const report = storedReport();
     expect(report.pageQuestions?.rows).toHaveLength(BATTERY_PINS.QUESTIONS);
@@ -293,15 +294,6 @@ describe("SPEC §6 — with 30 live pages the pass still asks exactly 24 questio
       expect(serpOrganic, `${pages} live pages`).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS + expected);
       expect(storedReport().pageQuestions?.rows ?? []).toHaveLength(expected);
     }
-  });
-
-  it("costs 0.24¢ a page question on the standard queue — flat, whatever is published", () => {
-    // The price book's own rows, not a number typed here: one SERP, whose
-    // AI Overview rides free, plus the battery's two engines.
-    const perQuestion = PRICE_BOOK.SERP_STD_C + PRICE_BOOK.CHATGPT_SCRAPE_STD_C + PRICE_BOOK.AI_MODE_STD_C;
-    expect(perQuestion).toBeCloseTo(0.24, 5);
-    // The page half at its fullest, which is what the cap makes flat.
-    expect(perQuestion * BATTERY_PINS.QUESTIONS).toBeCloseTo(2.88, 5);
   });
 });
 

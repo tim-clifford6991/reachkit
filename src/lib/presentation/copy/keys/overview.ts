@@ -717,7 +717,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
   ],
   "overview.answers.grid.lead": [
-    "The {of} your buyers ask most, put to every engine, every week.",
+    "Your market’s {of} biggest searches, and what AI says on each, every week.",
     { slots: { of: "text" }, fixedBy: "SPEC §6 2026-09-20" },
   ],
   "overview.answers.grid.label": [
@@ -761,8 +761,117 @@ export const OVERVIEW_COPY = Object.freeze({
   // Nothing measured yet — a site whose first weekly pass has not run. It
   // claims nothing about the engines; it says what is true of the record.
   "overview.answers.empty": [
-    "No AI answers have been measured yet. The first weekly pass puts all twelve questions to every engine.",
-    { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
+    "No AI answers have been measured yet. The first weekly pass asks AI your buyer prompts and checks your market’s twelve searches.",
+    { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" },
+  ],
+
+  // ── 2026-10-03 (#1162): the tracked buyer prompts — owner D19 final, and
+  // D22's AI mention rate and Your pages cited.
+  //
+  // The weekly AI measure is about 25 buyer prompts, each put to Google AI
+  // Mode and ChatGPT twice. Every sentence below is **drafted** under the
+  // owner's 2026-09-16 ruling (#759); the PR names each one so the owner
+  // can correct it. No sentence states an AI position or sentiment.
+  "overview.tile.mention-rate.label": ["AI mention rate", { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" }],
+  // The 95% range beside the figure: where the true rate very likely sits.
+  "overview.tile.mention-rate.band": [
+    "likely {low}–{high}%",
+    { slots: { low: "text", high: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
+  ],
+  "overview.tile.mention-rate.of": [
+    "Named in {mentioned} of {answers} AI answers, last {weeks} weeks",
+    { slots: { mentioned: "text", answers: "text", weeks: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
+  ],
+  "overview.tile.mention-rate.share": [
+    "{share}% share of voice against your rivals",
+    { slots: { share: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
+  ],
+  "overview.tile.mention-rate.pages": [
+    "{pages} of your pages cited",
+    { slots: { pages: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
+  ],
+  "overview.tile.mention-rate.pages.one": ["1 of your pages cited", { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" }],
+
+  // The AI answers tab: the rate's own card.
+  "overview.prompts.rate.split": [
+    "{linked} link to you · {named} name you without a link",
+    { slots: { linked: "text", named: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
+  ],
+  "overview.prompts.rate.means": [
+    "{prompts} buyer prompts, each put to Google AI Mode and ChatGPT twice a week, over the last {weeks} weeks. The range is where the true rate most likely sits with {answers} answers read.",
+    { slots: { prompts: "text", weeks: "text", answers: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
+  ],
+  // The two prompts that ask about the site by name, counted apart.
+  "overview.prompts.branded": [
+    "Asked about you by name, AI named you in {mentioned} of {answers} answers. Those are counted apart from the rate.",
+    { slots: { mentioned: "text", answers: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
+  ],
+
+  // Share of voice: the site beside its rivals, by answers that named each.
+  "overview.prompts.share.title": ["Share of voice", { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" }],
+  "overview.prompts.share.lead": [
+    "How many of those answers named you, and how many named each rival.",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" },
+  ],
+  "overview.prompts.share.label": [
+    "You and your rivals, by AI answers that named each",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" },
+  ],
+  "overview.prompts.share.you": ["You", { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" }],
+  "overview.prompts.share.answers": [
+    "Answers: {count}",
+    { slots: { count: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
+  ],
+  "overview.prompts.share.none": [
+    "No answer named you or a rival yet.",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" },
+  ],
+
+  // The site's own pages those answers cited.
+  "overview.prompts.pages.title": ["Your pages cited", { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" }],
+  "overview.prompts.pages.lead": [
+    "Pages of yours that an answer to a buyer prompt linked to, over the last {weeks} weeks.",
+    { slots: { weeks: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
+  ],
+  "overview.prompts.pages.label": [
+    "Your pages AI answers cited, and how many answers each",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" },
+  ],
+  "overview.prompts.pages.none": [
+    "No answer cited a page of yours yet. The pages we publish are written to be quotable.",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" },
+  ],
+
+  // The set itself, so a founder can read what is asked.
+  "overview.prompts.list.title": [
+    "The buyer prompts we ask every week",
+    { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" },
+  ],
+  "overview.prompts.list.lead": [
+    "Built from your market: who buys, the job they need done, your category and your rivals. At most a fifth of them change in a quarter, so the rate stays comparable.",
+    { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" },
+  ],
+  "overview.prompts.list.label": [
+    "Each buyer prompt, and how many answers named you",
+    { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" },
+  ],
+  "overview.prompts.list.named": [
+    "named in {mentioned} of {answers}",
+    { slots: { mentioned: "text", answers: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
+  ],
+  "overview.prompts.list.unanswered": ["no answer yet", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
+  "overview.prompts.kind.category": ["Category", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
+  "overview.prompts.kind.use-case": ["Use case", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
+  "overview.prompts.kind.persona": ["Buyer", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
+  "overview.prompts.kind.comparison": ["Comparison", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
+  "overview.prompts.kind.problem": ["Problem", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
+  "overview.prompts.kind.branded": ["About you", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
+
+  // D32 (#1162): LLM Mentions is bought only at a footprint of 30 ranked
+  // searches or more. A site below it is told so, not told "next Monday".
+  "overview.mentions.small-footprint": [
+    "We read this once your site ranks for {min} searches or more. Below that the engines’ own record of you is almost always empty.",
+    { slots: { min: "text" }, fixedBy: "SPEC §6 2026-10-03 D32" },
   ],
 
   // ── 2026-09-22 (#1004): the two cards beneath the grid, from DataForSEO's
@@ -867,11 +976,11 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
   ],
   "overview.mentions.unread": [
-    "We have not read this in the last {weeks} weeks. The next Monday pass buys it again.",
+    "We have not read this in the last {weeks} weeks. A Monday pass buys it once a month.",
     { slots: { weeks: "text" }, fixedBy: "SPEC §6 2026-09-22" },
   ],
   "overview.mentions.unread.one-week": [
-    "We have not read this this week. The next Monday pass buys it again.",
+    "We have not read this yet. A Monday pass buys it once a month.",
     { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
   ],
 

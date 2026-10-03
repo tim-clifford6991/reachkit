@@ -48,6 +48,7 @@ import {
   SELECTION,
   SERP_RIVAL_SIZING,
   TIMING,
+  TRACKED_PROMPTS,
   VENDOR,
 } from "@/lib/config/constants";
 import { captureInBackground } from "@/lib/analytics";
@@ -59,6 +60,9 @@ import { nextCorrectionState, type CorrectionState } from "@/lib/market/coherenc
 import { EVIDENCE_BOUNDS } from "@/lib/market/infer/evidence";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { buyerPrompts } from "@/lib/market/questions/buyer-prompts";
+import { readPromptAnswer } from "@/lib/market/prompts/answer";
+import { generatePrompts } from "@/lib/market/prompts/generate";
+import { nextPromptSet, settlePrechecks, type TrackedPrompt } from "@/lib/market/prompts/set";
 import { buildAiAnswersCard, type BatteryAnswers } from "@/lib/market/questions/matrix";
 import {
   trackedQuestions,
@@ -115,6 +119,7 @@ import { marketTooSmall, stoppedOnCeiling } from "./market-floor";
 import { pageQuestionCandidates, pageQuestionMisses } from "./page-questions";
 import { RETRY_STAGE, readSpentCents, registerRetryRunner, type RetryPart } from "./retry";
 import {
+  PROMPT_ENGINES,
   readCurrentReport,
   readScanReport,
   type PageQuestionsSection,
@@ -123,6 +128,9 @@ import {
 import type {
   AiAnswersSection,
   MarketPromptAnswer,
+  PromptAnswer,
+  PromptEngine,
+  PromptsSection,
   StoppedReason,
   StoredReport,
   SupplySection,
@@ -287,6 +295,16 @@ interface TierParameters {
    *  the pass that concludes a new market's rivals at once, and the
    *  weekly pass's 40¢ is not raised for it. */
   marketPrompts: number;
+  /** Does the pass ask §6.2's two engines for each of the twelve? The deep
+   *  pass does. The weekly pass does not (owner, D19 final of 2026-10-03,
+   *  #1162): its AI measure is the tracked prompts, and the twelve keep
+   *  their Google searches — whose AI Overview rides free — for search. A
+   *  page's own question still asks both engines (#919). */
+  batteryOnTheTwelve: boolean;
+  /** D19: does the pass ask the site's tracked buyer prompts, on
+   *  `TRACKED_PROMPTS.ENGINES` × `TRACKED_PROMPTS.RUNS`? The weekly pass,
+   *  and it alone: the measure is a weekly rate. */
+  trackedPrompts: boolean;
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -311,6 +329,8 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     pageQuestions: false,
     askReserveS: 0,
     marketPrompts: 0,
+    batteryOnTheTwelve: false,
+    trackedPrompts: false,
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -333,6 +353,8 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     pageQuestions: false,
     askReserveS: TIMING.paidPassAskReserveS,
     marketPrompts: BATTERY.MARKET_PROMPTS,
+    batteryOnTheTwelve: true,
+    trackedPrompts: false,
   }),
   weekly: Object.freeze({
     cap: "WEEKLY",
@@ -355,6 +377,8 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     pageQuestions: true,
     askReserveS: TIMING.paidPassAskReserveS,
     marketPrompts: 0,
+    batteryOnTheTwelve: false,
+    trackedPrompts: true,
   }),
 } as const);
 
@@ -426,6 +450,9 @@ interface Sections {
   /** The market's buyer prompts, asked of AI Mode beside the twelve
    *  (#1195) and stored for the rival conclusion; never in the score. */
   marketPrompts: MarketPromptAnswer[];
+  /** D19 (#1162): the tracked prompts this pass asked and what each answer
+   *  said. `null` where the pass asked none. */
+  prompts: PromptsSection | null;
   /**
    * **True from the moment the report is being composed** (issue 875).
    *
@@ -528,6 +555,7 @@ function freshSections(at: Date): Sections {
     market: null,
     poolRivals: null,
     marketPrompts: [],
+    prompts: null,
   };
 }
 
@@ -1339,6 +1367,7 @@ async function runStages(a: StageArgs): Promise<void> {
           askTheTwelve({ ...a, bounds: b }, abandoned),
           askThePageQuestions({ ...a, bounds: b }, abandoned),
           askTheMarketPrompts({ ...a, bounds: b }),
+          askTheTrackedPrompts({ ...a, bounds: b }),
         ]);
       },
       twelveCents
@@ -1924,7 +1953,9 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
       // engines' — longer than the whole ceiling.
       const [got, battery] = await Promise.all([
         askOne(question.search.keyword),
-        askTheBattery(a, question.search.keyword, questions.at, engines),
+        parameters.batteryOnTheTwelve
+          ? askTheBattery(a, question.search.keyword, questions.at, engines)
+          : noBattery(questions.at),
       ]);
       // **A late answer is kept, and a sealed report is never written to**
       // (#539 review, re-cut by issue 875). The budget stops the pass
@@ -2042,6 +2073,147 @@ async function askTheMarketPrompts(a: StageArgs): Promise<void> {
   console.log(
     JSON.stringify({ event: "market_prompts", asked: prompts.length, answered: sections.marketPrompts.length })
   );
+}
+
+/**
+ * SPEC §6 (owner, D19 final and D33 of 2026-10-03, #1162) — the site's
+ * tracked buyer prompts, asked beside the twelve and inside their budget:
+ * the same clock, the same `WEEKLY` cap and the same deadline before the
+ * ceiling.
+ *
+ * The set is the site's own (`sites.tracked_prompts`): built from the
+ * market in force the first time, kept after that, and rotated only as
+ * `nextPromptSet` allows. Every prompt is asked of both engines
+ * `TRACKED_PROMPTS.RUNS` times, all at once — a standard-queue ask costs
+ * its wait whether one is queued or a hundred (#1160) — and each run has
+ * its own cache key, so the second is a second answer and not the first
+ * served again.
+ *
+ * What is stored is each answer's reading — named, linked, the site's own
+ * pages cited, the rivals named — never the engine's prose. An ask that did
+ * not answer is left out, so it leaves the rate's denominator. Unbranded
+ * answers that are not comparisons also join the rival evidence, as the
+ * deep pass's market prompts do (#1195). Nothing here throws.
+ */
+async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
+  const { bounds, cost, parameters, sections, siteId } = a;
+  if (!parameters.trackedPrompts || siteId === undefined || bounds.stopNow() !== null) return;
+  try {
+    const [{ readPromptSet, writePromptSet }, { readSiteMarket }, { readSiteProfile }] = await Promise.all([
+      import("@/lib/market/prompts/store"),
+      import("@/lib/market/infer/stored"),
+      import("@/lib/site-profile/store"),
+    ]);
+    const market = sections.market ?? (await readSiteMarket(siteId))?.stored.current ?? null;
+    if (market === null) {
+      console.log(JSON.stringify({ event: "tracked_prompts", asked: 0, because: "no_market" }));
+      return;
+    }
+    const siteName = promptSiteName((await readSiteProfile(a.domain))?.siteName ?? null, a.domain);
+    const stored = await readPromptSet(siteId);
+    const set = nextPromptSet(stored, generatePrompts(market, siteName), new Date());
+    if (set.prompts.length === 0 || sections.sealed) return;
+    if (set !== stored) await writePromptSet(siteId, set);
+
+    const answers: (PromptAnswer & { namesABrand: boolean })[] = [];
+    const evidence = new Map<string, MarketPromptAnswer>();
+    let asked = 0;
+    const askOne = async (prompt: TrackedPrompt, engine: PromptEngine, run: number): Promise<void> => {
+      if (bounds.stopNow() !== null) return;
+      asked += 1;
+      const scope = cacheScope(a);
+      const untilMs = untilCeiling(bounds, parameters);
+      const got = await attempt("asking_the_twelve", () =>
+        engine === "chatgpt"
+          ? llmScraper(cost, { query: prompt.text, mode: "std", scope, untilMs, run })
+          : aiMode(cost, { query: prompt.text, mode: parameters.serpMode, scope, untilMs, run })
+      );
+      if (failed(got) || got.kind === "unmeasured" || !got.value.answered) return;
+      const reading = readPromptAnswer({
+        text: got.value.text,
+        citedDomains: got.value.citedDomains,
+        citedUrls: got.value.citedUrls ?? [],
+        ownDomain: a.domain,
+        siteName,
+        rivals: market.rivals,
+      });
+      answers.push({
+        promptId: prompt.id,
+        engine,
+        run,
+        named: reading.named,
+        linked: reading.linked,
+        ownUrls: reading.ownUrls,
+        rivals: reading.rivals,
+        namesABrand: reading.namesABrand,
+      });
+      if (prompt.kind !== "branded" && prompt.kind !== "comparison" && !evidence.has(prompt.id)) {
+        evidence.set(prompt.id, {
+          prompt: prompt.text,
+          citedDomains: got.value.citedDomains.map((d) => d.toLowerCase().replace(/^www\./, "")),
+          namesSite: reading.named || reading.linked,
+          excerpt: got.value.text.slice(0, EVIDENCE_BOUNDS.excerptChars),
+        });
+      }
+    };
+    const asks: Promise<void>[] = [];
+    for (const prompt of set.prompts) {
+      for (const engine of PROMPT_ENGINES) {
+        for (let run = 1; run <= TRACKED_PROMPTS.RUNS; run += 1) asks.push(askOne(prompt, engine, run));
+      }
+    }
+    await Promise.all(asks);
+
+    // D33: a prompt rotated in stays only if an answer to it named a brand.
+    const verdicts = new Map<string, "keep" | "drop">();
+    for (const prompt of set.prompts) {
+      if (prompt.precheck !== true) continue;
+      const own = answers.filter((answer) => answer.promptId === prompt.id);
+      if (own.length > 0) verdicts.set(prompt.id, own.some((answer) => answer.namesABrand) ? "keep" : "drop");
+    }
+    const settled = settlePrechecks(set, verdicts);
+    if (settled !== set) await writePromptSet(siteId, settled);
+
+    console.log(
+      JSON.stringify({ event: "tracked_prompts", prompts: settled.prompts.length, asked, answered: answers.length })
+    );
+    if (sections.sealed) return;
+    const kept = new Set(settled.prompts.map((prompt) => prompt.id));
+    sections.prompts = {
+      siteName,
+      asked: settled.prompts.map((prompt) => ({ id: prompt.id, kind: prompt.kind, text: prompt.text })),
+      asks: settled.prompts.length * PROMPT_ENGINES.length * TRACKED_PROMPTS.RUNS,
+      answers: answers
+        .filter((answer) => kept.has(answer.promptId))
+        .map((answer) => ({
+          promptId: answer.promptId,
+          engine: answer.engine,
+          run: answer.run,
+          named: answer.named,
+          linked: answer.linked,
+          ownUrls: answer.ownUrls,
+          rivals: answer.rivals,
+        })),
+    };
+    for (const [id, answer] of evidence) if (kept.has(id)) sections.marketPrompts.push(answer);
+  } catch (error) {
+    console.log(
+      JSON.stringify({
+        event: "tracked_prompts_failed",
+        because: error instanceof Error ? error.message : String(error),
+      })
+    );
+  }
+}
+
+/** The name a branded prompt asks about and an answer is read for: the
+ *  site's own where it is a name, else the domain's first label. A title
+ *  that is a sentence is not a name an answer would repeat. */
+function promptSiteName(siteName: string | null, domain: string): string {
+  const name = (siteName ?? "").trim();
+  if (name !== "" && name.length <= 40 && name.split(/\s+/).length <= 4) return name;
+  const label = domain.toLowerCase().replace(/^www\./, "").split(".")[0] ?? domain;
+  return label.length === 0 ? domain : label[0]!.toUpperCase() + label.slice(1);
 }
 
 /**
@@ -2572,6 +2744,7 @@ function composeReport(a: {
     // seeded from the profile — the inferred category is not this fact.
     measuredCategory: a.category ?? null,
     marketPrompts: s.marketPrompts,
+    prompts: s.prompts,
   });
   // SPEC §2 (issue 787): the one first-page proposal is the best right-sized
   // Write target this pass measured — derived, never padded.

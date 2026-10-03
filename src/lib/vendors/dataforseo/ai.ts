@@ -37,6 +37,7 @@ import {
   isRecord,
   ledgered,
   referenceDomains,
+  referenceUrls,
   type EndpointPaths,
   type OnVendorFailure,
 } from "./envelope";
@@ -66,12 +67,15 @@ export function parseAiMode(result: unknown): AiAnswer[] | undefined {
   for (const item of result.items) {
     if (!isRecord(item) || item.type !== "ai_overview") continue;
     const cited = new Set<string>(referenceDomains(item.references));
+    const urls = new Set<string>(referenceUrls(item.references));
     for (const element of asArray(item.items)) {
-      if (isRecord(element)) for (const d of referenceDomains(element.references)) cited.add(d);
+      if (!isRecord(element)) continue;
+      for (const d of referenceDomains(element.references)) cited.add(d);
+      for (const u of referenceUrls(element.references)) urls.add(u);
     }
     const text = asString(item.markdown) ?? asString(item.text) ?? "";
     if (!text && cited.size === 0) return [];
-    return [{ answered: true, text, citedDomains: [...cited] }];
+    return [{ answered: true, text, citedDomains: [...cited], citedUrls: [...urls] }];
   }
   return [];
 }
@@ -89,9 +93,13 @@ export function parseLlmScraper(result: unknown): AiAnswer[] | undefined {
     const text = asString(item.markdown) ?? asString(item.text);
     const cited = referenceDomains(item.sources);
     if (!text && cited.length === 0) continue;
-    return [{ answered: true, text: text ?? "", citedDomains: cited }];
+    return [{ answered: true, text: text ?? "", citedDomains: cited, citedUrls: referenceUrls(item.sources) }];
   }
   return [];
+}
+
+function runKey(run: number | undefined): string {
+  return run === undefined || run <= 1 ? "" : `|run:${run}`;
 }
 
 function paidOnly<T>(c: CostContext, at: Date): Measured<T> | undefined {
@@ -108,6 +116,11 @@ export async function aiMode(
      *  stop buying an engine that is refusing and say on the cell what it
      *  was told. */
     onFailure?: OnVendorFailure;
+    /** Which ask of the same query this is, 1-based (#1162, D19): a
+     *  tracked prompt is asked more than once a week, and a second ask
+     *  under the first one's key would be served the first one's answer.
+     *  Absent and 1 are the same key the battery has always used. */
+    run?: number;
     /** When the caller's own ceiling runs out, as epoch milliseconds
      *  (issue 902). On the standard queue this call's wait is a poll that
      *  otherwise runs to `VENDOR.stdQueueDeadlineMin` — forty-five minutes,
@@ -120,7 +133,7 @@ export async function aiMode(
   if (refused) return refused;
   const rows = await ledgered<AiAnswer>(c, {
     source: "serp/google/ai_mode",
-    cacheKey: `${a.query}|${LOCALE_KEY}|${scopeKey(a.scope)}`,
+    cacheKey: `${a.query}|${LOCALE_KEY}|${scopeKey(a.scope)}${runKey(a.run)}`,
     freshnessDays: CACHE_WINDOWS_D.aiBattery,
     costCents: a.mode === "live" ? PRICE_BOOK.AI_MODE_LIVE_C : PRICE_BOOK.AI_MODE_STD_C,
     fetch: () => callEndpoint(AI_MODE_PATHS, a.mode, { keyword: a.query }, undefined, a.untilMs),
@@ -132,13 +145,13 @@ export async function aiMode(
 
 export async function llmScraper(
   c: CostContext,
-  a: { query: string; mode: "std"; scope: CacheScope; onFailure?: OnVendorFailure; untilMs?: number }
+  a: { query: string; mode: "std"; scope: CacheScope; onFailure?: OnVendorFailure; untilMs?: number; run?: number }
 ): Promise<Measured<AiAnswer>> {
   const refused = paidOnly<AiAnswer>(c, new Date());
   if (refused) return refused;
   const rows = await ledgered<AiAnswer>(c, {
     source: "ai_optimization/chat_gpt/llm_scraper",
-    cacheKey: `${a.query}|${LOCALE_KEY}|${scopeKey(a.scope)}`,
+    cacheKey: `${a.query}|${LOCALE_KEY}|${scopeKey(a.scope)}${runKey(a.run)}`,
     freshnessDays: CACHE_WINDOWS_D.aiBattery,
     costCents: PRICE_BOOK.CHATGPT_SCRAPE_STD_C,
     fetch: () => callEndpoint(LLM_SCRAPER_PATHS, a.mode, { keyword: a.query }, undefined, a.untilMs),

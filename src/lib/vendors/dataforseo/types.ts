@@ -107,6 +107,10 @@ export interface AiAnswer {
   answered: boolean;
   text: string;
   citedDomains: readonly string[];
+  /** The addresses it cited, where the vendor gave them (#1162): what
+   *  "your pages cited" is read from. Absent on an answer cached before
+   *  the member existed. */
+  citedUrls?: readonly string[];
 }
 
 /**

@@ -230,8 +230,10 @@ export const SPECIMEN_HERO_DUE = "6h 12m";
 
 /** The four feature cards' drawings. */
 export const SPECIMEN_FEATURES = Object.freeze({
-  /** Of the market's twelve questions, how many name the business, and the goal. */
-  answers: { named: 2, total: 12, goal: 6 },
+  /** Of a week's hundred answers to the buyer prompts — 25 prompts, two
+   *  engines, twice each (D19, #1162) — how many name the business. Drawn
+   *  as one bar a prompt. */
+  answers: { named: 8, total: 100, prompts: 25, named_prompts: 3 },
   /** Searches out of twelve that the top rival, and the business, rank for. */
   google: { rival: 10, you: 1, total: 12 },
 });

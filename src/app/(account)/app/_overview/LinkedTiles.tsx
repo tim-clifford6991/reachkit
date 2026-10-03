@@ -42,10 +42,13 @@ import { carriedBy, formatCount, renderValue } from "./present";
 import type { AiPresenceWindow, Module, OverviewModel } from "./model";
 import { TAB_COPY_KEY, TAB_HREF, type OverviewTab } from "./tabs";
 import type { AbsoluteRival, RatioRival, RivalGapModule } from "./rivals";
+import { ANSWER_RATE_WEEKS } from "@/lib/config/constants";
+import { percent, type PromptsModel } from "./prompts-model";
 
 const SEARCHES_LABEL = "overview.tile.searches.label" satisfies CopyKey;
 const QUESTIONS_LABEL = "overview.tile.questions.label" satisfies CopyKey;
 const RIVALS_LABEL = "overview.tile.rivals.label" satisfies CopyKey;
+const MENTION_RATE_LABEL = "overview.tile.mention-rate.label" satisfies CopyKey;
 
 /** What a tile is read against, drawn bare beside the number: the goal, the
  *  window's denominator, the previous reading. Values, never a sentence. */
@@ -138,11 +141,18 @@ export function LinkedTiles(p: {
   /** Which engine the AI-answers number is counted from (issue 867), already
    *  written by the caller. */
   engineLine: string | null;
+  /** D22 · D19 (#1162): the tracked buyer prompts' window. Once a weekly
+   *  pass has asked them, the AI tile is the mention rate. */
+  prompts: PromptsModel;
 }): React.JSX.Element {
   return (
     <div className="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-3" data-testid="overview-tiles">
       <SearchesTile searches={p.searches} pagesPublished={p.pagesPublished} trend={p.searchTrend} />
-      <QuestionsTile aiAnswers={p.aiAnswers} engineLine={p.engineLine} />
+      {p.prompts.kind === "measured" ? (
+        <MentionRateTile prompts={p.prompts} />
+      ) : (
+        <QuestionsTile aiAnswers={p.aiAnswers} engineLine={p.engineLine} />
+      )}
       <RivalsTile rivals={p.rivals} />
     </div>
   );
@@ -216,6 +226,49 @@ function QuestionsTile(p: {
       }
       line={value.isDash ? (value.line ?? null) : p.engineLine}
       trend={presenceTrend(p.aiAnswers.window)}
+    />
+  );
+}
+
+/**
+ * D22's first headline number (#1162): answers to the tracked buyer prompts
+ * that name or link the site, over the rolling four weeks, with the range
+ * the true rate most likely sits in. Under it, share of voice against the
+ * rivals and the site's own pages cited. No goal and no change arrow: the
+ * range is what says whether a week's move means anything.
+ */
+function MentionRateTile(p: { prompts: Extract<PromptsModel, { kind: "measured" }> }): React.JSX.Element {
+  const { rate, shareOfVoice, pages } = p.prompts;
+  const lines = [
+    copy("overview.tile.mention-rate.of", {
+      mentioned: formatCount(rate.linked + rate.named),
+      answers: formatCount(rate.samples),
+      weeks: formatCount(ANSWER_RATE_WEEKS),
+    }),
+    shareOfVoice === null
+      ? null
+      : copy("overview.tile.mention-rate.share", { share: formatCount(percent(shareOfVoice)) }),
+    pages.length === 1
+      ? copy("overview.tile.mention-rate.pages.one")
+      : copy("overview.tile.mention-rate.pages", { pages: formatCount(pages.length) }),
+  ].filter((line): line is string => line !== null);
+
+  return (
+    <Tile
+      label={copy(MENTION_RATE_LABEL)}
+      tab="ai_answers"
+      testId="overview-tile-mention-rate"
+      figure={`${formatCount(percent(rate.rate))}%`}
+      against={
+        <Against>
+          {copy("overview.tile.mention-rate.band", {
+            low: formatCount(percent(rate.low)),
+            high: formatCount(percent(rate.high)),
+          })}
+        </Against>
+      }
+      line={lines.join(" · ")}
+      trend={p.prompts.trend}
     />
   );
 }

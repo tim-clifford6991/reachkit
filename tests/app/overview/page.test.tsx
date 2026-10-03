@@ -110,7 +110,7 @@ describe("REQ-041 c1 — Overview is the screen a signed-in customer lands on", 
   it("renders three tiles and no fourth, each one a door to its tab", async () => {
     const html = await markup();
     expect(html).toContain('data-testid="overview-tile-searches"');
-    expect(html).toContain('data-testid="overview-tile-questions"');
+    expect(html).toContain('data-testid="overview-tile-mention-rate"');
     expect(html).toContain('data-testid="overview-tile-rivals"');
     expect(html.split('data-testid="overview-tile-').length - 1).toBe(3);
   });

@@ -94,7 +94,13 @@ function Tile(p: {
   );
 }
 
-export function AnswerTiles(p: { model: AnswersModel }): React.JSX.Element {
+export function AnswerTiles(p: {
+  model: AnswersModel;
+  /** False once the tracked buyer prompts carry the rate (D19, #1162):
+   *  the twelve's own four-week rate is then not drawn a second time. */
+  rate?: boolean;
+}): React.JSX.Element {
+  const showRate = p.rate ?? true;
   const rate = renderValue(p.model.rate.value, RATE_LABEL);
   const asked = renderValue(p.model.rate.of, RATE_LABEL);
   const week = renderValue(p.model.week.value, WEEK_LABEL);
@@ -120,8 +126,8 @@ export function AnswerTiles(p: { model: AnswersModel }): React.JSX.Element {
       });
 
   return (
-    <div className="grid min-w-0 gap-4 sm:grid-cols-2" data-testid="answers-tiles">
-      <Tile
+    <div className={showRate ? "grid min-w-0 gap-4 sm:grid-cols-2" : "grid min-w-0 gap-4"} data-testid="answers-tiles">
+      {!showRate ? null : <Tile
         labelKey={RATE_LABEL}
         testId="answers-tile-rate"
         figure={rate.isDash ? null : rate.text}
@@ -129,7 +135,7 @@ export function AnswerTiles(p: { model: AnswersModel }): React.JSX.Element {
         lines={[split, why]}
         line={rate.line ?? null}
         quiet={rate.isDash || p.model.rate.value.kind !== "measured" || p.model.rate.value.value === 0}
-      />
+      />}
       <Tile
         labelKey={WEEK_LABEL}
         testId="answers-tile-week"

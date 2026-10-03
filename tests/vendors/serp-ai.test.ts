@@ -277,7 +277,7 @@ describe('BUILD §6.2/§6.3 — "The free path makes zero AI Optimization API ca
     expect(stub.requests).toHaveLength(1);
     expect(result.kind).toBe("measured");
     if (result.kind !== "measured") throw new Error("unreachable");
-    expect(result.value).toEqual({ answered: true, text: "The best options are …", citedDomains: ["rival-one.com"] });
+    expect(result.value).toEqual({ answered: true, text: "The best options are …", citedDomains: ["rival-one.com"], citedUrls: ["https://rival-one.com/cited"] });
   });
 });
 

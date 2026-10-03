@@ -23,7 +23,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureStages, fakeDb } from "./harness";
 import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured";
-import { PRICE_BOOK, BATTERY as BATTERY_PINS } from "../../../src/lib/config/constants";
+import { BATTERY as BATTERY_PINS } from "../../../src/lib/config/constants";
 import type { DomainMeasurement } from "../../../src/lib/measure";
 import type { StoredReport } from "../../../src/lib/scan/report";
 import type { AiAnswer } from "../../../src/lib/vendors/dataforseo/types";
@@ -172,11 +172,22 @@ describe("§6.2 — the free path makes zero AI Optimization API calls", () => {
     expect(TIER_PARAMETERS.free.battery).toBe(false);
     expect(TIER_PARAMETERS.deep.battery).toBe(true);
     expect(TIER_PARAMETERS.weekly.battery).toBe(true);
+    // D19 (issue 1162): the weekly pass asks the engines its tracked
+    // prompts and its pages' own questions, not the twelve.
+    expect(TIER_PARAMETERS.deep.batteryOnTheTwelve).toBe(true);
+    expect(TIER_PARAMETERS.weekly.batteryOnTheTwelve).toBe(false);
   });
 });
 
 describe("§6.2 — the paid battery is bought once per question, both engines", () => {
-  it.each(["deep", "weekly"] as const)("battery/%s-buys-chatgpt-and-ai-mode-per-question", async (tier) => {
+  it("battery/weekly-asks-the-twelve-of-google-alone (D19, issue 1162)", async () => {
+    await runScan({ domain: DOMAIN, tier: "weekly" });
+    expect(serpOrganic).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
+    expect(llmScraper).not.toHaveBeenCalled();
+    expect(aiMode).not.toHaveBeenCalled();
+  });
+
+  it.each(["deep"] as const)("battery/%s-buys-chatgpt-and-ai-mode-per-question", async (tier) => {
     await runScan({ domain: DOMAIN, tier });
     expect(llmScraper).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
     expect(aiMode).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
@@ -191,7 +202,7 @@ describe("§6.2 — the paid battery is bought once per question, both engines",
   });
 
   it("battery/chatgpt-has-no-live-variant-to-choose", async () => {
-    for (const tier of ["deep", "weekly"] as const) {
+    for (const tier of ["deep"] as const) {
       vi.clearAllMocks();
       db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false }]);
       await runScan({ domain: DOMAIN, tier });
@@ -204,7 +215,6 @@ describe("§6.2 — the paid battery is bought once per question, both engines",
   it("battery/ai-mode-follows-the-pass's-own-serp-mode — live where a human waits, std on the queue", async () => {
     for (const [tier, mode] of [
       ["deep", "live"],
-      ["weekly", "std"],
     ] as const) {
       vi.clearAllMocks();
       db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false }]);
@@ -216,7 +226,7 @@ describe("§6.2 — the paid battery is bought once per question, both engines",
   });
 
   it("battery/the-answers-reach-the-blob's-engine-columns", async () => {
-    await runScan({ domain: DOMAIN, tier: "weekly" });
+    await runScan({ domain: DOMAIN, tier: "deep" });
     const rows = storedReport().aiAnswers?.rows ?? [];
     expect(rows).toHaveLength(BATTERY_PINS.QUESTIONS);
     for (const row of rows) {
@@ -237,7 +247,7 @@ describe("§6.2 — the paid battery is bought once per question, both engines",
     llmScraper.mockResolvedValue(
       measured({ answered: true, text: "Example is the best onboarding tool.", citedDomains: [] }, AT)
     );
-    await runScan({ domain: DOMAIN, tier: "weekly" });
+    await runScan({ domain: DOMAIN, tier: "deep" });
     expect(JSON.stringify(storedReport())).not.toContain("the best onboarding tool");
   });
 });
@@ -245,7 +255,7 @@ describe("§6.2 — the paid battery is bought once per question, both engines",
 describe("§6.5 — degradation, never a throw, and the ceilings between every call", () => {
   it("battery/an-engine-that-raised-is-undeterminable-and-does-not-stop-the-other", async () => {
     llmScraper.mockRejectedValue(new Error("the scraper returned something unreadable"));
-    const { status } = await runScan({ domain: DOMAIN, tier: "weekly" });
+    const { status } = await runScan({ domain: DOMAIN, tier: "deep" });
 
     expect(status).toBe("done");
     expect(aiMode).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
@@ -260,7 +270,7 @@ describe("§6.5 — degradation, never a throw, and the ceilings between every c
     // What `recordFetch`'s `{ skipped: 'cap' }` arm surfaces as at the
     // vendor: a `Measured` that says the call was not attempted.
     aiMode.mockResolvedValue(unmeasured<AiAnswer>("not_attempted", AT));
-    const { status } = await runScan({ domain: DOMAIN, tier: "weekly" });
+    const { status } = await runScan({ domain: DOMAIN, tier: "deep" });
     expect(status).toBe("done");
     const rows = storedReport().aiAnswers?.rows ?? [];
     for (const row of rows) {
@@ -289,7 +299,7 @@ describe("§6.5 — degradation, never a throw, and the ceilings between every c
     // `battery` the same length, or the card pairs the wrong question with
     // the wrong answer. Asserted over a completed pass here and held by
     // the one `push` per iteration on each side.
-    await runScan({ domain: DOMAIN, tier: "weekly" });
+    await runScan({ domain: DOMAIN, tier: "deep" });
     const report = storedReport();
     expect(report.serps).toHaveLength(BATTERY_PINS.QUESTIONS);
     expect(report.aiAnswers?.rows).toHaveLength(BATTERY_PINS.QUESTIONS);
@@ -298,7 +308,7 @@ describe("§6.5 — degradation, never a throw, and the ceilings between every c
   it("battery/the-whole-pass-still-stores-a-report-when-both-engines-fail", async () => {
     llmScraper.mockRejectedValue(new Error("no answer"));
     aiMode.mockRejectedValue(new Error("no answer"));
-    const { status } = await runScan({ domain: DOMAIN, tier: "weekly" });
+    const { status } = await runScan({ domain: DOMAIN, tier: "deep" });
     expect(status).toBe("done");
     expect(storeCurrentReport).toHaveBeenCalledTimes(1);
     expect(storedReport().aiAnswers?.rows).toHaveLength(BATTERY_PINS.QUESTIONS);
@@ -306,7 +316,7 @@ describe("§6.5 — degradation, never a throw, and the ceilings between every c
 
   it("battery/an-engine-that-answered-nothing-is-no_answer-and-not-a-miss", async () => {
     aiMode.mockResolvedValue(measuredZero({ answered: false, text: "", citedDomains: [] } as AiAnswer, AT));
-    await runScan({ domain: DOMAIN, tier: "weekly" });
+    await runScan({ domain: DOMAIN, tier: "deep" });
     for (const row of storedReport().aiAnswers?.rows ?? []) {
       expect(row.engines[1]?.cell).toEqual({ kind: "no_answer" });
     }
@@ -318,41 +328,9 @@ describe("§6.5 — degradation, never a throw, and the ceilings between every c
     // design decision that would change these figures.
     llmScraper.mockResolvedValue(measured(answered(["example.com"]), AT));
     aiMode.mockResolvedValue(measured(answered(["example.com"]), AT));
-    await runScan({ domain: DOMAIN, tier: "weekly" });
+    await runScan({ domain: DOMAIN, tier: "deep" });
     const section = storedReport().aiAnswers;
     expect(section?.customerCitations).toBe(0);
     expect(section?.answeredSearches).toBe(BATTERY_PINS.QUESTIONS);
-  });
-});
-
-describe("§6.3 — a weekly pass's ledgered cost is the ~8¢ the dataset list states", () => {
-  it("battery/weekly-cost-composes-to-about-eight-cents-against-the-price-book", async () => {
-    await runScan({ domain: DOMAIN, tier: "weekly" });
-
-    // Counted from the calls the pass actually made, priced from §6.1's
-    // pins — never from a number typed here.
-    const serps = serpOrganic.mock.calls.length * PRICE_BOOK.SERP_STD_C;
-    const battery =
-      llmScraper.mock.calls.length * PRICE_BOOK.CHATGPT_SCRAPE_STD_C +
-      aiMode.mock.calls.length * PRICE_BOOK.AI_MODE_STD_C;
-    // §6.3's weekly line, the part `measureDomain` buys and this suite
-    // mocks: "`ranked_keywords`@300 (user)". Everything else on that line
-    // is monthly and sits inside its own cache window in a steady-state
-    // week (`suggestions ×2`, `competitors_domain`, `@100 ×rivals`).
-    const ranked = PRICE_BOOK.RANKED_PAID_COST_C;
-
-    // §6.2's own figure for the battery: "ChatGPT std + AI Mode std +
-    // AI-Overview piggyback = 2.2¢/week". The piggyback is the third
-    // column and costs nothing extra — it rides the SERPs above.
-    expect(battery).toBeCloseTo(2.16, 2);
-
-    // §6.3: "**weekly refresh ~8¢** standard".
-    const weekly = ranked + serps + battery;
-    expect(weekly).toBeGreaterThan(7);
-    expect(weekly).toBeLessThan(9);
-
-    // And the battery is what makes that figure right: without it the
-    // week costs the SERPs alone, which is the gap #128 exists to close.
-    expect(weekly - battery).toBeLessThan(6);
   });
 });

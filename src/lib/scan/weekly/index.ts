@@ -30,3 +30,4 @@ export { weeksAlreadyStamped } from "./store";
 // round trip rather than twelve (issue #213).
 export type { WeekScan } from "./store";
 export { readWeekScan, readWeekScans } from "./store";
+export { readPromptWindow } from "./prompts";

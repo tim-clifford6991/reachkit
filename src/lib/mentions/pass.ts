@@ -48,10 +48,19 @@
 // supplementary list. Everything here is caught, logged with the week it
 // belongs to, and the pass carries on — the contract `afterReport`'s own
 // caller already keeps for the derivation beside it.
+//
+// ── Who is bought, and how often (owner D32 of 2026-10-03, #1162) ───────
+//
+// The read costs 10¢ whatever comes back, and on a site with almost no
+// ranked searches it came back empty. So it is bought only for a site
+// whose own ranked footprint is `LLM_MENTIONS_MIN_FOOTPRINT` or more, and
+// then once in `LLM_MENTIONS_EVERY_WEEKS`. Either skip writes its own row,
+// asks the vendor nothing and spends nothing.
 import type { CostContext } from "@/lib/costs";
+import { LLM_MENTIONS_EVERY_WEEKS, LLM_MENTIONS_MIN_FOOTPRINT } from "@/lib/config/constants";
 import { llmMentions } from "@/lib/vendors/dataforseo";
 import type { MentionRow } from "@/lib/vendors/dataforseo/types";
-import { storeMentionWeek } from "./store";
+import { boughtInWeeks, storeMentionWeek } from "./store";
 import type { MentionReadStatus, StoredMention } from "./types";
 
 /** What one pass reports about its own mentions read — the log line's
@@ -75,8 +84,36 @@ export interface MentionsPassOutcome {
  */
 export async function readWeeklyMentions(
   cost: CostContext,
-  a: { siteId: string; domain: string; weekStart: string; scanId: string }
+  a: {
+    siteId: string;
+    domain: string;
+    weekStart: string;
+    scanId: string;
+    /** How many keywords the site itself ranks for, as this pass measured
+     *  it; `null` where the pass could not read it, which buys nothing. */
+    ownRanked: number | null;
+  }
 ): Promise<MentionsPassOutcome> {
+  const skip: MentionReadStatus | null =
+    a.ownRanked === null || a.ownRanked < LLM_MENTIONS_MIN_FOOTPRINT
+      ? "skipped_footprint"
+      : (await boughtInWeeks({ siteId: a.siteId, weekStarts: weeksBefore(a.weekStart, LLM_MENTIONS_EVERY_WEEKS - 1) }))
+        ? "skipped_monthly"
+        : null;
+  if (skip !== null) {
+    const written = await storeMentionWeek({
+      siteId: a.siteId,
+      weekStart: a.weekStart,
+      scanId: a.scanId,
+      status: skip,
+      totalCount: null,
+      costCents: 0,
+      mentions: [],
+    });
+    logMentionsPass({ siteId: a.siteId, weekStart: a.weekStart, status: skip, stored: 0, totalCount: null, costCents: 0, written: written.stored });
+    return { status: skip, stored: 0, totalCount: null };
+  }
+
   const spentBefore = cost.spentCents();
   const answer = await llmMentions(cost, {
     domain: a.domain,
@@ -128,6 +165,14 @@ export async function readWeeklyMentions(
     written: written.stored,
   });
   return outcome;
+}
+
+/** The `count` Mondays before `weekStart`, as `YYYY-MM-DD`. */
+function weeksBefore(weekStart: string, count: number): string[] {
+  const monday = Date.parse(`${weekStart}T12:00:00.000Z`);
+  return Array.from({ length: count }, (_, i) =>
+    new Date(monday - (i + 1) * 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  );
 }
 
 /**

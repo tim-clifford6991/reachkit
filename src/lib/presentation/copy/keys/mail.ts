@@ -211,6 +211,16 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.subject": ["Monday: what moved this week", { slots: {}, fixedBy: "§12" }],
   "mail.weekly.score": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
   "mail.weekly.aiAnswers": ["AI answers", { slots: {}, fixedBy: "§12 · S20 (11a)" }],
+  // D22 · D19 (#1162): the AI mention rate over the tracked buyer prompts,
+  // with its range, and the site's own pages cited. Drafted (#759).
+  "mail.weekly.mentionRate": [
+    "AI mention rate: {rate}% (likely {low}–{high}%). AI named you in {mentioned} of {answers} answers to your buyer prompts over the last {weeks} weeks.",
+    { slots: { rate: "text", low: "text", high: "text", mentioned: "text", answers: "text", weeks: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
+  ],
+  "mail.weekly.pagesCited": [
+    "Your pages cited in those answers: {pages}.",
+    { slots: { pages: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
+  ],
 
   // ── SPEC §8 (2026-09-20, #933): the Monday mail as the approved board
   // draws it — the four Overview numbers with their change, one headline

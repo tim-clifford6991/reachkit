@@ -30,21 +30,29 @@ let answer: Measured<{ rows: readonly MentionRow[]; total: number | null }> = {
   at: new Date(0),
 };
 
+/** Whether the store says the read was bought inside the last month. */
+let boughtLately = false;
+let asked = 0;
+
 vi.mock("../../src/lib/mentions/store.ts", () => ({
   storeMentionWeek: async (write: MentionWeekWrite) => {
     writes.push(write);
     return { stored: true };
   },
+  boughtInWeeks: async () => boughtLately,
 }));
 
 vi.mock("../../src/lib/vendors/dataforseo/index.ts", () => ({
-  llmMentions: async () => answer,
+  llmMentions: async () => {
+    asked += 1;
+    return answer;
+  },
 }));
 
 const { readWeeklyMentions, normalise } = await import("../../src/lib/mentions/pass.ts");
 
 const AT = new Date("2026-09-21T06:00:00Z");
-const WHERE = { siteId: "site-1", domain: "example.com", weekStart: "2026-09-21", scanId: "scan-1" };
+const WHERE = { siteId: "site-1", domain: "example.com", weekStart: "2026-09-21", scanId: "scan-1", ownRanked: 120 };
 
 /** A `CostContext` whose running total the caller moves, so the pass's own
  *  "what did this call settle at" delta is exercised rather than assumed.
@@ -82,6 +90,8 @@ function row(a: Partial<MentionRow> & { question: string }): MentionRow {
 
 beforeEach(() => {
   writes.length = 0;
+  boughtLately = false;
+  asked = 0;
   vi.spyOn(console, "log").mockImplementation(() => {});
 });
 afterEach(() => {
@@ -130,6 +140,35 @@ describe("the four sentences a week can be", () => {
 
     expect(outcome.status).toBe("failed");
     expect(writes[0]).toMatchObject({ status: "failed", mentions: [] });
+  });
+});
+
+describe("who is bought, and how often (owner D32, issue 1162)", () => {
+  it("a site ranking for fewer than 30 searches is not bought: nothing is asked, nothing spent, and the row says why", async () => {
+    answer = { kind: "measured", at: AT, value: { rows: [row({ question: "q" })], total: 1 } };
+    const outcome = await readWeeklyMentions(spendingContext(10.1), { ...WHERE, ownRanked: 29 });
+
+    expect(outcome.status).toBe("skipped_footprint");
+    expect(asked).toBe(0);
+    expect(writes[0]).toMatchObject({ status: "skipped_footprint", costCents: 0, mentions: [] });
+  });
+
+  it("a pass that could not read the site's footprint buys nothing either", async () => {
+    const outcome = await readWeeklyMentions(spendingContext(10.1), { ...WHERE, ownRanked: null });
+    expect(outcome.status).toBe("skipped_footprint");
+    expect(asked).toBe(0);
+  });
+
+  it("a site at 30 is bought, and not again inside the month", async () => {
+    answer = { kind: "measured", at: AT, value: { rows: [row({ question: "q" })], total: 1 } };
+    expect((await readWeeklyMentions(spendingContext(10.1), { ...WHERE, ownRanked: 30 })).status).toBe("measured");
+    expect(asked).toBe(1);
+
+    boughtLately = true;
+    const again = await readWeeklyMentions(spendingContext(10.1), { ...WHERE, weekStart: "2026-09-28", ownRanked: 30 });
+    expect(again.status).toBe("skipped_monthly");
+    expect(asked).toBe(1);
+    expect(writes[1]).toMatchObject({ status: "skipped_monthly", weekStart: "2026-09-28", costCents: 0 });
   });
 });
 

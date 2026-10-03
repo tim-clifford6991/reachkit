@@ -41,6 +41,7 @@ import type {
   PageQuestionsSection,
   FreePageSection,
   MarketPromptAnswer,
+  PromptsSection,
   PresenceSection,
   StoppedReason,
   StoredReport,
@@ -95,6 +96,9 @@ export interface ReportSections {
   /** #1195: the buyer prompts a pass asked, empty where it asked none;
    *  the blob omits the member then. */
   marketPrompts: readonly MarketPromptAnswer[];
+  /** D19 (#1162): the tracked prompts a weekly pass asked, `null` where
+   *  it asked none; the blob omits the member then. */
+  prompts: PromptsSection | null;
 }
 
 /** Pure and total: a copy plus the two derived fields. No arithmetic, no
@@ -131,6 +135,7 @@ export function assembleReport(s: ReportSections): StoredReport {
     correctionState: s.correctionState,
     measuredCategory: s.measuredCategory,
     ...(s.marketPrompts.length === 0 ? {} : { marketPrompts: s.marketPrompts }),
+    ...(s.prompts === null ? {} : { prompts: s.prompts }),
   };
 }
 

@@ -344,7 +344,22 @@ interface SiteRow {
   /** The account that owns the site — read by #181's digest to find the
    *  address to write to. */
   user_id?: string;
+  /** The market the passes concluded for the site (#1185), which the
+   *  week's tracked buyer prompts are built from (D19, issue 1162). */
+  market?: unknown;
+  tracked_prompts?: unknown;
 }
+
+/** A concluded market with three rivals: enough for the full set of 25. */
+const SITE_MARKET = {
+  current: {
+    category: "bathroom renovation services",
+    synonyms: ["bathroom remodeling", "bathroom fitting", "bathroom refurbishment"],
+    buyer: "Homeowners who want a new bathroom",
+    job: "Get their bathroom renovated on a fixed price",
+    rivals: RIVALS.slice(0, 3).map((domain) => ({ domain, name: domain.split(".")[0], basis: "ranks", reason: "" })),
+  },
+};
 
 interface ScanRow {
   id: string;
@@ -488,7 +503,7 @@ beforeEach(() => {
   ownRankedItems = [];
   vendorSends = 0;
 
-  sites = [{ id: SITE_ID, domain: DOMAIN, timezone: ZONE, user_id: USER_ID }];
+  sites = [{ id: SITE_ID, domain: DOMAIN, timezone: ZONE, user_id: USER_ID, market: SITE_MARKET, tracked_prompts: null }];
   // The address the digest is written to (#181). `users` is not one of
   // this journey's own tables, so it lives in the shared double beside
   // everything else the pass reads.
@@ -629,6 +644,11 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       const sources = new Set(rows.map((row) => row.source));
       expect(sources).toContain("ai_optimization/chat_gpt/llm_scraper");
       expect(sources).toContain("serp/google/ai_mode");
+      // D19 (issue 1162): the site's 25 tracked buyer prompts, each asked
+      // on both engines twice — a hundred asks, every one under the cap.
+      const asks = rows.filter((row) => row.source !== "serp/google/organic" && row.source.includes("/"));
+      expect(asks.filter((row) => row.source === "ai_optimization/chat_gpt/llm_scraper")).toHaveLength(50);
+      expect(asks.filter((row) => row.source === "serp/google/ai_mode")).toHaveLength(50);
 
       // Once, and the claim is what makes it so: the row carries the week,
       // and a second tick inside the same week is refused before any spend.

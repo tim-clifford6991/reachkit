@@ -492,7 +492,7 @@ export const REPORT_COPY = Object.freeze({
   "landing.does.eyebrow": ["What it does", { slots: {}, fixedBy: "issue 266 · L14" }],
   "landing.does.heading": ["One page a day closes the gap.", { slots: {}, fixedBy: "issue 266 · L15" }],
   "landing.does.item-1.title": ["Finds the gap", { slots: {}, fixedBy: "issue 266 · L16" }],
-  "landing.does.item-1.line": ["Your market’s 12 biggest searches, and who AI names on each of them.", { slots: {}, fixedBy: "issue 266 · L17" }],
+  "landing.does.item-1.line": ["Your market’s 12 biggest searches, and who AI names when buyers ask for a product like yours.", { slots: {}, fixedBy: "issue 266 · L17" }],
   "landing.does.item-2.title": ["Writes the page", { slots: {}, fixedBy: "issue 266 · L18" }],
   "landing.does.item-2.line": ["One a day, answering a question buyers ask, built on your own site.", { slots: {}, fixedBy: "issue 266 · L19" }],
   "landing.does.item-3.title": ["Publishes on your schedule", { slots: {}, fixedBy: "issue 266 · L20" }],
@@ -645,7 +645,7 @@ export const REPORT_COPY = Object.freeze({
   /** *AI answers*: the line over the answer, and the one under it. */
   "landing.inside.answers.head": ["What Google’s AI Overview says now", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.inside.answers.monday": [
-    "Every Monday: which of your market’s 12 biggest questions name you, and which name a rival.",
+    "Every Monday: how often AI names you when buyers ask about your market, and which rivals it names instead.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
   /** *Your page*: the page waiting for the owner's read. */
@@ -659,10 +659,10 @@ export const REPORT_COPY = Object.freeze({
    *  small drawing whose words follow it. */
   "landing.feature.ai.title": ["Get named in AI answers", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.ai.body": [
-    "We ask AI your market’s 12 biggest questions every week and show which ones name you and which name a rival. Then we write the page that earns the mention.",
+    "We put about 25 questions your buyers ask to Google AI Mode and ChatGPT every week, twice each, and show how often they name you and which rivals they name instead. Then we write the page that earns the mention.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
-  "landing.feature.ai.meter": ["named in {named} of {total} · goal {goal}", { slots: { named: "text", total: "text", goal: "text" }, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.ai.meter": ["named in {named} of {total} answers this week", { slots: { named: "text", total: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" }],
   "landing.feature.google.title": ["Rank on Google", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.google.body": [
     "We find the searches your buyers make that rivals rank for and you don’t, and go after the ones you can win — one page at a time.",

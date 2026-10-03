@@ -297,9 +297,38 @@ describe("the weekly pass at production's measured queue waits (issue 1160)", ()
   // eece5dd1): a question SERP 177 s, ChatGPT 166 s, AI Mode 187 s. Asked
   // one after another, a question cost more than the 240 s ceiling. Asked
   // together, it costs the slowest of the three.
-  it("ends `complete` inside its ceiling, with every AI answer measured and its rivals sized", async () => {
+  //
+  // Owner D19 final (issue 1162): the weekly pass asks the site's tracked
+  // buyer prompts on both engines twice, all at once beside the twelve, and
+  // the twelve keep their Google searches alone. A hundred asks cost the
+  // pass the same wait as one.
+  it("ends `complete` inside its ceiling, its tracked prompts asked twice on both engines and its rivals sized", async () => {
     await import("@/lib/site-profile");
     await import("@/lib/site-issues");
+    await import("@/lib/market/prompts/store");
+    await import("@/lib/market/infer/stored");
+    await import("@/lib/site-profile/store");
+    db.rows.set("sites", [
+      {
+        domain: DOMAIN,
+        category: "user onboarding software",
+        competitors: [],
+        tracked_prompts: null,
+        market: {
+          current: {
+            category: "user onboarding software",
+            synonyms: ["product tours", "onboarding checklists", "in-app guidance"],
+            buyer: "Product teams who ship SaaS",
+            job: "Get their new users to the first win",
+            rivals: [
+              { domain: "appcues.com", name: "Appcues", basis: "ranks", reason: "" },
+              { domain: "userpilot.com", name: "Userpilot", basis: "ranks", reason: "" },
+              { domain: "pendo.io", name: "Pendo", basis: "ranks", reason: "" },
+            ],
+          },
+        },
+      },
+    ]);
     serpOrganic.mockImplementation(answersAfter(177, measured(SERP, AT)));
     llmScraper.mockImplementation(answersAfter(166, measured(answered(["example.com"]), AT)));
     aiMode.mockImplementation(answersAfter(187, measured(answered(["appcues.com"]), AT)));
@@ -321,8 +350,25 @@ describe("the weekly pass at production's measured queue waits (issue 1160)", ()
       const rows = report.aiAnswers?.rows ?? [];
       expect(rows).toHaveLength(BATTERY_PINS.QUESTIONS);
       for (const row of rows) {
-        expect(row.engines.map((engine) => engine.cell.kind)).toEqual(["answered", "answered", "answered"]);
+        expect(row.engines.map((engine) => engine.cell.kind)).toEqual(["answered", "unmeasured", "unmeasured"]);
       }
+      // The set was built from the market and stored with the site; every
+      // prompt was asked on two engines, twice, each run under its own key.
+      const stored = db.queries.find((q) => q.table === "sites" && q.verb === "update" && q.values?.tracked_prompts !== undefined);
+      expect((stored?.values?.tracked_prompts as { prompts: unknown[] }).prompts).toHaveLength(25);
+      expect(report.prompts?.asked).toHaveLength(25);
+      expect(report.prompts?.asks).toBe(100);
+      expect(report.prompts?.answers).toHaveLength(100);
+      expect(llmScraper).toHaveBeenCalledTimes(50);
+      expect(aiMode).toHaveBeenCalledTimes(50);
+      const runs = (aiMode.mock.calls as unknown as [unknown, { run?: number }][]).map((call) => call[1].run);
+      expect(runs.filter((run) => run === 1)).toHaveLength(25);
+      expect(runs.filter((run) => run === 2)).toHaveLength(25);
+      // ChatGPT cited the site in every answer; AI Mode cited a rival.
+      const chatgpt = report.prompts?.answers.filter((answer) => answer.engine === "chatgpt") ?? [];
+      expect(chatgpt.every((answer) => answer.linked)).toBe(true);
+      const mode = report.prompts?.answers.filter((answer) => answer.engine === "ai_mode") ?? [];
+      expect(mode.every((answer) => !answer.linked && answer.rivals.includes("appcues.com"))).toBe(true);
       // Scoring was reached and sized the domains the twelve's top tens hold.
       expect(rankedKeywords).toHaveBeenCalled();
       expect(report.rivalSizes.kind).not.toBe("unmeasured");
