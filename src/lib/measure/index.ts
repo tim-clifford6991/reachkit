@@ -129,14 +129,19 @@ interface DocumentRead {
  *  `ok: false` → `undeterminable`; a cap-skip → `not_attempted`; a read
  *  document → `measured`, or `zero` when it parsed to nothing (no headings,
  *  no visible text — REQ-004 c7's "read it; it contained none"). */
-async function readDocument(c: CostContext, ports: MeasurePorts, url: string): Promise<DocumentRead> {
+async function readDocument(
+  c: CostContext,
+  ports: MeasurePorts,
+  url: string,
+  windowDays: number = CACHE_WINDOWS_D.own
+): Promise<DocumentRead> {
   // The failed outcome is kept beside the ledgered refusal so its `readAt`
   // can date the `unmeasured` arm — the row stores the refusal, not a date.
   const stash: { failure: Extract<FetchOutcome, { ok: false }> | null } = { failure: null };
   const result = await c.recordFetch<StoredDocument | FetchRefusal>({
     source: OWN_FETCH_SOURCE,
     cacheKey: url,
-    freshnessDays: CACHE_WINDOWS_D.own,
+    freshnessDays: windowDays,
     costCents: 0,
     run: async () => {
       const outcome = await ports.fetchDocument(url, OWN_FETCH_OPTS);
@@ -266,13 +271,25 @@ export interface DomainMeasurement {
  *  each other then run concurrently (issue #539, see the body). */
 export async function measureDomain(
   c: CostContext,
-  a: { domain: string; tier: Tier; pages?: readonly string[] },
+  a: {
+    domain: string;
+    tier: Tier;
+    pages?: readonly string[];
+    /** SPEC §6 (issue 1170): how old a stored read may be and still be this
+     *  pass's own. The home document's `readAt` dates every factor, so a
+     *  weekly pass served last week's read wore last week's date. Narrows
+     *  the own window for the documents and the ranked rows; never widens
+     *  it. Absent, the window is `CACHE_WINDOWS_D.own` as before. */
+    ownWindowDays?: number;
+  },
   ports: MeasurePorts = DEFAULT_PORTS
 ): Promise<DomainMeasurement> {
   const homeUrl = homeUrlOf(a.domain);
+  const windowDays =
+    a.ownWindowDays === undefined ? CACHE_WINDOWS_D.own : Math.min(CACHE_WINDOWS_D.own, a.ownWindowDays);
 
   // 1. The home document — its `readAt` is the scan's one date.
-  const home = await readDocument(c, ports, homeUrl);
+  const home = await readDocument(c, ports, homeUrl, windowDays);
   const at = home.at;
   const onPage = home.facts;
 
@@ -339,11 +356,11 @@ export async function measureDomain(
   // they are one server, and asking it for twenty-five pages at once is a
   // load this product has no business putting on it.
   const [pricingRead, extraFacts, robots, presence] = await Promise.all([
-    pricingUrl === null ? Promise.resolve(null) : readDocument(c, ports, pricingUrl),
+    pricingUrl === null ? Promise.resolve(null) : readDocument(c, ports, pricingUrl, windowDays),
 
     (async (): Promise<Measured<OnPageFacts>[]> => {
       const facts: Measured<OnPageFacts>[] = [];
-      for (const url of extra) facts.push(stampedAt((await readDocument(c, ports, url)).facts, at));
+      for (const url of extra) facts.push(stampedAt((await readDocument(c, ports, url, windowDays)).facts, at));
       return facts;
     })(),
 
@@ -389,6 +406,7 @@ export async function measureDomain(
         const ranked = await ports.rankedKeywords(c, {
           domain: a.domain,
           rows: RANKED_ROWS_BY_TIER[a.tier],
+          ...(a.ownWindowDays === undefined ? {} : { windowDays }),
           onFailure: (failure) => {
             heard.failure = failure;
           },

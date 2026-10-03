@@ -408,3 +408,24 @@ describe("Measure again now asks the tracked prompts too (owner, 2026-10-03, iss
     expect(llmScraper).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
   });
 });
+
+describe("a pass with a period of its own is served nothing read before it (issue 1170)", () => {
+  it("narrows the own reads and the twelve's SERPs to the time since the period began", async () => {
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    await runScan({ domain: DOMAIN, siteId: "site-1170", tier: "deep", measuredSince: sixHoursAgo });
+
+    const own = (measureDomain.mock.calls[0] as unknown as [unknown, { ownWindowDays?: number }])[1].ownWindowDays;
+    expect(own).toBeGreaterThan(0.24);
+    expect(own).toBeLessThan(0.26);
+    const serpWindows = serpOrganic.mock.calls.map(
+      (call) => (call as unknown as [unknown, { freshnessDays: number }])[1].freshnessDays
+    );
+    expect(serpWindows).toHaveLength(BATTERY_PINS.QUESTIONS);
+    expect(serpWindows.every((days) => days === own)).toBe(true);
+  });
+
+  it("a pass with no period keeps its tier's windows", async () => {
+    await runScan({ domain: DOMAIN, siteId: "site-1170", tier: "deep" });
+    expect((measureDomain.mock.calls[0] as unknown as [unknown, object])[1]).not.toHaveProperty("ownWindowDays");
+  });
+});

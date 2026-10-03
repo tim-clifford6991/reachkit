@@ -96,6 +96,15 @@ describe("the measurement is runScan with the tier as its parameter, and nothing
     expect(call.scanId).toBe((outcome as { scanId: string }).scanId);
   });
 
+  it("tells the pipeline when the site's own week began, so nothing read before it is served (issue 1170)", async () => {
+    weekReadsBack({ id: "x", status: "done", report: COMPLETE_REPORT });
+    // Wednesday 11:00 UTC is Wednesday 21:00 in Sydney; that week's Monday
+    // 00:00 there is Sunday 14:00 UTC.
+    await runWeekly({ ...SITE, zone: "Australia/Sydney", now: WEDNESDAY });
+    const call = runScan.mock.calls[0]?.[0] as { measuredSince?: Date };
+    expect(call.measuredSince?.toISOString()).toBe("2026-09-06T14:00:00.000Z");
+  });
+
   it("passes the category the founder confirmed, read from the site (#767)", async () => {
     weekReadsBack({ id: "x", status: "done", report: COMPLETE_REPORT });
     DB.rows.set("sites", [{ id: SITE.siteId, category: "employee scheduling software" }]);
