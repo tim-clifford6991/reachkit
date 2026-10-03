@@ -14,8 +14,17 @@
 // market, the page's subject is that question and the options a reader is
 // choosing among. The business whose site it is may appear as one named
 // option among others; it may not be the frame. A page that names it in its
-// title or a heading, or that names it more often than an option would be
-// named, has made itself the subject and does not pass.
+// title, or in half or more of its headings, has made itself the subject and
+// does not pass.
+//
+// **What issue 1187 measured, and took out.** The rule also failed a page for
+// one heading naming the business, and for naming it more than twice. On the
+// ten evaluation drafts that was wrong seven times: SPEC §7 (2026-09-29)
+// requires a section on how the business itself handles the question, whose
+// heading names it, and a page of 1,200 words that says so names it more than
+// twice. A count of mentions is a style measure, not a violation, and is
+// gone. The two stored adverts the rule was written for name the business in
+// the title or in most of their headings, and still stop.
 //
 // **What it deliberately does not do.** It never fires on a target that is
 // genuinely about this business — a search that names the brand is the
@@ -28,15 +37,14 @@
 // Deterministic, no I/O. `FRAME_INSTRUCTION` is the model-facing sentence
 // the drafting prompts carry, held here beside the rule that enforces it so
 // the two cannot drift apart. It is not a customer-visible string.
-import { GENERATION } from "@/lib/config/constants";
 import { FAMILY_OF, type OpportunityType } from "@/lib/opportunities/types";
-import { brandTokens } from "./brandgap";
+import { brandTokens, namesBrand } from "./brandgap";
 import { headingsOf } from "./text";
 import type { RuleFailure } from "./types";
 
 /** What the drafting prompts tell the model, where the target is the
- *  market's question. Stricter than the rule by one mention, so an ordinary
- *  page is nowhere near the bar. Model-facing only. */
+ *  market's question. Stricter than the rule, so an ordinary page is nowhere
+ *  near the bar. Model-facing only. */
 export const FRAME_INSTRUCTION =
   "The target search is a question about the market, not about this business. The page's job is to " +
   "help the reader choose: what the options are, what distinguishes them, and which case each suits. " +
@@ -47,8 +55,6 @@ export interface FrameInputs {
   /** The title as written — the first place a frame shows. */
   title: string;
   markdown: string;
-  /** The words a reader of the published page meets. */
-  rendered: string;
   businessName: string | null;
   domain: string;
   /** The opportunity the page is written for. `null` where the caller holds
@@ -93,37 +99,13 @@ export function checkPageFrame(a: FrameInputs): RuleFailure | null {
   if (!answersMarketQuestion(a)) return null;
   const tokens = brandTokens(a);
 
-  // The subject, as the page announces it. A title or a heading naming the
-  // seller is the frame itself, whatever the body then says.
+  // The subject, as the page announces it. A title naming the seller is the
+  // frame itself, whatever the body then says.
   if (namesBrand(a.title, tokens)) return { rule: "page_frame" };
-  if (headingsOf(a.markdown).some((heading) => namesBrand(heading, tokens))) return { rule: "page_frame" };
 
-  // The subject, as the page spends its words. One option among others is
-  // named about as often as an option is; a brochure names its seller
-  // throughout.
-  return brandMentions(a.rendered, tokens) > GENERATION.frameBrandMentionsMax
-    ? { rule: "page_frame" }
-    : null;
-}
-
-const REGEXP_SPECIAL_RE = /[.*+?^${}()|[\]\\]/g;
-
-/** One alternation, longest token first, so `example.com` is one mention and
- *  not also a second one for the `example` inside it — and bounded at both
- *  ends, so a site whose registrable label is an ordinary word is not read as
- *  naming itself every time that word appears inside another. */
-function brandRegExp(tokens: readonly string[]): RegExp {
-  const ordered = [...tokens]
-    .sort((x, y) => y.length - x.length)
-    .map((token) => token.replace(REGEXP_SPECIAL_RE, "\\$&"));
-  return new RegExp(`\\b(?:${ordered.join("|")})\\b`, "gi");
-}
-
-function namesBrand(text: string, tokens: readonly string[]): boolean {
-  return tokens.length > 0 && brandRegExp(tokens).test(text);
-}
-
-function brandMentions(text: string, tokens: readonly string[]): number {
-  if (tokens.length === 0) return 0;
-  return (text.match(brandRegExp(tokens)) ?? []).length;
+  // One section about the business is the section SPEC §7 asks for. Half the
+  // page's headings about it is a brochure.
+  const headings = headingsOf(a.markdown);
+  const naming = headings.filter((heading) => namesBrand(heading, tokens)).length;
+  return naming > 0 && naming * 2 >= headings.length ? { rule: "page_frame" } : null;
 }

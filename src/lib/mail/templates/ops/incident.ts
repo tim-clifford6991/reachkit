@@ -7,6 +7,13 @@
 // can quote an address or a domain) and no subject id reaches this mail —
 // the values are a job id from the registry, an attempt number, an error's
 // class name and a boot check's name.
+//
+// **One occasion is the exception, on purpose** (issue 1187; owner, D27,
+// 2026-10-02: "If a draft has failed twice, i would be highly concerned to
+// why"). A draft the writing rules stopped twice is an alert, and the owner
+// cannot investigate a rule without the words it stopped: that occasion names
+// the site, each rule, and the sentences of the unpublished page that broke
+// it. It goes to `OWNER_EMAILS` and to nobody else.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { FactRow, MailBlock } from "../../blocks/types";
 
@@ -23,7 +30,17 @@ export type OpsIncident =
   // Issue #799: no error — a scheduled job has not run for twice its
   // interval. The facts are the job id, its last run as an instant and its
   // interval in minutes.
-  | { occasion: "job-stale"; jobId: string; lastRunAt: string; intervalMinutes: number };
+  | { occasion: "job-stale"; jobId: string; lastRunAt: string; intervalMinutes: number }
+  // Issue 1187: no error — the writing rules stopped one draft twice. Each
+  // rule that stopped the last attempt, with the sentences that broke it
+  // where the rule can point at them.
+  | {
+      occasion: "draft-stopped-twice";
+      domain: string;
+      draftId: string;
+      attempts: number;
+      failed: readonly { rule: string; sentences: readonly string[] }[];
+    };
 
 const SUBJECT = "mail.ops.incident.subject" satisfies CopyKey;
 const HEADING = "mail.ops.incident.heading" satisfies CopyKey;
@@ -35,7 +52,21 @@ const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "market-too-small": "mail.ops.incident.market-too-small",
   "market-too-small-week": "mail.ops.incident.market-too-small-week",
   "job-stale": "mail.ops.incident.job-stale",
+  "draft-stopped-twice": "mail.ops.incident.draft-stopped-twice",
 });
+
+/** A sentence of the stopped page, on one line and cut where a mail row
+ *  stops being readable. */
+const SENTENCE_MAX = 240;
+function sentenceValue(sentence: string): string {
+  const line = sentence.replace(/\s+/g, " ").trim();
+  return line.length <= SENTENCE_MAX ? line : `${line.slice(0, SENTENCE_MAX - 1)}…`;
+}
+
+/** A recorded domain, or `unknown`: a host name and nothing else. */
+function closedDomain(value: string): string {
+  return /^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/i.test(value) ? value : "unknown";
+}
 
 /** A scan id is a UUID, and `closedName` would refuse one that starts with
  *  a digit; anything that is not one is written as `unknown`. */
@@ -66,6 +97,17 @@ function factsOf(incident: OpsIncident): FactRow[] {
     return [
       { label: "mail.ops.incident.fact.week", value: closedDate(incident.weekStart) },
       ...incident.scanIds.map((id) => ({ label: "mail.ops.incident.fact.scan", value: closedId(id) }) as const),
+    ];
+  }
+  if (incident.occasion === "draft-stopped-twice") {
+    return [
+      { label: "mail.ops.incident.fact.site", value: closedDomain(incident.domain) },
+      { label: "mail.ops.incident.fact.draft", value: closedId(incident.draftId) },
+      { label: "mail.ops.incident.fact.attempt", value: String(Math.max(0, Math.trunc(incident.attempts))) },
+      ...incident.failed.flatMap((failure): FactRow[] => [
+        { label: "mail.ops.incident.fact.rule", value: closedName(failure.rule) },
+        ...failure.sentences.map((sentence): FactRow => ({ label: "mail.ops.incident.fact.sentence", value: sentenceValue(sentence) })),
+      ]),
     ];
   }
   if (incident.occasion === "job-stale") {

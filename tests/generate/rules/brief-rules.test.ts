@@ -92,3 +92,53 @@ describe("first_block_answers", () => {
     expect(checkFirstBlockAnswers({ markdown })).toEqual({ rule: "first_block_answers" });
   });
 });
+
+// Issue 1187: each of these stopped a stored draft or a kept evaluation
+// draft that had done nothing the rule exists to stop.
+describe("what the phrase rules no longer stop", () => {
+  it.each([
+    "Pages written by a person who can interview you.",
+    "Every page is written from your facts and published on your domain.",
+    "By subscribing you ask us to begin at once.",
+    "Look for case studies on the vendor's own site.",
+  ])("no_invented_provenance passes %j", (markdown) => {
+    expect(checkInventedProvenance({ markdown, brief: { ...BRIEF, facts: [] } })).toBeNull();
+  });
+
+  it("no_invented_test passes a cited article's title, and still fails the page's own claim beside a link", () => {
+    const cited = "Rankability, [We tested 15 best AI SEO tools. Here are the winners.](https://rival.example/tested)";
+    expect(checkInventedTest({ markdown: cited, brief: BRIEF })).toBeNull();
+    expect(
+      checkInventedTest({ markdown: "We tested all of them, per [our notes](https://example.com/n).", brief: BRIEF })
+    ).toEqual({ rule: "no_invented_test" });
+    expect(checkInventedTest({ markdown: "A hands-on tool for small teams.", brief: BRIEF })).toBeNull();
+  });
+});
+
+describe("what traceable_numerals no longer stops", () => {
+  it("a link's label with a full stop inside it still sources its figure", () => {
+    const markdown = "Rivals list 40 seats, per [We counted 40. Here is how.](https://rival.example/p)";
+    expect(checkTraceableNumerals({ markdown, brief: BRIEF })).toBeNull();
+  });
+
+  it("a figure cited beside a link may be repeated without one; a different figure may not", () => {
+    const cited = "Cited pages are quoted [up to 40% more](https://study.example/geo).";
+    expect(checkTraceableNumerals({ markdown: `${cited}\n\nSo 40% is the figure to remember.`, brief: BRIEF })).toBeNull();
+    expect(checkTraceableNumerals({ markdown: `${cited}\n\nOthers say 60%.`, brief: BRIEF })?.rule).toBe(
+      "traceable_numerals"
+    );
+  });
+
+  it("a year and a name with digits in it are not figures", () => {
+    const markdown = "Since 2019 the firm has held ISO27001, and its GA4 export is free.";
+    expect(checkTraceableNumerals({ markdown, brief: BRIEF })).toBeNull();
+  });
+});
+
+describe("first_block_answers and the short-answer box", () => {
+  const sixty = `${"answer ".repeat(59)}end.`;
+  it("passes an answer of 60 words past 320 characters, inside its `:::answer` fence", () => {
+    expect(sixty.length).toBeGreaterThan(320);
+    expect(checkFirstBlockAnswers({ markdown: `# Which tool?\n\n:::answer\n${sixty}\n:::\n\nMore.` })).toBeNull();
+  });
+});

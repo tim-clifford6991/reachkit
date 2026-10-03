@@ -264,13 +264,6 @@ async function crawl(
     if (known === undefined) rank.set(url, (known = readFirstRank(url)));
     return known;
   };
-  /** The next `count` addresses, best first; discovery order among equals. */
-  const take = (count: number): string[] => {
-    const order = frontier.map((url, i) => ({ url, i })).sort((a, b) => rankOf(a.url) - rankOf(b.url) || a.i - b.i);
-    const taken = order.slice(0, count);
-    for (const i of taken.map((entry) => entry.i).sort((a, b) => b - a)) frontier.splice(i, 1);
-    return taken.map((entry) => entry.url);
-  };
   const enqueue = (raw: string, from: string): void => {
     const url = inScopeUrl(raw, from, site);
     if (url === null) return;
@@ -284,7 +277,12 @@ async function crawl(
   // path already known to ignore its query is dropped unread, and a batch
   // carries one variant of an undecided path — the rest wait for what that
   // one says.
+  //
+  // The frontier is read best first, discovery order among equals (issue
+  // 1133), so the pages that say what the business sells are the front.
   const take = (n: number): string[] => {
+    const order = frontier.map((url, i) => ({ url, i })).sort((x, y) => rankOf(x.url) - rankOf(y.url) || x.i - y.i);
+    frontier.splice(0, frontier.length, ...order.map((entry) => entry.url));
     const out: string[] = [];
     const held: string[] = [];
     const probing = new Set<string>();

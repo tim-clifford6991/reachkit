@@ -18,14 +18,12 @@
 //
 //   * a quoted remark — quotation marks or a block quote — attributed to
 //     anyone other than the customer, with no link in the same block;
-//   * a testimonial- or endorsement-shaped block with no link in the same
-//     block, whether or not it names a speaker;
+//   * a block that reports what customers say, a rating or a
+//     recommendation, with no link in the same block, whether or not it
+//     names a speaker;
 //   * a block quote that is not, word for word, a passage the page was
 //     handed — a cited source's or the customer's own testimonial page's —
 //     with its link (SPEC §7, 2026-09-29; issue 1135).
-//
-// The word "review" alone is not a testimonial: "a review of the options"
-// stopped pages that quoted nobody.
 //
 // A persona named only in body prose, with no quotation and no attribution,
 // is not caught here. It is caught by the grounding rule where it makes a
@@ -40,30 +38,33 @@ const REMARK_MIN_CHARS = 25;
 const QUOTED_REMARK_RE = new RegExp(`["\u201c]([^"\u201d]{${REMARK_MIN_CHARS},})["\u201d]`);
 
 /** "— Someone", "says Someone", "according to Someone": the shapes an
- *  attribution takes beside a remark. The captured group is the name. */
+ *  attribution takes beside a remark. The captured group is the name.
+ *
+ *  The dash form is read only where an attribution stands: straight after
+ *  the closing quotation mark, or closing the block. Anywhere else a dash
+ *  before a capital is punctuation — "its data source — DataForSEO, for
+ *  instance" stopped an evaluation draft that quoted nobody (issue 1187). */
 const ATTRIBUTION_RES: readonly RegExp[] = Object.freeze([
-  /[—–-]{1,2}\s*([A-Z][\p{L}'’.-]+(?:\s+[A-Z][\p{L}'’.-]+){0,3})/u,
+  /["\u201d][,.]?\s*[—–-]{1,2}\s*([A-Z][\p{L}'’.-]+(?:\s+[A-Z][\p{L}'’.-]+){0,3})/u,
+  /[—–]\s*([A-Z][\p{L}'’.-]+(?:\s+[A-Z][\p{L}'’.-]+){0,3})(?:,[^.!?]{0,80})?$/u,
   /\b(?:says|said|explains|explained|notes|noted|adds|added|according to|told us)\s+([A-Z][\p{L}'’.-]+(?:\s+[A-Z][\p{L}'’.-]+){0,3})/u,
 ]);
 
-/** The words that make a block testimonial-, review- or endorsement-shaped.
- *  A closed list: a form found later is added here. */
-const TESTIMONIAL_WORDS: readonly string[] = Object.freeze([
-  "testimonial",
-  "endorsement",
-  "endorses",
-  "endorsed",
-  "customers say",
-  "clients say",
-  "users say",
-  "rated us",
-  "gave us",
-  "star rating",
-  "five stars",
-  "5 stars",
-  "recommends us",
-  "would recommend",
-  "our customers",
+/** The phrases that make a block a reported opinion of the business: what
+ *  customers are said to say, a rating, a recommendation. A closed list, and
+ *  each is a claim, never a word.
+ *
+ *  It held bare words until issue 1187 — "review", "testimonial", "our
+ *  customers". Measured, those stopped two stored drafts and three evaluation
+ *  drafts that reported nobody's opinion: "you review each page", a heading
+ *  repeating the target search "best seo software review", and "your
+ *  customers", which contains "our customers". */
+const TESTIMONIAL_RES: readonly RegExp[] = Object.freeze([
+  /\b(?:customers?|clients?|users?|reviewers?)\s+(?:say|says|said)\b/i,
+  /\brated us\b/i,
+  /\b(?:star rating|(?:five|5|four|4(?:\.\d)?)[- ]stars?)\b/i,
+  /\b(?:recommends us|would recommend|highly recommend(?:s|ed)?)\b/i,
+  /\bendorsed by\b/i,
 ]);
 
 /** The customer's own attribution needs no link. Matched against the
@@ -141,8 +142,7 @@ export function checkUnsourcedTestimonial(a: {
       continue;
     }
     if (block.hasLink) continue;
-    const haystack = block.text.toLowerCase();
-    if (TESTIMONIAL_WORDS.some((word) => haystack.includes(word))) {
+    if (TESTIMONIAL_RES.some((pattern) => pattern.test(block.text))) {
       return { rule: "no_unsourced_testimonial" };
     }
     // A block quote long enough to be a remark, carrying no link, is a

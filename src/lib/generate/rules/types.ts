@@ -1,18 +1,22 @@
 // BUILD §8 — the closed hard-rule vocabulary.
 //
 // §8 states seven hard rules "enforced in code, not prompts". Read as
-// checks over a finished draft they are ten, because three of §8's rules
-// are two checks each: rule 2 ("no invented people") is an attributed
-// quotation and an unsourced testimonial; rule 1's grounding and rule 6's
-// rival sourcing are joined by the register of figures only ReachKit holds,
-// which is the same promise ("every figure a reader meets is one they can
-// open a source for") applied to the customer's own numbers. Issue 475 adds
-// five more that read the brief, issue 900 adds `page_frame` — the one rule
-// about stance rather than about a claim — and issue 1137 adds
-// `required_blocks`, the one about structure: seventeen in all.
+// checks over a finished draft they are nine, because rule 2 ("no invented
+// people") is two checks: an attributed quotation and an unsourced
+// testimonial. Issue 475 adds five more that read the brief, issue 900 adds
+// `page_frame` — the one rule about stance rather than about a claim — and
+// issue 1137 adds `required_blocks`, the one about structure: sixteen in
+// all. `no_private_figure` was one more until issue 1187 measured it:
+// `./figures.ts` says why it went.
+//
+// **What a rule is for** (owner, 2026-10-02, D27): to stop an obvious
+// violation — an invented fact, person or review; a false claim about the
+// business; an advert posing as an answer; unsafe markup — or to hold the
+// page to its structure. Not a style filter, and a rule that stops a good
+// page is a defect in the rule.
 //
 // Nothing in this file computes and nothing in it speaks: it is types plus
-// one frozen list, so an eleventh rule is a compile error at every call
+// one frozen list, so a new rule is a compile error at every call
 // site rather than a value some module has to remember to reject.
 //
 // **There is no `message` anywhere in `RuleFailure`.** A failure carries a
@@ -20,17 +24,14 @@
 // as it appears in the draft, the page a candidate duplicated — and never a
 // sentence, because a sentence the product speaks is a copy key and a
 // sentence a model wrote is not shown at all.
-import type { Opportunity } from "@/lib/opportunities";
-import type { StoredReport } from "@/lib/scan/report";
 import type { RequiredBlock } from "./blocks";
 
-/** The seventeen checks, in the order they run. `do_not_claim` is §8's fourth
+/** The sixteen checks, in the order they run. `do_not_claim` is §8's fourth
  *  rule and lives in `../claims/`; every other member is a deterministic
  *  pass over finished text in this directory. */
 export type HardRule =
   | "grounding"
   | "rival_source"
-  | "no_private_figure"
   | "no_invented_people"
   | "no_unsourced_testimonial"
   | "brand_gap"
@@ -58,7 +59,6 @@ export type HardRule =
 export const HARD_RULES: readonly HardRule[] = Object.freeze([
   "grounding",
   "rival_source",
-  "no_private_figure",
   "no_invented_people",
   "no_unsourced_testimonial",
   "brand_gap",
@@ -103,7 +103,6 @@ export interface RuleFailure {
     | { rule: "do_not_claim"; matchedEntry: string }
     /** The numeral as it appears in the draft. */
     | { rule: "rival_source"; figure: string }
-    | { rule: "no_private_figure"; figure: string }
     | { rule: "traceable_numerals"; figure: string }
     /** Which block the page lacks — a handle, never a sentence. */
     | { rule: "required_blocks"; block: RequiredBlock };
@@ -111,20 +110,14 @@ export interface RuleFailure {
 
 /** Every site-scoped input the battery is called with — the **raw stored**
  *  inputs, so each rule module derives what it needs and no derived
- *  per-site artifact is stored anywhere. Six members and no seventh: a
- *  profile, a summary or an embedding has no member to arrive through.
- *
- *  `report` and `opportunities` are the two places every figure the product
- *  measured for a site is held, and they are what the private-figure
- *  register is built from. */
+ *  per-site artifact is stored anywhere. Four members and no fifth: a
+ *  profile, a summary or an embedding has no member to arrive through. */
 export interface SiteRuleInputs {
   businessName: string | null;
   domain: string;
   doNotClaim: string[];
   /** The rival domains and names recorded for the site. */
   rivals: string[];
-  report: StoredReport;
-  opportunities: Opportunity[];
 }
 
 /** The three sets a candidate is compared against, all this customer's.

@@ -35,7 +35,7 @@ import type { State } from "../types";
  *  what its own sentence and its own action need — nothing more. */
 export type NeedsYouCause =
   /** §8's hard rules stopped the writing. The rules are the pipeline's own
-   *  handles (`no_private_figure`, …), never sentences: the draft screen
+   *  handles (`brand_gap`, …), never sentences: the draft screen
    *  lists them as its rails, and the panel states the cause. */
   | { kind: "rules"; rules: readonly string[] }
   /** A step of the pipeline could not run, twice (issue 813). */

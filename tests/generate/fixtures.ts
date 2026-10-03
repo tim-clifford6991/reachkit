@@ -89,8 +89,6 @@ export function siteInputs(over: Partial<SiteRuleInputs> = {}): SiteRuleInputs {
     domain: "example.com",
     doNotClaim: [],
     rivals: [],
-    report: report(),
-    opportunities: [opportunity()],
     ...over,
   };
 }

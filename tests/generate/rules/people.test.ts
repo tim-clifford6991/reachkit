@@ -66,3 +66,28 @@ describe("§8 hard rule 2 — an unsourced testimonial fails whether or not it n
     expect(checkUnsourcedTestimonial({ markdown })).toBeNull();
   });
 });
+
+// Issue 1187: sentences that stopped a stored or evaluation draft and report
+// nobody's opinion.
+describe("words that are not a testimonial, and a dash that is not an attribution", () => {
+  it.each([
+    "You review each page before it goes live.",
+    "## Where can I find reviews of the best SEO software?",
+    "They measure visibility in the searches your customers actually run.",
+    "Credentials you give us are encrypted.",
+  ])("passes %j", (markdown) => {
+    expect(checkUnsourcedTestimonial({ markdown })).toBeNull();
+  });
+
+  it("still fails what customers are said to say, with no link", () => {
+    expect(checkUnsourcedTestimonial({ markdown: "Customers say it paid for itself in a month." })).toEqual({
+      rule: "no_unsourced_testimonial",
+    });
+  });
+
+  it("a dash before a capital inside prose is punctuation", () => {
+    const markdown =
+      'Check whether the vendor names its data source — DataForSEO, for instance — for "search rankings and keyword volumes".';
+    expect(checkInventedPeople({ markdown, businessName: "Acme" })).toBeNull();
+  });
+});

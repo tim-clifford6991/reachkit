@@ -1,0 +1,286 @@
+{
+  "reachkit.app/01-290d12ba.md": {
+    "no_private_figure": {
+      "falsePositive": true,
+      "why": "The figure is on the site's own public page or a cited source (24-hour, 12 questions, a percentage); it coincides with a count in the stored report."
+    },
+    "page_frame": {
+      "falsePositive": false,
+      "why": "Two of its three headings are about ReachKit; the page is a brochure for a 'best seo software' search."
+    },
+    "brand_gap": {
+      "falsePositive": true,
+      "why": "The first sentence names no business. The page is an advert, and `page_frame` stops it for its headings."
+    },
+    "no_unsourced_testimonial": {
+      "falsePositive": true,
+      "why": "\"You review before the page goes live\" — the word review, nobody's opinion."
+    }
+  },
+  "reachkit.app/02-1aa3e4bb.md": {
+    "no_private_figure": {
+      "falsePositive": true,
+      "why": "The figure is on the site's own public page or a cited source (24-hour, 12 questions, a percentage); it coincides with a count in the stored report."
+    },
+    "brand_gap": {
+      "falsePositive": false,
+      "why": "The heading the page opens on is \"Best AI SEO Software: ReachKit Writes Your Way to Discovery\"."
+    },
+    "page_frame": {
+      "falsePositive": false,
+      "why": "All three headings name ReachKit."
+    }
+  },
+  "reachkit.app/05-07ee19c4.md": {
+    "no_private_figure": {
+      "falsePositive": true,
+      "why": "The figure is on the site's own public page or a cited source (24-hour, 12 questions, a percentage); it coincides with a count in the stored report."
+    },
+    "no_unsourced_testimonial": {
+      "falsePositive": true,
+      "why": "\"your customers actually run\" contains \"our customers\"."
+    },
+    "page_frame": {
+      "falsePositive": true,
+      "why": "A comparison of three kinds of tool; ReachKit is named four times, all in the section saying where its facts were read."
+    }
+  },
+  "reachkit.app/09-3e3929f9.md": {
+    "no_private_figure": {
+      "falsePositive": true,
+      "why": "The figure is on the site's own public page or a cited source (24-hour, 12 questions, a percentage); it coincides with a count in the stored report."
+    },
+    "brand_gap": {
+      "falsePositive": false,
+      "why": "Opens \"ReachKit is the SEO software that writes your way into AI answers…\"."
+    }
+  },
+  "reachkit.app/10-c9eaf64f.md": {
+    "no_private_figure": {
+      "falsePositive": true,
+      "why": "The figure is on the site's own public page or a cited source (24-hour, 12 questions, a percentage); it coincides with a count in the stored report."
+    },
+    "brand_gap": {
+      "falsePositive": false,
+      "why": "Opens on the heading \"ReachKit: The Free SEO Software That Scans Your Market…\"."
+    }
+  },
+  "reachkit.app/11-4fa9e7cf.md": {
+    "no_private_figure": {
+      "falsePositive": true,
+      "why": "The figure is on the site's own public page or a cited source (24-hour, 12 questions, a percentage); it coincides with a count in the stored report."
+    },
+    "first_block_answers": {
+      "falsePositive": true,
+      "why": "One sentence of 55 words that answers the search; 335 characters against a bound of 320, and inside SPEC §7's 40–60 words."
+    }
+  },
+  "ab-reachkit/A1.md": {
+    "no_private_figure": {
+      "falsePositive": true,
+      "why": "The figure is on the site's own public page or a cited source (24-hour, 12 questions, a percentage); it coincides with a count in the stored report."
+    }
+  },
+  "ab-reachkit/B1-before-critic.md": {
+    "no_private_figure": {
+      "falsePositive": true,
+      "why": "The figure is on the site's own public page or a cited source (24-hour, 12 questions, a percentage); it coincides with a count in the stored report."
+    },
+    "first_block_answers": {
+      "falsePositive": false,
+      "why": "The answer box is 62 words against SPEC §7's 40–60, as #1153 found. Mechanical: #1178 splits it in code."
+    },
+    "page_frame": {
+      "falsePositive": true,
+      "why": "The heading that names ReachKit is the section SPEC §7 requires on how the business handles the question; the rest is the mention count."
+    },
+    "brand_gap": {
+      "falsePositive": true,
+      "why": "The answer box names the options and has ReachKit among them after its first sentence, as SPEC §7's honesty by page type asks."
+    },
+    "no_unsourced_testimonial": {
+      "falsePositive": false,
+      "why": "\"One OneLittleWeb reviewer says they…\" — a quoted remark with no link in its block."
+    },
+    "traceable_numerals": {
+      "falsePositive": false,
+      "why": "A quoted \"76%\" and \"1,900%\" stand with no link beside them anywhere on the page."
+    },
+    "no_invented_people": {
+      "falsePositive": true,
+      "why": "\"its data source — DataForSEO, for instance\": a dash before a capital, read as an attribution."
+    },
+    "no_invented_test": {
+      "falsePositive": true,
+      "why": "\"We tested 15 best AI SEO tools\" is the title of a cited article, inside its link."
+    }
+  },
+  "ab-reachkit/B1.md": {
+    "no_private_figure": {
+      "falsePositive": true,
+      "why": "The figure is on the site's own public page or a cited source (24-hour, 12 questions, a percentage); it coincides with a count in the stored report."
+    },
+    "first_block_answers": {
+      "falsePositive": false,
+      "why": "The answer box is 71 words against SPEC §7's 40–60, as #1153 found. Mechanical: #1178 splits it in code."
+    },
+    "page_frame": {
+      "falsePositive": true,
+      "why": "The heading that names ReachKit is the section SPEC §7 requires on how the business handles the question; the rest is the mention count."
+    },
+    "no_invented_test": {
+      "falsePositive": true,
+      "why": "\"We tested 15 best AI SEO tools\" is the title of a cited article, inside its link."
+    },
+    "no_unsourced_testimonial": {
+      "falsePositive": true,
+      "why": "\"the OneLittleWeb reviewer\" — the word review inside reviewer."
+    },
+    "traceable_numerals": {
+      "falsePositive": true,
+      "why": "The figures are cited with their link earlier on the page and repeated in a later section; none is invented (#1153 read the page the same way)."
+    }
+  },
+  "ab-reachkit/B2-before-critic.md": {
+    "no_private_figure": {
+      "falsePositive": true,
+      "why": "The figure is on the site's own public page or a cited source (24-hour, 12 questions, a percentage); it coincides with a count in the stored report."
+    },
+    "first_block_answers": {
+      "falsePositive": true,
+      "why": "The answer box is 60 words, inside SPEC §7's 40–60; 344 characters against a bound of 320."
+    },
+    "page_frame": {
+      "falsePositive": true,
+      "why": "The heading that names ReachKit is the section SPEC §7 requires on how the business handles the question; the rest is the mention count."
+    },
+    "brand_gap": {
+      "falsePositive": true,
+      "why": "The answer box names the options and has ReachKit among them after its first sentence, as SPEC §7's honesty by page type asks."
+    },
+    "traceable_numerals": {
+      "falsePositive": true,
+      "why": "The figures are cited with their link elsewhere on the page and repeated without it; none is invented."
+    }
+  },
+  "ab-reachkit/B2.md": {
+    "no_private_figure": {
+      "falsePositive": true,
+      "why": "The figure is on the site's own public page or a cited source (24-hour, 12 questions, a percentage); it coincides with a count in the stored report."
+    },
+    "first_block_answers": {
+      "falsePositive": false,
+      "why": "The answer box is 66 words against SPEC §7's 40–60, as #1153 found. Mechanical: #1178 splits it in code."
+    },
+    "page_frame": {
+      "falsePositive": true,
+      "why": "The heading that names ReachKit is the section SPEC §7 requires on how the business handles the question; the rest is the mention count."
+    },
+    "brand_gap": {
+      "falsePositive": true,
+      "why": "The answer box names the options and has ReachKit among them after its first sentence, as SPEC §7's honesty by page type asks."
+    },
+    "traceable_numerals": {
+      "falsePositive": true,
+      "why": "Rival prices cited with their link elsewhere on the page, and the 101 of a printed label \"[F101]\", which is not a figure."
+    }
+  },
+  "ab-reachkit/B3-before-critic.md": {
+    "no_private_figure": {
+      "falsePositive": true,
+      "why": "The figure is on the site's own public page or a cited source (24-hour, 12 questions, a percentage); it coincides with a count in the stored report."
+    },
+    "first_block_answers": {
+      "falsePositive": false,
+      "why": "The answer box is 62 words against SPEC §7's 40–60, as #1153 found. Mechanical: #1178 splits it in code."
+    },
+    "page_frame": {
+      "falsePositive": true,
+      "why": "The heading that names ReachKit is the section SPEC §7 requires on how the business handles the question; the rest is the mention count."
+    },
+    "traceable_numerals": {
+      "falsePositive": true,
+      "why": "The figures are cited with their link elsewhere on the page and repeated without it; none is invented."
+    },
+    "no_unsourced_testimonial": {
+      "falsePositive": false,
+      "why": "A block quote with no link: SPEC §7 admits a quotation only with its source beside it."
+    },
+    "no_invented_provenance": {
+      "falsePositive": true,
+      "why": "\"published on your own site\" — no date follows."
+    }
+  },
+  "ab-reachkit/B3.md": {
+    "no_private_figure": {
+      "falsePositive": true,
+      "why": "The figure is on the site's own public page or a cited source (24-hour, 12 questions, a percentage); it coincides with a count in the stored report."
+    },
+    "first_block_answers": {
+      "falsePositive": false,
+      "why": "The answer box is 71 words against SPEC §7's 40–60, as #1153 found. Mechanical: #1178 splits it in code."
+    },
+    "page_frame": {
+      "falsePositive": true,
+      "why": "The heading that names ReachKit is the section SPEC §7 requires on how the business handles the question; the rest is the mention count."
+    },
+    "traceable_numerals": {
+      "falsePositive": true,
+      "why": "The figures are cited with their link elsewhere on the page and repeated without it; none is invented."
+    },
+    "no_unsourced_testimonial": {
+      "falsePositive": false,
+      "why": "A block quote with no link: SPEC §7 admits a quotation only with its source beside it."
+    }
+  },
+  "ab-reachkit/C-reference.md": {
+    "no_private_figure": {
+      "falsePositive": true,
+      "why": "The figure is on the site's own public page or a cited source (24-hour, 12 questions, a percentage); it coincides with a count in the stored report."
+    },
+    "first_block_answers": {
+      "falsePositive": true,
+      "why": "The answer box is 58 words and 315 characters; the `:::answer` fence was counted as its words."
+    },
+    "page_frame": {
+      "falsePositive": true,
+      "why": "The heading that names ReachKit is the section SPEC §7 requires on how the business handles the question; the rest is the mention count."
+    },
+    "traceable_numerals": {
+      "falsePositive": true,
+      "why": "The figures are cited with their link elsewhere on the page and repeated without it; none is invented."
+    },
+    "no_invented_provenance": {
+      "falsePositive": true,
+      "why": "\"Pages written by a person who can interview you\" and \"published on your domain\": no byline, no date."
+    },
+    "no_unsourced_testimonial": {
+      "falsePositive": true,
+      "why": "A comparison table whose row says a writer needs \"a brief, reviews, and a larger budget\"."
+    }
+  },
+  "reachkit.app/07-82d6b624.md": {
+    "page_frame": {
+      "falsePositive": true,
+      "why": "Named three times, all inside one passage quoted from the pricing page."
+    }
+  },
+  "reachkit.app/08-f9d1acd9.md": {
+    "brand_gap": {
+      "falsePositive": false,
+      "why": "Opens \"ReachKit is the best local SEO software because…\"."
+    }
+  },
+  "ab-reachkit/A2.md": {
+    "no_unsourced_testimonial": {
+      "falsePositive": true,
+      "why": "Its heading repeats the target search, \"reviews of the best SEO software\"."
+    }
+  },
+  "ab-reachkit/A3.md": {
+    "first_block_answers": {
+      "falsePositive": false,
+      "why": "The opening is six sentences and 69 words. Mechanical: #1178 splits it in code."
+    }
+  }
+}

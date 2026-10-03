@@ -25,7 +25,6 @@ import { admittedClaims, linkedPage, researchMarket } from "../../../src/lib/gen
 import { repairMechanical } from "../../../src/lib/generate/pipeline/repair";
 import { completeTables, withSources } from "../../../src/lib/generate/pipeline/sources";
 import { checkTraceableNumerals } from "../../../src/lib/generate/rules/brief";
-import { checkPrivateFigure } from "../../../src/lib/generate/rules/figures";
 import { checkUnsourcedTestimonial } from "../../../src/lib/generate/rules/people";
 import { checkRivalSource } from "../../../src/lib/generate/rules/rivals";
 import { withoutReferenceLists } from "../../../src/lib/generate/rules/text";
@@ -164,12 +163,6 @@ describe("the rules follow the pools", () => {
     const traced = "Rival's Standard plan includes 250 automation runs. The plan changed in 2024.";
     expect(checkTraceableNumerals({ markdown: traced, brief })).toBeNull();
     expect(checkTraceableNumerals({ markdown: "Most teams save 37 hours a month.", brief })?.rule).toBe("traceable_numerals");
-  });
-
-  it("a number the report also counts is not private once a fact states it", () => {
-    const markdown = "The starter plan covers 25 seats.";
-    expect(checkPrivateFigure({ markdown, register: ["25"] })?.rule).toBe("no_private_figure");
-    expect(checkPrivateFigure({ markdown, register: ["25"], traceable: new Set(["25"]) })).toBeNull();
   });
 
   it("a rival's figure passes beside the page it was read from, and not beside any other link", () => {

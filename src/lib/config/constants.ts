@@ -925,13 +925,7 @@ export const SCORING = Object.freeze({                    // BP-010 d2 · BUILD 
 } as const);
 
 export const GENERATION = Object.freeze({
-  brandGapChars: 300, duplicateThreshold: 0.85, regenerations: 1,
-  /** SPEC §7 (2026-09-19, issue 900): how often a page answering the
-   *  market's question may name the business whose site it is before it has
-   *  made itself the subject. One mention is the option named among the
-   *  others; the prompt asks for that one, and the rule leaves a mention of
-   *  headroom so an ordinary page is nowhere near the bar. */
-  frameBrandMentionsMax: 2,
+  duplicateThreshold: 0.85, regenerations: 1,
 } as const);
 
 export const SUPPLY = Object.freeze({

@@ -118,7 +118,15 @@ export type DayPageOutcome =
   /** A restart that is no longer waiting: the row is gone, is another
    *  site's, or has left `generating` since it was found. */
   | { ok: false; because: "no_draft" }
-  | { ok: false; because: "rules"; draftId: string | null; attempts: number }
+  | {
+      ok: false;
+      because: "rules";
+      draftId: string | null;
+      attempts: number;
+      /** The rules that stopped the last attempt and the sentences that broke
+       *  them, where the run that stopped it held them (issue 1187). */
+      stopped?: readonly FixNote[];
+    }
   | { ok: false; because: "step_failed"; draftId: string | null; step: string };
 
 /** ADR-070: "one automatic regeneration". Two attempts in total, and the
@@ -177,7 +185,7 @@ export async function generateDayPage(a: {
           opportunity.type === "fix_page"
             ? await fixPage(page, own)
             : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS }, own);
-        await settle(outcome, opportunity.id, now);
+        await settle(outcome, opportunity.id, now, site.domain);
 
         // SPEC §7 (D26, issue 1179): a stopped draft does not cost its day.
         // Only a row that was written and stopped is moved on from — a run
@@ -257,7 +265,7 @@ export async function regenerateRestarted(a: {
   const outcome = await withDraftCost({ scanId: report.scanId }, (cost) =>
     opportunity.type === "fix_page" ? fixPage(page, cost) : writePage({ ...page, attempts: 1 }, cost)
   );
-  await settle(outcome, opportunity.id, a.now ?? new Date());
+  await settle(outcome, opportunity.id, a.now ?? new Date(), site.domain);
   return outcome;
 }
 
@@ -280,13 +288,17 @@ interface PageInput {
  * reason naming the step. Either way its topic rests for 28 days (owner,
  * D26, issue 1179). A run that wrote no row moves neither.
  */
-async function settle(outcome: DayPageOutcome, opportunityId: string, now: Date): Promise<void> {
+async function settle(outcome: DayPageOutcome, opportunityId: string, now: Date, domain: string): Promise<void> {
   if (outcome.ok) {
     await queueForDraft(opportunityId);
     return;
   }
   if (outcome.because === "rules" && outcome.draftId !== null) {
-    await rest(outcome.draftId, opportunityId, await rulesReason(outcome.draftId), now);
+    const failed = await recordedRules(outcome.draftId);
+    await rest(outcome.draftId, opportunityId, `rules:${failed.join(",")}`, now);
+    if (outcome.attempts >= 2) {
+      await alertStoppedTwice({ domain, draftId: outcome.draftId, attempts: outcome.attempts, failed, stopped: outcome.stopped });
+    }
     return;
   }
   if (outcome.because === "step_failed" && outcome.draftId !== null) {
@@ -294,11 +306,43 @@ async function settle(outcome: DayPageOutcome, opportunityId: string, now: Date)
   }
 }
 
-/** The move's reason for a rule stop: the rules on the row. */
-async function rulesReason(draftId: string): Promise<string> {
+/** The rules on the row: what stopped its last attempt. */
+async function recordedRules(draftId: string): Promise<string[]> {
   const row = await generateStore().draftById(draftId);
-  const failed = readRecordedRules(row?.rule_failures) ?? [];
-  return `rules:${failed.map((failure) => failure.rule).join(",")}`;
+  return (readRecordedRules(row?.rule_failures) ?? []).map((failure) => failure.rule);
+}
+
+/**
+ * SPEC §7 (owner, D27, 2026-10-02): "A draft that fails twice is an alert to
+ * investigate, never a normal outcome." The owner is mailed the site, the
+ * rules and the sentences that broke them — what is needed to tell a bad
+ * page from a bad rule. The customer is told by the draft itself (#880).
+ *
+ * Never a throw: the page is stopped and rested either way, and a report
+ * that fails must not fail the run it reports on.
+ */
+async function alertStoppedTwice(a: {
+  domain: string;
+  draftId: string;
+  attempts: number;
+  failed: readonly string[];
+  stopped: readonly FixNote[] | undefined;
+}): Promise<void> {
+  try {
+    const { reportIncident } = await import("@/lib/mail/ops");
+    await reportIncident({
+      occasion: "draft-stopped-twice",
+      domain: a.domain,
+      draftId: a.draftId,
+      attempts: a.attempts,
+      failed: a.failed.map((rule) => ({
+        rule,
+        sentences: a.stopped?.find((note) => note.rule === rule)?.sentences ?? [],
+      })),
+    });
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "draft_stopped_twice_alert", outcome: "threw", error: error instanceof Error ? error.name : "unknown" }));
+  }
 }
 
 /**
@@ -362,12 +406,6 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
     domain: site.domain,
     doNotClaim: site.doNotClaim,
     rivals: site.rivals,
-    report,
-    // The register's other half. Every figure an opportunity carries was
-    // copied out of the scan that derived it, so the report walk above
-    // already registers it; the list is passed so a target that outlives
-    // its report still contributes its own evidence.
-    opportunities: [opportunity],
   };
 
   const category =
@@ -511,5 +549,11 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
   if (stopped === null || stopped.ok || stopped.reason !== "rules") {
     return { ok: false, because: "rules", draftId: draftId ?? null, attempts: a.attempts };
   }
-  return { ok: false, because: "rules", draftId: draftId ?? null, attempts: stopped.attempt };
+  return {
+    ok: false,
+    because: "rules",
+    draftId: draftId ?? null,
+    attempts: stopped.attempt,
+    ...(stopped.fix === undefined ? {} : { stopped: stopped.fix }),
+  };
 }

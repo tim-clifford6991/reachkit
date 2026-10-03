@@ -18,7 +18,6 @@
 import "../env";
 import { describe, expect, it } from "vitest";
 import { checkPageFrame, answersMarketQuestion } from "../../../src/lib/generate/rules/frame";
-import { renderOf } from "../../../src/lib/generate/rules/text";
 import type { OpportunityType } from "../../../src/lib/opportunities/types";
 
 const SITE = { businessName: "ReachKit", domain: "reachkit.app" };
@@ -34,7 +33,6 @@ function check(a: {
   return checkPageFrame({
     title: a.title,
     markdown: a.markdown,
-    rendered: renderOf(a.markdown),
     businessName: a.businessName === undefined ? SITE.businessName : a.businessName,
     domain: a.domain ?? SITE.domain,
     opportunityType: a.opportunityType === undefined ? "listed_page" : a.opportunityType,
@@ -43,18 +41,22 @@ function check(a: {
 }
 
 /** Draft `290d12ba`, "Best SEO Software": a category opening, then the
- *  seller's features and price. The title names no brand — the body is what
- *  makes it a brochure. */
+ *  seller's features and price under the seller's own headings. The title
+ *  names no brand — the headings are what make it a brochure. */
 const ADVERT_BODY = [
   "The best SEO software closes the discoverability gap between what buyers ask and",
   "what a site answers. Most teams start by measuring where they already appear.",
   "",
-  "## What the best software does",
+  "## ReachKit closes the discoverability gap with daily content and weekly measurement",
   "",
   "ReachKit measures where AI answers and Google search send buyers to rivals instead",
   "of you. ReachKit then writes one page a day to change that.",
   "",
-  "## What it costs",
+  "## What makes SEO software work for you",
+  "",
+  "Frequency, measurement and control.",
+  "",
+  "## How ReachKit delivers results",
   "",
   "ReachKit is one plan, per [the published pricing page](https://reachkit.app/pricing).",
 ].join("\n");
@@ -90,15 +92,15 @@ describe("the two drafts this product actually wrote do not pass", () => {
     expect(check({ title: ADVERT_TITLE, markdown: ANSWERS_THE_QUESTION })).toEqual({ rule: "page_frame" });
   });
 
-  it("fails the one whose body is the seller's features and price", () => {
+  it("fails the one whose headings are the seller's features and price", () => {
     expect(check({ title: "Best SEO Software", markdown: ADVERT_BODY, queries: ["best seo software"] })).toEqual({
       rule: "page_frame",
     });
   });
 
-  it("fails a page that names the business in a heading", () => {
-    const markdown = ANSWERS_THE_QUESTION.replace("## What the options are", "## Why ReachKit");
-    expect(check({ title: "Best AI SEO Software", markdown })).toEqual({ rule: "page_frame" });
+  it("passes a page with one section on how the business handles the question — the section SPEC §7 asks for", () => {
+    const markdown = `${ANSWERS_THE_QUESTION}\n\n## How does ReachKit handle this?\n\nReachKit measures the gap, then ReachKit writes a page a day for it. ReachKit publishes each one.`;
+    expect(check({ title: "Best AI SEO Software", markdown })).toBeNull();
   });
 });
 

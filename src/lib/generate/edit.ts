@@ -254,8 +254,6 @@ async function recheck(
       domain: site.domain,
       doNotClaim: site.doNotClaim,
       rivals: site.rivals,
-      report,
-      opportunities: opportunity === null ? [] : [opportunity],
     };
 
     const marketFacts = recordedMarketFacts(meta);
