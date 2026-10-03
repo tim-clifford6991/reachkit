@@ -25,6 +25,7 @@ import type { Measured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import type { RankedCounts } from "../winnability/counts";
+import { pageTypeOf } from "../page-type";
 import { addRejections, noRejections, type Opportunity, type RejectionCount } from "../types";
 import type { Candidate } from "./candidate";
 import { earnCandidates } from "./earn";
@@ -266,7 +267,9 @@ export async function deriveOpportunities(
   });
   for (const [index, row] of unjudged.entries()) {
     const judged = fits.get(judgedHere.length + index);
-    if (judged !== undefined) await store.setBusinessFit(row.id, judged.fit, sourceFor(row));
+    if (judged === undefined) continue;
+    const source = sourceFor(row);
+    await store.setBusinessFit(row.id, judged.fit, source, pageTypeOf({ ...row, source }));
   }
   // A proposal is a write target only at the top fit: below it the search
   // was never measured, and nothing but its fit speaks for it.

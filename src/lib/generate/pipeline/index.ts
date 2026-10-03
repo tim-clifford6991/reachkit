@@ -45,10 +45,11 @@
 import { BRIEF_MAX_FACTS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Opportunity, SitePage } from "@/lib/opportunities";
+import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { readRecordedFact, recordedFactValue } from "../fact";
 import { recoveryOutcome, type Recovery } from "../claims/recovery";
 import { recordedRulesValue, recordedVerdictValue } from "../record";
-import { runHardRules } from "../rules";
+import { batteryCleared, runHardRules } from "../rules";
 import { renderOf } from "../rules/text";
 import type { GroundedFact, RuleFailure, SiteRuleInputs } from "../rules/types";
 import { generateStore, type DraftRow } from "../store";
@@ -66,7 +67,6 @@ import { skeletonFor } from "./skeletons";
 import { completeTables, withSources } from "./sources";
 import { contentKindOf } from "@/lib/opportunities/content-kind";
 import { RESEARCH } from "@/lib/config/constants";
-import { answersMarketQuestion } from "../rules/frame";
 import {
   answerability,
   brief,
@@ -214,12 +214,6 @@ export async function generateDraft(
       voice: a.voiceText,
       profile: a.profile,
       ...(a.sitePages === undefined ? {} : { sitePages: a.sitePages }),
-      marketQuestion: answersMarketQuestion({
-        opportunityType: a.opportunity.type,
-        queries: searches,
-        businessName: a.site.businessName,
-        domain: a.site.domain,
-      }),
     })
   );
   if (briefResult.kind === "unmeasured") return stepFailed(a.siteId, "brief", a.draftId);
@@ -431,7 +425,8 @@ export async function generateDraft(
       markdown,
       title: body.title,
       rendered: renderOf(markdown),
-      opportunityType: a.opportunity.type,
+      pageType: pageTypeOf(a.opportunity),
+      ...(a.profile?.knowledge === undefined ? {} : { knowledge: a.profile.knowledge }),
       site: a.site,
       comparison,
       grounded: grounding.fact,
@@ -448,7 +443,10 @@ export async function generateDraft(
   // second attempt. The repair is kept only where the battery passes it;
   // otherwise the page stands as written and the next attempt is told why.
   const repairs: RepairRecord[] = [];
-  const tried = outcome.passed || outcome.claim.state === "unrun" ? [] : repairable(outcome.failed);
+  const tried =
+    outcome.passed || outcome.claim.state === "unrun" || outcome.fit.state === "unrun"
+      ? []
+      : repairable(outcome.failed);
   if (tried.length > 0) {
     const repaired = repairMechanical(markdown, tried, {
       brief: briefRead,
@@ -466,7 +464,7 @@ export async function generateDraft(
     const still = new Set(again === null || again.passed ? [] : again.failed.map((failure) => failure.rule));
     for (const rule of tried) repairs.push({ rule, cleared: again !== null && !still.has(rule) });
     console.log(JSON.stringify({ event: "draft_repaired", siteId: a.siteId, draftId, repairs }));
-    if (again !== null && again.passed && again.claim.state === "passed") {
+    if (again !== null && batteryCleared(again)) {
       markdown = resourced;
       outcome = again;
     }
@@ -488,9 +486,9 @@ export async function generateDraft(
     cost_cents: c.spentCents(),
     // The publishing engine's guard on `generating → in_review`. Written
     // here and nowhere else: only the run that put the page through the
-    // battery may say the battery passed it. An unrun claim check leaves
-    // it false, because "we could not check" is not "it passed".
-    hard_rules_passed: outcome.passed && outcome.claim.state === "passed",
+    // battery may say the battery passed it. An unrun claim check or fit
+    // check leaves it false, because "we could not check" is not "it passed".
+    hard_rules_passed: batteryCleared(outcome),
   });
 
   // An unrun claim check is a step that did not run, not a rule that
@@ -498,6 +496,10 @@ export async function generateDraft(
   if (outcome.claim.state === "unrun") {
     logRun({ siteId: a.siteId, draftId, step: "claim_check", outcome: outcome.claim.reason });
     return { ok: false, reason: "step_failed", draftId, step: "claim_check" };
+  }
+  if (outcome.fit.state === "unrun") {
+    logRun({ siteId: a.siteId, draftId, step: "fit_check", outcome: outcome.fit.reason });
+    return { ok: false, reason: "step_failed", draftId, step: "fit_check" };
   }
 
   if (outcome.passed) {
@@ -532,7 +534,7 @@ export async function generateDraft(
     failed: outcome.failed,
     attempt,
     recovery,
-    fix: fixNotes(markdown, outcome.failed, briefRead, a.site),
+    fix: fixNotes(markdown, outcome.failed, briefRead, a.site, body.title),
   };
 }
 

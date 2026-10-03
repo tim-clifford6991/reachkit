@@ -153,7 +153,6 @@ describe("#927 — a product the customer removed can never reach a page", () =>
       facts: [GROUNDED.passage],
       doNotClaim: [],
       voice: null,
-      marketQuestion: true,
       profile: promptProfile(confirmed),
     });
     expect(projection.profile?.products).not.toContain("Full service");

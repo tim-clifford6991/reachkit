@@ -1,76 +1,15 @@
-// tests/generate/rules/reader-text.test.ts — BUILD §8 hard rule 3 (not a
-// doorway), and BUILD §14's two rules about what reaches the destination
-// that a reader would never see.
+// tests/generate/rules/reader-text.test.ts — BUILD §14's two rules about
+// what reaches the destination that a reader would never see.
 //
 // Which text each rule runs over is the point, and it is asserted here:
-// the doorway rule and the machine-address rule read the words the page
-// *shows*; the hidden-text rule reads the Markdown and the markup embedded
+// the machine-address rule reads the words the page *shows*; the
+// hidden-text rule reads the Markdown and the markup embedded
 // in it, because that is what would be handed to the customer's CMS.
 import "../env";
 import { describe, expect, it } from "vitest";
 import { MACHINE_ADDRESS_PATTERNS } from "../../../src/lib/config/constants";
-import { checkBrandGap } from "../../../src/lib/generate/rules/brandgap";
 import { checkHiddenText } from "../../../src/lib/generate/rules/hidden";
 import { checkMachineAddress } from "../../../src/lib/generate/rules/machine";
-
-const SITE = { businessName: "Acme", domain: "example.com" };
-
-const QUERIES = ["best crm for a small team"];
-
-function gap(markdown: string, a: { businessName?: string | null; queries?: readonly string[] } = {}) {
-  return checkBrandGap({
-    markdown,
-    businessName: a.businessName === undefined ? SITE.businessName : a.businessName,
-    domain: SITE.domain,
-    queries: a.queries ?? QUERIES,
-  });
-}
-
-describe("§8 hard rule 3 — the page answers before it names the business", () => {
-  it("a first sentence that names the business fails", () => {
-    expect(gap("Acme is the best CRM for a small team because it is simple.\n\nMore follows.")?.rule).toBe("brand_gap");
-  });
-
-  it("a heading above the first paragraph that names it fails", () => {
-    expect(gap("# Acme: the CRM small teams pick\n\nA small team needs three things from a CRM.")?.rule).toBe(
-      "brand_gap"
-    );
-  });
-
-  it("an answer that sets out the options and names the business among them, after its first sentence, passes", () => {
-    const markdown = [
-      "# What is the best CRM for a small team?",
-      "",
-      ":::answer",
-      "The best CRM for a small team is the one its people will open every day. Northwind suits a team that lives in email, and Acme suits one that sells by phone.",
-      ":::",
-    ].join("\n");
-    expect(gap(markdown)).toBeNull();
-  });
-
-  it("letter case makes no difference", () => {
-    for (const spelling of ["acme", "ACME", "AcMe"]) {
-      expect(gap(`${spelling} first.`)?.rule).toBe("brand_gap");
-    }
-  });
-
-  it("the domain names the brand as the name does, whole or by its registrable label", () => {
-    expect(gap("example.com first.")?.rule).toBe("brand_gap");
-    expect(gap("example first.")?.rule).toBe("brand_gap");
-  });
-
-  it("a site with no recorded name is still held to its domain", () => {
-    expect(gap("example.com first.", { businessName: null })?.rule).toBe("brand_gap");
-  });
-
-  it("a link whose address contains the domain but whose words do not passes — the rule reads what the reader reads", () => {
-    expect(gap("Start by [counting the seats](https://example.com/pricing) you need.")).toBeNull();
-  });
-
-  it("a search that names the business is the customer's own question, and its page opens on them", () => {
-    expect(gap("Acme costs 49 a month.", { queries: ["acme pricing"] })).toBeNull();
-  });
-});
 
 describe("§8 · §14 — no sentence addressed to a machine reader", () => {
   it("the battery is never empty — an empty pattern list would pass every draft vacuously", () => {

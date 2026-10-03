@@ -571,13 +571,9 @@ export const DRAFT_COPY = Object.freeze({
     "This reads as a customer testimonial with nothing to back it. The page is held until it is sourced or removed.",
     { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
   ],
-  "draft.editor.break.brand-gap": [
-    "The page opens by naming your business. A reader who searched for this came with a question — answer it first, then say who you are.",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
-  ],
-  "draft.editor.break.page-frame": [
-    "This page answers a question about your market, so it cannot be about your business. Name it once, as one option among the others — never in the title or a heading.",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  "draft.editor.break.honest-row": [
+    "This page compares your market, so your business needs its own row in the comparison table, and the page cannot call it “#1” or the best. Say who it suits and why instead.",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-29, D20) · issue 1136" },
   ],
   "draft.editor.break.no-hidden-text": [
     "Something here would reach a search engine but not a reader. Every word on the page has to be a word a visitor can read.",

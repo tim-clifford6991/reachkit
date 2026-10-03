@@ -460,6 +460,9 @@ async function seedTheWeeksSupply(
       type: seedRow.type,
       family: seedRow.family,
       target_query: query,
+      // This journey is about the week's loop, not about honesty by page
+      // type: its pages are plain answers.
+      page_type: seedRow.pageType ?? null,
       target_ref: slug,
       proposed_slug: slug,
       title: `What's the best ${topic}?`,

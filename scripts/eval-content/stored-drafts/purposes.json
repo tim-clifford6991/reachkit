@@ -15,13 +15,17 @@
     "guards": "Invented reviews: what customers are said to say, a rating or a recommendation, or a block quote, with no link.",
     "decision": "Narrowed. The bare words (review, testimonial, endorsement, our customers) are gone; each pattern is now a claim. The unlinked block quote stays."
   },
+  "honest_row": {
+    "guards": "A false claim about the business: on a market comparison, the business is missing from the comparison table, or the page ranks it \"#1\" or the best by its own word (SPEC §7, D20).",
+    "decision": "Added by #1136 in place of `brand_gap` and `page_frame`. It reads a table that names a rival, and a rank the page gives the business by its own word."
+  },
   "brand_gap": {
     "guards": "An advert posing as an answer: the page names the business before it has answered.",
-    "decision": "Narrowed from a 300-character window to the first sentence and the headings above it, and it decides nothing where the target search names the business. Retires with `page_frame` when #1136 ships honesty by page type."
+    "decision": "Narrowed from a 300-character window to the first sentence and the headings above it, and it decides nothing where the target search names the business. Retires with `page_frame` when #1136 ships honesty by page type. Retired by #1136."
   },
   "page_frame": {
     "guards": "An advert posing as an answer: on a market question, the business is the page's subject.",
-    "decision": "Narrowed to the title, or half or more of the headings. The count of mentions was a style check and is removed; one heading naming the business is the section SPEC §7 requires."
+    "decision": "Narrowed to the title, or half or more of the headings. The count of mentions was a style check and is removed; one heading naming the business is the section SPEC §7 requires. Retired by #1136: how the business appears now follows the page's type."
   },
   "no_hidden_text": {
     "guards": "Unsafe markup: text handed to the destination that no reader sees.",
@@ -58,6 +62,10 @@
   "required_blocks": {
     "guards": "Structure: the blocks every generated page carries (SPEC §7, 2026-09-29).",
     "decision": "Added by #1137 while this review was open. It asks nothing of a page that was not handed its block inputs, so no stored page can fire it; not measured here."
+  },
+  "fit_claim": {
+    "guards": "A false claim about the business: a use, an audience or a category the knowledge base does not support.",
+    "decision": "Added by #1136. A model's judgement of the sentences that name the business; not re-run here. Run once on the twelve stored drafts on 2026-10-03 (1.6¢): it stopped four of the five adverts (02, 08, 09, 10) and none of the other seven. 01, a brochure that claims no category, passes: favourable framing is allowed (D20)."
   },
   "do_not_claim": {
     "guards": "False claims about the business: anything on the customer's never-claim list.",

@@ -42,6 +42,7 @@ import {
   recordedRulesValue,
   recordedVerdictValue,
 } from "./record";
+import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { runHardRules } from "./rules";
 import { headingsOf, renderOf } from "./rules/text";
 import type { RuleFailure, SiteRuleInputs } from "./rules/types";
@@ -261,7 +262,10 @@ async function recheck(
       markdown: a.bodyMd,
       title: a.title,
       rendered: renderOf(a.bodyMd),
-      opportunityType: opportunity?.type ?? null,
+      // No knowledge base is handed over: a founder's own edit is the
+      // founder's word about their business, so the fit check decides
+      // nothing here and `honest_row` still reads the page.
+      pageType: opportunity === null ? null : pageTypeOf(opportunity),
       site: siteInputs,
       comparison: await buildComparisonSet({ siteId: a.siteId, exceptDraftId: a.draftId }),
       grounded:

@@ -37,11 +37,11 @@ beforeEach(async () => {
 function run(markdown: string, over: Parameters<typeof siteInputs>[0] = {}) {
   return runHardRules(fakeCost(), {
     markdown,
-    // The frame rule reads the title and the opportunity's type; this suite
-    // is about the battery's shape, so it runs pages whose frame is fine.
+    // This suite is about the battery's shape, so it runs an answer page:
+    // the honest row reads a market comparison only.
     title: "Which tool should a small team pick?",
     rendered: renderOf(markdown),
-    opportunityType: "answer_page",
+    pageType: "answer",
     site: siteInputs(over),
     comparison: emptyComparison(),
     grounded: GROUNDED,
@@ -59,7 +59,7 @@ describe("a draft that clears every rule passes", () => {
 });
 
 describe("every rule runs, and the list carries all of them in `HARD_RULES` order", () => {
-  it("a draft failing four rules reports all four, in order", async () => {
+  it("a draft failing three rules reports all three, in order", async () => {
     const markdown = [
       "Acme is the answer.",
       "",
@@ -70,7 +70,6 @@ describe("every rule runs, and the list carries all of them in `HARD_RULES` orde
     const outcome = await run(markdown);
     expect(outcome.passed).toBe(false);
     expect(outcome.passed === false && outcome.failed.map((failure) => failure.rule)).toEqual([
-      "brand_gap",
       "no_hidden_text",
       "no_machine_address",
       "first_block_answers",
@@ -79,7 +78,7 @@ describe("every rule runs, and the list carries all of them in `HARD_RULES` orde
 
   it("a rule that failed is reported even when an earlier one also failed — no short-circuit", async () => {
     const outcome = await run("Acme wins.\n\n<!-- hidden -->");
-    expect(outcome.passed === false && outcome.failed).toHaveLength(3);
+    expect(outcome.passed === false && outcome.failed).toHaveLength(2);
   });
 });
 

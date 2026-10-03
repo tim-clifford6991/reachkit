@@ -18,7 +18,7 @@
 // showed both.
 //
 // **A pass is read out of the failure list, never deduced from the state.**
-// `runHardRules` decides all sixteen deterministic rules on every run and
+// `runHardRules` decides every rule but `do_not_claim` on every run and
 // returns every failure, so "this rule is not in the list" is the same
 // statement `passed: true` makes — not an inference about a run this
 // module never saw. What separates a recorded pass from an assumed one is

@@ -27,14 +27,12 @@ import {
   type BriefRuleInputs,
 } from "../rules/brief";
 import { answerBoxOf } from "../rules/blocks";
-import { brandTokens, namesBrand, openingOf } from "../rules/brandgap";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "../rules/people";
 import { factPageKeys, unsourcedRivalFigure } from "../rules/rivals";
 import {
   blocksOf,
   hasLink,
   headingKey,
-  headingsOf,
   linksOf,
   isQuestionShaped,
   renderOf,
@@ -42,6 +40,7 @@ import {
   sourceBlocksOf,
   splitSentences,
 } from "../rules/text";
+import { selfRankedIn } from "../rules/honest";
 import type { HardRule, RuleFailure } from "../rules/types";
 
 /** The rules a repair in code is tried for, in the order it is applied. The
@@ -63,7 +62,7 @@ export interface FixNote {
   sentences: string[];
 }
 
-/** What the two rules about the business's own name read. */
+/** What the rules about the business's own name read. */
 export interface SiteNames {
   businessName: string | null;
   domain: string;
@@ -281,7 +280,13 @@ export function repairMechanical(markdown: string, rules: readonly HardRule[], i
   return out;
 }
 
-function sentencesFor(markdown: string, failure: RuleFailure, brief: BriefRuleInputs, site?: SiteNames): string[] {
+function sentencesFor(
+  markdown: string,
+  failure: RuleFailure,
+  brief: BriefRuleInputs,
+  site?: SiteNames,
+  title?: string
+): string[] {
   const sentences = sentencesOf(markdown);
   switch (failure.rule) {
     // The rule is its own oracle: the blocks it still fails when handed each
@@ -294,10 +299,6 @@ function sentencesFor(markdown: string, failure: RuleFailure, brief: BriefRuleIn
       return blocksOf(markdown)
         .filter((_, index) => checkUnsourcedTestimonial({ markdown: sourceBlocksOf(markdown)[index]!.raw }) !== null)
         .map((block) => block.text);
-    case "brand_gap":
-      return site === undefined ? [] : openingOf(markdown).filter((words) => namesBrand(words, brandTokens(site)));
-    case "page_frame":
-      return site === undefined ? [] : headingsOf(markdown).filter((heading) => namesBrand(heading, brandTokens(site)));
     case "no_invented_test":
       return sentences.filter((s) => isPhraseBreach(s, INVENTED_TEST_RES, brief)).map((s) => s.text);
     case "no_invented_provenance":
@@ -318,6 +319,14 @@ function sentencesFor(markdown: string, failure: RuleFailure, brief: BriefRuleIn
       const blocks = blocksOf(markdown);
       return [...addedQuestionHeadings(markdown, brief)].map((index) => blocks[index]!.text);
     }
+    case "fit_claim":
+      return failure.detail !== undefined && "sentences" in failure.detail ? failure.detail.sentences : [];
+    case "honest_row":
+      // Empty where the page ranked nothing: the business is then missing
+      // from the comparison table, which `honesty` tells the writer to build.
+      return site === undefined
+        ? []
+        : selfRankedIn({ ...site, title: title ?? "", markdown, pageType: "market_comparison" });
     case "first_block_answers": {
       const first = blocksOf(markdown).find((block) => !block.heading);
       return first === undefined ? [] : [first.text];
@@ -336,10 +345,12 @@ export function fixNotes(
   markdown: string,
   failed: readonly RuleFailure[],
   brief: BriefRuleInputs,
-  site?: SiteNames
+  site?: SiteNames,
+  /** The title as written, which `honest_row` reads beside the text. */
+  title?: string
 ): FixNote[] {
   return failed.map((failure) => ({
     rule: failure.rule,
-    sentences: [...new Set(sentencesFor(markdown, failure, brief, site))].slice(0, NOTE_SENTENCES_MAX),
+    sentences: [...new Set(sentencesFor(markdown, failure, brief, site, title))].slice(0, NOTE_SENTENCES_MAX),
   }));
 }

@@ -36,7 +36,7 @@ import type {
   UnreadyReason,
   Winnability,
 } from "./types";
-import { OUTSIZED } from "./types";
+import { OUTSIZED, type PageType } from "./types";
 import { topTensOf } from "./cluster";
 import { earnGroundingOf, NO_EARN_GROUNDING, type EarnGrounding } from "./earn-grounding";
 import type { NotWorkingVerdict } from "./suppression";
@@ -64,6 +64,7 @@ export interface OpportunityRow {
   fit_band: string | null;
   business_fit?: number | null;
   source?: string | null;
+  page_type?: string | null;
   effort: string | number;
   status: string;
   cluster_key: string | null;
@@ -92,6 +93,7 @@ export interface OpportunityInsert {
   fit_band: Winnability | null;
   business_fit?: BusinessFit | null;
   source?: TopicSource | null;
+  page_type?: PageType | null;
   effort: number;
   /** Optional because the database defaults both: a row nothing has
    *  clustered carries no cluster and no absorbed sibling. */
@@ -179,7 +181,12 @@ export interface OpportunityStore {
   setFitBand(opportunityId: string, band: Winnability): Promise<void>;
   /** Stores the pass's business-fit judgement on a row it already held
    *  (issue 1134): judged once, read by readiness and the ranking. */
-  setBusinessFit(opportunityId: string, fit: BusinessFit, source: TopicSource): Promise<void>;
+  setBusinessFit(
+    opportunityId: string,
+    fit: BusinessFit,
+    source: TopicSource,
+    pageType: PageType | null
+  ): Promise<void>;
   /** The site's structured market in force (`null` where none has been
    *  concluded) — what the fit is judged against — and the rivals it is
    *  measured against, as registrable domains. */
@@ -286,6 +293,7 @@ export function readOpportunity(row: OpportunityRow): Opportunity {
     fitBand: row.fit_band as Winnability | null,
     businessFit: (row.business_fit ?? null) as BusinessFit | null,
     source: (row.source ?? null) as TopicSource | null,
+    pageType: (row.page_type ?? null) as PageType | null,
     effort: typeof row.effort === "number" ? row.effort : Number(row.effort),
     status: row.status as OpportunityStatus,
     clusterKey: row.cluster_key,
@@ -347,7 +355,7 @@ const UNIQUE_VIOLATION = "23505";
 
 const COLUMNS =
   "id, site_id, scan_id, type, family, target_query, target_ref, proposed_slug, " +
-  "title, volume, evidence, acceptance, fit_band, business_fit, source, effort, status, cluster_key, " +
+  "title, volume, evidence, acceptance, fit_band, business_fit, source, page_type, effort, status, cluster_key, " +
   "absorbed_queries, ready, unready_reason, rest_until, created_at";
 
 export function supabaseOpportunityStore(): OpportunityStore {
@@ -557,10 +565,10 @@ export function supabaseOpportunityStore(): OpportunityStore {
       if (error) throw new Error(`opportunities.setFitBand: ${error.message}`);
     },
 
-    async setBusinessFit(opportunityId, fit, source) {
+    async setBusinessFit(opportunityId, fit, source, pageType) {
       const { error } = await untyped()
         .from<OpportunityRow>("opportunities")
-        .update({ business_fit: fit, source })
+        .update({ business_fit: fit, source, page_type: pageType })
         .eq("id", opportunityId);
       if (error) throw new Error(`opportunities.setBusinessFit: ${error.message}`);
     },

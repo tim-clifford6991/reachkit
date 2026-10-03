@@ -293,6 +293,11 @@ export const TOPIC_SOURCES: readonly TopicSource[] = Object.freeze([
   "best_x",
 ]);
 
+/** SPEC §7 *honesty by page type* (2026-09-29; D20, 2026-10-02): how the
+ *  business may appear on a Write or an Earn page. `./page-type.ts` decides
+ *  it; the database mirrors the set in a check constraint. */
+export type PageType = "product" | "market_comparison" | "answer";
+
 export type OpportunityStatus = "open" | "queued" | "done" | "dismissed";
 
 /** Why a row has not passed readiness, as handles — SPEC §6's clauses, one
@@ -374,6 +379,11 @@ export interface Opportunity {
   businessFit?: BusinessFit | null;
   /** Where the topic came from. Absent or `null` as above. */
   source?: TopicSource | null;
+  /** SPEC §7 *honesty by page type* (issue 1136): how the business may
+   *  appear on the page, as stored. Absent or `null` on a row that writes no
+   *  new page, or one from before the column — `pageTypeOf` then reads it
+   *  off the type, the search and the source. */
+  pageType?: PageType | null;
   /** 0..1, from `EFFORT_BY_TYPE`. */
   effort: number;
   status: OpportunityStatus;

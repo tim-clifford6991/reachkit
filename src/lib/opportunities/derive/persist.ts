@@ -12,6 +12,7 @@
 // derivation besides.
 import type { OpportunityInsert } from "../store";
 import { opportunityStore, readOpportunity } from "../store";
+import { pageTypeOf } from "../page-type";
 import type { Opportunity } from "../types";
 import type { ClusteredCandidate } from "../cluster";
 import type { Candidate } from "./candidate";
@@ -41,6 +42,9 @@ export function insertFor(candidate: Candidate | ClusteredCandidate): Opportunit
     fit_band: candidate.fitBand,
     business_fit: candidate.businessFit ?? null,
     source: candidate.source ?? null,
+    // SPEC §7 (issue 1136): written last, after the type was refined, so
+    // the page's type is the stored row's own.
+    page_type: pageTypeOf(candidate),
     effort: candidate.effort,
     // SPEC §6: the parent topic and the siblings it absorbed, where the
     // collapse gave the row one.

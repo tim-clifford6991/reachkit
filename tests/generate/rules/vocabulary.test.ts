@@ -3,8 +3,9 @@
 //
 // §8 states seven hard rules; read as checks over finished text they are
 // nine, because one of the seven is two checks. Issue 475 added five that
-// read the brief, issue 900 added `page_frame` and issue 1137 added
-// `required_blocks`; issue 1187 removed `no_private_figure`. What this suite pins
+// read the brief; issue 1136 replaced `brand_gap` and `page_frame` with
+// `honest_row` and `fit_claim`; issue 1137 added `required_blocks`; issue
+// 1187 removed `no_private_figure`. What this suite pins
 // is that the list is *closed* and *ordered*: a further member, or a
 // reordering, changes what a stored `rule_failures` blob means, and a
 // failure list has to be comparable across runs.
@@ -24,8 +25,7 @@ describe("BUILD §8 — the hard rules are a closed, ordered list", () => {
       "rival_source",
       "no_invented_people",
       "no_unsourced_testimonial",
-      "brand_gap",
-      "page_frame",
+      "honest_row",
       "no_hidden_text",
       "no_machine_address",
       "near_duplicate",
@@ -35,6 +35,7 @@ describe("BUILD §8 — the hard rules are a closed, ordered list", () => {
       "traceable_numerals",
       "first_block_answers",
       "required_blocks",
+      "fit_claim",
       "do_not_claim",
     ]);
   });
@@ -52,8 +53,7 @@ describe("BUILD §8 — the hard rules are a closed, ordered list", () => {
       rival_source: true,
       no_invented_people: true,
       no_unsourced_testimonial: true,
-      brand_gap: true,
-      page_frame: true,
+      honest_row: true,
       no_hidden_text: true,
       no_machine_address: true,
       near_duplicate: true,
@@ -63,6 +63,7 @@ describe("BUILD §8 — the hard rules are a closed, ordered list", () => {
       traceable_numerals: true,
       first_block_answers: true,
       required_blocks: true,
+      fit_claim: true,
       do_not_claim: true,
     };
     expect([...HARD_RULES].sort()).toEqual(Object.keys(every).sort());
