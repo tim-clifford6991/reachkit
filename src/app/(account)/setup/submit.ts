@@ -17,6 +17,7 @@
 // `_setup/fixture.ts` remains, recording what it was asked to do, for the
 // suites that drive `completeSetup` without a database. This file holds
 // neither, and nothing here pretends a row was written.
+import type { FounderAnswers } from "@/lib/site-profile/knowledge/types";
 import type { BusinessList } from "@/lib/site-profile/business/types";
 import { BATTERY } from "@/lib/config/constants";
 import { registrableDomain } from "@/lib/market/rivals/domains";
@@ -113,6 +114,9 @@ export type SetupStepSave =
       step: "business";
       lists: Readonly<Partial<Record<BusinessList, readonly string[]>>>;
       job?: string;
+      /** #1133: the five questions as the founder left them; absent, the
+       *  stored answers stand. */
+      answers?: FounderAnswers;
     }
   | { step: "rivals"; competitors: readonly string[] }
   | { step: "voice"; voiceText: string; timezone: string | null };

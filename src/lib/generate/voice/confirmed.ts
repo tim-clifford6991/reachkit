@@ -67,13 +67,15 @@ export async function confirmedForWriting(a: {
   const readings = await readConfirmedBusiness({ siteId: a.siteId, domain: a.domain });
   if (!readings.editsRead) return NOTHING_CONFIRMED;
 
+  const { knowledgeBase } = await import("@/lib/site-profile/knowledge/merge");
   return {
     profile: promptProfile(
       confirmedProfile({
         profile: readings.profile,
         market: readings.market,
         edits: readings.edits,
-      })
+      }),
+      knowledgeBase({ stored: readings.knowledge, answers: readings.edits.answers })
     ),
     factsOff: readings.edits.factsOff,
   };

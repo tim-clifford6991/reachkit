@@ -149,6 +149,34 @@ describe("crawlSite", () => {
     expect(refused?.payload).toEqual({ refusal: "status", status: 404, bytes: 0, host: DOMAIN });
   });
 
+  it("reads pricing and features before the pages listed ahead of them (SPEC §5, issue 1133)", async () => {
+    const home = page(
+      "Home",
+      ["/blog/one", "/blog/two", "/blog/three", "/blog/four", "/blog/five", "/blog/six", "/features", "/pricing"]
+        .map((href) => `<a href="${href}">x</a>`)
+        .join("")
+    );
+    const documents = Object.fromEntries(
+      ["blog/one", "blog/two", "blog/three", "blog/four", "blog/five", "blog/six", "features", "pricing"].map((p) => [
+        `https://example.com/${p}`,
+        ok(`https://example.com/${p}`, page(p)),
+      ])
+    );
+
+    const out = await crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [] },
+      fakePorts(documents)
+    );
+
+    expect(out.pages.slice(0, 3).map((p) => p.url)).toEqual([
+      HOME,
+      "https://example.com/pricing",
+      "https://example.com/features",
+    ]);
+    expect(out.pages).toHaveLength(9);
+  });
+
   it("reads the pages the site's own sitemap declares, and never re-reads the home document", async () => {
     const sitemap = `<urlset><url><loc>https://example.com/pricing</loc></url><url><loc>https://example.com/about</loc></url></urlset>`;
     const ports = fakePorts({

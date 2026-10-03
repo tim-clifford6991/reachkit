@@ -26,6 +26,7 @@
 // refused a request that carries no cookie at all, so the `null` arm below
 // is the forged, expired or ended one — answered the way every other
 // account endpoint answers it, with a status and no sentence.
+import { founderAnswers } from "@/lib/site-profile/knowledge/types";
 import { adapter } from "../_adapter";
 import {
   completeSetup,
@@ -75,9 +76,15 @@ function parseStepSave(body: unknown): SetupStepSave | null | undefined {
       if (lists === undefined) return undefined;
       // #1038: *What you do*, one sentence. Absent is the older body, which
       // leaves the stored wording as it is; anything but a string is malformed.
-      if (b.job === undefined) return { step, lists };
+      // #1133: the five questions. Absent is the older body, which leaves
+      // the stored answers as they are; anything but a record is malformed.
+      if (b.answers !== undefined && (typeof b.answers !== "object" || b.answers === null || Array.isArray(b.answers))) {
+        return undefined;
+      }
+      const answers = b.answers === undefined ? {} : { answers: founderAnswers(b.answers) };
+      if (b.job === undefined) return { step, lists, ...answers };
       if (typeof b.job !== "string") return undefined;
-      return { step, lists, job: b.job };
+      return { step, lists, job: b.job, ...answers };
     }
     case "rivals":
       if (!Array.isArray(b.competitors) || b.competitors.some((c) => typeof c !== "string")) {

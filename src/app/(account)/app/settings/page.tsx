@@ -37,6 +37,7 @@ import { readBusiness } from "./business-provider";
 import { ContentPanel } from "./panels/ContentPanel";
 import { BusinessPanel } from "./panels/BusinessPanel";
 import { FactsPanel } from "./panels/FactsPanel";
+import { KnowledgePanel } from "./panels/KnowledgePanel";
 import { KnownContentPanel } from "./panels/KnownContentPanel";
 import { WrittenFromPanel } from "./panels/WrittenFromPanel";
 
@@ -72,6 +73,7 @@ export default async function SettingsBusinessTab(): Promise<React.JSX.Element> 
           siteName={business.siteName}
           empty={profileIsEmpty(business.profile)}
         />
+        <KnowledgePanel knowledge={business.knowledge} answers={business.answers} />
         <FactsPanel facts={business.facts} />
         {/* #928: what the writer already knows about — theirs as well as
             ours. It sits under the facts because both answer the same

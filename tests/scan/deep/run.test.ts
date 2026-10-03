@@ -126,7 +126,7 @@ describe("the pass's measurements become supply (issue #126), as a step after th
       },
     });
 
-    expect(steps).toEqual(["deep-pass", "opportunities", "first-draft"]);
+    expect(steps).toEqual(["deep-pass", "knowledge-base", "opportunities", "first-draft"]);
     // The pipeline no longer derives inside the pass's invocation.
     expect((pipeline.mock.calls[0]![0] as { afterReport?: unknown }).afterReport).toBeUndefined();
     expect(afterStore).toHaveBeenCalledWith({ scanId: "scan-1", tier: "deep" });

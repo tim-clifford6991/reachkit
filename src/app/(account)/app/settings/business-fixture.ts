@@ -15,6 +15,7 @@
 // screen's own words are registry keys, and none of them is here.
 import type { SiteProfile } from "@/lib/site-profile/types";
 import type { MarketReading } from "@/lib/site-profile/business/confirm";
+import type { StoredKnowledge } from "@/lib/site-profile/knowledge/types";
 
 /** The instant the fixture's site was last read. A fixed date, like every
  *  other date in the fixture set: a relative one would make the screen's
@@ -90,3 +91,47 @@ export const FIXTURE_QUOTABLE: readonly { passage: string; url: string }[] = Obj
     url: "https://example.com/pricing",
   },
 ]);
+
+/** The knowledge base the fixture's read stored (#1133): two pages, in the
+ *  shape `site_profiles.knowledge` holds. */
+export const FIXTURE_KNOWLEDGE: StoredKnowledge = Object.freeze({
+  pages: [
+    {
+      url: "https://example.com/pricing",
+      hash: "fixture-pricing",
+      reading: {
+        offerings: [
+          {
+            name: "Basic service",
+            features: ["Gears and brakes adjusted", "Drivetrain cleaned"],
+            prices: ["$85"],
+            uses: ["A bike ridden to work every day"],
+          },
+          { name: "Full service", features: ["Stripped, cleaned and rebuilt"], prices: ["$190"], uses: [] },
+        ],
+        audience: ["Daily commuters"],
+        problems: ["A bike that slips gears on the way to work"],
+        differentiators: [{ rival: null, text: "We quote the full price before we pick up a tool." }],
+        proof: [],
+        questions: ["How long does a service take?"],
+        integrations: [],
+        places: [],
+      },
+    },
+    {
+      url: "https://example.com/about",
+      hash: "fixture-about",
+      reading: {
+        offerings: [],
+        audience: ["E-bike owners"],
+        problems: [],
+        differentiators: [],
+        proof: ["Every repair guaranteed for 90 days"],
+        questions: [],
+        integrations: [],
+        places: ["Harbour district"],
+      },
+    },
+  ],
+  readAt: READ_AT.toISOString(),
+});

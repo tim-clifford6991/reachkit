@@ -598,6 +598,37 @@ export const SETUP_COPY = Object.freeze({
     "This list is full. Remove one to add another.",
     { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
   ],
+  // SPEC §5 (2026-09-29, issue 1133): the five optional questions, each one
+  // field, on this step and in Settings › Your business. The questions are
+  // the ruling's own; the head and its note are drafted for the owner.
+  "setup.business.questions": [
+    "Five things only you know",
+    { slots: {}, fixedBy: "issue 1133 (drafted)" },
+  ],
+  "setup.business.questions.note": [
+    "Optional. We use an answer in your pages as something you told us.",
+    { slots: {}, fixedBy: "issue 1133 (drafted)" },
+  ],
+  "setup.business.question.buyers": [
+    "Who buys from you, and why?",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-29, issue 1133, drafted)" },
+  ],
+  "setup.business.question.edge": [
+    "What do you do that your rivals don’t?",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-29, issue 1133, drafted)" },
+  ],
+  "setup.business.question.questions": [
+    "What do buyers ask before they buy?",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-29, issue 1133, drafted)" },
+  ],
+  "setup.business.question.result": [
+    "A result a customer got, in numbers if you have them",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-29, issue 1133, drafted)" },
+  ],
+  "setup.business.question.byline": [
+    "Your name and one line about you, for the byline",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-29, issue 1133, drafted)" },
+  ],
 
   // ── Step four: your voice ───────────────────────────────────────────
   /** The second list on the voice step — the claims the site never makes

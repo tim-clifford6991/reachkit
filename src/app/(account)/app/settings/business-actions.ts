@@ -34,9 +34,11 @@ import { redirect } from "next/navigation";
 import { SIGNIN_PATH } from "@/lib/account/identity/addresses";
 import { BUSINESS_LISTS, type BusinessEdits, type BusinessList } from "@/lib/site-profile/business/types";
 import { SETTINGS_TAB_HREF } from "./tabs";
+import { FOUNDER_QUESTIONS, founderAnswers } from "@/lib/site-profile/knowledge/types";
 import {
   BUSINESS_FACT_FIELD,
   BUSINESS_ITEM_FIELD,
+  BUSINESS_ANSWER_FIELD,
   BUSINESS_JOB_FIELD,
   BUSINESS_LIST_FIELD,
   type SettingAnswer,
@@ -171,6 +173,19 @@ export async function addBusinessItemAction(form: FormData): Promise<SettingAnsw
 export async function rewordBusinessJobAction(form: FormData): Promise<SettingAnswer> {
   const entry = typed(form, BUSINESS_JOB_FIELD).trim();
   return write((stored) => ({ ...stored, job: entry === "" ? null : entry }));
+}
+
+/**
+ * Saves the five answers as the form left them (#1133). An emptied field
+ * clears its answer; none of them is required.
+ */
+export async function saveFounderAnswersAction(form: FormData): Promise<SettingAnswer> {
+  const answers = founderAnswers(
+    Object.fromEntries(
+      FOUNDER_QUESTIONS.map((question) => [question, typed(form, `${BUSINESS_ANSWER_FIELD}${question}`)])
+    )
+  );
+  return write((stored) => ({ ...stored, answers }));
 }
 
 /** Switches a quotable fact off — ReachKit may no longer quote it. */

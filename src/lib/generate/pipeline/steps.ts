@@ -276,6 +276,9 @@ const HOUSE_RULES = [
   // a reason a page is specific, never a reason it is an advertisement.
   "Where `profile` is given, write about this business and not a generic one: use its own words from `profile.vocabulary`, and speak to the products, audience and promises the brief chose.",
   "A promise from `profile.promises` may be repeated only in the customer's own wording as given; never sharpen it, never quantify it, and never present it as tested or guaranteed beyond those words.",
+  // #1133: the knowledge base. It widens what the page can be specific
+  // about; the fact rule below is unchanged by it.
+  "Where `profile.knowledge` is given, it is what this business sells and how — its offerings, who it serves, the problems it solves, how it differs, its proof and its buyers' questions, each with the page it was read from in `from`, or `founder` where the founder said it. Write the page about those, never about a generic business of its kind.",
   "`profile` is not a source of facts: state no price, quantity, date, person, review or figure that is not in `facts`, word for word and linked, however much `profile` suggests one.",
 ];
 
@@ -301,7 +304,9 @@ export function brief(c: CostContext, projection: BriefProjection): Promise<Meas
         "reader arrives with, the angle that answers it, and the points the page must " +
         "cover. Choose the facts the page will state by their index in `facts`; you " +
         "cannot write a fact of your own. Where `profile` is given, choose which of " +
-        "its products, audience and promises this page should speak to, and say so in " +
+        "its products, audience and promises — and, where `profile.knowledge` is given, " +
+        "which of its offerings, problems, differences and buyers' questions — this page " +
+        "should speak to, and say so in " +
         "the points — the page must be specific to this business and relevant to its " +
         "readers, never generic. Answer the target search first: the profile tells you " +
         "who is answering, never what the page is about. `sitePages` lists every page " +

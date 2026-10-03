@@ -18,6 +18,8 @@
 // each list may grow; and what taking one out and adding one do to what is
 // on screen. Pure, and no sentence: a group's head, its note and its Add
 // label are copy keys, read where the panel draws them.
+import type { CopyKey } from "@/lib/presentation/copy";
+import type { FounderQuestion } from "@/lib/site-profile/knowledge/types";
 import type { BusinessList, BusinessProfile } from "@/lib/site-profile/business/types";
 
 /**
@@ -122,3 +124,13 @@ export function isFull(draft: BusinessDraft, group: BusinessGroupId): boolean {
 export function jobFrom(profile: BusinessProfile | null): string {
   return profile?.job?.text ?? "";
 }
+
+/** The five questions' own keys; Settings › Your business asks the same. */
+export const QUESTION_COPY = {
+  buyers: "setup.business.question.buyers",
+  edge: "setup.business.question.edge",
+  questions: "setup.business.question.questions",
+  result: "setup.business.question.result",
+  byline: "setup.business.question.byline",
+} as const satisfies Record<FounderQuestion, CopyKey>;
+

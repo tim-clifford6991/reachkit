@@ -409,7 +409,10 @@ describe("step two — what we learned about your business (SPEC §5, 2026-09-20
       COPY["setup.business.group.claims"],
       COPY["setup.business.group.vocabulary"],
       COPY["setup.business.group.facts"],
+      // #1133: the five optional questions close the step, each one field.
+      COPY["setup.business.questions"],
     ]);
+    expect(panel?.querySelectorAll('[data-testid^="setup-business-ask-"]')).toHaveLength(5);
     const job = panel?.querySelector<HTMLInputElement>('[data-testid="setup-business-job"] input');
     expect(job?.value).toBe(model().business.job?.text);
     expect(job?.getAttribute("aria-label")).toBe(COPY["setup.business.group.job"]);

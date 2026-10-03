@@ -174,6 +174,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   const [state, setState] = useState<SetupState>(p.model.state);
   const [business, setBusiness] = useState<BusinessDraft>(() => businessFrom(p.model.business));
   const [job, setJob] = useState(() => jobFrom(p.model.business));
+  const [answers, setAnswers] = useState(p.model.answers);
   // SPEC.md §5 (2026-09-12): the voice as the founder will leave it — what
   // the scan read, or what they already saved over it.
   const [voiceDraft, setVoiceDraft] = useState(p.model.voiceText);
@@ -268,7 +269,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         // is what they took out and what they added, which the server works
         // out against the same reading this screen was drawn from — the
         // browser never names a decision it did not make.
-        return { step, lists: business, job };
+        return { step, lists: business, job, answers };
       case "rivals":
         return { step, competitors: state.rivals.map((rival) => rival.domain) };
       case "voice":
@@ -519,6 +520,8 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               onDraft={setBusiness}
               job={job}
               onJob={setJob}
+              answers={answers}
+              onAnswers={setAnswers}
             />
           </div>
 

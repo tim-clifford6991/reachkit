@@ -65,6 +65,7 @@ import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { proseText } from "@/lib/measure/prose";
 import { readPageFacts, type PageIssueFacts } from "@/lib/site-issues/facts";
+import { readFirstRank } from "./knowledge/priority";
 import {
   isStoredDocument,
   OWN_FETCH_OPTS,
@@ -230,9 +231,26 @@ async function crawl(
   }
   pages.push(pageOf(home.url, home.html, site, home.fetchMs));
 
-  // The frontier, in discovery order: the site's own sitemap first, then
-  // the home document's links, then each read page's links behind them.
+  // The frontier: the site's own sitemap first, then the home document's
+  // links, then each read page's links behind them — and, ahead of that
+  // order, the pages that say what the business sells (SPEC §5, 2026-09-29,
+  // issue 1133): pricing, features, docs, changelog, case studies, reviews
+  // and testimonials are read first, so a crawl its clock or its hundred
+  // pages cuts short has read those.
   const frontier: string[] = [];
+  const rank = new Map<string, number>();
+  const rankOf = (url: string): number => {
+    let known = rank.get(url);
+    if (known === undefined) rank.set(url, (known = readFirstRank(url)));
+    return known;
+  };
+  /** The next `count` addresses, best first; discovery order among equals. */
+  const take = (count: number): string[] => {
+    const order = frontier.map((url, i) => ({ url, i })).sort((a, b) => rankOf(a.url) - rankOf(b.url) || a.i - b.i);
+    const taken = order.slice(0, count);
+    for (const i of taken.map((entry) => entry.i).sort((a, b) => b - a)) frontier.splice(i, 1);
+    return taken.map((entry) => entry.url);
+  };
   const enqueue = (raw: string, from: string): void => {
     const url = inScopeUrl(raw, from, site);
     if (url === null) return;
@@ -273,7 +291,7 @@ async function crawl(
 
     const room = SITE_PROFILE.MAX_PAGES - pages.length;
     const candidates =
-      alone.length > 0 ? alone.splice(0, 1) : frontier.splice(0, Math.min(reader.concurrency(), room));
+      alone.length > 0 ? alone.splice(0, 1) : take(Math.min(reader.concurrency(), room));
 
     // A path the site's robots.txt disallows is never read (issue 610). It
     // stays discovered — it is the site's page — and is not fetched.

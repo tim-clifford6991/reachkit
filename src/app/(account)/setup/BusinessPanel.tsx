@@ -22,7 +22,9 @@
 import type React from "react";
 import { useId, useState, type KeyboardEvent } from "react";
 import { Plus, X } from "lucide-react";
+import { KNOWLEDGE_BASE } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { FOUNDER_QUESTIONS, type FounderAnswers } from "@/lib/site-profile/knowledge/types";
 import {
   added,
   BUSINESS_GROUPS,
@@ -31,6 +33,7 @@ import {
   removed,
   type BusinessDraft,
   type BusinessGroupId,
+  QUESTION_COPY,
 } from "./_setup/business";
 
 /** Each group's head, and the quiet note beside it. `products` is the one
@@ -61,6 +64,8 @@ export function BusinessPanel(p: {
   onDraft: (next: BusinessDraft) => void;
   job: string;
   onJob: (next: string) => void;
+  answers: FounderAnswers;
+  onAnswers: (next: FounderAnswers) => void;
 }): React.JSX.Element {
   return (
     <div className="grid min-w-0 grid-cols-1 gap-4" data-testid="setup-business">
@@ -68,7 +73,39 @@ export function BusinessPanel(p: {
       {BUSINESS_GROUPS.map((group) => (
         <Group key={group} group={group} draft={p.draft} onDraft={p.onDraft} />
       ))}
+      <Questions answers={p.answers} onAnswers={p.onAnswers} />
     </div>
+  );
+}
+
+/** SPEC §5 (2026-09-29, #1133): the five optional questions, each one
+ *  field. Nothing here is required, and a field left empty stores nothing. */
+function Questions(p: {
+  answers: FounderAnswers;
+  onAnswers: (next: FounderAnswers) => void;
+}): React.JSX.Element {
+  return (
+    <section className="card bg-base-100 card-border" data-testid="setup-business-asks">
+      <div className="card-body gap-4 p-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <h3 className="min-w-0 font-medium">{copy("setup.business.questions")}</h3>
+          <p className={`min-w-0 ${QUIET}`}>{copy("setup.business.questions.note")}</p>
+        </div>
+        {FOUNDER_QUESTIONS.map((question) => (
+          <label key={question} className="flex min-w-0 flex-col gap-1.5">
+            <span className="min-w-0 text-sm wrap-anywhere">{copy(QUESTION_COPY[question])}</span>
+            <textarea
+              className="textarea min-w-0 w-full"
+              rows={2}
+              maxLength={KNOWLEDGE_BASE.ANSWER_CHARS}
+              value={p.answers[question] ?? ""}
+              data-testid={`setup-business-ask-${question}`}
+              onChange={(event) => p.onAnswers({ ...p.answers, [question]: event.target.value })}
+            />
+          </label>
+        ))}
+      </div>
+    </section>
   );
 }
 

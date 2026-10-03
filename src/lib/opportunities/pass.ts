@@ -73,6 +73,7 @@ function inputFor(a: {
   inventory: readonly InventoryRow[];
   known: DeriveInput["known"];
   market: DeriveInput["market"];
+  knowledge: DeriveInput["knowledge"];
   competitors: readonly string[];
   prompts: readonly string[];
 }): DeriveInput {
@@ -85,6 +86,7 @@ function inputFor(a: {
     hostedHost: a.hostedHost,
     inventory: a.inventory,
     market: a.market ?? null,
+    knowledge: a.knowledge ?? null,
     competitors: a.competitors,
     prompts: a.prompts,
     ...(a.known === undefined ? {} : { known: a.known }),
@@ -177,7 +179,11 @@ export async function deriveForPass(
   const { market, competitors, prompts } = await store
     .marketFor(a.siteId)
     .catch(() => ({ market: null, competitors: [] as readonly string[], prompts: [] as readonly string[] }));
-  const input = inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known, market, competitors, prompts: prompts ?? [] });
+  // SPEC §6 (2026-09-29, issue 1133): and the knowledge base beside it.
+  const { readKnowledgeBase, knowledgeDigest } = await import("@/lib/site-profile/knowledge/read");
+  const base = await readKnowledgeBase({ siteId: a.siteId, domain: a.report.domain });
+  const knowledge = base === null ? null : knowledgeDigest(base);
+  const input = inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known, market, knowledge, competitors, prompts: prompts ?? [] });
 
   // SPEC §9 (#690): this pass's scan retires the fixes it shows cleared
   // before anything is derived, so a page fixed last week is not re-derived

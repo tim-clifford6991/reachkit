@@ -20,6 +20,8 @@ import { cache } from "react";
 import { isReservedFixtureAccount, requireSetUpAccount } from "../_session/account";
 import { confirmedProfile, quotableFacts } from "@/lib/site-profile/business/confirm";
 import type { BusinessProfile, QuotableFact } from "@/lib/site-profile/business/types";
+import { knowledgeBase } from "@/lib/site-profile/knowledge/merge";
+import type { FounderAnswers, KnowledgeBase } from "@/lib/site-profile/knowledge/types";
 
 /** SPEC §7 (2026-09-20, #928) — "Content we already know about": how many
  *  pages this site has, per source. Three numbers and a total, because the
@@ -46,13 +48,17 @@ export interface BusinessModel {
    *  card then says the site has nothing known yet rather than stating
    *  three zeroes as facts. */
   readonly known: KnownContentCounts;
+  /** SPEC §0 (#1133): the knowledge base, the founder's answers in it. */
+  readonly knowledge: KnowledgeBase;
+  /** The five answers as stored, which the fields open on. */
+  readonly answers: FounderAnswers;
 }
 
 export const readBusiness = cache(async function readBusiness(): Promise<BusinessModel> {
   const account = await requireSetUpAccount();
 
   if (isReservedFixtureAccount(account)) {
-    const { FIXTURE_BUSINESS_PROFILE, FIXTURE_MARKET_READING, FIXTURE_QUOTABLE } = await import(
+    const { FIXTURE_BUSINESS_PROFILE, FIXTURE_KNOWLEDGE, FIXTURE_MARKET_READING, FIXTURE_QUOTABLE } = await import(
       "./business-fixture"
     );
     const { NO_EDITS } = await import("@/lib/site-profile/business/types");
@@ -68,6 +74,8 @@ export const readBusiness = cache(async function readBusiness(): Promise<Busines
       // The reserved account's own index: four pages we wrote, six posts on
       // its WordPress and the nine pages the crawl read.
       known: { ours: 4, wordpress: 6, site: 9, total: 19 },
+      knowledge: knowledgeBase({ stored: FIXTURE_KNOWLEDGE, answers: {} }),
+      answers: {},
     };
   }
 
@@ -83,6 +91,8 @@ export const readBusiness = cache(async function readBusiness(): Promise<Busines
     facts: quotableFacts({ facts: facts.quotable, edits: facts.edits }),
     known,
     edited: facts.edited,
+    knowledge: knowledgeBase({ stored: facts.knowledge, answers: facts.edits.answers }),
+    answers: facts.edits.answers,
   };
 });
 

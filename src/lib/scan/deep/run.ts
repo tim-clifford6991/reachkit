@@ -163,6 +163,28 @@ export async function runDeepPass(a: {
 
   const result = await step("deep-pass", () => measure(a));
 
+  // SPEC §5 (2026-09-29, issue 1133): the pages the pass read become the
+  // knowledge base, one small call a page, on the pass's own money and
+  // before anything is derived against it. A read that fails costs the
+  // base, never the pass.
+  await step("knowledge-base", async () => {
+    try {
+      await spendOnStoredReport({ scanId: result.scanId, tier: "deep" }, async ({ cost }) => {
+        const { buildKnowledge } = await import("@/lib/site-profile/knowledge/build");
+        await buildKnowledge(cost, { siteId: a.siteId, domain: a.domain });
+      });
+    } catch (error) {
+      console.log(
+        JSON.stringify({
+          event: "site_knowledge_failed",
+          scanId: result.scanId,
+          because: error instanceof Error ? error.message : String(error),
+        })
+      );
+    }
+    return null;
+  });
+
   // The pass's measurements become supply, on the pass's own money and
   // under its own cap, from the report the first step stored. A derivation
   // that throws is logged: zero proposals is legal, never faked (§4.3).

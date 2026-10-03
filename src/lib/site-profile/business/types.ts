@@ -21,6 +21,7 @@
 // field the crawl does not have: a field with nothing in it is absent, and
 // the screen says the site has not been read for it rather than drawing an
 // empty row.
+import type { FounderAnswers } from "../knowledge/types";
 import type { PagePurpose } from "../types";
 
 /** The six list-shaped fields, as one tuple. The tuple is the set: the
@@ -121,6 +122,9 @@ export interface BusinessEdits {
   readonly job: string | null;
   readonly seen: Readonly<Partial<Record<BusinessList, readonly string[]>>>;
   readonly factsOff: readonly string[];
+  /** SPEC §5 (2026-09-29, #1133): the founder's answers to the five
+   *  questions. Theirs, so no refresh touches them. */
+  readonly answers: FounderAnswers;
 }
 
 /** No decisions at all — the state of a site whose customer has never
@@ -132,4 +136,5 @@ export const NO_EDITS: BusinessEdits = Object.freeze({
   job: null,
   seen: Object.freeze({}),
   factsOff: Object.freeze([]),
+  answers: Object.freeze({}),
 });
