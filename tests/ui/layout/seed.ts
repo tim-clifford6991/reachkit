@@ -531,7 +531,45 @@ export function seedHostedPublisher(): void {
     published: { slug: PUBLISHER_PAGE.slug, at: PUBLISHER_PAGE.publishedAt },
     publishing: PUBLISHER_PUBLISHING,
   });
+
+  // The business as its blog draws it (issue 1140): a name, a kept logo and
+  // one line, so the header, the about card and the index are measured with
+  // the picture and the sentence rather than the first-letter fallback.
+  sql(
+    `insert into site_profiles (domain, site_name, claims, logo_image, logo_type) values ` +
+      `('${PUBLISHER_ACCOUNT.domain}', 'Publisher & Sons Onboarding Software', ` +
+      `'["Onboarding checklists with one owner for every step, so a new hire reaches their first real task in the first week"]'::jsonb, ` +
+      `'\\x${ONE_PIXEL_PNG}'::bytea, 'image/png');`
+  );
+
+  // Three more live pages, older than the first, so the article draws its
+  // related guides and the index draws its grid under the featured card.
+  PUBLISHER_MORE_PAGES.forEach((title, index) => {
+    const [opportunityId] = rows(
+      `insert into opportunities (site_id, scan_id, type, family, target_query, target_ref, proposed_slug, title, volume, fit_band, effort, evidence, acceptance) ` +
+        `select site_id, scan_id, type, family, 'more guides ${index}', 'more-${index}', 'more-${index}', '${title}', volume, fit_band, effort, evidence, acceptance ` +
+        `from opportunities where site_id = '${PUBLISHER_ACCOUNT.siteId}' limit 1 returning id;`
+    );
+    const [draftId] = rows(
+      `insert into drafts (opportunity_id, site_id, state, title, body_md, meta) values ` +
+        `('${opportunityId}', '${PUBLISHER_ACCOUNT.siteId}', 'published', '${title}', 'One paragraph.', ` +
+        `'{"description":"What a people team checks before the first day, and who owns each step of it afterwards."}'::jsonb) returning id;`
+    );
+    sql(
+      `insert into publications (draft_id, site_id, destination, mode, live_url, published_at, delivery_state) values ` +
+        `('${draftId}', '${PUBLISHER_ACCOUNT.siteId}', 'hosted', 'autopilot', ` +
+        `'https://content.${PUBLISHER_ACCOUNT.domain}/more-${index}', '2026-08-2${index}T09:00:00.000Z', 'delivered');`
+    );
+  });
 }
+
+/** Titles of different lengths, so a card grid is measured with a short
+ *  title beside one that wraps. */
+const PUBLISHER_MORE_PAGES = [
+  "Onboarding checklist",
+  "How long employee onboarding should take, and what to do in each of the first four weeks",
+  "Onboarding software pricing",
+] as const;
 
 /**
  * The founder who is still in setup (issue #272), and the report their

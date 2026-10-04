@@ -398,6 +398,26 @@ export const PUBLISH_COPY = Object.freeze({
     { slots: { query: "text" }, fixedBy: "SPEC §7 (2026-09-16)" },
   ],
 
+  // SPEC §7 (2026-09-29, issue 1140) — the hosted blog carries the
+  // customer's identity. Every line is structure around their own name and
+  // pages, and none names ReachKit. Drafted under #759's ruling; the owner
+  // corrects the wording.
+  "hosted.visit": ["Visit {site}", { slots: { site: "text" }, fixedBy: "issue 1140" }],
+  "hosted.toc": ["On this page", { slots: {}, fixedBy: "issue 1140" }],
+  "hosted.readingTime": ["{minutes} min read", { slots: { minutes: "text" }, fixedBy: "issue 1140" }],
+  "hosted.about": ["About {publisher}", { slots: { publisher: "text" }, fixedBy: "issue 1140" }],
+  // The breadcrumb's name as a landmark; its three parts are the
+  // customer's name, `hosted.index.heading` and the page's own title.
+  "hosted.breadcrumb": ["Breadcrumb", { slots: {}, fixedBy: "issue 1140" }],
+  "hosted.index.latest": ["Latest", { slots: {}, fixedBy: "issue 1140" }],
+  "hosted.index.pages": ["Pages of articles", { slots: {}, fixedBy: "issue 1140" }],
+  "hosted.index.newer": ["Newer", { slots: {}, fixedBy: "issue 1140" }],
+  "hosted.index.older": ["Older", { slots: {}, fixedBy: "issue 1140" }],
+  "hosted.index.pageOf": [
+    "Page {page} of {pages}",
+    { slots: { page: "text", pages: "text" }, fixedBy: "issue 1140" },
+  ],
+
   "publish.wordpress.noSeoPlugin": ["No SEO plugin was found on your site, so the title and description weren’t written into one. The page is live all the same.", { slots: {}, fixedBy: "REQ-060 c4" }],
   "publish.wordpress.namedForRemoval": [
     "ReachKit never made this post live, so nothing in your site was changed. Removing the draft there is yours to do.",

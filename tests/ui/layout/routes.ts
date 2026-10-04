@@ -318,6 +318,8 @@ const HOSTED_REWRITE_PREFIX = "/hosted-page";
  * address. Only the URL the browser is pointed at moves.
  */
 export function visitorPath(routePath: string): string {
+  // The prefix itself is the hosted index, which a visitor reads at `/`.
+  if (routePath === HOSTED_REWRITE_PREFIX) return "/";
   return routePath.startsWith(`${HOSTED_REWRITE_PREFIX}/`)
     ? routePath.slice(HOSTED_REWRITE_PREFIX.length)
     : routePath;

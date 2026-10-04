@@ -5,13 +5,11 @@
 // never per-customer templates in MVP." This is that template's outer
 // frame: a measure, a rhythm, and nothing else.
 //
-// **It speaks no sentence.** There is no heading, no navigation, no
-// footer, no link and no ReachKit name anywhere on this surface — every
-// response it wraps is served on a domain that is not ours, and the one
-// thing a stranger's domain must never carry is the operator's branding.
-// That is also why it reads no copy key: there is no string here to read
-// one for. The page body is the customer's own content, and it is the one
-// place in the product generated prose is rendered (REQ-093 c2).
+// **It speaks no sentence and names no ReachKit.** The header, the
+// navigation and the footer a visitor sees are the customer's own and are
+// drawn by the page (SPEC §7, 2026-09-29, issue 1140); this frame adds no
+// heading, link or name of ours to them — every response it wraps is served
+// on a domain that is not ours.
 //
 // **No client JavaScript.** No `"use client"` here or anywhere in this
 // group's module graph: the whole document is in the HTML at first byte,

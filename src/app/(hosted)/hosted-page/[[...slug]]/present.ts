@@ -10,20 +10,7 @@
  */
 export { PAGE_LOCALE, writePageDate as writeDate } from "@/lib/publish/render/byline";
 
-/** The address in the bar: the host the page answers at, taken off the
- *  canonical rather than composed a second time, so the two cannot
- *  disagree. A canonical that will not parse yields the whole string,
- *  which is still the customer's own address and never ours. */
-export function hostOf(canonical: string): string {
-  try {
-    return new URL(canonical).host;
-  } catch {
-    return canonical;
-  }
-}
-
-/** The byline, the source and the canonical note, and the address in the
- *  bar: mono because each is a date, an address or a domain, quiet because
- *  none of them is the page, and free to fold anywhere because a canonical
- *  URL is one long token at 320. */
+/** A footer line or a date that stands alone: mono because it is a date
+ *  or a domain, quiet because it is not the page, and free to fold anywhere
+ *  because a domain is one long token at 320. */
 export const QUIET_LINE = "num num-phrase text-base-content/70 m-0 text-sm wrap-anywhere";

@@ -110,6 +110,8 @@ Each board is `docs/design/boards/<id>/<id>.dc.html` with its `.jpg` render. The
 | Draft, editing, phone | the same address at 390 | [board](design/boards/R5-P5-Editor/R5-P5-Editor.dc.html) · [render](design/boards/R5-P5-Editor/R5-P5-Editor.jpg) |
 | Settings, Your business | `/app/settings` | [board](design/boards/R4-11-Business/R4-11-Business.dc.html) · [render](design/boards/R4-11-Business/R4-11-Business.jpg) |
 | Settings, the other six tabs | `/app/settings/{market,publishing,voice,mail,billing,account}` | [board](design/boards/R2-S8-Settings/R2-S8-Settings.dc.html) · [render](design/boards/R2-S8-Settings/R2-S8-Settings.jpg) |
+| Hosted article | `<label>.<customer-domain>/{slug}` | [board](design/boards/R13-H1-Hosted-article/R13-H1-Hosted-article.dc.html) · [render](design/boards/R13-H1-Hosted-article/R13-H1-Hosted-article.jpg) |
+| Hosted index | `<label>.<customer-domain>/` | [board](design/boards/R13-H2-Hosted-index/R13-H2-Hosted-index.dc.html) · [render](design/boards/R13-H2-Hosted-index/R13-H2-Hosted-index.jpg) |
 | Mail: your page is ready | Resend | [board](design/boards/R5-M1-Ready/R5-M1-Ready.dc.html) · [render](design/boards/R5-M1-Ready/R5-M1-Ready.jpg) |
 | Mail: what moved this week | Resend | [board](design/boards/R5-M2-Weekly/R5-M2-Weekly.dc.html) · [render](design/boards/R5-M2-Weekly/R5-M2-Weekly.jpg) |
 | The mark | everywhere the brand is drawn (`src/app/_brand/Brand.tsx`) | [board](design/boards/R9-L1-Chip/R9-L1-Chip.dc.html) · [render](design/boards/R9-L1-Chip/R9-L1-Chip.jpg) |

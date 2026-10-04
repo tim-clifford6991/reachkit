@@ -46,6 +46,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     hostedSiteForHostname: async () => null,
     livePageBySlug: async () => state.page,
     livePagesForSite: async () => (state.page === null ? [] : [state.page]),
+    hostedIdentity: async (a: { domain: string }) => ({ name: a.domain, logoType: null, line: null }),
     hostedAddressState: async () => "none",
   };
 });
@@ -229,12 +230,11 @@ describe("the render itself — the whole page at first byte, and no sentence of
     expect(html).toContain("&lt;img");
   });
 
-  it("no ReachKit name, link or navigation stands on a customer's own page", async () => {
+  it("no ReachKit name or link stands on a customer's own page", async () => {
     // SPEC §5 and §7 (2026-09-29, #1129): not even the canonical note the
     // set once drew — the canonical is in `<head>`.
     const html = await render();
     expect(html.toLowerCase()).not.toContain("reachkit");
-    expect(html).not.toContain("<nav");
     expect(html).not.toContain('href="https://reachkit');
   });
 

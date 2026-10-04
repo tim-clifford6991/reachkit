@@ -21,6 +21,7 @@ import {
   parseMarkdown,
   renderMarkdownHtml,
   toHtml,
+  withHeadingIds,
   type HtmlClasses,
 } from "@/lib/publish/render/markdown";
 import { DRAFT_BODY_CLASSES, MARK_CLASS } from "@/app/(account)/app/draft/[draftId]/present";
@@ -323,5 +324,23 @@ describe("REQ-045 c2 — the grounded passage is marked within the text, verbati
   it("marking changes nothing but the one span — strip the mark and the render is identical", () => {
     const { blocks } = markPassage(parseMarkdown(md), "The fact itself.");
     expect(toHtml(blocks).replace(/<\/?mark>/g, "")).toBe(toHtml(parseMarkdown(md)));
+  });
+});
+
+describe("SPEC §7 (2026-09-29, issue 1140) — heading ids are minted here, from the heading's text", () => {
+  it("an id is the heading's letters and digits, and a repeat is numbered", () => {
+    const { blocks, headings } = withHeadingIds(
+      parseMarkdown("## What it *costs* — in 2026?\n\nText.\n\n## What it costs in 2026\n\n### Größe")
+    );
+    expect(headings.map((h) => h.id)).toEqual(["what-it-costs-in-2026", "what-it-costs-in-2026-2", "größe"]);
+    expect(toHtml(blocks)).toContain('<h2 id="what-it-costs-in-2026">What it <em>costs</em> — in 2026?</h2>');
+  });
+
+  it("a heading cannot write its own attribute, and the parser mints no id", () => {
+    const md = '## "><script>alert(1)</script> onclick="x"';
+    const html = toHtml(withHeadingIds(parseMarkdown(md)).blocks);
+    expect(html).toMatch(/^<h2 id="[\p{L}\p{N}-]+">/u);
+    expect(html).not.toContain("<script");
+    expect(renderMarkdownHtml("## Plain")).toBe("<h2>Plain</h2>");
   });
 });

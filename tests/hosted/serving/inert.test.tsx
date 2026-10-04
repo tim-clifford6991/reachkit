@@ -55,6 +55,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     hostedSiteForHostname: async () => null,
     livePageBySlug: async () => state.page,
     livePagesForSite: async () => (state.page === null ? [] : [state.page]),
+    hostedIdentity: async (a: { domain: string }) => ({ name: a.domain, logoType: null, line: null }),
     hostedAddressState: async () => "none",
   };
 });
@@ -267,14 +268,15 @@ describe("a published page is inert: nothing in a body reaches the document as m
     // The words survive; the address does not become clickable. A closed
     // list of schemes, so a scheme nobody thought of is refused too.
     expect(doc.body.textContent).toContain("the checklist");
-    expect(Array.from(doc.querySelectorAll("a")).map((a) => a.getAttribute("href"))).toEqual([]);
+    // The body's links: the page's own header and foot carry the customer's.
+    expect(Array.from(doc.querySelectorAll(".prose a")).map((a) => a.getAttribute("href"))).toEqual([]);
 
     // An ordinary link on the same page still is one, so the row above is
     // the scheme being refused rather than links being broken.
     state.page = pageWith({ bodyMd: "Start with [the checklist](https://example.com/list)." });
     const ordinary = await served();
     expect(
-      Array.from(ordinary.doc.querySelectorAll("a")).map((a) => a.getAttribute("href"))
+      Array.from(ordinary.doc.querySelectorAll(".prose a")).map((a) => a.getAttribute("href"))
     ).toEqual(["https://example.com/list"]);
   });
 

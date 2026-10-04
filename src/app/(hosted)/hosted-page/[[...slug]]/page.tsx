@@ -39,22 +39,20 @@
 // states — its title, its description, its date, its canonical and its
 // publisher. No author: §8 forbids inventing one.
 //
-// **The page is the customer's, and the set draws whose** (UI-SPEC S19,
-// issue #375). Their mark and their name at the top, the category they
-// chose as the eyebrow, their own byline under the title, and their footer
-// line at the bottom — §14.6's "customer is publisher of record: their
-// domain, their identity", rendered. The title and the body are their page
-// — the one place in the product generated prose is rendered (REQ-093 c2,
-// `GeneratedText`) — and every other value on the surface is theirs too.
+// **The page carries the customer's identity** (SPEC §7, 2026-09-29, issue
+// 1140; the *Hosted article* board in `docs/DESIGN.md`). Their logo and name
+// in the header, linking to the index, and a button to their main site; the
+// category they chose as the eyebrow; the byline, dates and reading time
+// under the title; a table of contents built from the body's own headings;
+// and at the foot an about card, related guides, a breadcrumb and their
+// footer line — §14.6's "customer is publisher of record: their domain,
+// their identity", rendered. The title and the body are their page — the
+// one place in the product generated prose is rendered (REQ-093 c2).
 //
-// **Three sentences, and they are structure rather than voice.** The
-// byline, the source line and the footer are the only strings of ours.
-// They read as keys like every other sentence in the product
-// (`publish.ts`'s `hosted.*`), and none of them names ReachKit: SPEC §5 and
-// §7 (2026-09-29, #1129) put no ReachKit text on a customer's page, so the
-// canonical note the set drew is gone — the canonical is in `<head>`,
-// where a crawler reads it. There is no heading of ours, no navigation, no
-// link to us and no wordmark.
+// **Every sentence of ours is a key, and none names ReachKit.** They are
+// structure around the customer's own data (`publish.ts`'s `hosted.*`):
+// SPEC §5 and §7 put no ReachKit text, link or wordmark on a customer's
+// page. The canonical is in `<head>`, where a crawler reads it.
 //
 // **Nothing on this surface is the primary colour.** The product's colour
 // would be our branding on a stranger's domain; the customer's mark is the
@@ -78,26 +76,31 @@ import { after } from "next/server";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import type React from "react";
-import { HOSTED_BODY_CLASSES } from "../body-classes";
+import { HOSTED_BODY_CLASSES, HOSTED_GUIDES_CLASSES } from "../body-classes";
 import { copy } from "@/lib/presentation/copy";
 import {
+  guidesBlock,
   headingsUnderTitle,
+  inlineText,
   markPassage,
   parseMarkdown,
   toHtml,
+  withHeadingIds,
   type Block,
-  type Inline,
+  type HeadingEntry,
 } from "@/lib/publish/render/markdown";
 import {
-  livePageBySlug,
+  hostedIdentity,
   livePagesForSite,
   type HostedPage,
 } from "@/lib/publish/destinations/hosted";
+import { topicSimilarity } from "@/lib/known-content/similarity";
 import { Surface } from "@/ui/layout";
 import { resolveHost } from "../../resolve-host";
-import { HostedIndex, queryOf } from "./listing";
+import { AboutCard, HostedFooter, HostedHeader, INDEX_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
+import { HostedIndex, pageOf, queryOf } from "./listing";
 import { bylineLine } from "@/lib/publish/render/byline";
-import { hostOf, PAGE_LOCALE, QUIET_LINE, writeDate } from "./present";
+import { PAGE_LOCALE, writeDate } from "./present";
 import { classifyBlogRead } from "@/lib/publish/reads/classify";
 
 /** Nothing on this surface is cached (WO-028's NFR): a publication row that
@@ -118,6 +121,14 @@ export const revalidate = 0;
 interface Resolved {
   page: HostedPage;
   canonical: string;
+  /** The site's other live pages, newest first. */
+  others: HostedPage[];
+  business: HostedBusiness;
+}
+
+/** The business a resolved host belongs to, as its pages draw it. */
+async function businessOf(site: { siteId: string; domain: string }): Promise<HostedBusiness> {
+  return { ...(await hostedIdentity(site)), domain: site.domain };
 }
 
 /** One resolution per request, shared by `generateMetadata` and the render.
@@ -133,10 +144,15 @@ const load = cache(async (slug: string): Promise<Resolved | null> => {
   // route is reached. A page never renders for either.
   if (disposition.kind !== "site") return null;
 
-  const page = await livePageBySlug(disposition.siteId, slug, disposition.host);
-  if (page === null) return null;
+  // The site's whole list, which the page is found in and its related
+  // guides are chosen from: one read, the same one the sitemap makes.
+  const pages = await livePagesForSite(disposition.siteId, disposition.host);
+  const page = pages.find((candidate) => candidate.slug === slug);
+  if (page === undefined) return null;
   return {
     page,
+    others: pages.filter((candidate) => candidate !== page),
+    business: await businessOf(disposition),
     // Always the customer's own domain, and always the page's own address:
     // the store composed it from the host that resolved (`liveUrlOnHost`,
     // which `liveUrlFor` is itself written in terms of), so the canonical,
@@ -164,7 +180,7 @@ function isIndex(slug: readonly string[] | undefined): boolean {
 }
 
 interface IndexResolved {
-  publisher: string;
+  business: HostedBusiness;
   canonical: string;
   pages: HostedPage[];
 }
@@ -175,11 +191,11 @@ const loadIndex = cache(async (): Promise<IndexResolved | null> => {
   const host = (await headers()).get("host") ?? "";
   const disposition = await resolveHost(host);
   if (disposition.kind !== "site") return null;
-  return {
-    publisher: disposition.domain,
-    canonical: `https://${disposition.host}/`,
-    pages: await livePagesForSite(disposition.siteId, disposition.host),
-  };
+  const [business, pages] = await Promise.all([
+    businessOf(disposition),
+    livePagesForSite(disposition.siteId, disposition.host),
+  ]);
+  return { business, canonical: `https://${disposition.host}/`, pages };
 });
 
 export async function generateMetadata({
@@ -192,7 +208,7 @@ export async function generateMetadata({
     const index = await loadIndex();
     if (index === null) return {};
     return {
-      title: `${copy("hosted.index.heading")} · ${index.publisher}`,
+      title: `${copy("hosted.index.heading")} · ${index.business.name}`,
       alternates: { canonical: index.canonical },
     };
   }
@@ -209,12 +225,6 @@ export async function generateMetadata({
 
 /** A description's length in a search result, past which it is cut. */
 const DESCRIPTION_CHARS = 160;
-
-function inlineText(inlines: readonly Inline[]): string {
-  return inlines
-    .map((inline) => ("children" in inline ? inlineText(inline.children) : inline.text))
-    .join("");
-}
 
 /**
  * The page's meta description: the one generation wrote for it, or — for a
@@ -324,6 +334,50 @@ function withoutRepeatedTitle(blocks: readonly Block[], title: string): Block[] 
   return [...blocks];
 }
 
+/** How many words a minute the reading time assumes. */
+const WORDS_A_MINUTE = 220;
+
+/** The page's reading time in whole minutes, never less than one. */
+function readingMinutes(bodyMd: string): number {
+  const words = bodyMd.split(/\s+/).filter((word) => /[\p{L}\p{N}]/u.test(word)).length;
+  return Math.max(1, Math.round(words / WORDS_A_MINUTE));
+}
+
+/** How many related guides an article's foot shows: one row of cards. */
+const RELATED_GUIDES = 3;
+
+/** The site's other live pages closest to this one's topic, then newest —
+ *  `others` is already newest first and the sort is stable. */
+function relatedGuides(page: HostedPage, others: readonly HostedPage[]): HostedPage[] {
+  const about = `${page.title} ${page.record.targetQuery}`;
+  return others
+    .map((other) => ({ other, score: topicSimilarity(about, other.title) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, RELATED_GUIDES)
+    .map(({ other }) => other);
+}
+
+/** The headings a table of contents lists: the body's sections and the
+ *  one level under them. A page with a single section draws none. */
+function contentsOf(headings: readonly HeadingEntry[]): HeadingEntry[] {
+  const listed = headings.filter((heading) => heading.level === 2 || heading.level === 3);
+  return listed.length < 2 ? [] : listed;
+}
+
+function Contents({ headings }: { headings: readonly HeadingEntry[] }): React.JSX.Element {
+  return (
+    <ul className="menu menu-sm w-full p-0">
+      {headings.map((heading) => (
+        <li key={heading.id} className={heading.level === 3 ? "pl-3" : undefined}>
+          <a href={`#${heading.id}`} className="text-base-content/70 whitespace-normal">
+            {heading.text}
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** One value from a query string that may repeat. A repeated `utm_source`
  *  is a malformed link, not two claims; the first is read and the rest are
  *  ignored. */
@@ -390,8 +444,8 @@ export default async function HostedPageRoute({
     const index = await loadIndex();
     // An unknown or stopped Host has no index either: the same 404.
     if (index === null) notFound();
-    const query = queryOf((await searchParams)?.q);
-    return <HostedIndex {...index} query={query} />;
+    const search = await searchParams;
+    return <HostedIndex {...index} query={queryOf(search?.q)} page={pageOf(search?.page)} />;
   }
   if (slug === undefined) notFound();
   const segment = oneSegment(slug);
@@ -401,7 +455,7 @@ export default async function HostedPageRoute({
   // page, never a ReachKit page, never a fallback.
   if (resolved === null) notFound();
 
-  const { page, canonical } = resolved;
+  const { page, canonical, others, business } = resolved;
   // Counted before anything is rendered and written after everything is
   // sent: the classification needs this request's own headers, and the
   // write must not stand between the reader and the page.
@@ -413,28 +467,42 @@ export default async function HostedPageRoute({
   // string is safe to set as HTML by construction rather than by a
   // sanitiser someone has to remember to call. A second renderer here is
   // exactly what that module's header forbids.
-  const blocks = headingsUnderTitle(withoutRepeatedTitle(parseMarkdown(page.bodyMd), page.title));
+  const levelled = headingsUnderTitle(withoutRepeatedTitle(parseMarkdown(page.bodyMd), page.title));
   const grounded = page.grounded;
-  const body = toHtml(
-    grounded === null ? blocks : markPassage(blocks, grounded.passage).blocks,
-    HOSTED_BODY_CLASSES
+  // The mark first, the ids after: an id is minted from a heading's words
+  // and the mark changes none of them.
+  const { blocks, headings } = withHeadingIds(
+    grounded === null ? levelled : markPassage(levelled, grounded.passage).blocks
   );
+  const body = toHtml(blocks, HOSTED_BODY_CLASSES);
+  const contents = contentsOf(headings);
   const sourceLine = sourceLineFor(page);
+  // Related guides: the site's own live pages on this host, minted by
+  // `guidesBlock` (SPEC §7, 2026-09-20: "chosen in code, never by the
+  // model") and drawn by the one serialiser, as cards.
+  const guides = toHtml(
+    [
+      guidesBlock({
+        publisher: business.name,
+        items: relatedGuides(page, others).map((other) => ({ href: other.liveUrl, label: other.title })),
+      }),
+    ],
+    HOSTED_GUIDES_CLASSES
+  );
+  const tocLabel = copy("hosted.toc");
 
   return (
     <Surface
       arms={{
         // **Declared, not one column** (issue #375). A single-column arm
         // caps the whole surface at `--w-read`, which is right for the
-        // article and wrong for everything around it: the customer's bar
-        // and their footer line are the width of their page, and the set
-        // draws both as rules across the top and the bottom. `declared`
-        // takes no measure and no gutter, so the three widths on this
-        // screen are the screen's own — the bar and the footer at
-        // `max-w-6xl`, the article at `max-w-2xl`.
-        compact: { kind: "declared", note: "their bar, the article at max-w-2xl, their footer" },
+        // article and wrong for everything around it. `declared` takes no
+        // measure and no gutter, so the widths on this screen are the
+        // screen's own: the frame at `max-w-5xl`, the article at
+        // `max-w-2xl`, and from `lg` the table of contents beside it.
+        compact: { kind: "declared", note: "their header, the article at max-w-2xl, their footer" },
         medium: { kind: "same-as-below" },
-        wide: { kind: "same-as-below" },
+        wide: { kind: "declared", note: "the article with a sticky table of contents beside it" },
       }}
     >
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: article }} />
@@ -442,19 +510,10 @@ export default async function HostedPageRoute({
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faq }} />
       )}
 
-      {/* The customer's own bar: their mark, their name, and the address
-          this page answers at. Not a `<nav>` and not a link — there is
-          nowhere on their site for us to send a reader. */}
-      <header className="border-base-300 mx-auto flex w-full max-w-6xl flex-wrap items-center gap-3 border-b px-4 py-3">
-        <span className="text-base-content mr-auto flex min-w-0 items-center gap-2 font-extrabold tracking-tight">
-          <span className="bg-base-content size-4 shrink-0 rounded-full" aria-hidden />
-          <span>{page.publisher.name}</span>
-        </span>
-        <span className={QUIET_LINE}>{hostOf(canonical)}</span>
-      </header>
+      <HostedHeader business={business} />
 
-      <main>
-        <article className="mx-auto w-full max-w-2xl px-5 py-12">
+      <main className="mx-auto w-full max-w-5xl px-4 py-10 lg:grid lg:grid-cols-[minmax(0,1fr)_14rem] lg:gap-10">
+        <article className="mx-auto w-full max-w-2xl min-w-0">
           {page.publisher.category === null ? null : (
             <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
               {page.publisher.category}
@@ -463,21 +522,36 @@ export default async function HostedPageRoute({
           <h1 className="text-base-content my-3 text-4xl font-extrabold tracking-tight text-balance">
             {page.title}
           </h1>
-          <p className={QUIET_LINE}>
-            {/* SPEC §7 (2026-09-29): the byline setup recorded, else the
-                publisher's own name; the day the address first carried a
-                page, and the day it was last refreshed where it has been. */}
+          {/* SPEC §7 (2026-09-29): the text face, not mono. The byline setup
+              recorded, else the business's name; the day the address first
+              carried a page, and the day it was last refreshed where it has
+              been; and the reading time. */}
+          <p className="text-base-content/70 text-sm">
             <time dateTime={page.firstPublishedAt.toISOString().slice(0, 10)}>
               {bylineLine({
-                byline: page.byline ?? page.publisher.name,
+                byline: page.byline ?? business.name,
                 published: page.firstPublishedAt,
                 updated: page.publishedAt,
                 timeZone: page.publisher.timeZone,
               })}
             </time>
+            <span className="before:mx-1.5 before:content-['·']">
+              {copy("hosted.readingTime", { minutes: String(readingMinutes(page.bodyMd)) })}
+            </span>
           </p>
 
           <hr className="border-base-300 my-6" />
+
+          {/* Below `lg` the table of contents is a block that opens: a
+              `<details>`, so it works with no script. */}
+          {contents.length === 0 ? null : (
+            <details className="collapse-arrow bg-base-200 collapse mb-6 lg:hidden">
+              <summary className="collapse-title font-semibold">{tocLabel}</summary>
+              <nav className="collapse-content" aria-label={tocLabel}>
+                <Contents headings={contents} />
+              </nav>
+            </details>
+          )}
 
           {/* The body, with §8's recorded passage marked where it is still
               in the text. `markPassage` is the same call the draft screen
@@ -485,9 +559,8 @@ export default async function HostedPageRoute({
               are marked alike; a passage that no longer occurs marks
               nothing rather than marking the nearest thing to it. */}
           {/* SPEC §7 (2026-09-20, issue 929): `prose` — the article
-              typography `docs/DESIGN.md` admits for exactly this, in place
-              of the hand-kept class table this page used to carry.
-              `max-w-none` because the column's measure is the `Surface`'s
+              typography `docs/DESIGN.md` admits for exactly this.
+              `max-w-none` because the column's measure is the article's
               already, and a second one would narrow it again. */}
           <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: body }} />
           {/* The text face, not mono: it is a sentence, and the address
@@ -495,16 +568,37 @@ export default async function HostedPageRoute({
           {sourceLine === null ? null : (
             <p className="text-base-content/70 mt-8 text-sm wrap-anywhere">{sourceLine}</p>
           )}
+
+          <AboutCard business={business} />
+
+          {guides === "" ? null : <div dangerouslySetInnerHTML={{ __html: guides }} />}
+
+          {/* The site, the blog and the page. The list wraps, so a long
+              title folds under the other two instead of scrolling. */}
+          <nav className="breadcrumbs mt-10 overflow-visible text-sm" aria-label={copy("hosted.breadcrumb")}>
+            <ul className="flex-wrap whitespace-normal">
+              <li>
+                <a href={mainSiteOf(business)}>{business.name}</a>
+              </li>
+              <li>
+                <a href={INDEX_PATH}>{copy("hosted.index.heading")}</a>
+              </li>
+              <li aria-current="page" className="text-base-content/70 min-w-0">
+                {page.title}
+              </li>
+            </ul>
+          </nav>
         </article>
+
+        {contents.length === 0 ? null : (
+          <nav className="sticky top-6 hidden self-start lg:block" aria-label={tocLabel}>
+            <p className="eyebrow mb-2">{tocLabel}</p>
+            <Contents headings={contents} />
+          </nav>
+        )}
       </main>
 
-      {/* Their line, and nothing of ours beside it. The imprint half is the
-          customer's to state and no column carries one yet. */}
-      <footer className="border-base-300 mx-auto w-full max-w-6xl border-t px-4 py-6">
-        <span className={QUIET_LINE}>
-          {copy("hosted.footer", { publisher: page.publisher.name })}
-        </span>
-      </footer>
+      <HostedFooter business={business} />
     </Surface>
   );
 }

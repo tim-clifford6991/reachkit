@@ -32,6 +32,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     // lookup finds nothing and the default-label one beside it serves them.
     hostedSiteForHostname: async () => null,
     livePagesForSite: async () => [],
+    hostedIdentity: async (a: { domain: string }) => ({ name: a.domain, logoType: null, line: null }),
     livePageBySlug: async (siteId: string, slug: string) =>
       (live.get(siteId) ?? []).includes(slug) ? { slug } : null,
     // Live first, as the store answers it: a re-published slug is live.
