@@ -305,6 +305,60 @@ function toPage(row: PublicationRow, host: string): HostedPage | null {
   };
 }
 
+/**
+ * How the business is drawn on its own blog (SPEC §7, 2026-09-29, issue
+ * 1140): the name it calls itself, whether a logo is kept for it, and one
+ * line about it.
+ */
+export interface HostedIdentity {
+  /** `site_profiles.site_name`, else the domain — the one name it gave. */
+  name: string;
+  /** The picture format of the kept logo, or `null` for a first-letter tile. */
+  logoType: string | null;
+  /** One line in the business's own words, or `null` where none is held. */
+  line: string | null;
+}
+
+interface IdentityRow {
+  site_name: string | null;
+  logo_type: string | null;
+  claims: unknown;
+}
+
+/**
+ * The identity of the site at `domain`. Three short columns of its profile,
+ * and the knowledge base for the line: the founder's own answer or the
+ * first thing the site says sets it apart, else the first claim the profile
+ * kept. A read that fails draws the domain and a tile; it never takes the
+ * page down.
+ */
+export async function hostedIdentity(a: { siteId: string; domain: string }): Promise<HostedIdentity> {
+  const fallback: HostedIdentity = { name: a.domain, logoType: null, line: null };
+  try {
+    const { readKnowledgeBase } = await import("@/lib/site-profile/knowledge/read");
+    const [profile, base] = await Promise.all([
+      publishDb()
+        .from<IdentityRow>("site_profiles")
+        .select("site_name, logo_type, claims")
+        .eq("domain", a.domain)
+        .limit(1),
+      readKnowledgeBase(a),
+    ]);
+    const row = profile.data?.[0];
+    const claim = Array.isArray(row?.claims)
+      ? row.claims.find((entry): entry is string => typeof entry === "string" && entry.trim() !== "")
+      : undefined;
+    const said = base?.differentiators.find((entry) => entry.rival === null)?.text;
+    return {
+      name: emptyToNull(row?.site_name ?? null) ?? a.domain,
+      logoType: emptyToNull(row?.logo_type ?? null),
+      line: emptyToNull(said ?? claim ?? null),
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 /** `drafts.meta.faq`, read defensively: a meta blob is jsonb and nothing
  *  in the database constrains its shape, so an entry missing either half
  *  is dropped rather than emitted as a question with no answer. An absent

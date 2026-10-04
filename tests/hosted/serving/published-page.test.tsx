@@ -21,7 +21,12 @@ import { MARK_CLASS } from "@/app/(account)/app/draft/[draftId]/present";
 
 applyEnvFixture();
 
-const state: { host: string; page: unknown } = { host: "content.example.com", page: null };
+const state: { host: string; page: unknown; others: unknown[]; identity: Record<string, unknown> } = {
+  host: "content.example.com",
+  page: null,
+  others: [],
+  identity: {},
+};
 
 vi.mock("next/headers", () => ({
   headers: async () => new Headers({ host: state.host }),
@@ -48,7 +53,13 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     // the default-label lookup beside it is what serves them.
     hostedSiteForHostname: async () => null,
     livePageBySlug: async () => state.page,
-    livePagesForSite: async () => (state.page === null ? [] : [state.page]),
+    livePagesForSite: async () => (state.page === null ? [] : [state.page, ...state.others]),
+    hostedIdentity: async (a: { domain: string }) => ({
+      name: a.domain,
+      logoType: null,
+      line: null,
+      ...state.identity,
+    }),
     hostedAddressState: async () => "none",
   };
 });
@@ -102,18 +113,25 @@ async function render(): Promise<string> {
 beforeEach(() => {
   state.host = "content.example.com";
   state.page = livePage();
+  state.others = [];
+  state.identity = {};
 });
 
 describe("S19 — the customer is the publisher, and the page says so", () => {
-  it("their mark and their name lead the page, and the address is beside it", async () => {
+  it("the header is theirs: a first-letter tile and their name linking to the index, and a button to their site", async () => {
+    state.identity = { name: "Example Co" };
     const html = await render();
     const bar = html.slice(html.indexOf("<header"), html.indexOf("</header>"));
-    expect(bar).toContain("rounded-full");
+    expect(bar).toMatch(/<a href="\/"[^>]*>.*>E<\/span>.*Example Co/s);
+    expect(bar).toMatch(/<a href="https:\/\/example\.com\/"[^>]*>.*Visit Example Co/s);
+    expect(bar).not.toContain("<img");
     expect(bar).not.toContain("primary");
-    expect(html).toContain(">example.com</span>");
-    // The host the page answers at, taken off the canonical rather than
-    // composed a second time.
-    expect(html).toContain("content.example.com");
+  });
+
+  it("a site with a kept logo draws it from its own host, not from ours or the main site", async () => {
+    state.identity = { logoType: "image/png" };
+    const html = await render();
+    expect(html).toContain('<img src="/logo.img" alt=""');
   });
 
   it("the category they chose is the eyebrow, and a site that chose none draws none", async () => {
@@ -202,6 +220,63 @@ describe("S19 — the customer is the publisher, and the page says so", () => {
     expect(html.match(/<h1[ >]/g)).toHaveLength(1);
     expect(html).toContain("<h2");
     expect(html).not.toContain("The Best Onboarding Tools");
+  });
+
+  it("headings carry ids minted from their text, and two or more make a table of contents that links to them", async () => {
+    state.page = livePage({ bodyMd: "Intro.\n\n## What to look for\n\nText.\n\n## What it costs\n\nText." });
+    const html = await render();
+    expect(html).toContain('<h2 id="what-to-look-for">');
+    expect(html).toContain('href="#what-it-costs"');
+    // Sticky beside the article from `lg`, a block that opens below it.
+    expect(html).toMatch(/<details[^>]*lg:hidden/);
+    expect(html).toMatch(/<nav[^>]*sticky[^>]*lg:block/);
+    expect(html).toContain("On this page");
+  });
+
+  it("a page with one section draws no table of contents", async () => {
+    expect(await render()).not.toContain("On this page");
+  });
+
+  it("the metadata carries the reading time", async () => {
+    expect(await render()).toContain("1 min read");
+  });
+
+  it("the article ends with the about card: one line of theirs and the way to their site", async () => {
+    state.identity = { name: "Example Co", line: "Onboarding a non-engineer can run." };
+    const html = await render();
+    const card = html.slice(html.indexOf("<aside"), html.indexOf("</aside>"));
+    expect(card).toContain("About Example Co");
+    expect(card).toContain("Onboarding a non-engineer can run.");
+    expect(card).toContain('href="https://example.com/"');
+  });
+
+  it("related guides are the site's other live pages, closest topic first, three at most", async () => {
+    const other = (slug: string, title: string): unknown =>
+      livePage({ publicationId: `pub-${slug}`, slug, title, liveUrl: `https://content.example.com/${slug}` });
+    state.others = [
+      other("invoicing", "How to send an invoice"),
+      other("payroll", "Payroll for small teams"),
+      other("holidays", "Holiday policies"),
+      other("onboarding-checklist", "An onboarding tools checklist"),
+    ];
+    const html = await render();
+    const guides = html.slice(html.indexOf("More guides from"));
+    const links = [...guides.matchAll(/<li class="card[^>]*><a[^>]*href="([^"]+)"/g)].map((m) => m[1]);
+    expect(links).toHaveLength(3);
+    expect(links[0]).toBe("https://content.example.com/onboarding-checklist");
+    expect(guides).not.toContain('href="https://content.example.com/a-page"');
+  });
+
+  it("a site with one page draws no related guides", async () => {
+    expect(await render()).not.toContain("More guides from");
+  });
+
+  it("the breadcrumb names the site, the blog and the page", async () => {
+    const html = await render();
+    const crumbs = html.slice(html.indexOf('aria-label="Breadcrumb"'));
+    expect(crumbs).toMatch(
+      /href="https:\/\/example\.com\/">example\.com<.*href="\/">Articles<.*aria-current="page"[^>]*>The best onboarding tools/s
+    );
   });
 
   it("the footer is theirs", async () => {

@@ -595,5 +595,11 @@ export function noOverflowRoutes(
         ? { ...route, cookie: cookies.setup }
         : route,
     )
-    .concat(published);
+    .concat(published)
+    // The same customer's index (issue 1140): the optional catch-all with
+    // no segment, which a visitor reads at the root of the host.
+    .concat(published.map((route) => ({ ...route, path: HOSTED_INDEX_PATH })));
 }
+
+/** The hosted index's route path: the rewrite prefix with no page under it. */
+const HOSTED_INDEX_PATH = "/hosted-page";

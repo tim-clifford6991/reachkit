@@ -30,6 +30,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
       return found === undefined ? null : { ...found, host };
     },
     livePagesForSite: async () => [],
+    hostedIdentity: async (a: { domain: string }) => ({ name: a.domain, logoType: null, line: null }),
     livePageBySlug: async () => null,
     hostedAddressState: async (siteId: string, slug: string) =>
       (everLive.get(siteId) ?? []).includes(slug) ? "retired" : "none",

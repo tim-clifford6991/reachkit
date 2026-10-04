@@ -51,12 +51,17 @@
 // `toHtml` names below and nothing else.
 //
 // **The attributes are a closed set too, and every one of them is written
-// here.** There are five: `href`, whose value is scheme-vetted against
+// here.** There are six: `href`, whose value is scheme-vetted against
 // `MARKDOWN_LINK_SCHEMES` and is the only attribute value a body has any
-// say in at all; `class`, whose value is the caller's own table; and
+// say in at all; `class`, whose value is the caller's own table;
 // `tabindex`, `role` and `aria-label` on the two boxes that scroll — a
 // table's and a fence's — whose values are **constants this module mints**
-// (`"0"`, `"group"`, and a sentence read from the registry).
+// (`"0"`, `"group"`, and a sentence read from the registry); and `id` on a
+// heading (SPEC §7, 2026-09-29, issue 1140), which `withHeadingIds` mints
+// from the heading's own text for a table of contents. An id is letters,
+// digits and hyphens and nothing else, so a heading's words choose which
+// id it gets and never what the attribute can hold; the parser mints none,
+// so only a caller that asks for them emits any.
 //
 // A body cannot forge them and cannot override them: it has no syntax that
 // reaches an attribute, a `<div role="region">` written into a body is an
@@ -131,7 +136,13 @@ export type Cell = readonly Inline[];
 export type Align = "left" | "right" | "center" | null;
 
 export type Block =
-  | { kind: "heading"; level: 1 | 2 | 3 | 4 | 5 | 6; children: readonly Inline[] }
+  | {
+      kind: "heading";
+      level: 1 | 2 | 3 | 4 | 5 | 6;
+      children: readonly Inline[];
+      /** Minted by `withHeadingIds`, never by the parser. */
+      id?: string;
+    }
   | { kind: "paragraph"; children: readonly Inline[] }
   | { kind: "quote"; children: readonly Inline[] }
   | { kind: "list"; ordered: boolean; items: ReadonlyArray<readonly Inline[]> }
@@ -377,6 +388,55 @@ export function guidesBlock(a: {
   };
 }
 
+// ── heading ids ─────────────────────────────────────────────────────────
+
+/** The words of a run of inlines, with no markup. */
+export function inlineText(inlines: readonly Inline[]): string {
+  return inlines
+    .map((inline) => ("children" in inline ? inlineText(inline.children) : inline.text))
+    .join("");
+}
+
+/** One entry of a table of contents: a heading, by the id it carries. */
+export interface HeadingEntry {
+  id: string;
+  level: 1 | 2 | 3 | 4 | 5 | 6;
+  text: string;
+}
+
+/** A heading's text as an id: its letters and digits, lower-cased, joined
+ *  by hyphens. A heading with neither is a `section`. */
+function headingId(text: string): string {
+  const id = text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/^-+|-+$/g, "");
+  return id === "" ? "section" : id;
+}
+
+/**
+ * SPEC §7 (2026-09-29, issue 1140) — every top-level heading given an id
+ * minted from its own text, and the list of them for a table of contents.
+ * Two headings with the same words get `-2`, `-3` in the order they appear,
+ * so an id names one heading. Headings inside a box are left alone: the
+ * box is one stop in the page, not a section of it.
+ */
+export function withHeadingIds(blocks: readonly Block[]): { blocks: Block[]; headings: HeadingEntry[] } {
+  const taken = new Set<string>();
+  const headings: HeadingEntry[] = [];
+  const out = blocks.map((block) => {
+    if (block.kind !== "heading") return block;
+    const text = inlineText(block.children).replace(/\s+/g, " ").trim();
+    const base = headingId(text);
+    let id = base;
+    for (let n = 2; taken.has(id); n++) id = `${base}-${n}`;
+    taken.add(id);
+    headings.push({ id, level: block.level, text });
+    return { ...block, id };
+  });
+  return { blocks: out, headings };
+}
+
 // ── the highlight ───────────────────────────────────────────────────────
 
 function markInline(nodes: readonly Inline[], passage: string, done: { hit: boolean }): Inline[] {
@@ -535,8 +595,7 @@ function inlineHtml(nodes: readonly Inline[], classes: HtmlClasses): string {
 }
 
 /** One row of cells. A column's declared alignment travels as a class
- *  rather than as an attribute — the only attributes this module writes are
- *  `href` and `class` — and it shares the one `class` the caller's own
+ *  rather than as an attribute of its own, and it shares the one `class` the caller's own
  *  table may also have something to say in. */
 function cellsHtml(tag: "th" | "td", cells: readonly Cell[], align: readonly Align[], classes: HtmlClasses): string {
   return cells
@@ -568,7 +627,8 @@ export function toHtml(blocks: readonly Block[], classes: HtmlClasses = {}): str
       switch (block.kind) {
         case "heading": {
           const tag = `h${block.level}` as keyof HtmlClasses;
-          return `${open(tag, classes)}${inlineHtml(block.children, classes)}</h${block.level}>`;
+          const id = block.id === undefined ? "" : ` id="${escapeHtml(block.id)}"`;
+          return `${open(tag, classes, id)}${inlineHtml(block.children, classes)}</h${block.level}>`;
         }
         case "paragraph":
           return `${open("p", classes)}${inlineHtml(block.children, classes)}</p>`;

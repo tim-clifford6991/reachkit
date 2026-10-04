@@ -35,6 +35,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     // the default-label lookup beside it is what serves them.
     hostedSiteForHostname: async () => null,
     livePagesForSite: async () => [],
+    hostedIdentity: async (a: { domain: string }) => ({ name: a.domain, logoType: null, line: null }),
     livePageBySlug: async () => null,
     hostedAddressState: async () => "none",
   };

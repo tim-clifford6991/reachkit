@@ -26,12 +26,10 @@ import type { HtmlClasses } from "@/lib/publish/render/markdown";
  *    `--color-neutral`, a slot this theme does not define (`themes: false`
  *    plus our own one-theme block). An undefined slot is an invalid
  *    declaration and a code block with no ground at all.
- *  · `answer` / `guides` and their eyebrows — SPEC §7's two new
- *    containers. The box is the sunk ground the approved viewer draws
- *    (`R2-VW-C`); the eyebrow is `.eyebrow`, the product's own rung.
- *    `not-prose` on the box, because `prose` would put a paragraph's own
- *    top margin inside it; none on the guides, because they **are** a
- *    list and `prose` already sets one.
+ *  · `answer` and its eyebrow — SPEC §7's short-answer box. The box is
+ *    the sunk ground the approved viewer draws (`R2-VW-C`); the eyebrow is
+ *    `.eyebrow`, the product's own rung. `not-prose` on the box, because
+ *    `prose` would put a paragraph's own top margin inside it.
  *
  * Nothing here is the primary colour: the product's colour would be our
  * branding on a stranger's domain.
@@ -57,11 +55,18 @@ export const HOSTED_BODY_CLASSES: HtmlClasses = Object.freeze({
   // inside `not-prose`, so the markers `prose` would have set are named.
   takeaways: "not-prose bg-base-200 rounded-box my-6 p-5 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5",
   takeawaysLabel: "eyebrow mb-2",
-  // No `not-prose` here, unlike the box: the guides **are** a list, and
-  // `prose` already knows how to set one — markers, spacing between items,
-  // the theme's own link colour. What the page adds is the rule above it,
-  // which says this is a new section rather than more of the last one.
-  guides: "border-base-200 mt-10 border-t pt-6",
-  guidesLabel: "eyebrow mb-3",
+});
 
+/**
+ * Related guides at an article's foot (SPEC §7, 2026-09-29, issue 1140):
+ * the block `guidesBlock()` mints, drawn outside `prose` as a row of cards —
+ * three across from `sm`, one a line on a phone. The whole card is the
+ * link, and it lifts no colour of ours.
+ */
+export const HOSTED_GUIDES_CLASSES: HtmlClasses = Object.freeze({
+  guides: "mt-10",
+  guidesLabel: "eyebrow mb-3",
+  ul: "grid gap-4 sm:grid-cols-3",
+  li: "card card-border bg-base-100",
+  a: "card-body text-base-content link-hover p-4 text-sm font-bold",
 });

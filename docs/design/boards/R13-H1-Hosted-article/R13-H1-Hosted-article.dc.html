@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hosted article</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:#191925;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+h1,h2,h3,p,ul{margin:0;padding:0}ul{list-style:none}
+h1,h2,h3{letter-spacing:-0.02em;font-weight:800;line-height:1.2;text-wrap:balance}
+h1{font-size:36px}h2{font-size:25px}h3{font-size:16px;font-weight:700}
+.num{font-family:"JetBrains Mono",ui-monospace,monospace}
+.eyebrow{font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:.1em;color:#6b6a80}
+.muted{color:#5e5e73}.sm{font-size:13px}
+.row{display:flex;align-items:center}.col{display:flex;flex-direction:column}.grow{flex:1 1 0;min-width:0}
+.g8{gap:8px}.g12{gap:12px}.g16{gap:16px}.g24{gap:24px}.g40{gap:40px}
+.card{background:#fff;border:1px solid #eaeaf1;border-radius:14px;box-sizing:border-box;padding:20px}
+.sunk{background:#efeff4;border-radius:14px;box-sizing:border-box;padding:20px}
+.btn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:9px;font-weight:600;font-size:13px;background:#efeff4;white-space:nowrap}
+.tile{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#efeff4;color:#5e5e73;font-weight:600;flex:none}
+.bar{border-bottom:1px solid #eaeaf1;background:#fff}.foot{border-top:1px solid #eaeaf1}
+.frame{width:1024px;margin:0 auto;box-sizing:border-box;padding:0 16px}
+.line{height:10px;border-radius:5px;background:#e2e2ea}
+.note{font-size:11px;color:#8a5218;background:#fff3e6;border-radius:6px;padding:2px 8px;font-weight:600}
+</style>
+</helmet>
+<div style="width: 1280px; height: 979px; box-sizing: border-box; overflow: hidden; background: #fff; ">
+<header class="bar"><div class="frame row g12" style="height:64px"><span class="tile" style="width:32px;height:32px">logo</span><b class="grow">Business name <span class="note">links to the index</span></b><span class="btn">Visit Business name <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></span></div></header>
+<main class="frame row g40" style="align-items:flex-start;padding-top:40px;padding-bottom:40px">
+<article class="col g16" style="width:672px;margin:0 auto">
+<span class="eyebrow">The category the business chose</span>
+<h1>The page's title, once</h1>
+<p class="sm muted">published 1 Aug 2026 · updated 4 Sep 2026 · by the byline · 6 min read <span class="note">text face, not mono</span></p>
+<div style="border-top:1px solid #eaeaf1"></div>
+<div class="sunk col g8"><span class="eyebrow">The short answer</span><div class="line" style="width:100%"></div><div class="line" style="width:60%"></div></div>
+<h2>A section heading <span class="note">carries an id minted from its text</span></h2>
+<div class="col g8"><div class="line" style="width:100%"></div><div class="line" style="width:100%"></div><div class="line" style="width:100%"></div><div class="line" style="width:60%"></div></div>
+<h2>Another section</h2>
+<div class="col g8"><div class="line" style="width:100%"></div><div class="line" style="width:100%"></div><div class="line" style="width:60%"></div></div>
+<p class="sm muted">source: example.org/page · retrieved 28 Aug 2026</p>
+<div class="card row g16"><span class="tile" style="width:48px;height:48px">logo</span><div class="grow"><b>About Business name</b><p class="sm muted">One line from the knowledge base, in the business's own words.</p></div><span class="btn">Visit Business name <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></span></div>
+<div class="col g12"><span class="eyebrow">More guides from Business name</span><div class="row g16" style="align-items:stretch"><div class="card grow"><h3>A related guide</h3></div><div class="card grow"><h3>A second related guide</h3></div><div class="card grow"><h3>A third</h3></div></div></div>
+<p class="sm">Business name &nbsp;›&nbsp; Articles &nbsp;›&nbsp; <span class="muted">The page's title</span></p>
+</article>
+<nav class="col g8" style="width:224px;position:sticky;top:24px"><span class="eyebrow">On this page</span><span class="sm muted">A section heading</span><span class="sm muted">Another section</span><span class="note">sticky from lg · a block that opens, under the metadata, below it</span></nav>
+</main><footer class="foot"><div class="frame num sm muted" style="padding-top:20px;padding-bottom:20px">© Business name</div></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":979}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

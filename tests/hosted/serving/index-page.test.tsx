@@ -31,6 +31,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     hostedSiteForHostname: async () => null,
     livePageBySlug: async () => null,
     livePagesForSite: async () => state.pages,
+    hostedIdentity: async (a: { domain: string }) => ({ name: a.domain, logoType: null, line: null }),
     hostedAddressState: async () => "none",
   };
 });
@@ -57,10 +58,13 @@ function page(slug: string, title: string, body: string, publishedAt: string): u
   };
 }
 
-async function render(q?: string): Promise<string> {
+async function render(q?: string, pageNumber?: string): Promise<string> {
   const tree = await Page({
     params: Promise.resolve({}),
-    searchParams: Promise.resolve(q === undefined ? {} : { q }),
+    searchParams: Promise.resolve({
+      ...(q === undefined ? {} : { q }),
+      ...(pageNumber === undefined ? {} : { page: pageNumber }),
+    }),
   });
   return renderToStaticMarkup(tree);
 }
@@ -96,6 +100,34 @@ describe("the hosted index", () => {
     const empty = await render();
     expect(empty).toContain("Nothing has been published here yet.");
     expect(empty).not.toContain("<ul");
+  });
+
+  it("opens with the newest page as the featured card, and the rest as cards under it", async () => {
+    const html = await render();
+    const featured = html.slice(html.indexOf("Latest"), html.indexOf('id="articles"'));
+    expect(featured).toContain("The best onboarding tools");
+    expect(featured).not.toContain("How onboarding software is priced");
+  });
+
+  it("pages the cards with plain links: ?page= on the address, and the search kept", async () => {
+    state.pages = Array.from({ length: 30 }, (_, i) =>
+      page(`guide-${i}`, `Guide ${i}`, "Seats and tiers.", new Date(Date.UTC(2026, 8, 30 - i)).toISOString())
+    );
+    // 1 featured and 29 cards: three pages of twelve.
+    const first = await render();
+    expect(first).toContain("Page 1 of 3");
+    expect(first).toContain('href="/?page=2"');
+    expect(first).not.toContain('rel="prev"');
+
+    const second = await render(undefined, "2");
+    expect(second).toContain('href="/guide-13"');
+    expect(second).not.toContain('href="/guide-12"');
+    expect(second).not.toContain("Latest");
+    expect(second).toMatch(/<a href="\/" rel="prev"/);
+
+    // A page past the end is the last one, and a search keeps its query.
+    expect(await render(undefined, "99")).toContain("Page 3 of 3");
+    expect(await render("seats", "2")).toContain('href="/?q=seats&amp;page=3"');
   });
 
   it("carries nothing of ReachKit's", async () => {

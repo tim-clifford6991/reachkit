@@ -132,9 +132,11 @@ describe("#931 — one serialiser: the viewer's body is the hosted page's body",
         expect(code, `${file} must build its body with ${call}`).toContain(call);
       }
       // One place where HTML is set, so there is one body and not a second
-      // element tree beside it.
+      // element tree beside it. The hosted page also sets its two data
+      // blocks and its related guides, which the same `toHtml` serialises
+      // from `guidesBlock()` (issue 1140).
       expect(code.match(/dangerouslySetInnerHTML/g)?.length ?? 0).toBeLessThanOrEqual(
-        file === HOSTED ? 3 : 1
+        file === HOSTED ? 4 : 1
       );
     }
     expect(codeOf(VIEWER), "the viewer must not carry the editor's map").not.toContain(
