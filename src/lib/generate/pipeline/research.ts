@@ -5,6 +5,9 @@
 // market facts are read here, at writing time, from public pages: the
 // target's top results out of the stored top ten, each named rival's **own**
 // pricing and feature pages, and at most two studies found by one search.
+// *Current insights* (D48, issue 1259) buys a search of the news in place of
+// the studies: what the market's category and its synonyms published inside
+// 30 days, each result with the date the search gives it and its source.
 // Each claim is kept with the address it was read from and the date it was
 // read, and is cited beside the sentence that uses it.
 //
@@ -36,7 +39,8 @@ import { safeFetch } from "@/lib/egress";
 import { llm } from "@/lib/llm";
 import { visibleText } from "@/lib/measure/parse";
 import type { StoredReport } from "@/lib/scan/report";
-import { serpOrganic } from "@/lib/vendors/dataforseo";
+import type { NewsRow } from "@/lib/vendors/dataforseo/types";
+import { serpNews, serpOrganic } from "@/lib/vendors/dataforseo";
 
 /** The `fetches.source` of every public page this step reads. */
 export const RESEARCH_READ_SOURCE = "generate.research.read";
@@ -53,9 +57,12 @@ export interface MarketFact {
   kind: MarketPageKind;
   /** The rival whose own page this is, where it is one. */
   product?: string;
-  /** The day the page says it was published, on a `recent` page (D42,
-   *  *current insights*): read off the page's own markup, never guessed. */
+  /** The day a `recent` page was published (D42, *current insights*): the
+   *  page's own markup where it states one, else the news search's date for
+   *  it (D48). Never guessed. */
   publishedAt?: string;
+  /** Who published a `recent` page, as the news search names it. */
+  source?: string;
 }
 
 /** A product whose own pages were read: what a comparison table may name. */
@@ -86,6 +93,7 @@ interface Wanted {
   kind: MarketPageKind;
   product?: string;
   publishedAt?: string;
+  source?: string;
 }
 
 const PUBLISHED_RES: readonly RegExp[] = [
@@ -238,6 +246,7 @@ export function admittedClaims(
       kind: page.kind,
       ...(page.product === undefined ? {} : { product: page.product }),
       ...(page.publishedAt === undefined ? {} : { publishedAt: page.publishedAt }),
+      ...(page.source === undefined ? {} : { source: page.source }),
     });
   }
   return out;
@@ -260,6 +269,48 @@ function logResearch(detail: Record<string, string | number | boolean | null>): 
   console.log(JSON.stringify({ event: "draft_researched", ...detail }));
 }
 
+/** *Current insights* (D48): what the news search dates inside the window,
+ *  read. One search a term, each ledgered; the results are taken in turn so
+ *  no term is the whole page, and read until `RESEARCH.recentPages` are
+ *  held. A page that states its own date is held to it. */
+async function recentPages(
+  c: CostContext,
+  a: { siteId: string; today: Date; recent: { searches: readonly string[]; days: number } },
+  notOurs: (url: string) => boolean,
+  taken: ReadonlySet<string>
+): Promise<(ReadPage & Wanted)[]> {
+  const today = a.today.toISOString().slice(0, 10);
+  const since = new Date(a.today.getTime() - a.recent.days * 86_400_000).toISOString().slice(0, 10);
+  const inWindow = (day: string): boolean => day >= since && day <= today;
+  const terms = [...new Set(a.recent.searches.map((term) => term.trim()).filter((term) => term !== ""))].slice(0, RESEARCH.newsSearches);
+  const results: NewsRow[][] = [];
+  for (const query of terms) {
+    if (c.capHit()) break;
+    const news = await serpNews(c, { query, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.news });
+    if (news.kind === "unmeasured") continue;
+    results.push(news.value.filter((row) => inWindow(row.publishedAt) && notOurs(row.url) && !taken.has(row.url)));
+  }
+  const dated: NewsRow[] = [];
+  for (let round = 0; results.some((rows) => rows[round] !== undefined); round++) {
+    for (const rows of results) {
+      const row = rows[round];
+      if (row !== undefined && !dated.some((held) => held.url === row.url)) dated.push(row);
+    }
+  }
+  const pages: (ReadPage & Wanted)[] = [];
+  for (let at = 0; at < dated.length && pages.length < RESEARCH.recentPages; at += RESEARCH.recentRead) {
+    const batch = dated.slice(at, at + RESEARCH.recentRead);
+    const reads = await Promise.all(batch.map((row) => fetchPage(row.url)));
+    reads.forEach((read, index) => {
+      if (read === null) return;
+      const row = batch[index]!;
+      const publishedAt = publishedOf(read.html) ?? row.publishedAt;
+      if (inWindow(publishedAt)) pages.push({ ...read.page, kind: "recent", publishedAt, source: row.source });
+    });
+  }
+  return pages.slice(0, RESEARCH.recentPages);
+}
+
 export async function researchMarket(
   c: CostContext,
   a: {
@@ -271,10 +322,10 @@ export async function researchMarket(
     /** The rival domains and names recorded for the site. */
     rivals: readonly string[];
     today: Date;
-    /** *Current insights* (D42): the one search looks for what was published
-     *  in the market inside `days`, in place of studies, and only a page
-     *  that states its own date inside that window is read. */
-    recent?: { market: string; days: number };
+    /** *Current insights* (D42, D48): in place of the studies, the news is
+     *  searched for each of `searches` — the market's category, then its
+     *  synonyms — and a result is kept where it is dated inside `days`. */
+    recent?: { searches: readonly string[]; days: number };
   }
 ): Promise<MarketResearch> {
   const target = a.searches[0];
@@ -307,47 +358,35 @@ export async function researchMarket(
 
   // 2. The one search for studies, and the two it finds that are nobody's
   //    sales page.
-  const studyUrls: string[] = [];
-  if (!c.capHit()) {
+  const taken = new Set(topTen);
+  const found: (ReadPage & Wanted)[] = a.recent === undefined ? [] : await recentPages(c, { ...a, recent: a.recent }, notOurs, taken);
+  if (a.recent === undefined && !c.capHit()) {
+    const studyUrls: string[] = [];
     const serp = await serpOrganic(c, {
-      // *Current insights*: the target's own words. Which results are
-      // recent is read off each page's own date below — the search itself
-      // carries no date (a news search is not bought yet).
-      query: a.recent === undefined ? `${target} statistics study` : target,
+      query: `${target} statistics study`,
       mode: "live",
       loadAsyncAiOverview: false,
       scope: { site: a.siteId },
       freshnessDays: CACHE_WINDOWS_D.serp,
     });
     if (serp.kind !== "unmeasured") {
-      const taken = new Set(topTen);
       for (const row of serp.value.organic) {
         const host = hostOf(row.url);
         if (!notOurs(row.url) || taken.has(row.url) || rivalDomains.some((rival) => sameSite(host, rival))) continue;
         studyUrls.push(row.url);
       }
     }
+    const studyReads = await Promise.all(studyUrls.slice(0, RESEARCH.studies * 2).map(fetchPage));
+    found.push(...studyReads.filter((read) => read !== null).slice(0, RESEARCH.studies).map((read) => ({ ...read.page, kind: "study" as const })));
   }
-  const studyReads = await Promise.all(
-    studyUrls.slice(0, a.recent === undefined ? RESEARCH.studies * 2 : RESEARCH.recentRead).map(fetchPage)
-  );
-  const since = a.recent === undefined ? null : new Date(a.today.getTime() - a.recent.days * 86_400_000).toISOString().slice(0, 10);
-  const found: (ReadPage & Wanted)[] =
-    since === null
-      ? studyReads.filter((read) => read !== null).slice(0, RESEARCH.studies).map((read) => ({ ...read.page, kind: "study" as const }))
-      : studyReads
-          .flatMap((read) => {
-            const publishedAt = read === null ? null : publishedOf(read.html);
-            return read === null || publishedAt === null || publishedAt < since || publishedAt > a.today.toISOString().slice(0, 10)
-              ? []
-              : [{ ...read.page, kind: "recent" as const, publishedAt }];
-          })
-          .slice(0, RESEARCH.recentPages);
 
+  // The recent pages lead on a *current insights* page: they are what it is
+  // written from, and the claim calls read the first pages only.
   const prefetched: (ReadPage & Wanted)[] = [
+    ...(a.recent === undefined ? [] : found),
     ...topReads.filter((read) => read !== null).slice(0, RESEARCH.topResults).map((read) => ({ ...read.page, kind: "top_result" as const })),
     ...rivalReads.flatMap((row) => (row.read === null ? [] : [{ ...row.read.page, kind: row.kind, product: row.domain }])),
-    ...found,
+    ...(a.recent === undefined ? found : []),
   ];
 
   // 3. The ledger, one row at a time. A page already read inside the window

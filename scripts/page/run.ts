@@ -177,7 +177,9 @@ function describe(outcome: GenerateOutcome): string {
 }
 
 export async function main(opts: Options): Promise<number> {
-  const type = CONTENT_TYPES.find((known) => known === opts.type);
+  // The types as the spec spells them are read too: `how-to`, `current-insights`.
+  const asked = opts.type.replace(/-/g, "_").replace(/^current_/, "");
+  const type = CONTENT_TYPES.find((known) => known === asked);
   if (type === undefined) throw new Error(`--type must be one of ${CONTENT_TYPES.join(", ")}.`);
   const file = path.join(opts.root, "scripts/page/snapshot", `${opts.site}.json`);
   if (!existsSync(file)) throw new Error(`No production export for ${opts.site} at ${file}. scripts/page/run.ts says how one is taken.`);
@@ -268,7 +270,7 @@ export async function main(opts: Options): Promise<number> {
             report,
             rivals,
             today: new Date(),
-            ...(type === "insights" ? { recent: { market: category, days: RESEARCH.recentDays } } : {}),
+            ...(type === "insights" ? { recent: { searches: [category, ...writingFor.synonyms], days: RESEARCH.recentDays } } : {}),
           });
       const pack = buildPack({
         type,

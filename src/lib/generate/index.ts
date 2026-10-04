@@ -483,7 +483,9 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
           report,
           rivals: site.rivals,
           today: new Date(),
-          ...(type === "insights" ? { recent: { market: category === "" ? (targetSearches(o)[0] ?? "") : category, days: RESEARCH.recentDays } } : {}),
+          ...(type === "insights"
+            ? { recent: { searches: [category === "" ? (targetSearches(o)[0] ?? "") : category, ...writingFor.synonyms], days: RESEARCH.recentDays } }
+            : {}),
         }).catch((error: unknown) => {
           console.warn(JSON.stringify({ event: "draft_research_failed", siteId: a.siteId, error: String(error).slice(0, 200) }));
           return NO_RESEARCH;

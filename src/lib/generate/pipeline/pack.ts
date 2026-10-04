@@ -48,6 +48,8 @@ export interface PackClaim {
   kind: MarketFact["kind"];
   product?: string;
   publishedAt?: string;
+  /** Who published a `recent` page, as the news search names it (D48). */
+  source?: string;
 }
 
 /** What the latest complete pass measured, as a research page states it. */
@@ -333,6 +335,7 @@ export function buildPack(a: PackInputs): ContextPack {
     kind: fact.kind,
     ...(fact.product === undefined ? {} : { product: fact.product }),
     ...(fact.publishedAt === undefined ? {} : { publishedAt: fact.publishedAt }),
+    ...(fact.source === undefined ? {} : { source: fact.source }),
   }));
   const newPage = a.opportunity.family === "write" || a.opportunity.family === "earn";
   const pack: Omit<ContextPack, "missing"> = {

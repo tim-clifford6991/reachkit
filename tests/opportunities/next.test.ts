@@ -223,10 +223,10 @@ describe("§7 (D46): a topic of a type the mix has paused fills no day", () => {
     expect(state.rows[0]).toMatchObject({ status: "open", ready: true });
   });
 
-  it("`isPausedType` reads the row's own type: a listicle and current insights wait, a how-to does not", () => {
+  it("`isPausedType` reads the row's own type: a listicle waits; current insights (D48) and a how-to do not", () => {
     expect(isPausedType({ type: "keyword_page", targetQuery: "best user onboarding software" })).toBe(true);
     expect(isPausedType({ type: "comparison_page", targetQuery: "appcues and userpilot" })).toBe(true);
-    expect(isPausedType({ type: "keyword_page", targetQuery: "latest user onboarding trends" })).toBe(true);
+    expect(isPausedType({ type: "keyword_page", targetQuery: "latest user onboarding trends" })).toBe(false);
     expect(isPausedType({ type: "keyword_page", targetQuery: "how to onboard a new user" })).toBe(false);
     expect(isPausedType({ type: "answer_page", targetQuery: "user onboarding software for startups" })).toBe(false);
     // It publishes no asset, so it has no type to pause.

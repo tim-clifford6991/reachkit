@@ -9,7 +9,8 @@ export const insights: Template = {
     { key: "in_short", task: "Say what changed, in short." },
     {
       key: "change",
-      task: "One change from `recent`: what happened, when — its date written out — the source, linked, and what it means.",
+      task:
+        "One change from a claim in `pack.claims` whose `kind` is `recent`: what happened, when — its `publishedAt` written out as a date — who published it (`source`), linked to its `url`, and what it means.",
       repeat: { min: 3, max: 5 },
     },
     { key: "what_to_do", task: "Say what the reader should do now." },

@@ -1,11 +1,11 @@
 {
  "version": 1,
  "type": "insights",
- "builtAt": "2026-10-04T12:38:11.905Z",
+ "builtAt": "2026-10-04T22:42:57.489Z",
  "target": {
-  "question": "ai search visibility news",
+  "question": "AI discovery monitoring and content news",
   "searches": [
-   "ai search visibility news"
+   "AI discovery monitoring and content news"
   ]
  },
  "business": {
@@ -185,14 +185,14 @@
  "neverClaim": [],
  "facts": [
   {
-   "passage": "▲ every week Searches you appear in 128 1 · 12 1 · 12 2 · 31 2 · 31 3 · 44 3 · 44 4 · 61 4 · 61 5 · 96 5 · 96 6 · 128 6 · 128 Discoverability Score 62 ▲ 8 AI answers 2 /12 Pages published 17 Demo video coming soon.",
-   "url": "https://reachkit.app/",
-   "readAt": "2026-09-17T09:18:18.660Z"
-  },
-  {
    "passage": "Pricing — ReachKit, €49 a month ReachKit Sign in Free scan Start ReachKit One plan.",
    "url": "https://reachkit.app/pricing",
    "readAt": "2026-09-17T09:18:20.360Z"
+  },
+  {
+   "passage": "▲ every week Searches you appear in 128 1 · 12 1 · 12 2 · 31 2 · 31 3 · 44 3 · 44 4 · 61 4 · 61 5 · 96 5 · 96 6 · 128 6 · 128 Discoverability Score 62 ▲ 8 AI answers 2 /12 Pages published 17 Demo video coming soon.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
   },
   {
    "passage": "47 /100 Hard to find — and we'll show you the fixes that move it.",
@@ -200,14 +200,14 @@
    "readAt": "2026-09-13T09:14:47.028Z"
   },
   {
-   "passage": "This week on schedule 26 27 28 29 30 01 02 What buyers ask before they switch, answered publishes in 6 h 12 m unless you say otherwise 02 One page a day closes the gap.",
-   "url": "https://reachkit.app/",
-   "readAt": "2026-09-17T09:18:18.660Z"
-  },
-  {
    "passage": "€49 per month, VAT included 1 page a day, written and published for you Weekly re-measure of your whole market Weekly movement email 24-hour veto window on every page Start ReachKit €49 Cancel in one click.",
    "url": "https://reachkit.app/pricing",
    "readAt": "2026-09-17T09:18:20.360Z"
+  },
+  {
+   "passage": "This week on schedule 26 27 28 29 30 01 02 What buyers ask before they switch, answered publishes in 6 h 12 m unless you say otherwise 02 One page a day closes the gap.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
   },
   {
    "passage": "Sign in — ReachKit ReachKit Welcome back Enter the email you paid with and we'll send you a sign-in link.",
@@ -215,14 +215,14 @@
    "readAt": "2026-09-13T09:14:47.028Z"
   },
   {
-   "passage": "03 Start with the scan Free, under a minute Step 1 Scan your domain Free, no account Step 2 Pick your market and rivals We suggest, you confirm.",
-   "url": "https://reachkit.app/",
-   "readAt": "2026-09-17T09:18:18.660Z"
-  },
-  {
    "passage": "A page written and published for your site every day, your market re-measured every week.",
    "url": "https://reachkit.app/pricing",
    "readAt": "2026-09-17T09:18:20.360Z"
+  },
+  {
+   "passage": "03 Start with the scan Free, under a minute Step 1 Scan your domain Free, no account Step 2 Pick your market and rivals We suggest, you confirm.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
   },
   {
    "passage": "No password — accounts are created by payment, never by a signup form.",
@@ -230,14 +230,14 @@
    "readAt": "2026-09-13T09:14:47.028Z"
   },
   {
-   "passage": "Step 3 Pages go live on your domain You get 24 hours to stop it.",
-   "url": "https://reachkit.app/",
-   "readAt": "2026-09-17T09:18:18.660Z"
-  },
-  {
    "passage": "Your site is asked for after — or confirmed, if you came from a report.",
    "url": "https://reachkit.app/pricing",
    "readAt": "2026-09-17T09:18:20.360Z"
+  },
+  {
+   "passage": "Step 3 Pages go live on your domain You get 24 hours to stop it.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
   },
   {
    "passage": "Start a free scan → One number tells you how findable you are.",
@@ -302,10 +302,37 @@
  ],
  "claims": [
   {
+   "passage": "Launched in September 2026, the tool aims to help organizations gain visibility into AI usage, enforce data protection policies, stop sensitive data from being exposed through employee interactions with AI, and generate audit-ready records—all without requiring extensive AI security expertise.",
+   "url": "https://dynamicbusiness.com/ai-tools/barracuda-ai-data-security-genai-risk-monitoring.html",
+   "title": "Barracuda AI Data Security: GenAI Risk Monitoring — Dynamic Business",
+   "readAt": "2026-10-04T22:42:38.117Z",
+   "kind": "recent",
+   "publishedAt": "2026-10-02",
+   "source": "dynamicbusiness.com"
+  },
+  {
+   "passage": "Block flattening can make weak AI Overview visibility look like a top ranking in Search Console, so prioritize actual visits and conversions.",
+   "url": "https://www.searchenginejournal.com/search-console-uses-block-flattening-for-aios-forget-position-focus-on-outcomes/589582/",
+   "title": "Search Console Uses Block Flattening For AIOs, Forget Position & Focus On Outcomes",
+   "readAt": "2026-10-04T22:42:38.117Z",
+   "kind": "recent",
+   "publishedAt": "2026-09-24",
+   "source": "searchenginejournal.com"
+  },
+  {
+   "passage": "Zen Media's 2026 benchmark puts AI visibility for industrial automation at a 4% average across the top 100 vendors.",
+   "url": "https://www.globenewswire.com/news-release/2026/09/30/3371734/0/en/ai-visibility-for-industrial-automation-companies-averages-4-across-the-top-100-vendors-benchmark-finds.html",
+   "title": "AI Visibility for Industrial Automation Companies Averages",
+   "readAt": "2026-10-04T22:42:38.117Z",
+   "kind": "recent",
+   "publishedAt": "2026-09-30",
+   "source": "globenewswire.com"
+  },
+  {
    "passage": "30 on-brand SEO/AEO articles per month with supporting media",
    "url": "https://aeoengine.ai/pricing",
    "title": "AEO Engine Pricing Plans",
-   "readAt": "2026-10-04T12:37:56.990Z",
+   "readAt": "2026-10-04T22:42:24.636Z",
    "kind": "rival_pricing",
    "product": "aeoengine.ai"
   },
@@ -313,7 +340,7 @@
    "passage": "30-60 Articles/Month - Expertly researched and written in your brand's voice.",
    "url": "https://aeoengine.ai/platform",
    "title": "AEO Engine Platform | AI-Powered SEO & Answer Engine…",
-   "readAt": "2026-10-04T12:37:57.214Z",
+   "readAt": "2026-10-04T22:42:25.578Z",
    "kind": "rival_features",
    "product": "aeoengine.ai"
   },
@@ -321,97 +348,62 @@
    "passage": "Meltwater uses tailored pricing rather than a one-size-fits-all list.",
    "url": "https://www.meltwater.com/en/pricing",
    "title": "Meltwater Pricing & Costs",
-   "readAt": "2026-10-04T12:37:56.991Z",
+   "readAt": "2026-10-04T22:42:24.637Z",
    "kind": "rival_pricing",
    "product": "meltwater.com"
+  },
+  {
+   "passage": "Foundation (Free) : Offers shadow AI discovery and risk reporting. Premium : Adds enforcement over high-risk AI tools, including shadow AI remediation for over 1,300 GenAI tools and data protection for Microsoft Copilot. Premium Plus : Builds on Premium by extending real-time inspection and data loss prevention (DLP) across all supported AI tools and workflows, beyond just Copilot.",
+   "url": "https://dynamicbusiness.com/ai-tools/barracuda-ai-data-security-genai-risk-monitoring.html",
+   "title": "Barracuda AI Data Security: GenAI Risk Monitoring — Dynamic Business",
+   "readAt": "2026-10-04T22:42:38.117Z",
+   "kind": "recent",
+   "publishedAt": "2026-10-02",
+   "source": "dynamicbusiness.com"
+  },
+  {
+   "passage": "Your page might show up at position 1 whenever an AI Overview appears, but drop down to position 19 in normal results when it does not. If both things happen equally often, Search Console reports a tidy Average Position of 10.",
+   "url": "https://www.searchenginejournal.com/search-console-uses-block-flattening-for-aios-forget-position-focus-on-outcomes/589582/",
+   "title": "Search Console Uses Block Flattening For AIOs, Forget Position & Focus On Outcomes",
+   "readAt": "2026-10-04T22:42:38.117Z",
+   "kind": "recent",
+   "publishedAt": "2026-09-24",
+   "source": "searchenginejournal.com"
+  },
+  {
+   "passage": "Siemens, the top-ranked company, appeared in 21% of prompts, followed by Rockwell Automation at 17% and ABB and Schneider Electric at 16% each.",
+   "url": "https://www.globenewswire.com/news-release/2026/09/30/3371734/0/en/ai-visibility-for-industrial-automation-companies-averages-4-across-the-top-100-vendors-benchmark-finds.html",
+   "title": "AI Visibility for Industrial Automation Companies Averages",
+   "readAt": "2026-10-04T22:42:38.117Z",
+   "kind": "recent",
+   "publishedAt": "2026-09-30",
+   "source": "globenewswire.com"
   },
   {
    "passage": "60 on-brand SEO/AEO articles per month with supporting media",
    "url": "https://aeoengine.ai/pricing",
    "title": "AEO Engine Pricing Plans",
-   "readAt": "2026-10-04T12:37:56.990Z",
+   "readAt": "2026-10-04T22:42:24.636Z",
    "kind": "rival_pricing",
    "product": "aeoengine.ai"
   },
   {
-   "passage": "3-10 quality backlinks, 5-10 Reddit/Quora mentions, brand citations & signals, AI trust signals, and domain authority growth of 3-15 points on average.",
-   "url": "https://aeoengine.ai/platform",
-   "title": "AEO Engine Platform | AI-Powered SEO & Answer Engine…",
-   "readAt": "2026-10-04T12:37:57.214Z",
-   "kind": "rival_features",
-   "product": "aeoengine.ai"
+   "passage": "Protection spans over 1,300 generative AI services, including major platforms such as Copilot, ChatGPT, Claude, and Gemini.",
+   "url": "https://dynamicbusiness.com/ai-tools/barracuda-ai-data-security-genai-risk-monitoring.html",
+   "title": "Barracuda AI Data Security: GenAI Risk Monitoring — Dynamic Business",
+   "readAt": "2026-10-04T22:42:38.117Z",
+   "kind": "recent",
+   "publishedAt": "2026-10-02",
+   "source": "dynamicbusiness.com"
   },
   {
-   "passage": "Meltwater does not offer a self-serve free trial, but you can request a free, human-guided demo with one of our product experts.",
-   "url": "https://www.meltwater.com/en/pricing",
-   "title": "Meltwater Pricing & Costs",
-   "readAt": "2026-10-04T12:37:56.991Z",
-   "kind": "rival_pricing",
-   "product": "meltwater.com"
-  },
-  {
-   "passage": "By 2026, traditional search volume is predicted to drop 25% as users shift to AI assistants.",
-   "url": "https://aeoengine.ai/pricing",
-   "title": "AEO Engine Pricing Plans",
-   "readAt": "2026-10-04T12:37:56.990Z",
-   "kind": "rival_pricing",
-   "product": "aeoengine.ai"
-  },
-  {
-   "passage": "3,272 AI Citations, 48.7% SOV, +57.8% Organic Traffic Dec-Apr",
-   "url": "https://aeoengine.ai/platform",
-   "title": "AEO Engine Platform | AI-Powered SEO & Answer Engine…",
-   "readAt": "2026-10-04T12:37:57.214Z",
-   "kind": "rival_features",
-   "product": "aeoengine.ai"
-  },
-  {
-   "passage": "However, most partnerships are structured on annual agreements, with a minimum contract length of 12 months.",
-   "url": "https://www.meltwater.com/en/pricing",
-   "title": "Meltwater Pricing & Costs",
-   "readAt": "2026-10-04T12:37:56.991Z",
-   "kind": "rival_pricing",
-   "product": "meltwater.com"
-  },
-  {
-   "passage": "Our clients typically achieve 3-9× ROI within their first 180 days.",
-   "url": "https://aeoengine.ai/pricing",
-   "title": "AEO Engine Pricing Plans",
-   "readAt": "2026-10-04T12:37:56.990Z",
-   "kind": "rival_pricing",
-   "product": "aeoengine.ai"
-  },
-  {
-   "passage": "472 AI CITATIONS, 672 → 6,097 MONTHLY VISITORS, 9.1X ORGANIC GROWTH",
-   "url": "https://aeoengine.ai/platform",
-   "title": "AEO Engine Platform | AI-Powered SEO & Answer Engine…",
-   "readAt": "2026-10-04T12:37:57.214Z",
-   "kind": "rival_features",
-   "product": "aeoengine.ai"
-  },
-  {
-   "passage": "Meltwater provides 24/7 multi-channel support for all customers, including website and in-product live chat, email , and access to the Help Center , Meltwater Academy , and mCommunity .",
-   "url": "https://www.meltwater.com/en/pricing",
-   "title": "Meltwater Pricing & Costs",
-   "readAt": "2026-10-04T12:37:56.991Z",
-   "kind": "rival_pricing",
-   "product": "meltwater.com"
-  },
-  {
-   "passage": "Across our client campaigns, brands see an average 920% increase in traffic attributed to AI search platforms (ChatGPT, Perplexity, Google AI Overviews).",
-   "url": "https://aeoengine.ai/pricing",
-   "title": "AEO Engine Pricing Plans",
-   "readAt": "2026-10-04T12:37:56.990Z",
-   "kind": "rival_pricing",
-   "product": "aeoengine.ai"
-  },
-  {
-   "passage": "Starter Simple, powerful tools to get started with media, social, and AI intelligence",
-   "url": "https://www.meltwater.com/en/pricing",
-   "title": "Meltwater Pricing & Costs",
-   "readAt": "2026-10-04T12:37:56.991Z",
-   "kind": "rival_pricing",
-   "product": "meltwater.com"
+   "passage": "Manufacturer websites registered a 92% citation frequency in the benchmark.",
+   "url": "https://www.globenewswire.com/news-release/2026/09/30/3371734/0/en/ai-visibility-for-industrial-automation-companies-averages-4-across-the-top-100-vendors-benchmark-finds.html",
+   "title": "AI Visibility for Industrial Automation Companies Averages",
+   "readAt": "2026-10-04T22:42:38.117Z",
+   "kind": "recent",
+   "publishedAt": "2026-09-30",
+   "source": "globenewswire.com"
   }
  ],
  "products": [
@@ -451,11 +443,11 @@
  "adds": {
   "claims": [
    {
-    "claim": "▲ every week Searches you appear in 128 1 · 12 1 · 12 2 · 31 2 · 31 3 · 44 3 · 44 4 · 61 4 · 61 5 · 96 5 · 96 6 · 128 6 · 128 Discoverability Score 62 ▲ 8 AI answers 2 /12 Pages published 17 Demo video coming soon.",
+    "claim": "Pricing — ReachKit, €49 a month ReachKit Sign in Free scan Start ReachKit One plan.",
     "business": true
    },
    {
-    "claim": "Pricing — ReachKit, €49 a month ReachKit Sign in Free scan Start ReachKit One plan.",
+    "claim": "▲ every week Searches you appear in 128 1 · 12 1 · 12 2 · 31 2 · 31 3 · 44 3 · 44 4 · 61 4 · 61 5 · 96 5 · 96 6 · 128 6 · 128 Discoverability Score 62 ▲ 8 AI answers 2 /12 Pages published 17 Demo video coming soon.",
     "business": true
    },
    {
@@ -463,11 +455,11 @@
     "business": true
    },
    {
-    "claim": "This week on schedule 26 27 28 29 30 01 02 What buyers ask before they switch, answered publishes in 6 h 12 m unless you say otherwise 02 One page a day closes the gap.",
+    "claim": "€49 per month, VAT included 1 page a day, written and published for you Weekly re-measure of your whole market Weekly movement email 24-hour veto window on every page Start ReachKit €49 Cancel in one click.",
     "business": true
    },
    {
-    "claim": "€49 per month, VAT included 1 page a day, written and published for you Weekly re-measure of your whole market Weekly movement email 24-hour veto window on every page Start ReachKit €49 Cancel in one click.",
+    "claim": "This week on schedule 26 27 28 29 30 01 02 What buyers ask before they switch, answered publishes in 6 h 12 m unless you say otherwise 02 One page a day closes the gap.",
     "business": true
    },
    {
@@ -475,11 +467,11 @@
     "business": true
    },
    {
-    "claim": "03 Start with the scan Free, under a minute Step 1 Scan your domain Free, no account Step 2 Pick your market and rivals We suggest, you confirm.",
+    "claim": "A page written and published for your site every day, your market re-measured every week.",
     "business": true
    },
    {
-    "claim": "A page written and published for your site every day, your market re-measured every week.",
+    "claim": "03 Start with the scan Free, under a minute Step 1 Scan your domain Free, no account Step 2 Pick your market and rivals We suggest, you confirm.",
     "business": true
    },
    {
@@ -487,11 +479,11 @@
     "business": true
    },
    {
-    "claim": "Step 3 Pages go live on your domain You get 24 hours to stop it.",
+    "claim": "Your site is asked for after — or confirmed, if you came from a report.",
     "business": true
    },
    {
-    "claim": "Your site is asked for after — or confirmed, if you came from a report.",
+    "claim": "Step 3 Pages go live on your domain You get 24 hours to stop it.",
     "business": true
    },
    {
@@ -501,7 +493,5 @@
   ],
   "short": false
  },
- "missing": [
-  "recent_results"
- ]
+ "missing": []
 }

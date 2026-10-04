@@ -30,6 +30,9 @@ export const PRICE_BOOK = Object.freeze({
   RANKED_RIVAL_ROWS: 100, RANKED_RIVAL_COST_C: 2.4,
   COMPETITORS_DOMAIN_COST_C: 1.5, SUGGESTIONS_COST_C: 1.8,
   SERP_LIVE_C: 0.2, SERP_STD_C: 0.06,
+  /** Google News, live, ten results (SPEC §7, D48; issue 1259): the vendor's
+   *  own charge on the cost check of 2026-10-04, 0.2 cents a call. */
+  NEWS_LIVE_C: 0.2,
   CHATGPT_SCRAPE_STD_C: 0.12, AI_MODE_LIVE_C: 0.2, AI_MODE_STD_C: 0.12,
   LLM_MENTIONS_ROWS: 100, LLM_MENTIONS_REQUEST_C: 10, LLM_MENTIONS_ROW_C: 0.1,
 } as const);
@@ -703,6 +706,9 @@ export const PLATFORM_DOMAINS = Object.freeze([
 
 export const CACHE_WINDOWS_D = Object.freeze({
   own: 7, rival: 30, serp: 30, suggestions: 30,
+  /** The news search of *current insights* (SPEC §7, D48): what a market
+   *  published is asked once a day at most. */
+  news: 1,
   /** `BUILD.md` §6.4's stated exception — "SERPs 30d (**except the weekly
    *  target re-check**)" — which had a clause and no pin (#75). The weekly
    *  target-SERP battery passes this instead of `serp`, so a re-check run
@@ -1576,9 +1582,9 @@ export const CONTENT_MIX = Object.freeze({
   BRIEF_PAGES_MAX: 100,
   /** SPEC §7 (owner, D46, 2026-10-04): the content types the mix leaves out
    *  for now. A topic of one of them fills no day. The one list: D47 takes
-   *  `listicle` out of it once its table is built in code from the pack, and
-   *  D48 takes `insights` out once it reads a news search. */
-  PAUSED_TYPES: Object.freeze(["listicle", "insights"] as readonly string[]),
+   *  `listicle` out of it once its table is built in code from the pack.
+   *  D48 took `insights` out (issue 1259): it reads a news search now. */
+  PAUSED_TYPES: Object.freeze(["listicle"] as readonly string[]),
 });                                                            // §7
 
 /** SPEC §7 (2026-09-29, *Pace*; issue 1139): in any seven days a site
@@ -1657,8 +1663,10 @@ export const RESEARCH = Object.freeze({
   claimsPerPage: 5,
   /** The market facts a context pack carries. */
   briefFacts: 24,
-  /** *Current insights* (D42): the results of its one search that are read
-   *  for a publication date, and the dated ones kept. */
+  /** *Current insights* (D48): the news searches it buys — the market's
+   *  category, then its synonyms in their stored order — and, of the results
+   *  they date inside `recentDays`, how many are read and how many kept. */
+  newsSearches: 3,
   recentRead: 8,
   recentPages: 5,
   /** D41 (drafted default): a *current insights* page reads web results

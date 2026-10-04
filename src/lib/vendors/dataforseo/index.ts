@@ -1,10 +1,10 @@
 // BUILD §6.3 — the closed DataForSEO endpoint list, and nothing else (issue #23; WO-023 landed the shape)
 //
-// This file's exported set is exactly the **seven** functions the owner has
+// This file's exported set is exactly the **eight** functions the owner has
 // approved — no generic `dataforseo(endpoint, params)`, no re-export of
 // `transport.ts` or `envelope.ts`. `tests/vendors/never-list.test.ts`
-// asserts the exported key set is exactly these seven names; adding an
-// eighth export of any shape fails it by construction.
+// asserts the exported key set is exactly these eight names; adding a
+// ninth export of any shape fails it by construction.
 //
 // **The seventh is `llmMentions`** (SPEC §6, 2026-09-22, #1004): DataForSEO
 // LLM Mentions, bought weekly per site inside the Monday pass on the
@@ -14,6 +14,10 @@
 // product passes one credential read, one ledger seam and one cap check,
 // and an approved endpoint reached from anywhere else would break all
 // three. `mentions.ts`'s header carries the decision in full.
+//
+// **The eighth is `serpNews`** (SPEC §7, owner D48, 2026-10-04, issue 1259):
+// Google News, which *current insights* reads for what its market published
+// in the last 30 days. `news.ts`'s header carries it.
 //
 // Everything BUILD §6.4's never-list forbids — SERP depth > 10, search operators, clickstream flags,
 // Labs historical endpoints, a fourth engine, AI Keyword Data — has no
@@ -27,5 +31,6 @@
 // price is a compile error.
 export { competitorsDomain, keywordSuggestions, rankedKeywords } from "./labs";
 export { serpOrganic } from "./serp";
+export { serpNews } from "./news";
 export { aiMode, llmScraper } from "./ai";
 export { llmMentions } from "./mentions";

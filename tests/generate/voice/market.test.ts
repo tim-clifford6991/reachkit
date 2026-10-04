@@ -48,6 +48,9 @@ describe("the market a page is written for", () => {
       job: stored.current!.job,
       notOurMarket: stored.current!.notOurMarket,
     });
+    // The category's other names ride beside it, for the news search (D48).
+    expect(writing.synonyms).toEqual(stored.current!.synonyms);
+    expect(writing.synonyms.length).toBeGreaterThan(0);
     // This site's founder chose the rivals: theirs stand, named where the
     // conclusion knows the name.
     expect(stored.rivalsOverridden).toBe(true);
@@ -58,7 +61,7 @@ describe("the market a page is written for", () => {
   });
 
   it("is the report's category only where no market is stored, or the read failed", () => {
-    const none = { from: "report", category: REPORT_CATEGORY, market: null };
+    const none = { from: "report", category: REPORT_CATEGORY, synonyms: [], market: null };
     expect(writingMarket({ site: site({ market: null }), reportCategory: REPORT_CATEGORY })).toEqual(none);
     expect(writingMarket({ site: null, reportCategory: REPORT_CATEGORY })).toEqual(none);
   });

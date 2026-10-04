@@ -105,6 +105,20 @@ export interface SerpResult {
   reusedFrom?: string;
 }
 
+/** `serpNews` — one result of a Google News search (SPEC §7, D48): the
+ *  page, who published it, and the day the search itself dates it. A result
+ *  the vendor gave no date is not a row: a date is all this search is
+ *  bought for. */
+export interface NewsRow {
+  url: string;
+  domain: string;
+  title: string;
+  /** The publisher as the search names it; the domain where it names none. */
+  source: string;
+  /** `YYYY-MM-DD`, UTC, from the vendor's own timestamp. */
+  publishedAt: string;
+}
+
 /** `aiMode` and `llmScraper` — one AI engine's synthesized answer, if it
  *  gave one, and the domains it cited. */
 export interface AiAnswer {

@@ -12,14 +12,15 @@ import { AT, SITE_ID } from "../fixtures";
 import type { StoredReport } from "../../../src/lib/scan/report";
 import type { CostContext } from "../../../src/lib/costs";
 
-const { llmMock, safeFetchMock, serpMock } = vi.hoisted(() => ({
+const { llmMock, safeFetchMock, serpMock, newsMock } = vi.hoisted(() => ({
   llmMock: vi.fn(),
   safeFetchMock: vi.fn(),
   serpMock: vi.fn(),
+  newsMock: vi.fn(),
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 vi.mock("@/lib/egress", () => ({ safeFetch: safeFetchMock }));
-vi.mock("@/lib/vendors/dataforseo", () => ({ serpOrganic: serpMock }));
+vi.mock("@/lib/vendors/dataforseo", () => ({ serpOrganic: serpMock, serpNews: newsMock }));
 
 import { admittedClaims, linkedPage, researchMarket } from "../../../src/lib/generate/pipeline/research";
 import { repairMechanical } from "../../../src/lib/generate/pipeline/repair";
@@ -74,6 +75,8 @@ beforeEach(() => {
   safeFetchMock.mockReset();
   serpMock.mockReset();
   serpMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
+  newsMock.mockReset();
+  newsMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
 });
 
 describe("the research step reads the market's pages and keeps only what they say", () => {
@@ -131,6 +134,58 @@ describe("the research step reads the market's pages and keeps only what they sa
     });
     expect(found).toEqual({ facts: [], products: [], topResults: [] });
     expect(llmMock).not.toHaveBeenCalled();
+  });
+
+  it("current insights reads the news for the category and its synonyms, and keeps what is dated inside 30 days with its date and source", async () => {
+    const CHANGE = "Google said AI Overviews now appear on a larger share of commercial searches than in the spring.";
+    const OTHER = "The assistant began showing a list of cited shops beside every product answer this week.";
+    const row = (url: string, publishedAt: string, source: string) => ({ url, domain: new URL(url).hostname, title: "A story", source, publishedAt });
+    newsMock.mockImplementation(async (_c: unknown, call: { query: string }) =>
+      measured(
+        call.query === "project management software"
+          ? [
+              row("https://news.example/fresh", "2026-09-28", "News Example"),
+              row("https://news.example/stale", "2026-08-20", "News Example"),
+              row("https://example.com/blog/our-own", "2026-10-01", "Ours"),
+              // The search dates it this week; the page itself says last year.
+              row("https://news.example/redated", "2026-10-02", "News Example"),
+            ]
+          : [row("https://trade.example/synonym", "2026-09-10", "Trade Weekly"), row("https://news.example/fresh", "2026-09-28", "News Example")]
+      )
+    );
+    safeFetchMock.mockImplementation(async (url: string) => {
+      if (url === "https://news.example/fresh") return answer(url, CHANGE, "Fresh story");
+      if (url === "https://trade.example/synonym") return answer(url, OTHER, "Trade story");
+      if (url === "https://news.example/redated") {
+        return { ...answer(url, CHANGE), html: `<html><head><title>Old</title><meta property="article:published_time" content="2025-03-01T00:00:00Z"></head><body><p>${filler}</p></body></html>` };
+      }
+      return { ok: false, reason: "status", status: 404, url, readAt: TODAY };
+    });
+    const said: Record<string, string> = { "https://news.example/fresh": CHANGE, "https://trade.example/synonym": OTHER };
+    llmMock.mockImplementation(async (_c: unknown, call: { input: { pages: { page: number; url: string }[] } }) =>
+      measured({ claims: call.input.pages.flatMap((page) => (said[page.url] === undefined ? [] : [{ page: page.page, quote: said[page.url], year: null }])) })
+    );
+
+    const found = await researchMarket(cost(), {
+      siteId: SITE_ID,
+      domain: "example.com",
+      searches: ["project management news"],
+      report: REPORT,
+      rivals: [],
+      today: TODAY,
+      recent: { searches: ["project management software", "work management tools", "project management software"], days: 30 },
+    });
+
+    // One news search a term, never the web search for studies.
+    expect(newsMock.mock.calls.map((call) => (call[1] as { query: string }).query)).toEqual(["project management software", "work management tools"]);
+    expect(serpMock).not.toHaveBeenCalled();
+    // The stale story, the customer's own and the one its own page dates
+    // last year are not read as recent; a synonym's result is.
+    expect(found.facts.map((fact) => [fact.url, fact.kind, fact.publishedAt, fact.source])).toEqual([
+      ["https://news.example/fresh", "recent", "2026-09-28", "News Example"],
+      ["https://trade.example/synonym", "recent", "2026-09-10", "Trade Weekly"],
+    ]);
+    expect(safeFetchMock.mock.calls.map((call) => call[0])).not.toContain("https://news.example/stale");
   });
 
   it("drops a statistic older than three years and keeps a dated claim that is not one", () => {
