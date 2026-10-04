@@ -38,8 +38,10 @@ import { SERP_LOCATION, VENDOR } from "@/lib/config/constants";
 
 const DATAFORSEO_BASE_URL = "https://api.dataforseo.com";
 
-/** The one vendor path family whose tasks take `depth` (see header). */
-const DEPTH_PATH_PREFIX = "/v3/serp/google/organic/";
+/** The vendor path families whose tasks take `depth` (see header): organic
+ *  SERPs and, since D48 (SPEC §7, 2026-10-04), the news search, which is
+ *  billed by the ten results like the organic one. */
+const DEPTH_PATH_PREFIXES = ["/v3/serp/google/organic/", "/v3/serp/google/news/"] as const;
 const SERP_DEPTH = 10;
 
 /** LLM Mentions (SPEC §6, 2026-09-22, #1004) — the one path family whose
@@ -120,7 +122,7 @@ export function buildRequest(spec: DataForSeoRequestSpec): DataForSeoRequest {
     task.location_name = SERP_LOCATION.location;
     task.language_code = SERP_LOCATION.language;
   }
-  if (spec.path.startsWith(DEPTH_PATH_PREFIX)) task.depth = SERP_DEPTH;
+  if (DEPTH_PATH_PREFIXES.some((prefix) => spec.path.startsWith(prefix))) task.depth = SERP_DEPTH;
 
   return {
     url: `${DATAFORSEO_BASE_URL}${spec.path}`,

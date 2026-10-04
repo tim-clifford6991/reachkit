@@ -34,6 +34,10 @@ export type MarketSource = "site" | "report";
 export interface WritingMarket {
   category: string;
   from: MarketSource;
+  /** The category's other names, as the conclusion stores them: what a news
+   *  search is also asked (D48). Never handed to the writer. Empty where the
+   *  report's category stands in, or the founder set their own. */
+  synonyms: readonly string[];
   /** `null` where no market is stored and the report's category stands in. */
   market: PromptMarket | null;
 }
@@ -57,7 +61,7 @@ export function writingMarket(a: {
   reportCategory: string;
 }): WritingMarket {
   const current = a.site?.stored.current ?? null;
-  if (a.site === null || current === null) return { category: a.reportCategory, from: "report", market: null };
+  if (a.site === null || current === null) return { category: a.reportCategory, from: "report", synonyms: [], market: null };
 
   const own = a.site.stored.categoryOverridden ? (a.site.category ?? "").trim() : "";
   const category = own === "" ? current.category.trim() : own;
@@ -68,6 +72,8 @@ export function writingMarket(a: {
   return {
     category,
     from: "site",
+    // A category the founder set is not the one these were concluded for.
+    synonyms: own === "" ? current.synonyms : [],
     market: {
       category,
       buyer: bounded(current.buyer),

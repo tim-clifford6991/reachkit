@@ -72,11 +72,14 @@ const APPROVED_EXPORTS = [
   "llmMentions",
   "llmScraper",
   "rankedKeywords",
+  // SPEC §7, owner D48 (2026-10-04, issue 1259): Google News, for *current
+  // insights*.
+  "serpNews",
   "serpOrganic",
 ] as const;
 
 describe('BP-008 error behaviour — "The never-list is enforced by absence" (WO-023 test-plan row 1)', () => {
-  it("the module's exported (runtime) function set is exactly the seven approved — nothing more, nothing fewer", () => {
+  it("the module's exported (runtime) function set is exactly the approved ones — nothing more, nothing fewer", () => {
     const keys = Object.keys(dataforseo).sort();
     expect(keys).toEqual([...APPROVED_EXPORTS].sort());
   });

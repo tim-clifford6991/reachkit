@@ -11,8 +11,8 @@
 //   npm run page -- --site reachkit.app --type qa --out docs/walk/pipeline-v2
 //   npm run page -- --site reachkit.app --type qa --cap-cents 25 --env-file ../../reachkitv3/.env.local
 //
-// `--type` is one of listicle, how_to, documentation, research, qa, insights,
-// update. It builds the context pack from the site's production data, caches
+// `--type` is one of listicle, how_to, documentation, research, qa, insights
+// (also spelled current-insights), update. It builds the context pack from the site's production data, caches
 // it on disk (`.review/page/packs/`), writes one page through the product's
 // own stages 3 and 4, and prints the page's path, each check's result and the
 // cost. A rerun reuses the cached pack unless `--fresh` is given.
@@ -22,7 +22,7 @@
 // This box's database key is a placeholder, so the site's production rows are
 // read from its committed export, `scripts/page/snapshot/<domain>.json`
 // (`scripts/page/run.ts` says what it holds and how it is taken through the
-// Supabase connector). The research step's reads, its one search and the
+// Supabase connector). The research step's reads, its searches and the
 // model calls are live, inside `--cap-cents` (default 25, D43's per-page
 // ceiling) and `CAPS.DRAFT_C`. Nothing is published or written to a database.
 //
