@@ -27,6 +27,7 @@ import { HONESTY_INSTRUCTION } from "../rules/honest";
 import type { Template } from "../templates";
 import type { ContextPack } from "./pack";
 import type { FixNote } from "./repair";
+import { comparisonTable } from "./table";
 
 /** One buyer question and its answer, as `drafts.meta.faq` holds it. */
 export interface FaqEntry {
@@ -116,7 +117,6 @@ const HOUSE_RULES = [
   "Never write any of the phrases in `pack.neverClaim`, in those words or any others.",
   "Never invent a byline, an author biography, a persona, a quotation, a testimonial, a review or a case study, and never say the page's claims were tested, trialled or benchmarked. The page prints its own byline and dates: write neither.",
   "Name a competing product only where `pack.claims` holds a claim from that product's own page (`pack.products` lists them), and say what that page says. Never state a figure about a competitor without linking the page it was read from.",
-  "A comparison table names only this business and the products in `pack.products`. Every cell states what a fact says, with each price or figure linked to that fact's url inside the cell — never a blank, \"not stated\", \"not linked\", \"n/a\", \"unknown\" or any other words that say a value is missing: where a fact is missing for one product, leave that row out for every product, or leave that product out. Keep prices in one currency per table as the facts state them.",
   "A GFM table is a header row, a delimiter row with one `---` for every column, then one row per option.",
   "Do not write a sources list: one is added from the pages you linked.",
   "Never state a ranking position or a search volume, and never another company's scan score.",
@@ -131,6 +131,14 @@ const HOUSE_RULES = [
   `\`answer\` is the page's short answer: one paragraph of ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} words that answers the target plainly — write 45 to 55, in two or three sentences, and count them: outside ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} the page is stopped.`,
   `\`takeaways\`: ${PAGE_BLOCKS.takeaways.min} to ${PAGE_BLOCKS.takeaways.max} key takeaways, one sentence each. \`closing\`: one line that points the reader to the one action this page's reader should take, linking the page in \`pack.links\` where they take it.`,
 ];
+
+/** A table the writer lays out itself: every cell a fact, never a blank. */
+const WRITTEN_TABLE_RULE =
+  "A comparison table names only this business and the products in `pack.products`. Every cell states what a fact says, with each price or figure linked to that fact's url inside the cell — never a blank, \"not stated\", \"not linked\", \"n/a\", \"unknown\" or any other words that say a value is missing: where a fact is missing for one product, leave that row out for every product, or leave that product out. Keep prices in one currency per table as the facts state them.";
+/** SPEC §7 (owner, D47): the listicle's table is built in code from `pack`
+ *  (`./table.ts`), and the writer writes around it. */
+const BUILT_TABLE_RULE =
+  "`table` is this page's comparison table, built from `pack` and placed in the at-a-glance section as it is: it is the table `honesty` and `template.blocks` ask for. Write no table anywhere on the page, and say nothing of an option that `table` or `pack` does not carry. Where an option's row leaves a criterion out, `pack` holds no fact for it: never guess the value, and never write that it is missing.";
 
 export interface WriteInputs {
   template: Template;
@@ -178,6 +186,7 @@ function taskFor(a: WriteInputs): string {
 }
 
 function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<string, unknown> {
+  const table = a.template.blocks.table === undefined || a.pack.type !== "listicle" ? null : comparisonTable(a.pack, a.template.blocks.table.rivals);
   return {
     task: taskFor(a),
     template: templateFor(a),
@@ -185,7 +194,8 @@ function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<s
     // SPEC §8 hard rule 7: the voice is the customer's own text, verbatim.
     voice: a.pack.business.voice,
     pack: a.pack,
-    rules: HOUSE_RULES,
+    ...(table === null ? {} : { table: table.markdown }),
+    rules: [...HOUSE_RULES, table === null ? WRITTEN_TABLE_RULE : BUILT_TABLE_RULE],
     ...extra,
   };
 }

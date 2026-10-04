@@ -183,8 +183,8 @@ describe("§4.6: the calendar requests; it never creates", () => {
   });
 });
 
-describe("§7 (D46): a topic of a type the mix has paused fills no day", () => {
-  /** One open, ready Write row, the listicle scored above the plain one by
+describe("§7 (D46): the mix leaves out only the types on its one list", () => {
+  /** One open, ready Write row, the first scored above the plain one by
    *  its demand alone. */
   function ready(id: string, query: string, volume: number): OpportunityRow {
     return {
@@ -211,24 +211,20 @@ describe("§7 (D46): a topic of a type the mix has paused fills no day", () => {
     } as OpportunityRow;
   }
 
-  it("a listicle that outscores a Q&A topic is left out, and the Q&A topic is the day's page", async () => {
+  it("a listicle is back in the mix, its table built in code (D47): one that outscores a Q&A topic is the day's page", async () => {
     state.rows = [
       ready("listicle", "best user onboarding software", 90),
       ready("plain", "user onboarding software for startups", 20),
     ];
 
-    expect((await rankOpen(SITE_ID)).map((entry) => entry.opportunityId)).toEqual(["plain"]);
-    expect((await nextForDay(SITE_ID))?.targetQuery).toBe("user onboarding software for startups");
-    // It stays on file, open and ready, for the day its type comes back.
-    expect(state.rows[0]).toMatchObject({ status: "open", ready: true });
+    expect((await nextForDay(SITE_ID))?.targetQuery).toBe("best user onboarding software");
   });
 
-  it("`isPausedType` reads the row's own type: a listicle waits; current insights (D48) and a how-to do not", () => {
-    expect(isPausedType({ type: "keyword_page", targetQuery: "best user onboarding software" })).toBe(true);
-    expect(isPausedType({ type: "comparison_page", targetQuery: "appcues and userpilot" })).toBe(true);
+  it("`isPausedType` reads the row's own type against the one list, which is empty", () => {
+    expect(isPausedType({ type: "keyword_page", targetQuery: "best user onboarding software" })).toBe(false);
+    expect(isPausedType({ type: "comparison_page", targetQuery: "appcues and userpilot" })).toBe(false);
     expect(isPausedType({ type: "keyword_page", targetQuery: "latest user onboarding trends" })).toBe(false);
     expect(isPausedType({ type: "keyword_page", targetQuery: "how to onboard a new user" })).toBe(false);
-    expect(isPausedType({ type: "answer_page", targetQuery: "user onboarding software for startups" })).toBe(false);
     // It publishes no asset, so it has no type to pause.
     expect(isPausedType({ type: "unblock", targetQuery: null })).toBe(false);
   });

@@ -678,6 +678,27 @@ export const DRAFT_COPY = Object.freeze({
     "read on {date}",
     { slots: { date: "date" }, fixedBy: "SPEC §7 (2026-09-29) · issue 1135 · drafted" },
   ],
+  // The comparison table code lays out on a listicle (SPEC §7, owner, D47;
+  // issue 1258): the header over the options, the two criteria, and the
+  // header of the one column a table has where an option's own page does not
+  // state every criterion. Written into the page's own body. Drafted; the
+  // owner corrects the wording.
+  "body.table.option": [
+    "Option",
+    { slots: {}, fixedBy: "SPEC §7 (D47) · issue 1258 · drafted" },
+  ],
+  "body.table.pricing": [
+    "Pricing",
+    { slots: {}, fixedBy: "SPEC §7 (D47) · issue 1258 · drafted" },
+  ],
+  "body.table.does": [
+    "What it does",
+    { slots: {}, fixedBy: "SPEC §7 (D47) · issue 1258 · drafted" },
+  ],
+  "body.table.stated": [
+    "What its own page says",
+    { slots: {}, fixedBy: "SPEC §7 (D47) · issue 1258 · drafted" },
+  ],
   // The report's measurements, stated as facts a page may quote (SPEC §7,
   // 2026-10-03, issue 1163). Each is composed from stored figures only and
   // is sourced to the report's own address. Drafted; the owner corrects

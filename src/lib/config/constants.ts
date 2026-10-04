@@ -1581,10 +1581,10 @@ export const CONTENT_MIX = Object.freeze({
    *  handed, newest first. */
   BRIEF_PAGES_MAX: 100,
   /** SPEC §7 (owner, D46, 2026-10-04): the content types the mix leaves out
-   *  for now. A topic of one of them fills no day. The one list: D47 takes
-   *  `listicle` out of it once its table is built in code from the pack.
-   *  D48 took `insights` out (issue 1259): it reads a news search now. */
-  PAUSED_TYPES: Object.freeze(["listicle"] as readonly string[]),
+   *  for now. A topic of one of them fills no day. The one list, and it is
+   *  empty: D48 took `insights` out (issue 1259, it reads a news search) and
+   *  D47 took `listicle` out (issue 1258, its table is built in code). */
+  PAUSED_TYPES: Object.freeze([] as readonly string[]),
 });                                                            // §7
 
 /** SPEC §7 (2026-09-29, *Pace*; issue 1139): in any seven days a site

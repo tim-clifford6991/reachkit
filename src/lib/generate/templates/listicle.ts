@@ -10,7 +10,7 @@ export const listicle: Template = {
     { key: "what_to_look_for", task: "Say what a buyer should look for when choosing, criterion by criterion." },
     {
       key: "at_a_glance",
-      task: "The options at a glance: after the opening paragraph, one GFM table with a row for this business and a row for each rival in `products`, on the criteria a buyer would use — only criteria `pack` holds a fact about for every one of them. Where a product's own page states no price, leave price out of the table and say what its page says of pricing in that product's own section.",
+      task: "The options at a glance: one opening paragraph saying what `table` compares and how to read it, then what stands out between the options. Write no table — `table` is placed under your opening paragraph as it is.",
       block: "table",
     },
     {
