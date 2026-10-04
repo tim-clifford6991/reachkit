@@ -63,6 +63,7 @@ export function weekMeasurementsFrom(a: {
 
   const positions = new Map<string, Measured<number>>();
   const namesCustomer = new Map<string, Measured<boolean>>();
+  const ownPagesCited = new Map<string, Measured<readonly string[]>>();
 
   // `questions` is what says which searches and which questions the week
   // still tracks. Where it was not measured at all, no search and no
@@ -90,6 +91,7 @@ export function weekMeasurementsFrom(a: {
 
     const cell = answerRows[index]?.cell;
     namesCustomer.set(question.text, namedBy(cell, at));
+    ownPagesCited.set(question.text, ownPagesBy(cell, at));
   });
 
   // **A page's own question is a tracked question** (SPEC §6 2026-09-20,
@@ -103,7 +105,9 @@ export function weekMeasurementsFrom(a: {
   // test was recorded under.
   for (const row of report.pageQuestions?.rows ?? []) {
     const wording = row.question.wording.text;
-    if (!namesCustomer.has(wording)) namesCustomer.set(wording, namedBy(row.cell, at));
+    if (namesCustomer.has(wording)) continue;
+    namesCustomer.set(wording, namedBy(row.cell, at));
+    ownPagesCited.set(wording, ownPagesBy(row.cell, at));
   }
 
   for (const target of a.targets ?? []) {
@@ -116,6 +120,7 @@ export function weekMeasurementsFrom(a: {
     domain: report.domain,
     positions,
     namesCustomer,
+    ownPagesCited,
     gatesCleared: gatesFrom(report, at),
     siteIssues: report.siteIssues,
   };
@@ -168,6 +173,24 @@ function namedBy(cell: AnswerCell | undefined, at: Date): Measured<boolean> {
       return measuredZero(false, at);
     case "answered":
       return measured(cell.namesCustomer, at);
+  }
+}
+
+/** The same cell, as the site's own pages its answer cited (SPEC §4
+ *  2026-09-29, D16). "No answer" cited nothing, which is measured. An
+ *  answered cell that kept no addresses — one stored before they were read
+ *  — is unmeasured: it cannot say which page was cited, so it credits none
+ *  and fails none. */
+function ownPagesBy(cell: AnswerCell | undefined, at: Date): Measured<readonly string[]> {
+  if (cell === undefined) return unmeasured<readonly string[]>("not_attempted", at);
+  switch (cell.kind) {
+    case "unmeasured":
+      return unmeasured<readonly string[]>(cell.reason, at);
+    case "no_answer":
+      return measuredZero<readonly string[]>([], at);
+    case "answered":
+      if (cell.ownUrls === undefined) return unmeasured<readonly string[]>("undeterminable", at);
+      return cell.ownUrls.length === 0 ? measuredZero<readonly string[]>([], at) : measured(cell.ownUrls, at);
   }
 }
 

@@ -7,7 +7,8 @@
 // one of the three from a missing measurement retires a live page forever
 // (ADR-072 decision 5, ADR-085).
 import { describe, expect, it } from "vitest";
-import { evaluateAcceptance } from "../../../src/lib/opportunities/verdicts/evaluate";
+import { evaluateAcceptance as evaluate } from "../../../src/lib/opportunities/verdicts/evaluate";
+import type { Acceptance } from "../../../src/lib/opportunities/types";
 import type { WeekMeasurements } from "../../../src/lib/opportunities/verdicts/types";
 import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured";
 import type { Barrier } from "../../../src/lib/opportunities/types";
@@ -15,6 +16,12 @@ import type { Measured } from "../../../src/lib/measure/measured";
 import { AT, DOMAIN } from "../fixtures";
 
 const WEEK = "2026-08-31";
+const PAGE = `https://${DOMAIN}/guides/p`;
+
+/** Every case here judges the one page. */
+function evaluateAcceptance(a: { acceptance: Acceptance; week: WeekMeasurements; pageUrl?: string }) {
+  return evaluate({ pageUrl: PAGE, ...a });
+}
 
 function week(over: Partial<WeekMeasurements> = {}): WeekMeasurements {
   return {
@@ -23,6 +30,7 @@ function week(over: Partial<WeekMeasurements> = {}): WeekMeasurements {
     domain: DOMAIN,
     positions: new Map<string, Measured<number>>(),
     namesCustomer: new Map<string, Measured<boolean>>(),
+    ownPagesCited: new Map<string, Measured<readonly string[]>>(),
     gatesCleared: new Map<Barrier, Measured<boolean>>(),
     siteIssues: null,
     ...over,
@@ -64,20 +72,40 @@ describe("top20 — the customer's own place for the recorded search", () => {
   });
 });
 
-describe("named_on — whether this week's AI answer names the customer", () => {
-  it("a measured answer decides it, both ways", () => {
+describe("named_on — whether this week's AI answer to the page's question cites the page", () => {
+  const cited = (urls: Measured<readonly string[]>) => week({ ownPagesCited: new Map([["p", urls]]) });
+  const acceptance = { form: "named_on", question: "p" } as const;
+
+  it("an answer that cites the page passes it, however the address was written", () => {
     expect(
-      evaluateAcceptance({
-        acceptance: { form: "named_on", question: "p" },
-        week: week({ namesCustomer: new Map([["p", measured(true, AT)]]) }),
-      })
+      evaluateAcceptance({ acceptance, week: cited(measured([`https://www.${DOMAIN}/guides/p/?utm_source=ai#:~:text=x`], AT)) })
     ).toEqual({ decided: true, passes: true, measuredAt: AT });
+  });
+
+  it("an answer that names the site and cites another of its pages does not credit this one", () => {
     expect(
       evaluateAcceptance({
-        acceptance: { form: "named_on", question: "p" },
-        week: week({ namesCustomer: new Map([["p", measuredZero(false, AT)]]) }),
+        acceptance,
+        week: week({
+          namesCustomer: new Map([["p", measured(true, AT)]]),
+          ownPagesCited: new Map([["p", measured([`https://${DOMAIN}/`], AT)]]),
+        }),
       })
     ).toEqual({ decided: true, passes: false, measuredAt: AT });
+  });
+
+  it("an answer that cited none of the site's pages fails it", () => {
+    expect(evaluateAcceptance({ acceptance, week: cited(measuredZero<readonly string[]>([], AT)) })).toEqual({
+      decided: true,
+      passes: false,
+      measuredAt: AT,
+    });
+  });
+
+  it("an answer whose addresses were not read decides nothing", () => {
+    expect(
+      evaluateAcceptance({ acceptance, week: cited(unmeasured<readonly string[]>("undeterminable", AT)) })
+    ).toEqual({ decided: false, because: "not_measured" });
   });
 
   it("a question that left the tracked set returns question_left_set", () => {
@@ -89,7 +117,7 @@ describe("named_on — whether this week's AI answer names the customer", () => 
   it("the two causes are returned distinctly and neither is substituted for the other", () => {
     const untracked = evaluateAcceptance({
       acceptance: { form: "top20", query: "q" },
-      week: week({ namesCustomer: new Map([["q", measured(true, AT)]]) }),
+      week: week({ ownPagesCited: new Map([["q", measured([PAGE], AT)]]) }),
     });
     const left = evaluateAcceptance({
       acceptance: { form: "named_on", question: "q" },

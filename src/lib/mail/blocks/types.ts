@@ -26,6 +26,9 @@ export type CopyVars = Readonly<Record<string, string | number>>;
 export interface ListRow {
   readonly label: CopyKey;
   readonly vars?: CopyVars;
+  /** Where the row leads, where it leads anywhere: the HTML body links the
+   *  row and the twin writes the address beside it. */
+  readonly href?: string;
 }
 
 /** One row of a `facts` block — the `dl` of mono fact rows the approved

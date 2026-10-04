@@ -71,6 +71,32 @@ describe("the previous week is the calendar week before, as a date", () => {
   });
 });
 
+describe("the tracked questions that now name the site (SPEC §8 2026-09-29, D16)", () => {
+  const answers = (cells: Record<string, "named" | "others" | "unread">) => ({
+    ...report({ score: 45, citations: 1 }),
+    aiAnswers: {
+      rows: Object.entries(cells).map(([search, cell], index) => ({
+        question: { n: index + 1, search },
+        cell:
+          cell === "unread"
+            ? { kind: "unmeasured", reason: "undeterminable" }
+            : { kind: "answered", citedDomains: [], namesCustomer: cell === "named" },
+      })),
+    },
+  });
+
+  it("lists a question named this week and not the week before, and no other", async () => {
+    seedWeek(BEFORE, answers({ "crm for dentists": "others", "dental crm pricing": "named", "dental software": "unread" }));
+    seedWeek(
+      WEEK,
+      answers({ "crm for dentists": "named", "dental crm pricing": "named", "dental software": "named", "new this week": "named" })
+    );
+
+    const movement = await weekMovement({ siteId: "site-1", weekStart: WEEK, at: AT });
+    expect(movement.nowNamed).toEqual([{ search: "crm for dentists" }]);
+  });
+});
+
 describe("a delta needs two measurements", () => {
   it("two measured weeks give the difference, and it carries the week's own date", async () => {
     seedWeek(BEFORE, report({ score: 41, citations: 2 }));

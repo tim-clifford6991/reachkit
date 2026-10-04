@@ -80,7 +80,7 @@ const SPECIMENS: readonly Specimen[] = [
     askedAs: "How much does a CRM cost?",
     bestRival: { domain: "capterra.com", position: measured(2, MEASURED_AT) },
     youStand: measuredZero(0, MEASURED_AT),
-    doneWhen: "Named in an AI answer for the target question within 6 weeks",
+    doneWhen: "Cited in an AI answer for the target question within 6 weeks",
     winnability: "reach",
     volume: measured(90, MEASURED_AT),
     difficulty: measured(28, MEASURED_AT),

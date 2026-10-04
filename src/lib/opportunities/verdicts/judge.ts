@@ -173,7 +173,7 @@ function judgeOne(a: {
   }
 
   // 3. The recorded test, against what this week measured.
-  const evaluation = evaluateAcceptance({ acceptance: page.acceptance, week: a.measurements });
+  const evaluation = evaluateAcceptance({ acceptance: page.acceptance, week: a.measurements, pageUrl: page.liveUrl });
   if (!evaluation.decided) {
     if ("cause" in evaluation) {
       return {

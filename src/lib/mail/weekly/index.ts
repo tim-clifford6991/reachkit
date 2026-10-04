@@ -220,11 +220,26 @@ async function measuredWeek(
     // SPEC §9 on Monday: the checks whose count moved, from the same two
     // stored weeks the deltas are read from.
     issues: movement.issueChanges,
+    // SPEC §8 2026-09-29 (D16): the tracked questions that now name the
+    // site, each with its answer's address. No page is credited here.
+    nowNamed: measured(
+      movement.nowNamed.map((question) => ({ search: question.search, answerUrl: answerUrlOf(question.search) })),
+      at
+    ),
     // D28 (#1185): what ReachKit changed about the market this week.
     marketChanges: await marketChangesSince(a.siteId, a.weekStart),
     ...(await mentionRateOf(a.siteId, a.weekStart)),
   });
   return { mail, measurement: measurementStateOf(account) };
+}
+
+/** Where the answer to a tracked question is read: the search it was
+ *  phrased from, on Google, which is the engine the reading is counted
+ *  from (SPEC §4 2026-09-17). */
+function answerUrlOf(search: string): string {
+  const url = new URL("https://www.google.com/search");
+  url.searchParams.set("q", search);
+  return url.toString();
 }
 
 /**

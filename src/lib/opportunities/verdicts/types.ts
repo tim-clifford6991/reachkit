@@ -193,6 +193,13 @@ export interface WeekMeasurements {
    *  keyed by the question a `named_on` test records. A key absent is
    *  `question_left_set` (REQ-071 c7). */
   readonly namesCustomer: ReadonlyMap<string, Measured<boolean>>;
+  /** The site's own pages this week's AI answer for a question cited,
+   *  keyed as `namesCustomer` is and holding exactly its keys (SPEC §4
+   *  2026-09-29, D16). A `named_on` test is decided from this and not from
+   *  `namesCustomer`: an answer that names the site and cites another of
+   *  its pages is not a result of this page. `unmeasured` where the
+   *  answer's addresses were not read. */
+  readonly ownPagesCited: ReadonlyMap<string, Measured<readonly string[]>>;
   /** Whether each barrier is cleared, keyed by the `Barrier` a
    *  `gate_cleared` test records. A key absent is a gate this week did not
    *  look at — `not_measured`, and never one of the five causes: a barrier

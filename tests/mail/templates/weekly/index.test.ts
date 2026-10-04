@@ -492,6 +492,23 @@ describe("#639 — the composed digest, as an inbox receives it", () => {
     expect(html).not.toMatch(/\sclass="/);
   });
 
+  it("names the tracked questions that now name the site, each with its answer's address, in both bodies (D16)", async () => {
+    const answerUrl = "https://www.google.com/search?q=crm+for+dentists";
+    const mail = buildWeekly({
+      scoreDelta: measured(6, AT),
+      aiAnswersDelta: measured(1, AT),
+      pages: measured([], AT),
+      next: measured([], AT),
+      nowNamed: measured([{ search: "crm for dentists", answerUrl }], AT),
+    });
+    const { html, text } = await compose(mail, { state: "complete" });
+    for (const body of [html, text]) {
+      inOrder(body, [COPY["mail.weekly.nowNamed"], "crm for dentists"]);
+    }
+    expect(html).toContain(`href="${answerUrl}"`);
+    expect(text).toContain(`crm for dentists: ${answerUrl}`);
+  });
+
   it("an unmeasured week states no section and no figure — only the line with the next due date, then the action", async () => {
     const gap = unmeasured<never>("undeterminable", AT);
     const mail = buildWeekly({ scoreDelta: gap, aiAnswersDelta: gap, pages: gap, next: gap });

@@ -91,6 +91,7 @@ describe('BUILD §6.2 — "the free AI matrix rides here at 0¢ extra": one call
       present: true,
       asynchronousAiOverview: false,
       referenceDomains: ["rival-one.com", "wikipedia.org"],
+      referenceUrls: ["https://rival-one.com/cited", "https://wikipedia.org/cited"],
     });
   });
 

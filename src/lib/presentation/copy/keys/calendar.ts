@@ -388,7 +388,9 @@ export const CALENDAR_COPY = Object.freeze({
   // against is never rewritten, so the row must say which of the three it
   // is rather than a single line that fits none of them.
   "calendar.done-when.top20": ["you rank in the top 20 for “{query}”", { slots: { query: "text" }, fixedBy: "BUILD §7" }],
-  "calendar.done-when.named-on": ["AI names you on “{question}”", { slots: { question: "text" }, fixedBy: "BUILD §7" }],
+  // SPEC §4 2026-09-29 (D16, issue 1147): the page is credited only where
+  // the answer cites the page itself. Drafted (#759).
+  "calendar.done-when.named-on": ["an AI answer to “{question}” cites this page", { slots: { question: "text" }, fixedBy: "SPEC §4 2026-09-29 D16" }],
   "calendar.done-when.gate-cleared": ["the access check passes", { slots: {}, fixedBy: "BUILD §7" }],
 
   // ── The day card and the day panel (SPEC §7, 2026-09-20, #908; issue 930)

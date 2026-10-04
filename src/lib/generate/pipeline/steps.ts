@@ -234,7 +234,7 @@ function acceptanceText(acceptance: Acceptance): string {
     case "top20":
       return `ranks in the top 20 for "${acceptance.query}"`;
     case "named_on":
-      return `is named in the AI answer to "${acceptance.question}"`;
+      return `is cited by the AI answer to "${acceptance.question}"`;
     case "gate_cleared":
       return `the ${acceptance.gate} access gate passes`;
     case "issues_cleared":

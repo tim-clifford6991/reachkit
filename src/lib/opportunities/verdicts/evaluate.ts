@@ -21,6 +21,8 @@
 // green either way.
 import { measured, type Measured } from "@/lib/measure/measured";
 import type { SiteIssuesSection } from "@/lib/site-issues/types";
+import { pageOf } from "@/lib/market/prompts/answer";
+import { canonicalUrl } from "../cluster";
 import type { Acceptance, PageFix } from "../types";
 import type { NotJudgeableCause, WeekMeasurements } from "./types";
 
@@ -89,6 +91,12 @@ export function pageFixesCleared(
   return measured(true, at);
 }
 
+/** One page's address as two readings of it compare: tracking parameters,
+ *  the fragment, the scheme, `www.` and a trailing slash dropped. */
+function addressOf(url: string): string {
+  return canonicalUrl(pageOf(url) ?? url);
+}
+
 /**
  * Pure. Can this recorded test be decided from what this week measured?
  *
@@ -98,6 +106,9 @@ export function pageFixesCleared(
 export function evaluateAcceptance(a: {
   acceptance: Acceptance;
   week: WeekMeasurements;
+  /** The address the page answers at. A `named_on` test reads it and no
+   *  other form does. */
+  pageUrl: string;
 }): Evaluation {
   switch (a.acceptance.form) {
     case "top20": {
@@ -115,10 +126,14 @@ export function evaluateAcceptance(a: {
       return decide(place, (m) => m.kind === "measured");
     }
     case "named_on": {
-      const named = a.week.namesCustomer.get(a.acceptance.question);
+      const cited = a.week.ownPagesCited.get(a.acceptance.question);
       // Absent: the question left the tracked set when the market changed.
-      if (named === undefined) return retired("question_left_set");
-      return decide(named, (m) => m.value);
+      if (cited === undefined) return retired("question_left_set");
+      // SPEC §4 2026-09-29 (D16): the page is credited only where the
+      // answer to its own tracked question cites this page. An answer that
+      // names the site and cites another of its pages does not pass it.
+      const page = addressOf(a.pageUrl);
+      return decide(cited, (m) => m.value.some((url) => addressOf(url) === page));
     }
     case "gate_cleared": {
       const cleared = a.week.gatesCleared.get(a.acceptance.gate);

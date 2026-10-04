@@ -186,11 +186,25 @@ export function overviewCellFor(measured: Measured<MarketSerp> | undefined, ownD
   if (!measured.value.aiOverview.present) return { kind: "no_answer" };
 
   const citedDomains = citedDomainsOf(measured.value.aiOverview.referenceDomains);
+  const urls = measured.value.aiOverview.referenceUrls;
   return {
     kind: "answered",
     citedDomains,
     namesCustomer: citedDomains.some((domain) => isOwnDomain(domain, ownDomain)),
+    ...(urls === undefined ? {} : { ownUrls: ownUrlsOf(urls, ownDomain) }),
   };
+}
+
+/** The cited addresses that are the site's own (issue 1147), as given. */
+function ownUrlsOf(urls: readonly string[], ownDomain: string): string[] {
+  return urls.filter((url) => {
+    try {
+      const host = new URL(url).hostname;
+      return isOwnDomain(registrableDomain(host) ?? host, ownDomain);
+    } catch {
+      return false;
+    }
+  });
 }
 
 /**
