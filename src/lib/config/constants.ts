@@ -1068,18 +1068,16 @@ export const SEVERITY_THRESHOLDS = Object.freeze({          // BP-027 · REQ-009
   unquotable_pages: Object.freeze({ mid: 1, high: 2 } as const),
 } as const);
 
-/** ADR-022's single closed list of AI reader user-agent tokens. One set, one
- *  name: the blocked-readers count (BP-024), the paste block (BP-027) and the
- *  hosted robots policy (BP-004/BP-047) all read this and nothing else.
- *  ADR-090 folds BP-047's `AI_CRAWLERS` into this name and records that
- *  REQ-059 criterion 4 states the membership verbatim: "it blocks no general
- *  search engine crawler and permits by name GPTBot, ClaudeBot,
- *  OAI-SearchBot, Claude-SearchBot, PerplexityBot and Google-Extended."
- *  Nothing is populated here from memory (rule 1.2). An empty list fails
+/** The answer readers (SPEC §9, 2026-09-29, D14, issue 1145): the crawlers
+ *  an AI answer is drawn from. Googlebot is one of them — Google's AI
+ *  answers need only a page that is indexed and may show a snippet. The
+ *  blocked-readers count, the score's access gates and the robots fix lines
+ *  read this list; the training crawlers are `AI_TRAINING_CRAWLERS`, and a
+ *  site that turns those away has made a choice, not a fault. The hosted
+ *  robots policy allows both lists by name. An empty list fails
  *  `tests/config/constants.test.ts`'s non-empty row. */
-export const AI_READER_AGENTS = Object.freeze([              // ADR-022, ADR-090
-  "GPTBot", "ClaudeBot", "OAI-SearchBot",
-  "Claude-SearchBot", "PerplexityBot", "Google-Extended",
+export const AI_READER_AGENTS = Object.freeze([              // SPEC §9 D14
+  "Googlebot", "OAI-SearchBot", "Claude-SearchBot", "PerplexityBot",
 ] as const);
 
 /** SPEC §6 (2026-09-20, #908) measure (d) and §7 of the same date, issue
@@ -1087,9 +1085,8 @@ export const AI_READER_AGENTS = Object.freeze([              // ADR-022, ADR-090
  *  for a user's question, and visitors arriving from one, counted by day,
  *  page and engine".
  *
- *  **Beside `AI_READER_AGENTS`, never inside it.** That list's membership
- *  is stated verbatim by REQ-059 criterion 4 and is read by the
- *  blocked-readers count, the paste block and the robots policy; adding a
+ *  **Beside `AI_READER_AGENTS`, never inside it.** That list is read by
+ *  the blocked-readers count, the paste block and the score; adding a
  *  name to it would change a score and a site-issue count. These are a
  *  different question — not "may an engine read this site" but "did one
  *  read this page, and why" — so they are their own pins and the one
@@ -1130,9 +1127,12 @@ export const AI_SEARCH_INDEXERS = Object.freeze({            // issue 921
 
 /** Excluded by name, never by omission: a hit whose agent carries one of
  *  these is not counted at all. §6(d): "training crawlers are not progress
- *  and are not shown." */
-export const AI_TRAINING_CRAWLERS = Object.freeze([          // issue 921
-  "GPTBot", "ClaudeBot",
+ *  and are not shown." SPEC §9 (D14) reads the same list: a site that
+ *  blocks one has opted out of training, which is never an issue.
+ *  Google-Extended is a robots token only and never appears in a request's
+ *  agent string. */
+export const AI_TRAINING_CRAWLERS = Object.freeze([          // issue 921 · SPEC §9 D14
+  "GPTBot", "ClaudeBot", "Google-Extended",
 ] as const);
 
 /** Where a visitor came from, when the referrer or `utm_source` says an AI

@@ -8,7 +8,7 @@
 //
 // A rule returns findings, never throws: a route with three violations
 // reports three, and the test names all of them.
-import { AI_READER_AGENTS } from "@/lib/config/constants";
+import { AI_READER_AGENTS, AI_TRAINING_CRAWLERS } from "@/lib/config/constants";
 import { isPlaceKey } from "@/lib/presentation/place";
 import { INTERNAL_CAUSE_VOCABULARY, type VocabularyEntry } from "./vocabulary";
 
@@ -90,10 +90,10 @@ const PLACEHOLDER_TOKENS = new Set([
  *  them is a word the product ever means to say. */
 const NEVER_ANYWHERE = ["NaN", "[object Object]", "undefined", "Infinity"];
 
-/** Every pinned reader agent spelling, longest first so a longer name is
- *  removed before a shorter one it contains. */
+/** Every pinned reader and training-crawler spelling, longest first so a
+ *  longer name is removed before a shorter one it contains. */
 const READER_AGENT_PATTERN = new RegExp(
-  [...AI_READER_AGENTS]
+  [...AI_READER_AGENTS, ...AI_TRAINING_CRAWLERS]
     .sort((a, b) => b.length - a.length)
     .map((agent) => agent.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
     .join("|"),

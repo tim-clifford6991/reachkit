@@ -111,10 +111,10 @@ function CardLine(p: { card: ProblemCard }): React.JSX.Element | null {
   }
 }
 
-/** The card's link: the robots lines on the paste arm, the free page for
+/** The card's link: the robots lines where the paste arm has any, the free page for
  *  the pages ReachKit writes when there is one, and the method otherwise. */
 function linkOf(card: ProblemCard, firstPage: boolean): { href: string; label: CopyKey } {
-  if (card.fix.kind === "paste") return { href: `#${METHOD_ANCHOR[card.problem]}`, label: "problem.show.lines" };
+  if (card.fix.kind === "paste" && card.fix.lines.length > 0) return { href: `#${METHOD_ANCHOR[card.problem]}`, label: "problem.show.lines" };
   if (card.fix.kind === "we_write" && firstPage) return { href: `#${FIRST_PAGE_ANCHOR}`, label: "problem.show.first-page" };
   return { href: `#${METHOD_ANCHOR[card.problem]}`, label: "problem.show.method" };
 }

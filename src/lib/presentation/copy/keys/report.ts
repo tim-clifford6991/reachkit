@@ -360,7 +360,7 @@ export const REPORT_COPY = Object.freeze({
   // ── Module 3, the three problem cards (REQ-009) ───────────────────────
   // One title, one doer and one measured-zero line per problem; the three
   // severity words are BANDS_COPY's `severity.*` and are not restated.
-  "problem.blocked-readers.title": ["AI readers blocked", { slots: {}, fixedBy: "REQ-009 c1" }],
+  "problem.blocked-readers.title": ["AI answer readers blocked", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
   "problem.blocked-readers.doer": ["Free fix · 10 min", { slots: {}, fixedBy: "REQ-009 c2" }],
   "problem.blocked-readers.none-needed": ["Nothing to fix", { slots: {}, fixedBy: "REQ-009 c3" }],
   "problem.missing-pages.title": ["Missing pages", { slots: {}, fixedBy: "REQ-009 c1" }],
@@ -375,7 +375,7 @@ export const REPORT_COPY = Object.freeze({
   // and the *show me* link the card opens. Drafted; the owner corrects them.
   "problem.section.title": ["What holds you back", { slots: {}, fixedBy: "issue 1068" }],
   "problem.section.sub": ["3 that cost you most, then 8 quick checks", { slots: {}, fixedBy: "issue 1068" }],
-  "problem.blocked-readers.cause": ["AI crawlers your robots.txt turns away can’t read you, so they can’t name you.", { slots: {}, fixedBy: "issue 1068" }],
+  "problem.blocked-readers.cause": ["An AI answer can’t quote a page its reader is turned away from, or a page that forbids snippets.", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
   "problem.missing-pages.cause": ["Questions your buyers ask that no page on your site answers.", { slots: {}, fixedBy: "issue 1068" }],
   "problem.unquotable-pages.cause": ["Pages with no line an AI answer could lift and quote with your name on it.", { slots: {}, fixedBy: "issue 1068" }],
   "problem.show.lines": ["Show me the lines", { slots: {}, fixedBy: "issue 1068" }],
@@ -411,8 +411,10 @@ export const REPORT_COPY = Object.freeze({
   // S2's eyebrow over the three collapses. The collapses' instructional
   // prose is the owner's (approved 2026-09-10, #459).
   "method.title": ["The complete method, free", { slots: {}, fixedBy: "REQ-009 c6" }],
-  "method.blocked-readers.title": ["Unblock the AI readers", { slots: {}, fixedBy: "REQ-009 c6" }],
-  "method.blocked-readers.body": ["Open the robots.txt file at the root of your site — your host or CMS usually has a setting for it. Find the rules that block the AI readers and add the lines shown below, so each reader is allowed. Save and publish; the readers pick up the change on their next visit. If your home page carries a noindex rule in its head, remove that too — it tells every reader, Google included, to ignore the page. Nothing else in the file needs to change, and no other reader gains access.", { slots: {}, fixedBy: "REQ-009 c6" }],
+  "method.blocked-readers.title": ["Unblock the AI answer readers", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
+  "method.blocked-readers.body": ["Open the robots.txt file at the root of your site — your host or CMS usually has a setting for it. Find the rules that block the readers AI answers are drawn from and add the lines shown below, so each one is allowed. Save and publish; the readers pick up the change on their next visit. A page can also keep itself out of an answer: remove nosnippet or max-snippet:0 from its robots meta tag, and data-nosnippet from around its main content. If your home page carries a noindex rule in its head, remove that too — it tells every reader, Google included, to ignore the page. Nothing else in the file needs to change, and no other reader gains access.", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
+  "method.blocked-readers.snippet-pages": ["These pages forbid snippets, so an AI answer can’t quote them:", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
+  "method.blocked-readers.training-choice": ["Your robots.txt turns away {crawlers}. That keeps your pages out of AI training and it is your choice — it doesn’t stop an AI answer from reading you, and it isn’t counted here.", { slots: { crawlers: "text" }, fixedBy: "SPEC §9 D14 · issue 1145" }],
   "method.missing-pages.title": ["Write the missing pages", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.missing-pages.body": ["Each missing page answers one question your market asks that names rivals and not you. Take the question, answer it plainly in the first paragraph, then back the answer with facts from your own site — numbers, dates, names, with a link to where each one lives. Publish it at a plain address on your own domain and link to it from a page that already ranks. One page a day is a good pace; one a week still moves the number. ReachKit writes these for subscribers, but nothing here needs a subscription.", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.unquotable-pages.title": ["Make your pages quotable", { slots: {}, fixedBy: "REQ-009 c6" }],

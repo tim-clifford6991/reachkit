@@ -11,7 +11,7 @@
 //
 // Two policies, and they must never become one. The customer's own domain
 // is served a document that blocks no general search engine crawler and
-// names the six AI readers with `Allow`; the preview host is served a
+// names the seven AI crawlers with `Allow`; the preview host is served a
 // document that indexes nothing. **They share no helper and no partial —
 // not even a line-joining utility.** A merged, parameterised template is
 // one edit away from serving the wrong policy on the wrong host, and that
@@ -19,38 +19,38 @@
 // (`tests/hosted/indexing/robots.test.ts` asserts the two functions'
 // callees are disjoint) and not a comment.
 //
-// **The six agents are a pin, never a literal here** (ADR-022, ADR-090):
-// `AI_READER_AGENTS` is one closed list that the blocked-readers count, the
-// unblock lines and this policy all read. Typing the names here would
-// be a second copy, and adding or removing an agent would stop being a
-// pins-test change.
+// **The agents are pins, never literals here**: the answer readers
+// (`AI_READER_AGENTS`) and the training crawlers (`AI_TRAINING_CRAWLERS`)
+// are the two closed lists SPEC §9 (2026-09-29, D14) names, and this policy
+// allows all seven. Typing the names here would be a second copy.
 //
 // The archived plan is WO-231.
-import { AI_ANSWER_FETCHERS, AI_READER_AGENTS } from "@/lib/config/constants";
+import { AI_ANSWER_FETCHERS, AI_READER_AGENTS, AI_TRAINING_CRAWLERS } from "@/lib/config/constants";
 
 /**
  * The document we serve on the customer's own domain.
  *
  * No blanket `Disallow`, no rule against a general crawler, and one
  * `Allow` group per pinned AI reader — a named group's verdict outranks
- * the wildcard (RFC 9309 §2.2.1, the 2026-09-05 ruling on #72), so the six
- * are permitted explicitly rather than by omission.
+ * the wildcard (RFC 9309 §2.2.1, the 2026-09-05 ruling on #72), so the
+ * four answer readers and the three training crawlers are permitted
+ * explicitly rather than by omission (SPEC §9, D14: "the hosted robots
+ * policy still allows all seven").
  *
  * **And one group per user-triggered fetcher** (SPEC §6, 2026-09-20 measure
  * (d); issue #921). `ChatGPT-User`, `Perplexity-User` and `Claude-User` are
  * how an engine goes to a page *because a person asked it something* — the
  * one arrival this product counts as progress. They are a separate pin from
- * `AI_READER_AGENTS` (which answers "may an engine read this site" and
- * whose membership REQ-059 c4 states verbatim) and the two lists are walked
- * separately here for the same reason: permitting a fetcher by name is a
- * different statement from permitting an indexer, and merging the lists
- * would change a site-issue count.
+ * `AI_READER_AGENTS` (which answers "may an engine read this site") and
+ * the lists are walked separately here for the same reason: permitting a
+ * fetcher by name is a different statement from permitting an indexer, and
+ * merging the lists would change a site-issue count.
  *
- * Both lists are read from the pins; no agent name is typed in this file.
+ * Every list is read from the pins; no agent name is typed in this file.
  */
 export function customerRobotsDocument(sitemapUrl: string): string {
   const lines: string[] = ["User-agent: *", "Allow: /", ""];
-  for (const agent of AI_READER_AGENTS) {
+  for (const agent of [...AI_READER_AGENTS, ...AI_TRAINING_CRAWLERS]) {
     lines.push(`User-agent: ${agent}`, "Allow: /", "");
   }
   for (const agent of Object.keys(AI_ANSWER_FETCHERS)) {

@@ -128,8 +128,8 @@ describe("ADR-022 — the unblock lines come from the pin and from nowhere else"
   });
 
   it("two blocked agents produce this exact block, character for character", () => {
-    expect(unblockLines(["GPTBot", "ClaudeBot"]).join("\n")).toBe(
-      ["User-agent: GPTBot", "Allow: /", "", "User-agent: ClaudeBot", "Allow: /"].join("\n")
+    expect(unblockLines(["Googlebot", "PerplexityBot"]).join("\n")).toBe(
+      ["User-agent: Googlebot", "Allow: /", "", "User-agent: PerplexityBot", "Allow: /"].join("\n")
     );
   });
 

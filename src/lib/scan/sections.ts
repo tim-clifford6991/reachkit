@@ -12,7 +12,7 @@
 // measured by the call that produced its input; this file re-shapes,
 // filters and labels, and where an input is missing it returns `null` or
 // an empty list rather than a zero.
-import { AI_READER_AGENTS, TRACKED_QUESTIONS_MAX } from "@/lib/config/constants";
+import { AI_READER_AGENTS, AI_TRAINING_CRAWLERS, TRACKED_QUESTIONS_MAX } from "@/lib/config/constants";
 import {
   engineColumns,
   overviewCellFor,
@@ -51,6 +51,17 @@ export function blockedAgentsOf(
   if (policy.absent) return [];
   if (policy.disallowsAll) return [...AI_READER_AGENTS];
   return AI_READER_AGENTS.filter((token) => policy.disallowedAgents[token] === true);
+}
+
+/** The training crawlers the access rules turn away by name (SPEC §9,
+ *  2026-09-29, D14). A choice the founder made, shown as one and never
+ *  counted: a blanket `Disallow` names nobody and is not read as one. */
+export function trainingOptOutOf(
+  robots: Measured<RobotsPolicy>
+): readonly (typeof AI_TRAINING_CRAWLERS)[number][] {
+  if (robots.kind === "unmeasured" || robots.value.absent) return [];
+  const policy = robots.value;
+  return AI_TRAINING_CRAWLERS.filter((token) => policy.disallowedAgents[token] === true);
 }
 
 /** The market category the profile inferred, shown beside the score. A

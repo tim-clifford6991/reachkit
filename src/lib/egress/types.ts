@@ -48,11 +48,11 @@ export interface RobotsPolicy {
   disallowsAll: boolean
   /** Per user-agent token, whether this document disallows it at the origin
    *  root. Keyed by the token as written in the document, lowercased; the
-   *  closed set the product counts over is BP-005's `AI_READER_AGENTS`
-   *  (ADR-022, ADR-090) and is applied by the caller, not here. One
-   *  refinement (issue #22, `robots.ts`): a document token that names a
-   *  member of that closed set — compared case-insensitively — is keyed by
-   *  the member's pinned spelling, so the caller reads it by the pin. */
+   *  closed set the product counts over is `AI_READER_AGENTS` and is
+   *  applied by the caller, not here. One refinement (issue #22,
+   *  `robots.ts`): a document token that names an answer reader or a
+   *  training crawler — compared case-insensitively — is keyed by the
+   *  pinned spelling, so the caller reads it by the pin. */
   disallowedAgents: Readonly<Record<string, boolean>>
   /** Sitemap declarations found in the document, in the order they appeared. */
   sitemaps: readonly string[]
