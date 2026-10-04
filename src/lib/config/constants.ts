@@ -1574,6 +1574,11 @@ export const CONTENT_MIX = Object.freeze({
   /** How many of the site's own published and planned pages a brief is
    *  handed, newest first. */
   BRIEF_PAGES_MAX: 100,
+  /** SPEC §7 (owner, D46, 2026-10-04): the content types the mix leaves out
+   *  for now. A topic of one of them fills no day. The one list: D47 takes
+   *  `listicle` out of it once its table is built in code from the pack, and
+   *  D48 takes `insights` out once it reads a news search. */
+  PAUSED_TYPES: Object.freeze(["listicle", "insights"] as readonly string[]),
 });                                                            // §7
 
 /** SPEC §7 (2026-09-29, *Pace*; issue 1139): in any seven days a site

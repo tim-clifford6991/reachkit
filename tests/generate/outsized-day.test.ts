@@ -165,9 +165,9 @@ describe("the daily job on a site whose every target is outsized (issue 881)", (
   });
 
   it("one right-sized target among them, and that is the page the day takes", async () => {
-    state.rows = [...OUTSIZED_SIX, row("opp-fit", "best seo brief software for startups", 40, "winnable")];
+    state.rows = [...OUTSIZED_SIX, row("opp-fit", "seo brief software for startups", 40, "winnable")];
     // The site's own measured page, so the run reaches the page at all. Its
-    // pack is short of what a comparison must hold, so nothing is written:
+    // pack is short of what a Q&A page must hold, so nothing is written:
     // the date's row is this case's proof of **which** target the day took.
     readMeasuredTextMock.mockResolvedValue([
       { url: GROUNDED.url, text: SOURCE_TEXT, measuredAt: GROUNDED.readAt },

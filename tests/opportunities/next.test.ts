@@ -6,8 +6,8 @@ import { measured } from "../../src/lib/measure/measured";
 import { deriveOpportunities } from "../../src/lib/opportunities/derive";
 import { nextForDay } from "../../src/lib/opportunities/next";
 import { assessReadiness } from "../../src/lib/opportunities/readiness";
-import { rankOpen } from "../../src/lib/opportunities/rank/open";
-import { setOpportunityStore } from "../../src/lib/opportunities/store";
+import { isPausedType, rankOpen } from "../../src/lib/opportunities/rank/open";
+import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
 import { supplyDepth } from "../../src/lib/opportunities/supply/depth";
 import { fakeCost } from "./cost";
 import { memoryStore, newMemoryState, setStatus, type MemoryState } from "./memory-store";
@@ -131,7 +131,17 @@ describe("§7: `unblock` is never in the list and never fills a day", () => {
     // with what `supplyDepth` counts. The property that proves there is
     // one predicate: what `nextForDay` hands back is always a member of
     // the unused-supply set, and it is null exactly when that set is empty.
-    await derive(defaultReport({ blockedAgents: [AI_READER_AGENTS[0]!] }));
+    // The search is a plain one: a "best …" search is a type the mix leaves
+    // out for now (D46), which the ranking drops and the count still holds.
+    await derive(
+      reportOf(
+        {
+          questions: [question({ search: search({ keyword: "user onboarding software for startups" }) })],
+          serps: [serp()],
+        },
+        { blockedAgents: [AI_READER_AGENTS[0]!] }
+      )
+    );
     const next = await nextForDay(SITE_ID);
     const { unused } = await supplyDepth(SITE_ID);
     expect(next === null).toBe(unused === 0);
@@ -170,5 +180,56 @@ describe("§4.6: the calendar requests; it never creates", () => {
 
   it("it takes no date and no count — one site, one opportunity or none", () => {
     expect(nextForDay.length).toBe(1);
+  });
+});
+
+describe("§7 (D46): a topic of a type the mix has paused fills no day", () => {
+  /** One open, ready Write row, the listicle scored above the plain one by
+   *  its demand alone. */
+  function ready(id: string, query: string, volume: number): OpportunityRow {
+    return {
+      id,
+      site_id: SITE_ID,
+      scan_id: SCAN_ID,
+      type: "keyword_page",
+      family: "write",
+      target_query: query,
+      target_ref: id,
+      proposed_slug: null,
+      title: null,
+      volume,
+      evidence: { family: "write", query, volume: measured(volume, AT) },
+      acceptance: { form: "top20", query },
+      fit_band: "winnable",
+      effort: 0.5,
+      status: "open",
+      cluster_key: null,
+      absorbed_queries: [],
+      ready: true,
+      unready_reason: null,
+      created_at: AT.toISOString(),
+    } as OpportunityRow;
+  }
+
+  it("a listicle that outscores a Q&A topic is left out, and the Q&A topic is the day's page", async () => {
+    state.rows = [
+      ready("listicle", "best user onboarding software", 90),
+      ready("plain", "user onboarding software for startups", 20),
+    ];
+
+    expect((await rankOpen(SITE_ID)).map((entry) => entry.opportunityId)).toEqual(["plain"]);
+    expect((await nextForDay(SITE_ID))?.targetQuery).toBe("user onboarding software for startups");
+    // It stays on file, open and ready, for the day its type comes back.
+    expect(state.rows[0]).toMatchObject({ status: "open", ready: true });
+  });
+
+  it("`isPausedType` reads the row's own type: a listicle and current insights wait, a how-to does not", () => {
+    expect(isPausedType({ type: "keyword_page", targetQuery: "best user onboarding software" })).toBe(true);
+    expect(isPausedType({ type: "comparison_page", targetQuery: "appcues and userpilot" })).toBe(true);
+    expect(isPausedType({ type: "keyword_page", targetQuery: "latest user onboarding trends" })).toBe(true);
+    expect(isPausedType({ type: "keyword_page", targetQuery: "how to onboard a new user" })).toBe(false);
+    expect(isPausedType({ type: "answer_page", targetQuery: "user onboarding software for startups" })).toBe(false);
+    // It publishes no asset, so it has no type to pause.
+    expect(isPausedType({ type: "unblock", targetQuery: null })).toBe(false);
   });
 });

@@ -169,6 +169,8 @@ const livePage = {
 const SITE_DOMAIN = "acme.example";
 const WP_BASE = "https://blog.acme.example";
 const LIVE_PATH = "/best-project-management-software";
+/** The search tonight's page is for. */
+const TARGET_SEARCH = "project management software for small teams";
 
 function jsonAnswer(status: number, value: unknown, url: string) {
   const body = JSON.stringify(value);
@@ -604,7 +606,14 @@ afterEach(() => {
 /** The opportunity §7 left for this site — yesterday's supply, which is
  *  what the evening tick picks from. */
 async function seedOneOpportunity(): Promise<string> {
-  const seedRow = generateFixtures.opportunity();
+  // A plain search: the shared fixture's "best …" is a listicle, a type the
+  // mix leaves out for now (D46), so it would fill no day.
+  const base = generateFixtures.opportunity();
+  const seedRow = generateFixtures.opportunity({
+    targetQuery: TARGET_SEARCH,
+    evidence: { ...base.evidence, query: TARGET_SEARCH } as typeof base.evidence,
+    acceptance: { form: "top20", query: TARGET_SEARCH },
+  });
   const inserted = await opportunityDoubles.memoryStore(opportunities).insert({
     site_id: SITE_ID,
     scan_id: SCAN_ID,
@@ -1216,7 +1225,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(page?.vetoDeadline).not.toBeNull();
       // And §7's account of why the page exists travels with it, unchanged
       // from the day supply chose it.
-      expect(page?.why.search).toBe("best project management software");
+      expect(page?.why.search).toBe(TARGET_SEARCH);
 
       // The engine's held set is cause-agnostic and counts every page that
       // is publishable and has not been attempted — this one is in it. But

@@ -444,7 +444,9 @@ async function seedTheWeeksSupply(
 ): Promise<void> {
   const store = opportunityDoubles.memoryStore(opportunities);
   for (const [topic] of TOPICS) {
-    const query = `best ${topic}`;
+    // The topic's own words: a "best …" search is a listicle, a type the
+    // mix leaves out for now (D46), so it would fill no evening.
+    const query: string = topic;
     const slug = topic.replace(/\s+/g, "-");
     const seedRow = generateFixtures.opportunity({ targetQuery: query, targetRef: slug });
     const inserted = await store.insert({

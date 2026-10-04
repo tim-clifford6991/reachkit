@@ -338,7 +338,7 @@ describe("supply and next-work see only ready rows, in Improve > Earn > Write or
 
   it("orders by score, family and type only breaking a tie (#1181), and leaves unready rows out", async () => {
     state.rows.push(
-      row({ id: "keyword", family: "write", type: "keyword_page", target_query: "best user onboarding software", volume: 9000 }),
+      row({ id: "keyword", family: "write", type: "keyword_page", target_query: "user onboarding software for startups", volume: 9000 }),
       row({ id: "answer", family: "write", type: "answer_page", target_query: "what is a product tour" }),
       row({ id: "improve", family: "improve", type: "expand_page", target_query: "user onboarding checklist", volume: 20 }),
       row({ id: "glossary", family: "write", type: "format_page", target_query: "onboarding glossary" })

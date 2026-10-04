@@ -278,6 +278,7 @@ describe("a page whose pack is short rests in needs_attention, not generating (#
 describe("D26 (issue 1179) — a stopped draft does not cost its day, and its topic rests", () => {
   /** The evening after the first: the tick drafts for 2026-09-09. */
   const NEXT_EVENING = new Date("2026-09-08T18:00:00.000Z");
+  const FIRST_TOPIC = "project management software for agencies";
 
   beforeEach(() => {
     // The day is picked by the real ranking here, over the rows the store holds.
@@ -285,7 +286,14 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     if (market.kind !== "measured") throw new Error("the fixture report has no measured market");
     opportunities.profile = market.value.profile;
     nextForDayMock.mockImplementation(actualOpportunities.nextForDay);
-    for (const row of opportunities.rows) row.ready = true;
+    for (const row of opportunities.rows) {
+      row.ready = true;
+      // D46: a "best …" search is a listicle, which the mix leaves out for
+      // now, so the topic the real ranking is to pick first is a plain one.
+      row.target_query = FIRST_TOPIC;
+      row.evidence = { ...(row.evidence as object), query: FIRST_TOPIC } as never;
+      row.acceptance = { form: "top20", query: FIRST_TOPIC };
+    }
   });
 
   async function secondTopic(): Promise<string> {

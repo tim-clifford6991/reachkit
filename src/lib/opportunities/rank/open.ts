@@ -39,6 +39,7 @@ import { readOpportunity, type DraftedPage } from "../store";
 import { canonicalUrl, comparePrecedence, sameTopic } from "../cluster";
 import { isCloseUpdate } from "../close";
 import { contentTypeOf, type ContentType } from "../content-type";
+import { isPausedType } from "../paused";
 import { isOwnRefresh, type Opportunity, type OpportunityType, type Ranked } from "../types";
 import { rankScore } from "./score";
 
@@ -241,6 +242,8 @@ export function placeFixPages(
  * caller reads as "no supply to order", never as an order derived from a
  * classification we could not make.
  */
+export { isPausedType };
+
 export async function rankOpen(siteId: string, at: Date = new Date()): Promise<Ranked[]> {
   const store = opportunityStore();
   const [rows, profile, fixRows, latest, drafted, citedPages] = await Promise.all([
@@ -268,8 +271,13 @@ export async function rankOpen(siteId: string, at: Date = new Date()): Promise<R
   const rankable = rows.filter((row) => row.ready);
   if (profile === null || rankable.length === 0) return placeFixPages([], fixes);
 
-  const scored = rankable.map((row) => {
-    const opportunity = readOpportunity(row);
+  // SPEC §7 (owner, D46): a topic whose type the mix has paused fills no
+  // day. It stays on file, open and ready, and ranks again the day its type
+  // leaves `CONTENT_MIX.PAUSED_TYPES`.
+  const mixed = rankable.map(readOpportunity).filter((opportunity) => !isPausedType(opportunity));
+  if (mixed.length === 0) return placeFixPages([], fixes);
+
+  const scored = mixed.map((opportunity) => {
     return {
       opportunity,
       score: rankScore({
