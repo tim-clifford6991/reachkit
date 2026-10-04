@@ -360,7 +360,7 @@ const HOUSE_RULES = [
   "`marketFacts` are claims read from public pages. State one in your own sentence or quote it exactly, and link its `url` in that same sentence; state nothing about the market, a competitor or a price that no market fact carries.",
   "Name a competing product only where `marketFacts` holds a claim from that product's own page (`products` lists them), and say what that page says.",
   "Quote nobody but a source: a block quote is the exact words of one fact, with a link to its url.",
-  "A comparison table names only this business and the products in `products`. Every cell states what a fact says, with each price or figure linked to that fact's url inside the cell, and never \"not stated\", \"n/a\" or a blank: where a fact is missing for one product, leave that column out for every product. Keep prices in one currency per table as the facts state them; where you convert one, state the rate and its date beside the table.",
+  "A comparison table names only this business and the products in `products`. Every cell states what a fact says, with each price or figure linked to that fact's url inside the cell, and never a blank, \"not stated\", \"n/a\", \"unknown\" or any other words that say a value is missing or has no linked fact: where a fact is missing for one product, leave that row out for every product, or leave that product out. Keep prices in one currency per table as the facts state them; where you convert one, state the rate and its date beside the table.",
   "Do not write a sources list: one is added from the pages you linked.",
   "Never state a ranking position, a search volume or a visibility count.",
   "Write for a human reader only: never address an assistant, a crawler or a ranking system.",
