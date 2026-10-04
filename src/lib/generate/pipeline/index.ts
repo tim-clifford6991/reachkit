@@ -40,6 +40,7 @@ import { PAGE_BLOCKS, PIPELINE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Tier } from "@/lib/llm/tiers";
 import type { Opportunity } from "@/lib/opportunities";
+import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { readRecordedFact, recordedFactValue } from "../fact";
 import { recoveryOutcome, type Recovery } from "../claims/recovery";
@@ -62,6 +63,7 @@ import type { SourcedFact } from "./grounding";
 import type { ContextPack } from "./pack";
 import { fixNotes, repairable, repairMechanical, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
+import { comparisonTable, withTable } from "./table";
 import { fixPage, writePage, type PageParts } from "./write";
 
 /** The stages a page can stop at without a rule failing. */
@@ -253,7 +255,13 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
 
   const liveWords = pack.live === null ? null : sectionWords(pack.live.markdown);
   const length = lengthRangeFor(template, liveWords);
-  const pageType = pageTypeOf(a.opportunity);
+  // D47: a comparison written as a Q&A for want of two rivals compares
+  // nobody, so it is told to answer, not to compare.
+  const becameQa = pack.type === "qa" && contentTypeOf(a.opportunity) === "listicle";
+  const pageType = becameQa && pageTypeOf(a.opportunity) === "market_comparison" ? "answer" : pageTypeOf(a.opportunity);
+  // D47: the listicle's table, laid out from the pack before a word is
+  // written. The writer is handed the same one (`./write.ts`).
+  const table = pack.type === "listicle" && template.blocks.table !== undefined ? comparisonTable(pack, template.blocks.table.rivals) : null;
   const writing = {
     template,
     pack,
@@ -290,13 +298,16 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   /** The parts laid out as the page (SPEC §7, issue 1137): the body's links
    *  held to the chosen pages, no table cell left empty, the closing line
    *  last, and the sources list of the market pages the body cites — written
-   *  here and never by the model (issue 1135). */
+   *  here and never by the model (issue 1135). A listicle's table is the one
+   *  code built, under its at-a-glance section's opening paragraph (D47). */
   const finish = (parts: PageParts): Finished => {
     const laid = layoutPage(parts, template, tidy);
     const own = laid.sections.find((section) => ["business", "next_step", "related"].includes(section.key))?.heading;
+    const glance = laid.sections.find((section) => template.sections.find((slot) => slot.key === section.key)?.block === "table")?.heading;
+    const body = table === null ? laid.body.bodyMarkdown : withTable(laid.body.bodyMarkdown, glance, table.markdown);
     const markdown = withSources(
       withClosing(
-        completeTables(applyLinks(laid.body.bodyMarkdown, { ...linking, appendUnder: own })),
+        completeTables(applyLinks(body, { ...linking, appendUnder: own })),
         applyLinks(laid.closing, { ...linking, appendMissing: false }),
         a.links[0]?.url ?? `https://${a.site.domain}/`
       ),

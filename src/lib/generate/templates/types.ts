@@ -25,7 +25,8 @@ export interface TemplateSection {
  *  (`../pipeline/pack.ts`), and its `need` names what is missing. */
 export type PackRequirement =
   /** Options to compare, the customer among them: `min - 1` rivals whose
-   *  own pricing or feature page yielded a claim. */
+   *  own pricing or feature page yielded a claim the table can hold
+   *  (`../pipeline/table.ts`, D47). */
   | { need: "options"; min: number }
   /** The customer's own price, from the knowledge base or its pages. */
   | { need: "own_price" }

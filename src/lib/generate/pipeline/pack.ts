@@ -31,6 +31,7 @@ import { TEMPLATES, type PackNeed, type PackRequirement } from "../templates";
 import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import type { SourcedFact } from "./grounding";
 import type { MarketFact, MarketResearch, ResearchedProduct } from "./research";
+import { comparisonTable } from "./table";
 
 export interface PackFact {
   passage: string;
@@ -250,7 +251,9 @@ function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">,
   const words = topicWords(pack.target.searches.join(" "));
   switch (requirement.need) {
     case "options":
-      return pack.products.length >= requirement.min - 1;
+      // D47: the options are the ones code can lay a table out of — the
+      // business and that many rivals, each with a fact to set beside it.
+      return comparisonTable(pack, requirement.min - 1) !== null;
     case "own_price":
       return (
         (knowledge?.offerings ?? []).some((offering) => offering.prices.length > 0) ||
@@ -364,7 +367,12 @@ export function buildPack(a: PackInputs): ContextPack {
     live: a.live ?? null,
     adds: packAdds({ facts, claims, topResults: a.research.topResults ?? [], newPage: newPage && a.type !== "update" }),
   };
-  return { ...pack, missing: missingFrom(pack, a.previousResearch ?? null) };
+  const missing = missingFrom(pack, a.previousResearch ?? null);
+  // SPEC §7 (owner, D47): a comparison with fewer than two rivals that have
+  // facts is written as a Q&A, from the same reads. A business with no price
+  // of its own is not that case: the page stops and asks for it, as before.
+  if (a.type === "listicle" && missing.includes("options") && !missing.includes("own_price")) return buildPack({ ...a, type: "qa" });
+  return { ...pack, missing };
 }
 
 /** The pack as the row keeps it, read back. `null` on a row written before

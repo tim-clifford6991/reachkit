@@ -27,6 +27,16 @@ const PROFILE: PromptProfile = {
 };
 
 const rival = (domain: string) => ({ domain, pages: [`https://${domain}/pricing`] });
+/** What a rival's own pricing page was read to say. */
+const claimOf = (domain: string) => ({
+  url: `https://${domain}/pricing`,
+  title: domain,
+  readAt: AT,
+  passage: `Plans at ${domain} start at $20 a month.`,
+  kind: "rival_pricing" as const,
+  product: domain,
+});
+const RESEARCHED = { facts: [claimOf("rival.example"), claimOf("other.example")], products: [rival("rival.example"), rival("other.example")] };
 
 function inputs(over: Partial<PackInputs> = {}): PackInputs {
   return {
@@ -38,7 +48,7 @@ function inputs(over: Partial<PackInputs> = {}): PackInputs {
     voice: null,
     profile: PROFILE,
     facts: FACTS,
-    research: { facts: [], products: [rival("rival.example"), rival("other.example")] },
+    research: RESEARCHED,
     report: report(),
     sitePages: [],
     links: [],
@@ -54,14 +64,18 @@ describe("a pack is held against what its template must hold", () => {
     expect(pack).toMatchObject({ type: "listicle", neverClaim: ["HIPAA compliant"], facts: [{ passage: GROUNDED.passage }] });
   });
 
-  it("with fewer than two researched rivals it is missing its options, and says only that", () => {
-    const pack = buildPack(inputs({ research: { facts: [], products: [rival("rival.example")] } }));
-    expect(pack.missing).toEqual(["options"]);
+  it("with fewer than two rivals that have a fact it is written as a Q&A, from the same reads (D47)", () => {
+    const one = buildPack(inputs({ research: { facts: [claimOf("rival.example")], products: [rival("rival.example")] } }));
+    expect(one.type).toBe("qa");
+    // A rival that was read and yielded nothing is not an option either.
+    expect(buildPack(inputs({ research: { ...RESEARCHED, facts: [claimOf("rival.example")] } })).type).toBe("qa");
   });
 
   it("a business with no knowledge base is missing its point of difference too; its price is read off its own page", () => {
     const bare = buildPack(inputs({ profile: null }));
-    expect(bare.missing).toEqual(["own_price", "difference"]);
+    // No price of its own is no row of its own, so no table either — and
+    // that stops the page rather than turning it into a Q&A.
+    expect(bare).toMatchObject({ type: "listicle", missing: ["options", "own_price", "difference"] });
     // The same answer whenever it is asked of the stored pack.
     expect(missingFrom(bare)).toEqual(bare.missing);
     const priced = { fact: { ...GROUNDED, passage: "The starter plan costs $12 a seat." }, sourceText: "The starter plan costs $12 a seat." };

@@ -94,7 +94,8 @@ function cellsOf(line: string): string[] {
 
 const isEmpty = (cell: string): boolean => isPlaceholderCell(renderOf(cell));
 
-function currenciesOf(cell: string): Set<string> {
+/** The currencies a cell's words name, by symbol. */
+export function currenciesOf(cell: string): Set<string> {
   return new Set([...renderOf(cell).matchAll(CURRENCY_RE)].map((match) => CURRENCY_NAME[match[0]] ?? match[0]));
 }
 
