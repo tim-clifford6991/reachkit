@@ -1,19 +1,26 @@
-// scripts/eval-content/grade.ts — the rubric of #1132.
+// scripts/eval-content/grade.ts — the code half of the grader (#1132, #1158).
 //
-// Two halves. `checklist` is computed in code from the draft the pipeline
-// wrote, over the product's own Markdown model (`parseMarkdown`, the one
-// serialiser the screen, the hosted page and WordPress share). `modelGrade`
-// is one model call that judges what code cannot: business fit, what the page
-// adds beside the top results, navigation text and invented figures.
+// Everything on a page that can be counted is counted here, in code, over
+// the product's own Markdown model (`parseMarkdown`, the one serialiser the
+// screen, the hosted page and WordPress share): the required blocks, the
+// answer box's words, the length against the one target the writer reads,
+// leaked fact labels, repeated sentences, empty table cells, the site's own
+// navigation and demo text, the sources list, and every number traced to
+// where it came from.
+//
+// What cannot be counted is judged in pairs, blind (`./judge.ts`), and what
+// a page adds is listed code first (`./adds.ts`). Round 1 (#1153) had one
+// small-tier call score a page 0–3 from the topic and the top results'
+// titles; it gave a stopped 417-word draft the same 3/3 as the reference
+// page, and that call is gone (#1158).
 //
 // The rubric reads SPEC §7's 2026-09-29 lines (*What every page carries*,
 // *Length and the writer*). Byline and dates are the hosted page's chrome
 // (#1140), not the draft's, so they are not checked here.
-import Anthropic from "@anthropic-ai/sdk";
-import { z } from "zod";
-import type { CostContext } from "@/lib/costs";
-import { costCentsFor, tierBinding } from "@/lib/llm/tiers";
-import { lengthTargetFor } from "@/lib/generate/length";
+import { PAGE_BLOCKS } from "@/lib/config/constants";
+import { bodyWords, lengthTargetFor } from "@/lib/generate/length";
+import { FACT_LABEL_RE } from "@/lib/generate/rules/blocks";
+import { sentencesOf } from "@/lib/generate/rules/text";
 import type { OpportunityType } from "@/lib/opportunities/types";
 import { headingsUnderTitle, parseMarkdown, type Block, type Inline } from "@/lib/publish/render/markdown";
 
@@ -95,6 +102,76 @@ export interface Checklist {
   /** Passages the draft stood on that appear on three or more of the site's
    *  pages — navigation, by SPEC §5's drafted rule of 2026-09-29. */
   navigationFacts: number;
+  /** Words inside the short-answer box; 0 where the page has none. */
+  answerWords: number;
+  /** A prompt's fact labels printed on the page (`[F7]`, `[M39]`). */
+  factLabels: number;
+  /** Sentences the page says twice. */
+  duplicateSentences: string[];
+  /** Table cells that hold nothing, or only a dash. */
+  emptyCells: number;
+  /** The site's own navigation and demo text, found on the page. */
+  sitePhrases: string[];
+  /** The Sources list: the pages it names off the business's own domain,
+   *  how many answered when read, and how many are not one of the target's
+   *  top results. `null` where nothing was read to say. */
+  sources: { listed: number; resolved: number | null; beyondTop: number | null };
+}
+
+/** What was read off the network for a page: the target's top results, and
+ *  whether each page it cites answered. */
+export interface SourceEvidence {
+  topResults: readonly string[];
+  /** `null` for an address nobody tried. */
+  resolves: (href: string) => boolean | null;
+}
+
+const fold = (text: string): string =>
+  text
+    .toLowerCase()
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const tokens = (text: string): string[] => fold(text).replace(/[^\p{L}\p{N}€$%' ]+/gu, " ").split(" ").filter(Boolean);
+
+/** Every run of `n` words in a text, folded. */
+export function grams(text: string, n: number): Set<string> {
+  const list = tokens(text);
+  const out = new Set<string>();
+  for (let i = 0; i + n <= list.length; i++) out.add(list.slice(i, i + n).join(" "));
+  return out;
+}
+
+/** Whether two texts share a run of `n` words. */
+export function sharesRun(text: string, against: ReadonlySet<string>, n: number): boolean {
+  for (const gram of grams(text, n)) if (against.has(gram)) return true;
+  return false;
+}
+
+const SITE_RUN = 5;
+/** Demo widgets and form furniture: a bullet or an arrow between labels, the
+ *  demo's placeholder domains, a countdown. */
+const DEMO_RE = /[·▲→]|example\.(?:com|net|org)|\b\d+ h \d+ m\b/;
+
+/**
+ * The site's navigation and demo text: a sentence that stands on three or
+ * more of its pages (header, menu, footer), and a sentence of a demo widget.
+ * Returned as the runs of `SITE_RUN` words they are made of.
+ */
+export function sitePhraseGrams(pages: readonly { text: string }[]): Set<string> {
+  const sentences = pages.map((page) => page.text.split(/(?<=[.!?])\s+/).map((each) => each.trim()).filter(Boolean));
+  const out = new Set<string>();
+  sentences.forEach((list) => {
+    for (const sentence of list) {
+      const everywhere = sentences.filter((other) => other.includes(sentence)).length >= 3;
+      if (!everywhere && !DEMO_RE.test(sentence)) continue;
+      for (const gram of grams(sentence, SITE_RUN)) out.add(gram);
+    }
+  });
+  return out;
 }
 
 export function checklist(a: {
@@ -106,6 +183,7 @@ export function checklist(a: {
   factsUsed: readonly { passage: string; url: string }[];
   faq: unknown;
   pages: readonly { text: string }[];
+  evidence?: SourceEvidence;
 }): Checklist {
   // Headings as the hosted page sets them: the shallowest becomes an H2.
   const blocks = headingsUnderTitle(parseMarkdown(a.bodyMarkdown));
@@ -146,16 +224,28 @@ export function checklist(a: {
   });
 
   const sourcesAt = headings.find(({ block }) => /\b(sources|references)\b/i.test(inlineText(block.children)));
-  const sources =
-    sourcesAt !== undefined &&
-    blocks
-      .slice(sourcesAt.index + 1)
-      .flatMap(blockLinks)
-      .some((href) => !isOwn(href));
+  const listed = [
+    ...new Set(sourcesAt === undefined ? [] : blocks.slice(sourcesAt.index + 1).flatMap(blockLinks).filter((href) => !isOwn(href))),
+  ];
+  const sources = listed.length > 0;
+  const top = new Set((a.evidence?.topResults ?? []).map(hostOf));
 
   const last = [...blocks].reverse().find((block) => block.kind === "paragraph");
   const faq = Array.isArray(a.faq) ? a.faq.length : 0;
   const text = blocks.filter((block) => block.kind !== "guides").map(blockText).join(" ");
+
+  const counts = new Map<string, number>();
+  const labels = new RegExp(FACT_LABEL_RE.source, "g");
+  // A label is the writer's bookkeeping, not part of what a sentence says.
+  for (const sentence of sentencesOf(a.bodyMarkdown.replace(labels, ""))) {
+    if (words(sentence.text) < 8) continue;
+    counts.set(fold(sentence.text), (counts.get(fold(sentence.text)) ?? 0) + 1);
+  }
+  const emptyCells = blocks.flatMap((block) =>
+    block.kind === "table" ? block.rows.flatMap((row) => row.filter((cell) => /^[\s—–-]*$/.test(inlineText(cell)))) : []
+  ).length;
+  const ofSite = sitePhraseGrams(a.pages);
+  const sitePhrases = [...grams(text, SITE_RUN)].filter((gram) => ofSite.has(gram));
   const target = targetOf(a.type, a.query);
 
   const external = new Set(blocks.flatMap(blockLinks).filter((href) => hostOf(href) !== null && !isOwn(href)));
@@ -164,11 +254,11 @@ export function checklist(a: {
   ).length;
 
   return {
-    words: words(text),
+    words: bodyWords(a.bodyMarkdown),
     target,
     blocks: {
-      "short answer (40–60 words)": answerWords >= 40 && answerWords <= 60,
-      "3–5 takeaways": takeawayCount >= 3 && takeawayCount <= 5,
+      "short answer (40–60 words)": answerWords >= PAGE_BLOCKS.answerWords.min && answerWords <= PAGE_BLOCKS.answerWords.max,
+      "3–5 takeaways": takeawayCount >= PAGE_BLOCKS.takeaways.min && takeawayCount <= PAGE_BLOCKS.takeaways.max,
       "question headings": asked.length > 0 && asked.every(({ block }) => inlineText(block.children).trim().endsWith("?")),
       "H2 then H3, in order": levelsInOrder,
       "sections open with an answer": opensWithAnswer,
@@ -182,113 +272,141 @@ export function checklist(a: {
     businessFacts: a.factsUsed.length,
     marketFacts: external.size,
     navigationFacts,
+    answerWords,
+    factLabels: (a.bodyMarkdown.match(labels) ?? []).length,
+    duplicateSentences: [...counts].filter(([, n]) => n > 1).map(([sentence]) => sentence),
+    emptyCells,
+    sitePhrases,
+    sources: {
+      listed: listed.length,
+      resolved: a.evidence === undefined ? null : listed.filter((href) => a.evidence!.resolves(href) === true).length,
+      beyondTop: a.evidence === undefined ? null : listed.filter((href) => !top.has(hostOf(href))).length,
+    },
   };
 }
 
-// ── The model's half ───────────────────────────────────────────────────
+// ── Numbers ────────────────────────────────────────────────────────────
 
-// A tool answer sometimes carries a number or a flag as a string.
-const score = z.preprocess((v) => (typeof v === "string" ? Number(v) : v), z.number().int().min(0).max(3));
-const flag = z.preprocess((v) => (v === "true" ? true : v === "false" ? false : v), z.boolean());
-const GRADE = z.object({
-  fit: score,
-  fitWhy: z.string(),
-  adds: score,
-  addsWhy: z.string(),
-  navigationText: flag,
-  inventedFigures: flag,
-  inventedWhy: z.string().default(""),
-});
-export type ModelGrade = z.infer<typeof GRADE>;
+const MONTHS = "January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec";
+const DATES = new RegExp(`\\b\\d{4}-\\d{2}-\\d{2}\\b|\\b\\d{1,2}(?:st|nd|rd|th)? (?:${MONTHS})\\b|\\b(?:${MONTHS}) \\d{1,2}(?:st|nd|rd|th)?\\b`, "g");
 
-const GRADE_TOOL = {
-  name: "grade",
-  description: "Record the grade of one draft.",
-  input_schema: {
-    type: "object" as const,
-    properties: {
-      fit: { type: "integer", minimum: 0, maximum: 3, description: "Business fit of the topic: 3 the business's own offering is the answer to the search, 2 it plainly helps, 1 it can only be mentioned, 0 no relation." },
-      fitWhy: { type: "string", description: "One sentence." },
-      adds: { type: "integer", minimum: 0, maximum: 3, description: "What the draft adds that the listed top results lack: 0 nothing, 1 a little, 2 a clear addition, 3 a lot." },
-      addsWhy: { type: "string", description: "One sentence naming what it adds, or what is missing." },
-      navigationText: { type: "boolean", description: "True if the draft quotes or leans on menu, button, footer or demo-widget text as if it were a fact." },
-      inventedFigures: { type: "boolean", description: "True if the draft states a number, price, percentage or count that none of the listed facts holds." },
-      inventedWhy: { type: "string", description: "The first such figure, or an empty string." },
-    },
-    required: ["fit", "fitWhy", "adds", "addsWhy", "navigationText", "inventedFigures", "inventedWhy"],
-  },
-};
-
-const GRADE_MAX_OUTPUT_TOKENS = 600;
-
-/** One call, on the product's own tier and price, inside the page's own cost
- *  context — so the draft and its grade together stay inside
- *  `CAPS.DRAFT_C`. `null` where the cap refused it or the answer did not
- *  parse. */
-export async function modelGrade(
-  cost: CostContext,
-  a: {
-    business: { domain: string; category: string; job: string | null; products: readonly string[]; audience: readonly string[] };
-    target: string;
-    topResults: readonly { title: string; domain: string }[];
-    title: string;
-    bodyMarkdown: string;
-    facts: readonly string[];
-  }
-): Promise<ModelGrade | null> {
-  const binding = tierBinding("haiku");
-  const prompt = [
-    "You grade one web page a writing tool drafted for a business. Judge only what is written below.",
-    "",
-    `Business: ${a.business.domain}. Category: ${a.business.category}. What it does: ${a.business.job ?? "unknown"}.`,
-    `Products: ${a.business.products.join("; ") || "unknown"}. Serves: ${a.business.audience.join("; ") || "unknown"}.`,
-    `Target search: "${a.target}".`,
-    "Top results for that search today (titles only):",
-    ...a.topResults.map((row, i) => `${i + 1}. ${row.title} (${row.domain})`),
-    "",
-    "Facts the writer was given:",
-    ...a.facts.map((fact, i) => `${i + 1}. ${fact}`),
-    "",
-    `Draft title: ${a.title}`,
-    "Draft body (Markdown):",
-    a.bodyMarkdown,
-  ].join("\n");
-  const inputTokens = Math.ceil(prompt.length / 3);
-
-  const ask = () => cost.recordFetch<{ grade: ModelGrade | null; tokensIn: number; tokensOut: number }>({
-    source: "eval.grade",
-    cacheKey: `eval.grade:${a.business.domain}:${a.title}`,
-    freshnessDays: 0,
-    costCents: costCentsFor("haiku", inputTokens, GRADE_MAX_OUTPUT_TOKENS),
-    settleCents: (payload) => costCentsFor("haiku", payload.tokensIn, payload.tokensOut),
-    run: async () => {
-      const client = new Anthropic({ apiKey: binding.apiKey, timeout: 60_000, maxRetries: 1 });
-      const message = await client.messages.create({
-        model: binding.modelId,
-        max_tokens: GRADE_MAX_OUTPUT_TOKENS,
-        tools: [GRADE_TOOL],
-        tool_choice: { type: "tool", name: GRADE_TOOL.name },
-        messages: [{ role: "user", content: prompt }],
-      });
-      const use = message.content.find((block) => block.type === "tool_use");
-      const parsed = GRADE.safeParse(use?.type === "tool_use" ? use.input : null);
-      if (!parsed.success) {
-        // Field names only, never the answer.
-        console.log(`   grade did not parse: ${parsed.error.issues.map((i) => `${i.path.join(".")}:${i.code}`).join(", ")}`);
-      }
-      return {
-        grade: parsed.success ? parsed.data : null,
-        tokensIn: message.usage.input_tokens,
-        tokensOut: message.usage.output_tokens,
-      };
-    },
-  });
-
-  // One more ask where the answer did not parse, inside the same cap.
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const result = await ask();
-    if ("skipped" in result) return null;
-    if (result.payload.grade !== null) return result.payload.grade;
-  }
-  return null;
+export interface Figure {
+  n: string;
+  /** The sign it carries: a percentage or a currency. */
+  sign: "%" | "$" | "€" | "£" | null;
+  /** The words beside it, which are what tell one small number from another. */
+  prev: string;
+  next: string;
 }
+
+const word = (text: string | undefined): string => (text ?? "").toLowerCase().replace(/[^\p{L}]/gu, "").slice(0, 4);
+
+/** The figures a text states — not years, not the day of a date. */
+export function figuresIn(text: string): Figure[] {
+  const plain = text
+    .replace(DATES, " ")
+    // An abstract's TeX: `$40\%$` is 40%.
+    .replace(/\$(\d[\d.,]*)\s?\\%\$/g, "$1%")
+    .replace(/(\d)-(?=\p{L})/gu, "$1 ");
+  return [...plain.matchAll(/(?<![A-Za-z\d.,])\d[\d,]*(?:\.\d+)?/g)].flatMap((m) => {
+    const n = m[0].replace(/,+$/, "").replace(/,/g, "");
+    if (n === "" || /^(19|20)\d{2}$/.test(n)) return [];
+    const before = plain.slice(0, m.index);
+    const after = plain.slice(m.index + m[0].length);
+    const currency = /([$€£])\s?$/.exec(before)?.[1] as Figure["sign"] | undefined;
+    const sign = currency ?? (/^\s?(?:(?:[–-]|to)\s?\d[\d.,]*\s?)?(?:%|percent\b)/.test(after) ? "%" : null);
+    return [{ n, sign, prev: word(before.trim().split(/\s+/).pop()), next: word(after.trim().split(/\s+/)[0]) }];
+  });
+}
+
+export const numbersIn = (text: string): string[] => figuresIn(text).map((figure) => figure.n);
+
+/**
+ * Whether a source states this figure. A number with a sign must carry the
+ * same sign there, and a bare number under 100 must stand beside one of the
+ * same words: "7 days" is not held by a page that says "7 tools".
+ */
+export function holds(source: string, figure: Figure): boolean {
+  const small = figure.sign === null && /^\d{1,2}$/.test(figure.n);
+  return figuresIn(source).some(
+    (other) =>
+      other.n === figure.n &&
+      (figure.sign === null || other.sign === figure.sign) &&
+      (!small || (figure.prev === "" && figure.next === "") || (figure.prev !== "" && other.prev === figure.prev) || (figure.next !== "" && other.next === figure.next))
+  );
+}
+
+interface Unit {
+  text: string;
+  links: string[];
+}
+
+/** A paragraph, a list item, a table row: the span a figure and its source
+ *  sit in together. */
+export function units(blocks: readonly Block[]): Unit[] {
+  return blocks.flatMap((block): Unit[] => {
+    switch (block.kind) {
+      case "list":
+        return block.items.map((item) => ({ text: blockText({ kind: "paragraph", children: item }), links: blockLinks({ kind: "paragraph", children: item }) }));
+      case "table":
+        return block.rows.map((row) => {
+          const asBlock = { kind: "paragraph" as const, children: row.flat() };
+          return { text: blockText(asBlock), links: blockLinks(asBlock) };
+        });
+      case "answer":
+      case "takeaways":
+        return units(block.children);
+      default:
+        return [{ text: blockText(block), links: blockLinks(block) }];
+    }
+  });
+}
+
+export interface Trace {
+  number: string;
+  said: string;
+  /** `traced`: a fact the page stood on holds it. `pool`: only the arm's
+   *  wider pool holds it (the site's text, or facts it did not list).
+   *  `unread`: its cited source could not be read. `invented`: nothing does. */
+  verdict: "traced" | "pool" | "unread" | "invented";
+  from: string;
+}
+
+/** Every figure on the page, and the fact that holds it. This is the whole
+ *  of "invented figure": no model is asked (#1158). */
+export function traceNumbers(a: {
+  body: string;
+  facts: readonly { text: string; source: string }[];
+  pool: readonly { text: string; source: string }[];
+  /** The pages the body links, as read: a figure beside a link is traced to
+   *  that page. `null` is a page that did not answer. */
+  linked?: ReadonlyMap<string, string | null>;
+}): Trace[] {
+  const out: Trace[] = [];
+  // A cited page's title is not the page stating a number (issue 1135): the
+  // list under the Sources heading is not read.
+  let underSources = false;
+  const read = headingsUnderTitle(parseMarkdown(a.body)).filter((block) => {
+    if (block.kind === "heading") underSources = /^(sources|references)$/i.test(inlineText(block.children).trim());
+    return !(underSources && block.kind === "list");
+  });
+  for (const unit of units(read)) {
+    for (const figure of figuresIn(unit.text)) {
+      const n = figure.n;
+      const said = unit.text.length > 140 ? `${unit.text.slice(0, 137)}…` : unit.text;
+      const beside = a.linked === undefined ? [] : unit.links.filter((href) => a.linked!.has(href)).map((href) => ({ href, text: a.linked!.get(href) ?? null }));
+      const fromLink = beside.find((l) => l.text !== null && holds(l.text, figure));
+      const fact = a.facts.find((f) => holds(f.text, figure));
+      if (fromLink !== undefined) out.push({ number: n, said, verdict: "traced", from: fromLink.href });
+      else if (fact !== undefined) out.push({ number: n, said, verdict: "traced", from: fact.source });
+      else {
+        const inPool = a.pool.find((f) => holds(f.text, figure));
+        if (inPool !== undefined) out.push({ number: n, said, verdict: "pool", from: inPool.source });
+        else if (beside.some((l) => l.text === null)) out.push({ number: n, said, verdict: "unread", from: beside.map((l) => l.href).join(" ") });
+        else out.push({ number: n, said, verdict: "invented", from: "" });
+      }
+    }
+  }
+  return out;
+}
+

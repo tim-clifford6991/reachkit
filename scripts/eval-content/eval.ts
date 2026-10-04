@@ -12,9 +12,11 @@
 //      product's own. A draft the rules stop is graded as written, with the
 //      rules that stopped it; only a step that did not answer is tried again,
 //      as the product tries it (#813).
-//   3. **Grade.** `./grade.ts`: a checklist in code and one model call.
+//   3. **Grade.** `./grade.ts`: counted in code, every number traced. No
+//      model grades a single page (#1158); pages are judged in pairs by
+//      `./round.ts`.
 //
-// Draft and grade share one cost context capped at `CAPS.DRAFT_C`, so a page
+// A draft spends inside one cost context capped at `CAPS.DRAFT_C`, so a page
 // never spends more than the product allows for one. The model is the only
 // live call. Nothing publishes: the drafts live in this process and in
 // `.review/eval-content/` (gitignored), and the one committed output is the
@@ -39,7 +41,7 @@ import { confirmedProfile } from "@/lib/site-profile/business/confirm";
 import { NO_EDITS } from "@/lib/site-profile/business/types";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import { proofLedger, type ProofLedger } from "../live-drafts/cost";
-import { checklist, modelGrade, type Checklist, type ModelGrade } from "./grade";
+import { checklist, traceNumbers, type Checklist, type Trace } from "./grade";
 import { servePages } from "./measured-text";
 import { EVAL_SET, type EvalSlot } from "./set";
 import { inventoryOf, readSnapshot, type Snapshot } from "./snapshot";
@@ -61,7 +63,8 @@ export interface Result {
   title: string | null;
   bodyMarkdown: string | null;
   checklist: Checklist | null;
-  grade: ModelGrade | null;
+  /** Every figure on the page, traced to the fact that holds it. */
+  traces: Trace[];
   costCents: number;
   /** The business facts the draft stood on, and its buyer questions, as the
    *  pipeline stored them on the row. */
@@ -312,9 +315,9 @@ export async function evaluate(
   const domain = slot.domain!;
   const prepared = prepare(slot, index, today, given);
   const snapshot = readSnapshot(domain);
-  const base = { slot, domain, scan: snapshot.scan, title: null, bodyMarkdown: null, checklist: null, grade: null, costCents: 0, factsUsed: [], faq: null, adds: null };
+  const base = { slot, domain, scan: snapshot.scan, title: null, bodyMarkdown: null, checklist: null, traces: [], costCents: 0, factsUsed: [], faq: null, adds: null };
   if (!prepared.ok) return { ...base, target: null, outcome: prepared.outcome };
-  const { report, market, siteId, opportunity, target, chose, businessName, store, pages } = prepared;
+  const { report, siteId, opportunity, target, chose, businessName, store, pages } = prepared;
   if (!ledger.canStartDraft()) return { ...base, target, outcome: "not started: the run cap" };
 
   setGenerateStore(store);
@@ -357,21 +360,16 @@ export async function evaluate(
       faq: meta?.faq,
       pages: snapshot.pages,
     });
-    const questionAt = report.questions.kind === "measured" ? report.questions.value.findIndex((q) => q.search.keyword === target.search) : -1;
-    const serp = questionAt === -1 ? undefined : report.serps[questionAt];
-    const grade = await modelGrade(cost, {
-      business: {
-        domain,
-        category: market.category,
-        job: market.job,
-        products: snapshot.siteProfile?.products ?? [],
-        audience: market.audienceTerms,
-      },
-      target: target.search,
-      topResults: serp?.kind === "measured" ? serp.value.organic.map((r) => ({ title: r.title, domain: r.domain })) : [],
-      title: row.title ?? "",
-      bodyMarkdown: row.body_md,
-      facts: factsUsed.map((fact) => fact.passage),
+    const traces = traceNumbers({
+      body: row.body_md,
+      facts: [
+        ...factsUsed.map((fact) => ({ text: fact.passage, source: fact.url })),
+        ...research.facts.map((fact) => ({ text: `${fact.title} ${fact.passage}`, source: fact.url })),
+      ],
+      pool: [
+        ...snapshot.pages.map((page) => ({ text: page.text, source: page.url })),
+        ...(research.topResults ?? []).map((result) => ({ text: result.text, source: result.url })),
+      ],
     });
     return {
       ...base,
@@ -380,7 +378,7 @@ export async function evaluate(
       title: row.title,
       bodyMarkdown: row.body_md,
       checklist: list,
-      grade,
+      traces,
       costCents: cost.spentCents(),
       factsUsed,
       faq: meta?.faq ?? null,
@@ -413,26 +411,26 @@ function table(results: readonly Result[], ledger: ProofLedger, today: string): 
   lines.push("# Content evaluation");
   lines.push("");
   lines.push(
-    `Written by \`node scripts/eval-content.mjs --run\` on ${today} (#1132). It is a tool, not a gate. Each row is one draft by today's pipeline for the page the stored report would write first. Nothing was published. How the grades are made: \`scripts/eval-content/grade.ts\`. One draft per site is noisy: the same pipeline passed a different set of sites on each of three runs on 2026-09-29, so compare runs, not single rows.`
+    `Written by \`node scripts/eval-content.mjs --run\` on ${today} (#1132). It is a tool, not a gate. Each row is one draft by today's pipeline for the page the stored report would write first. Nothing was published. How the grades are made: \`scripts/eval-content/grade.ts\` — all of it counted in code; no model scores a single page (#1158). One draft per site is noisy: the same pipeline passed a different set of sites on each of three runs on 2026-09-29, so compare runs, not single rows.`
   );
   lines.push("");
-  lines.push("| Site | Target search (type) | Outcome | Fit 0–3 | Words / target | Blocks | Business facts | Market facts | Adds 0–3 | New claims (business) | Nav text | Invented figures | Cost |");
-  lines.push("|---|---|---|---|---|---|---|---|---|---|---|---|---|");
+  lines.push("| Site | Target search (type) | Outcome | Words / target | Blocks | Answer box | Business facts | Market facts | New claims (business) | Nav text | Fact labels | Repeated sentences | Empty cells | Numbers traced / pool only / invented | Cost |");
+  lines.push("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|");
   for (const r of results) {
     const list = r.checklist;
-    const grade = r.grade;
     const target = r.target === null ? "—" : `${esc(r.target.search)} (${r.target.type})`;
     const words = list === null ? "—" : list.target === null ? String(list.words) : `${list.words} / ${list.target.floor}–${list.target.ceiling}`;
-    const nav = list === null ? "—" : `${list.navigationFacts > 0 ? `${list.navigationFacts} fact(s) on 3+ pages` : "none in facts"}${grade === null ? "" : grade.navigationText ? "; grader: yes" : "; grader: no"}`;
+    const nav = list === null ? "—" : `${list.navigationFacts > 0 ? `${list.navigationFacts} fact(s) on 3+ pages` : "none in facts"}; ${list.sitePhrases.length === 0 ? "none on the page" : `${list.sitePhrases.length} runs on the page`}`;
+    const count = (verdict: Trace["verdict"]) => r.traces.filter((each) => each.verdict === verdict).length;
     lines.push(
-      `| ${r.domain} | ${target} | ${esc(r.outcome)} | ${grade?.fit ?? (list === null ? "—" : "not graded")} | ${words} | ${list === null ? "—" : blocksCell(list)} | ${list?.businessFacts ?? "—"} | ${list?.marketFacts ?? "—"} | ${grade?.adds ?? "—"} | ${addsCell(r.adds)} | ${nav} | ${grade === null ? "—" : grade.inventedFigures ? "yes" : "no"} | ${cents(r.costCents)} |`
+      `| ${r.domain} | ${target} | ${esc(r.outcome)} | ${words} | ${list === null ? "—" : blocksCell(list)} | ${list === null ? "—" : list.answerWords === 0 ? "none" : `${list.answerWords} words`} | ${list?.businessFacts ?? "—"} | ${list?.marketFacts ?? "—"} | ${addsCell(r.adds)} | ${nav} | ${list?.factLabels ?? "—"} | ${list?.duplicateSentences.length ?? "—"} | ${list?.emptyCells ?? "—"} | ${list === null ? "—" : `${count("traced")} / ${count("pool")} / **${count("invented")}**`} | ${cents(r.costCents)} |`
     );
   }
   for (const slot of EVAL_SET.filter((s) => s.domain === null)) {
-    lines.push(`| *${slot.kind}* | waiting for the owner's pick | | | | | | | | | | | |`);
+    lines.push(`| *${slot.kind}* | waiting for the owner's pick | | | | | | | | | | | | | |`);
   }
   lines.push("");
-  lines.push(`Total spend ${cents(ledger.spentCents())}; each page is capped at \`CAPS.DRAFT_C\` = ${cents(CAPS.DRAFT_C)} for its draft and its grade together.`);
+  lines.push(`Total spend ${cents(ledger.spentCents())}; each page is capped at \`CAPS.DRAFT_C\` = ${cents(CAPS.DRAFT_C)} for its draft.`);
   lines.push("");
   lines.push("## Required blocks, per draft");
   lines.push("");
@@ -462,14 +460,13 @@ function table(results: readonly Result[], ledger: ProofLedger, today: string): 
     for (const each of r.adds?.claims ?? []) lines.push(`- ${each.business ? "business" : "other"}: ${esc(each.claim)}`);
     lines.push("");
   }
-  lines.push("## What the grader said");
+  lines.push("## Numbers nothing holds");
   lines.push("");
   for (const r of results) {
-    if (r.grade === null) continue;
+    const invented = r.traces.filter((each) => each.verdict === "invented");
+    if (invented.length === 0) continue;
     lines.push(`**${r.domain}** — ${esc(r.title ?? "")}`);
-    lines.push(`- Fit: ${esc(r.grade.fitWhy)}`);
-    lines.push(`- Adds: ${esc(r.grade.addsWhy)}`);
-    if (r.grade.inventedFigures) lines.push(`- Invented figure: ${esc(r.grade.inventedWhy)}`);
+    for (const each of invented) lines.push(`- ${each.number}: ${esc(each.said)}`);
     lines.push("");
   }
   lines.push("## The reports graded");
@@ -488,7 +485,7 @@ export async function main(opts: Options): Promise<number> {
   console.log(`# Content evaluation (#1132)\n`);
   console.log(`domains     ${slots.map((s) => s.domain).join(", ")}`);
   console.log(`waiting     ${EVAL_SET.filter((s) => s.domain === null).length} slots for the owner's pick`);
-  console.log(`per page    CAPS.DRAFT_C = ${cents(CAPS.DRAFT_C)}, draft and grade together`);
+  console.log(`per page    CAPS.DRAFT_C = ${cents(CAPS.DRAFT_C)}`);
   console.log(`worst case  ${slots.length} x ${cents(CAPS.DRAFT_C)} = ${cents(runCap)}`);
   console.log(`publishes   nothing\n`);
   if (!opts.run) {
