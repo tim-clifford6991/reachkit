@@ -34,6 +34,7 @@ describe("the code checks", () => {
       "| Tool | Price |",
       "|---|---|",
       "| Acme | — |",
+      "| Rival | not linked to a stated figure |",
       "",
       "## Sources",
       "",
@@ -49,8 +50,9 @@ describe("the code checks", () => {
     evidence: { topResults: ["https://rival.test/study"], resolves: () => true },
   });
 
-  it("counts a leaked fact label, a repeated sentence and an empty cell", () => {
-    expect([list.factLabels, list.duplicateSentences.length, list.emptyCells]).toEqual([1, 1, 1]);
+  // Round 2 (issue 1250): a phrase standing in for a value is an empty cell.
+  it("counts a leaked fact label, a repeated sentence, and a dash or a placeholder phrase as an empty cell", () => {
+    expect([list.factLabels, list.duplicateSentences.length, list.emptyCells]).toEqual([1, 1, 2]);
   });
 
   it("does not ask the Sources heading to be a question or to open with a paragraph", () => {

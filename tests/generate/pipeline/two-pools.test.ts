@@ -253,6 +253,21 @@ describe("the page ends with what it cited, and a table has no empty cell", () =
     expect(completeTables(three).split("\n")).toEqual([...head, bestFor]);
   });
 
+  // Round 2 (issue 1250): the owner's "not stated" came back in new words.
+  it("takes out a criterion whose cells only say that nothing was read, and keeps a cell that states a no", () => {
+    const table = [
+      "| Criterion | Acme | Semrush One | Rankability | Frase |",
+      "| --- | --- | --- | --- | --- |",
+      "| Price | [€49 a month](https://acme.example/pricing) | not linked to a stated figure | Not carried by a linked market fact here | No public pricing |",
+      "| Free plan | No free plan | Not included | No | Unknown |",
+    ].join("\n");
+    expect(completeTables(table).split("\n")).toEqual([
+      "| Criterion | Acme | Semrush One | Rankability |",
+      "| --- | --- | --- | --- |",
+      "| Free plan | No free plan | Not included | No |",
+    ]);
+  });
+
   it("a rival's price left without its page is linked in code to the fact's page that states it", () => {
     const markdown = "| Rival | The Standard plan costs $24 per user per month. |";
     const repaired = repairMechanical(markdown, ["rival_source"], {

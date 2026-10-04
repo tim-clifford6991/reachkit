@@ -19,6 +19,7 @@
 // (#1140), not the draft's, so they are not checked here.
 import { PAGE_BLOCKS } from "@/lib/config/constants";
 import { bodyWords, lengthTargetFor } from "@/lib/generate/length";
+import { isPlaceholderCell } from "@/lib/generate/pipeline/sources";
 import { FACT_LABEL_RE } from "@/lib/generate/rules/blocks";
 import { sentencesOf } from "@/lib/generate/rules/text";
 import type { OpportunityType } from "@/lib/opportunities/types";
@@ -108,7 +109,9 @@ export interface Checklist {
   factLabels: number;
   /** Sentences the page says twice. */
   duplicateSentences: string[];
-  /** Table cells that hold nothing, or only a dash. */
+  /** Table cells that hold nothing: a blank, a dash, or a phrase standing in
+   *  for a value nobody read ("not stated", "not linked to a stated figure",
+   *  "n/a", "unknown") — the page pass's own test (issue 1250). */
   emptyCells: number;
   /** The site's own navigation and demo text, found on the page. */
   sitePhrases: string[];
@@ -242,7 +245,7 @@ export function checklist(a: {
     counts.set(fold(sentence.text), (counts.get(fold(sentence.text)) ?? 0) + 1);
   }
   const emptyCells = blocks.flatMap((block) =>
-    block.kind === "table" ? block.rows.flatMap((row) => row.filter((cell) => /^[\s—–-]*$/.test(inlineText(cell)))) : []
+    block.kind === "table" ? block.rows.flatMap((row) => row.filter((cell) => isPlaceholderCell(inlineText(cell)))) : []
   ).length;
   const ofSite = sitePhraseGrams(a.pages);
   const sitePhrases = [...grams(text, SITE_RUN)].filter((gram) => ofSite.has(gram));
