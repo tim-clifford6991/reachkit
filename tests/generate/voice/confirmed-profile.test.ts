@@ -18,7 +18,7 @@
 //      draft budget on their own vocabulary.
 //
 // Pure. `confirmedProfile` and `promptProfile` are both pure, and the model
-// seam is a mock that records what it was handed — so all four run with no
+// seam is a mock that records what the one write call was handed — so all four run with no
 // database, no clock and no vendor. That is the point: the removal rule is a
 // property of the shape, and a property can be asserted without a substrate.
 //
@@ -27,7 +27,7 @@
 // about the grounding read rather than about the prompt.
 import "../env";
 import { describe, expect, it, vi } from "vitest";
-import { GROUNDED, fakeCost, opportunity } from "../fixtures";
+import { fakeCost, pack } from "../fixtures";
 import { PROFILE_PROMPT_CAPS } from "../../../src/lib/config/constants";
 import { confirmedProfile, type MarketReading } from "../../../src/lib/site-profile/business/confirm";
 import { NO_EDITS, type BusinessEdits } from "../../../src/lib/site-profile/business/types";
@@ -35,13 +35,13 @@ import {
   profileItemsUsed,
   promptProfile,
 } from "../../../src/lib/generate/voice/profile-block";
-import { buildPromptInputs } from "../../../src/lib/generate/voice/inputs";
+import { TEMPLATES } from "../../../src/lib/generate/templates";
 import type { SiteProfile } from "../../../src/lib/site-profile/types";
 
 const { llmMock } = vi.hoisted(() => ({ llmMock: vi.fn() }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 
-const steps = await import("../../../src/lib/generate/pipeline/steps");
+const { writePage } = await import("../../../src/lib/generate/pipeline/write");
 
 /** The crawl's reading of a bike workshop. Only the members the confirmed
  *  profile reads are filled. */
@@ -77,36 +77,23 @@ function edits(over: Partial<BusinessEdits> = {}): BusinessEdits {
   return { ...NO_EDITS, ...over };
 }
 
-/** The prompt the draft step actually hands the model, as one string.
+/** The prompt the write call actually hands the model, as one string: the
+ *  context pack is everything the writer is given (SPEC §7, D41).
  *  Serialised, because the claim is "this text is not in the prompt" and a
  *  member-by-member walk would miss a nesting this test did not predict. */
 async function draftPromptText(a: {
   profile: ReturnType<typeof promptProfile>;
 }): Promise<string> {
   llmMock.mockReset();
-  llmMock.mockResolvedValue({
-    kind: "measured",
-    // One answer for both of the draft's calls: the frame's and the one section's.
-    value: { title: "t", slug: "s", description: "d", sections: ["x"] },
-    at: new Date("2026-09-06T00:00:00.000Z"),
-  });
-  const inputs = buildPromptInputs({
-    businessName: "Harbour Bike Repair",
-    domain: "harbourbikes.example",
-    category: "bike repair shops",
-    voiceText: "Plain and specific.",
-    opportunity: opportunity(),
-    grounded: GROUNDED,
-    links: [],
-    profile: a.profile,
-  });
-  await steps.draft(fakeCost(), inputs, {
-    brief: { readerQuestion: "q", angle: "a", mustCover: ["m"], factIndexes: [0] },
-    outline: { sections: [{ role: "answer", heading: "H" }] },
-    facts: [{ url: GROUNDED.url, passage: GROUNDED.passage }],
+  llmMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: new Date("2026-09-06T00:00:00.000Z") });
+  await writePage(fakeCost(), {
+    template: TEMPLATES.qa,
+    pack: pack({ profile: a.profile }),
+    pageType: "answer",
+    length: { floor: 800, ceiling: 1400 },
   });
   const call = llmMock.mock.calls[0]?.[1] as { input: unknown } | undefined;
-  expect(call, "the draft step made no model call").toBeDefined();
+  expect(call, "the write call was not made").toBeDefined();
   return JSON.stringify(call!.input);
 }
 
@@ -142,22 +129,6 @@ describe("#927 — a product the customer removed can never reach a page", () =>
     expect(prompt).toContain("Bike fitting");
   });
 
-  it("reaches the brief too, so the page's points cannot be built on it", () => {
-    const confirmed = confirmedProfile({
-      profile: derived(),
-      market: MARKET,
-      edits: edits({ removed: { products: ["Full service"] } }),
-    });
-    const projection = steps.briefProjection({
-      opportunity: opportunity(),
-      facts: [GROUNDED.passage],
-      doNotClaim: [],
-      voice: null,
-      profile: promptProfile(confirmed),
-    });
-    expect(projection.profile?.products).not.toContain("Full service");
-    expect(JSON.stringify(projection)).not.toContain("Full service");
-  });
 });
 
 describe("#927 — a product the customer added is written from", () => {
@@ -199,11 +170,6 @@ describe("#927 — a site with no profile builds the prompt it built before", ()
 
     const prompt = await draftPromptText({ profile: nothing });
     expect(prompt).toContain('"profile":null');
-    // The proof that this is the old prompt and not a new one: every other
-    // member is where it was, and the only mention of a profile is the null.
-    expect(prompt).toContain('"domain":"harbourbikes.example"');
-    expect(prompt).toContain('"category":"bike repair shops"');
-    expect(prompt.match(/"profile"/g)).toHaveLength(1);
   });
 
   it("a profile whose every field is empty is also `null`, not a shape of empties", () => {

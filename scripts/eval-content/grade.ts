@@ -18,7 +18,9 @@
 // *Length and the writer*). Byline and dates are the hosted page's chrome
 // (#1140), not the draft's, so they are not checked here.
 import { PAGE_BLOCKS } from "@/lib/config/constants";
-import { bodyWords, lengthTargetFor } from "@/lib/generate/length";
+import { bodyWords, lengthRangeFor } from "@/lib/generate/length";
+import { TEMPLATES } from "@/lib/generate/templates";
+import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { isPlaceholderCell } from "@/lib/generate/pipeline/sources";
 import { FACT_LABEL_RE } from "@/lib/generate/rules/blocks";
 import { sentencesOf } from "@/lib/generate/rules/text";
@@ -88,7 +90,9 @@ function hostOf(href: string): string | null {
 /** The length a page is held to: the product's own target (issue 1138), so
  *  the grader and the writer cannot hold different ones. */
 export function targetOf(type: OpportunityType, query: string): { floor: number; ceiling: number; kind: string } | null {
-  return lengthTargetFor({ type, targetQuery: query });
+  const kind = contentTypeOf({ type, targetQuery: query });
+  const range = kind === null ? null : lengthRangeFor(TEMPLATES[kind]);
+  return kind === null || range === null ? null : { ...range, kind };
 }
 
 export interface Checklist {

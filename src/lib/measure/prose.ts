@@ -69,11 +69,16 @@ export interface Prose {
    *  the marked element is still repeating an example, so the facts read
    *  drops it across the whole site (`generate/pipeline/grounding.ts`). */
   examples: string[];
+  /** What the page's menus said — its `nav`, `header` and `footer` — one
+   *  block per line (SPEC §7, D41 stage 4, issue 1249). Never part of
+   *  `text`; a generated page that repeats a line of it is stopped. */
+  menus: string[];
 }
 
 /** Total: any string parses, and one that is not HTML yields its text. */
 export function prose(html: string): Prose {
   const root = parse(html, { comment: false });
+  const menus = [...new Set(root.querySelectorAll("nav, header, footer").flatMap((element) => blockLines(element.structuredText)))];
   for (const element of root.querySelectorAll(CHROME)) {
     if (element.getAttribute("aria-hidden") !== "false") element.remove();
   }
@@ -94,7 +99,7 @@ export function prose(html: string): Prose {
     element.remove();
   }
   const body = root.querySelector("body") ?? root;
-  return { text: blockLines(body.structuredText).join("\n"), examples: [...new Set(said)] };
+  return { text: blockLines(body.structuredText).join("\n"), examples: [...new Set(said)], menus };
 }
 
 /** The document's prose alone. */

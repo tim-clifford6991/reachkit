@@ -17,7 +17,7 @@
 // Deterministic, no I/O. The rules' own text model (`../rules/text.ts`) is
 // the only notion of a block and a sentence used here, so a repair and the
 // check that reads it cannot disagree about where a sentence ends.
-import { ANSWER_FIRST_BLOCK_CHARS, ANSWERABILITY_MAX_NEW_QUESTIONS } from "@/lib/config/constants";
+import { ANSWER_FIRST_BLOCK_CHARS } from "@/lib/config/constants";
 import {
   INVENTED_PROVENANCE_RES,
   INVENTED_TEST_RES,
@@ -32,9 +32,7 @@ import { factPageKeys, unsourcedRivalFigure } from "../rules/rivals";
 import {
   blocksOf,
   hasLink,
-  headingKey,
   linksOf,
-  isQuestionShaped,
   renderOf,
   sentencesOf,
   sourceBlocksOf,
@@ -47,7 +45,6 @@ import type { HardRule, RuleFailure } from "../rules/types";
  *  opening is last because dropping a sentence can change what opens. */
 export const MECHANICAL_RULES: readonly HardRule[] = Object.freeze([
   "no_invented_provenance",
-  "no_new_question_heading",
   "traceable_numerals",
   // Issue 1135: a rival's figure left without its page is linked to the
   // fact's page that states it. Nothing is dropped.
@@ -189,24 +186,6 @@ function repairRivalFigures(markdown: string, inputs: RepairInputs): string {
   });
 }
 
-function addedQuestionHeadings(markdown: string, brief: BriefRuleInputs): Set<number> {
-  const outlined = new Set(brief.headings.map(headingKey));
-  const added: number[] = [];
-  blocksOf(markdown).forEach((block, index) => {
-    if (block.heading && isQuestionShaped(block.text) && !outlined.has(headingKey(block.text))) added.push(index);
-  });
-  return new Set(added.slice(ANSWERABILITY_MAX_NEW_QUESTIONS));
-}
-
-function repairQuestionHeadings(markdown: string, brief: BriefRuleInputs): string {
-  const drop = addedQuestionHeadings(markdown, brief);
-  const blocks = sourceBlocksOf(markdown);
-  return applyEdits(
-    markdown,
-    [...drop].map((index) => ({ from: blocks[index]!.from, to: blocks[index]!.to, text: "" }))
-  );
-}
-
 function fits(paragraph: string): boolean {
   return wordsOf(paragraph).length <= ANSWER_FIRST_BLOCK_CHARS.max;
 }
@@ -267,8 +246,6 @@ export function repairMechanical(markdown: string, rules: readonly HardRule[], i
       out = mapSentences(out, (piece) =>
         isPhraseBreach({ raw: piece, text: wordsOf(piece) }, INVENTED_PROVENANCE_RES, inputs.brief) ? null : piece
       );
-    } else if (rule === "no_new_question_heading") {
-      out = repairQuestionHeadings(out, inputs.brief);
     } else if (rule === "traceable_numerals") {
       out = repairNumerals(out, inputs);
     } else if (rule === "rival_source") {
@@ -315,10 +292,12 @@ function sentencesFor(
       if (figure === null) return [];
       return sentences.filter((s) => !s.hasLink && numeralRe(figure).test(s.text)).map((s) => s.text);
     }
-    case "no_new_question_heading": {
-      const blocks = blocksOf(markdown);
-      return [...addedQuestionHeadings(markdown, brief)].map((index) => blocks[index]!.text);
-    }
+    case "no_placeholder_cell":
+      return failure.detail !== undefined && "cell" in failure.detail ? [failure.detail.cell] : [];
+    case "no_demo_text":
+      return failure.detail !== undefined && "sentence" in failure.detail ? [failure.detail.sentence] : [];
+    case "do_not_claim":
+      return failure.detail !== undefined && "matchedEntry" in failure.detail ? [failure.detail.matchedEntry] : [];
     case "fit_claim":
       return failure.detail !== undefined && "sentences" in failure.detail ? failure.detail.sentences : [];
     case "honest_row":

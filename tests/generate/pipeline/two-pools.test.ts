@@ -86,13 +86,15 @@ describe("the research step reads the market's pages and keeps only what they sa
       if (url === "https://rival.example/plans-and-pricing") return answer(url, PRICING, "Pricing — Rival");
       return { ok: false, reason: "status", status: 404, url, readAt: TODAY };
     });
-    llmMock.mockResolvedValue(
+    // The pages are split over the research's two calls (D41); each call is
+    // answered for the pages it was handed.
+    const said: Record<string, string[]> = {
+      "https://listicle.example/best-pm-tools": [LISTICLE],
+      "https://rival.example/plans-and-pricing": [PRICING, "The Standard plan costs $19 per user per month."],
+    };
+    llmMock.mockImplementation(async (_c: unknown, call: { input: { pages: { page: number; url: string }[] } }) =>
       measured({
-        claims: [
-          { page: 1, quote: LISTICLE, year: null },
-          { page: 2, quote: PRICING, year: null },
-          { page: 2, quote: "The Standard plan costs $19 per user per month.", year: null },
-        ],
+        claims: call.input.pages.flatMap((page) => (said[page.url] ?? []).map((quote) => ({ page: page.page, quote, year: null }))),
       })
     );
     const c = cost();
@@ -154,7 +156,6 @@ describe("the research step reads the market's pages and keeps only what they sa
 describe("the rules follow the pools", () => {
   const brief = {
     facts: ["Teams on the starter plan get 25 seats and unlimited projects for a flat monthly fee."],
-    headings: [],
     queries: ["best project management software"],
     marketFacts: [{ url: "https://rival.example/pricing", passage: PRICING }],
   };
@@ -271,7 +272,7 @@ describe("the page ends with what it cited, and a table has no empty cell", () =
   it("a rival's price left without its page is linked in code to the fact's page that states it", () => {
     const markdown = "| Rival | The Standard plan costs $24 per user per month. |";
     const repaired = repairMechanical(markdown, ["rival_source"], {
-      brief: { facts: [], headings: [], queries: [] },
+      brief: { facts: [], queries: [] },
       sources: [{ url: "https://rival.example/pricing", text: PRICING }],
       rivals: ["rival.example"],
     });

@@ -29,7 +29,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fixNotes } from "@/lib/generate/pipeline/repair";
 import { runDeterministicRules } from "@/lib/generate/rules";
-import { headingsOf, renderOf, sourceBlocksOf } from "@/lib/generate/rules/text";
+import { renderOf, sourceBlocksOf } from "@/lib/generate/rules/text";
 import { HARD_RULES, type ComparisonSet, type HardRule, type ModelRule } from "@/lib/generate/rules/types";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
 import type { OpportunityType } from "@/lib/opportunities/types";
@@ -176,7 +176,7 @@ function firesOn(
     measured: a.snapshot.pages.map((p) => ({ ref: p.url, title: p.title, rendered: p.text })),
     queued: [],
   };
-  const brief = { facts: page.facts, headings: headingsOf(page.markdown), queries: page.queries };
+  const brief = { facts: page.facts, queries: page.queries };
   const site = { businessName: brandOf(a.report), domain: page.domain };
   const outcome = runDeterministicRules({
     markdown: page.markdown,
@@ -237,7 +237,7 @@ function ownPageFires(domain: string): { blocks: number; fires: Record<string, n
         comparison: { published: [], measured: [], queued: [] },
         grounded: { url: page.url, readAt: new Date(page.readAt), passage: block },
         sourceText: block,
-        brief: { facts: [block], headings: [], queries: [] },
+        brief: { facts: [block], queries: [] },
       });
       for (const rule of BLOCK_RULES) {
         if ((outcome as Record<string, unknown>)[rule] == null) continue;

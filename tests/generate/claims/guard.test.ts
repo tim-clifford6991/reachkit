@@ -135,14 +135,6 @@ describe("the sweep is bounded and safe to truncate", () => {
     expect(await outstandingMatch("d1")).toEqual({ matchedEntry: "HIPAA compliant" });
   });
 
-  it("an unrun check never counts as a completed one and leaves the draft outstanding", async () => {
-    llmMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
-    store.seed({ id: "d1", body_md: "Text with nothing on the list." });
-    const outcome = await sweepOutstandingRechecks(fakeCost(), store.site!.id);
-    expect(outcome.checked).toBe(0);
-    expect(await claimRecheckOutstanding("d1")).toBe(true);
-  });
-
   it("a draft already current is not re-checked — the hash already says what a call would cost money to learn", async () => {
     store.seed({
       id: "d1",

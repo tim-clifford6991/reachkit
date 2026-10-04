@@ -345,9 +345,3 @@ describe("SPEC §6 `FORMAT_PAGE_ALLOWED` — the four formats a format page may 
     }
   });
 });
-
-describe("SPEC §7 `ANSWERABILITY_MAX_NEW_QUESTIONS` — the pass adds no question-shaped heading", () => {
-  it("is zero: a bound, not a budget", () => {
-    expect(constants.ANSWERABILITY_MAX_NEW_QUESTIONS).toBe(0);
-  });
-});

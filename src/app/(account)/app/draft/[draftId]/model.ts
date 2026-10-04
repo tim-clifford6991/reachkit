@@ -19,6 +19,7 @@
 // that shortens a body, so none can be introduced by accident.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { RecordedFact } from "@/lib/generate/fact";
+import type { PackNeed } from "@/lib/generate/templates/types";
 import type { PageRecord } from "@/lib/publish/record";
 import type { PageTarget } from "../../_shell/page-target";
 import type { PageType } from "@/lib/opportunities/types";
@@ -122,6 +123,66 @@ export interface WrittenFrom {
    *  number a cited page states is not marked. Absent on a page written
    *  before the research step. */
   readonly marketFacts?: readonly { readonly passage: string; readonly url: string }[];
+  /** The context pack the page was written from (`drafts.meta.pack`, SPEC
+   *  §7, D41; issue 1252). Absent on a page written before the pack. */
+  readonly pack?: PackView;
+}
+
+/** How many of the site's pages the pack's fold lists before it counts. */
+export const PACK_PAGES_SHOWN = 10;
+
+/**
+ * The context pack as the *Written from your business* card reads it (SPEC
+ * §7, 2026-10-04, D41: "readable on the draft screen under *written from
+ * your business*"; issue 1252).
+ *
+ * The groups the card draws and nothing else of the stored object: the
+ * business facts already list above the fold, and the profile, the live
+ * page's text and the measurements are the writer's inputs in bulk, not
+ * lines a founder reads here. Every value is a string, so the view crosses
+ * to the browser as it is.
+ */
+export interface PackView {
+  /** The target question the page answers. */
+  readonly question: string;
+  /** The market facts: each passage, the public page it was read off, and
+   *  the moment it was read (ISO). */
+  readonly claims: readonly {
+    readonly passage: string;
+    readonly url: string;
+    readonly title: string;
+    readonly readAt: string;
+  }[];
+  /** The site's own pages the writer knew about — the first
+   *  `PACK_PAGES_SHOWN`, each by its title or its question. */
+  readonly pages: readonly string[];
+  /** How many more the pack held than are listed. */
+  readonly pagesMore: number;
+  readonly neverClaim: readonly string[];
+  /** What the template asked that the pack lacked, by handle. */
+  readonly missing: readonly PackNeed[];
+}
+
+/** One short noun phrase per thing a pack can lack. Total over `PackNeed`,
+ *  so a twelfth need is a compile error here rather than a blank line. */
+export const PACK_NEED_COPY: Readonly<Record<PackNeed, CopyKey>> = Object.freeze({
+  options: "publish.needs-you.pack.need.options",
+  own_price: "publish.needs-you.pack.need.own_price",
+  difference: "publish.needs-you.pack.need.difference",
+  facts_on_topic: "publish.needs-you.pack.need.facts_on_topic",
+  product_page: "publish.needs-you.pack.need.product_page",
+  measured_questions: "publish.needs-you.pack.need.measured_questions",
+  changed_figures: "publish.needs-you.pack.need.changed_figures",
+  buyer_questions: "publish.needs-you.pack.need.buyer_questions",
+  recent_results: "publish.needs-you.pack.need.recent_results",
+  live_page: "publish.needs-you.pack.need.live_page",
+  new_fact: "publish.needs-you.pack.need.new_fact",
+});
+
+/** The handles of a recorded reason that this build has a phrase for. A
+ *  handle it does not know is dropped rather than printed. */
+export function knownNeeds(handles: readonly string[]): PackNeed[] {
+  return handles.filter((handle): handle is PackNeed => Object.hasOwn(PACK_NEED_COPY, handle));
 }
 
 /**
@@ -130,6 +191,16 @@ export interface WrittenFrom {
  * customer's own pages say, as generation listed them (`drafts.meta.adds`).
  * Absent on a page written before the list was made.
  */
+/**
+ * A page that was not written because its context pack was short (SPEC §7,
+ * D41 stage 2; issue 1252): "the page stops naming what is missing". The
+ * handles are the ones the stop recorded on its own transition; where that
+ * names none, the stored pack's.
+ */
+export interface PackShort {
+  readonly missing: readonly PackNeed[];
+}
+
 export interface PageAdds {
   readonly claims: readonly { readonly claim: string; readonly business: boolean }[];
   /** The page is held for adding too little, and waits on a fact only the
@@ -141,7 +212,7 @@ export interface PageAdds {
  *  list draws no card, rather than an empty one — a draft written before
  *  the record existed is not a page written from nothing. */
 export function writtenFromIsEmpty(w: WrittenFrom): boolean {
-  return w.profileItems.length === 0 && w.facts.length === 0;
+  return w.profileItems.length === 0 && w.facts.length === 0 && w.pack === undefined;
 }
 
 /**
@@ -256,6 +327,8 @@ export interface DraftView {
   writtenFrom: WrittenFrom;
   /** What this page adds (issue 1143). */
   adds?: PageAdds;
+  /** The page rests unwritten because its pack was short (issue 1252). */
+  packShort?: PackShort;
   /** The customer's own frame: the name and the address the page publishes
    *  at, so the viewer can draw the page as a reader will meet it (#931). */
   publisher: Publisher;
@@ -315,6 +388,9 @@ export interface DraftFacts {
   writtenFrom: WrittenFrom;
   /** What the page adds, as generation listed it (issue 1143). */
   adds?: PageAdds;
+  /** Set where the page rests in `needs_attention` because its context
+   *  pack was short of what its template asks (issue 1252). */
+  packShort?: PackShort;
   /** The customer's own domain (#931). */
   domain: string;
   /** The passage and its source, as recorded at generation — `null` where
@@ -432,6 +508,7 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     timeZone: facts.timeZone,
     writtenFrom: facts.writtenFrom,
     ...(facts.adds === undefined ? {} : { adds: facts.adds }),
+    ...(facts.packShort === undefined ? {} : { packShort: facts.packShort }),
     publisher: publisherOf(facts),
     ruleFacts: facts.ruleFacts,
     domain: facts.domain,

@@ -27,7 +27,15 @@
 import type React from "react";
 import { FileText, Quote, Search, Sparkles } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
-import { writtenFromIsEmpty, type PageAdds, type Publisher, type WrittenFrom } from "./model";
+import { formatDate } from "../../_shell/format";
+import {
+  PACK_NEED_COPY,
+  writtenFromIsEmpty,
+  type PackView,
+  type PageAdds,
+  type Publisher,
+  type WrittenFrom,
+} from "./model";
 
 /** The eyebrow every card on this screen heads itself with. Matches the
  *  rows already on it rather than minting a second heading style. */
@@ -62,6 +70,9 @@ function readableAddress(url: string): string {
  *  failure (`scrollable-region-focusable`), and a second tab stop around a
  *  link is noise. */
 const VALUE_BOX = "min-w-0 max-w-full overflow-x-auto";
+
+/** Between a public page's name and the day it was read. */
+const PACK_SEPARATOR = " · ";
 
 /**
  * How the page appears in a search result.
@@ -146,9 +157,11 @@ export function SearchResult(p: {
  */
 export function WrittenFromCard(p: {
   writtenFrom: WrittenFrom;
+  /** The site's zone, for the day each public page was read. */
+  timeZone: string;
 }): React.JSX.Element | null {
   if (writtenFromIsEmpty(p.writtenFrom)) return null;
-  const { facts, profileItems } = p.writtenFrom;
+  const { facts, profileItems, pack } = p.writtenFrom;
 
   return (
     <section
@@ -231,8 +244,139 @@ export function WrittenFromCard(p: {
             </div>
           </div>
         )}
+
+        {pack === undefined ? null : <PackFold pack={pack} timeZone={p.timeZone} />}
       </div>
     </section>
+  );
+}
+
+/** A public page as a link names it: its title, or its host where the read
+ *  kept none. */
+function pageName(claim: { url: string; title: string }): string {
+  if (claim.title.trim() !== "") return claim.title;
+  try {
+    return new URL(claim.url).host;
+  } catch {
+    return claim.url;
+  }
+}
+
+/** The day a page was read, or `null` where the pack kept no date a
+ *  calendar can read. */
+function readDay(readAt: string, timeZone: string): string | null {
+  const at = new Date(readAt);
+  return Number.isNaN(at.getTime()) ? null : formatDate(at, timeZone);
+}
+
+const PACK_GROUP = "flex min-w-0 flex-col gap-1";
+const PACK_LIST = "flex min-w-0 list-none flex-col gap-2 p-0";
+
+/**
+ * The whole context pack, folded (SPEC §7, 2026-10-04, D41: "one JSON
+ * object stored with the draft and readable on the draft screen under
+ * *written from your business*"; issue 1252).
+ *
+ * One daisyUI `collapse` on a `details`, closed until it is asked for: the
+ * card above it is what most reviews need, and the pack is the long form
+ * for the founder who wants to see everything the writer was handed. It
+ * holds what the lists above do not — the question, the public pages'
+ * claims, the site's own pages, the never-claim list and what was missing —
+ * and repeats none of the business facts.
+ *
+ * Text only, and every line folds: a passage and a title are prose, so
+ * nothing in here is a value box or a scroller.
+ */
+function PackFold(p: { pack: PackView; timeZone: string }): React.JSX.Element {
+  const { question, claims, pages, pagesMore, neverClaim, missing } = p.pack;
+  return (
+    <details
+      className="collapse collapse-arrow border-base-300 min-w-0 border"
+      data-testid="written-from-pack"
+    >
+      <summary className="collapse-title min-w-0 text-sm font-medium wrap-anywhere">
+        {copy("draft.written-from.pack.title")}
+      </summary>
+      <div className="collapse-content flex min-w-0 flex-col gap-4 text-sm">
+        {question === "" ? null : (
+          <div className={PACK_GROUP}>
+            <h3 className="eyebrow">{copy("draft.written-from.pack.question")}</h3>
+            <p className="min-w-0 wrap-anywhere">{question}</p>
+          </div>
+        )}
+
+        {claims.length === 0 ? null : (
+          <div className={PACK_GROUP} data-testid="written-from-pack-claims">
+            <h3 className="eyebrow">{copy("draft.written-from.pack.claims")}</h3>
+            <ul className={PACK_LIST}>
+              {claims.map((claim, at) => {
+                const day = readDay(claim.readAt, p.timeZone);
+                return (
+                  <li className="flex min-w-0 flex-col" key={`${String(at)}-${claim.url}`}>
+                    <span className="min-w-0 wrap-anywhere">{claim.passage}</span>
+                    <span className="min-w-0 text-xs text-base-content/70 wrap-anywhere">
+                      <a className="link link-hover" href={claim.url} target="_blank" rel="noreferrer">
+                        {pageName(claim)}
+                      </a>
+                      {day === null ? null : (
+                        <>
+                          {PACK_SEPARATOR}
+                          {copy("draft.written-from.pack.claims.read", { at: day })}
+                        </>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {pages.length === 0 ? null : (
+          <div className={PACK_GROUP} data-testid="written-from-pack-pages">
+            <h3 className="eyebrow">{copy("draft.written-from.pack.pages")}</h3>
+            <ul className={PACK_LIST}>
+              {pages.map((page, at) => (
+                <li className="min-w-0 wrap-anywhere" key={`${String(at)}-${page}`}>
+                  {page}
+                </li>
+              ))}
+            </ul>
+            {pagesMore === 0 ? null : (
+              <p className="min-w-0 text-xs text-base-content/70">
+                {copy("draft.written-from.pack.pages.more", { n: String(pagesMore) })}
+              </p>
+            )}
+          </div>
+        )}
+
+        {neverClaim.length === 0 ? null : (
+          <div className={PACK_GROUP} data-testid="written-from-pack-never">
+            <h3 className="eyebrow">{copy("draft.written-from.pack.never-claim")}</h3>
+            <ul className={PACK_LIST}>
+              {neverClaim.map((entry) => (
+                <li className="min-w-0 wrap-anywhere" key={entry}>
+                  {entry}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {missing.length === 0 ? null : (
+          <div className={PACK_GROUP} data-testid="written-from-pack-missing">
+            <h3 className="eyebrow">{copy("draft.written-from.pack.missing")}</h3>
+            <ul className={PACK_LIST}>
+              {missing.map((need) => (
+                <li className="min-w-0 wrap-anywhere" key={need}>
+                  {copy(PACK_NEED_COPY[need])}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </details>
   );
 }
 

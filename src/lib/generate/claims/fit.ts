@@ -88,6 +88,10 @@ export async function fitCheck(
     /** The knowledge base the writer was handed, or absent where nothing was
      *  read or said of the business. */
     knowledge: PromptKnowledge | undefined;
+    /** The market the site is in (`sites.market`, issue 1248): its category,
+     *  who buys and the job. A sentence that places the business in its own
+     *  market is supported by it. */
+    market?: unknown;
   }
 ): Promise<FitVerdict> {
   if (a.knowledge === undefined) return { state: "passed" };
@@ -105,7 +109,8 @@ export async function fitCheck(
       task:
         "`sentences` are taken from a page written for the business in `business`. `knowledge` is " +
         "everything known about that business: what it sells, who it serves, the problems it solves, " +
-        "how it differs, and its proof. Find the sentences that say `business` itself is a kind of " +
+        "how it differs, and its proof; `market`, where given, is the market it is in, and placing " +
+        "the business in that market or among its named rivals is supported. Find the sentences that say `business` itself is a kind of " +
         "product, or is for a use, an audience or a market, that `knowledge` does not support — for " +
         "example one calling it the best software of a category `knowledge` never places it in. " +
         "Judge only what a sentence claims about `business`: what it says about any other product, " +
@@ -116,6 +121,7 @@ export async function fitCheck(
         "where there is none.",
       business: { name: a.businessName, domain: a.domain },
       knowledge: a.knowledge,
+      market: a.market ?? null,
       sentences: sentences.map((sentence, index) => ({ index, sentence })),
     },
   });

@@ -1,0 +1,28 @@
+// SPEC §7 (D42, 1) — listicle / comparison.
+import type { Template } from "./types";
+
+export const listicle: Template = {
+  type: "listicle",
+  for: "Help a buyer choose among options, with this business as an honest row: what the options are, what distinguishes them, and which case each one suits.",
+  titles: ["Best {category} for {audience}: {n} options compared", "{A} vs {B}: which fits {case}"],
+  titleNever: "Never name this business as \"#1\" or \"best\".",
+  sections: [
+    { key: "what_to_look_for", task: "Say what a buyer should look for when choosing, criterion by criterion." },
+    {
+      key: "at_a_glance",
+      task: "The options at a glance: after the opening paragraph, one GFM table with a row for this business and a row for each rival in `products`, on the criteria a buyer would use — only criteria `pack` holds a fact about for every one of them. Where a product's own page states no price, leave price out of the table and say what its page says of pricing in that product's own section.",
+      block: "table",
+    },
+    {
+      key: "option",
+      task: "One option: what it does, its price, who it suits, and one limit — each from a fact about that product.",
+      repeat: { min: 3, max: 6 },
+    },
+    { key: "which_to_choose", task: "Say which option to choose for which case." },
+    { key: "business", task: "Say how this business itself handles the question, from its facts, linking its product and pricing pages." },
+  ],
+  blocks: { table: { rivals: 2 }, faq: { min: 3, max: 6 } },
+  length: { floor: 1500, ceiling: 2500 },
+  research: true,
+  packMustHold: [{ need: "options", min: 3 }, { need: "own_price" }, { need: "difference" }],
+};

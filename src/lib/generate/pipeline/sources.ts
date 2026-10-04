@@ -21,7 +21,10 @@
 // renderer parses.
 import { copy } from "@/lib/presentation/copy";
 import { urlKey } from "../links/select";
+import { isPlaceholderCell } from "../rules/cells";
 import { linksOf, renderOf } from "../rules/text";
+
+export { isPlaceholderCell };
 
 const DAY = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
@@ -79,36 +82,6 @@ export function withSources(markdown: string, sources: readonly CitedSource[]): 
 
 const ROW_RE = /^[ \t]*\|.*\|[ \t]*$/;
 const DELIMITER_RE = /^[ \t]*\|(?:[ \t]*:?-{1,}:?[ \t]*\|)+[ \t]*$/;
-
-/** What a writer says of a value it was not handed: that no fact states,
- *  lists, links or carries it. Round 2 (issue 1250) met the owner's round-1
- *  "not stated" again as "not linked to a stated figure" and "not carried by
- *  a linked market fact here", so the words are held as a family, with or
- *  without one word between ("not publicly listed"). */
-const MISSING =
-  "stated|listed|specified|disclosed|available|published|mentioned|provided|given|linked|carried|found|known|shown|sourced|cited|confirmed|verified|reported|documented|public|clear";
-const MISSING_NOUN = "figures?|prices?|pricing|costs?|rates?|numbers?|data|information|details?|sources?|facts?";
-
-/** What a writer puts in a cell it has nothing for. */
-const EMPTY_CELL_RE = new RegExp(
-  [
-    String.raw`^(?:|[-–—?]+|none stated|tbd|tbc|varies(?: by plan)?)\.?$`,
-    String.raw`\b(?:n\/a|unknown|unclear|un(?:stated|disclosed|specified|published|listed|verified|confirmed))\b`,
-    String.raw`^na\.?$`,
-    String.raw`\bnot (?:\w+ )?(?:${MISSING})\b`,
-    String.raw`\bno (?:${MISSING}) (?:${MISSING_NOUN})\b`,
-    String.raw`\bno (?:${MISSING_NOUN}) (?:(?:is|are|was|were) )?(?:${MISSING})\b`,
-  ].join("|"),
-  "i"
-);
-
-/** Whether a table cell's words, as a reader meets them, say nothing: a
- *  blank, a dash, or a phrase that stands in for a value nobody read. The
- *  grader counts with this same test (`scripts/eval-content/grade.ts`), so
- *  what the page pass takes out and what the count calls empty cannot part. */
-export function isPlaceholderCell(rendered: string): boolean {
-  return EMPTY_CELL_RE.test(rendered.trim());
-}
 
 const CURRENCY_RE = /[$€£¥]|\b(?:USD|EUR|GBP|CAD|AUD)\b/g;
 const CURRENCY_NAME: Readonly<Record<string, string>> = { USD: "$", EUR: "€", GBP: "£" };

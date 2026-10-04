@@ -90,7 +90,7 @@ describe("a week of drafts ledgered under the weekly pass's row", () => {
     for (let day = 0; day < 7; day++) {
       await withCostContext({ scanId: "scan-1", cap: "DRAFT", policyVersion: 1, rollUp: "none" }, async (cost) => {
         expect(cost.spentCents()).toBe(0);
-        expect(await cost.recordFetch(call(CAPS.DRAFT_C, "generate.draft"))).not.toEqual({ skipped: "cap" });
+        expect(await cost.recordFetch(call(CAPS.DRAFT_C, "generate.write"))).not.toEqual({ skipped: "cap" });
       });
     }
     expect(updates).toEqual([]);

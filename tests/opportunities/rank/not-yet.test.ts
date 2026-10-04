@@ -147,7 +147,9 @@ describe("a not-yet target is never the day's page (issue 881)", () => {
     // law itself — the duplication issue 881 introduced and this one
     // collapsed. If a future edit puts a `fit_band` filter back into
     // `rankOpen`, this case fails.
-    state.rows = [row({ id: "forced", ready: true, unready_reason: null })];
+    // "seo software tool" is the dogfood's second target: a plain search,
+    // where its first ("best …") is a type the mix leaves out for now (D46).
+    state.rows = [row({ id: "forced", target_query: "seo software tool", ready: true, unready_reason: null })];
 
     expect((await rankOpen(SITE_ID)).map((entry) => entry.opportunityId)).toEqual(["forced"]);
     // And readiness is what puts it right.

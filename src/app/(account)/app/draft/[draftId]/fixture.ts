@@ -97,6 +97,43 @@ export const FIXTURE_WRITTEN_FROM: WrittenFrom = Object.freeze({
       url: null,
     },
   ]),
+  // The context pack (SPEC §7, D41; issue 1252), as the card's fold reads
+  // it. Every group it can draw is here, so the layout gate renders the
+  // fold whole — a long passage, a page with no title kept, more pages than
+  // it lists, and one thing the pack lacked.
+  pack: Object.freeze({
+    question: "What CRM should a small team use?",
+    claims: Object.freeze([
+      {
+        passage: "The free plan includes up to two users and one deal pipeline per account.",
+        url: "https://www.hubspot.com/pricing/crm",
+        title: "CRM pricing",
+        readAt: "2026-09-14T06:00:00.000Z",
+      },
+      {
+        passage:
+          "Small sales teams most often name data entry and switching cost as the reasons a CRM is abandoned inside its first year.",
+        url: "https://research.example.org/reports/small-team-crm-adoption-2026",
+        title: "",
+        readAt: "2026-09-13T06:00:00.000Z",
+      },
+    ]),
+    pages: Object.freeze([
+      "CRM tools compared",
+      "How long does a CRM migration take?",
+      "What a fixed-price migration covers",
+      "Moving from spreadsheets to a CRM",
+      "CRM for a five-person sales team",
+      "What to export before you switch CRM",
+      "How much does a CRM cost for a small team?",
+      "Do you need a CRM at all?",
+      "CRM migration checklist",
+      "Which CRM fields a small team needs",
+    ]),
+    pagesMore: 4,
+    neverClaim: Object.freeze(["the best CRM on the market", "guaranteed results"]),
+    missing: Object.freeze(["own_price"] as const),
+  }),
 });
 
 /**

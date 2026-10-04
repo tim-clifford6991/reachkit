@@ -103,6 +103,12 @@ const client = {
   },
 };
 
+// No test reaches a vendor: the research step's reads and its one search are
+// stood in for, and the page is written from the business's own facts.
+vi.mock("@/lib/generate/pipeline/research", async (importOriginal) => {
+  const { researchStandIn } = await import("../generate/fixtures");
+  return researchStandIn(await importOriginal<object>());
+});
 vi.mock("@/lib/db", () => ({ dbAdmin: () => client, db: () => client }));
 
 // ── The copy registry ───────────────────────────────────────────────────
@@ -270,8 +276,8 @@ function typingAnswerFor(input: string): Record<string, unknown> {
 
 const SUGGESTIONS = [
   "agency project management software",
-  "best project management software for agencies",
-  "asana alternatives for agencies",
+  "project management software for small agencies",
+  "agency client management software",
   "client work management tools",
   "creative agency project management",
   "studio resource planning software",
@@ -280,7 +286,7 @@ const SUGGESTIONS = [
   "agency time tracking software",
   "client project tracker",
   "agency workflow software",
-  "best tool for agency retainers",
+  "tool for agency retainers",
   "agency profitability software",
   "project management software for marketing agencies",
   "agency operations platform",
@@ -347,7 +353,7 @@ function vendorAnswer(url: string): unknown {
     items: [
       { type: "organic", rank_group: 1, domain: RIVALS[0], url: `https://${RIVALS[0]}/`, title: "Asana" },
       { type: "organic", rank_group: 2, domain: RIVALS[1], url: `https://${RIVALS[1]}/`, title: "Monday" },
-      { type: "organic", rank_group: 3, domain: "reddit.com", url: "https://reddit.com/r/agency", title: "Reddit" },
+      { type: "organic", rank_group: 3, domain: RIVALS[2], url: `https://${RIVALS[2]}/`, title: "ClickUp" },
     ],
   });
 }

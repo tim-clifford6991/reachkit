@@ -9,15 +9,12 @@ import "../env";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { GROUNDED, fakeCost, opportunity } from "../fixtures";
 
 const { llmMock } = vi.hoisted(() => ({ llmMock: vi.fn() }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 
 const { parseStoredMarket } = await import("../../../src/lib/market/infer/stored");
 const { writingMarket } = await import("../../../src/lib/generate/voice/market");
-const { buildPromptInputs } = await import("../../../src/lib/generate/voice/inputs");
-const steps = await import("../../../src/lib/generate/pipeline/steps");
 
 const FROZEN = JSON.parse(
   readFileSync(path.resolve(__dirname, "../../../scripts/eval-content/snapshot/reachkit.app.round-2.json"), "utf8")
@@ -74,39 +71,5 @@ describe("the market a page is written for", () => {
     expect(writing.market!.rivals.map((rival) => rival.domain)).toEqual(
       parseStoredMarket(market).current!.rivals.map((rival) => rival.domain)
     );
-  });
-
-  it("reaches the brief, the outline and the draft", async () => {
-    const writing = writingMarket({ site: site(), reportCategory: REPORT_CATEGORY });
-    const inputs = buildPromptInputs({
-      businessName: "ReachKit",
-      domain: "reachkit.app",
-      category: writing.category,
-      voiceText: null,
-      opportunity: opportunity(),
-      grounded: GROUNDED,
-      links: [],
-      profile: null,
-      market: writing.market,
-    });
-    const brief = { readerQuestion: "Which tool?", angle: "a", mustCover: ["b"], factIndexes: [0] };
-
-    await steps.brief(
-      fakeCost(),
-      steps.briefProjection({ opportunity: opportunity(), facts: [GROUNDED.passage], doNotClaim: [], voice: null, profile: null, market: writing.market })
-    );
-    await steps.outline(fakeCost(), inputs, { brief, skeleton: ["answer"] });
-    await steps.draft(fakeCost(), inputs, {
-      brief,
-      outline: { sections: [{ role: "answer", heading: "Which tool?" }] },
-      facts: [{ url: GROUNDED.url, passage: GROUNDED.passage }],
-    });
-
-    expect(llmMock.mock.calls.length).toBeGreaterThanOrEqual(3);
-    for (const call of llmMock.mock.calls) {
-      const input = call[1].input as { market: unknown; category?: string };
-      expect(input.market).toEqual(writing.market);
-      if ("category" in input) expect(input.category).toBe(writing.category);
-    }
   });
 });

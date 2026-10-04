@@ -38,7 +38,8 @@ import { opportunityStore } from "../store";
 import { readOpportunity, type DraftedPage } from "../store";
 import { canonicalUrl, comparePrecedence, sameTopic } from "../cluster";
 import { isCloseUpdate } from "../close";
-import { contentKindOf, type ContentKind } from "../content-kind";
+import { contentTypeOf, type ContentType } from "../content-type";
+import { isPausedType } from "../paused";
 import { isOwnRefresh, type Opportunity, type OpportunityType, type Ranked } from "../types";
 import { rankScore } from "./score";
 
@@ -126,9 +127,9 @@ export function orderRanked(
   for (let day = from; left.length > 0; day++) {
     const window = placed.filter((page) => page.day < day && page.day > day - CONTENT_MIX.WINDOW_DAYS);
     const yesterday = placed.find((page) => page.day === day - 1)?.kind ?? null;
-    const held = (kind: ContentKind | null) => window.filter((page) => page.kind === kind).length;
+    const held = (kind: ContentType | null) => window.filter((page) => page.kind === kind).length;
     type Entry = (typeof left)[number];
-    const kindOf = (entry: Entry) => contentKindOf(entry.opportunity);
+    const kindOf = (entry: Entry) => contentTypeOf(entry.opportunity);
     const fresh = (entry: Entry) => previous === null || !sameTopic(entry.opportunity, previous, topTens);
     const turns = (entry: Entry) => kindOf(entry) !== yesterday;
     const room = (entry: Entry) => held(kindOf(entry)) < CONTENT_MIX.MAX_PER_KIND;
@@ -167,7 +168,7 @@ export function orderRanked(
  *  subtract. */
 export interface Mix {
   from: number;
-  recent: readonly { day: number; kind: ContentKind }[];
+  recent: readonly { day: number; kind: ContentType }[];
 }
 
 const DAY_MS = 86_400_000;
@@ -192,7 +193,7 @@ export function mixOf(drafted: readonly DraftedPage[], at: Date): Mix {
   const days = drafted.map((page) => dayOf(page.date));
   const from = Math.max(today, ...days.map((day) => day + 1));
   const recent = drafted.flatMap((page) => {
-    const kind = contentKindOf({ type: page.row.type as OpportunityType, targetQuery: page.row.target_query });
+    const kind = contentTypeOf({ type: page.row.type as OpportunityType, targetQuery: page.row.target_query });
     return kind === null || !HOLDS_ITS_DAY.has(page.state) ? [] : [{ day: dayOf(page.date), kind }];
   });
   return { from, recent };
@@ -241,6 +242,8 @@ export function placeFixPages(
  * caller reads as "no supply to order", never as an order derived from a
  * classification we could not make.
  */
+export { isPausedType };
+
 export async function rankOpen(siteId: string, at: Date = new Date()): Promise<Ranked[]> {
   const store = opportunityStore();
   const [rows, profile, fixRows, latest, drafted, citedPages] = await Promise.all([
@@ -268,8 +271,13 @@ export async function rankOpen(siteId: string, at: Date = new Date()): Promise<R
   const rankable = rows.filter((row) => row.ready);
   if (profile === null || rankable.length === 0) return placeFixPages([], fixes);
 
-  const scored = rankable.map((row) => {
-    const opportunity = readOpportunity(row);
+  // SPEC §7 (owner, D46): a topic whose type the mix has paused fills no
+  // day. It stays on file, open and ready, and ranks again the day its type
+  // leaves `CONTENT_MIX.PAUSED_TYPES`.
+  const mixed = rankable.map(readOpportunity).filter((opportunity) => !isPausedType(opportunity));
+  if (mixed.length === 0) return placeFixPages([], fixes);
+
+  const scored = mixed.map((opportunity) => {
     return {
       opportunity,
       score: rankScore({

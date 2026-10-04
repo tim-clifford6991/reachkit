@@ -12,7 +12,7 @@ import { needsYouCauseOf, restedReasonOf } from "./needs-you";
 
 export interface StalledCause {
   /** A writing rule's own handle (`brand_gap`), or the closed name of another
-   *  cause: `step/<step>`, `adds`, `elsewhere`, `destination`, `delivery`, `unknown`. */
+   *  cause: `step/<step>`, `adds`, `elsewhere`, `pack`, `destination`, `delivery`, `unknown`. */
   cause: string;
   /** Whether the cause is a writing rule. */
   rule: boolean;

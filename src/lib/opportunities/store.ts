@@ -38,6 +38,7 @@ import type {
   Winnability,
 } from "./types";
 import { OUTSIZED, type PageType } from "./types";
+import { isPausedType } from "./paused";
 import { topTensOf } from "./cluster";
 import { earnGroundingOf, NO_EARN_GROUNDING, type EarnGrounding } from "./earn-grounding";
 import type { NotWorkingVerdict } from "./suppression";
@@ -455,8 +456,8 @@ export function supabaseOpportunityStore(): OpportunityStore {
 
     async countUnused(siteId) {
       const { data, error } = await untyped()
-        .from<{ id: string }>("opportunities")
-        .select("id")
+        .from<{ id: string; type: string; target_query: string | null }>("opportunities")
+        .select("id, type, target_query")
         .eq("site_id", siteId)
         .eq("status", "open")
         .eq("ready", true)
@@ -466,7 +467,12 @@ export function supabaseOpportunityStore(): OpportunityStore {
       // ready rows already excludes it. The `fit_band` filter issue 881 put
       // here was the third home of one decision.
       if (error) throw new Error(`opportunities.countUnused: ${error.message}`);
-      return data?.length ?? 0;
+      // SPEC §7 (owner, D46): a topic of a paused type fills no day, so it is
+      // not a day of supply either — the ranking and this count read the one
+      // predicate.
+      return (data ?? []).filter(
+        (row) => !isPausedType({ type: row.type as OpportunityType, targetQuery: row.target_query })
+      ).length;
     },
 
     async countOutsized(siteId) {

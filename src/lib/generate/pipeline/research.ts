@@ -41,7 +41,7 @@ import { serpOrganic } from "@/lib/vendors/dataforseo";
 /** The `fetches.source` of every public page this step reads. */
 export const RESEARCH_READ_SOURCE = "generate.research.read";
 
-export type MarketPageKind = "top_result" | "rival_pricing" | "rival_features" | "study";
+export type MarketPageKind = "top_result" | "rival_pricing" | "rival_features" | "study" | "recent";
 
 /** One claim read off a public page, word for word. */
 export interface MarketFact {
@@ -53,6 +53,9 @@ export interface MarketFact {
   kind: MarketPageKind;
   /** The rival whose own page this is, where it is one. */
   product?: string;
+  /** The day the page says it was published, on a `recent` page (D42,
+   *  *current insights*): read off the page's own markup, never guessed. */
+  publishedAt?: string;
 }
 
 /** A product whose own pages were read: what a comparison table may name. */
@@ -82,6 +85,27 @@ interface Wanted {
   url: string;
   kind: MarketPageKind;
   product?: string;
+  publishedAt?: string;
+}
+
+const PUBLISHED_RES: readonly RegExp[] = [
+  /<meta\b[^>]*\b(?:property|name|itemprop)\s*=\s*["'](?:article:published_time|datePublished|date|pubdate|publish-date|og:published_time)["'][^>]*\bcontent\s*=\s*["']([^"']+)["']/i,
+  /<meta\b[^>]*\bcontent\s*=\s*["']([^"']+)["'][^>]*\b(?:property|name|itemprop)\s*=\s*["'](?:article:published_time|datePublished)["']/i,
+  /"datePublished"\s*:\s*"([^"]+)"/i,
+  /<time\b[^>]*\bdatetime\s*=\s*["']([^"']+)["']/i,
+];
+
+/** The day a page says it was published, as its own markup states it —
+ *  a meta tag, its structured data or a `<time>` — or `null` where it
+ *  states none. Never read off the prose and never guessed. */
+export function publishedOf(html: string): string | null {
+  for (const pattern of PUBLISHED_RES) {
+    const found = pattern.exec(html)?.[1];
+    if (found === undefined) continue;
+    const at = new Date(found);
+    if (!Number.isNaN(at.getTime())) return at.toISOString().slice(0, 10);
+  }
+  return null;
 }
 
 export function hostOf(url: string): string {
@@ -213,6 +237,7 @@ export function admittedClaims(
       passage,
       kind: page.kind,
       ...(page.product === undefined ? {} : { product: page.product }),
+      ...(page.publishedAt === undefined ? {} : { publishedAt: page.publishedAt }),
     });
   }
   return out;
@@ -246,6 +271,10 @@ export async function researchMarket(
     /** The rival domains and names recorded for the site. */
     rivals: readonly string[];
     today: Date;
+    /** *Current insights* (D42): the one search looks for what was published
+     *  in the market inside `days`, in place of studies, and only a page
+     *  that states its own date inside that window is read. */
+    recent?: { market: string; days: number };
   }
 ): Promise<MarketResearch> {
   const target = a.searches[0];
@@ -281,7 +310,10 @@ export async function researchMarket(
   const studyUrls: string[] = [];
   if (!c.capHit()) {
     const serp = await serpOrganic(c, {
-      query: `${target} statistics study`,
+      // *Current insights*: the target's own words. Which results are
+      // recent is read off each page's own date below — the search itself
+      // carries no date (a news search is not bought yet).
+      query: a.recent === undefined ? `${target} statistics study` : target,
       mode: "live",
       loadAsyncAiOverview: false,
       scope: { site: a.siteId },
@@ -296,12 +328,26 @@ export async function researchMarket(
       }
     }
   }
-  const studyReads = await Promise.all(studyUrls.slice(0, RESEARCH.studies * 2).map(fetchPage));
+  const studyReads = await Promise.all(
+    studyUrls.slice(0, a.recent === undefined ? RESEARCH.studies * 2 : RESEARCH.recentRead).map(fetchPage)
+  );
+  const since = a.recent === undefined ? null : new Date(a.today.getTime() - a.recent.days * 86_400_000).toISOString().slice(0, 10);
+  const found: (ReadPage & Wanted)[] =
+    since === null
+      ? studyReads.filter((read) => read !== null).slice(0, RESEARCH.studies).map((read) => ({ ...read.page, kind: "study" as const }))
+      : studyReads
+          .flatMap((read) => {
+            const publishedAt = read === null ? null : publishedOf(read.html);
+            return read === null || publishedAt === null || publishedAt < since || publishedAt > a.today.toISOString().slice(0, 10)
+              ? []
+              : [{ ...read.page, kind: "recent" as const, publishedAt }];
+          })
+          .slice(0, RESEARCH.recentPages);
 
   const prefetched: (ReadPage & Wanted)[] = [
     ...topReads.filter((read) => read !== null).slice(0, RESEARCH.topResults).map((read) => ({ ...read.page, kind: "top_result" as const })),
     ...rivalReads.flatMap((row) => (row.read === null ? [] : [{ ...row.read.page, kind: row.kind, product: row.domain }])),
-    ...studyReads.filter((read) => read !== null).slice(0, RESEARCH.studies).map((read) => ({ ...read.page, kind: "study" as const })),
+    ...found,
   ];
 
   // 3. The ledger, one row at a time. A page already read inside the window
@@ -320,10 +366,12 @@ export async function researchMarket(
   }
 
   // 4. The claims, a few pages a call, each kept only where its page says it.
+  //    At most `RESEARCH.calls` calls (SPEC §7, D41: "two for research").
   const facts: MarketFact[] = [];
-  for (let at = 0; at < pages.length; at += RESEARCH.pagesPerCall) {
+  const perCall = Math.max(1, Math.ceil(Math.min(pages.length, RESEARCH.pagesPerCall * RESEARCH.calls) / RESEARCH.calls));
+  for (let at = 0, call = 0; at < pages.length && call < RESEARCH.calls; at += perCall, call++) {
     if (c.capHit()) break;
-    const batch = pages.slice(at, at + RESEARCH.pagesPerCall);
+    const batch = pages.slice(at, at + perCall);
     const answer = await llm(c, {
       site: "generate.research",
       tier: "haiku",
@@ -358,6 +406,7 @@ export async function researchMarket(
     topResults: pages.filter((page) => page.kind === "top_result").length,
     rivalPages: pages.filter((page) => page.kind === "rival_pricing" || page.kind === "rival_features").length,
     studies: pages.filter((page) => page.kind === "study").length,
+    recent: pages.filter((page) => page.kind === "recent").length,
     facts: ordered.length,
     products: products.length,
   });

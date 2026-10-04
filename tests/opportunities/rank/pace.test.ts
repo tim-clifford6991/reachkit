@@ -82,7 +82,7 @@ describe("a week holds at most four new pages", () => {
   });
 
   it("four new pages already this week: today is an update, whatever scores first", () => {
-    const recent = [96, 97, 98, 99].map((day) => ({ day, kind: "explainer" as const }));
+    const recent = [96, 97, 98, 99].map((day) => ({ day, kind: "qa" as const }));
     const [today] = orderRanked(scored, { mix: { from: 100, recent } });
     expect(byId.get(today!.opportunityId)?.family).toBe("improve");
   });

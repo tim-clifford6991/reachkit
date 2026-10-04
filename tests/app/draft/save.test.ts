@@ -15,17 +15,6 @@ const { llmMock, readMeasuredTextMock } = vi.hoisted(() => ({
   readMeasuredTextMock: vi.fn(),
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
-vi.mock("@/lib/generate/pipeline/write", async () => {
-  const { draftOnly } = await import("../../generate/fixtures");
-  return { writeDraft: draftOnly };
-});
-// Issue 1143: what the page adds is `tests/generate/pipeline/adds.test.ts`;
-// here the listing answers with a page that adds enough.
-vi.mock("@/lib/generate/pipeline/adds", async (importOriginal) => {
-  const { addsStandIn } = await import("../../generate/fixtures");
-  return addsStandIn(await importOriginal<object>());
-});
-
 // #927: `writePage` reads the confirmed business profile and the passages
 // the customer switched off. This suite is about the day's decision, not
 // about that read, so the seam answers "nothing confirmed" — the state a
@@ -56,7 +45,7 @@ vi.mock("@/lib/publish/attempt/window", () => ({ enterReview: enterReviewMock })
 vi.mock("@/jobs/engine", () => ({ schedulePublish: schedulePublishMock }));
 vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
 
-import { AT, SITE_ID, SOURCE_TEXT, GROUNDED, CLEAN_MARKDOWN, NO_OPS, OUTLINE_ANSWER, draftAnswers, draftParts, fakeCost, memoryStore, opportunity, siteInputs } from "../../generate/fixtures";
+import { AT, FACTS, SITE_ID, SOURCE_TEXT, GROUNDED, CLEAN_MARKDOWN, fakeCost, memoryStore, opportunity, pack, pageParts, siteInputs } from "../../generate/fixtures";
 import { generateDraft } from "@/lib/generate/pipeline";
 import { setGenerateStore } from "@/lib/generate/store";
 import { draftStore } from "@/app/(account)/app/draft/[draftId]/save";
@@ -73,27 +62,22 @@ function measured(value: unknown) {
  *  in review with its veto clock — the state the founder edits it in. */
 async function draftInReview(): Promise<string> {
   llmMock.mockResolvedValueOnce(
-    measured({ readerQuestion: "Which tool?", angle: "seats", mustCover: ["seats"], factIndexes: [0] })
+    measured(pageParts(CLEAN_MARKDOWN, { title: "A title", slug: "a-title", description: "A description." }))
   );
-  llmMock.mockResolvedValueOnce(
-    measured(OUTLINE_ANSWER)
-  );
-  for (const answer of draftAnswers(draftParts(CLEAN_MARKDOWN, { title: "A title", slug: "a-title", description: "A description." }))) llmMock.mockResolvedValueOnce(measured(answer));
-  llmMock.mockResolvedValueOnce(measured(NO_OPS));
   const outcome = await generateDraft(fakeCost(), {
     siteId: SITE_ID,
     opportunity: opportunity(),
     scheduledFor: "2026-09-07",
     site: siteInputs(),
-    voiceText: null,
-    category: "project management software",
+    pack: pack(),
+    facts: FACTS,
     links: [],
-    profile: null,
-    factsOff: [],
   });
   if (!outcome.ok) throw new Error(`the pipeline did not write a page: ${outcome.reason}`);
   const row = store.rows.get(outcome.draftId)!;
   store.rows.set(row.id, { ...row, state: "in_review", veto_deadline: DEADLINE });
+  // What follows is the founder's own writes, not the pipeline's.
+  store.patches.length = 0;
   llmMock.mockReset();
   return row.id;
 }

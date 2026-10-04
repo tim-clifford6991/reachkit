@@ -131,6 +131,12 @@ const client = {
   rpc: (fn: string, args: Row) => (db.client as { rpc(f: string, a: Row): unknown }).rpc(fn, args),
 };
 
+// No test reaches a vendor: the research step's reads and its one search are
+// stood in for, and the page is written from the business's own facts.
+vi.mock("@/lib/generate/pipeline/research", async (importOriginal) => {
+  const { researchStandIn } = await import("../generate/fixtures");
+  return researchStandIn(await importOriginal<object>());
+});
 vi.mock("@/lib/db", () => ({ dbAdmin: () => client, db: () => client }));
 
 vi.mock("@/lib/presentation/copy", async (importOriginal) => {
@@ -169,6 +175,8 @@ const livePage = {
 const SITE_DOMAIN = "acme.example";
 const WP_BASE = "https://blog.acme.example";
 const LIVE_PATH = "/best-project-management-software";
+/** The search tonight's page is for. */
+const TARGET_SEARCH = "project management software for small teams";
 
 function jsonAnswer(status: number, value: unknown, url: string) {
   const body = JSON.stringify(value);
@@ -279,15 +287,6 @@ vi.mock("@/lib/egress", () => ({
 
 const modelCalls: { task: string; tokens: number }[] = [];
 
-const BRIEF = {
-  readerQuestion: "Which tool should a small team pick?",
-  angle: "count the seats first",
-  mustCover: ["seats", "what the plan includes"],
-  factIndexes: [0],
-};
-/** The answerability pass's operations: none, so the page stands as drafted. */
-const NO_OPS = { title: "", description: "", order: [0, 1, 2, 3, 4, 5], openings: [], insertFacts: [] };
-
 /** A page that passes every one of §8's deterministic rules: the brand is
  *  not named in the opening, the grounded passage is stated word for word
  *  and its source linked, and there is no quotation, rival figure, embedded
@@ -313,18 +312,11 @@ const PAGE_BODY = {
   bodyMarkdown: CLEAN_MARKDOWN,
 };
 
-// Issue 1138: the page's length floor and its critic are
-// `tests/generate/pipeline/write.test.ts`; here the draft is the draft
-// step alone, still through the real `llm()` seam and the fake vendor below.
-vi.mock("@/lib/generate/pipeline/write", async () => {
-  const { draftOnly } = await import("../generate/fixtures");
-  return { writeDraft: draftOnly };
-});
-// Issue 1143: what the page adds is `tests/generate/pipeline/adds.test.ts`;
-// here the listing answers with a page that adds enough.
-vi.mock("@/lib/generate/pipeline/adds", async (importOriginal) => {
-  const { addsStandIn } = await import("../generate/fixtures");
-  return addsStandIn(await importOriginal<object>());
+// What a pack must hold is `tests/generate/pipeline/pack.test.ts`; here the
+// pack is built from what the run read and is short of nothing.
+vi.mock("@/lib/generate/pipeline/pack", async (importOriginal) => {
+  const { packStandIn } = await import("../generate/fixtures");
+  return packStandIn(await importOriginal<object>());
 });
 
 vi.mock("@anthropic-ai/sdk", () => {
@@ -332,18 +324,11 @@ vi.mock("@anthropic-ai/sdk", () => {
     messages = {
       create: async (request: { messages: { content: string }[] }) => {
         const input = request.messages[0]?.content ?? "";
-        const asked = JSON.parse(input) as { task: string; sections?: unknown[] };
+        const asked = JSON.parse(input) as { task: string };
         modelCalls.push({ task: asked.task, tokens: input.length });
-        // Six question sections over the block set; the first is the page's own.
-        const { draftAnswerFor, outlineFor, partsFromPage } = await import("../generate/fixtures");
-        const outline = outlineFor(PAGE_BODY, "tool");
-        const answer = asked.task.startsWith("Write the brief")
-          ? BRIEF
-          : asked.task.startsWith("Choose the page's sections")
-            ? outline
-            : asked.task.startsWith("Make the page")
-              ? NO_OPS
-              : draftAnswerFor(partsFromPage(PAGE_BODY, "tool"), asked as { write?: number[] });
+        // The one write call's answer: the page in its template's parts.
+        const { partsFromPage } = await import("../generate/fixtures");
+        const answer = partsFromPage(PAGE_BODY, "tool");
         return {
           content: [{ type: "text", text: JSON.stringify(answer) }],
           usage: { input_tokens: 800, output_tokens: 400 },
@@ -627,7 +612,14 @@ afterEach(() => {
 /** The opportunity §7 left for this site — yesterday's supply, which is
  *  what the evening tick picks from. */
 async function seedOneOpportunity(): Promise<string> {
-  const seedRow = generateFixtures.opportunity();
+  // A plain search: the shared fixture's "best …" is a listicle, a type the
+  // mix leaves out for now (D46), so it would fill no day.
+  const base = generateFixtures.opportunity();
+  const seedRow = generateFixtures.opportunity({
+    targetQuery: TARGET_SEARCH,
+    evidence: { ...base.evidence, query: TARGET_SEARCH } as typeof base.evidence,
+    acceptance: { form: "top20", query: TARGET_SEARCH },
+  });
   const inserted = await opportunityDoubles.memoryStore(opportunities).insert({
     site_id: SITE_ID,
     scan_id: SCAN_ID,
@@ -782,22 +774,13 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(stored?.rule_failures).toEqual([]);
       expect(row.hard_rules_passed).toBe(true);
 
-      // Four model steps — the draft written in turn, its frame and then
-      // its sections three to a call — all ledgered against the scan that
-      // grounds the page, and the whole day inside §8's cap.
-      expect(modelCalls).toHaveLength(6);
+      // One model call writes the page (SPEC §7, D41), ledgered against the
+      // scan that grounds it, and the whole day inside §8's cap.
+      expect(modelCalls).toHaveLength(1);
       const rows = ledger();
-      expect(rows.map((r) => r.source)).toEqual([
-        // Issue 1135: the research step's one search for studies, bought
-        // before the brief and paid from the same ceiling.
-        "serp/google/organic",
-        "generate.brief",
-        "generate.outline",
-        "generate.draft",
-        "generate.sections",
-        "generate.sections",
-        "generate.answerability",
-      ]);
+      // The research step is stood in for here (no test reaches a vendor),
+      // so the write call is the day's one ledgered row.
+      expect(rows.map((r) => r.source)).toEqual(["generate.write"]);
       const spent = rows.reduce((total, r) => total + r.costCents, 0);
       expect(spent).toBeGreaterThan(0);
       expect(spent).toBeLessThanOrEqual(CAPS.DRAFT_C);
@@ -1245,7 +1228,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(page?.vetoDeadline).not.toBeNull();
       // And §7's account of why the page exists travels with it, unchanged
       // from the day supply chose it.
-      expect(page?.why.search).toBe("best project management software");
+      expect(page?.why.search).toBe(TARGET_SEARCH);
 
       // The engine's held set is cause-agnostic and counts every page that
       // is publishable and has not been attempted — this one is in it. But

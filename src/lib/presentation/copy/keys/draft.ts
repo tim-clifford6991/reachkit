@@ -150,6 +150,42 @@ export const DRAFT_COPY = Object.freeze({
     "Read from your site; the page wasn’t recorded",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
+  // SPEC §7 (2026-10-04, D41 stage 2; issue 1252, drafted): the context
+  // pack, readable under *Written from your business* — one fold, and a
+  // label for each group inside it. The business facts already list above
+  // the fold, so it holds the rest of what the writer was handed.
+  "draft.written-from.pack.title": [
+    "Everything this page was written from",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "draft.written-from.pack.question": [
+    "The question it answers",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "draft.written-from.pack.claims": [
+    "Read from public pages",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "draft.written-from.pack.claims.read": [
+    "read {at}",
+    { slots: { at: "text" }, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "draft.written-from.pack.pages": [
+    "Your pages it knew about",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "draft.written-from.pack.pages.more": [
+    "and {n} more",
+    { slots: { n: "text" }, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "draft.written-from.pack.never-claim": [
+    "Never claimed",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "draft.written-from.pack.missing": [
+    "What was missing",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
   // SPEC §7 (2026-09-29, D12; issue 1143): what the page says that neither
   // the top results for its search nor the customer's own pages say, and —
   // where a new page says too little of that — the one line that asks the
@@ -611,10 +647,6 @@ export const DRAFT_COPY = Object.freeze({
     "This gives the page an author, a date or a case study that nothing on your site records. The page is held until it goes.",
     { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
   ],
-  "draft.editor.break.no-new-question-heading": [
-    "This adds more question headings than the page was planned around. Fold the extra ones into the sections that are already here.",
-    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
-  ],
   "draft.editor.break.traceable-numerals": [
     "Nothing read from your site carries this number, and the sentence links to nowhere a reader could check it. Source it or take it out.",
     { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
@@ -622,6 +654,17 @@ export const DRAFT_COPY = Object.freeze({
   "draft.editor.break.first-block-answers": [
     "The page has to open with a short, plain answer to the question it targets — a paragraph, not a heading, a list or a question.",
     { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  // SPEC §7 (D41 stage 4; issue 1252, drafted): the two checks stage 4
+  // added. The first is marked as it is typed; the second is the save's,
+  // which holds the site's demo phrases and menu lines.
+  "draft.editor.break.no-placeholder-cell": [
+    "A table cell here is empty or only says a value isn’t known. Fill it with a fact, or take the row or column out.",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "draft.editor.break.no-demo-text": [
+    "A sentence here is copied from your site’s menu or demo, not from what your business says. The page is held until it goes.",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
   ],
   // The sources list a page ends with (SPEC §7, 2026-09-29, *Two pools of
   // facts*; issue 1135): its heading, and what follows each linked page

@@ -14,7 +14,7 @@ import type { MarketConclusion } from "@/lib/market/infer/types";
 import { readStoredReport } from "@/lib/scan/report";
 import { marketEvidence } from "@/lib/scan/market-evidence";
 import { readSnapshot } from "../eval-content/snapshot";
-import { proofLedger } from "../live-drafts/cost";
+import { proofLedger } from "../page/ledger";
 
 export const DOMAINS = ["reachkit.app", "linear.app", "plausible.io"] as const;
 const RUNS = Number(process.env.MI_RUNS ?? 3);

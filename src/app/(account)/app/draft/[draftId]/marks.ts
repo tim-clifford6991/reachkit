@@ -16,7 +16,7 @@
 // avoid: the mark a founder sees while typing and the verdict that holds
 // the page would then be two opinions about the same words.
 //
-// **Twelve of the sixteen run here. Four do not, and are named.**
+// **Twelve of the seventeen run here. Five do not, and are named.**
 //
 //   `grounding`          reads the *source page's* text as the measurement
 //                        fetched it — a document this screen does not hold
@@ -36,6 +36,12 @@
 //   `required_blocks`    binds what ReachKit generates and asks nothing of
 //                        a founder's own edit (issue 1137): a page they
 //                        rewrote into five sections has broken no rule.
+//
+//   `no_demo_text`      reads the site's demo phrases and menu lines (issue
+//                        1249), which the save holds and this screen does
+//                        not. It has its sentence below, for the surface
+//                        that states a recorded failure; `liveBreaks`
+//                        never returns it.
 //
 // The first two still run on every save, where they always have, and both
 // still hold the page. What this file changes is *when the founder hears
@@ -70,10 +76,10 @@ import {
   checkFirstBlockAnswers,
   checkInventedProvenance,
   checkInventedTest,
-  checkNewQuestionHeading,
   checkTraceableNumerals,
   type BriefRuleInputs,
 } from "@/lib/generate/rules/brief";
+import { checkPlaceholderCell } from "@/lib/generate/rules/cells";
 import { checkHonestRow } from "@/lib/generate/rules/honest";
 import { checkHiddenText } from "@/lib/generate/rules/hidden";
 import { checkMachineAddress } from "@/lib/generate/rules/machine";
@@ -111,9 +117,11 @@ export interface MarkInputs {
  *
  * A total record over the subset, so a rule added to `marks.ts` with no
  * sentence is a compile error rather than a mark that underlines a
- * sentence and says nothing about why. The four the save keeps are
+ * sentence and says nothing about why. Four the save keeps are
  * deliberately absent: this screen never speaks for a check it did not
- * run, which is `checks.ts`'s own rule applied to a lint mark.
+ * run, which is `checks.ts`'s own rule applied to a lint mark. The fifth,
+ * `no_demo_text`, has its sentence here and is never among `liveBreaks`'
+ * answers (issue 1252; the header says why).
  */
 export const BREAK_COPY_KEY = Object.freeze({
   rival_source: "draft.editor.break.rival-source",
@@ -124,9 +132,10 @@ export const BREAK_COPY_KEY = Object.freeze({
   no_machine_address: "draft.editor.break.no-machine-address",
   no_invented_test: "draft.editor.break.no-invented-test",
   no_invented_provenance: "draft.editor.break.no-invented-provenance",
-  no_new_question_heading: "draft.editor.break.no-new-question-heading",
   traceable_numerals: "draft.editor.break.traceable-numerals",
   first_block_answers: "draft.editor.break.first-block-answers",
+  no_placeholder_cell: "draft.editor.break.no-placeholder-cell",
+  no_demo_text: "draft.editor.break.no-demo-text",
   do_not_claim: "draft.editor.break.do-not-claim",
 } as const satisfies Readonly<Partial<Record<HardRule, CopyKey>>>);
 
@@ -218,6 +227,8 @@ const BLOCK_SCOPED: Readonly<Partial<Record<HardRule, (markdown: string) => Rule
     no_hidden_text: (markdown) => checkHiddenText({ markdown }),
     no_machine_address: (markdown) => checkMachineAddress({ rendered: renderOf(markdown) }),
     no_unsourced_testimonial: (markdown) => checkUnsourcedTestimonial({ markdown }),
+    // A table is one block, so the block the rule still reports is the table.
+    no_placeholder_cell: (markdown) => checkPlaceholderCell({ markdown }),
   });
 
 /** The first block the rule still reports when handed that block alone. */
@@ -249,11 +260,6 @@ function askWithInputs(
     // Reached only where the value search failed — a numeral the rule
     // named but that is not in the source as written.
     return (markdown) => checkTraceableNumerals({ markdown, brief: inputs.brief });
-  }
-  if (rule === "no_new_question_heading") {
-    // Its scope is a heading, and a heading is a block. Asked with the same
-    // brief, so a heading the outline already had is not reported.
-    return (markdown) => checkNewQuestionHeading({ markdown, brief: inputs.brief });
   }
   return undefined;
 }
@@ -297,10 +303,11 @@ export function liveBreaks(source: string, inputs: MarkInputs): Break[] {
     push(checkInventedProvenance({ markdown: body, brief: inputs.brief }));
     push(checkTraceableNumerals({ markdown: body, brief: inputs.brief }));
   }
-  // This one reads the brief's *headings*, which are `headingsOf` the page
-  // as ReachKit wrote it — a value every draft has, recorded or not.
-  push(checkNewQuestionHeading({ markdown: body, brief: inputs.brief }));
   push(checkFirstBlockAnswers({ markdown: body }));
+  // SPEC §7 (D41 stage 4): a table cell that is empty or only says a value
+  // is missing. The text alone decides it, and it is what an edit is held
+  // to (`rules/cells.ts`).
+  push(checkPlaceholderCell({ markdown: body }));
 
   const breaks = failures.map((failure) => place(body, failure, inputs));
 

@@ -1,0 +1,507 @@
+{
+ "version": 1,
+ "type": "insights",
+ "builtAt": "2026-10-04T12:38:11.905Z",
+ "target": {
+  "question": "ai search visibility news",
+  "searches": [
+   "ai search visibility news"
+  ]
+ },
+ "business": {
+  "name": "ReachKit",
+  "domain": "reachkit.app",
+  "category": "AI discovery monitoring and content",
+  "byline": "ReachKit",
+  "voice": "You write in plain terms about a straightforward product. Your sentences are short and direct, often fragments. You avoid jargon and speak as though the reader already understands the problem — that buyers ask AI what to use, and the answer matters. You matter-of-factly list what your service does and costs, with no hype. The tone is calm and confident, as if stating facts that do not need embellishment.",
+  "market": {
+   "from": "site",
+   "category": "AI discovery monitoring and content",
+   "buyer": "B2B SaaS and software companies seeking to be discovered by buyers researching solutions",
+   "job": "Understand where AI and search send buyers, then write pages to rank in those results",
+   "rivals": [
+    {
+     "name": "AEO Engine",
+     "domain": "aeoengine.ai"
+    },
+    {
+     "name": "Meltwater",
+     "domain": "meltwater.com"
+    }
+   ],
+   "notOurMarket": [
+    "SEO content writing software",
+    "General AI writing assistants",
+    "SEO tools and analytics",
+    "Content management systems",
+    "Copywriting software"
+   ]
+  },
+  "rivals": [
+   "aeoengine.ai",
+   "meltwater.com"
+  ]
+ },
+ "profile": {
+  "job": "help your business get named in AI answers and rank higher in Google search by automatically writing and publishing targeted web pages",
+  "products": [
+   "free scans of how AI and Google find your site",
+   "one page written and published per day",
+   "weekly market re-measurement",
+   "weekly movement email"
+  ],
+  "audience": [
+   "small business owners",
+   "e-commerce sites",
+   "local businesses",
+   "service providers"
+  ],
+  "promises": [
+   "A free scan shows where AI answers and Google search send buyers to your rivals",
+   "ReachKit writes one page a day to change that",
+   "Your competitors are being found"
+  ],
+  "vocabulary": [
+   "scan",
+   "page",
+   "written and published",
+   "rivals",
+   "findable",
+   "market re-measured",
+   "buyers ask ChatGPT and Google's AI",
+   "AI answers",
+   "Google ranking",
+   "content strategy",
+   "buyer questions",
+   "discoverability"
+  ],
+  "knowledge": {
+   "offerings": [
+    {
+     "name": "Free scan",
+     "features": [
+      "Shows where AI answers and Google search send buyers to rivals instead of you",
+      "Shows Discoverability Score",
+      "Shows AI answers",
+      "Shows pages published"
+     ],
+     "prices": [
+      "Free"
+     ],
+     "uses": [
+      "See what AI tells buyers about your market",
+      "Identify gaps in discoverability"
+     ],
+     "from": "https://reachkit.app/"
+    },
+    {
+     "name": "Page publishing",
+     "features": [
+      "Writes one page a day",
+      "Finds questions your market asks that name rivals and not you",
+      "Writes a page that answers each one from facts on your own site",
+      "Publishes on your schedule",
+      "Every page waits a day for you to read it or stop it before it goes live",
+      "Every Monday you see what moved"
+     ],
+     "prices": [],
+     "uses": [
+      "Close the gap between you and competitors in AI answers and search results",
+      "Answer buyer questions"
+     ],
+     "from": "https://reachkit.app/"
+    },
+    {
+     "name": "ReachKit",
+     "features": [
+      "1 page a day, written and published for you",
+      "Weekly re-measure of your whole market",
+      "Weekly movement email",
+      "24-hour veto window on every page"
+     ],
+     "prices": [
+      "€49 a month, VAT included",
+      "€49 per month, VAT included"
+     ],
+     "uses": [
+      "A page written and published for your site every day",
+      "your market re-measured every week"
+     ],
+     "from": "https://reachkit.app/pricing"
+    }
+   ],
+   "differentiators": [
+    {
+     "text": "A free scan shows where AI answers and Google search send buyers to your rivals instead of you. Then ReachKit writes one page a day to change that.",
+     "rival": null,
+     "from": "founder"
+    },
+    {
+     "text": "ReachKit finds the questions your market asks that name rivals and not you, writes a page that answers each one from facts on your own site, and publishes it on your schedule.",
+     "rival": null,
+     "from": "https://reachkit.app/"
+    }
+   ],
+   "audience": [
+    {
+     "text": "For a founder who owns a small company website and knows nothing about SEO.",
+     "from": "founder"
+    },
+    {
+     "text": "Businesses",
+     "from": "https://reachkit.app/"
+    },
+    {
+     "text": "Companies that want to be found by buyers asking ChatGPT and Google's AI",
+     "from": "https://reachkit.app/"
+    }
+   ],
+   "problems": [
+    {
+     "text": "Buyers ask ChatGPT and Google's AI what to use, and the answer names competitors instead of you",
+     "from": "https://reachkit.app/"
+    },
+    {
+     "text": "If your company isn't named in AI answers, that buyer never meets you",
+     "from": "https://reachkit.app/"
+    },
+    {
+     "text": "Nothing on your side tells you when this happens",
+     "from": "https://reachkit.app/"
+    }
+   ],
+   "proof": [],
+   "questions": [
+    {
+     "text": "What to use?",
+     "from": "https://reachkit.app/"
+    }
+   ],
+   "integrations": [],
+   "places": [],
+   "byline": null
+  }
+ },
+ "neverClaim": [],
+ "facts": [
+  {
+   "passage": "▲ every week Searches you appear in 128 1 · 12 1 · 12 2 · 31 2 · 31 3 · 44 3 · 44 4 · 61 4 · 61 5 · 96 5 · 96 6 · 128 6 · 128 Discoverability Score 62 ▲ 8 AI answers 2 /12 Pages published 17 Demo video coming soon.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
+  },
+  {
+   "passage": "Pricing — ReachKit, €49 a month ReachKit Sign in Free scan Start ReachKit One plan.",
+   "url": "https://reachkit.app/pricing",
+   "readAt": "2026-09-17T09:18:20.360Z"
+  },
+  {
+   "passage": "47 /100 Hard to find — and we'll show you the fixes that move it.",
+   "url": "https://reachkit.app/signin",
+   "readAt": "2026-09-13T09:14:47.028Z"
+  },
+  {
+   "passage": "This week on schedule 26 27 28 29 30 01 02 What buyers ask before they switch, answered publishes in 6 h 12 m unless you say otherwise 02 One page a day closes the gap.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
+  },
+  {
+   "passage": "€49 per month, VAT included 1 page a day, written and published for you Weekly re-measure of your whole market Weekly movement email 24-hour veto window on every page Start ReachKit €49 Cancel in one click.",
+   "url": "https://reachkit.app/pricing",
+   "readAt": "2026-09-17T09:18:20.360Z"
+  },
+  {
+   "passage": "Sign in — ReachKit ReachKit Welcome back Enter the email you paid with and we'll send you a sign-in link.",
+   "url": "https://reachkit.app/signin",
+   "readAt": "2026-09-13T09:14:47.028Z"
+  },
+  {
+   "passage": "03 Start with the scan Free, under a minute Step 1 Scan your domain Free, no account Step 2 Pick your market and rivals We suggest, you confirm.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
+  },
+  {
+   "passage": "A page written and published for your site every day, your market re-measured every week.",
+   "url": "https://reachkit.app/pricing",
+   "readAt": "2026-09-17T09:18:20.360Z"
+  },
+  {
+   "passage": "No password — accounts are created by payment, never by a signup form.",
+   "url": "https://reachkit.app/signin",
+   "readAt": "2026-09-13T09:14:47.028Z"
+  },
+  {
+   "passage": "Step 3 Pages go live on your domain You get 24 hours to stop it.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
+  },
+  {
+   "passage": "Your site is asked for after — or confirmed, if you came from a report.",
+   "url": "https://reachkit.app/pricing",
+   "readAt": "2026-09-17T09:18:20.360Z"
+  },
+  {
+   "passage": "Start a free scan → One number tells you how findable you are.",
+   "url": "https://reachkit.app/signin",
+   "readAt": "2026-09-13T09:14:47.028Z"
+  },
+  {
+   "passage": "ReachKit — see what AI tells buyers about your market ReachKit Sign in Free scan See what AI tells buyers about your market — and write your way in.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
+  },
+  {
+   "passage": "A free scan shows where AI answers and Google search send buyers to your rivals instead of you.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
+  },
+  {
+   "passage": "Then ReachKit writes one page a day to change that.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
+  },
+  {
+   "passage": "Scan my site free · no account · permanent link reachkit.app/app The gap is closing.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
+  },
+  {
+   "passage": "Everything above it is the live product.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
+  },
+  {
+   "passage": "The scan, the report, and one page going live — the whole loop, as a customer sees it.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
+  },
+  {
+   "passage": "Buyers now ask ChatGPT and Google’s AI what to use, and the answer names a handful of companies.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
+  },
+  {
+   "passage": "If yours isn’t one of them, that buyer never meets you — and nothing on your side tells you it happened.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
+  },
+  {
+   "passage": "ReachKit finds the questions your market asks that name rivals and not you, writes a page that answers each one from facts on your own site, and publishes it on your schedule.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
+  },
+  {
+   "passage": "Every page waits a day for you to read it — or stop it — before it goes live.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
+  },
+  {
+   "passage": "Scan my site — free Cancel in one click.",
+   "url": "https://reachkit.app/",
+   "readAt": "2026-09-17T09:18:18.660Z"
+  }
+ ],
+ "claims": [
+  {
+   "passage": "30 on-brand SEO/AEO articles per month with supporting media",
+   "url": "https://aeoengine.ai/pricing",
+   "title": "AEO Engine Pricing Plans",
+   "readAt": "2026-10-04T12:37:56.990Z",
+   "kind": "rival_pricing",
+   "product": "aeoengine.ai"
+  },
+  {
+   "passage": "30-60 Articles/Month - Expertly researched and written in your brand's voice.",
+   "url": "https://aeoengine.ai/platform",
+   "title": "AEO Engine Platform | AI-Powered SEO & Answer Engine…",
+   "readAt": "2026-10-04T12:37:57.214Z",
+   "kind": "rival_features",
+   "product": "aeoengine.ai"
+  },
+  {
+   "passage": "Meltwater uses tailored pricing rather than a one-size-fits-all list.",
+   "url": "https://www.meltwater.com/en/pricing",
+   "title": "Meltwater Pricing & Costs",
+   "readAt": "2026-10-04T12:37:56.991Z",
+   "kind": "rival_pricing",
+   "product": "meltwater.com"
+  },
+  {
+   "passage": "60 on-brand SEO/AEO articles per month with supporting media",
+   "url": "https://aeoengine.ai/pricing",
+   "title": "AEO Engine Pricing Plans",
+   "readAt": "2026-10-04T12:37:56.990Z",
+   "kind": "rival_pricing",
+   "product": "aeoengine.ai"
+  },
+  {
+   "passage": "3-10 quality backlinks, 5-10 Reddit/Quora mentions, brand citations & signals, AI trust signals, and domain authority growth of 3-15 points on average.",
+   "url": "https://aeoengine.ai/platform",
+   "title": "AEO Engine Platform | AI-Powered SEO & Answer Engine…",
+   "readAt": "2026-10-04T12:37:57.214Z",
+   "kind": "rival_features",
+   "product": "aeoengine.ai"
+  },
+  {
+   "passage": "Meltwater does not offer a self-serve free trial, but you can request a free, human-guided demo with one of our product experts.",
+   "url": "https://www.meltwater.com/en/pricing",
+   "title": "Meltwater Pricing & Costs",
+   "readAt": "2026-10-04T12:37:56.991Z",
+   "kind": "rival_pricing",
+   "product": "meltwater.com"
+  },
+  {
+   "passage": "By 2026, traditional search volume is predicted to drop 25% as users shift to AI assistants.",
+   "url": "https://aeoengine.ai/pricing",
+   "title": "AEO Engine Pricing Plans",
+   "readAt": "2026-10-04T12:37:56.990Z",
+   "kind": "rival_pricing",
+   "product": "aeoengine.ai"
+  },
+  {
+   "passage": "3,272 AI Citations, 48.7% SOV, +57.8% Organic Traffic Dec-Apr",
+   "url": "https://aeoengine.ai/platform",
+   "title": "AEO Engine Platform | AI-Powered SEO & Answer Engine…",
+   "readAt": "2026-10-04T12:37:57.214Z",
+   "kind": "rival_features",
+   "product": "aeoengine.ai"
+  },
+  {
+   "passage": "However, most partnerships are structured on annual agreements, with a minimum contract length of 12 months.",
+   "url": "https://www.meltwater.com/en/pricing",
+   "title": "Meltwater Pricing & Costs",
+   "readAt": "2026-10-04T12:37:56.991Z",
+   "kind": "rival_pricing",
+   "product": "meltwater.com"
+  },
+  {
+   "passage": "Our clients typically achieve 3-9× ROI within their first 180 days.",
+   "url": "https://aeoengine.ai/pricing",
+   "title": "AEO Engine Pricing Plans",
+   "readAt": "2026-10-04T12:37:56.990Z",
+   "kind": "rival_pricing",
+   "product": "aeoengine.ai"
+  },
+  {
+   "passage": "472 AI CITATIONS, 672 → 6,097 MONTHLY VISITORS, 9.1X ORGANIC GROWTH",
+   "url": "https://aeoengine.ai/platform",
+   "title": "AEO Engine Platform | AI-Powered SEO & Answer Engine…",
+   "readAt": "2026-10-04T12:37:57.214Z",
+   "kind": "rival_features",
+   "product": "aeoengine.ai"
+  },
+  {
+   "passage": "Meltwater provides 24/7 multi-channel support for all customers, including website and in-product live chat, email , and access to the Help Center , Meltwater Academy , and mCommunity .",
+   "url": "https://www.meltwater.com/en/pricing",
+   "title": "Meltwater Pricing & Costs",
+   "readAt": "2026-10-04T12:37:56.991Z",
+   "kind": "rival_pricing",
+   "product": "meltwater.com"
+  },
+  {
+   "passage": "Across our client campaigns, brands see an average 920% increase in traffic attributed to AI search platforms (ChatGPT, Perplexity, Google AI Overviews).",
+   "url": "https://aeoengine.ai/pricing",
+   "title": "AEO Engine Pricing Plans",
+   "readAt": "2026-10-04T12:37:56.990Z",
+   "kind": "rival_pricing",
+   "product": "aeoengine.ai"
+  },
+  {
+   "passage": "Starter Simple, powerful tools to get started with media, social, and AI intelligence",
+   "url": "https://www.meltwater.com/en/pricing",
+   "title": "Meltwater Pricing & Costs",
+   "readAt": "2026-10-04T12:37:56.991Z",
+   "kind": "rival_pricing",
+   "product": "meltwater.com"
+  }
+ ],
+ "products": [
+  {
+   "domain": "aeoengine.ai",
+   "pages": [
+    "https://aeoengine.ai/pricing",
+    "https://aeoengine.ai/platform"
+   ]
+  },
+  {
+   "domain": "meltwater.com",
+   "pages": [
+    "https://www.meltwater.com/en/pricing"
+   ]
+  }
+ ],
+ "pages": [
+  {
+   "title": "Best Answer Engine Optimization Services for AI Visibility",
+   "question": "best answer engine optimization services for ai visibility",
+   "url": "https://content.reachkit.app/best-answer-engine-optimization-services-for-ai-visibility",
+   "kind": null,
+   "status": "published"
+  }
+ ],
+ "links": [
+  {
+   "url": "https://reachkit.app/pricing",
+   "label": "One plan. One page a day.",
+   "purpose": "pricing"
+  }
+ ],
+ "questions": [],
+ "measurements": null,
+ "live": null,
+ "adds": {
+  "claims": [
+   {
+    "claim": "▲ every week Searches you appear in 128 1 · 12 1 · 12 2 · 31 2 · 31 3 · 44 3 · 44 4 · 61 4 · 61 5 · 96 5 · 96 6 · 128 6 · 128 Discoverability Score 62 ▲ 8 AI answers 2 /12 Pages published 17 Demo video coming soon.",
+    "business": true
+   },
+   {
+    "claim": "Pricing — ReachKit, €49 a month ReachKit Sign in Free scan Start ReachKit One plan.",
+    "business": true
+   },
+   {
+    "claim": "47 /100 Hard to find — and we'll show you the fixes that move it.",
+    "business": true
+   },
+   {
+    "claim": "This week on schedule 26 27 28 29 30 01 02 What buyers ask before they switch, answered publishes in 6 h 12 m unless you say otherwise 02 One page a day closes the gap.",
+    "business": true
+   },
+   {
+    "claim": "€49 per month, VAT included 1 page a day, written and published for you Weekly re-measure of your whole market Weekly movement email 24-hour veto window on every page Start ReachKit €49 Cancel in one click.",
+    "business": true
+   },
+   {
+    "claim": "Sign in — ReachKit ReachKit Welcome back Enter the email you paid with and we'll send you a sign-in link.",
+    "business": true
+   },
+   {
+    "claim": "03 Start with the scan Free, under a minute Step 1 Scan your domain Free, no account Step 2 Pick your market and rivals We suggest, you confirm.",
+    "business": true
+   },
+   {
+    "claim": "A page written and published for your site every day, your market re-measured every week.",
+    "business": true
+   },
+   {
+    "claim": "No password — accounts are created by payment, never by a signup form.",
+    "business": true
+   },
+   {
+    "claim": "Step 3 Pages go live on your domain You get 24 hours to stop it.",
+    "business": true
+   },
+   {
+    "claim": "Your site is asked for after — or confirmed, if you came from a report.",
+    "business": true
+   },
+   {
+    "claim": "Start a free scan → One number tells you how findable you are.",
+    "business": true
+   }
+  ],
+  "short": false
+ },
+ "missing": [
+  "recent_results"
+ ]
+}

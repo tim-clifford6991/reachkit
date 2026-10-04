@@ -1,21 +1,17 @@
-// BUILD §8 — the hard-rule battery.
+// BUILD §8 · SPEC §7 (D41 stage 4) — the stage-4 checks.
 //
 // §8's rules are "enforced in code, not prompts", and this is the one place
-// they are all run. Fourteen of the sixteen are deterministic passes over finished
-// text and cost nothing; the last two are the fit check and the do-not-claim
-// check, which own their modules and are called from here rather than
-// re-implemented.
+// they are all run: the five checks of D41 and the guards D27 names, every
+// one a deterministic pass over finished text that costs nothing. The
+// never-claim list is matched by its own words (D45). One rule is a model's:
+// the fit check, kept by D44 for a listicle or comparison only (about 0.5¢).
 //
 // **Every rule runs, and the failure list carries all of them** — not the
-// first. A draft stopped by three rules is one the customer's next
-// regeneration has to clear three times, and reporting one at a time would
-// spend the single automatic attempt learning that.
+// first. The one fix call is told every check the page failed.
 //
-// **An unrun claim check or fit check is not a rule failure.** "We could not check" is
-// not "it failed": it does not populate `failed`, it does not consume the
-// one automatic regeneration, and it is returned to the caller as a step
-// that did not run. Regenerating would not make an unavailable model
-// available.
+// **An unrun fit check is not a rule failure.** "We could not check" is not
+// "it failed": it does not populate `failed`, and it is returned to the
+// caller as a step that did not run.
 //
 // The order is `HARD_RULES`' order, so a failure list is comparable across
 // runs.
@@ -26,12 +22,13 @@ import {
   checkFirstBlockAnswers,
   checkInventedProvenance,
   checkInventedTest,
-  checkNewQuestionHeading,
   checkTraceableNumerals,
   poolPassages,
   type BriefRuleInputs,
 } from "./brief";
 import { checkRequiredBlocks, type BlockRuleInputs } from "./blocks";
+import { checkPlaceholderCell } from "./cells";
+import { checkDemoText } from "./demo";
 import { fitCheck, type FitVerdict } from "../claims/fit";
 import type { PromptKnowledge } from "../voice/profile-block";
 import { checkHonestRow } from "./honest";
@@ -72,7 +69,7 @@ function logBattery(a: { failed: readonly RuleFailure[]; claimState: string; fit
   );
 }
 
-/** Everything the fourteen deterministic rules read. */
+/** Everything the deterministic rules read. */
 export interface DeterministicInputs {
   markdown: string;
   /** The title as written. The honest row and the fit check read it: a
@@ -98,20 +95,23 @@ export interface DeterministicInputs {
    *  market facts' pages, what a rival's figure may be sourced to (issue
    *  1135). */
   factPages?: readonly string[];
+  /** The site's demo phrases and menu lines (issue 1249). Absent, the
+   *  demo-text check asks nothing. */
+  demoPhrases?: readonly string[];
   /** What the page's structure is held to (issue 1137). Passed only for a
    *  page this product generated; absent, `required_blocks` asks nothing. */
   blocks?: BlockRuleInputs;
 }
 
 /**
- * The fourteen deterministic arms, keyed by the rule they answer for. No
+ * The deterministic arms, keyed by the rule they answer for. No
  * model and no I/O, so the same call re-measures a stored draft
  * (`scripts/eval-content/rules.ts`, issue 1187).
  *
  * **Total, not partial** (issue #424). A rule with no arm here would be
  * read as one that failed nothing — by the battery's loop, which is how
  * `passed` is decided, and by the record the draft view's Checks list is
- * drawn from. Spelling the fourteen as a total record makes an undecided rule
+ * drawn from. Spelling them as a total record makes an undecided rule
  * a compile error rather than a pass the product hands out for free.
  */
 export function runDeterministicRules(
@@ -148,10 +148,11 @@ export function runDeterministicRules(
     near_duplicate: checkNearDuplicate({ rendered: a.rendered, comparison: a.comparison }),
     no_invented_test: checkInventedTest({ markdown: a.markdown, brief: a.brief }),
     no_invented_provenance: checkInventedProvenance({ markdown: a.markdown, brief: a.brief }),
-    no_new_question_heading: checkNewQuestionHeading({ markdown: a.markdown, brief: a.brief }),
     traceable_numerals: checkTraceableNumerals({ markdown: a.markdown, brief: a.brief }),
     first_block_answers: checkFirstBlockAnswers({ markdown: a.markdown }),
     required_blocks: checkRequiredBlocks({ markdown: a.markdown, title: a.title, blocks: a.blocks ?? null }),
+    no_placeholder_cell: checkPlaceholderCell({ markdown: a.markdown }),
+    no_demo_text: checkDemoText({ markdown: a.markdown, phrases: a.demoPhrases }),
   };
 }
 
@@ -165,11 +166,18 @@ function withoutSources(given: DeterministicInputs): DeterministicInputs {
 export async function runHardRules(
   c: CostContext,
   given: DeterministicInputs & {
-    /** The knowledge base the fit check judges against. Absent where
-     *  nothing was read or said of the business, and where the page is the
-     *  founder's own edit — what a founder writes of their business is the
-     *  founder's word, not a claim to check against what was read of it. */
+    /** The knowledge base the fit check judges against (D44). Passed only
+     *  for a generated listicle or comparison: every other type skips the
+     *  check, and so does a founder's own edit — what a founder writes of
+     *  their business is the founder's word. */
     knowledge?: PromptKnowledge;
+    /** The fit verdict an earlier read of this page reached, where the text
+     *  has only been repaired in code since: the one model check is not
+     *  bought twice for one page as written. */
+    fit?: FitVerdict;
+    /** The site's market in force, which the fit check reads beside the
+     *  knowledge base. */
+    market?: unknown;
   }
 ): Promise<BatteryOutcome> {
   const a = { ...withoutSources(given), knowledge: given.knowledge };
@@ -179,14 +187,16 @@ export async function runHardRules(
 
   // The last two, each owning its own judgement; this file holds no second
   // implementation of either.
-  const fit = await fitCheck(c, {
+  const fit = given.fit ?? await fitCheck(c, {
     title: a.title,
     markdown: a.markdown,
     businessName: a.site.businessName,
     domain: a.site.domain,
     knowledge: a.knowledge,
+    market: given.market,
   });
-  const claim = await claimCheck(c, { text: a.markdown, list: a.site.doNotClaim });
+  // D45: a literal match of the list's own words, in the title and the body.
+  const claim = claimCheck({ text: `${a.title}\n${a.markdown}`, list: a.site.doNotClaim });
 
   const failed: RuleFailure[] = [];
   for (const rule of HARD_RULES) {

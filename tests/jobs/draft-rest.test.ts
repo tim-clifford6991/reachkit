@@ -7,7 +7,8 @@
 // real Regenerate server action — against the storing PostgREST double the
 // publishing suites share.
 //
-// Doubled at the last line of our own code: the model (`llm`), the measured
+// Doubled at the last line of our own code: the model (`llm`), the pack's
+// bar and its research read, the measured
 // text the grounding reads, the cost ledger's context, the daily site list,
 // the breakage and draft-ready mails, and the signed-in account.
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -38,15 +39,15 @@ const { llmMock, readMeasuredTextMock, sitesForDailyTickMock, draftReadyMock, ne
   nextForDayMock: vi.fn(),
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
-vi.mock("@/lib/generate/pipeline/write", async () => {
-  const { draftOnly } = await import("../generate/fixtures");
-  return { writeDraft: draftOnly };
+// What a pack must hold is `tests/generate/pipeline/pack.test.ts`; here the
+// pack is short of what a case says it is, and no public page is read.
+vi.mock("@/lib/generate/pipeline/pack", async (importOriginal) => {
+  const { packStandIn } = await import("../generate/fixtures");
+  return packStandIn(await importOriginal<object>());
 });
-// Issue 1143: what the page adds is `tests/generate/pipeline/adds.test.ts`;
-// here the listing answers with a page that adds enough.
-vi.mock("@/lib/generate/pipeline/adds", async (importOriginal) => {
-  const { addsStandIn } = await import("../generate/fixtures");
-  return addsStandIn(await importOriginal<object>());
+vi.mock("@/lib/generate/pipeline/research", async (importOriginal) => {
+  const { researchStandIn } = await import("../generate/fixtures");
+  return researchStandIn(await importOriginal<object>());
 });
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
 vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
@@ -95,16 +96,12 @@ function measured(value: unknown) {
   return { kind: "measured", value, at: fixtures.AT };
 }
 
-/** One pass of the four model steps, writing `markdown`. */
-function modelWrites(markdown: string): void {
+/** One model call's answer: the page, with `markdown` as its first section.
+ *  A stopped page takes two — its write call and its one fix call. */
+function modelWrites(markdown: string, topic = "seats"): void {
   llmMock.mockResolvedValueOnce(
-    measured({ readerQuestion: "Which tool?", angle: "count seats", mustCover: ["seats"], factIndexes: [0] })
+    measured(fixtures.pageParts(markdown, { title: "A title", slug: "a-title", description: "A description." }, topic))
   );
-  llmMock.mockResolvedValueOnce(
-    measured(fixtures.OUTLINE_ANSWER)
-  );
-  for (const answer of fixtures.draftAnswers(fixtures.draftParts(markdown, { title: "A title", slug: "a-title", description: "A description." }))) llmMock.mockResolvedValueOnce(measured(answer));
-  llmMock.mockResolvedValueOnce(measured(fixtures.NO_OPS));
 }
 
 let opportunities: ReturnType<typeof opportunityDoubles.newMemoryState>;
@@ -114,6 +111,8 @@ beforeEach(async () => {
   db.reset();
   installTransitionRpc(db);
   llmMock.mockReset();
+  fixtures.packAnswer.missing = [];
+  fixtures.packAnswer.short = false;
   draftReadyMock.mockReset();
   draftReadyMock.mockResolvedValue({ sent: true });
   readMeasuredTextMock.mockResolvedValue([
@@ -239,6 +238,7 @@ describe("#788 — Regenerate is carried out by the draft tick", () => {
     await regenerateDraft(String(draft?.id));
 
     modelWrites(`${STOPPED} Once more.`);
+    modelWrites(`${STOPPED} And again.`);
     const outcome = await draftGenerate.run({ data: {}, now: MORNING });
     expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:rules" });
     expect(db.rows("drafts")).toHaveLength(1);
@@ -247,80 +247,38 @@ describe("#788 — Regenerate is carried out by the draft tick", () => {
   });
 });
 
-describe("#813 — a draft whose claim check cannot run rests in needs_attention, not generating", () => {
-  /** An entry the page does not state literally, so the check asks the model. */
-  const LIST = ["ReachKit is the cheapest tool on the market"];
-
-  function claimCheckUnavailable(): void {
-    llmMock.mockResolvedValueOnce({ kind: "unmeasured", reason: "undeterminable", at: fixtures.AT });
-  }
-
-  beforeEach(() => {
-    const [site] = db.rows("sites");
-    if (site !== undefined) site.do_not_claim = LIST;
-  });
-
-  async function uncheckedEvening() {
-    modelWrites(fixtures.CLEAN_MARKDOWN);
-    claimCheckUnavailable();
-    modelWrites(fixtures.CLEAN_MARKDOWN);
-    claimCheckUnavailable();
-    return draftGenerate.run({ data: {}, now: EVENING });
-  }
-
-  it("the automatic second attempt runs first, then the date's one row rests and its topic rests", async () => {
-    const outcome = await uncheckedEvening();
+describe("a page whose pack is short rests in needs_attention, not generating (#813, D41)", () => {
+  it("nothing is written, the date's one row names what is missing, and Regenerate with the pack made whole puts that row in review", async () => {
+    fixtures.packAnswer.missing = ["buyer_questions"];
+    const outcome = await draftGenerate.run({ data: {}, now: EVENING });
     expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:step_failed" });
-    expect(llmMock).toHaveBeenCalledTimes(14);
+    expect(llmMock).not.toHaveBeenCalled();
 
     const drafts = db.rows("drafts");
     expect(drafts).toHaveLength(1);
     const [draft] = drafts;
     expect(draft).toMatchObject({ scheduled_for: "2026-09-08", state: "needs_attention", hard_rules_passed: false });
     const moves = draft?.transitions as { from: string; to: string; reason?: string }[];
-    expect(moves.at(-1)).toMatchObject({ from: "generating", to: "needs_attention", reason: "step_failed:claim_check" });
+    expect(moves.at(-1)).toMatchObject({ from: "generating", to: "needs_attention", reason: "step_failed:pack:buyer_questions" });
     expect(restingUntil(opportunityId)).not.toBeNull();
     expect(draftReadyMock).not.toHaveBeenCalled();
-  });
 
-  it("Regenerate, then a tick with the model answering again, puts the same row in review", async () => {
-    await uncheckedEvening();
-    const [draft] = db.rows("drafts");
     const draftId = String(draft?.id);
-
+    fixtures.packAnswer.missing = [];
     expect(await regenerateDraft(draftId)).toBeNull();
     modelWrites(fixtures.CLEAN_MARKDOWN);
-    llmMock.mockResolvedValueOnce(measured({ matches: false, matchedIndex: null }));
-    const outcome = await draftGenerate.run({ data: {}, now: MORNING });
-    expect(outcome).toEqual({ outcome: "ran", subjectId: null });
-
+    expect(await draftGenerate.run({ data: {}, now: MORNING })).toEqual({ outcome: "ran", subjectId: null });
     expect(db.rows("drafts")).toHaveLength(1);
     expect(draft).toMatchObject({ id: draftId, scheduled_for: "2026-09-08", state: "in_review", hard_rules_passed: true });
     expect(statusOf(opportunityId)).toBe("queued");
     expect(draftReadyMock).toHaveBeenCalledWith(expect.objectContaining({ draftId }));
-  });
-
-  it("a Regenerate whose check still cannot run rests again, and the next tick spends nothing on it", async () => {
-    await uncheckedEvening();
-    const [draft] = db.rows("drafts");
-    await regenerateDraft(String(draft?.id));
-
-    modelWrites(fixtures.CLEAN_MARKDOWN);
-    claimCheckUnavailable();
-    await draftGenerate.run({ data: {}, now: MORNING });
-    expect(db.rows("drafts")).toHaveLength(1);
-    expect(draft?.state).toBe("needs_attention");
-    expect(restingUntil(opportunityId)).not.toBeNull();
-
-    llmMock.mockClear();
-    await draftGenerate.run({ data: {}, now: new Date(MORNING.getTime() + 3_600_000) });
-    expect(llmMock).not.toHaveBeenCalled();
   });
 });
 
 describe("D26 (issue 1179) — a stopped draft does not cost its day, and its topic rests", () => {
   /** The evening after the first: the tick drafts for 2026-09-09. */
   const NEXT_EVENING = new Date("2026-09-08T18:00:00.000Z");
+  const FIRST_TOPIC = "project management software for agencies";
 
   beforeEach(() => {
     // The day is picked by the real ranking here, over the rows the store holds.
@@ -328,7 +286,14 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     if (market.kind !== "measured") throw new Error("the fixture report has no measured market");
     opportunities.profile = market.value.profile;
     nextForDayMock.mockImplementation(actualOpportunities.nextForDay);
-    for (const row of opportunities.rows) row.ready = true;
+    for (const row of opportunities.rows) {
+      row.ready = true;
+      // D46: a "best …" search is a listicle, which the mix leaves out for
+      // now, so the topic the real ranking is to pick first is a plain one.
+      row.target_query = FIRST_TOPIC;
+      row.evidence = { ...(row.evidence as object), query: FIRST_TOPIC } as never;
+      row.acceptance = { form: "top20", query: FIRST_TOPIC };
+    }
   });
 
   async function secondTopic(): Promise<string> {
@@ -395,7 +360,8 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     await secondTopic();
     modelWrites(STOPPED);
     modelWrites(`${STOPPED} Again.`);
-    modelWrites(fixtures.CLEAN_MARKDOWN);
+    // The second topic's page is its own: the stopped one is still on file.
+    modelWrites(fixtures.CLEAN_MARKDOWN, "plans");
     expect(await draftGenerate.run({ data: {}, now: EVENING })).toEqual({ outcome: "ran", subjectId: null });
 
     const drafts = db.rows("drafts");
@@ -437,7 +403,8 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     for (let attempt = 0; attempt < 4; attempt++) modelWrites(`${STOPPED} ${"Again. ".repeat(attempt)}`);
     const outcome = await draftGenerate.run({ data: {}, now: EVENING });
     expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:rules" });
-    expect(llmMock).toHaveBeenCalledTimes(24);
+    // Two topics, each its write call and its one fix call.
+    expect(llmMock).toHaveBeenCalledTimes(4);
 
     const drafts = db.rows("drafts");
     expect(drafts.map((row) => row.state)).toEqual(["needs_attention", "needs_attention"]);
@@ -456,7 +423,8 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     await secondTopic();
     modelWrites(STOPPED);
     modelWrites(`${STOPPED} Again.`);
-    modelWrites(fixtures.CLEAN_MARKDOWN);
+    // The second topic's page is its own: the stopped one is still on file.
+    modelWrites(fixtures.CLEAN_MARKDOWN, "plans");
     await draftGenerate.run({ data: {}, now: EVENING });
     const stopped = db.rows("drafts").find((row) => row.state === "needs_attention");
     // The model double writes one clean text; the page already in review is

@@ -22,6 +22,12 @@ const { llmMock, readMeasuredTextMock, withCostContextMock, transitionMock } = v
   withCostContextMock: vi.fn(),
   transitionMock: vi.fn(),
 }));
+// No test reaches a vendor: the research step's reads and its one search are
+// stood in for, and the page is written from the business's own facts.
+vi.mock("@/lib/generate/pipeline/research", async (importOriginal) => {
+  const { researchStandIn } = await import("./fixtures");
+  return researchStandIn(await importOriginal<object>());
+});
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 
 // #927: `writePage` reads the confirmed business profile and the passages
@@ -165,23 +171,19 @@ describe("the daily job on a site whose every target is outsized (issue 881)", (
   });
 
   it("one right-sized target among them, and that is the page the day takes", async () => {
-    state.rows = [...OUTSIZED_SIX, row("opp-fit", "best seo brief software for startups", 40, "winnable")];
-    // The site's own measured page, so the run reaches the writing steps at
-    // all; the first model call then stops it. This case only has to prove
-    // **which** target the day took.
+    state.rows = [...OUTSIZED_SIX, row("opp-fit", "seo brief software for startups", 40, "winnable")];
+    // The site's own measured page, so the run reaches the page at all. Its
+    // pack is short of what a Q&A page must hold, so nothing is written:
+    // the date's row is this case's proof of **which** target the day took.
     readMeasuredTextMock.mockResolvedValue([
       { url: GROUNDED.url, text: SOURCE_TEXT, measuredAt: GROUNDED.readAt },
     ]);
-    llmMock.mockReset();
-    llmMock.mockRejectedValue(new Error("stop once the target is chosen"));
+    transitionMock.mockResolvedValue({ ok: true, state: "needs_attention" });
 
-    // The first model call is refused, and that refusal is this case's
-    // stop sign: what matters is which target had been chosen by then.
-    await generateDayPage({ siteId: SITE_ID, publishDate: PUBLISH_DATE }).catch(() => undefined);
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: PUBLISH_DATE });
 
-    expect(llmMock).toHaveBeenCalled();
-    const asked = JSON.stringify(llmMock.mock.calls);
-    expect(asked).toContain("best seo brief software for startups");
-    for (const outsized of OUTSIZED_SIX) expect(asked).not.toContain(outsized.target_query);
+    expect(outcome).toMatchObject({ ok: false, because: "step_failed", step: expect.stringMatching(/^pack:/) });
+    expect([...drafts.rows.values()].map((draft) => draft.opportunity_id)).toEqual(["opp-fit"]);
+    expect(llmMock).not.toHaveBeenCalled();
   });
 });

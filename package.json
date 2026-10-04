@@ -20,7 +20,7 @@
     "land": "bash scripts/land.sh",
     "typecheck": "tsc --noEmit",
     "db:types": "bash scripts/db-substrate/gen-types.sh > src/lib/db/types.generated.ts",
-    "proof:live-drafts": "node scripts/live-drafts/run.mjs",
+    "page": "node scripts/page.mjs",
     "eval:content": "node scripts/eval-content.mjs"
   },
   "dependencies": {
