@@ -2,9 +2,10 @@
 // tests/hosted/indexing/head.test.tsx — BUILD §9, REQ-059 c3, issue #49
 //
 // The hosted page's head and its structured data: the canonical is on the
-// customer's own domain, every page carries a description and `Article`
-// (issue 697), and `FAQPage` appears exactly when the stored section is
-// there.
+// customer's own domain, every page carries a description, `BlogPosting`
+// and `BreadcrumbList` (issues 697 and 1141), `FAQPage` appears exactly
+// when the stored section is there, and the head carries the share tags
+// and the link to the feed.
 //
 // The row that matters most is the negative one: a page with no
 // question-and-answer section emits **no `FAQPage` at all** — never an empty
@@ -18,7 +19,12 @@ import { readPageFacts } from "@/lib/site-issues/facts";
 
 applyEnvFixture();
 
-const state: { host: string; page: unknown } = { host: "content.example.com", page: null };
+const state: { host: string; page: unknown; logoType: string | null; line: string | null } = {
+  host: "content.example.com",
+  page: null,
+  logoType: null,
+  line: null,
+};
 
 vi.mock("next/headers", () => ({
   headers: async () => new Headers({ host: state.host }),
@@ -46,7 +52,11 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     hostedSiteForHostname: async () => null,
     livePageBySlug: async () => state.page,
     livePagesForSite: async () => (state.page === null ? [] : [state.page]),
-    hostedIdentity: async (a: { domain: string }) => ({ name: a.domain, logoType: null, line: null }),
+    hostedIdentity: async (a: { domain: string }) => ({
+      name: a.domain,
+      logoType: state.logoType,
+      line: state.line,
+    }),
     hostedAddressState: async () => "none",
   };
 });
@@ -90,6 +100,8 @@ async function render(): Promise<string> {
 
 beforeEach(() => {
   state.host = "content.example.com";
+  state.logoType = null;
+  state.line = null;
   state.page = livePage([{ question: "How long does it take?", answer: "Under an hour." }]);
 });
 
@@ -134,13 +146,12 @@ describe("REQ-059 c3 — the canonical is on the customer's own domain", () => {
 });
 
 describe("issue 697 — every page describes itself in structured data", () => {
-  it("a page with no FAQ still carries an Article from what the page states", async () => {
+  it("a page with no FAQ still carries a BlogPosting from what the page states", async () => {
     state.page = livePage([]);
     const html = await render();
-    const article = schemaOf(html, "Article");
-    expect(article).toEqual({
+    expect(schemaOf(html, "BlogPosting")).toEqual({
       "@context": "https://schema.org",
-      "@type": "Article",
+      "@type": "BlogPosting",
       "@id": "https://content.example.com/a-page#article",
       headline: "The best onboarding tools",
       description: "Which onboarding tools small teams pick, and why.",
@@ -149,9 +160,12 @@ describe("issue 697 — every page describes itself in structured data", () => {
       datePublished: "2026-09-01T09:00:00.000Z",
       dateModified: "2026-09-01T09:00:00.000Z",
       inLanguage: "en-US",
-      publisher: { "@type": "Organization", name: "example.com", url: "https://example.com" },
+      image: "https://content.example.com/share.img/a-page",
+      // No recorded byline: the page prints the business's name, and the
+      // business is its author.
+      author: { "@type": "Organization", name: "example.com", url: "https://example.com/" },
+      publisher: { "@type": "Organization", name: "example.com", url: "https://example.com/" },
     });
-    expect(article).not.toHaveProperty("author");
   });
 
   it("the crawl's own reader finds structured data on the page", async () => {
@@ -327,6 +341,111 @@ describe("#980 — a hosted response with no title of its own carries the visito
     const { title } = await layoutMetadata();
     expect(String(title).toLowerCase()).not.toContain("reachkit");
     expect(String(title)).toBe(state.host);
+  });
+});
+
+describe("issue 1141 — the structured data says what the page shows", () => {
+  it("a recorded byline is the author, by name and by line", async () => {
+    state.page = { ...(livePage([]) as object), byline: "Ada Park · Founder, Example" };
+    const html = await render();
+    expect(html).toContain("Ada Park · Founder, Example");
+    expect(schemaOf(html, "BlogPosting").author).toEqual({
+      "@type": "Person",
+      name: "Ada Park",
+      jobTitle: "Founder, Example",
+    });
+  });
+
+  it("the dates are the two the page prints: first published, and refreshed", async () => {
+    state.page = {
+      ...(livePage([]) as object),
+      firstPublishedAt: new Date("2026-06-01T09:00:00.000Z"),
+      publishedAt: new Date("2026-09-01T09:00:00.000Z"),
+    };
+    const posting = schemaOf(await render(), "BlogPosting");
+    expect(posting.datePublished).toBe("2026-06-01T09:00:00.000Z");
+    expect(posting.dateModified).toBe("2026-09-01T09:00:00.000Z");
+  });
+
+  it("the publisher's logo is named only where the header draws one", async () => {
+    expect(schemaOf(await render(), "BlogPosting").publisher).not.toHaveProperty("logo");
+    state.logoType = "image/png";
+    expect(schemaOf(await render(), "BlogPosting").publisher).toMatchObject({
+      logo: { "@type": "ImageObject", url: "https://content.example.com/logo.img" },
+    });
+  });
+
+  it("the breadcrumb data is the breadcrumb at the foot of the article, part for part", async () => {
+    const html = await render();
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const drawn = Array.from(doc.querySelectorAll("nav.breadcrumbs li")).map((li) => li.textContent);
+    const list = schemaOf(html, "BreadcrumbList").itemListElement as {
+      position: number;
+      name: string;
+      item: string;
+    }[];
+    expect(list.map((part) => part.name)).toEqual(drawn);
+    expect(list.map((part) => part.position)).toEqual([1, 2, 3]);
+    expect(list.map((part) => part.item)).toEqual([
+      "https://example.com/",
+      "https://content.example.com/",
+      "https://content.example.com/a-page",
+    ]);
+  });
+});
+
+describe("issue 1141 — a shared link draws a card, and the head names the feed", () => {
+  it("an article carries its own share image, on the customer's host", async () => {
+    const metadata = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
+    expect(metadata.openGraph).toMatchObject({
+      type: "article",
+      url: "https://content.example.com/a-page",
+      title: "The best onboarding tools",
+      description: "Which onboarding tools small teams pick, and why.",
+      siteName: "example.com",
+      publishedTime: "2026-09-01T09:00:00.000Z",
+      images: [
+        {
+          url: "https://content.example.com/share.img/a-page",
+          width: 1200,
+          height: 630,
+          alt: "The best onboarding tools",
+        },
+      ],
+    });
+    expect(metadata.twitter).toMatchObject({
+      card: "summary_large_image",
+      images: ["https://content.example.com/share.img/a-page"],
+    });
+  });
+
+  it("the index carries a description, share tags and its own image", async () => {
+    const metadata = await generateMetadata({ params: Promise.resolve({}) });
+    expect(metadata.description).toBe("Articles and guides from example.com.");
+    expect(metadata.openGraph).toMatchObject({
+      type: "website",
+      url: "https://content.example.com/",
+      images: [{ url: "https://content.example.com/share.img" }],
+    });
+    expect(metadata.twitter).toMatchObject({ card: "summary_large_image" });
+  });
+
+  it("the index is described by the business's own line where it has one", async () => {
+    state.line = "Onboarding checklists your customers finish.";
+    const metadata = await generateMetadata({ params: Promise.resolve({}) });
+    expect(metadata.description).toBe("Onboarding checklists your customers finish.");
+  });
+
+  it("both link the feed, and nothing in either head names ReachKit", async () => {
+    for (const params of [{ slug: ["a-page"] }, {}]) {
+      const metadata = await generateMetadata({ params: Promise.resolve(params) });
+      expect(metadata.alternates?.types).toEqual({
+        "application/rss+xml": [
+          { url: "https://content.example.com/rss.xml", title: "Articles · example.com" },
+        ],
+      });
+      expect(JSON.stringify(metadata).toLowerCase()).not.toContain("reachkit");
+    }
   });
 });
 

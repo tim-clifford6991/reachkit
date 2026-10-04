@@ -102,6 +102,34 @@ describe("the hosted index", () => {
     expect(empty).not.toContain("<ul");
   });
 
+  it("carries Blog and WebSite data naming the pages it lists, and no others (issue 1141)", async () => {
+    const graphOf = (html: string): Record<string, unknown>[] => {
+      const block = /<script type="application\/ld\+json">(.*?)<\/script>/s.exec(html)?.[1] ?? "{}";
+      return (JSON.parse(block) as { "@graph": Record<string, unknown>[] })["@graph"];
+    };
+    const [site, blog] = graphOf(await render());
+    expect(site).toMatchObject({
+      "@type": "WebSite",
+      url: "https://content.example.com/",
+      name: "example.com",
+    });
+    expect(blog).toMatchObject({
+      "@type": "Blog",
+      url: "https://content.example.com/",
+      name: "example.com",
+      isPartOf: { "@id": site?.["@id"] },
+      blogPost: [
+        { headline: "The best onboarding tools", url: "https://content.example.com/onboarding-tools" },
+        { headline: "How onboarding software is priced", url: "https://content.example.com/pricing-guide" },
+      ],
+    });
+    // A search lists its matches, and the data follows the list.
+    const [, searched] = graphOf(await render("seats"));
+    expect((searched?.blogPost as { headline: string }[]).map((post) => post.headline)).toEqual([
+      "How onboarding software is priced",
+    ]);
+  });
+
   it("opens with the newest page as the featured card, and the rest as cards under it", async () => {
     const html = await render();
     const featured = html.slice(html.indexOf("Latest"), html.indexOf('id="articles"'));

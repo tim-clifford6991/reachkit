@@ -500,6 +500,7 @@ describe("the publish chain, end to end (issue 888)", () => {
       expect((await servedDocument(FIRST_HOST, null)).body).toContain(TITLE);
       const listed = await answerFor(`https://${FIRST_HOST}/sitemap.xml`);
       expect([...listed.body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])).toEqual([
+        `https://${FIRST_HOST}/`,
         `https://${FIRST_HOST}/${SLUG}`,
       ]);
 
@@ -586,6 +587,7 @@ describe("the publish chain, end to end (issue 888)", () => {
       expect(moved.body).toContain(TITLE);
       const listed = await answerFor(`https://${MOVED_HOST}/sitemap.xml`);
       expect([...listed.body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])).toEqual([
+        `https://${MOVED_HOST}/`,
         `https://${MOVED_HOST}/${SLUG}`,
       ]);
 

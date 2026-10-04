@@ -11,7 +11,7 @@ import type { HostedIdentity } from "@/lib/publish/destinations/hosted";
 import { QUIET_LINE } from "./present";
 
 /** Where the logo is served on the customer's own host (`../logo.img`). */
-const LOGO_PATH = "/logo.img";
+export const LOGO_PATH = "/logo.img";
 /** The blog's index on the customer's own host. A plain anchor, not a
  *  `Link`: this surface ships no script, and `/` here is not the app's. */
 export const INDEX_PATH = "/";

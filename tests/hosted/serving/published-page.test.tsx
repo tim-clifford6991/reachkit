@@ -316,11 +316,15 @@ describe("nothing of ours is on a domain that is not ours", () => {
     expect(await render()).not.toContain("style=");
   });
 
-  it("the whole document is in the HTML at first byte, with no script but the data block", async () => {
+  it("the whole document is in the HTML at first byte, with no script but the data blocks", async () => {
     // REQ-062 c1's property, at the source. The FAQ arm is off here, so
-    // the one script element is the page's `Article` data block (issue 697).
+    // the script elements are the page's `BlogPosting` and `BreadcrumbList`
+    // data blocks (issues 697 and 1141) — data, never behaviour.
     const html = await render();
     const scripts = html.match(/<script\b[^>]*>/g) ?? [];
-    expect(scripts).toEqual(['<script type="application/ld+json">']);
+    expect(scripts).toEqual([
+      '<script type="application/ld+json">',
+      '<script type="application/ld+json">',
+    ]);
   });
 });

@@ -914,7 +914,11 @@ describe("a new site in a thin market goes from setup to a published right-sized
       const response = await sitemap(new Request(`https://${HOST}/sitemap.xml`, { headers: { host: HOST } }));
       expect(response.status).toBe(200);
       const xml = await response.text();
-      expect([...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])).toEqual([liveUrl]);
+      expect([...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])).toEqual([
+        // The index, then the page (issue 1141).
+        new URL("/", liveUrl).href,
+        liveUrl,
+      ]);
 
       // Nothing on the way degraded.
       expect(runs.filter((run) => run.outcome.outcome !== "ran")).toEqual([]);

@@ -96,6 +96,18 @@ describe("REQ-059 c3 — a published hosted page is listed in a sitemap", () => 
     expect(body.trimEnd().endsWith("</urlset>")).toBe(true);
   });
 
+  it("the index is listed first, dated by the newest page on it (issue 1141)", async () => {
+    pagesBySite.set("site-1", [
+      { ...(page("newest") as object), publishedAt: new Date("2026-09-20T09:00:00.000Z") },
+      page("older"),
+    ]);
+    const body = await (await get("content.example.com")).text();
+    const first = body.slice(body.indexOf("<url>"), body.indexOf("</url>"));
+    expect(first).toBe(
+      "<url><loc>https://content.example.com/</loc><lastmod>2026-09-20</lastmod>"
+    );
+  });
+
   it("each entry carries the date the page went live", async () => {
     expect(await (await get("content.example.com")).text()).toContain("<lastmod>2026-09-01</lastmod>");
   });

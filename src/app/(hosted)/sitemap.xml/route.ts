@@ -11,6 +11,9 @@
 // present at its address, or the reverse, and a listed address cannot
 // disagree with the canonical the page at it declares.
 //
+// **The index is listed with them** (SPEC §7, 2026-09-29, issue 1141): the
+// root of the Host, once the site has a live page for it to list.
+//
 // **A site with no live page gets a valid, empty sitemap**, never an error
 // and never a 404: an empty index is a true statement about a site that has
 // published nothing yet, and REQ-062's 24-hour check reads this document
@@ -79,7 +82,15 @@ export async function GET(request: Request): Promise<Response> {
   // canonical link declares — never the one stored when it was published,
   // which a site whose host moved would list as a document full of 404s.
   const pages = await livePagesForSite(disposition.siteId, disposition.host);
-  const entries = pages
+  const [newest] = pages;
+  // The index first (SPEC §7, 2026-09-29, issue 1141), dated by the newest
+  // page on it — and only for a site that has one: an index that says
+  // nothing has been published is not a page to send a crawler to.
+  const listed =
+    newest === undefined
+      ? []
+      : [{ liveUrl: `https://${disposition.host}/`, publishedAt: newest.publishedAt }, ...pages];
+  const entries = listed
     .map(
       (page) =>
         `  <url><loc>${xmlEscape(page.liveUrl)}</loc>` +

@@ -23,6 +23,7 @@ import type { HostedPage } from "@/lib/publish/destinations/hosted";
 import { Surface } from "@/ui/layout";
 import { HostedFooter, HostedHeader, type HostedBusiness } from "./chrome";
 import { writeDate } from "./present";
+import { blogSchema } from "./seo";
 
 /** The query as the address carries it: the first `q`, trimmed, or empty. */
 export function queryOf(raw: string | string[] | undefined): string {
@@ -74,6 +75,7 @@ function CardDate({ page }: { page: HostedPage }): React.JSX.Element {
 
 export function HostedIndex({
   business,
+  canonical,
   pages,
   query,
   page,
@@ -106,6 +108,19 @@ export function HostedIndex({
         wide: { kind: "declared", note: "the cards three a line" },
       }}
     >
+      {/* SPEC §7 (2026-09-29, issue 1141): `Blog` with its `WebSite`, naming
+          the pages this page of the list shows and no others. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: blogSchema({
+            business,
+            canonical,
+            listed: featured === null ? shown : [featured, ...shown],
+          }),
+        }}
+      />
+
       <HostedHeader business={business} />
 
       <main className="mx-auto w-full max-w-5xl px-4 py-10">
