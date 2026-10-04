@@ -65,6 +65,7 @@ import { generateStore, type DraftRow } from "../store";
 import { applyLinks } from "../links/apply";
 import type { LinkTarget } from "../links/select";
 import { buildPromptInputs, type KnownPageBrief } from "../voice/inputs";
+import type { PromptMarket } from "../voice/market";
 import { profileItemsUsed, type PromptProfile } from "../voice/profile-block";
 import { buildComparisonSet } from "./comparison";
 import { addsEnough, listAdds, plansNewPage, type AddsRecord } from "./adds";
@@ -187,6 +188,10 @@ export async function generateDraft(
     /** The market pool (issue 1135): what `./research.ts` read for this
      *  target. Absent is a page written from its business facts alone. */
     market?: MarketResearch;
+    /** The site's market in force (`sites.market`, issue 1248), which
+     *  `category` is then the category of. Absent or `null` where none is
+     *  stored and `category` is the stored report's. */
+    siteMarket?: PromptMarket | null;
   }
 ): Promise<GenerateOutcome> {
   const store = generateStore();
@@ -236,6 +241,7 @@ export async function generateDraft(
       doNotClaim: a.site.doNotClaim,
       voice: a.voiceText,
       profile: a.profile,
+      market: a.siteMarket ?? null,
       ...(a.sitePages === undefined ? {} : { sitePages: a.sitePages }),
     })
   );
@@ -268,6 +274,7 @@ export async function generateDraft(
     links: a.links,
     ...(a.known === undefined ? {} : { known: a.known }),
     profile: a.profile,
+    market: a.siteMarket ?? null,
   });
 
   // 4. The skeleton's outline, the draft, and the bounded answerability
@@ -418,6 +425,12 @@ export async function generateDraft(
         title: fact.title,
         readAt: fact.readAt.toISOString(),
       })),
+      // Issue 1248: the market the page was written for, and whether it is
+      // the site's own (`sites.market`) or the stored report's category.
+      market:
+        a.siteMarket == null
+          ? { from: "report", category: a.category }
+          : { from: "site", ...a.siteMarket },
       // Issue 1138: the page's length against its target as the writer left
       // it, and the critic's five scores — numbers only, so how often a
       // page is rewritten for length, and what the critic made of it, can

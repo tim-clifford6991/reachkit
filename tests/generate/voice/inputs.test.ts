@@ -29,7 +29,7 @@ function inputs(voiceText: string | null): DraftPromptInputs {
 }
 
 describe("DraftPromptInputs is closed", () => {
-  it("has exactly the nine members, and no tenth a derived artifact could arrive through", () => {
+  it("has exactly the ten members, and no eleventh a derived artifact could arrive through", () => {
     // `profile` is the eighth since #927 (SPEC §7, 2026-09-20: the confirmed
     // profile "joins the writer's inputs … This supersedes the closed
     // seven-member prompt"). It is not a *learned* artifact and that is the
@@ -44,6 +44,10 @@ describe("DraftPromptInputs is closed", () => {
     // that exist, read off the site and off our own record — no body text,
     // so there is nothing in it a page could paraphrase.
     //
+    // `market` is the tenth, since issue 1248 (SPEC §7, 2026-10-04): the
+    // site's market in force — concluded from its own pages, shown on
+    // Settings and the founder's to override.
+    //
     // `summary`, `embedding` and `history` still have no field to arrive
     // through.
     expect(Object.keys(DRAFT_PROMPT_KEYS).sort()).toEqual(
@@ -56,6 +60,7 @@ describe("DraftPromptInputs is closed", () => {
         "opportunity",
         "profile",
         "known",
+        "market",
         "voiceText",
       ].sort()
     );

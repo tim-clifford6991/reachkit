@@ -46,10 +46,11 @@
 import type { Opportunity } from "@/lib/opportunities";
 import type { LinkTarget } from "../links/select";
 import type { GroundedFact } from "../rules/types";
+import type { PromptMarket } from "./market";
 import type { PromptProfile } from "./profile-block";
 
-/** Every site-scoped input to a generation prompt. Closed: eight members
- *  and no ninth. */
+/** Every site-scoped input to a generation prompt. Closed: these members
+ *  and no other. */
 export interface DraftPromptInputs {
   businessName: string | null;
   domain: string;
@@ -80,6 +81,13 @@ export interface DraftPromptInputs {
    *  `links` is what the finished page is *held* to link, and this is what
    *  it must not repeat. */
   known: readonly KnownPageBrief[];
+  /** SPEC §7 (2026-10-04, issue 1248): the site's market in force
+   *  (`sites.market`) — who buys, the job, the rivals and the markets the
+   *  site is not in — or `null` where none is stored, when `category` is
+   *  the stored report's. Concluded from the site's own pages and shown to
+   *  the founder on Settings, who may override it: told, like `profile`,
+   *  not learned. */
+  market: PromptMarket | null;
 }
 
 /** One page the site already has, as the prompt states it. */
@@ -103,6 +111,7 @@ export const DRAFT_PROMPT_KEYS: Readonly<Record<keyof DraftPromptInputs, true>> 
   links: true,
   profile: true,
   known: true,
+  market: true,
 });
 
 /** Assembles the struct from what the pipeline already holds. It reads
@@ -118,6 +127,7 @@ export function buildPromptInputs(a: {
   links: readonly LinkTarget[];
   profile: PromptProfile | null;
   known?: readonly KnownPageBrief[];
+  market?: PromptMarket | null;
 }): DraftPromptInputs {
   return {
     businessName: a.businessName,
@@ -131,5 +141,7 @@ export function buildPromptInputs(a: {
     // Absent reads as none — a caller with no index to offer builds the
     // prompt this product built before #928.
     known: a.known ?? [],
+    // Absent reads as none stored.
+    market: a.market ?? null,
   };
 }
