@@ -18,10 +18,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // time (every other import it has is a type).
 vi.mock("@/lib/db", () => ({ dbAdmin: vi.fn() }));
 
-import { BATTERY, CAPS, PRICE_BOOK, TIMING } from "@/lib/config/constants";
+import { BATTERY, CAPS, PRICE_BOOK, SELECTION, TIMING } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import {
   MARKET_PURSE_CENTS,
+  PHRASING_RESERVE_C,
   QUESTION_SERP_RESERVE_C,
   SERP_FANOUT,
   STAGE_BUDGETS,
@@ -98,12 +99,20 @@ describe("the market and the twelve share one purse (issue 835)", () => {
     expect(twelveCentsAfter(MARKET_PURSE_CENTS + 1)).toBe(0);
   });
 
-  it("a seed is bought only while the purse holds it and a SERP for every question already selected", () => {
+  it("a pass with no questions buys a seed while the purse holds it", () => {
     const seed = PRICE_BOOK.SUGGESTIONS_COST_C;
     expect(affordsSeed({ remainingCents: seed + 0.01, selected: 0 })).toBe(true);
     expect(affordsSeed({ remainingCents: seed, selected: 0 })).toBe(false);
-    expect(affordsSeed({ remainingCents: seed + 0.01, selected: 1 })).toBe(false);
-    expect(affordsSeed({ remainingCents: seed + 3 * QUESTION_SERP_RESERVE_C + 0.01, selected: 3 })).toBe(true);
+  });
+
+  it("a pass short of the minimum buys a seed only while the phrasing and that many SERPs still fit after it (issue 1235)", () => {
+    const min = SELECTION.freeLadderMinQuestions;
+    const floor = PRICE_BOOK.SUGGESTIONS_COST_C + PHRASING_RESERVE_C + min * QUESTION_SERP_RESERVE_C;
+    expect(affordsSeed({ remainingCents: floor + 0.01, selected: 1 })).toBe(true);
+    expect(affordsSeed({ remainingCents: floor, selected: 1 })).toBe(false);
+    // More questions than the minimum: every one of them keeps its SERP.
+    expect(affordsSeed({ remainingCents: floor + 0.01, selected: min + 1 })).toBe(false);
+    expect(affordsSeed({ remainingCents: floor + QUESTION_SERP_RESERVE_C + 0.01, selected: min + 1 })).toBe(true);
   });
 
   it("a stage handed the purse reads its remaining cents from the purse, never past the pass's own", async () => {

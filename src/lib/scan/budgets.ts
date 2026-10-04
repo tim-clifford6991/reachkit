@@ -39,8 +39,8 @@
 // buy. So `reading_your_market` spends from its own row *and* the twelve's
 // (`MARKET_PURSE_CENTS`), the twelve get what the market left of that purse
 // (`twelveCentsAfter`), and the run buys an extra seed only while the purse
-// still holds the seed and the SERPs of every question already selected
-// (`affordsSeed`). The column sum below is unchanged by that: the two rows
+// still holds the seed and — once it has a question — the phrasing and the
+// SERPs of the questions it will ask (`affordsSeed`). The column sum below is unchanged by that: the two rows
 // are one purse, not two.
 //
 // The seconds sum to `TIMING.reportTargetS` — 40, the p95 the pass aims at,
@@ -69,7 +69,7 @@
 // reason (`runInStageBudget` below). Money stays cooperative: it is read
 // between calls through the stage's own `Bounds`, exactly as the overall
 // cap is.
-import { ASYNC_AIO_SURCHARGE_MULTIPLIER, CAPS, PRICE_BOOK, TIMING } from "@/lib/config/constants";
+import { ASYNC_AIO_SURCHARGE_MULTIPLIER, CAPS, PRICE_BOOK, SELECTION, TIMING } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Bounds } from "./ceilings";
 import type { StageName } from "./stages";
@@ -110,13 +110,25 @@ export function twelveCentsAfter(marketCents: number): number {
   return Math.max(0, Math.min(STAGE_BUDGETS.asking_the_twelve.cents, MARKET_PURSE_CENTS - marketCents));
 }
 
-/** Issue 835: whether a pass with `remainingCents` left may buy one more
- *  `keyword_suggestions` seed while it holds `selected` questions — the seed
- *  and a SERP for every one of them must still fit, so widening never takes
- *  the money the questions it already has are asked with. Strictly more, so
- *  the phrasing after the purchase still reads a purse that is not spent. */
+/** What one of the free path's two nano calls is budgeted at — the half of
+ *  `reading_your_market`'s row the table above gives the phrasing. */
+export const PHRASING_RESERVE_C = 1.3;
+
+/** Whether a pass with `remainingCents` left may buy one more
+ *  `keyword_suggestions` seed while it holds `selected` questions.
+ *
+ *  A pass with no questions buys while the purse holds the seed (issue
+ *  835): any question is better than none. A pass that has questions and
+ *  is only short of `SELECTION.freeLadderMinQuestions` (issue 1235) buys
+ *  the seed only while the purse still holds, after it, the phrasing and a
+ *  SERP for that minimum or for every question already selected, whichever
+ *  is more — so widening never leaves questions the pass cannot ask.
+ *  Strictly more, so the call after the purchase reads a purse that is not
+ *  spent. */
 export function affordsSeed(a: { remainingCents: number; selected: number }): boolean {
-  return a.remainingCents > PRICE_BOOK.SUGGESTIONS_COST_C + a.selected * QUESTION_SERP_RESERVE_C;
+  if (a.selected === 0) return a.remainingCents > PRICE_BOOK.SUGGESTIONS_COST_C;
+  const asked = Math.max(a.selected, SELECTION.freeLadderMinQuestions);
+  return a.remainingCents > PRICE_BOOK.SUGGESTIONS_COST_C + PHRASING_RESERVE_C + asked * QUESTION_SERP_RESERVE_C;
 }
 
 /**
