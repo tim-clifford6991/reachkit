@@ -30,7 +30,8 @@ export const PRICE_BOOK = Object.freeze({
   RANKED_RIVAL_ROWS: 100, RANKED_RIVAL_COST_C: 2.4,
   COMPETITORS_DOMAIN_COST_C: 1.5, SUGGESTIONS_COST_C: 1.8,
   SERP_LIVE_C: 0.2, SERP_STD_C: 0.06,
-  /** Google News, live, ten results (SPEC §7, D48; issue 1259). */
+  /** Google News, live, ten results (SPEC §7, D48; issue 1259): the vendor's
+   *  own charge on the cost check of 2026-10-04, $0.002. */
   NEWS_LIVE_C: 0.2,
   CHATGPT_SCRAPE_STD_C: 0.12, AI_MODE_LIVE_C: 0.2, AI_MODE_STD_C: 0.12,
   LLM_MENTIONS_ROWS: 100, LLM_MENTIONS_REQUEST_C: 10, LLM_MENTIONS_ROW_C: 0.1,

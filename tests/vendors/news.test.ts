@@ -26,7 +26,7 @@ const RESULT = {
         { type: "top_stories_element", source: "The Register", domain: "www.theregister.com", title: "Search changes again", url: "https://www.theregister.com/a", timestamp: "2026-10-02 07:15:00 +00:00" },
       ],
     },
-    { type: "news_search", domain: "searchengineland.com", title: "AI Overviews now cite fewer sites", url: "https://searchengineland.com/b", source: "Search Engine Land", time_published: "3 days ago", timestamp: "2026-09-30 23:40:00 +00:00" },
+    { type: "news_search", domain: "searchengineland.com", title: "AI Overviews now cite fewer sites", url: "https://searchengineland.com/b", time_published: "3 days ago", timestamp: "2026-09-30 23:40:00 +00:00" },
     // The same story twice is one result.
     { type: "news_search", domain: "searchengineland.com", title: "AI Overviews now cite fewer sites", url: "https://searchengineland.com/b", timestamp: "2026-09-30 23:40:00 +00:00" },
     // No date: nothing this search is bought for.
@@ -52,7 +52,7 @@ describe("the news search returns dated results, in order, with who published th
     expect(found.kind).toBe("measured");
     expect(found.kind === "measured" ? found.value : []).toEqual([
       { url: "https://www.theregister.com/a", domain: "theregister.com", title: "Search changes again", source: "The Register", publishedAt: "2026-10-02" },
-      { url: "https://searchengineland.com/b", domain: "searchengineland.com", title: "AI Overviews now cite fewer sites", source: "Search Engine Land", publishedAt: "2026-09-30" },
+      { url: "https://searchengineland.com/b", domain: "searchengineland.com", title: "AI Overviews now cite fewer sites", source: "searchengineland.com", publishedAt: "2026-09-30" },
     ]);
   });
 

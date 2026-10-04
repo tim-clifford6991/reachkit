@@ -7,6 +7,13 @@
 // dates every result itself, so this is the one thing it is bought for — a
 // result the vendor gives no date is not a row.
 //
+// The cost check of 2026-10-04 (issue 1259): the vendor charges $0.002 a
+// call, which is `PRICE_BOOK.NEWS_LIVE_C`. A `news_search` row names no
+// publisher, so its domain stands as the source, and its `timestamp` is the
+// vendor's reading of Google's "2 days ago" — good to the day for a recent
+// story and to the week for an older one, which is why the research step
+// holds a page to its own stated date where it has one.
+//
 // Live only: a page is written inside one invocation, and the standard
 // queue's wait is longer than that. Depth 10 and `SERP_LOCATION` are fixed
 // in `transport.ts`, as they are for the organic SERP.

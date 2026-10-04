@@ -5,7 +5,7 @@ The proof of SPEC §7 D41–D43 (#1252), for the owner's read. Each page was wri
 from the site's production export (`scripts/page/snapshot/reachkit.app.json`). Beside each page is
 the context pack it was written from (`<type>.pack.json`) and the run's record (`<type>.run.json`).
 
-**Five of the seven types passed every check. Two did not, and are not papered over.**
+**Five of the seven types passed every check on 2026-10-04; current insights passed the same day once it read a news search (#1259). The listicle did not, and is not papered over.**
 
 | Type | Topic | Outcome | Words | Calls | Cost of the kept run |
 |---|---|---|---|---|---|
@@ -15,7 +15,7 @@ the context pack it was written from (`<type>.pack.json`) and the run's record (
 | Q&A | why does chatgpt recommend my competitors | passed as written | 896 | 2 research, write | 5.55¢ |
 | Update | the live page *Best answer engine optimization services for AI visibility* | passed as written | 584 | 2 research, write | 5.37¢ |
 | Listicle | best ai visibility tools for small businesses | **stopped**: `required_blocks` (table) | 1,314 | 2 research, write, fit, fix, fit | 13.28¢ |
-| Current insights | ai search visibility news | **not written**: the pack holds no web result published in the last 30 days | — | 2 research | 1.44¢ |
+| Current insights | AI discovery monitoring and content news | passed as written, from a news search (#1259, below) | 988 | 3 news searches, 2 research, write | 7.73¢ |
 
 Every page that was written cost under the 25¢ a page.
 
@@ -33,14 +33,16 @@ failed on other things that are fixed in this branch (the table's orientation wa
 check; the fit check did not know the site's market and stopped a sentence that placed ReachKit in
 it; a repair that cleared one check was thrown away because another still failed).
 
-**Current insights.** The one search returned no page whose own markup dates it inside 30 days
+**Current insights — written since, by #1259 (D48).** `insights.md` is the page: the news was searched for the market's category and two synonyms (0.2¢ a search), five results dated inside 30 days were read, and the page was written from three of them — Search Engine Journal (24 September), GlobeNewswire (30 September) and Dynamic Business (2 October) — and passed every check as written. One thing to read it for: the third item, a security vendor's launch, is beside the market rather than in it; a news search matches words, and nothing yet judges whether a result is about this market. What follows is the first attempt, kept as it was written.
+
+**Current insights, the first attempt.** The one search returned no page whose own markup dates it inside 30 days
 (eight results read; the newest was dated 11 August 2026). The page was rightly not written:
 `step_failed:pack:recent_results`. An ordinary web search is the wrong source for news; the type
 needs a search of the news, which is a vendor endpoint this product does not buy yet.
 
 ## What the proof spent
 
-**140.6¢** in all, against the 150¢ allowed — the seven kept runs above are 53.9¢ of it. The rest
+**140.6¢** in all, against the 150¢ allowed — the seven runs kept that morning are 53.9¢ of it (the current-insights row above is #1259's later run: 7.73¢, plus 0.4¢ for its cost check, under the owner's exception on that issue). The rest
 bought the failures that found defects, each now fixed in code:
 
 | Found by a failed run | Fixed by |
