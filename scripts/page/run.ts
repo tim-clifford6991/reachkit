@@ -21,8 +21,9 @@
 //      default topic otherwise.
 //   2. **Context pack**: the research step runs live (its reads, its one
 //      search, at most two model calls) and the pack is built by the
-//      product's `buildPack`, then cached under `.review/page/packs/`. A
-//      rerun reuses it unless `--fresh`.
+//      product's `buildPack`. The research is cached under
+//      `.review/page/packs/` and a rerun reuses it unless `--fresh`; the
+//      pack is built from it every run. `--pack-only` stops here.
 //   3–4. **Write and check**: the product's `generateDraft`, against an
 //      in-memory store. Nothing reaches a database or a destination.
 //
@@ -35,7 +36,7 @@ import { bodyWords } from "@/lib/generate/length";
 import { clusterLinkTargets, siteLinkTargets } from "@/lib/generate/links/select";
 import { generateDraft, targetSearches, type GenerateOutcome } from "@/lib/generate/pipeline";
 import { allowedFacts, readAllFacts } from "@/lib/generate/pipeline/grounding";
-import { buildPack, missingFrom, type ContextPack } from "@/lib/generate/pipeline/pack";
+import { buildPack } from "@/lib/generate/pipeline/pack";
 import { NO_RESEARCH, researchMarket, type MarketResearch } from "@/lib/generate/pipeline/research";
 import { readRecordedRules, readRecordedVerdict } from "@/lib/generate/record";
 import { HARD_RULES } from "@/lib/generate/rules/types";
@@ -62,6 +63,8 @@ export interface Options {
   type: string;
   topic: string | null;
   fresh: boolean;
+  /** Stop after stage 2: build the pack and print it, with no write call. */
+  packOnly: boolean;
   outDir: string;
   capCents: number;
 }
@@ -72,10 +75,14 @@ export interface PageSnapshot extends Snapshot {
   written?: { title: string; url: string; type: OpportunityType; question: string | null; markdown: string }[];
 }
 
-interface CachedPack {
-  pack: ContextPack;
+interface CachedResearch {
   research: MarketResearch;
   researchCents: number;
+}
+
+/** A cached claim's read date, as a date again. */
+function reviveResearch(cached: CachedResearch): CachedResearch {
+  return { ...cached, research: { ...cached.research, facts: cached.research.facts.map((fact) => ({ ...fact, readAt: new Date(fact.readAt) })) } };
 }
 
 const SITE_ID = "00000000-0000-4000-8000-000000000001";
@@ -257,9 +264,12 @@ export async function main(opts: Options): Promise<number> {
       ...clusterLinkTargets([]),
     ];
 
-    // 2. The context pack, cached on disk.
+    // 2. The context pack.
     const packFile = path.join(opts.root, ".review/page/packs", `${opts.site}.${type}.${slugOf(topic)}.json`);
-    let cached: CachedPack | null = !opts.fresh && existsSync(packFile) ? (JSON.parse(readFileSync(packFile, "utf8")) as CachedPack) : null;
+    // The research is what is cached: its reads and its model calls are what
+    // a pack costs. The pack is built from it on every run, so a change to
+    // how code reads a pack is tested without buying the research again.
+    let cached: CachedResearch | null = !opts.fresh && existsSync(packFile) ? reviveResearch(JSON.parse(readFileSync(packFile, "utf8")) as CachedResearch) : null;
     if (cached === null) {
       const research = !template.research
         ? NO_RESEARCH
@@ -272,51 +282,60 @@ export async function main(opts: Options): Promise<number> {
             today: new Date(),
             ...(type === "insights" ? { recent: { searches: [category, ...writingFor.synonyms], days: RESEARCH.recentDays } } : {}),
           });
-      const pack = buildPack({
-        type,
-        opportunity,
-        site,
-        category,
-        market: writingFor.market === null ? { from: "report", category } : { from: "site", ...writingFor.market },
-        byline: snapshot.knowledge?.answers.byline ?? businessName,
-        voice: snapshot.site?.voiceText ?? null,
-        profile: promptProfile(
-          confirmedProfile({
-            profile:
-              snapshot.siteProfile === null
-                ? null
-                : {
-                    domain: opts.site,
-                    siteName: snapshot.siteProfile.siteName,
-                    products: snapshot.siteProfile.products,
-                    claims: snapshot.siteProfile.claims,
-                    voice: snapshot.siteProfile.voice,
-                    inventory,
-                    pagesRead: inventory.length,
-                    refreshedAt: new Date(snapshot.scan.finishedAt),
-                  },
-            market: profile,
-            edits: NO_EDITS,
-          }),
-          snapshot.knowledge === undefined ? null : knowledgeBase(snapshot.knowledge)
-        ),
-        facts,
-        research,
-        report,
-        sitePages: (snapshot.written ?? [])
-          .filter((page) => page.url !== live?.url)
-          .map((page) => ({ title: page.title, question: page.question, url: page.url, kind: null, status: "published" as const })),
-        links,
-        live: live === null ? null : { url: live.url, title: live.title, markdown: live.markdown, why: "age" },
-        now: new Date(),
-      });
-      cached = { pack, research, researchCents: ledger.spentCents() };
+      cached = { research, researchCents: ledger.spentCents() };
       mkdirSync(path.dirname(packFile), { recursive: true });
       writeFileSync(packFile, `${JSON.stringify(cached, null, 1)}\n`);
     }
-    // What a cached pack lacks is read again: the pack is data, the reading
-    // of it is the code's.
-    const pack = { ...cached.pack, missing: missingFrom(cached.pack) };
+    const research = cached.research;
+    const pack = buildPack({
+      type,
+      opportunity,
+      site,
+      category,
+      market: writingFor.market === null ? { from: "report", category } : { from: "site", ...writingFor.market },
+      writingFor,
+      byline: snapshot.knowledge?.answers.byline ?? businessName,
+      voice: snapshot.site?.voiceText ?? null,
+      profile: promptProfile(
+        confirmedProfile({
+          profile:
+            snapshot.siteProfile === null
+              ? null
+              : {
+                  domain: opts.site,
+                  siteName: snapshot.siteProfile.siteName,
+                  products: snapshot.siteProfile.products,
+                  claims: snapshot.siteProfile.claims,
+                  voice: snapshot.siteProfile.voice,
+                  inventory,
+                  pagesRead: inventory.length,
+                  refreshedAt: new Date(snapshot.scan.finishedAt),
+                },
+          market: profile,
+          edits: NO_EDITS,
+        }),
+        snapshot.knowledge === undefined ? null : knowledgeBase(snapshot.knowledge)
+      ),
+      facts,
+      research,
+      report,
+      sitePages: (snapshot.written ?? [])
+        .filter((page) => page.url !== live?.url)
+        .map((page) => ({ title: page.title, question: page.question, url: page.url, kind: null, status: "published" as const })),
+      links,
+      live: live === null ? null : { url: live.url, title: live.title, markdown: live.markdown, why: "age" },
+      now: new Date(),
+    });
+    if (opts.packOnly) {
+      mkdirSync(opts.outDir, { recursive: true });
+      writeFileSync(path.join(opts.outDir, `${type}.pack.json`), `${JSON.stringify(pack, null, 1)}\n`);
+      console.log(`\n# ${opts.site} · ${type} · “${topic}” — the pack only, nothing written\n`);
+      console.log(`pack    ${pack.facts.length} business facts, ${pack.claims.length} market claims, ${pack.products.length} rivals read`);
+      console.log(`short   ${pack.missing.length === 0 ? "of nothing" : `of ${pack.missing.join(", ")}`}`);
+      if (pack.questions.length > 0) console.log(`\nquestions\n${pack.questions.map((text) => `  ${text}`).join("\n")}`);
+      console.log(`\ncost    ${cents(ledger.spentCents())} this run`);
+      return 0;
+    }
 
     // 3–4. Write and check.
     const outcome = await generateDraft(cost, {

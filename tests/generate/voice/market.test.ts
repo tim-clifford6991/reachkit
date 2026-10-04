@@ -61,7 +61,7 @@ describe("the market a page is written for", () => {
   });
 
   it("is the report's category only where no market is stored, or the read failed", () => {
-    const none = { from: "report", category: REPORT_CATEGORY, synonyms: [], market: null };
+    const none = { from: "report", category: REPORT_CATEGORY, synonyms: [], concluded: [], market: null };
     expect(writingMarket({ site: site({ market: null }), reportCategory: REPORT_CATEGORY })).toEqual(none);
     expect(writingMarket({ site: null, reportCategory: REPORT_CATEGORY })).toEqual(none);
   });

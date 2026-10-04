@@ -4,7 +4,9 @@
 import "../env";
 import { describe, expect, it } from "vitest";
 import { buildPack, missingFrom, packAdds, readPack, type PackInputs } from "../../../src/lib/generate/pipeline/pack";
+import type { WritingMarket } from "../../../src/lib/generate/voice/market";
 import type { PromptProfile } from "../../../src/lib/generate/voice/profile-block";
+import type { StoredReport } from "../../../src/lib/scan/report";
 import { AT, FACTS, GROUNDED, opportunity, report } from "../fixtures";
 
 const PROFILE: PromptProfile = {
@@ -80,6 +82,81 @@ describe("a pack is held against what its template must hold", () => {
     expect(missingFrom(bare)).toEqual(bare.missing);
     const priced = { fact: { ...GROUNDED, passage: "The starter plan costs $12 a seat." }, sourceText: "The starter plan costs $12 a seat." };
     expect(buildPack(inputs({ profile: null, facts: [priced] })).missing).toEqual(["difference"]);
+  });
+});
+
+describe("a Q&A's questions are on the current market, each with a fact that answers it (issue 1263)", () => {
+  const MARKET: WritingMarket = {
+    category: "project management software",
+    from: "site",
+    synonyms: ["task boards"],
+    concluded: [{ name: "Dropped", domain: "dropped.example" }],
+    market: {
+      category: "project management software",
+      buyer: null,
+      job: null,
+      rivals: [
+        { name: "Rival Board", domain: "rival.example" },
+        { name: "Other", domain: "other.example" },
+      ],
+      notOurMarket: [],
+    },
+  };
+  /** A stored report with these measured questions and tracked prompts. */
+  function reportWith(questions: readonly (readonly [text: string, search: string])[], prompts: readonly string[] = []): StoredReport {
+    const base = report();
+    if (base.questions.kind === "unmeasured") throw new Error("the fixture report measures questions");
+    const like = base.questions.value[0]!;
+    return {
+      ...base,
+      questions: {
+        ...base.questions,
+        value: questions.map(([text, keyword], n) => ({ ...like, id: `q${n + 1}`, text, search: { ...like.search, keyword } })),
+      },
+      prompts: { siteName: "Acme", asks: 0, answers: [], asked: prompts.map((text, n) => ({ id: `p${n}`, kind: "category" as const, text })) },
+    };
+  }
+  const fact = (passage: string) => ({ fact: { ...GROUNDED, passage }, sourceText: passage });
+  const BOARDS = [fact("Acme's task boards show every project a small team runs."), ...FACTS];
+  const qa = (over: Partial<PackInputs>) => buildPack(inputs({ type: "qa", writingFor: MARKET, facts: BOARDS, research: { facts: [], products: [] }, ...over }));
+
+  it("a measured question from another market's pool is left out; a site with no concluded market keeps its report's own", () => {
+    const stored = reportWith([
+      ["Which task boards suit a small team?", "task boards for small teams"],
+      ["What SaaS SEO tool should I use?", "saas seo tool"],
+      ["How much does SEO software cost?", "seo software cost"],
+    ]);
+    expect(qa({ report: stored }).questions).toEqual(["Which task boards suit a small team?"]);
+    const lead = fact("An SEO tool for SaaS teams, from $9 a month.");
+    expect(qa({ report: stored, writingFor: null, facts: [...BOARDS, lead] }).questions).toContain("What SaaS SEO tool should I use?");
+  });
+
+  it("a question naming a rival goes in only where that rival's own page yielded a claim, its pricing page for a price", () => {
+    const stored = reportWith(
+      [["How much does Other cost?", "other cost"]],
+      // The last names a rival the founder's own choice left out: nothing was read for it.
+      ["How does Rival Board compare with Other for project management?", "What are the best alternatives to Rival Board?", "How does Rival Board compare with Dropped?"]
+    );
+    const features = { ...claimOf("other.example"), kind: "rival_features" as const, passage: "Other syncs boards with calendars." };
+    const read = (facts: (typeof features | ReturnType<typeof claimOf>)[]) => qa({ report: stored, research: { facts, products: [] } }).questions;
+    expect(read([claimOf("rival.example")])).toEqual(["What are the best alternatives to Rival Board?"]);
+    expect(read([claimOf("rival.example"), features])).toEqual([
+      "How does Rival Board compare with Other for project management?",
+      "What are the best alternatives to Rival Board?",
+    ]);
+    expect(read([claimOf("rival.example"), claimOf("other.example")])).toHaveLength(3);
+  });
+
+  it("a question no fact answers is dropped, and fewer than five leaves the pack short (D26 takes the day on)", () => {
+    const stored = reportWith([], ["Which task boards suit a small team?", "Which project management software has an offline mode for field crews?"]);
+    const pack = qa({ report: stored });
+    expect(pack.questions).toEqual(["Which task boards suit a small team?"]);
+    expect(pack.missing).toContain("buyer_questions");
+  });
+
+  it("the knowledge base's own recorded questions are not a source", () => {
+    const profile = { ...PROFILE, knowledge: { ...PROFILE.knowledge!, questions: [{ text: "What to do next", from: "https://example.com/" }] } };
+    expect(qa({ report: reportWith([]), profile }).questions).toEqual([]);
   });
 });
 
