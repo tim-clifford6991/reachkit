@@ -22,6 +22,12 @@ const { llmMock, readMeasuredTextMock, withCostContextMock, transitionMock } = v
   withCostContextMock: vi.fn(),
   transitionMock: vi.fn(),
 }));
+// No test reaches a vendor: the research step's reads and its one search are
+// stood in for, and the page is written from the business's own facts.
+vi.mock("@/lib/generate/pipeline/research", async (importOriginal) => {
+  const { researchStandIn } = await import("./fixtures");
+  return researchStandIn(await importOriginal<object>());
+});
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 
 // #927: `writePage` reads the confirmed business profile and the passages

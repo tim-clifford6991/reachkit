@@ -116,6 +116,12 @@ const client = {
   rpc: (fn: string, args: Row) => (db.client as { rpc(f: string, a: Row): unknown }).rpc(fn, args),
 };
 
+// No test reaches a vendor: the research step's reads and its one search are
+// stood in for, and the page is written from the business's own facts.
+vi.mock("@/lib/generate/pipeline/research", async (importOriginal) => {
+  const { researchStandIn } = await import("../generate/fixtures");
+  return researchStandIn(await importOriginal<object>());
+});
 vi.mock("@/lib/db", () => ({ dbAdmin: () => client, db: () => client }));
 
 vi.mock("@/lib/presentation/copy", async (importOriginal) => {

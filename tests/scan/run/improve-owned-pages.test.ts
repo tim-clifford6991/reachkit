@@ -100,13 +100,13 @@ const CHECKLIST: Question = {
   ...QUESTION,
   id: "q1",
   text: "What belongs on a user onboarding checklist?",
-  search: { ...SELECTED, keyword: "best user onboarding checklist", volume: 150 },
+  search: { ...SELECTED, keyword: "user onboarding checklist for saas", volume: 150 },
 };
 const TOURS: Question = {
   ...QUESTION,
   id: "q2",
   text: "Which product tour tool is best?",
-  search: { ...SELECTED, keyword: "best product tour tool", volume: 150, rank: 2 },
+  search: { ...SELECTED, keyword: "product tour tool for saas", volume: 150, rank: 2 },
 };
 
 function measurement(ownRankedRows: DomainMeasurement["ownRankedRows"]): DomainMeasurement {

@@ -103,6 +103,12 @@ const client = {
   },
 };
 
+// No test reaches a vendor: the research step's reads and its one search are
+// stood in for, and the page is written from the business's own facts.
+vi.mock("@/lib/generate/pipeline/research", async (importOriginal) => {
+  const { researchStandIn } = await import("../generate/fixtures");
+  return researchStandIn(await importOriginal<object>());
+});
 vi.mock("@/lib/db", () => ({ dbAdmin: () => client, db: () => client }));
 
 // ── The copy registry ───────────────────────────────────────────────────

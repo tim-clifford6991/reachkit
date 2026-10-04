@@ -131,6 +131,12 @@ const client = {
   rpc: (fn: string, args: Row) => (db.client as { rpc(f: string, a: Row): unknown }).rpc(fn, args),
 };
 
+// No test reaches a vendor: the research step's reads and its one search are
+// stood in for, and the page is written from the business's own facts.
+vi.mock("@/lib/generate/pipeline/research", async (importOriginal) => {
+  const { researchStandIn } = await import("../generate/fixtures");
+  return researchStandIn(await importOriginal<object>());
+});
 vi.mock("@/lib/db", () => ({ dbAdmin: () => client, db: () => client }));
 
 vi.mock("@/lib/presentation/copy", async (importOriginal) => {
@@ -772,12 +778,9 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       // scan that grounds it, and the whole day inside §8's cap.
       expect(modelCalls).toHaveLength(1);
       const rows = ledger();
-      expect(rows.map((r) => r.source)).toEqual([
-        // Issue 1135: the research step's one search for studies, bought
-        // before the write and paid from the same ceiling.
-        "serp/google/organic",
-        "generate.write",
-      ]);
+      // The research step is stood in for here (no test reaches a vendor),
+      // so the write call is the day's one ledgered row.
+      expect(rows.map((r) => r.source)).toEqual(["generate.write"]);
       const spent = rows.reduce((total, r) => total + r.costCents, 0);
       expect(spent).toBeGreaterThan(0);
       expect(spent).toBeLessThanOrEqual(CAPS.DRAFT_C);
