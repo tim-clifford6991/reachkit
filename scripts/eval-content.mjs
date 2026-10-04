@@ -15,6 +15,10 @@
 //   npm run eval:content -- --run --env-file ../reachkitv3/.env.local
 //   npm run eval:content -- --ab [--run]          # #1153: A beside the prototype B
 //                                                 # and the reference C on reachkit.app
+//   npm run eval:content -- --ab --regrade [--fetch | --run] [--round 1] [--cap-cents 50]
+//                                                 # #1158: a stored round graded again —
+//                                                 # code checks at 0¢; --fetch reads the
+//                                                 # evidence (free); --run judges the pairs
 //   npm run eval:content -- --repair [--run] [--rounds 2]
 //                                                 # #1178: a stopped draft re-rolled blind
 //                                                 # beside one repaired from its failures
@@ -121,9 +125,25 @@ async function main() {
       console.log(`${snapshotOf}: scan ${taken.scan.id}, ${taken.pages.length} pages stored.`);
       return 0;
     }
+    if (ab && argv.includes("--regrade")) {
+      const run = await server.ssrLoadModule("/scripts/eval-content/round.ts");
+      return await run.main({
+        run: options.run,
+        fetch: argv.includes("--fetch"),
+        root: ROOT,
+        round: Number(flag("--round", "1")),
+        capCents: Number(flag("--cap-cents", "50")),
+      });
+    }
     if (ab) {
       const run = await server.ssrLoadModule("/scripts/eval-content/prototype/ab.ts");
-      return await run.main({ run: options.run, root: ROOT, priorCents: Number(flag("--prior-cents", "0")) });
+      return await run.main({
+        run: options.run,
+        root: ROOT,
+        priorCents: Number(flag("--prior-cents", "0")),
+        round: Number(flag("--round", "2")),
+        gradeCapCents: Number(flag("--cap-cents", "50")),
+      });
     }
     if (rules) {
       const run = await server.ssrLoadModule("/scripts/eval-content/rules.ts");

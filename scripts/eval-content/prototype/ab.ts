@@ -8,17 +8,17 @@
 // four or more addresses with a topic already taken (SPEC §6 *One URL per
 // question*). C is `docs/walk/ab-reachkit/C-reference.md`, graded as it is.
 //
-// Every page gets the #1132 grader unchanged (`checklist`, `modelGrade`),
-// the non-commodity listing, and every number traced to the fact it came
-// from. A and B spend through the same ledger arithmetic as #1132; the whole
-// run is held to #1153's 300¢ before each call. Nothing is published and
+// Every page is then graded as a stored round is (`../round.ts`, #1158):
+// counted in code, what it adds listed code first, and each A–B pair read
+// blind by a judge, twice. The run writes the round's file, so the same
+// grade can be made again from what is stored. A and B spend through the
+// same ledger arithmetic as #1132; generation is held to #1153's 300¢ before
+// each call, and grading to its own cap. Nothing is published and
 // nothing reaches a database: the output is Markdown under `docs/walk/`.
 import { randomInt } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import Anthropic from "@anthropic-ai/sdk";
 import { CAPS } from "@/lib/config/constants";
-import { costCentsFor, tierBinding } from "@/lib/llm/tiers";
 import { comparePrecedence } from "@/lib/opportunities/cluster";
 import type { Candidate as WriteCandidate } from "@/lib/opportunities/derive/candidate";
 import { writeCandidates } from "@/lib/opportunities/derive/write";
@@ -27,13 +27,13 @@ import { rankScore } from "@/lib/opportunities/rank/score";
 import type { OpportunityType, Winnability } from "@/lib/opportunities/types";
 import { demandBand } from "@/lib/opportunities/winnability/band";
 import { rankedCountsFromSizes } from "@/lib/opportunities/winnability/counts";
-import { headingsUnderTitle, parseMarkdown, type Block } from "@/lib/publish/render/markdown";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { proofLedger, type ProofLedger } from "../../live-drafts/cost";
 import { evaluate } from "../eval";
-import { blockLinks, blockText, checklist, modelGrade, targetOf, type Checklist, type ModelGrade } from "../grade";
+import { checklist, targetOf, traceNumbers, type Checklist, type Trace } from "../grade";
+import { fetchEvidence, gradeRound, readPageFile, renderRound, type Pair, type RoundGrade, type RoundPage, type StoredAnswers } from "../round";
 import { EVAL_SET } from "../set";
-import { readSnapshot } from "../snapshot";
+import { readSnapshot, SNAPSHOT_DIR } from "../snapshot";
 import * as B from "./arm-b";
 
 export interface Options {
@@ -42,6 +42,10 @@ export interface Options {
   /** What earlier attempts at this run already spent; it counts against the
    *  same 300¢. */
   priorCents: number;
+  /** The round this run is: its file is `snapshot/ab-round-<n>.json`. */
+  round: number;
+  /** The most the grading may spend. */
+  gradeCapCents: number;
 }
 
 const DOMAIN = "reachkit.app";
@@ -117,155 +121,6 @@ function tracker(ledger: ProofLedger, priorCents: number): Tracker {
   };
 }
 
-// ── Numbers ────────────────────────────────────────────────────────────
-
-const MONTHS = "January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec";
-const DATES = new RegExp(`\\b\\d{4}-\\d{2}-\\d{2}\\b|\\b\\d{1,2}(?:st|nd|rd|th)? (?:${MONTHS})\\b|\\b(?:${MONTHS}) \\d{1,2}(?:st|nd|rd|th)?\\b`, "g");
-
-/** The numbers a text states — not years, not the day of a date. */
-export function numbersIn(text: string): string[] {
-  const plain = text.replace(DATES, " ");
-  return [...plain.matchAll(/(?<![A-Za-z\d.,])\d[\d,]*(?:\.\d+)?/g)]
-    .map((m) => m[0].replace(/,+$/, "").replace(/,/g, ""))
-    .filter((n) => n !== "" && !/^(19|20)\d{2}$/.test(n));
-}
-
-function holds(text: string, n: string): boolean {
-  const flat = text.replace(/(\d),(?=\d{3})/g, "$1");
-  return new RegExp(`(?<![\\d.])${n.replace(".", "\\.")}(?![\\d]|\\.\\d)`).test(flat);
-}
-
-interface Unit {
-  text: string;
-  links: string[];
-}
-
-/** A paragraph, a list item, a table row: the span a figure and its source
- *  sit in together. */
-function units(blocks: readonly Block[]): Unit[] {
-  return blocks.flatMap((block): Unit[] => {
-    switch (block.kind) {
-      case "list":
-        return block.items.map((item) => ({ text: blockText({ kind: "paragraph", children: item }), links: blockLinks({ kind: "paragraph", children: item }) }));
-      case "table":
-        return block.rows.map((row) => {
-          const asBlock = { kind: "paragraph" as const, children: row.flat() };
-          return { text: blockText(asBlock), links: blockLinks(asBlock) };
-        });
-      case "answer":
-        return units(block.children);
-      default:
-        return [{ text: blockText(block), links: blockLinks(block) }];
-    }
-  });
-}
-
-export interface Trace {
-  number: string;
-  said: string;
-  /** `traced`: a fact the page stood on holds it. `pool`: only the arm's
-   *  wider pool holds it (the site's text, or facts it did not list).
-   *  `unread`: its cited source could not be read. `invented`: nothing does. */
-  verdict: "traced" | "pool" | "unread" | "invented";
-  from: string;
-}
-
-function traceNumbers(a: {
-  body: string;
-  facts: readonly { text: string; source: string }[];
-  pool: readonly { text: string; source: string }[];
-  /** C's facts are the pages it links beside each figure. */
-  linked?: ReadonlyMap<string, string | null>;
-}): Trace[] {
-  const out: Trace[] = [];
-  for (const unit of units(headingsUnderTitle(parseMarkdown(a.body)))) {
-    for (const n of numbersIn(unit.text)) {
-      const said = unit.text.length > 140 ? `${unit.text.slice(0, 137)}…` : unit.text;
-      const beside = a.linked === undefined ? [] : unit.links.map((href) => ({ href, text: a.linked!.get(href) ?? null }));
-      const fromLink = beside.find((l) => l.text !== null && holds(l.text, n));
-      const fact = a.facts.find((f) => holds(f.text, n));
-      if (fromLink !== undefined) out.push({ number: n, said, verdict: "traced", from: fromLink.href });
-      else if (fact !== undefined) out.push({ number: n, said, verdict: "traced", from: fact.source });
-      else {
-        const inPool = a.pool.find((f) => holds(f.text, n));
-        if (inPool !== undefined) out.push({ number: n, said, verdict: "pool", from: inPool.source });
-        else if (beside.some((l) => l.text === null)) out.push({ number: n, said, verdict: "unread", from: beside.map((l) => l.href).join(" ") });
-        else out.push({ number: n, said, verdict: "invented", from: "" });
-      }
-    }
-  }
-  return out;
-}
-
-// ── The non-commodity listing ──────────────────────────────────────────
-
-interface NewClaim {
-  claim: string;
-  kind: "business" | "market" | "advice";
-}
-
-const NEW_TOOL: Anthropic.Tool = {
-  name: "claims",
-  description: "Record the page's claims that neither the top results nor the site state.",
-  input_schema: {
-    type: "object",
-    properties: {
-      claims: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            claim: { type: "string", description: "The claim, in a short sentence." },
-            kind: { type: "string", enum: ["business", "market", "advice"], description: "business: about the business itself; market: a fact about the market; advice: a specific recommendation." },
-          },
-          required: ["claim", "kind"],
-        },
-      },
-    },
-    required: ["claims"],
-  },
-};
-
-const NEW_READ_WORDS = 2500;
-
-async function nonCommodity(spend: Tracker, page: string, a: { search: string; reads: B.Read[]; site: string; body: string }): Promise<NewClaim[]> {
-  const binding = tierBinding("haiku");
-  const prompt = [
-    `A page was written for the search "${a.search}". Below are (1) the text of the search's top results, (2) the business's own site, and (3) the page.`,
-    "List every claim on the page — a fact, a figure, a named finding, or a specific recommendation — that neither (1) nor (2) states or plainly implies. Leave out generic advice any of the results already gives, and leave out the page's own headings. An empty list is a fine answer.",
-    "",
-    "=== (1) THE TOP RESULTS",
-    ...a.reads.flatMap((read, i) => [`--- Result ${i + 1}: ${read.url}`, B.truncateWords(read.text, NEW_READ_WORDS)]),
-    "",
-    "=== (2) THE BUSINESS'S SITE",
-    a.site,
-    "",
-    "=== (3) THE PAGE",
-    a.body,
-  ].join("\n");
-  const maxTokens = 3000;
-  spend.guard(page, "non-commodity", costCentsFor("haiku", Math.ceil(prompt.length / 3), maxTokens));
-  const message = await new Anthropic({ apiKey: binding.apiKey, timeout: 120_000, maxRetries: 2 }).messages.create({
-    model: binding.modelId,
-    max_tokens: maxTokens,
-    tools: [NEW_TOOL],
-    tool_choice: { type: "tool", name: NEW_TOOL.name },
-    messages: [{ role: "user", content: prompt }],
-  });
-  spend.record({
-    page,
-    step: "grade: non-commodity",
-    model: binding.modelId,
-    tokensIn: message.usage.input_tokens,
-    tokensOut: message.usage.output_tokens,
-    searches: 0,
-    cents: costCentsFor("haiku", message.usage.input_tokens, message.usage.output_tokens),
-  });
-  const use = message.content.find((block) => block.type === "tool_use");
-  const claims = B.arrayOf(use?.type === "tool_use" ? (use.input as { claims?: unknown }).claims : null);
-  return claims.map((c) => ({ claim: String(c.claim ?? ""), kind: c.kind === "business" || c.kind === "market" ? c.kind : "advice" }));
-}
-
 // ── Pages ──────────────────────────────────────────────────────────────
 
 interface Page {
@@ -281,23 +136,13 @@ interface Page {
   /** The facts the page stood on, and the wider pool its arm had. */
   facts: { text: string; source: string }[];
   pool: { text: string; source: string }[];
-  linked?: Map<string, string | null>;
   research: B.Research | null;
   genCents: number;
-  gradeCents: number;
-  list: Checklist | null;
-  grade: ModelGrade | null;
-  traces: Trace[];
-  fresh: NewClaim[];
   /** B only: the draft before the critic, and what the critic said. */
-  draft?: { title: string; body: string; faq: unknown; list: Checklist; grade: ModelGrade | null; traces: Trace[] };
+  draft?: { title: string; body: string; faq: unknown; list: Checklist; traces: Trace[] };
   critique?: B.Critique;
   claimed?: string[];
   dropped?: { quote: string; why: string }[];
-}
-
-function faqCount(faq: unknown): number {
-  return Array.isArray(faq) ? faq.length : 0;
 }
 
 function render(title: string, body: string, faq: unknown): string {
@@ -315,21 +160,16 @@ function render(title: string, body: string, faq: unknown): string {
   return [`# ${title}`, "", body.trim(), ...stored].join("\n").trimEnd() + "\n";
 }
 
-/** C carries its buyer questions in the body, under one heading; they stand
- *  in for `meta.faq`, which a hand-written page does not have. */
-function faqOfC(body: string): { question: string }[] {
-  const at = body.indexOf("## Questions buyers ask");
-  if (at === -1) return [];
-  const section = body.slice(at).split(/\n## /)[0] ?? "";
-  return [...section.matchAll(/^### (.+)$/gm)].map((m) => ({ question: m[1]!.trim() }));
+/** The one length target (issue 1138), which the grader reads too. */
+function lengthOf(kind: B.PageKind, search: string): { floor: number; ceiling: number } {
+  const target = targetOf(typeOf(kind), search);
+  if (target === null) throw new Error(`no length target for a ${kind} page`);
+  return { floor: target.floor, ceiling: target.ceiling };
 }
 
-function lengthOf(kind: B.PageKind): { floor: number; ceiling: number } {
-  return kind === "comparison" ? { floor: 1500, ceiling: 2500 } : kind === "problem_howto" ? { floor: 1200, ceiling: 2000 } : { floor: 1200, ceiling: 1800 };
+function typeOf(kind: B.PageKind): OpportunityType {
+  return kind === "comparison" ? "comparison_page" : kind === "problem_howto" ? "keyword_page" : "answer_page";
 }
-
-const typeOf = (kind: B.PageKind): OpportunityType =>
-  kind === "comparison" ? "comparison_page" : kind === "problem_howto" ? "keyword_page" : "answer_page";
 
 function storedTopTen(report: StoredReport, search: string): { url: string; title: string }[] | null {
   if (report.questions.kind === "unmeasured") return null;
@@ -358,7 +198,6 @@ export async function main(opts: Options): Promise<number> {
   const today = new Date().toISOString().slice(0, 10);
   const readme = readFileSync(path.join(opts.root, "README.md"), "utf8");
   const kb = B.knowledgeBase(snapshot, readme, today);
-  const siteText = kb.filter((f) => f.source !== "founder").map((f) => f.text).join(" ");
 
   console.log("# A/B on reachkit.app (#1153)\n");
   console.log(`A's topics     ${picks.map((p) => `${p.candidate.targetQuery} (${p.candidate.type})`).join("; ")}`);
@@ -395,11 +234,8 @@ export async function main(opts: Options): Promise<number> {
     const id = `A${i + 1}`;
     if (spend.total() + CAPS.DRAFT_C > RUN_CAP_CENTS) throw new Error(`${id}: CAPS.DRAFT_C no longer fits under the run cap`);
     console.log(`${id} — "${pick.candidate.targetQuery}"`);
-    const before = ledger.rows.length;
     const result = await evaluate(ledger, slot, slotIndex, today, pick);
     own(id);
-    const rows = ledger.rows.slice(before);
-    const gradeCents = rows.filter((r) => r.source === "eval.grade").reduce((s, r) => s + r.costCents, 0);
     const search = pick.candidate.targetQuery ?? "";
     pages.push({
       id,
@@ -414,12 +250,7 @@ export async function main(opts: Options): Promise<number> {
       facts: result.factsUsed.map((f) => ({ text: f.passage, source: f.url })),
       pool: snapshot.pages.map((p) => ({ text: p.text, source: p.url })),
       research: await researchOf(search, id),
-      genCents: result.costCents - gradeCents,
-      gradeCents,
-      list: result.checklist,
-      grade: result.grade,
-      traces: [],
-      fresh: [],
+      genCents: result.costCents,
     });
     console.log(`   ${result.outcome}; ${cents(result.costCents)}`);
   }
@@ -492,7 +323,7 @@ export async function main(opts: Options): Promise<number> {
       search: plan.search,
       kind: plan.kind,
       anchored: plan.anchored,
-      length: lengthOf(plan.kind),
+      length: lengthOf(plan.kind, plan.search),
       facts: [...kb, ...market_],
       topTitles: found.titles,
     };
@@ -538,12 +369,7 @@ export async function main(opts: Options): Promise<number> {
       pool,
       research: found,
       genCents: spend.of(plan.id) + (plan.id === "B1" ? 0 : topicCents / bTopics.length),
-      gradeCents: 0,
-      list: f.list,
-      grade: null,
-      traces: f.traces,
-      fresh: [],
-      draft: critique.rewritten === null ? undefined : { title: draft.title, body: draft.body, faq: draft.faq, list: d.list, grade: null, traces: d.traces },
+      draft: critique.rewritten === null ? undefined : { title: draft.title, body: draft.body, faq: draft.faq, list: d.list, traces: d.traces },
       critique,
       claimed: final.nonCommodity,
       dropped,
@@ -555,13 +381,6 @@ export async function main(opts: Options): Promise<number> {
     const body = readFileSync(path.join(outDir, "C-reference.md"), "utf8");
     console.log(`C — "${C_SEARCH}"`);
     const found = await researchOf(C_SEARCH, "C");
-    const hrefs = [...new Set(units(parseMarkdown(body)).flatMap((u) => u.links))];
-    const linked = new Map<string, string | null>();
-    for (const href of hrefs) {
-      const got = await B.readPage(href, 50);
-      linked.set(href, typeof got === "string" ? null : got.text);
-    }
-    console.log(`   sources read: ${[...linked.values()].filter((t) => t !== null).length} of ${hrefs.length}`);
     pages.push({
       id: "C",
       arm: "C",
@@ -571,64 +390,67 @@ export async function main(opts: Options): Promise<number> {
       outcome: "hand-written",
       title: "Why does ChatGPT recommend my competitors?",
       body,
-      faq: faqOfC(body),
-      facts: [...linked].flatMap(([href, text]) => (text === null ? [] : [{ text, source: href }])),
+      faq: readPageFile(body).faq,
+      facts: [],
       pool: snapshot.pages.map((p) => ({ text: p.text, source: p.url })),
-      linked,
       research: found,
-      genCents: 0,
       // Its one web search found the top results it is graded against.
-      gradeCents: spend.of("C"),
-      list: null,
-      grade: null,
-      traces: [],
-      fresh: [],
+      genCents: spend.of("C"),
     });
   }
 
-  // ── Grade every page.
-  const business = { domain: DOMAIN, category: market.category, job: market.job, products: snapshot.siteProfile?.products ?? [], audience: market.audienceTerms };
-  for (const page of pages) {
-    if (page.body === null || page.title === null) continue;
-    console.log(`grade ${page.id}`);
-    if (page.list === null) {
-      page.list = checklist({
-        bodyMarkdown: page.body,
-        type: page.type,
-        query: page.search,
-        domain: DOMAIN,
-        businessName: BUSINESS,
-        factsUsed: page.facts.map((f) => ({ passage: f.text, url: f.source })),
-        faq: page.faq,
-        pages: snapshot.pages,
-      });
-    }
-    if (page.traces.length === 0) page.traces = traceNumbers({ body: page.body, facts: page.facts, pool: page.pool, linked: page.linked });
-    const gradeOf = async (title: string, body: string): Promise<ModelGrade | null> => {
-      const before = ledger.rows.length;
-      const grade = await modelGrade(ledger.contextFor(pages.indexOf(page) + 1), {
-        business,
-        target: page.search,
-        topResults: page.research?.titles ?? [],
-        title,
-        bodyMarkdown: body,
-        // C stands on the pages it links; the grader reads the sentences of
-        // them its figures came from.
-        facts:
-          page.arm === "C"
-            ? page.traces.filter((t) => t.verdict === "traced").map((t) => `${t.number} — ${t.from}`)
-            : page.facts.map((f) => f.text),
-      });
-      page.gradeCents += ledger.rows.slice(before).reduce((s, r) => s + r.costCents, 0);
-      own(page.id);
-      return grade;
-    };
-    if (page.grade === null) page.grade = await gradeOf(page.title, page.body);
-    if (page.draft !== undefined) page.draft.grade = await gradeOf(page.draft.title, page.draft.body);
-    const before = spend.of(page.id);
-    page.fresh = await nonCommodity(spend, page.id, { search: page.search, reads: page.research?.reads ?? [], site: siteText, body: page.body });
-    page.gradeCents += spend.of(page.id) - before;
-  }
+  // ── Grade the round, from its file.
+  const written = pages.filter((p): p is Page & { title: string; body: string } => p.title !== null && p.body !== null);
+  const roundPages: RoundPage[] = written.map((p) => ({
+    id: p.id,
+    search: p.search,
+    type: p.type,
+    title: p.title,
+    body: p.body,
+    faq: Array.isArray(p.faq) ? (p.faq as Record<string, unknown>[]).map((q) => ({ question: String(q.question ?? q.q ?? "") })) : [],
+  }));
+  const control = readPageFile(readFileSync(path.join(outDir, "control-bad.md"), "utf8"));
+  roundPages.push({ id: "control", search: C_SEARCH, type: C_TYPE, ...control });
+  const pairs: Pair[] = [
+    ...[1, 2, 3].flatMap((n) =>
+      written.some((p) => p.id === `A${n}`) && written.some((p) => p.id === `B${n}`)
+        ? [{ first: `A${n}`, second: `B${n}`, expect: null, why: "the owner's blind read is owed" }]
+        : []
+    ),
+    { first: "C", second: "control", expect: "C", why: "a planted bad control" },
+  ];
+  const roundFile = {
+    round: opts.round,
+    domain: DOMAIN,
+    business: BUSINESS,
+    dir: "docs/walk/ab-reachkit",
+    report: "docs/walk/content-ab-reachkit.md",
+    readWords: B.CLAIM_READ_WORDS,
+    results: Object.fromEntries([...researched].map(([search, found]) => [search, found.reads.map((r) => r.url)])),
+    pages: [
+      ...written.map((p) => ({ id: p.id, file: p.arm === "C" ? "C-reference.md" : `${p.id}.md`, search: p.search, type: p.type, ...(p.arm === "C" ? { title: p.title } : {}) })),
+      { id: "control", file: "control-bad.md", search: C_SEARCH, type: C_TYPE },
+    ],
+    pairs,
+    evidence: null,
+  };
+  const evidence = await fetchEvidence(roundFile, roundPages, today);
+  writeFileSync(path.join(SNAPSHOT_DIR, `ab-round-${opts.round}.json`), `${JSON.stringify({ ...roundFile, evidence }, null, 1)}\n`);
+  const stored: StoredAnswers = { readings: {}, placements: {} };
+  const graded = await gradeRound({
+    domain: DOMAIN,
+    business: BUSINESS,
+    pages: roundPages,
+    pairs,
+    evidence,
+    sitePages: snapshot.pages,
+    founderFacts: B.founderAnswers(readme),
+    businessFacts: kb.map((f) => f.text),
+    today,
+    stored,
+    capCents: opts.gradeCapCents,
+  });
+  writeFileSync(path.join(SNAPSHOT_DIR, `ab-round-${opts.round}.answers.json`), `${JSON.stringify(stored, null, 1)}\n`);
 
   // ── Files.
   mkdirSync(path.join(outDir, "blind"), { recursive: true });
@@ -654,9 +476,9 @@ export async function main(opts: Options): Promise<number> {
   writeFileSync(path.join(outDir, "blind", "key.md"), `${key.join("\n")}\n`);
   writeFileSync(
     path.join(reviewDir, "results.json"),
-    `${JSON.stringify({ calls: { ledger: ledger.rows, tracker: spend.rows }, topics, passed, pages: pages.map((p) => ({ ...p, pool: p.pool.length, linked: undefined, research: p.research === null ? null : { ...p.research, reads: p.research.reads.map((r) => ({ url: r.url, words: r.text.split(/\s+/).length })) } })) }, null, 2)}\n`
+    `${JSON.stringify({ calls: { ledger: ledger.rows, tracker: spend.rows, grading: graded.calls }, topics, passed, pages: pages.map((p) => ({ ...p, pool: p.pool.length, research: p.research === null ? null : { ...p.research, reads: p.research.reads.map((r) => ({ url: r.url, words: r.text.split(/\s+/).length })) } })) }, null, 2)}\n`
   );
-  writeFileSync(reportPath, reportOf({ pages, topics, passed, kb, ledger, owners, spend, today, topicCents, priorCents: opts.priorCents }));
+  writeFileSync(reportPath, reportOf({ pages, graded, round: opts.round, topics, passed, kb, ledger, owners, spend, today, topicCents, priorCents: opts.priorCents }));
   console.log(`\nSpent ${cents(spend.total())} of ${RUN_CAP_CENTS}¢.\nReport: ${reportPath}\nPages: ${outDir}`);
   return 0;
 }
@@ -665,6 +487,8 @@ export async function main(opts: Options): Promise<number> {
 
 function reportOf(a: {
   pages: Page[];
+  graded: RoundGrade;
+  round: number;
   topics: { all: B.Topic[]; ranked: B.Topic[] };
   passed: { search: string; why: string }[];
   kb: B.Fact[];
@@ -676,7 +500,6 @@ function reportOf(a: {
   topicCents: number;
 }): string {
   const L: string[] = [];
-  const graded = a.pages.filter((p) => p.list !== null);
   const blocksCell = (list: Checklist) => {
     const req = Object.values(list.blocks).filter((v) => v !== null);
     return `${req.filter(Boolean).length}/${req.length}`;
@@ -684,11 +507,8 @@ function reportOf(a: {
   const tally = (t: Trace[]) => ({
     traced: t.filter((x) => x.verdict === "traced").length,
     pool: t.filter((x) => x.verdict === "pool").length,
-    unread: t.filter((x) => x.verdict === "unread").length,
     invented: t.filter((x) => x.verdict === "invented").length,
   });
-  const floor = (p: Page) => (p.list?.target === null || p.list === null ? "—" : p.list.words >= p.list.target.floor ? "yes" : "no");
-  const passesNew = (p: Page) => p.fresh.length >= 3 && p.fresh.some((c) => c.kind === "business");
 
   L.push("# Content A/B on reachkit.app");
   L.push("");
@@ -715,90 +535,36 @@ function reportOf(a: {
     L.push(`B passed over: ${a.passed.map((x) => `"${x.search}" (${x.why})`).join("; ")}.`);
     L.push("");
   }
-  L.push("## Graded");
-  L.push("");
-  L.push("Fit and Adds are the #1132 grader's model half, unchanged. Blocks and words are its checklist. *New claims* is the non-commodity listing: the page's claims that neither the target's top three results nor the site state (the test passes at three, one of them about the business). *Numbers* traces every figure on the page, years and dates aside, to the fact it came from: *traced* is a fact the page stood on, *pool only* is its arm's wider pool but no fact it listed, *unread* is a cited page this run could not read, and *invented* is nothing at all.");
-  L.push("");
-  L.push("| Page | Fit 0–3 | Adds 0–3 | Blocks | Words / target | Floor met | New claims (business) | Test | Numbers traced / pool only / unread / invented | Nav text | Grader: invented figure |");
-  L.push("|---|---|---|---|---|---|---|---|---|---|---|");
-  for (const p of graded) {
-    const list = p.list!;
-    const t = tally(p.traces);
-    L.push(
-      `| ${p.id} | ${p.grade?.fit ?? "—"} | ${p.grade?.adds ?? "—"} | ${blocksCell(list)} | ${list.target === null ? list.words : `${list.words} / ${list.target.floor}–${list.target.ceiling}`} | ${floor(p)} | ${p.fresh.length} (${p.fresh.filter((c) => c.kind === "business").length}) | ${passesNew(p) ? "pass" : "fail"} | ${t.traced} / ${t.pool} / ${t.unread} / **${t.invented}** | ${list.navigationFacts > 0 ? `${list.navigationFacts} fact(s)` : "none"}${p.grade === null ? "" : p.grade.navigationText ? "; grader: yes" : "; grader: no"} | ${p.grade === null ? "—" : p.grade.inventedFigures ? `yes: ${esc(p.grade.inventedWhy)}` : "no"} |`
-    );
-  }
-  L.push("");
+  L.push(...renderRound(a.graded, { heading: `Round ${a.round}, graded`, today: a.today }));
   const drafts = a.pages.filter((p) => p.draft !== undefined);
   if (drafts.length > 0) {
     L.push("B before its critic, where the critic rewrote:");
     L.push("");
-    L.push("| Draft | Fit | Adds | Blocks | Words | Numbers traced / pool only / invented |");
-    L.push("|---|---|---|---|---|---|");
+    L.push("| Draft | Blocks | Words | Numbers traced / pool only / invented |");
+    L.push("|---|---|---|---|");
     for (const p of drafts) {
       const d = p.draft!;
       const t = tally(d.traces);
-      L.push(`| ${p.id} before critic | ${d.grade?.fit ?? "—"} | ${d.grade?.adds ?? "—"} | ${blocksCell(d.list)} | ${d.list.words} | ${t.traced} / ${t.pool} / **${t.invented}** |`);
+      L.push(`| ${p.id} before critic | ${blocksCell(d.list)} | ${d.list.words} | ${t.traced} / ${t.pool} / **${t.invented}** |`);
     }
     L.push("");
   }
-  L.push("### Required blocks, per page");
-  L.push("");
-  const names = Object.keys(graded[0]?.list?.blocks ?? {});
-  L.push(`| Block | ${graded.map((p) => p.id).join(" | ")} |`);
-  L.push(`|---|${graded.map(() => "---").join("|")}|`);
-  for (const name of names) {
-    L.push(`| ${name} | ${graded.map((p) => (p.list!.blocks[name] === null ? "n/a" : p.list!.blocks[name] ? "yes" : "no")).join(" | ")} |`);
-  }
-  L.push("");
-  L.push(`C's buyer questions are read from its own *Questions buyers ask* section (${faqCount(a.pages.find((p) => p.id === "C")?.faq)}), since a hand-written page has no \`meta.faq\`.`);
-  L.push("");
   L.push("## Cost per page");
   L.push("");
-  L.push(`Generation is what writing the page cost; grading is the #1132 grade plus the non-commodity listing. B2 and B3 each carry half of B's topic call (${cents(a.topicCents)}); B1's topic was A's. \`CAPS.DRAFT_C\` is ${cents(CAPS.DRAFT_C)}.`);
+  L.push(`Generation is what writing the page cost; what grading cost is listed with the round above. B2 and B3 each carry half of B's topic call (${cents(a.topicCents)}); B1's topic was A's. \`CAPS.DRAFT_C\` is ${cents(CAPS.DRAFT_C)}.`);
   L.push("");
-  L.push("| Page | Generation | Grading | Fits `CAPS.DRAFT_C` (generation) |");
-  L.push("|---|---|---|---|");
+  L.push("| Page | Generation | Fits `CAPS.DRAFT_C` |");
+  L.push("|---|---|---|");
   for (const p of a.pages) {
-    L.push(`| ${p.id} | ${p.arm === "C" ? "hand-written" : cents(p.genCents)} | ${cents(p.gradeCents)} | ${p.arm === "C" ? "—" : p.genCents <= CAPS.DRAFT_C ? "yes" : "**no**"} |`);
+    L.push(`| ${p.id} | ${p.arm === "C" ? "hand-written" : cents(p.genCents)} | ${p.arm === "C" ? "—" : p.genCents <= CAPS.DRAFT_C ? "yes" : "**no**"} |`);
   }
   L.push("");
-  L.push(`Run total ${cents(a.spend.total())} of 300¢${a.priorCents > 0 ? `, of which ${cents(a.priorCents)} was an earlier attempt stopped part-way (its claim step returned nothing readable; the parse was fixed and the run started again)` : ""}.`);
+  L.push(`Generation total ${cents(a.spend.total())} of 300¢${a.priorCents > 0 ? `, of which ${cents(a.priorCents)} was an earlier attempt stopped part-way (its claim step returned nothing readable; the parse was fixed and the run started again)` : ""}.`);
   L.push("");
-  L.push("## What the grader said");
-  L.push("");
-  for (const p of graded) {
-    if (p.grade === null) continue;
-    L.push(`**${p.id}** — ${esc(p.title ?? "")}`);
-    L.push(`- Fit: ${esc(p.grade.fitWhy)}`);
-    L.push(`- Adds: ${esc(p.grade.addsWhy)}`);
-    if (p.grade.inventedFigures) L.push(`- Invented figure: ${esc(p.grade.inventedWhy)}`);
-    if (p.critique?.scores != null) L.push(`- B's critic: ${esc(JSON.stringify(p.critique.scores))}`);
-    L.push("");
+  for (const p of a.pages) {
+    if (p.critique?.scores != null) L.push(`- ${p.id}, B's critic: ${esc(JSON.stringify(p.critique.scores))}`);
   }
-  L.push("## What the non-commodity test lists");
   L.push("");
-  for (const p of graded) {
-    L.push(`**${p.id}** (${p.fresh.length}; ${passesNew(p) ? "passes" : "fails"})`);
-    for (const c of p.fresh) L.push(`- ${c.kind}: ${esc(c.claim)}`);
-    if (p.fresh.length === 0) L.push("- nothing");
-    L.push("");
-  }
-  L.push("## Every number, and where it came from");
-  L.push("");
-  for (const p of graded) {
-    L.push(`**${p.id}**`);
-    L.push("");
-    if (p.traces.length === 0) {
-      L.push("No figures.");
-      L.push("");
-      continue;
-    }
-    L.push("| Number | In | Verdict | From |");
-    L.push("|---|---|---|---|");
-    for (const t of p.traces) L.push(`| ${t.number} | ${esc(t.said)} | ${t.verdict} | ${esc(t.from)} |`);
-    L.push("");
-  }
   L.push("## Topics");
   L.push("");
   L.push("B's small-tier call scored these at fit 2 or more (ranked fit first, then source — AI-answer gap, product, problem, buyer question, best-X — then volume):");
@@ -820,7 +586,7 @@ function reportOf(a: {
     L.push(`- ${p.id}'s claims dropped: ${p.dropped!.length === 0 ? "none" : p.dropped!.map((d) => `"${esc(d.quote.slice(0, 90))}" (${d.why})`).join("; ")}`);
   }
   L.push("");
-  L.push(`Each page is read for claims up to ${B.CLAIM_READ_WORDS} words, and for the non-commodity listing up to ${NEW_READ_WORDS} words.`);
+  L.push(`Each page is read up to ${B.CLAIM_READ_WORDS} words, for its claims and for what a page adds alike.`);
   L.push("");
   L.push("## Every call");
   L.push("");
@@ -831,6 +597,6 @@ function reportOf(a: {
   L.push("");
   L.push("## Files");
   L.push("");
-  L.push("Every page is under `docs/walk/ab-reachkit/` as `A1.md` … `B3.md` and `C-reference.md`; a B page the critic rewrote keeps its draft as `B<n>-before-critic.md`. `blind/` holds each A–B pair relabelled X and Y at random, and `blind/key.md` the mapping.");
+  L.push("Every page is under `docs/walk/ab-reachkit/` as `A1.md` … `B3.md` and `C-reference.md`; a B page the critic rewrote keeps its draft as `B<n>-before-critic.md`. `blind/` holds each A–B pair relabelled X and Y at random, and `blind/key.md` the mapping. `control-bad.md` is the planted control the grader is calibrated on.");
   return `${L.join("\n")}\n`;
 }
