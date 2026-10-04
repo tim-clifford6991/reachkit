@@ -1727,6 +1727,12 @@ export const ADDS = Object.freeze({
  *  no edit here. */
 export const IMPROVE_POSITION_BAND = Object.freeze({ min: 4, max: 30 } as const); // §7
 
+/** SPEC §6 (2026-09-29, D15, issue 1146): a live page is close to being
+ *  quoted where it ranks inside this band for its target, inclusive, or an
+ *  answer to a tracked prompt cited it inside `ANSWER_RATE_WEEKS`. Its
+ *  update has first claim on a day. */
+export const CLOSE_PAGE_POSITION_BAND = Object.freeze({ min: 4, max: 20 } as const); // §6
+
 /** What "page thin" means, in the unit the parser measures
  *  (`OnPageFacts.visibleChars`). Chosen, not transcribed — §7 states the
  *  trigger and no number. 1800 visible characters is roughly 300 words at

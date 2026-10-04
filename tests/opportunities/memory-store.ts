@@ -35,6 +35,9 @@ export interface MemoryState {
   /** The site's own drafted pages, newest first (issue 1209); absent reads
    *  as none. */
   drafted?: DraftedPage[];
+  /** The site's own pages a tracked AI answer cited in the last four weeks
+   *  (issue 1146); absent reads as none. */
+  cited?: string[];
   statusChangedAt: Map<string, Date>;
   profile: Profile | null;
   latestScanAt: Date | null;
@@ -193,6 +196,10 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async draftedPages(_siteId, limit) {
       return (state.drafted ?? []).slice(0, limit);
+    },
+
+    async citedPages() {
+      return state.cited ?? [];
     },
 
     async topTens() {

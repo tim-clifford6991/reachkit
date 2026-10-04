@@ -3,7 +3,8 @@
 // "Ranking: `demand × intent × (1−effort) × fit`, one list." One list, and
 // one order: business fit first (SPEC §6, 2026-09-29), then the source, then
 // the score descending, then family and type, then `created_at`
-// ascending, then the id — and no two consecutive days on one topic
+// ascending, then the id — an update of a page close to being quoted ahead
+// of the rest of its fit (issue 1146) — and no two consecutive days on one topic
 // (#1181), inside the weekly content mix (issue 1209). The last two keys are what make it a *total* order — without them
 // two opportunities with identical scores would come back in whatever
 // order Postgres happened to return them, and the day a calendar fills
@@ -35,7 +36,8 @@
 import { CONTENT_MIX, PACE } from "@/lib/config/constants";
 import { opportunityStore } from "../store";
 import { readOpportunity, type DraftedPage } from "../store";
-import { comparePrecedence, sameTopic } from "../cluster";
+import { canonicalUrl, comparePrecedence, sameTopic } from "../cluster";
+import { isCloseUpdate } from "../close";
 import { contentKindOf, type ContentKind } from "../content-kind";
 import { isOwnRefresh, type Opportunity, type OpportunityType, type Ranked } from "../types";
 import { rankScore } from "./score";
@@ -53,15 +55,19 @@ function sourcePlace(o: Opportunity): number {
 }
 
 /** Business fit first (SPEC §6, 2026-09-29, issue 1134): volume orders
- *  targets of equal fit and never lifts a lower one. Then the source, then
+ *  targets of equal fit and never lifts a lower one. Then an update of a
+ *  page that is close to being quoted, ahead of every other row of its fit
+ *  (D15, issue 1146). Then the source, then
  *  the score; ties broken by family and type (§6's order, owner 2026-09-15 —
  *  a tie-break only since #1181), then by age, then by id. */
 function byScore(
   a: { opportunity: Opportunity; score: number },
-  b: { opportunity: Opportunity; score: number }
+  b: { opportunity: Opportunity; score: number },
+  close: (o: Opportunity) => boolean
 ): number {
   const fit = (b.opportunity.businessFit ?? UNJUDGED_FIT) - (a.opportunity.businessFit ?? UNJUDGED_FIT);
   if (fit !== 0) return fit;
+  if (close(a.opportunity) !== close(b.opportunity)) return close(a.opportunity) ? -1 : 1;
   const source = sourcePlace(a.opportunity) - sourcePlace(b.opportunity);
   if (source !== 0) return source;
   if (b.score !== a.score) return b.score - a.score;
@@ -105,9 +111,13 @@ export function orderRanked(
     after?: Opportunity | null;
     topTens?: ReadonlyMap<string, readonly string[]>;
     mix?: Mix;
+    /** The site's own pages a tracked AI answer cited in the last four
+     *  weeks, as canonical addresses (issue 1146). */
+    cited?: ReadonlySet<string>;
   } = {}
 ): Ranked[] {
-  const left = [...scored].sort(byScore);
+  const close = (o: Opportunity) => isCloseUpdate(o, rotation.cited);
+  const left = [...scored].sort((a, b) => byScore(a, b, close));
   const topTens = rotation.topTens ?? new Map<string, readonly string[]>();
   const placed = [...(rotation.mix?.recent ?? [])];
   const from = rotation.mix?.from ?? 0;
@@ -233,13 +243,16 @@ export function placeFixPages(
  */
 export async function rankOpen(siteId: string, at: Date = new Date()): Promise<Ranked[]> {
   const store = opportunityStore();
-  const [rows, profile, fixRows, latest, drafted] = await Promise.all([
+  const [rows, profile, fixRows, latest, drafted, citedPages] = await Promise.all([
     store.openRankable(siteId),
     store.profileForSite(siteId),
     store.openFixPages(siteId),
     store.latestPage(siteId),
     // The weekly mix reads the pages of the days before (issue 1209).
     store.draftedPages(siteId, 2 * CONTENT_MIX.WINDOW_DAYS),
+    // The pages the stored answers cited (issue 1146). A window that cannot
+    // be read lifts no update: the order is the one before it.
+    store.citedPages(siteId, at).catch(() => [] as readonly string[]),
   ]);
   const fixes = fixRows.filter((row) => row.ready).map(readOpportunity);
   // No profile, no score — but a fix needs neither, and still takes its day.
@@ -274,5 +287,6 @@ export async function rankOpen(siteId: string, at: Date = new Date()): Promise<R
   const after = latest === null ? null : readOpportunity(latest);
   const scanIds = new Set([...scored.map((entry) => entry.opportunity.scanId), ...(after === null ? [] : [after.scanId])]);
   const topTens = await store.topTens([...scanIds]);
-  return placeFixPages(scored, fixes, { after, topTens, mix: mixOf(drafted, at) });
+  const cited = new Set(citedPages.map(canonicalUrl));
+  return placeFixPages(scored, fixes, { after, topTens, mix: mixOf(drafted, at), cited });
 }
