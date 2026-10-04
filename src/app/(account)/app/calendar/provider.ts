@@ -45,7 +45,8 @@ import { now as clock } from "@/lib/config/now";
 import type { CalendarSupplyNotice } from "./supply";
 import { isReservedFixtureAccount, redirectForMissingZone, requireAppAccount } from "../_session/account";
 import { assembleMonth, type MonthModel } from "./month";
-import { dayKeyOf, monthOf, type MonthKey } from "./dates";
+import { addDays, dayKeyOf, monthOf, type MonthKey } from "./dates";
+import type { StalledCount } from "@/lib/publish/record/stalled";
 import { FIXTURE_CALENDAR_FACTS } from "./fixture";
 import { FIXTURE_DOMAIN } from "../_shell/fixture";
 import type { CalendarSite } from "./store";
@@ -155,4 +156,19 @@ export const readSupplyNotice = cache(async function readSupplyNotice(): Promise
   // Issue 881: targets on file, every one of them too big for this site.
   if (state === "outsized") return { kind: "outsized" };
   return state === "measured" ? notice : { kind: "unmeasured" };
+});
+
+/**
+ * Issue 1184: the last seven site-local dates' pages and how many of them
+ * stopped before review. `null` for the fixture account, for a site with no
+ * page in the window, and where the read could not answer — a count that
+ * could not be read is not a week in which nothing stopped.
+ */
+export const readStalledWeek = cache(async function readStalledWeek(): Promise<StalledCount | null> {
+  const site = await currentCalendarSite();
+  if (site === null) return null;
+  const today = dayKeyOf(clock(), site.timeZone);
+  const { stalledBySite } = await import("@/lib/publish/record/stalled-read");
+  const counts = await stalledBySite({ siteId: site.siteId, from: addDays(today, -6), to: today }).catch(() => null);
+  return counts?.get(site.siteId) ?? null;
 });

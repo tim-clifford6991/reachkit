@@ -39,8 +39,8 @@ import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
 import { CalendarView } from "./CalendarView";
 import { addMonths, monthNameOnly, monthShortLabel } from "./dates";
-import { parseMonth, readMonth, readSupplyNotice } from "./provider";
-import { supplyLine } from "./supply";
+import { parseMonth, readMonth, readStalledWeek, readSupplyNotice } from "./provider";
+import { stalledLine, supplyLine } from "./supply";
 import { readOnboarding } from "../_shell/onboarding";
 import { FirstPageNotice } from "../_shell/OnboardingStatus";
 import { SupplyNotice } from "./SupplyNotice";
@@ -62,7 +62,8 @@ export default async function CalendarPage({
   // §7's one statement of supply. At most one — the precedence between the
   // three arms is the engine's, and this screen renders whichever it
   // returned and never a second.
-  const supplyNotice = await readSupplyNotice();
+  const [supplyNotice, stalled] = await Promise.all([readSupplyNotice(), readStalledWeek()]);
+  const stalledStatement = stalledLine(stalled);
   const supplyStatement = supplyLine(supplyNotice, model.timeZone);
   // Issue 837: a calendar empty because the market was too small offers the
   // choice that fills it, unless the shell's panel already does.
@@ -149,6 +150,12 @@ export default async function CalendarPage({
                 }
           }
         />
+      )}
+      {/* Issue 1184: why pages stall, as one line under the statement of supply. */}
+      {stalledStatement === null ? null : (
+        <p className="min-w-0 text-sm wrap-anywhere" data-testid="calendar-stalled">
+          {stalledStatement}
+        </p>
       )}
       <Suspense fallback={<div className="skeleton h-96 w-full" />}>
         <CalendarView model={model} />

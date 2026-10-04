@@ -18,9 +18,16 @@
 // the mail (or there was nothing to tell). A refusal stamps nothing and the
 // next tick offers the week again. A row still `running` is not read; if it
 // finishes too small after the digest went, the next tick sends it alone.
+//
+// **Why pages stalled** (issue 1184). The same mail carries, per site, how
+// many of the week before's pages stopped on the way to review and how often
+// each cause stopped one — the seven dates before `week_start`, which is the
+// last week every zone has finished. A read that fails leaves the count out
+// and never holds the digest back.
 import { dbAdmin } from "@/lib/db";
 import { marketTooSmall, stoppedOnCeiling } from "../market-floor";
 import { readStoredReport } from "../report";
+import type { OpsIncident } from "@/lib/mail/templates/ops";
 
 // `scans.week_start`, `scans.market_digest_at` are on disk and not in the
 // generated `Database` type — the same narrow cast `./store` carries.
@@ -50,6 +57,47 @@ function untyped(): MinimalClient {
 interface DigestRow {
   id: string;
   report: unknown;
+}
+
+interface SiteRow {
+  id: string;
+  domain: string;
+}
+
+type StoppedWeek = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["stopped"]>;
+
+/** `day` moved by whole days, as the calendar date it lands on. */
+function addDays(day: string, delta: number): string {
+  return new Date(Date.parse(`${day}T00:00:00.000Z`) + delta * DAY_MS).toISOString().slice(0, 10);
+}
+
+/** The sites with a stopped page in the week before `weekStart`, or `null`
+ *  where there is none or the count could not be read. */
+async function stoppedBefore(weekStart: string): Promise<StoppedWeek | null> {
+  try {
+    const from = addDays(weekStart, -7);
+    const { stalledBySite } = await import("@/lib/publish/record/stalled-read");
+    const counts = [...(await stalledBySite({ from, to: addDays(weekStart, -1) }))].filter(([, count]) => count.stopped > 0);
+    if (counts.length === 0) return null;
+    const sites = await untyped()
+      .from<SiteRow>("sites")
+      .select("id, domain")
+      .in(
+        "id",
+        counts.map(([siteId]) => siteId)
+      );
+    if (sites.error) throw new Error(sites.error.message);
+    const domains = new Map((sites.data ?? []).map((site) => [site.id, site.domain]));
+    return {
+      weekStart: from,
+      sites: counts
+        .map(([siteId, count]) => ({ domain: domains.get(siteId) ?? "unknown", ...count }))
+        .sort((a, b) => b.stopped - a.stopped || a.domain.localeCompare(b.domain)),
+    };
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "market_digest_stopped_unread", error: error instanceof Error ? error.name : "unknown" }));
+    return null;
+  }
 }
 
 /** Monday 00:00 → Tuesday 12:00 UTC: the moment Monday has ended in UTC−12. */
@@ -87,7 +135,8 @@ const ROWS_PER_DIGEST = 500;
 
 /**
  * Reads the week's unread weekly passes, mails the owner the ids of those
- * that found too little market, and stamps every row it read. Answers
+ * that found too little market and why the week before's pages stalled, and
+ * stamps every row it read. Answers
  * whether the week is settled; `false` means the mail was not accepted and
  * nothing was stamped.
  */
@@ -110,9 +159,15 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
     }
   }
 
-  if (tooSmall.length > 0) {
+  const stopped = await stoppedBefore(weekStart);
+  if (tooSmall.length > 0 || stopped !== null) {
     const { reportIncident } = await import("@/lib/mail/ops");
-    const accepted = await reportIncident({ occasion: "market-too-small-week", weekStart, scanIds: tooSmall });
+    const accepted = await reportIncident({
+      occasion: "market-too-small-week",
+      weekStart,
+      scanIds: tooSmall,
+      ...(stopped === null ? {} : { stopped }),
+    });
     if (!accepted) return false;
   }
 
@@ -123,6 +178,6 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
     .in("id", ids)
     .is("market_digest_at", null);
   if (stamped.error) throw new Error(`sendMarketDigest: could not stamp the week: ${stamped.error.message}`);
-  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length }));
+  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, stoppedSites: stopped?.sites.length ?? 0 }));
   return true;
 }

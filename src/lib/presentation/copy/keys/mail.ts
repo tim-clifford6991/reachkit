@@ -760,6 +760,10 @@ export const MAIL_COPY = Object.freeze({
   // Issue 796: the Monday digest of weekly passes that found too little.
   "mail.ops.incident.market-too-small-week": ["These weekly passes found too little search demand to plan any pages.", { slots: {}, fixedBy: "issue 796" }],
   "mail.ops.incident.fact.week": ["Week of", { slots: {}, fixedBy: "issue 796" }],
+  // Issue 1184 (drafted): the same digest says why the week before's pages stalled.
+  "mail.ops.incident.drafts-stopped-week": ["These sites had pages stop before review last week. Each lists the pages that stopped out of the pages written, and how many pages each cause stopped.", { slots: {}, fixedBy: "issue 1184 (drafted)" }],
+  "mail.ops.incident.fact.stopped": ["Stopped / written", { slots: {}, fixedBy: "issue 1184 (drafted)" }],
+  "mail.ops.incident.fact.cause": ["Cause", { slots: {}, fixedBy: "issue 1184 (drafted)" }],
   // Issue #799: a scheduled job has gone quiet for twice its interval.
   "mail.ops.incident.job-stale": ["A scheduled job has not run for more than twice its usual interval.", { slots: {}, fixedBy: "issue 799" }],
   "mail.ops.incident.fact.last-run": ["Last run", { slots: {}, fixedBy: "issue 799" }],
