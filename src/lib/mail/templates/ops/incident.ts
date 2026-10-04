@@ -60,6 +60,7 @@ export type OpsIncident =
 
 const SUBJECT = "mail.ops.incident.subject" satisfies CopyKey;
 const HEADING = "mail.ops.incident.heading" satisfies CopyKey;
+const STOPPED_WEEK = "mail.ops.incident.drafts-stopped-week" satisfies CopyKey;
 
 const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "job-failed": "mail.ops.incident.job-failed",
@@ -168,7 +169,7 @@ function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small
   }
   if (incident.stopped !== undefined) {
     blocks.push(
-      { block: "paragraph", text: "mail.ops.incident.drafts-stopped-week" },
+      { block: "paragraph", text: STOPPED_WEEK },
       {
         block: "facts",
         items: [
