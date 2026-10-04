@@ -93,7 +93,9 @@ export interface GroundedFact {
 }
 
 /** Which page a candidate duplicated. Three sets, all of them this
- *  customer's: nothing is ever compared against another customer's page. */
+ *  customer's: this rule never compares against another customer's page.
+ *  That comparison is `../pipeline/elsewhere.ts` (issue 1144), which is not
+ *  a rule and records no page. */
 export type DuplicateKind = "published" | "measured" | "queued";
 
 export interface RuleFailure {

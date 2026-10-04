@@ -74,9 +74,18 @@ export interface Result {
 
 const cents = (n: number): string => `${n.toFixed(2)}¢`;
 
+/** Every page this run has written, by draft id, across the set's sites —
+ *  so a site's draft is compared with the pages written for the sites before
+ *  it, as the product compares across customers (issue 1144). */
+const written = new Map<string, { siteId: string; markdown: string }>();
+
 export function memoryStore(a: { siteId: string; domain: string; report: StoredReport; inventory: InventoryRow[] }): GenerateStore {
   const rows = new Map<string, DraftRow>();
   let next = 0;
+  const keep = (id: string): void => {
+    const markdown = rows.get(id)?.body_md ?? "";
+    if (markdown !== "") written.set(id, { siteId: a.siteId, markdown });
+  };
   return {
     async siteFacts() {
       return null;
@@ -105,11 +114,13 @@ export function memoryStore(a: { siteId: string; domain: string; report: StoredR
         veto_deadline: null,
         created_at: new Date().toISOString(),
       });
+      keep(id);
       return id;
     },
     async patchDraft(draftId: string, patch: DraftPatch) {
       const existing = rows.get(draftId);
       if (existing !== undefined) rows.set(draftId, { ...existing, ...patch } as DraftRow);
+      keep(draftId);
     },
     async draftById(draftId: string) {
       return rows.get(draftId) ?? null;
@@ -120,6 +131,9 @@ export function memoryStore(a: { siteId: string; domain: string; report: StoredR
     },
     async queuedPages() {
       return [];
+    },
+    async pagesElsewhere(siteId: string) {
+      return [...written.values()].filter((page) => page.siteId !== siteId).map((page) => page.markdown);
     },
     async draftsShortOfHandOff() {
       return [];
@@ -149,6 +163,7 @@ function describe(outcome: GenerateOutcome): string {
   if (outcome.ok) return "passed";
   if (outcome.reason === "rules") return `stopped: ${outcome.failed.map((f) => f.rule).join(", ")}`;
   if (outcome.step === "adds") return "held: adds too little";
+  if (outcome.step === "elsewhere") return "held: too close to a page written for another site";
   return `step failed: ${outcome.step}`;
 }
 

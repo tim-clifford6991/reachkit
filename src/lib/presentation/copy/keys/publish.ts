@@ -151,6 +151,12 @@ export const PUBLISH_COPY = Object.freeze({
     "This page says too little that isn’t already on your site or in the top results, so it wasn’t published. Add a fact about your business, then write it again.",
     { slots: {}, fixedBy: "issue 1143 (drafted)" },
   ],
+  // Issue 1144 (drafted): the page reads too much like one written for
+  // another site. It says that and nothing about the other page.
+  "publish.needs-you.elsewhere": [
+    "This page came out too close to a page published elsewhere, so we held it back. Nothing was published. Write it again for a different take.",
+    { slots: {}, fixedBy: "issue 1144 (drafted)" },
+  ],
   "publish.needs-you.destination": [
     "This page is written and couldn’t be delivered to your site. It goes out as soon as the connection to your site works again.",
     { slots: {}, fixedBy: "issue 880" },

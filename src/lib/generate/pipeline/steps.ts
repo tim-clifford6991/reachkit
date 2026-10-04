@@ -65,6 +65,10 @@ export type PipelineStep =
   | "adds"
   /** The listing that decides it did not run. */
   | "adds_check"
+  /** The page reads too much like one written for another site (SPEC §7,
+   *  D13; issue 1144). It is written again once, told what to keep away
+   *  from, then held. */
+  | "elsewhere"
   | "claim_check"
   | "fit_check"
   | "page_read"
@@ -74,7 +78,7 @@ export type PipelineStep =
  *  cost report reads by step without anyone joining a table. */
 export const STEP_CALL_SITES: Readonly<
   Record<
-    Exclude<PipelineStep, "claim_check" | "fit_check" | "page_read" | "length" | "adds" | "adds_check"> | "sections" | "answer_box" | "critic",
+    Exclude<PipelineStep, "claim_check" | "fit_check" | "page_read" | "length" | "adds" | "adds_check" | "elsewhere"> | "sections" | "answer_box" | "critic",
     LlmCallSite
   >
 > = Object.freeze({
@@ -528,6 +532,9 @@ export async function draft(
     /** #1178: the rules the attempt before this one broke, and the sentences
      *  that broke them. Absent on a first attempt, whose prompt is unchanged. */
     fix?: readonly FixNote[];
+    /** Issue 1144: the earlier attempt's own sentences that a page written
+     *  for another business also says. Absent unless that stopped it. */
+    apart?: readonly string[];
     tier?: "haiku" | "writer";
     /** Each section's share of the page's length target, by index. */
     words?: readonly ({ min: number; max: number } | null)[];
@@ -539,6 +546,12 @@ export async function draft(
       ? ""
       : " An earlier attempt at this page was stopped: `fix` names each rule it broke and the " +
         "sentences that broke it. Write so that none of them recurs and `rules` hold.";
+  const apart =
+    a.apart === undefined
+      ? ""
+      : " An earlier attempt at this page read almost the same as a page already written for " +
+        "another business. Do not resemble it: `apart` lists sentences the two shared. Use none of " +
+        "them, and give this page its own order, examples and wording, built on this business's facts.";
   const shared = {
     brief: a.brief,
     outline: a.outline.sections.map((section, index) => ({
@@ -552,6 +565,7 @@ export async function draft(
     products: a.products ?? [],
     rules: HOUSE_RULES,
     ...(a.fix === undefined ? {} : { fix: a.fix }),
+    ...(a.apart === undefined ? {} : { apart: a.apart }),
   };
   const frame = step(c, {
     site: STEP_CALL_SITES.draft,
@@ -568,7 +582,8 @@ export async function draft(
         "the outline's headings do not already ask, each answered in two or three sentences under the " +
         "same `rules`; they are stored with the page, not printed in it. State the business's `facts` " +
         "word for word, and cite each of `marketFacts` you use beside the sentence that uses it." +
-        fixed,
+        fixed +
+        apart,
       inputs,
       shared
     ),
@@ -600,7 +615,8 @@ export async function draft(
             ? " `written` holds the bodies of the sections before these, in the outline's order: say nothing they already say."
             : "") +
           lengthTask +
-          fixed,
+          fixed +
+          apart,
         inputs,
         { ...shared, write, ...(tier === "writer" ? { written } : {}) }
       ),

@@ -500,6 +500,9 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
   // #1178: what the attempt before told the next one — its failures and
   // the sentences that broke them.
   let fix: FixNote[] | undefined;
+  // Issue 1144: set once a page was held for reading like one written for
+  // another site — what its one rewrite is told to keep away from.
+  let apart: readonly string[] | undefined;
   let attempts = a.attempts;
   for (let attempt = 1; attempt <= attempts; attempt++) {
     last = await generateDraft(cost, {
@@ -521,6 +524,7 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
       market,
       ...(draftId === undefined ? {} : { draftId }),
       ...(fix === undefined ? {} : { fix }),
+      ...(apart === undefined ? {} : { apart }),
     });
     if (last.draftId !== null) draftId = last.draftId;
     if (last.ok) return { ok: true, draftId: last.draftId };
@@ -529,6 +533,20 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
       // to rest: the opportunity stays open for the next evening.
       if (draftId === undefined) {
         return { ok: false, because: "step_failed", draftId: null, step: last.step };
+      }
+      // SPEC §7 (D13, issue 1144): a page too close to one written for
+      // another site is written again once, told which of its sentences the
+      // two shared, and a page still too close is held. The rewrite is this
+      // hold's own, whatever attempts the rules had used.
+      if (last.step === "elsewhere") {
+        if (apart !== undefined || cost.capHit()) {
+          return { ok: false, because: "step_failed", draftId, step: last.step };
+        }
+        apart = last.apart ?? [];
+        ruleStopped = false;
+        fix = undefined;
+        attempts = attempt + 1;
+        continue;
       }
       // After a rule already stopped this date's row, a regeneration that
       // could not run leaves that stop standing: the row rests on it

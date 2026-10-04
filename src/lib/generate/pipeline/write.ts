@@ -97,6 +97,8 @@ export async function writeDraft(
   a: Shared & {
     opportunity: Pick<Opportunity, "type" | "targetQuery">;
     fix?: readonly FixNote[];
+    /** Issue 1144: what the page is told to keep away from. */
+    apart?: readonly string[];
     /** How the page is laid out, so its words are counted as it will read. */
     tidy: TidyInputs;
   }
@@ -125,6 +127,7 @@ export async function writeDraft(
     tier: "writer",
     ...(target === null ? {} : { words }),
     ...(a.fix === undefined ? {} : { fix: a.fix }),
+    ...(a.apart === undefined ? {} : { apart: a.apart }),
   });
   if (first.kind === "unmeasured") return { kind: "failed" };
   let parts = first.value;

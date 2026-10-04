@@ -368,6 +368,10 @@ export function memoryStore(): MemoryStore {
         .filter((row) => row.site_id === siteId && row.id !== exceptDraftId && row.state !== "published")
         .map((row) => ({ ref: row.id, title: row.title ?? "", markdown: row.body_md ?? "" }));
     },
+    async pagesElsewhere(): Promise<string[]> {
+      // One site in this run: nothing was written for another.
+      return [];
+    },
     async draftsShortOfHandOff(_siteId: string, limit: number) {
       return [...rows.values()].slice(0, limit);
     },

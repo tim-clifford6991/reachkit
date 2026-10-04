@@ -19,11 +19,14 @@
 //   4. the draft row, written with the grounded fact and the body;
 //   5. the comparison set, and the hard-rule battery over the finished text
 //      — including the claim check, which is step five;
-//   6. what the page adds (`./adds.ts`, issue 1143): each claim it makes
+//   6. the pages written for other sites (`./elsewhere.ts`, issue 1144): a
+//      page the rules passed that reads almost the same as one of them is
+//      held, and written again once told what to keep away from;
+//   7. what the page adds (`./adds.ts`, issue 1143): each claim it makes
 //      that neither the target's top results nor the customer's pages state,
 //      listed on the row — and a new page short of three, one of them a
 //      business fact, held;
-//   7. `passed: true` and nothing else lets the item move toward review.
+//   8. `passed: true` and nothing else lets the item move toward review.
 //
 // **A failing draft is never queued and takes no day.** Nothing partial is
 // published or handed to a destination. The row is written before the
@@ -66,6 +69,7 @@ import { profileItemsUsed, type PromptProfile } from "../voice/profile-block";
 import { buildComparisonSet } from "./comparison";
 import { addsEnough, listAdds, plansNewPage, type AddsRecord } from "./adds";
 import { applyAnswerability } from "./answerability";
+import { closeElsewhere } from "./elsewhere";
 import { composePage, properNouns, withClosing } from "./compose";
 import { allowedFacts, readAllFacts } from "./grounding";
 import { fixNotes, repairable, repairMechanical, type FixNote, type RepairRecord } from "./repair";
@@ -111,7 +115,16 @@ export type GenerateOutcome =
        *  the sentences that broke it. Absent where no page was written. */
       fix?: FixNote[];
     }
-  | { ok: false; reason: "step_failed"; draftId: string | null; step: PipelineStep };
+  | {
+      ok: false;
+      reason: "step_failed";
+      draftId: string | null;
+      step: PipelineStep;
+      /** Issue 1144, on `elsewhere` only: this page's own sentences that a
+       *  page written for another site also says — what its one rewrite is
+       *  told to keep away from. Never the other page's text. */
+      apart?: readonly string[];
+    };
 
 /** Observability: per-step outcome, which rules failed, the attempt number.
  *  **Never** the prompt, the voice text, the draft body or the grounded
@@ -168,6 +181,9 @@ export async function generateDraft(
     /** #1178: the failures of the attempt this one follows, so it is written
      *  against them rather than re-rolled blind. */
     fix?: readonly FixNote[];
+    /** Issue 1144: the attempt this one follows read too much like a page
+     *  written for another site; these are the sentences the two shared. */
+    apart?: readonly string[];
     /** The market pool (issue 1135): what `./research.ts` read for this
      *  target. Absent is a page written from its business facts alone. */
     market?: MarketResearch;
@@ -291,6 +307,7 @@ export async function generateDraft(
     })),
     products: market.products.filter((product) => cited.some((fact) => fact.product === product.domain)),
     ...(a.fix === undefined || a.fix.length === 0 ? {} : { fix: a.fix }),
+    ...(a.apart === undefined ? {} : { apart: a.apart }),
   });
   if (written.kind === "failed") return stepFailed(a.siteId, "draft", a.draftId);
 
@@ -504,7 +521,13 @@ export async function generateDraft(
   //    the evaluation list it whether or not the rules passed. The report's
   //    own page is not one of the customer's: a measurement the page states
   //    is something it adds.
-  const listed = c.capHit()
+  //
+  //    Before it, the pages written for other sites (SPEC §7, D13; issue
+  //    1144): a page the rules passed that is as close to one of them as the
+  //    same-site bar allows is held here, and its list is not paid for — the
+  //    rewrite's is.
+  const close = batteryCleared(outcome) ? await closeElsewhere({ siteId: a.siteId, markdown }) : null;
+  const listed = c.capHit() || close !== null
     ? null
     : await listAdds(c, {
         search: searches[0] ?? a.opportunity.targetRef,
@@ -525,13 +548,15 @@ export async function generateDraft(
     ...(markdown === body.bodyMarkdown ? {} : { body_md: markdown }),
     // Every repair this date's row has been through, across its attempts,
     // so how often each rule's repair clears it can be read off the rows.
-    ...(repairs.length === 0 && adds === null
+    ...(repairs.length === 0 && adds === null && close === null
       ? {}
       : {
           meta: {
             ...page.meta,
             ...(repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...repairs] }),
             ...(adds === null ? {} : { adds }),
+            // A number and nothing else: which page it was is not recorded.
+            ...(close === null ? {} : { elsewhere: { similarity: close.similarity } }),
           },
         }),
     claim_check: recordedVerdictValue(outcome.claim),
@@ -546,8 +571,9 @@ export async function generateDraft(
     // battery may say the battery passed it. An unrun claim check or fit
     // check leaves it false, because "we could not check" is not "it passed".
     // And a page whose list could not be made, or a new page short of the
-    // bar, never publishes as it stands (issue 1143).
-    hard_rules_passed: batteryCleared(outcome) && adds !== null && !adds.short,
+    // bar, never publishes as it stands (issue 1143). Nor does a page too
+    // close to one written for another site (issue 1144).
+    hard_rules_passed: batteryCleared(outcome) && close === null && adds !== null && !adds.short,
   });
 
   // An unrun claim check is a step that did not run, not a rule that
@@ -559,6 +585,11 @@ export async function generateDraft(
   if (outcome.fit.state === "unrun") {
     logRun({ siteId: a.siteId, draftId, step: "fit_check", outcome: outcome.fit.reason });
     return { ok: false, reason: "step_failed", draftId, step: "fit_check" };
+  }
+
+  if (close !== null) {
+    logRun({ siteId: a.siteId, draftId, step: "elsewhere", outcome: "too_close", similarity: close.similarity });
+    return { ok: false, reason: "step_failed", draftId, step: "elsewhere", apart: close.sentences };
   }
 
   if (outcome.passed && (adds === null || adds.short)) {

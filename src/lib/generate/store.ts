@@ -129,6 +129,12 @@ export interface GenerateStore {
    *  path here takes a site id other than the one it was called with. */
   publishedPages(siteId: string): Promise<StoredPage[]>;
   queuedPages(siteId: string, exceptDraftId: string | null): Promise<StoredPage[]>;
+  /** SPEC §7 (D13, issue 1144): the text of every draft and live page
+   *  written for a site **other** than `siteId` since `since`, newest first,
+   *  at most `limit`. The one read in this file that crosses sites, and it
+   *  returns the Markdown alone — no id, title or site — so nothing that
+   *  could name another customer's page leaves the store. */
+  pagesElsewhere(siteId: string, since: Date, limit: number): Promise<string[]>;
   /** Drafts short of hand-off, for the claim sweep — never one already
    *  handed to a destination or already live. */
   draftsShortOfHandOff(siteId: string, limit: number): Promise<DraftRow[]>;
@@ -181,6 +187,10 @@ const HANDED_OVER = ["publishing", "published", "unpublished"] as const;
  *  vetoed page will not go anywhere and holds nothing back. */
 const SHORT_OF_HAND_OFF = ["generating", "in_review", "approved", "failed", "needs_attention"] as const;
 
+/** A page on its way out or out: what "live" means to the cross-site check
+ *  (issue 1144). A page taken down or skipped is neither a draft nor live. */
+const LIVE = ["publishing", "published"] as const;
+
 // ── The default, Postgres-backed store ──────────────────────────────────
 //
 // The generated `Database` type predates this issue's columns
@@ -224,6 +234,7 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   update(values: object): MinimalQueryBuilder<T>;
   eq(column: string, value: string | number): MinimalQueryBuilder<T>;
   neq(column: string, value: string): MinimalQueryBuilder<T>;
+  gte(column: string, value: string): MinimalQueryBuilder<T>;
   not(column: string, operator: string, value: unknown): MinimalQueryBuilder<T>;
   is(column: string, value: null): MinimalQueryBuilder<T>;
   in(column: string, values: readonly string[]): MinimalQueryBuilder<T>;
@@ -343,6 +354,20 @@ export function supabaseGenerateStore(): GenerateStore {
       const result = await query;
       if (result.error) throw new Error(`generate/store: read from drafts failed: ${result.error.message}`);
       return (result.data ?? []).map(pageOf);
+    },
+
+    async pagesElsewhere(siteId, since, limit) {
+      const result = await untyped()
+        .from<{ body_md: string | null }>("drafts")
+        .select("body_md")
+        .neq("site_id", siteId)
+        .in("state", [...SHORT_OF_HAND_OFF, ...LIVE])
+        .gte("created_at", since.toISOString())
+        .not("body_md", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (result.error) throw new Error(`generate/store: read from drafts failed: ${result.error.message}`);
+      return (result.data ?? []).map((row) => row.body_md ?? "").filter((markdown) => markdown !== "");
     },
 
     async draftsShortOfHandOff(siteId, limit) {
