@@ -39,6 +39,7 @@ import type { Opportunity } from "@/lib/opportunities/types";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { confirmedProfile } from "@/lib/site-profile/business/confirm";
 import { NO_EDITS } from "@/lib/site-profile/business/types";
+import type { KnowledgeBase } from "@/lib/site-profile/knowledge/types";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import { proofLedger, type ProofLedger } from "../live-drafts/cost";
 import { checklist, traceNumbers, type Checklist, type Trace } from "./grade";
@@ -162,7 +163,7 @@ export function memoryStore(a: { siteId: string; domain: string; report: StoredR
   };
 }
 
-function describe(outcome: GenerateOutcome): string {
+export function describe(outcome: GenerateOutcome): string {
   if (outcome.ok) return "passed";
   if (outcome.reason === "rules") return `stopped: ${outcome.failed.map((f) => f.rule).join(", ")}`;
   if (outcome.step === "adds") return "held: adds too little";
@@ -220,6 +221,23 @@ export function siteIdOf(index: number): string {
   return `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`;
 }
 
+/** What a round holds constant or varies over the set's defaults (#1164). */
+export interface Over {
+  /** A frozen snapshot, in place of the set's own for the domain. */
+  snapshot?: Snapshot;
+  /** The page to write, in place of the report's first. */
+  opportunity?: Opportunity;
+  /** The market the site holds now (`sites.market`), where the stored
+   *  report's own reading is older. */
+  category?: string;
+  rivals?: readonly string[];
+  /** The knowledge base (#1133), where the arm has one. */
+  knowledge?: KnowledgeBase | null;
+  /** Pages served beside the snapshot's: the report's measurements (#1163),
+   *  which production reads from the database. */
+  extraPages?: readonly { url: string; text: string; measuredAt: Date }[];
+}
+
 /** Everything one domain's draft is written from, in the product's own
  *  shapes, and the in-memory store it is written to. `null` with the reason
  *  where the report gives no page to write. */
@@ -227,7 +245,8 @@ export function prepare(
   slot: EvalSlot,
   index: number,
   today: string,
-  given?: FreePagePick
+  given?: FreePagePick,
+  over: Over = {}
 ):
   | { ok: false; outcome: string }
   | {
@@ -245,20 +264,20 @@ export function prepare(
       args: Parameters<typeof generateDraft>[1];
     } {
   const domain = slot.domain!;
-  const snapshot = readSnapshot(domain);
+  const snapshot = over.snapshot ?? readSnapshot(domain);
   const report = readStoredReport(snapshot.report);
   if (report.market.kind === "unmeasured") return { ok: false, outcome: "no market reading in the report" };
-  const market = report.market.value.profile;
+  const market = over.category === undefined ? report.market.value.profile : { ...report.market.value.profile, category: over.category };
 
   const siteId = siteIdOf(index);
-  const pick = given ?? bestFreePage(report);
-  const opportunity = pick === null ? fallbackOpportunity(report, siteId) : { ...freePageOpportunity(report, pick), siteId };
+  const pick = over.opportunity !== undefined ? null : (given ?? bestFreePage(report));
+  const opportunity = over.opportunity ?? (pick === null ? fallbackOpportunity(report, siteId) : { ...freePageOpportunity(report, pick), siteId });
   if (opportunity === null) return { ok: false, outcome: "no topic, and no measured question to fall back on" };
   const target = { search: opportunity.targetQuery ?? "", type: opportunity.type };
-  const chose = pick === null ? "the pass chose nothing; drafted for the report's first question. " : "";
+  const chose = pick === null && over.opportunity === undefined ? "the pass chose nothing; drafted for the report's first question. " : "";
 
   const inventory = inventoryOf(snapshot);
-  const pages = snapshot.pages.map((page) => ({ url: page.url, text: page.text, measuredAt: new Date(page.readAt) }));
+  const pages = [...snapshot.pages.map((page) => ({ url: page.url, text: page.text, measuredAt: new Date(page.readAt) })), ...(over.extraPages ?? [])];
   const profile = promptProfile(
     confirmedProfile({
       profile:
@@ -276,10 +295,11 @@ export function prepare(
             },
       market,
       edits: NO_EDITS,
-    })
+    }),
+    over.knowledge ?? null
   );
   const businessName = market.brandTokens[0] ?? snapshot.siteProfile?.siteName ?? domain;
-  const rivals = report.rivals.kind === "unmeasured" ? [] : report.rivals.value.map((rival) => rival.domain);
+  const rivals = over.rivals !== undefined ? [...over.rivals] : report.rivals.kind === "unmeasured" ? [] : report.rivals.value.map((rival) => rival.domain);
 
   const store = memoryStore({ siteId, domain, report, inventory });
   const args = {

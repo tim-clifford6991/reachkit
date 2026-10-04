@@ -51,6 +51,9 @@ export interface Snapshot {
   report: unknown;
   siteProfile: { siteName: string | null; products: string[]; claims: string[]; voice: VoiceSummary | null } | null;
   site: { voiceText: string | null; doNotClaim: string[] } | null;
+  /** `sites.market`, where the export carried it (#1164): the market the
+   *  site holds now, which a stored report's own reading may be older than. */
+  market?: unknown;
   pages: SnapshotPage[];
 }
 
@@ -59,12 +62,14 @@ export type Export = Omit<Snapshot, "domain" | "pages"> & { pages: { url: string
 
 export const SNAPSHOT_DIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), "snapshot");
 
-export function snapshotPath(domain: string): string {
-  return path.join(SNAPSHOT_DIR, `${domain}.json`);
+/** `name` is the domain, or the name a frozen copy was stored under
+ *  (`--as`), so a round keeps its own snapshot while the set's moves on. */
+export function snapshotPath(name: string): string {
+  return path.join(SNAPSHOT_DIR, `${name}.json`);
 }
 
-export function readSnapshot(domain: string): Snapshot {
-  return JSON.parse(readFileSync(snapshotPath(domain), "utf8")) as Snapshot;
+export function readSnapshot(name: string): Snapshot {
+  return JSON.parse(readFileSync(snapshotPath(name), "utf8")) as Snapshot;
 }
 
 /** The crawl's inventory, as the link selector reads it, built from the
@@ -83,8 +88,9 @@ function firstInner(html: string, tag: "title" | "h1"): string {
   return match === null ? "" : visibleText(match[1] ?? "");
 }
 
-/** `--snapshot <domain> --from <export.json>`. Sitemaps are not pages. */
-export function takeSnapshot(domain: string, from: string): Snapshot {
+/** `--snapshot <domain> --from <export.json> [--as <name>]`. Sitemaps are
+ *  not pages. */
+export function takeSnapshot(domain: string, from: string, as: string = domain): Snapshot {
   const exported = JSON.parse(readFileSync(from, "utf8")) as Export;
   const latest = new Map<string, { url: string; readAt: string; html: string }>();
   for (const row of exported.pages) {
@@ -102,6 +108,6 @@ export function takeSnapshot(domain: string, from: string): Snapshot {
       text: visibleText(row.html),
     }));
   const snapshot: Snapshot = { domain, ...exported, pages };
-  writeFileSync(snapshotPath(domain), `${JSON.stringify(snapshot, null, 2)}\n`);
+  writeFileSync(snapshotPath(as), `${JSON.stringify(snapshot, null, 2)}\n`);
   return snapshot;
 }

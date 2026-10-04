@@ -11,7 +11,8 @@
 //   npm run eval:content -- --run --only linear.app,crisp.chat
 //   npm run eval:content -- --snapshot linear.app --from export.json
 //                                                 # stores a domain's snapshot from a
-//                                                 # connector export (snapshot.ts says how)
+//                                                 # connector export (snapshot.ts says how);
+//                                                 # --as <name> stores a frozen copy
 //   npm run eval:content -- --run --env-file ../reachkitv3/.env.local
 //   npm run eval:content -- --ab [--run]          # #1153: A beside the prototype B
 //                                                 # and the reference C on reachkit.app
@@ -19,6 +20,9 @@
 //                                                 # #1158: a stored round graded again —
 //                                                 # code checks at 0¢; --fetch reads the
 //                                                 # evidence (free); --run judges the pairs
+//   npm run eval:content -- --round2 [--run] [--cap-cents 150]
+//                                                 # #1164: the pipeline beside itself
+//                                                 # with first-party facts, two sites
 //   npm run eval:content -- --repair [--run] [--rounds 2]
 //                                                 # #1178: a stopped draft re-rolled blind
 //                                                 # beside one repaired from its failures
@@ -121,9 +125,13 @@ async function main() {
       const from = flag("--from", null);
       if (from === null) throw new Error("--snapshot needs --from <export.json>.");
       const snapshot = await server.ssrLoadModule("/scripts/eval-content/snapshot.ts");
-      const taken = snapshot.takeSnapshot(snapshotOf, path.resolve(from));
+      const taken = snapshot.takeSnapshot(snapshotOf, path.resolve(from), flag("--as", snapshotOf));
       console.log(`${snapshotOf}: scan ${taken.scan.id}, ${taken.pages.length} pages stored.`);
       return 0;
+    }
+    if (argv.includes("--round2")) {
+      const run = await server.ssrLoadModule("/scripts/eval-content/round2.ts");
+      return await run.main({ run: options.run, root: ROOT, capCents: Number(flag("--cap-cents", "150")) });
     }
     if (ab && argv.includes("--regrade")) {
       const run = await server.ssrLoadModule("/scripts/eval-content/round.ts");
