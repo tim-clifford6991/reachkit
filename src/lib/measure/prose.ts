@@ -16,14 +16,22 @@ import { parse, type HTMLElement } from "node-html-parser";
 const CHROME = "script, style, template, noscript, svg, nav, header, footer, button, [aria-hidden], [hidden]";
 
 /** A class, id or data attribute that names the element as an example. */
-const EXAMPLE_TOKEN_RE = /(?:^|[\s_-])(?:example|demo|specimen)(?:$|[\s_-])/i;
+const EXAMPLE_TOKEN_RE = /(?:^|[\s_-])(?:example|demo|specimen|mock|mockup|placeholder|dummy)(?:$|[\s_-])/i;
 
 /** A short line saying that what it sits beside is an example: "An example
- *  business.", "Demo data", "Example dashboard". Not "For example, …",
- *  which is a sentence using the word. */
+ *  business.", "Demo data", "Example dashboard", "Demo video coming soon",
+ *  "Illustrative figures". Not "For example, …", which is a sentence using
+ *  the word. */
 const EXAMPLE_NOTICE_RE =
-  /^(?:this is )?(?:an? )?(?:example|demo|sample)\b|\b(?:example|demo|sample) (?:business|company|data|dashboard|account|report|site|store)\b/i;
+  /^(?:this is )?(?:an? )?(?:example|demo|sample|illustrative)\b|\b(?:example|demo|sample|illustrative) (?:business|company|data|dashboard|account|report|site|store|video|figures|numbers|widget|chart|preview)\b|\bfor illustration\b/i;
 const EXAMPLE_NOTICE_MAX_CHARS = 120;
+
+/** A name under a domain reserved for examples (RFC 2606):
+ *  `harbourbikes.example`, `rival-one.example.net`. No business is at one,
+ *  so the line that names one is a widget's and not a fact (issue 1249).
+ *  Only that line goes: a page of documentation says `api.example.com` in
+ *  the middle of real prose. */
+const RESERVED_DOMAIN_RE = /\b(?:[a-z0-9-]+\.)+example\b|\b(?:[a-z0-9-]+\.)*example\.(?:com|net|org)\b/i;
 
 /** Containers too wide to be "the example" a notice captions. */
 const PAGE_LEVEL = new Set(["html", "body", "main"]);
@@ -78,6 +86,7 @@ export function prose(html: string): Prose {
     // beside (issue 1163): the sign-in panel's caption carries the mark,
     // and the figures it captions are its siblings.
     if (text.length <= EXAMPLE_NOTICE_MAX_CHARS && EXAMPLE_NOTICE_RE.test(text)) examples.add(captioned(element));
+    else if (text.length <= EXAMPLE_NOTICE_MAX_CHARS && RESERVED_DOMAIN_RE.test(text)) examples.add(element);
   }
   const said: string[] = [];
   for (const element of examples) {

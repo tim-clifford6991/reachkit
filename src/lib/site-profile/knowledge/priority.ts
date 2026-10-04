@@ -34,10 +34,35 @@ export function readFirstRank(url: string): number {
     return READ_FIRST.length + 2;
   }
   if (segments.length === 0) return 0;
-  if (segments.some((segment) => READ_LAST.includes(segment))) return READ_FIRST.length + 2;
+  if (segments.some((segment) => READ_LAST.includes(segment)) || isNeverRead(url)) return READ_FIRST.length + 2;
   const row = READ_FIRST.findIndex((words) => segments.some((segment) => words.includes(segment)));
   if (row < 0) return READ_FIRST.length + 1;
   // A section's own page before the pages under it: `/pricing` before
   // `/docs/api/pricing-webhooks`.
   return row + 1 + (segments.length > 1 ? 0.5 : 0);
+}
+
+/** Path words of a gallery: a listing of other businesses, and the entries
+ *  under it (reachkit.app's `/scans`, and each report at `/scan/<domain>`).
+ *  What such a page says is about them, never about the business whose site
+ *  it is on (§5, 2026-10-04, issue 1249). */
+const GALLERY = ["scans", "gallery", "galleries", "showcase", "directory", "listings"];
+/** A word that is a gallery only with an entry under it: `/scan` alone may
+ *  be the page of a product that scans. */
+const GALLERY_ENTRY = ["scan"];
+
+/** Whether an address is never read for facts about the business: a gallery
+ *  page, with or without a sort or filter on its address. */
+export function isNeverRead(url: string): boolean {
+  try {
+    const segments = new URL(url).pathname
+      .toLowerCase()
+      .split("/")
+      .filter((segment) => segment !== "");
+    return segments.some(
+      (segment, i) => GALLERY.includes(segment) || (GALLERY_ENTRY.includes(segment) && i < segments.length - 1)
+    );
+  } catch {
+    return false;
+  }
 }

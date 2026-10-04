@@ -26,9 +26,11 @@ import { promptProfile, type PromptProfile } from "./profile-block";
 export interface ConfirmedForWriting {
   /** The bounded block a prompt carries, or `null`. */
   readonly profile: PromptProfile | null;
-  /** The passages the customer switched off, so the caller can subtract
-   *  them from the grounding read (`../pipeline/grounding.ts`'s
-   *  `allowedFacts`). */
+  /** The passages a page may not quote, so the caller can subtract them
+   *  from the grounding read (`../pipeline/grounding.ts`'s `allowedFacts`):
+   *  the ones the customer switched off, and the site's stored demo phrases
+   *  (issue 1249) — a read scoped to one scan may hold a page that repeats
+   *  a demo line and not the page whose markup marks it as one. */
   readonly factsOff: readonly string[];
 }
 
@@ -68,6 +70,7 @@ export async function confirmedForWriting(a: {
   if (!readings.editsRead) return NOTHING_CONFIRMED;
 
   const { knowledgeBase } = await import("@/lib/site-profile/knowledge/merge");
+  const { examplePhrases } = await import("../pipeline/grounding");
   return {
     profile: promptProfile(
       confirmedProfile({
@@ -77,7 +80,7 @@ export async function confirmedForWriting(a: {
       }),
       knowledgeBase({ stored: readings.knowledge, answers: readings.edits.answers })
     ),
-    factsOff: readings.edits.factsOff,
+    factsOff: [...readings.edits.factsOff, ...readings.knowledge.demoPhrases.flatMap(examplePhrases)],
   };
 }
 

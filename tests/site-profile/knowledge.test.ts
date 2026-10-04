@@ -131,6 +131,7 @@ describe("a founder's answer is a fact from the founder", () => {
   const stored = {
     pages: [{ url: PRICING.url, hash: "h", reading: { ...EMPTY, audience: ["Small businesses"] } }],
     readAt: AT.toISOString(),
+    demoPhrases: [],
   };
 
   it("leads its list, marked as theirs, ahead of what a page said", () => {
@@ -158,6 +159,7 @@ describe("a founder's answer is a fact from the founder", () => {
           },
         })),
         readAt: AT.toISOString(),
+        demoPhrases: [],
       },
       answers: { result: "A bakery went from 0 to 40 orders a week" },
     });

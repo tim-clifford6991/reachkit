@@ -25,7 +25,7 @@ import { KNOWLEDGE_BASE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import { derivePurpose } from "../purpose";
-import { readFirstRank } from "./priority";
+import { isNeverRead, readFirstRank } from "./priority";
 import type { PageReading, StoredKnowledge, StoredPage } from "./types";
 
 export const KNOWLEDGE_CALL_SITE = "site-knowledge" as const;
@@ -86,12 +86,31 @@ function hashOf(text: string): string {
   return createHash("sha256").update(text).digest("hex").slice(0, 16);
 }
 
+function oneLine(line: string): string {
+  return line.replace(/\s+/g, " ").trim();
+}
+
+/** The site's demo phrases (§5, 2026-10-04, issue 1249): what any page held
+ *  now shows inside an example, then what earlier reads stored — a legal or
+ *  gallery page's examples count, though the page is not read. Newest
+ *  first, bounded. */
+export function demoPhrasesOf(pages: readonly KnowledgePage[], stored: readonly string[] = []): string[] {
+  const seen = pages.flatMap((page) => (page.examples ?? []).map(oneLine));
+  return [...new Set([...seen, ...stored])].filter((line) => line !== "").slice(0, KNOWLEDGE_BASE.DEMO_PHRASES);
+}
+
 /** Each page's text without the lines the site repeats or shows as a demo,
  *  cut to what one call carries. A legal page is never read for facts (§5,
- *  2026-10-03), and a page left with too little to read is not returned. */
-export function readablePages(all: readonly KnowledgePage[]): readonly KnowledgePage[] {
-  const pages = all.filter((page) => derivePurpose({ url: page.url, title: "", h1: "" }) !== "legal");
-  const demo = new Set(pages.flatMap((page) => (page.examples ?? []).map((line) => line.replace(/\s+/g, " ").trim())));
+ *  2026-10-03), nor a gallery page (2026-10-04),
+ *  and a page left with too little to read is not returned. */
+export function readablePages(
+  all: readonly KnowledgePage[],
+  demoPhrases: readonly string[] = demoPhrasesOf(all)
+): readonly KnowledgePage[] {
+  const pages = all.filter(
+    (page) => derivePurpose({ url: page.url, title: "", h1: "" }) !== "legal" && !isNeverRead(page.url)
+  );
+  const demo = new Set(demoPhrases);
   const repeated = (line: string): boolean => {
     const count = onPages.get(line) ?? 0;
     return count >= REPEATED_ON_PAGES && count > pages.length * REPEATED_ON_SHARE;
@@ -195,7 +214,8 @@ export async function readKnowledge(
 ): Promise<KnowledgeRead> {
   const deadline = Date.now() + KNOWLEDGE_BASE.STEP_MS;
   const before = new Map(a.previous.pages.map((page) => [`${page.url}\n${page.hash}`, page]));
-  const pages = readablePages(a.pages);
+  const demoPhrases = demoPhrasesOf(a.pages, a.previous.demoPhrases);
+  const pages = readablePages(a.pages, demoPhrases);
 
   const read: (StoredPage | null)[] = pages.map(() => null);
   const queue: number[] = [];
@@ -245,12 +265,20 @@ export async function readKnowledge(
   await Promise.all(Array.from({ length: KNOWLEDGE_BASE.CONCURRENCY }, worker));
 
   console.log(
-    JSON.stringify({ event: "site_knowledge_read", pages: pages.length, asked, reused, stoppedBy })
+    JSON.stringify({
+      event: "site_knowledge_read",
+      pages: pages.length,
+      asked,
+      reused,
+      stoppedBy,
+      demoPhrases: demoPhrases.length,
+    })
   );
   return {
     knowledge: {
       pages: read.filter((page): page is StoredPage => page !== null),
       readAt: (a.now ?? new Date()).toISOString(),
+      demoPhrases,
     },
     asked,
     reused,
