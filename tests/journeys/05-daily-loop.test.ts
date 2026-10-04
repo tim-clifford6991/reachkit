@@ -279,15 +279,6 @@ vi.mock("@/lib/egress", () => ({
 
 const modelCalls: { task: string; tokens: number }[] = [];
 
-const BRIEF = {
-  readerQuestion: "Which tool should a small team pick?",
-  angle: "count the seats first",
-  mustCover: ["seats", "what the plan includes"],
-  factIndexes: [0],
-};
-/** The answerability pass's operations: none, so the page stands as drafted. */
-const NO_OPS = { title: "", description: "", order: [0, 1, 2, 3, 4, 5], openings: [], insertFacts: [] };
-
 /** A page that passes every one of §8's deterministic rules: the brand is
  *  not named in the opening, the grounded passage is stated word for word
  *  and its source linked, and there is no quotation, rival figure, embedded
@@ -313,18 +304,11 @@ const PAGE_BODY = {
   bodyMarkdown: CLEAN_MARKDOWN,
 };
 
-// Issue 1138: the page's length floor and its critic are
-// `tests/generate/pipeline/write.test.ts`; here the draft is the draft
-// step alone, still through the real `llm()` seam and the fake vendor below.
-vi.mock("@/lib/generate/pipeline/write", async () => {
-  const { draftOnly } = await import("../generate/fixtures");
-  return { writeDraft: draftOnly };
-});
-// Issue 1143: what the page adds is `tests/generate/pipeline/adds.test.ts`;
-// here the listing answers with a page that adds enough.
-vi.mock("@/lib/generate/pipeline/adds", async (importOriginal) => {
-  const { addsStandIn } = await import("../generate/fixtures");
-  return addsStandIn(await importOriginal<object>());
+// What a pack must hold is `tests/generate/pipeline/pack.test.ts`; here the
+// pack is built from what the run read and is short of nothing.
+vi.mock("@/lib/generate/pipeline/pack", async (importOriginal) => {
+  const { packStandIn } = await import("../generate/fixtures");
+  return packStandIn(await importOriginal<object>());
 });
 
 vi.mock("@anthropic-ai/sdk", () => {
@@ -332,18 +316,11 @@ vi.mock("@anthropic-ai/sdk", () => {
     messages = {
       create: async (request: { messages: { content: string }[] }) => {
         const input = request.messages[0]?.content ?? "";
-        const asked = JSON.parse(input) as { task: string; sections?: unknown[] };
+        const asked = JSON.parse(input) as { task: string };
         modelCalls.push({ task: asked.task, tokens: input.length });
-        // Six question sections over the block set; the first is the page's own.
-        const { draftAnswerFor, outlineFor, partsFromPage } = await import("../generate/fixtures");
-        const outline = outlineFor(PAGE_BODY, "tool");
-        const answer = asked.task.startsWith("Write the brief")
-          ? BRIEF
-          : asked.task.startsWith("Choose the page's sections")
-            ? outline
-            : asked.task.startsWith("Make the page")
-              ? NO_OPS
-              : draftAnswerFor(partsFromPage(PAGE_BODY, "tool"), asked as { write?: number[] });
+        // The one write call's answer: the page in its template's parts.
+        const { partsFromPage } = await import("../generate/fixtures");
+        const answer = partsFromPage(PAGE_BODY, "tool");
         return {
           content: [{ type: "text", text: JSON.stringify(answer) }],
           usage: { input_tokens: 800, output_tokens: 400 },
@@ -782,21 +759,15 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(stored?.rule_failures).toEqual([]);
       expect(row.hard_rules_passed).toBe(true);
 
-      // Four model steps — the draft written in turn, its frame and then
-      // its sections three to a call — all ledgered against the scan that
-      // grounds the page, and the whole day inside §8's cap.
-      expect(modelCalls).toHaveLength(6);
+      // One model call writes the page (SPEC §7, D41), ledgered against the
+      // scan that grounds it, and the whole day inside §8's cap.
+      expect(modelCalls).toHaveLength(1);
       const rows = ledger();
       expect(rows.map((r) => r.source)).toEqual([
         // Issue 1135: the research step's one search for studies, bought
-        // before the brief and paid from the same ceiling.
+        // before the write and paid from the same ceiling.
         "serp/google/organic",
-        "generate.brief",
-        "generate.outline",
-        "generate.draft",
-        "generate.sections",
-        "generate.sections",
-        "generate.answerability",
+        "generate.write",
       ]);
       const spent = rows.reduce((total, r) => total + r.costCents, 0);
       expect(spent).toBeGreaterThan(0);

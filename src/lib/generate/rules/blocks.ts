@@ -1,30 +1,32 @@
-// SPEC §7 (2026-09-29, *What every page carries*; issue 1137) — the one
-// structure rule, `required_blocks`.
+// SPEC §7 (2026-09-29, *What every page carries*, issue 1137; D41 stage 4,
+// *Blocks*; D42) — the one structure rule, `required_blocks`.
 //
 // The owner's ruling of 2026-10-02 (D27) says what the hard rules are for:
 // "to guard the content for obvious violations, and sticking to a structure."
-// This is the structure half. A generated page carries, in order: the
-// short-answer box, three to five key takeaways, six to ten sections headed
-// as the questions a reader asks — each opening with its own answer — a
-// table where the page compares, a section on how the business itself
-// handles the question, and a closing line that points at one action; and
-// it stores three to six buyer questions beside it. The round-1 review of
-// 2026-10-02 adds one thing a page never carries: a prompt's own fact label.
+// This is the structure half, and since D42 the structure is the type's
+// template: a generated page carries the short-answer box, three to five key
+// takeaways, the template's sections in the template's order — each headed as
+// the question a reader asks and opening with its own answer — the block the
+// template requires (a table, numbered steps, a dated source on each change),
+// a link to the business's own site, the buyer questions stored beside it, a
+// closing line that points at one action, and a body inside the template's
+// length. The round-1 review of 2026-10-02 adds one thing a page never
+// carries: a prompt's own fact label.
 //
-// The prompt asks for all of it and the pipeline composes most of it
-// (`../pipeline/compose.ts`), so this rule is what holds where the model
-// did something else — and what an edit by a later pass is checked against.
-// The 40–60 words of the answer box are `first_block_answers`'s, which is
-// the rule for "does not open with an answer".
+// The page is laid out in code (`../pipeline/compose.ts`), so this rule is
+// what holds where the writer returned something else. The 40–60 words of the
+// answer box are `first_block_answers`'s.
 //
 // **It binds what ReachKit generates.** A caller that passes no `blocks` —
-// the customer's own edit, the lead's free page — is asked nothing here: a
-// founder who rewrites their page into five sections has not broken a rule.
+// the customer's own edit — is asked nothing here: a founder who rewrites
+// their page into five sections has not broken a rule.
 //
 // Lexical and deterministic, like every rule beside it: it reads lines, not
 // a tree, so the editor's bundle never has to carry a Markdown parser for it.
 import { PAGE_BLOCKS } from "@/lib/config/constants";
-import { hasLink, sourceBlocksOf, type SourceBlock } from "./text";
+import { bodyWords, sectionWords, type LengthRange } from "../length";
+import type { Template } from "../templates";
+import { hasLink, headingKey, sourceBlocksOf, type SourceBlock } from "./text";
 import type { RuleFailure } from "./types";
 
 /** The blocks a page can be stopped for, in the order they are checked. */
@@ -36,13 +38,22 @@ export type RequiredBlock =
   | "question_headings"
   | "section_opening"
   | "table"
+  | "steps"
+  | "dated_sources"
   | "business_section"
   | "faq"
-  | "closing";
+  | "closing"
+  | "length";
 
 export interface BlockRuleInputs {
-  /** Whether the outline holds a comparison, so the page owes a table. */
-  compares: boolean;
+  /** The type's template: the page's sections, blocks and length. */
+  template: Template;
+  /** The sections as the page was laid out, each with the template key it
+   *  fills (`drafts.meta.sections`). */
+  sections: readonly { key: string; heading: string }[];
+  /** The words of body text the page is held to; `null` where it has no
+   *  range — an update with no live page to measure against. */
+  length: LengthRange | null;
   /** The buyer questions stored beside the page (`drafts.meta.faq`). */
   faq: readonly { question: string; answer: string }[];
   /** The business's own domain: what makes a link "to its product". */
@@ -59,6 +70,25 @@ const LIST_ITEM_RE = /^[ \t]*(?:[-*+]|\d+[.)])[ \t]+/;
 const TABLE_DELIMITER_RE = /^[ \t]*\|?[ \t]*:?-{3,}:?[ \t]*(?:\|[ \t]*:?-{3,}:?[ \t]*)*\|?[ \t]*$/;
 /** The one heading that is not a question: the list of market sources. */
 const SOURCES_RE = /^(?:sources|references)$/i;
+
+const NUMBERED_RE = /^[ \t]*\d+[.)][ \t]+/;
+/** A date written out or in figures: "3 October 2026", "October 3, 2026",
+ *  "2026-10-03", "October 2026". */
+const DATE_RE =
+  /\b(?:\d{4}-\d{2}-\d{2}|(?:\d{1,2}\s+)?(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+(?:\d{1,2},?\s+)?\d{4})\b/i;
+
+/** The page's tables, each as its lines. */
+function tablesOf(lines: readonly string[]): string[][] {
+  const out: string[][] = [];
+  for (let at = 1; at < lines.length; at++) {
+    if (!TABLE_DELIMITER_RE.test(lines[at]!) || !lines[at]!.includes("|") || !lines[at - 1]!.trim().startsWith("|")) continue;
+    let end = at + 1;
+    while (end < lines.length && lines[end]!.trim().startsWith("|")) end++;
+    out.push(lines.slice(at - 1, end));
+    at = end;
+  }
+  return out;
+}
 
 const wordCount = (text: string): number => (text.match(/\S+/g) ?? []).length;
 
@@ -159,24 +189,73 @@ export function missingBlock(a: { markdown: string; title: string; blocks: Block
     const heading = HEADING_RE.exec(line);
     return heading === null ? [] : [heading[1]!.length];
   });
-  const sections = sectionsOf(markdown);
-  const asked = sections.filter((section) => !SOURCES_RE.test(section.heading));
-  if (asked.length < PAGE_BLOCKS.sections.min || asked.length > PAGE_BLOCKS.sections.max) return "sections";
+  const { template } = blocks;
+  const asked = sectionsOf(markdown).filter((section) => !SOURCES_RE.test(section.heading));
+  // The page's sections are the ones it was laid out with, each filling a
+  // slot of the template, in the template's order and inside its repeats.
+  if (asked.length !== blocks.sections.length) return "sections";
+  if (asked.some((section, index) => headingKey(section.heading) !== headingKey(blocks.sections[index]!.heading))) return "sections";
+  let at = 0;
+  for (const slot of template.sections) {
+    let count = 0;
+    while (blocks.sections[at]?.key === slot.key) {
+      at++;
+      count++;
+    }
+    if (count < (slot.repeat?.min ?? 1) || count > (slot.repeat?.max ?? 1)) return "sections";
+  }
+  if (at !== blocks.sections.length) return "sections";
   // H2 then H3, in order: nothing above an H2, nothing below an H3.
   if (levels.some((level) => level < 2 || level > 3) || levels[0] !== 2) return "sections";
-  if (asked.some((section) => !section.heading.endsWith("?"))) return "question_headings";
+  // An update's headings are the live page's own.
+  if (template.type !== "update" && asked.some((section) => !section.heading.endsWith("?"))) return "question_headings";
   if (asked.some((section) => !isParagraph(section.blocks[0]))) return "section_opening";
 
-  if (blocks.compares && !lines.some((line) => TABLE_DELIMITER_RE.test(line) && line.includes("|"))) return "table";
+  const keyed = asked.map((section, index) => ({ ...section, key: blocks.sections[index]!.key }));
+  if (template.blocks.table !== undefined) {
+    // The customer and the template's rivals, down the side or across the
+    // top: that many rows under the header, or that many columns beside the
+    // first.
+    const wanted = template.blocks.table.rivals + 1;
+    const holds = tablesOf(lines).some(
+      (table) => table.length - 2 >= wanted || table[0]!.trim().replace(/^\||\|$/g, "").split("|").length - 1 >= wanted
+    );
+    if (!holds) return "table";
+  }
+  if (template.blocks.steps !== undefined) {
+    const steps = keyed
+      .filter((section) => template.sections.find((slot) => slot.key === section.key)?.block === "steps")
+      .flatMap((section) => section.blocks)
+      .filter((block) => NUMBERED_RE.test(block.raw)).length;
+    if (steps < template.blocks.steps.min || steps > template.blocks.steps.max) return "steps";
+  }
+  if (template.blocks.datedSources === true) {
+    const repeated = new Set(template.sections.filter((slot) => slot.repeat !== undefined).map((slot) => slot.key));
+    const dated = (section: Section): boolean => {
+      const raw = section.blocks.map((block) => block.raw).join("\n");
+      return hasLink(raw) && DATE_RE.test(raw);
+    };
+    if (keyed.some((section) => repeated.has(section.key) && !dated(section))) return "dated_sources";
+  }
   if (!asked.some((section) => section.blocks.some((block) => linksOwnSite(block.raw, blocks.domain)))) {
     return "business_section";
   }
 
-  const faq = blocks.faq.length;
-  if (faq < PAGE_BLOCKS.faq.min || faq > PAGE_BLOCKS.faq.max) return "faq";
+  if (template.blocks.faq !== null) {
+    const faq = blocks.faq.length;
+    if (faq < template.blocks.faq.min || faq > template.blocks.faq.max) return "faq";
+  }
 
   const last = [...sourceBlocksOf(markdown)].reverse().find(isParagraph);
   if (last === undefined || !hasLink(last.raw)) return "closing";
+
+  // The length, in words of body text, counted on the page as laid out.
+  if (blocks.length !== null) {
+    // An update is measured as its live page was: by the words under its
+    // headings.
+    const words = template.type === "update" ? sectionWords(markdown) : bodyWords(markdown);
+    if (words < blocks.length.floor || words > blocks.length.ceiling) return "length";
+  }
   return null;
 }
 

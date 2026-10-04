@@ -154,6 +154,7 @@ export const NEEDS_YOU_COPY: Readonly<Record<NeedsYouKind, CopyKey>> = Object.fr
   step: "publish.needs-you.step",
   adds: "publish.needs-you.adds",
   elsewhere: "publish.needs-you.elsewhere",
+  pack: "publish.needs-you.pack",
   destination: "publish.needs-you.destination",
   delivery: "publish.needs-you.delivery",
   unknown: "publish.needs-you.unknown",

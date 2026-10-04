@@ -449,6 +449,29 @@ empty until #42 and #39 are built), so those two arms cannot fire from this scre
 date falls to `unattributed` rather than telling a customer their market is empty on a day the
 database merely broke.
 
+### Testing one page
+
+`npm run page -- --site <domain> --type <type> [--topic "<q>"]` writes one page through the
+product's own stages (SPEC §7, D41, D43) and prints its path, each check's result and the cost.
+`<type>` is one of `listicle`, `how_to`, `documentation`, `research`, `qa`, `insights`, `update`.
+
+| Flag | Does |
+|---|---|
+| `--topic "<q>"` | the question the page is for; without it, the type's own default for the site's market, or the site's first live page for an update |
+| `--fresh` | rebuilds the context pack; without it a rerun reuses the one cached under `.review/page/packs/` and spends nothing on research |
+| `--out <dir>` | where the page (`<type>.md`), its pack (`<type>.pack.json`) and the run's record are written; `.review/page` by default |
+| `--cap-cents <n>` | what the page's spend is reported against — 25 by default; the calls themselves are bounded by `CAPS.DRAFT_C` |
+| `--env-file <path>` | the bindings; `.env.local` by default. A worktree has none: pass the main checkout's |
+
+The box holds no database key, so the site's production rows are read from
+`scripts/page/snapshot/<domain>.json`: the report, the profile, the pages the scan read, the
+market, the knowledge base with the founder's answers, and the pages ReachKit has live.
+`scripts/page/run.ts` names each member, and `scripts/eval-content/snapshot.ts` gives the queries the
+export is taken with through the Supabase connector. The research reads, the one search and the
+model calls are live and count towards the day's €2 (`docs/PROCESS.md`, *Testing budget*). Nothing
+is written to a database or published. A page the checks stop exits 2 and still writes its text, so
+the failure can be read.
+
 ---
 
 ## 5. The kill switch

@@ -274,10 +274,10 @@ describe("llm() — ledgered through BP-007 (BP-009 `## Data model delta`)", () 
     arrange();
     const { ctx, calls } = fakeCostContext();
 
-    await llm(ctx, { site: "generate.claim_check", input: {}, schema: SCHEMA, tier: "nano" });
+    await llm(ctx, { site: "generate.fit_check", input: {}, schema: SCHEMA, tier: "nano" });
 
     expect(calls).toHaveLength(1);
-    expect(calls[0]!.source).toBe("generate.claim_check");
+    expect(calls[0]!.source).toBe("generate.fit_check");
   });
 });
 
@@ -286,7 +286,7 @@ describe("llm() — spend accounting seam (mutation probe 1)", () => {
     createMock.mockResolvedValueOnce(textMessage({ headline: "ok" }, 1000, 200));
     const { ctx, calls } = fakeCostContext();
 
-    const result = await llm(ctx, { site: "generate.brief", input: {}, schema: SCHEMA, tier: "nano" });
+    const result = await llm(ctx, { site: "generate.write", input: {}, schema: SCHEMA, tier: "nano" });
 
     expect(result.kind).toBe("measured");
     expect(calls).toHaveLength(1);
@@ -494,7 +494,7 @@ describe("llm() — observability record (BP-009 `## NFR budget`)", () => {
 
     createMock.mockResolvedValueOnce(textMessage({ headline: completionMarker }, 42, 17));
     await llm(fakeCostContext().ctx, {
-      site: "generate.answerability",
+      site: "generate.fix",
       input: { text: promptMarker },
       schema: SCHEMA,
       tier: "haiku",
@@ -505,7 +505,7 @@ describe("llm() — observability record (BP-009 `## NFR budget`)", () => {
     expect(Object.keys(logged).sort()).toEqual(
       ["costCents", "durationMs", "parseOutcome", "site", "tier", "tokensIn", "tokensOut"].sort()
     );
-    expect(logged.site).toBe("generate.answerability");
+    expect(logged.site).toBe("generate.fix");
     expect(logged.tier).toBe("haiku");
     expect(logged.tokensIn).toBe(42);
     expect(logged.tokensOut).toBe(17);
@@ -649,10 +649,9 @@ describe("llm() — the output budget is the call site's own (issue #462)", () =
   it("the profile's budget is far below the seam's old 4 096 — a seven-field answer cannot spend the whole call", () => {
     expect(INFERENCE_MAX_OUTPUT_TOKENS.profile).toBeLessThanOrEqual(700);
     expect(INFERENCE_MAX_OUTPUT_TOKENS.profile).toBeLessThan(4096);
-    for (const budget of Object.values(INFERENCE_MAX_OUTPUT_TOKENS)) {
-      expect(budget).toBeGreaterThan(0);
-      expect(budget).toBeLessThanOrEqual(4096);
-    }
+    // Every site has a budget of its own; the one write call's holds a whole
+    // page (SPEC §7, D41), so 4 096 is no longer a ceiling over all of them.
+    for (const budget of Object.values(INFERENCE_MAX_OUTPUT_TOKENS)) expect(budget).toBeGreaterThan(0);
   });
 
   it("the up-front reservation is sized from the site's budget, not a seam-wide ceiling", async () => {
@@ -866,11 +865,11 @@ describe("llm() — structured output: the call site's schema as one forced tool
     }
   });
 
-  it("a dotted call site is named with `_` — `generate.brief` is not a tool name the vendor accepts", async () => {
+  it("a dotted call site is named with `_` — `generate.write` is not a tool name the vendor accepts", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
     createMock.mockResolvedValueOnce(toolUseMessage({ headline: "ok" }));
-    await llm(fakeCostContext().ctx, { site: "generate.brief", input: {}, schema: SCHEMA, tier: "nano" });
-    expect((sentRequest().tool_choice as { name: string }).name).toBe("generate_brief");
+    await llm(fakeCostContext().ctx, { site: "generate.write", input: {}, schema: SCHEMA, tier: "nano" });
+    expect((sentRequest().tool_choice as { name: string }).name).toBe("generate_write");
   });
 
   it("the `tool_use` block's input is the value — measured on the first attempt, with no text parsed", async () => {

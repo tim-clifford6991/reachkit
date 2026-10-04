@@ -48,7 +48,6 @@ const INPUTS: MarkInputs = {
   pageType: "answer",
   brief: {
     facts: ["A five-person team runs out of limits long before it runs out of features."],
-    headings: ["What to look at"],
     queries: ["best crm for small teams"],
   },
 };
@@ -186,7 +185,7 @@ describe("what it declines to run", () => {
       doNotClaim: [],
       rivals: [],
       pageType: null,
-      brief: { facts: [], headings: [], queries: [] },
+      brief: { facts: [], queries: [] },
     };
     expect(rules("Short.", bare)).toContain("first_block_answers");
     expect(rules("Short.", bare)).not.toContain("do_not_claim");

@@ -1,11 +1,10 @@
-// SPEC §7 (2026-10-03, D36, issue 1209) — the weekly content mix: four kinds
-// of page, at most two of one kind in any seven days, never the same kind two
+// SPEC §7 (2026-10-03, D36, issue 1209; D42) — the weekly content mix: seven
+// types of page, at most two of one type in any seven days, never the same kind two
 // days running, and an update each week where one is ready.
 import "../env";
 import { describe, expect, it } from "vitest";
 import { CONTENT_MIX, PACE } from "../../../src/lib/config/constants";
-import { contentKindOf, type ContentKind } from "../../../src/lib/opportunities/content-kind";
-import { skeletonFor } from "../../../src/lib/generate/pipeline/skeletons";
+import { contentTypeOf, type ContentType } from "../../../src/lib/opportunities/content-type";
 import { mixOf, orderRanked } from "../../../src/lib/opportunities/rank/open";
 import type { DraftedPage } from "../../../src/lib/opportunities/store";
 import type { Opportunity } from "../../../src/lib/opportunities/types";
@@ -47,23 +46,21 @@ function supply(): { opportunity: Opportunity; score: number }[] {
   }));
 }
 
-describe("a page's kind is read off its row", () => {
-  it.each<[Opportunity["type"], string, ContentKind]>([
-    ["listed_page", "best ai seo software", "comparison"],
-    ["keyword_page", "acme vs globex", "comparison"],
+describe("a page's type is read off its row (D42)", () => {
+  it.each<[Opportunity["type"], string, ContentType | null]>([
+    ["listed_page", "best ai seo software", "listicle"],
+    ["comparison_page", "acme and globex", "listicle"],
     ["keyword_page", "how to get cited by chatgpt", "how_to"],
-    ["answer_page", "llms txt setup guide", "how_to"],
-    ["keyword_page", "what is generative engine optimization", "explainer"],
+    ["keyword_page", "what is generative engine optimization", "documentation"],
+    ["keyword_page", "ai search statistics", "research"],
+    ["keyword_page", "latest ai search news", "insights"],
+    ["answer_page", "why ai answers cite some sites", "qa"],
     ["refresh_page", "best ai seo software", "update"],
     ["fix_page", "", "update"],
+    // It publishes no asset, so it has no type.
+    ["unblock", "", null],
   ])("%s for “%s” is %s", (type, targetQuery, kind) => {
-    expect(contentKindOf({ type, targetQuery })).toBe(kind);
-  });
-
-  it("a how-to page is outlined as steps, a comparison as a comparison", () => {
-    expect(skeletonFor({ type: "keyword_page", targetQuery: "how to get cited by chatgpt" })).toContain("steps");
-    expect(skeletonFor({ type: "listed_page", targetQuery: "best ai seo software" })).toContain("comparison");
-    expect(skeletonFor({ type: "keyword_page", targetQuery: "what is geo" })).toEqual(["answer", "detail", "evidence", "business"]);
+    expect(contentTypeOf({ type, targetQuery })).toBe(kind);
   });
 });
 
@@ -72,7 +69,7 @@ describe("two weeks of pages hold the mix", () => {
   const byId = new Map(scored.map((entry) => [entry.opportunity.id, entry.opportunity]));
   const kinds = orderRanked(scored, { mix: { from: 100, recent: [] } })
     .slice(0, 14)
-    .map((entry) => contentKindOf(byId.get(entry.opportunityId)!)!);
+    .map((entry) => contentTypeOf(byId.get(entry.opportunityId)!)!);
 
   it("never the same kind of new page two days running", () => {
     // An update may follow an update: once the week's four new pages are
@@ -106,7 +103,7 @@ describe("two weeks of pages hold the mix", () => {
 
 describe("the mix never empties a day", () => {
   it("a supply of one kind is still written, a page a day", () => {
-    const only = supply().filter((entry) => contentKindOf(entry.opportunity) === "comparison");
+    const only = supply().filter((entry) => contentTypeOf(entry.opportunity) === "listicle");
     expect(orderRanked(only, { mix: { from: 100, recent: [] } }).map((entry) => entry.opportunityId)).toEqual(
       only.map((entry) => entry.opportunity.id)
     );
@@ -126,14 +123,14 @@ describe("the days before are read from the site's own drafted pages", () => {
       ],
       AT
     );
-    expect(mix.recent).toEqual([{ day: mix.from - 1, kind: "comparison" }]);
+    expect(mix.recent).toEqual([{ day: mix.from - 1, kind: "listicle" }]);
     const ranked = orderRanked(supply(), { mix });
     expect(ranked[0]?.opportunityId).toBe("o6");
   });
 
   it("after a gap the first day planned is today, and nothing is the day before it", () => {
     const mix = mixOf([drafted("2026-09-20", "published", "listed_page", "best ai seo software")], AT);
-    const newPages = supply().filter((entry) => contentKindOf(entry.opportunity) !== "update");
+    const newPages = supply().filter((entry) => contentTypeOf(entry.opportunity) !== "update");
     expect(orderRanked(newPages, { mix })[0]?.opportunityId).toBe("o0");
     // A site that has had pages for a week and no update takes one first.
     expect(orderRanked(supply(), { mix })[0]?.opportunityId).toBe("o14");

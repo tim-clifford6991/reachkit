@@ -6,7 +6,6 @@ import { describe, expect, it } from "vitest";
 import {
   checkFirstBlockAnswers,
   checkInventedProvenance,
-  checkNewQuestionHeading,
   checkTraceableNumerals,
   type BriefRuleInputs,
 } from "../../../src/lib/generate/rules/brief";
@@ -14,7 +13,6 @@ import { fixNotes, repairMechanical } from "../../../src/lib/generate/pipeline/r
 
 const BRIEF: BriefRuleInputs = {
   facts: ["Teams on the starter plan get 25 seats and unlimited projects for a flat monthly fee."],
-  headings: ["Which tool should a small team pick?", "What decides it"],
   queries: ["best tools for small teams"],
 };
 const OPENING = "Pick the tool whose plan covers every person who opens it daily, then check the limits.";
@@ -30,15 +28,11 @@ describe("repairMechanical", () => {
     expect(checkTraceableNumerals({ markdown: repaired, brief: BRIEF })).toBeNull();
   });
 
-  it("drops a provenance sentence and an added question heading, keeping the section's text", () => {
+  it("drops a provenance sentence, keeping the rest of the page", () => {
     const markdown = `${OPENING} A case study proves it.\n\n## Why does this matter?\n\nSeats decide the price.`;
-    const repaired = repairMechanical(markdown, ["no_invented_provenance", "no_new_question_heading"], {
-      brief: BRIEF,
-      sources: [],
-    });
-    expect(repaired).toBe(`${OPENING}\n\nSeats decide the price.`);
+    const repaired = repairMechanical(markdown, ["no_invented_provenance"], { brief: BRIEF, sources: [] });
+    expect(repaired).toBe(`${OPENING}\n\n## Why does this matter?\n\nSeats decide the price.`);
     expect(checkInventedProvenance({ markdown: repaired, brief: BRIEF })).toBeNull();
-    expect(checkNewQuestionHeading({ markdown: repaired, brief: BRIEF })).toBeNull();
   });
 
   it("joins an opening list into a paragraph and splits an over-long opening", () => {

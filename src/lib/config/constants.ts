@@ -180,10 +180,11 @@ export const INFERENCE_TIMEOUT_MS = Object.freeze({
    *  answer on a slower model, made once, in the paid pass's derivation
    *  step and never on the free path. */
   sonnet: 60_000,
-  /** One call of a page's draft, or its critic (issue 1138). A page is
-   *  written a few sections to a call, so this bounds those sections and
-   *  never the page. */
-  writer: 60_000,
+  /** One call that writes a whole page, or fixes one (SPEC §7, D41): up to
+   *  8 192 output tokens on Sonnet 5. The draft job's invocation is bounded
+   *  by `TIMING.jobsCeilingS`; `PIPELINE.fixBeforeMs` keeps the fix call
+   *  inside it. */
+  writer: 120_000,
 } as const);
 
 /** The vendor SDK's own retry layer, off — stated here rather than
@@ -217,11 +218,7 @@ export const INFERENCE_MAX_RETRIES = 0 as const;
  *  - `question-phrasing` — at most `BATTERY.QUESTIONS` `{ id, text }`
  *    pairs of one question each: ~30 a pair, ~360 needed.
  *  - `opportunity-typing` — `{ type, slug, title }`: ~60 needed.
- *  - `generate.brief` — two sentences and a list of points: ~400 needed.
- *  - `generate.outline` — one `{ heading, covers }` per point: ~600 needed.
- *  - `generate.draft`, `generate.answerability` — a whole page of
- *    Markdown; the seam's old ceiling, unchanged.
- *  - `generate.claim_check` — `{ matches, matchedIndex }`: ~20 needed.
+ *  - `generate.write`, `generate.fix` — a whole page in parts (SPEC §7, D41).
  *  - `generate.fit_check` — `{ unsupported: { index, claims }[] }`, a few
  *    words a sentence, and few sentences on a page that fails: ~20 each
  *    (issue 1136). */
@@ -243,30 +240,22 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   /** `{ typed: number[] }` over at most `BUYER_SEARCHES.maxChecked`
    *  indexes: ~4 each (issue 1208). */
   "topic-typed": 400,
-  "generate.brief": 1024,
-  "generate.outline": 1536,
-  /** Since issue 1137 the draft is written in turn: this call writes the
-   *  page's frame — title, short answer, takeaways, closing line and buyer
-   *  questions, ~900 needed — and `generate.sections` writes the bodies. */
-  "generate.draft": 2048,
-  /** At most `DRAFT_SECTIONS_PER_CALL` section bodies. 4 096 since issue
-   *  1138: a section of a 2,500-word page runs to about 450 words, and
-   *  three of them are about 2,400 tokens on the writer tier. */
-  "generate.sections": 4096,
-  /** Five scores and at most `WRITER.maxRevisions` short instructions
-   *  (issue 1138). */
-  "generate.critic": 1024,
-  /** At most `ADDS.maxClaims` sentences copied off the page, ~60 tokens
-   *  each (issue 1143). */
-  "generate.adds": 1536,
-  "generate.answerability": 4096,
-  /** One paragraph of 40–60 words (issue 1137): ~90 needed. */
-  "generate.answer_box": 256,
-  "generate.claim_check": 128,
+  /** SPEC §7 (D41, stage 3): the whole page in one call — its title, short
+   *  answer, takeaways, every section, closing line and buyer questions. A
+   *  2,500-word comparison is about 3,600 tokens of prose; 8 192 leaves the
+   *  parts' framing room. `generate.fix` is the one fix call of stage 4 and
+   *  returns the page whole again. */
+  "generate.write": 8192,
+  "generate.fix": 8192,
+  /** The lead's free first page (SPEC §2): the same write call, sized so the
+   *  seam's reservation — two attempts — fits `CAPS.FREE_C`. 3 072 tokens is
+   *  a page of about 1,800 words in parts; a lead's page is a Q&A or a
+   *  documentation page, at most 1,500. */
+  "generate.write_free": 3072,
   /** Issue 1135: the claims read off at most `RESEARCH.pagesPerCall` public
    *  pages — up to `RESEARCH.claimsPerPage` quotations of a sentence or two
    *  each, ~60 tokens a claim. */
-  "generate.research": 2048,
+  "generate.research": 2560,
   "generate.fit_check": 512,
   /** The site profile's one call (issue #577, SPEC.md §2 "The scan builds
    *  the site profile"): the site name, its products and claims, and the
@@ -327,42 +316,22 @@ export const INFERENCE_TEMPERATURE: Readonly<Partial<Record<keyof typeof INFEREN
     "site-knowledge": 0,
   });
 
-/**
- * SPEC §7 (2026-09-29, *Length and the writer*; issue 1138) — the length a
- * new page is written to, in words of body text, by the kind of page it is
- * (`contentKindOf`). An explainer is the SPEC's answer page, a how-to its
- * problem or how-to page. An update has no row: it keeps to the page it
- * updates.
+/** SPEC §7 (D41) — the five-stage pipeline's own bounds.
  *
- * **The one length target** (owner, 2026-10-02, round 1). The writer, the
- * critic, the floor check and the evaluation's grader all read this through
- * `lengthTargetFor` (`src/lib/generate/length.ts`) — round 1 told a page
- * 1,200–1,800 and graded it against 1,500–2,500.
- */
-export const LENGTH_TARGETS = Object.freeze({
-  explainer: Object.freeze({ floor: 1200, ceiling: 1800 } as const),
-  comparison: Object.freeze({ floor: 1500, ceiling: 2500 } as const),
-  how_to: Object.freeze({ floor: 1200, ceiling: 2000 } as const),
+ *  `fixBeforeMs`: the one fix call is started only while the page has been
+ *  in the making for less than this, so research, the write call and the fix
+ *  call stay inside the draft job's invocation (`TIMING.jobsCeilingS`).
+ *  `nextTopicBeforeMs`: D26's next topic is tried in the same run only this
+ *  early, for the same reason. */
+export const PIPELINE = Object.freeze({
+  fixBeforeMs: 165_000,
+  nextTopicBeforeMs: 120_000,
 } as const);
 
-/** How a customer's page is written (issue 1138).
- *
- *  `share` is each section's part of the page's length, by its block: the
- *  evidence states facts and little else, and the sections that explain,
- *  compare or walk the steps carry the page.
- *
- *  `maxRevisions`: the most sections the critic may have written again —
- *  one more writer call, paid inside `CAPS.DRAFT_C`.
- *
- *  `criticAfterMs`: the critic is the one part of the writing a page can go
- *  without, so it is not started once the writing has taken this long — a
- *  draft is one job step under `jobsCeilingS`, with the answerability pass
- *  and the rules still to run after it. */
-export const WRITER = Object.freeze({
-  share: Object.freeze({ answer: 2, detail: 4, comparison: 4, steps: 3, evidence: 1, business: 2 } as const),
-  maxRevisions: 2,
-  criticAfterMs: 150_000,
-} as const);
+/** What a context pack carries at most (SPEC §7, D41 stage 2): the business
+ *  passages handed to the writer, the site's published and planned pages
+ *  (D36: at most 100), and a Q&A page's questions (D42: 5–8). */
+export const PACK = Object.freeze({ facts: 40, pages: 100, questions: 8 } as const);
 
 /** How many entries each of the business profile's lists may carry (BUILD
  *  §6.7 step 1). The schema the model's answer is parsed against and the
@@ -1633,9 +1602,6 @@ export const FORMAT_PAGE_ALLOWED = Object.freeze([
   "comparison", "alternative", "integration", "template",
 ] as const);                                                  // §6
 
-/** SPEC §7: an answerability pass "adds no question-shaped headings", so the
- *  number of new questions it may add is zero — a bound, never a budget. */
-export const ANSWERABILITY_MAX_NEW_QUESTIONS = 0 as const;    // §7
 
 /** SPEC §7: the answerability pass may "shorten a first block to 40–320
  *  characters where a question heading already exists". The same bound is
@@ -1649,23 +1615,15 @@ export const ANSWER_FIRST_BLOCK_CHARS = Object.freeze({ min: 40, max: 320 } as c
 export const PAGE_BLOCKS = Object.freeze({
   answerWords: { min: 40, max: 60 },
   takeaways: { min: 3, max: 5 },
-  sections: { min: 6, max: 10 },
   faq: { min: 3, max: 6 },
   taglineRepeats: 2,
 } as const);                                                   // §7 · issue 1137
 
-/** How many of the page's sections one writer call is asked for (issue
- *  1137). The Haiku tier's clock is 20 s (`INFERENCE_TIMEOUT_MS`) and it
- *  writes about 80 tokens a second: the whole page in one call ran 19.5 s
- *  and timed out on the next (eval run of 2026-10-03). Three sections is
- *  about 1,300 tokens, inside the clock with room. A customer's page is
- *  written on the writer tier since issue 1138, still three to a call: one
- *  to a call would carry the page's whole brief six to ten times. */
-export const DRAFT_SECTIONS_PER_CALL = 3 as const;             // §7 · issue 1137
 
-/** How many of the customer's own passages one brief is handed to choose
- *  from. Chosen, not transcribed: enough for a page to stand on more than one
- *  fact, few enough that the nano brief call's input stays small. */
+
+/** How many of a site's own passages a caller that needs only a few reads
+ *  (`readFacts`): setup's voice sample and the lead's free page. A paid
+ *  page's context pack carries `PACK.facts`. */
 export const BRIEF_MAX_FACTS = 8 as const;                     // §7 · issue 475
 
 /** SPEC §7 (2026-09-29, *Two pools of facts*; issue 1135) — the research
@@ -1687,10 +1645,20 @@ export const RESEARCH = Object.freeze({
   readWords: 1500,
   /** A page with fewer readable words than this states nothing to cite. */
   minWords: 80,
-  pagesPerCall: 4,
-  claimsPerPage: 8,
-  /** The market facts one brief is handed to choose from. */
+  /** SPEC §7 (D41): a page's research is at most two model calls, so the
+   *  pages read are split over two; seven to a call is the most one reads. */
+  calls: 2,
+  pagesPerCall: 7,
+  claimsPerPage: 5,
+  /** The market facts a context pack carries. */
   briefFacts: 24,
+  /** *Current insights* (D42): the results of its one search that are read
+   *  for a publication date, and the dated ones kept. */
+  recentRead: 8,
+  recentPages: 5,
+  /** D41 (drafted default): a *current insights* page reads web results
+   *  published inside this many days. */
+  recentDays: 30,
   /** A market comparison stands on at least this many cited market facts
    *  (issue 1135's done-when). */
   comparisonMinFacts: 3,

@@ -420,18 +420,15 @@ vi.mock("@anthropic-ai/sdk", () => {
             },
           });
         }
-        const page = pageFor(asked as Parameters<typeof pageFor>[0]);
-        if (task.startsWith("Write the brief")) {
-          return text({ readerQuestion: page.title, angle: "start from the searches", mustCover: ["searches"], factIndexes: [0] });
-        }
-        const { draftAnswerFor, outlineFor, partsFromPage } = await import("../generate/fixtures");
-        if (task.startsWith("Choose the page's sections")) return text(outlineFor(page, page.slug));
-        if (task.startsWith("Make the page")) {
-          return text({ title: "", description: "", order: [0, 1, 2, 3, 4, 5], openings: [], insertFacts: [] });
-        }
-        if (task.startsWith("Decide whether the page states")) return text({ matches: false, matchedIndex: null });
-        if (task.startsWith("Write the page") || task.startsWith("Write the sections")) {
-          return text(draftAnswerFor(partsFromPage(page, page.slug), asked as { write?: number[] }));
+        // The research step's read of public pages: nothing to cite.
+        if (task.startsWith("Copy out the claims")) return text({ claims: [] });
+        // The one write call (SPEC §7, D41): the page for the pack's own
+        // target, stating the pack's first fact.
+        if (task.startsWith("Write one page")) {
+          const pack = asked.pack as { target: { question: string }; facts: { url: string; passage: string }[] };
+          const page = pageFor({ opportunity: { targetQuery: pack.target.question }, grounded: pack.facts[0] });
+          const { partsFromPage } = await import("../generate/fixtures");
+          return text(partsFromPage(page, page.slug));
         }
         throw new Error(`journey 10: no model answer for task: ${task.slice(0, 80)}`);
       },

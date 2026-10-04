@@ -36,7 +36,6 @@ import { recoveryOutcome } from "../claims/recovery";
 import { recordedVerdictValue } from "../record";
 import { generateStore } from "../store";
 import type { GenerateOutcome } from "./index";
-import { STEP_CALL_SITES } from "./steps";
 
 const GENERATING = "generating";
 
@@ -122,7 +121,7 @@ export async function generatePageFix(
   if (c.capHit()) return { ok: false, reason: "step_failed", draftId: a.draftId ?? null, step: "page_fix" };
   const written = await import("@/lib/llm").then(({ llm }) =>
     llm(c, {
-      site: STEP_CALL_SITES.page_fix,
+      site: "generate.page_fix",
       tier: "nano",
       schema: FIX_SCHEMA,
       input: {
@@ -177,7 +176,7 @@ export async function generatePageFix(
     await store.patchDraft(draftId, fields);
   }
 
-  const claim = await claimCheck(c, {
+  const claim = claimCheck({
     text: [record.title, record.description].filter((v) => v !== null).join("\n"),
     list: a.doNotClaim,
   });
@@ -189,10 +188,6 @@ export async function generatePageFix(
     hard_rules_passed: passed,
   });
 
-  if (claim.state === "unrun") {
-    logRun({ siteId: a.siteId, draftId, step: "claim_check", outcome: claim.reason });
-    return { ok: false, reason: "step_failed", draftId, step: "claim_check" };
-  }
   if (passed) {
     logRun({ siteId: a.siteId, draftId, outcome: "passed" });
     return { ok: true, draftId, grounded: null };

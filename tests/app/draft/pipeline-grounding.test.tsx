@@ -23,8 +23,8 @@
 //   `generateDraft` (§8) → the row it wrote → `readDraftRow` (the account's
 //   own read) → `assembleDraft` → `DraftScreen`
 //
-// The only stand-ins are the ones a `node` test has to have: the four model
-// steps, the measured text the grounding is read out of, and the database
+// The only stand-ins are the ones a `node` test has to have: the one write
+// call, the measured text the grounding is read out of, and the database
 // the row is put back into. The *shape* is nobody's stand-in — it is the
 // bytes `generateDraft` produced.
 import "../../generate/env";
@@ -37,16 +37,6 @@ const { llmMock, readMeasuredTextMock } = vi.hoisted(() => ({
   readMeasuredTextMock: vi.fn(),
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
-vi.mock("@/lib/generate/pipeline/write", async () => {
-  const { draftOnly } = await import("../../generate/fixtures");
-  return { writeDraft: draftOnly };
-});
-// Issue 1143: what the page adds is `tests/generate/pipeline/adds.test.ts`;
-// here the listing answers with a page that adds enough.
-vi.mock("@/lib/generate/pipeline/adds", async (importOriginal) => {
-  const { addsStandIn } = await import("../../generate/fixtures");
-  return addsStandIn(await importOriginal<object>());
-});
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
 vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
 
@@ -89,7 +79,7 @@ vi.mock("@/lib/db", () => {
   return { dbAdmin: () => ({ from: (table: string) => builder(table) }) };
 });
 
-import { AT, NO_OPS, OUTLINE_ANSWER, SITE_ID, draftAnswers, draftParts, fakeCost, memoryStore, opportunity, siteInputs } from "../../generate/fixtures";
+import { AT, SITE_ID, fakeCost, memoryStore, opportunity, pack, pageParts, siteInputs } from "../../generate/fixtures";
 import { generateDraft, type GenerateOutcome } from "@/lib/generate/pipeline";
 import { sweepOutstandingRechecks } from "@/lib/generate/claims/sweep";
 import { setGenerateStore } from "@/lib/generate/store";
@@ -129,24 +119,19 @@ const BODY_MD = [
   "teams notice last and feel most.",
 ].join("\n");
 
-const PAGE = draftParts(BODY_MD);
+const PAGE = pageParts(BODY_MD);
+
+/** The customer's passage as the day's run hands it to the pipeline. */
+const FACT = { url: "https://example.com/pricing", readAt: AT, passage: PASSAGE };
 
 function measured(value: unknown) {
   return { kind: "measured", value, at: AT };
 }
 
-/** The four model steps, then the claim check. The brief picks the one fact
- *  it is handed; the outline names `answer_page`'s three sections; the
- *  answerability pass changes nothing. */
+/** The one write call's answer: the page, in its template's parts. */
 function primeSteps(): void {
   llmMock.mockReset();
-  llmMock.mockResolvedValueOnce(
-    measured({ readerQuestion: "Which tool?", angle: "seats", mustCover: ["seats"], factIndexes: [0] })
-  );
-  llmMock.mockResolvedValueOnce(measured(OUTLINE_ANSWER));
-  for (const answer of draftAnswers(PAGE)) llmMock.mockResolvedValueOnce(measured(answer));
-  llmMock.mockResolvedValueOnce(measured(NO_OPS));
-  llmMock.mockResolvedValue(measured({ matches: false, matchedIndex: null }));
+  llmMock.mockResolvedValue(measured(PAGE));
 }
 
 const store = memoryStore();
@@ -166,11 +151,9 @@ async function runPipeline(site = siteInputs()): Promise<GenerateOutcome> {
     opportunity: opportunity(),
     scheduledFor: "2026-09-07",
     site,
-    voiceText: null,
-    category: "project management software",
+    pack: pack({ facts: [{ passage: PASSAGE, url: FACT.url, readAt: AT.toISOString() }], neverClaim: site.doNotClaim }),
+    facts: [{ fact: FACT, sourceText: SOURCE_TEXT }],
     links: [],
-    profile: null,
-    factsOff: [],
   });
 }
 
@@ -301,7 +284,7 @@ describe("§8's battery — the record the pipeline wrote is the record the draf
   const FORBIDDEN = "cures every ailment";
 
   /** A phrase the page *does* state, word for word — the literal half of
-   *  the claim check matches it with no model call at all. */
+   *  the claim check matches it by its own words (D45). */
   const IN_THE_BODY = "unlimited projects";
 
   it("writes the verdict into `drafts.claim_check` and the battery's own record into `drafts.rule_failures`", async () => {
@@ -312,21 +295,11 @@ describe("§8's battery — the record the pipeline wrote is the record the draf
     expect(typeof (row.claim_check as { at: unknown }).at).toBe("string");
     // The empty list is the record: a battery ran, and nothing failed.
     expect(row.rule_failures).toEqual([]);
-    // And no battery record was written into `meta` — the keys this screen
-    // used to read are not keys the pipeline has, under any spelling. What
-    // `meta` carries is the page's description (issue 697) and, since #927,
-    // what the page was written from: the passages the brief chose, and the
-    // profile items the prompt carried where the site has a profile. This
-    // site has none, so there is no `profileItems` key — a draft written for
-    // an unread site records only the facts.
-    expect(Object.keys((row.meta ?? {}) as object).sort()).toEqual(
-      // `length` since issue 1138: the page's words against its target. `adds`
-      // since issue 1143: what the page says that the web and the site do not.
-      // `market` since issue 1248: the market the page was written for.
-      ["adds", "description", "factsUsed", "faq", "length", "market", "marketFacts"].sort()
-    );
-    // A rule record is still not one of them, under any spelling.
-    expect(Object.keys((row.meta ?? {}) as object)).not.toContain("rule_failures");
+    // And no battery record was written into `meta`: what it carries is what
+    // the page was written from and laid out as.
+    for (const key of ["rule_failures", "claim", "claim_check", "hard_rules_passed"]) {
+      expect(Object.keys((row.meta ?? {}) as object)).not.toContain(key);
+    }
   });
 
   it("the badge states the check the pipeline ran, on the account's own read", async () => {
@@ -339,7 +312,7 @@ describe("§8's battery — the record the pipeline wrote is the record the draf
   });
 
   it("an empty do-not-claim list says there was nothing to check, never a silent pass", async () => {
-    // `claimCheck` passes an empty list at zero cost — the publishing guard
+    // `claimCheck` passes an empty list — the publishing guard
     // needs a pass to release the page — but REQ-045 c3's outcome is never
     // a silent one. The verdict's own hash is what tells the two apart.
     const { draftId } = await generatedDraftRow(siteInputs({ doNotClaim: [] }));

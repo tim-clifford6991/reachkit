@@ -46,6 +46,7 @@
 // from the row rather than from what generation remembered to write down.
 import { dbAdmin } from "@/lib/db";
 import { readRecordedFact } from "@/lib/generate/fact";
+import { readPack } from "@/lib/generate/pipeline/pack";
 import {
   checkedAgainstNothing,
   readRecordedRules,
@@ -55,12 +56,17 @@ import {
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
 import { pageRecordFor } from "@/lib/publish/record";
+import { needsYouOf } from "@/lib/publish/record/needs-you";
 import { RAIL_CHECKS, type RailCheck } from "./checks";
 import { askedAs, doneWhen } from "../../calendar/store";
 import type { Choice } from "@/lib/opportunities/derive/explain";
 import { pageTargetOf } from "../../_shell/page-target";
 import {
   NO_RULE_FACTS,
+  PACK_PAGES_SHOWN,
+  knownNeeds,
+  type PackShort,
+  type PackView,
   type ClaimState,
   type DraftFacts,
   type PageAdds,
@@ -121,6 +127,52 @@ const DRAFT_STATES: readonly string[] = [
   "needs_attention",
   "unpublished",
 ];
+
+/** The stored pack as the card reads it (issue 1252), or nothing on a row
+ *  written before the pack. Every member is read defensively: the column is
+ *  JSON and `readPack` vouches only for the pack's version and its two fact
+ *  lists. */
+function packAt(meta: Record<string, unknown> | null): { pack?: PackView } {
+  const pack = readPack(meta);
+  if (pack === null) return {};
+  const texts = (value: unknown): string[] =>
+    Array.isArray(value) ? value.filter((each): each is string => typeof each === "string" && each.trim() !== "") : [];
+  const pages = (Array.isArray(pack.pages) ? pack.pages : []).flatMap((page) => {
+    const name = page?.title ?? page?.question;
+    return typeof name === "string" && name.trim() !== "" ? [name] : [];
+  });
+  return {
+    pack: {
+      question: typeof pack.target?.question === "string" ? pack.target.question : "",
+      claims: pack.claims.flatMap((claim) =>
+        typeof claim?.passage === "string" && typeof claim.url === "string"
+          ? [
+              {
+                passage: claim.passage,
+                url: claim.url,
+                title: typeof claim.title === "string" ? claim.title : "",
+                readAt: typeof claim.readAt === "string" ? claim.readAt : "",
+              },
+            ]
+          : []
+      ),
+      pages: pages.slice(0, PACK_PAGES_SHOWN),
+      pagesMore: Math.max(0, pages.length - PACK_PAGES_SHOWN),
+      neverClaim: texts(pack.neverClaim),
+      missing: knownNeeds(texts(pack.missing)),
+    },
+  };
+}
+
+/** Whether the page rests because its pack was short, and of what (issue
+ *  1252). The cause is the record's own (`needsYouOf`); the handles are the
+ *  ones the stop recorded, or the stored pack's where it recorded none. */
+function packShortAt(row: DraftRow, pack: PackView | undefined): { packShort?: PackShort } {
+  const cause = needsYouOf({ state: row.state as State, transitions: row.transitions });
+  if (cause === null || cause.kind !== "pack") return {};
+  const named = knownNeeds(cause.missing);
+  return { packShort: { missing: named.length > 0 ? named : (pack?.missing ?? []) } };
+}
 
 /** What the page adds (`meta.adds`, issue 1143), read as defensively as
  *  every other key here. The ask stands only while the page is still held:
@@ -305,7 +357,7 @@ async function ruleFactsOf(siteId: string, opportunityId: string | null): Promis
       return { doNotClaim: site.doNotClaim, rivals: site.rivals, queries: [], pageType: null };
     }
     const { opportunityById } = await import("@/lib/opportunities");
-    const { targetSearches } = await import("@/lib/generate/pipeline/steps");
+    const { targetSearches } = await import("@/lib/generate/pipeline");
     const { pageTypeOf } = await import("@/lib/opportunities/page-type");
     const opportunity = await opportunityById(opportunityId);
     return {
@@ -404,6 +456,7 @@ export async function readDraftRow(a: {
   const generated = stringAt(row.meta, "body_md_generated") ?? bodyMd;
   const firstEdited = stringAt(row.meta, "first_edited_at");
   const lastSaved = stringAt(row.meta, "last_saved_at");
+  const { pack } = packAt(row.meta);
 
   return {
     draftId: row.id,
@@ -429,8 +482,10 @@ export async function readDraftRow(a: {
             }),
           }
         : {}),
+      ...(pack === undefined ? {} : { pack }),
     },
     ...addsAt(row.meta, row.state),
+    ...packShortAt(row, pack),
     domain: a.site.domain,
     state: row.state as State,
     // The fact §9's `never_entered_review` guard reads (#1180).

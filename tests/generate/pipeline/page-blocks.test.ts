@@ -1,41 +1,57 @@
-// tests/generate/pipeline/page-blocks.test.ts — issue 1137, SPEC §7
-// (2026-09-29, *What every page carries*) and the round-1 review of
-// 2026-10-02: the page is laid out in code from the writer's parts, what a
-// page never says is cut in code, and `required_blocks` stops a page that
-// lacks one of its blocks.
+// tests/generate/pipeline/page-blocks.test.ts — SPEC §7 (*What every page
+// carries*, issue 1137; D41, D42) and the round-1 review of 2026-10-02: the
+// page is laid out in code from the writer's parts in its template's order,
+// what a page never says is cut in code, and `required_blocks` stops a page
+// that lacks one of its template's blocks.
 import "../env";
 import { describe, expect, it } from "vitest";
-import { composePage, sentenceCase, tidy, tidyText, withClosing } from "../../../src/lib/generate/pipeline/compose";
+import { layoutPage, sentenceCase, tidy, tidyText, withClosing } from "../../../src/lib/generate/pipeline/compose";
 import { applyLinks } from "../../../src/lib/generate/links/apply";
-import { outlineOf } from "../../../src/lib/generate/pipeline/steps";
+import { bodyWords, lengthRangeFor } from "../../../src/lib/generate/length";
 import { answerBoxWords, missingBlock } from "../../../src/lib/generate/rules/blocks";
-import { CLEAN_MARKDOWN, GROUNDED, OUTLINE_ANSWER, draftParts } from "../fixtures";
+import { TEMPLATES, type Template } from "../../../src/lib/generate/templates";
+import type { PageParts } from "../../../src/lib/generate/pipeline/write";
+import { CLEAN_MARKDOWN, GROUNDED, pageParts, prose } from "../fixtures";
 
-const OUTLINE = { sections: OUTLINE_ANSWER.sections.map((s) => ({ ...s, role: s.role as "detail" })) };
-const TIDY = { facts: [GROUNDED.passage], promises: [], queries: ["best project management software"], names: ["Acme"] };
+const TIDY = { facts: [GROUNDED.passage], promises: [], queries: ["which plan fits a small team"], names: ["Acme"] };
 
-function page(over: Record<string, unknown> = {}, first = CLEAN_MARKDOWN) {
-  const composed = composePage(draftParts(first, over), OUTLINE, TIDY);
-  return { ...composed, markdown: withClosing(composed.body.bodyMarkdown, composed.closing, "https://example.com/") };
-}
-
-function missing(markdown: string, over: Partial<Parameters<typeof missingBlock>[0]["blocks"]> = {}, title = "A title") {
-  return missingBlock({ markdown, title, blocks: { compares: true, faq: page().faq, domain: "example.com", ...over } });
+function page(parts: PageParts = pageParts(), template: Template = TEMPLATES.qa) {
+  const laid = layoutPage(parts, template, TIDY);
+  const markdown = withClosing(laid.body.bodyMarkdown, laid.closing, "https://example.com/");
+  const blocks = { template, sections: laid.sections, length: lengthRangeFor(template), faq: laid.faq, domain: "example.com" };
+  return { ...laid, markdown, blocks, missing: (changed = markdown) => missingBlock({ markdown: changed, title: "A title", blocks }) };
 }
 
 describe("the page is laid out from its parts", () => {
-  it("opens with the short-answer box, then the takeaways, then each section under the outline's heading", () => {
-    const { markdown } = page();
+  it("opens with the short-answer box, then the takeaways, then each section under its heading, the closing line last", () => {
+    const { markdown, missing, sections } = page();
     expect(markdown.startsWith(":::answer\nThe right tool for a small team")).toBe(true);
     expect(answerBoxWords(markdown)).toBeGreaterThanOrEqual(40);
-    expect(markdown).toContain(":::takeaways\n- Count the people who open the tool every day.");
-    expect(markdown.match(/^## .*\?$/gm)).toEqual(OUTLINE_ANSWER.sections.map((s) => `## ${s.heading}`));
+    expect(markdown).toContain(":::takeaways\n- Seats: count the people first.");
+    expect(markdown.match(/^## .*\?$/gm)).toEqual(sections.map((section) => `## ${section.heading}`));
     expect(markdown.endsWith("[Count your seats before you choose a plan.](https://example.com/)")).toBe(true);
-    expect(missing(markdown)).toBeNull();
+    expect(missing()).toBeNull();
+  });
+
+  it("puts the sections in the template's order, whatever order the writer returned them in, and drops one the template does not have", () => {
+    const parts = pageParts();
+    const [first, ...rest] = parts.sections;
+    const business = rest.pop()!;
+    const stray = { key: "pricing_table", heading: "What does it cost?", body: "It varies by plan." };
+    const { sections, markdown } = page({ ...parts, sections: [business, stray, ...rest, first!] });
+    expect(sections.map((section) => section.key)).toEqual([...rest.map(() => "question"), "question", "business"]);
+    expect(sections.at(-1)?.heading).toBe(business.heading);
+    expect(markdown).not.toContain("What does it cost?");
+  });
+
+  it("a Q&A page's own questions are its buyer questions, each with the paragraph that answers it", () => {
+    const { faq } = page(pageParts("A small team picks by seat count.\n\nThe detail follows."));
+    expect(faq).toHaveLength(6);
+    expect(faq[0]).toEqual({ question: "Which tool should a small team pick?", answer: "A small team picks by seat count." });
   });
 
   it("a heading the writer put inside a section is an H3, and a repeat of the section's own is cut", () => {
-    const { markdown } = page({}, "## Which tool should a small team pick?\n\nIt depends on seats.\n\n# A shouted point\n\nText.");
+    const { markdown } = page(pageParts("## Which tool should a small team pick?\n\nIt depends on seats.\n\n# A shouted point\n\nText."));
     expect(markdown).toContain("It depends on seats.\n\n### A shouted point");
     expect(markdown.match(/^## Which tool should a small team pick\?$/gm)).toHaveLength(1);
   });
@@ -44,19 +60,7 @@ describe("the page is laid out from its parts", () => {
 describe("what the writer got nearly right is put right in code", () => {
   it("a table whose delimiter row is short is given one cell a column", () => {
     const table = "The plans differ.\n\n| Plan | Built for | Seats |\n| --- |\n| Starter | A small team | Few |";
-    const parts = draftParts();
-    const { markdown } = page({ sections: [parts.sections[0], parts.sections[1], table, ...parts.sections.slice(3)] });
-    expect(markdown).toContain("| Plan | Built for | Seats |\n| --- | --- | --- |\n| Starter");
-    expect(missing(markdown)).toBeNull();
-  });
-
-  it("a heading is tidied and cased at the outline, so the page and the rules hold one string", () => {
-    const sections = [
-      { role: "detail", heading: "What Does Each Tool Actually Do For Acme Teams" },
-      ...OUTLINE_ANSWER.sections,
-    ];
-    const outline = outlineOf(sections, ["business"], new Set(["acme"]));
-    expect(outline?.sections[0]?.heading).toBe("What does each tool do for Acme teams?");
+    expect(page(pageParts(table)).markdown).toContain("| Plan | Built for | Seats |\n| --- | --- | --- |\n| Starter");
   });
 
   it("the chosen pages the text did not reach are listed under the business's own section", () => {
@@ -89,8 +93,13 @@ describe("what a page never says is cut in code (round-1 review, 2026-10-02)", (
       "Example dashboard.",
       "By Jordan Lee",
     ].join("\n\n");
-    expect(tidy(body, TIDY)).toBe(
-      ["The plan is flat. It is simple.", `> ${GROUNDED.passage}`, "Count the seats."].join("\n\n")
+    // The handed passage stands as a quotation, with the page it was read from.
+    expect(tidy(body, { ...TIDY, sources: [{ passage: GROUNDED.passage, url: GROUNDED.url }] })).toBe(
+      [
+        "The plan is flat. It is simple.",
+        `> ${GROUNDED.passage} ([example.com](${GROUNDED.url}))`,
+        "Count the seats.",
+      ].join("\n\n")
     );
   });
 
@@ -113,27 +122,59 @@ describe("what a page never says is cut in code (round-1 review, 2026-10-02)", (
 });
 
 describe("required_blocks — the first block a generated page lacks", () => {
-  const { markdown } = page();
+  const { markdown, missing } = page();
 
   it.each([
-    ["fact_label", markdown.replace("The choice turns", "The choice [F3] turns"), {}],
-    ["answer_box", markdown.replace(/^:::answer\n.*\n:::\n\n/, ""), {}],
-    ["takeaways", markdown.replace("- Read what the plan includes before choosing.\n- A seat limit is felt last and most.\n", ""), {}],
-    ["sections", markdown.replace(/## What decides the choice\?[\s\S]*?(?=## How do the plans)/, ""), {}],
-    ["question_headings", markdown.replace("## What decides the choice?", "## What decides the choice"), {}],
-    ["section_opening", markdown.replace("The choice turns on how many people need a seat. ", "- "), {}],
-    ["table", markdown.replace(/\n\| Plan[\s\S]*?growing team \|/, ""), {}],
-    ["business_section", markdown.replace(/https:\/\/example\.com/g, "https://other.test"), {}],
-    ["faq", markdown, { faq: [] }],
-    ["closing", markdown.replace(/\n\n\[Count your seats[^\n]*$/, "\n\nCount your seats."), {}],
-  ])("%s", (block, broken, over) => {
-    expect(broken === markdown).toBe(block === "faq");
-    expect(missing(broken, over)).toBe(block);
+    ["fact_label", markdown.replace("Seats: read the people", "Seats [F3]: read the people")],
+    ["answer_box", markdown.replace(/^:::answer\n.*\n:::\n\n/, "")],
+    ["takeaways", markdown.replace(/(:::takeaways\n- [^\n]*\n)- [^\n]*\n- [^\n]*\n/, "$1")],
+    ["sections", markdown.replace(/## Seats: what is the third thing to settle\?[\s\S]*?(?=## Seats: what is the fourth)/, "")],
+    ["question_headings", markdown.replace("the third thing to settle?", "the third thing to settle")],
+    ["section_opening", markdown.replace("third thing to settle?\n\n", "third thing to settle?\n\n- ")],
+    ["business_section", markdown.replace(/https:\/\/example\.com/g, "https://other.test")],
+    ["closing", markdown.replace(/\n\n\[Count your seats[^\n]*$/, "\n\nCount your seats.")],
+  ])("%s", (block, broken) => {
+    expect(broken).not.toBe(markdown);
+    expect(missing(broken)).toBe(block);
   });
 
-  it("a page that does not compare owes no table, and a Sources list is the one heading that is not a question", () => {
-    const noTable = markdown.replace(/\n\| Plan[\s\S]*?growing team \|/, "");
-    expect(missing(noTable, { compares: false })).toBeNull();
+  it("a page under its template's floor is stopped for its length, and one inside it is not", () => {
+    const short = page(pageParts(CLEAN_MARKDOWN, { sections: pageParts().sections.map((s) => ({ ...s, body: s.body.slice(0, 200) })) }));
+    expect(bodyWords(short.markdown)).toBeLessThan(short.blocks.length!.floor);
+    expect(short.missing()).toBe("length");
+        expect(missing()).toBeNull();
+  });
+
+  it("a page with fewer questions than its template asks is stopped for its sections", () => {
+    const parts = pageParts();
+    expect(page({ ...parts, sections: parts.sections.slice(3) }).missing()).toBe("sections");
+  });
+
+  /** A how-to with `count` numbered steps, long enough for its floor. */
+  function howTo(count: number) {
+    const steps = Array.from({ length: count }, (_, index) => `${index + 1}. ${prose("steps", index, 1)}`).join("\n");
+    const section = (key: string, nth: string, body: string) => ({ key, heading: `Steps: what is the ${nth} thing to do?`, body });
+    return page(
+      pageParts(CLEAN_MARKDOWN, {
+        sections: [
+          section("what_you_need", "first", prose("steps", 0, 60)),
+          section("steps", "second", `${prose("steps", 60, 30)}\n\n${steps}`),
+          section("check", "third", prose("steps", 90, 60)),
+          section("mistakes", "fourth", prose("steps", 150, 60)),
+          section("next_step", "fifth", `${prose("steps", 210, 14)} It is on [the product page](https://example.com/product).`),
+        ],
+        faq: ["first", "second", "third"].map((nth) => ({ question: `What is the ${nth} thing to ask?`, answer: "Count the seats." })),
+      }),
+      TEMPLATES.how_to
+    );
+  }
+
+  it("a how-to with two steps is stopped for its steps, and one with three is not", () => {
+    expect(howTo(2).missing()).toBe("steps");
+    expect(howTo(3).missing()).toBeNull();
+  });
+
+  it("a Sources list is the one heading that is not a question", () => {
     const closing = "[Count your seats before you choose a plan.](https://example.com/)";
     const sourced = markdown.replace(closing, `## Sources\n\n- [A study](https://study.test/a), read 2026-10-01\n\n${closing}`);
     expect(missing(sourced)).toBeNull();

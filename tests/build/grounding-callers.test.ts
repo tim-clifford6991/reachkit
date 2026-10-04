@@ -104,7 +104,9 @@ describe("#927 — every path that quotes a passage subtracts the refused ones",
   it("the writer and an edit both filter", () => {
     // Stated positively as well, because the assertion above would also
     // pass if these two stopped reading facts at all.
-    for (const file of ["src/lib/generate/pipeline/index.ts", "src/lib/generate/edit.ts"]) {
+    // The writer's read is the day's run, which builds the context pack from
+    // it (SPEC §7, D41); the pipeline is handed the pack and reads nothing.
+    for (const file of ["src/lib/generate/index.ts", "src/lib/generate/edit.ts"]) {
       const text = readFileSync(path.join(REPO_ROOT, file), "utf8");
       expect(text, file).toMatch(/(?<![A-Za-z0-9_])allowedFacts\s*\(/);
     }

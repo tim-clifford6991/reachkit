@@ -157,6 +157,58 @@ export const PUBLISH_COPY = Object.freeze({
     "This page came out too close to a page published elsewhere, so we held it back. Nothing was published. Write it again for a different take.",
     { slots: {}, fixedBy: "issue 1144 (drafted)" },
   ],
+  // Issue 1252 (drafted): the context pack was short of what the page's
+  // template asks, so nothing was written. The sentence, then one short
+  // noun phrase per thing the pack lacked — the draft screen lists them
+  // under it, and *Written from your business* lists them again in the pack.
+  "publish.needs-you.pack": [
+    "We didn’t write this page because we don’t have enough to write it from. Nothing was published. Add what’s missing in Your business, then write it again.",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "publish.needs-you.pack.need.options": [
+    "three options to compare, each rival with a fact from its own pricing or feature page",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "publish.needs-you.pack.need.own_price": [
+    "your own price, from your business profile or a page of your site",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "publish.needs-you.pack.need.difference": [
+    "one thing that sets you apart, from your business profile or your answers",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "publish.needs-you.pack.need.facts_on_topic": [
+    "enough facts about your business that speak to this page’s question",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "publish.needs-you.pack.need.product_page": [
+    "a product, features or pricing page on your site to link to",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "publish.needs-you.pack.need.measured_questions": [
+    "a finished measurement of your site with enough questions measured",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "publish.needs-you.pack.need.changed_figures": [
+    "a figure that has changed since your last research page",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "publish.needs-you.pack.need.buyer_questions": [
+    "enough questions that buyers were measured or recorded asking",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "publish.needs-you.pack.need.recent_results": [
+    "enough recent web results, each with its date and something it says",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "publish.needs-you.pack.need.live_page": [
+    "the text of the live page this one updates",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
+  "publish.needs-you.pack.need.new_fact": [
+    "a fact the live page doesn’t already state",
+    { slots: {}, fixedBy: "issue 1252 (drafted)" },
+  ],
   "publish.needs-you.destination": [
     "This page is written and couldn’t be delivered to your site. It goes out as soon as the connection to your site works again.",
     { slots: {}, fixedBy: "issue 880" },

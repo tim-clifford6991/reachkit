@@ -1,4 +1,4 @@
-// scripts/live-drafts/cost.ts — the run's money.
+// scripts/page/ledger.ts — the run's money (`npm run page`, and the grader's rounds).
 //
 // `withCostContext()` is the product's own ledger and it writes three
 // database rows per call (`fetches`, the scan roll-up, the day's totals).

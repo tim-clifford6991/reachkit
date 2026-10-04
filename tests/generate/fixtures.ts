@@ -10,7 +10,7 @@ import type { CostContext } from "../../src/lib/costs";
 import type { Opportunity } from "../../src/lib/opportunities";
 import type { StoredReport } from "../../src/lib/scan/report";
 import { assembleReport } from "../../src/lib/scan/store";
-import { measured, unmeasured } from "../../src/lib/measure/measured";
+import { measured } from "../../src/lib/measure/measured";
 import type {
   ComparisonSet,
   GroundedFact,
@@ -25,6 +25,10 @@ import type {
   StoredPage,
 } from "../../src/lib/generate/store";
 import type { ClusterPage } from "../../src/lib/generate/links/select";
+import type { SourcedFact } from "../../src/lib/generate/pipeline/grounding";
+import type { ContextPack, PackInputs } from "../../src/lib/generate/pipeline/pack";
+import type { PageParts } from "../../src/lib/generate/pipeline/write";
+import type { PackNeed } from "../../src/lib/generate/templates";
 import type { InventoryRow } from "../../src/lib/site-profile/types";
 import { fullSections } from "../scan/report/fixtures";
 
@@ -118,53 +122,11 @@ export const CLEAN_MARKDOWN = [
   "constraint teams notice last and feel most.",
 ].join("\n");
 
-// ── The draft writer, without its floor and its critic ──────────────────
-
-/** `writeDraft` (issue 1138) stood in for by the draft step alone, for the
- *  suites whose subject is what happens around the writing: the same calls
- *  in the same order, on the writer tier, with no length floor and no
- *  critic — those are `pipeline/write.test.ts`. A frame answered with
- *  `held: true` is a page still short of its floor. */
-export async function draftOnly(c: unknown, inputs: unknown, a: Record<string, unknown>): Promise<unknown> {
-  const { draft } = await import("../../src/lib/generate/pipeline/steps");
-  // `opportunity` and `tidy` are the writer's own; the draft step ignores them.
-  const wrote = await draft(c as never, inputs as never, { ...a, tier: "writer" } as never);
-  if (wrote.kind === "unmeasured") return { kind: "failed" };
-  const { held, ...parts } = wrote.value as typeof wrote.value & { held?: boolean };
-  const length = { words: 0, floor: null, ceiling: null, rewritten: 0 };
-  return held === true ? { kind: "short", parts, length } : { kind: "written", parts, length, critic: null };
-}
-
 // ── A `CostContext` that refuses the vendor ─────────────────────────────
 
 /** `recordFetch` throws: everything in this engine that spends must go
  *  through `llm()`, and a module that called `recordFetch` directly would
  *  be caught here rather than merely unexercised. */
-// ── What the page adds, as a stated answer ──────────────────────────────
-
-/** The list `listAdds` (issue 1143) answers with in the suites whose subject
- *  is what happens around it: three claims, one about the business, so a
- *  page passes the bar. A test that needs a page short of it empties
- *  `addsAnswer.claims`, or sets it `null` for a listing that did not run. The
- *  listing itself, its code check and the bar are `pipeline/adds.test.ts`. */
-export const ENOUGH_ADDS = Object.freeze([
-  { claim: "The fixed price is quoted before any work starts.", business: true },
-  { claim: "A team of five pays for the second seat onward.", business: false },
-  { claim: "Ask every vendor for a full export in an open format.", business: false },
-]);
-export const addsAnswer: { claims: readonly { claim: string; business: boolean }[] | null } = {
-  claims: ENOUGH_ADDS,
-};
-
-/** The `pipeline/adds` module with `listAdds` stood in for by `addsAnswer`. */
-export function addsStandIn<T extends object>(actual: T): T {
-  return {
-    ...actual,
-    listAdds: async () =>
-      addsAnswer.claims === null ? unmeasured("undeterminable", AT) : measured([...addsAnswer.claims], AT),
-  };
-}
-
 export function fakeCost(over: Partial<CostContext> = {}): CostContext {
   return {
     cap: "DRAFT",
@@ -320,21 +282,72 @@ export function memoryStore(over: Partial<MemoryStore> = {}): MemoryStore {
   return store;
 }
 
-// ── The model steps' answers since issue 1137 ───────────────────────────
+// ── The context pack and the writer's answer (SPEC §7, D41) ─────────────
 
-/** The outline step's answer: six questions over the whole block set, so it
- *  satisfies every type's required blocks. */
-export const OUTLINE_ANSWER = {
-  sections: [
-    { role: "answer", heading: "Which tool should a small team pick?" },
-    { role: "detail", heading: "What decides the choice?" },
-    { role: "comparison", heading: "How do the plans compare?" },
-    { role: "steps", heading: "How does a team check a plan?" },
-    { role: "evidence", heading: "What does the starter plan include?" },
-    { role: "business", heading: "How is the seat limit handled here?" },
-  ],
-};
-export const OUTLINE_HEADINGS = OUTLINE_ANSWER.sections.map((section) => section.heading);
+/** The customer's passages as the pipeline is handed them. */
+export const FACTS: SourcedFact[] = [{ fact: GROUNDED, sourceText: SOURCE_TEXT }];
+
+/** A Q&A page's pack that is short of nothing: the suites whose subject is
+ *  what happens after the pack say what theirs lacks. */
+export function pack(over: Partial<ContextPack> = {}): ContextPack {
+  return {
+    version: 1,
+    type: "qa",
+    builtAt: AT.toISOString(),
+    target: { question: "which plan fits a small team", searches: ["which plan fits a small team"] },
+    business: {
+      name: "Acme",
+      domain: "example.com",
+      category: "project management software",
+      byline: null,
+      voice: null,
+      market: null,
+      rivals: [],
+    },
+    profile: null,
+    neverClaim: [],
+    facts: [{ passage: GROUNDED.passage, url: GROUNDED.url, readAt: AT.toISOString() }],
+    claims: [],
+    products: [],
+    pages: [],
+    links: [],
+    questions: [],
+    measurements: null,
+    live: null,
+    adds: { claims: [{ claim: GROUNDED.passage, business: true }], short: false },
+    missing: [],
+    ...over,
+  };
+}
+
+/** What `packStandIn` says a built pack lacks. A suite about a short pack
+ *  names a need here, or sets `short` for a new page that adds too little. */
+export const packAnswer: { missing: PackNeed[]; short: boolean } = { missing: [], short: false };
+
+/**
+ * The `pipeline/pack` module for the suites whose subject is what happens
+ * around the pack: the pack is built from what the run read, as a Q&A page's
+ * (an update stays one), and is short of exactly what `packAnswer` says.
+ * What a pack must hold is `pipeline/pack.test.ts`.
+ */
+export function packStandIn<T extends object>(actual: T): T {
+  const real = actual as unknown as { buildPack: (a: PackInputs) => ContextPack };
+  return {
+    ...actual,
+    buildPack: (a: PackInputs): ContextPack => {
+      const built = real.buildPack({ ...a, type: a.type === "update" ? "update" : "qa" });
+      // As the real pack counts it: an update is held to no bar of its own.
+      const short = packAnswer.short && built.type !== "update";
+      return { ...built, missing: [...packAnswer.missing], adds: { claims: built.adds.claims, short } };
+    },
+  };
+}
+
+/** The `pipeline/research` module with no public page read: the suites that
+ *  use it are about a page written from the business's own facts. */
+export function researchStandIn<T extends object>(actual: T): T {
+  return { ...actual, researchMarket: async () => (actual as unknown as { NO_RESEARCH: unknown }).NO_RESEARCH };
+}
 
 /** A short answer inside 40–60 words that names nobody. */
 export const CLEAN_ANSWER =
@@ -342,100 +355,69 @@ export const CLEAN_ANSWER =
   "Count those people first, then read what the plan includes, because a seat limit is the constraint " +
   "teams notice last and feel most once the work has moved in.";
 
-const FILLER_SECTIONS = [
-  "The choice turns on how many people need a seat. A plan that fits the team today can stop fitting after one hire.",
-  "The plans differ in who they are built for. The table sets the two side by side.\n\n| Plan | Built for |\n| --- | --- |\n| Starter | A small team |\n| Larger | A growing team |",
-  "A team checks a plan in order. Each step takes a few minutes.\n\n1. Count the people who open the tool daily.\n2. Read the plan's seat limit.\n3. Compare the two.",
-  "The starter plan is stated on the pricing page. Teams on the starter plan get 25 seats and unlimited projects for a flat monthly fee, per [the published pricing page](https://example.com/pricing).",
-  "The seat limit is published openly. It is on [the published pricing page](https://example.com/pricing) for anyone to read before choosing.",
-];
+const VERBS = "count read check weigh list match note watch ask map sort name mark trace track".split(" ");
+const NOUNS = "people plan seats limit cost needs work growth team budget terms renewal export support rollout".split(" ");
+const TAILS = ["first", "early", "together", "openly", "again"];
+const NTH = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh"];
 
-/** The draft step's answer: the page in parts. `first` is the body of the
- *  first section — where a suite puts the text it is about. */
-export function draftParts(first: string = CLEAN_MARKDOWN, over: Record<string, unknown> = {}) {
+/**
+ * `count` five-word sentences from `at`, every one opening with `topic` — so
+ * no run of five words is shared by two pages on different topics, and the
+ * near-duplicate check reads them as the different pages they are.
+ */
+export function prose(topic: string, at: number, count: number): string {
+  const t = topic.charAt(0).toUpperCase() + topic.slice(1);
+  return Array.from({ length: count }, (_, offset) => {
+    const i = at + offset;
+    return `${t}: ${VERBS[i % 15]} the ${NOUNS[Math.floor(i / 15) % 15]} ${TAILS[i % 5]}.`;
+  }).join(" ");
+}
+
+/**
+ * The writer's answer: a Q&A page in its template's parts, long enough for
+ * its floor. `first` is the body of the first section — where a suite puts
+ * the text it is about — and the last section links the business's own page.
+ */
+export function pageParts(first: string = CLEAN_MARKDOWN, over: Partial<PageParts> = {}, topic = "seats"): PageParts {
+  const t = topic.charAt(0).toUpperCase() + topic.slice(1);
+  const heading = (index: number): string => `${t}: what is the ${NTH[index]} thing to settle?`;
   return {
     title: "Which tool should a small team pick?",
     slug: "which-tool-small-team",
     description: "How to choose by seat count.",
     answer: CLEAN_ANSWER,
-    takeaways: [
-      "Count the people who open the tool every day.",
-      "Read what the plan includes before choosing.",
-      "A seat limit is felt last and most.",
+    takeaways: [prose(topic, 0, 1), prose(topic, 1, 1), prose(topic, 2, 1)],
+    sections: [
+      { key: "question", heading: "Which tool should a small team pick?", body: `${first}\n\n${prose(topic, 3, 22)}` },
+      ...[1, 2, 3, 4, 5].map((index) => ({ key: "question", heading: heading(index), body: prose(topic, index * 28, 28) })),
+      {
+        key: "business",
+        heading: `${t}: how is it handled here?`,
+        body: `${prose(topic, 170, 6)} It is on [the published page](${GROUNDED.url}) for anyone to read.`,
+      },
     ],
-    sections: [first, ...FILLER_SECTIONS],
     closing: "Count your seats before you choose a plan.",
-    faq: [
-      { question: "Does a small team need a paid plan?", answer: "It depends on how many people need a seat. Count them first." },
-      { question: "What is a seat?", answer: "A seat is one person's place in the tool. Each daily user needs one." },
-      { question: "When should a team change plan?", answer: "When the people who need a seat outnumber the seats the plan has." },
-    ],
+    faq: [],
+    updated: "",
     ...over,
   };
 }
 
-/** An answerability pass that changes nothing. */
-export const NO_OPS = { title: "", description: "", order: [0, 1, 2, 3, 4, 5], openings: [], insertFacts: [] };
-
-/**
- * The outline and the parts for a journey's page, built from the single
- * body those suites already hold. Every sentence of the filler carries the
- * page's own `topic`, so two pages of one site share no run of five words
- * and the near-duplicate gate reads them as the different pages they are.
- */
-export function outlineFor(page: { title: string }, topic: string) {
-  const roles = OUTLINE_ANSWER.sections.map((section) => section.role);
-  return {
-    sections: roles.map((role, index) => ({
-      role,
-      heading: index === 0 ? page.title : `Which ${topic} point ${["one", "two", "three", "four", "five", "six"][index]} matters?`,
-    })),
-  };
-}
-
+/** A journey's page from the one body those suites hold, on its own topic. */
 export function partsFromPage(
   page: { title: string; slug: string; description: string; bodyMarkdown: string },
   topic: string
-) {
-  const t = topic.charAt(0).toUpperCase() + topic.slice(1);
-  const say = (...tails: string[]): string => tails.map((tail) => `${t}: ${tail}.`).join(" ");
+): PageParts {
+  const parts = pageParts(page.bodyMarkdown, {}, topic);
   return {
+    ...parts,
     title: page.title,
     slug: page.slug,
     description: page.description,
-    // Twelve four-word sentences: 48 words, inside the box's 40–60.
-    answer: say(
-      "count the people", "read the plan", "compare the two", "check the seats", "ask the team", "note the limit",
-      "weigh the cost", "list the needs", "match the work", "pick the fit", "watch the growth", "revisit each year"
-    ),
-    takeaways: [say("count the people"), say("read the plan"), say("compare the two")],
-    sections: [
-      page.bodyMarkdown,
-      say("people decide it", "seats decide it"),
-      `${say("plans differ here")}\n\n| ${t} plan | ${t} fit |\n| --- | --- |\n| ${t} starter | ${t} small team |`,
-      `${say("steps come next")}\n\n1. ${t}: count.\n2. ${t}: read.\n3. ${t}: compare.`,
-      say("facts stand here", "sources stand here"),
-      say("limits stay open", "plans stay published"),
-    ],
-    closing: say("count your seats"),
-    faq: ["first", "second", "third"].map((nth) => ({ question: `${t}: the ${nth} question?`, answer: say("the answer") })),
+    // Ten five-word sentences: 50 words, inside the box's 40–60.
+    answer: prose(topic, 200, 10),
+    // The body opens on the page's own question, which is its first section's.
+    sections: parts.sections.map((section, index) => (index === 0 ? { ...section, heading: page.title } : section)),
+    closing: prose(topic, 210, 1),
   };
-}
-
-/**
- * The draft step's answers in the order it asks: the page's frame, then the
- * section bodies three to a call (`DRAFT_SECTIONS_PER_CALL`).
- */
-export function draftAnswers(parts: ReturnType<typeof draftParts> = draftParts()): unknown[] {
-  const { sections, ...frame } = parts;
-  const batches: unknown[] = [];
-  for (let at = 0; at < sections.length; at += 3) batches.push({ sections: sections.slice(at, at + 3) });
-  return [frame, ...batches];
-}
-
-/** One draft call's answer for a suite that reads the request: the frame,
- *  or the bodies of the sections `write` names. */
-export function draftAnswerFor(parts: { sections: string[] }, asked: { write?: readonly number[] }): unknown {
-  if (asked.write !== undefined) return { sections: asked.write.map((index) => parts.sections[index] ?? "") };
-  return Object.fromEntries(Object.entries(parts).filter(([key]) => key !== "sections"));
 }

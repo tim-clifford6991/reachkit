@@ -284,18 +284,11 @@ function pageFor(query: string) {
 
 const modelCalls: string[] = [];
 
-// Issue 1138: the page's length floor and its critic are
-// `tests/generate/pipeline/write.test.ts`; here the draft is the draft
-// step alone, still through the real `llm()` seam and the fake vendor below.
-vi.mock("@/lib/generate/pipeline/write", async () => {
-  const { draftOnly } = await import("../generate/fixtures");
-  return { writeDraft: draftOnly };
-});
-// Issue 1143: what the page adds is `tests/generate/pipeline/adds.test.ts`;
-// here the listing answers with a page that adds enough.
-vi.mock("@/lib/generate/pipeline/adds", async (importOriginal) => {
-  const { addsStandIn } = await import("../generate/fixtures");
-  return addsStandIn(await importOriginal<object>());
+// What a pack must hold is `tests/generate/pipeline/pack.test.ts`; here the
+// pack is built from what the run read and is short of nothing.
+vi.mock("@/lib/generate/pipeline/pack", async (importOriginal) => {
+  const { packStandIn } = await import("../generate/fixtures");
+  return packStandIn(await importOriginal<object>());
 });
 
 vi.mock("@anthropic-ai/sdk", () => {
@@ -303,26 +296,12 @@ vi.mock("@anthropic-ai/sdk", () => {
     messages = {
       create: async (request: { messages: { content: string }[] }) => {
         const input = request.messages[0]?.content ?? "";
-        const asked = JSON.parse(input) as {
-          task: string;
-          sections?: unknown[];
-          opportunity?: { targetQuery?: string };
-        };
+        const asked = JSON.parse(input) as { task: string; pack?: { target?: { question?: string } } };
         modelCalls.push(asked.task);
-        const { draftAnswerFor, outlineFor, partsFromPage } = await import("../generate/fixtures");
-        const page = pageFor(asked.opportunity?.targetQuery ?? "");
-        const answerFor = asked.task.startsWith("Write the brief")
-          ? {
-              readerQuestion: page.title,
-              angle: "count what matters first",
-              mustCover: ["seats"],
-              factIndexes: [0],
-            }
-          : asked.task.startsWith("Choose the page's sections")
-            ? outlineFor(page, page.slug)
-            : asked.task.startsWith("Make the page")
-              ? { title: "", description: "", order: [0, 1, 2, 3, 4, 5], openings: [], insertFacts: [] }
-              : draftAnswerFor(partsFromPage(page, page.slug), asked as { write?: number[] });
+        // The one write call's answer: the page for the pack's own target.
+        const { partsFromPage } = await import("../generate/fixtures");
+        const page = pageFor(asked.pack?.target?.question ?? "");
+        const answerFor = partsFromPage(page, page.slug);
         return {
           content: [{ type: "text", text: JSON.stringify(answerFor) }],
           usage: { input_tokens: 800, output_tokens: 400 },
@@ -703,8 +682,8 @@ describe("one site, left alone for a week (issue 323)", () => {
         "2026-09-13": ["publish/execute:ran", "publish/verify:ran", "draft/generate:ran"],
         "2026-09-14": ["weekly/refresh:ran", "publish/execute:ran", "publish/verify:ran", "draft/generate:ran"],
       });
-      // Four model steps a page, seven pages, and not one regeneration.
-      expect(modelCalls).toHaveLength(7 * 6);
+      // One write call a page, seven pages, and not one fix call.
+      expect(modelCalls).toHaveLength(7);
     },
     WEEK_TIMEOUT_MS
   );

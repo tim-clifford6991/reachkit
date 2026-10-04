@@ -118,6 +118,12 @@ describe("one sentence per cause, and every one of them written", () => {
     expect(waitsOnDestination({ kind: "elsewhere" })).toBe(false);
   });
 
+  it("a short pack is its own cause and names what it lacked, by handle (issue 1252)", () => {
+    expect(needsYouCauseOf("step_failed:pack:options,own_price")).toEqual({ kind: "pack", missing: ["options", "own_price"] });
+    expect(needsYouCauseOf("step_failed:pack")).toEqual({ kind: "pack", missing: [] });
+    expect(waitsOnDestination({ kind: "pack", missing: [] })).toBe(false);
+  });
+
   it("every cause has its own key, no two the same", () => {
     const keys = Object.values(NEEDS_YOU_COPY);
     expect(new Set(keys).size).toBe(keys.length);

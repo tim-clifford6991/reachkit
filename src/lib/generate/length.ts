@@ -1,28 +1,34 @@
-// SPEC §7 (2026-09-29) *Length and the writer* · issue 1138 — the one length
-// target, and the one count of a page's words.
+// SPEC §7 (2026-09-29, *Length and the writer*; rewritten by D41) — the one
+// length range, and the one count of a page's words.
 //
-// Round 1 (owner, 2026-10-02) told a page 1,200–1,800 words and graded it
-// against 1,500–2,500, because the writer, the critic and the grader each
-// held a target of their own. They read this one now: the page's kind
-// (`contentKindOf`) chooses the row of `LENGTH_TARGETS`, and `bodyWords` is
+// Each type's template states its length in words of body text (D42); an
+// update keeps within a share of the page it updates. The writer, the length
+// check and the evaluation's grader read this one range, and `bodyWords` is
 // how every one of them counts.
-import { LENGTH_TARGETS } from "@/lib/config/constants";
-import { contentKindOf, type ContentKind } from "@/lib/opportunities/content-kind";
-import type { Opportunity } from "@/lib/opportunities/types";
+import type { Template } from "./templates";
 import { renderOf } from "./rules/text";
 
-export interface LengthTarget {
-  kind: Exclude<ContentKind, "update">;
+export interface LengthRange {
   floor: number;
   ceiling: number;
 }
 
-/** The length a page is written to and held to. `null` for an update, which
- *  keeps to the page it updates, and for a type that writes no body. */
-export function lengthTargetFor(o: Pick<Opportunity, "type" | "targetQuery">): LengthTarget | null {
-  const kind = contentKindOf(o);
-  if (kind === null || kind === "update") return null;
-  return { kind, ...LENGTH_TARGETS[kind] };
+/** The words a page of this template is written to and held to. `liveWords`
+ *  is the body of the page an update refreshes; an update with no live page
+ *  to measure against has no range. */
+export function lengthRangeFor(template: Template, liveWords: number | null = null): LengthRange | null {
+  if ("floor" in template.length) return { floor: template.length.floor, ceiling: template.length.ceiling };
+  if (liveWords === null || liveWords <= 0) return null;
+  const share = template.length.withinShareOfLive;
+  return { floor: Math.floor(liveWords * (1 - share)), ceiling: Math.ceil(liveWords * (1 + share)) };
+}
+
+/** The words under a page's headings: its body without the short-answer and
+ *  takeaways boxes. What an update is measured by against the page it
+ *  refreshes — a page written before those boxes existed gains them when it
+ *  is refreshed, and that is not the page growing. */
+export function sectionWords(markdown: string): number {
+  return bodyWords(markdown.replace(/^[ \t]*:::[\w-]+[ \t]*\n[\s\S]*?\n[ \t]*:::[ \t]*$/gm, ""));
 }
 
 /** Words of body text: the words a reader meets, with the Markdown that

@@ -1,34 +1,31 @@
-// BUILD §8 — the generation engine's public entry point.
+// BUILD §8 · SPEC §7 (D41) — the generation engine's public entry point.
 //
 // Everything a caller outside `src/lib/generate/` may use, and nothing
 // else. The individual rule modules, the model steps and the store port are
-// internal: a caller that reached them could queue a page the battery never
+// internal: a caller that reached them could queue a page the checks never
 // saw.
 //
-// `generateDayPage` is the whole of what the `draft/generate` job calls.
-// It is the one place the day's page is assembled end to end:
+// `generateDayPage` is the whole of what the `draft/generate` job calls. It
+// is where the day's page is assembled end to end, in D41's five stages:
 //
-//   * the freshest scan is found — §8: "the day's page is generated the
-//     evening before from the freshest scan";
-//   * the `CAP_DRAFT` context is opened around everything that spends;
-//   * §7's `nextForDay` supplies the opportunity, and supplies nothing when
-//     there is none: supply is the cap, and the calendar is never padded;
-//   * the pipeline runs, and ADR-070's one automatic regeneration is
-//     performed here — once, on the same row, and never for a draft that
-//     has entered review;
-//   * a draft the rules stopped for the last time rests in
-//     `needs_attention` (#788) — it is never left in `generating`, which no
-//     edge moves a stopped page out of — and its topic rests for 28 days
-//     (owner, D26, issue 1179), so the next evening does not fail the same
-//     page again;
+//   1. **decide** — §7's `nextForDay` supplies the opportunity (and supplies
+//      nothing when there is none: supply is the cap), and its type is read
+//      off the row (`contentTypeOf`): new or an update, one of seven;
+//   2. **context pack** — the knowledge base and the founder's answers, the
+//      market, the site's pages, its own passages and what the research step
+//      read (`pipeline/pack.ts`), inside the one `CAP_DRAFT` context;
+//   3–4. **write** and **check**, with the one fix call (`pipeline/index.ts`);
+//   5. **publish** is the publishing engine's, behind the veto window.
+//
+//   * a draft the checks stopped rests in `needs_attention` (#788) — never
+//     left in `generating` — and its topic rests for 28 days (owner, D26,
+//     issue 1179);
 //   * a stopped draft does not cost its day (D26): the same run writes the
-//     next-ranked opportunity for the date, at most once more and inside
-//     the one `CAP_DRAFT` context. The stopped row keeps its place in
-//     `needs_attention` and gives up its date to the page that replaces it;
-//   * a new page that adds too little the web and the site do not already
-//     say (owner, D12, issue 1143) is written again, on its own row, as an
-//     update of the closest existing page where the site has one; otherwise
-//     it rests in `needs_attention`, asking the founder for the missing fact.
+//     next-ranked opportunity for the date, at most once more and inside the
+//     one `CAP_DRAFT` context;
+//   * a pack short of what its template asks, or a new page whose pack adds
+//     too little (D12), writes nothing: the page stops, naming what is
+//     missing, and the day goes to the next topic the same way.
 //
 // `regenerateRestarted` is the customer's Regenerate carried out: the
 // restart moves the row back into `generating`, and the next draft tick
@@ -46,49 +43,31 @@ import {
 } from "@/lib/opportunities";
 import type { StoredReport } from "@/lib/scan/report";
 import type { CostContext } from "@/lib/costs";
-import { DAY_TOPICS_MAX, KNOWN_CONTENT } from "@/lib/config/constants";
-import { pageScore } from "@/lib/known-content/match";
+import { DAY_TOPICS_MAX, PIPELINE, RESEARCH } from "@/lib/config/constants";
 import type { KnownPage } from "@/lib/known-content/types";
-import type { KnownPageBrief } from "./voice/inputs";
+import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { withDraftCost } from "./cost";
-import { recoveryOutcome } from "./claims/recovery";
 import { readRecordedRules } from "./record";
 import type { SiteRuleInputs } from "./rules/types";
 import { confirmedForWriting } from "./voice/confirmed";
-import { writingMarket } from "./voice/market";
 import {
   clusterLinkTargets,
   knownLinkTargets as knownContentTargets,
   siteLinkTargets,
 } from "./links/select";
-import { generateDraft, type GenerateOutcome } from "./pipeline";
+import { urlKey, type LinkTarget } from "./links/select";
+import { generateDraft, targetSearches, type GenerateOutcome } from "./pipeline";
+import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
+import { buildPack, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
 import { generatePageFix } from "./pipeline/page-fix";
 import type { FixNote } from "./pipeline/repair";
 import { NO_RESEARCH, researchMarket } from "./pipeline/research";
-import { targetSearches } from "./pipeline/steps";
+import { TEMPLATES } from "./templates";
+import { writingMarket } from "./voice/market";
 import { DraftDateTaken, generateStore, type RestartedDraft, type SiteFacts } from "./store";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
 
-/**
- * The pages the site already has that are nearest this one (#928), as the
- * prompt states them.
- *
- * Bounded and ranked by the one measure: a list of everything the site has
- * is not a list the model can use, and the pages worth naming are the ones
- * near the topic. A page still waiting is named too — it has no address and
- * is not a link, but it is a topic this site is about to cover and the page
- * being written must not be the second one about it.
- */
-function nearestKnown(pages: readonly KnownPage[], query: string): KnownPageBrief[] {
-  if (query.trim() === "") return [];
-  return [...pages]
-    .map((page) => ({ page, score: pageScore({ query }, page) }))
-    .filter((scored) => scored.score > 0)
-    .sort((x, y) => y.score - x.score)
-    .slice(0, KNOWN_CONTENT.PROMPT_PAGES_MAX)
-    .map(({ page }) => ({ title: page.title, url: page.url }));
-}
 export { HARD_RULES } from "./rules/types";
 export { runHardRules, type BatteryOutcome } from "./rules";
 export { similarity } from "./rules/similarity";
@@ -102,8 +81,9 @@ export { recoveryOutcome, type Recovery } from "./claims/recovery";
 
 export { generateDraft, type GenerateOutcome } from "./pipeline";
 export { rejectionCause, type NearDuplicateCause } from "./pipeline/rejection";
-export { type PipelineStep } from "./pipeline/steps";
-export { type DraftPromptInputs, DRAFT_PROMPT_KEYS } from "./voice/inputs";
+export { type PipelineStep } from "./pipeline";
+export { type ContextPack, readPack } from "./pipeline/pack";
+export { TEMPLATES, type Template } from "./templates";
 export { DraftDateTaken, setGenerateStore, type GenerateStore, type RestartedDraft } from "./store";
 export { withDraftCost } from "./cost";
 
@@ -135,9 +115,8 @@ export type DayPageOutcome =
     }
   | { ok: false; because: "step_failed"; draftId: string | null; step: string };
 
-/** ADR-070: "one automatic regeneration". Two attempts in total, and the
- *  second only where the first was stopped by a rule and the draft had not
- *  entered review — which, on this path, it never has. */
+/** #813: a write call that did not answer is tried once more. The one fix
+ *  call of D41 is the pipeline's own and is not an attempt of these. */
 const MAX_AUTOMATIC_ATTEMPTS = 2;
 
 export async function generateDayPage(a: {
@@ -149,6 +128,7 @@ export async function generateDayPage(a: {
 }): Promise<DayPageOutcome> {
   const store = generateStore();
   const now = a.now ?? new Date();
+  const startedAt = Date.now();
 
   const site = await store.siteFacts(a.siteId);
   if (site === null) return { ok: false, because: "no_site" };
@@ -190,14 +170,15 @@ export async function generateDayPage(a: {
         const outcome =
           opportunity.type === "fix_page"
             ? await fixPage(page, own)
-            : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS }, own);
+            : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS, startedAt: topic === 1 ? startedAt : Date.now() }, own);
         await settle(outcome, opportunity.id, now, site.domain);
 
         // SPEC §7 (D26, issue 1179): a stopped draft does not cost its day.
         // Only a row that was written and stopped is moved on from — a run
         // that wrote none rested nothing, and its topic is still the head.
         const stopped = stoppedRow(outcome);
-        if (stopped === null || topic >= DAY_TOPICS_MAX || cost.capHit()) return outcome;
+        // And only while the job's invocation has the time for a second page.
+        if (stopped === null || topic >= DAY_TOPICS_MAX || cost.capHit() || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return outcome;
         // The stopped topic rests by now, so the head is the next one.
         const next = await nextForDay(a.siteId);
         if (next === null || next.id === first.id) return outcome;
@@ -394,27 +375,43 @@ async function fixPage(a: PageInput, cost: CostContext): Promise<DayPageOutcome>
   return { ok: false, because: "rules", draftId: fixed.draftId, attempts: fixed.attempt };
 }
 
-async function writePage(a: PageInput & { attempts: number }, cost: CostContext): Promise<DayPageOutcome> {
+/** The page an update refreshes, as the pack holds it: ReachKit's own page
+ *  as it was written, else the site's own page as the measurement read it. */
+async function livePageOf(
+  a: PageInput,
+  opportunity: Opportunity,
+  known: readonly KnownPage[],
+  facts: readonly SourcedFact[]
+): Promise<PackLivePage | null> {
+  const url = opportunity.targetRef;
+  const key = urlKey(url);
+  const listed = known.find((page) => page.url !== null && urlKey(page.url) === key);
+  const title = listed?.title ?? opportunity.title ?? "";
+  const ours = title === "" ? undefined : (await generateStore().publishedPages(a.siteId)).find((page) => page.title === title);
+  const markdown = ours?.markdown ?? facts.find((sourced) => urlKey(sourced.fact.url) === key)?.sourceText ?? "";
+  if (markdown.trim() === "") return null;
+  const evidence = opportunity.evidence as { shortfall?: { kind?: unknown } } | undefined;
+  return { url, title, markdown, why: typeof evidence?.shortfall?.kind === "string" ? evidence.shortfall.kind : null };
+}
+
+async function writePage(a: PageInput & { attempts: number; startedAt?: number }, cost: CostContext): Promise<DayPageOutcome> {
   const store = generateStore();
   const { site, report } = a;
+  const startedAt = a.startedAt ?? Date.now();
   let opportunity = a.opportunity;
 
   // The one name the product holds for the business is the brand the
   // profile measured off their own home page — what the site calls itself.
-  // It is a measurement, and the honest-row and quotation rules read it as
-  // one. It is also the byline of a page whose founder gave setup no name
-  // (SPEC §7, 2026-09-29: "the founder's name and line from setup, else the
-  // business's name").
+  // It is also the byline of a page whose founder gave setup no name (SPEC
+  // §7, 2026-09-29).
   const measuredBrand =
     report.market.kind === "unmeasured" ? null : (report.market.value.profile.brandTokens[0] ?? null);
-
   const ruleInputs: SiteRuleInputs = {
     businessName: measuredBrand,
     domain: site.domain,
     doNotClaim: site.doNotClaim,
     rivals: site.rivals,
   };
-
   // SPEC §7 (2026-10-04, issue 1248): the page is written for the site's
   // market in force (`sites.market`, D28) — the report's category is the one
   // that pass was bought under, and stands in only where no market is stored.
@@ -422,188 +419,169 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
     site: site.market === undefined ? null : { category: site.category, competitors: site.rivals, stored: site.market },
     reportCategory: report.market.kind === "unmeasured" ? "" : report.market.value.profile.category,
   });
+  const category = writingFor.category;
 
-  // SPEC §7 (2026-09-20), #927: the **confirmed** business profile joins the
-  // writer's inputs — what the business does, sells, promises, serves and
-  // says, with the customer's own corrections applied over the crawl
-  // (#926's overlay). The owner's bar for this issue: content must be
-  // business specific and always relevant to this user, never generic.
-  //
-  // **Through `readConfirmedBusiness` (#978), which is the read both screens
-  // use.** The writer does not get a path of its own: that is how a writer
-  // and a screen come to disagree about what a customer confirmed.
-  //
-  // **It must be the confirmed profile and never the derived row.** An item
-  // the customer removed has no path into a page precisely because
-  // `confirmedProfile` is the only thing that produces the shape the prompt
-  // accepts — the derived row does not fit through `promptProfile`'s door.
-  //
-  // Read once for the day, beside the links, so a regeneration writes from
-  // the same profile as the attempt it replaces.
+  // SPEC §7 (2026-09-20), #927: the **confirmed** business profile — the
+  // knowledge base and the founder's answers, with the customer's own
+  // corrections applied over the crawl — through `readConfirmedBusiness`
+  // (#978), the read both screens use. Read once for the day.
   const confirmed = await confirmedForWriting({ siteId: a.siteId, domain: site.domain });
 
-  // SPEC §7 (2026-09-12): the site's own pages from the profile's
-  // inventory, and the cluster's earlier live pages. Read once for the
-  // day, so a regeneration links the same pages as the attempt it replaces.
+  // SPEC §7 (2026-09-12): the site's own pages from the profile's inventory,
+  // the cluster's earlier live pages, and the pages the site already has
+  // (#928) — what the page links, read once for the day.
   const inventory = await store.siteInventory(site.domain);
   const earlier =
     opportunity.clusterKey === null ? [] : await store.clusterPages(a.siteId, opportunity.clusterKey);
-  const selfUrl = opportunity.family === "improve" ? opportunity.targetRef : null;
-  const chosen = [
-    ...siteLinkTargets({
-      domain: site.domain,
-      inventory,
-      query: opportunity.targetQuery ?? "",
-      selfUrl,
-    }),
-    ...clusterLinkTargets(earlier),
-  ];
-  // SPEC §7 (2026-09-20, #928): "New pages link to known content where it
-  // helps the reader." The pages the site already has — theirs as well as
-  // ours — after the two lists that were already chosen, and never one of
-  // those twice.
   const known = await store.knownPages(a.siteId);
-  let links = [
-    ...chosen,
-    ...knownContentTargets(known, {
-      domain: site.domain,
-      query: opportunity.targetQuery ?? "",
-      selfUrl,
-      already: chosen,
-    }),
+  const linksFor = (o: Opportunity): LinkTarget[] => {
+    const selfUrl = o.family === "improve" ? o.targetRef : null;
+    const chosen = [
+      ...siteLinkTargets({ domain: site.domain, inventory, query: o.targetQuery ?? "", selfUrl }),
+      ...clusterLinkTargets(earlier),
+    ];
+    return [
+      ...chosen,
+      ...knownContentTargets(known, { domain: site.domain, query: o.targetQuery ?? "", selfUrl, already: chosen }),
+    ];
+  };
+  // SPEC §7 (2026-10-03, D36, issue 1209): every page the site has published
+  // or planned, each with its address where the index knows it.
+  const sitePages = (await sitePagesFor(a.siteId, { except: opportunity.id })).map((page) => ({
+    ...page,
+    url: page.title === null ? null : (known.find((held) => held.title === page.title)?.url ?? null),
+  }));
+
+  // The customer's own passages, the pages that speak to the target first
+  // (issue 900), minus the ones they switched off (#927).
+  const facts = allowedFacts(
+    await readAllFacts({ siteId: a.siteId, scanId: report.scanId, target: targetSearches(opportunity)[0] }),
+    confirmed.factsOff
+  );
+  // What no page may repeat whole (issue 1249): the site's demo phrases —
+  // the ones kept with its knowledge base ride in `factsOff` — and its menus.
+  const demoPhrases = [
+    ...(await readDemoPhrases({ siteId: a.siteId, scanId: report.scanId }).catch(() => [])),
+    ...confirmed.factsOff,
   ];
-  // SPEC §7 (2026-09-20, #928): the nearest of those pages are stated to
-  // the writer as well — not as pages to link, which `links` already is,
-  // but as topics this site has covered, so the page is written beside them
-  // and never over them. Titles and addresses only.
-  const knownBriefs = nearestKnown(known, opportunity.targetQuery ?? "");
-  // SPEC §7 (2026-10-03, D36, issue 1209): and the brief is told every page
-  // the site has published or planned. Read once for the day, like the rest.
-  const sitePages = await sitePagesFor(a.siteId, { except: opportunity.id });
 
-  // SPEC §7 (2026-09-29, *Two pools of facts*; issue 1135): the market
-  // facts, read once for the day — the target's top results, each rival's own
-  // pricing and feature pages, and two studies — so a second attempt cites
-  // what the first was handed. A read that fails leaves the page to its
-  // business facts and never stops it.
-  const market = await researchMarket(cost, {
-    siteId: a.siteId,
-    domain: site.domain,
-    searches: targetSearches(opportunity),
-    report,
-    rivals: site.rivals,
-    today: new Date(),
-  }).catch((error: unknown) => {
-    console.warn(JSON.stringify({ event: "draft_research_failed", siteId: a.siteId, error: String(error).slice(0, 200) }));
-    return NO_RESEARCH;
-  });
+  /** Stages 1 and 2 for one opportunity: its type, then its context pack. */
+  const packFor = async (o: Opportunity): Promise<{ pack: ContextPack; links: LinkTarget[] } | null> => {
+    // 1. Decide (code only): new or an update, and which of the seven types.
+    const type = contentTypeOf(o);
+    if (type === null) return null;
+    const template = TEMPLATES[type];
+    // 2. Research, for the types that read public pages (SPEC §7, *Two pools
+    //    of facts*; issue 1135): at most two model calls. A read that fails
+    //    leaves the page to its business facts and never stops it.
+    const market = !template.research
+      ? NO_RESEARCH
+      : await researchMarket(cost, {
+          siteId: a.siteId,
+          domain: site.domain,
+          searches: targetSearches(o),
+          report,
+          rivals: site.rivals,
+          today: new Date(),
+          ...(type === "insights" ? { recent: { market: category === "" ? (targetSearches(o)[0] ?? "") : category, days: RESEARCH.recentDays } } : {}),
+        }).catch((error: unknown) => {
+          console.warn(JSON.stringify({ event: "draft_research_failed", siteId: a.siteId, error: String(error).slice(0, 200) }));
+          return NO_RESEARCH;
+        });
+    const links = linksFor(o).filter((link) => link.url !== o.targetRef);
+    const pack = buildPack({
+      type,
+      opportunity: o,
+      site: ruleInputs,
+      category,
+      // Issue 1248: the market the page is written for, and whether it is
+      // the site's own or the stored report's category.
+      market: writingFor.market === null ? { from: "report", category } : { from: "site", ...writingFor.market },
+      // The founder's own line from setup's fifth question (#1133), else the
+      // business's name.
+      byline: confirmed.profile?.knowledge?.byline ?? measuredBrand,
+      voice: site.voiceText,
+      profile: confirmed.profile,
+      facts,
+      research: market,
+      report,
+      sitePages,
+      links,
+      live: type === "update" ? await livePageOf(a, o, known, facts) : null,
+      previousResearch: type === "research" ? await previousResearchOf(a.siteId) : null,
+      now: new Date(),
+    });
+    return { pack, links };
+  };
 
-  let last: GenerateOutcome | null = null;
-  // #788: one row for the date across every attempt — an attempt after
-  // the first rewrites the row the first one wrote.
+  // #788: one row for the date across every attempt.
   let draftId = a.draftId;
-  let ruleStopped = false;
-  // #1178: what the attempt before told the next one — its failures and
-  // the sentences that broke them.
-  let fix: FixNote[] | undefined;
-  // Issue 1144: set once a page was held for reading like one written for
-  // another site — what its one rewrite is told to keep away from.
-  let apart: readonly string[] | undefined;
-  let attempts = a.attempts;
-  for (let attempt = 1; attempt <= attempts; attempt++) {
-    last = await generateDraft(cost, {
+  let becameUpdate = false;
+  // The pack is built once for an opportunity: a write call tried again
+  // (#813) is written from the pack the first one was.
+  const packs = new Map<string, Awaited<ReturnType<typeof packFor>>>();
+  for (let attempt = 1; ; attempt++) {
+    const key = `${opportunity.id}:${opportunity.type}`;
+    if (!packs.has(key)) packs.set(key, await packFor(opportunity));
+    const built = packs.get(key) ?? null;
+    if (built === null) return { ok: false, because: "step_failed", draftId: draftId ?? null, step: "pack" };
+    const last: GenerateOutcome = await generateDraft(cost, {
       siteId: a.siteId,
       opportunity,
       scheduledFor: a.publishDate,
       site: ruleInputs,
-      voiceText: site.voiceText,
-      category: writingFor.category,
-      siteMarket: writingFor.market,
-      links,
-      known: knownBriefs,
-      sitePages,
-      profile: confirmed.profile,
-      // The founder's own line from setup's fifth question (#1133), else
-      // the business's name.
-      byline: confirmed.profile?.knowledge?.byline ?? measuredBrand,
-      factsOff: confirmed.factsOff,
-      scanId: report.scanId,
-      market,
+      pack: built.pack,
+      facts,
+      links: built.links,
+      demoPhrases,
+      startedAt,
       ...(draftId === undefined ? {} : { draftId }),
-      ...(fix === undefined ? {} : { fix }),
-      ...(apart === undefined ? {} : { apart }),
     });
     if (last.draftId !== null) draftId = last.draftId;
     if (last.ok) return { ok: true, draftId: last.draftId };
-    if (last.reason === "step_failed") {
-      // A step that did not run before any row was written leaves nothing
-      // to rest: the opportunity stays open for the next evening.
-      if (draftId === undefined) {
-        return { ok: false, because: "step_failed", draftId: null, step: last.step };
-      }
-      // SPEC §7 (D13, issue 1144): a page too close to one written for
-      // another site is written again once, told which of its sentences the
-      // two shared, and a page still too close is held. The rewrite is this
-      // hold's own, whatever attempts the rules had used.
-      if (last.step === "elsewhere") {
-        if (apart !== undefined || cost.capHit()) {
-          return { ok: false, because: "step_failed", draftId, step: last.step };
-        }
-        apart = last.apart ?? [];
-        ruleStopped = false;
-        fix = undefined;
-        attempts = attempt + 1;
-        continue;
-      }
-      // After a rule already stopped this date's row, a regeneration that
-      // could not run leaves that stop standing: the row rests on it
-      // rather than waiting in `generating` for a run nothing will make.
-      if (ruleStopped && last.step !== "adds") return { ok: false, because: "rules", draftId, attempts: attempt - 1 };
-      // SPEC §7 (D12, issue 1143): a new page short of what it must add is
-      // not written again as it was. Where the site has a close page the
-      // destination can update, the day becomes an update of it — on the
-      // same row, once, and held to no bar of its own; otherwise the row
-      // rests and the draft asks the founder for the missing fact.
-      if (last.step === "adds") {
-        const update = cost.capHit() ? null : await updateInstead(opportunity, known, new Date());
-        if (update === null) return { ok: false, because: "step_failed", draftId, step: last.step };
-        console.log(JSON.stringify({ event: "draft_became_update", siteId: a.siteId, draftId, page: update.targetRef }));
+    if (last.reason === "rules") {
+      return {
+        ok: false,
+        because: "rules",
+        draftId: draftId ?? null,
+        attempts: last.attempt,
+        ...(last.fix === undefined ? {} : { stopped: last.fix }),
+      };
+    }
+    // SPEC §7 (D12, issue 1143): a new page whose pack adds too little is not
+    // written. Where the site has a close page the destination can update,
+    // the day becomes an update of it — on the same row, once, and held to no
+    // bar of its own; otherwise the row rests and the draft asks the founder
+    // for the missing fact.
+    if (last.step === "adds" && !becameUpdate && !cost.capHit()) {
+      const update = await updateInstead(opportunity, known, new Date());
+      if (update !== null) {
+        console.log(JSON.stringify({ event: "draft_became_update", siteId: a.siteId, draftId: draftId ?? null, page: update.targetRef }));
         opportunity = update;
-        links = links.filter((link) => link.url !== update.targetRef);
-        ruleStopped = false;
-        fix = undefined;
-        attempts = attempt + 1;
+        becameUpdate = true;
         continue;
       }
-      // #813: a row a step stopped takes the automatic second attempt a
-      // rule stop takes — a model that did not answer may answer now. The
-      // ceiling would stop that attempt too, so it rests at once.
-      // A page held for its length is not that (issue 1138): it was written
-      // and written again, and SPEC §7 holds it there.
-      if (attempt < attempts && !cost.capHit() && last.step !== "length") continue;
-      return { ok: false, because: "step_failed", draftId, step: last.step };
     }
-    ruleStopped = true;
-    fix = last.fix;
-    if (
-      recoveryOutcome({
-        failed: last.failed.map((failure) => failure.rule),
-        automaticAttempts: attempt - 1,
-        enteredReview: false,
-      }) === "rest"
-    ) {
-      break;
-    }
+    // #813: a write call that did not answer is tried once more — a model
+    // that did not answer may answer now. The ceiling would stop that
+    // attempt too, and a job out of time must not start it.
+    if (last.step === "write" && attempt < a.attempts && !cost.capHit() && Date.now() - startedAt < PIPELINE.fixBeforeMs) continue;
+    // A step that did not run before any row was written leaves nothing to
+    // rest: the opportunity stays open for the next evening.
+    return {
+      ok: false,
+      because: "step_failed",
+      draftId: draftId ?? null,
+      // A short pack names what is missing (D41).
+      step: last.step === "pack" && last.missing !== undefined ? `pack:${last.missing.join(",")}` : last.step,
+    };
   }
-  const stopped = last;
-  if (stopped === null || stopped.ok || stopped.reason !== "rules") {
-    return { ok: false, because: "rules", draftId: draftId ?? null, attempts };
-  }
-  return {
-    ok: false,
-    because: "rules",
-    draftId: draftId ?? null,
-    attempts: stopped.attempt,
-    ...(stopped.fix === undefined ? {} : { stopped: stopped.fix }),
-  };
+}
+
+/** What the site's last research page was written from, so the next one is
+ *  written only when a figure has changed (D42, 4). */
+async function previousResearchOf(siteId: string): Promise<PackMeasurements | null> {
+  const store = generateStore();
+  const meta = store.lastMetaOfType === undefined ? null : await store.lastMetaOfType(siteId, "research");
+  return readPack(meta)?.measurements ?? null;
 }

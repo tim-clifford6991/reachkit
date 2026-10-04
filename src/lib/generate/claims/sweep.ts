@@ -62,7 +62,7 @@ export async function sweepOutstandingRechecks(
     // Already current: re-running it would spend money to learn what the
     // hash already says.
     if (verdict !== null && verdict.state !== "unrun" && verdict.listHash === currentHash) continue;
-    const outcome = await claimCheck(c, { text: draft.body_md ?? "", list: site.doNotClaim });
+    const outcome = claimCheck({ text: `${draft.title ?? ""}\n${draft.body_md ?? ""}`, list: site.doNotClaim });
     await store.patchDraft(draft.id, { claim_check: recordedVerdictValue(outcome) });
     // An unrun check is not a check: it leaves the draft outstanding, so
     // it is not counted as one this sweep completed.

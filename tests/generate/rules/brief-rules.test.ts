@@ -6,7 +6,6 @@ import {
   checkFirstBlockAnswers,
   checkInventedProvenance,
   checkInventedTest,
-  checkNewQuestionHeading,
   checkTraceableNumerals,
   type BriefRuleInputs,
 } from "../../../src/lib/generate/rules/brief";
@@ -14,7 +13,6 @@ import {
 const FACT = "Teams on the starter plan get 25 seats and unlimited projects for a flat monthly fee.";
 const BRIEF: BriefRuleInputs = {
   facts: [FACT],
-  headings: ["Which tool should a small team pick?", "What decides it"],
   queries: ["best tools for 50 people"],
 };
 const OPENING = "Pick the tool whose plan covers every person who opens it daily, then check the limits.";
@@ -38,16 +36,6 @@ describe("no_invented_provenance", () => {
     for (const markdown of ["By Jordan Lee", "Last updated on 3 March."]) {
       expect(checkInventedProvenance({ markdown, brief: BRIEF })).toBeNull();
     }
-  });
-});
-
-describe("no_new_question_heading", () => {
-  it("passes the outline's own question heading and fails one it did not have", () => {
-    const outlined = `## Which tool should a small team pick?\n\n${OPENING}`;
-    expect(checkNewQuestionHeading({ markdown: outlined, brief: BRIEF })).toBeNull();
-    expect(
-      checkNewQuestionHeading({ markdown: `${outlined}\n\n## How much does it cost\n\nIt varies.`, brief: BRIEF })
-    ).toEqual({ rule: "no_new_question_heading" });
   });
 });
 

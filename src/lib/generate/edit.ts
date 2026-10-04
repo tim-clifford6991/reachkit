@@ -35,7 +35,7 @@ import { claimCheck, type ClaimVerdict } from "./claims/check";
 import { readRecordedFact } from "./fact";
 import { buildComparisonSet } from "./pipeline/comparison";
 import { allowedFacts, readAllFacts } from "./pipeline/grounding";
-import { targetSearches } from "./pipeline/steps";
+import { targetSearches } from "./pipeline";
 import {
   readRecordedRules,
   readRecordedVerdict,
@@ -44,7 +44,7 @@ import {
 } from "./record";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { runHardRules } from "./rules";
-import { headingsOf, renderOf } from "./rules/text";
+import { renderOf } from "./rules/text";
 import type { RuleFailure, SiteRuleInputs } from "./rules/types";
 import { generateStore, type DraftRow } from "./store";
 
@@ -222,7 +222,7 @@ async function recheck(
     if (isFix) {
       // A metadata-only fix has no body; the claim check over what it
       // changes is the one rule it has (`pipeline/page-fix.ts`).
-      const claim = await claimCheck(cost, {
+      const claim = claimCheck({
         text: [a.title, a.description].filter((value) => value !== "").join("\n"),
         list: site.doNotClaim,
       });
@@ -275,7 +275,6 @@ async function recheck(
       sourceText: source?.sourceText ?? "",
       brief: {
         facts: facts.map((sourced) => sourced.fact.passage),
-        headings: headingsOf(stringAt(meta, "body_md_generated") ?? ""),
         queries: opportunity === null ? [] : targetSearches(opportunity),
         // Issue 1135: the market facts the page was handed, as its row
         // records them. A row written before the research step records

@@ -169,6 +169,10 @@ export interface GenerateStore {
    *  yet (#788). A row the evening tick wrote straight into `generating`
    *  carries no move, so a first run in progress is never one of these. */
   restartedDrafts(siteIds: readonly string[]): Promise<readonly RestartedDraft[]>;
+  /** The `meta` of the site's newest draft of one content type (D42), or
+   *  `null` where it has none. Optional: a double that holds no rows of a
+   *  type answers nothing. */
+  lastMetaOfType?(siteId: string, type: string): Promise<unknown>;
 }
 
 export interface RestartedDraft {
@@ -412,6 +416,19 @@ export function supabaseGenerateStore(): GenerateStore {
         .limit(1);
       if (result.error) throw new Error(`generate/store: read from drafts failed: ${result.error.message}`);
       return (result.data ?? []).length > 0;
+    },
+
+    async lastMetaOfType(siteId, type) {
+      const result = await untyped()
+        .from<{ meta: unknown }>("drafts")
+        .select("meta")
+        .eq("site_id", siteId)
+        .eq("meta->>contentType", type)
+        .in("state", ["published", "publishing", "approved", "in_review"])
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (result.error) throw new Error(`generate/store: read from drafts failed: ${result.error.message}`);
+      return (result.data ?? [])[0]?.meta ?? null;
     },
 
     async restartedDrafts(siteIds) {

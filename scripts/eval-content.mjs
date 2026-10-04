@@ -1,54 +1,38 @@
 #!/usr/bin/env node
-// scripts/eval-content.mjs — `npm run eval:content`. Issue #1132: today's
-// generation pipeline, run over a fixed set of real sites and graded, so every
-// change to generation is judged on the same pages. A tool, not a gate.
+// scripts/eval-content.mjs — `npm run eval:content`. What is left of the
+// content evaluation (#1132) since the pipeline became five stages (SPEC §7,
+// D41): a page is tested with `npm run page` (D43), and this script keeps the
+// tools that read stored text.
 //
 // # Usage
 //
-//   npm run eval:content                          # dry run: the topics, 0¢
-//   npm run eval:content -- --run                 # writes and grades, then
-//                                                 # rewrites docs/walk/content-eval.md
-//   npm run eval:content -- --run --only linear.app,crisp.chat
 //   npm run eval:content -- --snapshot linear.app --from export.json
 //                                                 # stores a domain's snapshot from a
 //                                                 # connector export (snapshot.ts says how);
 //                                                 # --as <name> stores a frozen copy
-//   npm run eval:content -- --run --env-file ../reachkitv3/.env.local
-//   npm run eval:content -- --ab [--run]          # #1153: A beside the prototype B
-//                                                 # and the reference C on reachkit.app
 //   npm run eval:content -- --ab --regrade [--fetch | --run] [--round 1] [--cap-cents 50]
 //                                                 # #1158: a stored round graded again —
 //                                                 # code checks at 0¢; --fetch reads the
 //                                                 # evidence (free); --run judges the pairs
-//   npm run eval:content -- --round2 [--run] [--cap-cents 150]
-//                                                 # #1164: the pipeline beside itself
-//                                                 # with first-party facts, two sites
-//   npm run eval:content -- --repair [--run] [--rounds 2]
-//                                                 # #1178: a stopped draft re-rolled blind
-//                                                 # beside one repaired from its failures
 //   npm run eval:content -- --rules [--baseline]  # issue 1187: each hard rule's false
 //                                                 # positives on stored text; no model, 0¢
 //
-// The set, and the four slots the owner fills, are `scripts/eval-content/
-// set.ts`. Each domain's stored report and page text are committed under
-// `scripts/eval-content/snapshot/`, so the script reads no database and
-// calls no vendor. The model is the only live call, and each page — draft and
-// grade — spends inside `CAPS.DRAFT_C`. Nothing is published or written to a
-// customer destination.
+// The runs that wrote pages through the retired pipeline — the set's own
+// run, `--ab`, `--round2` and `--repair` — went with it (D41, D43: "Round
+// 2's remaining pairs are skipped"). Their stored rounds stay under
+// `scripts/eval-content/snapshot/` and `docs/walk/`.
 //
 // # The credential
 //
-// `src/lib/config/env.ts` parses the whole binding list the moment the
-// pipeline is imported, so the bindings are read from the environment or from
-// `--env-file` (`.env.local` by default, gitignored). A live run needs
-// `ANTHROPIC_API_KEY` to be a real one and refuses the `PENDING_…`
-// placeholder. Nothing here logs or writes a value.
+// `src/lib/config/env.ts` parses the whole binding list the moment product
+// code is imported, so the bindings are read from the environment or from
+// `--env-file` (`.env.local` by default, gitignored). `--regrade --run`
+// needs `ANTHROPIC_API_KEY` to be a real one. Nothing here logs a value.
 //
 // # Why a loader
 //
-// As `scripts/live-drafts/run.mjs`: this box's Node has no type stripping, so
-// the repo's own Vite loads the TypeScript, with one module aliased for the
-// run only — `@/lib/measure/text`, so the pipeline reads the snapshot's pages.
+// This box's Node has no type stripping, so the repo's own Vite loads the
+// TypeScript.
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -62,19 +46,8 @@ const flag = (name, fallback) => {
   return at === -1 || at + 1 >= argv.length ? fallback : argv[at + 1];
 };
 
-const options = {
-  run: argv.includes("--run"),
-  only: (flag("--only", "") || "").split(",").filter(Boolean),
-  outDir: path.resolve(ROOT, flag("--out", ".review/eval-content")),
-  tablePath: path.resolve(ROOT, "docs/walk/content-eval.md"),
-};
+const run = argv.includes("--run");
 const snapshotOf = flag("--snapshot", null);
-// #1153: today's pipeline beside the 2026-09-29 prototype, on reachkit.app.
-const ab = argv.includes("--ab");
-// #1178: blind regeneration beside repair, on the same inputs.
-const repair = argv.includes("--repair");
-// Issue 1187: the rule battery over stored drafts. Code only.
-const rules = argv.includes("--rules");
 const envFile = path.resolve(ROOT, flag("--env-file", ".env.local"));
 
 function loadEnvFile(file) {
@@ -103,7 +76,7 @@ async function main() {
     if (!loadEnvFile(envFile) && process.env.SUPABASE_URL === undefined) {
       throw new Error(`No env file at ${envFile} and no bindings in this shell. Pass --env-file <path>, or export them.`);
     }
-    if (options.run) assertCredential();
+    if (run) assertCredential();
   }
 
   const server = await createServer({
@@ -114,7 +87,6 @@ async function main() {
     server: { middlewareMode: true, hmr: false, watch: null },
     resolve: {
       alias: [
-        { find: "@/lib/measure/text", replacement: path.join(ROOT, "scripts/eval-content/measured-text.ts") },
         { find: /^@\//, replacement: `${path.join(ROOT, "src")}/` },
       ],
     },
@@ -129,49 +101,25 @@ async function main() {
       console.log(`${snapshotOf}: scan ${taken.scan.id}, ${taken.pages.length} pages stored.`);
       return 0;
     }
-    if (argv.includes("--round2")) {
-      const run = await server.ssrLoadModule("/scripts/eval-content/round2.ts");
-      return await run.main({ run: options.run, root: ROOT, capCents: Number(flag("--cap-cents", "150")) });
-    }
-    if (ab && argv.includes("--regrade")) {
-      const run = await server.ssrLoadModule("/scripts/eval-content/round.ts");
-      return await run.main({
-        run: options.run,
+    if (argv.includes("--ab") && argv.includes("--regrade")) {
+      const round = await server.ssrLoadModule("/scripts/eval-content/round.ts");
+      return await round.main({
+        run,
         fetch: argv.includes("--fetch"),
         root: ROOT,
         round: Number(flag("--round", "1")),
         capCents: Number(flag("--cap-cents", "50")),
       });
     }
-    if (ab) {
-      const run = await server.ssrLoadModule("/scripts/eval-content/prototype/ab.ts");
-      return await run.main({
-        run: options.run,
-        root: ROOT,
-        priorCents: Number(flag("--prior-cents", "0")),
-        round: Number(flag("--round", "2")),
-        gradeCapCents: Number(flag("--cap-cents", "50")),
-      });
-    }
-    if (rules) {
-      const run = await server.ssrLoadModule("/scripts/eval-content/rules.ts");
-      return await run.main({
+    if (argv.includes("--rules")) {
+      const rules = await server.ssrLoadModule("/scripts/eval-content/rules.ts");
+      return await rules.main({
         root: ROOT,
         tablePath: path.resolve(ROOT, "docs/walk/rule-review.md"),
         baseline: argv.includes("--baseline"),
       });
     }
-    if (repair) {
-      const run = await server.ssrLoadModule("/scripts/eval-content/repair.ts");
-      return await run.main({
-        run: options.run,
-        only: options.only,
-        rounds: Number(flag("--rounds", "1")),
-        tablePath: path.resolve(ROOT, "docs/walk/content-repair.md"),
-      });
-    }
-    const run = await server.ssrLoadModule("/scripts/eval-content/eval.ts");
-    return await run.main(options);
+    throw new Error("Pass --rules, --ab --regrade, or --snapshot <domain> --from <export.json>. A page is tested with `npm run page`.");
   } finally {
     await server.close();
   }

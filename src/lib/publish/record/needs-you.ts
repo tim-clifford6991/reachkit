@@ -18,6 +18,9 @@
 //   `step_failed:<step>`     issue 813 — a step could not run twice
 //   `step_failed:adds`       issue 1143 — the page adds too little
 //   `step_failed:elsewhere`  issue 1144 — too close to a page elsewhere
+//   `step_failed:pack:<need,need>`  issue 1252 — the context pack was short
+//                            of what the page's template asks, so nothing
+//                            was written
 //   `reason_needs_customer`  §9 — a publish failure no retry could clear
 //                            (`attempt/retry.ts`'s `decideRetry`)
 //   `retries_exhausted`      §9 — the publish was tried ×3 and did not go
@@ -51,6 +54,11 @@ export type NeedsYouCause =
    *  1144). The cause carries nothing about that page: the founder is told
    *  only that this one was held. */
   | { kind: "elsewhere" }
+  /** The context pack was short of what the page's template asks (SPEC §7,
+   *  D41 stage 2, issue 1252), so nothing was written. `missing` is the
+   *  pack's own handles (`options`, `own_price`, …), never sentences; empty
+   *  where the reason names none. */
+  | { kind: "pack"; missing: string[] }
   /** The page could not be delivered, for a reason no retry clears — an
    *  expired or invalid credential, a record that does not point here, a
    *  destination that refused it, or no destination at all. Which of those
@@ -98,6 +106,14 @@ export function needsYouCauseOf(reason: string | null): NeedsYouCause {
     const step = reason.slice("step_failed:".length).trim();
     if (step === "adds") return { kind: "adds" };
     if (step === "elsewhere") return { kind: "elsewhere" };
+    if (step === "pack" || step.startsWith("pack:")) {
+      const missing = step
+        .slice("pack:".length)
+        .split(",")
+        .map((need) => need.trim())
+        .filter((need) => need !== "");
+      return { kind: "pack", missing };
+    }
     return { kind: "step", step };
   }
   if (reason === "reason_needs_customer") return { kind: "destination" };

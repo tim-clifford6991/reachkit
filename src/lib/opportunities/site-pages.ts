@@ -8,14 +8,16 @@
 // and questions only: a brief is told what the site covers, never what those
 // pages say.
 import { CONTENT_MIX } from "@/lib/config/constants";
-import { contentKindOf, type ContentKind } from "./content-kind";
+import { contentTypeOf, type ContentType } from "./content-type";
 import { rankOpen } from "./rank/open";
 import { opportunityStore, readOpportunity } from "./store";
 
 export interface SitePage {
   title: string | null;
   question: string | null;
-  kind: ContentKind | null;
+  /** Its address, once it has one. */
+  url?: string | null;
+  kind: ContentType | null;
   /** `published` once a reader can open it; `planned` until then. */
   status: "published" | "planned";
 }
@@ -36,7 +38,7 @@ export async function sitePagesFor(siteId: string, a: { except: string }): Promi
       return {
         title: page.title,
         question: row.targetQuery,
-        kind: contentKindOf(row),
+        kind: contentTypeOf(row),
         status: page.state === "published" ? "published" : "planned",
       };
     });
@@ -49,7 +51,7 @@ export async function sitePagesFor(siteId: string, a: { except: string }): Promi
   const planned: SitePage[] = next.flatMap((found) => {
     if (found === null) return [];
     const row = readOpportunity(found);
-    return [{ title: row.title, question: row.targetQuery, kind: contentKindOf(row), status: "planned" as const }];
+    return [{ title: row.title, question: row.targetQuery, kind: contentTypeOf(row), status: "planned" as const }];
   });
   return [...written, ...planned].slice(0, CONTENT_MIX.BRIEF_PAGES_MAX);
 }

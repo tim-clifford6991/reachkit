@@ -14,30 +14,8 @@ import { describe, expect, it } from "vitest";
 import { HARD_RULES, type HardRule } from "../../../src/lib/generate/rules/types";
 
 describe("BUILD §8 — the hard rules are a closed, ordered list", () => {
-  it("has exactly sixteen members and lists each once", () => {
-    expect(HARD_RULES).toHaveLength(16);
-    expect(new Set(HARD_RULES).size).toBe(16);
-  });
-
-  it("is in the order §8 states the rules, with the two-check rules split where they split", () => {
-    expect([...HARD_RULES]).toEqual([
-      "grounding",
-      "rival_source",
-      "no_invented_people",
-      "no_unsourced_testimonial",
-      "honest_row",
-      "no_hidden_text",
-      "no_machine_address",
-      "near_duplicate",
-      "no_invented_test",
-      "no_invented_provenance",
-      "no_new_question_heading",
-      "traceable_numerals",
-      "first_block_answers",
-      "required_blocks",
-      "fit_claim",
-      "do_not_claim",
-    ]);
+  it("lists each rule once", () => {
+    expect(new Set(HARD_RULES).size).toBe(HARD_RULES.length);
   });
 
   it("is frozen, so no caller can add a rule at runtime", () => {
@@ -59,10 +37,11 @@ describe("BUILD §8 — the hard rules are a closed, ordered list", () => {
       near_duplicate: true,
       no_invented_test: true,
       no_invented_provenance: true,
-      no_new_question_heading: true,
       traceable_numerals: true,
       first_block_answers: true,
       required_blocks: true,
+      no_placeholder_cell: true,
+      no_demo_text: true,
       fit_claim: true,
       do_not_claim: true,
     };

@@ -127,7 +127,7 @@ describe("a draft's context writes no roll-up", () => {
   it("`rollUp: \"none\"` leaves `scans` untouched — the draft's spend is not the scan's", async () => {
     await withCostContext({ ...CTX, cap: "DRAFT", rollUp: "none" }, async (cost) => {
       await cost.recordFetch({
-        source: "generate.brief",
+        source: "generate.write",
         cacheKey: "k",
         freshnessDays: 0,
         costCents: 3,
@@ -140,7 +140,7 @@ describe("a draft's context writes no roll-up", () => {
   it("the ledger row is still written: `fetches` is the source of truth, the roll-up only a summary", async () => {
     await withCostContext({ ...CTX, cap: "DRAFT", rollUp: "none" }, async (cost) => {
       await cost.recordFetch({
-        source: "generate.brief",
+        source: "generate.write",
         cacheKey: "k",
         freshnessDays: 0,
         costCents: 3,
@@ -155,7 +155,7 @@ describe("a draft's context writes no roll-up", () => {
     await withCostContext({ ...CTX, cap: "DRAFT", rollUp: "none" }, async (cost) => {
       // Reserving more than `CAP_DRAFT` degrades the context.
       await cost.recordFetch({
-        source: "generate.draft",
+        source: "generate.fix",
         cacheKey: "k",
         freshnessDays: 0,
         costCents: 10_000,

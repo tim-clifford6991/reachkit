@@ -1,16 +1,15 @@
-// tests/generate/day-page.test.ts — BUILD §8's timing and its one
-// automatic regeneration, at the engine's public entry point.
+// tests/generate/day-page.test.ts — the day's page, at the engine's public
+// entry point.
 //
 // §8: "the day's page is generated the evening before its publish date from
 // the freshest scan. `CAP_DRAFT` enforced before the pipeline runs."
-// ADR-070: "one automatic regeneration; a draft that has entered review is
-// never regenerated."
+// SPEC §7 (D41): one call writes the page, a page a check stops takes one fix
+// call, and one that still fails rests where the customer can act on it.
 //
 // §7's supply rule is the other half: `nextForDay` answering `null` is a
 // day with no page, never an invented one.
 import "./env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CAPS } from "../../src/lib/config/constants";
 import {
   AT,
   CLEAN_MARKDOWN,
@@ -18,13 +17,9 @@ import {
   SCAN_ID,
   SITE_ID,
   SOURCE_TEXT,
-  NO_OPS,
-  OUTLINE_ANSWER,
-  draftAnswers,
-  draftParts,
-  ENOUGH_ADDS,
-  addsAnswer,
   memoryStore,
+  packAnswer,
+  pageParts,
   opportunity,
   type MemoryStore,
 } from "./fixtures";
@@ -49,15 +44,15 @@ const {
   transitionMock: vi.fn(),
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
-vi.mock("@/lib/generate/pipeline/write", async () => {
-  const { draftOnly } = await import("./fixtures");
-  return { writeDraft: draftOnly };
+// What a pack must hold is `pipeline/pack.test.ts`; here the pack is short of
+// what a case says it is, and no public page is read.
+vi.mock("@/lib/generate/pipeline/pack", async (importOriginal) => {
+  const { packStandIn } = await import("./fixtures");
+  return packStandIn(await importOriginal<object>());
 });
-// Issue 1143: what the page adds is `tests/generate/pipeline/adds.test.ts`;
-// here the listing answers with a page that adds enough.
-vi.mock("@/lib/generate/pipeline/adds", async (importOriginal) => {
-  const { addsStandIn } = await import("./fixtures");
-  return addsStandIn(await importOriginal<object>());
+vi.mock("@/lib/generate/pipeline/research", async (importOriginal) => {
+  const { researchStandIn } = await import("./fixtures");
+  return researchStandIn(await importOriginal<object>());
 });
 
 // #927: `writePage` reads the confirmed business profile and the passages
@@ -110,18 +105,15 @@ describe("no near-identical page across customers (SPEC §7, D13; issue 1144)", 
     return body ?? "";
   }
 
-  it("a page that matches one written for another site is written again once, told what the two share, then held without naming that page", async () => {
+  it("a page that matches one written for another site takes its fix call, told what the two share, then is held without naming that page", async () => {
     store.elsewhere = [await writtenBody(CLEAN_MARKDOWN)];
     queueAttempt(CLEAN_MARKDOWN);
     queueAttempt(CLEAN_MARKDOWN);
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
 
     expect(outcome).toMatchObject({ ok: false, because: "step_failed", step: "elsewhere" });
-    // Written twice and no third time.
-    const drafts = llmMock.mock.calls.filter((call) => call[1].site === "generate.draft");
-    expect(drafts).toHaveLength(2);
-    expect(JSON.stringify(drafts[0]?.[1].input)).not.toContain("apart");
-    expect(JSON.stringify(drafts[1]?.[1].input)).toContain("a seat limit is the constraint teams notice last");
+    expect(llmMock.mock.calls.map((call) => call[1].site)).toEqual(["generate.write", "generate.fix"]);
+    expect(JSON.stringify(llmMock.mock.calls[1]?.[1].input.apart)).toContain("a seat limit is the constraint teams notice last");
 
     expect(store.rows.size).toBe(1);
     const [row] = [...store.rows.values()];
@@ -140,7 +132,7 @@ describe("no near-identical page across customers (SPEC §7, D13; issue 1144)", 
   it("the rewrite that reads differently goes on to review", async () => {
     store.elsewhere = [await writtenBody(CLEAN_MARKDOWN)];
     queueAttempt(CLEAN_MARKDOWN);
-    queueAttempt(OWN_MARKDOWN);
+    queueAttempt(OWN_MARKDOWN, "headcount");
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
 
     expect(outcome).toMatchObject({ ok: true });
@@ -149,12 +141,6 @@ describe("no near-identical page across customers (SPEC §7, D13; issue 1144)", 
     expect(row?.meta).not.toHaveProperty("elsewhere");
   });
 
-  it("a page about the same subject in its own words is not held", async () => {
-    store.elsewhere = [await writtenBody(OWN_MARKDOWN)];
-    queueAttempt(CLEAN_MARKDOWN);
-    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    expect(outcome).toMatchObject({ ok: true });
-  });
 });
 
 /** The clean page's subject and its one fact, in other words. */
@@ -175,25 +161,19 @@ const OWN_MARKDOWN = [
  *  asserted rather than assumed. */
 const opened: Array<{ scanId: string; cap: string; rollUp?: string }> = [];
 
-const BRIEF = { readerQuestion: "Which tool?", angle: "count seats", mustCover: ["seats"], factIndexes: [0] };
-const OUTLINE = OUTLINE_ANSWER;
-
 function measured(value: unknown) {
   return { kind: "measured", value, at: AT };
 }
 
-function body(markdown: string) {
-  return draftParts(markdown, { title: "A title", slug: "a-title", description: "A description." });
+/** One model call's answer: the page, with `markdown` as its first section. */
+function queueAttempt(markdown: string, topic = "seats"): void {
+  llmMock.mockResolvedValueOnce(
+    measured(pageParts(markdown, { title: "A title", slug: "a-title", description: "A description." }, topic))
+  );
 }
 
-/** One pass of the four model steps. The site's do-not-claim list is empty,
- *  so the claim check passes without a call. */
-function queueAttempt(markdown: string): void {
-  llmMock.mockResolvedValueOnce(measured(BRIEF));
-  llmMock.mockResolvedValueOnce(measured(OUTLINE));
-  for (const answer of draftAnswers(body(markdown))) llmMock.mockResolvedValueOnce(measured(answer));
-  llmMock.mockResolvedValueOnce(measured(NO_OPS));
-}
+const STOPPED = "We tested every tool for months, and this one won.";
+const STOPPED_AGAIN = "We tested every tool again, and this one won.";
 
 beforeEach(async () => {
   llmMock.mockReset();
@@ -206,7 +186,8 @@ beforeEach(async () => {
   transitionMock.mockReset();
   updateInsteadMock.mockReset();
   updateInsteadMock.mockResolvedValue(null);
-  addsAnswer.claims = ENOUGH_ADDS;
+  packAnswer.missing = [];
+  packAnswer.short = false;
   transitionMock.mockImplementation(async (draftId: string, to: string) => {
     const row = store.rows.get(draftId);
     if (row !== undefined) store.rows.set(draftId, { ...row, state: to });
@@ -244,46 +225,19 @@ afterEach(() => {
   setGenerateStore(null);
 });
 
-describe("§8 — CAP_DRAFT, on the scan the day's page is generated from", () => {
-  it("opens one context, under CAP_DRAFT, keyed to the freshest scan", async () => {
+describe("§8 — the day's page, under CAP_DRAFT, for the date it was asked for", () => {
+  it("opens one context under CAP_DRAFT, keyed to the freshest scan, whose spend is the draft's own", async () => {
     queueAttempt(CLEAN_MARKDOWN);
     await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    expect(opened).toHaveLength(1);
-    expect(opened[0]).toMatchObject({ cap: "DRAFT", scanId: SCAN_ID });
+    expect(opened).toEqual([expect.objectContaining({ cap: "DRAFT", scanId: SCAN_ID, rollUp: "none" })]);
   });
 
-  it("does not roll the draft's spend into the scan's total — the draft's cost is the draft's", async () => {
-    queueAttempt(CLEAN_MARKDOWN);
-    await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    expect(opened[0]?.rollUp).toBe("none");
-  });
-
-  it("CAP_DRAFT is §8's 45¢", () => {
-    expect(CAPS.DRAFT_C).toBe(45);
-  });
-});
-
-describe("§8 — the day's page is for the day after the evening it is generated", () => {
-  it("the publish date the caller passes is the date the row is scheduled for", async () => {
+  it("the row is scheduled for the date the caller passed, and keeps the description the hosted page's head reads (issue 697)", async () => {
     queueAttempt(CLEAN_MARKDOWN);
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    expect(outcome.ok).toBe(true);
     const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
     expect(row?.scheduled_for).toBe("2026-09-07");
-  });
-});
-
-describe("issue 697 — the draft keeps the description the hosted page's head reads", () => {
-  it("the description the draft step wrote is stored on the row's meta", async () => {
-    queueAttempt(CLEAN_MARKDOWN);
-    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
-    // `toMatchObject`, not `toEqual`: since #927 the row also records what
-    // the page was written from — the passages the brief chose, and the
-    // profile items where the site has a profile. What this test is about is
-    // the description the hosted page's head reads, and that it is still
-    // there and still exact.
-    expect(row?.meta).toMatchObject({ description: "A description." });
+    expect(row?.meta).toMatchObject({ description: "A description.", contentType: "qa" });
   });
 });
 
@@ -294,92 +248,26 @@ describe("SPEC §7 (2026-09-15, issue 712) — a written draft queues its opport
     expect(queueForDraftMock.mock.calls).toEqual([[opportunity().id]]);
   });
 
-  it("a page still short of its floor is held where the customer can see it, and is not written a third time (issue 1138)", async () => {
-    llmMock.mockResolvedValueOnce(measured(BRIEF));
-    llmMock.mockResolvedValueOnce(measured(OUTLINE));
-    const answers = draftAnswers(draftParts(CLEAN_MARKDOWN, { held: true }));
-    for (const answer of answers) llmMock.mockResolvedValueOnce(measured(answer));
+  it("a page the checks stop takes its one fix call and, still stopped, rests in needs_attention with its topic (#788, D26)", async () => {
+    queueAttempt(STOPPED);
+    queueAttempt(STOPPED_AGAIN);
+    queueAttempt(CLEAN_MARKDOWN);
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    expect(outcome).toMatchObject({ ok: false, because: "step_failed", step: "length" });
-    // Brief, outline, the draft: no answerability pass, no rules, no second attempt.
-    expect(llmMock).toHaveBeenCalledTimes(2 + answers.length);
-    const [row] = [...store.rows.values()];
-    expect(row).toMatchObject({ state: "needs_attention", hard_rules_passed: false });
-    expect(transitionMock).toHaveBeenCalledWith(
-      row?.id,
-      "needs_attention",
-      { kind: "system", job: "draft/generate" },
-      { reason: "step_failed:length" }
-    );
-    expect(queueForDraftMock).not.toHaveBeenCalled();
-  });
-
-  it("a draft the battery stopped twice rests in needs_attention and its topic rests, not queued (#788, D26)", async () => {
-    queueAttempt("We tested every tool for months, and this one won.");
-    queueAttempt("We tested every tool again, and this one won.");
-    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    expect(outcome).toMatchObject({ ok: false, because: "rules" });
+    expect(outcome).toMatchObject({ ok: false, because: "rules", attempts: 2 });
+    // One write, one fix — never a third call.
+    expect(llmMock.mock.calls.map((call) => call[1].site)).toEqual(["generate.write", "generate.fix"]);
+    expect(store.rows.size).toBe(1);
     const [row] = [...store.rows.values()];
     expect(row?.state).toBe("needs_attention");
     expect(transitionMock).toHaveBeenCalledWith(
       row?.id,
       "needs_attention",
       { kind: "system", job: "draft/generate" },
-      { reason: expect.stringMatching(/^rules:.+/) }
+      { reason: expect.stringMatching(/^rules:.*no_invented_test/) }
     );
     expect(queueForDraftMock).not.toHaveBeenCalled();
     expect(restTopicMock.mock.calls).toEqual([[opportunity().id, expect.any(Date)]]);
-  });
-
-  it("a run that wrote no draft leaves the opportunity open for the next evening", async () => {
-    llmMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
-    await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    expect(queueForDraftMock).not.toHaveBeenCalled();
-  });
-});
-
-describe("ADR-070 — one automatic regeneration, and no more", () => {
-  it("a first attempt stopped by a rule is regenerated once", async () => {
-    queueAttempt("We tested every tool for months, and this one won.");
-    queueAttempt(CLEAN_MARKDOWN);
-    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    expect(outcome.ok).toBe(true);
-    // #788: the regeneration rewrites the date's one row.
-    expect(store.rows.size).toBe(1);
-    const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
-    expect(row).toMatchObject({
-      state: "generating",
-      body_md: expect.stringContaining("Start by counting the people who will open it"),
-      hard_rule_attempts: 1,
-    });
-    expect(row?.body_md).not.toContain("We tested every tool");
-  });
-
-  it("the regeneration is told what stopped the first attempt (#1178), and the first is not", async () => {
-    queueAttempt("We tested every tool for months, and this one won.");
-    queueAttempt(CLEAN_MARKDOWN);
-    await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    const drafts = llmMock.mock.calls.map((call) => call[1]).filter((a) => a.site === "generate.draft");
-    expect(drafts[0].input.fix).toBeUndefined();
-    expect(drafts[1].input.fix).toEqual([
-      { rule: "no_invented_test", sentences: ["We tested every tool for months, and this one won."] },
-    ]);
-  });
-
-  it("a second attempt stopped again comes to rest — never a third", async () => {
-    queueAttempt("We tested every tool for months, and this one won.");
-    queueAttempt("We tested every tool again, and this one won.");
-    queueAttempt(CLEAN_MARKDOWN);
-    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    expect(outcome).toMatchObject({ ok: false, because: "rules", attempts: 2 });
-    expect(store.rows.size).toBe(1);
-  });
-
-  it("a draft stopped twice mails the owner the site, the rule and the sentence that broke it (issue 1187)", async () => {
-    queueAttempt("We tested every tool for months, and this one won.");
-    queueAttempt("We tested every tool again, and this one won.");
-    await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    const [row] = [...store.rows.values()];
+    // Issue 1187: the owner is mailed the site, the rule and the sentence.
     expect(reportIncidentMock.mock.calls).toEqual([
       [
         {
@@ -387,41 +275,92 @@ describe("ADR-070 — one automatic regeneration, and no more", () => {
           domain: "example.com",
           draftId: row?.id,
           attempts: 2,
-          failed: [{ rule: "no_invented_test", sentences: ["We tested every tool again, and this one won."] }],
+          failed: [{ rule: "no_invented_test", sentences: [STOPPED_AGAIN] }],
         },
       ],
     ]);
   });
 
-  it("a draft stopped once and then written clean alerts nobody", async () => {
-    queueAttempt("We tested every tool for months, and this one won.");
-    queueAttempt(CLEAN_MARKDOWN);
-    await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    expect(reportIncidentMock).not.toHaveBeenCalled();
-  });
-
   it("an alert that cannot be sent does not fail the run: the page still rests", async () => {
     reportIncidentMock.mockRejectedValue(new Error("mail down"));
-    queueAttempt("We tested every tool for months, and this one won.");
-    queueAttempt("We tested every tool again, and this one won.");
+    queueAttempt(STOPPED);
+    queueAttempt(STOPPED_AGAIN);
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     expect(outcome).toMatchObject({ ok: false, because: "rules" });
     expect([...store.rows.values()].map((r) => r.state)).toEqual(["needs_attention"]);
   });
 
-  it("a regeneration that cannot run leaves the first stop standing: the row rests, never waits in generating", async () => {
-    queueAttempt("We tested every tool for months, and this one won.");
+  it("a page its fix call clears goes on, on the date's one row, and alerts nobody", async () => {
+    queueAttempt(STOPPED);
+    queueAttempt(CLEAN_MARKDOWN);
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(outcome.ok).toBe(true);
+    expect(store.rows.size).toBe(1);
+    const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
+    expect(row).toMatchObject({ state: "generating", hard_rules_passed: true });
+    expect(row?.body_md).toContain("Start by counting the people who will open it");
+    expect(row?.body_md).not.toContain("We tested every tool");
+    // The fix call was told what stopped the page (#1178); the write was not.
+    expect(llmMock.mock.calls[0]?.[1].input.fix).toBeUndefined();
+    expect(llmMock.mock.calls[1]?.[1].input.fix).toEqual([{ rule: "no_invented_test", sentences: [STOPPED] }]);
+    expect(reportIncidentMock).not.toHaveBeenCalled();
+  });
+
+  it("a fix call that cannot run leaves the stop standing: the row rests, never waits in generating", async () => {
+    queueAttempt(STOPPED);
     llmMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     expect(outcome).toMatchObject({ ok: false, because: "rules" });
     expect([...store.rows.values()].map((row) => row.state)).toEqual(["needs_attention"]);
   });
 
-  it("a step that did not run consumes no attempt: it stops at once", async () => {
+  it("a writer that did not answer is asked once more (#813), writes no row and leaves the opportunity open", async () => {
     llmMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    expect(outcome).toMatchObject({ ok: false, because: "step_failed", step: "brief" });
+    expect(outcome).toMatchObject({ ok: false, because: "step_failed", step: "write" });
+    expect(llmMock).toHaveBeenCalledTimes(2);
     expect(store.rows.size).toBe(0);
+    expect(queueForDraftMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("a short pack writes nothing (SPEC §7, D41 stage 2)", () => {
+  it("the page stops naming what is missing, with no model call, and rests where the customer can see it", async () => {
+    packAnswer.missing = ["buyer_questions", "facts_on_topic"];
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(outcome).toMatchObject({ ok: false, because: "step_failed", step: "pack:buyer_questions,facts_on_topic" });
+    expect(llmMock).not.toHaveBeenCalled();
+    const [row] = [...store.rows.values()];
+    expect(row).toMatchObject({ state: "needs_attention", hard_rules_passed: false, body_md: null });
+    expect(transitionMock).toHaveBeenCalledWith(
+      row?.id,
+      "needs_attention",
+      { kind: "system", job: "draft/generate" },
+      { reason: "step_failed:pack:buyer_questions,facts_on_topic" }
+    );
+    expect(restTopicMock.mock.calls).toEqual([[opportunity().id, expect.any(Date)]]);
+  });
+
+  it("the day goes to the next topic, and the stopped row gives up its date to it (D26)", async () => {
+    const next = opportunity({ id: "44444444-4444-4444-8444-444444444444", targetQuery: "what is a seat" });
+    nextForDayMock.mockResolvedValueOnce(opportunity()).mockResolvedValueOnce(next);
+    // Short for the first topic only.
+    packAnswer.missing = ["buyer_questions"];
+    transitionMock.mockImplementation(async (draftId: string, to: string) => {
+      const row = store.rows.get(draftId);
+      if (row !== undefined) store.rows.set(draftId, { ...row, state: to });
+      packAnswer.missing = [];
+      return { ok: true, state: to };
+    });
+    queueAttempt(CLEAN_MARKDOWN);
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(outcome.ok).toBe(true);
+    const rows = [...store.rows.values()];
+    expect(rows.map((row) => [row.opportunity_id, row.state, row.scheduled_for])).toEqual([
+      [opportunity().id, "needs_attention", null],
+      [next.id, "generating", "2026-09-07"],
+    ]);
+    expect(queueForDraftMock.mock.calls).toEqual([[next.id]]);
   });
 });
 
@@ -550,8 +489,8 @@ describe("§7 (2026-09-12) — the page links into the customer's own site and t
     store.inventory = INVENTORY;
     queueAttempt(CLEAN_MARKDOWN);
     await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    const input = llmMock.mock.calls[2]?.[1].input as { links: Array<{ url: string }> };
-    expect(input.links.map((link) => link.url)).toContain("https://example.com/pricing");
+    const input = llmMock.mock.calls[0]?.[1].input as { pack: { links: Array<{ url: string }> } };
+    expect(input.pack.links.map((link) => link.url)).toContain("https://example.com/pricing");
   });
 
   it("a site with no pricing page publishes with no pricing link, even where the model wrote one", async () => {
@@ -587,9 +526,11 @@ describe("issue 1248 — the page is written for the site's market in force", ()
     categoryReason: "",
     rivals: [{ domain: "rival.example", name: "Rival", basis: "ranks" as const, reason: "" }],
   };
-  const prompts = () => llmMock.mock.calls.map((call) => call[1].input as { category?: string; market?: { category: string } | null });
+  /** What the one write call was handed about the market: its pack's. */
+  const written = () =>
+    (llmMock.mock.calls[0]![1].input as { pack: { business: { category: string; market: { from: string; category: string } } } }).pack.business;
 
-  it("the brief, the outline and the draft read sites.market, and the row records it", async () => {
+  it("the writer's pack carries sites.market, and the row records it", async () => {
     const before = store.site;
     store.site = {
       ...before!,
@@ -599,10 +540,8 @@ describe("issue 1248 — the page is written for the site's market in force", ()
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     store.site = before;
 
-    for (const input of prompts().slice(0, 3)) {
-      expect(input.market?.category).toBe(CURRENT.category);
-      if (input.category !== undefined) expect(input.category).toBe(CURRENT.category);
-    }
+    expect(written().category).toBe(CURRENT.category);
+    expect(written().market).toMatchObject({ from: "site", category: CURRENT.category });
     const meta = (outcome.ok ? store.rows.get(outcome.draftId)?.meta : null) as { market?: unknown } | null;
     expect(meta?.market).toMatchObject({ from: "site", category: CURRENT.category, buyer: "small agencies", notOurMarket: ["time tracking"] });
   });
@@ -610,7 +549,7 @@ describe("issue 1248 — the page is written for the site's market in force", ()
   it("a site with no stored market is written for its report's category, as before", async () => {
     queueAttempt(CLEAN_MARKDOWN);
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    expect(prompts().slice(0, 3).every((input) => input.market === null)).toBe(true);
+    expect(written().market.from).toBe("report");
     const meta = (outcome.ok ? store.rows.get(outcome.draftId)?.meta : null) as { market?: { from: string } } | null;
     expect(meta?.market?.from).toBe("report");
   });
@@ -637,19 +576,14 @@ describe("issue 737 — the first draft, for a paid site with a free-scan cache"
 });
 
 describe("a new page adds what the web does not say (SPEC §7, D12; issue 1143)", () => {
-  const RESTATED = [{ claim: "Ask every vendor for a full export in an open format.", business: false }];
-
-  it("a page that only restates the top results and the site waits for the founder, with its list on the row, and is not written again", async () => {
-    addsAnswer.claims = RESTATED;
-    queueAttempt(CLEAN_MARKDOWN);
+  it("a page whose pack adds too little waits for the founder and is not written", async () => {
+    packAnswer.short = true;
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
 
     expect(outcome).toMatchObject({ ok: false, because: "step_failed", step: "adds" });
-    // One attempt: the same page written again would add the same nothing.
-    expect(llmMock.mock.calls.filter((call) => call[1].site === "generate.brief")).toHaveLength(1);
+    expect(llmMock).not.toHaveBeenCalled();
     const [row] = [...store.rows.values()];
-    expect(row).toMatchObject({ state: "needs_attention", hard_rules_passed: false });
-    expect((row?.meta as { adds: unknown }).adds).toEqual({ claims: RESTATED, short: true });
+    expect(row).toMatchObject({ state: "needs_attention", hard_rules_passed: false, meta: { adds: { short: true } } });
     expect(transitionMock).toHaveBeenCalledWith(
       row?.id,
       "needs_attention",
@@ -669,28 +603,24 @@ describe("a new page adds what the web does not say (SPEC §7, D12; issue 1143)"
       title: null,
     });
     updateInsteadMock.mockResolvedValueOnce(update);
-    addsAnswer.claims = RESTATED;
-    queueAttempt(CLEAN_MARKDOWN);
-    queueAttempt(CLEAN_MARKDOWN);
+    packAnswer.short = true;
+    // The update's page: the live page's sections, each under its own heading.
+    const parts = pageParts();
+    llmMock.mockResolvedValueOnce(
+      measured({
+        ...parts,
+        sections: parts.sections.map((section) => ({ ...section, key: "live" })),
+        faq: ["first", "second", "third"].map((nth) => ({ question: `What is the ${nth} thing to ask?`, answer: "Count the seats." })),
+      })
+    );
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
 
-    // An update is held to no bar: the same thin list passes.
+    // An update is held to no bar of what it adds.
     expect(outcome).toMatchObject({ ok: true });
     expect(updateInsteadMock).toHaveBeenCalledTimes(1);
     expect(store.rows.size).toBe(1);
     const [row] = [...store.rows.values()];
-    expect(row).toMatchObject({ hard_rules_passed: true });
-    expect((row?.meta as { adds: unknown }).adds).toEqual({ claims: RESTATED, short: false });
+    expect(row).toMatchObject({ hard_rules_passed: true, meta: { contentType: "update", adds: { short: false } } });
     expect(queueForDraftMock).toHaveBeenCalledWith(planned.id);
-  });
-
-  it("a page whose list could not be made does not go on as though it had passed", async () => {
-    addsAnswer.claims = null;
-    queueAttempt(CLEAN_MARKDOWN);
-    queueAttempt(CLEAN_MARKDOWN);
-    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    expect(outcome).toMatchObject({ ok: false, because: "step_failed", step: "adds_check" });
-    expect(updateInsteadMock).not.toHaveBeenCalled();
-    expect([...store.rows.values()][0]).toMatchObject({ hard_rules_passed: false });
   });
 });

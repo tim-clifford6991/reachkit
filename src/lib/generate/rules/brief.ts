@@ -1,8 +1,8 @@
-// SPEC §7 · issue 475 — hard rules 8–12, the five that read the brief.
+// SPEC §7 · issue 475 — the four rules that read what the page was handed.
 //
-// Each checks the finished page against what the pipeline handed the model:
-// the customer's own passages the brief selected, the outline's headings, and
-// the searches the page targets. A draft can only state what those carry, so
+// Each checks the finished page against what its context pack holds (D41):
+// the customer's own passages, the market claims, and the searches the page
+// targets. (`no_new_question_heading` retired with the outline, D41.) A draft can only state what those carry, so
 // each rule fails a page that reaches past them:
 //
 //   no_invented_test         "we tested", "in our trials" — a test nobody ran;
@@ -10,8 +10,6 @@
 //                            given. (A byline and the page's dates are the
 //                            page's own since SPEC §7 of 2026-09-29: setup
 //                            records the one, publishing the other.)
-//   no_new_question_heading  a question-shaped heading the outline did not
-//                            have (the answerability pass may add none);
 //   traceable_numerals       a numeral no fact and no target search carries;
 //   first_block_answers      an opening that does not answer: a short-answer
 //                            box outside 40–60 words, or — on a page with no
@@ -20,18 +18,16 @@
 //
 // A sentence that is itself one of the handed passages is the customer's own
 // words and is never failed by the two phrase rules. Deterministic, no I/O.
-import { ANSWER_FIRST_BLOCK_CHARS, ANSWERABILITY_MAX_NEW_QUESTIONS, PAGE_BLOCKS } from "@/lib/config/constants";
+import { ANSWER_FIRST_BLOCK_CHARS, PAGE_BLOCKS } from "@/lib/config/constants";
 import { answerBoxOf } from "./blocks";
 import { numeralsOf, REGISTER_FLOOR } from "./figures";
-import { blocksOf, headingKey, headingsOf, isQuestionShaped, ownWordsOf, sentencesOf } from "./text";
+import { blocksOf, ownWordsOf, sentencesOf } from "./text";
 import type { RuleFailure } from "./types";
 
 /** What the brief handed the model, as the rules read it. */
 export interface BriefRuleInputs {
   /** The customer's own passages the brief selected, word for word. */
   facts: readonly string[];
-  /** The outline's headings, in order. */
-  headings: readonly string[];
   /** The target search and every search the row absorbed. */
   queries: readonly string[];
   /** The market facts the brief selected, each with the public page it was
@@ -110,17 +106,6 @@ export function checkInventedProvenance(a: {
   brief: BriefRuleInputs;
 }): RuleFailure | null {
   return phraseRule("no_invented_provenance", INVENTED_PROVENANCE_RES, a);
-}
-
-export function checkNewQuestionHeading(a: {
-  markdown: string;
-  brief: BriefRuleInputs;
-}): RuleFailure | null {
-  const outlined = new Set(a.brief.headings.map(headingKey));
-  const added = headingsOf(a.markdown).filter(
-    (heading) => isQuestionShaped(heading) && !outlined.has(headingKey(heading))
-  );
-  return added.length > ANSWERABILITY_MAX_NEW_QUESTIONS ? { rule: "no_new_question_heading" } : null;
 }
 
 /** Every numeral a fact of either pool or a target search states, normalised. */

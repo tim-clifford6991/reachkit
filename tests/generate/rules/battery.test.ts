@@ -3,8 +3,7 @@
 //
 // What this suite pins: every rule runs (not just the first), the order is
 // `HARD_RULES`' order so a stored failure list is comparable across runs,
-// the do-not-claim arm is delegated rather than re-implemented, and an
-// unrun claim check never appears as a rule failure.
+// and the do-not-claim arm is delegated rather than re-implemented.
 import "../env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Measured } from "../../../src/lib/measure/measured";
@@ -46,7 +45,7 @@ function run(markdown: string, over: Parameters<typeof siteInputs>[0] = {}) {
     comparison: emptyComparison(),
     grounded: GROUNDED,
     sourceText: SOURCE_TEXT,
-    brief: { facts: [GROUNDED.passage], headings: ["Which tool should a small team pick?"], queries: [] },
+    brief: { facts: [GROUNDED.passage], queries: [] },
   });
 }
 
@@ -95,23 +94,6 @@ describe("the do-not-claim arm is BP §8's fourth rule, delegated and not re-imp
     expect(failure?.detail).toEqual({ rule: "do_not_claim", matchedEntry: "HIPAA compliant" });
   });
 
-  it("the check reaches a model through `llm()` and never through the cost context directly", async () => {
-    // `fakeCost().recordFetch` throws; a battery that spent any other way
-    // than through `llm()` would fail here rather than go unexercised.
-    await expect(run(CLEAN_MARKDOWN, { doNotClaim: ["something not stated"] })).resolves.toBeDefined();
-    expect(llmMock).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("an unrun claim check is a step that did not run, not a rule that failed", () => {
-  it("does not appear in `failed`, and is handed back on the verdict for the caller to act on", async () => {
-    llmMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
-    const outcome = await run(CLEAN_MARKDOWN, { doNotClaim: ["something not stated"] });
-    expect(outcome.claim.state).toBe("unrun");
-    expect(outcome.passed === false && outcome.failed.some((f) => f.rule === "do_not_claim")).not.toBe(
-      true
-    );
-  });
 });
 
 describe("the battery's log names rules and nothing else", () => {

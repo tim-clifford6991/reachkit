@@ -1,207 +1,237 @@
-// SPEC §7 (2026-09-29) *Length and the writer* · issue 1138 — a customer's
-// page: written on the writer tier, held to its length, read by a critic.
+// SPEC §7 (2026-10-04, D41 stages 3 and 4) — the write call and the fix call.
 //
-//   1. **The draft**, on the writer tier (`./steps.ts`' `draft`): the frame
-//      and the sections, a few to a call, each call reading the ones before
-//      it and on a clock of its own, so no single call's clock caps the page.
-//   2. **The floor.** The page's words are counted in code, on the page as
-//      `./compose.ts` lays it out, against the one length target
-//      (`../length.ts`). A page short of its floor has its short sections
-//      written once more; one still short is `short`, which the caller
-//      holds.
-//   3. **The critic.** One call scores the page and may name sections to be
-//      written again — to add as well as to cut. **The floor is checked in
-//      code after the critic** (owner, 2026-10-02, round 1: a critic cut a
-//      1,565-word page to 1,480, under its floor): a rewrite that falls under
-//      the floor, or loses something the page had — a section's text, a
-//      table, a cited page — is refused, and the page stands as it was
-//      before the critic.
+// **One call writes the page.** The writer is handed the type's template and
+// the context pack, and nothing else: there is no brief, no outline, no call
+// per section, no critic and no answerability pass. It returns the page in
+// the template's parts — its title, short answer, takeaways, each section
+// under the template's key, closing line and buyer questions — and code lays
+// them out (`./compose.ts`).
 //
-// The critic is the one part a page can go without. A critic that does not
-// answer, a ceiling that would stop it, or a page that has already taken
-// `WRITER.criticAfterMs` to write leaves the page as written; none of them
-// is a step that failed.
-import { DRAFT_SECTIONS_PER_CALL, WRITER } from "@/lib/config/constants";
+// **One call fixes it.** A page a stage-4 check still fails after the repairs
+// in code is handed back once, whole, with each check it failed and the
+// sentences that failed it. There is no second fix.
+//
+// Every call goes through the `llm()` seam: the tier decides the model, the
+// seam ledgers the spend through the cost context, and neither the prompt nor
+// the response is ever logged. The ceiling is read before each call; a call
+// the page cannot afford is `not_attempted`, never a rule that failed.
+import { z } from "zod";
+import { PAGE_BLOCKS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
-import type { Opportunity } from "@/lib/opportunities/types";
-import { bodyWords, lengthTargetFor, type LengthTarget } from "../length";
-import type { DraftPromptInputs } from "../voice/inputs";
-import { composePage, type TidyInputs } from "./compose";
+import { llm } from "@/lib/llm";
+import type { Tier } from "@/lib/llm/tiers";
+import { unmeasured, type Measured } from "@/lib/measure/measured";
+import type { PageType } from "@/lib/opportunities/types";
+import { REGISTER_FLOOR } from "../rules/figures";
+import { HONESTY_INSTRUCTION } from "../rules/honest";
+import type { Template } from "../templates";
+import type { ContextPack } from "./pack";
 import type { FixNote } from "./repair";
-import { critic, draft, sectionsAgain, type Brief, type CriticRead, type DraftParts, type Outline } from "./steps";
 
-/** What the row keeps of the critic: its scores and what became of its
- *  rewrite. Never a word of the page or of an instruction. */
-export interface CriticRecord {
-  scores: Omit<CriticRead, "revise">;
-  /** How many sections it had written again. */
-  revised: number;
-  /** Whether the page that went on is the one it revised. `false` where its
-   *  rewrite was refused, or where it asked for nothing. */
-  kept: boolean;
+/** One buyer question and its answer, as `drafts.meta.faq` holds it. */
+export interface FaqEntry {
+  question: string;
+  answer: string;
 }
 
-export interface PageLength {
-  words: number;
-  floor: number | null;
-  ceiling: number | null;
-  /** How many sections were written a second time for being short. */
-  rewritten: number;
+const TAKEAWAYS = z.array(z.string());
+const SECTIONS = z.array(z.strictObject({ key: z.string(), heading: z.string(), body: z.string() }));
+const FAQ = z.array(z.strictObject({ question: z.string(), answer: z.string() }));
+
+/** A list as the model's forced tool returns it. On a long answer the model
+ *  sometimes hands a list back as its JSON text (seen 2026-10-04: a whole
+ *  page lost twice to `sections` arriving as a string), so the text is
+ *  admitted here and parsed against the list's own schema by `partsOf`. */
+const listOrText = <T extends z.ZodType>(list: T) => z.union([list, z.string()]);
+
+const ANSWER_SCHEMA = z.strictObject({
+  title: z.string(),
+  slug: z.string(),
+  description: z.string(),
+  answer: z.string(),
+  takeaways: listOrText(TAKEAWAYS),
+  sections: listOrText(SECTIONS),
+  closing: z.string(),
+  faq: listOrText(FAQ),
+  /** An update's note of what changed, in one sentence; empty otherwise. */
+  updated: z.string(),
+});
+
+/** What the writer returns: the page in the template's parts. */
+export interface PageParts {
+  title: string;
+  slug: string;
+  description: string;
+  answer: string;
+  takeaways: z.infer<typeof TAKEAWAYS>;
+  sections: z.infer<typeof SECTIONS>;
+  closing: string;
+  faq: z.infer<typeof FAQ>;
+  updated: string;
 }
 
-export type WrittenDraft =
-  | { kind: "written"; parts: DraftParts; length: PageLength; critic: CriticRecord | null }
-  /** Written twice and still under its floor. The parts are the page as it
-   *  stands, for the row the caller holds. */
-  | { kind: "short"; parts: DraftParts; length: PageLength }
-  /** A call of the draft did not answer. */
-  | { kind: "failed" };
-
-interface Shared {
-  brief: Brief;
-  outline: Outline;
-  facts: readonly { url: string; passage: string }[];
-  marketFacts?: readonly { url: string; source: string; passage: string; readAt: string }[];
-  products?: readonly { domain: string; pages: readonly string[] }[];
-}
-
-type Share = { min: number; max: number } | null;
-
-/** Each section's share of the page's length, by its block. */
-function shares(outline: Outline, target: LengthTarget | null): Share[] {
-  if (target === null) return outline.sections.map(() => null);
-  const total = outline.sections.reduce((sum, each) => sum + WRITER.share[each.role], 0);
-  return outline.sections.map((each) => ({
-    min: Math.ceil((target.floor * WRITER.share[each.role]) / total),
-    max: Math.floor((target.ceiling * WRITER.share[each.role]) / total),
-  }));
-}
-
-const TABLE_RULE = /^[ \t]*\|?[ \t]*:?-{3,}:?[ \t]*(\|[ \t]*:?-{3,}:?[ \t]*)*\|?[ \t]*$/gm;
-const LINK = /\]\((https?:\/\/[^)\s]+)\)/g;
-
-/** What a critic's rewrite may not take from the page: any section's text,
- *  a table, a cited page. */
-function keeps(before: readonly string[], after: readonly string[]): boolean {
-  if (after.some((body) => body.trim() === "")) return false;
-  const was = before.join("\n\n");
-  const is = after.join("\n\n");
-  if ((is.match(TABLE_RULE) ?? []).length < (was.match(TABLE_RULE) ?? []).length) return false;
-  const cited = new Set([...is.matchAll(LINK)].map((match) => match[1]));
-  return [...was.matchAll(LINK)].every((match) => cited.has(match[1]));
-}
-
-export async function writeDraft(
-  c: CostContext,
-  inputs: DraftPromptInputs,
-  a: Shared & {
-    opportunity: Pick<Opportunity, "type" | "targetQuery">;
-    fix?: readonly FixNote[];
-    /** Issue 1144: what the page is told to keep away from. */
-    apart?: readonly string[];
-    /** How the page is laid out, so its words are counted as it will read. */
-    tidy: TidyInputs;
-  }
-): Promise<WrittenDraft> {
-  const startedAt = Date.now();
-  const target = lengthTargetFor(a.opportunity);
-  const words = shares(a.outline, target);
-  const shared: Shared = {
-    brief: a.brief,
-    outline: a.outline,
-    facts: a.facts,
-    ...(a.marketFacts === undefined ? {} : { marketFacts: a.marketFacts }),
-    ...(a.products === undefined ? {} : { products: a.products }),
-  };
-  const wordsOf = (parts: DraftParts): number => bodyWords(composePage(parts, a.outline, a.tidy).body.bodyMarkdown);
-  const lengthOf = (parts: DraftParts, rewritten: number): PageLength => ({
-    words: wordsOf(parts),
-    floor: target?.floor ?? null,
-    ceiling: target?.ceiling ?? null,
-    rewritten,
-  });
-
-  // 1. The draft.
-  const first = await draft(c, inputs, {
-    ...shared,
-    tier: "writer",
-    ...(target === null ? {} : { words }),
-    ...(a.fix === undefined ? {} : { fix: a.fix }),
-    ...(a.apart === undefined ? {} : { apart: a.apart }),
-  });
-  if (first.kind === "unmeasured") return { kind: "failed" };
-  let parts = first.value;
-
-  /** The named sections written again, a few to a call, against the page as
-   *  it stands. `null` where a call did not answer. */
-  const again = async (from: DraftParts, write: readonly { index: number; note: string }[]): Promise<DraftParts | null> => {
-    let sections = from.sections;
-    for (let at = 0; at < write.length; at += DRAFT_SECTIONS_PER_CALL) {
-      const asked = write.slice(at, at + DRAFT_SECTIONS_PER_CALL);
-      const wrote = await sectionsAgain(c, inputs, { ...shared, bodies: sections, words, write: asked });
-      if (wrote.kind === "unmeasured") return null;
-      sections = sections.map((body, index) => {
-        const position = asked.findIndex((each) => each.index === index);
-        return position === -1 ? body : wrote.value[position]!;
-      });
+function listOf<T extends z.ZodType>(schema: T, value: unknown): z.infer<T> | null {
+  let list = value;
+  if (typeof value === "string") {
+    try {
+      list = JSON.parse(value);
+    } catch {
+      return null;
     }
-    return { ...from, sections };
-  };
-
-  // 2. The floor: a short page has its short sections written once more.
-  let rewritten = 0;
-  if (target !== null && wordsOf(parts) < target.floor) {
-    const counts = parts.sections.map((body) => bodyWords(body));
-    const under = counts.map((_, index) => index).filter((index) => counts[index]! < words[index]!.min);
-    // Every section met its share and the page is still short by a few
-    // words: the section furthest under its share's top is the one to grow.
-    const widest = counts.reduce((best, count, index) => (count / words[index]!.max < counts[best]! / words[best]!.max ? index : best), 0);
-    const write = (under.length > 0 ? under : [widest]).map((index) => ({
-      index,
-      note: `This section has ${counts[index]} words and needs at least ${words[index]!.min}. Write it fuller.`,
-    }));
-    const next = await again(parts, write);
-    if (next === null) return { kind: "failed" };
-    parts = next;
-    rewritten = write.length;
-    if (wordsOf(parts) < target.floor) return { kind: "short", parts, length: lengthOf(parts, rewritten) };
   }
+  const read = schema.safeParse(list);
+  return read.success ? read.data : null;
+}
 
-  // 3. The critic, where there is time and money for it.
-  if (c.capHit() || Date.now() - startedAt > WRITER.criticAfterMs) {
-    return { kind: "written", parts, length: lengthOf(parts, rewritten), critic: null };
-  }
-  const read = await critic(c, inputs, {
-    brief: a.brief,
-    outline: a.outline,
-    parts,
-    words: wordsOf(parts),
-    target,
-    ...(a.marketFacts === undefined ? {} : { marketFacts: a.marketFacts }),
-    maxRevisions: WRITER.maxRevisions,
-  });
-  if (read.kind === "unmeasured") return { kind: "written", parts, length: lengthOf(parts, rewritten), critic: null };
+/** The answer as the page's parts, or `undeterminable` where a list that
+ *  came back as text is not that list. */
+function partsOf(answer: Measured<z.infer<typeof ANSWER_SCHEMA>>): Measured<PageParts> {
+  if (answer.kind === "unmeasured") return answer;
+  const takeaways = listOf(TAKEAWAYS, answer.value.takeaways);
+  const sections = listOf(SECTIONS, answer.value.sections);
+  const faq = listOf(FAQ, answer.value.faq);
+  if (takeaways === null || sections === null || faq === null) return unmeasured("undeterminable", answer.at);
+  return { ...answer, value: { ...answer.value, takeaways, sections, faq } };
+}
 
-  const { revise, ...scores } = read.value;
-  const asked = revise
-    .filter(
-      (each, at) =>
-        each.section >= 0 &&
-        each.section < parts.sections.length &&
-        revise.findIndex((other) => other.section === each.section) === at
-    )
-    .slice(0, WRITER.maxRevisions);
-  const revised = asked.length === 0 ? null : await again(parts, asked.map((each) => ({ index: each.section, note: each.instruction })));
-  // The floor and the page's own parts, checked in code after the critic.
-  const kept =
-    revised !== null &&
-    (target === null || wordsOf(revised) >= target.floor) &&
-    keeps(parts.sections, revised.sections);
-  const final = kept ? revised : parts;
+/** The page as it is stored and as every check reads it. */
+export interface DraftBody {
+  title: string;
+  slug: string;
+  description: string;
+  bodyMarkdown: string;
+}
+
+/** The rules stage 4 enforces in code, stated to the writer too — not as the
+ *  enforcement (a prompt cannot promise), but so the ordinary page does not
+ *  spend its one fix call on a rule the model would have respected if asked. */
+const HOUSE_RULES = [
+  "Write from `pack` only. `pack.facts` are this business's own words, read off its pages; `pack.claims` are claims read off public pages; `pack.profile` is what the business sells and how. State nothing about the business, the market, a competitor or a price that none of them carries.",
+  "State a business fact word for word and link it to its `url`. A business fact used word for word may stand as a one-paragraph blockquote ending with a Markdown link to its `url` — at most three blockquotes on the page, each a whole sentence a reader can follow on its own, never a fragment of a table, a menu or a screen.",
+  "State a claim from `pack.claims` in your own sentence or quote it exactly, and link its `url` in that same sentence.",
+  "A source is cited by a Markdown link and in no other way: never a bare source name in brackets or parentheses after a sentence.",
+  "Never claim this business serves a use, an audience or a market that `pack.profile` does not support, and never call it \"#1\" or the best of a category.",
+  // Issue 1248: the market in force. It places the page; it is no fact pool.
+  "Where `pack.business.market` is given, it is the market this business is in: its `category`, who buys (`buyer`) and what they hire it for (`job`). Write for that buyer and that job, and never describe the business as one of `notOurMarket`. Its `rivals` say who it competes with and are not a source.",
+  "Never write any of the phrases in `pack.neverClaim`, in those words or any others.",
+  "Never invent a byline, an author biography, a persona, a quotation, a testimonial, a review or a case study, and never say the page's claims were tested, trialled or benchmarked. The page prints its own byline and dates: write neither.",
+  "Name a competing product only where `pack.claims` holds a claim from that product's own page (`pack.products` lists them), and say what that page says. Never state a figure about a competitor without linking the page it was read from.",
+  "A comparison table names only this business and the products in `pack.products`. Every cell states what a fact says, with each price or figure linked to that fact's url inside the cell — never a blank, \"not stated\", \"not linked\", \"n/a\", \"unknown\" or any other words that say a value is missing: where a fact is missing for one product, leave that row out for every product, or leave that product out. Keep prices in one currency per table as the facts state them.",
+  "A GFM table is a header row, a delimiter row with one `---` for every column, then one row per option.",
+  "Do not write a sources list: one is added from the pages you linked.",
+  "Never state a ranking position or a search volume, and never another company's scan score.",
+  "Write for a human reader only: never address an assistant, a crawler or a ranking system.",
+  "A section's `body` is Markdown without its heading: paragraphs, flat lists, links, emphasis, GFM tables and one-paragraph blockquotes; a sub-point may be an H3 (###), never deeper. No raw HTML, no images, no comments.",
+  "Each section's `heading` is the question a reader asks, in the reader's words, in sentence case, ending in a question mark. Open its `body` with a paragraph of two or three sentences that answers the heading on its own, before any list or table.",
+  "Link each page in `pack.links` once, with its url exactly as given, where the text speaks to it; link no other page on the business's domain except a fact's own source.",
+  "`pack.pages` are the pages this site has published or planned: write nothing that repeats one of them, and where one answers something this page raises, send the reader to it.",
+  "Print no label, index or id for a fact — link text is the source's name. Write no sentence of legal, removal or refund terms, no caption of a demo or example, and no menu or navigation text.",
+  "Say a promise or tagline of the business at most twice on the whole page. Write titles and headings in sentence case.",
+  `Write no number of ${REGISTER_FLOOR} or more that \`pack\` or the target search do not contain; a year is not a number for this rule.`,
+  `\`answer\` is the page's short answer: one paragraph of ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} words that answers the target plainly — write 45 to 55, in two or three sentences, and count them: outside ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} the page is stopped.`,
+  `\`takeaways\`: ${PAGE_BLOCKS.takeaways.min} to ${PAGE_BLOCKS.takeaways.max} key takeaways, one sentence each. \`closing\`: one line that points the reader to the one action this page's reader should take, linking the page in \`pack.links\` where they take it.`,
+];
+
+export interface WriteInputs {
+  template: Template;
+  pack: ContextPack;
+  /** How the business appears on a page of this type (issue 1136). */
+  pageType: PageType | null;
+  /** The words of body text the page is held to. */
+  length: { floor: number; ceiling: number };
+  /** The customer's page on the writer tier; a tier is named only by a
+   *  caller with another ceiling. */
+  tier?: Tier;
+  /** The lead's free page (SPEC §2), whose one call is sized to fit
+   *  `CAPS.FREE_C`. */
+  free?: boolean;
+}
+
+/** What the writer is told about the page's shape: the template, as data. */
+function templateFor(a: WriteInputs): Record<string, unknown> {
+  const { template } = a;
   return {
-    kind: "written",
-    parts: final,
-    length: lengthOf(final, rewritten),
-    critic: { scores, revised: asked.length, kept },
+    for: template.for,
+    titles: template.titles,
+    ...(template.titleNever === undefined ? {} : { titleNever: template.titleNever }),
+    sections: template.sections,
+    blocks: template.blocks,
+    words: a.length,
   };
+}
+
+function taskFor(a: WriteInputs): string {
+  const faq = a.template.blocks.faq;
+  return [
+    "Write one page for `pack.target.question`, doing what `template.for` says the page is for.",
+    "`template.sections` are the page's sections, in order: return each as one entry of `sections` with its `key` exactly as the template spells it, in that order — a section with `repeat` between `min` and `max` times, one after another — each under its own `heading` and doing what its `task` says.",
+    "`title` follows one of `template.titles`.",
+    `${a.pack.type === "update" ? "The page's sections together — the short answer and the takeaways are not counted —" : "The page's body — the short answer, the takeaways and every section together —"} must be between ${a.length.floor} and ${a.length.ceiling} words, counted. Write about ${Math.round((a.length.floor + a.length.ceiling) / 2)} words — about ${Math.round((a.length.floor + a.length.ceiling) / 2 / Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0)))} a section, and no section under ${Math.ceil((a.length.floor * 1.15) / Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0)))}: a page under ${a.length.floor} or over ${a.length.ceiling} is stopped. Give every paragraph something the reader can use — detail, an example, a comparison or a consequence drawn from \`pack\` — and never pad or restate a point to reach the length.`,
+    faq === null
+      ? "`faq` is empty: this page's own questions are its buyer questions."
+      : `\`faq\`: ${faq.min} to ${faq.max} questions buyers ask about the target that the headings do not already ask, each answered in two or three sentences under the same \`rules\`; they are stored with the page, not printed in it.`,
+    a.pack.type === "update"
+      ? "`pack.live` is the page as it is live. Return every section of it under its own heading; rewrite only a section a fact in `pack` changes, and say in `updated`, in one sentence, what changed."
+      : "`updated` is empty.",
+    "`rules` hold throughout, and `honesty` says how this business appears on the page.",
+  ].join(" ");
+}
+
+function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    task: taskFor(a),
+    template: templateFor(a),
+    honesty: a.pageType === null ? null : HONESTY_INSTRUCTION[a.pageType],
+    // SPEC §8 hard rule 7: the voice is the customer's own text, verbatim.
+    voice: a.pack.business.voice,
+    pack: a.pack,
+    rules: HOUSE_RULES,
+    ...extra,
+  };
+}
+
+/** Stage 3: the page, in one call. */
+export async function writePage(c: CostContext, a: WriteInputs): Promise<Measured<PageParts>> {
+  if (c.capHit()) return unmeasured("not_attempted", new Date());
+  return partsOf(
+    await llm(c, {
+      site: a.free === true ? "generate.write_free" : "generate.write",
+      tier: a.tier ?? "writer",
+      schema: ANSWER_SCHEMA,
+      input: inputFor(a),
+    })
+  );
+}
+
+/**
+ * Stage 4's one fix call: the page as written, each check it failed and the
+ * sentences that failed it, and — where it read almost the same as a page
+ * written for another business (D13) — its own sentences the two shared.
+ */
+export async function fixPage(
+  c: CostContext,
+  a: WriteInputs & { parts: PageParts; fix: readonly FixNote[]; apart?: readonly string[] }
+): Promise<Measured<PageParts>> {
+  if (c.capHit()) return unmeasured("not_attempted", new Date());
+  const apart =
+    a.apart === undefined
+      ? ""
+      : " The page also read almost the same as a page already written for another business: `apart` lists " +
+        "sentences the two shared. Use none of them, and give this page its own order, examples and wording, " +
+        "built on this business's facts.";
+  return partsOf(await llm(c, {
+    site: "generate.fix",
+    tier: a.tier ?? "writer",
+    schema: ANSWER_SCHEMA,
+    input: inputFor(a, {
+      task:
+        `${taskFor(a)} \`page\` is the page as it was written, and it was stopped: \`fix\` names each check it ` +
+        "failed and the sentences or the block that failed it. Return the whole page again with every one of " +
+        "them put right, and change nothing else." +
+        apart,
+      page: a.parts,
+      fix: a.fix,
+      ...(a.apart === undefined ? {} : { apart: a.apart }),
+    }),
+  }));
 }

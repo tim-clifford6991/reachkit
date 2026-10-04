@@ -19,7 +19,7 @@
 //
 // A leaf: the draft editor asks it in the browser, so it imports nothing
 // that reaches the database.
-import { contentKindOf } from "./content-kind";
+import { contentTypeOf } from "./content-type";
 import { FAMILY_OF, type Opportunity, type PageType } from "./types";
 
 export type { PageType };
@@ -41,5 +41,5 @@ export function pageTypeOf(o: Pick<Opportunity, "type" | "targetQuery" | "source
   if (source === "best_x") return "market_comparison";
   if (source === "product" || source === "problem") return "product";
   if (ANCHORED_SHAPES.test((o.targetQuery ?? "").toLowerCase())) return "product";
-  return contentKindOf(o) === "comparison" ? "market_comparison" : "answer";
+  return contentTypeOf(o) === "listicle" ? "market_comparison" : "answer";
 }

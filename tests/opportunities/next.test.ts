@@ -88,10 +88,10 @@ describe("§7: one list, ordered by the formula", () => {
 
     const first = state.rows.find((row) => row.id === ranked[0]!.opportunityId)!;
     expect(first.target_query).toBe("onboarding platform");
-    // Descending, with no equal pair out of order.
-    for (let n = 1; n < ranked.length; n++) {
-      expect(ranked[n - 1]!.score).toBeGreaterThanOrEqual(ranked[n]!.score);
-    }
+    // No row outscores the first. After it the days turn between the types
+    // of page (D36, D42), so the rest are not in score order where the
+    // supply holds more than one type — `rank/content-mix.test.ts`.
+    expect(ranked[0]!.score).toBe(Math.max(...ranked.map((entry) => entry.score)));
   });
 
   it("the order is total — two reads of the same supply give the same list", async () => {

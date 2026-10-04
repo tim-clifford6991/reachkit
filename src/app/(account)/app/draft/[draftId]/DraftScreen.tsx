@@ -73,7 +73,6 @@ import { draftStore, type SaveBody } from "./save";
 import { Editor, type EditorPane, type PreviewFrame } from "./Editor";
 import { liveBreaks, type MarkInputs } from "./marks";
 import { Check } from "lucide-react";
-import { headingsOf } from "@/lib/generate/rules/text";
 import { PageRecordBlock } from "./PageRecordBlock";
 import { TargetBlock } from "./TargetBlock";
 import { factPresentIn } from "./grounded";
@@ -81,7 +80,8 @@ import { PublishedPageView } from "./PublishedPageView";
 import { WhatAddsCard, WhatPublishesCard, WrittenFromCard } from "./ReviewCards";
 import { publishedCounts } from "./publishes";
 import { useDebounced } from "./useDebounced";
-import { wordCount, type ClaimState, type DraftView } from "./model";
+import { NEEDS_YOU_COPY } from "@/lib/publish/record/lines";
+import { PACK_NEED_COPY, wordCount, type ClaimState, type DraftView } from "./model";
 import type { RailCheck } from "./checks";
 
 /** The three fields the founder edits (#789), as one value: the buffer, the
@@ -292,6 +292,25 @@ export function DraftScreen(p: {
   const current = sameText(text, checked.text);
   const claim = current ? checked.claim : claimAfterSave();
   const recordedChecks = current ? checked.recordedChecks : [];
+  /** Issue 1252: the page was not written because its context pack was
+   *  short. The cause's own sentence — the one the Plan and Overview state
+   *  for this page — and, under it, what was missing. Gone once the page
+   *  leaves `needs_attention`. */
+  const packShort =
+    view.packShort === undefined || state !== "needs_attention" ? null : (
+      <div role="alert" className="alert alert-warning alert-vertical justify-items-start text-start text-sm" data-testid="draft-pack-short">
+        <p className="min-w-0 wrap-anywhere">{copy(NEEDS_YOU_COPY.pack)}</p>
+        {view.packShort.missing.length === 0 ? null : (
+          <ul className="min-w-0 list-disc ps-5" data-testid="draft-pack-missing">
+            {view.packShort.missing.map((need) => (
+              <li className="min-w-0 wrap-anywhere" key={need}>
+                {copy(PACK_NEED_COPY[need])}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
   /** #789: the saved text breaks a page rule and is held until a save passes. */
   const rulesHeld =
     current && checked.rulesFailed ? (
@@ -311,11 +330,9 @@ export function DraftScreen(p: {
    *
    * The title travels with it because the frame rule reads a title, and the
    * founder edits one here: a page renamed after its business is a break
-   * the moment it is typed, not the moment it is saved. The brief's two
-   * lists are the ones this screen already holds — the passages generation
-   * recorded and the headings of the page *as ReachKit wrote it*, which is
-   * the only reading under which "a heading the outline did not have" means
-   * anything.
+   * the moment it is typed, not the moment it is saved. The brief's
+   * passages are the ones this screen already holds, as generation
+   * recorded them.
    */
   const markInputs = useMemo<MarkInputs>(
     () => ({
@@ -331,12 +348,11 @@ export function DraftScreen(p: {
         // The brief's passages, off the record #931 already reads for
         // *Written from your business* — one `drafts.meta` key, read once.
         facts: view.writtenFrom.facts.map((fact) => fact.passage),
-        headings: headingsOf(view.bodyMdGenerated),
         queries: view.ruleFacts.queries,
         ...(view.writtenFrom.marketFacts === undefined ? {} : { marketFacts: view.writtenFrom.marketFacts }),
       },
     }),
-    [text.title, view.domain, view.ruleFacts, view.writtenFrom, view.bodyMdGenerated]
+    [text.title, view.domain, view.ruleFacts, view.writtenFrom]
   );
 
   /**
@@ -806,6 +822,7 @@ export function DraftScreen(p: {
             </h1>
           </header>
 
+          {packShort}
           {rulesHeld}
           {body}
           {droppedGrounding}
@@ -836,7 +853,7 @@ export function DraftScreen(p: {
           {/* SPEC §7's other two cards (#931): what the page stands on and
               where each sentence was read, and what actually leaves the
               building. The checks are `DecidePanel`'s. */}
-          <WrittenFromCard writtenFrom={view.writtenFrom} />
+          <WrittenFromCard writtenFrom={view.writtenFrom} timeZone={view.timeZone} />
           {/* What the page says that the web and the site do not (SPEC §7,
               D12, issue 1143). */}
           <WhatAddsCard adds={view.adds} />

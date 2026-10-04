@@ -33,6 +33,8 @@ export interface MeasuredText {
   /** What the page's example and demo elements said (`prose.ts`). Never
    *  part of `text`; the facts read drops these phrases site-wide. */
   examples?: readonly string[];
+  /** What the page's menus said (`prose.ts`). Never part of `text`. */
+  menus?: readonly string[];
 }
 
 // `fetches` is outside the generated `Database` type (the same schema gap
@@ -137,6 +139,7 @@ async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> 
       text: read.text,
       measuredAt: new Date(row.payload.readAt),
       examples: read.examples,
+      menus: read.menus,
     });
   }
   return out.sort(compareMeasuredText);

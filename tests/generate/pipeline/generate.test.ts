@@ -1,112 +1,80 @@
-// tests/generate/pipeline/generate.test.ts — `generateDraft`, BUILD §8 end
-// to end.
+// tests/generate/pipeline/generate.test.ts — `generateDraft`, stages 3 and 4
+// of SPEC §7's five (D41), with the model doubled.
 //
 // The promises under test are the ones a customer would notice if they
 // broke:
-//   * a draft that clears the battery is the only thing that leaves the
-//     pipeline queueable;
-//   * a draft that fails a rule is never queued, publishes nothing, and
-//     records its cause so the day's line has one;
-//   * a step that did not run is not a rule that failed: it does not
-//     consume the one automatic regeneration;
-//   * a voice instruction demanding something §8 forbids loses;
-//   * the comparison set contains no page belonging to another site.
+//   * a page that clears the checks is the only thing that leaves the
+//     pipeline queueable, and it took one model call;
+//   * a page a check stops takes exactly one fix call, and one that still
+//     fails is never queued and records why;
+//   * a short pack writes nothing and names what is missing;
+//   * a step that did not run is not a rule that failed.
 import "../env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  draftAnswers,
-  draftParts,
-  NO_OPS,
-  OUTLINE_ANSWER,
   AT,
   CLEAN_ANSWER,
   CLEAN_MARKDOWN,
+  FACTS,
   GROUNDED,
   SOURCE_TEXT,
   SITE_ID,
   fakeCost,
   memoryStore,
   opportunity,
+  pack,
+  pageParts,
   siteInputs,
   type MemoryStore,
 } from "../fixtures";
-import { HONESTY_INSTRUCTION } from "../../../src/lib/generate/rules/honest";
-import { KIND_JOB } from "../../../src/lib/generate/pipeline/skeletons";
-import type { PromptProfile } from "../../../src/lib/generate/voice/profile-block";
 
 const { llmMock, readMeasuredTextMock } = vi.hoisted(() => ({
   llmMock: vi.fn(),
   readMeasuredTextMock: vi.fn(),
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
-vi.mock("@/lib/generate/pipeline/write", async () => {
-  const { draftOnly } = await import("../fixtures");
-  return { writeDraft: draftOnly };
-});
-// Issue 1143: what the page adds is `tests/generate/pipeline/adds.test.ts`;
-// here the listing answers with a page that adds enough.
-vi.mock("@/lib/generate/pipeline/adds", async (importOriginal) => {
-  const { addsStandIn } = await import("../fixtures");
-  return addsStandIn(await importOriginal<object>());
-});
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
-vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
 
 let generateDraft: typeof import("../../../src/lib/generate/pipeline").generateDraft;
 let rejectionCause: typeof import("../../../src/lib/generate/pipeline/rejection").rejectionCause;
 let setGenerateStore: typeof import("../../../src/lib/generate/store").setGenerateStore;
 let store: MemoryStore;
 
-const BRIEF = { readerQuestion: "Which tool?", angle: "count the seats", mustCover: ["seats"], factIndexes: [0] };
-const OUTLINE = OUTLINE_ANSWER;
-
-/** The draft step's answer, with `markdown` as the first section's body. */
-function body(markdown: string, over: Record<string, unknown> = {}) {
-  return draftParts(markdown, over);
-}
-
 /** A short answer that claims a test nobody ran. */
-const STOPPED_ANSWER = { answer: `We tested every tool for months. ${CLEAN_ANSWER}` };
+const STOPPED = pageParts(CLEAN_MARKDOWN, { answer: `We tested every tool for months. ${CLEAN_ANSWER}` });
 
 function measured(value: unknown) {
   return { kind: "measured", value, at: AT };
 }
 
-/** The four model steps, then the claim check. */
-function primeSteps(
-  markdown: string,
-  claim: unknown = { matches: false, matchedIndex: null },
-  over: Record<string, unknown> = {}
-): void {
+/** The writer's answer, then the fix call's. */
+function answers(...parts: unknown[]): void {
   llmMock.mockReset();
-  llmMock.mockResolvedValueOnce(measured(BRIEF));
-  llmMock.mockResolvedValueOnce(measured(OUTLINE));
-  for (const answer of draftAnswers(body(markdown, over))) llmMock.mockResolvedValueOnce(measured(answer));
-  llmMock.mockResolvedValueOnce(measured(NO_OPS));
-  llmMock.mockResolvedValue(measured(claim));
+  for (const each of parts) llmMock.mockResolvedValueOnce(measured(each));
 }
 
-function run(over: Partial<Parameters<typeof generateDraft>[1]> = {}) {
-  return generateDraft(fakeCost(), {
+const sites = (): string[] => llmMock.mock.calls.map((call) => call[1].site as string);
+
+function run(over: Partial<Parameters<typeof generateDraft>[1]> = {}, cost = fakeCost()) {
+  return generateDraft(cost, {
     siteId: SITE_ID,
     opportunity: opportunity(),
     scheduledFor: "2026-09-07",
     site: siteInputs(),
-    voiceText: null,
-    category: "project management software",
+    pack: pack(),
+    facts: FACTS,
     links: [],
-    profile: null,
-    factsOff: [],
     ...over,
   });
 }
 
+const passedPatch = (draftId: string | null): boolean =>
+  store.patches.some((p) => p.draftId === draftId && p.patch.hard_rules_passed === true);
+
 beforeEach(async () => {
   llmMock.mockReset();
   readMeasuredTextMock.mockReset();
-  readMeasuredTextMock.mockResolvedValue([
-    { url: GROUNDED.url, text: SOURCE_TEXT, measuredAt: GROUNDED.readAt },
-  ]);
+  readMeasuredTextMock.mockResolvedValue([{ url: GROUNDED.url, text: SOURCE_TEXT, measuredAt: GROUNDED.readAt }]);
   ({ generateDraft } = await import("../../../src/lib/generate/pipeline"));
   ({ rejectionCause } = await import("../../../src/lib/generate/pipeline/rejection"));
   ({ setGenerateStore } = await import("../../../src/lib/generate/store"));
@@ -118,397 +86,151 @@ afterEach(() => {
   setGenerateStore(null);
 });
 
-describe("a draft that clears every rule", () => {
-  it("returns `ok: true` with the grounded fact it was written around", async () => {
-    primeSteps(CLEAN_MARKDOWN);
+describe("a page that clears every check", () => {
+  it("took one model call, and is written for its day around the customer's own fact", async () => {
+    answers(pageParts());
     const outcome = await run();
-    expect(outcome.ok).toBe(true);
-    expect(outcome.ok === true && outcome.grounded?.passage).toBe(GROUNDED.passage);
+    expect(outcome).toMatchObject({ ok: true, grounded: { passage: GROUNDED.passage } });
+    expect(sites()).toEqual(["generate.write"]);
+    const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
+    expect(row).toMatchObject({
+      scheduled_for: "2026-09-07",
+      attribution: null,
+      grounded_fact: { url: GROUNDED.url, passage: GROUNDED.passage },
+    });
+    // What the page was written from is kept with it.
+    expect((row?.meta as { pack: unknown }).pack).toEqual(pack());
   });
 
-  it("writes the row with the grounded fact, the day it is for, and no attribution the customer did not record", async () => {
-    primeSteps(CLEAN_MARKDOWN);
+  it("stays in `generating` with `hard_rules_passed` — the edge into review and the veto clock are the publishing engine's", async () => {
+    answers(pageParts());
     const outcome = await run();
-    const row = outcome.ok === true ? store.rows.get(outcome.draftId) : undefined;
-    expect(row?.scheduled_for).toBe("2026-09-07");
-    expect(row?.attribution).toBeNull();
-    expect(row?.grounded_fact).toMatchObject({ url: GROUNDED.url, passage: GROUNDED.passage });
+    const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
+    expect(row).toMatchObject({ state: "generating", veto_deadline: null });
+    expect(passedPatch(outcome.ok ? outcome.draftId : null)).toBe(true);
   });
 
-  it("a page handed market facts cites the rival's own page, passes, and ends with its sources (issue 1135)", async () => {
+  it("a page handed a market claim cites the rival's own page and ends with its sources (issue 1135)", async () => {
     const pricing = "The Standard plan costs $24 per user per month and includes 250 automation runs.";
-    const market = {
-      facts: [
-        { url: "https://rival.example/pricing", title: "Pricing — Rival", readAt: AT, passage: pricing, kind: "rival_pricing" as const, product: "rival.example" },
-      ],
-      products: [{ domain: "rival.example", pages: ["https://rival.example/pricing"] }],
-    };
+    const claims = [
+      { url: "https://rival.example/pricing", title: "Pricing — Rival", readAt: AT.toISOString(), passage: pricing, kind: "rival_pricing" as const, product: "rival.example" },
+    ];
     const cited = `${CLEAN_MARKDOWN}\n\nRival's Standard plan includes [250 automation runs](https://rival.example/pricing) at $24 per user.`;
-    llmMock.mockReset();
-    llmMock.mockResolvedValueOnce(measured({ ...BRIEF, marketFactIndexes: [0] }));
-    llmMock.mockResolvedValueOnce(measured(OUTLINE));
-    for (const answer of draftAnswers(body(cited))) llmMock.mockResolvedValueOnce(measured(answer));
-    llmMock.mockResolvedValueOnce(measured(NO_OPS));
-    llmMock.mockResolvedValue(measured({ matches: false, matchedIndex: null }));
-
-    const outcome = await run({ market, site: siteInputs({ rivals: ["rival.example"] }) });
+    answers(pageParts(cited));
+    const outcome = await run({ pack: pack({ claims }), site: siteInputs({ rivals: ["rival.example"] }) });
     expect(outcome.ok).toBe(true);
-    const row = outcome.ok === true ? store.rows.get(outcome.draftId) : undefined;
+    const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
     expect(row?.body_md?.endsWith("## Sources\n\n- [Pricing — Rival](https://rival.example/pricing), read on 5 September 2026\n")).toBe(true);
-    expect((row?.meta as { marketFacts: unknown[] }).marketFacts).toEqual([
-      { passage: pricing, url: "https://rival.example/pricing", title: "Pricing — Rival", readAt: AT.toISOString() },
-    ]);
-    // The brief chose among both pools; the writer was handed the claim and its page.
-    expect(llmMock.mock.calls[0]?.[1].input.marketFacts).toEqual([{ source: "rival.example", claim: pricing }]);
-    expect(llmMock.mock.calls[2]?.[1].input.marketFacts[0]).toMatchObject({ url: "https://rival.example/pricing", passage: pricing });
-  });
-
-  it("leaves the row in `generating` — the edge into review, and the veto clock, are the publishing engine's", async () => {
-    primeSteps(CLEAN_MARKDOWN);
-    const outcome = await run();
-    const row = outcome.ok === true ? store.rows.get(outcome.draftId) : undefined;
-    expect(row?.state).toBe("generating");
-    expect(row?.veto_deadline).toBeNull();
-  });
-
-  it("asserts `hard_rules_passed` — the publishing engine's guard on the edge into review", async () => {
-    primeSteps(CLEAN_MARKDOWN);
-    const outcome = await run();
-    const draftId = outcome.ok === true ? outcome.draftId : "";
-    expect(store.patches.some((p) => p.draftId === draftId && p.patch.hard_rules_passed === true)).toBe(
-      true
-    );
   });
 });
 
-describe("a draft that fails a rule is never queued and takes no day", () => {
-  it("returns `ok: false` with the rules that stopped it and the attempt number", async () => {
-    primeSteps(CLEAN_MARKDOWN, undefined, STOPPED_ANSWER);
+describe("a page a check stops takes one fix call", () => {
+  it("the fix call is told the check that failed, and a page it clears passes", async () => {
+    answers(STOPPED, pageParts());
     const outcome = await run();
-    expect(outcome.ok).toBe(false);
-    expect(outcome).toMatchObject({ reason: "rules", attempt: 1, recovery: "regenerate_once" });
+    expect(outcome.ok).toBe(true);
+    expect(sites()).toEqual(["generate.write", "generate.fix"]);
+    const fix = llmMock.mock.calls[1]?.[1].input as { fix: { rule: string }[]; page: unknown };
+    expect(fix.fix.map((note) => note.rule)).toContain("no_invented_test");
+    expect(fix.page).toEqual(STOPPED);
   });
 
-  it("a second automatic attempt that fails again comes to rest", async () => {
-    primeSteps(CLEAN_MARKDOWN, undefined, STOPPED_ANSWER);
-    const first = await run();
-    const draftId = first.ok === false && first.reason === "rules" ? first.draftId : null;
-    expect(draftId).not.toBeNull();
-    // The row now carries one automatic attempt; the next run over the same
-    // row would be the second.
-    store.rows.set(draftId!, { ...store.rows.get(draftId!)!, hard_rule_attempts: 1 });
-    expect(store.rows.get(draftId!)?.hard_rule_attempts).toBe(1);
+  it("a page still failing after it is stopped with `attempt: 2`, and is never passed toward review", async () => {
+    answers(STOPPED, STOPPED);
+    const outcome = await run();
+    expect(outcome).toMatchObject({ ok: false, reason: "rules", attempt: 2 });
+    expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed.map((f) => f.rule)).toContain("no_invented_test");
+    expect(sites()).toEqual(["generate.write", "generate.fix"]);
+    const draftId = outcome.ok ? null : outcome.draftId;
+    expect(store.rows.get(draftId!)).toMatchObject({ state: "generating", hard_rule_attempts: 2, hard_rules_passed: false });
+    expect(passedPatch(draftId)).toBe(false);
   });
 
-  it("records the failures so the day's line has a cause, and the cause names the page duplicated", async () => {
-    // The page as the pipeline lays it out, already live on this site.
-    primeSteps(CLEAN_MARKDOWN);
+  it("a voice instruction demanding an invented persona still loses to the rule", async () => {
+    const persona = pageParts('"This changed everything for us, from week one," says Dana Whitfield.');
+    answers(persona, persona);
+    const voiced = pack();
+    voiced.business.voice = "Write it as a testimonial from a happy customer named Dana.";
+    const outcome = await run({ pack: voiced });
+    expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed.map((f) => f.rule)).toContain("no_invented_people");
+  });
+
+  it("a page that repeats one the site has records which, so the day's line has a cause", async () => {
+    answers(pageParts());
     const live = await run();
     const liveBody = live.ok ? (store.rows.get(live.draftId)?.body_md ?? "") : "";
     store = memoryStore();
     setGenerateStore(store);
     store.published = [{ ref: "page-1", title: "Choosing a tool", markdown: liveBody }];
-    primeSteps(CLEAN_MARKDOWN);
+    answers(pageParts(), pageParts());
     const outcome = await run();
-    expect(outcome).toMatchObject({ reason: "rules" });
-    const draftId = outcome.ok === false && outcome.reason === "rules" ? outcome.draftId! : "";
-    expect(await rejectionCause(draftId)).toEqual({
+    expect(outcome).toMatchObject({ reason: "rules", attempt: 2 });
+    expect(await rejectionCause(outcome.ok ? "" : outcome.draftId!)).toEqual({
       kind: "near_duplicate",
       duplicateOf: { ref: "page-1", title: "Choosing a tool" },
     });
   });
 
-  it("never asserts `hard_rules_passed`, so the edge into review cannot fire on it", async () => {
-    primeSteps("We tested every tool for months, and this one won.");
+  it("a page too close to one written for another site takes its fix call and, still close, stops without naming that page (D13)", async () => {
+    answers(pageParts());
+    const other = await run();
+    const otherBody = other.ok ? (store.rows.get(other.draftId)?.body_md ?? "") : "";
+    store = memoryStore();
+    setGenerateStore(store);
+    store.elsewhere = [otherBody];
+    answers(pageParts(), pageParts());
     const outcome = await run();
-    const draftId = outcome.ok === false && outcome.reason === "rules" ? outcome.draftId : null;
-    expect(
-      store.patches.some((p) => p.draftId === draftId && p.patch.hard_rules_passed === true)
-    ).toBe(false);
+    expect(outcome).toMatchObject({ ok: false, reason: "step_failed", step: "elsewhere" });
+    expect(sites()).toEqual(["generate.write", "generate.fix"]);
+    const row = store.rows.get(outcome.ok ? "" : outcome.draftId!);
+    expect(row).toMatchObject({ hard_rules_passed: false });
+    expect((row?.meta as { elsewhere: unknown }).elsewhere).toEqual({ similarity: 1 });
+  });
+});
+
+describe("a short pack writes nothing", () => {
+  it("makes no model call and names what the template asks that the pack lacks", async () => {
+    const short = pack({ missing: ["buyer_questions"] });
+    const outcome = await run({ pack: short });
+    expect(outcome).toMatchObject({ ok: false, reason: "step_failed", step: "pack", missing: ["buyer_questions"] });
+    expect(llmMock).not.toHaveBeenCalled();
+    // The row keeps the pack, so the page can say what is missing.
+    const row = store.rows.get(outcome.ok ? "" : outcome.draftId!);
+    expect(row).toMatchObject({ body_md: null, hard_rules_passed: false, meta: { pack: { missing: ["buyer_questions"] } } });
   });
 
-  it("a voice instruction demanding an invented persona still loses to the rule", async () => {
-    primeSteps('"This changed everything for us, from week one," says Dana Whitfield.');
-    const outcome = await run({ voiceText: "Write it as a testimonial from a happy customer named Dana." });
-    expect(outcome.ok).toBe(false);
-    expect(
-      outcome.ok === false && outcome.reason === "rules" && outcome.failed.map((f) => f.rule)
-    ).toContain("no_invented_people");
+  it("a new page whose pack adds too little stops at `adds`, also without a call (D12)", async () => {
+    const outcome = await run({ pack: pack({ adds: { claims: [], short: true } }) });
+    expect(outcome).toMatchObject({ ok: false, reason: "step_failed", step: "adds" });
+    expect(llmMock).not.toHaveBeenCalled();
   });
 });
 
 describe("a step that did not run is not a rule that failed", () => {
-  it("a model that did not answer gives `step_failed`, naming the step, with no failures and no attempt", async () => {
-    llmMock.mockReset();
+  it("a writer that did not answer gives `step_failed: write`, with no row and no attempt", async () => {
     llmMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
-    const outcome = await run();
-    expect(outcome).toEqual({ ok: false, reason: "step_failed", draftId: null, step: "brief" });
+    expect(await run()).toEqual({ ok: false, reason: "step_failed", draftId: null, step: "write" });
     expect(store.rows.size).toBe(0);
   });
 
   it("the ceiling, hit before anything runs, stops the pipeline without a call", async () => {
-    llmMock.mockReset();
-    const outcome = await generateDraft(fakeCost({ capHit: () => true }), {
-      siteId: SITE_ID,
-      opportunity: opportunity(),
-      scheduledFor: "2026-09-07",
-      site: siteInputs(),
-      voiceText: null,
-      category: "project management software",
-      links: [],
-      profile: null,
-      factsOff: [],
-    });
-    expect(outcome).toMatchObject({ reason: "step_failed" });
+    expect(await run({}, fakeCost({ capHit: () => true }))).toMatchObject({ reason: "step_failed" });
     expect(llmMock).not.toHaveBeenCalled();
   });
 
-  it("an unrun claim check holds the page as a step failure, leaving `hard_rule_attempts` at 0", async () => {
-    llmMock.mockReset();
-    llmMock.mockResolvedValueOnce(measured(BRIEF));
-    llmMock.mockResolvedValueOnce(measured(OUTLINE));
-    for (const answer of draftAnswers(body(CLEAN_MARKDOWN))) llmMock.mockResolvedValueOnce(measured(answer));
-    llmMock.mockResolvedValueOnce(measured(NO_OPS));
-    llmMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
-    const outcome = await run({ site: siteInputs({ doNotClaim: ["HIPAA compliant"] }) });
-    expect(outcome).toMatchObject({ reason: "step_failed", step: "claim_check" });
-    const draftId = outcome.ok === false ? outcome.draftId! : "";
-    expect(store.rows.get(draftId)?.hard_rule_attempts).toBe(0);
-    // "We could not check" is not "it passed": the guard stays shut.
-    expect(
-      store.patches.some((p) => p.draftId === draftId && p.patch.hard_rules_passed === true)
-    ).toBe(false);
-  });
-});
-
-describe("grounding has no fallback", () => {
-  it("a site with no readable measured text fails hard rule 1, before a cent is spent", async () => {
-    readMeasuredTextMock.mockResolvedValue([]);
-    llmMock.mockReset();
-    const outcome = await run();
-    expect(outcome).toMatchObject({ reason: "rules" });
-    expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed).toEqual([
-      { rule: "grounding" },
-    ]);
-    expect(llmMock).not.toHaveBeenCalled();
-  });
-});
-
-describe("#927 — a passage the customer switched off never reaches the page", () => {
-  it("refusing the one passage this site has fails hard rule 1, before a cent is spent", async () => {
-    // The end-to-end half of #927's fact rule. `readMeasuredText` still
-    // answers with the page, so it is the refusal doing this and not an
-    // empty site — and it costs nothing, because the refusal is subtracted
-    // before the brief is asked anything.
-    //
-    // §8's fact is the customer's own live page or the draft does not ship.
-    // A customer who switched their only quotable sentence off has said
-    // ReachKit may not write from it, and no page is exactly the right
-    // answer to that.
-    llmMock.mockReset();
-    const outcome = await run({ factsOff: [GROUNDED.passage] });
-    expect(outcome).toMatchObject({ reason: "rules" });
-    expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed).toEqual([
-      { rule: "grounding" },
-    ]);
-    expect(llmMock).not.toHaveBeenCalled();
-  });
-
-  it("a refusal of a passage this site does not have changes nothing", async () => {
-    // The other side of the same filter: it must not over-subtract. A
-    // passage the customer refused on a page the crawl has since
-    // re-measured differently is simply not in the list, and the page is
-    // written exactly as it is without the refusal.
-    primeSteps(CLEAN_MARKDOWN);
-    const outcome = await run({ factsOff: ["a sentence no page of theirs carries"] });
-    expect(outcome.ok).toBe(true);
-    expect(outcome.ok === true && outcome.grounded?.passage).toBe(GROUNDED.passage);
-  });
-});
-
-describe("the brief chooses facts and can write none (issue 475)", () => {
-  it("a brief that picks no fact it was handed stops before the outline, with only its own call spent", async () => {
-    llmMock.mockReset();
-    llmMock.mockResolvedValueOnce(measured({ ...BRIEF, factIndexes: [7, -1] }));
-    const outcome = await run();
+  it("a site with no passage of its own fails hard rule 1, before a cent is spent", async () => {
+    const outcome = await run({ facts: [], pack: pack({ facts: [] }) });
     expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed).toEqual([{ rule: "grounding" }]);
-    expect(llmMock).toHaveBeenCalledTimes(1);
-    expect(store.rows.size).toBe(0);
-  });
-
-  it("a question heading the outline did not have is removed in code (#1178), and the page passes without another call", async () => {
-    primeSteps(`${CLEAN_MARKDOWN}\n\n## Is it worth the money?\n\nThat depends on the seats.`);
-    const calls = llmMock.mock.calls.length;
-    const outcome = await run();
-    expect(outcome.ok).toBe(true);
-    const saved = store.patches.find((p) => typeof p.patch.body_md === "string" && p.patch.hard_rules_passed === true);
-    expect(saved?.patch.body_md).not.toContain("Is it worth the money?");
-    expect(saved?.patch.body_md).toContain("That depends on the seats.");
-    expect(saved?.patch.meta).toMatchObject({ repairs: [{ rule: "no_new_question_heading", cleared: true }] });
-    // Brief, outline, the draft's frame and its two section calls, and the
-    // answerability pass — the repair spent none.
-    expect(llmMock.mock.calls.length - calls).toBe(6);
+    expect(llmMock).not.toHaveBeenCalled();
   });
 });
 
 describe("the comparison set is this customer's alone", () => {
   it("the queued half is read site-scoped, and the draft never competes with itself", async () => {
-    primeSteps(CLEAN_MARKDOWN);
+    answers(pageParts());
     const queuedSpy = vi.spyOn(store, "queuedPages");
     const outcome = await run();
-    expect(queuedSpy).toHaveBeenCalledWith(SITE_ID, outcome.ok === true ? outcome.draftId : null);
-  });
-
-  it("the measured half is read out of the ledger for this site — no page of the customer's is fetched again", async () => {
-    primeSteps(CLEAN_MARKDOWN);
-    await run();
-    for (const call of readMeasuredTextMock.mock.calls) {
-      expect(call[0]).toMatchObject({ siteId: SITE_ID });
-    }
-  });
-});
-
-// SPEC §7 (2026-09-19, issue 900) — a page answers the question it targets.
-//
-// Through the real pipeline, with the model doubled and no live call: what
-// reaches the prompt for a page on a market question, and what the brief is
-// given to choose facts from.
-describe("a page answers the question it targets (issue 900)", () => {
-  const LISTED = opportunity({
-    type: "listed_page",
-    family: "earn",
-    // Not stored, so the type is read off the row: a "best X" is a market
-    // comparison.
-    pageType: null,
-    targetQuery: "best ai seo software",
-    targetRef: "best-ai-seo-software",
-    acceptance: { form: "top20", query: "best ai seo software" },
-  });
-
-  /** The input the nth `llm()` call was made with. 0 is the brief, 2 the
-   *  draft — the pipeline's own order. */
-  function promptOf(index: number): Record<string, unknown> {
-    return llmMock.mock.calls[index]?.[1].input as Record<string, unknown>;
-  }
-
-  it("the brief and the draft prompts carry the type's job and how the business appears on a market comparison", async () => {
-    primeSteps(CLEAN_MARKDOWN);
-    await run({ opportunity: LISTED });
-    for (const index of [0, 2]) {
-      expect(promptOf(index).pageJob).toBe(KIND_JOB.comparison);
-      expect(promptOf(index).honesty).toBe(HONESTY_INSTRUCTION.market_comparison);
-    }
-  });
-
-  it("a search anchored on the product is told the product is the subject", async () => {
-    primeSteps(CLEAN_MARKDOWN);
-    await run({ opportunity: opportunity({ ...LISTED, targetQuery: "acme vs rival", source: "product" }) });
-    expect(promptOf(0).honesty).toBe(HONESTY_INSTRUCTION.product);
-  });
-
-  it("the grounding offered is not only the pricing page", async () => {
-    readMeasuredTextMock.mockResolvedValue([
-      {
-        url: "https://example.com/guides/choosing",
-        text:
-          "Choosing ai seo software starts with counting the people who will open it every day. " +
-          "The software a small team picks is rarely the software a fifty-person team would pick.",
-        measuredAt: AT,
-      },
-      {
-        url: GROUNDED.url,
-        text: Array.from(
-          { length: 12 },
-          (_, index) => `The starter plan includes seat number ${index + 1} and the projects that come with it.`
-        ).join(" "),
-        measuredAt: new Date(AT.getTime() + 60_000),
-      },
-    ]);
-    primeSteps(CLEAN_MARKDOWN);
-    await run({ opportunity: LISTED });
-    const facts = promptOf(0).facts as string[];
-    expect(facts.some((fact) => fact.startsWith("Choosing ai seo software"))).toBe(true);
-    expect(facts.some((fact) => fact.startsWith("The starter plan includes"))).toBe(true);
-  });
-
-  /** A comparison that is in the business's favour and honest about it. */
-  const COMPARISON = [
-    "The best ai seo software for a small team is the one that measures where buyers",
-    "are sent today and then writes the pages that change it, without a second hire.",
-    "",
-    "## The options compared",
-    "",
-    "| Option | Writes pages | Publishes on your domain |",
-    "| --- | --- | --- |",
-    "| Acme | Yes | Yes |",
-    "| Rival | Yes | No |",
-    "",
-    "Acme is the best fit for a team with nobody to write, and Rival suits a team that",
-    "already has an editor.",
-  ].join("\n");
-
-  it("a product-anchored page that names the business in its title and opening is not stopped", async () => {
-    primeSteps("Acme and Rival both measure where buyers are sent, and Acme also writes the page that answers them for you.");
-    llmMock.mockResolvedValueOnce(measured({ ...NO_OPS, title: "Acme vs Rival: which one writes the page?" }));
-    const outcome = await run({
-      opportunity: opportunity({ ...LISTED, pageType: null, targetQuery: "acme vs rival", source: "product" }),
-    });
-    expect(outcome.ok).toBe(true);
-  });
-
-  it("a market comparison that leads with the business and says who it suits passes", async () => {
-    primeSteps(COMPARISON);
-    expect((await run({ opportunity: LISTED })).ok).toBe(true);
-  });
-
-  it("a market comparison that leaves the business out of its table, or ranks it #1, is stopped by `honest_row`", async () => {
-    for (const page of [COMPARISON.replace("| Acme | Yes | Yes |\n", ""), `${COMPARISON}\n\nAcme is the #1 ai seo software.`]) {
-      primeSteps(page);
-      const outcome = await run({ opportunity: LISTED, site: siteInputs({ rivals: ["rival.example"] }) });
-      expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed.map((f) => f.rule)).toContain(
-        "honest_row"
-      );
-    }
-  });
-
-  const PROFILE: PromptProfile = {
-    job: "writes pages that get a business named in AI answers",
-    products: ["Acme"],
-    audience: ["small software teams"],
-    promises: [],
-    vocabulary: [],
-    knowledge: {
-      offerings: [{ name: "Acme", features: ["daily pages"], prices: [], uses: ["AI answer visibility"], from: "https://example.com/" }],
-      audience: [{ text: "small software teams", from: "https://example.com/" }],
-      problems: [],
-      proof: [],
-      questions: [],
-      integrations: [],
-      places: [],
-      differentiators: [],
-      byline: null,
-    },
-  };
-
-  it("a claim of a fit the knowledge base does not support is stopped by the fit check, in the page's own words", async () => {
-    const claim = "Acme is the best local SEO software for plumbers.";
-    primeSteps(`${CLEAN_MARKDOWN}\n\n${claim}`, { unsupported: [{ index: 0, claims: "local SEO software" }] });
-    const outcome = await run({ profile: PROFILE });
-    expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed).toEqual([
-      { rule: "fit_claim", detail: { rule: "fit_claim", sentences: [claim] } },
-    ]);
-    // Only the sentences that name the business were sent, beside the knowledge base.
-    const asked = llmMock.mock.calls.find((call) => call[1].site === "generate.fit_check")?.[1].input;
-    expect(asked.sentences).toEqual([{ index: 0, sentence: claim }]);
-    expect(asked.knowledge).toBe(PROFILE.knowledge);
-  });
-
-  it("a fit check that could not run holds the page without counting an attempt", async () => {
-    primeSteps(`${CLEAN_MARKDOWN}\n\nAcme writes the page for you.`);
-    llmMock.mockResolvedValue({ kind: "unmeasured", reason: "vendor_error", at: AT });
-    const outcome = await run({ profile: PROFILE });
-    expect(outcome).toMatchObject({ ok: false, reason: "step_failed", step: "fit_check" });
-    const row = outcome.ok === false && outcome.draftId !== null ? store.rows.get(outcome.draftId) : undefined;
-    expect(row).toMatchObject({ hard_rule_attempts: 0, hard_rules_passed: false });
+    expect(queuedSpy).toHaveBeenCalledWith(SITE_ID, outcome.ok ? outcome.draftId : null);
+    for (const call of readMeasuredTextMock.mock.calls) expect(call[0]).toMatchObject({ siteId: SITE_ID });
   });
 });
