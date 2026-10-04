@@ -1197,6 +1197,14 @@ export const TOO_EARLY_WEEKS = 3 as const;                   // BP-051 d4 · REQ
 export const SHINGLE_SIZE = 5 as const;                      // BP-042 · REQ-050 c9
 export const NEAR_DUPLICATE_MAX = 0.85 as const;             // BP-042 · REQ-050 c9 · BUILD §8
 
+/** SPEC §7 (owner, D13, issue 1144): a draft is compared with what ReachKit
+ *  wrote for **other** sites, at `NEAR_DUPLICATE_MAX` — the same bar as the
+ *  same-site check, so there is no second threshold here. `months` is the
+ *  ruling's; `pagesMax` bounds one read, newest first (a drafted default:
+ *  a run that reaches it logs that it did); `noteSentences` is how many of
+ *  the draft's own shared sentences the one rewrite is told to avoid. */
+export const ELSEWHERE = Object.freeze({ months: 12, pagesMax: 1000, noteSentences: 12 } as const);
+
 /** BP-042 decision 5: "`no_machine_address` is a pinned pattern battery" —
  *  "a pinned list matching the named forms (an instruction or assertion
  *  directed at an assistant, a crawler or a ranking system about how to

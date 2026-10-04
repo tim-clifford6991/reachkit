@@ -98,6 +98,79 @@ let setGenerateStore: typeof import("../../src/lib/generate/store").setGenerateS
 let DraftDateTaken: typeof import("../../src/lib/generate/store").DraftDateTaken;
 let store: MemoryStore;
 
+describe("no near-identical page across customers (SPEC §7, D13; issue 1144)", () => {
+  /** The page as this site's row holds it, read off a run nothing stops. */
+  async function writtenBody(markdown: string): Promise<string> {
+    queueAttempt(markdown);
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-06" });
+    const body = outcome.ok ? store.rows.get(outcome.draftId)?.body_md : null;
+    store.rows.clear();
+    llmMock.mockClear();
+    queueForDraftMock.mockClear();
+    return body ?? "";
+  }
+
+  it("a page that matches one written for another site is written again once, told what the two share, then held without naming that page", async () => {
+    store.elsewhere = [await writtenBody(CLEAN_MARKDOWN)];
+    queueAttempt(CLEAN_MARKDOWN);
+    queueAttempt(CLEAN_MARKDOWN);
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+
+    expect(outcome).toMatchObject({ ok: false, because: "step_failed", step: "elsewhere" });
+    // Written twice and no third time.
+    const drafts = llmMock.mock.calls.filter((call) => call[1].site === "generate.draft");
+    expect(drafts).toHaveLength(2);
+    expect(JSON.stringify(drafts[0]?.[1].input)).not.toContain("apart");
+    expect(JSON.stringify(drafts[1]?.[1].input)).toContain("a seat limit is the constraint teams notice last");
+
+    expect(store.rows.size).toBe(1);
+    const [row] = [...store.rows.values()];
+    expect(row).toMatchObject({ state: "needs_attention", hard_rules_passed: false, rule_failures: [] });
+    // A number on the row, and nothing that says which page or whose.
+    expect((row?.meta as { elsewhere: unknown }).elsewhere).toEqual({ similarity: 1 });
+    expect(transitionMock).toHaveBeenCalledWith(
+      row?.id,
+      "needs_attention",
+      { kind: "system", job: "draft/generate" },
+      { reason: "step_failed:elsewhere" }
+    );
+    expect(queueForDraftMock).not.toHaveBeenCalled();
+  });
+
+  it("the rewrite that reads differently goes on to review", async () => {
+    store.elsewhere = [await writtenBody(CLEAN_MARKDOWN)];
+    queueAttempt(CLEAN_MARKDOWN);
+    queueAttempt(OWN_MARKDOWN);
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+
+    expect(outcome).toMatchObject({ ok: true });
+    const [row] = [...store.rows.values()];
+    expect(row).toMatchObject({ hard_rules_passed: true });
+    expect(row?.meta).not.toHaveProperty("elsewhere");
+  });
+
+  it("a page about the same subject in its own words is not held", async () => {
+    store.elsewhere = [await writtenBody(OWN_MARKDOWN)];
+    queueAttempt(CLEAN_MARKDOWN);
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(outcome).toMatchObject({ ok: true });
+  });
+});
+
+/** The clean page's subject and its one fact, in other words. */
+const OWN_MARKDOWN = [
+  "## Which tool should a small team pick?",
+  "",
+  "Begin with headcount. A tool that fits four people can pinch at fourteen,",
+  "so write down who needs to log in before comparing anything else on the list.",
+  "",
+  "Teams on the starter plan get 25 seats and unlimited projects for a flat",
+  "monthly fee, per [the published pricing page](https://example.com/pricing).",
+  "",
+  "Hold each option against that figure, and rule out the ones that would",
+  "make a growing team pay again within the year.",
+].join("\n");
+
 /** Every context this suite opens, so the cap and the roll-up choice can be
  *  asserted rather than assumed. */
 const opened: Array<{ scanId: string; cap: string; rollUp?: string }> = [];

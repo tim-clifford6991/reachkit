@@ -186,6 +186,8 @@ export interface MemoryStore extends GenerateStore {
   site: SiteFacts | null;
   storedReport: StoredReport | null;
   published: StoredPage[];
+  /** Issue 1144: pages written for other sites, as their Markdown. */
+  elsewhere: string[];
   inventory: InventoryRow[];
   /** #928: the pages this site already has, as `known_content` holds them. */
   known: KnownPage[];
@@ -210,6 +212,7 @@ export function memoryStore(over: Partial<MemoryStore> = {}): MemoryStore {
     },
     storedReport: report(),
     published: [],
+    elsewhere: [],
     inventory: [],
     known: [],
     cluster: new Map(),
@@ -276,6 +279,9 @@ export function memoryStore(over: Partial<MemoryStore> = {}): MemoryStore {
       return [...rows.values()]
         .filter((row) => row.id !== exceptDraftId && row.state !== "published")
         .map((row) => ({ ref: row.id, title: row.title ?? "", markdown: row.body_md ?? "" }));
+    },
+    async pagesElsewhere() {
+      return store.elsewhere;
     },
     async draftsShortOfHandOff(_siteId, limit) {
       return [...rows.values()].slice(0, limit);
