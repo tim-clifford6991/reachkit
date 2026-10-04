@@ -165,9 +165,11 @@ describe("a published page is inert: nothing in a body reaches the document as m
     const { html, doc } = await served();
 
     expect(active(doc)).toEqual([]);
-    // The only `<script>` on the page is the route's own data block.
+    // The only `<script>`s on the page are the route's own data blocks.
     const scripts = Array.from(doc.querySelectorAll("script"));
-    expect(scripts.map((script) => script.getAttribute("type"))).toEqual(["application/ld+json"]);
+    expect(new Set(scripts.map((script) => script.getAttribute("type")))).toEqual(
+      new Set(["application/ld+json"])
+    );
     // What a reader sees is the five characters and a word, which is what
     // a customer who typed it would expect.
     expect(html).toContain("&lt;script&gt;");
@@ -190,7 +192,9 @@ describe("a published page is inert: nothing in a body reaches the document as m
 
     expect(active(doc)).toEqual([]);
     const scripts = Array.from(doc.querySelectorAll("script"));
-    expect(scripts.map((script) => script.getAttribute("type"))).toEqual(["application/ld+json"]);
+    expect(new Set(scripts.map((script) => script.getAttribute("type")))).toEqual(
+      new Set(["application/ld+json"])
+    );
     // The table is a real table — the block published, it was not dropped —
     // and the markup a body typed into it is that cell's text.
     const cells = Array.from(doc.querySelectorAll("td")).map((td) => td.textContent);

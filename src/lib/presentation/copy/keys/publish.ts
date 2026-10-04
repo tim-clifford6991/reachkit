@@ -409,6 +409,13 @@ export const PUBLISH_COPY = Object.freeze({
   // The breadcrumb's name as a landmark; its three parts are the
   // customer's name, `hosted.index.heading` and the page's own title.
   "hosted.breadcrumb": ["Breadcrumb", { slots: {}, fixedBy: "issue 1140" }],
+  // The index's description in a search result and in the feed, for a
+  // business with no line of its own (issue 1141). Drafted under #759's
+  // ruling; the owner corrects the wording.
+  "hosted.index.description": [
+    "Articles and guides from {publisher}.",
+    { slots: { publisher: "text" }, fixedBy: "issue 1141" },
+  ],
   "hosted.index.latest": ["Latest", { slots: {}, fixedBy: "issue 1140" }],
   "hosted.index.pages": ["Pages of articles", { slots: {}, fixedBy: "issue 1140" }],
   "hosted.index.newer": ["Newer", { slots: {}, fixedBy: "issue 1140" }],

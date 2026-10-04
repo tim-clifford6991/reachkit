@@ -1,5 +1,5 @@
 // BUILD §9 — the hosted page: one typographic render, canonical on the
-// customer's own domain, a description and `Article` on every page,
+// customer's own domain, a description and `BlogPosting` on every page,
 // `FAQPage` from data, zero client JavaScript.
 //
 // §9: published pages "render through **one** clean typographic template
@@ -35,9 +35,11 @@
 // is ReachKit's template, not the customer's: a fault there is ours to fix
 // in the template, never a Fix opportunity. So every live page's head
 // carries the description generation wrote for it (`drafts.meta`), and
-// every page carries an `Article` block built from facts the page already
-// states — its title, its description, its date, its canonical and its
-// publisher. No author: §8 forbids inventing one.
+// every page carries a `BlogPosting` and a `BreadcrumbList` block built
+// from what the page already shows (SPEC §7, 2026-09-29, issue 1141;
+// `seo.ts`) — its title, its description, its dates, its byline, its
+// canonical, its publisher and the three parts of its breadcrumb — with
+// the share tags and the link to the feed beside them in the head.
 //
 // **The page carries the customer's identity** (SPEC §7, 2026-09-29, issue
 // 1140; the *Hosted article* board in `docs/DESIGN.md`). Their logo and name
@@ -100,7 +102,14 @@ import { resolveHost } from "../../resolve-host";
 import { AboutCard, HostedFooter, HostedHeader, INDEX_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
 import { HostedIndex, pageOf, queryOf } from "./listing";
 import { bylineLine } from "@/lib/publish/render/byline";
-import { PAGE_LOCALE, writeDate } from "./present";
+import { writeDate } from "./present";
+import {
+  articleMetadata,
+  blogPostingSchema,
+  breadcrumbSchema,
+  indexMetadata,
+  jsonLd,
+} from "./seo";
 import { classifyBlogRead } from "@/lib/publish/reads/classify";
 
 /** Nothing on this surface is cached (WO-028's NFR): a publication row that
@@ -207,20 +216,13 @@ export async function generateMetadata({
   if (isIndex(slug)) {
     const index = await loadIndex();
     if (index === null) return {};
-    return {
-      title: `${copy("hosted.index.heading")} · ${index.business.name}`,
-      alternates: { canonical: index.canonical },
-    };
+    return indexMetadata(index);
   }
   if (slug === undefined) return {};
   const segment = oneSegment(slug);
   const resolved = segment === null ? null : await load(segment);
   if (resolved === null) return {};
-  return {
-    title: resolved.page.title,
-    description: descriptionOf(resolved.page),
-    alternates: { canonical: resolved.canonical },
-  };
+  return articleMetadata({ ...resolved, description: descriptionOf(resolved.page) });
 }
 
 /** A description's length in a search result, past which it is cut. */
@@ -244,36 +246,6 @@ function descriptionOf(page: HostedPage): string | undefined {
   const cut = text.slice(0, DESCRIPTION_CHARS);
   const space = cut.lastIndexOf(" ");
   return `${(space > 0 ? cut.slice(0, space) : cut).trimEnd()}…`;
-}
-
-/** A schema object as a script body. Next's own JSON-LD guidance:
- *  `JSON.stringify` does not escape a `<`, and every value here is
- *  customer- or model-written text. */
-function jsonLd(schema: Record<string, unknown>): string {
-  return JSON.stringify(schema).replace(/</g, "\\u003c");
-}
-
-/** `Article`, on every page: what the page is, from what it states. */
-function articleSchema(page: HostedPage, canonical: string): string {
-  const description = descriptionOf(page);
-  return jsonLd({
-    "@context": "https://schema.org",
-    "@type": "Article",
-    "@id": `${canonical}#article`,
-    headline: page.title,
-    ...(description === undefined ? {} : { description }),
-    url: canonical,
-    mainEntityOfPage: canonical,
-    // The dates the page itself prints (SPEC §7, 2026-09-29).
-    datePublished: page.firstPublishedAt.toISOString(),
-    dateModified: page.publishedAt.toISOString(),
-    inLanguage: PAGE_LOCALE,
-    publisher: {
-      "@type": "Organization",
-      name: page.publisher.name,
-      url: `https://${page.publisher.name}`,
-    },
-  });
 }
 
 /** `FAQPage` from the stored section, or nothing at all. */
@@ -460,8 +432,14 @@ export default async function HostedPageRoute({
   // sent: the classification needs this request's own headers, and the
   // write must not stand between the reader and the page.
   await countBlogRead(page, await searchParams);
-  const article = articleSchema(page, canonical);
+  // What the page says about itself as data: always the posting and the
+  // breadcrumb, and the questions only where the page has them.
   const faq = faqSchema(page, canonical);
+  const dataBlocks = [
+    blogPostingSchema({ page, canonical, business, description: descriptionOf(page) }),
+    breadcrumbSchema({ page, canonical, business }),
+    ...(faq === null ? [] : [faq]),
+  ];
   // The one Markdown renderer (`markdown.ts`), which escapes every text
   // node on the way out — so a body cannot introduce markup and this
   // string is safe to set as HTML by construction rather than by a
@@ -505,10 +483,9 @@ export default async function HostedPageRoute({
         wide: { kind: "declared", note: "the article with a sticky table of contents beside it" },
       }}
     >
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: article }} />
-      {faq === null ? null : (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faq }} />
-      )}
+      {dataBlocks.map((block) => (
+        <script key={block} type="application/ld+json" dangerouslySetInnerHTML={{ __html: block }} />
+      ))}
 
       <HostedHeader business={business} />
 
