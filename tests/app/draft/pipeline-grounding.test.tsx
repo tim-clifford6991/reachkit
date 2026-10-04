@@ -322,7 +322,8 @@ describe("§8's battery — the record the pipeline wrote is the record the draf
     expect(Object.keys((row.meta ?? {}) as object).sort()).toEqual(
       // `length` since issue 1138: the page's words against its target. `adds`
       // since issue 1143: what the page says that the web and the site do not.
-      ["adds", "description", "factsUsed", "faq", "length", "marketFacts"].sort()
+      // `market` since issue 1248: the market the page was written for.
+      ["adds", "description", "factsUsed", "faq", "length", "market", "marketFacts"].sort()
     );
     // A rule record is still not one of them, under any spelling.
     expect(Object.keys((row.meta ?? {}) as object)).not.toContain("rule_failures");

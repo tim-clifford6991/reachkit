@@ -39,6 +39,7 @@ import type { Acceptance, Opportunity } from "@/lib/opportunities/types";
 import { REGISTER_FLOOR } from "../rules/figures";
 import { HONESTY_INSTRUCTION } from "../rules/honest";
 import type { DraftPromptInputs } from "../voice/inputs";
+import type { PromptMarket } from "../voice/market";
 import type { PromptProfile } from "../voice/profile-block";
 import { answerBoxOf, answerBoxWords } from "../rules/blocks";
 import type { AnswerabilityOps } from "./answerability";
@@ -221,6 +222,10 @@ export interface BriefProjection {
   /** The confirmed business profile, bounded, or `null` where nothing has
    *  been read of the site (#927). */
   profile: PromptProfile | null;
+  /** The site's market in force (`sites.market`, issue 1248): its category,
+   *  who buys, the job, the rivals and the markets it is not in. `null`
+   *  where none is stored. It names rivals, never the business. */
+  market: PromptMarket | null;
   /** SPEC §7 (2026-10-03, D36, issue 1209): every page the site has
    *  published or planned — its title, the question it answers and its kind
    *  — so the brief takes an angle none of them already takes. Empty on a
@@ -257,6 +262,7 @@ export function briefProjection(a: {
   doNotClaim: readonly string[];
   voice: string | null;
   profile: PromptProfile | null;
+  market?: PromptMarket | null;
   sitePages?: readonly SitePage[];
   marketFacts?: readonly { source: string; claim: string }[];
 }): BriefProjection {
@@ -275,6 +281,7 @@ export function briefProjection(a: {
     pageJob: pageJobFor(o),
     honesty: pageType === null ? null : HONESTY_INSTRUCTION[pageType],
     profile: a.profile,
+    market: a.market ?? null,
     sitePages: a.sitePages ?? [],
   };
 }
@@ -342,6 +349,10 @@ function promptFor(
     // addresses, so the page can stand beside them and link to them rather
     // than say what one of them already says.
     known: inputs.known,
+    // SPEC §7 (2026-10-04, issue 1248): the site's market in force — who
+    // buys, the job, the rivals and what it is not — or `null` where none
+    // is stored.
+    market: inputs.market,
     ...extra,
   };
 }
@@ -386,6 +397,8 @@ const HOUSE_RULES = [
   // about; the fact rule below is unchanged by it.
   "Where `profile.knowledge` is given, it is what this business sells and how — its offerings, who it serves, the problems it solves, how it differs, its proof and its buyers' questions, each with the page it was read from in `from`, or `founder` where the founder said it. Write the page about those, never about a generic business of its kind.",
   "`profile` is not a source of facts: state no price, quantity, date, person, review or figure that is not in `facts`, word for word and linked, however much `profile` suggests one.",
+  // Issue 1248: the market in force. It places the page; it is no fact pool.
+  "Where `market` is given, it is the market this business is in: `market.category` is what it is, `market.buyer` who buys it and `market.job` what they hire it for. Write for that buyer and that job, and never describe the business as one of `market.notOurMarket`. `market.rivals` says who it competes with and is not a source: the rule on naming a competing product is unchanged.",
 ];
 
 async function step<T>(
@@ -419,7 +432,10 @@ export function brief(c: CostContext, projection: BriefProjection): Promise<Meas
         "should speak to, and say so in " +
         "the points — the page must be specific to this business and relevant to its " +
         "readers, never generic. Answer the target search first: the profile tells you " +
-        "who is answering, never what the page is about. `sitePages` lists every page " +
+        "who is answering, never what the page is about. Where `market` is given, it is " +
+        "the market this business is in — its category, who buys, the job they hire it " +
+        "for and its rivals: frame the reader and the angle for that buyer and that job, " +
+        "and never place the business in one of `market.notOurMarket`. `sitePages` lists every page " +
         "this site has published or planned, with the question each answers and its " +
         "kind: take an angle none of them already takes, and where one of them answers " +
         "something this page raises, make sending the reader to it one of the points " +

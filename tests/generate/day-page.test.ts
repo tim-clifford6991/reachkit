@@ -576,6 +576,46 @@ describe("§7 (2026-09-12) — the page links into the customer's own site and t
   });
 });
 
+describe("issue 1248 — the page is written for the site's market in force", () => {
+  const CURRENT = {
+    category: "seat-based project software",
+    buyer: "small agencies",
+    job: "plan client work",
+    synonyms: [],
+    differentiators: [],
+    notOurMarket: ["time tracking"],
+    categoryReason: "",
+    rivals: [{ domain: "rival.example", name: "Rival", basis: "ranks" as const, reason: "" }],
+  };
+  const prompts = () => llmMock.mock.calls.map((call) => call[1].input as { category?: string; market?: { category: string } | null });
+
+  it("the brief, the outline and the draft read sites.market, and the row records it", async () => {
+    const before = store.site;
+    store.site = {
+      ...before!,
+      market: { current: CURRENT, adoptedAt: null, pending: null, categoryOverridden: false, rivalsOverridden: false },
+    };
+    queueAttempt(CLEAN_MARKDOWN);
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    store.site = before;
+
+    for (const input of prompts().slice(0, 3)) {
+      expect(input.market?.category).toBe(CURRENT.category);
+      if (input.category !== undefined) expect(input.category).toBe(CURRENT.category);
+    }
+    const meta = (outcome.ok ? store.rows.get(outcome.draftId)?.meta : null) as { market?: unknown } | null;
+    expect(meta?.market).toMatchObject({ from: "site", category: CURRENT.category, buyer: "small agencies", notOurMarket: ["time tracking"] });
+  });
+
+  it("a site with no stored market is written for its report's category, as before", async () => {
+    queueAttempt(CLEAN_MARKDOWN);
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(prompts().slice(0, 3).every((input) => input.market === null)).toBe(true);
+    const meta = (outcome.ok ? store.rows.get(outcome.draftId)?.meta : null) as { market?: { from: string } } | null;
+    expect(meta?.market?.from).toBe("report");
+  });
+});
+
 describe("issue 737 — the first draft, for a paid site with a free-scan cache", () => {
   it("is written from the stored inventory and never starts a crawl", async () => {
     queueAttempt(CLEAN_MARKDOWN);

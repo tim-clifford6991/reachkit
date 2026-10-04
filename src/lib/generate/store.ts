@@ -21,6 +21,8 @@ import { dbAdmin } from "@/lib/db";
 import type { KnownPage } from "@/lib/known-content/types";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { readStoredCheck } from "@/lib/publish/verify/stored";
+import { parseStoredMarket } from "@/lib/market/infer/stored";
+import type { StoredMarket } from "@/lib/market/infer/types";
 import { readSiteProfile } from "@/lib/site-profile/store";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import type { ClusterPage } from "./links/select";
@@ -106,6 +108,9 @@ export interface SiteFacts {
   voiceText: string | null;
   doNotClaim: string[];
   rivals: string[];
+  /** `sites.market` (D28): the market ReachKit concluded and keeps current,
+   *  which a page is written for (issue 1248). Absent reads as none stored. */
+  market?: StoredMarket;
 }
 
 /** A page of the customer's own, as the near-duplicate gate compares it. */
@@ -270,8 +275,9 @@ export function supabaseGenerateStore(): GenerateStore {
           voice_text: string | null;
           do_not_claim: unknown;
           competitors: unknown;
+          market: unknown;
         }>("sites")
-        .select("id, domain, category, voice_text, do_not_claim, competitors")
+        .select("id, domain, category, voice_text, do_not_claim, competitors, market")
         .eq("id", siteId)
         .limit(1);
       if (result.error) throw new Error(`generate/store: read from sites failed: ${result.error.message}`);
@@ -284,6 +290,7 @@ export function supabaseGenerateStore(): GenerateStore {
         voiceText: row.voice_text,
         doNotClaim: stringsOf(row.do_not_claim),
         rivals: stringsOf(row.competitors),
+        market: parseStoredMarket(row.market),
       };
     },
 

@@ -55,6 +55,7 @@ import { recoveryOutcome } from "./claims/recovery";
 import { readRecordedRules } from "./record";
 import type { SiteRuleInputs } from "./rules/types";
 import { confirmedForWriting } from "./voice/confirmed";
+import { writingMarket } from "./voice/market";
 import {
   clusterLinkTargets,
   knownLinkTargets as knownContentTargets,
@@ -414,8 +415,13 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
     rivals: site.rivals,
   };
 
-  const category =
-    report.market.kind === "unmeasured" ? "" : report.market.value.profile.category;
+  // SPEC §7 (2026-10-04, issue 1248): the page is written for the site's
+  // market in force (`sites.market`, D28) — the report's category is the one
+  // that pass was bought under, and stands in only where no market is stored.
+  const writingFor = writingMarket({
+    site: site.market === undefined ? null : { category: site.category, competitors: site.rivals, stored: site.market },
+    reportCategory: report.market.kind === "unmeasured" ? "" : report.market.value.profile.category,
+  });
 
   // SPEC §7 (2026-09-20), #927: the **confirmed** business profile joins the
   // writer's inputs — what the business does, sells, promises, serves and
@@ -511,7 +517,8 @@ async function writePage(a: PageInput & { attempts: number }, cost: CostContext)
       scheduledFor: a.publishDate,
       site: ruleInputs,
       voiceText: site.voiceText,
-      category,
+      category: writingFor.category,
+      siteMarket: writingFor.market,
       links,
       known: knownBriefs,
       sitePages,
