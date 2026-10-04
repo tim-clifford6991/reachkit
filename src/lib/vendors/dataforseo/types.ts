@@ -79,6 +79,10 @@ export interface SerpAiOverview {
   /** The domains the AI Overview cited, in the order DataForSEO returned
    *  them. Empty when `present` is `false`. */
   referenceDomains: readonly string[];
+  /** The addresses the AI Overview cited, in the vendor's order (issue
+   *  1147). Absent on a response stored before it was read, which says
+   *  nothing about what that answer cited. */
+  referenceUrls?: readonly string[];
 }
 
 /** `serpOrganic` — organic top-10 **and** the `ai_overview` item with its

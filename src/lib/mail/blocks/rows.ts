@@ -22,6 +22,7 @@ import type { MailBlock } from "./types";
 export interface RenderedRow {
   left: string;
   right?: string;
+  href?: string;
 }
 
 /** The rows of a kept `list` or `verdicts` block, rendered through
@@ -37,7 +38,10 @@ export function rowsOf(
     );
   }
   if (block.block === "list") {
-    return block.items.value.map((item) => ({ left: copy(item.label, item.vars) }));
+    return block.items.value.map((item) => ({
+      left: copy(item.label, item.vars),
+      ...(item.href === undefined ? {} : { href: item.href }),
+    }));
   }
   return block.items.value.map((item) => ({
     left: copy(item.subject, item.subjectVars),

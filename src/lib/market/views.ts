@@ -55,6 +55,8 @@ export interface MarketOrganicRow {
 export interface MarketAiOverview {
   present: boolean;
   referenceDomains: readonly string[];
+  /** The addresses it cited, where the response carried them (issue 1147). */
+  referenceUrls?: readonly string[];
 }
 
 /** One battery engine's answer, as the AI-answers card reads it (§6.2's

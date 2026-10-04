@@ -190,7 +190,17 @@ export const REPORT_VERSION = 13;
  *  `unmeasured` cell lowers the denominator and is never counted as a
  *  place the customer was ignored. */
 export type AnswerCell =
-  | { kind: "answered"; citedDomains: readonly string[]; namesCustomer: boolean }
+  | {
+      kind: "answered";
+      citedDomains: readonly string[];
+      namesCustomer: boolean;
+      /** The site's own pages this answer cited (SPEC §4 2026-09-29, D16,
+       *  issue 1147) — what a page's verdict reads before it credits that
+       *  page. Absent where the answer's addresses were not read: every
+       *  cell stored before this member, and the two battery engines. An
+       *  absent list is not an empty one and decides nothing. */
+      ownUrls?: readonly string[];
+    }
   | { kind: "no_answer" }
   | {
       kind: "unmeasured";

@@ -19,7 +19,7 @@
 // below is the one place the same two declarations are written inline, and
 // every numeral in a mail goes through it.
 import type { ReactNode } from "react";
-import { Button, Column, Heading, Row, Text } from "react-email";
+import { Button, Column, Heading, Link, Row, Text } from "react-email";
 import { copy } from "@/lib/presentation/copy";
 import { generatedLabel } from "@/lib/presentation/generated";
 import { token } from "../shell/tokens";
@@ -137,7 +137,15 @@ function RuledRows({
       <Eyebrow>{label}</Eyebrow>
       {rows.map((item, index) => (
         <Row key={index}>
-          <Column style={{ ...RULED_CELL, color: token("--color-base-content") }}>{item.left}</Column>
+          <Column style={{ ...RULED_CELL, color: token("--color-base-content") }}>
+            {item.href === undefined ? (
+              item.left
+            ) : (
+              <Link href={item.href} style={{ color: token("--color-primary") }}>
+                {item.left}
+              </Link>
+            )}
+          </Column>
           {item.right === undefined ? null : (
             <Column align={RIGHT} style={{ ...RULED_CELL, color: token("--ink-2") }}>
               {item.right}

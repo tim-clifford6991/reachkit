@@ -67,6 +67,37 @@ describe("namesCustomer — this week's AI answer, keyed by the question a named
   });
 });
 
+describe("ownPagesCited — the site's own pages this week's answer cited (SPEC §4 2026-09-29, D16)", () => {
+  const cited = (referenceUrls?: string[]) =>
+    weekMeasurementsFrom({
+      report: reportOf({
+        questions: [question()],
+        serps: [
+          serp({
+            aiOverview: {
+              present: true,
+              asynchronousAiOverview: true,
+              referenceDomains: [DOMAIN, "appcues.com"],
+              ...(referenceUrls === undefined ? {} : { referenceUrls }),
+            },
+          }),
+        ],
+      }),
+      week: WEEK,
+    }).ownPagesCited.get(question().text);
+
+  it("keeps the site's own addresses and no one else's", () => {
+    expect(cited([`https://${DOMAIN}/guides/p`, "https://appcues.com/a"])).toMatchObject({
+      kind: "measured",
+      value: [`https://${DOMAIN}/guides/p`],
+    });
+  });
+
+  it("an answer stored without its addresses names the site and says nothing about which page", () => {
+    expect(cited()?.kind).toBe("unmeasured");
+  });
+});
+
 describe("gatesCleared — the barriers the scan can observe, and only those", () => {
   it("robots and noindex are read off the same facts a Fix opportunity is derived from", () => {
     const week = weekMeasurementsFrom({ report: reportWithOwnPlace(3), week: WEEK });

@@ -58,6 +58,11 @@ export interface WeekMovement {
    *  week before. `unmeasured` where either week stored no checks — the
    *  same two-measurements-or-nothing rule as the deltas. */
   readonly issueChanges: Measured<readonly IssueChange[]>;
+  /** SPEC §8 2026-09-29 (D16): the tracked questions whose answer names
+   *  the site this week and did not the week before, each by the search it
+   *  was phrased from. A question the week before did not ask, or could
+   *  not read, is not listed: "now" is a comparison of two readings. */
+  readonly nowNamed: readonly { readonly search: string }[];
 }
 
 const MS_PER_DAY = 86_400_000;
@@ -152,5 +157,29 @@ export async function weekMovement(a: {
     searches: levelOf(searchesOf(now), a.at),
     searchesDelta: deltaOf(searchesOf(now), searchesOf(before), a.at),
     issueChanges: issueChanges(now?.siteIssues ?? null, before?.siteIssues ?? null, a.at),
+    nowNamed: nowNamedOf(now, before),
   };
+}
+
+/** Each tracked question's AI-Overview reading, the twelve and the page
+ *  questions, keyed by its search: named, not named, or absent where the
+ *  week did not read it. */
+function namedBySearch(report: StoredReport | null): ReadonlyMap<string, { search: string; named: boolean }> {
+  const out = new Map<string, { search: string; named: boolean }>();
+  for (const row of [...(report?.aiAnswers?.rows ?? []), ...(report?.pageQuestions?.rows ?? [])]) {
+    if (row.cell.kind === "unmeasured") continue;
+    const key = row.question.search.trim().toLowerCase();
+    if (out.has(key)) continue;
+    out.set(key, { search: row.question.search, named: row.cell.kind === "answered" && row.cell.namesCustomer });
+  }
+  return out;
+}
+
+function nowNamedOf(now: StoredReport | null, before: StoredReport | null): readonly { search: string }[] {
+  const earlier = namedBySearch(before);
+  const out: { search: string }[] = [];
+  for (const [key, reading] of namedBySearch(now)) {
+    if (reading.named && earlier.get(key)?.named === false) out.push({ search: reading.search });
+  }
+  return out;
 }

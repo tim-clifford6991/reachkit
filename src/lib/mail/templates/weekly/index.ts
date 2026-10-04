@@ -59,6 +59,8 @@ const SCORE = "mail.weekly.score" satisfies CopyKey;
 const AI_ANSWERS = "mail.weekly.aiAnswers" satisfies CopyKey;
 const MENTION_RATE = "mail.weekly.mentionRate" satisfies CopyKey;
 const PAGES_CITED = "mail.weekly.pagesCited" satisfies CopyKey;
+const NOW_NAMED = "mail.weekly.nowNamed" satisfies CopyKey;
+const NOW_NAMED_ITEM = "mail.weekly.nowNamed.item" satisfies CopyKey;
 const VERDICTS = "mail.weekly.verdicts" satisfies CopyKey;
 const VERDICTS_NONE = "mail.weekly.verdicts.none" satisfies CopyKey;
 const NEXT = "mail.weekly.next" satisfies CopyKey;
@@ -133,6 +135,10 @@ export function buildWeekly(a: {
    *  week — its category, a rival added or dropped — one line each, with
    *  the reason. Absent or empty: nothing changed, and nothing is said. */
   marketChanges?: readonly { readonly line: CopyKey; readonly vars: CopyVars }[];
+  /** SPEC §8 2026-09-29 (D16): the tracked questions that now name the
+   *  site, each by its search and with the answer's address. A week with
+   *  none says nothing about it. */
+  nowNamed?: Measured<readonly { search: string; answerUrl: string }[]>;
   /** D22 · D19 (#1162): the AI mention rate over the tracked buyer prompts
    *  with its range, and how many of the site's pages those answers cited.
    *  Whole percentages and counts, as the app states them. Absent where no
@@ -209,6 +215,17 @@ export function buildWeekly(a: {
       // What moved among the technical checks: last week's count, then this
       // week's figure. Nothing measured, or nothing moved: no block.
       ...(issues.length === 0 ? [] : [{ block: "facts", items: issues } as const]),
+      ...(a.nowNamed === undefined || a.nowNamed.kind === "unmeasured" || a.nowNamed.value.length === 0
+        ? []
+        : [
+            {
+              block: "list",
+              label: NOW_NAMED,
+              items: mapMeasuredRows(a.nowNamed, nowNamedRows),
+              // Unreachable: an empty list is not composed at all.
+              emptyLine: NOW_NAMED,
+            } as const,
+          ]),
       {
         block: "verdicts",
         label: VERDICTS,
@@ -327,6 +344,16 @@ function subjectOf(
     subject: PAGE_MOVED_OVER,
     subjectVars: { ...common, weeks: String(movement.spansWeeks) },
   };
+}
+
+/** A tracked question is named by its search, as a next page is, and the
+ *  row leads to the answer. */
+function nowNamedRows(questions: readonly { search: string; answerUrl: string }[]): readonly ListRow[] {
+  return questions.map((question) => ({
+    label: NOW_NAMED_ITEM,
+    vars: { search: question.search },
+    href: question.answerUrl,
+  }));
 }
 
 /** "Next 3" — named by the search each targets, which is measured fact.

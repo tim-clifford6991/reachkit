@@ -258,6 +258,11 @@ export const MAIL_COPY = Object.freeze({
     { slots: { page: "text" }, fixedBy: "SPEC §8 2026-09-20" },
   ],
   "mail.weekly.needsYou.action": ["Open the page", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  // SPEC §8 2026-09-29 (D16, issue 1147): the tracked questions whose
+  // answer names the site this week and did not the week before, each by
+  // its search and linked to the answer. It credits no page. Drafted (#759).
+  "mail.weekly.nowNamed": ["tracked questions that now name you", { slots: {}, fixedBy: "SPEC §8 2026-09-29 D16" }],
+  "mail.weekly.nowNamed.item": ["{search}", { slots: { search: "text" }, fixedBy: "SPEC §8 2026-09-29 D16" }],
   "mail.weekly.verdicts": ["pages judged", { slots: {}, fixedBy: "REQ-063 c4" }],
   "mail.weekly.verdicts.none": ["No pages published yet, so none to judge.", { slots: {}, fixedBy: "REQ-064 c3" }],
   "mail.weekly.next": ["next three", { slots: {}, fixedBy: "§12" }],

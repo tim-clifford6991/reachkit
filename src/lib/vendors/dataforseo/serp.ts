@@ -44,6 +44,7 @@ import {
   isRecord,
   ledgered,
   referenceDomains,
+  referenceUrls,
   type EndpointPaths,
   type OnVendorFailure,
 } from "./envelope";
@@ -71,14 +72,17 @@ function settledCents(base: number, rows: readonly SerpResult[] | null): number 
 
 function parseAiOverview(item: Record<string, unknown>): SerpAiOverview {
   const seen = new Set<string>(referenceDomains(item.references));
+  const urls = new Set<string>(referenceUrls(item.references));
   for (const element of asArray(item.items)) {
     if (!isRecord(element)) continue;
     for (const domain of referenceDomains(element.references)) seen.add(domain);
+    for (const url of referenceUrls(element.references)) urls.add(url);
   }
   return {
     present: true,
     asynchronousAiOverview: item.asynchronous_ai_overview === true,
     referenceDomains: [...seen],
+    referenceUrls: [...urls],
   };
 }
 

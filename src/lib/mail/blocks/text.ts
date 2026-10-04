@@ -26,9 +26,17 @@ function statLines(labelText: string, value: string, note: string | null): strin
   return note === null ? head : `${head}\n${note}`;
 }
 
-function rowLines(labelText: string, rows: readonly { left: string; right?: string }[], emptyLine: string | null): string {
+function rowLines(
+  labelText: string,
+  rows: readonly { left: string; right?: string; href?: string }[],
+  emptyLine: string | null
+): string {
   if (emptyLine !== null) return `${labelText}\n${emptyLine}`;
-  const lines = rows.map((item) => (item.right === undefined ? item.left : `${item.left}: ${item.right}`));
+  // A row that leads somewhere writes its address beside it, as an action does.
+  const lines = rows.map((item) => {
+    const side = item.right ?? item.href;
+    return side === undefined ? item.left : `${item.left}: ${side}`;
+  });
   return [labelText, ...lines].join("\n");
 }
 
