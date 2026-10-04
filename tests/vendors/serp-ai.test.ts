@@ -296,6 +296,42 @@ describe("BUILD §6.2 — the paid battery's two engines and their pinned prices
     expect(calls[0]?.costCents).toBe(constants.PRICE_BOOK[pin]);
   });
 
+  /** One standard-queue AI Mode ask whose `task_post` says what it cost. */
+  async function askStd(postCostUsd: number | undefined): Promise<unknown[][]> {
+    const cost = postCostUsd === undefined ? {} : { cost: postCostUsd };
+    stubVendorFetch((request) => {
+      if (!request.url.includes("task_post")) return envelope({ items: [] });
+      return { tasks: [{ id: "task-id-fixture", status_code: 20100, status_message: "Task Created.", ...cost, result: null }] };
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { ctx } = fakeCostContext();
+    vi.useFakeTimers();
+    const pending = ai.aiMode(ctx, { query: "best crm", mode: "std", scope: SCOPE });
+    await vi.advanceTimersByTimeAsync(constants.VENDOR.stdQueuePollIntervalS * 1000 * 2);
+    await pending;
+    return warn.mock.calls;
+  }
+
+  it("a call the vendor charged more for than the price book ledgered logs the mismatch (issue 1203)", async () => {
+    const charged = constants.PRICE_BOOK.AI_MODE_STD_C * 2;
+    const warned = await askStd(charged / 100);
+
+    expect(warned).toHaveLength(1);
+    expect(JSON.parse(String(warned[0]?.[0]))).toEqual({
+      event: "vendor_cost_mismatch",
+      source: "serp/google/ai_mode",
+      ledgeredCents: constants.PRICE_BOOK.AI_MODE_STD_C,
+      vendorCents: charged,
+    });
+  });
+
+  it("a call the vendor charged the price book's figure for, or gave no figure for, logs nothing", async () => {
+    expect(await askStd(constants.PRICE_BOOK.AI_MODE_STD_C / 100)).toHaveLength(0);
+    vi.restoreAllMocks();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    expect(await askStd(undefined)).toHaveLength(0);
+  });
+
   it("llmScraper reserves PRICE_BOOK.CHATGPT_SCRAPE_STD_C and reads `sources`, not `search_results`", async () => {
     const stub = stubVendorFetch((request, index) =>
       index === 0

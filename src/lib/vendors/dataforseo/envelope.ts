@@ -91,6 +91,7 @@ interface VendorTask {
   id?: unknown;
   status_code?: unknown;
   status_message?: unknown;
+  cost?: unknown;
   result?: unknown;
 }
 
@@ -142,10 +143,14 @@ export type VendorOutcome =
        *  `parse` is never asked to make sense of a result that is not
        *  there. */
       noResults?: true;
+      /** What the vendor says it charged for this call, in cents — see
+       *  `chargedCents`. Absent where the response carried no figure. */
+      vendorCents?: number;
     }
   | {
       ok: false;
       failure: VendorFailureKind;
+      vendorCents?: number;
       /** Whether the vendor charges for a call that failed this way — the
        *  header's point 4, decided where the failure is. */
       billed: boolean;
@@ -214,6 +219,28 @@ function firstResult(payload: unknown, accepted: boolean): VendorOutcome {
   return { ok: true, result };
 }
 
+const CENTS_PER_USD = 100;
+
+/**
+ * The vendor's own figure for one call, in cents (issue 1203).
+ *
+ * Every DataForSEO task carries `cost`, "cost of the task, USD". On the
+ * standard queue the charge is on the `task_post` answer — the `task_get`
+ * that collects it is free and says 0 — so the caller passes whichever
+ * response the vendor charged on. `ledgered` compares it with what the
+ * price book settled: the price book had Google AI Mode's standard queue at
+ * half its charge for as long as nothing read this field.
+ */
+function chargedCents(payload: unknown): number | undefined {
+  const usd = asNumber(firstTask(payload)?.cost);
+  return usd === undefined ? undefined : usd * CENTS_PER_USD;
+}
+
+function withCharge(out: VendorOutcome, payload: unknown): VendorOutcome {
+  const vendorCents = chargedCents(payload);
+  return vendorCents === undefined ? out : { ...out, vendorCents };
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -261,7 +288,7 @@ export async function callEndpoint(
   if (mode === "live") {
     if (!paths.live) return failure("no_surface", false, "dataforseo: endpoint has no live surface");
     const out = await sendRequest<unknown>({ path: paths.live, mode, fields, ...abort });
-    return out.ok ? firstResult(out.payload, false) : fromTransport(out);
+    return out.ok ? withCharge(firstResult(out.payload, false), out.payload) : fromTransport(out);
   }
 
   if (!paths.std) return failure("no_surface", false, "dataforseo: endpoint has no standard-queue surface");
@@ -279,10 +306,13 @@ export async function callEndpoint(
   if (!task || task.status_code !== TASK_CREATED || !id) {
     // Not accepted, so not charged — unless the answer could not be read.
     const kind = task && task.status_code !== TASK_CREATED ? taskFailure(task.status_code) : "unparseable";
-    return failure(
-      kind,
-      kind === "unparseable",
-      `dataforseo: task_post ${String(task?.status_code)} ${asString(task?.status_message) ?? ""}`.trim()
+    return withCharge(
+      failure(
+        kind,
+        kind === "unparseable",
+        `dataforseo: task_post ${String(task?.status_code)} ${asString(task?.status_message) ?? ""}`.trim()
+      ),
+      posted.payload
     );
   }
   // From here the task is accepted and charged: every failure below is billed.
@@ -294,13 +324,15 @@ export async function callEndpoint(
   for (;;) {
     await sleep(VENDOR.stdQueuePollIntervalS * MS_PER_S);
     const got = await sendGet<unknown>(std.taskGet(id), timeoutMs);
-    if (!got.ok) return failure(got.failure, true, got.reason);
+    if (!got.ok) return withCharge(failure(got.failure, true, got.reason), posted.payload);
     const polled = firstTask(got.payload);
     if (polled && typeof polled.status_code === "number" && TASK_IN_FLIGHT.has(polled.status_code)) {
-      if (Date.now() >= deadline) return failure("deadline", true, "dataforseo: standard-queue task not ready by the pinned deadline");
+      if (Date.now() >= deadline) {
+        return withCharge(failure("deadline", true, "dataforseo: standard-queue task not ready by the pinned deadline"), posted.payload);
+      }
       continue;
     }
-    return firstResult(got.payload, true);
+    return withCharge(firstResult(got.payload, true), posted.payload);
   }
 }
 
@@ -345,6 +377,7 @@ export async function ledgered<T>(
   const at = new Date();
   const startedMs = Date.now();
   let reason: string | undefined;
+  let vendorCents: number | undefined;
   const settle = call.settleCents;
 
   const result = await c.recordFetch<T[] | VendorFailure>({
@@ -355,6 +388,7 @@ export async function ledgered<T>(
     ...(settle ? { settleCents: (p: T[] | VendorFailure) => settle(isVendorFailure(p) ? null : p) } : {}),
     run: async () => {
       const out = await call.fetch();
+      vendorCents = out.vendorCents;
       if (!out.ok) {
         reason = out.reason;
         return failureRow(call.source, out);
@@ -396,6 +430,7 @@ export async function ledgered<T>(
     ...(failed ? { failure: failed.vendorFailure, billed: failed.billed } : {}),
     ...(reason ? { reason } : {}),
   });
+  if (result.fresh) logCostMismatch(call.source, result.costCents, vendorCents);
 
   if (failed) {
     call.onFailure?.(failed);
@@ -451,6 +486,7 @@ export async function ledgeredWithTotal<T>(
   const at = new Date();
   const startedMs = Date.now();
   let reason: string | undefined;
+  let vendorCents: number | undefined;
 
   type Payload = { rows: T[]; total: number | null } | [] | VendorFailure;
 
@@ -468,6 +504,7 @@ export async function ledgeredWithTotal<T>(
       : {}),
     run: async (): Promise<Payload> => {
       const out = await call.fetch();
+      vendorCents = out.vendorCents;
       if (!out.ok) {
         reason = out.reason;
         return failureRow(call.source, out);
@@ -500,6 +537,7 @@ export async function ledgeredWithTotal<T>(
     ...(failed ? { failure: failed.vendorFailure, billed: failed.billed } : {}),
     ...(reason ? { reason } : {}),
   });
+  if (result.fresh) logCostMismatch(call.source, result.costCents, vendorCents);
 
   if (failed) {
     call.onFailure?.(failed);
@@ -528,6 +566,21 @@ function logVendorCall(record: {
   reason?: string;
 }): void {
   console.log(JSON.stringify({ event: "vendor_call", ...record }));
+}
+
+/** A hundred-thousandth of a cent: under any price the vendor lists, over
+ *  what multiplying its dollars by a hundred leaves behind. */
+const COST_TOLERANCE_C = 1e-5;
+
+/** The line that says the price book is wrong (issue 1203): what this call
+ *  was ledgered at beside what the vendor says it charged, when the two
+ *  differ. Silent where the response carried no figure, and never asked
+ *  about a cache hit, which bought nothing. A warning and not a failure —
+ *  the answer is good; it is the caps and the spend mails that are reading
+ *  the wrong number. */
+function logCostMismatch(source: string, ledgeredCents: number, vendorCents: number | undefined): void {
+  if (vendorCents === undefined || Math.abs(vendorCents - ledgeredCents) <= COST_TOLERANCE_C) return;
+  console.warn(JSON.stringify({ event: "vendor_cost_mismatch", source, ledgeredCents, vendorCents }));
 }
 
 /** A vendor reference's domain: the documented `domain` field, else the
