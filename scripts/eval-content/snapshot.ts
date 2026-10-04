@@ -10,7 +10,10 @@
 //     the domain has them. `null` is a domain nobody has crawled or signed up.
 //   * `pages` — the pages the domain's free scans read, as `readDomainText`
 //     returns them: the stored HTML of each `fetches` row, through the
-//     product's own `visibleText`, the latest read of each address.
+//     product's own `visibleText`, the latest read of each address — with
+//     what the page shows inside an example or demo widget (`prose`), the
+//     list the facts read drops site-wide (issue 1249). A snapshot taken
+//     before that carries none, which is how round 2 quoted a demo widget.
 //
 // This box's service key is a placeholder, so the script cannot read the
 // database itself. A snapshot is taken through the Supabase connector, as a
@@ -33,6 +36,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { visibleText } from "@/lib/measure/parse";
+import { prose } from "@/lib/measure/prose";
 import { derivePurpose } from "@/lib/site-profile/purpose";
 import type { InventoryRow, VoiceSummary } from "@/lib/site-profile/types";
 
@@ -42,6 +46,8 @@ export interface SnapshotPage {
   title: string;
   h1: string;
   text: string;
+  /** The page's demo phrases, as `readMeasuredText` carries them. */
+  examples?: string[];
 }
 
 export interface Snapshot {
@@ -106,6 +112,7 @@ export function takeSnapshot(domain: string, from: string, as: string = domain):
       title: firstInner(row.html, "title"),
       h1: firstInner(row.html, "h1"),
       text: visibleText(row.html),
+      examples: prose(row.html).examples,
     }));
   const snapshot: Snapshot = { domain, ...exported, pages };
   writeFileSync(snapshotPath(as), `${JSON.stringify(snapshot, null, 2)}\n`);

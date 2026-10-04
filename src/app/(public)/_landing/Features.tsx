@@ -137,7 +137,9 @@ export function Features(): React.JSX.Element {
               {copy(title)}
             </h3>
             <p className="text-base-content/70 text-sm">{copy(body)}</p>
-            <div className="mt-auto hidden pt-2 sm:block">
+            {/* Marked as a demo (issue 1249): the drawing's figures are a
+                specimen, and are never read as facts about the business. */}
+            <div className="mt-auto hidden pt-2 sm:block" data-demo>
               <Drawing />
             </div>
           </div>

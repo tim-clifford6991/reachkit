@@ -455,6 +455,7 @@ export const KNOWLEDGE_BASE = Object.freeze({
   OFFERINGS: 12,
   ITEM_CHARS: 300,
   ANSWER_CHARS: 600,
+  DEMO_PHRASES: 500,
 } as const);
 
 /** The most of the customer's own page text one `profile` call may carry,

@@ -30,6 +30,8 @@ function profiles(): MinimalQuery<{ knowledge: unknown }> {
 const STORED_SCHEMA = z.object({
   pages: z.array(z.object({ url: z.string(), hash: z.string(), reading: PAGE_READING_SCHEMA })),
   readAt: z.string().nullable(),
+  // Absent on a reading stored before issue 1249.
+  demoPhrases: z.array(z.string()).default([]),
 });
 
 /** The column as a reading, or nothing where it holds another shape. */

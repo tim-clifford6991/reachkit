@@ -277,7 +277,7 @@ export function prepare(
   const chose = pick === null && over.opportunity === undefined ? "the pass chose nothing; drafted for the report's first question. " : "";
 
   const inventory = inventoryOf(snapshot);
-  const pages = [...snapshot.pages.map((page) => ({ url: page.url, text: page.text, measuredAt: new Date(page.readAt) })), ...(over.extraPages ?? [])];
+  const pages = [...snapshot.pages.map((page) => ({ url: page.url, text: page.text, measuredAt: new Date(page.readAt), examples: page.examples })), ...(over.extraPages ?? [])];
   const profile = promptProfile(
     confirmedProfile({
       profile:

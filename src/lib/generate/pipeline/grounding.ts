@@ -43,6 +43,7 @@
 import nlp from "compromise";
 import { BRIEF_MAX_FACTS } from "@/lib/config/constants";
 import { readMeasuredText, type MeasuredText } from "@/lib/measure/text";
+import { isNeverRead } from "@/lib/site-profile/knowledge/priority";
 import { derivePurpose } from "@/lib/site-profile/purpose";
 import { readReportPage } from "./report-facts";
 import type { GroundedFact } from "../rules/types";
@@ -113,14 +114,16 @@ export function orderedPassages(text: string): string[] {
 
 /** A line of an example, as the passages are normalised: its sentences and
  *  the whole line, so a caption is matched however the page breaks it. */
-function examplePhrases(line: string): string[] {
+export function examplePhrases(line: string): string[] {
   const whole = line.replace(/\s+/g, " ").trim();
   return [whole, ...whole.split(SENTENCE_SPLIT_RE).map((sentence) => sentence.trim())];
 }
 
 /**
  * Each page's passages, minus what is not the business speaking: a legal
- * page yields none, a passage the site repeats on three or more pages and
+ * page and a gallery page yield none (issue 1249:
+ * six of the eight reachkit.app pages a round read were its scan gallery,
+ * which is about other businesses), a passage the site repeats on three or more pages and
  * on more than half of them is chrome, and a phrase any page of the site
  * shows inside an example is an example wherever it appears. Every caller
  * that reads passages over a set of pages reads them here, so a footer's
@@ -141,7 +144,7 @@ export function sitePassages<P extends { url: string; text: string; examples?: r
   const demo = new Set(pages.flatMap((page) => (page.examples ?? []).flatMap(examplePhrases)));
   return read.map(({ page, passages }) => ({
     page,
-    passages: isLegalPage(page.url)
+    passages: isLegalPage(page.url) || isNeverRead(page.url)
       ? []
       : passages.filter((passage) => !repeated(passage) && !demo.has(passage)),
   }));
@@ -234,7 +237,9 @@ export async function readAllFacts(a: FactRead): Promise<SourcedFact[]> {
   const queues =
     report === null || own.every((queue) => queue.passages.length === 0)
       ? own
-      : [...own, ...sitePassages([report])];
+      : // Its address is under the gallery's own path on reachkit.app, and it
+        // is composed here, not crawled: it is read as it stands.
+        [...own, { page: report, passages: orderedPassages(report.text) }];
   const out: SourcedFact[] = [];
   const seen = new Set<string>();
   const rounds = Math.max(0, ...queues.map((queue) => queue.passages.length));

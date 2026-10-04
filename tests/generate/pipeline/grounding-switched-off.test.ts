@@ -52,7 +52,7 @@ vi.mock("@/lib/site-profile/business/confirmed", () => ({
   readConfirmedBusiness: readingsMock,
 }));
 
-const NO_KNOWLEDGE = { pages: [], readAt: null };
+const NO_KNOWLEDGE = { pages: [], readAt: null, demoPhrases: [] };
 const NO_EDITS = {
   removed: {},
   added: {},

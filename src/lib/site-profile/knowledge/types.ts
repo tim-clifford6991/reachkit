@@ -98,6 +98,14 @@ export interface StoredPage {
 export interface StoredKnowledge {
   readonly pages: readonly StoredPage[];
   readonly readAt: string | null;
+  /** The site's demo phrases (§5, 2026-10-04, issue 1249): what any page of
+   *  it showed inside an example or demo widget, kept from read to read so
+   *  a page stored before the widget was marked is still cleaned. */
+  readonly demoPhrases: readonly string[];
 }
 
-export const NO_KNOWLEDGE: StoredKnowledge = Object.freeze({ pages: Object.freeze([]), readAt: null });
+export const NO_KNOWLEDGE: StoredKnowledge = Object.freeze({
+  pages: Object.freeze([]),
+  readAt: null,
+  demoPhrases: Object.freeze([]),
+});

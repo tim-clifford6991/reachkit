@@ -134,4 +134,5 @@ export const FIXTURE_KNOWLEDGE: StoredKnowledge = Object.freeze({
     },
   ],
   readAt: READ_AT.toISOString(),
+  demoPhrases: [],
 });
