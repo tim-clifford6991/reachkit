@@ -110,7 +110,15 @@ export type Shortfall =
       kind: "covered";
       page: { url: string; title: string; source: KnownSource };
       similarity: Measured<number>;
-    };
+    }
+  /** SPEC §7 (2026-09-29, *Pace*; issue 1139): one of ReachKit's own live
+   *  pages is due a refresh. `since` is the day its current version went
+   *  live, which is what the cause was measured against. */
+  | { kind: "due"; cause: RefreshCause; since: Measured<Date> };
+
+/** Why a live page of ours is due: its version is 90 days old, the Monday
+ *  verdict found it in a worse place, or a pool holds a fact newer than it. */
+export type RefreshCause = "aged" | "lost_position" | "newer_fact";
 
 /** §7's Fix trigger — "any access gate fails" — as the closed set of gates
  *  the measurement engine can actually report. A sixth barrier is a change
@@ -436,4 +444,10 @@ export interface Ranked {
 /** Whether a rested topic is still inside its rest at `now` (SPEC §7, D26). */
 export function isResting(o: Pick<Opportunity, "restUntil">, now: Date): boolean {
   return o.restUntil != null && now.getTime() < o.restUntil.getTime();
+}
+
+/** A refresh of one of ReachKit's own live pages (SPEC §7, *Pace*, issue
+ *  1139): the update a day takes first once the week's new pages are in. */
+export function isOwnRefresh(o: Pick<Opportunity, "evidence">): boolean {
+  return o.evidence.family === "improve" && o.evidence.shortfall.kind === "due";
 }

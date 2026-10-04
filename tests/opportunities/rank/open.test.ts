@@ -10,7 +10,8 @@ import type { Opportunity } from "../../../src/lib/opportunities/types";
 const AT = new Date("2026-09-06T09:00:00.000Z");
 
 function opportunity(id: string, family: Opportunity["family"], type: Opportunity["type"], targetQuery = id): Opportunity {
-  return { id, family, type, status: "open", clusterKey: null, targetQuery, absorbedQueries: [], createdAt: AT } as unknown as Opportunity;
+  const evidence = family === "improve" ? { family, shortfall: { kind: "position" } } : { family };
+  return { id, family, type, status: "open", clusterKey: null, targetQuery, absorbedQueries: [], evidence, createdAt: AT } as unknown as Opportunity;
 }
 
 const order = (scored: { opportunity: Opportunity; score: number }[], rotation?: Parameters<typeof orderRanked>[1]) =>

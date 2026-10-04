@@ -22,7 +22,7 @@ import { GENERIC_TOKENS, stemKey } from "@/lib/market/questions/select";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import type { StoredReport } from "@/lib/scan/report";
 import type { Candidate } from "./derive/candidate";
-import { qualifiesForADay, type Family, type Opportunity, type OpportunityType, type Winnability } from "./types";
+import { isOwnRefresh, qualifiesForADay, type Family, type Opportunity, type OpportunityType, type Winnability } from "./types";
 
 /**
  * The one canonical form of a page address: scheme, a `www.` label, a
@@ -332,6 +332,10 @@ export function collapse(a: {
 
   for (const row of a.existing) {
     if (row.family === "fix" || row.status === "dismissed") continue;
+    // A refresh of a page of ours (issue 1139) is the update of that page,
+    // not a second page on its topic: it does not compete with the page's
+    // own row, which would always survive it.
+    if (isOwnRefresh(row)) continue;
     add(row.clusterKey ?? clusterKey(row.targetQuery, a.brandTokens), { kind: "row", row });
   }
   for (const candidate of a.candidates) {

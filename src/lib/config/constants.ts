@@ -1593,6 +1593,15 @@ export const CONTENT_MIX = Object.freeze({
   BRIEF_PAGES_MAX: 100,
 });                                                            // §7
 
+/** SPEC §7 (2026-09-29, *Pace*; issue 1139): in any seven days a site
+ *  publishes at most `NEW_PAGES_PER_WEEK` new pages, and the other days
+ *  refresh pages already live. One of ReachKit's own live pages is due a
+ *  refresh once its current version is `REFRESH_AGE_DAYS` old. */
+export const PACE = Object.freeze({
+  NEW_PAGES_PER_WEEK: 4,
+  REFRESH_AGE_DAYS: 90,
+});                                                            // §7
+
 /** Issue 477: "two `not_working` verdicts on Improve of one URL retire that
  *  URL" — counted in distinct Monday weeks. */
 export const IMPROVE_RETIRE_AFTER_NOT_WORKING = 2 as const;   // §6
