@@ -203,6 +203,9 @@ export async function gradeRound(a: {
   stored: StoredAnswers;
   /** `null` buys nothing: the grade is made from code and `stored` alone. */
   capCents: number | null;
+  /** `false` leaves what a page adds to code and to what is stored: the
+   *  model places no sentence (#1164, whose cap buys the judge alone). */
+  placeByModel?: boolean;
 }): Promise<RoundGrade> {
   const calls: CallRow[] = [];
   const spent = () => calls.reduce((sum, row) => sum + row.cents, 0);
@@ -278,11 +281,12 @@ export async function gradeRound(a: {
       }),
       linked,
     });
-    if (a.capCents !== null) console.log(`adds ${page.id}`);
+    const buys = a.capCents !== null && a.placeByModel !== false;
+    if (buys) console.log(`adds ${page.id}`);
     const held = (a.stored.placements[page.id] ??= {});
     const { rows, unplaced } = await placeSentences(
       { markdown: page.body, search: page.search, domain: a.domain, business: a.business, topResults: reads, sitePages: a.sitePages, founderFacts: a.founderFacts, held },
-      a.capCents === null ? null : spendFor(page.id, "adds")
+      buys ? spendFor(page.id, "adds") : null
     );
     // A sentence the model placed that carries a figure nothing holds adds
     // nothing a reader can use, wherever the model placed it.
@@ -310,7 +314,7 @@ const CRITERION_NAMES = Object.keys(CRITERIA) as Criterion[];
 const pct = (share: number): string => `${Math.round(share * 100)}%`;
 
 /** The graded round, as the Markdown its report carries. */
-export function renderRound(grade: RoundGrade, a: { heading: string; today: string }): string[] {
+export function renderRound(grade: RoundGrade, a: { heading: string; today: string; intro?: string }): string[] {
   const L: string[] = [];
   const judged = grade.pairs.some((each) => each.verdict !== null);
   const placed = grade.pages.every((each) => each.unplaced === 0);
@@ -321,6 +325,7 @@ export function renderRound(grade: RoundGrade, a: { heading: string; today: stri
   L.push(`## ${a.heading}`);
   L.push("");
   L.push(
+    a.intro ??
     `Written by \`npm run eval:content -- --ab --regrade${grade.calls.length > 0 ? " --run" : ""}\` on ${a.today} (#1158). The grader of #1132 scored each page alone, 0–3, and could not tell these pages apart. This one counts in code what can be counted, lists what a page adds code first, and has a blind judge on \`claude-sonnet-5\` choose between two pages, twice, with the order swapped. The top results were read again on ${grade.evidence.takenAt}, ${grade.evidence.readWords} words of each — the depth the writer read.`
   );
   L.push("");
@@ -331,7 +336,7 @@ export function renderRound(grade: RoundGrade, a: { heading: string; today: stri
       grade.accepted === null
         ? "**Calibration: not made.** Not every pair has been judged."
         : grade.accepted
-        ? `**Calibration: accepted.** The judge gave all ${expected.length} pairs their expected answer.`
+        ? `**Calibration: accepted.** The judge gave ${expected.length === 1 ? "the one pair with an expected answer" : `all ${expected.length} pairs`} ${expected.length === 1 ? "that" : "their expected"} answer.`
         : `**Calibration: not accepted.** The judge gave ${agreed} of ${expected.length} pairs their expected answer. No number below is to be trusted until it gives all of them.`
     );
     L.push("");

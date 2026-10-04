@@ -1,0 +1,475 @@
+{
+ "draft": {
+  "id": "8b9683dd-f7e6-4a31-b3ce-dbec1903a052",
+  "meta": {
+   "faq": [
+    {
+     "answer": "They do different jobs \u2014 ReachKit measures, AEO Engine produces content \u2014 so nothing stops using one to check what the other is doing. Whether that's worth two subscriptions depends on your budget and how much you trust one tool's content strategy against the other's measurement.",
+     "question": "Can you use ReachKit and AEO Engine together?"
+    },
+    {
+     "answer": "ReachKit's pricing page describes a page written and published for your site every day, with your market re-measured every week, which is a different model from AEO Engine's managed program. See [One plan. One page a day.](https://reachkit.app/pricing) for how that works.",
+     "question": "Does ReachKit write content like AEO Engine does?"
+    },
+    {
+     "answer": "The two tiers listed on AEO Engine's own pricing page are $1,597/mo for Growth and $2,997/mo for Scale. Billing terms beyond the monthly rate aren't stated on that page.",
+     "question": "Is AEO Engine's pricing month-to-month or contract-based?"
+    },
+    {
+     "answer": "It's the score ReachKit gives a site after scanning it \u2014 for example, reachkit.app itself was measured on 28 September 2026 and given a Discoverability Score of 19 out of 100. It reflects how the site shows up in AI answers and Google search at the time of the scan.",
+     "question": "What is a Discoverability Score?"
+    },
+    {
+     "answer": "No \u2014 a ReachKit scan is a way to see your starting point before committing budget anywhere. AEO Engine, by contrast, is built around an ongoing monthly spend for managed content.",
+     "question": "Do I need a content budget before using either tool?"
+    }
+   ],
+   "critic": {
+    "kept": true,
+    "scores": {
+     "fit": 3,
+     "adds": 2,
+     "blocks": 2,
+     "length": 2,
+     "specificity": 3
+    },
+    "revised": 2
+   },
+   "length": {
+    "floor": 1500,
+    "words": 2196,
+    "ceiling": 2500,
+    "rewritten": 0
+   },
+   "factsUsed": [
+    {
+     "url": "https://reachkit.app/scans?sort=highest&shown=32",
+     "passage": "See how any business here shows up in AI answers and Google search \u2014 and where its rivals are found instead."
+    },
+    {
+     "url": "https://reachkit.app/pricing",
+     "passage": "A page written and published for your site every day, your market re-measured every week."
+    },
+    {
+     "url": "https://reachkit.app/scan/reachkit.app",
+     "passage": "ReachKit measured reachkit.app on 28 September 2026 and gave it a Discoverability Score of 19 out of 100."
+    }
+   ],
+   "description": "A side-by-side look at ReachKit and AEO Engine \u2014 what each does, what each costs, and which one fits where you are right now.",
+   "marketFacts": [
+    {
+     "url": "https://aeoengine.ai/pricing",
+     "title": "AEO Engine Pricing Plans",
+     "readAt": "2026-10-03T22:21:40.117Z",
+     "passage": "Growth A focused managed program for one site, with consistent content, authority, AI visibility tracking, and strategist support. $1,597 /mo"
+    },
+    {
+     "url": "https://aeoengine.ai/pricing",
+     "title": "AEO Engine Pricing Plans",
+     "readAt": "2026-10-03T22:21:40.117Z",
+     "passage": "Scale A higher-velocity managed program with full-site optimization, doubled content output, and broader authority coverage. $2,997 /mo"
+    },
+    {
+     "url": "https://riseatseven.com/blog/aeo-ai-search-statistics/",
+     "title": "AEO/AI Search & Citation Statistics 2026 | Rise at Seven",
+     "readAt": "2026-10-03T22:21:43.885Z",
+     "passage": "Google's AI Overviews appear on more than 20% of searches"
+    },
+    {
+     "url": "https://riseatseven.com/blog/aeo-ai-search-statistics/",
+     "title": "AEO/AI Search & Citation Statistics 2026 | Rise at Seven",
+     "readAt": "2026-10-03T22:21:43.885Z",
+     "passage": "68% of US Google searches now end without a single click to a website"
+    },
+    {
+     "url": "https://riseatseven.com/blog/aeo-ai-search-statistics/",
+     "title": "AEO/AI Search & Citation Statistics 2026 | Rise at Seven",
+     "readAt": "2026-10-03T22:21:43.885Z",
+     "passage": "Only 1% of users click a source link inside a Google AI summary"
+    },
+    {
+     "url": "https://riseatseven.com/blog/aeo-ai-search-statistics/",
+     "title": "AEO/AI Search & Citation Statistics 2026 | Rise at Seven",
+     "readAt": "2026-10-03T22:21:43.885Z",
+     "passage": "Content optimization techniques can boost AI citation visibility by up to 40% (Princeton GEO study)"
+    },
+    {
+     "url": "https://riseatseven.com/blog/aeo-ai-search-statistics/",
+     "title": "AEO/AI Search & Citation Statistics 2026 | Rise at Seven",
+     "readAt": "2026-10-03T22:21:43.885Z",
+     "passage": "70% of marketers believe AEO will significantly impact their strategy within 1\u20133 years - but only 20% have begun implementing it"
+    }
+   ]
+  },
+  "state": "in_review",
+  "title": "ReachKit vs AEO Engine: which one closes your AI discovery gap?",
+  "body_md": ":::answer\nReachKit measures how your business shows up in AI answers and Google search, scanning any site and scoring it. AEO Engine is a managed content service, from $1,597/mo, that produces content meant to build that visibility over time. Pick ReachKit to see where you stand first; pick AEO Engine when you're ready to pay for ongoing content output.\n:::\n\n:::takeaways\n- ReachKit scans a site and reports a Discoverability Score; it does not produce content for you.\n- AEO Engine is a managed content program with two tiers, $1,597/mo and $2,997/mo, built around strategist support and content volume.\n- AI Overviews now appear on more than 20% of searches, and 68% of searches end without a click \u2014 which is why both measurement and content matter.\n- Use ReachKit when you need a baseline or want to watch competitors before spending on content.\n- Use AEO Engine when you already know you need consistent content output and have budget set aside for it.\n:::\n\n## What's the difference between ReachKit and AEO Engine?\n\nReachKit measures how your business shows up in AI answers and Google search with a scan that produces a Discoverability Score. AEO Engine is a managed content service at $1,597/mo or $2,997/mo that publishes content built to improve that visibility over time.\n\n## What does each cost?\n\nReachKit is one plan at one price: a page written and published for your site every day, with your market re-measured every week. AEO Engine has two tiers\u2014Growth at $1,597/mo and Scale at $2,997/mo\u2014each bundling content, authority work, tracking, and strategist support into a managed program.\n\nAEO Engine instead sells two tiers. Growth is described as a focused managed program for one site, with consistent content, authority, AI visibility tracking, and strategist support, priced at $1,597/mo. Scale is the higher-velocity version \u2014 full-site optimization, doubled content output, and broader authority coverage \u2014 at $2,997/mo (both from [AEO Engine Pricing Plans](https://aeoengine.ai/pricing)).\n\nThe spread between the two matters on its own. Going from Growth to Scale roughly doubles the monthly cost, in exchange for doubled content output and full-site rather than single-site optimization. A business deciding between AEO Engine tiers is really deciding how much ground it needs covered at once, not just how much content it wants.\n\nReachKit's single-plan structure removes that tier decision entirely. There's one page a day, every day, and one weekly re-measurement of your market. You're not picking between a narrower and a broader program \u2014 the scope is fixed, and the only variable is how long you run it.\n\nWhat this means for budgeting: AEO Engine's lower tier starts above a thousand dollars a month before any work begins beyond the program itself, and the step to full-site coverage costs significantly more. ReachKit's cost structure is comparatively simple to reason about, because it's one page, one plan, one price point, with the re-measurement included rather than sold as an upgrade.\n\n## How do they measure your AI visibility differently?\n\nReachKit's method is a scan. Point it at a site and it shows how that business shows up in AI answers and Google search \u2014 and where its rivals are found instead ([reachkit.app/scans](https://reachkit.app/scans?sort=highest&shown=32)). That scan produces a Discoverability Score \u2014 for example, reachkit.app itself was measured on 28 September 2026 and scored 19 out of 100. The score is a single number you can track over time and compare against competitors in the same market, re-measured weekly as part of the paid plan.\n\nAEO Engine doesn't publish a measurement product in the same sense. Its own pages describe a managed program: content, authority building, and AI visibility tracking bundled into a monthly service, with a strategist attached ([AEO Engine Pricing Plans](https://aeoengine.ai/pricing)). Tracking is a feature inside the program, not something you get standalone before committing to spend.\n\nThat difference matters for sequencing. With ReachKit you get the number first, independent of any commitment to content work, and you decide afterward what to do about it. With AEO Engine, visibility tracking arrives bundled with the content and authority work already underway \u2014 you don't separate the measuring from the doing.\n\nThe gap this closes is the one in the title: knowing where you're invisible to AI systems versus acting on it. A business that has never been scanned doesn't know if its problem is thin content, missing structure, or simply not existing where AI answers pull from. ReachKit's scan surfaces that gap directly, by market, against named rivals. AEO Engine's tracking instead reports on progress against a program it's already running for you.\n\nIf your real question is \"where do we stand versus competitors right now,\" that's a measurement question \u2014 answered by a scan, not a managed program. If your question is \"we know we're behind, now what,\" that's a different need, and tracking becomes a secondary feature of a larger content engagement rather than the main tool.\n\n## How do ReachKit and AEO Engine compare feature by feature?\n\nPick ReachKit when you need a baseline measurement first, before committing to a managed content program. Pick AEO Engine when you already know you need consistent, higher-volume content output and have budget set aside for strategist-led work.\n\n| Criterion | ReachKit | AEO Engine |\n| --- | --- | --- |\n| Price | One plan ([reachkit.app/pricing](https://reachkit.app/pricing)) | Growth $1,597/mo or Scale $2,997/mo ([AEO Engine Pricing Plans](https://aeoengine.ai/pricing)) |\n| Content output | A page written and published for your site every day ([reachkit.app/pricing](https://reachkit.app/pricing)) | Consistent content on Growth, doubled content output on Scale ([AEO Engine Pricing Plans](https://aeoengine.ai/pricing)) |\n| Measurement | Your market re-measured every week, with a Discoverability Score against rivals ([reachkit.app/scans](https://reachkit.app/scans?sort=highest&shown=32)) | AI visibility tracking bundled into the managed program ([AEO Engine Pricing Plans](https://aeoengine.ai/pricing)) |\n| Scope | Your own site, scanned and compared against rivals ([reachkit.app/scans](https://reachkit.app/scans?sort=highest&shown=32)) | One site on Growth, full-site optimization on Scale ([AEO Engine Pricing Plans](https://aeoengine.ai/pricing)) |\n| Support model | Self-serve scan and daily page | Strategist support on Growth ([AEO Engine Pricing Plans](https://aeoengine.ai/pricing)) |\n\nThe practical difference is where the work sits. ReachKit's cost buys a page a day plus a weekly number; there's no tier to pick, so the decision is simply whether to run it or not. AEO Engine's cost buys a program, and the tier decision \u2014 Growth versus Scale \u2014 is really a decision about how much of the site needs covering and how fast, since Scale's price is nearly double Growth's for full-site reach instead of single-site. Neither structure is better in the abstract; they answer different budgeting questions, one fixed and simple, the other tiered to scope.\n\n## When should you pick ReachKit over AEO Engine?\n\nPick ReachKit when the question you're asking is \"where do we stand,\" not \"how do we fix it yet.\" The scan shows how any business shows up in AI answers and Google search, and where its rivals are found instead ([reachkit.app/scans](https://reachkit.app/scans?sort=highest&shown=32)), which is the right tool when you don't yet have a number to act on.\n\nIt suits a business that wants a baseline before committing budget. A Discoverability Score, like the 19 out of 100 reachkit.app itself measured on 28 September 2026, gives you something concrete to track \u2014 a single figure you can watch move over weeks rather than a program you're already paying for regardless of whether the number moves.\n\nIt also suits ongoing competitor tracking rather than a one-off check. Because the market is re-measured every week as part of the plan ([reachkit.app/pricing](https://reachkit.app/pricing)), you can watch not just your own score but where rivals are found instead of you, on a rolling basis, without re-running a scan yourself each time.\n\nAnd it suits testing before a bigger commitment. Because ReachKit is one plan with one page written and published for your site every day, you're not locking into a tier or a strategist relationship to find out whether daily published content and weekly measurement are even the right lever for your site. You get the output and the number, and you decide afterward whether a larger managed spend \u2014 like AEO Engine's Growth or Scale tiers \u2014 is worth adding on top.\n\nWhere ReachKit doesn't fit is a business that already knows its score is bad and wants someone else running a full content and authority program for it. That's not what the scan or the daily page are built to replace \u2014 they tell you where you stand and keep publishing a page, but they aren't a managed strategist engagement. If what you need is consistent, higher-volume content output across a whole site with someone else doing the planning, that's a different kind of spend than a single daily page represents.\n\n## When should you pick AEO Engine instead?\n\nPick AEO Engine when you already know you need more content than one page a day, and you want someone else running the program. Its Growth tier is described as a focused managed program for one site, with consistent content, authority, AI visibility tracking, and strategist support, for $1,597/mo ([AEO Engine Pricing Plans](https://aeoengine.ai/pricing)).\n\nIt suits a business with budget set aside for managed work rather than a tool it runs itself. Strategist support on Growth means someone else is making the calls on what content goes out and why, which is a different kind of spend than a fixed daily page \u2014 it's priced as a program, not a single output.\n\nIt also suits a business that needs full-site coverage, not just a single page added daily. The Scale tier, at $2,997/mo, covers full-site optimization with doubled content output and broader authority coverage ([AEO Engine Pricing Plans](https://aeoengine.ai/pricing)) \u2014 roughly double the Growth price, for roughly double the reach. That tier step is worth naming on its own: if one page a day on one part of a site isn't enough ground, Scale is built for the broader version of the same problem, at the cost that implies.\n\nAnd it suits a business past the baseline question. If you've already measured where you stand \u2014 through a scan or otherwise \u2014 and the answer is clearly \"behind, and by a lot,\" the next decision isn't whether to measure again, it's how much managed output to buy. AEO Engine's two tiers are built around that decision: one site or full site, consistent output or doubled output, at two fixed monthly prices.\n\nWhere it doesn't fit is a business that hasn't yet checked where it stands, or wants to test the water before signing on to $1,597 or $2,997 a month. Both AEO Engine tiers are ongoing managed programs, not single scans, so the commitment starts well above a one-off check \u2014 better suited to a business ready to commit budget than one still deciding if it has a problem worth fixing.\n\n## Why does AI visibility matter right now?\n\nAI visibility is no longer a side concern. Google's AI Overviews appear on more than 20% of searches ([AEO/AI Search & Citation Statistics 2026 | Rise at Seven](https://riseatseven.com/blog/aeo-ai-search-statistics/)), and 68% of US Google searches now end without a single click to a website ([AEO/AI Search & Citation Statistics 2026 | Rise at Seven](https://riseatseven.com/blog/aeo-ai-search-statistics/)). Of the clicks that remain inside an AI summary, only 1% go to a source link ([AEO/AI Search & Citation Statistics 2026 | Rise at Seven](https://riseatseven.com/blog/aeo-ai-search-statistics/)). Most marketers see this coming \u2014 70% believe AEO will significantly impact their strategy within 1\u20133 years, but only 20% have begun implementing it ([AEO/AI Search & Citation Statistics 2026 | Rise at Seven](https://riseatseven.com/blog/aeo-ai-search-statistics/)) \u2014 which leaves a gap between knowing and acting that most businesses still haven't closed.\n\nSee how any business here shows up in AI answers and Google search \u2014 and where its rivals are found instead.\n\n## How does ReachKit itself approach this problem?\n\nReachKit's own approach starts with a scan: see how any business shows up in AI answers and Google search \u2014 and where its rivals are found instead ([reachkit.app/scans?sort=highest&shown=32](https://reachkit.app/scans?sort=highest&shown=32)). That's the measurement side \u2014 a baseline before anything is written. From there, the plan is a page written and published for your site every day, your market re-measured every week ([reachkit.app/pricing](https://reachkit.app/pricing)). One plan, one price, no tiers to pick between.\n\nThe two pieces work together: the scan tells you where you stand, against named rivals, and the daily page is the ongoing work against that number. Re-measuring weekly means you're not guessing whether the published pages are moving anything \u2014 you see the market again every week, not just your own site once.\n\nYou can run a scan for free to see where you or a rival stands today: [reachkit.app/scans](https://reachkit.app/scans?sort=highest&shown=32). Or go straight to the plan itself: [reachkit.app/pricing](https://reachkit.app/pricing).\n\nA page written and published for your site every day, your market re-measured every week.\n\nReachKit measured reachkit.app on 28 September 2026 and gave it a Discoverability Score of 19 out of 100.\n\n- [Best Answer Engine Optimization Services for AI Visibility](https://content.reachkit.app/best-answer-engine-optimization-services-for-ai-visibility)\n- [Every free scan, in the open.](https://reachkit.app/scans)\n- [See what AI tells buyers about your market \u2014 and write your way in.](https://reachkit.app/)\n- [Privacy](https://reachkit.app/privacy)\n\nSee where your own site stands first \u2014 run a free scan at [Every free scan, in the open](https://reachkit.app/scans) before deciding what to spend on content.\n\n## Sources\n\n- [AEO Engine Pricing Plans](https://aeoengine.ai/pricing), read on 3 October 2026\n- [AEO/AI Search & Citation Statistics 2026 Rise at Seven](https://riseatseven.com/blog/aeo-ai-search-statistics/), read on 3 October 2026\n",
+  "cost_cents": 20.1485,
+  "created_at": "2026-10-03T22:23:17.32469+00:00",
+  "attribution": "ReachKit",
+  "rule_failures": [],
+  "scheduled_for": "2026-10-05"
+ },
+ "topics": [
+  {
+   "fit": null,
+   "band": "not-yet",
+   "scan": "824165f5-b432-4a09-9fa1-f6ce8347bac3",
+   "type": "answer_page",
+   "ready": true,
+   "title": "Best SEO Software",
+   "search": "best seo software",
+   "source": null,
+   "status": "queued",
+   "volume": 1000,
+   "created": "2026-09-17T14:18:12.020872+00:00",
+   "unready": null,
+   "page_type": null
+  },
+  {
+   "fit": null,
+   "band": "not-yet",
+   "scan": "824165f5-b432-4a09-9fa1-f6ce8347bac3",
+   "type": "answer_page",
+   "ready": false,
+   "title": "SEO Software Tool",
+   "search": "seo software tool",
+   "source": null,
+   "status": "dismissed",
+   "volume": 880,
+   "created": "2026-09-17T14:18:12.07632+00:00",
+   "unready": "outsized",
+   "page_type": null
+  },
+  {
+   "fit": null,
+   "band": "not-yet",
+   "scan": "824165f5-b432-4a09-9fa1-f6ce8347bac3",
+   "type": "answer_page",
+   "ready": false,
+   "title": "Free SEO Optimization Software",
+   "search": "free seo optimization software",
+   "source": null,
+   "status": "dismissed",
+   "volume": 720,
+   "created": "2026-09-17T14:18:12.131746+00:00",
+   "unready": "outsized",
+   "page_type": null
+  },
+  {
+   "fit": null,
+   "band": "not-yet",
+   "scan": "824165f5-b432-4a09-9fa1-f6ce8347bac3",
+   "type": "answer_page",
+   "ready": false,
+   "title": "Free SEO Software",
+   "search": "free seo software",
+   "source": null,
+   "status": "dismissed",
+   "volume": 720,
+   "created": "2026-09-17T14:18:12.17993+00:00",
+   "unready": "already_covered",
+   "page_type": null
+  },
+  {
+   "fit": 0,
+   "band": "not-yet",
+   "scan": "824165f5-b432-4a09-9fa1-f6ce8347bac3",
+   "type": "keyword_page",
+   "ready": false,
+   "title": "SEO Software Companies",
+   "search": "seo software companies",
+   "source": "category",
+   "status": "dismissed",
+   "volume": 480,
+   "created": "2026-09-17T14:18:12.21711+00:00",
+   "unready": "low_fit",
+   "page_type": null
+  },
+  {
+   "fit": null,
+   "band": "not-yet",
+   "scan": "824165f5-b432-4a09-9fa1-f6ce8347bac3",
+   "type": "comparison_page",
+   "ready": false,
+   "title": "SEO Software Comparison",
+   "search": "seo software comparison",
+   "source": null,
+   "status": "dismissed",
+   "volume": 480,
+   "created": "2026-09-17T14:18:12.256885+00:00",
+   "unready": "outsized",
+   "page_type": null
+  },
+  {
+   "fit": null,
+   "band": "not-yet",
+   "scan": "325999e4-09f4-4466-afea-4b296c40d574",
+   "type": "keyword_page",
+   "ready": false,
+   "title": "AI Tools for SEO",
+   "search": "ai tool seo",
+   "source": null,
+   "status": "dismissed",
+   "volume": 140,
+   "created": "2026-09-19T10:10:16.087095+00:00",
+   "unready": "keyword_gate",
+   "page_type": null
+  },
+  {
+   "fit": 0,
+   "band": "not-yet",
+   "scan": "325999e4-09f4-4466-afea-4b296c40d574",
+   "type": "answer_page",
+   "ready": false,
+   "title": "Best App for SEO",
+   "search": "best app for seo",
+   "source": "best_x",
+   "status": "open",
+   "volume": 140,
+   "created": "2026-09-19T10:10:16.116249+00:00",
+   "unready": "low_fit",
+   "page_type": null
+  },
+  {
+   "fit": null,
+   "band": "not-yet",
+   "scan": "325999e4-09f4-4466-afea-4b296c40d574",
+   "type": "answer_page",
+   "ready": false,
+   "title": "Best Google SEO Tools",
+   "search": "best google seo tools",
+   "source": null,
+   "status": "dismissed",
+   "volume": 140,
+   "created": "2026-09-19T10:10:16.143963+00:00",
+   "unready": "outsized",
+   "page_type": null
+  },
+  {
+   "fit": null,
+   "band": "not-yet",
+   "scan": "325999e4-09f4-4466-afea-4b296c40d574",
+   "type": "answer_page",
+   "ready": false,
+   "title": "Best SEO AI Tools",
+   "search": "best seo ai",
+   "source": null,
+   "status": "dismissed",
+   "volume": 140,
+   "created": "2026-09-19T10:10:16.17119+00:00",
+   "unready": "already_covered",
+   "page_type": null
+  },
+  {
+   "fit": null,
+   "band": "not-yet",
+   "scan": "325999e4-09f4-4466-afea-4b296c40d574",
+   "type": "answer_page",
+   "ready": false,
+   "title": "Google Rank Software",
+   "search": "google rank software",
+   "source": null,
+   "status": "dismissed",
+   "volume": 140,
+   "created": "2026-09-19T10:10:16.200554+00:00",
+   "unready": "outsized",
+   "page_type": null
+  },
+  {
+   "fit": null,
+   "band": "not-yet",
+   "scan": "325999e4-09f4-4466-afea-4b296c40d574",
+   "type": "keyword_page",
+   "ready": false,
+   "title": "AI Tools Market",
+   "search": "ai tools market",
+   "source": null,
+   "status": "dismissed",
+   "volume": 70,
+   "created": "2026-09-19T10:10:16.231247+00:00",
+   "unready": "keyword_gate",
+   "page_type": null
+  },
+  {
+   "fit": null,
+   "band": "reach",
+   "scan": "eece5dd1-6ef8-422f-8f3f-e7dd3411d138",
+   "type": "keyword_page",
+   "ready": false,
+   "title": "Best SEO Software for Small Business",
+   "search": "best seo software for small business",
+   "source": null,
+   "status": "dismissed",
+   "volume": 260,
+   "created": "2026-09-28T04:05:48.477955+00:00",
+   "unready": "keyword_gate",
+   "page_type": null
+  },
+  {
+   "fit": null,
+   "band": "reach",
+   "scan": "eece5dd1-6ef8-422f-8f3f-e7dd3411d138",
+   "type": "keyword_page",
+   "ready": false,
+   "title": "SEO AI Software",
+   "search": "seo ai software",
+   "source": null,
+   "status": "dismissed",
+   "volume": 170,
+   "created": "2026-09-28T04:05:48.511125+00:00",
+   "unready": "already_covered",
+   "page_type": null
+  },
+  {
+   "fit": 2,
+   "band": "reach",
+   "scan": "4b0983a4-5ef1-4ddd-b008-006f141a658c",
+   "type": "answer_page",
+   "ready": true,
+   "title": "ReachKit vs Meltwater: cost comparison for AI discovery",
+   "search": "meltwater cost",
+   "source": "ai_gap",
+   "status": "dismissed",
+   "volume": 210,
+   "created": "2026-10-03T08:42:46.597191+00:00",
+   "unready": null,
+   "page_type": null
+  },
+  {
+   "fit": 2,
+   "band": "reach",
+   "scan": "4b0983a4-5ef1-4ddd-b008-006f141a658c",
+   "type": "answer_page",
+   "ready": true,
+   "title": "ReachKit vs Meltwater: pricing breakdown for AI visibility",
+   "search": "meltwater pricing",
+   "source": "ai_gap",
+   "status": "dismissed",
+   "volume": 210,
+   "created": "2026-10-03T08:42:46.629517+00:00",
+   "unready": null,
+   "page_type": null
+  },
+  {
+   "fit": 3,
+   "band": "winnable",
+   "scan": "4b0983a4-5ef1-4ddd-b008-006f141a658c",
+   "type": "comparison_page",
+   "ready": true,
+   "title": "ReachKit vs AEO Engine: which closes your AI discovery gap",
+   "search": "reachkit vs aeo engine",
+   "source": "product",
+   "status": "queued",
+   "volume": null,
+   "created": "2026-10-03T08:42:46.653333+00:00",
+   "unready": null,
+   "page_type": null
+  },
+  {
+   "fit": 3,
+   "band": "winnable",
+   "scan": "4b0983a4-5ef1-4ddd-b008-006f141a658c",
+   "type": "comparison_page",
+   "ready": true,
+   "title": "ReachKit vs MaxAEO: AI visibility monitoring and page writing",
+   "search": "reachkit vs maxaeo",
+   "source": "product",
+   "status": "dismissed",
+   "volume": null,
+   "created": "2026-10-03T08:42:46.679424+00:00",
+   "unready": null,
+   "page_type": null
+  },
+  {
+   "fit": 3,
+   "band": "winnable",
+   "scan": "4b0983a4-5ef1-4ddd-b008-006f141a658c",
+   "type": "keyword_page",
+   "ready": true,
+   "title": "AI discovery monitoring and content pricing \u2014 what ReachKit costs",
+   "search": "ai discovery monitoring and content pricing",
+   "source": "product",
+   "status": "dismissed",
+   "volume": null,
+   "created": "2026-10-03T08:42:46.701707+00:00",
+   "unready": null,
+   "page_type": null
+  },
+  {
+   "fit": 3,
+   "band": "winnable",
+   "scan": "4b0983a4-5ef1-4ddd-b008-006f141a658c",
+   "type": "keyword_page",
+   "ready": true,
+   "title": "AI answer visibility pricing: ReachKit plans and free scan",
+   "search": "ai answer visibility pricing",
+   "source": "product",
+   "status": "dismissed",
+   "volume": null,
+   "created": "2026-10-03T08:42:46.726754+00:00",
+   "unready": null,
+   "page_type": null
+  },
+  {
+   "fit": 3,
+   "band": "winnable",
+   "scan": "4b0983a4-5ef1-4ddd-b008-006f141a658c",
+   "type": "keyword_page",
+   "ready": true,
+   "title": "Search and AI ranking tool pricing \u2014 ReachKit plans explained",
+   "search": "search and ai ranking pricing",
+   "source": "product",
+   "status": "dismissed",
+   "volume": null,
+   "created": "2026-10-03T08:42:46.750327+00:00",
+   "unready": null,
+   "page_type": null
+  },
+  {
+   "fit": 3,
+   "band": "winnable",
+   "scan": "4b0983a4-5ef1-4ddd-b008-006f141a658c",
+   "type": "keyword_page",
+   "ready": true,
+   "title": "Buyer discovery tracking pricing \u2014 ReachKit plans and free scan",
+   "search": "buyer discovery tracking pricing",
+   "source": "product",
+   "status": "dismissed",
+   "volume": null,
+   "created": "2026-10-03T08:42:46.773757+00:00",
+   "unready": null,
+   "page_type": null
+  },
+  {
+   "fit": 3,
+   "band": "winnable",
+   "scan": "f6b0b039-0418-43a6-88e9-d677dcba9860",
+   "type": "comparison_page",
+   "ready": true,
+   "title": "ReachKit vs Meltwater: pricing, features, and AI discovery focus",
+   "search": "reachkit vs meltwater pricing",
+   "source": "product",
+   "status": "open",
+   "volume": null,
+   "created": "2026-10-03T22:21:31.369351+00:00",
+   "unready": null,
+   "page_type": "product"
+  },
+  {
+   "fit": 3,
+   "band": "winnable",
+   "scan": "f6b0b039-0418-43a6-88e9-d677dcba9860",
+   "type": "comparison_page",
+   "ready": true,
+   "title": "AEO Engine alternatives: how ReachKit compares on AI discovery",
+   "search": "aeo engine alternatives",
+   "source": "product",
+   "status": "open",
+   "volume": null,
+   "created": "2026-10-03T22:21:31.416729+00:00",
+   "unready": null,
+   "page_type": "product"
+  }
+ ]
+}
