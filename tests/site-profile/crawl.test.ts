@@ -496,10 +496,10 @@ describe("what SPEC §9's technical-issue checks read off the crawl (#570)", () 
     );
 
     const [home, read] = out.pages;
-    expect(home?.facts).toEqual({ metaDescription: "", noindex: false, phoneViewport: false, schemaTypes: 0 });
+    expect(home?.facts).toEqual({ metaDescription: "", noindex: false, phoneViewport: false, schemaTypes: 0, snippetBlocked: false });
     // The home document was handed over, not fetched: nothing to time.
     expect(home?.fetchMs).toBeNull();
-    expect(read?.facts).toEqual({ metaDescription: "Who we are.", noindex: false, phoneViewport: true, schemaTypes: 1 });
+    expect(read?.facts).toEqual({ metaDescription: "Who we are.", noindex: false, phoneViewport: true, schemaTypes: 1, snippetBlocked: false });
     expect(typeof read?.fetchMs).toBe("number");
   });
 });

@@ -42,7 +42,7 @@ import { PricingCard } from "../_modules/pricing";
 import { CheckCards, ProblemCards } from "../_problems/cards";
 import { checkCardsOf, readingsOf } from "../_problems/checks";
 import { MethodSections } from "../_problems/method";
-import { cardsOf, PROBLEM_ORDER, type ProblemCard, type ProblemName } from "../_problems/model";
+import { answerReadersOf, cardsOf, PROBLEM_ORDER, type ProblemCard, type ProblemName } from "../_problems/model";
 import { unblockLines } from "../_problems/unblock";
 import { RemovalAddressLine } from "./removal";
 import type { AddressControl, AddressNotice } from "./state";
@@ -53,7 +53,7 @@ import { startReportCheckout } from "./checkout";
 // #103: the category has one home — the market the profile inferred.
 // `categoryOf` is the one derivation of it, and the screen reads it here
 // rather than from a second member the blob used to carry.
-import { categoryOf } from "@/lib/scan/sections";
+import { categoryOf, trainingOptOutOf } from "@/lib/scan/sections";
 
 /** BUILD §6.3a / DECISIONS 2026-08-28: MVP is US-English only, one
  *  location constant, so the date a report was measured is formatted once,
@@ -338,6 +338,10 @@ export function ReportView(p: {
           <MethodSections
             for={PROBLEM_ORDER}
             lines={{ blocked_readers: pasteLinesOf(cards, "blocked_readers") }}
+            readers={{
+              snippetPages: answerReadersOf(report).snippetPages,
+              trainingOptOut: trainingOptOutOf(report.robots),
+            }}
           />
         </div>
 

@@ -144,24 +144,46 @@ function missingOrDuplicate(
   return { affected, missing, duplicate };
 }
 
-function aiReaders(robots: Measured<RobotsPolicy>, blocked: Blocked): SiteIssue {
+/** SPEC §9, 2026-09-29 (D14): answer readers the access rules block, plus
+ *  pages whose own snippet control keeps them out of an AI answer. A blocked
+ *  reader is site-wide, so Critical whenever present; with none blocked the
+ *  pages follow the per-page steps. `pages` holds the snippet-controlled
+ *  pages, and `over` is the readers and the pages together. */
+function aiReaders(robots: Measured<RobotsPolicy>, blocked: Blocked, pages: readonly CheckedPage[]): SiteIssue {
   if (robots.kind === "unmeasured") return couldNot("ai_readers_blocked", "access_rules_unreadable");
-  return siteWide("ai_readers_blocked", blocked.length, AI_READER_AGENTS.length, "ai_readers");
+  const unquotable = pages.filter((p) => p.facts.snippetBlocked === true).map((p) => p.key);
+  const count = blocked.length + unquotable.length;
+  const severity: IssueSeverity =
+    count === 0
+      ? "nothing_to_fix"
+      : blocked.length > 0 || unquotable.length / pages.length >= SITE_ISSUES.CRITICAL_PAGE_SHARE
+        ? "critical"
+        : "worth_fixing";
+  return {
+    check: "ai_readers_blocked",
+    ran: true,
+    count,
+    over: AI_READER_AGENTS.length + pages.length,
+    unit: "ai_readers",
+    severity,
+    doer: DOER_OF.ai_readers_blocked,
+    pages: unquotable,
+  };
 }
 
 /**
  * The nine checks.
  *
  * `crawl` is `null` where the pass never reached the crawl or it raised;
- * `blockedAgents` is the report's own list, read from the same access rules,
- * never recounted here.
+ * `blockedAgents` is the report's own list of blocked answer readers, read
+ * from the same access rules, never recounted here.
  */
 export function checkSite(a: {
   crawl: CrawlReading | null;
   robots: Measured<RobotsPolicy>;
   blockedAgents: Blocked;
 }): SiteIssuesSection {
-  const readers = aiReaders(a.robots, a.blockedAgents);
+  const readers = aiReaders(a.robots, a.blockedAgents, a.crawl?.pages ?? []);
 
   if (a.crawl === null || a.crawl.pages.length === 0) {
     const because: CouldNotRun = a.crawl === null ? "crawl_not_run" : "no_pages_read";

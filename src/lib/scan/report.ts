@@ -149,7 +149,7 @@
 // produced is `null`, which the screen renders as a named absent section
 // with one written line (REQ-004 c10/c11), never as an empty card and
 // never as a spinner.
-import type { AI_READER_AGENTS } from "@/lib/config/constants";
+import { AI_READER_AGENTS } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { SiteIssuesSection } from "@/lib/site-issues/types";
@@ -183,7 +183,7 @@ export type StoppedReason = "complete" | "time_ceiling" | "spend_ceiling" | "sit
  *  it does not know throws rather than returning a partially-populated
  *  value: `null` would be indistinguishable from "no report" at every call
  *  site. */
-export const REPORT_VERSION = 12;
+export const REPORT_VERSION = 13;
 
 /** One cell of the AI-answers matrix — one question, one measured SERP.
  *  BP-025 `## Public interface` (issue #26's `matrix.ts` owns it). An
@@ -425,8 +425,9 @@ export interface StoredReport {
   fromIncompleteRescan: boolean;
 
   verdict: Verdict;
-  /** Which AI readers the home document's access rules block, in the
-   *  pinned list's own order. Derived from `AI_READER_AGENTS` here for the
+  /** Which answer readers the home document's access rules block, in the
+   *  pinned list's own order (SPEC §9, D14: training crawlers are not in
+   *  it). Derived from `AI_READER_AGENTS` here for the
    *  same reason `_problems/unblock.ts` derives its own alias from it: the
    *  type follows the pin, so a seventh agent needs no edit in either
    *  place. `Verdict.blockedReaders` is the *count* of these and stays
@@ -602,7 +603,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** The version this build's own migration knows how to lift, and the only
  *  one: a report written before issue #128 bought the paid battery. */
-const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6, 7, 8, 9, 10, 11];
+const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 /** The two battery columns of a report written before anything bought
  *  them. `not_attempted` and not `no_answer`: nobody asked these engines,
@@ -825,6 +826,63 @@ function upgradeFromVersion11(blob: Record<string, unknown>): Record<string, unk
   };
 }
 
+/**
+ * Version 12 → 13 (issue 1145, SPEC §9 2026-09-29, D14): the blocked-readers
+ * count is over the answer readers, not the training crawlers.
+ *
+ * A version-12 report counted GPTBot, ClaudeBot and Google-Extended as
+ * blocked readers and never looked at Google's own crawler. Its access rules are still
+ * in the blob, so the list and both counts are read again from them: a
+ * founder who only opted out of training stops being told they are blocked
+ * without waiting for the next scan. The list is the pin itself — no agent
+ * is named outside `constants.ts` — and a reader the old parser did not pin
+ * was keyed lowercased.
+ * Snippet controls were not read, so the check counts readers alone, and the
+ * score is left as it was measured.
+ */
+function upgradeFromVersion12(blob: Record<string, unknown>): Record<string, unknown> {
+  const next = { ...blob, version: 13 };
+  const robots = blob.robots;
+  if (!isRecord(robots) || robots.kind === "unmeasured" || !isRecord(robots.value)) return next;
+  const policy = robots.value;
+  const named = isRecord(policy.disallowedAgents) ? policy.disallowedAgents : {};
+  const blocked =
+    policy.absent === true
+      ? []
+      : AI_READER_AGENTS.filter(
+          (agent) => policy.disallowsAll === true || named[agent] === true || named[agent.toLowerCase()] === true
+        );
+  const count = blocked.length;
+
+  const verdict = blob.verdict;
+  const prior = isRecord(verdict) ? verdict.blockedReaders : undefined;
+  const section = blob.siteIssues;
+  return {
+    ...next,
+    blockedAgents: blocked,
+    verdict:
+      isRecord(verdict) && isRecord(prior) && prior.kind !== "unmeasured"
+        ? { ...verdict, blockedReaders: { kind: count === 0 ? "zero" : "measured", value: count, at: prior.at } }
+        : verdict,
+    siteIssues:
+      isRecord(section) && Array.isArray(section.issues)
+        ? {
+            ...section,
+            issues: section.issues.map((issue: unknown) =>
+              isRecord(issue) && issue.check === "ai_readers_blocked" && issue.ran === true
+                ? {
+                    ...issue,
+                    count,
+                    over: AI_READER_AGENTS.length,
+                    severity: count === 0 ? "nothing_to_fix" : "critical",
+                  }
+                : issue
+            ),
+          }
+        : section,
+  };
+}
+
 /** Every upgrade this build can apply, oldest first, each lifting a blob
  *  one version. Chained rather than switched on, so a version-3 report is
  *  lifted twice and lands readable — a build that only knew `n → latest`
@@ -839,6 +897,7 @@ const UPGRADES: readonly ((blob: Record<string, unknown>) => Record<string, unkn
   upgradeFromVersion9,
   upgradeFromVersion10,
   upgradeFromVersion11,
+  upgradeFromVersion12,
 ];
 
 /** The version guard, and the one upgrade beside it. Throws — loudly — on

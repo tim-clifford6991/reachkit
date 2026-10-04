@@ -283,7 +283,7 @@ describe("safeFetch · robots-respecting client through the wired reader (BP-006
 describe("robots.ts · one closed list, read from constants.ts (ADR-022, ADR-090)", () => {
   it("imports AI_READER_AGENTS and declares no agent list of its own", () => {
     const source = readFileSync(path.resolve(__dirname, "../../src/lib/egress/robots.ts"), "utf8");
-    expect(source).toMatch(/import \{ AI_READER_AGENTS \} from "@\/lib\/config\/constants"/);
+    expect(source).toMatch(/import \{ AI_READER_AGENTS, AI_TRAINING_CRAWLERS \} from "@\/lib\/config\/constants"/);
     const withoutComments = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
     for (const token of AI_READER_AGENTS) expect(withoutComments).not.toContain(`"${token}"`);
   });

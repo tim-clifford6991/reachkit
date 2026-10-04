@@ -33,7 +33,7 @@
 // The merged rules themselves are kept too (issue 610), so `robotsAllows`
 // can decide any other path by the same rule, and each group's
 // `Crawl-delay` is kept for the site-profile crawl to pace itself by.
-import { AI_READER_AGENTS } from "@/lib/config/constants";
+import { AI_READER_AGENTS, AI_TRAINING_CRAWLERS } from "@/lib/config/constants";
 import { memoiseRobots } from "./robots-memo";
 import { safeFetch } from "./safe-fetch";
 import type { RobotsPolicy, RobotsRule } from "./types";
@@ -52,7 +52,7 @@ export type RobotsVerdicts = Pick<
 const ROOT_PATH = "/";
 
 const PINNED_BY_LOWER: ReadonlyMap<string, string> = new Map(
-  AI_READER_AGENTS.map((token) => [token.toLowerCase(), token] as const)
+  [...AI_READER_AGENTS, ...AI_TRAINING_CRAWLERS].map((token) => [token.toLowerCase(), token] as const)
 );
 
 /** RFC 9309 §2.2.3: `*` matches any run of characters, a trailing `$`

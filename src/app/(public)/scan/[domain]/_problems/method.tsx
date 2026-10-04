@@ -28,7 +28,12 @@ export function MethodSections(p: {
   for: readonly [ProblemName, ProblemName, ProblemName];
   /** The lines the blocked-readers card's fix carries, where it has any. */
   lines?: Partial<Readonly<Record<ProblemName, readonly string[]>>>;
+  /** SPEC §9 (D14): the pages a snippet control keeps out of an answer, and
+   *  the training crawlers the site turns away — a choice, said as one. */
+  readers?: { snippetPages: readonly string[]; trainingOptOut: readonly string[] };
 }): React.JSX.Element {
+  const snippetPages = p.readers?.snippetPages ?? [];
+  const trainingOptOut = p.readers?.trainingOptOut ?? [];
   return (
     <div id="method" className="flex scroll-mt-20 flex-col gap-2">
       <p className="eyebrow">{copy("method.title")}</p>
@@ -40,6 +45,23 @@ export function MethodSections(p: {
             <div id={METHOD_ANCHOR[problem]} className="collapse-content flex scroll-mt-20 flex-col gap-3 text-sm">
               <p>{copy(METHOD_COPY[problem].body)}</p>
               {lines === undefined || lines.length === 0 ? null : <PasteBlock lines={lines} />}
+              {problem !== "blocked_readers" || snippetPages.length === 0 ? null : (
+                <div className="flex flex-col gap-1">
+                  <p>{copy("method.blocked-readers.snippet-pages")}</p>
+                  <ul className="list-inside list-disc">
+                    {snippetPages.map((url) => (
+                      <li key={url} className="min-w-0 break-all">
+                        {url}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {problem !== "blocked_readers" || trainingOptOut.length === 0 ? null : (
+                <p className="text-base-content/70">
+                  {copy("method.blocked-readers.training-choice", { crawlers: trainingOptOut.join(", ") })}
+                </p>
+              )}
             </div>
           </details>
         );

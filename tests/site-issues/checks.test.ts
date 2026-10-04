@@ -8,7 +8,10 @@ import { describe, expect, it } from "vitest";
 import { AI_READER_AGENTS, SITE_ISSUES } from "@/lib/config/constants";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
+import { parseRobotsTxt } from "@/lib/egress/robots";
+import { blockedAgentsOf, trainingOptOutOf } from "@/lib/scan/sections";
 import { checkSite, type CheckedPage, type CrawlReading } from "@/lib/site-issues/checks";
+import { readPageFacts } from "@/lib/site-issues/facts";
 import { SITE_CHECKS, type SiteCheck, type SiteIssue } from "@/lib/site-issues/types";
 
 const AT = new Date("2026-09-14T08:00:00.000Z");
@@ -141,9 +144,23 @@ describe("the nine checks, over the crawled set", () => {
     expect(ran(issue(section, "sitemap"))).toMatchObject({ count: 1, severity: "critical", doer: "free_fix" });
     expect(ran(issue(section, "ai_readers_blocked"))).toMatchObject({
       count: 1,
-      over: AI_READER_AGENTS.length,
+      over: AI_READER_AGENTS.length + 1,
       unit: "ai_readers",
       severity: "critical",
+    });
+  });
+
+  it("a page that forbids snippets is counted with the blocked answer readers and named", () => {
+    const section = checkSite({
+      crawl: crawl([pageAt(1), pageAt(2, { facts: { snippetBlocked: true } }), ...[3, 4, 5, 6].map((n) => pageAt(n))]),
+      robots: ROBOTS,
+      blockedAgents: [],
+    });
+    expect(ran(issue(section, "ai_readers_blocked"))).toMatchObject({
+      count: 1,
+      severity: "worth_fixing",
+      doer: "free_fix",
+      pages: ["https://example.com/p2"],
     });
   });
 
@@ -194,5 +211,35 @@ describe("a check that could not run says why — never 'no issues found'", () =
       broken_links: "no_links_checked",
       ai_readers_blocked: "access_rules_unreadable",
     });
+  });
+});
+
+describe("answer readers and training crawlers are two lists (SPEC §9, D14, issue 1145)", () => {
+  const policyOf = (text: string): Measured<RobotsPolicy> =>
+    measured({ ok: true, origin: "https://example.com", readAt: AT, absent: false, ...parseRobotsTxt(text) }, AT);
+
+  it("a robots.txt that blocks only GPTBot and Google-Extended reports no blocked answer reader", () => {
+    const robots = policyOf("User-agent: GPTBot\nDisallow: /\n\nUser-agent: Google-Extended\nDisallow: /\n");
+    const blockedAgents = blockedAgentsOf(robots);
+    expect(blockedAgents).toEqual([]);
+    expect(trainingOptOutOf(robots)).toEqual(["GPTBot", "Google-Extended"]);
+    const section = checkSite({ crawl: crawl([pageAt(1)]), robots, blockedAgents });
+    expect(ran(issue(section, "ai_readers_blocked"))).toMatchObject({ count: 0, severity: "nothing_to_fix" });
+  });
+
+  it("a blocked Googlebot is a blocked answer reader", () => {
+    expect(blockedAgentsOf(policyOf("User-agent: googlebot\nDisallow: /\n"))).toEqual(["Googlebot"]);
+  });
+
+  it("a page that forbids snippets is read as one; a marked aside is not", () => {
+    const page = (head: string, body: string): boolean | undefined =>
+      readPageFacts("https://example.com/", `<html><head>${head}</head><body>${body}</body></html>`).snippetBlocked;
+    const prose = "<p>What the product does, in enough words to be the page.</p>";
+    expect(page('<meta name="robots" content="index, nosnippet">', prose)).toBe(true);
+    expect(page('<meta name="googlebot" content="max-snippet: 0">', prose)).toBe(true);
+    expect(page("", `<main><div data-nosnippet>${prose}</div></main>`)).toBe(true);
+    expect(page('<meta name="robots" content="max-snippet:160">', prose)).toBe(false);
+    expect(page('<meta name="gptbot" content="nosnippet">', prose)).toBe(false);
+    expect(page("", `<main>${prose}${prose}<span data-nosnippet>€49</span></main>`)).toBe(false);
   });
 });

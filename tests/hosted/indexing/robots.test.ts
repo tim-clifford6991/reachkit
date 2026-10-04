@@ -44,7 +44,7 @@ vi.mock("@/lib/account/billing", () => ({
   hostedServingState: async (siteId: string) => serving.get(siteId) ?? { serve: true },
 }));
 
-const { AI_ANSWER_FETCHERS, AI_READER_AGENTS, PREVIEW_HOST_SUFFIX } = await import(
+const { AI_ANSWER_FETCHERS, AI_READER_AGENTS, AI_TRAINING_CRAWLERS, PREVIEW_HOST_SUFFIX } = await import(
   "@/lib/config/constants"
 );
 const { customerRobotsDocument, previewRobotsDocument } = await import("@/app/(hosted)/policies");
@@ -81,17 +81,17 @@ describe("REQ-059 c4 — the policy we serve blocks no general search engine cra
   });
 });
 
-describe("REQ-059 c4 — it permits by name the six pinned AI readers", () => {
-  it("every member of AI_READER_AGENTS appears with Allow", () => {
+describe("SPEC §9 D14 — it permits by name all seven: the answer readers and the training crawlers", () => {
+  it("every answer reader and every training crawler appears with Allow", () => {
     const document = customerRobotsDocument("https://content.example.com/sitemap.xml");
-    for (const agent of AI_READER_AGENTS) {
+    for (const agent of [...AI_READER_AGENTS, ...AI_TRAINING_CRAWLERS]) {
       expect(document, agent).toContain(`User-agent: ${agent}\nAllow: /`);
     }
   });
 
-  it("the six are the pin's six — this file names none of them itself", () => {
-    // ADR-022/ADR-090: one closed list, read here and by the blocked-readers
-    // count; a literal here would be a second copy.
+  it("the seven are the pins' seven — this file names none of them itself", () => {
+    // The two closed lists, read here and by the blocked-readers count; a
+    // literal here would be a second copy.
     const source = readFileSync(path.join(REPO_ROOT, "src/app/(hosted)/policies.ts"), "utf8");
     for (const agent of ["GPTBot", "ClaudeBot", "OAI-SearchBot", "PerplexityBot"]) {
       // The names appear in this file's header comment, quoting §9. Not in
@@ -99,7 +99,7 @@ describe("REQ-059 c4 — it permits by name the six pinned AI readers", () => {
       const code = source.slice(source.indexOf("import {"));
       expect(code, agent).not.toContain(agent);
     }
-    expect(AI_READER_AGENTS).toHaveLength(6);
+    expect(AI_READER_AGENTS.length + AI_TRAINING_CRAWLERS.length).toBe(7);
   });
 });
 
@@ -193,7 +193,7 @@ describe("issue #326 — ReachKit's own address publishes its own policy", () =>
     const source = readFileSync(path.join(REPO_ROOT, "src/app/(public)/_seo/policies.ts"), "utf8");
     // The code, not the header: this file's prose names both hosted
     // documents and the pin, to say what it is *not*. The same slice the
-    // "six are the pin's six" test above takes of `(hosted)/policies.ts`.
+    // "seven are the pins' seven" test above takes of `(hosted)/policies.ts`.
     const code = source.slice(source.indexOf("import {"));
     expect(code).not.toContain("customerRobotsDocument");
     expect(code).not.toContain("previewRobotsDocument");

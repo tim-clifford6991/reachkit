@@ -11,7 +11,7 @@
 // market or date. That is what makes "the larger count never carries the
 // lower severity" a property of the code rather than a convention.
 import { SEVERITY_THRESHOLDS } from "@/lib/config/constants";
-import { mapMeasured, type Measured } from "@/lib/measure/measured";
+import { mapMeasured, measured, measuredZero, type Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { StoredReport } from "@/lib/scan/report";
 
@@ -112,7 +112,21 @@ function fixFor(problem: ProblemName, count: Measured<number>, blockedAgents: re
   }
 }
 
-/** Reads `blockedReaders` from the verdict and the other two counts from
+/** SPEC §9 (2026-09-29, D14): the blocked-readers card states the check's
+ *  own count — answer readers the access rules block, plus pages a snippet
+ *  control hides — and those pages. A report whose check did not run falls
+ *  back to the verdict's count of readers. */
+export function answerReadersOf(report: StoredReport): { count: Measured<number>; snippetPages: readonly string[] } {
+  const issue = report.siteIssues?.issues.find((i) => i.check === "ai_readers_blocked");
+  if (issue === undefined || !issue.ran) return { count: report.verdict.blockedReaders, snippetPages: [] };
+  const at = report.verdict.measuredAt;
+  return {
+    count: issue.count === 0 ? measuredZero(0, at) : measured(issue.count, at),
+    snippetPages: issue.pages ?? [],
+  };
+}
+
+/** Reads the blocked-readers count from the check and the other two from
  *  the blob's supply section. Returns the three-tuple; the length is the
  *  type, not a runtime check. `unblockLines` is applied by the caller that
  *  knows which agents are blocked — this function performs no write and no
@@ -122,7 +136,7 @@ export function cardsOf(
   unblockLines: readonly string[]
 ): readonly [ProblemCard, ProblemCard, ProblemCard] {
   const counts: Readonly<Record<ProblemName, Measured<number>>> = {
-    blocked_readers: report.verdict.blockedReaders,
+    blocked_readers: answerReadersOf(report).count,
     missing_pages: report.supply.missingPages,
     unquotable_pages: report.supply.unquotablePages,
   };

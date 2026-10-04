@@ -7,7 +7,6 @@
 import { buildAiAnswersCard } from "../../../src/lib/market/questions/matrix";
 import { buildPresenceCard } from "../../../src/lib/market/rivals/presence";
 import { answersSectionOf } from "../../../src/lib/scan/sections";
-import { AI_READER_AGENTS } from "../../../src/lib/config/constants";
 import type { Profile } from "../../../src/lib/market/questions/profile";
 import type { Question } from "../../../src/lib/market/questions/phrase";
 import type { SelectedSearch } from "../../../src/lib/market/questions/select";
@@ -119,7 +118,8 @@ export function fullSections(over: Partial<ReportSections> = {}): ReportSections
     stoppedReason: "complete",
     fromIncompleteRescan: false,
     verdict: VERDICT,
-    blockedAgents: [AI_READER_AGENTS[0]!],
+    // What `ROBOTS` says: it blocks nobody.
+    blockedAgents: [],
     aiAnswers: answersSectionOf({ card, questions, rivals: [], ownDomain: DOMAIN, measuredAt: AT }),
     // #919: the fixture pass is a `free` one, and a free pass asks no page
     // question. A suite that needs one overrides this member.

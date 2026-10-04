@@ -477,6 +477,21 @@ describe("a report written at version 10 is lifted, not refused", () => {
     expect(report.aiAnswers).toBeNull();
   });
 
+  it("a version-12 report that blocked only training crawlers stops saying a reader is blocked (issue 1145)", () => {
+    const current = asStoredJson() as Record<string, unknown>;
+    const robots = current.robots as { value: Record<string, unknown> };
+    const verdict = current.verdict as Record<string, unknown>;
+    const report = readStoredReport({
+      ...current,
+      version: 12,
+      robots: { ...robots, value: { ...robots.value, disallowsAll: false, disallowedAgents: { GPTBot: true, "Google-Extended": true } } },
+      blockedAgents: ["GPTBot", "Google-Extended"],
+      verdict: { ...verdict, blockedReaders: { kind: "measured", value: 2, at: verdict.measuredAt } },
+    });
+    expect(report.blockedAgents).toEqual([]);
+    expect(report.verdict.blockedReaders).toMatchObject({ kind: "zero", value: 0 });
+  });
+
   it("the chain steps one version at a time — a version-8 blob lands with every member since", () => {
     // Each upgrade lifts a blob exactly one version, so the chain applies
     // all of them. An upgrade that jumped to whatever this build writes

@@ -31,7 +31,8 @@ export type IssueDoer = "free_fix" | "reachkit_writes" | "reachkit_rewrites";
 
 /** What a count is a count of, so a card can name the set it was measured
  *  over: pages of the crawl, internal links the crawl checked, the site's own
- *  declarations, or the pinned AI readers. */
+ *  declarations, or the answer readers together with the pages a snippet
+ *  control keeps from them. */
 export type IssueUnit = "pages" | "links" | "site" | "ai_readers";
 
 /** Why a check could not run. One reason each; the card states it and never
@@ -65,8 +66,9 @@ export type SiteIssue =
       /** For the two missing/duplicate checks: how the count splits. A page
        *  is counted once even when it is both. */
       parts?: { missing: number; duplicate: number };
-      /** The affected pages' addresses, for a count of pages; `null` for a
-       *  count of links, declarations or readers, and on a report written
+      /** The affected pages' addresses, for a count of pages; for the
+       *  answer-readers check, the pages a snippet control hides; `null` for
+       *  a count of links or declarations, and on a report written
        *  before addresses were recorded (version ≤ 7). A Fix opportunity is
        *  derived per page from this list and from nothing else. */
       pages: readonly string[] | null;
