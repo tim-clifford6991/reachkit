@@ -373,6 +373,14 @@ export const CALENDAR_COPY = Object.freeze({
   ],
   "calendar.supply.short": ["Supply is running short. Pages left: {days}. Monday’s re-measure looks for more.", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
   "calendar.supply.first-arrival": ["Your first pass found less than a month of pages — {days} so far. We look for more every Monday.", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
+  // Issue 1184 (drafted): why pages stall, as one line under the statement
+  // of supply. `{rule}` is the writing rule's own name with its underscores
+  // read as spaces.
+  "calendar.supply.stalled": ["Pages written in the last 7 days: {written}. Stopped before review: {stopped}.", { slots: { written: "text", stopped: "text" }, fixedBy: "issue 1184 (drafted)" }],
+  "calendar.supply.stalled.rule": [
+    "Pages written in the last 7 days: {written}. Stopped before review: {stopped}. The writing rule that stopped most: {rule}.",
+    { slots: { written: "text", stopped: "text", rule: "text" }, fixedBy: "issue 1184 (drafted)" },
+  ],
 
   // §4.6's `done-when` row, from the acceptance test recorded when the
   // opportunity was created (§7: "top 20 for Q" / "named on question P" /

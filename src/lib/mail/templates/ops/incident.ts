@@ -26,7 +26,23 @@ export type OpsIncident =
   | { occasion: "market-too-small"; scanId: string; tier: string }
   // Issue 796: the weekly passes of one Monday that found too little
   // market, folded into one line a week rather than one mail per site.
-  | { occasion: "market-too-small-week"; weekStart: string; scanIds: readonly string[] }
+  // Issue 1184: the same Monday mail says why the week before's pages
+  // stalled — per site, the pages that stopped of the pages written, and
+  // how often each cause stopped one. Owner-only, so the site is named.
+  | {
+      occasion: "market-too-small-week";
+      weekStart: string;
+      scanIds: readonly string[];
+      stopped?: {
+        weekStart: string;
+        sites: readonly {
+          domain: string;
+          written: number;
+          stopped: number;
+          causes: readonly { cause: string; count: number }[];
+        }[];
+      };
+    }
   // Issue #799: no error — a scheduled job has not run for twice its
   // interval. The facts are the job id, its last run as an instant and its
   // interval in minutes.
@@ -44,6 +60,7 @@ export type OpsIncident =
 
 const SUBJECT = "mail.ops.incident.subject" satisfies CopyKey;
 const HEADING = "mail.ops.incident.heading" satisfies CopyKey;
+const STOPPED_WEEK = "mail.ops.incident.drafts-stopped-week" satisfies CopyKey;
 
 const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "job-failed": "mail.ops.incident.job-failed",
@@ -139,7 +156,40 @@ function factsOf(incident: OpsIncident): FactRow[] {
   }
 }
 
+function count(value: number): string {
+  return String(Math.max(0, Math.trunc(value)));
+}
+
+/** The Monday digest: each half is drawn only where it has something to
+ *  say, so a week with stalled pages and no thin market does not claim one. */
+function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small-week" }>): MailBlock[] {
+  const blocks: MailBlock[] = [];
+  if (incident.scanIds.length > 0 || incident.stopped === undefined) {
+    blocks.push({ block: "paragraph", text: BODY[incident.occasion] }, { block: "facts", items: factsOf(incident) });
+  }
+  if (incident.stopped !== undefined) {
+    blocks.push(
+      { block: "paragraph", text: STOPPED_WEEK },
+      {
+        block: "facts",
+        items: [
+          { label: "mail.ops.incident.fact.week", value: closedDate(incident.stopped.weekStart) },
+          ...incident.stopped.sites.flatMap((site): FactRow[] => [
+            { label: "mail.ops.incident.fact.site", value: closedDomain(site.domain) },
+            { label: "mail.ops.incident.fact.stopped", value: `${count(site.stopped)} / ${count(site.written)}` },
+            ...site.causes.map((cause): FactRow => ({ label: "mail.ops.incident.fact.cause", value: `${closedName(cause.cause)}: ${count(cause.count)}` })),
+          ]),
+        ],
+      }
+    );
+  }
+  return blocks;
+}
+
 export function buildIncidentAlert(incident: OpsIncident): { subject: CopyKey; blocks: readonly MailBlock[] } {
+  if (incident.occasion === "market-too-small-week") {
+    return { subject: SUBJECT, blocks: [{ block: "heading", text: HEADING }, ...weekBlocks(incident)] };
+  }
   return {
     subject: SUBJECT,
     blocks: [

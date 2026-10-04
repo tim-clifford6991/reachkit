@@ -27,6 +27,7 @@
 import { writtenLine } from "../_shell/written";
 import { formatDate } from "../_shell/format";
 import type { SupplyNotice } from "@/lib/opportunities";
+import type { StalledCount } from "@/lib/publish/record/stalled";
 
 /** §7's notice, with its zero told apart (issue 765, issue 784): `unmeasured` is an
  *  exhausted count over a market that was never measured — there was
@@ -54,4 +55,15 @@ export function supplyLine(notice: CalendarSupplyNotice | null, timeZone: string
     return writtenLine("calendar.supply.short", { days: String(notice.days) });
   }
   return writtenLine("calendar.supply.first-arrival", { days: String(notice.days) });
+}
+
+/** Issue 1184: why pages stall, as one line — the last seven days' pages,
+ *  how many stopped before review, and the writing rule that stopped most.
+ *  Nothing where no page stopped. */
+export function stalledLine(count: StalledCount | null): string | null {
+  if (count === null || count.stopped === 0) return null;
+  const vars = { written: String(count.written), stopped: String(count.stopped) };
+  const rule = count.causes.find((cause) => cause.rule);
+  if (rule === undefined) return writtenLine("calendar.supply.stalled", vars);
+  return writtenLine("calendar.supply.stalled.rule", { ...vars, rule: rule.cause.replaceAll("_", " ") });
 }

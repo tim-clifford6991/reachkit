@@ -165,6 +165,34 @@ describe("#796 — a Monday's thin weekly passes are one owner digest", () => {
     expect(row(THIN_A).market_digest_at).not.toBeNull();
   });
 
+  it("issue 1184: the digest says why the week before's pages stalled, with no thin pass at all", async () => {
+    const SITE = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+    const stoppedBy = (reason: string) => [{ from: "generating", to: "needs_attention", at: "2026-09-09T06:00:00.000Z", reason }];
+    db.seed("scans", [weekly(HEALTHY, false)]);
+    db.seed("sites", [{ id: SITE, domain: "stalled.example" }]);
+    db.seed("drafts", [
+      { id: "d1", site_id: SITE, scheduled_for: "2026-09-07", state: "needs_attention", transitions: stoppedBy("rules:no_private_figure,brand_gap") },
+      { id: "d2", site_id: SITE, scheduled_for: "2026-09-13", state: "needs_attention", transitions: stoppedBy("rules:no_private_figure") },
+      { id: "d3", site_id: SITE, scheduled_for: "2026-09-10", state: "published", transitions: [] },
+      // This Monday's own page is next week's count.
+      { id: "d4", site_id: SITE, scheduled_for: MONDAY, state: "needs_attention", transitions: stoppedBy("rules:page_frame") },
+    ]);
+
+    await tick();
+
+    expect(mails).toHaveLength(1);
+    const html = String(mails[0]!.html);
+    expect(html).toContain("stalled.example");
+    expect(html).toContain("2026-09-07");
+    expect(html).toContain("2 / 3");
+    expect(html).toContain("no_private_figure: 2");
+    expect(html).toContain("brand_gap: 1");
+    expect(html).not.toContain("page_frame");
+    expect(html).not.toContain(HEALTHY);
+    expect(html).not.toContain("too little search demand");
+    expect(row(HEALTHY).market_digest_at).not.toBeNull();
+  });
+
   it("the due Monday is the latest one that has ended in every zone", () => {
     expect(lastEndedMonday(new Date("2026-09-15T11:59:59.000Z"))).toBe("2026-09-07");
     expect(lastEndedMonday(TUESDAY_NOON_UTC)).toBe(MONDAY);
