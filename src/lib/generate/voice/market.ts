@@ -38,6 +38,10 @@ export interface WritingMarket {
    *  search is also asked (D48). Never handed to the writer. Empty where the
    *  report's category stands in, or the founder set their own. */
   synonyms: readonly string[];
+  /** Every rival the conclusion names, in force or not — a founder's own
+   *  choice of rivals leaves some out. Never handed to the writer: a Q&A
+   *  reads it to tell which products a question names (issue 1263). */
+  concluded: readonly { name: string; domain: string }[];
   /** `null` where no market is stored and the report's category stands in. */
   market: PromptMarket | null;
 }
@@ -61,7 +65,7 @@ export function writingMarket(a: {
   reportCategory: string;
 }): WritingMarket {
   const current = a.site?.stored.current ?? null;
-  if (a.site === null || current === null) return { category: a.reportCategory, from: "report", synonyms: [], market: null };
+  if (a.site === null || current === null) return { category: a.reportCategory, from: "report", synonyms: [], concluded: [], market: null };
 
   const own = a.site.stored.categoryOverridden ? (a.site.category ?? "").trim() : "";
   const category = own === "" ? current.category.trim() : own;
@@ -74,6 +78,7 @@ export function writingMarket(a: {
     from: "site",
     // A category the founder set is not the one these were concluded for.
     synonyms: own === "" ? current.synonyms : [],
+    concluded: current.rivals.map((rival) => ({ name: rival.name, domain: rival.domain })),
     market: {
       category,
       buyer: bounded(current.buyer),

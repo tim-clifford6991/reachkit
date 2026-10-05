@@ -499,6 +499,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
       // Issue 1248: the market the page is written for, and whether it is
       // the site's own or the stored report's category.
       market: writingFor.market === null ? { from: "report", category } : { from: "site", ...writingFor.market },
+      writingFor,
       // The founder's own line from setup's fifth question (#1133), else the
       // business's name.
       byline: confirmed.profile?.knowledge?.byline ?? measuredBrand,

@@ -8,6 +8,7 @@
 //   npm run page -- --site reachkit.app --type listicle
 //   npm run page -- --site reachkit.app --type how_to --topic "how to get cited by chatgpt"
 //   npm run page -- --site reachkit.app --type qa --fresh           # rebuild the pack
+//   npm run page -- --site reachkit.app --type qa --pack-only       # stage 2 only, no write call
 //   npm run page -- --site reachkit.app --type qa --out docs/walk/pipeline-v2
 //   npm run page -- --site reachkit.app --type qa --cap-cents 25 --env-file ../../reachkitv3/.env.local
 //
@@ -15,7 +16,7 @@
 // (also spelled current-insights), update. It builds the context pack from the site's production data, caches
 // it on disk (`.review/page/packs/`), writes one page through the product's
 // own stages 3 and 4, and prints the page's path, each check's result and the
-// cost. A rerun reuses the cached pack unless `--fresh` is given.
+// cost. A rerun reuses the cached research unless `--fresh` is given.
 //
 // # The production data
 //
@@ -90,6 +91,7 @@ async function main() {
       type,
       topic: flag("--topic", null),
       fresh: argv.includes("--fresh"),
+      packOnly: argv.includes("--pack-only"),
       outDir: path.resolve(ROOT, flag("--out", ".review/page")),
       capCents: Number(flag("--cap-cents", "25")),
     });

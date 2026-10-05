@@ -8,7 +8,7 @@ export const qa: Template = {
   sections: [
     {
       key: "question",
-      task: "One question from `questions`, as its heading, word for word or tidied: open with its answer in two or three sentences, then the detail.",
+      task: "One question from `questions`, as its heading, word for word or tidied: open with its answer in two or three sentences, then the detail. Each has a fact in the pack that answers it: answer from that fact, and never write that a question cannot be answered.",
       repeat: { min: 5, max: 8 },
     },
     { key: "business", task: "Say how this business itself handles the topic, from its facts, linking its product page." },

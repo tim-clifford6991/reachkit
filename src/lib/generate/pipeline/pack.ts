@@ -22,12 +22,14 @@
 //
 // Pure. The reads are the caller's (`../index.ts`, `scripts/page/`).
 import { ADDS, PACK } from "@/lib/config/constants";
+import { GENERIC_TOKENS, brandOf } from "@/lib/market/questions/select";
 import type { ContentType } from "@/lib/opportunities/content-type";
 import type { SitePage } from "@/lib/opportunities/site-pages";
 import type { Opportunity } from "@/lib/opportunities/types";
 import type { StoredReport } from "@/lib/scan/report";
 import type { LinkTarget } from "../links/select";
 import { TEMPLATES, type PackNeed, type PackRequirement } from "../templates";
+import type { WritingMarket } from "../voice/market";
 import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import type { SourcedFact } from "./grounding";
 import type { MarketFact, MarketResearch, ResearchedProduct } from "./research";
@@ -114,7 +116,8 @@ export interface ContextPack {
   pages: SitePage[];
   /** The site's own pages this page links. */
   links: { url: string; label: string; purpose: string | null }[];
-  /** The questions the pass measured or buyers were recorded asking. */
+  /** A Q&A's questions: tracked or measured on the current market, each
+   *  with a fact in this pack that answers it (issue 1263). */
   questions: string[];
   measurements: PackMeasurements | null;
   live: PackLivePage | null;
@@ -207,18 +210,112 @@ export function measurementsOf(report: StoredReport): PackMeasurements | null {
   };
 }
 
-/** The questions buyers ask on the target's topic: the ones the pass
- *  measured and the ones the knowledge base recorded, those that share a
- *  word with the target first. None is written here. */
-function buyerQuestions(report: StoredReport, knowledge: PromptKnowledge | undefined, target: string): string[] {
-  const measured = [
-    ...(report.questions.kind === "unmeasured" ? [] : report.questions.value.map((question) => question.text)),
-    // The tracked buyer prompts (SPEC §6, D19) are questions the pass asked.
-    ...(report.prompts?.asked ?? []).map((asked) => asked.text),
+/** What a text is about once the words every search shares are set aside
+ *  ("best", "tool", "pricing"): what tells one market from another. */
+function subjectWords(text: string): Set<string> {
+  return new Set([...topicWords(text)].filter((word) => !GENERIC_TOKENS.has(word)));
+}
+
+interface NamedRival {
+  name: string;
+  domain: string;
+}
+
+/** A question names a rival by its name, every word of it, or by its
+ *  domain's own label ("aeoengine"). */
+function namesRival(question: string, rival: NamedRival): boolean {
+  const said = new Set(question.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
+  const name = rival.name.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  return (name.length > 0 && name.every((word) => said.has(word))) || said.has(brandOf(rival.domain));
+}
+
+const ASKS_PRICE_RE = /\b(?:costs?|prices?|priced|pricing|how much|value|cheap\w*|expensive)\b/i;
+
+/**
+ * A measured question is on the site's current market (issue 1263) where
+ * its wording or its search shares a word with the market's category or one
+ * of its synonyms, or names one of its rivals. `null` is a site no market
+ * was concluded for: the report's own reading is its market, and every
+ * question that report measured is on it.
+ */
+function onMarket(question: { text: string; search: string }, market: WritingMarket | null): boolean {
+  if (market === null || market.from === "report") return true;
+  const asked = `${question.text} ${question.search}`;
+  const words = subjectWords(asked);
+  const marketWords = subjectWords([market.category, ...market.synonyms].join(" "));
+  return [...words].some((word) => marketWords.has(word)) || (market.market?.rivals ?? []).some((rival) => namesRival(asked, rival));
+}
+
+/**
+ * The pack holds a fact that answers the question (issue 1263). One that
+ * names rivals needs a claim read off each one's own page — its pricing page
+ * where the question asks what it costs. Any other needs a business fact or
+ * a market claim that shares two of its subject words, or its one.
+ */
+function answerable(
+  question: string,
+  a: { facts: readonly PackFact[]; claims: readonly PackClaim[]; knowledge: PromptKnowledge | undefined; rivals: readonly NamedRival[] }
+): boolean {
+  const named = a.rivals.filter((rival) => namesRival(question, rival));
+  if (named.length > 0) {
+    const price = ASKS_PRICE_RE.test(question);
+    return named.every((rival) => a.claims.some((claim) => claim.product === rival.domain && (!price || claim.kind === "rival_pricing")));
+  }
+  const words = subjectWords(question);
+  if (words.size === 0) return false;
+  const need = Math.min(2, words.size);
+  const asked = new Set((a.knowledge?.questions ?? []).map((item) => item.text));
+  const held = [
+    ...a.facts.map((fact) => fact.passage),
+    ...a.claims.map((claim) => claim.passage),
+    // A question the knowledge base recorded is not a fact that answers one.
+    ...knowledgeTexts(a.knowledge).filter((text) => !asked.has(text)),
   ];
-  const recorded = (knowledge?.questions ?? []).map((item) => item.text);
-  const all = [...new Set([...measured, ...recorded].map((text) => text.replace(/\s+/g, " ").trim()).filter(Boolean))];
-  const words = topicWords(target);
+  return held.some((text) => {
+    const stated = subjectWords(text);
+    let shared = 0;
+    for (const word of words) if (stated.has(word) && ++shared >= need) return true;
+    return false;
+  });
+}
+
+/** The questions a Q&A may answer (SPEC §7, D42; issue 1263): the tracked
+ *  buyer prompts and the measured questions on the site's current market,
+ *  each only where the pack holds a fact that answers it — those that share
+ *  a word with the target first. None is written here, and none comes from
+ *  anywhere else. */
+function buyerQuestions(a: {
+  report: StoredReport;
+  target: string;
+  market: WritingMarket | null;
+  rivals: readonly string[];
+  facts: readonly PackFact[];
+  claims: readonly PackClaim[];
+  knowledge: PromptKnowledge | undefined;
+}): string[] {
+  // Every product a question could name: the rivals in force, the ones the
+  // conclusion names beside them, and the stored report's. Only a rival in
+  // force is researched, so a question naming any other has no claim.
+  const rivals: NamedRival[] = [];
+  for (const rival of [
+    ...(a.market?.market?.rivals ?? []),
+    ...(a.market?.concluded ?? []),
+    ...[...a.rivals, ...(a.report.rivals.kind === "unmeasured" ? [] : a.report.rivals.value.map((rival) => rival.domain))].map((domain) => ({
+      name: brandOf(domain),
+      domain,
+    })),
+  ]) {
+    if (!rivals.some((known) => known.domain === rival.domain)) rivals.push(rival);
+  }
+  const measured = (a.report.questions.kind === "unmeasured" ? [] : a.report.questions.value)
+    .filter((question) => onMarket({ text: question.text, search: question.search.keyword }, a.market))
+    .map((question) => question.text);
+  // The tracked buyer prompts (SPEC §6, D19) are built from the market in force.
+  const tracked = (a.report.prompts?.asked ?? []).map((asked) => asked.text);
+  const all = [...new Set([...tracked, ...measured].map((text) => text.replace(/\s+/g, " ").trim()).filter(Boolean))].filter((text) =>
+    answerable(text, { facts: a.facts, claims: a.claims, knowledge: a.knowledge, rivals })
+  );
+  const words = topicWords(a.target);
   return [...all.filter((text) => shares(words, text)), ...all.filter((text) => !shares(words, text))].slice(0, PACK.questions);
 }
 
@@ -306,6 +403,9 @@ export interface PackInputs {
   site: { businessName: string | null; domain: string; doNotClaim: readonly string[]; rivals: readonly string[] };
   category: string;
   market?: unknown;
+  /** The market in force, as the page is written for it (issue 1248): what a
+   *  Q&A's measured questions are held to. Absent on a lead's page. */
+  writingFor?: WritingMarket | null;
   byline: string | null;
   voice: string | null;
   profile: PromptProfile | null;
@@ -362,7 +462,18 @@ export function buildPack(a: PackInputs): ContextPack {
     products: a.research.products,
     pages: a.sitePages.slice(0, PACK.pages),
     links: a.links.map((link) => ({ url: link.url, label: link.label, purpose: link.source === "site" ? link.purpose : null })),
-    questions: a.type === "qa" ? buyerQuestions(a.report, a.profile?.knowledge, question) : [],
+    questions:
+      a.type === "qa"
+        ? buyerQuestions({
+            report: a.report,
+            target: question,
+            market: a.writingFor ?? null,
+            rivals: a.site.rivals,
+            facts,
+            claims,
+            knowledge: a.profile?.knowledge,
+          })
+        : [],
     measurements: a.type === "research" ? measurementsOf(a.report) : null,
     live: a.live ?? null,
     adds: packAdds({ facts, claims, topResults: a.research.topResults ?? [], newPage: newPage && a.type !== "update" }),
