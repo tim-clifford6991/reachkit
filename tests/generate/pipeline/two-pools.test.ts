@@ -136,9 +136,11 @@ describe("the research step reads the market's pages and keeps only what they sa
     expect(llmMock).not.toHaveBeenCalled();
   });
 
-  it("current insights reads the news for the category and its synonyms, and keeps what is dated inside 30 days with its date and source", async () => {
+  it("current insights reads the news for the category and its synonyms, and keeps what is dated inside 30 days and about the market, with its date and source", async () => {
     const CHANGE = "Google said AI Overviews now appear on a larger share of commercial searches than in the spring.";
     const OTHER = "The assistant began showing a list of cited shops beside every product answer this week.";
+    // The search matched "management"; the story is a security vendor's.
+    const BESIDE = "The vendor launched a risk management console for security teams that audits employee devices.";
     const row = (url: string, publishedAt: string, source: string) => ({ url, domain: new URL(url).hostname, title: "A story", source, publishedAt });
     newsMock.mockImplementation(async (_c: unknown, call: { query: string }) =>
       measured(
@@ -149,6 +151,7 @@ describe("the research step reads the market's pages and keeps only what they sa
               row("https://example.com/blog/our-own", "2026-10-01", "Ours"),
               // The search dates it this week; the page itself says last year.
               row("https://news.example/redated", "2026-10-02", "News Example"),
+              row("https://security.example/launch", "2026-10-01", "Security Daily"),
             ]
           : [row("https://trade.example/synonym", "2026-09-10", "Trade Weekly"), row("https://news.example/fresh", "2026-09-28", "News Example")]
       )
@@ -156,15 +159,33 @@ describe("the research step reads the market's pages and keeps only what they sa
     safeFetchMock.mockImplementation(async (url: string) => {
       if (url === "https://news.example/fresh") return answer(url, CHANGE, "Fresh story");
       if (url === "https://trade.example/synonym") return answer(url, OTHER, "Trade story");
+      if (url === "https://security.example/launch") return answer(url, BESIDE, "Risk console launched");
       if (url === "https://news.example/redated") {
         return { ...answer(url, CHANGE), html: `<html><head><title>Old</title><meta property="article:published_time" content="2025-03-01T00:00:00Z"></head><body><p>${filler}</p></body></html>` };
       }
       return { ok: false, reason: "status", status: 404, url, readAt: TODAY };
     });
-    const said: Record<string, string> = { "https://news.example/fresh": CHANGE, "https://trade.example/synonym": OTHER };
-    llmMock.mockImplementation(async (_c: unknown, call: { input: { pages: { page: number; url: string }[] } }) =>
-      measured({ claims: call.input.pages.flatMap((page) => (said[page.url] === undefined ? [] : [{ page: page.page, quote: said[page.url], year: null }])) })
-    );
+    const said: Record<string, string> = {
+      "https://news.example/fresh": CHANGE,
+      "https://trade.example/synonym": OTHER,
+      "https://security.example/launch": BESIDE,
+    };
+    type Judged = { market: unknown; results: { result: number; title: string }[] };
+    type Read = { pages: { page: number; url: string }[] };
+    const judged: Judged[] = [];
+    llmMock.mockImplementation(async (_c: unknown, call: { site: string; input: Judged & Read }) => {
+      if (call.site === "generate.news_fit") {
+        judged.push(call.input);
+        return measured({ results: call.input.results.map((result) => ({ result: result.result, about: result.title !== "Risk console launched" })) });
+      }
+      return measured({ claims: call.input.pages.flatMap((page) => (said[page.url] === undefined ? [] : [{ page: page.page, quote: said[page.url], year: null }])) });
+    });
+    const market = {
+      category: "project management software",
+      from: "site" as const,
+      synonyms: ["work management tools"],
+      market: { category: "project management software", buyer: null, job: "Plan a team's work", rivals: [], notOurMarket: ["Security software"] },
+    };
 
     const found = await researchMarket(cost(), {
       siteId: SITE_ID,
@@ -173,19 +194,49 @@ describe("the research step reads the market's pages and keeps only what they sa
       report: REPORT,
       rivals: [],
       today: TODAY,
-      recent: { searches: ["project management software", "work management tools", "project management software"], days: 30 },
+      recent: { searches: ["project management software", "work management tools", "project management software"], days: 30, market },
     });
 
     // One news search a term, never the web search for studies.
     expect(newsMock.mock.calls.map((call) => (call[1] as { query: string }).query)).toEqual(["project management software", "work management tools"]);
     expect(serpMock).not.toHaveBeenCalled();
-    // The stale story, the customer's own and the one its own page dates
-    // last year are not read as recent; a synonym's result is.
+    // One judgement, of every result read, against the site's market.
+    expect(judged).toHaveLength(1);
+    expect(judged[0]!.market).toEqual({
+      category: "project management software",
+      synonyms: ["work management tools"],
+      job: "Plan a team's work",
+      notOurMarket: ["Security software"],
+    });
+    // The stale story, the customer's own, the one its own page dates last
+    // year and the one beside the market are not facts; a synonym's result is.
     expect(found.facts.map((fact) => [fact.url, fact.kind, fact.publishedAt, fact.source])).toEqual([
       ["https://news.example/fresh", "recent", "2026-09-28", "News Example"],
       ["https://trade.example/synonym", "recent", "2026-09-10", "Trade Weekly"],
     ]);
     expect(safeFetchMock.mock.calls.map((call) => call[0])).not.toContain("https://news.example/stale");
+    // The pack is told which results were read and which were kept.
+    expect(found.news?.map((result) => [result.url, result.onMarket])).toEqual([
+      ["https://news.example/fresh", true],
+      ["https://trade.example/synonym", true],
+      ["https://security.example/launch", false],
+    ]);
+
+    // A judgement that does not answer keeps nothing: the page is not
+    // written from news nobody held to the market.
+    llmMock.mockImplementation(async (_c: unknown, call: { site: string }) =>
+      call.site === "generate.news_fit" ? { kind: "unmeasured", reason: "undeterminable", at: AT } : measured({ claims: [] })
+    );
+    const unjudged = await researchMarket(cost(), {
+      siteId: SITE_ID,
+      domain: "example.com",
+      searches: ["project management news"],
+      report: REPORT,
+      rivals: [],
+      today: TODAY,
+      recent: { searches: ["project management software"], days: 30, market },
+    });
+    expect(unjudged.facts.filter((fact) => fact.kind === "recent")).toEqual([]);
   });
 
   it("drops a statistic older than three years and keeps a dated claim that is not one", () => {

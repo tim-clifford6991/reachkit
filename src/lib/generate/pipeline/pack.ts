@@ -32,7 +32,7 @@ import { TEMPLATES, type PackNeed, type PackRequirement } from "../templates";
 import type { WritingMarket } from "../voice/market";
 import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import type { SourcedFact } from "./grounding";
-import type { MarketFact, MarketResearch, ResearchedProduct } from "./research";
+import type { JudgedResult, MarketFact, MarketResearch, ResearchedProduct } from "./research";
 import { comparisonTable } from "./table";
 
 export interface PackFact {
@@ -112,6 +112,10 @@ export interface ContextPack {
   claims: PackClaim[];
   /** The rivals whose own pages yielded a claim. */
   products: ResearchedProduct[];
+  /** *Current insights* (issue 1262): each dated news result that was read,
+   *  and whether it was judged to be about the market. Only one that was has
+   *  a claim in `claims`. */
+  news?: JudgedResult[];
   /** Every published and planned page of the site. */
   pages: SitePage[];
   /** The site's own pages this page links. */
@@ -460,6 +464,7 @@ export function buildPack(a: PackInputs): ContextPack {
     facts,
     claims,
     products: a.research.products,
+    ...(a.research.news === undefined ? {} : { news: a.research.news }),
     pages: a.sitePages.slice(0, PACK.pages),
     links: a.links.map((link) => ({ url: link.url, label: link.label, purpose: link.source === "site" ? link.purpose : null })),
     questions:

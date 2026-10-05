@@ -472,8 +472,10 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
     if (type === null) return null;
     const template = TEMPLATES[type];
     // 2. Research, for the types that read public pages (SPEC §7, *Two pools
-    //    of facts*; issue 1135): at most two model calls. A read that fails
-    //    leaves the page to its business facts and never stops it.
+    //    of facts*; issue 1135): at most two model calls, and for *current
+    //    insights* one more that holds its news to the market (issue 1262).
+    //    A read that fails leaves the page to its business facts and never
+    //    stops it.
     const market = !template.research
       ? NO_RESEARCH
       : await researchMarket(cost, {
@@ -484,7 +486,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
           rivals: site.rivals,
           today: new Date(),
           ...(type === "insights"
-            ? { recent: { searches: [category === "" ? (targetSearches(o)[0] ?? "") : category, ...writingFor.synonyms], days: RESEARCH.recentDays } }
+            ? { recent: { searches: [category === "" ? (targetSearches(o)[0] ?? "") : category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } }
             : {}),
         }).catch((error: unknown) => {
           console.warn(JSON.stringify({ event: "draft_research_failed", siteId: a.siteId, error: String(error).slice(0, 200) }));

@@ -15,7 +15,7 @@ the context pack it was written from (`<type>.pack.json`) and the run's record (
 | Q&A | why does chatgpt recommend my competitors | passed as written | 896 | 2 research, write | 5.55¢ |
 | Update | the live page *Best answer engine optimization services for AI visibility* | passed as written | 584 | 2 research, write | 5.37¢ |
 | Listicle | best ai visibility tools for small businesses | **stopped**: `required_blocks` (table) | 1,314 | 2 research, write, fit, fix, fit | 13.28¢ |
-| Current insights | AI discovery monitoring and content news | passed as written, from a news search (#1259, below) | 988 | 3 news searches, 2 research, write | 7.73¢ |
+| Current insights | AI discovery monitoring and content news | passed as written, from a news search held to the market (#1259, #1262, below) | 1,030 | 3 news searches, the news judgement, 2 research, write | 8.24¢ |
 
 Every page that was written cost under the 25¢ a page.
 
@@ -35,6 +35,8 @@ it; a repair that cleared one check was thrown away because another still failed
 
 **Current insights — written since, by #1259 (D48).** `insights.md` is the page: the news was searched for the market's category and two synonyms (0.2¢ a search), five results dated inside 30 days were read, and the page was written from three of them — Search Engine Journal (24 September), GlobeNewswire (30 September) and Dynamic Business (2 October) — and passed every check as written. One thing to read it for: the third item, a security vendor's launch, is beside the market rather than in it; a news search matches words, and nothing yet judges whether a result is about this market. What follows is the first attempt, kept as it was written.
 
+**Current insights, held to the market — #1262, 2026-10-05.** `insights.md` is now this run's page. Eight dated results were read and one small call judged each against the site's market (0.34¢). Four were kept and the page is written from those four: FinancialContent (3 October, an AI-visibility audit for online retailers), Markets Insider (23 September, Grid My Business's AI search), Digiday (15 September, measuring a brand's AI visibility) and CMSWire (18 September, owned content and AI mentions). Four were dropped, and `insights.pack.json` lists all eight with the verdict (`news`): the security vendor's launch that #1259's page carried; an error page a publisher served in place of its story; and two a reader might have kept — a benchmark of AI visibility among industrial-automation vendors, and PR Newswire's AEO and GEO report for APAC. The judgement leans strict. The page passed every check as written, at 8.24¢ (two news searches billed, the third returned nothing).
+
 **Current insights, the first attempt.** The one search returned no page whose own markup dates it inside 30 days
 (eight results read; the newest was dated 11 August 2026). The page was rightly not written:
 `step_failed:pack:recent_results`. An ordinary web search is the wrong source for news; the type
@@ -42,7 +44,7 @@ needs a search of the news, which is a vendor endpoint this product does not buy
 
 ## What the proof spent
 
-**140.6¢** in all, against the 150¢ allowed — the seven runs kept that morning are 53.9¢ of it (the current-insights row above is #1259's later run: 7.73¢, plus 0.4¢ for its cost check, under the owner's exception on that issue). The rest
+**140.6¢** in all, against the 150¢ allowed — the seven runs kept that morning are 53.9¢ of it (the current-insights row above is #1262's run of 2026-10-05: 8.24¢, which replaced #1259's of 7.73¢ plus 0.4¢ for its cost check, under the owner's exception on that issue). The rest
 bought the failures that found defects, each now fixed in code:
 
 | Found by a failed run | Fixed by |
