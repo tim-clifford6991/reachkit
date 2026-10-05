@@ -307,7 +307,7 @@ interface RecentRead extends ReadPage {
  *  kept, and where the call cannot be made or does not answer, none is. */
 async function recentPages(
   c: CostContext,
-  a: { siteId: string; today: Date; recent: { searches: readonly string[]; days: number; market: WritingMarket } },
+  a: { siteId: string; today: Date; recent: { searches: readonly string[]; days: number; market: Pick<WritingMarket, "category" | "synonyms" | "market"> } },
   notOurs: (url: string) => boolean,
   taken: ReadonlySet<string>
 ): Promise<{ pages: RecentRead[]; news: JudgedResult[] }> {
@@ -401,7 +401,7 @@ export async function researchMarket(
      *  searched for each of `searches` — the market's category, then its
      *  synonyms — and a result is kept where it is dated inside `days` and
      *  is about `market` (issue 1262). */
-    recent?: { searches: readonly string[]; days: number; market: WritingMarket };
+    recent?: { searches: readonly string[]; days: number; market: Pick<WritingMarket, "category" | "synonyms" | "market"> };
   }
 ): Promise<MarketResearch> {
   const target = a.searches[0];
