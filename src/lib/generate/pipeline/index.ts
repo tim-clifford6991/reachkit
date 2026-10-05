@@ -19,7 +19,8 @@
 //
 // At most four model calls a page — two for research, one to write, one to
 // fix — and, on a listicle or comparison, D44's one small fit check after
-// each of the last two.
+// each of the last two; on *current insights*, one small call that holds its
+// news results to the market (issue 1262).
 //
 // **A failing draft is never queued and takes no day.** The row is written
 // before the checks because the failure has to have somewhere to live, and it

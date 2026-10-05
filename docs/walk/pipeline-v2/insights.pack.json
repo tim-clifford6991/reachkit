@@ -1,7 +1,7 @@
 {
  "version": 1,
  "type": "insights",
- "builtAt": "2026-10-04T22:42:57.489Z",
+ "builtAt": "2026-10-05T00:00:05.128Z",
  "target": {
   "question": "AI discovery monitoring and content news",
   "searches": [
@@ -302,108 +302,149 @@
  ],
  "claims": [
   {
-   "passage": "Launched in September 2026, the tool aims to help organizations gain visibility into AI usage, enforce data protection policies, stop sensitive data from being exposed through employee interactions with AI, and generate audit-ready records—all without requiring extensive AI security expertise.",
-   "url": "https://dynamicbusiness.com/ai-tools/barracuda-ai-data-security-genai-risk-monitoring.html",
-   "title": "Barracuda AI Data Security: GenAI Risk Monitoring — Dynamic Business",
-   "readAt": "2026-10-04T22:42:38.117Z",
+   "passage": "Visibility 360 has launched a new Products & Brands AI Audit designed to help online retailers find out how leading AI platforms, including ChatGPT, Claude, and Perplexity, represent and recommend their products.",
+   "url": "https://www.financialcontent.com/article/marketersmedia-2026-10-3-ai-visibility-audit-for-e-commerce-brand-recommendations-service-announced",
+   "title": "AI Visibility Audit for E-Commerce Brand Recommendations: Service Announced | FinancialContent",
+   "readAt": "2026-10-04T23:59:48.918Z",
    "kind": "recent",
-   "publishedAt": "2026-10-02",
-   "source": "dynamicbusiness.com"
+   "publishedAt": "2026-10-03",
+   "source": "financialcontent.com"
   },
   {
-   "passage": "Block flattening can make weak AI Overview visibility look like a top ranking in Search Console, so prioritize actual visits and conversions.",
-   "url": "https://www.searchenginejournal.com/search-console-uses-block-flattening-for-aios-forget-position-focus-on-outcomes/589582/",
-   "title": "Search Console Uses Block Flattening For AIOs, Forget Position & Focus On Outcomes",
-   "readAt": "2026-10-04T22:42:38.117Z",
+   "passage": "The feature is available to every Grid My Business account with an active plan.",
+   "url": "https://markets.businessinsider.com/news/stocks/grid-my-business-launches-ai-search-to-map-local-visibility-across-ai-platforms-1036568131",
+   "title": "Grid My Business Launches AI Search to Map Local Visibility Across AI Platforms | Markets Insider",
+   "readAt": "2026-10-04T23:59:48.918Z",
    "kind": "recent",
-   "publishedAt": "2026-09-24",
-   "source": "searchenginejournal.com"
+   "publishedAt": "2026-09-23",
+   "source": "markets.businessinsider.com"
   },
   {
-   "passage": "Zen Media's 2026 benchmark puts AI visibility for industrial automation at a 4% average across the top 100 vendors.",
-   "url": "https://www.globenewswire.com/news-release/2026/09/30/3371734/0/en/ai-visibility-for-industrial-automation-companies-averages-4-across-the-top-100-vendors-benchmark-finds.html",
-   "title": "AI Visibility for Industrial Automation Companies Averages",
-   "readAt": "2026-10-04T22:42:38.117Z",
+   "passage": "Reddit, the AEO company found, is ChatGPT's number one source with 28.9% of every citation it makes.",
+   "url": "https://digiday.com/marketing/in-graphic-detail-inside-the-scramble-to-measure-a-brands-ai-visibility/",
+   "title": "Inside the scramble to measure a brand’s AI visibility",
+   "readAt": "2026-10-04T23:59:48.918Z",
    "kind": "recent",
-   "publishedAt": "2026-09-30",
-   "source": "globenewswire.com"
+   "publishedAt": "2026-09-15",
+   "source": "digiday.com"
   },
   {
-   "passage": "30 on-brand SEO/AEO articles per month with supporting media",
+   "passage": "Vendors whose own website supplies over half their AI citation sources cap out at 24% visibility, even at the top of the pack.",
+   "url": "https://www.cmswire.com/digital-experience/why-does-more-owned-content-cap-your-answer-engine-visibility/",
+   "title": "Is Your Website Actually Hurting Your Brand's AI Mentions?",
+   "readAt": "2026-10-04T23:59:48.918Z",
+   "kind": "recent",
+   "publishedAt": "2026-09-18",
+   "source": "cmswire.com"
+  },
+  {
+   "passage": "Growth A focused managed program for one site, with consistent content, authority, AI visibility tracking, and strategist support. $1,597 /mo",
    "url": "https://aeoengine.ai/pricing",
    "title": "AEO Engine Pricing Plans",
-   "readAt": "2026-10-04T22:42:24.636Z",
+   "readAt": "2026-10-04T23:59:31.425Z",
    "kind": "rival_pricing",
    "product": "aeoengine.ai"
   },
   {
-   "passage": "30-60 Articles/Month - Expertly researched and written in your brand's voice.",
+   "passage": "Trusted by 50+ brands",
    "url": "https://aeoengine.ai/platform",
    "title": "AEO Engine Platform | AI-Powered SEO & Answer Engine…",
-   "readAt": "2026-10-04T22:42:25.578Z",
+   "readAt": "2026-10-04T23:59:31.676Z",
    "kind": "rival_features",
    "product": "aeoengine.ai"
   },
   {
-   "passage": "Meltwater uses tailored pricing rather than a one-size-fits-all list.",
+   "passage": "most partnerships are structured on annual agreements, with a minimum contract length of 12 months.",
    "url": "https://www.meltwater.com/en/pricing",
    "title": "Meltwater Pricing & Costs",
-   "readAt": "2026-10-04T22:42:24.637Z",
+   "readAt": "2026-10-04T23:59:31.426Z",
    "kind": "rival_pricing",
    "product": "meltwater.com"
   },
   {
-   "passage": "Foundation (Free) : Offers shadow AI discovery and risk reporting. Premium : Adds enforcement over high-risk AI tools, including shadow AI remediation for over 1,300 GenAI tools and data protection for Microsoft Copilot. Premium Plus : Builds on Premium by extending real-time inspection and data loss prevention (DLP) across all supported AI tools and workflows, beyond just Copilot.",
-   "url": "https://dynamicbusiness.com/ai-tools/barracuda-ai-data-security-genai-risk-monitoring.html",
-   "title": "Barracuda AI Data Security: GenAI Risk Monitoring — Dynamic Business",
-   "readAt": "2026-10-04T22:42:38.117Z",
+   "passage": "NielsenIQ's September 2026 research found that 51% of surveyed US consumers had used AI-powered tools for shopping during the preceding month, with 20% relying on AI for product recommendations specifically.",
+   "url": "https://www.financialcontent.com/article/marketersmedia-2026-10-3-ai-visibility-audit-for-e-commerce-brand-recommendations-service-announced",
+   "title": "AI Visibility Audit for E-Commerce Brand Recommendations: Service Announced | FinancialContent",
+   "readAt": "2026-10-04T23:59:48.918Z",
    "kind": "recent",
-   "publishedAt": "2026-10-02",
-   "source": "dynamicbusiness.com"
+   "publishedAt": "2026-10-03",
+   "source": "financialcontent.com"
   },
   {
-   "passage": "Your page might show up at position 1 whenever an AI Overview appears, but drop down to position 19 in normal results when it does not. If both things happen equally often, Search Console reports a tidy Average Position of 10.",
-   "url": "https://www.searchenginejournal.com/search-console-uses-block-flattening-for-aios-forget-position-focus-on-outcomes/589582/",
-   "title": "Search Console Uses Block Flattening For AIOs, Forget Position & Focus On Outcomes",
-   "readAt": "2026-10-04T22:42:38.117Z",
+   "passage": "According to the July 2026 Adobe Consumer Survey of more than 5,000 U.S. respondents, most (95%) people who turn to AI find its respondents at least as trustworthy as a traditional search engine, including 29% who call it very trustworthy.",
+   "url": "https://digiday.com/marketing/in-graphic-detail-inside-the-scramble-to-measure-a-brands-ai-visibility/",
+   "title": "Inside the scramble to measure a brand’s AI visibility",
+   "readAt": "2026-10-04T23:59:48.918Z",
    "kind": "recent",
-   "publishedAt": "2026-09-24",
-   "source": "searchenginejournal.com"
+   "publishedAt": "2026-09-15",
+   "source": "digiday.com"
   },
   {
-   "passage": "Siemens, the top-ranked company, appeared in 21% of prompts, followed by Rockwell Automation at 17% and ABB and Schneider Electric at 16% each.",
-   "url": "https://www.globenewswire.com/news-release/2026/09/30/3371734/0/en/ai-visibility-for-industrial-automation-companies-averages-4-across-the-top-100-vendors-benchmark-finds.html",
-   "title": "AI Visibility for Industrial Automation Companies Averages",
-   "readAt": "2026-10-04T22:42:38.117Z",
+   "passage": "G2's 2026 survey of 1,076 B2B decision-makers found 51% start software research with an AI chatbot more often than with Google, up from 29% a year earlier.",
+   "url": "https://www.cmswire.com/digital-experience/why-does-more-owned-content-cap-your-answer-engine-visibility/",
+   "title": "Is Your Website Actually Hurting Your Brand's AI Mentions?",
+   "readAt": "2026-10-04T23:59:48.918Z",
    "kind": "recent",
-   "publishedAt": "2026-09-30",
-   "source": "globenewswire.com"
+   "publishedAt": "2026-09-18",
+   "source": "cmswire.com"
   },
   {
-   "passage": "60 on-brand SEO/AEO articles per month with supporting media",
+   "passage": "Scale A higher-velocity managed program with full-site optimization, doubled content output, and broader authority coverage. $2,997 /mo",
    "url": "https://aeoengine.ai/pricing",
    "title": "AEO Engine Pricing Plans",
-   "readAt": "2026-10-04T22:42:24.636Z",
+   "readAt": "2026-10-04T23:59:31.425Z",
    "kind": "rival_pricing",
    "product": "aeoengine.ai"
   },
   {
-   "passage": "Protection spans over 1,300 generative AI services, including major platforms such as Copilot, ChatGPT, Claude, and Gemini.",
-   "url": "https://dynamicbusiness.com/ai-tools/barracuda-ai-data-security-genai-risk-monitoring.html",
-   "title": "Barracuda AI Data Security: GenAI Risk Monitoring — Dynamic Business",
-   "readAt": "2026-10-04T22:42:38.117Z",
-   "kind": "recent",
-   "publishedAt": "2026-10-02",
-   "source": "dynamicbusiness.com"
+   "passage": "3,272 AI Citations, 48.7% SOV, +57.8% Organic Traffic Dec-Apr",
+   "url": "https://aeoengine.ai/platform",
+   "title": "AEO Engine Platform | AI-Powered SEO & Answer Engine…",
+   "readAt": "2026-10-04T23:59:31.676Z",
+   "kind": "rival_features",
+   "product": "aeoengine.ai"
   },
   {
-   "passage": "Manufacturer websites registered a 92% citation frequency in the benchmark.",
-   "url": "https://www.globenewswire.com/news-release/2026/09/30/3371734/0/en/ai-visibility-for-industrial-automation-companies-averages-4-across-the-top-100-vendors-benchmark-finds.html",
-   "title": "AI Visibility for Industrial Automation Companies Averages",
-   "readAt": "2026-10-04T22:42:38.117Z",
+   "passage": "The campaigns include publishing relevant content on over 300 platforms, which Visibility 360 says expands the brand's digital footprint and increases its chances of being cited in AI answers.",
+   "url": "https://www.financialcontent.com/article/marketersmedia-2026-10-3-ai-visibility-audit-for-e-commerce-brand-recommendations-service-announced",
+   "title": "AI Visibility Audit for E-Commerce Brand Recommendations: Service Announced | FinancialContent",
+   "readAt": "2026-10-04T23:59:48.918Z",
    "kind": "recent",
-   "publishedAt": "2026-09-30",
-   "source": "globenewswire.com"
+   "publishedAt": "2026-10-03",
+   "source": "financialcontent.com"
+  },
+  {
+   "passage": "Nearly half (45%) of the 200 brand and agency ad investment decision-makers surveyed by the IAB said that was the case.",
+   "url": "https://digiday.com/marketing/in-graphic-detail-inside-the-scramble-to-measure-a-brands-ai-visibility/",
+   "title": "Inside the scramble to measure a brand’s AI visibility",
+   "readAt": "2026-10-04T23:59:48.918Z",
+   "kind": "recent",
+   "publishedAt": "2026-09-15",
+   "source": "digiday.com"
+  },
+  {
+   "passage": "Qualified Growth and Scale clients get 30% more organic and AI traffic in 90 days, or we work free until they do.",
+   "url": "https://aeoengine.ai/pricing",
+   "title": "AEO Engine Pricing Plans",
+   "readAt": "2026-10-04T23:59:31.425Z",
+   "kind": "rival_pricing",
+   "product": "aeoengine.ai"
+  },
+  {
+   "passage": "472 AI CITATIONS, 672 → 6,097 MONTHLY VISITORS, 9.1X ORGANIC GROWTH",
+   "url": "https://aeoengine.ai/platform",
+   "title": "AEO Engine Platform | AI-Powered SEO & Answer Engine…",
+   "readAt": "2026-10-04T23:59:31.676Z",
+   "kind": "rival_features",
+   "product": "aeoengine.ai"
+  },
+  {
+   "passage": "By 2026, traditional search volume is predicted to drop 25% as users shift to AI assistants.",
+   "url": "https://aeoengine.ai/pricing",
+   "title": "AEO Engine Pricing Plans",
+   "readAt": "2026-10-04T23:59:31.425Z",
+   "kind": "rival_pricing",
+   "product": "aeoengine.ai"
   }
  ],
  "products": [
@@ -419,6 +460,64 @@
    "pages": [
     "https://www.meltwater.com/en/pricing"
    ]
+  }
+ ],
+ "news": [
+  {
+   "url": "https://dynamicbusiness.com/ai-tools/barracuda-ai-data-security-genai-risk-monitoring.html",
+   "title": "Barracuda AI Data Security: GenAI Risk Monitoring — Dynamic Business",
+   "publishedAt": "2026-10-02",
+   "source": "dynamicbusiness.com",
+   "onMarket": false
+  },
+  {
+   "url": "https://www.globenewswire.com/news-release/2026/09/30/3371734/0/en/ai-visibility-for-industrial-automation-companies-averages-4-across-the-top-100-vendors-benchmark-finds.html",
+   "title": "AI Visibility for Industrial Automation Companies Averages",
+   "publishedAt": "2026-09-30",
+   "source": "globenewswire.com",
+   "onMarket": false
+  },
+  {
+   "url": "https://www.financialcontent.com/article/marketersmedia-2026-10-3-ai-visibility-audit-for-e-commerce-brand-recommendations-service-announced",
+   "title": "AI Visibility Audit for E-Commerce Brand Recommendations: Service Announced | FinancialContent",
+   "publishedAt": "2026-10-03",
+   "source": "financialcontent.com",
+   "onMarket": true
+  },
+  {
+   "url": "https://www.martechcube.com/pr-newswire-unveils-aeo-geo-report-for-ai-brand-visibility-in-apac-region/",
+   "title": "PR Newswire Unveils AEO & GEO Report for APAC",
+   "publishedAt": "2026-09-28",
+   "source": "martechcube.com",
+   "onMarket": false
+  },
+  {
+   "url": "https://markets.businessinsider.com/news/stocks/grid-my-business-launches-ai-search-to-map-local-visibility-across-ai-platforms-1036568131",
+   "title": "Grid My Business Launches AI Search to Map Local Visibility Across AI Platforms | Markets Insider",
+   "publishedAt": "2026-09-23",
+   "source": "markets.businessinsider.com",
+   "onMarket": true
+  },
+  {
+   "url": "https://digiday.com/marketing/in-graphic-detail-inside-the-scramble-to-measure-a-brands-ai-visibility/",
+   "title": "Inside the scramble to measure a brand’s AI visibility",
+   "publishedAt": "2026-09-15",
+   "source": "digiday.com",
+   "onMarket": true
+  },
+  {
+   "url": "https://www.cmswire.com/digital-experience/why-does-more-owned-content-cap-your-answer-engine-visibility/",
+   "title": "Is Your Website Actually Hurting Your Brand's AI Mentions?",
+   "publishedAt": "2026-09-18",
+   "source": "cmswire.com",
+   "onMarket": true
+  },
+  {
+   "url": "https://www.thedrum.com/opinion/is-your-brand-part-of-the-answer-why-ai-visibility-is-about-more-than-showing-up",
+   "title": "ERROR: The request could not be satisfied",
+   "publishedAt": "2026-09-20",
+   "source": "thedrum.com",
+   "onMarket": false
   }
  ],
  "pages": [

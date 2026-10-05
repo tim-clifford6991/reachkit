@@ -1,91 +1,94 @@
-# AI discovery monitoring and content: what changed in October 2026
+# AI discovery monitoring: what changed in October 2026
 
 *ReachKit*
 
 :::answer
-Four things changed recently: Google's Search Console now flattens AI Overview positions into misleading averages, a new industrial-automation benchmark shows AI visibility sits near 4% for most vendors, Barracuda launched AI data-risk monitoring, and manufacturer pages dominate AI citations at 92%. Together they show visibility is measurable, uneven, and mostly won by owned content.
+October 2026 brought new AI-visibility audits for e-commerce, a local-business AI search tool, and research showing AI answers lean hard on Reddit and owned-site content caps visibility. Together they confirm the same pattern: buyers now ask AI what to use, and companies without a measurement and publishing habit are missing those answers.
 :::
 
 :::takeaways
-- Search Console's block flattening can hide whether an AI Overview sent traffic, so check visits and conversions instead of position.
-- A September 2026 benchmark found average AI visibility for industrial automation vendors is just 4% across the top 100 companies.
-- Manufacturer-owned websites, not third-party directories, got cited 92% of the time in that same benchmark.
-- Barracuda's October 2026 launch shows AI monitoring tools are expanding into data-risk territory, not just visibility tracking.
-- Owning the page that answers a buyer's question still beats chasing a position number.
+- A new AI audit for e-commerce brands launched October 3, aimed at how ChatGPT, Claude and Perplexity represent products.
+- Grid My Business rolled out AI search mapping for local visibility on September 23.
+- Research from mid-September found Reddit supplies 28.9% of ChatGPT's citations, and owned-site content can cap visibility at 24%.
+- G2 found 51% of B2B buyers now start software research with an AI chatbot, up from 29% a year earlier.
+- The fix is the same across all of it: know where you're missing, then publish to close the gap.
 :::
 
-## What changed in AI discovery monitoring lately?
+## What changed in AI discovery monitoring this month?
 
-Three dated items moved the conversation in late September and early October 2026: a measurement problem in Google Search Console, a new benchmark on how often AI names vendors, and a competitor launch in a nearby but different category. Each points the same direction: being named in an AI answer is now something you can measure, and most companies are not measuring it well.
+Three things moved at once: new tools launched to measure AI visibility, new research quantified how AI answers get built, and buyer behaviour kept shifting toward asking AI first. None of it is small. A market that measures itself attracts more measurement, and a market that shows buyers skipping Google for ChatGPT attracts more companies trying to get named in the answer.
 
-The common thread is that position numbers and citation counts are proving unreliable or thin on their own. What is holding up is owned content — pages that directly answer the questions buyers put to AI and to Google.
+The common thread is this: being found by AI is no longer optional research, it's an active discipline, with new vendors, new numbers, and new evidence of how citations form.
 
-## Why is Google Search Console misleading about AI Overviews?
+## What did the new e-commerce AI audit launch?
 
-On September 24, 2026, Search Engine Journal reported that Search Console uses a technique called block flattening that can make a weak AI Overview showing look identical to a strong normal ranking, as published by [Search Engine Journal](https://www.searchenginejournal.com/search-console-uses-block-flattening-for-aios-forget-position-focus-on-outcomes/589582/).
+On October 3, 2026, a new audit product aimed squarely at online retailers went live.
 
-> Your page might show up at position 1 whenever an AI Overview appears, but drop down to position 19 in normal results when it does not. If both things happen equally often, Search Console reports a tidy Average Position of 10. ([searchenginejournal.com](https://www.searchenginejournal.com/search-console-uses-block-flattening-for-aios-forget-position-focus-on-outcomes/589582/))
+> Visibility 360 has launched a new Products & Brands AI Audit designed to help online retailers find out how leading AI platforms, including ChatGPT, Claude, and Perplexity, represent and recommend their products. ([financialcontent.com](https://www.financialcontent.com/article/marketersmedia-2026-10-3-ai-visibility-audit-for-e-commerce-brand-recommendations-service-announced))
 
-This means a business checking its average position in Search Console cannot tell whether it is winning or losing inside AI Overviews specifically. The fix the article points to is to stop watching position and start watching whether visits and conversions move.
+[financialcontent.com](https://www.financialcontent.com/article/marketersmedia-2026-10-3-ai-visibility-audit-for-e-commerce-brand-recommendations-service-announced)
 
-## How visible are vendors inside one AI-watched market?
+The same release pointed to why retailers are paying attention: NielsenIQ's September 2026 research found that 51% of surveyed US consumers had used AI tools for shopping in the preceding month, with 20% relying on AI specifically for product recommendations, as reported by [financialcontent.com](https://www.financialcontent.com/article/marketersmedia-2026-10-3-ai-visibility-audit-for-e-commerce-brand-recommendations-service-announced). For a retailer, that's one in five shoppers taking an AI's word for what to buy — and an audit only tells you where you stand, it doesn't change the outcome.
 
-On September 30, 2026, GlobeNewswire published a Zen Media benchmark putting average AI visibility for industrial automation at 4% across the top 100 vendors, as reported by [GlobeNewswire](https://www.globenewswire.com/news-release/2026/09/30/3371734/0/en/ai-visibility-for-industrial-automation-companies-averages-4-across-the-top-100-vendors-benchmark-finds.html).
+## What did Grid My Business add?
 
-The same benchmark found a steep drop-off at the top: Siemens appeared in 21% of prompts, Rockwell Automation in 17%, and ABB and Schneider Electric at 16% each. That leaves almost nothing for the other 96 vendors measured. It's a reminder that AI answers tend to cluster around a small handful of names, and everyone else is effectively invisible in that market.
+On September 23, 2026, Grid My Business launched an AI search feature to map local business visibility across AI platforms, available to every account on an active plan, according to [markets.businessinsider.com](https://markets.businessinsider.com/news/stocks/grid-my-business-launches-ai-search-to-map-local-visibility-across-ai-platforms-1036568131). It extends the same idea — measuring AI visibility — down to local businesses, not just national brands.
 
-## What source do AI answers cite?
+It means the pressure to be named in AI answers isn't confined to e-commerce or SaaS. A local plumber or a regional clinic now has a dedicated tool pointed at the same question: does AI mention us, or only the competition?
 
-The same September 30, 2026 benchmark found manufacturer websites — not review sites, not directories — registered a 92% citation frequency, according to [GlobeNewswire](https://www.globenewswire.com/news-release/2026/09/30/3371734/0/en/ai-visibility-for-industrial-automation-companies-averages-4-across-the-top-100-vendors-benchmark-finds.html).
+## What did the research on AI CITATIONS find?
 
-That figure matters beyond industrial automation. If AI answers are pulling overwhelmingly from a company's own site rather than third-party coverage, then the fastest lever a business controls is its own published pages — what they say, how directly they answer a buyer's question, and whether they exist at all.
+Mid-September brought the clearest data yet on where AI answers pull their sources from. An AEO company's research, reported September 15, found that Reddit is ChatGPT's number one source, supplying 28.9% of every citation it makes, per [digiday.com](https://digiday.com/marketing/in-graphic-detail-inside-the-scramble-to-measure-a-brands-ai-visibility/).
 
-## What else launched in AI monitoring recently?
+The same article noted that 95% of people who turn to AI find its answers at least as trustworthy as a traditional search engine, with 29% calling it very trustworthy, citing the July 2026 Adobe Consumer Survey of more than 5,000 US respondents, per [digiday.com](https://digiday.com/marketing/in-graphic-detail-inside-the-scramble-to-measure-a-brands-ai-visibility/). Trust in the answer is high. Where the answer comes from is mostly out of your hands — unless your own content is part of the mix it draws from.
 
-On October 2, 2026, Dynamic Business covered the launch of Barracuda's AI Data Security tool, aimed at giving organizations visibility into AI usage and enforcing data protection policies, as reported by [Dynamic Business](https://dynamicbusiness.com/ai-tools/barracuda-ai-data-security-genai-risk-monitoring.html).
+## What did the cmswire research say about owned content?
 
-The tool covers more than 1,300 generative AI services, including Copilot, ChatGPT, Claude, and Gemini, and comes in a free Foundation tier plus paid Premium tiers adding enforcement and data loss prevention. It is a risk and compliance tool, not a discoverability tool — worth knowing so it isn't confused with monitoring whether your business gets named in AI answers.
+On September 18, 2026, cmswire reported a finding that cuts against the instinct to just publish more on your own site: vendors whose own website supplies over half their AI citation sources cap out at 24% visibility, even at the top of the pack, per [cmswire.com](https://www.cmswire.com/digital-experience/why-does-more-owned-content-cap-your-answer-engine-visibility/).
 
-## What should a business do about this now?
+The same piece cited G2's 2026 survey of 1,076 B2B decision-makers, finding 51% now start software research with an AI chatbot more often than with Google — up from 29% a year earlier, per [cmswire.com](https://www.cmswire.com/digital-experience/why-does-more-owned-content-cap-your-answer-engine-visibility/). Owned content alone isn't enough, and the buyer habit it needs to reach is moving fast, not slowly.
 
-Stop trusting a single average position number from Search Console and start checking whether AI Overview traffic converts. Then look at your own site: if manufacturer and company-owned pages get cited 92% of the time in at least one measured market, the question is not whether to publish more pages, but whether yours answer the exact questions buyers are asking.
+## What should you do about it now?
 
-If your market looks anything like industrial automation's 4% average, assume most of your competitors are invisible to AI too — which means the gap is winnable with a handful of well-aimed pages, not a full rebuild of your site.
+Start by finding out where you stand. Not a guess, a measurement: what does AI say when someone asks about your category, and does it name you or only your rivals. That's the gap the research above keeps pointing at — it's widening, not closing on its own.
 
-## How does ReachKit respond to this?
+Then act on what you find, on a schedule, not once. A single audit tells you today's picture. Buyer habits shown above — 51% starting with a chatbot, a fifth of shoppers trusting AI for recommendations — mean today's picture goes stale fast. Treat this like an ongoing measurement, not a one-time report.
 
-ReachKit starts from the same gap these reports describe: buyers ask ChatGPT and Google's AI what to use, and the answer names a handful of companies, and if yours isn't one of them, that buyer never meets you, as stated on [reachkit.app](https://reachkit.app/).
+## How does ReachKit fit into this?
 
-A free scan shows where AI answers and Google search send buyers to rivals instead of you, then ReachKit writes one page a day to close that gap — finding the questions your market asks that name rivals and not you, and answering each from facts already on your site. Every page waits 24 hours before going live so you can read it or stop it first. One plan costs €49 a month, VAT included, covering the daily page, a weekly re-measure of your market, and a weekly movement email, detailed on the [pricing page](https://reachkit.app/pricing).
+ReachKit runs the free scan first: it shows where AI answers and Google search send buyers to your rivals instead of you, then writes one page a day to change that, from facts already on your own site — not a one-off audit, a standing habit matched to what the research above describes.
 
-Start with a free scan to see where AI answers and Google currently send buyers past you — then see the plan that writes your way back in at the [pricing page](https://reachkit.app/pricing).
+The scan is free, under a minute, no account needed. After that, [one plan](https://reachkit.app/pricing) covers it: one page a day, written and published for you, a weekly re-measure of your whole market, a weekly movement email, and a 24-hour window to stop any page before it goes live. It doesn't replace reading the research above — it's built to act on it, continuously, while the gap it describes is still open.
+
+Start with a free scan to see where AI and Google send buyers instead of to you, then let [ReachKit's one plan](https://reachkit.app/pricing) close the gap one page a day.
 
 ## Sources
 
-- [Barracuda AI Data Security: GenAI Risk Monitoring — Dynamic Business](https://dynamicbusiness.com/ai-tools/barracuda-ai-data-security-genai-risk-monitoring.html), read on 4 October 2026
-- [Search Console Uses Block Flattening For AIOs, Forget Position & Focus On Outcomes](https://www.searchenginejournal.com/search-console-uses-block-flattening-for-aios-forget-position-focus-on-outcomes/589582/), read on 4 October 2026
-- [AI Visibility for Industrial Automation Companies Averages](https://www.globenewswire.com/news-release/2026/09/30/3371734/0/en/ai-visibility-for-industrial-automation-companies-averages-4-across-the-top-100-vendors-benchmark-finds.html), read on 4 October 2026
+- [AI Visibility Audit for E-Commerce Brand Recommendations: Service Announced FinancialContent](https://www.financialcontent.com/article/marketersmedia-2026-10-3-ai-visibility-audit-for-e-commerce-brand-recommendations-service-announced), read on 4 October 2026
+- [Grid My Business Launches AI Search to Map Local Visibility Across AI Platforms Markets Insider](https://markets.businessinsider.com/news/stocks/grid-my-business-launches-ai-search-to-map-local-visibility-across-ai-platforms-1036568131), read on 4 October 2026
+- [Inside the scramble to measure a brand’s AI visibility](https://digiday.com/marketing/in-graphic-detail-inside-the-scramble-to-measure-a-brands-ai-visibility/), read on 4 October 2026
+- [Is Your Website Actually Hurting Your Brand's AI Mentions?](https://www.cmswire.com/digital-experience/why-does-more-owned-content-cap-your-answer-engine-visibility/), read on 4 October 2026
 
 ---
 
 *Buyer questions, stored with the page (`drafts.meta.faq`):*
 
-**Does block flattening mean AI Overview data in Search Console is useless?**
+**Is AI discovery monitoring the same as SEO tracking?**
 
-Not useless, but incomplete on its own — it can mask whether an AI Overview is helping or hurting, as reported by Search Engine Journal. Pairing it with visit and conversion data gives a clearer picture than position alone.
+No. SEO tracking watches search rankings; AI discovery monitoring watches what AI answers say about you versus rivals. They overlap but measure different things, and a company can rank fine in Google while still being left out of the AI answer entirely.
 
-**Is a 4% AI visibility average normal across other markets, not just industrial automation?**
+**How often should AI visibility be measured?**
 
-The benchmark only measured industrial automation, so that exact figure shouldn't be assumed elsewhere. What it does show is that even well-known markets can have very low average visibility concentrated in a few top names.
+Given how fast buyer habits are shifting — G2 found 51% of B2B buyers now start with a chatbot, up from 29% a year earlier, per cmswire.com — a monthly or even weekly check is more useful than a one-time audit. ReachKit re-measures the whole market every week.
 
-**Is Barracuda's new tool a competitor to AI discoverability monitoring?**
+**Does publishing more content on my own site fix AI visibility?**
 
-No — it monitors AI usage and data risk inside an organization, not whether that organization is named in AI answers to buyers. They address different problems despite both being called AI monitoring.
+Not by itself. Research reported by cmswire.com found vendors relying on their own website for over half their AI citations cap out at 24% visibility even at the top of the pack, so the content has to be aimed at the actual questions buyers ask, not just volume.
 
-**Why do manufacturer-owned pages get cited more than other sources?**
+**What's the difference between a one-time AI audit and ongoing monitoring?**
 
-The benchmark didn't explain the mechanism, only the result: a 92% citation rate for manufacturer sites. It's consistent with AI systems favoring primary, direct-answer content over secondary coverage.
+An audit, like the one Visibility 360 launched on October 3, gives a snapshot. Ongoing monitoring tracks change over time and lets you act on it, which matters given how quickly AI platforms and buyer habits are moving this year.
 
-**How often does this kind of market news change?**
+**Do local businesses need to worry about AI visibility too?**
 
-These three items were published within about a week of each other in late September and early October 2026, which is typical — this space moves in frequent, dated increments rather than one big shift.
+Yes — Grid My Business extended AI search mapping to local business accounts on September 23, 2026, specifically because the same buyer behaviour shows up at the local level, not just for national brands.

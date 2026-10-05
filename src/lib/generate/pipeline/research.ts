@@ -8,6 +8,9 @@
 // *Current insights* (D48, issue 1259) buys a search of the news in place of
 // the studies: what the market's category and its synonyms published inside
 // 30 days, each result with the date the search gives it and its source.
+// A news search matches words, so each result it returns is then judged
+// against the site's market, and only one that is about it is kept (issue
+// 1262).
 // Each claim is kept with the address it was read from and the date it was
 // read, and is cited beside the sentence that uses it.
 //
@@ -28,7 +31,8 @@
 // written one row at a time, which is the cost seam's own contract
 // (`src/lib/site-profile/crawl.ts` states it). The claim calls and the one
 // search are paid, inside `CAPS.DRAFT_C`; a ceiling reached mid-step ends the
-// step with what it has.
+// step with what it has. *Current insights* pays for one more small call, the
+// judgement of its news results.
 //
 // **Research never stops a page.** A site whose market yields no readable
 // page is written from its business facts alone, as before this step.
@@ -39,6 +43,7 @@ import { safeFetch } from "@/lib/egress";
 import { llm } from "@/lib/llm";
 import { visibleText } from "@/lib/measure/parse";
 import type { StoredReport } from "@/lib/scan/report";
+import type { WritingMarket } from "../voice/market";
 import type { NewsRow } from "@/lib/vendors/dataforseo/types";
 import { serpNews, serpOrganic } from "@/lib/vendors/dataforseo";
 
@@ -71,9 +76,21 @@ export interface ResearchedProduct {
   pages: string[];
 }
 
+/** One dated news result that was read, and whether it was judged to be
+ *  about the site's market (issue 1262). */
+export interface JudgedResult {
+  url: string;
+  title: string;
+  publishedAt: string;
+  source: string;
+  onMarket: boolean;
+}
+
 export interface MarketResearch {
   facts: MarketFact[];
   products: ResearchedProduct[];
+  /** *Current insights*: every news result the judgement was asked about. */
+  news?: JudgedResult[];
   /** The target's top results as they were read (issue 1143): what a new
    *  page's claims are compared with. Absent is none read. */
   topResults?: { url: string; text: string }[];
@@ -269,16 +286,31 @@ function logResearch(detail: Record<string, string | number | boolean | null>): 
   console.log(JSON.stringify({ event: "draft_researched", ...detail }));
 }
 
+const NEWS_FIT_SCHEMA = z.strictObject({
+  results: z.array(z.strictObject({ result: z.number().int(), about: z.boolean() })),
+});
+
+interface RecentRead extends ReadPage {
+  kind: "recent";
+  publishedAt: string;
+  source: string;
+}
+
 /** *Current insights* (D48): what the news search dates inside the window,
  *  read. One search a term, each ledgered; the results are taken in turn so
- *  no term is the whole page, and read until `RESEARCH.recentPages` are
- *  held. A page that states its own date is held to it. */
+ *  no term is the whole page, and read until `RESEARCH.recentJudged` are
+ *  held. A page that states its own date is held to it.
+ *
+ *  The search matches words, so one small call then judges each read result
+ *  against the market (issue 1262), and the first `RESEARCH.recentPages` it
+ *  calls about the market are kept. A result it does not answer for is not
+ *  kept, and where the call cannot be made or does not answer, none is. */
 async function recentPages(
   c: CostContext,
-  a: { siteId: string; today: Date; recent: { searches: readonly string[]; days: number } },
+  a: { siteId: string; today: Date; recent: { searches: readonly string[]; days: number; market: WritingMarket } },
   notOurs: (url: string) => boolean,
   taken: ReadonlySet<string>
-): Promise<(ReadPage & Wanted)[]> {
+): Promise<{ pages: RecentRead[]; news: JudgedResult[] }> {
   const today = a.today.toISOString().slice(0, 10);
   const since = new Date(a.today.getTime() - a.recent.days * 86_400_000).toISOString().slice(0, 10);
   const inWindow = (day: string): boolean => day >= since && day <= today;
@@ -297,8 +329,8 @@ async function recentPages(
       if (row !== undefined && !dated.some((held) => held.url === row.url)) dated.push(row);
     }
   }
-  const pages: (ReadPage & Wanted)[] = [];
-  for (let at = 0; at < dated.length && pages.length < RESEARCH.recentPages; at += RESEARCH.recentRead) {
+  const pages: RecentRead[] = [];
+  for (let at = 0; at < dated.length && pages.length < RESEARCH.recentJudged; at += RESEARCH.recentRead) {
     const batch = dated.slice(at, at + RESEARCH.recentRead);
     const reads = await Promise.all(batch.map((row) => fetchPage(row.url)));
     reads.forEach((read, index) => {
@@ -308,7 +340,50 @@ async function recentPages(
       if (inWindow(publishedAt)) pages.push({ ...read.page, kind: "recent", publishedAt, source: row.source });
     });
   }
-  return pages.slice(0, RESEARCH.recentPages);
+  const read = pages.slice(0, RESEARCH.recentJudged);
+  if (read.length === 0 || c.capHit()) return { pages: [], news: [] };
+
+  const market = a.recent.market;
+  const job = market.market?.job ?? null;
+  const answer = await llm(c, {
+    site: "generate.news_fit",
+    tier: "haiku",
+    schema: NEWS_FIT_SCHEMA,
+    input: {
+      task:
+        "Each of `results` is a news story a search returned for `market.category`. Say for each whether it " +
+        "is about that market: the one named `market.category`, also called `market.synonyms`" +
+        (job === null ? "" : ", where a product is hired for `market.job`") +
+        ". A story is about the market when it reports something in it — a change, a product, a finding, a " +
+        "figure — that someone buying or selling in this market would read as news of their own market. A " +
+        "story that only shares words with the category, or is about one of `market.notOurMarket` or another " +
+        "neighbouring market, is not. Answer for every result by its number; where you cannot tell, answer false.",
+      market: {
+        category: market.category.trim() === "" ? (terms[0] ?? "") : market.category,
+        synonyms: market.synonyms,
+        ...(job === null ? {} : { job }),
+        notOurMarket: market.market?.notOurMarket ?? [],
+      },
+      results: read.map((page, index) => ({
+        result: index + 1,
+        title: page.title,
+        source: page.source,
+        text: words(page.text, RESEARCH.judgedWords),
+      })),
+    },
+  });
+  if (answer.kind === "unmeasured") return { pages: [], news: [] };
+  const about = new Set(answer.value.results.filter((row) => row.about).map((row) => row.result));
+  return {
+    pages: read.filter((_, index) => about.has(index + 1)).slice(0, RESEARCH.recentPages),
+    news: read.map((page, index) => ({
+      url: page.url,
+      title: page.title,
+      publishedAt: page.publishedAt,
+      source: page.source,
+      onMarket: about.has(index + 1),
+    })),
+  };
 }
 
 export async function researchMarket(
@@ -324,8 +399,9 @@ export async function researchMarket(
     today: Date;
     /** *Current insights* (D42, D48): in place of the studies, the news is
      *  searched for each of `searches` — the market's category, then its
-     *  synonyms — and a result is kept where it is dated inside `days`. */
-    recent?: { searches: readonly string[]; days: number };
+     *  synonyms — and a result is kept where it is dated inside `days` and
+     *  is about `market` (issue 1262). */
+    recent?: { searches: readonly string[]; days: number; market: WritingMarket };
   }
 ): Promise<MarketResearch> {
   const target = a.searches[0];
@@ -359,7 +435,8 @@ export async function researchMarket(
   // 2. The one search for studies, and the two it finds that are nobody's
   //    sales page.
   const taken = new Set(topTen);
-  const found: (ReadPage & Wanted)[] = a.recent === undefined ? [] : await recentPages(c, { ...a, recent: a.recent }, notOurs, taken);
+  const recent = a.recent === undefined ? null : await recentPages(c, { ...a, recent: a.recent }, notOurs, taken);
+  const found: (ReadPage & Wanted)[] = recent === null ? [] : [...recent.pages];
   if (a.recent === undefined && !c.capHit()) {
     const studyUrls: string[] = [];
     const serp = await serpOrganic(c, {
@@ -446,6 +523,7 @@ export async function researchMarket(
     rivalPages: pages.filter((page) => page.kind === "rival_pricing" || page.kind === "rival_features").length,
     studies: pages.filter((page) => page.kind === "study").length,
     recent: pages.filter((page) => page.kind === "recent").length,
+    newsOffMarket: recent === null ? null : recent.news.filter((result) => !result.onMarket).length,
     facts: ordered.length,
     products: products.length,
   });
@@ -453,5 +531,6 @@ export async function researchMarket(
     facts: ordered,
     products,
     topResults: pages.filter((page) => page.kind === "top_result").map((page) => ({ url: page.url, text: page.text })),
+    ...(recent === null ? {} : { news: recent.news }),
   };
 }

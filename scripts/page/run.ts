@@ -20,7 +20,8 @@
 //      else the snapshot's first live page for an update and the type's own
 //      default topic otherwise.
 //   2. **Context pack**: the research step runs live (its reads, its one
-//      search, at most two model calls) and the pack is built by the
+//      search, at most two model calls, and for current insights the one
+//      that judges its news) and the pack is built by the
 //      product's `buildPack`. The research is cached under
 //      `.review/page/packs/` and a rerun reuses it unless `--fresh`; the
 //      pack is built from it every run. `--pack-only` stops here.
@@ -280,7 +281,7 @@ export async function main(opts: Options): Promise<number> {
             report,
             rivals,
             today: new Date(),
-            ...(type === "insights" ? { recent: { searches: [category, ...writingFor.synonyms], days: RESEARCH.recentDays } } : {}),
+            ...(type === "insights" ? { recent: { searches: [category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } } : {}),
           });
       cached = { research, researchCents: ledger.spentCents() };
       mkdirSync(path.dirname(packFile), { recursive: true });

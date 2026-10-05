@@ -259,6 +259,9 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
    *  pages — up to `RESEARCH.claimsPerPage` quotations of a sentence or two
    *  each, ~60 tokens a claim. */
   "generate.research": 2560,
+  /** Issue 1262: `{ results: { result, about }[] }` over at most
+   *  `RESEARCH.recentJudged` news results: ~12 a result. */
+  "generate.news_fit": 400,
   "generate.fit_check": 512,
   /** The site profile's one call (issue #577, SPEC.md §2 "The scan builds
    *  the site profile"): the site name, its products and claims, and the
@@ -1669,6 +1672,10 @@ export const RESEARCH = Object.freeze({
   newsSearches: 3,
   recentRead: 8,
   recentPages: 5,
+  /** Issue 1262: the read results one judgement holds against the market,
+   *  and how many words of each it is shown. */
+  recentJudged: 8,
+  judgedWords: 120,
   /** D41 (drafted default): a *current insights* page reads web results
    *  published inside this many days. */
   recentDays: 30,
