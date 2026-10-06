@@ -329,6 +329,7 @@ describe("the weekly pass at production's measured queue waits (issue 1160)", ()
     await import("@/lib/market/prompts/store");
     await import("@/lib/market/infer/stored");
     await import("@/lib/site-profile/store");
+    await import("@/lib/site-profile/business/edits");
     db.rows.set("sites", [SITE_WITH_A_MARKET]);
     serpOrganic.mockImplementation(answersAfter(177, measured(SERP, AT)));
     llmScraper.mockImplementation(answersAfter(166, measured(answered(["example.com"]), AT)));
