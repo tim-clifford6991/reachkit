@@ -18,7 +18,8 @@
 // because a model call did not come back.
 import type { CostContext } from "@/lib/costs";
 import type { EvidencePage } from "@/lib/market/infer/evidence";
-import type { MarketConclusion, RivalConclusion } from "@/lib/market/infer/types";
+import type { BrandDemand, MarketConclusion, RivalConclusion } from "@/lib/market/infer/types";
+import { RIVALS_MAX } from "@/lib/market/infer/types";
 import { marketEvidence } from "./market-evidence";
 import type { StoredReport } from "./report";
 
@@ -219,9 +220,20 @@ export async function recheckRivals(a: {
   }
   const site = await readSiteMarket(a.siteId);
   const market = site?.stored.current ?? null;
-  if (site === null || market === null || site.stored.rivalsOverridden) return none;
+  if (site === null || market === null) return none;
 
   const text = await siteText(a.domain);
+  // A founder's own rivals stand (D28). Their brand volumes are still read
+  // (D50), since a comparison is derived only for a searched name.
+  if (site.stored.rivalsOverridden) {
+    const weighed = await weighByDemand({ ...a, siteName: text.siteName, demand: market.demand, rivals: market.rivals });
+    if (weighed !== null) {
+      const volume = new Map(weighed.rivals.map((r) => [r.domain, r.volume]));
+      const rivals = market.rivals.map((r) => ({ ...r, volume: volume.get(r.domain) ?? 0 }));
+      await writeSiteMarket(a.siteId, { stored: { ...site.stored, current: { ...market, rivals, demand: weighed.demand } } });
+    }
+    return none;
+  }
   const evidence = marketEvidence({
     domain: a.domain,
     siteName: text.siteName,
@@ -236,10 +248,14 @@ export async function recheckRivals(a: {
     log("rival_conclusion_unmeasured", { siteId: a.siteId, reason: fresh.reason });
     return none;
   }
+  // D50: the candidates weighed by how often buyers search their brand.
+  const weighed = await weighByDemand({ ...a, siteName: text.siteName, demand: market.demand, rivals: fresh.value });
+  const stored =
+    weighed === null ? site.stored : { ...site.stored, current: { ...market, demand: weighed.demand } };
   const settled = settleRivals({
-    stored: site.stored,
+    stored,
     standing: site.competitors,
-    fresh: fresh.value,
+    fresh: weighed?.rivals ?? fresh.value,
     scanId: a.report.scanId,
     at: a.at,
   });
@@ -248,10 +264,48 @@ export async function recheckRivals(a: {
     ...(settled.changed ? { competitors: settled.rivals } : {}),
   });
   const change = settled.next.lastChange;
-  log("rival_conclusion", { siteId: a.siteId, changed: settled.changed, rivals: settled.rivals.length });
+  log("rival_conclusion", {
+    siteId: a.siteId,
+    changed: settled.changed,
+    rivals: settled.rivals.length,
+    searched: weighed === null ? null : (settled.next.current?.rivals ?? []).map((r) => `${r.name}:${r.volume ?? 0}`),
+    ownVolume: weighed?.demand.own ?? null,
+  });
   return settled.changed && change !== null && change !== undefined
     ? { changed: true, added: change.added, dropped: change.dropped }
     : none;
+}
+
+/**
+ * The candidates in the order D50 chooses them, with the demand read for
+ * them: one keyword-overview call for the names not yet held, on the
+ * caller's money. `null` where it did not come back — the caller keeps the
+ * conclusion's own order, and the next pass asks again.
+ */
+async function weighByDemand(a: {
+  siteId: string;
+  domain: string;
+  siteName: string | null;
+  cost: CostContext;
+  demand: BrandDemand | undefined;
+  rivals: readonly RivalConclusion[];
+  at: Date;
+}): Promise<{ rivals: RivalConclusion[]; demand: BrandDemand } | null> {
+  try {
+    const [{ readBrandDemand }, { byDemand }] = await Promise.all([
+      import("@/lib/market/infer/read-demand"),
+      import("@/lib/market/infer/demand"),
+    ]);
+    const read = await readBrandDemand(a.cost, a);
+    if (read.kind === "unmeasured") {
+      log("rival_demand_unmeasured", { siteId: a.siteId, reason: read.reason, because: read.because ?? null });
+      return null;
+    }
+    return { rivals: byDemand(a.rivals, read.value), demand: read.value };
+  } catch (error) {
+    log("rival_demand_failed", { siteId: a.siteId, because: error instanceof Error ? error.message : String(error) });
+    return null;
+  }
 }
 
 /** The rivals re-checked on the pass's own money (#1185). Answers whether
@@ -367,8 +421,19 @@ export async function concludeAtSetup(a: {
       a.stated === null || a.stated.trim() === ""
         ? fields.value
         : { ...fields.value, category: a.stated.trim(), synonyms: [], categoryReason: "" };
-    const rivals = await inferRivals(c, evidence, market);
-    return { market, rivals: rivals.kind === "unmeasured" ? [] : rivals.value };
+    const rivals = await inferRivals(c, evidence, market, RIVAL_CANDIDATES);
+    if (rivals.kind === "unmeasured") return { market, rivals: [], demand: undefined };
+    // D50: the rivals setup offers are the ones buyers search for.
+    const weighed = await weighByDemand({
+      siteId: a.siteId,
+      domain: a.domain,
+      siteName: profile?.siteName ?? null,
+      cost: c,
+      demand: undefined,
+      rivals: rivals.value,
+      at: a.at,
+    });
+    return { market, rivals: (weighed?.rivals ?? rivals.value).slice(0, RIVALS_MAX), demand: weighed?.demand };
   });
   if (concluded === null) return null;
 
@@ -377,7 +442,11 @@ export async function concludeAtSetup(a: {
     await writeSiteMarket(a.siteId, {
       stored: {
         ...site.stored,
-        current: { ...concluded.market, rivals: concluded.rivals },
+        current: {
+          ...concluded.market,
+          rivals: concluded.rivals,
+          ...(concluded.demand === undefined ? {} : { demand: concluded.demand }),
+        },
         adoptedAt: a.at.toISOString(),
         pending: null,
       },

@@ -8,6 +8,8 @@ export const listicle: Template = {
   titles: [
     "{N} best {term} for {audience} ({year})",
     "{A} vs {B} ({year}): {criteria or who it fits}",
+    // D50: where the search names two rivals, this business is the third.
+    "{A} vs {B} vs {this business} ({year}): {criteria}",
     "{N} {rival} alternatives for {audience} ({year})",
   ],
   titleNever: "Never name this business as \"#1\" or \"best\".",

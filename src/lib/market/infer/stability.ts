@@ -6,6 +6,7 @@
 // makes and reports. A field the founder overrode is never replaced.
 //
 // Pure: no I/O, no clock. The caller reads and writes `sites.market`.
+import { searched } from "./demand";
 import { RIVALS_MAX, type MarketConclusion, type RivalConclusion, type StoredMarket } from "./types";
 
 export type MarketFields = Omit<MarketConclusion, "rivals">;
@@ -128,9 +129,11 @@ export function settleMarket(a: {
 
 /**
  * The rivals after one pass's conclusion. `fresh` is every rival the pass
- * concluded, closest first, more than five where it found more. A standing
- * rival the pass concluded again keeps its place; new ones fill the rest, so
- * a set that is still right does not reshuffle week to week. A pass that
+ * concluded, more than five where it found more: the ones buyers search for
+ * first where their volume was read (D50), then closest first. A standing
+ * rival the pass concluded again keeps its place among rivals searched as
+ * it is; new ones fill the rest, so a set that is still right does not
+ * reshuffle week to week. A pass that
  * concluded none changes nothing, and the founder's own set stands.
  */
 export function settleRivals(a: {
@@ -144,9 +147,15 @@ export function settleRivals(a: {
   if (stored.rivalsOverridden || stored.current === null || a.fresh.length === 0) {
     return { next: stored, rivals: a.standing, changed: false };
   }
-  const kept = a.fresh.filter((r) => a.standing.includes(r.domain));
-  const added = a.fresh.filter((r) => !a.standing.includes(r.domain));
-  const chosen = [...kept, ...added].slice(0, RIVALS_MAX);
+  // D50: the rivals buyers search for are chosen first; among those, and
+  // then among the rest, a standing one before a new one.
+  const standing = (r: RivalConclusion): boolean => a.standing.includes(r.domain);
+  const chosen = [
+    ...a.fresh.filter((r) => searched(r.volume) && standing(r)),
+    ...a.fresh.filter((r) => searched(r.volume) && !standing(r)),
+    ...a.fresh.filter((r) => !searched(r.volume) && standing(r)),
+    ...a.fresh.filter((r) => !searched(r.volume) && !standing(r)),
+  ].slice(0, RIVALS_MAX);
   const ordered = a.fresh.filter((r) => chosen.includes(r));
   const domains = ordered.map((r) => r.domain);
   const newOnes = ordered.filter((r) => !a.standing.includes(r.domain));
