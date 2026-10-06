@@ -138,6 +138,24 @@ describe("required_blocks — the first block a generated page lacks", () => {
     expect(missing(broken)).toBe(block);
   });
 
+  it("a self-promoting page's verdict names a rival, or the page is stopped for its verdict (D52)", () => {
+    const compared: Template = {
+      ...TEMPLATES.qa,
+      sections: [
+        { ...TEMPLATES.qa.sections[0]!, repeat: { min: 5, max: 5 } },
+        TEMPLATES.listicle.sections.find((slot) => slot.key === "which_to_choose")!,
+        TEMPLATES.qa.sections[1]!,
+      ],
+    };
+    const parts = pageParts();
+    const verdict = (body: string) =>
+      page({ ...parts, sections: parts.sections.map((s, index) => (index === 5 ? { ...s, key: "which_to_choose", body: `${body}\n\n${s.body}` } : s)) }, compared);
+    const check = (built: ReturnType<typeof page>) =>
+      missingBlock({ markdown: built.markdown, title: "A title", blocks: { ...built.blocks, rivals: ["Globex", "Initech"] } });
+    expect(check(verdict("Pick Acme where a small team wants one plan."))).toBe("verdict");
+    expect(check(verdict("Pick Acme for one plan; a team that needs single sign-on is better served by Globex."))).toBeNull();
+  });
+
   it("a page under its template's floor is stopped for its length, and one inside it is not", () => {
     const short = page(pageParts(CLEAN_MARKDOWN, { sections: pageParts().sections.map((s) => ({ ...s, body: s.body.slice(0, 200) })) }));
     expect(bodyWords(short.markdown)).toBeLessThan(short.blocks.length!.floor);

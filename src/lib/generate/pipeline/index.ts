@@ -311,7 +311,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     const laid = layoutPage(parts, template, tidy);
     const own = laid.sections.find((section) => ["business", "next_step", "related"].includes(section.key))?.heading;
     const glance = laid.sections.find((section) => template.sections.find((slot) => slot.key === section.key)?.block === "table")?.heading;
-    const body = table === null ? laid.body.bodyMarkdown : withTable(laid.body.bodyMarkdown, glance, table.markdown);
+    const body = table === null ? laid.body.bodyMarkdown : withTable(laid.body.bodyMarkdown, glance, `${table.markdown}\n\n${table.checked}`);
     const markdown = withSources(
       withClosing(
         completeTables(applyLinks(body, { ...linking, appendUnder: own })),
@@ -379,7 +379,15 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       sourceText: grounding.sourceText,
       brief: briefRead,
       factPages: pack.facts.map((fact) => fact.url),
-      blocks: { template, sections: candidate.laid.sections, length, faq: candidate.laid.faq, domain: a.site.domain },
+      blocks: {
+        template,
+        sections: candidate.laid.sections,
+        length,
+        faq: candidate.laid.faq,
+        domain: a.site.domain,
+        // D52: the rivals the verdict may name as the better pick.
+        ...(table === null ? {} : { rivals: table.options.slice(1) }),
+      },
       titleRule: titleRuleFor(pack, candidate.laid.body.description),
       heading: candidate.laid.body.heading,
       ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }),
@@ -450,6 +458,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     return fixNotes(stopped.page.markdown, stopped.outcome.failed, briefRead, a.site, stopped.page.laid.body.title).map((note) => {
       if (note.rule === "required_blocks" && note.sentences.includes("length") && length !== null) {
         return { ...note, sentences: [`length: ${pack.type === "update" ? "the sections have" : "the body has"} ${words} words and must have between ${length.floor} and ${length.ceiling}`] };
+      }
+      if (note.rule === "required_blocks" && note.sentences.includes("verdict")) {
+        return { ...note, sentences: ["verdict: the which-to-choose section must name at least one option of `table` other than this business and say the case where it is the better pick"] };
       }
       const title = stopped.outcome.passed ? undefined : stopped.outcome.failed.find((failure) => failure.rule === "title")?.detail;
       if (note.rule === "title" && title !== undefined && "faults" in title) {

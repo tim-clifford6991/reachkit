@@ -102,13 +102,14 @@ describe("orderRanked — a page close to being quoted is updated first (D15, is
 describe("orderRanked — rotation (#1181)", () => {
   const SAME = ["zapier.com/a", "marketermilk.com/b", "morningscore.io/c", "gartner.com/d"];
   const topTens = new Map([
-    ["best seo software", SAME],
-    ["what is the best seo software", [...SAME, "other.example/e"]],
+    ["seo software for agencies", SAME],
+    ["what is seo software for agencies", [...SAME, "other.example/e"]],
     ["seo software pricing", ["semrush.com/pricing", "nutshell.com/cost"]],
   ]);
-  const best = opportunity("best", "earn", "listed_page", "best seo software");
-  const whatIs = opportunity("what-is", "earn", "listed_page", "what is the best seo software");
-  const pricing = opportunity("pricing", "earn", "listed_page", "seo software pricing");
+  // Not comparisons: D52 caps those apart from the rotation (issue 1267).
+  const best = opportunity("best", "write", "keyword_page", "seo software for agencies");
+  const whatIs = opportunity("what-is", "write", "keyword_page", "what is seo software for agencies");
+  const pricing = opportunity("pricing", "write", "keyword_page", "seo software pricing");
 
   it("never puts two rows whose top tens are one topic on consecutive days", () => {
     expect(

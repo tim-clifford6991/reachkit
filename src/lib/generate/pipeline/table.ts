@@ -20,6 +20,9 @@
 //     stated' cell");
 //   * prices in more than one currency take pricing out of the table, since
 //     nothing converts (`./sources.ts`); each option's own section states it;
+//   * **the table is dated** (owner, D52; issue 1267): a line under it says
+//     when the prices were last checked — the day the oldest of the rivals'
+//     pages it stands on was read (`readAt`), so the date holds for every row;
 //   * **two rivals are always kept.** Fewer than two with a fact to set
 //     beside the business is no comparison: `null`, and the page is written
 //     as a Q&A (`./pack.ts`).
@@ -44,19 +47,24 @@ interface Cell {
 interface Option {
   name: string;
   own: boolean;
+  /** When this option's pages were read; the business's own row has none. */
+  readAt: string[];
   cells: Partial<Record<Criterion, Cell>>;
 }
 
 export interface ComparisonTable {
   markdown: string;
+  /** The line under the table: when its prices were last checked (D52). */
+  checked: string;
   /** The options' names, the business first. */
   options: string[];
 }
 
-type TablePack = Pick<ContextPack, "business" | "profile" | "facts" | "claims" | "products">;
+type TablePack = Pick<ContextPack, "business" | "profile" | "facts" | "claims" | "products" | "builtAt">;
 
 const PRICED_RE = /[$€£¥]\s?\d|\d\s?(?:usd|eur|gbp|[$€£¥])/i;
 const PRICE_RE = /[$€£¥]\s?\d|\d\s?(?:usd|eur|gbp|[$€£¥])|\bfree\b/i;
+const DAY = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 const isUrl = (text: string): boolean => /^https?:\/\//.test(text);
 
 /** A value a table can hold: said in words, and not words that say a value
@@ -78,6 +86,7 @@ function ownOption(pack: TablePack): Option {
   return {
     name: pack.business.name ?? pack.business.domain,
     own: true,
+    readAt: [],
     cells: {
       pricing: cell(price, priced !== undefined && isUrl(priced.from) ? priced.from : null) ?? cell(stated?.passage, stated?.url ?? null),
       does:
@@ -106,6 +115,7 @@ function rivalOption(pack: TablePack, domain: string): Option {
   return {
     name: rivalName(pack, domain),
     own: false,
+    readAt: claims.map((claim) => claim.readAt),
     cells: { pricing: of(CLAIM_KIND.pricing, PRICED_RE), does: of(CLAIM_KIND.does) },
   };
 }
@@ -158,7 +168,13 @@ export function comparisonTable(pack: TablePack, minRivals: number): ComparisonT
   // What the page pass would take a row or a column out of is not a table
   // this page can stand on.
   if (completeTables(markdown) !== markdown) return null;
-  return { markdown, options: options.map((option) => option.name) };
+  // ISO dates sort as text. A table always has a rival, and a rival a claim.
+  const oldest = options.flatMap((option) => option.readAt).sort()[0] ?? pack.builtAt;
+  return {
+    markdown,
+    checked: copy("body.table.checked", { date: DAY.format(new Date(oldest)) }),
+    options: options.map((option) => option.name),
+  };
 }
 
 const ROW_RE = /^[ \t]*\|.*\|[ \t]*$/;
@@ -166,6 +182,7 @@ const ROW_RE = /^[ \t]*\|.*\|[ \t]*$/;
 /**
  * The body with the built table in the section under `heading`, after that
  * section's opening paragraph — and without any table the writer put there.
+ * `table` is the table and whatever stands under it, its dated line (D52).
  * A body with no such section is returned as it is, and the blocks check
  * stops it.
  */
