@@ -193,7 +193,11 @@ export function mixOf(drafted: readonly DraftedPage[], at: Date): Mix {
   const days = drafted.map((page) => dayOf(page.date));
   const from = Math.max(today, ...days.map((day) => day + 1));
   const recent = drafted.flatMap((page) => {
-    const kind = contentTypeOf({ type: page.row.type as OpportunityType, targetQuery: page.row.target_query });
+    const kind = contentTypeOf({
+      type: page.row.type as OpportunityType,
+      targetQuery: page.row.target_query,
+      evidence: page.row.evidence as Opportunity["evidence"],
+    });
     return kind === null || !HOLDS_ITS_DAY.has(page.state) ? [] : [{ day: dayOf(page.date), kind }];
   });
   return { from, recent };

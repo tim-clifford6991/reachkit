@@ -315,7 +315,7 @@ export interface HostedIdentity {
   name: string;
   /** The picture format of the kept logo, or `null` for a first-letter tile. */
   logoType: string | null;
-  /** One line in the business's own words, or `null` where none is held. */
+  /** One line saying what the business does, or `null` where none is held. */
   line: string | null;
 }
 
@@ -325,34 +325,44 @@ interface IdentityRow {
   claims: unknown;
 }
 
+/** The job off `sites.market`, read off the stored blob rather than through
+ *  the market module, which this file must not put in the hosted graph. */
+function marketJobOf(market: unknown): string | null {
+  const current = (market as { current?: { job?: unknown } } | null)?.current;
+  return typeof current?.job === "string" ? emptyToNull(current.job) : null;
+}
+
 /**
  * The identity of the site at `domain`. Three short columns of its profile,
- * and the knowledge base for the line: the founder's own answer or the
- * first thing the site says sets it apart, else the first claim the profile
- * kept. A read that fails draws the domain and a tile; it never takes the
- * page down.
+ * and one line about the business: what it does — the founder's own wording
+ * of that where they reworded it, else the job its market was concluded
+ * with — else the first claim the profile kept. Never an answer to one of
+ * setup's questions (SPEC §7, D53, issue 1268): those are notes for the
+ * writer, and one was printed as the index's description. A read that fails
+ * draws the domain and a tile; it never takes the page down.
  */
 export async function hostedIdentity(a: { siteId: string; domain: string }): Promise<HostedIdentity> {
   const fallback: HostedIdentity = { name: a.domain, logoType: null, line: null };
   try {
-    const { readKnowledgeBase } = await import("@/lib/site-profile/knowledge/read");
-    const [profile, base] = await Promise.all([
+    const { readBusinessEdits } = await import("@/lib/site-profile/business/edits");
+    const [profile, site, edits] = await Promise.all([
       publishDb()
         .from<IdentityRow>("site_profiles")
         .select("site_name, logo_type, claims")
         .eq("domain", a.domain)
         .limit(1),
-      readKnowledgeBase(a),
+      publishDb().from<{ market: unknown }>("sites").select("market").eq("id", a.siteId).limit(1),
+      readBusinessEdits(a.siteId).catch(() => null),
     ]);
     const row = profile.data?.[0];
     const claim = Array.isArray(row?.claims)
       ? row.claims.find((entry): entry is string => typeof entry === "string" && entry.trim() !== "")
       : undefined;
-    const said = base?.differentiators.find((entry) => entry.rival === null)?.text;
+    const job = emptyToNull(edits?.job ?? null) ?? marketJobOf(site.data?.[0]?.market);
     return {
       name: emptyToNull(row?.site_name ?? null) ?? a.domain,
       logoType: emptyToNull(row?.logo_type ?? null),
-      line: emptyToNull(said ?? claim ?? null),
+      line: job ?? emptyToNull(claim ?? null),
     };
   } catch {
     return fallback;

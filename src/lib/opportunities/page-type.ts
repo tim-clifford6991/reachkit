@@ -20,7 +20,7 @@
 // A leaf: the draft editor asks it in the browser, so it imports nothing
 // that reaches the database.
 import { contentTypeOf } from "./content-type";
-import { FAMILY_OF, type Opportunity, type PageType } from "./types";
+import { FAMILY_OF, isRetarget, type Opportunity, type PageType } from "./types";
 
 export type { PageType };
 
@@ -32,10 +32,13 @@ export const PAGE_TYPES: readonly PageType[] = Object.freeze(["product", "market
 const ANCHORED_SHAPES = /\b(?:vs|versus|alternatives?|pricing|prices?|costs?)\b/;
 
 /** `null` for a row that writes no new page of ReachKit's: an Improve page
- *  is the customer's own, and a Fix has none. */
-export function pageTypeOf(o: Pick<Opportunity, "type" | "targetQuery" | "source" | "pageType">): PageType | null {
+ *  is the customer's own, and a Fix has none. A live page of ours rewritten
+ *  for a new search (issue 1268) is written whole, so it has one. */
+export function pageTypeOf(
+  o: Pick<Opportunity, "type" | "targetQuery" | "source" | "pageType"> & { evidence?: Opportunity["evidence"] | null }
+): PageType | null {
   const family = FAMILY_OF[o.type];
-  if (family !== "write" && family !== "earn") return null;
+  if (family !== "write" && family !== "earn" && !isRetarget(o)) return null;
   if (o.pageType !== undefined && o.pageType !== null) return o.pageType;
   const source = o.source ?? null;
   if (source === "best_x") return "market_comparison";
