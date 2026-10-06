@@ -106,7 +106,7 @@ describe("issue 1141 — the feed at /rss.xml", () => {
     expect(channel.description).toBe("Articles and guides from Example & Co.");
     state.line = "Onboarding your customers finish.";
     expect((await channelOf(await get("content.example.com"))).description).toBe(
-      "Onboarding your customers finish."
+      "Onboarding your customers finish. Articles and guides from Example & Co."
     );
   });
 

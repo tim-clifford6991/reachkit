@@ -21,6 +21,7 @@
     "typecheck": "tsc --noEmit",
     "db:types": "bash scripts/db-substrate/gen-types.sh > src/lib/db/types.generated.ts",
     "page": "node scripts/page.mjs",
+    "retarget": "node scripts/retarget.mjs",
     "eval:content": "node scripts/eval-content.mjs"
   },
   "dependencies": {

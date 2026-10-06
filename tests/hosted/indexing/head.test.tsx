@@ -356,6 +356,25 @@ describe("issue 1141 — the structured data says what the page shows", () => {
     });
   });
 
+  it("a byline typed as one sentence is read into a name, a job title and a place (D53)", async () => {
+    // What reachkit.app's founder answered at setup.
+    state.page = { ...(livePage([]) as object), byline: "Tim, Reachkit Founder based in Berlin, Germany" };
+    const html = await render();
+    // The visible byline is the founder's own, unchanged.
+    expect(html).toContain("Tim, Reachkit Founder based in Berlin, Germany");
+    expect(schemaOf(html, "BlogPosting").author).toEqual({
+      "@type": "Person",
+      name: "Tim",
+      jobTitle: "Reachkit Founder",
+      workLocation: { "@type": "Place", name: "Berlin, Germany" },
+    });
+  });
+
+  it("a bare name is a person with no job title", async () => {
+    state.page = { ...(livePage([]) as object), byline: "Ada Park" };
+    expect(schemaOf(await render(), "BlogPosting").author).toEqual({ "@type": "Person", name: "Ada Park" });
+  });
+
   it("the dates are the two the page prints: first published, and refreshed", async () => {
     state.page = {
       ...(livePage([]) as object),
@@ -430,10 +449,29 @@ describe("issue 1141 — a shared link draws a card, and the head names the feed
     expect(metadata.twitter).toMatchObject({ card: "summary_large_image" });
   });
 
-  it("the index is described by the business's own line where it has one", async () => {
-    state.line = "Onboarding checklists your customers finish.";
+  it("the index is described by what the business does, at a search result's length (D53)", async () => {
+    // reachkit.app's own job, as its market stores it.
+    state.line = "Understand where AI and search send buyers, then write pages to rank in those results";
     const metadata = await generateMetadata({ params: Promise.resolve({}) });
-    expect(metadata.description).toBe("Onboarding checklists your customers finish.");
+    const description = String(metadata.description);
+    expect(description).toBe(
+      "Understand where AI and search send buyers, then write pages to rank in those results. Articles and guides from example.com."
+    );
+    expect(description.length).toBeGreaterThanOrEqual(120);
+    expect(description.length).toBeLessThanOrEqual(155);
+  });
+
+  it("a line longer than a result shows is cut at a word, and a short one is not padded", async () => {
+    state.line = `${"Onboarding checklists that customers finish, ".repeat(5)}every time`;
+    const long = String((await generateMetadata({ params: Promise.resolve({}) })).description);
+    expect(long.length).toBeLessThanOrEqual(155);
+    expect(long.endsWith("…")).toBe(true);
+    expect(long).not.toMatch(/\s…$/);
+
+    state.line = "Onboarding checklists your customers finish.";
+    expect((await generateMetadata({ params: Promise.resolve({}) })).description).toBe(
+      "Onboarding checklists your customers finish. Articles and guides from example.com."
+    );
   });
 
   it("both link the feed, and nothing in either head names ReachKit", async () => {

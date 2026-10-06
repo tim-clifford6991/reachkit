@@ -41,9 +41,37 @@ export function indexTitle(business: HostedBusiness): string {
   return `${copy("hosted.index.heading")} · ${business.name}`;
 }
 
-/** The index's description: the business's own line where it has one. */
+/** How long a description is (SPEC §7, D51 and D53): a search result shows
+ *  about this much, and a shorter one is replaced by a snippet. */
+const DESCRIPTION = { min: 120, max: 155 } as const;
+const ELLIPSIS = "…";
+
+/** A line as one closed sentence: one space between words, a capital first,
+ *  and a full stop where it ends on none. */
+function sentenceOf(line: string): string {
+  const text = line.replace(/\s+/g, " ").trim();
+  if (text === "") return "";
+  const closed = /[.!?]$/.test(text) ? text : `${text}.`;
+  return closed.charAt(0).toUpperCase() + closed.slice(1);
+}
+
+/**
+ * The index's description (D53, issue 1268): what the business does, then
+ * what this page of it is, in 120–155 characters. It is written from the
+ * business's line and never from an answer to a setup question. A line too
+ * long for a result is cut at a word; a business with no line has the one
+ * sentence it can honestly have, and nothing is padded to reach the length.
+ */
 export function indexDescription(business: HostedBusiness): string {
-  return business.line ?? copy("hosted.index.description", { publisher: business.name });
+  const lead = copy("hosted.index.description", { publisher: business.name });
+  const does = sentenceOf(business.line ?? "");
+  if (does === "") return lead;
+  if (does.length > DESCRIPTION.max) {
+    const cut = does.slice(0, DESCRIPTION.max - ELLIPSIS.length);
+    return `${cut.slice(0, cut.lastIndexOf(" ")).replace(/[,;:.]$/, "")}${ELLIPSIS}`;
+  }
+  const both = `${does} ${lead}`;
+  return does.length < DESCRIPTION.min && both.length <= DESCRIPTION.max ? both : does;
 }
 
 /** A schema object as a script body. Next's own JSON-LD guidance:
@@ -54,8 +82,27 @@ export function jsonLd(schema: Record<string, unknown>): string {
 }
 
 /** What separates a name from its line in a byline: "Tim Clifford ·
- *  Founder, ReachKit" (SPEC §7, 2026-09-29). */
-const BYLINE_SEPARATOR = " · ";
+ *  Founder, ReachKit" (SPEC §7, 2026-09-29) — or the comma or dash a founder
+ *  typed instead: "Tim, Founder based in Berlin" (D53, issue 1268). The
+ *  middle dot is the form setup shows, so it is read first. */
+const BYLINE_SEPARATORS = [/\s+·\s+/, /\s+[–—|-]\s+/, /,\s+/] as const;
+
+/** Where a line says the person is: "… based in Berlin, Germany". */
+const PLACE = /(?:^|[\s,]+)(?:based|located|living)\s+in\s+(.+)$/i;
+
+/** A byline as a person: the name, then what the line says they do and,
+ *  where it states one, where they are. Nothing the byline does not say. */
+export function personOf(byline: string): { name: string; jobTitle: string | null; place: string | null } {
+  const said = byline.replace(/\s+/g, " ").trim();
+  const separator = BYLINE_SEPARATORS.find((candidate) => candidate.test(said));
+  const at = separator === undefined ? null : separator.exec(said);
+  const name = at === null ? said : said.slice(0, at.index).trim();
+  const line = at === null ? "" : said.slice(at.index + at[0].length).trim();
+  const where = PLACE.exec(line);
+  const jobTitle = (where === null ? line : line.slice(0, where.index)).replace(/[\s,;]+$/, "");
+  const place = where?.[1]?.replace(/[\s.]+$/, "") ?? "";
+  return { name, jobTitle: jobTitle === "" ? null : jobTitle, place: place === "" ? null : place };
+}
 
 /** The author the page prints. A page with no recorded byline prints the
  *  business's name, and is authored by the business; a recorded one is the
@@ -65,9 +112,13 @@ function authorOf(byline: string | null, business: HostedBusiness): Record<strin
   if (said === "" || said === business.name || said === business.domain) {
     return { "@type": "Organization", name: business.name, url: mainSiteOf(business) };
   }
-  const [name = said, ...line] = said.split(BYLINE_SEPARATOR);
-  const jobTitle = line.join(BYLINE_SEPARATOR).trim();
-  return { "@type": "Person", name: name.trim(), ...(jobTitle === "" ? {} : { jobTitle }) };
+  const person = personOf(said);
+  return {
+    "@type": "Person",
+    name: person.name,
+    ...(person.jobTitle === null ? {} : { jobTitle: person.jobTitle }),
+    ...(person.place === null ? {} : { workLocation: { "@type": "Place", name: person.place } }),
+  };
 }
 
 /** The business in the header, with its logo where one is kept. */
@@ -149,7 +200,7 @@ export function blogSchema(a: {
         "@id": `${a.canonical}#blog`,
         url: a.canonical,
         name: a.business.name,
-        ...(a.business.line === null ? {} : { description: a.business.line }),
+        description: indexDescription(a.business),
         inLanguage: PAGE_LOCALE,
         isPartOf: { "@id": site },
         publisher: publisherOf(a.business, origin),

@@ -449,6 +449,19 @@ empty until #42 and #39 are built), so those two arms cannot fire from this scre
 date falls to `unattributed` rather than telling a customer their market is empty on a day the
 database merely broke.
 
+### Rewriting a live page for a new search
+
+`npm run retarget -- --url <live address> --target "<search>" [--volume <monthly searches>]`
+(SPEC §7, D53, #1268) prints one SQL statement and writes nothing. Run the statement through the
+Supabase connector: this box's database key is a placeholder. `<live address>` is the page's
+`publications.live_url`. It must be a page ReachKit published.
+
+The statement adds one open `refresh_page` at that address, for the new search, and returns its
+row. No row returned means the address is not a live page of ours. A unique violation means the
+page already has that update open or queued. The next generation run records the row's readiness
+and ranks it with the site's other topics; nothing publishes until that day's page is written. The
+page is written as the new search's own type and replaces the live text at the same address.
+
 ### Testing one page
 
 `npm run page -- --site <domain> --type <type> [--topic "<q>"]` writes one page through the

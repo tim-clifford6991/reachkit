@@ -114,7 +114,12 @@ export type Shortfall =
   /** SPEC §7 (2026-09-29, *Pace*; issue 1139): one of ReachKit's own live
    *  pages is due a refresh. `since` is the day its current version went
    *  live, which is what the cause was measured against. */
-  | { kind: "due"; cause: RefreshCause; since: Measured<Date> };
+  | { kind: "due"; cause: RefreshCause; since: Measured<Date> }
+  /** SPEC §7 (D53, issue 1268): one of ReachKit's own live pages is rewritten
+   *  for a new search, at its own address. The row's `targetQuery` is the new
+   *  search, and the page is written as that search's own type, not as a
+   *  refresh of what is live. */
+  | { kind: "retarget" };
 
 /** Why a live page of ours is due: its version is 90 days old, the Monday
  *  verdict found it in a worse place, or a pool holds a fact newer than it. */
@@ -449,5 +454,12 @@ export function isResting(o: Pick<Opportunity, "restUntil">, now: Date): boolean
 /** A refresh of one of ReachKit's own live pages (SPEC §7, *Pace*, issue
  *  1139): the update a day takes first once the week's new pages are in. */
 export function isOwnRefresh(o: Pick<Opportunity, "evidence">): boolean {
-  return o.evidence.family === "improve" && o.evidence.shortfall.kind === "due";
+  return o.evidence.family === "improve" && (o.evidence.shortfall.kind === "due" || isRetarget(o));
+}
+
+/** A live page of ours rewritten for a new search (D53, issue 1268). The
+ *  evidence is stored jsonb, so a row without one is read as not one. */
+export function isRetarget(o: { evidence?: Evidence | null }): boolean {
+  const evidence = o.evidence as { family?: unknown; shortfall?: { kind?: unknown } } | null | undefined;
+  return evidence?.family === "improve" && evidence.shortfall?.kind === "retarget";
 }
