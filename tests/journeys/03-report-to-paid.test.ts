@@ -130,7 +130,10 @@ const ADDRESS = "Anna@Acme.com";
 const NORMALISED = "anna@acme.com";
 const CUSTOMER_ID = "cus_journey_03";
 const SUBSCRIPTION_ID = "sub_journey_03";
-const PAID_THROUGH = new Date("2026-10-05T12:00:00.000Z");
+/** A period end a month ahead of the run, on a whole second. It was a fixed
+ *  date, and the journey went red on main the day that date passed
+ *  (2026-10-05): the gate reads it against the clock. */
+const PAID_THROUGH = new Date((Math.floor(Date.now() / 1000) + 30 * 86_400) * 1000);
 /** Before the payment, `users.paid_through` is the column's own default and
  *  the gate is shut. The journey is about what opens it. */
 const NEVER_PAID = new Date(0).toISOString();
