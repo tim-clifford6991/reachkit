@@ -29,6 +29,7 @@ import { checklist, figuresIn, numbersIn, traceNumbers, units, type Checklist, t
 import { CRITERIA, judgePair, tally, type Criterion, type PairVerdict, type Reading } from "./judge";
 import * as B from "./prototype/arm-b";
 import { readSnapshot, SNAPSHOT_DIR } from "./snapshot";
+import { appendSpend } from "../spend-log.mjs";
 
 export interface RoundPage {
   id: string;
@@ -215,6 +216,7 @@ export async function gradeRound(a: {
     },
     record(call: { model: string; tokensIn: number; tokensOut: number; cents: number }) {
       calls.push({ page, step, ...call });
+      appendSpend({ script: "eval-content", source: `${step}:${call.model}`, cents: call.cents });
       console.log(`   ${page} ${step}: ${cents(call.cents)} (${call.tokensIn} in, ${call.tokensOut} out)`);
     },
   });

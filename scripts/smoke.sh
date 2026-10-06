@@ -20,6 +20,12 @@
 # against production exactly as it runs against dev. That is deliberate: a
 # check that needs a secret is a check nobody runs.
 #
+# **It says it is a smoke test** (SPEC §6, D57, issue 1286): its scan start
+# carries `"smoke": true`, which the route stores on the scan row
+# (`scans.smoke`), so the owner's Monday cost report counts smoke tests apart
+# from customers' free scans. The field is no secret and buys nothing —
+# admission does not read it.
+#
 #   SMOKE_BASE_URL   the deployment to walk. Default `https://dev.reachkit.app`
 #                    (docs/RUNBOOK.md §1). Production is `https://reachkit.app`.
 #   domain           the site to scan. Default `SMOKE_DOMAIN`, else the
@@ -124,7 +130,7 @@ step=scan-start
 T0=$(now_ms)
 start="$WORK/start.json"
 code=$(curl -sS -o "$start" -w '%{http_code}' --max-time 30 \
-  -H 'content-type: application/json' -d "{\"value\":\"$DOMAIN\"}" \
+  -H 'content-type: application/json' -d "{\"value\":\"$DOMAIN\",\"smoke\":true}" \
   "$BASE_URL/api/scan" 2>"$WORK/start.err") \
   || fail "$step" "POST /api/scan did not answer ($(tr -d '\n' < "$WORK/start.err"))"
 [ "$code" = 200 ] || fail "$step" "POST /api/scan answered $code: $(head -c 200 "$start")"

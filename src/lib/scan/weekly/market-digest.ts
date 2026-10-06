@@ -24,10 +24,17 @@
 // each cause stopped one — the seven dates before `week_start`, which is the
 // last week every zone has finished. A read that fails leaves the count out
 // and never holds the digest back.
+//
+// **What the week cost** (issue 1286, D57). The same mail carries that same
+// week's cost (`./cost-week`): per site a measurement and a page written,
+// free scans and smoke tests apart, and the ledger's total. It is sent
+// whenever the week held a scan or a page, thin market or not, and a read
+// that fails leaves it out the same way.
 import { dbAdmin } from "@/lib/db";
 import { marketTooSmall, stoppedOnCeiling } from "../market-floor";
 import { readStoredReport } from "../report";
 import type { OpsIncident } from "@/lib/mail/templates/ops";
+import type { CostWeek } from "./cost-week";
 
 // `scans.week_start`, `scans.market_digest_at` are on disk and not in the
 // generated `Database` type — the same narrow cast `./store` carries.
@@ -100,6 +107,18 @@ async function stoppedBefore(weekStart: string): Promise<StoppedWeek | null> {
   }
 }
 
+/** What the week before `weekStart` cost, or `null` where it held nothing or
+ *  could not be read. */
+async function costBefore(weekStart: string): Promise<CostWeek | null> {
+  try {
+    const { readCostWeek } = await import("./cost-week");
+    return await readCostWeek(addDays(weekStart, -7));
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "market_digest_costs_unread", error: error instanceof Error ? error.name : "unknown" }));
+    return null;
+  }
+}
+
 /** Monday 00:00 → Tuesday 12:00 UTC: the moment Monday has ended in UTC−12. */
 const MONDAY_ENDS_EVERYWHERE_MS = 36 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -135,8 +154,8 @@ const ROWS_PER_DIGEST = 500;
 
 /**
  * Reads the week's unread weekly passes, mails the owner the ids of those
- * that found too little market and why the week before's pages stalled, and
- * stamps every row it read. Answers
+ * that found too little market, why the week before's pages stalled and what
+ * that week cost, and stamps every row it read. Answers
  * whether the week is settled; `false` means the mail was not accepted and
  * nothing was stamped.
  */
@@ -160,13 +179,15 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
   }
 
   const stopped = await stoppedBefore(weekStart);
-  if (tooSmall.length > 0 || stopped !== null) {
+  const costs = await costBefore(weekStart);
+  if (tooSmall.length > 0 || stopped !== null || costs !== null) {
     const { reportIncident } = await import("@/lib/mail/ops");
     const accepted = await reportIncident({
       occasion: "market-too-small-week",
       weekStart,
       scanIds: tooSmall,
       ...(stopped === null ? {} : { stopped }),
+      ...(costs === null ? {} : { costs }),
     });
     if (!accepted) return false;
   }
@@ -178,6 +199,6 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
     .in("id", ids)
     .is("market_digest_at", null);
   if (stamped.error) throw new Error(`sendMarketDigest: could not stamp the week: ${stamped.error.message}`);
-  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, stoppedSites: stopped?.sites.length ?? 0 }));
+  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, stoppedSites: stopped?.sites.length ?? 0, costs: costs !== null }));
   return true;
 }

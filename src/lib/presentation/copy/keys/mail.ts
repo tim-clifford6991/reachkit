@@ -769,6 +769,14 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.drafts-stopped-week": ["These sites had pages stop before review last week. Each lists the pages that stopped out of the pages written, and how many pages each cause stopped.", { slots: {}, fixedBy: "issue 1184 (drafted)" }],
   "mail.ops.incident.fact.stopped": ["Stopped / written", { slots: {}, fixedBy: "issue 1184 (drafted)" }],
   "mail.ops.incident.fact.cause": ["Cause", { slots: {}, fixedBy: "issue 1184 (drafted)" }],
+  // Issue 1286 (D57): what the week cost, on the same Monday digest.
+  "mail.ops.incident.costs-week": ["What last week cost. Each site lists the average cost of one measurement and of one page written, stopped pages included, with how many there were. Free scans and smoke tests are counted apart.", { slots: {}, fixedBy: "issue 1286 (drafted)" }],
+  "mail.ops.incident.fact.cost-measurement": ["Cost per measurement", { slots: {}, fixedBy: "issue 1286 (drafted)" }],
+  "mail.ops.incident.fact.cost-page": ["Cost per page written", { slots: {}, fixedBy: "issue 1286 (drafted)" }],
+  "mail.ops.incident.fact.cost-site": ["Site total", { slots: {}, fixedBy: "issue 1286 (drafted)" }],
+  "mail.ops.incident.fact.cost-free-scans": ["Free scans (total × count)", { slots: {}, fixedBy: "issue 1286 (drafted)" }],
+  "mail.ops.incident.fact.cost-smoke-tests": ["Smoke tests (total × count)", { slots: {}, fixedBy: "issue 1286 (drafted)" }],
+  "mail.ops.incident.fact.cost-total": ["Week total, all spend", { slots: {}, fixedBy: "issue 1286 (drafted)" }],
   // Issue #799: a scheduled job has gone quiet for twice its interval.
   "mail.ops.incident.job-stale": ["A scheduled job has not run for more than twice its usual interval.", { slots: {}, fixedBy: "issue 799" }],
   "mail.ops.incident.fact.last-run": ["Last run", { slots: {}, fixedBy: "issue 799" }],

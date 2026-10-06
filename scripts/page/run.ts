@@ -256,7 +256,7 @@ export async function main(opts: Options): Promise<number> {
 
   // The product's own ceiling bounds the calls; `--cap-cents` is what the
   // page's actual spend is held against when the run reports.
-  const ledger = proofLedger(CAPS.DRAFT_C);
+  const ledger = proofLedger(CAPS.DRAFT_C, 0, "page");
   const cost = ledger.contextFor(1);
   const started = Date.now();
   try {

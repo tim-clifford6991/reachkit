@@ -680,9 +680,24 @@ be crossed slightly rather than triggered early. And the alerts at 80% and 100% 
 
 ### Reading spend
 
-**There is no owner-facing surface for spend — no page, no route, no script.** The only reader in
-the product is `readDaySpendCents()`, which asks the ledger for the current UTC day and uses it as
-a guard input. Until a surface exists, read it in the Supabase SQL editor:
+**The owner's surface for production spend is the Monday digest** (SPEC §6, D57, #1286). Its cost
+section reports the seven dates before that Monday: per site the average cost of a measurement and
+of a page written (stopped pages included) with how many there were, the site's total, free scans
+and smoke tests on separate lines, and the ledger's total for the week. `scripts/smoke.sh` sends
+`"smoke": true` with its scan start and the route stores it as `scans.smoke`, which is what tells a
+smoke test from a customer's free scan:
+
+```sql
+-- last 7 days of free passes, smoke tests apart
+select smoke, count(*) as scans, sum(cost_cents) as cents
+  from scans
+ where tier = 'free' and created_at >= now() - interval '7 days'
+ group by 1;
+```
+
+For anything the digest does not say, read the ledger in the Supabase SQL editor. The only other
+reader in the product is `readDaySpendCents()`, which asks the ledger for the current UTC day and
+uses it as a guard input:
 
 ```sql
 -- today, product-wide (the figure the ceiling is checked against)
@@ -714,6 +729,26 @@ select s.id, s.site_id, s.status, sum(f.cost_cents) as cents
 `public`, `anon` and `authenticated` and granted to `service_role` alone; the SQL editor runs as
 the project's `postgres` role, which is above those grants, so it can call it and read `fetches`
 directly. Nothing else can.
+
+### Test spend from the box
+
+Paid calls a script makes from the box never reach `fetches`: the box has no database key. Each one
+appends a line to **`/root/ops/reachkit/spend.jsonl`** instead (SPEC §6, D57, #1286):
+
+```json
+{"at":"2026-10-06T09:14:02.118Z","issue":"1286","script":"page","source":"llm:writer","cents":4.21}
+```
+
+`issue` is the number of an `issue-<N>` branch, else the branch's name. A call that settled at
+nothing writes no line. The scripts that write it are `npm run page`, `scripts/market-inference.mjs`,
+`npm run eval:content`, `scripts/d19-cost.mjs` and `scripts/llm-mentions-pilot.mjs`; they all go
+through `appendSpend()` in `scripts/spend-log.mjs`, and **a new script that calls a vendor or a
+model calls it too**. `RK_SPEND_LOG=<file>` writes to another file.
+
+`npm run costs` prints today's and the last 7 days' spend from that log, by issue, against D34's €2
+a day (`docs/PROCESS.md`, *Testing budget*). It warns past €1.50 and says stop at €2. A day is a UTC
+day. The file is not in the repository and is not rotated: to recreate it, nothing is needed — the
+first paid call creates it.
 
 ---
 

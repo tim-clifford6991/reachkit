@@ -90,6 +90,8 @@ Tests prove customer-observable behaviour. Until a paying user, tests are at mos
 6. **One smoke test per deploy batch.**
 7. **The Monday weekly pass is the default live proof.**
 
+2026-10-06  **Test spend is logged, and `npm run costs` reads it** (owner, D57, #1286). Rule 4's €2 a day covers two kinds of spend. Live tests through a deployment are in the `fetches` ledger. Paid calls made by a script on the box (`npm run page`, `scripts/market-inference.mjs`, and the others) are in `/root/ops/reachkit/spend.jsonl`, one line per call. `npm run costs` prints today's and the last 7 days' of the second kind, by issue, and warns at €1.50. Run it before a live test (`docs/RUNBOOK.md` §8).
+
 ## Deploys
 
 Vercel Hobby, Git deployments off. `rk-deployer` deploys `main` (dev every SHA, production at most every two hours). Production is deployed with each merge batch (`/root/ops/reachkit/bin/redeploy.sh`) as well as dev — no freeze (2026-09-17, #844). The file `/root/ops/reachkit/state/prod-frozen` does not exist and is not a gate. Manual: `bash /root/ops/reachkit/bin/deploy-dev-once.sh`.

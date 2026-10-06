@@ -39,6 +39,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { appendSpend } from "./spend-log.mjs";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const STATE_DIR = path.join(ROOT, ".d19-cost");
@@ -231,6 +232,7 @@ async function post(key, engine, prompt) {
     if (task?.status_code === 20100 && typeof task.id === "string") call.id = task.id;
     else Object.assign(call, { done: true, error: `task_post ${task?.status_code ?? json?.status_code} ${task?.status_message ?? json?.status_message ?? ""}`.trim() });
     state.calls[key] = call;
+    appendSpend({ script: "d19-cost", source: `dataforseo:${engine}`, cents: call.costC });
   } catch (error) {
     // Nothing is stored: whether the vendor accepted it is unknown, and the
     // reservation's worst case is counted against the run by `unknownC`.
@@ -310,6 +312,7 @@ async function brandsNamed(key, text) {
     const json = await res.json();
     const reply = json?.content?.[0]?.text ?? "";
     const costC = ((json?.usage?.input_tokens ?? 0) * HAIKU.inCentsPerM + (json?.usage?.output_tokens ?? 0) * HAIKU.outCentsPerM) / 1e6;
+    appendSpend({ script: "d19-cost", source: HAIKU.model, cents: costC });
     let brands = null;
     try {
       brands = JSON.parse(/\[[\s\S]*\]/.exec(reply)?.[0] ?? "null");

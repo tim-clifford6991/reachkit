@@ -60,6 +60,7 @@
 // so the owner can re-read the evidence without paying again.
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import path from "node:path";
+import { appendSpend } from "./spend-log.mjs";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const OUT_DIR = path.join(ROOT, ".llm-mentions");
@@ -123,6 +124,8 @@ async function search(auth, targets, tag) {
   const json = await res.json();
   const cost = typeof json.cost === "number" ? json.cost : WORST_CASE_PER_REQUEST;
   ledger.spent += cost;
+  // The vendor reports dollars; the spend log is in cents.
+  appendSpend({ script: "llm-mentions-pilot", source: "dataforseo:llm_mentions", cents: cost * 100 });
   ledger.requests += 1;
   if (json.status_code !== 20000) {
     // The credential itself must never reach a log, and DataForSEO's error
