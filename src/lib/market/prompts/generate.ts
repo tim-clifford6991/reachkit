@@ -60,9 +60,10 @@ const CONSTRAINTS = [
 
 /**
  * One site's set: 25 prompts where the market names a category, a buyer, a
- * job, three synonyms and three rivals. A market with fewer yields fewer;
- * nothing is invented to fill a kind, and no kind exceeds its share of
- * `TRACKED_PROMPTS.SPLIT`. Empty where the market names no category.
+ * job and three rivals. A market with fewer than three synonyms asks its
+ * category another way in their place. A market with less than that yields
+ * fewer: no buyer, job or rival is invented, and no kind exceeds its share
+ * of `TRACKED_PROMPTS.SPLIT`. Empty where the market names no category.
  */
 export function generatePrompts(market: PromptMarket, siteName: string): GeneratedPrompt[] {
   const category = clean(market.category);
@@ -82,6 +83,11 @@ export function generatePrompts(market: PromptMarket, siteName: string): Generat
     add("category", `Which ${synonym} platforms do people actually recommend this year?`);
   }
   add("category", `I am new to ${category}. Which products should I look at first?`);
+  // A market with fewer than three other names still asks its five (D19;
+  // owner, 2026-10-06, issue 1281): the category itself, asked another way.
+  add("category", `Which ${category} tools are worth paying for, and why?`);
+  add("category", `Which ${category} products get the best reviews from the people who use them?`);
+  add("category", `What ${category} software should a first-time buyer shortlist?`);
 
   if (job !== "") for (const constraint of CONSTRAINTS) add("use-case", `Which tools help me ${job} ${constraint}?`);
 
