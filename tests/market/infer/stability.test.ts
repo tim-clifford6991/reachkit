@@ -2,7 +2,7 @@
 // twice or clearly better supported; rivals are re-checked every pass; a
 // founder's override always stands.
 import { describe, expect, it } from "vitest";
-import { settleMarket, settleRivals, type MarketFields, type StoredMarketWithChange } from "@/lib/market/infer/stability";
+import { settleMarket, settleRivals, setupRivalsOverridden, type MarketFields, type StoredMarketWithChange } from "@/lib/market/infer/stability";
 import { EMPTY_STORED_MARKET, type RivalConclusion } from "@/lib/market/infer/types";
 
 const AT = new Date("2026-10-02T12:00:00Z");
@@ -112,5 +112,28 @@ describe("the rivals", () => {
   it("never replaces rivals the founder set", () => {
     const own = { ...stored, rivalsOverridden: true };
     expect(recheck(own, ["mine.com"], [rival("peec.ai")])).toMatchObject({ changed: false, rivals: ["mine.com"] });
+  });
+});
+
+describe("D55 — keeping ReachKit's own rivals at setup is not the founder's choice", () => {
+  const concluded = ["aeoengine.ai", "maxaeo.ai", "meltwater.com"];
+  const shown = ["aeoengine.ai", "meltwater.com"];
+
+  it("saving the rivals the step showed marks nothing, though they are two of the three concluded", () => {
+    expect(setupRivalsOverridden({ marked: false, shown, concluded, answer: ["meltwater.com", "aeoengine.ai"] })).toBe(false);
+  });
+
+  it("adding or removing a rival is the founder's choice (D28)", () => {
+    expect(setupRivalsOverridden({ marked: false, shown, concluded, answer: [...shown, "profound.com"] })).toBe(true);
+    expect(setupRivalsOverridden({ marked: false, shown, concluded, answer: ["aeoengine.ai"] })).toBe(true);
+  });
+
+  it("a choice made on the rivals step survives the submit that saves the same set again", () => {
+    const own = ["aeoengine.ai"];
+    expect(setupRivalsOverridden({ marked: true, shown: own, concluded, answer: own })).toBe(true);
+  });
+
+  it("a set put back to the concluded one is ReachKit's again", () => {
+    expect(setupRivalsOverridden({ marked: true, shown: ["aeoengine.ai"], concluded, answer: concluded })).toBe(false);
   });
 });

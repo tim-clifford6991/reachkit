@@ -181,3 +181,23 @@ export function settleRivals(a: {
     changed,
   };
 }
+
+/**
+ * Whether setup's saved rivals are the founder's own (owner D55 of
+ * 2026-10-06, issue 1281): only adding or removing one is their choice
+ * (D28). `shown` is what the step showed — ReachKit's own rivals as the
+ * site held them, which may be fewer than it concluded. Saving those as
+ * they are changes nothing, and a set put back to the concluded one hands
+ * the rivals back to ReachKit.
+ */
+export function setupRivalsOverridden(a: {
+  marked: boolean;
+  shown: readonly string[];
+  concluded: readonly string[];
+  answer: readonly string[];
+}): boolean {
+  const same = (one: readonly string[], other: readonly string[]): boolean =>
+    new Set(one).size === new Set(other).size && one.every((domain) => other.includes(domain));
+  if (same(a.answer, a.shown)) return a.marked;
+  return !same(a.answer, a.concluded);
+}

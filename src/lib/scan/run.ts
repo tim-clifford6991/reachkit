@@ -58,7 +58,7 @@ import type { RobotsPolicy } from "@/lib/egress/types";
 import { checkCoherence, type CoherenceVerdict } from "@/lib/market/coherence/check";
 import { nextCorrectionState, type CorrectionState } from "@/lib/market/coherence/state";
 import { EVIDENCE_BOUNDS } from "@/lib/market/infer/evidence";
-import { spokenMarket } from "@/lib/market/infer/terms";
+import { searchedName, spokenMarket } from "@/lib/market/infer/terms";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { buyerPrompts } from "@/lib/market/questions/buyer-prompts";
 import { readPromptAnswer } from "@/lib/market/prompts/answer";
@@ -2184,9 +2184,14 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
       sections.market === null
         ? ((await readBusinessEdits(siteId).catch(() => null))?.answers.buyers ?? null)
         : sections.founderBuyer;
-    const set = nextPromptSet(stored, generatePrompts(spokenMarket(market, buyer), siteName), new Date());
+    // D54: a set built from another label is rebuilt whole from the search
+    // term here, once.
+    const set = nextPromptSet(stored, generatePrompts(spokenMarket(market, buyer), siteName), new Date(), searchedName(market));
     if (set.prompts.length === 0 || sections.sealed) return;
     if (set !== stored) await writePromptSet(siteId, set);
+    if (set.rebuiltAt !== undefined && set.rebuiltAt !== stored.rebuiltAt) {
+      console.log(JSON.stringify({ event: "tracked_prompts_rebuilt", siteId, from: stored.prompts.length, to: set.prompts.length }));
+    }
 
     const answers: (PromptAnswer & { namesABrand: boolean })[] = [];
     const evidence = new Map<string, MarketPromptAnswer>();
@@ -2258,6 +2263,7 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
       siteName,
       asked: settled.prompts.map((prompt) => ({ id: prompt.id, kind: prompt.kind, text: prompt.text })),
       asks: settled.prompts.length * PROMPT_ENGINES.length * TRACKED_PROMPTS.RUNS,
+      ...(settled.rebuiltAt === undefined ? {} : { restartedAt: settled.rebuiltAt }),
       answers: answers
         .filter((answer) => kept.has(answer.promptId))
         .map((answer) => ({

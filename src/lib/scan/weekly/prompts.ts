@@ -90,7 +90,9 @@ async function readRemeasures(a: {
  * The rolling window ending at `weekStart`. **One pass a week**: where a
  * week holds a weekly pass and a re-measure, or two re-measures, the newest
  * that asked the prompts is that week's sample. Counting both would double
- * the answers read without doubling what was learned.
+ * the answers read without doubling what was learned. **One set**: a week
+ * that asked the set as it was before a rebuild (D54) is left out, so the
+ * rate starts again with the rebuilt set and never mixes the two.
  */
 export async function readPromptWindow(a: { siteId: string; weekStart: string; zone?: string }): Promise<PromptWindow> {
   const weekStarts = promptWindowWeeks(a.weekStart);
@@ -99,8 +101,7 @@ export async function readPromptWindow(a: { siteId: string; weekStart: string; z
     readWeekScans({ siteId: a.siteId, weekStarts }),
     zone === null ? [] : readRemeasures({ siteId: a.siteId, zone, weekStarts }).catch(() => []),
   ]);
-  const weeks: PromptWeek[] = [];
-  let prompts: PromptWindow["prompts"] = [];
+  const read: { week: PromptWeek; section: PromptsSection }[] = [];
   for (const weekStart of weekStarts) {
     const report = scans.get(weekStart)?.report;
     let section = report?.prompts;
@@ -111,8 +112,11 @@ export async function readPromptWindow(a: { siteId: string; weekStart: string; z
       at = remeasure.at;
     }
     if (section === undefined) continue;
-    weeks.push({ weekStart, asks: section.asks, samples: samplesOf(section) });
-    prompts = section.asked;
+    read.push({ week: { weekStart, asks: section.asks, samples: samplesOf(section) }, section });
   }
-  return { weeks, prompts };
+  const newest = read.at(-1)?.section;
+  return {
+    weeks: read.filter((entry) => entry.section.restartedAt === newest?.restartedAt).map((entry) => entry.week),
+    prompts: newest?.asked ?? [],
+  };
 }
