@@ -141,7 +141,7 @@ const HOUSE_RULES = [
 
 /** A table the writer lays out itself: every cell a fact, never a blank. */
 const WRITTEN_TABLE_RULE =
-  "A comparison table names only this business and the products in `pack.products`. Every cell states what a fact says, with each price or figure linked to that fact's url inside the cell — never a blank, \"not stated\", \"not linked\", \"n/a\", \"unknown\" or any other words that say a value is missing: where a fact is missing for one product, leave that row out for every product, or leave that product out. Keep prices in one currency per table as the facts state them.";
+  "A comparison table names only this business and the products in `pack.products`. Every cell states what a fact says, with each price or figure linked to that fact's url inside the cell — never a blank, \"not stated\", \"not linked\", \"n/a\", \"unknown\" or any other words that say a value is missing: where a fact is missing for one product, leave that row out for every product, or leave that product out. State each price in the currency its fact states it in, and never convert one.";
 /** SPEC §7 (owner, D47): the listicle's table is built in code from `pack`
  *  (`./table.ts`), and the writer writes around it. */
 const BUILT_TABLE_RULE =

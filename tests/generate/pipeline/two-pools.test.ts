@@ -22,7 +22,7 @@ vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 vi.mock("@/lib/egress", () => ({ safeFetch: safeFetchMock }));
 vi.mock("@/lib/vendors/dataforseo", () => ({ serpOrganic: serpMock, serpNews: newsMock }));
 
-import { admittedClaims, linkedPage, researchMarket } from "../../../src/lib/generate/pipeline/research";
+import { admittedClaims, researchMarket, rivalPage } from "../../../src/lib/generate/pipeline/research";
 import { repairMechanical } from "../../../src/lib/generate/pipeline/repair";
 import { completeTables, withSources } from "../../../src/lib/generate/pipeline/sources";
 import { checkTraceableNumerals } from "../../../src/lib/generate/rules/brief";
@@ -80,24 +80,31 @@ beforeEach(() => {
 });
 
 describe("the research step reads the market's pages and keeps only what they say", () => {
-  it("reads the top result and the rival's own pricing page, found through its home page when /pricing does not answer", async () => {
+  it("reads the top result and the rival's own pages, found through its home page's links and its sitemap", async () => {
+    const DOES = "Rival schedules every task on one shared timeline for the whole team.";
+    const STAT = "ChatGPT now has 900M weekly active users around the world.";
     safeFetchMock.mockImplementation(async (url: string) => {
       if (url === "https://listicle.example/best-pm-tools") return answer(url, LISTICLE, "Best PM tools");
       if (url === "https://rival.example/") {
         return { ...answer(url, "Welcome."), html: html("Rival", `<a href="/plans-and-pricing">Pricing</a>`) };
       }
+      if (url === "https://rival.example/sitemap.xml") {
+        return { ...answer(url, ""), html: "<urlset><url><loc>https://rival.example/blog/product-update</loc></url><url><loc>https://rival.example/product/timeline</loc></url></urlset>" };
+      }
       if (url === "https://rival.example/plans-and-pricing") return answer(url, PRICING, "Pricing — Rival");
+      if (url === "https://rival.example/product/timeline") return answer(url, `${DOES} ${STAT}`, "Timeline — Rival");
       return { ok: false, reason: "status", status: 404, url, readAt: TODAY };
     });
     // The pages are split over the research's two calls (D41); each call is
     // answered for the pages it was handed.
-    const said: Record<string, string[]> = {
-      "https://listicle.example/best-pm-tools": [LISTICLE],
-      "https://rival.example/plans-and-pricing": [PRICING, "The Standard plan costs $19 per user per month."],
+    const said: Record<string, [string, "price" | "product" | "other"][]> = {
+      "https://listicle.example/best-pm-tools": [[LISTICLE, "other"]],
+      "https://rival.example/plans-and-pricing": [[PRICING, "price"], ["The Standard plan costs $19 per user per month.", "price"]],
+      "https://rival.example/product/timeline": [[STAT, "other"], [DOES, "product"]],
     };
     llmMock.mockImplementation(async (_c: unknown, call: { input: { pages: { page: number; url: string }[] } }) =>
       measured({
-        claims: call.input.pages.flatMap((page) => (said[page.url] ?? []).map((quote) => ({ page: page.page, quote, year: null }))),
+        claims: call.input.pages.flatMap((page) => (said[page.url] ?? []).map(([quote, about]) => ({ page: page.page, quote, year: null, about }))),
       })
     );
     const c = cost();
@@ -111,15 +118,24 @@ describe("the research step reads the market's pages and keeps only what they sa
     });
 
     // The customer's own result is not market research, and the price the
-    // model altered is not on the page, so neither is a fact.
-    expect(found.facts.map((fact) => [fact.url, fact.passage])).toEqual([
-      ["https://listicle.example/best-pm-tools", LISTICLE],
-      ["https://rival.example/plans-and-pricing", PRICING],
+    // model altered is not on the page, so neither is a fact. Nor is the
+    // statistic about another product on the rival's page (D56).
+    expect(found.facts.map((fact) => [fact.url, fact.passage, fact.kind])).toEqual([
+      ["https://listicle.example/best-pm-tools", LISTICLE, "top_result"],
+      ["https://rival.example/plans-and-pricing", PRICING, "rival_pricing"],
+      ["https://rival.example/product/timeline", DOES, "rival_features"],
     ]);
-    expect(found.facts[1]).toMatchObject({ kind: "rival_pricing", product: "rival.example", title: "Pricing — Rival", readAt: TODAY });
-    expect(found.products).toEqual([{ domain: "rival.example", pages: ["https://rival.example/plans-and-pricing"] }]);
-    // Each page read is in the ledger, at no cost.
-    expect(c.reads).toEqual(["https://listicle.example/best-pm-tools 0", "https://rival.example/plans-and-pricing 0"]);
+    expect(found.facts[1]).toMatchObject({ product: "rival.example", title: "Pricing — Rival", readAt: TODAY });
+    expect(found.products).toEqual([
+      { domain: "rival.example", pages: ["https://rival.example/plans-and-pricing", "https://rival.example/product/timeline"] },
+    ]);
+    // Each page read is in the ledger, at no cost; no address was guessed.
+    expect(c.reads).toEqual([
+      "https://listicle.example/best-pm-tools 0",
+      "https://rival.example/plans-and-pricing 0",
+      "https://rival.example/product/timeline 0",
+    ]);
+    expect(safeFetchMock.mock.calls.map((call) => call[0])).not.toContain("https://rival.example/features");
   });
 
   it("a site whose market cannot be read is still written — research yields nothing and asks no model", async () => {
@@ -244,8 +260,8 @@ describe("the research step reads the market's pages and keeps only what they sa
     const page = { url: "https://study.example/r", title: "Study", text, readAt: TODAY.toISOString(), kind: "study" as const };
     const kept = admittedClaims(
       [
-        { page: 1, quote: "In 2021, 41% of teams used a project tool.", year: null },
-        { page: 1, quote: "The company was founded in 2015 in Berlin by two engineers.", year: null },
+        { page: 1, quote: "In 2021, 41% of teams used a project tool.", year: null, about: "other" },
+        { page: 1, quote: "The company was founded in 2015 in Berlin by two engineers.", year: null, about: "other" },
       ],
       [page],
       TODAY
@@ -253,9 +269,12 @@ describe("the research step reads the market's pages and keeps only what they sa
     expect(kept.map((fact) => fact.passage)).toEqual(["The company was founded in 2015 in Berlin by two engineers."]);
   });
 
-  it("finds a rival's pricing page by its link, on the rival's own site only", () => {
-    const home = `<a href="https://elsewhere.example/pricing">Pricing guide</a><a href="/plans">See plans</a>`;
-    expect(linkedPage(home, "https://rival.example/", "rival_pricing")).toBe("https://rival.example/plans");
+  it("finds a rival's pricing page by its link, on the rival's own site only, and the page itself before one that only mentions it", () => {
+    const home = { url: "https://rival.example/", html: `<a href="https://elsewhere.example/pricing">Pricing guide</a><a href="/plans">See plans</a>` };
+    expect(rivalPage("rival_pricing", "rival.example", home, [])).toBe("https://rival.example/plans");
+    const sitemap = ["https://rival.example/blog/pricing-update", "https://rival.example/pricing-agencies", "https://rival.example/pricing"];
+    expect(rivalPage("rival_pricing", "rival.example", null, sitemap)).toBe("https://rival.example/pricing");
+    expect(rivalPage("rival_features", "rival.example", home, sitemap)).toBeNull();
   });
 });
 
@@ -386,10 +405,8 @@ describe("the page ends with what it cited, and a table has no empty cell", () =
     expect(checkRivalSource({ markdown: repaired, rivals: ["rival.example"], factPages: ["https://rival.example/pricing"] })).toBeNull();
   });
 
-  it("drops a price column that mixes currencies unless the page states the conversion", () => {
+  it("keeps a price column whose prices are in the currency each vendor states (D56)", () => {
     const table = ["| Product | Price | Seats |", "| --- | --- | --- |", "| Acme | €49 | 5 |", "| Rival | $24 | 10 |"].join("\n");
-    expect(completeTables(table)).not.toContain("Price");
-    const stated = `${table}\n\nPrices converted at 1 EUR = 1.08 USD on 3 October 2026.`;
-    expect(completeTables(stated)).toContain("| Acme | €49 | 5 |");
+    expect(completeTables(table)).toBe(table);
   });
 });

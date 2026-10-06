@@ -705,6 +705,18 @@ export const DRAFT_COPY = Object.freeze({
     "Prices last checked {date}.",
     { slots: { date: "date" }, fixedBy: "SPEC §7 (D52) · issue 1267 · drafted" },
   ],
+  // D56 (SPEC §7, owner, 2026-10-06; issue 1282): the pricing cell of a rival
+  // whose own page says its price is agreed, not published, and the line
+  // under a table whose prices are in more than one currency. Drafted; the
+  // owner corrects the wording.
+  "body.table.custom": [
+    "Custom pricing",
+    { slots: {}, fixedBy: "SPEC §7 (D56) · issue 1282 · drafted" },
+  ],
+  "body.table.currencies": [
+    "Prices are shown in the currency each vendor publishes; none is converted.",
+    { slots: {}, fixedBy: "SPEC §7 (D56) · issue 1282 · drafted" },
+  ],
   // The report's measurements, stated as facts a page may quote (SPEC §7,
   // 2026-10-03, issue 1163). Each is composed from stored figures only and
   // is sourced to the report's own address. Drafted; the owner corrects
