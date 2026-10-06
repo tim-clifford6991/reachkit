@@ -8,7 +8,8 @@ import type { Template } from "./types";
 export const update: Template = {
   type: "update",
   for: "Refresh a live page at the same address: keep what still holds, and rewrite only a section a new fact changes.",
-  titles: ["The live page's own title, changed only where a fact in it changed."],
+  // D51: code keeps the live title and moves its year (`../pipeline/compose.ts`).
+  titles: ["The live page's own title."],
   sections: [
     {
       key: "live",

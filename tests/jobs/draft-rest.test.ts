@@ -100,7 +100,7 @@ function measured(value: unknown) {
  *  A stopped page takes two — its write call and its one fix call. */
 function modelWrites(markdown: string, topic = "seats"): void {
   llmMock.mockResolvedValueOnce(
-    measured(fixtures.pageParts(markdown, { title: "A title", slug: "a-title", description: "A description." }, topic))
+    measured(fixtures.pageParts(markdown, { slug: "a-title" }, topic))
   );
 }
 

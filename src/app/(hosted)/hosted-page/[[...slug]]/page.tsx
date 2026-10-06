@@ -445,7 +445,9 @@ export default async function HostedPageRoute({
   // string is safe to set as HTML by construction rather than by a
   // sanitiser someone has to remember to call. A second renderer here is
   // exactly what that module's header forbids.
-  const levelled = headingsUnderTitle(withoutRepeatedTitle(parseMarkdown(page.bodyMd), page.title));
+  const levelled = headingsUnderTitle(
+    withoutRepeatedTitle(withoutRepeatedTitle(parseMarkdown(page.bodyMd), page.title), page.heading ?? page.title)
+  );
   const grounded = page.grounded;
   // The mark first, the ids after: an id is minted from a heading's words
   // and the mark changes none of them.
@@ -497,7 +499,7 @@ export default async function HostedPageRoute({
             </span>
           )}
           <h1 className="text-base-content my-3 text-4xl font-extrabold tracking-tight text-balance">
-            {page.title}
+            {page.heading ?? page.title}
           </h1>
           {/* SPEC §7 (2026-09-29): the text face, not mono. The byline setup
               recorded, else the business's name; the day the address first

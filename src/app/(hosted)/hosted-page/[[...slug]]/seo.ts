@@ -145,7 +145,8 @@ export function blogPostingSchema(a: {
     "@context": SCHEMA_CONTEXT,
     "@type": "BlogPosting",
     "@id": `${a.canonical}#article`,
-    headline: a.page.title,
+    // The heading a reader sees (D51); the `<title>` is the search form.
+    headline: a.page.heading ?? a.page.title,
     ...(a.description === undefined ? {} : { description: a.description }),
     url: a.canonical,
     mainEntityOfPage: a.canonical,

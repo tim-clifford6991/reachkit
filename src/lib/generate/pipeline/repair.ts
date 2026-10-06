@@ -313,6 +313,9 @@ function sentencesFor(
     // Not a sentence: the block the page lacks, by its handle.
     case "required_blocks":
       return failure.detail !== undefined && "block" in failure.detail ? [failure.detail.block] : [];
+    // What the title fails, by handle; the pipeline says each in full.
+    case "title":
+      return failure.detail !== undefined && "faults" in failure.detail ? failure.detail.faults : [];
     default:
       return [];
   }

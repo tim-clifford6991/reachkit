@@ -271,7 +271,7 @@ const TOPICS = [
 function pageFor(query: string) {
   const index = Math.max(0, TOPICS.findIndex(([topic]) => query.includes(topic)));
   const [topic, advice] = TOPICS[index] ?? TOPICS[0];
-  const title = `Which ${topic} should a small team pick?`;
+  const title = `Which ${topic} fit a growing company?`;
   const markdown = [
     `## ${title}`,
     "",
@@ -283,7 +283,7 @@ function pageFor(query: string) {
   return {
     title,
     slug: topic.replace(/\s+/g, "-"),
-    description: `Choosing ${topic} for a small team.`,
+    description: `Choosing ${topic} for a small team: what to settle first, what each plan costs for the seats you need, and when to look again.`,
     bodyMarkdown: markdown,
   };
 }

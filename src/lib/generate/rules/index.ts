@@ -39,6 +39,7 @@ import { checkNearDuplicate } from "./nearduplicate";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "./people";
 import { checkRivalSource } from "./rivals";
 import { renderOf, withoutReferenceLists } from "./text";
+import { checkTitle, type TitleRuleInputs } from "./title";
 import { HARD_RULES } from "./types";
 import type { ComparisonSet, GroundedFact, HardRule, ModelRule, RuleFailure, SiteRuleInputs } from "./types";
 import type { PageType } from "@/lib/opportunities/types";
@@ -101,6 +102,12 @@ export interface DeterministicInputs {
   /** What the page's structure is held to (issue 1137). Passed only for a
    *  page this product generated; absent, `required_blocks` asks nothing. */
   blocks?: BlockRuleInputs;
+  /** What the `<title>` is held to (D51, issue 1266). Passed only for a
+   *  page this product generated; absent, `title` asks nothing. */
+  titleRule?: TitleRuleInputs;
+  /** The page's H1 where it is not its title. The honest row and the
+   *  never-claim list read it beside the title. */
+  heading?: string;
 }
 
 /**
@@ -137,7 +144,8 @@ export function runDeterministicRules(
     }),
     honest_row: checkHonestRow({
       title: a.title,
-      markdown: a.markdown,
+      // The H1 is a heading of the page: read as its first one.
+      markdown: a.heading === undefined || a.heading === a.title ? a.markdown : `# ${a.heading}\n\n${a.markdown}`,
       businessName: a.site.businessName,
       domain: a.site.domain,
       rivals: a.site.rivals,
@@ -153,6 +161,7 @@ export function runDeterministicRules(
     required_blocks: checkRequiredBlocks({ markdown: a.markdown, title: a.title, blocks: a.blocks ?? null }),
     no_placeholder_cell: checkPlaceholderCell({ markdown: a.markdown }),
     no_demo_text: checkDemoText({ markdown: a.markdown, phrases: a.demoPhrases }),
+    title: checkTitle({ title: a.title, rule: a.titleRule ?? null }),
   };
 }
 
@@ -196,7 +205,7 @@ export async function runHardRules(
     market: given.market,
   });
   // D45: a literal match of the list's own words, in the title and the body.
-  const claim = claimCheck({ text: `${a.title}\n${a.markdown}`, list: a.site.doNotClaim });
+  const claim = claimCheck({ text: [a.title, ...(a.heading === undefined ? [] : [a.heading]), a.markdown].join("\n"), list: a.site.doNotClaim });
 
   const failed: RuleFailure[] = [];
   for (const rule of HARD_RULES) {

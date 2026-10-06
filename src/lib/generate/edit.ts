@@ -149,6 +149,9 @@ export async function saveDraftEdit(a: DraftEdit): Promise<DraftEditOutcome> {
     first_edited_at: stringAt(meta, "first_edited_at") ?? at.toISOString(),
     last_saved_at: at.toISOString(),
   };
+  // D51: the H1 was written beside the title it had. A founder's own title
+  // is the page's heading too.
+  if (a.title !== before.title) delete nextMeta.heading;
   if (fix !== null) {
     nextMeta.fix = {
       ...fix,

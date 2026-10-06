@@ -1633,6 +1633,34 @@ export const PAGE_BLOCKS = Object.freeze({
   taglineRepeats: 2,
 } as const);                                                   // §7 · issue 1137
 
+/** SPEC §7 (owner, D51; issue 1266) — what the stage-4 `title` check holds a
+ *  page's `<title>` and its meta description to. The numbers, the year's
+ *  types and the banned patterns are the ruling's; the engine names and the
+ *  first three words of a search term are how code reads "an engine" and
+ *  "the search term" (drafted). */
+export const TITLE = Object.freeze({
+  chars: { min: 30, max: 65 },
+  /** The search term starts within this many words of the title. */
+  headWords: 5,
+  /** How many of a search term's leading words the title must carry. */
+  termWords: 3,
+  /** Token overlap with a title the site has published or planned. */
+  overlapMax: 0.8,
+  description: { min: 120, max: 155 },
+  /** The types whose title may carry the current year. A comparison and an
+   *  alternatives page are listicles (D42). */
+  yearTypes: ["listicle", "research", "insights"],
+  banned: [
+    "questions, answered",
+    "buyer questions",
+    "ultimate guide",
+    "everything you need to know",
+    "unlock",
+    "comprehensive",
+  ],
+  engines: ["chatgpt", "perplexity", "claude", "gemini", "copilot", "google", "ai overviews", "ai mode"],
+} as const);                                                   // §7 · D51 · issue 1266
+
 
 
 /** How many of a site's own passages a caller that needs only a few reads

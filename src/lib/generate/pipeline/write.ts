@@ -16,7 +16,7 @@
 // the response is ever logged. The ceiling is read before each call; a call
 // the page cannot afford is `not_attempted`, never a rule that failed.
 import { z } from "zod";
-import { PAGE_BLOCKS } from "@/lib/config/constants";
+import { PAGE_BLOCKS, TITLE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import type { Tier } from "@/lib/llm/tiers";
@@ -28,6 +28,7 @@ import type { Template } from "../templates";
 import type { ContextPack } from "./pack";
 import type { FixNote } from "./repair";
 import { comparisonTable } from "./table";
+import { titleBrief } from "./title";
 
 /** One buyer question and its answer, as `drafts.meta.faq` holds it. */
 export interface FaqEntry {
@@ -47,6 +48,8 @@ const listOrText = <T extends z.ZodType>(list: T) => z.union([list, z.string()])
 
 const ANSWER_SCHEMA = z.strictObject({
   title: z.string(),
+  /** The page's H1 (D51): the title's longer, conversational form. */
+  heading: z.string(),
   slug: z.string(),
   description: z.string(),
   answer: z.string(),
@@ -61,6 +64,7 @@ const ANSWER_SCHEMA = z.strictObject({
 /** What the writer returns: the page in the template's parts. */
 export interface PageParts {
   title: string;
+  heading: string;
   slug: string;
   description: string;
   answer: string;
@@ -97,7 +101,10 @@ function partsOf(answer: Measured<z.infer<typeof ANSWER_SCHEMA>>): Measured<Page
 
 /** The page as it is stored and as every check reads it. */
 export interface DraftBody {
+  /** The `<title>`: the search form (D51). */
   title: string;
+  /** The H1, where the writer gave a longer form; else the title. */
+  heading: string;
   slug: string;
   description: string;
   bodyMarkdown: string;
@@ -173,7 +180,10 @@ function taskFor(a: WriteInputs): string {
   return [
     "Write one page for `pack.target.question`, doing what `template.for` says the page is for.",
     "`template.sections` are the page's sections, in order: return each as one entry of `sections` with its `key` exactly as the template spells it, in that order — a section with `repeat` between `min` and `max` times, one after another — each under its own `heading` and doing what its `task` says.",
-    "`title` follows one of `template.titles`.",
+    a.pack.type === "update"
+      ? "`title` and `heading` are `pack.live.title`."
+      : "`title` is the page's `<title>`, the form a searcher types: it follows one of `template.titles` and holds every rule in `titleRules`. `heading` is the page's H1: the same promise in the longer, conversational form a reader would say aloud, with no year unless `title` has one.",
+    `\`description\` is the meta description: ${TITLE.description.min} to ${TITLE.description.max} characters, counted — write about 140 — in whole sentences, and its first sentence answers the target.`,
     `${a.pack.type === "update" ? "The page's sections together — the short answer and the takeaways are not counted —" : "The page's body — the short answer, the takeaways and every section together —"} must be between ${a.length.floor} and ${a.length.ceiling} words, counted. Write about ${Math.round((a.length.floor + a.length.ceiling) / 2)} words — about ${Math.round((a.length.floor + a.length.ceiling) / 2 / Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0)))} a section, and no section under ${Math.ceil((a.length.floor * 1.15) / Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0)))}: a page under ${a.length.floor} or over ${a.length.ceiling} is stopped. Give every paragraph something the reader can use — detail, an example, a comparison or a consequence drawn from \`pack\` — and never pad or restate a point to reach the length.`,
     faq === null
       ? "`faq` is empty: this page's own questions are its buyer questions."
@@ -194,6 +204,7 @@ function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<s
     // SPEC §8 hard rule 7: the voice is the customer's own text, verbatim.
     voice: a.pack.business.voice,
     pack: a.pack,
+    titleRules: titleBrief(a.pack),
     ...(table === null ? {} : { table: table.markdown }),
     rules: [...HOUSE_RULES, table === null ? WRITTEN_TABLE_RULE : BUILT_TABLE_RULE],
     ...extra,

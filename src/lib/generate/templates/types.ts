@@ -55,7 +55,7 @@ export interface Template {
   type: ContentType;
   /** What a page of this type must do, in one sentence. */
   for: string;
-  /** How its title reads. */
+  /** How its `<title>` reads: D51's formulas, one of which it follows. */
   titles: readonly string[];
   /** What its title never does. */
   titleNever?: string;

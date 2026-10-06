@@ -117,6 +117,15 @@ beforeEach(() => {
   state.identity = {};
 });
 
+describe("D51 — the H1 is the longer form, and the title stays the search form", () => {
+  it("prints the heading generation wrote as the page's one h1", async () => {
+    state.page = livePage({ heading: "Which onboarding tool should a small product team pick?" });
+    const html = await render();
+    expect(html.match(/<h1[^>]*>([^<]*)<\/h1>/)?.[1]).toBe("Which onboarding tool should a small product team pick?");
+    expect(html.match(/<h1/g)).toHaveLength(1);
+  });
+});
+
 describe("S19 — the customer is the publisher, and the page says so", () => {
   it("the header is theirs: a first-letter tile and their name linking to the index, and a button to their site", async () => {
     state.identity = { name: "Example Co" };

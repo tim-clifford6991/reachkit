@@ -4,7 +4,12 @@ import type { Template } from "./types";
 export const listicle: Template = {
   type: "listicle",
   for: "Help a buyer choose among options, with this business as an honest row: what the options are, what distinguishes them, and which case each one suits.",
-  titles: ["Best {category} for {audience}: {n} options compared", "{A} vs {B}: which fits {case}"],
+  // D51: a listicle, a comparison of named products, or an alternatives page.
+  titles: [
+    "{N} best {term} for {audience} ({year})",
+    "{A} vs {B} ({year}): {criteria or who it fits}",
+    "{N} {rival} alternatives for {audience} ({year})",
+  ],
   titleNever: "Never name this business as \"#1\" or \"best\".",
   sections: [
     { key: "what_to_look_for", task: "Say what a buyer should look for when choosing, criterion by criterion." },

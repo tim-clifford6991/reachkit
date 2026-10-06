@@ -4,7 +4,7 @@ import type { Template } from "./types";
 export const howTo: Template = {
   type: "how_to",
   for: "Get the reader through one task with this business's product or process, step by step.",
-  titles: ["How to {task}", "How to {task} with {product}"],
+  titles: ["How to {outcome in the buyer's words}"],
   sections: [
     { key: "what_you_need", task: "Say what the reader needs before they start." },
     {

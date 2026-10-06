@@ -382,9 +382,13 @@ export function pageParts(first: string = CLEAN_MARKDOWN, over: Partial<PagePart
   const t = topic.charAt(0).toUpperCase() + topic.slice(1);
   const heading = (index: number): string => `${t}: what is the ${NTH[index]} thing to settle?`;
   return {
-    title: "Which tool should a small team pick?",
+    // A title D51's check passes for `opportunity()`'s search and for the
+    // pack's own, and a description inside its 120–155 characters.
+    title: "Which project management software plan fits a small team?",
+    heading: "Which tool should a small team pick?",
     slug: "which-tool-small-team",
-    description: "How to choose by seat count.",
+    description:
+      "A small team picks project management software by seat count: count who needs a login, then compare what each plan costs for that many seats.",
     answer: CLEAN_ANSWER,
     takeaways: [prose(topic, 0, 1), prose(topic, 1, 1), prose(topic, 2, 1)],
     sections: [
@@ -412,6 +416,7 @@ export function partsFromPage(
   return {
     ...parts,
     title: page.title,
+    heading: page.title,
     slug: page.slug,
     description: page.description,
     // Ten five-word sentences: 50 words, inside the box's 40–60.
