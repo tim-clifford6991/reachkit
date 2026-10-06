@@ -126,6 +126,10 @@ export interface HostedPage {
   siteId: string;
   slug: string;
   title: string;
+  /** The page's H1 (SPEC §7, D51): the longer form generation wrote beside
+   *  the title (`drafts.meta.heading`), or `null` where it wrote none and
+   *  the title is the heading. */
+  heading: string | null;
   bodyMd: string;
   /** The description generation wrote for this page (`drafts.meta.description`),
    *  or `null` for a draft that has none stored. */
@@ -282,6 +286,7 @@ function toPage(row: PublicationRow, host: string): HostedPage | null {
     siteId: row.site_id,
     slug,
     title: draft.title ?? "",
+    heading: readHeading(draft.meta),
     bodyMd: draft.body_md ?? "",
     description: readDescription(draft.meta),
     faq: readFaq(draft.meta),
@@ -392,6 +397,14 @@ export function readFaq(meta: Record<string, unknown> | null): readonly FaqEntry
  *  non-string value is no description, never an empty meta tag. */
 export function readDescription(meta: Record<string, unknown> | null): string | null {
   const raw = meta?.description;
+  if (typeof raw !== "string") return null;
+  const text = raw.replace(/\s+/g, " ").trim();
+  return text === "" ? null : text;
+}
+
+/** `drafts.meta.heading`, read the same way. */
+function readHeading(meta: Record<string, unknown> | null): string | null {
+  const raw = meta?.heading;
   if (typeof raw !== "string") return null;
   const text = raw.replace(/\s+/g, " ").trim();
   return text === "" ? null : text;

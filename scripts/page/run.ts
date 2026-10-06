@@ -354,7 +354,7 @@ export async function main(opts: Options): Promise<number> {
 
     mkdirSync(opts.outDir, { recursive: true });
     const pageFile = path.join(opts.outDir, `${type}.md`);
-    const meta = (row?.meta ?? {}) as { faq?: { question: string; answer: string }[]; description?: string; length?: { words: number }; repairs?: unknown[] };
+    const meta = (row?.meta ?? {}) as { faq?: { question: string; answer: string }[]; description?: string; heading?: string; length?: { words: number }; repairs?: unknown[] };
     const calls = ledger.rows.filter((call) => call.costCents > 0).map((call) => `${call.source} ${cents(call.costCents)}`).join(" · ");
     const spent = ledger.spentCents();
     if (row !== null && row.body_md !== null) {
@@ -362,7 +362,10 @@ export async function main(opts: Options): Promise<number> {
       writeFileSync(
         pageFile,
         [
-          `# ${row.title ?? topic}`,
+          `# ${meta.heading ?? row.title ?? topic}`,
+          "",
+          // D51: the `<title>` and the meta description, which the page's head carries.
+          `*Title: ${row.title ?? ""} · Description: ${meta.description ?? ""}*`,
           "",
           `*${pack.business.byline ?? businessName}*`,
           "",
@@ -384,6 +387,11 @@ export async function main(opts: Options): Promise<number> {
     console.log(`page    ${row?.body_md == null ? "(not written)" : path.relative(opts.root, pageFile)}`);
     console.log(`pack    ${path.relative(opts.root, path.join(opts.outDir, `${type}.pack.json`))} — ${pack.facts.length} business facts, ${pack.claims.length} market claims, ${pack.products.length} rivals read${cached.researchCents === ledger.spentCents() && ledger.rows.length === 0 ? " (cached)" : ""}`);
     console.log(`outcome ${describe(outcome)}`);
+    if (row?.body_md != null) {
+      console.log(`title   ${row.title ?? ""} (${[...(row.title ?? "")].length} characters)`);
+      console.log(`h1      ${meta.heading ?? row.title ?? ""}`);
+      console.log(`descr.  ${meta.description ?? ""} (${[...(meta.description ?? "")].length} characters)`);
+    }
     if (row?.body_md != null) console.log(`words   ${bodyWords(row.body_md)} (template: ${"floor" in template.length ? `${template.length.floor}–${template.length.ceiling}` : "within 20% of the live page"})`);
     console.log("\nchecks");
     for (const rule of HARD_RULES) {

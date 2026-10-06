@@ -53,6 +53,7 @@ import { recordedRulesValue, recordedVerdictValue } from "../record";
 import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
 import { answerBoxWords } from "../rules/blocks";
 import { linksOf, renderOf } from "../rules/text";
+import { titleNotes } from "../rules/title";
 import type { GroundedFact, RuleFailure, SiteRuleInputs } from "../rules/types";
 import { generateStore, type DraftRow } from "../store";
 import { TEMPLATES, type PackNeed } from "../templates";
@@ -65,6 +66,7 @@ import type { ContextPack } from "./pack";
 import { fixNotes, repairable, repairMechanical, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
 import { comparisonTable, withTable } from "./table";
+import { titleRuleFor } from "./title";
 import { fixPage, writePage, type PageParts } from "./write";
 
 /** The stages a page can stop at without a rule failing. */
@@ -288,6 +290,10 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     promises: pack.profile?.promises ?? [],
     queries: searches,
     names: [...names, ...pack.products.map((product) => product.domain.split(".")[0] ?? "")],
+    // D51: an update keeps its live title.
+    ...(pack.type === "update" && pack.live !== null
+      ? { live: { title: pack.live.title, markdown: pack.live.markdown, year: new Date(pack.builtAt).getUTCFullYear() } }
+      : {}),
   };
   const linking = {
     domain: a.site.domain,
@@ -323,6 +329,8 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     return {
       ...baseMeta,
       description: page.laid.body.description,
+      // D51: the H1, kept where it is not the `<title>` the row's own column holds.
+      ...(page.laid.body.heading === page.laid.body.title ? {} : { heading: page.laid.body.heading }),
       // "Three to six questions buyers ask, stored as `drafts.meta.faq`" —
       // beside the page, never in its body.
       faq: page.laid.faq,
@@ -372,6 +380,8 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       brief: briefRead,
       factPages: pack.facts.map((fact) => fact.url),
       blocks: { template, sections: candidate.laid.sections, length, faq: candidate.laid.faq, domain: a.site.domain },
+      titleRule: titleRuleFor(pack, candidate.laid.body.description),
+      heading: candidate.laid.body.heading,
       ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }),
     });
 
@@ -440,6 +450,11 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     return fixNotes(stopped.page.markdown, stopped.outcome.failed, briefRead, a.site, stopped.page.laid.body.title).map((note) => {
       if (note.rule === "required_blocks" && note.sentences.includes("length") && length !== null) {
         return { ...note, sentences: [`length: ${pack.type === "update" ? "the sections have" : "the body has"} ${words} words and must have between ${length.floor} and ${length.ceiling}`] };
+      }
+      const title = stopped.outcome.passed ? undefined : stopped.outcome.failed.find((failure) => failure.rule === "title")?.detail;
+      if (note.rule === "title" && title !== undefined && "faults" in title) {
+        const body = stopped.page.laid.body;
+        return { ...note, sentences: titleNotes(body.title, titleRuleFor(pack, body.description), title.faults) };
       }
       if (note.rule === "first_block_answers") {
         const box = PAGE_BLOCKS.answerWords;

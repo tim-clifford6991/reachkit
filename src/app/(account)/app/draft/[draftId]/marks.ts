@@ -16,7 +16,7 @@
 // avoid: the mark a founder sees while typing and the verdict that holds
 // the page would then be two opinions about the same words.
 //
-// **Twelve of the seventeen run here. Five do not, and are named.**
+// **Twelve of the eighteen run here. Six do not, and are named.**
 //
 //   `grounding`          reads the *source page's* text as the measurement
 //                        fetched it — a document this screen does not hold
@@ -36,6 +36,10 @@
 //   `required_blocks`    binds what ReachKit generates and asks nothing of
 //                        a founder's own edit (issue 1137): a page they
 //                        rewrote into five sections has broken no rule.
+//
+//   `title`              holds the `<title>` ReachKit writes to D51's search
+//                        form (issue 1266) and, like `required_blocks`,
+//                        asks nothing of a founder's own title.
 //
 //   `no_demo_text`      reads the site's demo phrases and menu lines (issue
 //                        1249), which the save holds and this screen does

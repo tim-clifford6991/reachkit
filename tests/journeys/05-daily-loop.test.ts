@@ -292,7 +292,7 @@ const modelCalls: { task: string; tokens: number }[] = [];
  *  and its source linked, and there is no quotation, rival figure, embedded
  *  markup or ranking numeral. */
 const CLEAN_MARKDOWN = [
-  "## Which tool should a small team pick?",
+  "## Which project management software should a small team pick?",
   "",
   "The answer depends on how many people need a seat and how much of the work",
   "already lives in one place. Start by counting the people who will open it",
@@ -306,9 +306,10 @@ const CLEAN_MARKDOWN = [
 ].join("\n");
 
 const PAGE_BODY = {
-  title: "Which tool should a small team pick?",
+  title: "Which project management software should a small team pick?",
   slug: "best-project-management-software",
-  description: "How to choose by counting the seats you actually need.",
+  description:
+    "How to choose project management software for a small team: count the seats you actually need before you compare any plan's price.",
   bodyMarkdown: CLEAN_MARKDOWN,
 };
 

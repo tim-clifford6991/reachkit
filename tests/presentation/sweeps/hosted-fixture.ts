@@ -33,6 +33,7 @@ export const HOSTED_SWEEP_PAGE: HostedPage = Object.freeze({
   siteId: HOSTED_SWEEP_SITE_ID,
   slug: HOSTED_SWEEP_SLUG,
   title: "The best onboarding tools for small product teams",
+  heading: null,
   bodyMd:
     "Teams of under ten people pick an onboarding tool on two questions: how long " +
     "it takes to publish the first flow, and whether it needs an engineer.\n\n" +

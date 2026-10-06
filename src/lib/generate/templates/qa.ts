@@ -4,7 +4,7 @@ import type { Template } from "./types";
 export const qa: Template = {
   type: "qa",
   for: "Answer directly the questions buyers ask on one topic.",
-  titles: ["{Topic}: {n} buyer questions, answered"],
+  titles: ["The buyer's question as typed"],
   sections: [
     {
       key: "question",

@@ -19,7 +19,7 @@
 // lays out, cuts and drops, and the battery reads what is left.
 //
 // Deterministic, no I/O.
-import { PAGE_BLOCKS } from "@/lib/config/constants";
+import { PAGE_BLOCKS, TITLE } from "@/lib/config/constants";
 import { FACT_LABEL_RE } from "../rules/blocks";
 import { SENTENCE_END_RE, isQuestionShaped, renderOf, sourceBlocksOf } from "../rules/text";
 import type { Template } from "../templates";
@@ -38,6 +38,9 @@ export interface TidyInputs {
    *  that came back without its link is given it (SPEC §7, 2026-09-29, D5:
    *  "renders as a quotation with a small link to its source"). */
   sources?: readonly { passage: string; url: string }[];
+  /** An update's live page and the current year (D51): the page keeps the
+   *  live title, and its year moves only where the body changed. */
+  live?: { title: string; markdown: string; year: number };
 }
 
 const collapse = (text: string): string => text.replace(/\s+/g, " ").trim();
@@ -337,6 +340,31 @@ function slotKey(key: string): string {
   return key.trim().toLowerCase().replace(/[\s_-]*\d+$/, "");
 }
 
+/** A meta description over its most keeps the whole sentences that fit,
+ *  where that leaves it long enough (D51). Nothing is cut mid-sentence: a
+ *  description still outside its range is the `title` check's to stop. */
+function fitDescription(text: string): string {
+  const { min, max } = TITLE.description;
+  if ([...text].length <= max) return text;
+  const sentences = text.split(SENTENCE_END_RE);
+  let kept = "";
+  for (const sentence of sentences) {
+    const next = kept === "" ? sentence : `${kept} ${sentence}`;
+    if ([...next].length > max) break;
+    kept = next;
+  }
+  return [...kept].length >= min ? kept : text;
+}
+
+/** An update's title (D51): the live page's own, its year moved to this one
+ *  only where a section no longer reads as the live page has it. */
+function liveTitle(live: NonNullable<TidyInputs["live"]>, bodies: readonly string[]): string {
+  // The words a reader meets, so a link or a line break is not a change.
+  const stands = lower(renderOf(live.markdown));
+  const changed = bodies.some((body) => !stands.includes(lower(renderOf(body))));
+  return changed ? live.title.replace(/\b20\d\d\b/g, String(live.year)) : live.title;
+}
+
 /** One section as the page carries it, recorded with the row
  *  (`drafts.meta.sections`) so the blocks check knows which heading is which
  *  of the template's sections. */
@@ -389,11 +417,15 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
     .slice(0, PAGE_BLOCKS.takeaways.max);
   const lead = [answerBox(parts.answer), `:::takeaways\n${takeaways.map((item) => `- ${item}`).join("\n")}\n:::`];
   const text = sections.map((section) => `## ${section.heading}${section.body === "" ? "" : `\n\n${section.body}`}`);
+  const cleaned = (text: string): string => recased(sentenceCase(tidyText(collapse(text)), proper), cased);
+  const title = a.live === undefined ? cleaned(parts.title) : liveTitle(a.live, sections.map((section) => tidy(section.body, a)));
   return {
     body: {
-      title: recased(sentenceCase(tidyText(collapse(parts.title)), proper), cased),
+      title,
+      // The H1 (D51): the writer's longer form, or the title where it gave none.
+      heading: a.live !== undefined || collapse(parts.heading) === "" ? title : cleaned(parts.heading),
       slug: parts.slug,
-      description: tidyText(collapse(parts.description)),
+      description: fitDescription(tidyText(collapse(parts.description))),
       bodyMarkdown: `${lead.join("\n\n")}\n\n${tidy(text.join("\n\n"), a)}`,
     },
     closing: tidyText(oneLine(parts.closing)),

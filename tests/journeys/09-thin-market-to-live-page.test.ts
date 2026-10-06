@@ -453,7 +453,7 @@ const modelTasks: string[] = [];
  *  grounded passage word for word, linked to where it was read. */
 function pageFor(asked: { opportunity?: { targetQuery?: string | null }; grounded?: { url: string; passage: string } }) {
   const query = asked.opportunity?.targetQuery ?? "bookkeeping for therapists";
-  const title = `How should a therapist choose ${query}?`;
+  const title = `Which ${query}?`;
   const bodyMarkdown = [
     `## ${title}`,
     "",
@@ -465,7 +465,7 @@ function pageFor(asked: { opportunity?: { targetQuery?: string | null }; grounde
   return {
     title,
     slug: query.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
-    description: `Choosing ${query} for a private practice.`,
+    description: `Choosing ${query}: match each deposit to a category the day it lands, and keep every receipt where you can find it again.`,
     bodyMarkdown,
   };
 }

@@ -168,7 +168,7 @@ function measured(value: unknown) {
 /** One model call's answer: the page, with `markdown` as its first section. */
 function queueAttempt(markdown: string, topic = "seats"): void {
   llmMock.mockResolvedValueOnce(
-    measured(pageParts(markdown, { title: "A title", slug: "a-title", description: "A description." }, topic))
+    measured(pageParts(markdown, { slug: "a-title" }, topic))
   );
 }
 
@@ -237,7 +237,7 @@ describe("§8 — the day's page, under CAP_DRAFT, for the date it was asked for
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
     expect(row?.scheduled_for).toBe("2026-09-07");
-    expect(row?.meta).toMatchObject({ description: "A description.", contentType: "qa" });
+    expect(row?.meta).toMatchObject({ description: pageParts().description, contentType: "qa" });
   });
 });
 
@@ -342,7 +342,7 @@ describe("a short pack writes nothing (SPEC §7, D41 stage 2)", () => {
   });
 
   it("the day goes to the next topic, and the stopped row gives up its date to it (D26)", async () => {
-    const next = opportunity({ id: "44444444-4444-4444-8444-444444444444", targetQuery: "what is a seat" });
+    const next = opportunity({ id: "44444444-4444-4444-8444-444444444444", targetQuery: "project management software plan" });
     nextForDayMock.mockResolvedValueOnce(opportunity()).mockResolvedValueOnce(next);
     // Short for the first topic only.
     packAnswer.missing = ["buyer_questions"];

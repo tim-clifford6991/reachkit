@@ -62,7 +62,7 @@ function measured(value: unknown) {
  *  in review with its veto clock — the state the founder edits it in. */
 async function draftInReview(): Promise<string> {
   llmMock.mockResolvedValueOnce(
-    measured(pageParts(CLEAN_MARKDOWN, { title: "A title", slug: "a-title", description: "A description." }))
+    measured(pageParts(CLEAN_MARKDOWN, { slug: "a-title" }))
   );
   const outcome = await generateDraft(fakeCost(), {
     siteId: SITE_ID,
@@ -193,7 +193,7 @@ describe("#789 — what a save refuses", () => {
     signedInAs(LIVE_ACCOUNT);
     const result = await draftStore.save({ draftId, title: "Hijack", bodyMd: "x", description: "" });
     expect(result).toEqual({ ok: false, refused: "not_editable" });
-    expect(row(draftId).title).toBe("A title");
+    expect(row(draftId).title).toBe(pageParts().title);
   });
 
   it("a draft that has left review is refused", async () => {

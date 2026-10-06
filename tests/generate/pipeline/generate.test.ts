@@ -135,6 +135,21 @@ describe("a page a check stops takes one fix call", () => {
     expect(fix.page).toEqual(STOPPED);
   });
 
+  it("a title that is not the search form goes into the fix call, and the row keeps the title and the longer H1 (D51)", async () => {
+    const old = pageParts(CLEAN_MARKDOWN, { title: "Small teams: 7 buyer questions, answered" });
+    const fixed = pageParts(CLEAN_MARKDOWN, { heading: "Which plan fits a small team once it starts to grow?" });
+    answers(old, fixed);
+    const outcome = await run();
+    expect(outcome.ok).toBe(true);
+    const fix = llmMock.mock.calls[1]?.[1].input as { fix: { rule: string; sentences: string[] }[] };
+    const told = fix.fix.find((note) => note.rule === "title")?.sentences.join(" ") ?? "";
+    expect(told).toContain("which plan fits a small team");
+    expect(told).toContain("questions, answered");
+    const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
+    expect(row?.title).toBe(fixed.title);
+    expect(row?.meta).toMatchObject({ heading: "Which plan fits a small team once it starts to grow?" });
+  });
+
   it("a page still failing after it is stopped with `attempt: 2`, and is never passed toward review", async () => {
     answers(STOPPED, STOPPED);
     const outcome = await run();

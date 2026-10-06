@@ -4,7 +4,7 @@ import type { Template } from "./types";
 export const insights: Template = {
   type: "insights",
   for: "Tell the reader what changed in the market lately, each change dated and sourced.",
-  titles: ["{Market}: what changed in {month year}"],
+  titles: ["{platform} {change} ({month year}): what it means for {audience}"],
   sections: [
     { key: "in_short", task: "Say what changed, in short." },
     {

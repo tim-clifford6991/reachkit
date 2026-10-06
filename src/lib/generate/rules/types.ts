@@ -1,7 +1,8 @@
 // BUILD §8 · SPEC §7 (D41 stage 4) — the closed hard-rule vocabulary.
 //
 // Stage 4 is five checks — blocks, numbers, no placeholder cell, no
-// near-repeat, no demo or navigation text — beside the guards D27 names:
+// near-repeat, no demo or navigation text — and D51's `title`, beside the
+// guards D27 names:
 // nothing invented, no unsafe markup, D20's honest row, and the never-claim
 // list matched by its own words (D45). Every one is code. The one rule a
 // model decides is `fit_claim`, kept by D44 for a listicle or comparison
@@ -24,6 +25,7 @@
 // sentence, because a sentence the product speaks is a copy key and a
 // sentence a model wrote is not shown at all.
 import type { RequiredBlock } from "./blocks";
+import type { TitleFault } from "./title";
 
 /** The checks, in the order they run. `do_not_claim` is §8's fourth
  *  rule and `fit_claim` is the fit check; both live in `../claims/`. Every
@@ -55,6 +57,10 @@ export type HardRule =
   /** SPEC §7 (D41 stage 4, issue 1249): no sentence from the site's
    *  demo-phrase list or its menus (`./demo.ts`). */
   | "no_demo_text"
+  /** SPEC §7 (owner, D51; issue 1266): the `<title>` is the search form —
+   *  its length, its search term, one specific, the year's place, no banned
+   *  pattern, no other page's title (`./title.ts`). */
+  | "title"
   /** SPEC §7 (issue 1136; D44): no claim that the business serves a case the
    *  knowledge base does not support (`../claims/fit.ts`). */
   | "fit_claim"
@@ -78,6 +84,7 @@ export const HARD_RULES: readonly HardRule[] = Object.freeze([
   "required_blocks",
   "no_placeholder_cell",
   "no_demo_text",
+  "title",
   "fit_claim",
   "do_not_claim",
 ] as const);
@@ -126,7 +133,9 @@ export interface RuleFailure {
     /** The cell's words, as the page has them. */
     | { rule: "no_placeholder_cell"; cell: string }
     /** The page's own sentence that is a demo or menu phrase. */
-    | { rule: "no_demo_text"; sentence: string };
+    | { rule: "no_demo_text"; sentence: string }
+    /** What the title or its description fails — handles, never a sentence. */
+    | { rule: "title"; faults: TitleFault[] };
 }
 
 /** Every site-scoped input the battery is called with — the **raw stored**

@@ -4,7 +4,7 @@ import type { Template } from "./types";
 export const research: Template = {
   type: "research",
   for: "Publish original data: what was measured in this business's market, with no other customer named and no other company's scan score.",
-  titles: ["{Finding, with its number}: {market}, {month year}"],
+  titles: ["{finding with its number}: {scope} ({year})"],
   sections: [
     { key: "findings", task: "State the findings, each with its figure from `measurements`." },
     { key: "method", task: "Say how it was measured: the questions, the engines, the dates, and what is not measured." },
