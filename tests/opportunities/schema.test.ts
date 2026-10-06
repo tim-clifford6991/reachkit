@@ -48,7 +48,7 @@ const REST = "20261003130000_opportunities_rest.sql";
 /** Issue 1136: the page's type. */
 const PAGE_TYPE = "20261003140000_opportunities_page_type.sql";
 /** Issue 1288: `no_intent`. */
-const NO_INTENT = "20261006120000_opportunities_no_intent.sql";
+const NO_INTENT = "20261006130000_opportunities_no_intent.sql";
 const BASELINE_MIGRATION = path.join(MIGRATIONS, "00000000000001_baseline.sql");
 
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
