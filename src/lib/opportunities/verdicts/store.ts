@@ -21,7 +21,6 @@
 // hours, whose *record* is read below (`publications.verify`) and never
 // re-taken. `no-look.test.ts` asserts it at source level.
 import { dbAdmin } from "@/lib/db";
-import type { Measured } from "@/lib/measure/measured";
 // The shapes the one check at 24 hours records, declared by the publishing
 // module that owns them (#45's `src/lib/publish/types.ts`) and read here,
 // never re-declared: `page_not_found` and `could_not_confirm` carry
@@ -33,7 +32,8 @@ import type { VerifyOutcome } from "@/lib/publish/types";
 import { readStoredCheck } from "@/lib/publish/verify/stored";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import type { Acceptance } from "../types";
-import type { CheckId, Movement, NotJudgeableCause, Verdict, VerifyNote, WeekStart } from "./types";
+import { readIntent, type IntentPrompt, type PageIntent } from "../intent";
+import type { CheckId, Movement, NotJudgeableCause, PageMeasured, Verdict, VerifyNote, WeekStart } from "./types";
 
 /**
  * One published page, as the judgement needs it.
@@ -78,6 +78,14 @@ export interface PublishedPage {
    *  out from under a live page is a link that 404s. A WordPress page is
    *  on a host this product does not own and keeps its stored address. */
   readonly liveUrl: string;
+  /** SPEC §6 (D60, issue 1288): what the page is for, as its draft
+   *  recorded it. `null` or absent on a page published before intent was
+   *  recorded, which the next verdict fills from its opportunity. */
+  readonly intent?: PageIntent | null;
+  /** The draft that record lives on, and the opportunity's own volume to
+   *  fill it from. */
+  readonly draftId?: string | null;
+  readonly volume?: number | null;
 }
 
 /** One row of `page_verdicts`, as this module reads it back. */
@@ -87,7 +95,7 @@ export interface VerdictRecord {
   readonly verdict: Verdict | "not_judgeable";
   readonly cause: NotJudgeableCause | null;
   readonly measuredAt: Date | null;
-  readonly measured: Measured<number> | null;
+  readonly measured: PageMeasured | null;
   readonly movement: Movement | null;
 }
 
@@ -100,7 +108,7 @@ export interface VerdictInsert {
   readonly cause: NotJudgeableCause | null;
   readonly measuredAt: Date | null;
   readonly scanId: string | null;
-  readonly measured: Measured<number> | null;
+  readonly measured: PageMeasured | null;
   readonly movement: Movement | null;
 }
 
@@ -125,6 +133,12 @@ export interface VerdictStore {
   /** Inserts this week's rows. A row the unique key already holds is
    *  skipped rather than raised: idempotency is the index, not a guard. */
   insert(rows: readonly VerdictInsert[]): Promise<void>;
+  /** SPEC §6 (D60, issue 1288): the prompts the site tracks today, which a
+   *  page's intent is matched against. Optional, as `recordIntent` is: a
+   *  double without them judges on the search alone. */
+  trackedPrompts?(siteId: string): Promise<readonly IntentPrompt[]>;
+  /** Writes a page's intent onto its draft (`drafts.meta.intent`). */
+  recordIntent?(a: { draftId: string; intent: PageIntent }): Promise<void>;
 }
 
 // ── Reading the two stored blobs ────────────────────────────────────────
@@ -251,7 +265,11 @@ interface PublicationRow {
   unpublished_at: string | null;
   verify: unknown;
   acceptance: unknown;
-  drafts: { opportunities: { acceptance: unknown; target_query: string | null } | null } | null;
+  draft_id: string | null;
+  drafts: {
+    meta: { intent?: unknown } | null;
+    opportunities: { acceptance: unknown; target_query: string | null; volume: number | null } | null;
+  } | null;
   sites: { domain: string | null } | null;
 }
 
@@ -283,7 +301,7 @@ function readRecord(row: VerdictRow): VerdictRecord {
     measuredAt: row.measured_at === null ? null : new Date(row.measured_at),
     measured: row.measured === null || row.measured === undefined
       ? null
-      : (reviveDates(row.measured) as Measured<number>),
+      : (reviveDates(row.measured) as PageMeasured),
     movement: row.movement === null || row.movement === undefined
       ? null
       : (reviveDates(row.movement) as Movement),
@@ -298,8 +316,8 @@ export function supabaseVerdictStore(): VerdictStore {
       const { data, error } = await untyped()
         .from<PublicationRow>("publications")
         .select(
-          "id, live_url, destination, published_at, unpublished_at, verify, acceptance, " +
-            "drafts(opportunities(acceptance, target_query)), sites(domain)"
+          "id, live_url, destination, published_at, unpublished_at, verify, acceptance, draft_id, " +
+            "drafts(meta, opportunities(acceptance, target_query, volume)), sites(domain)"
         )
         .eq("site_id", siteId)
         .not("published_at", "is", null)
@@ -332,6 +350,9 @@ export function supabaseVerdictStore(): VerdictStore {
           domain,
           liveUrl: addressNow({ destination: row.destination, liveUrl: row.live_url }),
           verification: readVerification(row.verify),
+          intent: readIntent(row.drafts?.meta?.intent),
+          draftId: row.draft_id,
+          volume: row.drafts?.opportunities?.volume ?? null,
         });
       }
       return pages;
@@ -370,6 +391,18 @@ export function supabaseVerdictStore(): VerdictStore {
         .order("week_start", { ascending: false });
       if (error) throw new Error(`page_verdicts.historyBefore: ${error.message}`);
       return (data ?? []).map(readRecord);
+    },
+
+    async trackedPrompts(siteId) {
+      const { readPromptSet } = await import("@/lib/market/prompts/store");
+      return (await readPromptSet(siteId)).prompts;
+    },
+
+    async recordIntent(a) {
+      // A write to the page's draft, made by the module that owns the
+      // intent: nothing under `verdicts/` updates a row.
+      const { writeIntent } = await import("../intent-store");
+      await writeIntent(a);
     },
 
     async insert(rows) {

@@ -46,6 +46,7 @@ import type { CostContext } from "@/lib/costs";
 import { DAY_TOPICS_MAX, PIPELINE, RESEARCH } from "@/lib/config/constants";
 import type { KnownPage } from "@/lib/known-content/types";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
+import { intentFor } from "@/lib/opportunities/intent";
 import { withDraftCost } from "./cost";
 import { readRecordedRules } from "./record";
 import type { SiteRuleInputs } from "./rules/types";
@@ -540,6 +541,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
       facts,
       links: built.links,
       demoPhrases,
+      intent: intentFor({ query: opportunity.targetQuery, volume: opportunity.volume }, site.prompts ?? []),
       startedAt,
       ...(draftId === undefined ? {} : { draftId }),
     });

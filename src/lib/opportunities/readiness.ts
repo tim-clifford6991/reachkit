@@ -50,6 +50,7 @@ import { demandBand } from "./winnability/band";
 import { difficultyCeiling } from "./winnability/bars";
 import { NO_EARN_GROUNDING, type EarnGrounding } from "./earn-grounding";
 import { suppressionOf, verdictReason, type Suppression } from "./suppression";
+import { hasGoal, intentFor, type IntentPrompt } from "./intent";
 import type { KnownMatch } from "@/lib/known-content/types";
 import type { Opportunity, UnreadyReason } from "./types";
 
@@ -76,6 +77,10 @@ export interface ReadinessContext {
    *  A row whose topic is covered and which is **not** itself the update of
    *  the covering page never fills a day. */
   coveredBy: (o: Opportunity) => KnownMatch | null;
+  /** SPEC §6 (D60, issue 1288): the prompts the site tracks today. Absent
+   *  or empty where it has no set yet — its first weekly pass builds one —
+   *  and then no topic is held for lacking a prompt. */
+  prompts?: readonly IntentPrompt[];
 }
 
 /** SPEC §6's commercial and transactional searches, in §6.7's classifier's
@@ -149,6 +154,12 @@ export function opportunityReady(o: Opportunity, ctx: ReadinessContext): Unready
   // is its own predicate, and `fit_band` is null for exactly that family (a
   // check constraint holds it), so this asks nothing of it.
   if (o.family !== "fix" && !qualifiesForADay(o.fitBand)) return "outsized";
+  // SPEC §6 (D60, issue 1288): a topic with no measured volume and no
+  // matching tracked prompt is not written.
+  const prompts = ctx.prompts ?? [];
+  if (o.family !== "fix" && query.trim() !== "" && prompts.length > 0 && !hasGoal(intentFor({ query, volume: o.volume }, prompts))) {
+    return "no_intent";
+  }
   return null;
 }
 
@@ -284,11 +295,12 @@ export async function assessReadiness(
   const rows = await store.openRankable(siteId);
   if (rows.length === 0) return { ready: 0, unready: 0 };
 
-  const [verdicts, report, profile, grounded] = await Promise.all([
+  const [verdicts, report, profile, grounded, prompts] = await Promise.all([
     store.notWorkingVerdicts(siteId),
     store.currentReport(siteId),
     store.profileForSite(siteId),
     store.hasGroundingFact(siteId),
+    store.trackedPrompts === undefined ? [] : store.trackedPrompts(siteId),
   ]);
   // Read only where there is an Earn row to answer: it re-reads the site's
   // measured pages and its profile, which nothing else here needs.
@@ -309,6 +321,7 @@ export async function assessReadiness(
     ownRanks: ownRanksFrom(report),
     canUpdate: canUpdateFrom(ownPages),
     coveredBy: (o) => covered.get(o.id) ?? null,
+    prompts,
   };
 
   // Issue 884: the row's band is brought up to today's law before its

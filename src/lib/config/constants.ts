@@ -1600,6 +1600,11 @@ export const SAME_TOPIC_SHARED_ADDRESSES = 4 as const;        // §6
  *  target of a refresh. Drafted default; the owner may correct it. */
 export const REFRESH_MIN_AGE_DAYS = 30 as const;               // §6
 
+/** SPEC §6 (owner, D60, issue 1288): a page that has reached neither of its
+ *  goals after this many weekly verdicts gets a refresh or a retarget
+ *  queued. */
+export const INTENT_UNMET_WEEKS = 8 as const;                 // §6
+
 /** SPEC §7 (2026-10-03, D36, issue 1209): the rolling weekly content mix.
  *  Over any `WINDOW_DAYS` days a site publishes at most `MAX_PER_KIND` pages
  *  of one kind, never the same kind two days running, and at least one

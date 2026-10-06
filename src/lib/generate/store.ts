@@ -22,6 +22,7 @@ import type { KnownPage } from "@/lib/known-content/types";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { readStoredCheck } from "@/lib/publish/verify/stored";
 import { parseStoredMarket } from "@/lib/market/infer/stored";
+import { parsePromptSet } from "@/lib/market/prompts/set";
 import type { StoredMarket } from "@/lib/market/infer/types";
 import { readSiteProfile } from "@/lib/site-profile/store";
 import type { InventoryRow } from "@/lib/site-profile/types";
@@ -111,6 +112,9 @@ export interface SiteFacts {
   /** `sites.market` (D28): the market ReachKit concluded and keeps current,
    *  which a page is written for (issue 1248). Absent reads as none stored. */
   market?: StoredMarket;
+  /** `sites.tracked_prompts` (D19): what a page's intent is matched
+   *  against (D60, issue 1288). Absent reads as none tracked. */
+  prompts?: readonly { id: string; text: string }[];
 }
 
 /** A page of the customer's own, as the near-duplicate gate compares it. */
@@ -280,8 +284,9 @@ export function supabaseGenerateStore(): GenerateStore {
           do_not_claim: unknown;
           competitors: unknown;
           market: unknown;
+          tracked_prompts: unknown;
         }>("sites")
-        .select("id, domain, category, voice_text, do_not_claim, competitors, market")
+        .select("id, domain, category, voice_text, do_not_claim, competitors, market, tracked_prompts")
         .eq("id", siteId)
         .limit(1);
       if (result.error) throw new Error(`generate/store: read from sites failed: ${result.error.message}`);
@@ -295,6 +300,7 @@ export function supabaseGenerateStore(): GenerateStore {
         doNotClaim: stringsOf(row.do_not_claim),
         rivals: stringsOf(row.competitors),
         market: parseStoredMarket(row.market),
+        prompts: parsePromptSet(row.tracked_prompts ?? null).prompts,
       };
     },
 

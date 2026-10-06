@@ -267,6 +267,10 @@ export interface OpportunityStore {
    *  read from. Optional: a store that holds no published pages has nothing
    *  to answer, and `planRefreshes` then plans nothing. */
   refreshInputs?(siteId: string): Promise<RefreshInputs>;
+  /** SPEC §6 (D60, issue 1288): the prompts the site tracks today, which a
+   *  topic's intent is matched against. Optional: a double without it
+   *  answers none, and no topic is held for lacking a prompt. */
+  trackedPrompts?(siteId: string): Promise<readonly { id: string; text: string }[]>;
 }
 
 // ── Reviving a row ──────────────────────────────────────────────────────
@@ -810,6 +814,11 @@ export function supabaseOpportunityStore(): OpportunityStore {
     async refreshInputs(siteId) {
       const { readRefreshInputs } = await import("./refresh");
       return readRefreshInputs(siteId);
+    },
+
+    async trackedPrompts(siteId) {
+      const { readPromptSet } = await import("@/lib/market/prompts/store");
+      return (await readPromptSet(siteId)).prompts;
     },
 
     async inventoryFor(domain) {

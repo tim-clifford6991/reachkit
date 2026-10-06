@@ -31,6 +31,7 @@ function week(over: Partial<WeekMeasurements> = {}): WeekMeasurements {
     positions: new Map<string, Measured<number>>(),
     namesCustomer: new Map<string, Measured<boolean>>(),
     ownPagesCited: new Map<string, Measured<readonly string[]>>(),
+    promptCitations: new Map<string, Measured<readonly string[]>>(),
     gatesCleared: new Map<Barrier, Measured<boolean>>(),
     siteIssues: null,
     ...over,

@@ -28,10 +28,12 @@
 //
 // Nothing is bought and no model is asked. The partial unique index keeps
 // one open or queued refresh a page.
-import { EFFORT_BY_TYPE, PACE, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
+import { EFFORT_BY_TYPE, INTENT_UNMET_WEEKS, PACE, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { measured } from "@/lib/measure/measured";
 import type { Candidate } from "./derive/candidate";
 import { persist } from "./derive/persist";
+import { closestPrompt, measuredVolume } from "./intent";
+import { retargetCandidate } from "./retarget";
 import { COLUMNS, opportunityStore, readOpportunity, untyped, type OpportunityRow } from "./store";
 import { FAMILY_OF, isOwnRefresh, type Evidence, type Opportunity, type RefreshCause } from "./types";
 
@@ -53,6 +55,10 @@ export interface OwnLivePage {
   row: Opportunity;
   /** The newest Monday verdict on this version found it in a worse place. */
   declined: boolean;
+  /** SPEC §6 (D60, issue 1288): this version has had `INTENT_UNMET_WEEKS`
+   *  weekly verdicts and none found it working — neither in the top 20 for
+   *  its search nor cited for its prompt. Absent reads as not so. */
+  unmet?: boolean;
   facts: readonly RecordedPassage[];
   marketFacts: readonly RecordedPassage[];
 }
@@ -62,6 +68,10 @@ export interface RefreshPools {
   siteText: readonly { url: string; text: string; measuredAt: Date }[];
   /** Every market claim the site's drafts recorded. */
   market: readonly (RecordedPassage & { readAt: Date })[];
+  /** The searches the current report measured, with their monthly volume:
+   *  what an unmet page with no measured search is retargeted among (D60).
+   *  Absent reads as none. */
+  searches?: readonly { keyword: string; volume: number }[];
 }
 
 export interface RefreshInputs {
@@ -98,6 +108,7 @@ function hasNewerFact(page: OwnLivePage, pools: RefreshPools): boolean {
 export function refreshCauseOf(page: OwnLivePage, pools: RefreshPools, at: Date): RefreshCause | null {
   const age = at.getTime() - page.publishedAt.getTime();
   if (age < REFRESH_MIN_AGE_DAYS * DAY_MS) return null;
+  if (page.unmet === true) return "unmet";
   if (page.declined) return "lost_position";
   if (hasNewerFact(page, pools)) return "newer_fact";
   return age >= PACE.REFRESH_AGE_DAYS * DAY_MS ? "aged" : null;
@@ -109,6 +120,17 @@ export function refreshCandidates(pages: readonly OwnLivePage[], pools: RefreshP
     const { row } = page;
     const cause = refreshCauseOf(page, pools, at);
     if (cause === null || row.targetQuery === null) return [];
+    // SPEC §6 (D60, issue 1288): an unmet page whose own search has no
+    // measured volume is rewritten for the closest measured search, where
+    // one is close; otherwise it is refreshed for the search it has.
+    if (cause === "unmet" && measuredVolume(row.volume) === null) {
+      const taken = new Set(pages.map((other) => squashed(other.row.targetQuery ?? "")));
+      const open = (pools.searches ?? [])
+        .filter((search) => search.volume > 0 && !taken.has(squashed(search.keyword)))
+        .map((search) => ({ id: search.keyword, text: search.keyword, volume: search.volume }));
+      const target = closestPrompt(row.targetQuery, open);
+      if (target !== null) return [retargetCandidate(page, { target: target.text, volume: target.volume, at })];
+    }
     const evidence: Evidence = {
       family: "improve",
       query: row.targetQuery,
@@ -172,14 +194,21 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
   if (live.error) throw new Error(`refresh: reading publications for ${siteId}: ${live.error.message}`);
 
   const verdicts = await client
-    .from<{ publication_id: string; movement: { declined?: unknown } | null }>("page_verdicts")
-    .select("publication_id, movement")
+    .from<{ publication_id: string; verdict: string; movement: { declined?: unknown } | null }>("page_verdicts")
+    .select("publication_id, verdict, movement")
     .eq("site_id", siteId)
     .order("week_start", { ascending: true });
   if (verdicts.error) throw new Error(`refresh: reading verdicts for ${siteId}: ${verdicts.error.message}`);
   // Oldest first, so the newest row of a publication is the one kept.
   const declined = new Map<string, boolean>();
-  for (const row of verdicts.data ?? []) declined.set(row.publication_id, row.movement?.declined === true);
+  // D60: each version's judged weeks, and whether any found it working.
+  const judged = new Map<string, { weeks: number; worked: boolean }>();
+  for (const row of verdicts.data ?? []) {
+    declined.set(row.publication_id, row.movement?.declined === true);
+    if (row.verdict === "not_judgeable") continue;
+    const held = judged.get(row.publication_id) ?? { weeks: 0, worked: false };
+    judged.set(row.publication_id, { weeks: held.weeks + 1, worked: held.worked || row.verdict === "working" });
+  }
 
   // The address each page answers at now (SPEC §7, 2026-09-18; issue 1182).
   const { storedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
@@ -200,6 +229,7 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
       publishedAt: new Date(publication.published_at),
       row: readOpportunity(opportunity),
       declined: declined.get(publication.id) ?? false,
+      unmet: unmetAfter(judged.get(publication.id)),
       facts: passagesOf(meta.facts),
       marketFacts: passagesOf(meta.marketFacts),
     });
@@ -208,6 +238,11 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
 }
 
 /** What `planRefreshes` reads, as the Postgres store answers it. */
+/** D60: `INTENT_UNMET_WEEKS` weekly verdicts, and none of them working. */
+export function unmetAfter(judged: { weeks: number; worked: boolean } | undefined): boolean {
+  return judged !== undefined && judged.weeks >= INTENT_UNMET_WEEKS && !judged.worked;
+}
+
 export async function readRefreshInputs(siteId: string): Promise<RefreshInputs> {
   const pages = await ownLivePages(siteId);
   return { pages, pools: pages.length === 0 ? { siteText: [], market: [] } : await readPools(siteId) };
@@ -225,7 +260,12 @@ async function readPools(siteId: string): Promise<RefreshPools> {
       fact.readAt === null ? [] : [{ url: fact.url, passage: fact.passage, readAt: fact.readAt }]
     )
   );
-  return { siteText: await readMeasuredText({ siteId }), market };
+  const report = await opportunityStore().currentReport(siteId);
+  const searches =
+    report === null || report.questions.kind === "unmeasured"
+      ? []
+      : report.questions.value.map((question) => ({ keyword: question.search.keyword, volume: question.search.volume }));
+  return { siteText: await readMeasuredText({ siteId }), market, searches };
 }
 
 /**

@@ -149,6 +149,7 @@ describe("the recorded test — issues_cleared", () => {
     positions: new Map(),
     namesCustomer: new Map(),
     ownPagesCited: new Map(),
+    promptCitations: new Map(),
     gatesCleared: new Map(),
     siteIssues,
   });
