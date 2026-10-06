@@ -17,6 +17,7 @@ import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { isOwnDomain, isPlatformDomain, registrableDomain } from "@/lib/market/rivals/domains";
+import { nameNeedsQualifier } from "./demand";
 import { boundEvidence, evidenceDomains, type MarketEvidence } from "./evidence";
 import { RIVALS_MAX, type MarketConclusion, type RivalBasis, type RivalConclusion } from "./types";
 
@@ -91,7 +92,7 @@ export const RIVALS_TASK = [
   "A competitor is a company whose main product is this category, sold to this buyer for this job — closest first, at a broadly similar scale where you can tell. Name the real companies in this market from your knowledge of it.",
   "The measured domains were bought for measuredUnder, an earlier guess at the market, so most of them may sell something else. A measured domain is a candidate only when its main product is this market's category; then its basis is ai_answer if an AI answer cited it, or ranks if it is in the top tens. An answer's excerpt is what an AI assistant told a buyer in this market: a product it names there is a candidate with basis ai_answer. A company you name from knowledge has basis same_job.",
   "inMarket is false for a company whose main product is a category on notOurMarket, even when it has a feature in this market, and for a company best known for a product outside this market unless what it sells here has a product name of its own, which is then the name. A publisher, blog, review site, directory, marketplace, forum, social network, agency or general platform is never a competitor: give it its kind if you list it at all. Never list the business itself.",
-  "name is the product as buyers say it. otherSearches is true where most people who type that bare name into Google want something else: the name is a dictionary word (\"Linear\", \"Notion\", \"Amplitude\"), or the company is best known for a product outside this market. searchName is what a buyer types to find this product in this market: the name in lower case, with one word added where otherSearches is true — the word buyers really add, such as the one in its domain or its product line (\"linear app\", \"notion calendar\") — never a description of what it does.",
+  "name is the product as buyers say it. otherSearches is true where most people who type that bare name into Google want something else: the name is a dictionary word or a first name (\"Linear\", \"Notion\", \"Amplitude\", \"Jasper\"), or the company is best known for a product outside this market. searchName is what a buyer types to find this product in this market: the name in lower case, with one word added where otherSearches is true — the word buyers really add, such as the one in its domain or its product line (\"linear app\", \"notion calendar\") — never a description of what it does.",
   "Each reason is one short plain sentence a founder can read: what the company sells and why it competes.",
 ].join(" ");
 
@@ -137,8 +138,9 @@ export function concludeRivals(
     const added = said.startsWith(`${bare} `) ? said.slice(bare.length + 1).split(" ") : [];
     const short = added.length > 1 ? `${bare} ${added[0]}` : "";
     // Only a one-word name can mean something else on its own: "peec ai"
-    // is already the qualified form.
-    const ambiguous = candidate.otherSearches === true && !bare.includes(" ");
+    // is already the qualified form. A name its own domain qualifies
+    // ("mybrandi.ai") is one too, whatever the answer said (issue 1285).
+    const ambiguous = (candidate.otherSearches === true || nameNeedsQualifier(bare, domain)) && !bare.includes(" ");
     const searchNames = [...new Set([bare, said, short])].filter(
       (keyword) => keyword !== "" && !(ambiguous && keyword === bare)
     );

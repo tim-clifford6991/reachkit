@@ -1,0 +1,143 @@
+{
+  "note": "reachkit.app as production stored it after scan 17f5bbff-81dc-4d83-9565-8163a92f356d (2026-10-06): sites.market.current, the names and kinds of sites.tracked_prompts, and the two rows issue 1285 names. Read through the Supabase connector on 2026-10-06; nothing here was bought again.",
+  "siteName": "ReachKit",
+  "founderBuyers": "Founders and Business Owners",
+  "market": {
+    "current": {
+      "buyer": "B2B SaaS and software companies seeking to be discovered by buyers researching solutions",
+      "job": "Understand where AI and search send buyers, then write pages to rank in those results",
+      "category": "AI discovery monitoring and content",
+      "synonyms": ["AI answer visibility", "search and AI ranking", "buyer discovery tracking"],
+      "differentiators": [
+        "Scans where AI answers and Google send buyers instead of to you",
+        "Writes one page a day automatically to close the gap",
+        "Weekly re-measurement of your whole market",
+        "Free scan with first page proposed before any payment"
+      ],
+      "notOurMarket": [
+        "SEO content writing software",
+        "General AI writing assistants",
+        "SEO tools and analytics",
+        "Content management systems",
+        "Copywriting software"
+      ],
+      "categoryReason": "The headline and claims show ReachKit's core job is measuring where AI and search send buyers, then writing to change that outcome—not writing content generally or optimizing existing pages, which is what SEO content writing software does.",
+      "searchTerm": "generative engine optimization",
+      "termsAt": "2026-10-06T11:21:17.905Z",
+      "terms": [
+        { "term": "generative engine optimization", "volume": 4400 },
+        { "term": "answer engine optimization", "volume": 2400 },
+        { "term": "AI search visibility", "volume": 390 },
+        { "term": "GEO software", "volume": 170, "polluted": true },
+        { "term": "AEO software", "volume": 110 },
+        { "term": "AI citation tracking", "volume": 0 },
+        { "term": "AI answer monitoring", "volume": 0 },
+        { "term": "AI brand mention tracking", "volume": 0 },
+        { "term": "rank in AI search results", "volume": 0 },
+        { "term": "AI search ranking tool", "volume": 0 }
+      ],
+      "demand": {
+        "at": "2026-10-06T11:25:21.177Z",
+        "own": 0,
+        "brands": {
+          "brandi": 22200,
+          "maxaeo": 0,
+          "otterly": 880,
+          "reachkit": 0,
+          "brandi ai": 260,
+          "rankscale": 480,
+          "aeo engine": 70,
+          "otterly ai": 720,
+          "leadjourney": 0,
+          "profound ai": 6600,
+          "rankscale ai": 90,
+          "the seo agent": 0,
+          "discovered labs": 0,
+          "omniscient digital": 590
+        }
+      },
+      "rivals": [
+        {
+          "name": "Brandi",
+          "basis": "ai_answer",
+          "domain": "mybrandi.ai",
+          "reason": "AI visibility platform for generative engine optimization that tracks brand mentions and citations across LLMs.",
+          "volume": 22200,
+          "searchNames": ["brandi", "brandi ai"]
+        },
+        {
+          "name": "Profound",
+          "basis": "ai_answer",
+          "domain": "tryprofound.com",
+          "reason": "Tracks how often AI engines cite and recommend your brand across ChatGPT, Perplexity, Gemini, and Google AI Overviews, directly competing on AI discovery monitoring.",
+          "volume": 6600,
+          "searchNames": ["profound ai"]
+        },
+        {
+          "name": "Otterly",
+          "basis": "ai_answer",
+          "domain": "otterly.ai",
+          "reason": "Monitors brand visibility and citations across AI search engines and answer engines, targeting the same GEO/AEO tracking job.",
+          "volume": 880,
+          "searchNames": ["otterly", "otterly ai"]
+        },
+        {
+          "name": "Omniscient",
+          "basis": "ai_answer",
+          "domain": "beomniscient.com",
+          "reason": "GEO platform that tracks brand citations and recommendations inside AI ecosystems and helps optimize content to win them.",
+          "volume": 590,
+          "searchNames": ["omniscient digital"]
+        },
+        {
+          "name": "Rankscale",
+          "basis": "ai_answer",
+          "domain": "rankscale.ai",
+          "reason": "Tracks how a brand appears across 17+ AI engines with visibility scores and citation analysis, competing directly on AI discovery monitoring.",
+          "volume": 480,
+          "searchNames": ["rankscale", "rankscale ai"]
+        }
+      ]
+    },
+    "adoptedAt": "2026-10-02T22:02:51.534Z",
+    "pending": null,
+    "rivalsOverridden": false,
+    "categoryOverridden": false
+  },
+  "trackedPrompts": {
+    "builtFrom": "generative engine optimization",
+    "rebuiltAt": "2026-10-06T11:21:50.646Z",
+    "rotations": [],
+    "prompts": [
+      { "id": "27b664f3", "kind": "category", "text": "What are the best generative engine optimization tools right now, and what is each one good at?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "91dd7b50", "kind": "category", "text": "Which answer engine optimization platforms do people actually recommend this year?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "38a0b9bb", "kind": "category", "text": "Which AI search visibility platforms do people actually recommend this year?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "1918d722", "kind": "category", "text": "Which AEO platforms do people actually recommend this year?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "4ac6da1c", "kind": "category", "text": "I am new to generative engine optimization. Which products should I look at first?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "8fe53783", "kind": "use-case", "text": "Which tools help me understand where AI and search send buyers on a small budget?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "989e0f90", "kind": "use-case", "text": "Which tools help me understand where AI and search send buyers without hiring an agency?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "76a11b7a", "kind": "use-case", "text": "Which tools help me understand where AI and search send buyers as a team of one?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "53c267fb", "kind": "use-case", "text": "Which tools help me understand where AI and search send buyers within a single day of setup?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "f61b55f6", "kind": "use-case", "text": "Which tools help me understand where AI and search send buyers without an engineering team?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "97fa5d13", "kind": "use-case", "text": "Which tools help me understand where AI and search send buyers for a brand new website?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "08479784", "kind": "use-case", "text": "Which tools help me understand where AI and search send buyers with a free trial?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "57a9d7ef", "kind": "persona", "text": "We are founders and business owners. Which generative engine optimization tool fits us best?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "95bd9303", "kind": "persona", "text": "Which generative engine optimization software is built for founders and business owners?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "1efc69b2", "kind": "persona", "text": "What do founders and business owners actually use for generative engine optimization?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "6102de41", "kind": "persona", "text": "I work with founders and business owners. Which generative engine optimization product should I recommend to them?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "03d62c3e", "kind": "comparison", "text": "How does AEO Engine compare with MaxAEO for generative engine optimization?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "f25d6ebb", "kind": "comparison", "text": "What are the best alternatives to AEO Engine for founders and business owners?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "cc7a5ffe", "kind": "comparison", "text": "MaxAEO or Meltwater: which is the better choice for generative engine optimization?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "97425bce", "kind": "comparison", "text": "Which is better value for generative engine optimization: AEO Engine, MaxAEO or Meltwater?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "96760442", "kind": "problem", "text": "I am struggling to understand where AI and search send buyers. Which tools can fix that?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "884d9a3d", "kind": "problem", "text": "Nothing I have tried helps me understand where AI and search send buyers. What software should I try next?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "7cac4714", "kind": "problem", "text": "What is the fastest way to understand where AI and search send buyers, and which products do it for me?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "8c891360", "kind": "branded", "text": "What is ReachKit, and is it any good for generative engine optimization?", "addedAt": "2026-10-06T11:21:50.646Z" },
+      { "id": "a1f5ca3c", "kind": "branded", "text": "Is ReachKit a good alternative to AEO Engine for generative engine optimization?", "addedAt": "2026-10-06T11:21:50.646Z" }
+    ]
+  },
+  "rows": {
+    "staleComparison": "aeo engine alternatives",
+    "retarget": "best AI visibility tools for small businesses"
+  }
+}

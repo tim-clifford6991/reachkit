@@ -49,7 +49,7 @@ export function retargetSql(a: Options): string {
     `  ${FROM_ROW.siteId}, ${FROM_ROW.scanId}, ${text(row.type)}, ${text(row.family)}, ${text(row.targetQuery)}, p.live_url, null, null, ${volume},`,
     `  ${json(row.evidence)},`,
     `  ${json(row.acceptance)},`,
-    `  ${FROM_ROW.fitBand}, null, null, ${text(pageTypeOf(row))}, ${row.effort}`,
+    `  ${FROM_ROW.fitBand}, ${row.businessFit ?? "null"}, null, ${text(pageTypeOf(row))}, ${row.effort}`,
     "from publications p",
     "join drafts d on d.id = p.draft_id",
     "join opportunities o on o.id = d.opportunity_id",

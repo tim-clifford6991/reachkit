@@ -62,7 +62,7 @@ import { searchedName, spokenMarket } from "@/lib/market/infer/terms";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { buyerPrompts } from "@/lib/market/questions/buyer-prompts";
 import { readPromptAnswer } from "@/lib/market/prompts/answer";
-import { generatePrompts } from "@/lib/market/prompts/generate";
+import { generatePrompts, promptSiteName } from "@/lib/market/prompts/generate";
 import { nextPromptSet, settlePrechecks, type TrackedPrompt } from "@/lib/market/prompts/set";
 import { buildAiAnswersCard, type BatteryAnswers } from "@/lib/market/questions/matrix";
 import {
@@ -2285,16 +2285,6 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
       })
     );
   }
-}
-
-/** The name a branded prompt asks about and an answer is read for: the
- *  site's own where it is a name, else the domain's first label. A title
- *  that is a sentence is not a name an answer would repeat. */
-function promptSiteName(siteName: string | null, domain: string): string {
-  const name = (siteName ?? "").trim();
-  if (name !== "" && name.length <= 40 && name.split(/\s+/).length <= 4) return name;
-  const label = domain.toLowerCase().replace(/^www\./, "").split(".")[0] ?? domain;
-  return label.length === 0 ? domain : label[0]!.toUpperCase() + label.slice(1);
 }
 
 /**

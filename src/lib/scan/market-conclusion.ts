@@ -308,6 +308,51 @@ async function weighByDemand(a: {
   }
 }
 
+/**
+ * SPEC §6 (D54, issue 1285) — the stored set's comparison and branded
+ * prompts, brought to the rivals a pass has just concluded. The rivals are
+ * concluded from the pass's own answers, so after the pass built and asked
+ * the set: without this the set names the rivals of the pass before. This
+ * pass's stored answers are to the prompts it asked; the next pass asks
+ * these. Nothing here throws.
+ */
+export async function trackedPromptsFollowRivals(a: { siteId: string; domain: string }): Promise<void> {
+  try {
+    const [{ readPromptSet, writePromptSet }, { followRivals }, { generatePrompts, promptSiteName }, { readSiteMarket }, { spokenMarket }] =
+      await Promise.all([
+        import("@/lib/market/prompts/store"),
+        import("@/lib/market/prompts/set"),
+        import("@/lib/market/prompts/generate"),
+        import("@/lib/market/infer/stored"),
+        import("@/lib/market/infer/terms"),
+      ]);
+    const market = (await readSiteMarket(a.siteId))?.stored.current ?? null;
+    if (market === null) return;
+    const stored = await readPromptSet(a.siteId);
+    if (stored.prompts.length === 0) return;
+    const siteName = promptSiteName((await siteText(a.domain)).siteName, a.domain);
+    const set = followRivals(stored, generatePrompts(spokenMarket(market, await founderBuyer(a.siteId)), siteName), new Date());
+    if (set === stored) return;
+    await writePromptSet(a.siteId, set);
+    const held = new Set(stored.prompts.map((prompt) => prompt.id));
+    console.log(
+      JSON.stringify({
+        event: "tracked_prompts_follow_rivals",
+        siteId: a.siteId,
+        replaced: set.prompts.filter((prompt) => !held.has(prompt.id)).length,
+      })
+    );
+  } catch (error) {
+    console.log(
+      JSON.stringify({
+        event: "tracked_prompts_follow_rivals_failed",
+        siteId: a.siteId,
+        because: error instanceof Error ? error.message : String(error),
+      })
+    );
+  }
+}
+
 /** The rivals re-checked on the pass's own money (#1185). Answers whether
  *  the set the passes measure changed. A failure changes nothing and says
  *  so in the log; the pass goes on. */
@@ -318,7 +363,9 @@ export async function recheckRivalsOf(a: {
   report: StoredReport;
 }): Promise<boolean> {
   try {
-    return (await recheckRivals({ ...a, at: new Date() })).changed;
+    const { changed } = await recheckRivals({ ...a, at: new Date() });
+    await trackedPromptsFollowRivals(a);
+    return changed;
   } catch (error) {
     console.log(
       JSON.stringify({

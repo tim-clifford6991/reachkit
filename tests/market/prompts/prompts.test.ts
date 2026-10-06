@@ -12,7 +12,6 @@ const MARKET: PromptMarket = {
   category: "privacy-friendly web analytics",
   synonyms: ["GDPR-compliant analytics", "privacy-first analytics", "lightweight analytics"],
   buyer: "Website owners and SaaS companies who want numbers without cookies",
-  job: "Track their website visitors without compromising visitor privacy, so they stay compliant.",
   rivals: [
     { name: "Matomo", domain: "matomo.org" },
     { name: "Fathom Analytics", domain: "usefathom.com" },
@@ -30,9 +29,10 @@ describe("the set a market yields", () => {
     expect(new Set(prompts.map((p) => p.text.toLowerCase())).size).toBe(25);
   });
 
-  it("speaks as the buyer: the job in the first person, the buyer without its clause", () => {
+  it("speaks as the buyer: the market by its names, the buyer without its clause", () => {
     const texts = generatePrompts(MARKET, "Plausible").map((p) => p.text);
-    expect(texts).toContain("Which tools help me track my website visitors without compromising visitor privacy on a small budget?");
+    expect(texts).toContain("Which privacy-friendly web analytics tools work on a small budget?");
+    expect(texts).toContain("Which GDPR-compliant analytics tools can I use without hiring an agency?");
     expect(texts).toContain("We are website owners and SaaS companies. Which privacy-friendly web analytics tool fits us best?");
     expect(texts).toContain("Is Plausible a good alternative to Matomo for privacy-friendly web analytics?");
   });
@@ -60,7 +60,7 @@ describe("the stored set and its rotation", () => {
 
   it("a wholly new market replaces at most a fifth in a quarter, each newcomer marked for its pre-check", () => {
     const moved = generatePrompts(
-      { ...MARKET, category: "product analytics", synonyms: ["event analytics"], job: "See what users do in their app.", buyer: "Product teams" },
+      { ...MARKET, category: "product analytics", synonyms: ["event analytics"], buyer: "Product teams" },
       "Plausible"
     );
     const week2 = nextPromptSet(first, moved, new Date("2026-10-12T06:00:00Z"));

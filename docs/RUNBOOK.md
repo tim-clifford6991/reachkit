@@ -457,7 +457,8 @@ Supabase connector: this box's database key is a placeholder. `<live address>` i
 `publications.live_url`. It must be a page ReachKit published.
 
 The statement adds one open `refresh_page` at that address, for the new search, and returns its
-row. No row returned means the address is not a live page of ours. A unique violation means the
+row. The row is stored at business fit 3: the target is the operator's choice, and no pass judges
+it (#1285). No row returned means the address is not a live page of ours. A unique violation means the
 page already has that update open or queued. The next generation run records the row's readiness
 and ranks it with the site's other topics; nothing publishes until that day's page is written. The
 page is written as the new search's own type and replaces the live text at the same address.

@@ -21,7 +21,6 @@ export interface PromptMarket {
   category: string;
   synonyms: readonly string[];
   buyer: string;
-  job: string;
   rivals: readonly { name: string; domain: string }[];
 }
 
@@ -39,37 +38,41 @@ function buyerHead(buyer: string): string {
   return lowerFirst(clean(buyer).split(/\s+(?:whose|who|seeking|that|looking)\s+/)[0] ?? "");
 }
 
-/** The job as a buyer says it of themselves, without its purpose clause:
- *  the conclusion stores it in the third person ("get their site …"). */
-function jobHead(job: string): string {
-  return lowerFirst(clean(job).split(/\s+so\s+|,/)[0] ?? "")
-    .replace(/\btheir\b/g, "my")
-    .replace(/\bthem\b/g, "me")
-    .replace(/\bthey\b/g, "I");
+/** The name a branded prompt asks about and an answer is read for: the
+ *  site's own where it is a name, else the domain's first label. A title
+ *  that is a sentence is not a name an answer would repeat. */
+export function promptSiteName(siteName: string | null, domain: string): string {
+  const name = (siteName ?? "").trim();
+  if (name !== "" && name.length <= 40 && name.split(/\s+/).length <= 4) return name;
+  const label = domain.toLowerCase().replace(/^www\./, "").split(".")[0] ?? domain;
+  return label.length === 0 ? domain : label[0]!.toUpperCase() + label.slice(1);
 }
 
-const CONSTRAINTS = [
-  "on a small budget",
-  "without hiring an agency",
-  "as a team of one",
-  "within a single day of setup",
-  "without an engineering team",
-  "for a brand new website",
-  "with a free trial",
-] as const;
+/** What a buyer is constrained by, each asked of the market by name. The
+ *  market's job is never quoted (issue 1285): it is the conclusion's own
+ *  sentence, which no buyer types, and reachkit.app's ten such prompts
+ *  asked for tools to "understand where AI and search send buyers". */
+const USE_CASES: readonly ((name: string) => string)[] = [
+  (name) => `Which ${name} tools work on a small budget?`,
+  (name) => `Which ${name} tools can I use without hiring an agency?`,
+  (name) => `Which ${name} tools suit a team of one?`,
+  (name) => `Which ${name} tools can I set up in a single day?`,
+  (name) => `Which ${name} tools need no engineering team?`,
+  (name) => `Which ${name} tools work for a brand new website?`,
+  (name) => `Which ${name} tools have a free trial?`,
+];
 
 /**
- * One site's set: 25 prompts where the market names a category, a buyer, a
- * job and three rivals. A market with fewer than three synonyms asks its
+ * One site's set: 25 prompts where the market names a category, a buyer
+ * and three rivals. A market with fewer than three synonyms asks its
  * category another way in their place. A market with less than that yields
- * fewer: no buyer, job or rival is invented, and no kind exceeds its share
- * of `TRACKED_PROMPTS.SPLIT`. Empty where the market names no category.
+ * fewer: no buyer or rival is invented, and no kind exceeds its share of
+ * `TRACKED_PROMPTS.SPLIT`. Empty where the market names no category.
  */
 export function generatePrompts(market: PromptMarket, siteName: string): GeneratedPrompt[] {
   const category = clean(market.category);
   if (category === "") return [];
   const buyer = buyerHead(market.buyer);
-  const job = jobHead(market.job);
   const name = clean(siteName);
   const rivals = market.rivals.map((r) => clean(r.name) || r.domain);
   const out: GeneratedPrompt[] = [];
@@ -89,7 +92,9 @@ export function generatePrompts(market: PromptMarket, siteName: string): Generat
   add("category", `Which ${category} products get the best reviews from the people who use them?`);
   add("category", `What ${category} software should a first-time buyer shortlist?`);
 
-  if (job !== "") for (const constraint of CONSTRAINTS) add("use-case", `Which tools help me ${job} ${constraint}?`);
+  // The market's names in turn, so the seven are not one phrase seven times.
+  const spoken = [category, ...market.synonyms.map(clean).filter(Boolean).slice(0, 3)];
+  USE_CASES.forEach((ask, i) => add("use-case", ask(spoken[i % spoken.length]!)));
 
   if (buyer !== "") {
     add("persona", `We are ${buyer}. Which ${category} tool fits us best?`);
@@ -110,11 +115,9 @@ export function generatePrompts(market: PromptMarket, siteName: string): Generat
     add("comparison", `Which is better value for ${category}: ${first}, ${second} or ${third}?`);
   }
 
-  if (job !== "") {
-    add("problem", `I am struggling to ${job}. Which tools can fix that?`);
-    add("problem", `Nothing I have tried helps me ${job}. What software should I try next?`);
-    add("problem", `What is the fastest way to ${job}, and which products do it for me?`);
-  }
+  add("problem", `I am getting nowhere with ${category}. Which tools can fix that?`);
+  add("problem", `Nothing I have tried for ${category} is working. What software should I try next?`);
+  add("problem", `What is the fastest way to get results from ${category}, and which products do it for me?`);
 
   if (name !== "") {
     add("branded", `What is ${name}, and is it any good for ${category}?`);

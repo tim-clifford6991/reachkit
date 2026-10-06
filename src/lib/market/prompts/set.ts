@@ -14,6 +14,10 @@
 // from a label other than the market's search term (D49) is rebuilt whole
 // from it, and the rate starts again from that date.
 //
+// And one kind of change is not rotation (issue 1285): the comparison and
+// branded prompts name the rivals, so they are always the ones today's
+// rivals yield.
+//
 // Pure: no I/O and no clock of its own.
 import { TRACKED_PROMPTS } from "@/lib/config/constants";
 import { PROMPT_KINDS, type GeneratedPrompt, type PromptKind } from "./generate";
@@ -105,6 +109,41 @@ export function builtFromAnotherLabel(stored: PromptSet, searchTerm: string): bo
   return !stored.prompts.some((p) => named(p.text).includes(term));
 }
 
+/** The kinds whose wording names a rival. */
+const NAMES_RIVALS: readonly PromptKind[] = ["comparison", "branded"];
+
+/**
+ * The stored set with its comparison and branded prompts as today's rivals
+ * yield them (issue 1285). The rivals are concluded from a pass's answers,
+ * so after the prompts were asked: reachkit.app's rebuilt set named three
+ * rivals the same pass dropped, and rotation would have kept them for
+ * months. A prompt of those kinds the market still yields keeps its date;
+ * the rest give way whole, unchecked, and the rotation allowance is not
+ * touched. A kind the market yields none of is left as it is. The same
+ * object where nothing changed.
+ */
+export function followRivals(stored: PromptSet, generated: readonly GeneratedPrompt[], now: Date): PromptSet {
+  if (stored.prompts.length === 0) return stored;
+  const held = new Map(stored.prompts.map((p) => [p.id, p]));
+  let prompts = [...stored.prompts];
+  let changed = false;
+  for (const kind of NAMES_RIVALS) {
+    const yielded = generated.filter((p) => p.kind === kind);
+    const ids = yielded.map((p) => promptId(p.text));
+    const mine = prompts.filter((p) => p.kind === kind);
+    if (yielded.length === 0 || (mine.length === ids.length && mine.every((p, i) => p.id === ids[i]))) continue;
+    const next = yielded.map(
+      (p, i): TrackedPrompt => held.get(ids[i]!) ?? { id: ids[i]!, kind, text: p.text, addedAt: now.toISOString() }
+    );
+    const at = prompts.findIndex((p) => p.kind === kind);
+    const rest = prompts.filter((p) => p.kind !== kind);
+    const before = at < 0 ? rest.length : prompts.slice(0, at).filter((p) => p.kind !== kind).length;
+    prompts = [...rest.slice(0, before), ...next, ...rest.slice(before)];
+    changed = true;
+  }
+  return changed ? { ...stored, prompts } : stored;
+}
+
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
@@ -113,10 +152,11 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
  * keeps it, and swaps in what the allowance still has room for.
  * `searchTerm` is the market's name in `generated` where the market holds a
  * searched term (D49), else `null`: a set built from another label is
- * rebuilt whole from it, once (D54).
+ * rebuilt whole from it, once (D54). Its comparison and branded prompts
+ * follow the rivals first (`followRivals`), outside the allowance.
  */
 export function nextPromptSet(
-  stored: PromptSet,
+  before: PromptSet,
   generated: readonly GeneratedPrompt[],
   now: Date,
   searchTerm: string | null = null
@@ -124,10 +164,11 @@ export function nextPromptSet(
   const at = now.toISOString();
   const whole = (): TrackedPrompt[] => generated.map((p) => ({ id: promptId(p.text), kind: p.kind, text: p.text, addedAt: at }));
   const from = searchTerm === null ? {} : { builtFrom: searchTerm };
-  if (stored.prompts.length === 0) return { prompts: whole(), rotations: [], ...from };
-  if (searchTerm !== null && generated.length > 0 && builtFromAnotherLabel(stored, searchTerm)) {
+  if (before.prompts.length === 0) return { prompts: whole(), rotations: [], ...from };
+  if (searchTerm !== null && generated.length > 0 && builtFromAnotherLabel(before, searchTerm)) {
     return { prompts: whole(), rotations: [], ...from, rebuiltAt: at };
   }
+  const stored = followRivals(before, generated, now);
 
   const yielded = new Set(generated.map((p) => promptId(p.text)));
   const held = new Set(stored.prompts.map((p) => p.id));
