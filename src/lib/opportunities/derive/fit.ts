@@ -43,6 +43,9 @@ const TASK = [
   "3 — the searcher would buy this product instead of what the top results list. The product against a named rival, a rival's alternatives, the product's category for its own buyer, its price, or the exact problem the product exists to solve end to end.",
   "2 — the product plainly helps with what is asked, but the searcher is not yet choosing a product like it.",
   "1 — the product could only be mentioned in passing. A generic 'best' or 'free' list for a neighbouring or broader category is 1 at most.",
+  // Issue 1285: reachkit.app's own category, "best AI visibility tools for
+  // small businesses", was scored 1 as a generic list.
+  "`market.category` and `market.synonyms` are the names buyers search this one market under. A search for the tools, software or services of any of them, or of a plain rewording of one, is the product's own category and not a neighbouring one: a 'best' list for it is 3 where it also names the product's buyer, and 2 otherwise.",
   "0 — no relation, or the search belongs to one of the markets in `notOurMarket`.",
   "Judge against `market` and `product` only. Volume, and how the search is worded, say nothing about fit.",
   "At most a quarter of the searches may be 3. List the indexes you scored 3 in `strongest`, strongest first.",

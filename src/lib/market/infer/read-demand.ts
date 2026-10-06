@@ -17,7 +17,7 @@ export async function readBrandDemand(
   c: CostContext,
   a: {
     demand: BrandDemand | undefined;
-    rivals: readonly Pick<RivalConclusion, "name" | "searchNames">[];
+    rivals: readonly Pick<RivalConclusion, "name" | "searchNames" | "domain">[];
     domain: string;
     siteName: string | null;
     at: Date;

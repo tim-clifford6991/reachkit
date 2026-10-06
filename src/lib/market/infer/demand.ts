@@ -20,10 +20,33 @@ export function searched(volume: number | undefined): boolean {
   return volume !== undefined && volume >= RIVAL_DEMAND.MIN_VOLUME;
 }
 
+/** A domain's first label, lower-cased. */
+function labelOf(domain: string): string {
+  return key(domain.replace(/^www\./, "").split(".")[0] ?? "");
+}
+
+/**
+ * Whether a one-word name needs a word beside it to mean its product (issue
+ * 1285): its company's own domain holds the name with something added
+ * ("mybrandi.ai", "tryprofound.com"), which is what a company registers
+ * when the bare word is an ordinary word or a first name. "Brandi" was read
+ * at 22,200 searches for the name; "brandi ai" has 260.
+ */
+export function nameNeedsQualifier(name: string, domain: string): boolean {
+  const bare = key(name);
+  const label = labelOf(domain);
+  return bare.length >= 3 && !bare.includes(" ") && label !== bare && label.includes(bare);
+}
+
 /** The keywords a rival's brand volume is read under: what the conclusion
- *  says buyers type, else — a rival concluded before D50 — its name. */
-export function brandKeywords(rival: Pick<RivalConclusion, "name" | "searchNames">): string[] {
-  return (rival.searchNames ?? [rival.name]).map(key).filter(Boolean);
+ *  says buyers type, else — a rival concluded before D50 — its name. Never
+ *  the bare name where that needs a qualifier: then the qualified forms,
+ *  else the domain's own label. */
+export function brandKeywords(rival: Pick<RivalConclusion, "name" | "searchNames"> & { domain?: string }): string[] {
+  const names = (rival.searchNames ?? [rival.name]).map(key).filter(Boolean);
+  if (rival.domain === undefined || !nameNeedsQualifier(rival.name, rival.domain)) return names;
+  const qualified = names.filter((keyword) => keyword !== key(rival.name));
+  return qualified.length > 0 ? qualified : [labelOf(rival.domain)];
 }
 
 /** The keywords the business's own brand is read under: its domain's label
@@ -47,7 +70,7 @@ function stale(demand: BrandDemand | undefined, at: Date): boolean {
  *  not hold. */
 export function keywordsOwed(a: {
   demand: BrandDemand | undefined;
-  rivals: readonly Pick<RivalConclusion, "name" | "searchNames">[];
+  rivals: readonly Pick<RivalConclusion, "name" | "searchNames" | "domain">[];
   own: readonly string[];
   at: Date;
 }): string[] {

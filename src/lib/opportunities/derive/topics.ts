@@ -102,6 +102,11 @@ export function rivalPriceOf(
  * the business against anything while the business's own brand is not
  * searched, and where it names products of which none is searched. A
  * comparison that names no product ("geo vs seo") is not judged here.
+ *
+ * A product a pass read and did not keep as a rival is still a named
+ * product (issue 1285): it is known by the keyword its brand volume was
+ * read under. "aeo engine alternatives" stayed open at 70 searches because
+ * AEO Engine had left the rivals.
  */
 export function comparisonWithoutDemand(
   query: string,
@@ -110,10 +115,16 @@ export function comparisonWithoutDemand(
   const text = normalise(query);
   if (!COMPARISON_SHAPES.test(text)) return false;
   const namesOwn = names(text, a.own);
-  const rivals = (a.market?.rivals ?? []).filter((rival) => names(text, [normalise(rival.name), brandOf(rival.domain)]));
-  if (!namesOwn && rivals.length === 0) return false;
+  const standing = a.market?.rivals ?? [];
+  const rivals = standing.filter((rival) => names(text, [normalise(rival.name), brandOf(rival.domain)]));
+  const held = new Set(standing.flatMap((rival) => [rival.name, ...(rival.searchNames ?? [])].map(normalise)));
+  const others = Object.entries(a.market?.demand?.brands ?? {}).filter(([keyword]) => {
+    const brand = normalise(keyword);
+    return !held.has(brand) && !a.own.includes(brand) && names(text, [brand]);
+  });
+  if (!namesOwn && rivals.length === 0 && others.length === 0) return false;
   if (namesOwn && !ownSearched(a.market)) return true;
-  return !namesOwn && !rivals.some((rival) => searched(rival.volume));
+  return !namesOwn && !rivals.some((rival) => searched(rival.volume)) && !others.some(([, volume]) => searched(volume));
 }
 
 /** Each rival as a search may name it: its product name and its domain's

@@ -41,8 +41,9 @@ describe("D53 — a published page becomes an update topic with a new target", (
   it("is written as the new search's own type, not as a refresh of what is live", () => {
     expect(contentTypeOf(candidate)).toBe("listicle");
     expect(pageTypeOf(candidate)).toBe("market_comparison");
-    // The fit and source judged for the old search are not carried.
-    expect(candidate.businessFit).toBeNull();
+    // The source judged for the old search is not carried, and the fit is
+    // the operator's choice of target: no pass judges it (issue 1285).
+    expect(candidate.businessFit).toBe(3);
     expect(candidate.source).toBeNull();
     // An ordinary refresh of the same page stays an update.
     const due = { ...candidate, evidence: { ...candidate.evidence, shortfall: { kind: "due" } } } as unknown as Opportunity;
@@ -55,11 +56,11 @@ describe("D53 — a published page becomes an update topic with a new target", (
     const row = insertFor(retargetCandidate({ url: "https://content.reachkit.app/it's-live", row: WRITTEN }, { target: TARGET, volume: null, at: AT }));
     expect(sql).toContain("insert into opportunities");
     // Column for column what the product's own insert writes.
-    expect(row).toMatchObject({ proposed_slug: null, title: null, volume: null, business_fit: null, source: null });
+    expect(row).toMatchObject({ proposed_slug: null, title: null, volume: null, business_fit: 3, source: null });
     expect(sql).toContain(`'refresh_page', 'improve', '${TARGET}', p.live_url, null, null, null,`);
     expect(sql).toContain(`${JSON.stringify(row.evidence).replace(/'/g, "''")}'::jsonb`);
     expect(sql).toContain(`'${JSON.stringify(row.acceptance)}'::jsonb`);
-    expect(sql).toContain(`o.fit_band, null, null, '${row.page_type}', ${row.effort}`);
+    expect(sql).toContain(`o.fit_band, 3, null, '${row.page_type}', ${row.effort}`);
     // The site, the scan and the band are the page's own row's, read where it runs.
     expect(sql).toMatch(/select\s+o\.site_id, o\.scan_id,/);
     expect(sql).toContain("p.live_url = 'https://content.reachkit.app/it''s-live'");
