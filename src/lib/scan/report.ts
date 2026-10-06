@@ -571,6 +571,10 @@ export interface PromptsSection {
   /** The asks that answered. One that did not is absent, so it leaves the
    *  rate's denominator and is never a miss. */
   answers: readonly PromptAnswer[];
+  /** When the set asked was rebuilt whole (D54, issue 1281); absent on a
+   *  set never rebuilt. A week that carries another mark asked another
+   *  set, and the rolling rate leaves it out. */
+  restartedAt?: string;
 }
 
 /** One buyer prompt as its AI answer read (#1195). */

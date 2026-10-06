@@ -29,7 +29,6 @@
 import type { FounderAnswers } from "@/lib/site-profile/knowledge/types";
 import { sendDeepPass } from "@/jobs/deep-pass-backstop";
 import { hasActiveAccess } from "@/lib/account/billing";
-import { BATTERY } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import { resolvesInDns } from "@/lib/egress/dns";
 import { applySetupChoice } from "@/lib/publish/setup/apply";
@@ -385,12 +384,13 @@ export function liveSetupStore(): SetupStore {
         destination: a.submission.destination,
       });
 
+      const shown = await shownRivals(a.siteId);
       await updateSite(a.siteId, {
         domain: a.submission.domain,
         category: a.submission.category,
         competitors: [...a.submission.competitors],
       });
-      await markSetupOverride(a.siteId, { category: a.submission.category, competitors: a.submission.competitors });
+      await markSetupOverride(a.siteId, { category: a.submission.category, competitors: a.submission.competitors, shown });
 
       await writeVoice({
         siteId: a.siteId,
@@ -439,8 +439,9 @@ export function liveSetupStore(): SetupStore {
         await updateSite(a.siteId, { domain: a.save.domain, category: a.save.category });
         await markSetupOverride(a.siteId, { category: a.save.category });
       } else if (step === "rivals") {
+        const shown = await shownRivals(a.siteId);
         await updateSite(a.siteId, { competitors: [...a.save.competitors] });
-        await markSetupOverride(a.siteId, { competitors: a.save.competitors });
+        await markSetupOverride(a.siteId, { competitors: a.save.competitors, shown });
       } else if (step === "business") {
         const site = await siteById(a.siteId);
         await writeBusinessLists({
@@ -487,16 +488,30 @@ export function liveSetupStore(): SetupStore {
   };
 }
 
+/** The rivals the site holds before a save: what the rivals step showed.
+ *  `null` where they could not be read. */
+async function shownRivals(siteId: string): Promise<readonly string[] | null> {
+  try {
+    const { readSiteMarket } = await import("@/lib/market/infer/stored");
+    return (await readSiteMarket(siteId))?.competitors ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * D28 (#1185): an answer setup saves is the founder's override only where it
  * differs from what ReachKit concluded — leaving a step as it was shown
  * accepts ReachKit's market or rivals, and the passes go on keeping them
- * current. With nothing concluded there is nothing to override. Fails soft:
- * a missed flag leaves the conclusion in charge, which is the default.
+ * current. For rivals that is D55 (issue 1281): only adding or removing one
+ * is a choice, measured against the rivals the step showed (`shown`), and
+ * where those could not be read the mark is left as it is. With nothing
+ * concluded there is nothing to override. Fails soft: a missed flag leaves
+ * the conclusion in charge, which is the default.
  */
 async function markSetupOverride(
   siteId: string,
-  answer: { category?: string; competitors?: readonly string[] }
+  answer: { category?: string; competitors?: readonly string[]; shown?: readonly string[] | null }
 ): Promise<void> {
   try {
     const { readSiteMarket, writeSiteMarket } = await import("@/lib/market/infer/stored");
@@ -508,12 +523,17 @@ async function markSetupOverride(
       const same = answer.category.trim().toLowerCase() === current.category.trim().toLowerCase();
       stored = { ...stored, categoryOverridden: !same };
     }
-    if (answer.competitors !== undefined) {
-      const concluded = new Set(current.rivals.map((rival) => rival.domain));
-      const same =
-        answer.competitors.length === Math.min(concluded.size, BATTERY.COMPETITORS_MAX) &&
-        answer.competitors.every((domain) => concluded.has(domain));
-      stored = { ...stored, rivalsOverridden: !same };
+    if (answer.competitors !== undefined && answer.shown != null) {
+      const { setupRivalsOverridden } = await import("@/lib/market/infer/stability");
+      stored = {
+        ...stored,
+        rivalsOverridden: setupRivalsOverridden({
+          marked: stored.rivalsOverridden,
+          shown: answer.shown,
+          concluded: current.rivals.map((rival) => rival.domain),
+          answer: answer.competitors,
+        }),
+      };
     }
     await writeSiteMarket(siteId, { stored });
   } catch (error) {

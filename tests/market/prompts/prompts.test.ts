@@ -146,3 +146,37 @@ describe("the rate, its range, share of voice and pages cited", () => {
     expect(measure.pages).toEqual([{ url: page, answers: 2, promptIds: ["p1", "p2"] }]);
   });
 });
+
+describe("D54 — a set built from another label is rebuilt once from the search term", () => {
+  const built = new Date("2026-10-05T06:00:00Z");
+  const pass = new Date("2026-10-12T06:00:00Z");
+  const old = nextPromptSet(EMPTY_PROMPT_SET, generatePrompts(MARKET, "Plausible"), built);
+  const searched = generatePrompts({ ...MARKET, category: "cookieless analytics", buyer: "founders and business owners" }, "Plausible");
+
+  it("replaces the whole set on the next pass, unchecked, and records when", () => {
+    const rebuilt = nextPromptSet(old, searched, pass, "cookieless analytics");
+    expect(rebuilt.prompts.map((p) => p.text)).toEqual(searched.map((p) => p.text));
+    expect(rebuilt.prompts.some((p) => p.precheck === true)).toBe(false);
+    expect(rebuilt.prompts.some((p) => p.text.includes("privacy-friendly web analytics"))).toBe(false);
+    expect(rebuilt.rebuiltAt).toBe(pass.toISOString());
+    expect(parsePromptSet(JSON.parse(JSON.stringify(rebuilt)))).toEqual(rebuilt);
+  });
+
+  it("happens once: a later change of search term moves the set at the rotation rate only (D33)", () => {
+    const rebuilt = nextPromptSet(old, searched, pass, "cookieless analytics");
+    const later = generatePrompts({ ...MARKET, category: "simple analytics" }, "Plausible");
+    const next = nextPromptSet(rebuilt, later, new Date("2026-10-19T06:00:00Z"), "simple analytics");
+    expect(next.rebuiltAt).toBe(rebuilt.rebuiltAt);
+    expect(next.prompts.filter((p) => p.precheck === true)).toHaveLength(Math.floor(25 * TRACKED_PROMPTS.ROTATION_SHARE));
+    const settled = settlePrechecks(next, new Map(next.prompts.map((p) => [p.id, "keep" as const])));
+    expect(settled.rebuiltAt).toBe(rebuilt.rebuiltAt);
+  });
+
+  it("leaves a set alone that already says the search term, or whose market holds none", () => {
+    expect(nextPromptSet(old, generatePrompts(MARKET, "Plausible"), pass, MARKET.category)).toBe(old);
+    expect(nextPromptSet(old, searched, pass, null).rebuiltAt).toBeUndefined();
+    const fresh = nextPromptSet(EMPTY_PROMPT_SET, searched, built, "cookieless analytics");
+    expect(fresh.rebuiltAt).toBeUndefined();
+    expect(nextPromptSet(fresh, searched, pass, "cookieless analytics")).toBe(fresh);
+  });
+});

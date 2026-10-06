@@ -59,4 +59,14 @@ describe("the tracked prompts' window", () => {
     ]);
     expect(window.weeks[1]?.samples.every((sample) => sample.named)).toBe(true);
   });
+
+  it("D54: after a rebuild the rate starts again; a week that asked the old set is left out", async () => {
+    const at = (day: string) => ({ measuredAt: new Date(`${day}T04:00:00Z`) });
+    weekly.set("2026-09-28", { report: { prompts: section(true), verdict: at("2026-09-28") } });
+    weekly.set("2026-10-05", { report: { prompts: { ...section(false), restartedAt: "2026-10-05T04:00:00.000Z" }, verdict: at("2026-10-05") } });
+    weekly.set("2026-10-12", { report: { prompts: { ...section(false), restartedAt: "2026-10-05T04:00:00.000Z" }, verdict: at("2026-10-12") } });
+    const window = await readPromptWindow({ siteId: "s", weekStart: "2026-10-12" });
+    expect(window.weeks.map((week) => week.weekStart)).toEqual(["2026-10-05", "2026-10-12"]);
+    expect(window.weeks.flatMap((week) => week.samples).some((sample) => sample.named)).toBe(false);
+  });
 });

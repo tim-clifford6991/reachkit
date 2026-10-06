@@ -200,9 +200,12 @@ describe("commitSetup — the transaction, the three answers, then the stamp", (
     // half-written.
     // D28 (#1185): after the answers, one read of what ReachKit concluded,
     // to tell whether those answers override it (none is concluded here,
-    // so nothing more is written).
+    // so nothing more is written). D55 (issue 1281): before the answers,
+    // one read of the rivals the step showed, which the saved ones are
+    // measured against.
     expect(order).toEqual([
       "rpc:apply_setup_choice",
+      "sites",
       "sites",
       "sites",
       "site_profiles",

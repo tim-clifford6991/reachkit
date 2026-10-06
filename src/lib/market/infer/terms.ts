@@ -98,12 +98,19 @@ export function spoken(market: Pick<MarketConclusion, "category" | "synonyms" | 
   return { category, synonyms };
 }
 
+/** The market's name as a prompt says it, where the market holds a searched
+ *  term; `null` where its terms were never read or none is searched. */
+export function searchedName(market: Pick<MarketConclusion, "category" | "synonyms" | "terms" | "searchTerm" | "termsAt">): string | null {
+  if (market.termsAt === undefined || (market.searchTerm ?? "").trim() === "") return null;
+  return spoken(market).category;
+}
+
 /**
  * The market's names that are never printed (D49): its concluded category
  * and synonyms and its proposed terms, less the ones `spoken` prints. Empty
  * where the terms were never read. A tracked prompt built before they were
- * read still carries one, and leaves the set only at its rotation rate
- * (D33) — so a page checks its questions against this list.
+ * read still carries one until its set is rebuilt on the next pass (D54)
+ * — so a page checks its questions against this list.
  */
 export function unsearched(market: Pick<MarketConclusion, "category" | "synonyms" | "terms" | "searchTerm" | "termsAt">): string[] {
   if (market.termsAt === undefined) return [];

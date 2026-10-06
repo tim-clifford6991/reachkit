@@ -10,6 +10,10 @@
 // it names a rival since dropped — gives its place to one the market now
 // yields. Only a prompt added that way is pre-checked.
 //
+// One exception, once (owner D54 of 2026-10-06, issue 1281): a set built
+// from a label other than the market's search term (D49) is rebuilt whole
+// from it, and the rate starts again from that date.
+//
 // Pure: no I/O and no clock of its own.
 import { TRACKED_PROMPTS } from "@/lib/config/constants";
 import { PROMPT_KINDS, type GeneratedPrompt, type PromptKind } from "./generate";
@@ -30,6 +34,12 @@ export interface PromptSet {
   /** When prompts were rotated in, and how many: the quarter's allowance
    *  is counted over these. */
   rotations: readonly { at: string; added: number }[];
+  /** The market's name the set was built from (D54). Absent on a set built
+   *  before the name was kept. */
+  builtFrom?: string;
+  /** When the set was rebuilt whole from the search term (D54), ISO. It
+   *  happens once; the four-week rate starts again here. */
+  rebuiltAt?: string;
 }
 
 export const EMPTY_PROMPT_SET: PromptSet = Object.freeze({ prompts: [], rotations: [] });
@@ -72,7 +82,27 @@ export function parsePromptSet(value: unknown): PromptSet {
     const r = entry as Record<string, unknown>;
     if (typeof r.at === "string" && typeof r.added === "number") rotations.push({ at: r.at, added: r.added });
   }
-  return { prompts, rotations };
+  return {
+    prompts,
+    rotations,
+    ...(typeof record.builtFrom === "string" ? { builtFrom: record.builtFrom } : {}),
+    ...(typeof record.rebuiltAt === "string" ? { rebuiltAt: record.rebuiltAt } : {}),
+  };
+}
+
+const named = (text: string): string => text.toLowerCase().replace(/\s+/g, " ").trim();
+
+/**
+ * D54: whether the stored set was built from a label other than
+ * `searchTerm`, the market's name as its prompts say it. A set that kept
+ * no name is read by its wording: none of its prompts says the term. A set
+ * already rebuilt is never rebuilt again.
+ */
+export function builtFromAnotherLabel(stored: PromptSet, searchTerm: string): boolean {
+  const term = named(searchTerm);
+  if (term === "" || stored.prompts.length === 0 || stored.rebuiltAt !== undefined) return false;
+  if (stored.builtFrom !== undefined) return named(stored.builtFrom) !== term;
+  return !stored.prompts.some((p) => named(p.text).includes(term));
 }
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -81,11 +111,22 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
  * The set this pass asks, from the stored one and what the market yields
  * today. A site with no set gets the whole of `generated`. A site with one
  * keeps it, and swaps in what the allowance still has room for.
+ * `searchTerm` is the market's name in `generated` where the market holds a
+ * searched term (D49), else `null`: a set built from another label is
+ * rebuilt whole from it, once (D54).
  */
-export function nextPromptSet(stored: PromptSet, generated: readonly GeneratedPrompt[], now: Date): PromptSet {
+export function nextPromptSet(
+  stored: PromptSet,
+  generated: readonly GeneratedPrompt[],
+  now: Date,
+  searchTerm: string | null = null
+): PromptSet {
   const at = now.toISOString();
-  if (stored.prompts.length === 0) {
-    return { prompts: generated.map((p) => ({ id: promptId(p.text), kind: p.kind, text: p.text, addedAt: at })), rotations: [] };
+  const whole = (): TrackedPrompt[] => generated.map((p) => ({ id: promptId(p.text), kind: p.kind, text: p.text, addedAt: at }));
+  const from = searchTerm === null ? {} : { builtFrom: searchTerm };
+  if (stored.prompts.length === 0) return { prompts: whole(), rotations: [], ...from };
+  if (searchTerm !== null && generated.length > 0 && builtFromAnotherLabel(stored, searchTerm)) {
+    return { prompts: whole(), rotations: [], ...from, rebuiltAt: at };
   }
 
   const yielded = new Set(generated.map((p) => promptId(p.text)));
@@ -112,7 +153,7 @@ export function nextPromptSet(stored: PromptSet, generated: readonly GeneratedPr
     room -= 1;
   }
   if (added === 0) return stored;
-  return { prompts, rotations: [...rotations, { at, added }] };
+  return { ...stored, prompts, rotations: [...rotations, { at, added }] };
 }
 
 /**
@@ -132,5 +173,5 @@ export function settlePrechecks(
     if (verdict === "keep") prompts.push({ id: prompt.id, kind: prompt.kind, text: prompt.text, addedAt: prompt.addedAt });
     else prompts.push(prompt);
   }
-  return { prompts, rotations: set.rotations };
+  return { ...set, prompts };
 }
