@@ -68,6 +68,9 @@ beforeAll(async () => {
 const APPROVED_EXPORTS = [
   "aiMode",
   "competitorsDomain",
+  // SPEC §6, owner D49 (2026-10-05, issue 1270): Labs keyword overview,
+  // for the search volume of a market's terms.
+  "keywordOverview",
   "keywordSuggestions",
   "llmMentions",
   "llmScraper",

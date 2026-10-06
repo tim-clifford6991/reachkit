@@ -678,7 +678,15 @@ export function supabaseOpportunityStore(): OpportunityStore {
       const { readKnowledgeBase, knowledgeDigest } = await import("@/lib/site-profile/knowledge/read");
       const base = site == null ? null : await readKnowledgeBase({ siteId, domain: site.domain });
       const knowledge = base === null ? null : knowledgeDigest(base);
-      return { market: site?.stored.current ?? null, competitors: site?.competitors ?? [], prompts, knowledge };
+      // SPEC §6 (D49, issue 1270): topics are derived from the market's
+      // searched terms and the founder's own answer about who buys, so a
+      // label nobody searches never reaches a page's subject.
+      const current = site?.stored.current ?? null;
+      const { spokenMarket } = await import("@/lib/market/infer/terms");
+      const { readBusinessEdits } = await import("@/lib/site-profile/business/edits");
+      const buyers = current === null ? null : await readBusinessEdits(siteId).then((edits) => edits.answers.buyers ?? null).catch(() => null);
+      const market = current === null ? null : spokenMarket(current, buyers);
+      return { market, competitors: site?.competitors ?? [], prompts, knowledge };
     },
 
     async setReadiness(opportunityId, reason) {

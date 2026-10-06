@@ -316,9 +316,15 @@ function buyerQuestions(a: {
     .map((question) => question.text);
   // The tracked buyer prompts (SPEC §6, D19) are built from the market in force.
   const tracked = (a.report.prompts?.asked ?? []).map((asked) => asked.text);
-  const all = [...new Set([...tracked, ...measured].map((text) => text.replace(/\s+/g, " ").trim()).filter(Boolean))].filter((text) =>
-    answerable(text, { facts: a.facts, claims: a.claims, knowledge: a.knowledge, rivals })
-  );
+  // SPEC §6 (D49, issue 1270): a label of the market nobody searches is
+  // never printed. A prompt built before the market's terms were read still
+  // carries one until it rotates out (D33), and is not a question here.
+  const flat = (text: string): string => ` ${text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()} `;
+  const labels = (a.market?.unsearched ?? []).map(flat);
+  const printable = (text: string): boolean => !labels.some((label) => flat(text).includes(label));
+  const all = [...new Set([...tracked, ...measured].map((text) => text.replace(/\s+/g, " ").trim()).filter(Boolean))]
+    .filter(printable)
+    .filter((text) => answerable(text, { facts: a.facts, claims: a.claims, knowledge: a.knowledge, rivals }));
   const words = topicWords(a.target);
   return [...all.filter((text) => shares(words, text)), ...all.filter((text) => !shares(words, text))].slice(0, PACK.questions);
 }

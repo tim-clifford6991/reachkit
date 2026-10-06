@@ -412,20 +412,21 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
     doNotClaim: site.doNotClaim,
     rivals: site.rivals,
   };
+  // SPEC §7 (2026-09-20), #927: the **confirmed** business profile — the
+  // knowledge base and the founder's answers, with the customer's own
+  // corrections applied over the crawl — through `readConfirmedBusiness`
+  // (#978), the read both screens use. Read once for the day.
+  const confirmed = await confirmedForWriting({ siteId: a.siteId, domain: site.domain });
+
   // SPEC §7 (2026-10-04, issue 1248): the page is written for the site's
   // market in force (`sites.market`, D28) — the report's category is the one
   // that pass was bought under, and stands in only where no market is stored.
   const writingFor = writingMarket({
     site: site.market === undefined ? null : { category: site.category, competitors: site.rivals, stored: site.market },
     reportCategory: report.market.kind === "unmeasured" ? "" : report.market.value.profile.category,
+    founderBuyer: confirmed.buyers,
   });
   const category = writingFor.category;
-
-  // SPEC §7 (2026-09-20), #927: the **confirmed** business profile — the
-  // knowledge base and the founder's answers, with the customer's own
-  // corrections applied over the crawl — through `readConfirmedBusiness`
-  // (#978), the read both screens use. Read once for the day.
-  const confirmed = await confirmedForWriting({ siteId: a.siteId, domain: site.domain });
 
   // SPEC §7 (2026-09-12): the site's own pages from the profile's inventory,
   // the cluster's earlier live pages, and the pages the site already has

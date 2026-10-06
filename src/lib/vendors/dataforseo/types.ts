@@ -18,6 +18,13 @@ export interface RankedRow {
   difficulty?: number | null;
 }
 
+/** `keywordOverview` — one keyword the vendor holds data for, as it spells
+ *  it (lower case). A keyword it has nothing for has no row. */
+export interface KeywordVolumeRow {
+  keyword: string;
+  searchVolume: number;
+}
+
 /** `keywordSuggestions` — one keyword DataForSEO returns for a seed term. */
 export interface SuggestionRow {
   keyword: string;

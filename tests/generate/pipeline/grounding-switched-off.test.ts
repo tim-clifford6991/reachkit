@@ -148,6 +148,6 @@ describe("#927 — the refusals come back with the profile, so the draft path re
       domain: "harbourbikes.example",
     });
     // Not "the market reading's job": nothing at all.
-    expect(confirmed).toEqual({ profile: null, factsOff: [] });
+    expect(confirmed).toEqual({ profile: null, factsOff: [], buyers: null });
   });
 });
