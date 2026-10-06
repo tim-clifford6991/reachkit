@@ -208,6 +208,7 @@ export async function main(opts: Options): Promise<number> {
             stored: parseStoredMarket(snapshot.market),
           },
     reportCategory: profile.category,
+    founderBuyer: snapshot.knowledge?.answers.buyers ?? null,
   });
   const category = writingFor.category;
   const rivals =

@@ -32,6 +32,10 @@ export interface ConfirmedForWriting {
    *  (issue 1249) — a read scoped to one scan may hold a page that repeats
    *  a demo line and not the page whose markup marks it as one. */
   readonly factsOff: readonly string[];
+  /** The founder's own answer about who buys (§5's first question), which
+   *  outranks the buyer a market conclusion inferred (SPEC §6, D49, issue
+   *  1270). `null` where they gave none. */
+  readonly buyers: string | null;
 }
 
 /** What a site with nothing read and nothing refused looks like. The prompt
@@ -39,6 +43,7 @@ export interface ConfirmedForWriting {
 const NOTHING_CONFIRMED: ConfirmedForWriting = Object.freeze({
   profile: null,
   factsOff: Object.freeze([]),
+  buyers: null,
 });
 
 /**
@@ -81,6 +86,7 @@ export async function confirmedForWriting(a: {
       knowledgeBase({ stored: readings.knowledge, answers: readings.edits.answers })
     ),
     factsOff: [...readings.edits.factsOff, ...readings.knowledge.demoPhrases.flatMap(examplePhrases)],
+    buyers: readings.edits.answers.buyers ?? null,
   };
 }
 

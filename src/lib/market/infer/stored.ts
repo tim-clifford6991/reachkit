@@ -5,7 +5,7 @@
 import { dbAdmin } from "@/lib/db";
 import { registrableDomain } from "../rivals/domains";
 import type { MarketChange, StoredMarketWithChange } from "./stability";
-import { EMPTY_STORED_MARKET, type MarketConclusion, type RivalConclusion } from "./types";
+import { EMPTY_STORED_MARKET, type MarketConclusion, type MarketTerm, type RivalConclusion } from "./types";
 
 interface QueryResult<T> {
   data: T[] | null;
@@ -61,6 +61,19 @@ function rivalsOf(value: unknown): RivalConclusion[] {
   return out;
 }
 
+function termsOf(value: unknown): MarketTerm[] {
+  if (!Array.isArray(value)) return [];
+  const out: MarketTerm[] = [];
+  for (const entry of value) {
+    if (!isRecord(entry)) continue;
+    const term = (str(entry.term) ?? "").trim();
+    if (term === "") continue;
+    const volume = typeof entry.volume === "number" && entry.volume > 0 ? entry.volume : 0;
+    out.push({ term, volume, ...(entry.polluted === true ? { polluted: true as const } : {}) });
+  }
+  return out;
+}
+
 function conclusionOf(value: unknown): MarketConclusion | null {
   if (!isRecord(value)) return null;
   const category = str(value.category);
@@ -74,6 +87,11 @@ function conclusionOf(value: unknown): MarketConclusion | null {
     notOurMarket: strings(value.notOurMarket),
     categoryReason: str(value.categoryReason) ?? "",
     rivals: rivalsOf(value.rivals),
+    // D49: only where a pass has read them, so "never read" stays distinct
+    // from "read, and nothing is searched".
+    ...(str(value.termsAt) === null
+      ? {}
+      : { terms: termsOf(value.terms), searchTerm: str(value.searchTerm), termsAt: str(value.termsAt)! }),
   };
 }
 

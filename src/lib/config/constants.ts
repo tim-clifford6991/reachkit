@@ -33,6 +33,9 @@ export const PRICE_BOOK = Object.freeze({
   /** Google News, live, ten results (SPEC §7, D48; issue 1259): the vendor's
    *  own charge on the cost check of 2026-10-04, 0.2 cents a call. */
   NEWS_LIVE_C: 0.2,
+  /** Labs keyword overview (SPEC §6, D49; issue 1270): the vendor's list
+   *  price, one cent a request and a hundredth of a cent a keyword. */
+  KEYWORD_OVERVIEW_REQUEST_C: 1, KEYWORD_OVERVIEW_KEYWORD_C: 0.01,
   CHATGPT_SCRAPE_STD_C: 0.12, AI_MODE_LIVE_C: 0.2, AI_MODE_STD_C: 0.12,
   LLM_MENTIONS_ROWS: 100, LLM_MENTIONS_REQUEST_C: 10, LLM_MENTIONS_ROW_C: 0.1,
 } as const);
@@ -298,6 +301,9 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   /** #1185: its rivals — up to ten candidates with a reason each: ~800
    *  needed. */
   "rival-inference": 1400,
+  /** SPEC §6 (D49, issue 1270): a market's candidate search terms — up to
+   *  ten short phrases with a flag each: ~250 needed. */
+  "market-terms": 500,
   /** SPEC §5 (2026-09-29, #1133): one page's share of the knowledge base —
    *  eight short lists bounded by `KNOWLEDGE_BASE.PAGE_ITEMS`, each item a
    *  phrase or one sentence: ~900 needed on a full pricing page. */
@@ -315,6 +321,7 @@ export const INFERENCE_TEMPERATURE: Readonly<Partial<Record<keyof typeof INFEREN
   Object.freeze({
     "market-inference": 0,
     "rival-inference": 0,
+    "market-terms": 0,
     "topic-fit": 0,
     "topic-buyer-searches": 0,
     "topic-typed": 0,
@@ -636,6 +643,14 @@ export const BATTERY = Object.freeze({
    *  measures (drafted default, the owner may correct it; ~1.6¢ live). */
   MARKET_PROMPTS: 8,
 } as const);
+
+/**
+ * A market's search terms (SPEC §6, owner D49 of 2026-10-05, issue 1270).
+ * `MAX` is how many candidates one keyword-overview call reads. Volumes
+ * move slowly, so the terms of a market that still stands are read again
+ * only after `REFRESH_DAYS`.
+ */
+export const MARKET_TERMS = Object.freeze({ MAX: 10, REFRESH_DAYS: 30 } as const);
 
 /**
  * SPEC §6 (owner, D19 final, D32 and D33 of 2026-10-03, #1162) — the tracked

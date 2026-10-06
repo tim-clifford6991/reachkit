@@ -90,6 +90,7 @@ describe("a Q&A's questions are on the current market, each with a fact that ans
     category: "project management software",
     from: "site",
     synonyms: ["task boards"],
+    unsearched: [],
     concluded: [{ name: "Dropped", domain: "dropped.example" }],
     market: {
       category: "project management software",

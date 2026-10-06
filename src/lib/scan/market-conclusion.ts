@@ -62,6 +62,8 @@ export interface PassMarket {
   synonyms: readonly string[];
   market: MarketConclusion;
   rivalsOverridden: boolean;
+  /** The founder's own answer about who buys, where they gave one (D49). */
+  founderBuyer: string | null;
 }
 
 /**
@@ -101,7 +103,7 @@ export async function concludeMarketForPass(a: {
   const fresh = await inferMarketFields(a.cost, evidence);
   if (fresh.kind === "unmeasured") {
     log("market_conclusion_unmeasured", { siteId: a.siteId, reason: fresh.reason });
-    return passMarket(site.stored.current, site.stored.rivalsOverridden);
+    return passMarket(site.stored.current, site.stored.rivalsOverridden, await founderBuyer(a.siteId));
   }
 
   const settled = settleMarket({
@@ -112,21 +114,83 @@ export async function concludeMarketForPass(a: {
     scanId: a.scanId,
     at: a.at,
   });
-  const current = settled.next.current;
+  // D49: the market that stands has its words checked against search
+  // volume, on this pass's money.
+  const current = await withSearchTerms({
+    market: settled.next.current,
+    siteId: a.siteId,
+    domain: a.domain,
+    siteName: text.siteName,
+    cost: a.cost,
+    at: a.at,
+  });
   await writeSiteMarket(a.siteId, {
-    stored: settled.next,
+    stored: { ...settled.next, current },
     ...(settled.adopted && current !== null ? { category: current.category } : {}),
   });
   log("market_conclusion", {
     siteId: a.siteId,
     adopted: settled.adopted,
     pending: settled.next.pending !== null,
+    searchTerm: current?.searchTerm ?? null,
   });
-  return passMarket(current, settled.next.rivalsOverridden);
+  return passMarket(current, settled.next.rivalsOverridden, await founderBuyer(a.siteId));
 }
 
-function passMarket(market: MarketConclusion | null, rivalsOverridden: boolean): PassMarket | null {
-  return market === null ? null : { category: market.category, synonyms: market.synonyms, market, rivalsOverridden };
+/**
+ * The market with its search terms read (SPEC §6, D49, issue 1270), where
+ * they are due: never read, or older than `MARKET_TERMS.REFRESH_DAYS`. A
+ * read that did not come back leaves the market as it was, and the next
+ * pass asks again.
+ */
+async function withSearchTerms(a: {
+  market: MarketConclusion | null;
+  siteId: string;
+  domain: string;
+  siteName: string | null;
+  cost: CostContext;
+  at: Date;
+}): Promise<MarketConclusion | null> {
+  const { market } = a;
+  if (market === null) return null;
+  try {
+    const [{ termsDue }, { readMarketTerms }] = await Promise.all([
+      import("@/lib/market/infer/terms"),
+      import("@/lib/market/infer/read-terms"),
+    ]);
+    if (!termsDue(market, a.at)) return market;
+    const read = await readMarketTerms(a.cost, { market, siteName: a.siteName, domain: a.domain, at: a.at });
+    if (read.kind === "unmeasured") {
+      log("market_terms_unmeasured", { siteId: a.siteId, reason: read.reason, because: read.because ?? null });
+      return market;
+    }
+    log("market_terms", { siteId: a.siteId, searchTerm: read.value.searchTerm, terms: read.value.terms });
+    return { ...market, ...read.value };
+  } catch (error) {
+    log("market_terms_failed", { siteId: a.siteId, because: error instanceof Error ? error.message : String(error) });
+    return market;
+  }
+}
+
+/** The founder's own answer about who buys (§5's first question), which
+ *  outranks the inferred buyer (D49). `null` where they gave none. */
+async function founderBuyer(siteId: string): Promise<string | null> {
+  try {
+    const { readBusinessEdits } = await import("@/lib/site-profile/business/edits");
+    return (await readBusinessEdits(siteId)).answers.buyers ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function passMarket(
+  market: MarketConclusion | null,
+  rivalsOverridden: boolean,
+  founderBuyer: string | null
+): PassMarket | null {
+  return market === null
+    ? null
+    : { category: market.category, synonyms: market.synonyms, market, rivalsOverridden, founderBuyer };
 }
 
 /**

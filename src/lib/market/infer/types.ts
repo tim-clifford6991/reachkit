@@ -23,6 +23,19 @@ export interface RivalConclusion {
   reason: string;
 }
 
+/** One search term buyers type for the market, with how often it is
+ *  searched (SPEC §6, owner D49 of 2026-10-05, issue 1270). */
+export interface MarketTerm {
+  /** As a title would write it: "AI SEO", "generative engine optimization". */
+  term: string;
+  /** Searches a month in the market's location. 0 where the vendor has
+   *  none: the term stays internal and is never printed. */
+  volume: number;
+  /** True where the phrase mostly means something else to the people who
+   *  type it ("geo", "aeo"). Never the search term, never printed. */
+  polluted?: true;
+}
+
 /** The structured market (#1159), concluded from evidence. */
 export interface MarketConclusion {
   /** Who buys. */
@@ -41,6 +54,14 @@ export interface MarketConclusion {
   categoryReason: string;
   /** Three to five real competitors, closest first. */
   rivals: readonly RivalConclusion[];
+  /** The market's candidate search terms with their measured volume, most
+   *  searched first (D49). Absent until a pass has read them. */
+  terms?: readonly MarketTerm[];
+  /** The most-searched term that is on the market and not polluted by
+   *  another meaning; `null` where none of `terms` is searched (D49). */
+  searchTerm?: string | null;
+  /** When `terms` were read, ISO. */
+  termsAt?: string;
 }
 
 /**

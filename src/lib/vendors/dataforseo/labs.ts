@@ -16,7 +16,7 @@ import type { CostContext } from "@/lib/costs";
 import { CACHE_WINDOWS_D, PRICE_BOOK, SERP_LOCATION, VENDOR } from "@/lib/config/constants";
 import type { Measured } from "@/lib/measure/measured";
 import { asArray, asNumber, asString, callEndpoint, isRecord, ledgered, ledgeredWithTotal, type OnVendorFailure } from "./envelope";
-import type { CompetitorRow, RankedResult, RankedRow, SuggestionRow, VolumeWindow } from "./types";
+import type { CompetitorRow, KeywordVolumeRow, RankedResult, RankedRow, SuggestionRow, VolumeWindow } from "./types";
 
 const LABS = "/v3/dataforseo_labs/google";
 const LOCALE_KEY = `${SERP_LOCATION.location}|${SERP_LOCATION.language}`;
@@ -227,6 +227,42 @@ export async function keywordSuggestions(
         order_by: ["keyword_info.search_volume,desc"],
       }),
     parse: parseSuggestions,
+  });
+}
+
+function parseOverview(result: unknown): KeywordVolumeRow[] | undefined {
+  if (!isRecord(result)) return undefined;
+  if (result.items === null || result.items === undefined) return [];
+  if (!Array.isArray(result.items)) return undefined;
+  const rows: KeywordVolumeRow[] = [];
+  for (const item of result.items) {
+    if (!isRecord(item)) continue;
+    const keyword = asString(item.keyword)?.toLowerCase();
+    if (!keyword) continue;
+    const info = isRecord(item.keyword_info) ? item.keyword_info : undefined;
+    rows.push({ keyword, searchVolume: (info ? asNumber(info.search_volume) : undefined) ?? 0 });
+  }
+  return rows;
+}
+
+/**
+ * How often each keyword is searched a month in `SERP_LOCATION` (SPEC §6,
+ * owner D49 of 2026-10-05, issue 1270): one request for the whole list. A
+ * keyword the vendor holds nothing for has no row, which the caller reads
+ * as no searches.
+ */
+export async function keywordOverview(
+  c: CostContext,
+  a: { keywords: readonly string[] }
+): Promise<Measured<KeywordVolumeRow[]>> {
+  const keywords = [...new Set(a.keywords.map((k) => k.trim().toLowerCase()).filter(Boolean))].sort();
+  return ledgered<KeywordVolumeRow>(c, {
+    source: "dataforseo_labs/google/keyword_overview",
+    cacheKey: `${keywords.join(",")}|${LOCALE_KEY}`,
+    freshnessDays: CACHE_WINDOWS_D.suggestions,
+    costCents: PRICE_BOOK.KEYWORD_OVERVIEW_REQUEST_C + keywords.length * PRICE_BOOK.KEYWORD_OVERVIEW_KEYWORD_C,
+    fetch: () => callEndpoint({ live: `${LABS}/keyword_overview/live` }, "live", { keywords }),
+    parse: parseOverview,
   });
 }
 

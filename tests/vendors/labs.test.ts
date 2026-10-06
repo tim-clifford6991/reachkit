@@ -218,6 +218,30 @@ describe("BUILD §6.1 price book — each call reserves the pinned price, read f
   });
 });
 
+describe("SPEC §6 (D49, issue 1270) — keywordOverview reads a list's search volume in one request", () => {
+  it("asks once for the whole list, at a cent a request and a hundredth a keyword, and returns the rows the vendor holds", async () => {
+    const stub = stubVendorFetch(() =>
+      envelope({
+        items: [
+          { keyword: "ai seo", keyword_info: { search_volume: 6600 } },
+          { keyword: "ai visibility tool", keyword_info: { search_volume: 1600 } },
+        ],
+      })
+    );
+    const { ctx, calls } = fakeCostContext();
+    const result = await labs.keywordOverview(ctx, { keywords: ["AI SEO", "AI visibility tool", "AI discovery monitoring"] });
+
+    expect(stub.tasks).toHaveLength(1);
+    expect(stub.tasks[0]).toMatchObject({ keywords: ["ai discovery monitoring", "ai seo", "ai visibility tool"] });
+    expect(calls[0]?.costCents).toBeCloseTo(1.03);
+    if (result.kind !== "measured") throw new Error("unreachable");
+    expect(result.value).toEqual([
+      { keyword: "ai seo", searchVolume: 6600 },
+      { keyword: "ai visibility tool", searchVolume: 1600 },
+    ]);
+  });
+});
+
 describe('BUILD §6.4 — "Cache windows: own domain 7d · rivals 30d … suggestions 30d"', () => {
   it.each([
     [50, "own"],

@@ -58,6 +58,7 @@ import type { RobotsPolicy } from "@/lib/egress/types";
 import { checkCoherence, type CoherenceVerdict } from "@/lib/market/coherence/check";
 import { nextCorrectionState, type CorrectionState } from "@/lib/market/coherence/state";
 import { EVIDENCE_BOUNDS } from "@/lib/market/infer/evidence";
+import { spokenMarket } from "@/lib/market/infer/terms";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { buyerPrompts } from "@/lib/market/questions/buyer-prompts";
 import { readPromptAnswer } from "@/lib/market/prompts/answer";
@@ -444,6 +445,9 @@ interface Sections {
   /** The market this pass concluded and measures (#1185), where it
    *  concluded one: the market's buyer prompts are built from it (#1195). */
   market: MarketConclusion | null;
+  /** The founder's own answer about who buys, which the prompts name over
+   *  the inferred buyer (D49, issue 1270). `null` where they gave none. */
+  founderBuyer: string | null;
   /** The rivals whose ranked rows may join this pass's pool (#1195): the
    *  rivals concluded for the market in force. `null` admits every tracked
    *  rival — a founder's own, or a pass with no concluded market. A rival
@@ -555,6 +559,7 @@ function freshSections(at: Date): Sections {
     pagesRead: null,
     concludedCategory: undefined,
     market: null,
+    founderBuyer: null,
     poolRivals: null,
     marketPrompts: [],
     prompts: null,
@@ -1700,6 +1705,7 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
         synonyms = concluded.synonyms;
         sections.concludedCategory = concluded.category;
         sections.market = concluded.market;
+        sections.founderBuyer = concluded.founderBuyer;
         if (!concluded.rivalsOverridden) {
           sections.poolRivals = new Set(concluded.market.rivals.map((r) => r.domain));
         }
@@ -2096,7 +2102,8 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
 async function askTheMarketPrompts(a: StageArgs): Promise<void> {
   const { bounds, cost, parameters, sections } = a;
   if (!parameters.battery || parameters.marketPrompts === 0 || sections.market === null) return;
-  const prompts = buyerPrompts(sections.market, parameters.marketPrompts);
+  // D49: asked in the words buyers search, for the buyer the founder named.
+  const prompts = buyerPrompts(spokenMarket(sections.market, sections.founderBuyer), parameters.marketPrompts);
   const own = a.domain.toLowerCase().replace(/^www\./, "");
   const brand = own.split(".")[0] ?? own;
   await Promise.all(
@@ -2157,11 +2164,13 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
   // day is served what it already bought.
   const asOf = a.startedAt.toISOString().slice(0, 10);
   try {
-    const [{ readPromptSet, writePromptSet }, { readSiteMarket }, { readSiteProfile }] = await Promise.all([
-      import("@/lib/market/prompts/store"),
-      import("@/lib/market/infer/stored"),
-      import("@/lib/site-profile/store"),
-    ]);
+    const [{ readPromptSet, writePromptSet }, { readSiteMarket }, { readSiteProfile }, { readBusinessEdits }] =
+      await Promise.all([
+        import("@/lib/market/prompts/store"),
+        import("@/lib/market/infer/stored"),
+        import("@/lib/site-profile/store"),
+        import("@/lib/site-profile/business/edits"),
+      ]);
     const market = sections.market ?? (await readSiteMarket(siteId))?.stored.current ?? null;
     if (market === null) {
       console.log(JSON.stringify({ event: "tracked_prompts", asked: 0, because: "no_market" }));
@@ -2169,7 +2178,13 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
     }
     const siteName = promptSiteName((await readSiteProfile(a.domain))?.siteName ?? null, a.domain);
     const stored = await readPromptSet(siteId);
-    const set = nextPromptSet(stored, generatePrompts(market, siteName), new Date());
+    // D49: a prompt names the market by its searched terms, never by a
+    // label nobody searches, and the buyer by the founder's own answer.
+    const buyer =
+      sections.market === null
+        ? ((await readBusinessEdits(siteId).catch(() => null))?.answers.buyers ?? null)
+        : sections.founderBuyer;
+    const set = nextPromptSet(stored, generatePrompts(spokenMarket(market, buyer), siteName), new Date());
     if (set.prompts.length === 0 || sections.sealed) return;
     if (set !== stored) await writePromptSet(siteId, set);
 
