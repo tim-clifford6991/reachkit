@@ -260,6 +260,9 @@ interface FreeScanInsert {
   status: "running";
   network_hash: string;
   from_incomplete_rescan: boolean;
+  /** `scans.smoke` (issue 1286). Present only on a smoke test's row: every
+   *  other insert leaves the column to its default. */
+  smoke?: true;
 }
 
 interface InsertedScanRow {
@@ -650,6 +653,9 @@ export async function claimFreeScanSlot(a: {
   domain: CanonicalDomain;
   network: NetworkKey;
   fromIncompleteRescan: boolean;
+  /** `scripts/smoke.sh` started it (SPEC §6, D57). Recorded on the row and
+   *  never an argument to a limit. */
+  smoke?: boolean;
 }): Promise<{ claimed: true; scanId: string } | { claimed: false; refusal: Admission }> {
   const client = dbAdmin();
 
@@ -665,6 +671,7 @@ export async function claimFreeScanSlot(a: {
     status: "running",
     network_hash: a.network,
     from_incomplete_rescan: a.fromIncompleteRescan,
+    ...(a.smoke === true ? { smoke: true as const } : {}),
   });
 
   if ("conflict" in inserted) {

@@ -52,8 +52,8 @@ function canonicalLocation(domain: string): string {
 }
 
 type ParsedBody =
-  | { transport: "json"; value: string; rescan: Rescan }
-  | { transport: "form"; value: string; rescan: Rescan }
+  | { transport: "json"; value: string; rescan: Rescan; smoke: boolean }
+  | { transport: "form"; value: string; rescan: Rescan; smoke: false }
   | { transport: "malformed" };
 
 /**
@@ -84,6 +84,17 @@ function rescanOf(value: unknown): Rescan {
   return value === RESCAN_INCOMPLETE ? RESCAN_INCOMPLETE : "none";
 }
 
+/**
+ * `scripts/smoke.sh` says its scan is a smoke test (SPEC §6, D57, issue
+ * 1286), so the owner's cost report counts it apart from a customer's free
+ * scan. JSON only — the script's transport — and only the literal `true`.
+ *
+ * **A visitor can set it, and that is bounded**, as `rescan` above:
+ * admission does not read it, so all it changes is which line of the owner's
+ * report the scan's spend lands on.
+ */
+const SMOKE_FIELD = "smoke";
+
 /** `## Steps` step 2: "Parse and validate the request body to `{ value:
  *  string }`; anything else is a 400 with no problem handle, since it is
  *  not a visitor's typed value." Distinguishes the two transports by
@@ -108,7 +119,8 @@ async function readBody(request: Request): Promise<ParsedBody> {
     const rescan = typeof parsed === "object" && parsed !== null && RESCAN_FIELD in parsed
       ? (parsed as Record<string, unknown>)[RESCAN_FIELD]
       : undefined;
-    return { transport: "json", value, rescan: rescanOf(rescan) };
+    const smoke = typeof parsed === "object" && parsed !== null && (parsed as Record<string, unknown>)[SMOKE_FIELD] === true;
+    return { transport: "json", value, rescan: rescanOf(rescan), smoke };
   }
 
   if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
@@ -120,7 +132,7 @@ async function readBody(request: Request): Promise<ParsedBody> {
     }
     const value = form.get("value");
     if (typeof value !== "string") return { transport: "malformed" };
-    return { transport: "form", value, rescan: rescanOf(form.get(RESCAN_FIELD)) };
+    return { transport: "form", value, rescan: rescanOf(form.get(RESCAN_FIELD)), smoke: false };
   }
 
   return { transport: "malformed" };
@@ -245,6 +257,7 @@ export async function POST(request: Request): Promise<Response> {
     domain: parsed.domain,
     network,
     fromIncompleteRescan: body.rescan === RESCAN_INCOMPLETE,
+    ...(body.smoke ? { smoke: true } : {}),
   });
 
   // `## Steps` step 5: on a claim, respond with the new scan's id; on a

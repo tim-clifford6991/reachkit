@@ -42,6 +42,20 @@ export type OpsIncident =
           causes: readonly { cause: string; count: number }[];
         }[];
       };
+      // Issue 1286 (D57): what the same week cost — per site a measurement
+      // and a page written, then free scans and smoke tests apart, then the
+      // ledger's total. Cents, as the ledger holds them.
+      costs?: {
+        weekStart: string;
+        sites: readonly {
+          domain: string;
+          measurements: { count: number; cents: number };
+          pages: { count: number; cents: number };
+        }[];
+        freeScans: { count: number; cents: number };
+        smokeTests: { count: number; cents: number };
+        totalCents: number | null;
+      };
     }
   // Issue #799: no error — a scheduled job has not run for twice its
   // interval. The facts are the job id, its last run as an instant and its
@@ -61,6 +75,7 @@ export type OpsIncident =
 const SUBJECT = "mail.ops.incident.subject" satisfies CopyKey;
 const HEADING = "mail.ops.incident.heading" satisfies CopyKey;
 const STOPPED_WEEK = "mail.ops.incident.drafts-stopped-week" satisfies CopyKey;
+const COSTS_WEEK = "mail.ops.incident.costs-week" satisfies CopyKey;
 
 const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "job-failed": "mail.ops.incident.job-failed",
@@ -160,11 +175,38 @@ function count(value: number): string {
   return String(Math.max(0, Math.trunc(value)));
 }
 
-/** The Monday digest: each half is drawn only where it has something to
+/** Ledger cents to one decimal: the cheapest vendor rows cost a fraction. */
+function money(cents: number): string {
+  return `${(Number.isFinite(cents) && cents > 0 ? cents : 0).toFixed(1)}¢`;
+}
+
+/** The average cost of one and how many there were: `36.2¢ × 2`. */
+function each(line: { count: number; cents: number }): string {
+  return `${money(line.count > 0 ? line.cents / line.count : 0)} × ${count(line.count)}`;
+}
+
+type WeekCosts = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["costs"]>;
+
+function costFacts(costs: WeekCosts): FactRow[] {
+  return [
+    { label: "mail.ops.incident.fact.week", value: closedDate(costs.weekStart) },
+    ...costs.sites.flatMap((site): FactRow[] => [
+      { label: "mail.ops.incident.fact.site", value: closedDomain(site.domain) },
+      ...(site.measurements.count > 0 ? [{ label: "mail.ops.incident.fact.cost-measurement", value: each(site.measurements) } as const] : []),
+      ...(site.pages.count > 0 ? [{ label: "mail.ops.incident.fact.cost-page", value: each(site.pages) } as const] : []),
+      { label: "mail.ops.incident.fact.cost-site", value: money(site.measurements.cents + site.pages.cents) },
+    ]),
+    { label: "mail.ops.incident.fact.cost-free-scans", value: `${money(costs.freeScans.cents)} × ${count(costs.freeScans.count)}` },
+    { label: "mail.ops.incident.fact.cost-smoke-tests", value: `${money(costs.smokeTests.cents)} × ${count(costs.smokeTests.count)}` },
+    ...(costs.totalCents === null ? [] : [{ label: "mail.ops.incident.fact.cost-total", value: money(costs.totalCents) } as const]),
+  ];
+}
+
+/** The Monday digest: each part is drawn only where it has something to
  *  say, so a week with stalled pages and no thin market does not claim one. */
 function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small-week" }>): MailBlock[] {
   const blocks: MailBlock[] = [];
-  if (incident.scanIds.length > 0 || incident.stopped === undefined) {
+  if (incident.scanIds.length > 0 || (incident.stopped === undefined && incident.costs === undefined)) {
     blocks.push({ block: "paragraph", text: BODY[incident.occasion] }, { block: "facts", items: factsOf(incident) });
   }
   if (incident.stopped !== undefined) {
@@ -182,6 +224,9 @@ function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small
         ],
       }
     );
+  }
+  if (incident.costs !== undefined) {
+    blocks.push({ block: "paragraph", text: COSTS_WEEK }, { block: "facts", items: costFacts(incident.costs) });
   }
   return blocks;
 }

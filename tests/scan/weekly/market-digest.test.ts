@@ -193,6 +193,42 @@ describe("#796 — a Monday's thin weekly passes are one owner digest", () => {
     expect(row(HEALTHY).market_digest_at).not.toBeNull();
   });
 
+  it("issue 1286: the digest says what the week before cost, per site, with free scans and smoke tests apart", async () => {
+    const SITE = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+    const scan = (over: Row): Row => ({ status: "done", week_start: null, market_digest_at: null, report: null, smoke: false, ...over });
+    db.seed("scans", [
+      weekly(HEALTHY, false, { domain: "paying.example", created_at: "2026-09-14T06:00:00.000Z", cost_cents: 99 }),
+      scan({ id: "s1", tier: "weekly", domain: "paying.example", created_at: "2026-09-07T06:00:00.000Z", cost_cents: 38.5 }),
+      scan({ id: "s2", tier: "deep", domain: "paying.example", created_at: "2026-09-10T09:00:00.000Z", cost_cents: 121.5 }),
+      scan({ id: "s3", tier: "free", domain: "visitor-a.example", created_at: "2026-09-08T10:00:00.000Z", cost_cents: 9 }),
+      scan({ id: "s4", tier: "free", domain: "visitor-b.example", created_at: "2026-09-12T10:00:00.000Z", cost_cents: 11 }),
+      scan({ id: "s5", tier: "free", domain: "basecamp.com", created_at: "2026-09-09T10:00:00.000Z", cost_cents: 8, smoke: true }),
+    ]);
+    db.seed("sites", [{ id: SITE, domain: "paying.example" }]);
+    db.seed("drafts", [
+      { id: "d1", site_id: SITE, scheduled_for: "2026-09-08", state: "published", transitions: [], cost_cents: 20 },
+      { id: "d2", site_id: SITE, scheduled_for: "2026-09-09", state: "published", transitions: [], cost_cents: 10 },
+    ]);
+    db.rpcs.set("fetches_spend_since", (args: Row) => (String(args.p_since) < "2026-09-14" ? 318 : 99));
+
+    await tick();
+
+    expect(mails).toHaveLength(1);
+    const html = String(mails[0]!.html);
+    expect(html).toContain("paying.example");
+    expect(html).toContain("80.0¢ × 2"); // two measurements, 160¢
+    expect(html).toContain("15.0¢ × 2"); // two pages, 30¢
+    expect(html).toContain("190.0¢"); // the site
+    expect(html).toContain("20.0¢ × 2"); // free scans
+    expect(html).toContain("8.0¢ × 1"); // the smoke test, apart
+    expect(html).toContain("219.0¢"); // the ledger's week
+    // A visitor's domain is not the owner's site, and this Monday's own pass is next week's.
+    expect(html).not.toContain("visitor-a.example");
+    expect(html).not.toContain("99.0¢");
+    expect(html).not.toContain("too little search demand");
+    expect(html).not.toContain("TODO(copy)");
+  });
+
   it("the due Monday is the latest one that has ended in every zone", () => {
     expect(lastEndedMonday(new Date("2026-09-15T11:59:59.000Z"))).toBe("2026-09-07");
     expect(lastEndedMonday(TUESDAY_NOON_UTC)).toBe(MONDAY);

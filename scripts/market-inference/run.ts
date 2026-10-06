@@ -100,7 +100,7 @@ function headlineOf(pages: readonly { url: string; title: string; h1: string }[]
 }
 
 export async function main(a: { root: string; run: boolean; only: readonly string[] }): Promise<number> {
-  const ledger = proofLedger(RUN_CAP_CENTS);
+  const ledger = proofLedger(RUN_CAP_CENTS, 0, "market-inference");
   const results = new Map<string, Run[]>();
   let n = 0;
   for (const domain of DOMAINS.filter((d) => a.only.length === 0 || a.only.includes(d))) {

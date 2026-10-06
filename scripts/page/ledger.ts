@@ -32,6 +32,7 @@
 // more than a dollar, a run inside 135 US cents is inside €1.35 as well.
 import { CAPS } from "@/lib/config/constants";
 import { isFetchRefusal, isVendorFailure, type CostContext } from "@/lib/costs";
+import { appendSpend } from "../spend-log.mjs";
 
 /** One paid call, as the run records it. */
 export interface LedgerRow {
@@ -90,8 +91,9 @@ export interface ProofLedger {
 
 /** `alreadySpentCents` is what earlier runs under the same ruling already
  *  settled — a regeneration run counts the first run's spend against the
- *  owner's ceiling rather than opening a fresh one. */
-export function proofLedger(runCapCents: number, alreadySpentCents = 0): ProofLedger {
+ *  owner's ceiling rather than opening a fresh one. `script` is the name
+ *  each paid call is written under in the box's spend log (D57). */
+export function proofLedger(runCapCents: number, alreadySpentCents: number, script: string): ProofLedger {
   const rows: LedgerRow[] = [];
   const refusals: RefusalRow[] = [];
   let settledCents = alreadySpentCents;
@@ -162,6 +164,7 @@ export function proofLedger(runCapCents: number, alreadySpentCents = 0): ProofLe
 
           ledgeredCents += settled;
           settledCents += settled;
+          appendSpend({ script, source: call.source, cents: settled });
           rows.push({
             draft,
             source: call.source,

@@ -1,0 +1,8 @@
+{"at":"2026-09-29T23:59:59.000Z","issue":"1200","script":"page","source":"llm:writer","cents":90}
+{"at":"2026-09-30T08:00:00.000Z","issue":"1251","script":"page","source":"llm:writer","cents":21.5}
+{"at":"2026-10-04T10:00:00.000Z","issue":"1271","script":"market-inference","source":"llm:haiku","cents":3.25}
+{"at":"2026-10-06T07:10:00.000Z","issue":"1282","script":"page","source":"llm:writer","cents":61}
+{"at":"2026-10-06T07:11:00.000Z","issue":"1282","script":"page","source":"fetch:pricing","cents":0.5}
+not a json line
+{"at":"2026-10-06T09:30:00.000Z","issue":"main","script":"d19-cost","source":"dataforseo:ai_mode","cents":8.4}
+{"at":"2026-10-06T11:00:00.000Z","issue":"1281","script":"page","source":"llm:writer","cents":"12"}
