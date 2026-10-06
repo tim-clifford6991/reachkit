@@ -311,7 +311,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     const laid = layoutPage(parts, template, tidy);
     const own = laid.sections.find((section) => ["business", "next_step", "related"].includes(section.key))?.heading;
     const glance = laid.sections.find((section) => template.sections.find((slot) => slot.key === section.key)?.block === "table")?.heading;
-    const body = table === null ? laid.body.bodyMarkdown : withTable(laid.body.bodyMarkdown, glance, `${table.markdown}\n\n${table.checked}`);
+    const body = table === null ? laid.body.bodyMarkdown : withTable(laid.body.bodyMarkdown, glance, [table.markdown, table.currencies, table.checked].filter((line) => line !== null).join("\n\n"));
     const markdown = withSources(
       withClosing(
         completeTables(applyLinks(body, { ...linking, appendUnder: own })),

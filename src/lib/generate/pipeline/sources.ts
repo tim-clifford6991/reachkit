@@ -13,9 +13,10 @@
 // pricing and feature pages and retries once; what still cannot be read is
 // left out here rather than printed as "not stated": the product, or the
 // criterion, with the largest share of empty cells is taken out until none
-// is left. A price line that mixes currencies with no conversion stated
-// anywhere on the page is taken out the same way — nothing here converts,
-// because no rate is a fact in either pool.
+// is left. **A price keeps its own currency** (owner, D56; issue 1282):
+// nothing here converts, because no rate is a fact in either pool, and a
+// column whose prices are in more than one currency stands as its vendors
+// publish them.
 //
 // Both are pure passes over the body's Markdown, in the grammar the one
 // renderer parses.
@@ -85,7 +86,6 @@ const DELIMITER_RE = /^[ \t]*\|(?:[ \t]*:?-{1,}:?[ \t]*\|)+[ \t]*$/;
 
 const CURRENCY_RE = /[$€£¥]|\b(?:USD|EUR|GBP|CAD|AUD)\b/g;
 const CURRENCY_NAME: Readonly<Record<string, string>> = { USD: "$", EUR: "€", GBP: "£" };
-const CONVERSION_RE = /\bconvert(?:ed|s|ing)?\b|\bexchange rate\b/i;
 
 function cellsOf(line: string): string[] {
   const inner = line.trim().replace(/^\|/, "").replace(/\|$/, "");
@@ -105,9 +105,8 @@ export function currenciesOf(cell: string): Set<string> {
  *  pass does not assume which: while a cell is empty, the row or column with
  *  the largest share of empty cells is taken out — a product nothing is
  *  known about, or a criterion most products do not state — and on a tie the
- *  one that costs fewer filled cells. Then any row or column that mixes
- *  currencies goes, unless the page states a conversion. */
-function completeTable(lines: readonly string[], conversionStated: boolean): string[] | null {
+ *  one that costs fewer filled cells. */
+function completeTable(lines: readonly string[]): string[] | null {
   const header = cellsOf(lines[0]!);
   const delimiter = cellsOf(lines[1]!);
   const body = lines.slice(2).map(cellsOf).filter((row) => row.length === header.length);
@@ -139,11 +138,6 @@ function completeTable(lines: readonly string[], conversionStated: boolean): str
   while (drop((cells) => cells.filter(isEmpty).length)) {
     // Until no cell is empty.
   }
-  if (!conversionStated) {
-    while (drop((cells) => (new Set(cells.flatMap((held) => [...currenciesOf(held)])).size > 1 ? cells.length : 0))) {
-      // Until no row or column mixes currencies.
-    }
-  }
 
   if (rows.size === 0 || columns.size < 2) return null;
   // A table with nothing to take out stands exactly as written.
@@ -152,9 +146,8 @@ function completeTable(lines: readonly string[], conversionStated: boolean): str
   return [line(header), line(delimiter), ...[...rows].map((row) => line(body[row]!))];
 }
 
-/** Every table of the body, with no empty cell and one currency a column. */
+/** Every table of the body, with no empty cell. */
 export function completeTables(markdown: string): string {
-  const conversionStated = CONVERSION_RE.test(markdown);
   const lines = markdown.split("\n");
   const out: string[] = [];
   for (let at = 0; at < lines.length; ) {
@@ -162,7 +155,7 @@ export function completeTables(markdown: string): string {
       let end = at + 2;
       while (end < lines.length && ROW_RE.test(lines[end]!)) end++;
       const table = lines.slice(at, end);
-      const done = completeTable(table, conversionStated);
+      const done = completeTable(table);
       if (done !== null) out.push(...done);
       at = end;
       continue;

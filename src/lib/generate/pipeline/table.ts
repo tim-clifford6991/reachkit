@@ -18,8 +18,12 @@
 //     option's page does state — so no cell is empty and none says a value is
 //     missing (owner, 2026-10-02: "a table never ships with an empty or 'not
 //     stated' cell");
-//   * prices in more than one currency take pricing out of the table, since
-//     nothing converts (`./sources.ts`); each option's own section states it;
+//   * **a price keeps its own currency** (owner, D56; issue 1282): a cell
+//     states a price as the option's own page states it and nothing
+//     converts. Where the cells name more than one currency, a line under
+//     the table says so. A rival whose pricing page states no figure but
+//     says it prices on request has the cell "Custom pricing", linked to
+//     that page, so it keeps its row;
 //   * **the table is dated** (owner, D52; issue 1267): a line under it says
 //     when the prices were last checked — the day the oldest of the rivals'
 //     pages it stands on was read (`readAt`), so the date holds for every row;
@@ -31,7 +35,7 @@
 // prompt and the laid-out page all read one table.
 import { copy } from "@/lib/presentation/copy";
 import { isPlaceholderCell } from "../rules/cells";
-import type { ContextPack, PackClaim } from "./pack";
+import type { ContextPack } from "./pack";
 import { completeTables, currenciesOf } from "./sources";
 
 type Criterion = "pricing" | "does";
@@ -56,6 +60,9 @@ export interface ComparisonTable {
   markdown: string;
   /** The line under the table: when its prices were last checked (D52). */
   checked: string;
+  /** The line beside it where the prices are in more than one currency
+   *  (D56), else `null`. */
+  currencies: string | null;
   /** The options' names, the business first. */
   options: string[];
 }
@@ -64,7 +71,12 @@ type TablePack = Pick<ContextPack, "business" | "profile" | "facts" | "claims" |
 
 const PRICED_RE = /[$€£¥]\s?\d|\d\s?(?:usd|eur|gbp|[$€£¥])/i;
 const PRICE_RE = /[$€£¥]\s?\d|\d\s?(?:usd|eur|gbp|[$€£¥])|\bfree\b/i;
+/** A pricing claim that says the price is agreed, not published. */
+const CUSTOM_RE = /\b(?:custom|tailored|bespoke|on request|quote|contact (?:us|sales)|talk to (?:us|sales))\b/i;
 const DAY = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+const FROM_RE = /\b(?:starts?|starting|from)\b/i;
+const ONE_PLAN_RE = /\benterprise\b/i;
+const PRICE_PAGE_RE = /\/(?:pricing|prices?|plans?)(?![a-z])[^/]*\/?$/i;
 const isUrl = (text: string): boolean => /^https?:\/\//.test(text);
 
 /** A value a table can hold: said in words, and not words that say a value
@@ -107,16 +119,29 @@ function rivalName(pack: TablePack, domain: string): string {
 
 function rivalOption(pack: TablePack, domain: string): Option {
   const claims = pack.claims.filter((claim) => claim.product === domain);
-  const of = (kind: PackClaim["kind"], prefer?: RegExp): Cell | undefined => {
-    const held = claims.filter((claim) => claim.kind === kind);
-    const claim = (prefer === undefined ? undefined : held.find((each) => prefer.test(each.passage))) ?? held[0];
-    return cell(claim?.passage, claim?.url ?? null);
-  };
+  const pricing = claims.filter((claim) => claim.kind === CLAIM_KIND.pricing);
+  // A figure as its page states it; else, where the page says the price is
+  // agreed with the vendor, that — never a pricing-page line that states
+  // neither (issue 1282: "Trusted by 3000+ brands").
+  // Of several figures the one the page starts from. A line about one plan
+  // ("Enterprise: custom") does not say how the product is priced.
+  const figures = pricing.filter((claim) => PRICED_RE.test(claim.passage));
+  const priced = figures.find((claim) => FROM_RE.test(claim.passage)) ?? figures[0];
+  const custom = priced === undefined ? pricing.find((claim) => CUSTOM_RE.test(claim.passage) && !ONE_PLAN_RE.test(claim.passage)) : undefined;
+  // What it does: said of the product by name, on a page that is not its
+  // price list, where the pack holds such a claim.
+  const name = rivalName(pack, domain).toLowerCase();
+  const features = claims.filter((claim) => claim.kind === CLAIM_KIND.does);
+  const described = features.filter((claim) => !PRICE_PAGE_RE.test(claim.url));
+  const does = described.find((claim) => claim.passage.toLowerCase().includes(name)) ?? described[0] ?? features[0];
   return {
     name: rivalName(pack, domain),
     own: false,
     readAt: claims.map((claim) => claim.readAt),
-    cells: { pricing: of(CLAIM_KIND.pricing, PRICED_RE), does: of(CLAIM_KIND.does) },
+    cells: {
+      pricing: priced !== undefined ? cell(priced.passage, priced.url) : custom !== undefined ? cell(copy("body.table.custom"), custom.url) : undefined,
+      does: cell(does?.passage, does?.url ?? null),
+    },
   };
 }
 
@@ -135,9 +160,6 @@ function written(held: Cell): string {
 export function comparisonTable(pack: TablePack, minRivals: number): ComparisonTable | null {
   let options = [ownOption(pack), ...pack.products.map((product) => rivalOption(pack, product.domain))];
   let criteria = [...CRITERIA];
-  // One currency a table: nothing here converts.
-  const currencies = new Set(options.flatMap((option) => [...currenciesOf(option.cells.pricing?.text ?? "")]));
-  if (currencies.size > 1) criteria = criteria.filter((criterion) => criterion !== "pricing");
   // A criterion most options lack goes; then an option left with nothing to
   // say goes; until neither changes.
   for (;;) {
@@ -170,9 +192,12 @@ export function comparisonTable(pack: TablePack, minRivals: number): ComparisonT
   if (completeTables(markdown) !== markdown) return null;
   // ISO dates sort as text. A table always has a rival, and a rival a claim.
   const oldest = options.flatMap((option) => option.readAt).sort()[0] ?? pack.builtAt;
+  // D56: nothing here converts, so a table of more than one currency says so.
+  const currencies = new Set(criteria.includes("pricing") ? options.flatMap((option) => [...currenciesOf(option.cells.pricing?.text ?? "")]) : []);
   return {
     markdown,
     checked: copy("body.table.checked", { date: DAY.format(new Date(oldest)) }),
+    currencies: currencies.size > 1 ? copy("body.table.currencies") : null,
     options: options.map((option) => option.name),
   };
 }
@@ -182,7 +207,8 @@ const ROW_RE = /^[ \t]*\|.*\|[ \t]*$/;
 /**
  * The body with the built table in the section under `heading`, after that
  * section's opening paragraph — and without any table the writer put there.
- * `table` is the table and whatever stands under it, its dated line (D52).
+ * `table` is the table and whatever stands under it: its dated line (D52)
+ * and, where it has one, its currencies line (D56).
  * A body with no such section is returned as it is, and the blocks check
  * stops it.
  */

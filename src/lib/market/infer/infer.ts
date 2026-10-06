@@ -206,13 +206,16 @@ export async function inferRivals(
       measured: { answers: evidence.answers, topTens: evidence.topTens },
     },
     schema: RIVALS_SCHEMA,
-    tier: "haiku",
+    // SPEC §6 (owner, D56; issue 1282): `haiku` read Meltwater under its
+    // bare name in one run of three on the same evidence.
+    tier: "sonnet",
   });
   if (answer.kind === "unmeasured") return unmeasured(answer.reason, answer.at, answer.because);
   return measured(concludeRivals(answer.value, evidence, max), answer.at);
 }
 
-/** Both calls in turn, at the `haiku` tier, under the caller's cap — what
+/** Both calls in turn — the market at the `haiku` tier, its rivals at
+ *  `sonnet` (D56) — under the caller's cap — what
  *  setup and the offline proof ask for. Rivals that did not come back
  *  leave the market standing with none, which a caller reads as "keep the
  *  rivals you have". */

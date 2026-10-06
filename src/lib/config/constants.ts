@@ -1710,6 +1710,10 @@ export const RESEARCH = Object.freeze({
   topResults: 3,
   /** The named rivals whose own pricing and feature pages are read. */
   rivals: 4,
+  /** D56 (issue 1282): a rival's pages are found in its own sitemap — at
+   *  most this many addresses of it, from this many sitemaps of an index. */
+  sitemaps: 3,
+  sitemapUrls: 2000,
   /** Ruled: at most two, found by one search. */
   studies: 2,
   /** Ruled: a statistic older than this many years is not used. */

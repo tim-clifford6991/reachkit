@@ -37,9 +37,10 @@ describe("the table is laid out from the pack", () => {
     const table = comparisonTable(STORED, 2);
     expect(table?.options).toEqual(["ReachKit", "AEO Engine", "Meltwater"]);
     const rows = table!.markdown.split("\n");
-    // Meltwater keeps its row with what its pricing page does say, and the
-    // criterion it lacks is left out of its cell.
-    expect(rows[4]).toContain("Meltwater uses tailored pricing");
+    // Meltwater's pricing page states no figure, only that its pricing is
+    // tailored: it keeps its row with that (D56), and the criterion it
+    // lacks is left out of its cell.
+    expect(rows[4]).toMatch(/Pricing: \[Custom pricing\]\(https:\/\/[^)]*meltwater/);
     expect(rows[4]).not.toContain("What it does");
     expect(rows[3]).toContain("What it does: [30-60 Articles/Month");
     expect(checkPlaceholderCell({ markdown: table!.markdown })).toBeNull();
@@ -64,7 +65,7 @@ describe("the table is laid out from the pack", () => {
         claim("a.example", "rival_features", "Tracks brand mentions in AI answers."),
         claim("b.example", "rival_features", "Weekly reports on AI visibility."),
         claim("c.example", "rival_features", "Monitors six AI engines."),
-        claim("c.example", "rival_pricing", "Custom pricing, not listed."),
+        claim("c.example", "rival_pricing", "Trusted by 3000+ brands and agencies."),
       ]),
       2
     );
@@ -73,18 +74,27 @@ describe("the table is laid out from the pack", () => {
     expect(every?.options).toHaveLength(4);
   });
 
-  it("prices in two currencies take pricing out of the table, never an option", () => {
+  it("prices keep the currency each page states, side by side, and the table says so (D56)", () => {
     const table = comparisonTable(
       packOf([
+        claim("a.example", "rival_pricing", "Trusted by 3000+ brands and agencies."),
         claim("a.example", "rival_pricing", "Plans start at $20 a month."),
         claim("a.example", "rival_features", "Tracks brand mentions in AI answers."),
-        claim("b.example", "rival_pricing", "From $99 a month."),
+        claim("b.example", "rival_pricing", "Pricing is tailored to each team; contact sales for a quote."),
         claim("b.example", "rival_features", "Weekly reports on AI visibility."),
       ]),
       2
     );
-    expect(table?.markdown.split("\n")[0]).toBe("| Option | What it does |");
-    expect(table?.options).toHaveLength(3);
+    const rows = table!.markdown.split("\n");
+    expect(rows[0]).toBe("| Option | Pricing | What it does |");
+    expect(rows[2]).toContain("€");
+    expect(rows[3]).toContain("[Plans start at $20 a month.](https://a.example/pricing)");
+    // No figure on its pricing page, but it says how it prices: a cell.
+    expect(rows[4]).toContain("[Custom pricing](https://b.example/pricing)");
+    expect(table?.currencies).toBe("Prices are shown in the currency each vendor publishes; none is converted.");
+    expect(completeTables(table!.markdown)).toBe(table!.markdown);
+    // One currency needs no such line.
+    expect(comparisonTable(STORED, 2)?.currencies).toBeNull();
   });
 
   it("fewer than two rivals with a fact is no comparison", () => {
