@@ -21,7 +21,8 @@
 // (`derive/fit.ts`) scores it, and only one at fit 3 is written down: "a
 // search at fit 3 is a write target even below the volume floor, including
 // zero-volume problem and product-anchored searches" (owner, 2026-10-03).
-import { EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
+import { EFFORT_BY_TYPE, RIVAL_DEMAND, TOPIC_FIT } from "@/lib/config/constants";
+import { ownSearched, searched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { brandOf, classifyIntent } from "@/lib/market/questions/select";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
@@ -72,13 +73,15 @@ const PRICE_FILLER = new Set(["pricing", "price", "prices", "cost", "costs", "ho
  * SPEC §6 (2026-10-03, issue 1208): a rival's own price is a topic only as
  * a comparison. Where `query` asks nothing but what one rival costs, the
  * rival it names and the comparison that stands in for it ("reachkit vs
- * meltwater pricing"; `null` where the site has no name to set against it).
+ * meltwater pricing"; `null` where the site has no name to set against it,
+ * or its brand is not searched (D50) — the rival's alternatives page, where
+ * the rival is searched, then carries its price).
  * `null` for every other search — the site's own price and a comparison
  * that already names both included.
  */
 export function rivalPriceOf(
   query: string,
-  a: { own: readonly string[]; rivals: readonly { name: string; domain: string }[] }
+  a: { own: readonly string[]; ownSearched: boolean; rivals: readonly { name: string; domain: string }[] }
 ): { rival: string; comparison: string | null } | null {
   const text = normalise(query);
   if (!PRICE_SHAPES.test(text) || COMPARISON_SHAPES.test(text) || names(text, a.own)) return null;
@@ -87,10 +90,30 @@ export function rivalPriceOf(
     if (name.length <= 2 || !` ${text} `.includes(` ${name} `)) continue;
     const rest = ` ${text} `.replace(` ${name} `, " ").trim().split(" ").filter((word) => !PRICE_FILLER.has(word));
     if (rest.length > 0) return null;
-    const product = a.own[0] ?? null;
+    const product = a.ownSearched ? (a.own[0] ?? null) : null;
     return { rival: rival.domain, comparison: product === null ? null : `${product} vs ${name} pricing` };
   }
   return null;
+}
+
+/**
+ * SPEC §6 (owner D50 of 2026-10-05, issue 1271): whether `query` is a
+ * comparison of named products that nobody searches for. True where it sets
+ * the business against anything while the business's own brand is not
+ * searched, and where it names products of which none is searched. A
+ * comparison that names no product ("geo vs seo") is not judged here.
+ */
+export function comparisonWithoutDemand(
+  query: string,
+  a: { market: MarketConclusion | null; own: readonly string[] }
+): boolean {
+  const text = normalise(query);
+  if (!COMPARISON_SHAPES.test(text)) return false;
+  const namesOwn = names(text, a.own);
+  const rivals = (a.market?.rivals ?? []).filter((rival) => names(text, [normalise(rival.name), brandOf(rival.domain)]));
+  if (!namesOwn && rivals.length === 0) return false;
+  if (namesOwn && !ownSearched(a.market)) return true;
+  return !namesOwn && !rivals.some((rival) => searched(rival.volume));
 }
 
 /** Each rival as a search may name it: its product name and its domain's
@@ -183,6 +206,9 @@ export function proposedTopics(a: {
   const add = (query: string, source: ProposedTopic["source"], rival: string | null): void => {
     const key = queryKey(query);
     if (key === "" || seen.has(key) || out.length >= a.max) return;
+    // D50: a comparison of names nobody searches is no topic, unless the
+    // pass read demand for the search itself.
+    if (!volumes.has(key) && comparisonWithoutDemand(key, { market: a.market, own })) return;
     seen.add(key);
     out.push({ query: key, source, volume: volumes.get(key) ?? null, rival });
   };
@@ -199,12 +225,22 @@ export function proposedTopics(a: {
     const buyer = phrase(market.buyer, 8);
     const job = phrase(market.job, 9);
 
-    // Anchored on the product: against each rival, a rival's alternatives,
-    // the category for its buyer, its price, and what it is not.
-    for (const rival of market.rivals) {
-      const name = phrase(rival.name, 4) ?? brandOf(rival.domain);
-      add(`${name} alternatives`, "product", rival.domain);
-      if (product !== null) add(`${product} vs ${name}`, "product", rival.domain);
+    // Anchored on the product: a searched rival's alternatives, the
+    // product against each rival where its own brand is searched — else the
+    // most-searched rivals against each other (D50) — the category for its
+    // buyer, its price, and what it is not.
+    const nameOf = (rival: MarketConclusion["rivals"][number]): string => phrase(rival.name, 4) ?? brandOf(rival.domain);
+    const inDemand = market.rivals
+      .filter((rival) => searched(rival.volume))
+      .sort((x, y) => (y.volume ?? 0) - (x.volume ?? 0));
+    for (const rival of inDemand) add(`${nameOf(rival)} alternatives`, "product", rival.domain);
+    if (product !== null && ownSearched(market)) {
+      for (const rival of market.rivals) add(`${product} vs ${nameOf(rival)}`, "product", rival.domain);
+    } else {
+      const leading = inDemand.slice(0, RIVAL_DEMAND.PAIRS);
+      leading.forEach((first, i) => {
+        for (const second of leading.slice(i + 1)) add(`${nameOf(first)} vs ${nameOf(second)}`, "product", first.domain);
+      });
     }
     // The job and its problems as the buyer words them (issue 1208).
     for (const search of a.written ?? []) add(search, sourceOf(search, { brands }), null);

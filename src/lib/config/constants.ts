@@ -653,6 +653,18 @@ export const BATTERY = Object.freeze({
 export const MARKET_TERMS = Object.freeze({ MAX: 10, REFRESH_DAYS: 30 } as const);
 
 /**
+ * Rivals and comparison targets need search demand (SPEC §6, owner D50 of
+ * 2026-10-05, issue 1271). A brand is searched at `MIN_VOLUME` searches a
+ * month or more: reachkit.app's AEO Engine has 70 and the owner counts it
+ * as searched by no one, while the least-searched rival he names has 320
+ * (`docs/walk/titles-and-vocabulary.md`). A brand's volume is read again
+ * after `REFRESH_DAYS`. `PAIRS` is how many of the most-searched rivals are
+ * set against each other where the business's own brand is not searched.
+ * Drafted defaults; the owner may correct them.
+ */
+export const RIVAL_DEMAND = Object.freeze({ MIN_VOLUME: 100, REFRESH_DAYS: 30, PAIRS: 3 } as const);
+
+/**
  * SPEC §6 (owner, D19 final, D32 and D33 of 2026-10-03, #1162) — the tracked
  * buyer prompts, which are the weekly AI measure.
  *

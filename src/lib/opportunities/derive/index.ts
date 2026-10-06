@@ -20,6 +20,7 @@
 import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { TOPIC_FIT } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
+import { ownSearched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import type { Measured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
@@ -40,7 +41,7 @@ import { refineType } from "./typing";
 import { applyKnownContent, type KnownContentGate } from "./known";
 import { writeCandidates } from "./write";
 import { judgeFit, type FitSearch } from "./fit";
-import { brandsOf, candidateFor, proposedTopics, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
+import { brandsOf, candidateFor, comparisonWithoutDemand, proposedTopics, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 
 export interface DeriveInput {
@@ -175,14 +176,24 @@ export async function deriveOpportunities(
   const comparisons: { query: string; rival: string }[] = [];
   const aRivalsPrice = (row: { family: Candidate["family"]; targetQuery: string | null }): boolean => {
     if (row.family !== "write" || row.targetQuery === null) return false;
-    const priced = rivalPriceOf(row.targetQuery, { own: named.own, rivals: rivalNames });
+    const priced = rivalPriceOf(row.targetQuery, { own: named.own, ownSearched: ownSearched(market), rivals: rivalNames });
     if (priced === null) return false;
     if (priced.comparison !== null) comparisons.push({ query: priced.comparison, rival: priced.rival });
     return true;
   };
+  // SPEC §6 (owner D50, issue 1271): an open row an earlier pass proposed
+  // for a comparison of names nobody searches goes the same way.
+  // Only once the brands' volumes were read: "never read" dismisses nothing.
+  const unsearchedComparison = (row: (typeof held)[number]): boolean =>
+    market?.demand !== undefined &&
+    row.family === "write" &&
+    row.targetQuery !== null &&
+    row.source !== "ai_gap" &&
+    (row.volume === null || row.volume.kind === "unmeasured") &&
+    comparisonWithoutDemand(row.targetQuery, { market, own: named.own });
   const gone = new Set<string>();
   for (const row of held) {
-    if (row.status === "open" && aRivalsPrice(row)) gone.add(row.id);
+    if (row.status === "open" && (aRivalsPrice(row) || unsearchedComparison(row))) gone.add(row.id);
   }
   const mine = planned.filter((candidate) => !aRivalsPrice(candidate));
   const derived: Candidate[] = [

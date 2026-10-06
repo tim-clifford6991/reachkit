@@ -28,6 +28,7 @@ const { deriveOpportunities } = await import("../../../src/lib/opportunities/der
 const { boundTopFit, topFitAllowance, FIT_CALL_SITE } = await import("../../../src/lib/opportunities/derive/fit");
 const { BUYER_SEARCHES_CALL_SITE, TYPED_CALL_SITE } = await import("../../../src/lib/opportunities/derive/buyer-searches");
 const { clusterKey } = await import("../../../src/lib/opportunities/cluster");
+const { proposedTopics } = await import("../../../src/lib/opportunities/derive/topics");
 
 const MARKET: MarketConclusion = {
   buyer: "SaaS product teams",
@@ -37,7 +38,9 @@ const MARKET: MarketConclusion = {
   differentiators: [],
   notOurMarket: ["employee onboarding"],
   categoryReason: "",
-  rivals: [{ domain: "appcues.com", name: "Appcues", basis: "ranks", reason: "" }],
+  rivals: [{ domain: "appcues.com", name: "Appcues", basis: "ranks", reason: "", volume: 5400 }],
+  // D50: both brands are searched, so each may be a comparison's subject.
+  demand: { at: "2026-10-05T00:00:00.000Z", own: 880, brands: { appcues: 5400 } },
 };
 
 let state: MemoryState;
@@ -260,3 +263,36 @@ describe("ranking is fit first", () => {
     ).toEqual(["gap", "product", "best-x", "fit2-loud"]);
   });
 });
+
+describe("comparisons target names buyers search for (D50, issue 1271)", () => {
+  const rivals = [
+    { domain: "maxonboard.com", name: "MaxOnboard", basis: "ai_answer" as const, reason: "", volume: 0 },
+    { domain: "appcues.com", name: "Appcues", basis: "ranks" as const, reason: "", volume: 5400 },
+    { domain: "userpilot.com", name: "Userpilot", basis: "same_job" as const, reason: "", volume: 2400 },
+  ];
+  const unknownBrand: MarketConclusion = {
+    ...MARKET,
+    rivals,
+    demand: { at: "2026-10-05T00:00:00.000Z", own: 0, brands: { appcues: 5400, userpilot: 2400, maxonboard: 0 } },
+  };
+
+  it("a business nobody searches for is never one side: the targets are a searched rival's alternatives and searched rivals against each other", () => {
+    const targets = proposedTopics({ report: defaultReport(), market: unknownBrand, taken: [], ownRanked: 0, max: 40 }).map((t) => t.query);
+    expect(targets).toEqual(expect.arrayContaining(["appcues alternatives", "userpilot alternatives", "appcues vs userpilot"]));
+    expect(targets.filter((target) => target.includes(OWN))).toEqual([]);
+    expect(targets.filter((target) => target.includes("maxonboard"))).toEqual([]);
+  });
+
+  it("a comparison an earlier pass queued against a rival nobody searches is dismissed once the volumes are read", async () => {
+    const fit = (search: string) => (search === `${OWN} vs maxonboard` ? 3 : 2);
+    judgeWith(fit);
+    const { ctx } = fakeCost();
+    await deriveOpportunities(ctx, { ...input(), market: { ...MARKET, rivals } });
+    expect(state.rows.find((row) => row.target_query === `${OWN} vs maxonboard`)!.status).toBe("open");
+
+    judgeWith(fit);
+    await deriveOpportunities(ctx, { ...input(), market: unknownBrand });
+    expect(state.rows.find((row) => row.target_query === `${OWN} vs maxonboard`)!.status).toBe("dismissed");
+  });
+});
+

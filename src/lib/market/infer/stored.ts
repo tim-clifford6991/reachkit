@@ -5,7 +5,7 @@
 import { dbAdmin } from "@/lib/db";
 import { registrableDomain } from "../rivals/domains";
 import type { MarketChange, StoredMarketWithChange } from "./stability";
-import { EMPTY_STORED_MARKET, type MarketConclusion, type MarketTerm, type RivalConclusion } from "./types";
+import { EMPTY_STORED_MARKET, type BrandDemand, type MarketConclusion, type MarketTerm, type RivalConclusion } from "./types";
 
 interface QueryResult<T> {
   data: T[] | null;
@@ -56,7 +56,15 @@ function rivalsOf(value: unknown): RivalConclusion[] {
     const domain = registrableDomain(str(entry.domain) ?? "");
     if (domain === null) continue;
     const basis = entry.basis === "ai_answer" || entry.basis === "ranks" ? entry.basis : "same_job";
-    out.push({ domain, name: str(entry.name) ?? domain, basis, reason: str(entry.reason) ?? "" });
+    out.push({
+      domain,
+      name: str(entry.name) ?? domain,
+      basis,
+      reason: str(entry.reason) ?? "",
+      ...(Array.isArray(entry.searchNames) ? { searchNames: strings(entry.searchNames) } : {}),
+      // D50: only where a pass has read it.
+      ...(typeof entry.volume === "number" && entry.volume >= 0 ? { volume: entry.volume } : {}),
+    });
   }
   return out;
 }
@@ -72,6 +80,19 @@ function termsOf(value: unknown): MarketTerm[] {
     out.push({ term, volume, ...(entry.polluted === true ? { polluted: true as const } : {}) });
   }
   return out;
+}
+
+function demandOf(value: unknown): BrandDemand | null {
+  if (!isRecord(value)) return null;
+  const at = str(value.at);
+  if (at === null) return null;
+  const brands: Record<string, number> = {};
+  if (isRecord(value.brands)) {
+    for (const [keyword, volume] of Object.entries(value.brands)) {
+      if (typeof volume === "number" && volume >= 0) brands[keyword] = volume;
+    }
+  }
+  return { at, own: typeof value.own === "number" && value.own > 0 ? value.own : 0, brands };
 }
 
 function conclusionOf(value: unknown): MarketConclusion | null {
@@ -92,6 +113,8 @@ function conclusionOf(value: unknown): MarketConclusion | null {
     ...(str(value.termsAt) === null
       ? {}
       : { terms: termsOf(value.terms), searchTerm: str(value.searchTerm), termsAt: str(value.termsAt)! }),
+    // D50: likewise, "never read" is not "read, and nobody searches it".
+    ...(demandOf(value.demand) === null ? {} : { demand: demandOf(value.demand)! }),
   };
 }
 

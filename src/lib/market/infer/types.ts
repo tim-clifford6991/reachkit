@@ -21,6 +21,27 @@ export interface RivalConclusion {
   basis: RivalBasis;
   /** One line: why this is a rival. */
   reason: string;
+  /** The keywords a buyer types to find the product, lower-cased (D50):
+   *  its name, unless most people typing that want something else, and the
+   *  name as buyers qualify it ("notion calendar"). Empty where nothing a
+   *  buyer types means this product. Absent on a rival concluded before
+   *  D50, which is read under its name. */
+  searchNames?: readonly string[];
+  /** Its brand's searches a month in the market's location, the most under
+   *  any of `searchNames` (SPEC §6, owner D50 of 2026-10-05, issue 1271).
+   *  Absent until a pass has read it. */
+  volume?: number;
+}
+
+/** How often the business's and its rival candidates' brands are searched
+ *  (D50). `brands` is keyed by the keyword read, lower-cased, and holds
+ *  every candidate a pass read, so the next pass buys only new names. */
+export interface BrandDemand {
+  /** When the volumes were read, ISO. */
+  at: string;
+  /** The business's own brand, searches a month. */
+  own: number;
+  brands: Readonly<Record<string, number>>;
 }
 
 /** One search term buyers type for the market, with how often it is
@@ -62,6 +83,9 @@ export interface MarketConclusion {
   searchTerm?: string | null;
   /** When `terms` were read, ISO. */
   termsAt?: string;
+  /** Brand search volume for the business and its rival candidates (D50).
+   *  Absent until a pass has read it. */
+  demand?: BrandDemand;
 }
 
 /**
