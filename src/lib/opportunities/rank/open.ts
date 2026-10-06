@@ -105,7 +105,15 @@ function byScore(
  *  the site's own — the mix's count and its turn of kinds give way to it,
  *  as they do wherever no row fits. Where no update is left the day takes a
  *  new page: a site with nothing to refresh yet fills its week with new
- *  pages. */
+ *  pages.
+ *
+ *  **The self-promotion cap** (SPEC §7, owner, D52, issue 1267): a day whose
+ *  window already holds `SELF_PROMOTING_MAX` listicles or comparisons — the
+ *  type whose page includes the business — takes no other one. The topic
+ *  falls through to the next, and unlike the mix this is never given up:
+ *  where every row left is over the cap the list ends, the day is empty
+ *  (supply is the cap), and the topics stay on file for the day the window
+ *  has room. */
 export function orderRanked(
   scored: readonly { opportunity: Opportunity; score: number }[],
   rotation: {
@@ -142,19 +150,23 @@ export function orderRanked(
     // The week's new pages are in: the day takes an update, one of our own
     // live pages first, and the topic gives way before the pace does.
     const paced = window.filter((page) => page.kind !== "update").length >= PACE.NEW_PAGES_PER_WEEK;
+    // D52: a listicle or comparison includes the business, by its template.
+    const capped = (entry: Entry) => kindOf(entry) === "listicle" && held("listicle") >= CONTENT_MIX.SELF_PROMOTING_MAX;
     const tiers: ((entry: Entry) => boolean)[] = [
       ...(updateDue ? [(entry: Entry) => fresh(entry) && isUpdate(entry)] : []),
       ...(paced ? [(entry: Entry) => fresh(entry) && own(entry), own, (entry: Entry) => fresh(entry) && isUpdate(entry), isUpdate] : []),
       (entry) => fresh(entry) && turns(entry) && room(entry),
       (entry) => fresh(entry) && turns(entry),
       fresh,
+      () => true,
     ];
     let at = -1;
     for (const tier of tiers) {
-      at = left.findIndex(tier);
+      at = left.findIndex((entry) => !capped(entry) && tier(entry));
       if (at !== -1) break;
     }
-    const [entry] = left.splice(at === -1 ? 0 : at, 1);
+    if (at === -1) break;
+    const [entry] = left.splice(at, 1);
     out.push({ opportunityId: entry!.opportunity.id, score: entry!.score });
     previous = entry!.opportunity;
     const kind = kindOf(entry!);

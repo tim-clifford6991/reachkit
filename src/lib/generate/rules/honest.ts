@@ -45,7 +45,8 @@ export const HONESTY_INSTRUCTION: Readonly<Record<PageType, string>> = Object.fr
     "This page compares the market, and may frame it in this business's favour without faking anything. " +
     "Put the options in a Markdown comparison table whose first row is this business, state its " +
     "strengths first, and end on a verdict that recommends it for the audience and the use " +
-    "`profile.knowledge` shows it genuinely fits. State each rival's real strengths too, and source " +
+    "`profile.knowledge` shows it genuinely fits and names a case where a rival is the better pick. " +
+    "State each rival's real strengths too, and source " +
     "every claim. Never rank this business \"#1\" or call it the best of the category — not in the " +
     "title, a heading, the table or the text.",
   answer:

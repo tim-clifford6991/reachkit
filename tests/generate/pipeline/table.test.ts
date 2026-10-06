@@ -93,6 +93,15 @@ describe("the table is laid out from the pack", () => {
   });
 });
 
+describe("the table is dated (D52, issue 1267)", () => {
+  it("says when the prices were last checked: the day the oldest of its rivals' pages was read", () => {
+    expect(comparisonTable(STORED, 2)?.checked).toBe("Prices last checked 4 October 2026.");
+    const older: PackClaim = { ...claim("b.example", "rival_features", "Weekly reports on AI visibility."), readAt: "2026-09-28T09:00:00.000Z" };
+    const table = comparisonTable(packOf([claim("a.example", "rival_features", "Tracks brand mentions in AI answers."), older]), 2);
+    expect(table?.checked).toBe("Prices last checked 28 September 2026.");
+  });
+});
+
 describe("the writer writes around it", () => {
   it("the built table stands under the section's opening paragraph, in place of any the writer put there", () => {
     const body = [

@@ -40,6 +40,7 @@ export type RequiredBlock =
   | "table"
   | "steps"
   | "dated_sources"
+  | "verdict"
   | "business_section"
   | "faq"
   | "closing"
@@ -58,6 +59,9 @@ export interface BlockRuleInputs {
   faq: readonly { question: string; answer: string }[];
   /** The business's own domain: what makes a link "to its product". */
   domain: string;
+  /** A listicle's rivals, as its table names them (D52, issue 1267): the
+   *  verdict names one. Absent, the verdict is not read. */
+  rivals?: readonly string[];
 }
 
 /** A prompt's label for a fact — `[F7]`, `[M39]`, `[F7, F8]` — which is the
@@ -236,6 +240,17 @@ export function missingBlock(a: { markdown: string; title: string; blocks: Block
       return hasLink(raw) && DATE_RE.test(raw);
     };
     if (keyed.some((section) => repeated.has(section.key) && !dated(section))) return "dated_sources";
+  }
+  // D52: a self-promoting page's verdict names a rival — the case where it
+  // is the better pick. That it says so is asked of the writer; a verdict
+  // that names none cannot have.
+  if (blocks.rivals !== undefined) {
+    const verdict = keyed
+      .filter((section) => section.key === "which_to_choose")
+      .flatMap((section) => section.blocks.map((block) => block.raw))
+      .join("\n")
+      .toLowerCase();
+    if (!blocks.rivals.some((rival) => rival.trim() !== "" && verdict.includes(rival.trim().toLowerCase()))) return "verdict";
   }
   if (!asked.some((section) => section.blocks.some((block) => linksOwnSite(block.raw, blocks.domain)))) {
     return "business_section";

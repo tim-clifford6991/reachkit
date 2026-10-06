@@ -39,6 +39,10 @@ function supply(): { opportunity: Opportunity; score: number }[] {
     ["expand_page", "discoverability score explained"],
     ["refresh_page", "ai visibility pricing"],
     ["answerable_page", "weekly scan"],
+    // D52 leaves a week one comparison, so the rest of it is these.
+    ["keyword_page", "ai search statistics"],
+    ["keyword_page", "answer engine optimization explained"],
+    ["keyword_page", "latest ai search trends"],
   ];
   return rows.map(([type, query], index) => ({
     opportunity: opportunity(`o${index}`, type, query),
@@ -101,12 +105,32 @@ describe("two weeks of pages hold the mix", () => {
   });
 });
 
-describe("the mix never empties a day", () => {
-  it("a supply of one kind is still written, a page a day", () => {
-    const only = supply().filter((entry) => contentTypeOf(entry.opportunity) === "listicle");
-    expect(orderRanked(only, { mix: { from: 100, recent: [] } }).map((entry) => entry.opportunityId)).toEqual(
-      only.map((entry) => entry.opportunity.id)
-    );
+describe("self-promoting pages are capped (D52, issue 1267)", () => {
+  const scored = supply();
+  const byId = new Map(scored.map((entry) => [entry.opportunity.id, entry.opportunity]));
+  const kindsOf = (ranked: { opportunityId: string }[]) => ranked.map((entry) => contentTypeOf(byId.get(entry.opportunityId)!)!);
+
+  it("no seven days running hold a second comparison, though comparisons score first", () => {
+    const kinds = kindsOf(orderRanked(scored, { mix: { from: 100, recent: [] } }));
+    expect(kinds.filter((kind) => kind === "listicle").length).toBeGreaterThan(1);
+    for (let start = 0; start < kinds.length; start++) {
+      const week = kinds.slice(start, start + CONTENT_MIX.WINDOW_DAYS);
+      expect(week.filter((kind) => kind === "listicle").length, `from day ${start}`).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("a comparison three days ago: today's best comparison falls through to the next topic", () => {
+    const [today] = orderRanked(scored, { mix: { from: 100, recent: [{ day: 97, kind: "listicle" }] } });
+    expect(today?.opportunityId).toBe("o6");
+    // Seven days on, the window has room and the best page goes first again.
+    const newPages = scored.filter((entry) => contentTypeOf(entry.opportunity) !== "update");
+    expect(orderRanked(newPages, { mix: { from: 104, recent: [{ day: 97, kind: "listicle" }] } })[0]?.opportunityId).toBe("o0");
+  });
+
+  it("a supply of comparisons alone fills one day and leaves the next empty", () => {
+    const only = scored.filter((entry) => contentTypeOf(entry.opportunity) === "listicle");
+    expect(orderRanked(only, { mix: { from: 100, recent: [] } }).map((entry) => entry.opportunityId)).toEqual(["o0"]);
+    expect(orderRanked(only, { mix: { from: 100, recent: [{ day: 99, kind: "listicle" }] } })).toEqual([]);
   });
 });
 

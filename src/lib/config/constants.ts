@@ -1595,6 +1595,10 @@ export const REFRESH_MIN_AGE_DAYS = 30 as const;               // §6
 export const CONTENT_MIX = Object.freeze({
   WINDOW_DAYS: 7,
   MAX_PER_KIND: 2,
+  /** SPEC §7 (owner, D52, 2026-10-05; issue 1267): how many of a window's
+   *  pages may be a listicle or comparison that includes the business. A
+   *  topic over it fills no day until the window has room. */
+  SELF_PROMOTING_MAX: 1,
   /** How many of the site's own published and planned pages a brief is
    *  handed, newest first. */
   BRIEF_PAGES_MAX: 100,

@@ -699,6 +699,12 @@ export const DRAFT_COPY = Object.freeze({
     "What its own page says",
     { slots: {}, fixedBy: "SPEC §7 (D47) · issue 1258 · drafted" },
   ],
+  // The line under that table (SPEC §7, owner, D52; issue 1267): the day the
+  // options' pages were read. Drafted; the owner corrects the wording.
+  "body.table.checked": [
+    "Prices last checked {date}.",
+    { slots: { date: "date" }, fixedBy: "SPEC §7 (D52) · issue 1267 · drafted" },
+  ],
   // The report's measurements, stated as facts a page may quote (SPEC §7,
   // 2026-10-03, issue 1163). Each is composed from stored figures only and
   // is sourced to the report's own address. Drafted; the owner corrects
