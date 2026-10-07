@@ -38,6 +38,7 @@ import type React from "react";
 import { Search } from "lucide-react";
 import { PresenceBars } from "@/ui/charts";
 import { copy } from "@/lib/presentation/copy";
+import { ABSENT_FROM_MAX } from "@/lib/config/constants";
 import type { PresenceSection } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { RetryPart } from "@/lib/scan/retry";
@@ -73,6 +74,10 @@ function Head(p: { right: React.ReactNode; heading?: boolean }): React.JSX.Eleme
 
 export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.Element {
   const { section } = p;
+  // Issue 1309: the list's heading names five only where it holds five.
+  const absentTitle = copy(
+    section.absentFrom.length === ABSENT_FROM_MAX ? "presence.absent-from.title" : "presence.absent-from.title.short"
+  );
 
   return (
     <section className="card bg-base-100 shadow-(--shadow-card) min-w-0">
@@ -80,7 +85,7 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
         <Head
           right={
             <span className="badge badge-soft h-auto py-1 text-xs whitespace-normal">
-              {copy("presence.source")}
+              {copy("presence.source", { measured: String(section.measuredSearches) })}
             </span>
           }
         />
@@ -129,9 +134,7 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
         )}
         <div className="divider my-0" />
 
-        <p className="eyebrow grow-0">
-          {copy("presence.absent-from.title")}
-        </p>
+        <p className="eyebrow grow-0">{absentTitle}</p>
         {/* **One table, two shapes (#956).** From `sm` it is the three-column
             table it has always been, in the wrap that lets a wide row scroll.
             Below `sm` there is no scroller at all — a column pushed off the
@@ -176,7 +179,7 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
           className="min-w-0 sm:overflow-x-auto"
           tabIndex={0}
           role="region"
-          aria-label={copy("presence.absent-from.title")}
+          aria-label={absentTitle}
         >
           <table className="table table-zebra table-sm">
             <thead className="hidden sm:table-header-group text-base-content/70">
