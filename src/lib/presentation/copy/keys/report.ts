@@ -300,6 +300,15 @@ export const REPORT_COPY = Object.freeze({
     "This report measured {measured} of these {total} searches.",
     { slots: { measured: "text", total: "text" }, fixedBy: "issue 873" },
   ],
+  // Issue 1309: a pass that found more questions than its purse or its 50 s
+  // could measure lists them all, so the list's count is not the report's
+  // measured count. These two say which is which; the pair above stays for
+  // a report that measured every question it lists.
+  "ai-answers.questions.title.partial": ["{total} questions found, {measured} measured", { slots: { total: "text", measured: "text" }, fixedBy: "issue 1309 · drafted" }],
+  "ai-answers.questions.measured.partial": [
+    "This report measured {measured} of these {total} questions. A question marked “not measured” is counted nowhere on this page.",
+    { slots: { measured: "text", total: "text" }, fixedBy: "issue 1309 · drafted" },
+  ],
   "ai-answers.questions.show-all": ["Show all {total}", { slots: { total: "text" }, fixedBy: "REQ-006 c9" }],
   "ai-answers.question.not-you": ["not you", { slots: {}, fixedBy: "REQ-006 c1" }],
   "ai-answers.question.no-answer": ["no answer", { slots: {}, fixedBy: "REQ-006 c1" }],
@@ -341,7 +350,9 @@ export const REPORT_COPY = Object.freeze({
 
   // ── Module 2, right card — Google presence (REQ-008) ──────────────────
   "presence.title": ["Google search", { slots: {}, fixedBy: "REQ-008 c1" }],
-  "presence.source": ["your market’s 12 biggest searches", { slots: {}, fixedBy: "REQ-008 c1" }],
+  // Issue 1309: the count is the card's own denominator, never the literal
+  // twelve — the chip said 12 over a report that measured two.
+  "presence.source": ["your market’s {measured} biggest searches", { slots: { measured: "text" }, fixedBy: "REQ-008 c1 · issue 1309" }],
   "presence.occupancy": ["You’re in the top ten on {you} of {measured} searches.", { slots: { you: "text", measured: "text" }, fixedBy: "REQ-008 c1" }],
   // Issue 1068: the card's one-sentence finding, the most any rival holds
   // beside the customer's own count.
@@ -351,6 +362,9 @@ export const REPORT_COPY = Object.freeze({
   "presence.occupancy.column.domain": ["Domain", { slots: {}, fixedBy: "REQ-008 c1" }],
   "presence.occupancy.column.count": ["Top-ten searches", { slots: {}, fixedBy: "REQ-008 c1" }],
   "presence.absent-from.title": ["5 biggest searches you’re absent from", { slots: {}, fixedBy: "REQ-008 c4" }],
+  // Issue 1309: the list holds five only where the report measured five
+  // searches the customer is absent from; a shorter list names no number.
+  "presence.absent-from.title.short": ["Biggest searches you’re absent from", { slots: {}, fixedBy: "issue 1309 · drafted" }],
   "presence.absent-from.column.search": ["Search", { slots: {}, fixedBy: "REQ-008 c4" }],
   "presence.absent-from.column.volume": ["Volume", { slots: {}, fixedBy: "REQ-008 c4" }],
   "presence.absent-from.column.holder": ["Holds #1", { slots: {}, fixedBy: "REQ-008 c4" }],

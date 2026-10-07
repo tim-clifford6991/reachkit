@@ -68,9 +68,13 @@ describe("issue 873 — the card states what the report measured, and never clai
     expect(html).not.toContain("ai-answers.questions.title(12)");
   });
 
-  it("one line says how many of them were measured, so a founder does not count rows", () => {
+  it("a list longer than what was measured says both counts apart (issue 1309)", () => {
     const nine: AiAnswersSection = { ...SECTION, rows: SECTION.rows.slice(0, 9), measuredSearches: 6 };
-    expect(render(nine)).toContain("ai-answers.questions.measured(6|9)");
+    const html = render(nine);
+    expect(html).toContain("ai-answers.questions.title.partial(9|6)");
+    expect(html).toContain("ai-answers.questions.measured.partial(6|9)");
+    // The method line calls only the measured ones the market's searches.
+    expect(html).toContain("ai-answers.method(6)");
   });
 
   it("a full report says so in the same line, not only a short one", () => {

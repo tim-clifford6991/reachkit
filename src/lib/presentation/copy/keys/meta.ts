@@ -88,7 +88,7 @@ export const META_COPY = Object.freeze({
   "meta.scans.title": ["Free scans — every ReachKit report, in the open", { slots: {}, fixedBy: "issue 1069 · drafted" }],
   "meta.scans.description": ["Every free ReachKit scan, listed: how each business shows up in Google search and AI answers, its Discoverability Score, and a permanent link to its report.", { slots: {}, fixedBy: "issue 1069 · drafted" }],
   "meta.report.title": ["{domain} · Discoverability Score · ReachKit", { slots: { domain: "text" }, fixedBy: "issue 326" }],
-  "meta.report.description": ["How findable {domain} is in Google and in AI answers, against its market’s 12 biggest searches — and the pages that would change it. Permanent link.", { slots: { domain: "text" }, fixedBy: "issue 326" }],
+  "meta.report.description": ["How findable {domain} is in Google and in AI answers, against its market’s biggest searches — and the pages that would change it. Permanent link.", { slots: { domain: "text" }, fixedBy: "issue 326 · issue 1309" }],
   "meta.veto.title": ["Stop this page — ReachKit", { slots: {}, fixedBy: "issue 326" }],
   "meta.veto.description": ["A page ReachKit wrote for your site is waiting to publish. Stop it here in one step, or do nothing and it goes live as planned.", { slots: {}, fixedBy: "issue 326" }],
   "meta.optout.title": ["Opted out — ReachKit", { slots: {}, fixedBy: "issue 326" }],

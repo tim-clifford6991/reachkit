@@ -452,6 +452,12 @@ export function AiAnswersCard(p: {
   const { section } = p;
   const shown = section.rows.slice(0, QUESTIONS_SHOWN);
   const rest = section.rows.slice(QUESTIONS_SHOWN);
+  // Issue 1309: the list holds every question the pass found, and the pass
+  // may have measured fewer. Where it did, the heading and its line say
+  // both counts apart, and no line counts an unmeasured row as measured.
+  const total = String(section.rows.length);
+  const measured = String(section.measuredSearches);
+  const partial = section.measuredSearches < section.rows.length;
 
   return (
     <section className="card bg-base-100 shadow-(--shadow-card) min-w-0">
@@ -516,16 +522,18 @@ export function AiAnswersCard(p: {
         <div className="divider my-0" />
 
         <p className="eyebrow grow-0">
-          {copy("ai-answers.questions.title", { total: String(section.rows.length) })}
+          {partial
+            ? copy("ai-answers.questions.title.partial", { total, measured })
+            : copy("ai-answers.questions.title", { total })}
         </p>
         {/* Issue 873: what was measured, stated rather than counted off the
             rows. `measuredSearches` is the cells that came back, so a
             question the pass asked and could not read is not counted here —
             and neither is one it never reached. */}
         <p className="text-base-content/70 grow-0 text-xs">
-          {copy("ai-answers.questions.measured", {
-            measured: String(section.measuredSearches),
-            total: String(section.rows.length),
+          {copy(partial ? "ai-answers.questions.measured.partial" : "ai-answers.questions.measured", {
+            measured,
+            total,
           })}
         </p>
         <QuestionRows rows={shown} />
@@ -534,7 +542,7 @@ export function AiAnswersCard(p: {
         {rest.length === 0 ? null : (
           <details className="collapse collapse-arrow border-base-300 border">
             <summary className="collapse-title text-sm">
-              {copy("ai-answers.questions.show-all", { total: String(section.rows.length) })}
+              {copy("ai-answers.questions.show-all", { total })}
             </summary>
             <div className="collapse-content">
               <QuestionRows rows={rest} />
@@ -542,7 +550,7 @@ export function AiAnswersCard(p: {
           </details>
         )}
         <p className="text-base-content/70 grow-0 text-xs">
-          {copy("ai-answers.method", { total: String(section.rows.length) })}
+          {copy("ai-answers.method", { total: measured })}
         </p>
       </div>
     </section>
