@@ -102,11 +102,12 @@ export function TopBarSkeleton(): React.JSX.Element {
 
 // ── a screen's own shapes ───────────────────────────────────────────────
 
-/** A stat tile: eyebrow, number, trend. The three tiles a row draws. */
-export function TilesSkeleton(p: { count?: number }): React.JSX.Element {
+/** A stat tile: eyebrow, number, trend. The three tiles a row draws.
+ *  `grid` is the arriving row's own grid where it is not the default one. */
+export function TilesSkeleton(p: { count?: number; grid?: string }): React.JSX.Element {
   const count = p.count ?? 3;
   return (
-    <Waiting className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3" testId="tiles-skeleton">
+    <Waiting className={`grid min-w-0 ${p.grid ?? "gap-4 sm:grid-cols-2 lg:grid-cols-3"}`} testId="tiles-skeleton">
       {Array.from({ length: count }, (_, at) => (
         <div key={at} className="card card-border bg-base-100 min-w-0">
           <div className="card-body min-w-0 gap-3">
