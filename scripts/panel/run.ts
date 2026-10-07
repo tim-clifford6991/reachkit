@@ -133,10 +133,14 @@ function loadEvidence(root: string, domain: string): number {
   if (!existsSync(file)) return 0;
   const rows = JSON.parse(readFileSync(file, "utf8")) as Row[];
   if (rows.length === 0) return 0;
-  const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))].map((column) => `"${column}"`).join(", ");
+  // The file holds no `scan_id` (`keepEvidence` drops it), and the cache
+  // reads on source, key, policy version and age alone: the rows are put
+  // under the evidence scan, and the column is named in the insert.
+  const stored = rows.map((row) => ({ ...row, scan_id: EVIDENCE_SCAN }));
+  const columns = [...new Set(stored.flatMap((row) => Object.keys(row)))].map((column) => `"${column}"`).join(", ");
   const tag = "$evidence$";
   psql(
-    `set session_replication_role = replica; insert into public.fetches (${columns}) select ${columns} from jsonb_populate_recordset(null::public.fetches, ${tag}${JSON.stringify(rows.map((row) => ({ ...row, scan_id: EVIDENCE_SCAN })))}${tag}::jsonb);`
+    `set session_replication_role = replica; insert into public.fetches (${columns}) select ${columns} from jsonb_populate_recordset(null::public.fetches, ${tag}${JSON.stringify(stored)}${tag}::jsonb);`
   );
   return rows.length;
 }

@@ -1,20 +1,69 @@
 {
  "date": "2026-10-07",
- "commit": "75826daf",
- "capCents": 100,
- "spentCents": 91.4189,
+ "commit": "863d6c32",
+ "capCents": 270,
+ "spentCents": 266.9423,
  "refusedAtCap": 0,
  "notRun": [
-  "alexander.co.uk",
-  "tattly.com",
-  "savvycal.com",
-  "clearleft.com",
   "wesbos.com",
   "pdxsmiledesign.com",
   "fletcherelectric.co.uk",
   "streaksapp.com"
  ],
  "defects": [
+  {
+   "check": "the terms are in the site's own language and country",
+   "sites": [
+    {
+     "domain": "baeckerei-hinkel.de",
+     "detail": "a de site in Germany was read in United States / en",
+     "items": [
+      "bakery near me",
+      "best bakery near me",
+      "artisan bakery",
+      "fresh bread near me",
+      "local bakery",
+      "sourdough bakery near me",
+      "craft bakery",
+      "specialty bakery",
+      "artisan bread bakery",
+      "fresh baked goods near me"
+     ]
+    },
+    {
+     "domain": "alexander.co.uk",
+     "detail": "a en site in United Kingdom was read in United States / en",
+     "items": [
+      "accountant for small business",
+      "chartered accountant",
+      "company tax return",
+      "tax planning for companies",
+      "business tax advice",
+      "small business accountant UK",
+      "reduce corporation tax",
+      "tax efficient business structure",
+      "corporation tax advice",
+      "CTA tax adviser"
+     ]
+    },
+    {
+     "domain": "clearleft.com",
+     "detail": "a en site in United Kingdom was read in United States / en",
+     "items": [
+      "UX design agency",
+      "UX consulting",
+      "digital design agency",
+      "user experience consulting",
+      "design consulting firm",
+      "product design consultancy",
+      "design strategy consulting",
+      "UX strategy agency",
+      "digital transformation design",
+      "improve digital product experience"
+     ]
+    }
+   ]
+  },
   {
    "check": "knowledge-base buyer questions are real questions, not headings",
    "sites": [
@@ -31,62 +80,33 @@
    ]
   },
   {
-   "check": "3–5 rivals, none a listing, each with demand or AI evidence",
-   "sites": [
-    {
-     "domain": "zunicafe.com",
-     "detail": "Camino — camino.com, 27100/mo, same_job; 3Chi — 3chi.com, 18100/mo, ranks; Kiva Confections — kivalconfections.com, 2900/mo, same_job; Cornbread Hemp — cornbreadhemp.com, 1300/mo, ai_answer; Rose Los Angeles Delights — roselosangeles.com, 10/mo, same_job",
-     "items": [
-      "kivalconfections.com does not resolve: no such site"
-     ]
-    }
-   ]
-  },
-  {
-   "check": "the category is specific, and is the business's own",
-   "sites": [
-    {
-     "domain": "zunicafe.com",
-     "detail": "\"Cannabis edibles\" is not this business's market (restaurant, single location: restaurant, dining, café, cafe)",
-     "items": [
-      "Cannabis edibles",
-      "cannabis-infused edibles",
-      "THC edibles",
-      "cannabis products"
-     ]
-    }
-   ]
-  },
-  {
-   "check": "the terms are in the site's own language and country",
-   "sites": [
-    {
-     "domain": "baeckerei-hinkel.de",
-     "detail": "a de site in Germany was read in United States / en",
-     "items": [
-      "bakery near me",
-      "artisan bread",
-      "best bakery near me",
-      "sourdough bread near me",
-      "local bakery near me",
-      "artisan bakery",
-      "fresh bread near me",
-      "craft bakery",
-      "fresh baked goods",
-      "specialty bakery"
-     ]
-    }
-   ]
-  },
-  {
    "check": "topics are all on-market",
    "sites": [
     {
-     "domain": "baeckerei-hinkel.de",
-     "detail": "2 of 6 open at fit 0 or 1",
+     "domain": "zunicafe.com",
+     "detail": "1 of 12 open at fit 0 or 1",
      "items": [
-      "local gluten free bakery — open at business fit 1",
-      "what is artisan bakery — open at business fit 1"
+      "best new restaurants in san francisco — open at business fit 1"
+     ]
+    },
+    {
+     "domain": "tattly.com",
+     "detail": "1 of 9",
+     "items": [
+      "temporarytattoos.com alternatives — navigational (\".com\")"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+   "sites": [
+    {
+     "domain": "austinplumbery.com",
+     "detail": "Roto-Rooter — rotorooter.com, 135000/mo, ai_answer; ABC Home & Commercial Services — abcplumbingaustin.com, 9900/mo, same_job; Mr. Rooter Plumbing — mrrooter.com, 8100/mo, ai_answer; Radiant Plumbing & Air Conditioning — radiantplumbing.com, 3600/mo, same_job; Pipeline Plumbing — pipelineaustin.com, 1000/mo, same_job",
+     "items": [
+      "abcplumbingaustin.com does not resolve: no such site",
+      "pipelineaustin.com does not resolve: no such site"
      ]
     }
    ]
@@ -115,160 +135,181 @@
    "status": "done",
    "stoppedReason": "complete",
    "market": {
-    "buyer": "San Francisco diners and cannabis consumers seeking premium edibles",
-    "job": "Experience chef-crafted cannabis edibles with restaurant-quality ingredients",
-    "category": "Cannabis edibles",
+    "buyer": "Diners seeking upscale California cuisine in San Francisco",
+    "job": "Eat chef-prepared meals featuring seasonal ingredients and signature dishes",
+    "category": "Fine dining restaurant",
     "synonyms": [
-     "cannabis-infused edibles",
-     "THC edibles",
-     "cannabis products"
+     "upscale restaurant",
+     "fine dining",
+     "chef restaurant"
     ],
     "differentiators": [
-     "Chef-developed recipes from Zuni Café's culinary expertise",
-     "Sun-grown flower rosin sourced from California",
-     "Seasonal fruit from California family farms",
-     "Collaboration between established restaurant and cannabis producer",
-     "Signature margarita flavor based on restaurant's known drink"
+     "Chef-developed recipes using seasonal California ingredients",
+     "Historic San Francisco restaurant since 1979",
+     "Signature dishes like the Zuni Margarita",
+     "Collaborations with local producers and artisans"
     ],
     "notOurMarket": [
-     "Fine dining restaurants",
-     "Cannabis dispensaries",
-     "Cookbooks and culinary education",
-     "Gift certificate services",
-     "Cannabis cultivation"
+     "Cannabis edibles",
+     "Cookbooks",
+     "Gift card retailers"
     ],
-    "categoryReason": "The site's headline and primary content feature the ZUNI Margarita Delight cannabis edibles as the main product, with detailed description of Rose Los Angeles Delights as cannabis edibles crafted with chef recipes and premium ingredients.",
+    "categoryReason": "The site's headline and primary pages establish Zuni Café as a San Francisco restaurant founded in 1979, with its core business being chef-prepared dining, though it has expanded into cannabis edibles and merchandise.",
     "rivals": [
      {
-      "domain": "camino.com",
-      "name": "Camino",
+      "domain": "statebirdsf.com",
+      "name": "State Bird Provisions",
       "basis": "same_job",
-      "reason": "Camino by Kiva makes premium cannabis gummies with California-inspired flavors and mood-based positioning, sold widely in CA dispensaries to the same premium buyer.",
+      "reason": "Michelin-starred San Francisco restaurant known for inventive California cuisine served dim-sum style, drawing the same upscale diner seeking chef-driven seasonal food.",
       "searchNames": [
-       "camino gummies"
+       "state bird provisions"
       ],
-      "volume": 27100
+      "volume": 40500
      },
      {
-      "domain": "3chi.com",
-      "name": "3Chi",
+      "domain": "richtablesf.com",
+      "name": "Rich Table",
       "basis": "ranks",
-      "reason": "3Chi sells widely distributed THC edibles online including gummies, competing for the same cannabis edibles buyer seeking convenient premium options.",
+      "reason": "Acclaimed San Francisco restaurant from chef-owners Evan and Sarah Rich, serving inventive California cuisine with seasonal local produce.",
       "searchNames": [
-       "3chi",
-       "3chi edibles"
+       "rich table",
+       "rich table sf"
       ],
-      "volume": 18100
+      "volume": 33100
      },
      {
-      "domain": "kivalconfections.com",
-      "name": "Kiva Confections",
+      "domain": "theprogress-sf.com",
+      "name": "The Progress",
+      "basis": "ranks",
+      "reason": "Upscale San Francisco restaurant from the State Bird Provisions team, offering family-style California cuisine with seasonal ingredients.",
+      "searchNames": [
+       "the progress",
+       "the progress sf"
+      ],
+      "volume": 33100
+     },
+     {
+      "domain": "lazybearsf.com",
+      "name": "Lazy Bear",
+      "basis": "ranks",
+      "reason": "Modern American tasting menu restaurant in San Francisco with Michelin recognition, focused on seasonal and locally sourced ingredients.",
+      "searchNames": [
+       "lazy bear",
+       "lazy bear sf"
+      ],
+      "volume": 22200
+     },
+     {
+      "domain": "quincesf.com",
+      "name": "Quince",
       "basis": "same_job",
-      "reason": "Kiva makes premium, culinary-quality cannabis chocolates and gummies sold in California dispensaries, targeting the same quality-conscious cannabis consumer.",
+      "reason": "Three Michelin star San Francisco restaurant serving refined California-Italian cuisine with hyper-seasonal, locally sourced ingredients.",
       "searchNames": [
-       "kiva confections"
+       "quince sf"
       ],
-      "volume": 2900
-     },
-     {
-      "domain": "cornbreadhemp.com",
-      "name": "Cornbread Hemp",
-      "basis": "ai_answer",
-      "reason": "Cornbread Hemp sells USDA-organic THC gummies emphasizing premium, clean ingredients, competing on quality positioning with chef-crafted edibles.",
-      "searchNames": [
-       "cornbread hemp",
-       "cornbread hemp thc gummies",
-       "cornbread hemp thc"
-      ],
-      "volume": 1300
-     },
-     {
-      "domain": "roselosangeles.com",
-      "name": "Rose Los Angeles Delights",
-      "basis": "same_job",
-      "reason": "Rose LA produces chef-crafted cannabis edibles using premium California ingredients, directly co-producing the Zuni Café line and selling their own Delights range to the same premium edibles buyer.",
-      "searchNames": [
-       "rose los angeles delights"
-      ],
-      "volume": 10
+      "volume": 14800
      }
     ],
     "terms": [
      {
-      "term": "THC edibles",
-      "volume": 12100
+      "term": "best restaurants San Francisco",
+      "volume": 18100
      },
      {
-      "term": "cannabis gummies",
-      "volume": 9900
+      "term": "Michelin star restaurants San Francisco",
+      "volume": 14800
      },
      {
-      "term": "infused edibles",
+      "term": "upscale restaurants San Francisco",
+      "volume": 2900
+     },
+     {
+      "term": "fine dining San Francisco",
+      "volume": 1900
+     },
+     {
+      "term": "fancy restaurants San Francisco",
+      "volume": 1900
+     },
+     {
+      "term": "farm to table restaurants San Francisco",
       "volume": 260
      },
      {
-      "term": "cannabis edibles",
+      "term": "California cuisine San Francisco",
+      "volume": 50
+     },
+     {
+      "term": "chef tasting menu San Francisco",
       "volume": 0
      },
      {
-      "term": "weed edibles",
+      "term": "special occasion dinner San Francisco",
       "volume": 0
      },
      {
-      "term": "marijuana edibles",
-      "volume": 0
-     },
-     {
-      "term": "cannabis-infused edibles",
-      "volume": 0
-     },
-     {
-      "term": "buy edibles online",
-      "volume": 0
-     },
-     {
-      "term": "premium cannabis edibles",
-      "volume": 0
-     },
-     {
-      "term": "gourmet cannabis edibles",
+      "term": "seasonal tasting menu San Francisco",
       "volume": 0
      }
     ],
-    "searchTerm": "THC edibles",
-    "termsAt": "2026-10-07T16:36:14.786Z",
+    "searchTerm": "best restaurants San Francisco",
+    "termsAt": "2026-10-07T18:10:30.399Z",
     "demand": {
-     "at": "2026-10-07T16:37:55.543Z",
+     "at": "2026-10-07T18:11:49.345Z",
      "own": 49500,
      "brands": {
-      "3chi": 18100,
       "zunicafe": 0,
+      "lazy bear": 22200,
+      "quince sf": 14800,
+      "saison sf": 4400,
+      "acquerello": 12100,
+      "rich table": 33100,
       "zuni café": 49500,
-      "3chi edibles": 0,
-      "camino gummies": 27100,
-      "cornbread hemp": 0,
-      "sense cannabis": 0,
-      "kiva confections": 2900,
-      "cornbread hemp thc": 20,
-      "défoncé chocolatier": 30,
-      "sense cannabis edibles": 0,
-      "rose los angeles delights": 10,
-      "cornbread hemp thc gummies": 1300
+      "lazy bear sf": 4400,
+      "stem kitchen": 5400,
+      "the progress": 33100,
+      "acquerello sf": 1600,
+      "rich table sf": 3600,
+      "bix restaurant": 8100,
+      "stem kitchen sf": 5400,
+      "the progress sf": 8100,
+      "bix restaurant sf": 8100,
+      "restaurant gary danko": 2900,
+      "state bird provisions": 40500
      },
      "searches": {
-      "3chi alternatives": 0,
-      "sense alternatives": 0,
-      "camino alternatives": 10,
-      "défoncé alternatives": 0,
-      "cornbread hemp alternatives": 0,
-      "kiva confections alternatives": 0,
-      "rose los angeles delights alternatives": 0
+      "bix alternatives": 0,
+      "quince alternatives": 0,
+      "saison alternatives": 0,
+      "lazy bear alternatives": 0,
+      "acquerello alternatives": 0,
+      "rich table alternatives": 0,
+      "stem kitchen alternatives": 0,
+      "the progress alternatives": 0,
+      "restaurant gary danko alternatives": 0,
+      "state bird provisions alternatives": 0
      }
+    },
+    "judged": {
+     "french fine dining san francisco": true,
+     "best fine dining in san francisco": true,
+     "fine dining italian san francisco": true,
+     "fine dining restaurant san francisco": true,
+     "best new restaurants in san francisco": true,
+     "fine dining in san francisco california": true,
+     "best upscale restaurants in san francisco": true,
+     "upscale italian restaurants san francisco": true,
+     "new michelin star restaurants san francisco": true,
+     "top michelin star restaurants san francisco": true,
+     "best michelin star restaurants san francisco": true,
+     "michelin star restaurants near san francisco": true,
+     "top fine dining restaurants in san francisco": true,
+     "best fine dining restaurants in san francisco": true,
+     "michelin star french restaurants san francisco": true,
+     "list of michelin star restaurants in san francisco": true
     }
    },
-   "deadRivals": [
-    "kivalconfections.com"
-   ],
+   "deadRivals": [],
    "locales": [
     {
      "location": "United States",
@@ -276,146 +317,140 @@
     }
    ],
    "searches": [
-    "best thc edibles",
-    "thc edibles near me",
-    "edibles online thc"
+    "best restaurants san francisco",
+    "michelin star restaurants san francisco",
+    "upscale restaurants san francisco",
+    "best new restaurants in san francisco",
+    "fancy restaurants san francisco",
+    "fine dining san francisco",
+    "best fine dining in san francisco",
+    "best fine dining restaurants in san francisco",
+    "best michelin star restaurants san francisco",
+    "farm to table restaurants san francisco",
+    "best upscale restaurants in san francisco",
+    "california cuisine san francisco"
    ],
-   "knowledgePages": null,
+   "knowledgePages": 7,
    "questions": [],
-   "audience": [
-    "diners",
-    "restaurant guests"
-   ],
+   "audience": [],
    "topics": [
     {
-     "query": "best thc edibles",
+     "query": "best new restaurants in san francisco",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 1,
+     "volume": 2400
+    },
+    {
+     "query": "best michelin star restaurants san francisco",
      "status": "open",
      "type": "listed_page",
      "fit": 2,
-     "volume": 590
+     "volume": 260
     },
     {
-     "query": "camino alternatives",
-     "status": "open",
-     "type": "comparison_page",
-     "fit": 3,
-     "volume": 10
-    },
-    {
-     "query": "3chi alternatives",
+     "query": "state bird provisions alternatives",
      "status": "open",
      "type": "comparison_page",
      "fit": 3,
      "volume": null
     },
     {
-     "query": "kiva confections alternatives",
+     "query": "rich table alternatives",
      "status": "open",
      "type": "comparison_page",
      "fit": 3,
      "volume": null
     },
     {
-     "query": "cornbread hemp alternatives",
+     "query": "the progress alternatives",
      "status": "open",
      "type": "comparison_page",
      "fit": 3,
      "volume": null
     },
     {
-     "query": "zuni caf vs camino",
+     "query": "lazy bear alternatives",
      "status": "open",
      "type": "comparison_page",
      "fit": 3,
      "volume": null
     },
     {
-     "query": "zuni caf vs 3chi",
+     "query": "quince alternatives",
      "status": "open",
      "type": "comparison_page",
      "fit": 3,
      "volume": null
     },
     {
-     "query": "zuni caf vs kiva confections",
+     "query": "zuni caf vs state bird provisions",
      "status": "open",
      "type": "comparison_page",
      "fit": 3,
      "volume": null
     },
     {
-     "query": "zuni caf vs cornbread hemp",
+     "query": "zuni caf vs rich table",
      "status": "open",
      "type": "comparison_page",
      "fit": 3,
      "volume": null
     },
     {
-     "query": "zuni caf vs rose los angeles delights",
+     "query": "zuni caf vs the progress",
      "status": "open",
      "type": "comparison_page",
      "fit": 3,
      "volume": null
     },
     {
-     "query": "chef made cannabis gummies san francisco",
+     "query": "zuni caf vs lazy bear",
      "status": "open",
-     "type": "keyword_page",
+     "type": "comparison_page",
      "fit": 3,
      "volume": null
     },
     {
-     "query": "high end cannabis gummies bay area",
+     "query": "zuni caf vs quince",
      "status": "open",
-     "type": "keyword_page",
-     "fit": 3,
-     "volume": null
-    },
-    {
-     "query": "how to experience chef-crafted cannabis edibles with restaurant-quality ingredients",
-     "status": "open",
-     "type": "keyword_page",
+     "type": "comparison_page",
      "fit": 3,
      "volume": null
     }
    ],
-   "cents": 27.246900000000004,
+   "cents": 29.3865,
    "costBySource": {
-    "dataforseo_labs/google/ranked_keywords": 4.8,
-    "site-profile": 0.4566,
-    "profile": 0.3209,
-    "market-inference": 0.3808,
-    "market-terms": 0.6612,
-    "dataforseo_labs/google/keyword_overview": 2.3,
+    "site-profile": 0.4211,
+    "profile": 0.3299,
+    "market-inference": 0.3646,
+    "market-terms": 0.6732,
+    "dataforseo_labs/google/keyword_overview": 2.38,
     "dataforseo_labs/google/keyword_suggestions": 7.2,
-    "question-phrasing": 0.1363,
-    "serp/google/ai_mode": 1.5999999999999999,
-    "serp/google/organic": 0.8,
-    "ai_optimization/chat_gpt/llm_scraper": 0.36,
-    "site-knowledge": 2.2032,
-    "rival-inference": 2.5467,
-    "topic-buyer-searches": 0.192,
-    "topic-typed": 0.1792,
-    "topic-fit": 2.7921,
-    "opportunity-typing": 0.1235,
-    "topic-same-question": 0.1944
+    "market-searches": 0.921,
+    "question-phrasing": 0.2411,
+    "serp/google/organic": 2.4,
+    "serp/google/ai_mode": 4.000000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 1.4400000000000004,
+    "site-knowledge": 2.0992,
+    "rival-inference": 2.6295,
+    "topic-buyer-searches": 0.1999,
+    "topic-typed": 0.2162,
+    "topic-fit": 2.5815,
+    "opportunity-typing": 1.0198,
+    "topic-same-question": 0.2695
    },
    "checks": [
     {
      "check": "the category is specific, and is the business's own",
-     "verdict": "fail",
-     "detail": "\"Cannabis edibles\" is not this business's market (restaurant, single location: restaurant, dining, café, cafe)",
-     "items": [
-      "Cannabis edibles",
-      "cannabis-infused edibles",
-      "THC edibles",
-      "cannabis products"
-     ]
+     "verdict": "pass",
+     "detail": "\"Fine dining restaurant\"",
+     "items": []
     },
     {
      "check": "the search term has volume",
      "verdict": "pass",
-     "detail": "\"THC edibles\" 12100/mo",
+     "detail": "\"best restaurants San Francisco\" 18100/mo",
      "items": []
     },
     {
@@ -426,16 +461,14 @@
     },
     {
      "check": "3–5 rivals, none a listing, each with demand or AI evidence",
-     "verdict": "fail",
-     "detail": "Camino — camino.com, 27100/mo, same_job; 3Chi — 3chi.com, 18100/mo, ranks; Kiva Confections — kivalconfections.com, 2900/mo, same_job; Cornbread Hemp — cornbreadhemp.com, 1300/mo, ai_answer; Rose Los Angeles Delights — roselosangeles.com, 10/mo, same_job",
-     "items": [
-      "kivalconfections.com does not resolve: no such site"
-     ]
+     "verdict": "pass",
+     "detail": "State Bird Provisions — statebirdsf.com, 40500/mo, same_job; Rich Table — richtablesf.com, 33100/mo, ranks; The Progress — theprogress-sf.com, 33100/mo, ranks; Lazy Bear — lazybearsf.com, 22200/mo, ranks; Quince — quincesf.com, 14800/mo, same_job",
+     "items": []
     },
     {
      "check": "no measured search is off-market, a rival's brand or navigational",
      "verdict": "pass",
-     "detail": "3 read",
+     "detail": "12 read",
      "items": []
     },
     {
@@ -447,30 +480,27 @@
     {
      "check": "the audience is specific",
      "verdict": "pass",
-     "detail": "\"San Francisco diners and cannabis consumers seeking premium edibles\"",
+     "detail": "\"Diners seeking upscale California cuisine in San Francisco\"",
      "items": []
     },
     {
      "check": "topics are all on-market",
-     "verdict": "pass",
-     "detail": "13 read",
-     "items": []
+     "verdict": "fail",
+     "detail": "1 of 12 open at fit 0 or 1",
+     "items": [
+      "best new restaurants in san francisco — open at business fit 1"
+     ]
     },
     {
      "check": "a local business is measured in its own place",
      "verdict": "review",
-     "detail": "1 of 6 terms and searches name san francisco or sf or \"near me\"; are the rest, and the rivals, this place's?",
+     "detail": "19 of 19 terms and searches name san francisco or sf or \"near me\"; are the rest, and the rivals, this place's?",
      "items": [
-      "THC edibles 12100/mo",
-      "cannabis gummies 9900/mo",
-      "infused edibles 260/mo",
-      "best thc edibles",
-      "edibles online thc",
-      "rival: Camino (camino.com)",
-      "rival: 3Chi (3chi.com)",
-      "rival: Kiva Confections (kivalconfections.com)",
-      "rival: Cornbread Hemp (cornbreadhemp.com)",
-      "rival: Rose Los Angeles Delights (roselosangeles.com)"
+      "rival: State Bird Provisions (statebirdsf.com)",
+      "rival: Rich Table (richtablesf.com)",
+      "rival: The Progress (theprogress-sf.com)",
+      "rival: Lazy Bear (lazybearsf.com)",
+      "rival: Quince (quincesf.com)"
      ]
     }
    ],
@@ -488,7 +518,7 @@
     {
      "check": "market_terms",
      "pass": true,
-     "detail": "3 searched terms; \"THC edibles\" has 12100"
+     "detail": "7 searched terms; \"best restaurants San Francisco\" has 18100"
     },
     {
      "check": "mention_rate",
@@ -497,8 +527,8 @@
     },
     {
      "check": "serp_timeouts",
-     "pass": false,
-     "detail": "1 of 4 SERP reads timed out"
+     "pass": true,
+     "detail": "0 of 12 SERP reads timed out"
     }
    ],
    "events": [
@@ -517,7 +547,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 10143,
+     "durationMs": 10379,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -529,7 +559,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 10316,
+     "durationMs": 10454,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -541,7 +571,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 10401,
+     "durationMs": 10735,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -553,7 +583,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 10610,
+     "durationMs": 11108,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -565,7 +595,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 10686,
+     "durationMs": 11331,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -577,7 +607,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 10816,
+     "durationMs": 11580,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -589,26 +619,170 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 10895,
+     "durationMs": 11645,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
     },
     {
      "event": "vendor_call",
-     "source": "serp/google/organic",
+     "source": "serp/google/ai_mode",
      "outcome": "failed",
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 30532,
+     "durationMs": 11761,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11816,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11871,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11936,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11994,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12065,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12478,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12547,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12609,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12732,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 13010,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 13077,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 13209,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
     }
    ],
-   "seconds": 147,
-   "evidenceLoaded": 0
+   "seconds": 132,
+   "evidenceLoaded": 21
   },
   {
    "site": {
@@ -628,53 +802,55 @@
    "status": "done",
    "stoppedReason": "complete",
    "market": {
-    "buyer": "homeowners and business owners in Austin needing plumbing work",
+    "buyer": "homeowners in Austin needing plumbing work",
     "job": "fix plumbing problems and maintain plumbing systems",
     "category": "plumbing repair and maintenance",
     "synonyms": [
      "plumbing services",
-     "plumber near me",
-     "emergency plumbing"
+     "plumbing contractor",
+     "emergency plumber"
     ],
     "differentiators": [
      "local Austin service",
-     "comprehensive inspections to prevent problems",
-     "serves both residential and commercial",
-     "educational blog content on plumbing issues"
+     "comprehensive inspection to prevent problems",
+     "annual maintenance plans",
+     "sewer camera inspection",
+     "serves neighbors in Austin"
     ],
     "notOurMarket": [
-     "plumbing supplies",
-     "plumbing education courses",
-     "DIY plumbing tools",
-     "water treatment systems"
+     "plumbing supplies retail",
+     "plumbing education",
+     "water treatment systems",
+     "septic system installation"
     ],
-    "categoryReason": "The headline and products show Austin Plumbery is a local service provider offering repair, maintenance, remodeling and construction for both residential and commercial plumbing needs.",
+    "categoryReason": "The headline and products show Austin Plumbery is a local plumbing service provider offering repair, maintenance, and inspection—the buyer hires them to fix and prevent plumbing problems in their home.",
     "rivals": [
      {
       "domain": "rotorooter.com",
       "name": "Roto-Rooter",
       "basis": "ai_answer",
-      "reason": "National plumbing repair and drain cleaning franchise with a strong Austin presence serving both residential and commercial customers 24/7.",
+      "reason": "National franchise plumbing and drain service with local Austin presence offering 24/7 repair, drain cleaning, and emergency plumbing.",
       "searchNames": [
        "roto-rooter"
       ],
       "volume": 135000
      },
      {
-      "domain": "benjaminfranklinplumbing.com",
-      "name": "Benjamin Franklin Plumbing",
-      "basis": "ai_answer",
-      "reason": "Franchise plumbing service brand offering residential repair, maintenance, and emergency plumbing with Austin-area locations.",
+      "domain": "abcplumbingaustin.com",
+      "name": "ABC Home & Commercial Services",
+      "basis": "same_job",
+      "reason": "Large Austin home services company with a dedicated plumbing division offering repair, drain cleaning, and water heater work to homeowners.",
       "searchNames": [
-       "benjamin franklin plumbing"
+       "abc home & commercial services",
+       "abc plumbing austin"
       ],
-      "volume": 27100
+      "volume": 9900
      },
      {
       "domain": "mrrooter.com",
       "name": "Mr. Rooter Plumbing",
-      "basis": "ranks",
-      "reason": "National plumbing franchise offering 24-hour emergency repair and maintenance for homes and businesses, competing directly in the Austin market.",
+      "basis": "ai_answer",
+      "reason": "National franchise residential plumbing service with Austin-area locations offering repair, drain cleaning, and water heater service.",
       "searchNames": [
        "mr. rooter plumbing",
        "mr rooter plumbing"
@@ -682,24 +858,26 @@
       "volume": 8100
      },
      {
-      "domain": "plumblineservices.com",
-      "name": "Plumbline Services",
-      "basis": "ranks",
-      "reason": "Full-service plumbing company offering emergency repair, drain cleaning, and maintenance for residential and commercial clients.",
+      "domain": "radiantplumbing.com",
+      "name": "Radiant Plumbing & Air Conditioning",
+      "basis": "same_job",
+      "reason": "Well-known Austin plumbing and HVAC company serving homeowners with repair, drain cleaning, water heaters, and sewer camera inspection.",
       "searchNames": [
-       "plumbline services"
+       "radiant plumbing & air conditioning",
+       "radiant plumbing austin"
       ],
-      "volume": 2900
+      "volume": 3600
      },
      {
-      "domain": "midwayplumbing.com",
-      "name": "Midway Plumbing",
-      "basis": "ranks",
-      "reason": "Local plumbing company offering repair and maintenance services to homeowners and businesses in Texas.",
+      "domain": "pipelineaustin.com",
+      "name": "Pipeline Plumbing",
+      "basis": "same_job",
+      "reason": "Austin residential plumbing contractor offering leak repair, sewer inspection, and maintenance services to homeowners.",
       "searchNames": [
-       "midway plumbing"
+       "pipeline plumbing",
+       "pipeline plumbing austin"
       ],
-      "volume": 590
+      "volume": 1000
      }
     ],
     "terms": [
@@ -732,12 +910,12 @@
       "volume": 12100
      },
      {
-      "term": "24 hour plumber",
-      "volume": 8100
+      "term": "plumber Austin",
+      "volume": 6600
      },
      {
-      "term": "plumbing maintenance",
-      "volume": 1300
+      "term": "clogged drain repair",
+      "volume": 720
      },
      {
       "term": "fix leaking pipe",
@@ -745,32 +923,60 @@
      }
     ],
     "searchTerm": "plumber near me",
-    "termsAt": "2026-10-07T16:42:30.714Z",
+    "termsAt": "2026-10-07T18:12:43.153Z",
     "demand": {
-     "at": "2026-10-07T16:45:49.430Z",
+     "at": "2026-10-07T18:14:26.990Z",
      "own": 6600,
      "brands": {
       "roto-rooter": 135000,
       "austinplumbery": 0,
       "austin plumbery": 6600,
-      "midway plumbing": 590,
+      "pipeline plumbing": 1000,
       "mr rooter plumbing": 8100,
-      "plumbline services": 2900,
+      "abc plumbing austin": 90,
       "mr. rooter plumbing": 0,
-      "monkey wrench plumbers": 0,
-      "benjamin franklin plumbing": 27100
+      "blue knight plumbing": 0,
+      "rooter man of austin": 50,
+      "goettl plumbing austin": 0,
+      "radiant plumbing austin": 3600,
+      "pipeline plumbing austin": 0,
+      "blue knight plumbing austin": 0,
+      "abc home & commercial services": 9900,
+      "goettl air conditioning & plumbing": 320,
+      "radiant plumbing & air conditioning": 3600
      },
      "searches": {
+      "goettl alternatives": 0,
       "roto-rooter alternatives": 0,
-      "midway plumbing alternatives": 0,
-      "plumbline services alternatives": 0,
+      "radiantplumbing alternatives": 0,
+      "abcplumbingaustin alternatives": 0,
+      "pipeline plumbing alternatives": 0,
       "mr. rooter plumbing alternatives": 0,
-      "monkey wrench plumbers alternatives": 0,
-      "benjamin franklin plumbing alternatives": 0
+      "blue knight plumbing alternatives": 0,
+      "rooter man of austin alternatives": 0
      }
+    },
+    "judged": {
+     "home services plumbing": true,
+     "emergency plumber repair": true,
+     "plumbing repair services": true,
+     "water heater repair price": true,
+     "cost of water heater repair": true,
+     "residential plumber near me": true,
+     "water heater repair plumber": true,
+     "commercial plumbing services": false,
+     "emergency water heater repair": true,
+     "residential plumbing services": true,
+     "plumber repair service near me": true,
+     "water heater repair and service": true,
+     "drain cleaning plumbing services": true,
+     "plumbing repair services near me": true
     }
    },
-   "deadRivals": [],
+   "deadRivals": [
+    "abcplumbingaustin.com",
+    "pipelineaustin.com"
+   ],
    "locales": [
     {
      "location": "United States",
@@ -778,37 +984,23 @@
     }
    ],
    "searches": [
-    "emergency plumbing fix",
+    "plumber near me",
+    "emergency plumber",
+    "water heater repair",
+    "plumbing services",
+    "local plumber",
+    "plumbing repair",
+    "drain cleaning service",
+    "plumber austin",
+    "clogged drain repair",
+    "fix leaking pipe",
     "plumbing repair services",
-    "residential plumber near me",
-    "emergency plumbing repair",
-    "home services plumbing",
-    "commercial plumbing services",
-    "plumber repair service near me",
-    "plumbing repair services near me",
-    "residential plumbing services",
-    "services plumbing",
-    "austin emergency plumbing",
-    "plumbing repair and maintenance"
+    "residential plumber near me"
    ],
    "knowledgePages": 0,
    "questions": [],
    "audience": [],
    "topics": [
-    {
-     "query": "services plumbing",
-     "status": "open",
-     "type": "expand_page",
-     "fit": 2,
-     "volume": 1000
-    },
-    {
-     "query": "emergency plumbing fix",
-     "status": "open",
-     "type": "listed_page",
-     "fit": 2,
-     "volume": 1900
-    },
     {
      "query": "plumbing repair services",
      "status": "open",
@@ -817,88 +1009,81 @@
      "volume": 2900
     },
     {
-     "query": "residential plumber near me",
+     "query": "roto-rooter alternatives",
      "status": "open",
-     "type": "listed_page",
+     "type": "comparison_page",
      "fit": 3,
-     "volume": 2900
+     "volume": null
     },
     {
-     "query": "home services plumbing",
+     "query": "abcplumbingaustin alternatives",
      "status": "open",
-     "type": "listed_page",
-     "fit": 2,
-     "volume": 1900
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
     },
     {
-     "query": "commercial plumbing services",
+     "query": "mr. rooter plumbing alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "radiantplumbing alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "pipeline plumbing alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "plumber available today in austin",
      "status": "open",
      "type": "keyword_page",
-     "fit": 2,
-     "volume": 1600
-    },
-    {
-     "query": "austin emergency plumbing",
-     "status": "open",
-     "type": "answer_page",
-     "fit": 3,
-     "volume": 880
-    },
-    {
-     "query": "austin plumbery vs roto-rooter",
-     "status": "open",
-     "type": "comparison_page",
      "fit": 3,
      "volume": null
     },
     {
-     "query": "austin plumbery vs benjamin franklin plumbing",
+     "query": "drain cleaning service austin",
      "status": "open",
-     "type": "comparison_page",
+     "type": "keyword_page",
      "fit": 3,
      "volume": null
     },
     {
-     "query": "austin plumbery vs mr. rooter plumbing",
+     "query": "annual plumbing maintenance plan",
      "status": "open",
-     "type": "comparison_page",
-     "fit": 3,
-     "volume": null
-    },
-    {
-     "query": "austin plumbery vs plumbline services",
-     "status": "open",
-     "type": "comparison_page",
-     "fit": 3,
-     "volume": null
-    },
-    {
-     "query": "austin plumbery vs midway plumbing",
-     "status": "open",
-     "type": "comparison_page",
+     "type": "keyword_page",
      "fit": 3,
      "volume": null
     }
    ],
-   "cents": 32.5329,
+   "cents": 22.368100000000002,
    "costBySource": {
-    "dataforseo_labs/google/ranked_keywords": 4.8,
-    "site-profile": 0.5722,
-    "profile": 0.2428,
-    "market-inference": 0.3649,
-    "market-terms": 0.6573,
-    "dataforseo_labs/google/keyword_overview": 2.25,
-    "dataforseo_labs/google/keyword_suggestions": 7.2,
-    "question-phrasing": 0.2686,
-    "serp/google/organic": 2.4,
+    "site-profile": 0.5437,
+    "profile": 0.2413,
+    "market-inference": 0.3655,
+    "market-terms": 0.654,
+    "dataforseo_labs/google/keyword_overview": 2.34,
+    "dataforseo_labs/google/keyword_suggestions": 3.6,
+    "market-searches": 0.8283,
+    "question-phrasing": 0.262,
     "serp/google/ai_mode": 4.000000000000001,
-    "ai_optimization/chat_gpt/llm_scraper": 1.4400000000000004,
-    "rival-inference": 2.5377,
-    "topic-buyer-searches": 0.1989,
-    "topic-typed": 0.2196,
-    "topic-fit": 3.549,
-    "opportunity-typing": 1.3771999999999998,
-    "topic-same-question": 0.4547
+    "serp/google/organic": 2.1999999999999997,
+    "ai_optimization/chat_gpt/llm_scraper": 1.2000000000000002,
+    "rival-inference": 2.646,
+    "topic-buyer-searches": 0.1843,
+    "topic-typed": 0.231,
+    "topic-fit": 2.6217,
+    "opportunity-typing": 0.2486,
+    "topic-same-question": 0.2017
    },
    "checks": [
     {
@@ -921,9 +1106,12 @@
     },
     {
      "check": "3–5 rivals, none a listing, each with demand or AI evidence",
-     "verdict": "pass",
-     "detail": "Roto-Rooter — rotorooter.com, 135000/mo, ai_answer; Benjamin Franklin Plumbing — benjaminfranklinplumbing.com, 27100/mo, ai_answer; Mr. Rooter Plumbing — mrrooter.com, 8100/mo, ranks; Plumbline Services — plumblineservices.com, 2900/mo, ranks; Midway Plumbing — midwayplumbing.com, 590/mo, ranks",
-     "items": []
+     "verdict": "fail",
+     "detail": "Roto-Rooter — rotorooter.com, 135000/mo, ai_answer; ABC Home & Commercial Services — abcplumbingaustin.com, 9900/mo, same_job; Mr. Rooter Plumbing — mrrooter.com, 8100/mo, ai_answer; Radiant Plumbing & Air Conditioning — radiantplumbing.com, 3600/mo, same_job; Pipeline Plumbing — pipelineaustin.com, 1000/mo, same_job",
+     "items": [
+      "abcplumbingaustin.com does not resolve: no such site",
+      "pipelineaustin.com does not resolve: no such site"
+     ]
     },
     {
      "check": "no measured search is off-market, a rival's brand or navigational",
@@ -940,13 +1128,13 @@
     {
      "check": "the audience is specific",
      "verdict": "pass",
-     "detail": "\"homeowners and business owners in Austin needing plumbing work\"",
+     "detail": "\"homeowners in Austin needing plumbing work\"",
      "items": []
     },
     {
      "check": "topics are all on-market",
      "verdict": "pass",
-     "detail": "12 read",
+     "detail": "9 read",
      "items": []
     },
     {
@@ -960,22 +1148,22 @@
       "local plumber 22200/mo",
       "plumbing repair 18100/mo",
       "drain cleaning service 12100/mo",
-      "24 hour plumber 8100/mo",
-      "plumbing maintenance 1300/mo",
+      "clogged drain repair 720/mo",
       "fix leaking pipe 140/mo",
-      "emergency plumbing fix",
+      "emergency plumber",
+      "water heater repair",
+      "plumbing services",
+      "local plumber",
+      "plumbing repair",
+      "drain cleaning service",
+      "clogged drain repair",
+      "fix leaking pipe",
       "plumbing repair services",
-      "emergency plumbing repair",
-      "home services plumbing",
-      "commercial plumbing services",
-      "residential plumbing services",
-      "services plumbing",
-      "plumbing repair and maintenance",
       "rival: Roto-Rooter (rotorooter.com)",
-      "rival: Benjamin Franklin Plumbing (benjaminfranklinplumbing.com)",
+      "rival: ABC Home & Commercial Services (abcplumbingaustin.com)",
       "rival: Mr. Rooter Plumbing (mrrooter.com)",
-      "rival: Plumbline Services (plumblineservices.com)",
-      "rival: Midway Plumbing (midwayplumbing.com)"
+      "rival: Radiant Plumbing & Air Conditioning (radiantplumbing.com)",
+      "rival: Pipeline Plumbing (pipelineaustin.com)"
      ]
     }
    ],
@@ -1003,12 +1191,308 @@
     {
      "check": "serp_timeouts",
      "pass": true,
-     "detail": "0 of 12 SERP reads timed out"
+     "detail": "2 of 11 SERP reads timed out"
     }
    ],
-   "events": [],
-   "seconds": 262,
-   "evidenceLoaded": 0
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "austinplumbery.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10281,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10712,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10798,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10866,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11403,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11478,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11693,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11908,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11967,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12040,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12102,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12171,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12304,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12436,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12501,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12563,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12645,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12709,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12776,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12917,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 30098,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 30041,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "serp_retry",
+     "because": "timeout",
+     "outcome": "unmeasured"
+    },
+    {
+     "event": "ai_answers_card",
+     "coverage": "cached_only",
+     "cells": [
+      "unmeasured",
+      "no_answer",
+      "no_answer",
+      "no_answer",
+      "no_answer",
+      "no_answer",
+      "answered",
+      "no_answer",
+      "no_answer",
+      "answered",
+      "answered",
+      "no_answer"
+     ]
+    }
+   ],
+   "seconds": 146,
+   "evidenceLoaded": 51
   },
   {
    "site": {
@@ -1055,54 +1539,55 @@
     "categoryReason": "The headline identifies itself as \"Die Bäckerei der Brotfreunde\" (the bakery for bread friends), positioning as a specialty bakery selling fresh baked goods directly to consumers.",
     "rivals": [
      {
-      "domain": "scratchbakingct.com",
-      "name": "Scratch Baking",
-      "basis": "ai_answer",
-      "reason": "Artisan bakery specializing in fresh scratch-made breads and baked goods for local consumers.",
-      "searchNames": [
-       "scratch baking"
-      ],
-      "volume": 22200
-     },
-     {
-      "domain": "bigskybreadokc.com",
-      "name": "Big Sky Bread",
-      "basis": "ai_answer",
-      "reason": "Local artisan bakery focused on fresh bread and baked goods sold directly to consumers.",
-      "searchNames": [
-       "big sky bread"
-      ],
-      "volume": 1900
-     },
-     {
-      "domain": "stevedorebakery.com",
-      "name": "Stevedore Bakery",
+      "domain": "noevalleybakery.com",
+      "name": "Noe Valley Bakery",
       "basis": "ranks",
-      "reason": "Artisan bakery and coffee shop offering fresh-baked breads and goods to local consumers.",
+      "reason": "San Francisco neighborhood artisan bakery selling fresh bread and baked goods directly to local consumers.",
       "searchNames": [
-       "stevedore bakery"
+       "noe valley bakery"
       ],
-      "volume": 1900
+      "volume": 18100
      },
      {
-      "domain": "livbreads.com",
-      "name": "Liv Breads",
+      "domain": "sweetlifedesserts.com",
+      "name": "Sweet Life Patisserie",
       "basis": "ranks",
-      "reason": "Artisan bread bakery specializing in laminated doughs and fresh loaves sold to consumers.",
+      "reason": "Local artisan bakery selling fresh baked goods directly to consumers, positioning as a neighborhood specialty bakery.",
       "searchNames": [
-       "liv breads"
+       "sweet life patisserie"
       ],
-      "volume": 1900
+      "volume": 8100
      },
      {
-      "domain": "farmtomarketbread.com",
-      "name": "Farm to Market Bread",
+      "domain": "thedailybreadlv.com",
+      "name": "The Daily Bread",
       "basis": "ai_answer",
-      "reason": "Artisan bread bakery selling fresh-baked loaves directly to consumers, competing as a craft bread specialist.",
+      "reason": "Local artisan bakery selling fresh bread and baked goods daily to consumers, cited for best fresh bread.",
       "searchNames": [
-       "farm to market bread"
+       "the daily bread",
+       "the daily bread bakery"
       ],
-      "volume": 590
+      "volume": 5400
+     },
+     {
+      "domain": "labreabakery.com",
+      "name": "La Brea Bakery",
+      "basis": "ranks",
+      "reason": "Artisan bread brand selling sourdough loaves and baguettes directly to consumers, competing as a craft bakery focused on bread enthusiasts.",
+      "searchNames": [
+       "la brea bakery"
+      ],
+      "volume": 4400
+     },
+     {
+      "domain": "shoresidebakery.com",
+      "name": "Shoreside Bakery",
+      "basis": "ai_answer",
+      "reason": "Artisan sourdough bakery selling fresh bread directly to consumers, cited as a top sourdough bakery destination.",
+      "searchNames": [
+       "shoreside bakery"
+      ],
+      "volume": 2900
      }
     ],
     "terms": [
@@ -1111,20 +1596,8 @@
       "volume": 3350000
      },
      {
-      "term": "artisan bread",
-      "volume": 40500
-     },
-     {
       "term": "best bakery near me",
       "volume": 33100
-     },
-     {
-      "term": "sourdough bread near me",
-      "volume": 22200
-     },
-     {
-      "term": "local bakery near me",
-      "volume": 14800
      },
      {
       "term": "artisan bakery",
@@ -1135,52 +1608,73 @@
       "volume": 9900
      },
      {
+      "term": "local bakery",
+      "volume": 8100
+     },
+     {
+      "term": "sourdough bakery near me",
+      "volume": 6600
+     },
+     {
       "term": "craft bakery",
       "volume": 2900
      },
      {
-      "term": "fresh baked goods",
-      "volume": 1900
-     },
-     {
       "term": "specialty bakery",
       "volume": 1300
+     },
+     {
+      "term": "artisan bread bakery",
+      "volume": 1000
+     },
+     {
+      "term": "fresh baked goods near me",
+      "volume": 320
      }
     ],
     "searchTerm": "bakery near me",
-    "termsAt": "2026-10-07T16:49:17.883Z",
+    "termsAt": "2026-10-07T18:15:10.159Z",
     "demand": {
-     "at": "2026-10-07T16:52:37.711Z",
+     "at": "2026-10-07T18:16:57.121Z",
      "own": 50,
      "brands": {
-      "oak & ore": 260,
-      "liv breads": 1900,
-      "big sky bread": 1900,
-      "novaks bakery": 10,
-      "novak's bakery": 10,
-      "scratch baking": 22200,
+      "desert bread": 720,
+      "la brea bakery": 4400,
+      "the daily bread": 5400,
       "baeckerei-hinkel": 0,
       "bäckerei hinkel": 50,
-      "fratellis pastry": 0,
-      "stevedore bakery": 1900,
-      "fratelli's pastry": 20,
-      "le sourdough haven": 0,
-      "oak and ore bakery": 0,
-      "panificio italiano": 20,
-      "farm to market bread": 590
+      "shoreside bakery": 2900,
+      "noe valley bakery": 18100,
+      "desert bread bakery": 0,
+      "sweet life patisserie": 8100,
+      "the daily bread bakery": 3600,
+      "sweet melissa patisserie": 2900
      },
      "searches": {
-      "oak & ore alternatives": 0,
-      "liv breads alternatives": 0,
-      "big sky bread alternatives": 0,
-      "novak's bakery alternatives": 0,
-      "scratch baking alternatives": 0,
-      "stevedore bakery alternatives": 0,
-      "fratelli's pastry alternatives": 0,
-      "le sourdough haven alternatives": 0,
-      "panificio italiano alternatives": 0,
-      "farm to market bread alternatives": 0
+      "desert bread alternatives": 0,
+      "la brea bakery alternatives": 0,
+      "the daily bread alternatives": 0,
+      "shoreside bakery alternatives": 0,
+      "noe valley bakery alternatives": 0,
+      "sweet life patisserie alternatives": 0,
+      "sweet melissa patisserie alternatives": 0
      }
+    },
+    "judged": {
+     "bakery rolls near me": true,
+     "best bakery shop near me": true,
+     "best fresh bread near me": true,
+     "best local bakery near me": true,
+     "best pastry bakery near me": true,
+     "best bakery near me near me": true,
+     "best bakery for bread near me": true,
+     "best sourdough bakery near me": true,
+     "best fresh baked bread near me": true,
+     "best fresh bread bakery near me": true,
+     "what is the best bakery near me": true,
+     "best bakery near me with a bakery": true,
+     "best fresh sourdough bread near me": true,
+     "best sourdough bread bakery near me": true
     }
    },
    "deadRivals": [],
@@ -1191,18 +1685,18 @@
     }
    ],
    "searches": [
+    "bakery near me",
+    "best bakery near me near me",
     "best local bakery near me",
-    "best local bakery",
-    "local bakery sourdough",
-    "local bakery near me for bread",
-    "local gluten free bakery",
-    "what is artisan bakery",
-    "craft bakery near me",
-    "local bakery shop",
-    "local bakery shop near me",
-    "local sourdough bakery near me",
-    "bakery craft",
-    "the artisan bakery"
+    "best bakery near me",
+    "best fresh bread near me",
+    "best sourdough bakery near me",
+    "best bakery for bread near me",
+    "artisan bakery",
+    "fresh bread near me",
+    "best bakery shop near me",
+    "local bakery",
+    "sourdough bakery near me"
    ],
    "knowledgePages": 0,
    "questions": [],
@@ -1212,64 +1706,78 @@
      "query": "best local bakery near me",
      "status": "open",
      "type": "listed_page",
-     "fit": 3,
+     "fit": 2,
      "volume": 260
     },
     {
-     "query": "local bakery sourdough",
+     "query": "best sourdough bakery near me",
      "status": "open",
      "type": "listed_page",
      "fit": 3,
-     "volume": 260
+     "volume": 170
     },
     {
-     "query": "local bakery near me for bread",
-     "status": "open",
-     "type": "listed_page",
-     "fit": 3,
-     "volume": 140
-    },
-    {
-     "query": "local gluten free bakery",
-     "status": "open",
-     "type": "listed_page",
-     "fit": 1,
-     "volume": 140
-    },
-    {
-     "query": "what is artisan bakery",
-     "status": "open",
-     "type": "listed_page",
-     "fit": 1,
-     "volume": 110
-    },
-    {
-     "query": "the artisan bakery",
+     "query": "best bakery near me near me",
      "status": "open",
      "type": "keyword_page",
      "fit": 2,
-     "volume": 140
+     "volume": 260
+    },
+    {
+     "query": "noe valley bakery alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "sweet life patisserie alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "the daily bread alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "la brea bakery alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "shoreside bakery alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
     }
    ],
-   "cents": 31.639100000000003,
+   "cents": 26.8903,
    "costBySource": {
-    "dataforseo_labs/google/ranked_keywords": 4.8,
-    "site-profile": 0.3574,
-    "profile": 0.3426,
+    "site-profile": 0.3929,
+    "profile": 0.3446,
     "market-inference": 0.3776,
-    "market-terms": 0.6576,
-    "dataforseo_labs/google/keyword_overview": 2.35,
+    "market-terms": 0.6621,
+    "dataforseo_labs/google/keyword_overview": 2.2800000000000002,
     "dataforseo_labs/google/keyword_suggestions": 7.2,
-    "question-phrasing": 0.3134,
+    "market-searches": 0.87,
+    "question-phrasing": 0.2364,
+    "serp/google/organic": 3.0000000000000004,
     "serp/google/ai_mode": 4.000000000000001,
-    "serp/google/organic": 3.600000000000001,
-    "ai_optimization/chat_gpt/llm_scraper": 1.4400000000000004,
-    "rival-inference": 2.5752,
-    "topic-buyer-searches": 0.1909,
-    "topic-typed": 0.2153,
-    "topic-fit": 2.2974,
-    "opportunity-typing": 0.7636,
-    "topic-same-question": 0.1581
+    "ai_optimization/chat_gpt/llm_scraper": 1.3200000000000003,
+    "rival-inference": 2.595,
+    "topic-buyer-searches": 0.2072,
+    "topic-typed": 0.2236,
+    "topic-fit": 2.2704,
+    "opportunity-typing": 0.7611000000000001,
+    "topic-same-question": 0.1494
    },
    "checks": [
     {
@@ -1290,21 +1798,21 @@
      "detail": "a de site in Germany was read in United States / en",
      "items": [
       "bakery near me",
-      "artisan bread",
       "best bakery near me",
-      "sourdough bread near me",
-      "local bakery near me",
       "artisan bakery",
       "fresh bread near me",
+      "local bakery",
+      "sourdough bakery near me",
       "craft bakery",
-      "fresh baked goods",
-      "specialty bakery"
+      "specialty bakery",
+      "artisan bread bakery",
+      "fresh baked goods near me"
      ]
     },
     {
      "check": "3–5 rivals, none a listing, each with demand or AI evidence",
      "verdict": "pass",
-     "detail": "Scratch Baking — scratchbakingct.com, 22200/mo, ai_answer; Big Sky Bread — bigskybreadokc.com, 1900/mo, ai_answer; Stevedore Bakery — stevedorebakery.com, 1900/mo, ranks; Liv Breads — livbreads.com, 1900/mo, ranks; Farm to Market Bread — farmtomarketbread.com, 590/mo, ai_answer",
+     "detail": "Noe Valley Bakery — noevalleybakery.com, 18100/mo, ranks; Sweet Life Patisserie — sweetlifedesserts.com, 8100/mo, ranks; The Daily Bread — thedailybreadlv.com, 5400/mo, ai_answer; La Brea Bakery — labreabakery.com, 4400/mo, ranks; Shoreside Bakery — shoresidebakery.com, 2900/mo, ai_answer",
      "items": []
     },
     {
@@ -1327,35 +1835,27 @@
     },
     {
      "check": "topics are all on-market",
-     "verdict": "fail",
-     "detail": "2 of 6 open at fit 0 or 1",
-     "items": [
-      "local gluten free bakery — open at business fit 1",
-      "what is artisan bakery — open at business fit 1"
-     ]
+     "verdict": "pass",
+     "detail": "8 read",
+     "items": []
     },
     {
      "check": "a local business is measured in its own place",
      "verdict": "review",
-     "detail": "10 of 22 terms and searches name düsseldorf or duesseldorf or dusseldorf or \"near me\"; are the rest, and the rivals, this place's?",
+     "detail": "15 of 22 terms and searches name düsseldorf or duesseldorf or dusseldorf or \"near me\"; are the rest, and the rivals, this place's?",
      "items": [
-      "artisan bread 40500/mo",
       "artisan bakery 9900/mo",
+      "local bakery 8100/mo",
       "craft bakery 2900/mo",
-      "fresh baked goods 1900/mo",
       "specialty bakery 1300/mo",
-      "best local bakery",
-      "local bakery sourdough",
-      "local gluten free bakery",
-      "what is artisan bakery",
-      "local bakery shop",
-      "bakery craft",
-      "the artisan bakery",
-      "rival: Scratch Baking (scratchbakingct.com)",
-      "rival: Big Sky Bread (bigskybreadokc.com)",
-      "rival: Stevedore Bakery (stevedorebakery.com)",
-      "rival: Liv Breads (livbreads.com)",
-      "rival: Farm to Market Bread (farmtomarketbread.com)"
+      "artisan bread bakery 1000/mo",
+      "artisan bakery",
+      "local bakery",
+      "rival: Noe Valley Bakery (noevalleybakery.com)",
+      "rival: Sweet Life Patisserie (sweetlifedesserts.com)",
+      "rival: The Daily Bread (thedailybreadlv.com)",
+      "rival: La Brea Bakery (labreabakery.com)",
+      "rival: Shoreside Bakery (shoresidebakery.com)"
      ]
     }
    ],
@@ -1383,7 +1883,7 @@
     {
      "check": "serp_timeouts",
      "pass": false,
-     "detail": "9 of 18 SERP reads timed out"
+     "detail": "4 of 15 SERP reads timed out"
     }
    ],
    "events": [
@@ -1402,7 +1902,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 10325,
+     "durationMs": 10237,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1414,7 +1914,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 10520,
+     "durationMs": 10412,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1426,7 +1926,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 10589,
+     "durationMs": 10637,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1438,7 +1938,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 10801,
+     "durationMs": 10723,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1450,7 +1950,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 10887,
+     "durationMs": 11021,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1462,7 +1962,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 11046,
+     "durationMs": 11086,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1474,7 +1974,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 11218,
+     "durationMs": 11331,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1486,7 +1986,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 11456,
+     "durationMs": 11400,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1498,7 +1998,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 11662,
+     "durationMs": 11606,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1510,7 +2010,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 11803,
+     "durationMs": 11819,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1522,7 +2022,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 11840,
+     "durationMs": 11950,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1534,7 +2034,1326 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 11918,
+     "durationMs": 12166,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12403,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12546,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12614,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12962,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 13014,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 13089,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 13173,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 31147,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 31759,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 32735,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 32799,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    }
+   ],
+   "seconds": 150,
+   "evidenceLoaded": 51
+  },
+  {
+   "site": {
+    "domain": "alexander.co.uk",
+    "kind": "professional services (accountancy, UK)",
+    "country": "GB",
+    "language": "en",
+    "market": [
+     "account",
+     "tax"
+    ],
+    "place": [
+     "manchester"
+    ],
+    "why": "An independent firm of chartered accountants in Manchester. A UK professional-services firm with many service lines and a large site: the audience and the category must stay specific."
+   },
+   "siteName": "Alexander & Co",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "UK business owners and company directors",
+    "job": "minimize tax liability and ensure compliant financial reporting",
+    "category": "tax advice and accountancy",
+    "synonyms": [
+     "chartered accountancy services",
+     "tax advisory services",
+     "business tax planning",
+     "accountant for companies"
+    ],
+    "differentiators": [
+     "50 years of heritage and established reputation",
+     "ICAEW-regulated chartered accountants",
+     "specialist expertise in R&D tax reduction claims",
+     "crypto and emerging asset tax expertise",
+     "M&A and investment tax due diligence"
+    ],
+    "notOurMarket": [
+     "bookkeeping and payroll processing",
+     "accounting software platforms",
+     "financial forecasting tools",
+     "audit-only services",
+     "general business consulting"
+    ],
+    "categoryReason": "The headline and all case studies emphasize tax advice and accountancy as the core outcome buyers hire for, with specific expertise in tax reduction, compliance, and strategic tax planning for business owners.",
+    "rivals": [
+     {
+      "domain": "grantthornton.co.uk",
+      "name": "Grant Thornton",
+      "basis": "same_job",
+      "reason": "Mid-tier chartered accountancy firm offering business tax advice, R&D tax credits, and M&A tax due diligence to UK companies.",
+      "searchNames": [
+       "grant thornton",
+       "grant thornton accountants"
+      ],
+      "volume": 40500
+     },
+     {
+      "domain": "mazars.co.uk",
+      "name": "Forvis Mazars",
+      "basis": "same_job",
+      "reason": "International chartered accountancy firm providing corporation tax planning and compliance services to UK business owners and directors.",
+      "searchNames": [
+       "forvis mazars",
+       "forvis mazars uk"
+      ],
+      "volume": 22200
+     },
+     {
+      "domain": "pwc.co.uk",
+      "name": "PwC",
+      "basis": "same_job",
+      "reason": "One of the Big Four, offering corporation tax advice, compliance, and tax planning to UK businesses of all sizes.",
+      "searchNames": [
+       "pwc tax advisory",
+       "pwc tax"
+      ],
+      "volume": 1600
+     },
+     {
+      "domain": "bdo.co.uk",
+      "name": "BDO",
+      "basis": "same_job",
+      "reason": "Mid-tier ICAEW-regulated chartered accountancy firm specialising in tax planning and compliance for owner-managed businesses and SMEs in the UK.",
+      "searchNames": [
+       "bdo accountants uk",
+       "bdo accountants"
+      ],
+      "volume": 1300
+     },
+     {
+      "domain": "deloitte.com",
+      "name": "Deloitte",
+      "basis": "same_job",
+      "reason": "Big Four firm providing comprehensive tax advisory and chartered accountancy services to UK companies and directors.",
+      "searchNames": [
+       "deloitte tax advisory",
+       "deloitte tax"
+      ],
+      "volume": 480
+     }
+    ],
+    "terms": [
+     {
+      "term": "accountant for small business",
+      "volume": 5400
+     },
+     {
+      "term": "chartered accountant",
+      "volume": 5400
+     },
+     {
+      "term": "company tax return",
+      "volume": 1300
+     },
+     {
+      "term": "tax planning for companies",
+      "volume": 90
+     },
+     {
+      "term": "business tax advice",
+      "volume": 40
+     },
+     {
+      "term": "small business accountant UK",
+      "volume": 10
+     },
+     {
+      "term": "reduce corporation tax",
+      "volume": 10
+     },
+     {
+      "term": "tax efficient business structure",
+      "volume": 10
+     },
+     {
+      "term": "corporation tax advice",
+      "volume": 0
+     },
+     {
+      "term": "CTA tax adviser",
+      "volume": 0,
+      "polluted": true
+     }
+    ],
+    "searchTerm": "accountant for small business",
+    "termsAt": "2026-10-07T18:17:40.914Z",
+    "demand": {
+     "at": "2026-10-07T18:19:24.664Z",
+     "own": 90500,
+     "brands": {
+      "rsm uk": 210,
+      "pwc tax": 1600,
+      "saffery": 170,
+      "crowe uk": 90,
+      "kpmg tax": 210,
+      "alexander": 90500,
+      "deloitte tax": 480,
+      "forvis mazars": 22200,
+      "alexander & co": 110,
+      "grant thornton": 40500,
+      "hays macintyre": 0,
+      "bdo accountants": 1300,
+      "forvis mazars uk": 30,
+      "pwc tax advisory": 10,
+      "kpmg tax advisory": 10,
+      "bdo accountants uk": 0,
+      "rsm uk accountants": 0,
+      "saffery accountants": 10,
+      "crowe uk accountants": 0,
+      "deloitte tax advisory": 30,
+      "haysmacintyre accountants": 0,
+      "grant thornton accountants": 90
+     },
+     "searches": {
+      "bdo alternatives": 0,
+      "pwc alternatives": 10,
+      "kpmg alternatives": 0,
+      "rsm uk alternatives": 0,
+      "saffery alternatives": 0,
+      "crowe uk alternatives": 0,
+      "deloitte alternatives": 0,
+      "forvis mazars alternatives": 0,
+      "grant thornton alternatives": 0,
+      "hays macintyre alternatives": 0
+     }
+    },
+    "judged": {
+     "chartered accountant vs": true,
+     "best chartered accountant": true,
+     "chartered accountant list": true,
+     "company tax return software": false,
+     "chartered accountant what is": true,
+     "chartered accountant services": true,
+     "chartered financial accountant": true,
+     "accountant cost for small business": true,
+     "best accountant for small business": true,
+     "accountant for small business taxes": true,
+     "accountant prices for small business": true,
+     "online accountant for small business": true,
+     "accountant near me for small business": true,
+     "business accountant for small business": true,
+     "best accountant for small business near me": true,
+     "how to be an accountant for small business": false
+    }
+   },
+   "deadRivals": [],
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "searches": [
+    "accountant for small business",
+    "chartered accountant",
+    "company tax return",
+    "best chartered accountant",
+    "chartered accountant vs",
+    "best accountant for small business",
+    "tax planning for companies",
+    "best accountant for small business near me",
+    "business tax advice",
+    "reduce corporation tax",
+    "small business accountant uk",
+    "tax efficient business structure"
+   ],
+   "knowledgePages": 7,
+   "questions": [],
+   "audience": [],
+   "topics": [
+    {
+     "query": "best chartered accountant",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 720
+    },
+    {
+     "query": "chartered accountant vs",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 720
+    },
+    {
+     "query": "tax planning advice for business owners",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "grant thornton alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "forvis mazars alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "alexander co vs grant thornton",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "alexander co vs forvis mazars",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "alexander co vs pwc",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "alexander co vs bdo",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "alexander co vs deloitte",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "how to claim tax relief on research and development",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "chartered accountant for small business uk",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "crypto asset tax reporting for companies",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null
+    }
+   ],
+   "cents": 34.92240000000001,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 4.8,
+    "site-profile": 0.4503,
+    "profile": 0.389,
+    "market-inference": 0.4362,
+    "market-terms": 0.6549,
+    "dataforseo_labs/google/keyword_overview": 2.42,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "market-searches": 0.8913,
+    "question-phrasing": 0.251,
+    "serp/google/ai_mode": 4.000000000000001,
+    "serp/google/organic": 2.4,
+    "ai_optimization/chat_gpt/llm_scraper": 1.4400000000000004,
+    "site-knowledge": 2.8856,
+    "rival-inference": 2.6655,
+    "topic-buyer-searches": 0.1946,
+    "topic-typed": 0.2229,
+    "topic-fit": 2.8251,
+    "opportunity-typing": 0.6251000000000001,
+    "topic-same-question": 0.1709
+   },
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"tax advice and accountancy\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"accountant for small business\" 5400/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "fail",
+     "detail": "a en site in United Kingdom was read in United States / en",
+     "items": [
+      "accountant for small business",
+      "chartered accountant",
+      "company tax return",
+      "tax planning for companies",
+      "business tax advice",
+      "small business accountant UK",
+      "reduce corporation tax",
+      "tax efficient business structure",
+      "corporation tax advice",
+      "CTA tax adviser"
+     ]
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+     "verdict": "pass",
+     "detail": "Grant Thornton — grantthornton.co.uk, 40500/mo, same_job; Forvis Mazars — mazars.co.uk, 22200/mo, same_job; PwC — pwc.co.uk, 1600/mo, same_job; BDO — bdo.co.uk, 1300/mo, same_job; Deloitte — deloitte.com, 480/mo, same_job",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "review",
+     "detail": "the knowledge base holds no buyer question",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"UK business owners and company directors\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "13 read",
+     "items": []
+    },
+    {
+     "check": "a local business is measured in its own place",
+     "verdict": "review",
+     "detail": "1 of 20 terms and searches name manchester or \"near me\"; are the rest, and the rivals, this place's?",
+     "items": [
+      "accountant for small business 5400/mo",
+      "chartered accountant 5400/mo",
+      "company tax return 1300/mo",
+      "tax planning for companies 90/mo",
+      "business tax advice 40/mo",
+      "small business accountant UK 10/mo",
+      "reduce corporation tax 10/mo",
+      "tax efficient business structure 10/mo",
+      "accountant for small business",
+      "chartered accountant",
+      "company tax return",
+      "best chartered accountant",
+      "chartered accountant vs",
+      "best accountant for small business",
+      "tax planning for companies",
+      "business tax advice",
+      "reduce corporation tax",
+      "small business accountant uk",
+      "tax efficient business structure",
+      "rival: Grant Thornton (grantthornton.co.uk)",
+      "rival: Forvis Mazars (mazars.co.uk)",
+      "rival: PwC (pwc.co.uk)",
+      "rival: BDO (bdo.co.uk)",
+      "rival: Deloitte (deloitte.com)"
+     ]
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "8 searched terms; \"accountant for small business\" has 5400"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 12 SERP reads timed out"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "alexander.co.uk",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10181,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10532,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11069,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11136,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11343,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11425,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11565,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11860,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12267,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12328,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12501,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12577,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12755,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12817,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12874,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 13071,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 13146,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    }
+   ],
+   "seconds": 150,
+   "evidenceLoaded": 0
+  },
+  {
+   "site": {
+    "domain": "tattly.com",
+    "kind": "e-commerce shop",
+    "country": "US",
+    "language": "en",
+    "market": [
+     "tattoo"
+    ],
+    "why": "A shop that sells one kind of product (temporary tattoos) from its own site. Its market is a product category, its rivals are other shops, and marketplaces (Amazon, Etsy) are not rivals."
+   },
+   "siteName": "Tattly",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "consumers who want temporary tattoos",
+    "job": "apply temporary tattoos for self-expression or decoration",
+    "category": "temporary tattoos",
+    "synonyms": [
+     "fake tattoos",
+     "stick-on tattoos",
+     "temporary body art"
+    ],
+    "differentiators": [
+     "designs from artists and illustrators",
+     "high-quality temporary tattoo products",
+     "online store with curated collections"
+    ],
+    "notOurMarket": [
+     "permanent tattoo services",
+     "tattoo design software",
+     "body art supplies wholesale",
+     "costume accessories"
+    ],
+    "categoryReason": "The domain name and store structure indicate Tattly sells temporary tattoos as a consumer product, with curated designs and an online shopping experience.",
+    "rivals": [
+     {
+      "domain": "inkbox.com",
+      "name": "Inkbox",
+      "basis": "ai_answer",
+      "reason": "Sells semi-permanent and temporary tattoos direct-to-consumer with artist-designed collections, competing directly on design quality and self-expression.",
+      "searchNames": [
+       "inkbox"
+      ],
+      "volume": 33100
+     },
+     {
+      "domain": "ezink.co",
+      "name": "EZ Ink",
+      "basis": "ai_answer",
+      "reason": "Sells realistic semi-permanent temporary tattoos to consumers looking for tattoos that look real.",
+      "searchNames": [
+       "ez ink",
+       "ezink temporary tattoos"
+      ],
+      "volume": 8100
+     },
+     {
+      "domain": "easytatt.com",
+      "name": "EasyTatt",
+      "basis": "ai_answer",
+      "reason": "Sells long-lasting semi-permanent temporary tattoos for adults focused on realistic appearance.",
+      "searchNames": [
+       "easytatt"
+      ],
+      "volume": 720
+     },
+     {
+      "domain": "tattooednow.com",
+      "name": "Tattooed Now",
+      "basis": "ranks",
+      "reason": "Sells realistic fake temporary tattoos to consumers seeking high-quality, convincing temporary body art.",
+      "searchNames": [
+       "tattooed now"
+      ],
+      "volume": 210
+     },
+     {
+      "domain": "temporarytattoos.com",
+      "name": "TemporaryTattoos.com",
+      "basis": "ai_answer",
+      "reason": "Sells custom and pre-designed temporary tattoos direct to consumers and for events.",
+      "searchNames": [
+       "temporarytattoos.com"
+      ],
+      "volume": 140
+     }
+    ],
+    "terms": [
+     {
+      "term": "temporary tattoos",
+      "volume": 60500
+     },
+     {
+      "term": "custom temporary tattoos",
+      "volume": 22200
+     },
+     {
+      "term": "fake tattoos",
+      "volume": 18100
+     },
+     {
+      "term": "semi permanent tattoos",
+      "volume": 12100
+     },
+     {
+      "term": "temporary tattoos for adults",
+      "volume": 1900
+     },
+     {
+      "term": "temporary tattoo sleeves",
+      "volume": 1900
+     },
+     {
+      "term": "realistic temporary tattoos",
+      "volume": 1600
+     },
+     {
+      "term": "waterproof temporary tattoos",
+      "volume": 720
+     },
+     {
+      "term": "stick on tattoos",
+      "volume": 590
+     },
+     {
+      "term": "temporary tattoos that look real",
+      "volume": 390
+     }
+    ],
+    "searchTerm": "temporary tattoos",
+    "termsAt": "2026-10-07T18:20:11.492Z",
+    "demand": {
+     "at": "2026-10-07T18:21:41.584Z",
+     "own": 1000,
+     "brands": {
+      "ez ink": 8100,
+      "inkbox": 33100,
+      "tattly": 1000,
+      "tatteco": 90,
+      "easytatt": 720,
+      "tattooed now": 210,
+      "artwear tattoo": 20,
+      "temporarytattoos.com": 140,
+      "ezink temporary tattoos": 0
+     },
+     "searches": {
+      "ez ink alternatives": 0,
+      "inkbox alternatives": 390,
+      "tatteco alternatives": 0,
+      "easytatt alternatives": 0,
+      "tattooed now alternatives": 0,
+      "artwear tattoo alternatives": 0,
+      "temporarytattoos.com alternatives": 0
+     }
+    },
+    "judged": {
+     "real fake tattoos": true,
+     "fake custom tattoos": true,
+     "fake sleeve tattoos": true,
+     "fake tattoos near me": false,
+     "fake realistic tattoos": true,
+     "fake tattoos look real": true,
+     "temporary tattoos near me": false,
+     "best semi permanent tattoos": true,
+     "best custom temporary tattoos": true,
+     "custom semi permanent tattoos": true,
+     "semi permanent tattoos near me": false,
+     "what are semi permanent tattoos": false,
+     "fake tattoos that look realistic": true,
+     "semi permanent temporary tattoos": true
+    }
+   },
+   "deadRivals": [],
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "searches": [
+    "temporary tattoos",
+    "custom temporary tattoos",
+    "fake tattoos",
+    "semi permanent tattoos",
+    "temporary tattoo sleeves",
+    "temporary tattoos for adults",
+    "realistic temporary tattoos",
+    "waterproof temporary tattoos",
+    "stick on tattoos",
+    "temporary tattoos that look real",
+    "best custom temporary tattoos",
+    "best semi permanent tattoos"
+   ],
+   "knowledgePages": 2,
+   "questions": [],
+   "audience": [],
+   "topics": [
+    {
+     "query": "temporary tattoos for adults",
+     "status": "open",
+     "type": "expand_page",
+     "fit": 3,
+     "volume": 1900
+    },
+    {
+     "query": "best custom temporary tattoos",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 210
+    },
+    {
+     "query": "best semi permanent tattoos",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 210
+    },
+    {
+     "query": "temporary tattoo sleeves",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 3,
+     "volume": 1900
+    },
+    {
+     "query": "inkbox alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 390
+    },
+    {
+     "query": "ez ink alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "easytatt alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "tattooed now alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "temporarytattoos.com alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    }
+   ],
+   "cents": 31.8473,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 4.8,
+    "site-profile": 0.2939,
+    "profile": 0.2198,
+    "market-inference": 0.3044,
+    "market-terms": 0.6615,
+    "dataforseo_labs/google/keyword_overview": 2.26,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "market-searches": 0.8148,
+    "question-phrasing": 0.2257,
+    "serp/google/organic": 2.4,
+    "serp/google/ai_mode": 4.000000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 1.4400000000000004,
+    "site-knowledge": 0.5952,
+    "rival-inference": 2.6118,
+    "topic-buyer-searches": 0.2053,
+    "topic-typed": 0.226,
+    "topic-fit": 2.7969,
+    "opportunity-typing": 0.6234,
+    "topic-same-question": 0.1686
+   },
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"temporary tattoos\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"temporary tattoos\" 60500/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+     "verdict": "pass",
+     "detail": "Inkbox — inkbox.com, 33100/mo, ai_answer; EZ Ink — ezink.co, 8100/mo, ai_answer; EasyTatt — easytatt.com, 720/mo, ai_answer; Tattooed Now — tattooednow.com, 210/mo, ranks; TemporaryTattoos.com — temporarytattoos.com, 140/mo, ai_answer",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "review",
+     "detail": "the knowledge base holds no buyer question",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"consumers who want temporary tattoos\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "fail",
+     "detail": "1 of 9",
+     "items": [
+      "temporarytattoos.com alternatives — navigational (\".com\")"
+     ]
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "10 searched terms; \"temporary tattoos\" has 60500"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 12 SERP reads timed out"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "tattly.com",
+     "foundations": "measured",
+     "answerability": "zero",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10165,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10286,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10467,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10835,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11210,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11273,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11384,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11443,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11499,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11792,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11852,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1558,7 +3377,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 12162,
+     "durationMs": 12199,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1570,7 +3389,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 12222,
+     "durationMs": 12319,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1582,7 +3401,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 12317,
+     "durationMs": 12454,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1594,7 +3413,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 12353,
+     "durationMs": 12532,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1606,7 +3425,7 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 12522,
+     "durationMs": 12664,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1618,7 +3437,487 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 12579,
+     "durationMs": 12731,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    }
+   ],
+   "seconds": 134,
+   "evidenceLoaded": 0
+  },
+  {
+   "site": {
+    "domain": "savvycal.com",
+    "kind": "B2B SaaS, not ReachKit's market (scheduling)",
+    "country": "US",
+    "language": "en",
+    "market": [
+     "schedul",
+     "calendar",
+     "booking",
+     "meeting"
+    ],
+    "why": "A small scheduling product. The kind of site the passes were built on, in a market that is not ReachKit's: it shows whether a result is general or fitted to one site."
+   },
+   "siteName": "SavvyCal",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "Sales teams, recruiters, marketers, customer success managers, and educators who need to schedule meetings with prospects, candidates, and customers",
+    "job": "Find a time to meet with multiple people across time zones and book meetings efficiently",
+    "category": "Meeting scheduling software",
+    "synonyms": [
+     "appointment scheduling software",
+     "calendar scheduling tool",
+     "meeting booking software",
+     "scheduling links"
+    ],
+    "differentiators": [
+     "Calendar overlay week view that lets recipients see your availability without switching screens",
+     "Team scheduling engine that handles complex booking scenarios and round-robin distribution",
+     "Custom branding for scheduling links",
+     "Integrated time zone converter",
+     "Delegate to assistant feature"
+    ],
+    "notOurMarket": [
+     "Calendar management software",
+     "Email scheduling tools",
+     "Project management software",
+     "CRM systems",
+     "Video conferencing platforms",
+     "Workflow automation tools"
+    ],
+    "categoryReason": "The headline and all pages consistently position SavvyCal as \"the fresh way to find a time to meet\" with a focus on the scheduling experience itself, not calendar management or automation—buyers hire it to book meetings efficiently with a better interface than competitors like Calendly and Acuity.",
+    "rivals": [
+     {
+      "domain": "calendly.com",
+      "name": "Calendly",
+      "basis": "ai_answer",
+      "reason": "Calendly is the dominant meeting scheduling link tool used by sales, recruiting, and CS teams to let prospects book time directly on their calendar.",
+      "searchNames": [
+       "calendly"
+      ],
+      "volume": 368000
+     },
+     {
+      "domain": "when2meet.com",
+      "name": "When2meet",
+      "basis": "ai_answer",
+      "reason": "When2meet is a free group availability tool used to find a common meeting time across multiple participants without requiring accounts.",
+      "searchNames": [
+       "when2meet"
+      ],
+      "volume": 110000
+     },
+     {
+      "domain": "acuityscheduling.com",
+      "name": "Acuity Scheduling",
+      "basis": "ai_answer",
+      "reason": "Acuity Scheduling lets businesses share booking links with custom branding and intake forms, competing directly for appointment scheduling use cases.",
+      "searchNames": [
+       "acuity scheduling"
+      ],
+      "volume": 90500
+     },
+     {
+      "domain": "setmore.com",
+      "name": "Setmore",
+      "basis": "ai_answer",
+      "reason": "Setmore provides online appointment booking pages with team scheduling and round-robin features for sales and customer-facing teams.",
+      "searchNames": [
+       "setmore"
+      ],
+      "volume": 12100
+     },
+     {
+      "domain": "piper.com",
+      "name": "Chili Piper",
+      "basis": "same_job",
+      "reason": "Chili Piper is a revenue team scheduling platform with inbound lead routing, round-robin distribution, and instant booking for sales teams.",
+      "searchNames": [
+       "chili piper"
+      ],
+      "volume": 6600
+     }
+    ],
+    "terms": [
+     {
+      "term": "online appointment booking software",
+      "volume": 4400
+     },
+     {
+      "term": "appointment scheduling software",
+      "volume": 2400
+     },
+     {
+      "term": "calendar scheduling tool",
+      "volume": 720
+     },
+     {
+      "term": "meeting scheduling software",
+      "volume": 390
+     },
+     {
+      "term": "find a time to meet",
+      "volume": 110
+     },
+     {
+      "term": "automated meeting scheduler",
+      "volume": 50
+     },
+     {
+      "term": "meeting booking tool",
+      "volume": 40
+     },
+     {
+      "term": "scheduling link tool",
+      "volume": 0
+     },
+     {
+      "term": "book a meeting tool",
+      "volume": 0
+     },
+     {
+      "term": "round robin meeting scheduler",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "online appointment booking software",
+    "termsAt": "2026-10-07T18:22:25.727Z",
+    "demand": {
+     "at": "2026-10-07T18:25:21.840Z",
+     "own": 880,
+     "brands": {
+      "zencal": 110,
+      "cal.com": 0,
+      "setmore": 12100,
+      "calendly": 368000,
+      "savvycal": 880,
+      "when2meet": 110000,
+      "chili piper": 6600,
+      "revenuehero": 720,
+      "hubspot meetings": 320,
+      "acuity scheduling": 90500,
+      "doodle scheduling": 2400
+     },
+     "searches": {
+      "doodle alternatives": 720,
+      "zencal alternatives": 0,
+      "cal.com alternatives": 30,
+      "setmore alternatives": 20,
+      "calendly alternatives": 880,
+      "when2meet alternatives": 720,
+      "chili piper alternatives": 70,
+      "revenuehero alternatives": 0,
+      "hubspot meetings alternatives": 0,
+      "acuity scheduling alternatives": 50
+     }
+    },
+    "judged": {
+     "best calendar scheduling tool": true,
+     "online calendar scheduling tool": true,
+     "best meeting scheduling software": true,
+     "online meeting scheduling software": true,
+     "meeting scheduling software reviews": true,
+     "best appointment scheduling software": true,
+     "sales appointment scheduling software": true,
+     "appointment scheduling online software": true,
+     "what is appointment scheduling software": true,
+     "appointment scheduling calendar software": true,
+     "best online appointment booking software": true,
+     "best online appointment scheduling software": true,
+     "what is the best appointment scheduling software": true
+    }
+   },
+   "deadRivals": [],
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "searches": [
+    "appointment scheduling online software",
+    "online appointment booking software",
+    "appointment scheduling software",
+    "calendar scheduling tool",
+    "appointment scheduling calendar software",
+    "meeting scheduling software",
+    "best appointment scheduling software",
+    "find a time to meet",
+    "best online appointment scheduling software",
+    "what is the best appointment scheduling software",
+    "automated meeting scheduler",
+    "meeting booking tool"
+   ],
+   "knowledgePages": 74,
+   "questions": [
+    "Scheduling a meeting?",
+    "Can candidates overlay their calendar to find mutual availability?",
+    "Can interviews be double-booked?",
+    "Can reschedules be made with one click?",
+    "Can I create personalized links?",
+    "Can I check for conflicts across all my calendars?",
+    "Can I embed the scheduling link directly on my website?",
+    "Do you store copies of my calendar events on your servers?",
+    "Are you SOC 2 or ISO 27001 certified?",
+    "How do I report a potential vulnerability or security concern?",
+    "How can I add a scheduling button to my website?",
+    "How do I see a list of when my clients last had an appointment?",
+    "Can I embed Acuity on my website?",
+    "Will I be notified that an appointment has been made?",
+    "Do you have multiple calendars and lots of calls/meetings each week?",
+    "How can SavvyCal make scheduling meetings easier?",
+    "Why is it important to sync all of your calendars?",
+    "What's there to even automate in Zoom scheduling?",
+    "What is ScheduleOnce?"
+   ],
+   "audience": [
+    "software developers",
+    "individuals",
+    "small teams",
+    "customer success teams",
+    "educators",
+    "education institutions",
+    "marketing teams",
+    "sales teams",
+    "recruiting teams",
+    "Sales",
+    "Marketing",
+    "Recruiting",
+    "Customer Success",
+    "Podcasting",
+    "Consulting",
+    "podcasters",
+    "partners",
+    "colleagues",
+    "sales folks",
+    "founders",
+    "marketers",
+    "prospects",
+    "startup founders",
+    "c-level executives",
+    "senior managers",
+    "business owners",
+    "managers"
+   ],
+   "topics": [
+    {
+     "query": "appointment scheduling calendar software",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 480
+    },
+    {
+     "query": "appointment scheduling software",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 2,
+     "volume": 2400
+    },
+    {
+     "query": "calendar scheduling tool",
+     "status": "open",
+     "type": "refresh_page",
+     "fit": 2,
+     "volume": 720
+    },
+    {
+     "query": "find a time to meet",
+     "status": "open",
+     "type": "refresh_page",
+     "fit": 2,
+     "volume": 110
+    },
+    {
+     "query": "calendly alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 880
+    },
+    {
+     "query": "when2meet alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 720
+    },
+    {
+     "query": "acuity scheduling alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 50
+    },
+    {
+     "query": "setmore alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 20
+    },
+    {
+     "query": "chili piper alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 70
+    },
+    {
+     "query": "savvycal vs calendly",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "savvycal vs when2meet",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "savvycal vs acuity scheduling",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "savvycal vs setmore",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "savvycal vs chili piper",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    }
+   ],
+   "cents": 76.73230000000002,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 4.8,
+    "site-profile": 0.5208,
+    "profile": 0.3432,
+    "market-inference": 0.5281,
+    "market-terms": 0.6585,
+    "dataforseo_labs/google/keyword_overview": 2.31,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "market-searches": 0.777,
+    "question-phrasing": 0.2381,
+    "serp/google/organic": 2.4,
+    "serp/google/ai_mode": 4.000000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 1.4400000000000004,
+    "site-knowledge": 44.407800000000016,
+    "rival-inference": 2.634,
+    "topic-buyer-searches": 0.2051,
+    "topic-typed": 0.1736,
+    "topic-fit": 2.8965,
+    "opportunity-typing": 0.9912,
+    "topic-same-question": 0.2084
+   },
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"Meeting scheduling software\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"online appointment booking software\" 4400/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+     "verdict": "pass",
+     "detail": "Calendly — calendly.com, 368000/mo, ai_answer; When2meet — when2meet.com, 110000/mo, ai_answer; Acuity Scheduling — acuityscheduling.com, 90500/mo, ai_answer; Setmore — setmore.com, 12100/mo, ai_answer; Chili Piper — piper.com, 6600/mo, same_job",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "19 questions",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"Sales teams, recruiters, marketers, customer success managers, and educators who need to schedule meetings with prospects, candidates, and customers\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "14 read",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "7 searched terms; \"online appointment booking software\" has 4400"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "1 of 13 SERP reads timed out"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "savvycal.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10161,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1630,7 +3929,223 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 13017,
+     "durationMs": 10285,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10409,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10573,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10634,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10756,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10869,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11142,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11507,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11573,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11628,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11737,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12011,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12168,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12270,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12325,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12383,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12441,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12559,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12618,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
@@ -1640,12 +4155,12 @@
      "source": "serp/google/organic",
      "outcome": "failed",
      "rows": 0,
-     "costCents": 0.2,
+     "costCents": 0,
      "fresh": true,
-     "durationMs": 30235,
-     "failure": "timeout",
-     "billed": true,
-     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+     "durationMs": 22116,
+     "failure": "task_40101",
+     "billed": false,
+     "reason": "dataforseo: task 40101 Internal SE Server Error."
     },
     {
      "event": "vendor_call",
@@ -1654,130 +4169,642 @@
      "rows": 0,
      "costCents": 0.2,
      "fresh": true,
-     "durationMs": 30721,
+     "durationMs": 30522,
      "failure": "timeout",
      "billed": true,
      "reason": "dataforseo: request failed: The operation was aborted due to timeout"
-    },
-    {
-     "event": "vendor_call",
-     "source": "serp/google/organic",
-     "outcome": "failed",
-     "rows": 0,
-     "costCents": 0.2,
-     "fresh": true,
-     "durationMs": 31111,
-     "failure": "timeout",
-     "billed": true,
-     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
-    },
-    {
-     "event": "vendor_call",
-     "source": "serp/google/organic",
-     "outcome": "failed",
-     "rows": 0,
-     "costCents": 0.2,
-     "fresh": true,
-     "durationMs": 31995,
-     "failure": "timeout",
-     "billed": true,
-     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
-    },
-    {
-     "event": "vendor_call",
-     "source": "serp/google/organic",
-     "outcome": "failed",
-     "rows": 0,
-     "costCents": 0.2,
-     "fresh": true,
-     "durationMs": 32764,
-     "failure": "timeout",
-     "billed": true,
-     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
-    },
-    {
-     "event": "vendor_call",
-     "source": "serp/google/organic",
-     "outcome": "failed",
-     "rows": 0,
-     "costCents": 0.2,
-     "fresh": true,
-     "durationMs": 32954,
-     "failure": "timeout",
-     "billed": true,
-     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
-    },
-    {
-     "event": "vendor_call",
-     "source": "serp/google/organic",
-     "outcome": "failed",
-     "rows": 0,
-     "costCents": 0.2,
-     "fresh": true,
-     "durationMs": 30055,
-     "failure": "timeout",
-     "billed": true,
-     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
-    },
-    {
-     "event": "serp_retry",
-     "because": "timeout",
-     "outcome": "unmeasured"
-    },
-    {
-     "event": "vendor_call",
-     "source": "serp/google/organic",
-     "outcome": "failed",
-     "rows": 0,
-     "costCents": 0.2,
-     "fresh": true,
-     "durationMs": 30238,
-     "failure": "timeout",
-     "billed": true,
-     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
-    },
-    {
-     "event": "serp_retry",
-     "because": "timeout",
-     "outcome": "unmeasured"
-    },
-    {
-     "event": "vendor_call",
-     "source": "serp/google/organic",
-     "outcome": "failed",
-     "rows": 0,
-     "costCents": 0.2,
-     "fresh": true,
-     "durationMs": 30372,
-     "failure": "timeout",
-     "billed": true,
-     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
-    },
-    {
-     "event": "serp_retry",
-     "because": "timeout",
-     "outcome": "unmeasured"
     },
     {
      "event": "ai_answers_card",
      "coverage": "cached_only",
      "cells": [
-      "no_answer",
       "unmeasured",
-      "no_answer",
       "answered",
-      "no_answer",
       "answered",
-      "unmeasured",
-      "unmeasured",
-      "no_answer",
-      "no_answer",
-      "no_answer",
-      "no_answer"
+      "answered",
+      "answered",
+      "answered",
+      "answered",
+      "answered",
+      "answered",
+      "answered",
+      "answered",
+      "answered"
      ]
     }
    ],
-   "seconds": 245,
+   "seconds": 252,
+   "evidenceLoaded": 0
+  },
+  {
+   "site": {
+    "domain": "clearleft.com",
+    "kind": "agency or consultancy (design, UK)",
+    "country": "GB",
+    "language": "en",
+    "market": [
+     "design",
+     "ux"
+    ],
+    "why": "A design consultancy in Brighton. It sells time and expertise, not a product: its rivals are other studios, and the agency directories (Clutch) are not rivals."
+   },
+   "siteName": "Clearleft",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "Organizations and enterprises seeking to improve their digital products and services",
+    "job": "Transform their digital strategy and user experience through strategic design partnership",
+    "category": "Strategic design services",
+    "synonyms": [
+     "design consulting",
+     "UX design agency",
+     "digital design services",
+     "design transformation"
+    ],
+    "differentiators": [
+     "Human-centered design approach with discovery research",
+     "Design transformation and experience strategy expertise",
+     "Embedded partnership model working alongside client teams",
+     "Systematic design systems and responsive design focus",
+     "Combines research, strategy, and creative technology"
+    ],
+    "notOurMarket": [
+     "Web development agencies",
+     "Graphic design studios",
+     "Marketing agencies",
+     "Product management consulting",
+     "Brand identity design"
+    ],
+    "categoryReason": "The headline leads with \"strategic design partners\" and the site emphasizes design transformation, experience strategy, and human-centered design as outcomes buyers hire them for, not the methods like UX design or front-end development.",
+    "rivals": [
+     {
+      "domain": "agencyux.com",
+      "name": "Agency UX",
+      "basis": "ranks",
+      "reason": "Strategic UX design agency focused on digital experience design and UX strategy for enterprise clients.",
+      "searchNames": [
+       "agency ux"
+      ],
+      "volume": 1900
+     },
+     {
+      "domain": "designit.com",
+      "name": "Designit",
+      "basis": "same_job",
+      "reason": "Strategic design consultancy offering experience strategy, service design, and digital transformation partnerships for large organisations.",
+      "searchNames": [
+       "designit"
+      ],
+      "volume": 1600
+     },
+     {
+      "domain": "ideo.com",
+      "name": "IDEO",
+      "basis": "same_job",
+      "reason": "Global strategic design consultancy offering human-centered design, experience strategy, and design transformation for enterprises.",
+      "searchNames": [
+       "ideo design"
+      ],
+      "volume": 590
+     },
+     {
+      "domain": "ustwo.com",
+      "name": "ustwo",
+      "basis": "same_job",
+      "reason": "Digital product and experience design studio offering strategic design partnerships and product transformation for enterprises.",
+      "searchNames": [
+       "ustwo"
+      ],
+      "volume": 390
+     },
+     {
+      "domain": "uxstudioteam.com",
+      "name": "UX Studio",
+      "basis": "ranks",
+      "reason": "UX design consultancy offering research-led product design and strategic UX partnerships for digital product teams.",
+      "searchNames": [
+       "ux studio"
+      ],
+      "volume": 140
+     }
+    ],
+    "terms": [
+     {
+      "term": "UX design agency",
+      "volume": 1900
+     },
+     {
+      "term": "UX consulting",
+      "volume": 260
+     },
+     {
+      "term": "digital design agency",
+      "volume": 260
+     },
+     {
+      "term": "user experience consulting",
+      "volume": 210
+     },
+     {
+      "term": "design consulting firm",
+      "volume": 110
+     },
+     {
+      "term": "product design consultancy",
+      "volume": 110
+     },
+     {
+      "term": "design strategy consulting",
+      "volume": 20
+     },
+     {
+      "term": "UX strategy agency",
+      "volume": 10
+     },
+     {
+      "term": "digital transformation design",
+      "volume": 10
+     },
+     {
+      "term": "improve digital product experience",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "UX design agency",
+    "termsAt": "2026-10-07T18:26:37.958Z",
+    "demand": {
+     "at": "2026-10-07T18:28:03.591Z",
+     "own": 210,
+     "brands": {
+      "ustwo": 390,
+      "designit": 1600,
+      "agency ux": 1900,
+      "clearleft": 210,
+      "neuron ux": 30,
+      "ux studio": 140,
+      "ideo design": 590,
+      "fjord design": 40,
+      "foolproof ux": 10,
+      "snook design": 10,
+      "livework studio": 10,
+      "snook design agency": 0
+     },
+     "searches": {
+      "ideo alternatives": 10,
+      "fjord alternatives": 0,
+      "snook alternatives": 0,
+      "ustwo alternatives": 0,
+      "neuron alternatives": 0,
+      "designit alternatives": 0,
+      "livework alternatives": 0,
+      "agency ux alternatives": 0,
+      "foolproof alternatives": 0,
+      "ux studio alternatives": 0
+     }
+    },
+    "judged": {
+     "service ux": false,
+     "ux consulting firms": true,
+     "service design vs ux": false,
+     "top ux design agency": true,
+     "ux design consulting": true,
+     "best ux design agency": true,
+     "service design and ux": true,
+     "ux consulting services": true,
+     "ux research consulting": true,
+     "ux design consulting firm": true,
+     "best digital design agency": true,
+     "design product and service": false,
+     "digital product design agency": true,
+     "user experience consulting firms": true,
+     "user experience design consulting": true
+    }
+   },
+   "deadRivals": [],
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "searches": [
+    "ux design agency",
+    "top ux design agency",
+    "best ux design agency",
+    "digital design agency",
+    "ux consulting",
+    "user experience consulting",
+    "design consulting firm",
+    "product design consultancy",
+    "design strategy consulting",
+    "digital transformation design",
+    "ux strategy agency",
+    "digital product design agency"
+   ],
+   "knowledgePages": 41,
+   "questions": [
+    "How do you craft an important website in record time without cutting corners?",
+    "How do you find out what could be improved for prospective students at a university's all-important open day?",
+    "How do you set up a regular cadence of continuous usability testing on multiple products?",
+    "How do you begin to bring an ambitious strategic vision to life?",
+    "How do you even start to build a design system when everyone is already so busy with their day-to-day work?",
+    "How do you clearly communicate your life-saving work?",
+    "How do you change the tech stack of a long-running website without disrupting everything?",
+    "How do you get the best value from an outside agency?"
+   ],
+   "audience": [
+    "digital leaders",
+    "designers",
+    "developers",
+    "design practitioners",
+    "design leaders",
+    "UX researchers"
+   ],
+   "topics": [
+    {
+     "query": "top ux design agency",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 480
+    },
+    {
+     "query": "digital product design agency",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 390
+    },
+    {
+     "query": "designit alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "ideo alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 10
+    },
+    {
+     "query": "ustwo alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "ux studio alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "clearleft vs designit",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "clearleft vs ideo",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "clearleft vs ustwo",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "clearleft vs ux studio",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    }
+   ],
+   "cents": 44.795399999999994,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 4.8,
+    "site-profile": 0.4737,
+    "profile": 0.2714,
+    "market-inference": 0.4827,
+    "market-terms": 0.6492,
+    "dataforseo_labs/google/keyword_overview": 2.3200000000000003,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "market-searches": 0.825,
+    "question-phrasing": 0.2577,
+    "serp/google/organic": 2.4,
+    "serp/google/ai_mode": 4.000000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 1.4400000000000004,
+    "site-knowledge": 13.208100000000002,
+    "rival-inference": 2.6301,
+    "topic-buyer-searches": 0.1931,
+    "topic-typed": 0.1879,
+    "topic-fit": 2.7699,
+    "opportunity-typing": 0.3711,
+    "topic-same-question": 0.3155
+   },
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"Strategic design services\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"UX design agency\" 1900/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "fail",
+     "detail": "a en site in United Kingdom was read in United States / en",
+     "items": [
+      "UX design agency",
+      "UX consulting",
+      "digital design agency",
+      "user experience consulting",
+      "design consulting firm",
+      "product design consultancy",
+      "design strategy consulting",
+      "UX strategy agency",
+      "digital transformation design",
+      "improve digital product experience"
+     ]
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+     "verdict": "pass",
+     "detail": "Agency UX — agencyux.com, 1900/mo, ranks; Designit — designit.com, 1600/mo, same_job; IDEO — ideo.com, 590/mo, same_job; ustwo — ustwo.com, 390/mo, same_job; UX Studio — uxstudioteam.com, 140/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "8 questions",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"Organizations and enterprises seeking to improve their digital products and services\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "10 read",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "9 searched terms; \"UX design agency\" has 1900"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 12 SERP reads timed out"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "clearleft.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10491,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10557,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10743,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10891,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10972,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11053,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11216,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11419,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11998,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12214,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12285,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12592,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12660,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12832,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12968,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 13254,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    }
+   ],
+   "seconds": 140,
    "evidenceLoaded": 0
   }
  ]
