@@ -64,6 +64,7 @@ function rivalsOf(value: unknown): RivalConclusion[] {
       ...(Array.isArray(entry.searchNames) ? { searchNames: strings(entry.searchNames) } : {}),
       // D50: only where a pass has read it.
       ...(typeof entry.volume === "number" && entry.volume >= 0 ? { volume: entry.volume } : {}),
+      ...(entry.closeness === "partial" ? { closeness: "partial" as const } : {}),
     });
   }
   return out;

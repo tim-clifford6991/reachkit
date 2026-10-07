@@ -21,7 +21,7 @@
 // reading and costs nothing.
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { KNOWLEDGE_BASE } from "@/lib/config/constants";
+import { INFERENCE_MAX_OUTPUT_TOKENS, KNOWLEDGE_BASE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import { derivePurpose } from "../purpose";
@@ -38,6 +38,8 @@ const REPEATED_ON_PAGES = 3;
 const REPEATED_ON_SHARE = 0.5;
 
 const items = z.array(z.string()).max(KNOWLEDGE_BASE.PAGE_ITEMS);
+/** A page's own FAQ may hold more than a model is asked for. */
+const questions = z.array(z.string()).max(KNOWLEDGE_BASE.PAGE_QUESTIONS);
 
 export const PAGE_READING_SCHEMA = z.strictObject({
   offerings: z
@@ -49,7 +51,7 @@ export const PAGE_READING_SCHEMA = z.strictObject({
     .array(z.strictObject({ rival: z.string().nullable(), text: z.string() }))
     .max(KNOWLEDGE_BASE.PAGE_ITEMS),
   proof: items,
-  questions: items,
+  questions,
   integrations: items,
   places: items,
 });
@@ -81,6 +83,9 @@ export interface KnowledgePage {
   readonly text: string;
   /** What the page shows inside an element marked as an example (§5). */
   readonly examples?: readonly string[];
+  /** The questions the page's own markup asks: its FAQ schema, its FAQ
+   *  section and its headings phrased as questions (`@/lib/measure/questions`). */
+  readonly questions?: readonly string[];
 }
 
 function hashOf(text: string): string {
@@ -126,7 +131,9 @@ export function readablePages(
       .filter((line) => !repeated(line) && !demo.has(line))
       .join("\n")
       .slice(0, KNOWLEDGE_BASE.PAGE_INPUT_CHARS);
-    if (text.length >= KNOWLEDGE_BASE.PAGE_MIN_CHARS) out.push({ url: page.url, text });
+    if (text.length >= KNOWLEDGE_BASE.PAGE_MIN_CHARS) {
+      out.push({ url: page.url, text, ...(page.questions === undefined ? {} : { questions: page.questions }) });
+    }
   });
   return out
     .map((page, i) => ({ page, i, rank: readFirstRank(page.url) }))
@@ -190,11 +197,37 @@ export function checkedReading(answer: PageReading, pageText: string): PageReadi
   };
 }
 
+/**
+ * A page's reading with the questions its own markup asks (SPEC §5,
+ * 2026-10-07, issue 1314). They are the page's, so they come first and need
+ * no model to find them; what the model read follows, once each. A demo
+ * widget's question is not the business's.
+ */
+export function withPageQuestions(reading: PageReading, page: KnowledgePage, demoPhrases: readonly string[] = []): PageReading {
+  const demo = new Set(demoPhrases.map((phrase) => phrase.toLocaleLowerCase()));
+  const own = (page.questions ?? []).map(tidy).filter((question) => isBuyerQuestion(question) && !demo.has(question.toLocaleLowerCase()));
+  if (own.length === 0) return reading;
+  const seen = new Set<string>();
+  const questions = [...own, ...reading.questions].filter((question) => {
+    const key = question.toLocaleLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return { ...reading, questions: questions.slice(0, KNOWLEDGE_BASE.PAGE_QUESTIONS) };
+}
+
 /** What the settled call roughly cost, from what went in and came out —
  *  the small tier's price, at ~4 characters a token. An estimate for the
  *  read's own budget; the ledger holds the real figure. */
 function roughCents(input: string, output: unknown): number {
   return (input.length / 4) * 1e-4 + (JSON.stringify(output).length / 4) * 5e-4;
+}
+
+/** The most one page's call can cost: its text in, and the call site's
+ *  whole output allowance back. */
+function worstCents(input: string): number {
+  return (input.length / 4) * 1e-4 + INFERENCE_MAX_OUTPUT_TOKENS[KNOWLEDGE_CALL_SITE] * 5e-4;
 }
 
 export interface KnowledgeRead {
@@ -226,18 +259,24 @@ export async function readKnowledge(
     const stored = before.get(`${page.url}\n${hashOf(page.text)}`);
     if (stored === undefined) queue.push(i);
     else {
-      read[i] = stored;
+      // A page read before issue 1314 gains its own questions without a call.
+      read[i] = { ...stored, reading: withPageQuestions(stored.reading, page, demoPhrases) };
       reused++;
     }
   });
 
   let spent = 0;
+  // What the calls in flight may still cost (issue 1314): the budget is
+  // checked against it, so six calls at once cannot run past the bound.
+  let reserved = 0;
   let asked = 0;
   let stoppedBy: KnowledgeRead["stoppedBy"] = "complete";
   const worker = async (): Promise<void> => {
     for (;;) {
-      if (queue.length === 0) return;
-      if (spent >= KNOWLEDGE_BASE.BUDGET_C) stoppedBy = "budget";
+      const next = queue[0];
+      if (next === undefined) return;
+      const worst = worstCents(pages[next]!.text);
+      if (spent + reserved + worst > KNOWLEDGE_BASE.BUDGET_C) stoppedBy = "budget";
       else if (Date.now() >= deadline) stoppedBy = "time";
       else if (c.capHit()) stoppedBy = "cap";
       if (stoppedBy !== "complete") return;
@@ -245,6 +284,7 @@ export async function readKnowledge(
       const i = queue.shift()!;
       const page = pages[i]!;
       asked++;
+      reserved += worst;
       const answer = await llm(c, {
         site: KNOWLEDGE_CALL_SITE,
         input: {
@@ -256,12 +296,17 @@ export async function readKnowledge(
         schema: PAGE_READING_SCHEMA,
         tier: "nano",
       });
+      reserved -= worst;
       if (answer.kind === "unmeasured") {
         spent += roughCents(page.text, {});
         continue;
       }
       spent += roughCents(page.text, answer.value);
-      read[i] = { url: page.url, hash: hashOf(page.text), reading: checkedReading(answer.value, page.text) };
+      read[i] = {
+        url: page.url,
+        hash: hashOf(page.text),
+        reading: withPageQuestions(checkedReading(answer.value, page.text), page, demoPhrases),
+      };
     }
   };
   await Promise.all(Array.from({ length: KNOWLEDGE_BASE.CONCURRENCY }, worker));

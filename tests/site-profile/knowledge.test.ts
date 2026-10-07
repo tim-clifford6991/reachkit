@@ -60,8 +60,8 @@ beforeEach(() => {
 });
 
 describe("the pages that say what the business sells are read first", () => {
-  it("ranks pricing, then features, docs, changelog, case studies and reviews ahead of the rest", () => {
-    const order = ["/pricing", "/features", "/docs", "/changelog", "/case-studies", "/reviews", "/blog/a-post", "/privacy"];
+  it("ranks what it costs, what it sells, who it is and what buyers ask ahead of its reference pages and the rest (issue 1314)", () => {
+    const order = ["/pricing", "/services", "/faq", "/case-studies", "/reviews", "/docs", "/changelog", "/products/blue-widget", "/blog/a-post", "/privacy"];
     const ranks = order.map((path) => readFirstRank(`https://example.com${path}`));
     expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
     expect(new Set(ranks).size).toBe(order.length);
@@ -73,6 +73,60 @@ describe("the pages that say what the business sells are read first", () => {
     await readKnowledge(cost(), { domain: "example.com", pages: [BLOG, PRICING], previous: NO_KNOWLEDGE, now: AT });
     const asked = llmMock.mock.calls.map((call) => (call[1] as { input: { page: { url: string } } }).input.page.url);
     expect(asked[0]).toBe(PRICING.url);
+  });
+});
+
+describe("the read is bounded, whatever the site's size (issue 1314)", () => {
+  const many = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      url: `https://example.com/docs/page-${i}`,
+      text: `Page ${i} of the handbook says something of its own about setting the product up. `.repeat(90),
+    }));
+
+  it("asks about the most informative twenty pages of a site of a hundred, the pricing page among them", async () => {
+    answers({});
+    const read = await readKnowledge(cost(), { domain: "example.com", pages: [...many(100), PRICING], previous: NO_KNOWLEDGE, now: AT });
+    const asked = llmMock.mock.calls.map((call) => (call[1] as { input: { page: { url: string } } }).input.page.url);
+    expect(asked.length).toBeLessThanOrEqual(KNOWLEDGE_BASE.MAX_PAGES);
+    expect(asked[0]).toBe(PRICING.url);
+    expect(read.knowledge.pages.length).toBe(asked.length);
+  });
+
+  it("starts no call the budget does not hold in full, with six calls in flight", async () => {
+    // Each page's most: 2,000 tokens in and the call site's whole allowance back.
+    const worst = (8000 / 4) * 1e-4 + 1400 * 5e-4;
+    answers({});
+    const read = await readKnowledge(cost(), { domain: "example.com", pages: many(100), previous: NO_KNOWLEDGE, now: AT });
+    expect(read.asked * worst).toBeLessThanOrEqual(KNOWLEDGE_BASE.BUDGET_C + 6 * worst);
+    expect(read.asked).toBeGreaterThan(10);
+  });
+});
+
+describe("a page's own questions are its buyers' questions (issue 1314)", () => {
+  const FAQ = {
+    url: "https://example.com/faq",
+    text: "Answers to what our customers ask before they book a repair with us, at home or at work. ".repeat(4),
+    questions: ["Is your team licensed and insured?", "Does it cost to get a diagnosis?", "FAQ"],
+  };
+
+  it("keeps the questions the page's markup asks, ahead of what the model read, once each", async () => {
+    answers({ [FAQ.url]: { questions: ["Does it cost to get a diagnosis?", "Do you work on weekends?"] } });
+    const read = await readKnowledge(cost(), { domain: "example.com", pages: [FAQ], previous: NO_KNOWLEDGE, now: AT });
+    expect(read.knowledge.pages[0]!.reading.questions).toEqual([
+      "Is your team licensed and insured?",
+      "Does it cost to get a diagnosis?",
+      "Do you work on weekends?",
+    ]);
+  });
+
+  it("adds them to a page read before the rule, without asking about it again", async () => {
+    answers({});
+    const first = await readKnowledge(cost(), { domain: "example.com", pages: [{ url: FAQ.url, text: FAQ.text }], previous: NO_KNOWLEDGE, now: AT });
+    expect(first.knowledge.pages[0]!.reading.questions).toEqual([]);
+    llmMock.mockClear();
+    const second = await readKnowledge(cost(), { domain: "example.com", pages: [FAQ], previous: first.knowledge, now: AT });
+    expect(llmMock).not.toHaveBeenCalled();
+    expect(second.knowledge.pages[0]!.reading.questions).toHaveLength(2);
   });
 });
 

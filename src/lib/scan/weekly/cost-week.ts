@@ -19,7 +19,7 @@
 // No cost figure is ever rendered to a customer (`docs/RUNBOOK.md` §8): this
 // is read for the owner's mail and for nothing else.
 import { dbAdmin } from "@/lib/db";
-import { FAILURE_KIND, SERP_SOURCE } from "../health-record";
+import { FAILURE_KIND, SERP_SOURCES } from "../health-record";
 
 export interface CostLine {
   count: number;
@@ -166,7 +166,7 @@ async function spentSince(since: string): Promise<number | null> {
  */
 async function serpWeek(start: string, end: string): Promise<SerpWeek | null> {
   try {
-    const inWeek = <T>(query: MinimalQueryBuilder<T>) => query.eq("source", SERP_SOURCE).gte("created_at", start).lt("created_at", end);
+    const inWeek = <T>(query: MinimalQueryBuilder<T>) => query.in("source", SERP_SOURCES).gte("created_at", start).lt("created_at", end);
     const [all, timedOut] = await Promise.all([
       inWeek(untyped().from<{ id: string }>("fetches").select("id", { count: "exact", head: true })),
       inWeek(untyped().from<{ cost_cents: number | string | null }>("fetches").select("cost_cents", { count: "exact", head: false })).eq(

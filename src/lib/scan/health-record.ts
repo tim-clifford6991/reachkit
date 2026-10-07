@@ -21,6 +21,7 @@ interface Query<T> extends PromiseLike<Result<T>> {
   select(columns: string): Query<T>;
   update(values: Record<string, unknown>): Query<T>;
   eq(column: string, value: string): Query<T>;
+  in(column: string, values: readonly string[]): Query<T>;
   gte(column: string, value: string): Query<T>;
   lt(column: string, value: string): Query<T>;
   not(column: string, operator: string, value: null): Query<T>;
@@ -34,8 +35,10 @@ function scans<T>(): Query<T> {
   return table<T>("scans");
 }
 
-/** The ledger's name for a Google SERP read (`serpOrganic`'s `source`). */
-export const SERP_SOURCE = "serp/google/organic";
+/** The ledger's names for a Google SERP read: the organic results
+ *  (`serpOrganic`'s `source`) and AI Mode (`aiMode`'s), which is a SERP
+ *  endpoint under the same request bound (issue 1314). */
+export const SERP_SOURCES = ["serp/google/organic", "serp/google/ai_mode"] as const;
 
 /** A failed call's kind, read out of the row's stored failure. */
 export const FAILURE_KIND = "payload->>vendorFailure";
@@ -49,7 +52,7 @@ export async function serpReadsOf(scanId: string): Promise<SerpReads | null> {
   const { data, error } = await table<{ failure: string | null }>("fetches")
     .select(`failure:${FAILURE_KIND}`)
     .eq("scan_id", scanId)
-    .eq("source", SERP_SOURCE);
+    .in("source", SERP_SOURCES);
   if (error !== null || data === null) return null;
   return { reads: data.length, timeouts: data.filter((row) => row.failure === "timeout").length };
 }
@@ -69,9 +72,13 @@ export async function recordPassHealth(a: {
       import("./weekly/prompts"),
       import("@/lib/market/infer/demand"),
     ]);
-    const [inForce, serp] = await Promise.all([
+    const [inForce, serp, knowledgePages] = await Promise.all([
       promptsInForce({ siteId: a.siteId, domain: a.domain }),
       serpReadsOf(a.scanId).catch(() => null),
+      import("@/lib/site-profile/knowledge/store")
+        .then(({ readStoredKnowledge }) => readStoredKnowledge(a.domain))
+        .then((stored) => stored.pages.length)
+        .catch(() => null),
     ]);
     const section = a.report.prompts;
     const health = checkHealth({
@@ -81,6 +88,7 @@ export async function recordPassHealth(a: {
       generated: inForce?.generated ?? [],
       samples: a.asksPrompts ? (section === undefined ? [] : samplesOf(section)) : null,
       serp,
+      knowledgePages,
       at: new Date(),
     });
     const { error } = await scans<{ id: string }>().update({ health }).eq("id", a.scanId);

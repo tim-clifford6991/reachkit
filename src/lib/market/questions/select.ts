@@ -27,6 +27,7 @@ import { difficultyCeiling, qualifyingDemand } from "@/lib/opportunities/winnabi
 import { neverMeasured, type MeasuredMarket } from "./measured";
 import type { Profile } from "./profile";
 import type { SuggestionRow } from "./market-set";
+import { malformedSearch } from "./well-formed";
 
 /** A row selection reads: a suggestion, or a ranked keyword pooled beside
  *  them (SPEC §6 thin markets, #778). `rivals` names the tracked rivals that
@@ -368,7 +369,7 @@ export function selectTwelve(a: {
   // by what they are, so neither ceiling nor the relevance guard reads them.
   for (const term of a.measured?.terms ?? []) {
     const keyword = term.term.toLowerCase().replace(/\s+/g, " ").trim();
-    if (term.volume < LOWEST_FLOOR || keyword === "") continue;
+    if (term.volume < LOWEST_FLOOR || keyword === "" || malformedSearch(keyword, a.measured?.rivals) !== null) continue;
     const intent = classifyIntent(keyword, profile);
     if (intent === "own_brand") continue;
     survivors.push({
@@ -384,6 +385,9 @@ export function selectTwelve(a: {
   }
   for (const row of a.market) {
     if (row.volume < floor || row.volume > ceiling) continue;
+    // Issue 1314: a search nobody would type as it stands is not measured,
+    // whatever volume the vendor lists it at, with or without a market.
+    if (malformedSearch(row.keyword, a.measured?.rivals) !== null) continue;
     if (a.measured !== undefined && neverMeasured(row.keyword, a.measured) !== null) continue;
     const difficulty = row.difficulty ?? null;
     if (difficulty !== null && difficulty > hardest) continue;

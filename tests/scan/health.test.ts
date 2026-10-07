@@ -64,6 +64,7 @@ describe("the four checks, each passing and failing", () => {
       ["market_terms", true],
       ["mention_rate", true],
       ["serp_timeouts", true],
+      ["knowledge_base", true],
     ]);
     expect(health.checks[3]!.detail).toBe("1 of 3 answers, 6–79%");
     // What the row keeps reads back as it was written.
@@ -100,6 +101,13 @@ describe("the four checks, each passing and failing", () => {
   it("market_terms fails where no term is searched, or the only searched one means something else", () => {
     expect(failed({ market: { ...MARKET, terms: [{ term: "cookieless counting", volume: 0 }] } })).toEqual(["market_terms"]);
     expect(failed({ market: { ...MARKET, terms: [{ term: "analytics", volume: 90000, polluted: true }] } })).toEqual(["market_terms"]);
+  });
+
+  it("knowledge_base fails where no page of the site was read into it; a count that could not be read fails nothing (issue 1314)", () => {
+    const health = checkHealth(input({ knowledgePages: 0 }));
+    expect(failingChecks(health)).toMatchObject([{ check: "knowledge_base", detail: "the knowledge base holds no page of the site" }]);
+    expect(failed({ knowledgePages: 7 })).toEqual([]);
+    expect(failed({ knowledgePages: null })).toEqual([]);
   });
 
   it("mention_rate fails where a pass that asks the prompts read no answer; a pass that asks none states none", () => {
@@ -163,6 +171,7 @@ describe("the dry run on scan 17f5bbff's stored rows", () => {
       ["market_terms", true],
       ["mention_rate", true],
       ["serp_timeouts", true],
+      ["knowledge_base", true],
     ]);
     const [volume, prompts, terms, rate] = health.checks;
     expect(volume!.items).toEqual(['Brandi: stored 22200, "brandi ai" has 260']);

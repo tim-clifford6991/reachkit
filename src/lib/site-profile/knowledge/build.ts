@@ -15,14 +15,14 @@ const NOT_A_PAGE_RE = /\.(?:xml|txt|json)$/i;
 
 /** The site's own pages, each once, as it was last read. */
 export function ownPages(
-  texts: readonly { url: string; text: string; examples?: readonly string[] }[],
+  texts: readonly { url: string; text: string; examples?: readonly string[]; questions?: readonly string[] }[],
   domain: string
 ): readonly KnowledgePage[] {
   const site = registrableDomain(domain);
   const latest = new Map<string, KnowledgePage>();
   // `readMeasuredText` answers oldest first, so a later read replaces an
   // earlier one of the same address.
-  for (const { url, text, examples } of texts) {
+  for (const { url, text, examples, questions } of texts) {
     let parsed: URL;
     try {
       parsed = new URL(url);
@@ -30,7 +30,12 @@ export function ownPages(
       continue;
     }
     if (NOT_A_PAGE_RE.test(parsed.pathname) || registrableDomain(parsed.hostname) !== site) continue;
-    latest.set(url, { url, text, ...(examples === undefined ? {} : { examples }) });
+    latest.set(url, {
+      url,
+      text,
+      ...(examples === undefined ? {} : { examples }),
+      ...(questions === undefined ? {} : { questions }),
+    });
   }
   return [...latest.values()];
 }
@@ -59,5 +64,21 @@ export async function buildKnowledge(
   const previous = await readStoredKnowledge(a.domain);
   const read = await readKnowledge(c, { domain: a.domain, pages, previous });
   if (read.knowledge.pages.length > 0) await writeStoredKnowledge(a.domain, read.knowledge);
+  // SPEC §5 (2026-10-07, issue 1314): a base no page was read into is said,
+  // never silent. Two sites of the customer panel ended a pass with an
+  // empty base and no line in its log.
+  else {
+    console.log(
+      JSON.stringify({
+        event: "site_knowledge_failed",
+        domain: a.domain,
+        because: "no page of the site was read into the knowledge base",
+        held: held.length,
+        listed: listed.size,
+        asked: read.asked,
+        stoppedBy: read.stoppedBy,
+      })
+    );
+  }
   return read;
 }

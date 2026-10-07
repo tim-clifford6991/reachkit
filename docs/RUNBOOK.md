@@ -540,7 +540,8 @@ the site read, the market concluded with its terms, the searches seeded and aske
 base, the rivals with their demand, and the topics. The first page is not written, no second pass
 is started, and a first pass asks no tracked prompts. It runs on the box's local database and takes
 only the two vendors' keys from the env file, so it writes nothing to production; a request to any
-other host is refused.
+other host is refused. The site's own pages, and each concluded rival's home page (to check the
+domain is the rival's, #1314), are read by the product's own fetcher at no cost.
 
 It prints each site's checks as `pass`, `FAIL` or `review`, with the site's cost, and writes
 `docs/walk/panel/<date>.json` and `<date>.md` after every site. `review` is a result the code

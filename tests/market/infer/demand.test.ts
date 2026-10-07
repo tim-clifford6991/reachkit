@@ -83,6 +83,28 @@ describe("rivals weighed by brand search volume", () => {
   });
 });
 
+describe("issue 1314: demand orders rivals that do the same job, and never lets a different product lead", () => {
+  // The customer panel's scheduling product: its most-searched "rival" was
+  // a free poll tool.
+  const SCHEDULING: RivalConclusion[] = [
+    rival("calendly.com", "Calendly", "ai_answer"),
+    { ...rival("when2meet.com", "When2meet", "ai_answer"), closeness: "partial" },
+    rival("acuityscheduling.com", "Acuity Scheduling", "ai_answer"),
+    rival("setmore.com", "Setmore", "ai_answer"),
+  ];
+  const READ: BrandDemand = { at: AT.toISOString(), own: 0, brands: { calendly: 368000, when2meet: 110000, "acuity scheduling": 90500, setmore: 12100 } };
+
+  it("puts a searched rival that does part of the job after every searched rival that does all of it", () => {
+    expect(byDemand(SCHEDULING, READ).map((r) => r.name)).toEqual(["Calendly", "Acuity Scheduling", "Setmore", "When2meet"]);
+  });
+
+  it("and keeps that order in the rivals a site is left with", () => {
+    const stored: StoredMarketWithChange = { ...EMPTY_STORED_MARKET, current: { buyer: "", job: "", category: "scheduling software", synonyms: [], differentiators: [], notOurMarket: [], categoryReason: "", rivals: [] } };
+    const settled = settleRivals({ stored, standing: [], fresh: byDemand(SCHEDULING, READ), scanId: "s1", at: AT });
+    expect(settled.rivals).toEqual(["calendly.com", "acuityscheduling.com", "setmore.com", "when2meet.com"]);
+  });
+});
+
 describe("D64 (issue 1301): the comparison searches are read with the brands", () => {
   const weighed = byDemand(CANDIDATES, DEMAND);
 

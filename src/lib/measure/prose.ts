@@ -11,6 +11,7 @@
 // into the sentence after it. The repetition half of the rule needs every
 // page at once and lives with the passages (`generate/pipeline/grounding.ts`).
 import { parse, type HTMLElement } from "node-html-parser";
+import { pageQuestions } from "./questions";
 
 /** What a page wears on every page, and what is never read as prose. */
 const CHROME = "script, style, template, noscript, svg, nav, header, footer, button, [aria-hidden], [hidden]";
@@ -33,8 +34,17 @@ const EXAMPLE_NOTICE_MAX_CHARS = 120;
  *  the middle of real prose. */
 const RESERVED_DOMAIN_RE = /\b(?:[a-z0-9-]+\.)+example\b|\b(?:[a-z0-9-]+\.)*example\.(?:com|net|org)\b/i;
 
-/** Containers too wide to be "the example" a notice captions. */
+/** Containers too wide to be "the example" a notice captions, or to be an
+ *  example themselves. */
 const PAGE_LEVEL = new Set(["html", "body", "main"]);
+
+/** An element that holds this share of what the page says is the page, not
+ *  a widget on it (issue 1314). A site builder writes its theme's options
+ *  into the classes of `body` or of the one wrapper inside it — Squarespace's
+ *  `tweak-header-search-placeholder-show`, Jimdo's `j-m-dummy-styles` — and
+ *  the whole page was then dropped as an example: no line of two real
+ *  businesses' sites reached their knowledge base. */
+const WHOLE_PAGE_SHARE = 0.9;
 
 /** `data-example`, `data-demo`: the attribute itself says it. */
 const EXAMPLE_ATTRIBUTE_RE = /^data-(?:example|demo|specimen)$/i;
@@ -47,10 +57,14 @@ function markedAsExample(element: HTMLElement): boolean {
   return false;
 }
 
+const tagOf = (element: HTMLElement): string => element.rawTagName?.toLowerCase() ?? "html";
+
+const lettersIn = (element: HTMLElement): number => element.text.replace(/\s+/g, "").length;
+
 /** The element a notice captions: its parent, unless that is the page. */
 function captioned(notice: HTMLElement): HTMLElement {
   const parent = notice.parentNode;
-  return parent === null || PAGE_LEVEL.has(parent.rawTagName?.toLowerCase() ?? "html") ? notice : parent;
+  return parent === null || PAGE_LEVEL.has(tagOf(parent)) ? notice : parent;
 }
 
 /** One block per line, each line's whitespace collapsed. */
@@ -73,18 +87,28 @@ export interface Prose {
    *  block per line (SPEC §7, D41 stage 4, issue 1249). Never part of
    *  `text`; a generated page that repeats a line of it is stopped. */
   menus: string[];
+  /** The questions the page itself asks and answers (`./questions.ts`). */
+  questions: string[];
 }
 
 /** Total: any string parses, and one that is not HTML yields its text. */
 export function prose(html: string): Prose {
   const root = parse(html, { comment: false });
+  // Read before the chrome goes: an FAQ's questions are often buttons, and
+  // its schema is a script.
+  const questions = pageQuestions(root);
   const menus = [...new Set(root.querySelectorAll("nav, header, footer").flatMap((element) => blockLines(element.structuredText)))];
   for (const element of root.querySelectorAll(CHROME)) {
     if (element.getAttribute("aria-hidden") !== "false") element.remove();
   }
   const examples = new Set<HTMLElement>();
+  const wholePage = lettersIn(root.querySelector("body") ?? root) * WHOLE_PAGE_SHARE;
+  // A mark on the page itself, or on the wrapper that holds all of it, is a
+  // theme's setting and marks no example.
+  const isThePage = (element: HTMLElement): boolean =>
+    PAGE_LEVEL.has(tagOf(element)) || (wholePage > 0 && lettersIn(element) >= wholePage);
   for (const element of root.querySelectorAll("*")) {
-    if (markedAsExample(element)) examples.add(element);
+    if (markedAsExample(element) && !isThePage(element)) examples.add(element);
     if (element.querySelector("p, div, section, article, li, table") !== null) continue;
     const text = element.text.replace(/\s+/g, " ").trim();
     // A notice marked as an example itself still captions what it sits
@@ -99,7 +123,7 @@ export function prose(html: string): Prose {
     element.remove();
   }
   const body = root.querySelector("body") ?? root;
-  return { text: blockLines(body.structuredText).join("\n"), examples: [...new Set(said)], menus };
+  return { text: blockLines(body.structuredText).join("\n"), examples: [...new Set(said)], menus, questions };
 }
 
 /** The document's prose alone. */

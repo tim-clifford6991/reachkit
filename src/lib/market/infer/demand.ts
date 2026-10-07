@@ -10,6 +10,7 @@
 //
 // Pure: no I/O. `read-demand.ts` buys the volumes.
 import { RIVAL_DEMAND } from "@/lib/config/constants";
+import { comparisonName } from "@/lib/market/questions/well-formed";
 import type { BrandDemand, MarketConclusion, RivalConclusion } from "./types";
 
 const key = (text: string): string => text.toLowerCase().replace(/\s+/g, " ").trim();
@@ -18,6 +19,12 @@ const key = (text: string): string => text.toLowerCase().replace(/\s+/g, " ").tr
  *  never read is not. */
 export function searched(volume: number | undefined): boolean {
   return volume !== undefined && volume >= RIVAL_DEMAND.MIN_VOLUME;
+}
+
+/** Whether a rival does the business's own job, for its own buyer (issue
+ *  1314). One the conclusion did not weigh is read as doing so. */
+export function direct(rival: Pick<RivalConclusion, "closeness">): boolean {
+  return rival.closeness !== "partial";
 }
 
 /** A domain's first label, lower-cased. */
@@ -108,13 +115,6 @@ export function mergeDemand(a: {
   };
 }
 
-/** A rival as a comparison names it: its name in lower case where that is
- *  at most four words, else its domain's label. */
-function comparisonName(rival: Pick<RivalConclusion, "name" | "domain">): string {
-  const name = key(rival.name).replace(/[.?!]+$/, "");
-  return name !== "" && name.split(" ").length <= 4 ? name : labelOf(rival.domain).replace(/[^a-z0-9]/g, "");
-}
-
 /**
  * The comparison searches a set of rivals yields (SPEC §6, D50): "{rival}
  * alternatives" for each one, and either "{product} vs {rival}" for each
@@ -124,9 +124,12 @@ function comparisonName(rival: Pick<RivalConclusion, "name" | "domain">): string
  * `searchedOnly` leaves out a rival nobody searches, which is what a topic
  * needs; the volume read asks about every candidate, searched or not yet
  * read.
+ *
+ * A rival is named by its name, never by its domain (issue 1314,
+ * `comparisonName`).
  */
 export function comparisonsOf(a: {
-  rivals: readonly (Pick<RivalConclusion, "name" | "domain"> & { volume?: number })[];
+  rivals: readonly (Pick<RivalConclusion, "name" | "domain" | "searchNames"> & { volume?: number })[];
   product: string | null;
   ownSearched: boolean;
   searchedOnly: boolean;
@@ -157,6 +160,12 @@ export function searchesOwed(a: { demand: BrandDemand | undefined; wanted: reado
  * searched first, and of two searched alike the one an AI answer or a top
  * ten names before the one named from knowledge. The rest follow in the
  * order the conclusion gave them, closest first.
+ *
+ * Demand orders rivals that do the same job; it never lets a different
+ * product lead because it is famous (SPEC §6, 2026-10-07, issue 1314). A
+ * scheduling product's most-searched "rival" was a free poll tool at
+ * 110,000 searches a month. So a searched rival that does only part of the
+ * job comes after every searched rival that does all of it.
  */
 export function byDemand(rivals: readonly RivalConclusion[], demand: BrandDemand): RivalConclusion[] {
   const sighted = (r: RivalConclusion): number => (r.basis === "same_job" ? 1 : 0);
@@ -170,6 +179,7 @@ export function byDemand(rivals: readonly RivalConclusion[], demand: BrandDemand
       const sb = searched(b.rival.volume);
       if (sa !== sb) return sa ? -1 : 1;
       if (!sa) return a.order - b.order;
+      if (direct(a.rival) !== direct(b.rival)) return direct(a.rival) ? -1 : 1;
       return b.rival.volume - a.rival.volume || sighted(a.rival) - sighted(b.rival) || a.order - b.order;
     })
     .map((entry) => entry.rival);

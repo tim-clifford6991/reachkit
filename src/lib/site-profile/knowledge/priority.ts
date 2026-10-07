@@ -1,31 +1,48 @@
-// SPEC §5 (2026-09-29, #1133): the profile crawl reads "pricing, features,
-// docs, changelog, case studies, reviews and testimonials first".
+// SPEC §5 (2026-09-29, #1133; reordered 2026-10-07, issue 1314): the pages
+// that say what the business sells are read first.
 //
 // One ranking, read twice: by the crawl, to choose which of the addresses it
 // found to spend its hundred pages and twelve seconds on, and by the
 // knowledge read, to choose which of the pages it holds to ask about first.
 
 /** Path words, best first. A page takes the rank of the first row one of
- *  its path segments names. */
+ *  its path segments names.
+ *
+ *  The order is what a buyer needs to know of any business, most telling
+ *  first (2026-10-07, issue 1314): what it costs; what it sells; who it is,
+ *  what its buyers ask and where it is; whom it has served; then its
+ *  reference pages. A shop, a restaurant and a tradesperson name their
+ *  pages differently from a software company, and a site written in German,
+ *  French or Spanish names them in its own language. */
 const READ_FIRST: readonly (readonly string[])[] = [
-  ["pricing", "price", "prices", "plans", "plan"],
-  ["features", "feature", "product", "products", "how-it-works", "platform", "solutions", "use-cases"],
+  ["pricing", "price", "prices", "plans", "plan", "rates", "fees", "preise", "tarifs", "precios"],
+  [
+    "features", "feature", "product", "products", "how-it-works", "platform", "solutions", "use-cases",
+    "services", "service", "what-we-do", "menu", "menus", "shop", "store", "collections", "treatments",
+    "leistungen", "angebot", "produkte", "sortiment", "speisekarte", "prestations", "servicios", "productos",
+  ],
+  [
+    "about", "about-us", "company", "our-story", "team", "faq", "faqs", "questions", "locations", "location",
+    "areas", "service-areas", "contact", "contact-us", "visit", "compare", "vs", "alternatives",
+    "ueber-uns", "uber-uns", "über-uns", "unternehmen", "kontakt", "standorte", "filialen", "haeufige-fragen",
+    "a-propos", "nosotros", "contacto",
+  ],
+  ["case-studies", "case-study", "customers", "customer-stories", "success-stories", "work", "projects", "portfolio", "referenzen"],
+  ["reviews", "review", "testimonials", "testimonial", "wall-of-love", "bewertungen"],
   ["docs", "doc", "documentation", "guide", "guides", "help", "integrations", "integration"],
   ["changelog", "releases", "release-notes", "whats-new", "updates"],
-  ["case-studies", "case-study", "customers", "customer-stories", "success-stories"],
-  ["reviews", "review", "testimonials", "testimonial", "wall-of-love"],
-  ["about", "about-us", "company", "faq", "faqs", "compare", "vs", "alternatives"],
 ];
 
 /** Addresses that say nothing about what the business sells. */
-const READ_LAST = ["legal", "privacy", "terms", "cookies", "imprint", "impressum", "login", "signin", "sign-in", "signup", "sign-up", "account", "cart", "checkout", "tag", "tags", "category", "author", "page"];
+const READ_LAST = ["legal", "privacy", "terms", "cookies", "imprint", "impressum", "login", "signin", "sign-in", "signup", "sign-up", "account", "cart", "checkout", "tag", "tags", "category", "author", "page", "careers", "jobs", "now-hiring", "karriere", "stellenangebote"];
 
-/** Lower is read sooner. The home page is first of all; a page no row
- *  names sits after every named one and before the ones read last. */
+/** Lower is read sooner. The home page is first of all; then each named
+ *  section's own page; then the pages under a named section; a page no row
+ *  names sits after those and before the ones read last. */
 export function readFirstRank(url: string): number {
   let segments: string[];
   try {
-    segments = new URL(url).pathname
+    segments = decodeURIComponent(new URL(url).pathname)
       .toLowerCase()
       .split("/")
       .map((segment) => segment.replace(/\.(?:html?|php|aspx?)$/, ""))
@@ -37,9 +54,11 @@ export function readFirstRank(url: string): number {
   if (segments.some((segment) => READ_LAST.includes(segment)) || isNeverRead(url)) return READ_FIRST.length + 2;
   const row = READ_FIRST.findIndex((words) => segments.some((segment) => words.includes(segment)));
   if (row < 0) return READ_FIRST.length + 1;
-  // A section's own page before the pages under it: `/pricing` before
-  // `/docs/api/pricing-webhooks`.
-  return row + 1 + (segments.length > 1 ? 0.5 : 0);
+  // A section's own page before any page under one: `/pricing`, `/about`
+  // and `/faq` before `/products/blue-widget` and `/docs/api/webhooks`. A
+  // read bounded to twenty pages (issue 1314) would otherwise spend them
+  // all on one section's entries.
+  return segments.length === 1 ? row + 1 : READ_FIRST.length + (row + 1) / 10;
 }
 
 /** Path words of a gallery: a listing of other businesses, and the entries

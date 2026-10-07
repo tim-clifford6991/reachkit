@@ -28,11 +28,18 @@ export function emptyDerivation(): DerivationResult {
   return { candidates: [], assessed: 0, rejected: noRejections() };
 }
 
+/** Letters Unicode does not take apart into a base letter and a mark. */
+const LETTERS: Readonly<Record<string, string>> = { ß: "ss", æ: "ae", œ: "oe", ø: "o", đ: "d", ð: "d", ł: "l", þ: "th", ı: "i" };
+
 /** A URL-safe slug from a search. Deterministic and ASCII-only: the same
  *  query always proposes the same slug, which is what lets the partial
- *  unique index recognise a weekly re-derivation of the same target. */
+ *  unique index recognise a weekly re-derivation of the same target. A
+ *  letter outside ASCII is written in ASCII, never dropped (issue 1314):
+ *  "zuni café" is `zuni-cafe`, "straße" is `strasse`. */
 export function slugify(query: string): string {
   return query
+    .toLowerCase()
+    .replace(/[ßæœøđðłþı]/g, (letter) => LETTERS[letter] ?? letter)
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()

@@ -4,7 +4,7 @@
 // Scan 17f5bbff stored a rival read at 22,200 searches for a first name and
 // asked five prompts about rivals the same pass dropped, and nothing said
 // so: the numbers went to the screens as they were. So a paid pass ends by
-// asking five questions of what it stored, and keeps the answers on its own
+// asking six questions of what it stored, and keeps the answers on its own
 // row (`scans.health`):
 //
 //   brand_volume   no rival's brand volume is polluted — none is larger
@@ -14,7 +14,10 @@
 //   market_terms   the market has at least one searched term with volume;
 //   mention_rate   the mention rate states its sample size and margin;
 //   serp_timeouts  no more than a fifth of the pass's SERP reads timed out
-//                  (owner D63 of 2026-10-07, issue 1298).
+//                  (owner D63 of 2026-10-07, issue 1298), Google's AI Mode
+//                  reads among them (issue 1314);
+//   knowledge_base the site's knowledge base holds at least one page
+//                  (2026-10-07, issue 1314).
 //
 // A failing check deletes nothing. It is listed in the Monday owner digest,
 // and the headline numbers are read from the last pass that had none
@@ -28,7 +31,7 @@ import type { GeneratedPrompt, PromptKind } from "@/lib/market/prompts/generate"
 import { measurePrompts, type PromptSample } from "@/lib/market/prompts/rate";
 import { followRivals } from "@/lib/market/prompts/set";
 
-export const HEALTH_CHECKS = ["brand_volume", "prompt_rivals", "market_terms", "mention_rate", "serp_timeouts"] as const;
+export const HEALTH_CHECKS = ["brand_volume", "prompt_rivals", "market_terms", "mention_rate", "serp_timeouts", "knowledge_base"] as const;
 
 /** D63: the share of a pass's SERP reads that may time out. More fails. */
 export const SERP_TIMEOUT_SHARE = 0.2;
@@ -193,6 +196,16 @@ function serpTimeouts(serp: SerpReads | null | undefined): HealthResult {
   return result("serp_timeouts", serp.timeouts / serp.reads > SERP_TIMEOUT_SHARE ? [found] : [], found);
 }
 
+/** A site whose knowledge base holds no page has nothing its topics are
+ *  judged against or its pages written from (issue 1314). A count that
+ *  could not be read fails nothing. */
+function knowledgeBase(pages: number | null | undefined): HealthResult {
+  if (pages === null || pages === undefined) return result("knowledge_base", [], "the knowledge base was not counted");
+  return pages === 0
+    ? result("knowledge_base", ["no page read"], "the knowledge base holds no page of the site")
+    : result("knowledge_base", [], `the knowledge base holds ${pages} ${pages === 1 ? "page" : "pages"}`);
+}
+
 export interface HealthInput {
   /** The market in force when the pass ended. */
   market: MarketConclusion | null;
@@ -206,13 +219,16 @@ export interface HealthInput {
   samples: readonly PromptSample[] | null;
   /** The pass's SERP reads; `null` where the ledger could not be read. */
   serp?: SerpReads | null;
+  /** How many of the site's pages its knowledge base holds; `null` where
+   *  it could not be read. */
+  knowledgePages?: number | null;
   at: Date;
 }
 
 export function checkHealth(a: HealthInput): ScanHealth {
   return {
     at: a.at.toISOString(),
-    checks: [brandVolume(a.market), promptRivals(a), marketTerms(a.market), mentionRate(a.samples), serpTimeouts(a.serp)],
+    checks: [brandVolume(a.market), promptRivals(a), marketTerms(a.market), mentionRate(a.samples), serpTimeouts(a.serp), knowledgeBase(a.knowledgePages)],
   };
 }
 

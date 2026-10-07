@@ -501,7 +501,7 @@ export async function main(o: Options): Promise<number> {
     const verdict = search.term === true ? "a searched term of the market" : measuredMarket?.judged[searchKey(search.keyword)] === true ? "judged on the market" : "not judged";
     say(`  ${String(search.volume).padStart(6)}/mo  ${search.keyword} — ${verdict}`);
   }
-  const reasons = { not_our_market: "uses a term from notOurMarket", brand: "only a rival's or another product's name", judged: "judged off the market" } as const;
+  const reasons = { not_our_market: "uses a term from notOurMarket", brand: "only a rival's or another product's name", judged: "judged off the market", malformed: "not a search as it stands" } as const;
   for (const search of wasMeasured) {
     if (measured.some((now) => searchKey(now.keyword) === searchKey(search.keyword))) continue;
     const why = measuredMarket === undefined ? null : neverMeasured(search.keyword, measuredMarket);

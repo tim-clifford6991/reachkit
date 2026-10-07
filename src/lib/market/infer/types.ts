@@ -27,6 +27,11 @@ export interface RivalConclusion {
    *  buyer types means this product. Absent on a rival concluded before
    *  D50, which is read under its name. */
   searchNames?: readonly string[];
+  /** How closely it does the business's own job (SPEC §6, 2026-10-07,
+   *  issue 1314): `partial` where it does part of the job, serves another
+   *  kind of buyer, or is a free or single-purpose tool this business's
+   *  buyer would not choose instead. Absent reads as direct. */
+  closeness?: "direct" | "partial";
   /** Its brand's searches a month in the market's location, the most under
    *  any of `searchNames` (SPEC §6, owner D50 of 2026-10-05, issue 1271).
    *  Absent until a pass has read it. */
