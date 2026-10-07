@@ -558,8 +558,12 @@ export const REPORT_COPY = Object.freeze({
   "landing.step.eyebrow": ["Step {n}", { slots: { n: "text" }, fixedBy: "approved set S1 · 11a" }],
   "landing.step.1.title": ["Scan your domain", { slots: {}, fixedBy: "approved set S1 · 11a" }],
   "landing.step.1.body": ["Free, no account. You get your score, your rivals and your first page — at a permanent link.", { slots: {}, fixedBy: "approved set S1" }],
-  "landing.step.2.title": ["Pick your market and rivals", { slots: {}, fixedBy: "approved set S1 · 11a" }],
-  "landing.step.2.body": ["We suggest, you confirm. Site, business, rivals, voice, publishing — then straight to the app.", { slots: {}, fixedBy: "approved set S1" }],
+  // Step 2's approved-set pair told a founder to pick and confirm the market
+  // and the rivals. SPEC §5 (2026-10-02, D28) rules that out: ReachKit
+  // identifies both, and the founder may override them but never has to.
+  // Both sentences are drafted (issue 1308) for the owner to correct.
+  "landing.step.2.title": ["We find your market and rivals", { slots: {}, fixedBy: "issue 1308 · drafted" }],
+  "landing.step.2.body": ["You can change them, and you never have to. Site, business, rivals, voice, publishing — then straight to the app.", { slots: {}, fixedBy: "issue 1308 · drafted" }],
   // Step 3's title is the one approved-set string on this screen the owner
   // has since replaced: the set promised a page a day, and the Autopilot
   // brief (DECISIONS 2026-09-10) rules that out — a page goes live when one
