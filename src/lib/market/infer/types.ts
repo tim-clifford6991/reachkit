@@ -91,6 +91,12 @@ export interface MarketConclusion {
   /** Brand search volume for the business and its rival candidates (D50).
    *  Absent until a pass has read it. */
   demand?: BrandDemand;
+  /** The searches a pass was about to measure, judged against this market
+   *  (SPEC §6, owner D65 of 2026-10-07, issue 1303): `true` where a buyer
+   *  who types it wants what this business sells, `false` where it mostly
+   *  means something else, belongs to another market or is a company's
+   *  name. Keyed by the search, lower-cased. A new market starts empty. */
+  judged?: Readonly<Record<string, boolean>>;
 }
 
 /**
@@ -109,6 +115,12 @@ export interface StoredMarket {
   categoryOverridden: boolean;
   /** True where the founder set the rivals themselves. */
   rivalsOverridden: boolean;
+  /** Rivals in force that the last pass left out (SPEC §6, owner D65 of
+   *  2026-10-07, issue 1303): one is dropped only when the next pass leaves
+   *  it out as well. Domains. */
+  rivalsLeftOut?: readonly string[];
+  /** Rivals the last pass wanted and held back one pass (D65). Domains. */
+  rivalsWaiting?: readonly string[];
 }
 
 export const EMPTY_STORED_MARKET: StoredMarket = Object.freeze({

@@ -25,6 +25,7 @@ import { KNOWLEDGE_BASE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import { derivePurpose } from "../purpose";
+import { isBuyerQuestion, isSpecificAudience } from "./clean";
 import { isNeverRead, readFirstRank } from "./priority";
 import type { PageReading, StoredKnowledge, StoredPage } from "./types";
 
@@ -57,11 +58,11 @@ const MAX = KNOWLEDGE_BASE.PAGE_ITEMS;
 
 export const PAGE_READING_FIELDS: Readonly<Record<string, string>> = Object.freeze({
   offerings: `at most ${MAX} objects, one per product, plan or service this page describes: name as the page names it; features, what the page says it does; prices, each price with its unit exactly as written ("€49 a month"); uses, what the page says it is used for`,
-  audience: `at most ${MAX} short strings: who the page says the business serves`,
+  audience: `at most ${MAX} short strings: who the page says the business serves, each a kind of customer as specific as the page names it ("dental practices", "Shopify stores", "first-time home buyers"); never a word for anyone at all ("businesses", "companies", "customers", "users")`,
   problems: `at most ${MAX} short strings: problems the page says the business solves`,
   differentiators: `at most ${MAX} objects: text, one sentence on how the page says the business differs; rival, the competitor it names, or null where it names none`,
   proof: `at most ${MAX} strings: a customer result, a testimonial quoted word for word with who said it, or a named customer, as the page states it`,
-  questions: `at most ${MAX} strings: questions the page answers for a buyer, as the page words them`,
+  questions: `at most ${MAX} strings: questions a buyer would ask before buying that the page answers, each a full question ending in a question mark that makes sense read alone, as the page words them; never a section heading, a menu label or a button ("Why you should care", "What to do next", "How it works")`,
   integrations: `at most ${MAX} short strings: other products the page says this one works with`,
   places: `at most ${MAX} short strings: places the page says the business serves or is based in`,
 });
@@ -174,7 +175,8 @@ export function checkedReading(answer: PageReading, pageText: string): PageReadi
         uses: keptStrings(offering.uses, pageText),
       }))
       .filter((offering) => offering.name !== ""),
-    audience: keptStrings(answer.audience, pageText),
+    // D65: an audience names a kind of customer, and a question is one.
+    audience: keptStrings(answer.audience, pageText).filter(isSpecificAudience),
     problems: keptStrings(answer.problems, pageText),
     differentiators: kept(
       answer.differentiators.map((entry) => ({ text: tidy(entry.text), rival: tidy(entry.rival ?? "") || null })),
@@ -182,7 +184,7 @@ export function checkedReading(answer: PageReading, pageText: string): PageReadi
       pageText
     ),
     proof: keptStrings(answer.proof, pageText),
-    questions: keptStrings(answer.questions, pageText),
+    questions: keptStrings(answer.questions, pageText).filter((question) => isBuyerQuestion(question, pageText)),
     integrations: keptStrings(answer.integrations, pageText),
     places: keptStrings(answer.places, pageText),
   };

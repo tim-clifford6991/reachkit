@@ -14,7 +14,11 @@
 -- this pass's model answers, keyword volumes and rival sizings (a sizing
 -- keeps its total and drops its hundred rows), its Google SERP reads as
 -- outcomes only, and the site's sizings, keyword and market reads of the
--- thirty days before it, which the pass was served from the cache. `ledger` is every source's count and cost for the pass.
+-- thirty days before it, which the pass was served from the cache. Since
+-- D65 (issue 1303) it also holds the suggestions the pass's seeds bought,
+-- so the measured searches are chosen again, and the rival conclusions of
+-- the thirty days before, which name a rival the pass dropped. `ledger` is
+-- every source's count and cost for the pass.
 with x as (select * from scans where id = ':SCAN'),
 snap as (
   select jsonb_build_object(
@@ -35,8 +39,8 @@ snap as (
             then case when jsonb_typeof(f.payload) = 'object' then f.payload else '"read"'::jsonb end
           else f.payload end) order by f.created_at, f.id), '[]'::jsonb)
       from fetches f, x
-      where (f.scan_id = x.id and f.source in ('dataforseo_labs/google/ranked_keywords', 'dataforseo_labs/google/keyword_overview', 'serp/google/organic', 'market-inference', 'market-terms', 'rival-inference', 'opportunity-typing', 'topic-buyer-searches', 'topic-typed', 'topic-fit', 'topic-same-question'))
-         or (f.scan_id <> x.id and f.source in ('dataforseo_labs/google/ranked_keywords', 'dataforseo_labs/google/keyword_overview', 'market-terms', 'market-inference')
+      where (f.scan_id = x.id and f.source in ('dataforseo_labs/google/ranked_keywords', 'dataforseo_labs/google/keyword_overview', 'serp/google/organic', 'dataforseo_labs/google/keyword_suggestions', 'market-inference', 'market-terms', 'market-searches', 'rival-inference', 'opportunity-typing', 'topic-buyer-searches', 'topic-typed', 'topic-fit', 'topic-same-question'))
+         or (f.scan_id <> x.id and f.source in ('dataforseo_labs/google/ranked_keywords', 'dataforseo_labs/google/keyword_overview', 'dataforseo_labs/google/keyword_suggestions', 'market-terms', 'market-inference', 'market-searches', 'rival-inference')
              and f.scan_id in (select id from scans where site_id = x.site_id)
              and f.created_at >= x.created_at - interval '30 days' and f.created_at < x.created_at)),
     'ledger', (select coalesce(jsonb_agg(jsonb_build_object('source', l.source, 'n', l.n, 'cents', l.cents) order by l.source), '[]'::jsonb)

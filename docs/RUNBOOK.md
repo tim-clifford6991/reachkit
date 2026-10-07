@@ -485,10 +485,13 @@ page is written as the new search's own type and replaces the live text at the s
 ### Checking a stored pass again
 
 `npm run pass -- --site <domain> --replay <scanId>` runs a stored deep pass again through the
-pass's own steps (SPEC §6, D64): the sizing, the rival conclusion, the prompts that follow the
-rivals, the topics and their prune, and the health checks. It costs 0¢ and reaches neither
-production nor a vendor. It prints the rivals, the sizings, the cost against the stored pass, the
-checks, the topics and the prompts, and exits 0 when the acceptance list holds.
+pass's own steps (SPEC §6, D64, D65): which searches it would measure now, the sizing, the rival
+conclusion, the prompts that follow the rivals, the topics and their prune, and the health checks.
+It costs 0¢ and reaches neither production nor a vendor. It prints the measured searches and why a
+stored one is no longer measured, the rivals with any left out or waiting, the sizings, the cost
+against the stored pass, the checks, the topics and the prompts, and exits 0 when the acceptance
+list holds. The baseline snapshot is `0e5c5228`; `d4bb3740` and `17f5bbff` predate D65's export
+and replay with calls refused.
 
 The pass is read from `scripts/pass/snapshot/<first 8 of the scan id>.json`. To add one, run the
 statement in `scripts/pass/export.sql` through the Supabase connector, read-only, in the checked

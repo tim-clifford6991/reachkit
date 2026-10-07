@@ -24,6 +24,7 @@
 // Where the spec rules, the archived plan does not re-open it (CLAUDE.md).
 import { BATTERY, SELECTION, WINNABILITY } from "@/lib/config/constants";
 import { difficultyCeiling, qualifyingDemand } from "@/lib/opportunities/winnability/bars";
+import { neverMeasured, type MeasuredMarket } from "./measured";
 import type { Profile } from "./profile";
 import type { SuggestionRow } from "./market-set";
 
@@ -51,6 +52,10 @@ export interface SelectedSearch {
   /** The vendor's keyword difficulty, 0–100, where it gave one (issue 858)
    *  — derivation bands the target by it. */
   difficulty?: number;
+  /** True where the search is one of the market's own searched terms
+   *  (SPEC §6, owner D65, issue 1303): measured at its own volume, whatever
+   *  the site's demand ceiling. */
+  term?: true;
 }
 
 /** A row's difficulty as a stored row carries it: present only where the
@@ -283,7 +288,11 @@ interface Candidate {
   score: number;
   rivalBrand: boolean;
   howTo: boolean;
+  term: boolean;
 }
+
+/** The lowest volume step: a market term below it is not measured. */
+const LOWEST_FLOOR: number = SELECTION.volumeSteps[SELECTION.volumeSteps.length - 1]!;
 
 /** Score descending, then volume descending, then keyword ascending — a
  *  total order over distinct keywords, so two runs over the same market can
@@ -327,8 +336,18 @@ export function selectTwelve(a: {
    *  (unmeasured reads as the cold-start 0). Required: a selection that
    *  never saw the site's size could pick a head term it cannot win. */
   ownRanked: number;
+  /** The market in force, where the site has one (SPEC §6, owner D65, issue
+   *  1303): its searched terms are measured at their own volume — the
+   *  demand and difficulty ceilings are for what the site is offered to
+   *  write, and a market's own searches are what it is measured on — and a
+   *  search that is off this market is never selected (`measured.ts`). */
+  measured?: MeasuredMarket;
+  /** How many to return; the twelve unless a caller wants the runners-up
+   *  too, to have them judged with the twelve. */
+  limit?: number;
 }): SelectedSearch[] {
   const { profile } = a;
+  const limit = a.limit ?? BATTERY.QUESTIONS;
   const floor = a.floor ?? SELECTION.volumeFloorPerMonth;
   // SPEC §6 right-sizing law (2026-09-16, issue 830): a search above the
   // most demand this site may be offered is not a question for it at all —
@@ -345,8 +364,27 @@ export function selectTwelve(a: {
   const marketWords = named.length === 0 ? undefined : named.join(" ");
 
   const survivors: Candidate[] = [];
+  // D65: the market's own searched terms, each at its volume. On the market
+  // by what they are, so neither ceiling nor the relevance guard reads them.
+  for (const term of a.measured?.terms ?? []) {
+    const keyword = term.term.toLowerCase().replace(/\s+/g, " ").trim();
+    if (term.volume < LOWEST_FLOOR || keyword === "") continue;
+    const intent = classifyIntent(keyword, profile);
+    if (intent === "own_brand") continue;
+    survivors.push({
+      keyword,
+      volume: term.volume,
+      difficulty: null,
+      intent,
+      score: Math.max(SELECTION.intentWeights[intent], SELECTION.intentWeights.solution) * Math.log10(term.volume + 1),
+      rivalBrand: false,
+      howTo: false,
+      term: true,
+    });
+  }
   for (const row of a.market) {
     if (row.volume < floor || row.volume > ceiling) continue;
+    if (a.measured !== undefined && neverMeasured(row.keyword, a.measured) !== null) continue;
     const difficulty = row.difficulty ?? null;
     if (difficulty !== null && difficulty > hardest) continue;
     const intent = classifyIntent(row.keyword, profile);
@@ -365,6 +403,7 @@ export function selectTwelve(a: {
         (longTail ? SELECTION.longTailWeight : 1),
       rivalBrand: namesAnyOf(row.keyword, [...profile.namedRivals, ...rivals.map(brandOf)]),
       howTo: HOW_TO.test(normalise(row.keyword)),
+      term: false,
     });
   }
 
@@ -375,8 +414,11 @@ export function selectTwelve(a: {
   for (const candidate of survivors) {
     const key = stemKey(candidate.keyword);
     const held = byStem.get(key);
+    // A market term stands for its stem: it is the measured volume.
+    if (held?.term === true && !candidate.term) continue;
     if (
       held === undefined ||
+      (candidate.term && !held.term) ||
       candidate.volume > held.volume ||
       (candidate.volume === held.volume && candidate.keyword < held.keyword)
     ) {
@@ -395,8 +437,12 @@ export function selectTwelve(a: {
     (!candidate.rivalBrand || count((c) => c.rivalBrand) < SELECTION.maxRivalBrand) &&
     (!candidate.howTo || count((c) => c.howTo) < SELECTION.maxHowTo);
 
+  // D65: the market's terms first, most searched first, in up to
+  // `SELECTION.maxMarketTerms` of the places; then everything by score.
+  const terms = ranked.filter((candidate) => candidate.term).sort((x, y) => y.volume - x.volume || byRank(x, y));
+  for (const candidate of terms.slice(0, Math.min(SELECTION.maxMarketTerms, limit))) picked.add(candidate);
   for (const candidate of ranked) {
-    if (picked.size >= BATTERY.QUESTIONS) break;
+    if (picked.size >= limit) break;
     if (admits(candidate)) picked.add(candidate);
   }
 
@@ -410,9 +456,10 @@ export function selectTwelve(a: {
       rank: index + 1,
       floor: stepOf(candidate.volume, floor),
       ...difficultyField(candidate.difficulty),
+      ...(candidate.term ? { term: true as const } : {}),
     }));
 
-  logSelection(ranked.length, selected.length, floor);
+  logSelection(ranked.length, Math.min(selected.length, BATTERY.QUESTIONS), floor);
   return selected;
 }
 

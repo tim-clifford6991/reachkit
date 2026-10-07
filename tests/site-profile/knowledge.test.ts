@@ -16,6 +16,7 @@ vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 const { KNOWLEDGE_BASE, PROFILE_PROMPT_CAPS } = await import("../../src/lib/config/constants");
 const { readKnowledge, readablePages } = await import("../../src/lib/site-profile/knowledge/extract");
 const { knowledgeBase } = await import("../../src/lib/site-profile/knowledge/merge");
+const { isBuyerQuestion, isSpecificAudience } = await import("../../src/lib/site-profile/knowledge/clean");
 const { readFirstRank } = await import("../../src/lib/site-profile/knowledge/priority");
 const { NO_KNOWLEDGE, founderAnswers } = await import("../../src/lib/site-profile/knowledge/types");
 const { promptProfile } = await import("../../src/lib/generate/voice/profile-block");
@@ -185,5 +186,38 @@ describe("a founder's answer is a fact from the founder", () => {
     expect(founderAnswers({ buyers: "  ", edge: " We answer the phone. ", other: "x" })).toEqual({
       edge: "We answer the phone.",
     });
+  });
+});
+
+// SPEC §5 (owner D65 of 2026-10-07, issue 1303): the two rules hold for any
+// business, in the languages its pages are written in.
+describe("D65 — a heading is not a buyer's question, and \"businesses\" is not an audience", () => {
+  it("keeps a question a buyer asks and drops a heading, a label and a heading the model gave a question mark", () => {
+    const page = "Why you should care\nHow much does a boiler service cost?\nWhat to do next\nWas kostet eine Zahnreinigung?";
+    expect(isBuyerQuestion("How much does a boiler service cost?", page)).toBe(true);
+    expect(isBuyerQuestion("Was kostet eine Zahnreinigung?", page)).toBe(true);
+    expect(isBuyerQuestion("Why you should care", page)).toBe(false);
+    expect(isBuyerQuestion("What to do next?", page)).toBe(false);
+    expect(isBuyerQuestion("Why us?")).toBe(false);
+  });
+
+  it("keeps an audience that names a kind of customer and drops a word for anybody", () => {
+    for (const anybody of ["Businesses", "Companies of all sizes", "Customers and users", "Unternehmen", "Kunden jeder Größe"]) {
+      expect(isSpecificAudience(anybody), anybody).toBe(false);
+    }
+    for (const somebody of ["Small businesses", "Dental practices", "UK law firms", "Shopify stores", "Handwerksbetriebe", "Homeowners"]) {
+      expect(isSpecificAudience(somebody), somebody).toBe(true);
+    }
+  });
+
+  it("cleans a page stored before the rule, and never judges the founder's own answer", () => {
+    const stored = {
+      pages: [{ url: PRICING.url, hash: "h", reading: { ...EMPTY, audience: ["Businesses", "Independent plumbers"], questions: ["What to do next", "Do you charge a call-out fee?"] } }],
+      readAt: AT.toISOString(),
+      demoPhrases: [],
+    };
+    const base = knowledgeBase({ stored, answers: { buyers: "Companies", asked: "Whether we work weekends" } });
+    expect(base.audience.map((item) => item.text)).toEqual(["Companies", "Independent plumbers"]);
+    expect(base.questions.map((item) => item.text)).toEqual(["Whether we work weekends", "Do you charge a call-out fee?"]);
   });
 });

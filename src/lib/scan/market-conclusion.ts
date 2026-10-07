@@ -175,6 +175,47 @@ async function withSearchTerms(a: {
   }
 }
 
+/**
+ * SPEC §6 (owner D65, issue 1303) — the searches a pass is about to measure,
+ * judged against its market and kept on it, so a search is judged once.
+ * Answers the market with the judgements added, or `null` where the call
+ * did not come back: the pass then measures what it selected, and the next
+ * pass asks again. Never throws.
+ */
+export async function judgeSearchesForPass(a: {
+  siteId: string;
+  cost: CostContext;
+  market: MarketConclusion;
+  searches: readonly string[];
+}): Promise<MarketConclusion | null> {
+  try {
+    const [{ judgeSearches }, { withJudged }, { readSiteMarket, writeSiteMarket }] = await Promise.all([
+      import("@/lib/market/infer/read-terms"),
+      import("@/lib/market/questions/measured"),
+      import("@/lib/market/infer/stored"),
+    ]);
+    const read = await judgeSearches(a.cost, { market: a.market, searches: a.searches });
+    if (read.kind === "unmeasured") {
+      log("market_searches_unmeasured", { siteId: a.siteId, reason: read.reason, because: read.because ?? null });
+      return null;
+    }
+    const judged = withJudged(a.market.judged, read.value);
+    const site = await readSiteMarket(a.siteId);
+    if (site !== null && site.stored.current !== null) {
+      await writeSiteMarket(a.siteId, { stored: { ...site.stored, current: { ...site.stored.current, judged } } });
+    }
+    log("market_searches", {
+      siteId: a.siteId,
+      judged: Object.keys(read.value).length,
+      off: Object.values(read.value).filter((on) => !on).length,
+    });
+    return { ...a.market, judged };
+  } catch (error) {
+    log("market_searches_failed", { siteId: a.siteId, because: error instanceof Error ? error.message : String(error) });
+    return null;
+  }
+}
+
 /** The founder's own answer about who buys (§5's first question), which
  *  outranks the inferred buyer (D49). `null` where they gave none. */
 async function founderBuyer(siteId: string): Promise<string | null> {

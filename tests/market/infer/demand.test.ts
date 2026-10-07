@@ -37,7 +37,7 @@ describe("rivals weighed by brand search volume", () => {
     expect(ordered.map((r) => r.volume)).toEqual([6600, 2400, 720, 70, 0]);
   });
 
-  it("replaces a standing rival nobody searches with a searched one, and keeps a searched standing rival", () => {
+  it("replaces a standing rival nobody searches with a searched one over two passes (D65), and keeps a searched standing rival", () => {
     const stored: StoredMarketWithChange = {
       ...EMPTY_STORED_MARKET,
       lastChange: null,
@@ -50,13 +50,17 @@ describe("rivals weighed by brand search volume", () => {
       rival("rankscale.ai", "Rankscale", "same_job"),
     ];
     const demand = { ...DEMAND, brands: { ...DEMAND.brands, "scrunch ai": 480, athenahq: 390, rankscale: 260 } };
-    const settled = settleRivals({
+    const first = settleRivals({
       stored,
       standing: ["aeoengine.ai", "maxaeo.com", "otterly.ai"],
       fresh: byDemand(more, demand),
-      scanId: "scan-2",
+      scanId: "scan-1",
       at: AT,
     });
+    // The two searched newcomers take the two free places at once; the two
+    // rivals nobody searches are left out once and stay.
+    expect(first.rivals).toEqual(["tryprofound.com", "peec.ai", "otterly.ai", "aeoengine.ai", "maxaeo.com"]);
+    const settled = settleRivals({ stored: first.next, standing: first.rivals, fresh: byDemand(more, demand), scanId: "scan-2", at: AT });
     expect(settled.rivals).toEqual(["tryprofound.com", "peec.ai", "otterly.ai", "scrunchai.com", "athenahq.ai"]);
     expect(settled.next.lastChange?.dropped).toEqual(["aeoengine.ai", "maxaeo.com"]);
   });
