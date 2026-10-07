@@ -233,6 +233,24 @@ describe("the page on a date, and its state", () => {
     expect(() => assembleMonth(facts, MONTH)).not.toThrow();
   });
 
+  it("issue 1321: dates that already hold a page use up none of supply, so the next date shows supply's page", async () => {
+    // reachkit.app's stored plan on 2026-10-07: written pages on today and
+    // tomorrow, and a ranked list one page long.
+    withSupply(1);
+    seed({
+      drafts: [
+        draft({ id: "d1", state: "published", scheduled_for: "2026-09-15" }),
+        draft({ id: "d2", state: "in_review", scheduled_for: "2026-09-16" }),
+      ],
+    });
+
+    const model = assembleMonth(await readCalendarFacts({ site: SITE, month: MONTH, now: NOW }), MONTH);
+    const on17 = cellFor(model, "2026-09-17");
+    expect(on17?.page?.title).toBe("search 0");
+    expect(on17?.page?.stage).toBe("planned");
+    expect(on17?.empty).toBeNull();
+  });
+
   it("whether the page ever reached review is read off the transitions and nowhere else", async () => {
     seed({
       drafts: [

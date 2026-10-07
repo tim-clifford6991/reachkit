@@ -11,7 +11,7 @@
 // (#41) and §9's publishing (#45)). Keeping the assembly pure is what lets
 // every REQ-040 criterion be decided by a test with no database at all.
 import type { WorkStop } from "@/lib/presentation/stopped";
-import { resolveNoPublish, type NoPublishCauses, type NoPublishReason } from "./nopublish";
+import { resolveNoPublish, type NoPublishBecause, type NoPublishCauses } from "./nopublish";
 import { weeksMeasured, type MeasuredWeek, type WeekCount } from "./weeks";
 
 /** BUILD §4.3's two modes, named by the spec and never by a renderer. */
@@ -22,7 +22,7 @@ export type PublishingMode = "autopilot" | "copilot";
  *  would let a renderer read "no time" as "not loaded yet". */
 export type PublishingState =
   | { mode: PublishingMode; next: Date }
-  | { mode: PublishingMode; next: null; because: NoPublishReason };
+  | { mode: PublishingMode; next: null; because: NoPublishBecause };
 
 /** SPEC §4 (2026-09-20, #908) — the *Waiting for you* card's whole subject:
  *  the page sitting in the customer's review, what it is called, and when it
@@ -120,9 +120,9 @@ export function assembleShell(facts: ShellFacts): ShellModel {
 
 /** A scheduled time outranks every cause; with no time, the four causes are
  *  resolved by `NO_PUBLISH_PRECEDENCE` and never by whichever the caller
- *  tested first. A `null` next with no cause holding at all is not a state
- *  the product has: it is an unattributed empty, which ADR-061 rules is
- *  ReachKit's own stop. */
+ *  tested first. A `null` next with no cause holding at all is
+ *  `unexplained`, never a stop: the card says ReachKit stopped only where a
+ *  stop is stored (SPEC §7, 2026-10-07, issue 1321). */
 function publishingOf(facts: ShellFacts): PublishingState {
   // REQ-092 c7 first: while ReachKit has stopped its own work, no publish
   // is scheduled — a time carried over from before the stop would be a
@@ -133,6 +133,6 @@ function publishingOf(facts: ShellFacts): PublishingState {
   const stopped = facts.stopped !== null || facts.noPublishCauses.reachkit_stopped;
   if (!stopped && facts.next !== null) return { mode: facts.mode, next: facts.next };
   const causes: NoPublishCauses = { ...facts.noPublishCauses, reachkit_stopped: stopped };
-  const because = resolveNoPublish(causes) ?? "reachkit_stopped";
+  const because = resolveNoPublish(causes) ?? "unexplained";
   return { mode: facts.mode, next: null, because };
 }

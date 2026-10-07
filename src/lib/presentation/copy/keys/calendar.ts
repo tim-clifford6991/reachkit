@@ -419,9 +419,13 @@ export const CALENDAR_COPY = Object.freeze({
   // than drawing a blank word.
   "calendar.empty.short.supply-unmeasured": ["No market yet", { slots: {}, fixedBy: "issue 930" }],
   "calendar.empty.short.supply-exhausted": ["No page", { slots: {}, fixedBy: "issue 930" }],
-  // ReachKit's own stop, and the day nobody can account for, which ADR-061
-  // point 2 says is the same stop without a record behind it.
+  // ReachKit's own stop, where one is recorded for the day.
   "calendar.empty.short.reachkit-stopped": ["We stopped", { slots: {}, fixedBy: "issue 930" }],
+  // A day the product cannot explain (SPEC §7, 2026-10-07, issue 1321): its
+  // own two words and its own panel line, and neither says ReachKit
+  // stopped. Drafted under issue 759's ruling; the owner corrects them.
+  "calendar.empty.short.unexplained": ["No page", { slots: {}, fixedBy: "issue 1321" }],
+  "calendar.empty.unexplained": ["No page is planned for this date yet.", { slots: {}, fixedBy: "issue 1321" }],
   // Issue 857's quiet marker, in the room a card has for it. The full line
   // (`calendar.horizon.marker`) is the panel's.
   "calendar.horizon.short": ["Planned Mon", { slots: {}, fixedBy: "issue 930" }],

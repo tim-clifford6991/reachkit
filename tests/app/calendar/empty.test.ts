@@ -126,14 +126,12 @@ describe("REQ-043 c4 — each other cause resolves to itself, and to exactly one
     });
   });
 
-  it("an unenumerated cause resolves to unattributed, and this file names no line for it", () => {
-    // ADR-061 point 2: a date the product cannot explain is a date on which
-    // something of the product's failed, so `unattributed` is ReachKit's own
-    // stop — and REQ-092's lines are `stoppedWorkStatement`'s, not this
-    // record's (issue #113). The record cannot name them: both causes are
-    // excluded from its key type.
+  it("an unenumerated cause resolves to unattributed, which is not ReachKit's stop", () => {
+    // SPEC §7, 2026-10-07 (issue 1321): a day says ReachKit stopped only
+    // where a stop is recorded for it. REQ-092's lines are
+    // `stoppedWorkStatement`'s, not this record's (issue #113).
     expect(accountFor(NOTHING).cause).toBe("unattributed");
-    expect(LAW_CAUSES).toEqual(["reachkit_stopped", "unattributed"]);
+    expect(isLawCause("unattributed")).toBe(false);
     for (const cause of LAW_CAUSES) {
       expect(isLawCause(cause)).toBe(true);
       expect(Object.keys(EMPTY_COPY_KEY)).not.toContain(cause);
