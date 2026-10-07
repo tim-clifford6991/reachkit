@@ -93,7 +93,7 @@ export function pageFixesCleared(
 
 /** One page's address as two readings of it compare: tracking parameters,
  *  the fragment, the scheme, `www.` and a trailing slash dropped. */
-function addressOf(url: string): string {
+export function addressOf(url: string): string {
   return canonicalUrl(pageOf(url) ?? url);
 }
 

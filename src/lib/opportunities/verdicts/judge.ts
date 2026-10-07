@@ -42,8 +42,9 @@
 // once per page only so the returned type is uniform, and a surface or a
 // mail states it once for the week and never once per page (ADR-071
 // point 3).
-import type { Measured } from "@/lib/measure/measured";
-import { evaluateAcceptance } from "./evaluate";
+import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
+import { intentFor, type IntentPrompt, type PageIntent } from "../intent";
+import { addressOf, evaluateAcceptance } from "./evaluate";
 import { weekMeasurementsFrom } from "./measurements";
 import { movementFor } from "./movement";
 import {
@@ -54,7 +55,9 @@ import {
   type VerdictRecord,
 } from "./store";
 import type {
+  AiCitation,
   NotJudgeableCause,
+  PageMeasured,
   WeekMeasurements,
   WeekStanding,
   WeekStart,
@@ -99,12 +102,21 @@ export async function judgeWeek(a: {
   const targets = pages.flatMap((page) => (page.acceptance.form === "top20" ? [page.acceptance.query] : []));
   const measurements = weekMeasurementsFrom({ report: week.report, week: a.week, targets });
 
+  // SPEC §6 (D60, issue 1288): each page's intent, against the prompts
+  // tracked today. A set that could not be read matches nothing and
+  // changes nothing stored.
+  const prompts = store.trackedPrompts === undefined ? [] : await store.trackedPrompts(a.siteId).catch(() => []);
+
   const standings: PageStanding[] = [];
   const rows: VerdictInsert[] = [];
 
   for (const page of pages) {
     const priorRows = byPage.get(page.publicationId) ?? [];
-    const decided = judgeOne({ page, measurements, week: a.week, priorRows });
+    const intent = intentOf(page, prompts);
+    if (intent !== null && !sameIntent(intent, page.intent ?? null) && page.draftId != null) {
+      await store.recordIntent?.({ draftId: page.draftId, intent });
+    }
+    const decided = judgeOne({ page, intent, measurements, week: a.week, priorRows });
     standings.push({ publicationId: page.publicationId, standing: decided.standing });
     if (decided.row !== null) {
       rows.push({ ...decided.row, siteId: a.siteId, week: a.week, scanId: week.scanId });
@@ -113,6 +125,55 @@ export async function judgeWeek(a: {
 
   await store.insert(rows);
   return { standings };
+}
+
+/**
+ * SPEC §6 (D60, issue 1288): what this page is for. The search is the one
+ * its test names. A recorded intent stands while its prompt is still
+ * tracked; a page that recorded none, or whose prompt has left the set, is
+ * matched against the set as it is today — which is how a page published
+ * before intent was recorded gets one. `null` for a page whose test is not
+ * a search.
+ */
+export function intentOf(page: PublishedPage, prompts: readonly IntentPrompt[]): PageIntent | null {
+  if (page.acceptance.form !== "top20") return null;
+  const stored = page.intent ?? null;
+  if (stored !== null && (prompts.length === 0 || (stored.prompt !== null && prompts.some((p) => p.id === stored.prompt?.id)))) {
+    return stored;
+  }
+  return intentFor(
+    { query: page.acceptance.query, volume: stored === null ? (page.volume ?? null) : stored.search.volume },
+    prompts
+  );
+}
+
+function sameIntent(a: PageIntent, b: PageIntent | null): boolean {
+  return (
+    b !== null &&
+    a.search.query === b.search.query &&
+    a.search.volume === b.search.volume &&
+    (a.prompt?.id ?? null) === (b.prompt?.id ?? null)
+  );
+}
+
+/** Whether the week's answers to the page's prompt cited the page's own
+ *  address. `null` where its intent names no prompt. */
+function citationOf(page: PublishedPage, intent: PageIntent | null, week: WeekMeasurements): AiCitation | null {
+  if (intent === null || intent.prompt === null) return null;
+  const cited = week.promptCitations.get(intent.prompt.id);
+  const at = week.measuredAt;
+  const own = addressOf(page.liveUrl);
+  return {
+    promptId: intent.prompt.id,
+    cited:
+      cited === undefined
+        ? unmeasured<boolean>("not_attempted", at)
+        : cited.kind === "unmeasured"
+          ? unmeasured<boolean>(cited.reason, at)
+          : cited.value.some((url) => addressOf(url) === own)
+            ? measured(true, at)
+            : measuredZero(false, at),
+  };
 }
 
 const NO_WEEK: WeekStanding = Object.freeze({ kind: "no_week" as const });
@@ -139,6 +200,7 @@ interface OnePage {
  */
 function judgeOne(a: {
   page: PublishedPage;
+  intent: PageIntent | null;
   measurements: WeekMeasurements;
   week: WeekStart;
   priorRows: readonly VerdictRecord[];
@@ -173,7 +235,16 @@ function judgeOne(a: {
   }
 
   // 3. The recorded test, against what this week measured.
-  const evaluation = evaluateAcceptance({ acceptance: page.acceptance, week: a.measurements, pageUrl: page.liveUrl });
+  //    A page with a tracked prompt has a second goal (D60, issue 1288): the
+  //    week's answers to that prompt citing it. Either goal is the page
+  //    working, so a citation decides a week whose search was not read.
+  const tested = evaluateAcceptance({ acceptance: page.acceptance, week: a.measurements, pageUrl: page.liveUrl });
+  const citation = citationOf(page, a.intent, a.measurements);
+  const cited = citation !== null && citation.cited.kind === "measured";
+  const evaluation =
+    !cited || "cause" in tested
+      ? tested
+      : { decided: true as const, passes: true, measuredAt: tested.decided ? tested.measuredAt : a.measurements.measuredAt };
   if (!evaluation.decided) {
     if ("cause" in evaluation) {
       return {
@@ -200,11 +271,13 @@ function judgeOne(a: {
     week: a.week,
   });
 
-  const measured = measurementOf(page, a.measurements);
+  const place = measurementOf(page, a.measurements);
   const movement =
-    measured === null
+    place === null
       ? null
-      : movementFor({ previous: previousMeasurement(a.priorRows), current: measured, week: a.week });
+      : movementFor({ previous: previousMeasurement(a.priorRows), current: place, week: a.week });
+  // Both readings, in the one record (D60).
+  const measured: PageMeasured | null = place === null || citation === null ? place : { ...place, ai: citation };
 
   return {
     standing: {
@@ -265,7 +338,12 @@ function previousMeasurement(
   priorRows: readonly VerdictRecord[]
 ): { week: WeekStart; value: Measured<number> } | null {
   for (const row of priorRows) {
-    if (row.measured !== null) return { week: row.week, value: row.measured };
+    if (row.measured === null) continue;
+    // The place alone: a movement compares two places and carries no citation.
+    const m = row.measured;
+    const place: Measured<number> =
+      m.kind === "unmeasured" ? unmeasured<number>(m.reason, m.at, m.because) : { kind: m.kind, value: m.value, at: m.at };
+    return { week: row.week, value: place };
   }
   return null;
 }

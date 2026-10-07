@@ -114,6 +114,22 @@ export function weekMeasurementsFrom(a: {
     if (!positions.has(target)) positions.set(target, rankedPlace(report, target, at));
   }
 
+  // SPEC §6 (D60, issue 1288): what each tracked prompt's answers cited,
+  // over every engine and run the week asked it on.
+  const promptCitations = new Map<string, Measured<readonly string[]>>();
+  for (const asked of report.prompts?.asked ?? []) {
+    const answers = (report.prompts?.answers ?? []).filter((answer) => answer.promptId === asked.id);
+    const cited = [...new Set(answers.flatMap((answer) => answer.ownUrls))];
+    promptCitations.set(
+      asked.id,
+      answers.length === 0
+        ? unmeasured<readonly string[]>("not_attempted", at)
+        : cited.length === 0
+          ? measuredZero<readonly string[]>([], at)
+          : measured<readonly string[]>(cited, at)
+    );
+  }
+
   return {
     week: a.week,
     measuredAt: at,
@@ -121,6 +137,7 @@ export function weekMeasurementsFrom(a: {
     positions,
     namesCustomer,
     ownPagesCited,
+    promptCitations,
     gatesCleared: gatesFrom(report, at),
     siteIssues: report.siteIssues,
   };

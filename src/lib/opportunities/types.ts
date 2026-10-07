@@ -122,8 +122,9 @@ export type Shortfall =
   | { kind: "retarget" };
 
 /** Why a live page of ours is due: its version is 90 days old, the Monday
- *  verdict found it in a worse place, or a pool holds a fact newer than it. */
-export type RefreshCause = "aged" | "lost_position" | "newer_fact";
+ *  verdict found it in a worse place, a pool holds a fact newer than it, or
+ *  eight weekly verdicts found it neither ranking nor cited (D60, issue 1288). */
+export type RefreshCause = "aged" | "lost_position" | "newer_fact" | "unmet";
 
 /** §7's Fix trigger — "any access gate fails" — as the closed set of gates
  *  the measurement engine can actually report. A sixth barrier is a change
@@ -348,7 +349,10 @@ export type UnreadyReason =
   /** SPEC §7 (D26, issue 1179): the generator stopped this topic's draft for
    *  the last time, or the founder skipped that draft, and the topic rests
    *  until `restUntil`. */
-  | "resting";
+  | "resting"
+  /** SPEC §6 (D60, issue 1288): its search has no measured volume and no
+   *  tracked prompt is close to it, so a page for it could reach no goal. */
+  | "no_intent";
 
 export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([
   "not_assessed",
@@ -362,6 +366,7 @@ export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([
   "already_covered",
   "low_fit",
   "resting",
+  "no_intent",
 ]);
 
 export interface Opportunity {

@@ -42,6 +42,7 @@ import type { CostContext } from "@/lib/costs";
 import type { Tier } from "@/lib/llm/tiers";
 import type { Opportunity } from "@/lib/opportunities";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
+import type { PageIntent } from "@/lib/opportunities/intent";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { readRecordedFact, recordedFactValue } from "../fact";
 import { recoveryOutcome, type Recovery } from "../claims/recovery";
@@ -176,6 +177,8 @@ export interface GenerateInputs {
   links: readonly LinkTarget[];
   /** The site's demo phrases and menu lines (issue 1249). */
   demoPhrases?: readonly string[];
+  /** What the page is for (D60, issue 1288), recorded on its row. */
+  intent?: PageIntent | null;
   /** The row an earlier attempt wrote for this date, to rewrite (#788). */
   draftId?: string;
   /** The writer's tier, where a caller has another ceiling than a customer's
@@ -225,6 +228,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     ...(pack.profile === null ? {} : { profileItems: profileItemsUsed(pack.profile) }),
     // What a new page adds (D12), counted over the pack before the write.
     adds: pack.adds,
+    // D60: the search the page should rank for and the prompt it should be
+    // cited for, as decided with its topic.
+    ...(a.intent === undefined || a.intent === null ? {} : { intent: a.intent }),
     ...(priorRepairs.length === 0 ? {} : { repairs: priorRepairs }),
   };
   /** The date's row, written or rewritten. `attribution` is the byline the

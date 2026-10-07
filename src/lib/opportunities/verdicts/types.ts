@@ -164,6 +164,18 @@ export type WeekStanding =
   /** c5, first half — the week was not measured at all. */
   | { readonly kind: "no_week" };
 
+/** Whether the week's answers to a page's tracked prompt cited the page
+ *  (SPEC §6, D60, issue 1288). */
+export interface AiCitation {
+  readonly promptId: string;
+  readonly cited: Measured<boolean>;
+}
+
+/** What `page_verdicts.measured` holds: the page's place for its search
+ *  and, where its intent names a tracked prompt, whether that prompt's
+ *  answers cited it. Rows written before D60 carry the place alone. */
+export type PageMeasured = Measured<number> & { readonly ai?: AiCitation };
+
 /**
  * What one week measured, in exactly the three readings the three
  * acceptance forms are decided from — REQ-047 c6's forms, no more and no
@@ -200,6 +212,11 @@ export interface WeekMeasurements {
    *  its pages is not a result of this page. `unmeasured` where the
    *  answer's addresses were not read. */
   readonly ownPagesCited: ReadonlyMap<string, Measured<readonly string[]>>;
+  /** The site's own pages the week's answers to each tracked prompt cited,
+   *  keyed by the prompt's id (SPEC §6, D60, issue 1288). `unmeasured` where
+   *  none of the week's asks of it answered; a key absent is a prompt this
+   *  week did not ask. */
+  readonly promptCitations: ReadonlyMap<string, Measured<readonly string[]>>;
   /** Whether each barrier is cleared, keyed by the `Barrier` a
    *  `gate_cleared` test records. A key absent is a gate this week did not
    *  look at — `not_measured`, and never one of the five causes: a barrier
