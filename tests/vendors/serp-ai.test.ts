@@ -95,6 +95,27 @@ describe('BUILD §6.2 — "the free AI matrix rides here at 0¢ extra": one call
     });
   });
 
+  it("reads the SERP's People also ask and related searches, and a call that asks for them is keyed apart (D61)", async () => {
+    stubVendorFetch(() =>
+      envelope({
+        items: [
+          organic(1, "rival-one.com"),
+          { type: "people_also_ask", items: [{ type: "people_also_ask_element", title: "What is a CRM used for?" }, { type: "people_also_ask_element" }] },
+          { type: "related_searches", items: ["crm for small business", "free crm"] },
+        ],
+      })
+    );
+    const { ctx, calls } = fakeCostContext();
+    const args = { query: "best crm", mode: "live", loadAsyncAiOverview: false, scope: SCOPE, freshnessDays: WINDOW() } as const;
+    const result = await serp.serpOrganic(ctx, { ...args, questions: true });
+    await serp.serpOrganic(ctx, args);
+
+    if (result.kind !== "measured") throw new Error("unreachable");
+    expect(result.value.peopleAlsoAsk).toEqual(["What is a CRM used for?"]);
+    expect(result.value.relatedSearches).toEqual(["crm for small business", "free crm"]);
+    expect(calls[0]!.cacheKey).toBe(`${calls[1]!.cacheKey}|paa`);
+  });
+
   it('a SERP Google served no AI answer on is `present: false` — a muted cell, never a miss', async () => {
     stubVendorFetch(() => envelope({ items: [organic(1, "rival-one.com")] }));
     const { ctx } = fakeCostContext();

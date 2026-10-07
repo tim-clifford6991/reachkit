@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { TRACKED_PROMPTS } from "../../../src/lib/config/constants.ts";
 import { readPromptAnswer } from "../../../src/lib/market/prompts/answer.ts";
-import { generatePrompts, type PromptMarket } from "../../../src/lib/market/prompts/generate.ts";
+import { generatePrompts, promptTemplateOf, type PromptMarket } from "../../../src/lib/market/prompts/generate.ts";
 import { measurePrompts, type PromptSample } from "../../../src/lib/market/prompts/rate.ts";
 import { EMPTY_PROMPT_SET, nextPromptSet, parsePromptSet, settlePrechecks } from "../../../src/lib/market/prompts/set.ts";
 
@@ -41,6 +41,17 @@ describe("the set a market yields", () => {
     const one = generatePrompts({ ...MARKET, rivals: MARKET.rivals.slice(0, 1) }, "Plausible");
     expect(one.filter((p) => p.kind === "comparison")).toHaveLength(1);
     expect(generatePrompts({ ...MARKET, category: " " }, "Plausible")).toEqual([]);
+  });
+});
+
+describe("a question's prompt template (D61, issue 1295)", () => {
+  it("every prompt of a set is from a template, the seven use cases from one, and a buyer's own question from none", () => {
+    for (const market of [MARKET, { ...MARKET, synonyms: [] }]) {
+      const prompts = generatePrompts(market, "Plausible");
+      expect(prompts.filter((p) => promptTemplateOf(p.text) === null)).toEqual([]);
+      expect(new Set(prompts.filter((p) => p.kind === "use-case").map((p) => promptTemplateOf(p.text))).size).toBe(1);
+    }
+    expect(promptTemplateOf("Is Google Analytics legal in the EU?")).toBeNull();
   });
 });
 

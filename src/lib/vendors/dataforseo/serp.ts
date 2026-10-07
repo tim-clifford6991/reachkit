@@ -95,6 +95,10 @@ export function parseSerp(result: unknown): SerpResult[] | undefined {
 
   const organic: SerpOrganicRow[] = [];
   let aiOverview: SerpAiOverview = NO_AI_OVERVIEW;
+  // SPEC §7 (owner, D61; issue 1295): the advanced SERP already carries
+  // Google's "People also ask" and its related searches at no extra charge.
+  const peopleAlsoAsk: string[] = [];
+  const relatedSearches: string[] = [];
   for (const item of result.items) {
     if (!isRecord(item)) continue;
     if (item.type === "organic") {
@@ -104,10 +108,27 @@ export function parseSerp(result: unknown): SerpResult[] | undefined {
       organic.push({ position, domain, url: asString(item.url) ?? "", title: asString(item.title) ?? "" });
     } else if (item.type === "ai_overview") {
       aiOverview = parseAiOverview(item);
+    } else if (item.type === "people_also_ask") {
+      for (const element of asArray(item.items)) {
+        const question = isRecord(element) ? asString(element.title)?.trim() : undefined;
+        if (question) peopleAlsoAsk.push(question);
+      }
+    } else if (item.type === "related_searches") {
+      for (const search of asArray(item.items)) {
+        const text = asString(search)?.trim();
+        if (text) relatedSearches.push(text);
+      }
     }
   }
   if (organic.length === 0 && !aiOverview.present) return [];
-  return [{ organic, aiOverview }];
+  return [
+    {
+      organic,
+      aiOverview,
+      ...(peopleAlsoAsk.length === 0 ? {} : { peopleAlsoAsk }),
+      ...(relatedSearches.length === 0 ? {} : { relatedSearches }),
+    },
+  ];
 }
 
 export async function serpOrganic(
@@ -140,6 +161,10 @@ export async function serpOrganic(
      *  and that wait is inside the call where a between-calls ceiling check
      *  cannot reach it. */
     untilMs?: number;
+    /** The caller reads this SERP's "People also ask" and related searches
+     *  (D61). It is then keyed apart, so it is never served a SERP stored
+     *  before they were read, whose silence about them means nothing. */
+    questions?: true;
   }
 ): Promise<Measured<SerpResult>> {
   const base = basePriceCents(a.mode);
@@ -149,7 +174,7 @@ export async function serpOrganic(
   let reusedFrom: Date | null = null;
   const rows = await ledgered<SerpResult>(c, {
     source: "serp/google/organic",
-    cacheKey: `${a.query}|${SERP_LOCATION.location}|${SERP_LOCATION.language}|aio:${flagged ? "async" : "cached"}|${scopeKey(a.scope)}`,
+    cacheKey: `${a.query}|${SERP_LOCATION.location}|${SERP_LOCATION.language}|aio:${flagged ? "async" : "cached"}|${scopeKey(a.scope)}${a.questions === true ? "|paa" : ""}`,
     freshnessDays: a.freshnessDays,
     costCents: flagged ? base * ASYNC_AIO_SURCHARGE_MULTIPLIER : base,
     ...(flagged ? { settleCents: (r: readonly SerpResult[] | null) => settledCents(base, r) } : {}),

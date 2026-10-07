@@ -296,6 +296,8 @@ function sentencesFor(
       return failure.detail !== undefined && "cell" in failure.detail ? [failure.detail.cell] : [];
     case "no_demo_text":
       return failure.detail !== undefined && "sentence" in failure.detail ? [failure.detail.sentence] : [];
+    case "distinct_headings":
+      return failure.detail !== undefined && "headings" in failure.detail ? failure.detail.headings : [];
     case "do_not_claim":
       return failure.detail !== undefined && "matchedEntry" in failure.detail ? [failure.detail.matchedEntry] : [];
     case "fit_claim":

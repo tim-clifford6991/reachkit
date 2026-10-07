@@ -57,6 +57,9 @@ export type HardRule =
   /** SPEC §7 (D41 stage 4, issue 1249): no sentence from the site's
    *  demo-phrase list or its menus (`./demo.ts`). */
   | "no_demo_text"
+  /** SPEC §7 (owner, D61; issue 1295): no two H2s of a Q&A share most of
+   *  their words or their opening (`./headings.ts`). */
+  | "distinct_headings"
   /** SPEC §7 (owner, D51; issue 1266): the `<title>` is the search form —
    *  its length, its search term, one specific, the year's place, no banned
    *  pattern, no other page's title (`./title.ts`). */
@@ -84,6 +87,7 @@ export const HARD_RULES: readonly HardRule[] = Object.freeze([
   "required_blocks",
   "no_placeholder_cell",
   "no_demo_text",
+  "distinct_headings",
   "title",
   "fit_claim",
   "do_not_claim",
@@ -134,6 +138,8 @@ export interface RuleFailure {
     | { rule: "no_placeholder_cell"; cell: string }
     /** The page's own sentence that is a demo or menu phrase. */
     | { rule: "no_demo_text"; sentence: string }
+    /** The two headings that are too alike, as the page has them. */
+    | { rule: "distinct_headings"; headings: [string, string] }
     /** What the title or its description fails — handles, never a sentence. */
     | { rule: "title"; faults: TitleFault[] };
 }

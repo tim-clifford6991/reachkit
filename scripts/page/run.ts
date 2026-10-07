@@ -282,6 +282,7 @@ export async function main(opts: Options): Promise<number> {
             report,
             rivals,
             today: new Date(),
+            questions: type === "qa" || type === "listicle",
             ...(type === "insights" ? { recent: { searches: [category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } } : {}),
           });
       cached = { research, researchCents: ledger.spentCents() };

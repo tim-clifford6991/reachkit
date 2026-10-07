@@ -358,7 +358,6 @@ export const CLEAN_ANSWER =
 const VERBS = "count read check weigh list match note watch ask map sort name mark trace track".split(" ");
 const NOUNS = "people plan seats limit cost needs work growth team budget terms renewal export support rollout".split(" ");
 const TAILS = ["first", "early", "together", "openly", "again"];
-const NTH = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh"];
 
 /**
  * `count` five-word sentences from `at`, every one opening with `topic` — so
@@ -380,7 +379,10 @@ export function prose(topic: string, at: number, count: number): string {
  */
 export function pageParts(first: string = CLEAN_MARKDOWN, over: Partial<PageParts> = {}, topic = "seats"): PageParts {
   const t = topic.charAt(0).toUpperCase() + topic.slice(1);
-  const heading = (index: number): string => `${t}: what is the ${NTH[index]} thing to settle?`;
+  // Five questions of their own: stage 4 stops a Q&A whose headings are one
+  // question asked again (D61).
+  const asks = ["who needs a login on day one?", "when does the monthly bill change?", "can outside guests join without paying?", "what happens after somebody leaves the company?", "do admins count toward the plan limit?"];
+  const heading = (index: number): string => `${t}: ${asks[index - 1]}`;
   return {
     // A title D51's check passes for `opportunity()`'s search and for the
     // pack's own, and a description inside its 120–155 characters.

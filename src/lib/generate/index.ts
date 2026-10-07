@@ -487,6 +487,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
           report,
           rivals: site.rivals,
           today: new Date(),
+          questions: type === "qa" || type === "listicle",
           ...(type === "insights"
             ? { recent: { searches: [category === "" ? (targetSearches(o)[0] ?? "") : category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } }
             : {}),
