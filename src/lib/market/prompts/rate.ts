@@ -35,6 +35,10 @@ export interface PromptWindow {
   weeks: readonly PromptWeek[];
   /** The set as the newest of those weeks asked it. */
   prompts: readonly { id: string; kind: PromptKind; text: string }[];
+  /** D64 (issue 1301): no pass in the window passed its own health checks,
+   *  so the one week here is the newest pass as it was measured, shown as a
+   *  first measurement rather than as nothing. */
+  firstMeasurement?: true;
 }
 
 export interface MentionRate {

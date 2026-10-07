@@ -573,6 +573,19 @@ function setUpTheDatabase(): void {
       domain: DOMAIN,
       category: null,
       competitors: null,
+      // SPEC §6 (owner D64, issue 1301): a top-ten domain is sized only
+      // where the site's market holds it as on-market. Setup's rival
+      // conclusion read this product's brand volume (D50) beside the rivals
+      // the founder then chose for themselves.
+      market: {
+        current: {
+          category: "SEO software",
+          rivals: [],
+          demand: { at: new Date(SUBMITTED_AT.getTime() - HOUR).toISOString(), own: 0, brands: { rohringresults: 320 } },
+        },
+        categoryOverridden: true,
+        rivalsOverridden: true,
+      },
       created_at: new Date(SUBMITTED_AT.getTime() - HOUR).toISOString(),
       setup_completed_at: null,
       setup_released_at: null,

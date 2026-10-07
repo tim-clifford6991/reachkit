@@ -793,6 +793,12 @@ export const OVERVIEW_COPY = Object.freeze({
     "AI answers that named you so far. A rate appears after {weeks} weeks of these prompts",
     { slots: { weeks: "text" }, fixedBy: "SPEC §6 2026-10-06 D58 (drafted)" },
   ],
+  // D64 (issue 1301, drafted): no pass has passed its own checks yet, so
+  // the newest pass's count is shown and said to be the first.
+  "overview.tile.mention-rate.first": [
+    "First measurement. A rate appears after {weeks} weeks of these prompts",
+    { slots: { weeks: "text" }, fixedBy: "SPEC §6 2026-10-07 D64 (drafted)" },
+  ],
   "overview.tile.mention-rate.share": [
     "{share}% share of voice against your rivals",
     { slots: { share: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },

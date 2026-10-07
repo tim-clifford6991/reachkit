@@ -22,7 +22,7 @@ import { TOPIC_FIT } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { ownSearched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
-import type { Measured } from "@/lib/measure/measured";
+import { measured, type Measured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import type { RankedCounts } from "../winnability/counts";
@@ -32,7 +32,7 @@ import type { Candidate } from "./candidate";
 import { earnCandidates } from "./earn";
 import { fixCandidates } from "./fix";
 import { improveCandidates } from "./improve";
-import { brandTokensOf, collapse, coveredTopics, topTensOf } from "../cluster";
+import { brandTokensOf, collapse, coveredTopics, queryKey, topTensOf } from "../cluster";
 import { rebandFor } from "../readiness";
 import { opportunityStore, readOpportunity } from "../store";
 import { persist } from "./persist";
@@ -41,7 +41,7 @@ import { refineType } from "./typing";
 import { applyKnownContent, type KnownContentGate } from "./known";
 import { writeCandidates } from "./write";
 import { judgeFit, type FitSearch } from "./fit";
-import { brandsOf, candidateFor, comparisonWithoutDemand, noLongerRelevant, proposedTopics, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
+import { brandsOf, candidateFor, comparisonWithoutDemand, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 
 export interface DeriveInput {
@@ -204,11 +204,18 @@ export async function deriveOpportunities(
     row.targetQuery !== null &&
     !isRetarget(row) &&
     noLongerRelevant(row.targetQuery, { market, own: named.own }) !== null;
+  // SPEC §6 (owner D64, issue 1301): a search that is only a rival's brand
+  // name is navigational and never a topic — not planned by this pass, and
+  // an open row for one that nothing was drafted from goes too.
+  const aRivalsBrand = (row: { targetQuery: string | null }): boolean =>
+    row.targetQuery !== null && rivalBrandOnly(row.targetQuery, { market, own: named.own, rivals: named.rivals });
   const gone = new Set<string>();
   for (const row of held) {
-    if (row.status === "open" && (aRivalsPrice(row) || unsearchedComparison(row) || irrelevant(row))) gone.add(row.id);
+    if (row.status !== "open") continue;
+    const neverDrafted = drafted !== null && !drafted.has(row.id) && !isRetarget(row);
+    if (aRivalsPrice(row) || unsearchedComparison(row) || irrelevant(row) || (neverDrafted && aRivalsBrand(row))) gone.add(row.id);
   }
-  const mine = planned.filter((candidate) => !aRivalsPrice(candidate));
+  const mine = planned.filter((candidate) => !aRivalsPrice(candidate) && !aRivalsBrand(candidate));
   const derived: Candidate[] = [
     ...(a.known === undefined ? mine : applyKnownContent(mine, a.known)),
     ...fix.candidates,
@@ -257,7 +264,24 @@ export async function deriveOpportunities(
     });
   }
   for (const id of gone) await store.markDismissed(id);
-  const existing = held.filter((row) => !gone.has(row.id));
+  // SPEC §6 (owner D64, issue 1301): an open comparison row an earlier pass
+  // wrote down unmeasured takes the volume this pass read for its search.
+  const readVolumes = market?.demand?.searches ?? {};
+  const readAt = new Date(market?.demand?.at ?? a.report.verdict.measuredAt);
+  const existing: typeof held = [];
+  for (const row of held) {
+    if (gone.has(row.id)) continue;
+    const read = row.targetQuery === null ? 0 : (readVolumes[queryKey(row.targetQuery)] ?? 0);
+    const unmeasured = row.status === "open" && row.evidence.family === "write" && row.volume !== null && row.volume.kind === "unmeasured";
+    if (!unmeasured || row.evidence.family !== "write" || read <= 0) {
+      existing.push(row);
+      continue;
+    }
+    const volume = measured(read, readAt);
+    const evidence = { ...row.evidence, volume };
+    await store.setVolume?.(row.id, read, evidence);
+    existing.push({ ...row, volume, evidence });
+  }
 
   const unjudged = existing
     .filter((row) => row.status === "open" && row.family !== "fix" && row.targetQuery !== null)
@@ -357,13 +381,17 @@ export async function deriveOpportunities(
   // #1181: the open rows already held are judged too, against each other
   // and against every topic with a page behind it, published ones included.
   const pages = (row: { family: Opportunity["family"] }) => row.family === "write" || row.family === "earn";
-  const sameQuestion = await judgeSameQuestion(c, {
+  const judgedSame = await judgeSameQuestion(c, {
     searches: [
       ...labelled.filter(pages).flatMap((candidate) => candidate.targetQuery ?? []),
       ...existing.filter((row) => row.status === "open" && pages(row)).flatMap((row) => row.targetQuery ?? []),
     ],
     topics: existing.flatMap((row) => row.targetQuery ?? []),
   });
+  // SPEC §6 (owner D64, issue 1301): two searches that name different
+  // products are never one question, whatever the judgement says.
+  const products = (query: string): string => productsNamed(query, { market, rivals: named.rivals });
+  const sameQuestion = new Map([...judgedSame].filter(([search, sameAs]) => products(search) === products(sameAs)));
 
   const plan = collapse({
     existing,

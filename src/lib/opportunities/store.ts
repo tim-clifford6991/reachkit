@@ -189,6 +189,10 @@ export interface OpportunityStore {
    *  and never from a new measurement — `rebandFor` is arithmetic over
    *  stored numbers. */
   setFitBand(opportunityId: string, band: Winnability): Promise<void>;
+  /** The volume a pass read for a row it already held unmeasured (SPEC §6,
+   *  D64, issue 1301): the column, and the same figure in its evidence.
+   *  Optional: a store that cannot write it leaves the row unmeasured. */
+  setVolume?(opportunityId: string, volume: number, evidence: Evidence): Promise<void>;
   /** Stores the pass's business-fit judgement on a row it already held
    *  (issue 1134): judged once, read by readiness and the ranking. */
   setBusinessFit(
@@ -672,6 +676,14 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .update({ fit_band: band })
         .eq("id", opportunityId);
       if (error) throw new Error(`opportunities.setFitBand: ${error.message}`);
+    },
+
+    async setVolume(opportunityId, volume, evidence) {
+      const { error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .update({ volume, evidence })
+        .eq("id", opportunityId);
+      if (error) throw new Error(`opportunities.setVolume: ${error.message}`);
     },
 
     async setBusinessFit(opportunityId, fit, source, pageType) {

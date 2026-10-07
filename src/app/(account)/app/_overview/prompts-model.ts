@@ -38,6 +38,8 @@ export type PromptsModel =
        *  until `MENTION_RATE_MIN_WEEKS` weeks of the current prompt set
        *  exist; the count and its sample are shown until then. */
       readonly rateShown: boolean;
+      /** D64: the newest pass, shown because no healthy pass exists yet. */
+      readonly firstMeasurement: boolean;
       readonly branded: MentionRate | null;
       readonly shareOfVoice: number | null;
       readonly rivals: PromptMeasure["rivals"];
@@ -89,6 +91,7 @@ export function assemblePrompts(window: PromptWindow): PromptsModel {
     kind: "measured",
     rate: measure.rate,
     rateShown: rateShown(window),
+    firstMeasurement: window.firstMeasurement === true,
     branded: measure.branded,
     shareOfVoice: measure.shareOfVoice,
     rivals: measure.rivals,

@@ -86,6 +86,17 @@ describe("the four checks, each passing and failing", () => {
     expect(failingChecks(health)[0]!.items.some((text) => text.includes("Pirsch"))).toBe(true);
   });
 
+  it("D64: prompt_rivals reads the rivals a prompt names, not their order", () => {
+    // The pass asked while Fathom led; its own conclusion then put Matomo
+    // first. Every name asked about is still a rival, so nothing is stale.
+    const reordered = { ...MARKET, rivals: [MARKET.rivals[1]!, MARKET.rivals[0]!, MARKET.rivals[2]!] };
+    expect(asked(reordered).map((prompt) => prompt.text)).not.toEqual(asked(MARKET).map((prompt) => prompt.text));
+    expect(failed({ asked: asked(reordered) })).toEqual([]);
+    // A name that was never a rival in the same place still fails.
+    const stranger = asked(MARKET).map((prompt) => ({ ...prompt, text: prompt.text.replace("Matomo", "Umami") }));
+    expect(failed({ asked: stranger.map((prompt) => ({ ...prompt, id: promptId(prompt.text) })) })).toEqual(["prompt_rivals"]);
+  });
+
   it("market_terms fails where no term is searched, or the only searched one means something else", () => {
     expect(failed({ market: { ...MARKET, terms: [{ term: "cookieless counting", volume: 0 }] } })).toEqual(["market_terms"]);
     expect(failed({ market: { ...MARKET, terms: [{ term: "analytics", volume: 90000, polluted: true }] } })).toEqual(["market_terms"]);

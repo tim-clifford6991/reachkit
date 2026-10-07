@@ -7,7 +7,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { serpRivalCandidates } from "../../../src/lib/market/rivals/candidates.ts";
+import { onMarketCandidates, serpRivalCandidates } from "../../../src/lib/market/rivals/candidates.ts";
 import { SERP_RIVAL_SIZING } from "../../../src/lib/config/constants.ts";
 import type { MarketSerp } from "../../../src/lib/market/views.ts";
 
@@ -121,5 +121,26 @@ describe("§6.6's zero extra cost — this module buys nothing", () => {
     for (const forbidden of ["@/lib/vendors", "@/lib/costs", "@/lib/llm"]) {
       expect(SOURCE).not.toContain(forbidden);
     }
+  });
+});
+
+describe("D64 (issue 1301): only an on-market candidate is sized", () => {
+  const market = {
+    rivals: [{ domain: "otterly.ai", name: "Otterly", basis: "ai_answer" as const, reason: "" }],
+    demand: { at: "2026-10-06T00:00:00.000Z", own: 0, brands: { "peec ai": 2400, "llm pulse": 0, temso: 30, "otterly ai": 720 } },
+  };
+  const candidates = ["hubspot.com", "builtin.com", "otterly.ai", "peec.ai", "llmpulse.ai", "temso.ai"];
+
+  it("keeps a rival in force and a product whose brand buyers search, and never a publisher", () => {
+    expect(onMarketCandidates({ candidates, market, answers: [] })).toEqual(["otterly.ai", "peec.ai"]);
+  });
+
+  it("keeps a product nobody searches yet where an AI answer of this pass cited or named it", () => {
+    const answers = [{ citedDomains: ["www.temso.ai", "hubspot.com"], excerpt: "Tools worth a look: LLM Pulse and HubSpot." }];
+    expect(onMarketCandidates({ candidates, market, answers })).toEqual(["otterly.ai", "peec.ai", "llmpulse.ai", "temso.ai"]);
+  });
+
+  it("a pass that holds no market sizes no top-ten domain", () => {
+    expect(onMarketCandidates({ candidates, market: null, answers: [] })).toEqual([]);
   });
 });

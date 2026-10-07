@@ -42,6 +42,11 @@ export interface BrandDemand {
   /** The business's own brand, searches a month. */
   own: number;
   brands: Readonly<Record<string, number>>;
+  /** The derived comparison searches ("profound alternatives", "profound
+   *  vs otterly") and their monthly volume, read in the same call as the
+   *  brands (SPEC §6, owner D64, issue 1301). Never a brand: nothing that
+   *  reads `brands` as the products of a market reads these. */
+  searches?: Readonly<Record<string, number>>;
 }
 
 /** One search term buyers type for the market, with how often it is
