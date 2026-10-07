@@ -426,6 +426,24 @@ Per-stage *timing* is `sites.setup_stage_times`, one instant per stage, written 
 A pass that derived nothing still releases the founder and is not an error: zero proposals is legal
 and never faked, and the calendar then states which kind of empty each date is.
 
+### A pass's health
+
+Every deep pass, weekly pass and re-measure ends by checking what it stored (SPEC §6, D58, #1287)
+and keeps the answers on its own row, `scans.health`: `brand_volume`, `prompt_rivals`,
+`market_terms` and `mention_rate`, each with `pass`, a one-line `detail` and the `items` that
+failed. The log line is `{"event":"pass_health"}` with the failing checks; `pass_health_failed`
+means the checks could not be recorded, and the row then holds null, which nothing reads as
+unhealthy. A pass with a failing check keeps its data and is left out of the rolling window the AI
+mention rate is read from; the Monday owner digest lists it.
+
+```sql
+-- the passes a check failed on, newest first
+select s.id, s.domain, s.tier, s.created_at, c->>'check' as failed, c->>'detail' as found
+from scans s, jsonb_array_elements(s.health->'checks') c
+where (c->>'pass')::boolean = false
+order by s.created_at desc limit 20;
+```
+
 ### An empty day, and which kind
 
 One account per date, first match over `EMPTY_PRECEDENCE`

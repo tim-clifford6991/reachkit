@@ -117,6 +117,10 @@ export interface WrittenFrom {
   readonly facts: readonly {
     readonly passage: string;
     readonly url: string | null;
+    /** Whole days since the passage was read (SPEC §7, D59, issue 1287),
+     *  as of this read of the draft. Absent where the page kept no date
+     *  for it: a draft written before the pack. */
+    readonly ageDays?: number;
   }[];
   /** The market facts the page was handed, each with the public page it
    *  was read from (issue 1135). Read by the editor's live rules, so a
@@ -152,6 +156,8 @@ export interface PackView {
     readonly url: string;
     readonly title: string;
     readonly readAt: string;
+    /** Whole days since it was read (D59); absent where `readAt` is no date. */
+    readonly ageDays?: number;
   }[];
   /** The site's own pages the writer knew about — the first
    *  `PACK_PAGES_SHOWN`, each by its title or its question. */

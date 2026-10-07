@@ -134,43 +134,50 @@ export async function runWeekly(a: {
         // week's own answers before anything is derived against them.
         const { recheckRivalsOf } = await import("../market-conclusion");
         rivalsChanged = await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
-        await deriveForPass(cost, {
-          tier: "weekly",
-          siteId: a.siteId,
-          report,
-          hasActiveAccess: true,
-        });
-        // SPEC §6 (2026-09-22, #1004) — this week's LLM Mentions, on the
-        // pass's own money and under the same `WEEKLY` cap. Last, and
-        // that ordering is the decision: a tight week loses the
-        // supplementary list before it loses the calendar, so the
-        // derivation above is asked first and this is what the 40c cap
-        // refuses when there is no room left. A refusal writes its own row
-        // and says so; it never stops the pass.
-        //
-        // Imported at the call, as `src/jobs/run.ts` does: this module is
-        // reached by the hourly tick, and a static edge into the vendor
-        // barrel would pull the DataForSEO transport — and the binding
-        // parse behind it — into every importer of the weekly seam.
         try {
-          const { readWeeklyMentions } = await import("@/lib/mentions");
-          await readWeeklyMentions(cost, {
+          await deriveForPass(cost, {
+            tier: "weekly",
             siteId: a.siteId,
-            domain: a.domain,
-            weekStart,
-            scanId: claim.scanId,
-            // D32 (#1162): bought only at a footprint of 30 or more.
-            ownRanked: report.ownRanked.kind === "unmeasured" ? null : report.ownRanked.value,
+            report,
+            hasActiveAccess: true,
           });
-        } catch (error) {
-          console.log(
-            JSON.stringify({
-              event: "llm_mentions_week_failed",
+          // SPEC §6 (2026-09-22, #1004) — this week's LLM Mentions, on the
+          // pass's own money and under the same `WEEKLY` cap. Last, and
+          // that ordering is the decision: a tight week loses the
+          // supplementary list before it loses the calendar, so the
+          // derivation above is asked first and this is what the 40c cap
+          // refuses when there is no room left. A refusal writes its own row
+          // and says so; it never stops the pass.
+          //
+          // Imported at the call, as `src/jobs/run.ts` does: this module is
+          // reached by the hourly tick, and a static edge into the vendor
+          // barrel would pull the DataForSEO transport — and the binding
+          // parse behind it — into every importer of the weekly seam.
+          try {
+            const { readWeeklyMentions } = await import("@/lib/mentions");
+            await readWeeklyMentions(cost, {
               siteId: a.siteId,
+              domain: a.domain,
               weekStart,
-              because: error instanceof Error ? error.message : String(error),
-            })
-          );
+              scanId: claim.scanId,
+              // D32 (#1162): bought only at a footprint of 30 or more.
+              ownRanked: report.ownRanked.kind === "unmeasured" ? null : report.ownRanked.value,
+            });
+          } catch (error) {
+            console.log(
+              JSON.stringify({
+                event: "llm_mentions_week_failed",
+                siteId: a.siteId,
+                weekStart,
+                because: error instanceof Error ? error.message : String(error),
+              })
+            );
+          }
+        } finally {
+          // SPEC §6 (owner D58, issue 1287): the pass checks its own health
+          // last, against the rivals it leaves in force. It never throws.
+          const { recordPassHealth } = await import("../health-record");
+          await recordPassHealth({ scanId: claim.scanId, siteId: a.siteId, domain: a.domain, report, asksPrompts: true });
         }
       },
     }));

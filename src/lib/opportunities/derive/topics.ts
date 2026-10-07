@@ -127,6 +127,45 @@ export function comparisonWithoutDemand(
   return !namesOwn && !rivals.some((rival) => searched(rival.volume)) && !others.some(([, volume]) => searched(volume));
 }
 
+const MARKET_SUFFIX = /\s+(?:tools?|software|platforms?|apps?|systems?)$/;
+
+/**
+ * SPEC §6 (owner D59 of 2026-10-06, issue 1287): why a topic is no longer
+ * relevant to the market in force, or `null` where it still is.
+ *
+ * `former_rival` — it names a product a pass read as a rival candidate and
+ * did not keep: it is known by the keyword its brand volume was read under
+ * (`market.demand.brands`), whatever that volume is. Judged only where the
+ * volumes were read and the market holds rivals: "never read" names nobody.
+ *
+ * `not_our_market` — it uses a term from `notOurMarket`: the phrase itself,
+ * or the phrase without its closing "software", "tools" or "systems" where
+ * two words or more are left. One word alone ("SEO") is never a match: it
+ * would take "geo vs seo" with it.
+ */
+export function noLongerRelevant(
+  query: string,
+  a: { market: MarketConclusion | null; own: readonly string[] }
+): "former_rival" | "not_our_market" | null {
+  if (a.market === null) return null;
+  const text = normalise(query);
+  for (const contrast of a.market.notOurMarket) {
+    const phrase = normalise(contrast);
+    const head = phrase.replace(MARKET_SUFFIX, "");
+    const terms = [phrase, ...(head.includes(" ") ? [head] : [])].filter((term) => term.length > 2);
+    if (names(text, terms)) return "not_our_market";
+  }
+  if (a.market.demand === undefined || a.market.rivals.length === 0) return null;
+  const held = new Set(
+    a.market.rivals.flatMap((rival) => [rival.name, brandOf(rival.domain), ...(rival.searchNames ?? [])].map(normalise))
+  );
+  const own = new Set(a.own.map(normalise));
+  const former = Object.keys(a.market.demand.brands)
+    .map(normalise)
+    .filter((brand) => !held.has(brand) && !own.has(brand));
+  return names(text, former) ? "former_rival" : null;
+}
+
 /** Each rival as a search may name it: its product name and its domain's
  *  label, with the domain a row points at. */
 export function rivalNamesOf(a: {

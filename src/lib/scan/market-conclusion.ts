@@ -20,6 +20,8 @@ import type { CostContext } from "@/lib/costs";
 import type { EvidencePage } from "@/lib/market/infer/evidence";
 import type { BrandDemand, MarketConclusion, RivalConclusion } from "@/lib/market/infer/types";
 import { RIVALS_MAX } from "@/lib/market/infer/types";
+import type { GeneratedPrompt } from "@/lib/market/prompts/generate";
+import type { PromptSet } from "@/lib/market/prompts/set";
 import { marketEvidence } from "./market-evidence";
 import type { StoredReport } from "./report";
 
@@ -309,6 +311,31 @@ async function weighByDemand(a: {
 }
 
 /**
+ * The market in force, the stored prompt set and what that market yields
+ * today, read once: what the set follows (issue 1285) and what a pass's
+ * health is checked against (D58, issue 1287). `null` where the site has no
+ * market.
+ */
+export async function promptsInForce(a: { siteId: string; domain: string }): Promise<{
+  market: MarketConclusion;
+  stored: PromptSet;
+  generated: GeneratedPrompt[];
+  siteName: string;
+} | null> {
+  const [{ readPromptSet }, { generatePrompts, promptSiteName }, { readSiteMarket }, { spokenMarket }] = await Promise.all([
+    import("@/lib/market/prompts/store"),
+    import("@/lib/market/prompts/generate"),
+    import("@/lib/market/infer/stored"),
+    import("@/lib/market/infer/terms"),
+  ]);
+  const market = (await readSiteMarket(a.siteId))?.stored.current ?? null;
+  if (market === null) return null;
+  const stored = await readPromptSet(a.siteId);
+  const siteName = promptSiteName((await siteText(a.domain)).siteName, a.domain);
+  return { market, stored, siteName, generated: generatePrompts(spokenMarket(market, await founderBuyer(a.siteId)), siteName) };
+}
+
+/**
  * SPEC §6 (D54, issue 1285) — the stored set's comparison and branded
  * prompts, brought to the rivals a pass has just concluded. The rivals are
  * concluded from the pass's own answers, so after the pass built and asked
@@ -318,20 +345,15 @@ async function weighByDemand(a: {
  */
 export async function trackedPromptsFollowRivals(a: { siteId: string; domain: string }): Promise<void> {
   try {
-    const [{ readPromptSet, writePromptSet }, { followRivals }, { generatePrompts, promptSiteName }, { readSiteMarket }, { spokenMarket }] =
-      await Promise.all([
-        import("@/lib/market/prompts/store"),
-        import("@/lib/market/prompts/set"),
-        import("@/lib/market/prompts/generate"),
-        import("@/lib/market/infer/stored"),
-        import("@/lib/market/infer/terms"),
-      ]);
-    const market = (await readSiteMarket(a.siteId))?.stored.current ?? null;
-    if (market === null) return;
-    const stored = await readPromptSet(a.siteId);
+    const [{ writePromptSet }, { followRivals }] = await Promise.all([
+      import("@/lib/market/prompts/store"),
+      import("@/lib/market/prompts/set"),
+    ]);
+    const inForce = await promptsInForce(a);
+    if (inForce === null) return;
+    const { stored, generated } = inForce;
     if (stored.prompts.length === 0) return;
-    const siteName = promptSiteName((await siteText(a.domain)).siteName, a.domain);
-    const set = followRivals(stored, generatePrompts(spokenMarket(market, await founderBuyer(a.siteId)), siteName), new Date());
+    const set = followRivals(stored, generated, new Date());
     if (set === stored) return;
     await writePromptSet(a.siteId, set);
     const held = new Set(stored.prompts.map((prompt) => prompt.id));

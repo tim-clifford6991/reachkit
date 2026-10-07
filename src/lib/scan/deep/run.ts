@@ -196,15 +196,23 @@ export async function runDeepPass(a: {
         // pass's own answers before anything is derived against them.
         const { recheckRivalsOf } = await import("../market-conclusion");
         rivalsChanged = await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
-        await deriveForPass(cost, {
-          tier: "deep",
-          siteId: a.siteId,
-          report,
-          // Onboarding's pass runs on a payment that has just cleared, so
-          // the gate is answered `true` here and never guessed at inside
-          // the engine (`topUp`'s own rule, which the deep arm does not read).
-          hasActiveAccess: true,
-        });
+        try {
+          await deriveForPass(cost, {
+            tier: "deep",
+            siteId: a.siteId,
+            report,
+            // Onboarding's pass runs on a payment that has just cleared, so
+            // the gate is answered `true` here and never guessed at inside
+            // the engine (`topUp`'s own rule, which the deep arm does not read).
+            hasActiveAccess: true,
+          });
+        } finally {
+          // SPEC §6 (owner D58, issue 1287): the pass checks its own health
+          // last, against the rivals it leaves in force. Only a re-measure
+          // asks the tracked prompts. It never throws.
+          const { recordPassHealth } = await import("../health-record");
+          await recordPassHealth({ scanId: result.scanId, siteId: a.siteId, domain: a.domain, report, asksPrompts: a.remeasure === true });
+        }
       });
     } catch (error) {
       console.log(

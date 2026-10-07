@@ -170,6 +170,14 @@ export const DRAFT_COPY = Object.freeze({
     "read {at}",
     { slots: { at: "text" }, fixedBy: "issue 1252 (drafted)" },
   ],
+  // SPEC §7 (owner D59, 2026-10-06; issue 1287, drafted): each fact's age,
+  // beside the fact — how long ago the page it stands on was read.
+  "draft.written-from.age.today": ["read today", { slots: {}, fixedBy: "issue 1287 (drafted)" }],
+  "draft.written-from.age.one": ["read 1 day ago", { slots: {}, fixedBy: "issue 1287 (drafted)" }],
+  "draft.written-from.age.days": [
+    "read {days} days ago",
+    { slots: { days: "text" }, fixedBy: "issue 1287 (drafted)" },
+  ],
   "draft.written-from.pack.pages": [
     "Your pages it knew about",
     { slots: {}, fixedBy: "issue 1252 (drafted)" },

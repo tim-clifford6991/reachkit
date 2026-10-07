@@ -196,31 +196,41 @@ export function WrittenFromCard(p: {
                 <span className="list-col-grow min-w-0 text-sm wrap-anywhere">
                   {fact.passage}
                 </span>
-                {fact.url === null ? (
-                  // A draft written before the source was recorded (#927's
-                  // first shape). The sentence is still what the page stands
-                  // on, so it is listed and said to be unsourced rather than
-                  // dropped — which is what this card is for.
-                  //
-                  // `/70`, not `/50`: the owner's ruling of 2026-09-22
-                  // (#946) took every thinned arm off the floor, and half an
-                  // ink is under 4.5:1 whatever the ink is. This is the same
-                  // quiet colour the two lines above it take.
-                  <span className="list-col-wrap min-w-0 text-xs text-base-content/70 wrap-anywhere">
-                    {copy("draft.written-from.source-unknown")}
-                  </span>
-                ) : (
-                  <span className={`list-col-wrap ${VALUE_BOX}`}>
-                    <a
-                      className="link link-hover num text-xs"
-                      href={fact.url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {readableAddress(fact.url)}
-                    </a>
-                  </span>
-                )}
+                {/* One second row: the source, then the fact's age (D59, issue
+                    1287). One `list-col-wrap`, so the grid keeps its one
+                    column. */}
+                <span className="list-col-wrap flex min-w-0 flex-col gap-1">
+                  {fact.url === null ? (
+                    // A draft written before the source was recorded (#927's
+                    // first shape). The sentence is still what the page stands
+                    // on, so it is listed and said to be unsourced rather than
+                    // dropped — which is what this card is for.
+                    //
+                    // `/70`, not `/50`: the owner's ruling of 2026-09-22
+                    // (#946) took every thinned arm off the floor, and half an
+                    // ink is under 4.5:1 whatever the ink is. This is the same
+                    // quiet colour the two lines above it take.
+                    <span className="min-w-0 text-xs text-base-content/70 wrap-anywhere">
+                      {copy("draft.written-from.source-unknown")}
+                    </span>
+                  ) : (
+                    <span className={VALUE_BOX}>
+                      <a
+                        className="link link-hover num text-xs"
+                        href={fact.url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {readableAddress(fact.url)}
+                      </a>
+                    </span>
+                  )}
+                  {fact.ageDays === undefined ? null : (
+                    <span className="min-w-0 text-xs text-base-content/70" data-testid="written-from-fact-age">
+                      {ageLine(fact.ageDays)}
+                    </span>
+                  )}
+                </span>
               </li>
             ))}
           </ul>
@@ -249,6 +259,13 @@ export function WrittenFromCard(p: {
       </div>
     </section>
   );
+}
+
+/** A fact's age as the card says it (SPEC §7, D59; issue 1287). */
+function ageLine(ageDays: number): string {
+  if (ageDays === 0) return copy("draft.written-from.age.today");
+  if (ageDays === 1) return copy("draft.written-from.age.one");
+  return copy("draft.written-from.age.days", { days: String(ageDays) });
 }
 
 /** A public page as a link names it: its title, or its host where the read
@@ -318,7 +335,12 @@ function PackFold(p: { pack: PackView; timeZone: string }): React.JSX.Element {
                       <a className="link link-hover" href={claim.url} target="_blank" rel="noreferrer">
                         {pageName(claim)}
                       </a>
-                      {day === null ? null : (
+                      {claim.ageDays !== undefined ? (
+                        <>
+                          {PACK_SEPARATOR}
+                          {ageLine(claim.ageDays)}
+                        </>
+                      ) : day === null ? null : (
                         <>
                           {PACK_SEPARATOR}
                           {copy("draft.written-from.pack.claims.read", { at: day })}

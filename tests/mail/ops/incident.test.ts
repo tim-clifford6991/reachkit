@@ -50,6 +50,35 @@ describe("the template — three occasions, closed names only", () => {
     });
   });
 
+  it("the Monday digest lists each pass a health check failed on, with what the check found (issue 1287, D58)", () => {
+    const mail = buildIncidentAlert({
+      occasion: "market-too-small-week",
+      weekStart: "2026-10-05",
+      scanIds: [],
+      unhealthy: [
+        {
+          scanId: "17f5bbff-81dc-4d83-9565-8163a92f356d",
+          domain: "reachkit.app",
+          failing: [
+            { check: "brand_volume", detail: "1 of 5 rivals polluted" },
+            { check: "prompt_rivals", detail: "5 of 25 prompts name a rival that is not current" },
+          ],
+        },
+      ],
+    });
+    // No thin market is claimed for a week that had none.
+    expect(mail.blocks.filter((b) => b.block === "paragraph")).toEqual([{ block: "paragraph", text: "mail.ops.incident.health-week" }]);
+    expect(mail.blocks.find((b) => b.block === "facts")).toEqual({
+      block: "facts",
+      items: [
+        { label: "mail.ops.incident.fact.site", value: "reachkit.app" },
+        { label: "mail.ops.incident.fact.scan", value: "17f5bbff-81dc-4d83-9565-8163a92f356d" },
+        { label: "mail.ops.incident.fact.health-check", value: "brand_volume: 1 of 5 rivals polluted" },
+        { label: "mail.ops.incident.fact.health-check", value: "prompt_rivals: 5 of 25 prompts name a rival that is not current" },
+      ],
+    });
+  });
+
   it("a draft stopped twice names the site, each rule, and the sentences that broke it (issue 1187)", () => {
     const mail = buildIncidentAlert({
       occasion: "draft-stopped-twice",

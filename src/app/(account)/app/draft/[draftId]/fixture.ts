@@ -86,11 +86,13 @@ export const FIXTURE_WRITTEN_FROM: WrittenFrom = Object.freeze({
     "Every migration leaves you a full export in an open format",
   ]),
   facts: Object.freeze([
-    { passage: GROUNDED_FACT, url: "https://www.hubspot.com/pricing/crm" },
+    // Ages (D59, issue 1287): read today, and nine days ago.
+    { passage: GROUNDED_FACT, url: "https://www.hubspot.com/pricing/crm", ageDays: 0 },
     {
       passage:
         "Per-seat pricing applies from the second paid seat, billed annually in advance.",
       url: "https://www.pipedrive.com/en/pricing",
+      ageDays: 9,
     },
     {
       passage: "Exports are available in CSV from the account settings at any time.",
@@ -109,6 +111,7 @@ export const FIXTURE_WRITTEN_FROM: WrittenFrom = Object.freeze({
         url: "https://www.hubspot.com/pricing/crm",
         title: "CRM pricing",
         readAt: "2026-09-14T06:00:00.000Z",
+        ageDays: 1,
       },
       {
         passage:

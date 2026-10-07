@@ -30,10 +30,16 @@
 // free scans and smoke tests apart, and the ledger's total. It is sent
 // whenever the week held a scan or a page, thin market or not, and a read
 // that fails leaves it out the same way.
+//
+// **Which passes failed a health check** (issue 1287, D58). The same mail
+// lists every pass — weekly, deep or re-measure — one of its own checks
+// failed on in the seven days up to the moment this digest fell due, with
+// the check and what it found. A read that fails leaves it out too.
 import { dbAdmin } from "@/lib/db";
 import { marketTooSmall, stoppedOnCeiling } from "../market-floor";
 import { readStoredReport } from "../report";
 import type { OpsIncident } from "@/lib/mail/templates/ops";
+import type { UnhealthyPass } from "../health-record";
 import type { CostWeek } from "./cost-week";
 
 // `scans.week_start`, `scans.market_digest_at` are on disk and not in the
@@ -119,6 +125,21 @@ async function costBefore(weekStart: string): Promise<CostWeek | null> {
   }
 }
 
+/** The passes a health check failed on (D58, issue 1287) since the digest
+ *  before this one fell due, or `null` where there is none or they could not
+ *  be read. */
+async function unhealthyBefore(weekStart: string): Promise<UnhealthyPass[] | null> {
+  try {
+    const due = Date.parse(`${weekStart}T00:00:00.000Z`) + MONDAY_ENDS_EVERYWHERE_MS;
+    const { unhealthyPassesBetween } = await import("../health-record");
+    const passes = await unhealthyPassesBetween({ from: new Date(due - 7 * DAY_MS).toISOString(), to: new Date(due).toISOString() });
+    return passes.length === 0 ? null : passes;
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "market_digest_health_unread", error: error instanceof Error ? error.name : "unknown" }));
+    return null;
+  }
+}
+
 /** Monday 00:00 → Tuesday 12:00 UTC: the moment Monday has ended in UTC−12. */
 const MONDAY_ENDS_EVERYWHERE_MS = 36 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -180,7 +201,8 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
 
   const stopped = await stoppedBefore(weekStart);
   const costs = await costBefore(weekStart);
-  if (tooSmall.length > 0 || stopped !== null || costs !== null) {
+  const unhealthy = await unhealthyBefore(weekStart);
+  if (tooSmall.length > 0 || stopped !== null || costs !== null || unhealthy !== null) {
     const { reportIncident } = await import("@/lib/mail/ops");
     const accepted = await reportIncident({
       occasion: "market-too-small-week",
@@ -188,6 +210,7 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
       scanIds: tooSmall,
       ...(stopped === null ? {} : { stopped }),
       ...(costs === null ? {} : { costs }),
+      ...(unhealthy === null ? {} : { unhealthy }),
     });
     if (!accepted) return false;
   }
@@ -199,6 +222,6 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
     .in("id", ids)
     .is("market_digest_at", null);
   if (stamped.error) throw new Error(`sendMarketDigest: could not stamp the week: ${stamped.error.message}`);
-  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, stoppedSites: stopped?.sites.length ?? 0, costs: costs !== null }));
+  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, stoppedSites: stopped?.sites.length ?? 0, costs: costs !== null, unhealthy: unhealthy?.length ?? 0 }));
   return true;
 }

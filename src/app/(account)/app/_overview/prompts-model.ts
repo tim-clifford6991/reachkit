@@ -9,6 +9,7 @@
 // `prompts-provider.ts`'s.
 import { measurePrompts, type MentionRate, type PromptMeasure, type PromptWindow } from "@/lib/market/prompts/rate";
 import type { PromptKind } from "@/lib/market/prompts/generate";
+import { MENTION_RATE_MIN_WEEKS } from "@/lib/config/constants";
 
 export interface PromptRow {
   id: string;
@@ -33,6 +34,10 @@ export type PromptsModel =
   | {
       readonly kind: "measured";
       readonly rate: MentionRate;
+      /** D58 (issue 1287): whether the rate may be shown as a rate. False
+       *  until `MENTION_RATE_MIN_WEEKS` weeks of the current prompt set
+       *  exist; the count and its sample are shown until then. */
+      readonly rateShown: boolean;
       readonly branded: MentionRate | null;
       readonly shareOfVoice: number | null;
       readonly rivals: PromptMeasure["rivals"];
@@ -58,6 +63,12 @@ function pathOf(url: string): string {
   }
 }
 
+/** D58: a rate is shown once the window holds enough weeks of the set the
+ *  newest pass asked. The window already holds that set's weeks alone. */
+export function rateShown(window: Pick<PromptWindow, "weeks">): boolean {
+  return window.weeks.length >= MENTION_RATE_MIN_WEEKS;
+}
+
 export function assemblePrompts(window: PromptWindow): PromptsModel {
   const samples = window.weeks.flatMap((week) => week.samples);
   const measure = measurePrompts(samples);
@@ -77,6 +88,7 @@ export function assemblePrompts(window: PromptWindow): PromptsModel {
   return {
     kind: "measured",
     rate: measure.rate,
+    rateShown: rateShown(window),
     branded: measure.branded,
     shareOfVoice: measure.shareOfVoice,
     rivals: measure.rivals,

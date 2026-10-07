@@ -73,6 +73,20 @@ describe("a pack is held against what its template must hold", () => {
     expect(buildPack(inputs({ research: { ...RESEARCHED, facts: [claimOf("rival.example")] } })).type).toBe("qa");
   });
 
+  it("D59: a rival's price read 31 days ago is dropped, and one read 30 days ago stands", () => {
+    const daysAgo = (days: number) => new Date(AT.getTime() - days * 86_400_000);
+    const old = { ...claimOf("other.example"), readAt: daysAgo(31) };
+    const features = { ...claimOf("other.example"), url: "https://other.example/features", kind: "rival_features" as const, readAt: daysAgo(31), passage: "Other has boards." };
+    const edge = { ...claimOf("rival.example"), readAt: daysAgo(30) };
+    const pack = buildPack(inputs({ research: { facts: [edge, old, features], products: [rival("rival.example"), { domain: "other.example", pages: [old.url, features.url] }] } }));
+    expect(pack.claims.map((claim) => [claim.product, claim.kind])).toEqual([
+      ["rival.example", "rival_pricing"],
+      ["other.example", "rival_features"],
+    ]);
+    // The page the old price stood on is no longer one the product is read from.
+    expect(pack.products).toEqual([rival("rival.example"), { domain: "other.example", pages: [features.url] }]);
+  });
+
   it("a business with no knowledge base is missing its point of difference too; its price is read off its own page", () => {
     const bare = buildPack(inputs({ profile: null }));
     // No price of its own is no row of its own, so no table either — and

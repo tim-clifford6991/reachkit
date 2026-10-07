@@ -294,5 +294,22 @@ describe("comparisons target names buyers search for (D50, issue 1271)", () => {
     await deriveOpportunities(ctx, { ...input(), market: unknownBrand });
     expect(state.rows.find((row) => row.target_query === `${OWN} vs maxonboard`)!.status).toBe("dismissed");
   });
+
+  it("D59: an open topic naming a searched product that is no longer a rival is dismissed; one a page was drafted from is not", async () => {
+    judgeWith(() => 3);
+    const { ctx } = fakeCost();
+    await deriveOpportunities(ctx, { ...input(), market: unknownBrand });
+    const topic = (query: string) => state.rows.find((row) => row.target_query === query)!;
+    expect([topic("appcues alternatives").status, topic("userpilot alternatives").status]).toEqual(["open", "open"]);
+
+    // Both are searched, so D50 keeps their topics; both have left the rivals.
+    const moved: MarketConclusion = { ...unknownBrand, rivals: rivals.filter((rival) => rival.name === "MaxOnboard") };
+    state.drafted = [{ date: "2026-10-05", state: "needs_attention", title: null, row: topic("appcues alternatives") }];
+    judgeWith(() => 3);
+    await deriveOpportunities(ctx, { ...input(), market: moved });
+    expect(topic("userpilot alternatives").status).toBe("dismissed");
+    expect(topic("appcues alternatives").status).toBe("open");
+    expect(topic("best user onboarding software").status).toBe("open");
+  });
 });
 
