@@ -22,6 +22,7 @@
     "db:types": "bash scripts/db-substrate/gen-types.sh > src/lib/db/types.generated.ts",
     "page": "node scripts/page.mjs",
     "pass": "node scripts/pass.mjs",
+    "panel": "node scripts/panel.mjs",
     "costs": "node scripts/costs.mjs",
     "retarget": "node scripts/retarget.mjs",
     "eval:content": "node scripts/eval-content.mjs"

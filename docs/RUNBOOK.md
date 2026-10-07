@@ -529,6 +529,39 @@ the failure can be read.
 
 ---
 
+### The customer panel
+
+`npm run panel -- --env-file ../../reachkitv3/.env.local` runs every site of
+`docs/walk/panel/sites.json` through a paying site's first pass (SPEC §0, owner 2026-10-07, #1304):
+the site read, the market concluded with its terms, the searches seeded and asked, the knowledge
+base, the rivals with their demand, and the topics. The first page is not written, no second pass
+is started, and a first pass asks no tracked prompts. It runs on the box's local database and takes
+only the two vendors' keys from the env file, so it writes nothing to production; a request to any
+other host is refused.
+
+It prints each site's checks as `pass`, `FAIL` or `review`, with the site's cost, and writes
+`docs/walk/panel/<date>.json` and `<date>.md` after every site. `review` is a result the code
+cannot judge, listed for a person to read. It exits 0 only when every site ran and no check failed.
+
+| Flag | Does |
+|---|---|
+| `--cap-cents <n>` | The whole run's ceiling. Default 100. A site is started only while the cap holds what a site has cost so far (30¢ before one has run); the rest are listed as not run. Past the cap every paid request is refused. |
+| `--sites a.com,b.de` | Runs only these sites of the panel. |
+| `--continue` | Keeps the sites that date's run already holds, counts their spend against the cap, and runs the rest. |
+| `--recheck` | Buys nothing and starts no database: judges that date's stored results again with the checks as they are now. |
+| `--date YYYY-MM-DD` | The run's two result files. Default today. |
+| `--keep` | Leaves the local database up. |
+
+A first pass costs about 30¢ a site, about 20¢ of it the search vendor's reads. Those reads are
+kept in `scripts/panel/evidence/<domain>.json` and loaded by the next run, which buys only what the
+changed code asks differently and the model's own calls, inside the vendor's 30-day windows. Commit
+the evidence with the run. One database per worktree: do not run it beside `vitest --project db`,
+the layout sweep or `npm run pass`.
+
+To change the panel, edit `sites.json`: `country`, `language`, `market` (word roots of what the
+business is) and `place` are what the checks hold a pass to, so they are facts about the business,
+never a pass's own output.
+
 ## 5. The kill switch
 
 `KILL_SWITCH=true` stops the paid work. The scope is closed and named:
@@ -782,7 +815,7 @@ appends a line to **`/root/ops/reachkit/spend.jsonl`** instead (SPEC §6, D57, #
 ```
 
 `issue` is the number of an `issue-<N>` branch, else the branch's name. A call that settled at
-nothing writes no line. The scripts that write it are `npm run page`, `npm run pass -- --live`, `scripts/market-inference.mjs`,
+nothing writes no line. The scripts that write it are `npm run page`, `npm run pass -- --live`, `npm run panel`, `scripts/market-inference.mjs`,
 `npm run eval:content`, `scripts/d19-cost.mjs` and `scripts/llm-mentions-pilot.mjs`; they all go
 through `appendSpend()` in `scripts/spend-log.mjs`, and **a new script that calls a vendor or a
 model calls it too**. `RK_SPEND_LOG=<file>` writes to another file.

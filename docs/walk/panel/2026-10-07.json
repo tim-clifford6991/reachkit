@@ -1,0 +1,1784 @@
+{
+ "date": "2026-10-07",
+ "commit": "75826daf",
+ "capCents": 100,
+ "spentCents": 91.4189,
+ "refusedAtCap": 0,
+ "notRun": [
+  "alexander.co.uk",
+  "tattly.com",
+  "savvycal.com",
+  "clearleft.com",
+  "wesbos.com",
+  "pdxsmiledesign.com",
+  "fletcherelectric.co.uk",
+  "streaksapp.com"
+ ],
+ "defects": [
+  {
+   "check": "knowledge-base buyer questions are real questions, not headings",
+   "sites": [
+    {
+     "domain": "austinplumbery.com",
+     "detail": "the knowledge base was not built: no page of the site was read into it",
+     "items": []
+    },
+    {
+     "domain": "baeckerei-hinkel.de",
+     "detail": "the knowledge base was not built: no page of the site was read into it",
+     "items": []
+    }
+   ]
+  },
+  {
+   "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+   "sites": [
+    {
+     "domain": "zunicafe.com",
+     "detail": "Camino — camino.com, 27100/mo, same_job; 3Chi — 3chi.com, 18100/mo, ranks; Kiva Confections — kivalconfections.com, 2900/mo, same_job; Cornbread Hemp — cornbreadhemp.com, 1300/mo, ai_answer; Rose Los Angeles Delights — roselosangeles.com, 10/mo, same_job",
+     "items": [
+      "kivalconfections.com does not resolve: no such site"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "the category is specific, and is the business's own",
+   "sites": [
+    {
+     "domain": "zunicafe.com",
+     "detail": "\"Cannabis edibles\" is not this business's market (restaurant, single location: restaurant, dining, café, cafe)",
+     "items": [
+      "Cannabis edibles",
+      "cannabis-infused edibles",
+      "THC edibles",
+      "cannabis products"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "the terms are in the site's own language and country",
+   "sites": [
+    {
+     "domain": "baeckerei-hinkel.de",
+     "detail": "a de site in Germany was read in United States / en",
+     "items": [
+      "bakery near me",
+      "artisan bread",
+      "best bakery near me",
+      "sourdough bread near me",
+      "local bakery near me",
+      "artisan bakery",
+      "fresh bread near me",
+      "craft bakery",
+      "fresh baked goods",
+      "specialty bakery"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "topics are all on-market",
+   "sites": [
+    {
+     "domain": "baeckerei-hinkel.de",
+     "detail": "2 of 6 open at fit 0 or 1",
+     "items": [
+      "local gluten free bakery — open at business fit 1",
+      "what is artisan bakery — open at business fit 1"
+     ]
+    }
+   ]
+  }
+ ],
+ "sites": [
+  {
+   "site": {
+    "domain": "zunicafe.com",
+    "kind": "restaurant, single location",
+    "country": "US",
+    "language": "en",
+    "market": [
+     "restaurant",
+     "dining",
+     "café",
+     "cafe"
+    ],
+    "place": [
+     "san francisco",
+     "sf"
+    ],
+    "why": "One restaurant in San Francisco with a short site: a menu, hours and a story. Little text to read, buyers who search a cuisine and a neighbourhood, and review and booking sites all over its top tens."
+   },
+   "siteName": "Zuni Café",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "San Francisco diners and cannabis consumers seeking premium edibles",
+    "job": "Experience chef-crafted cannabis edibles with restaurant-quality ingredients",
+    "category": "Cannabis edibles",
+    "synonyms": [
+     "cannabis-infused edibles",
+     "THC edibles",
+     "cannabis products"
+    ],
+    "differentiators": [
+     "Chef-developed recipes from Zuni Café's culinary expertise",
+     "Sun-grown flower rosin sourced from California",
+     "Seasonal fruit from California family farms",
+     "Collaboration between established restaurant and cannabis producer",
+     "Signature margarita flavor based on restaurant's known drink"
+    ],
+    "notOurMarket": [
+     "Fine dining restaurants",
+     "Cannabis dispensaries",
+     "Cookbooks and culinary education",
+     "Gift certificate services",
+     "Cannabis cultivation"
+    ],
+    "categoryReason": "The site's headline and primary content feature the ZUNI Margarita Delight cannabis edibles as the main product, with detailed description of Rose Los Angeles Delights as cannabis edibles crafted with chef recipes and premium ingredients.",
+    "rivals": [
+     {
+      "domain": "camino.com",
+      "name": "Camino",
+      "basis": "same_job",
+      "reason": "Camino by Kiva makes premium cannabis gummies with California-inspired flavors and mood-based positioning, sold widely in CA dispensaries to the same premium buyer.",
+      "searchNames": [
+       "camino gummies"
+      ],
+      "volume": 27100
+     },
+     {
+      "domain": "3chi.com",
+      "name": "3Chi",
+      "basis": "ranks",
+      "reason": "3Chi sells widely distributed THC edibles online including gummies, competing for the same cannabis edibles buyer seeking convenient premium options.",
+      "searchNames": [
+       "3chi",
+       "3chi edibles"
+      ],
+      "volume": 18100
+     },
+     {
+      "domain": "kivalconfections.com",
+      "name": "Kiva Confections",
+      "basis": "same_job",
+      "reason": "Kiva makes premium, culinary-quality cannabis chocolates and gummies sold in California dispensaries, targeting the same quality-conscious cannabis consumer.",
+      "searchNames": [
+       "kiva confections"
+      ],
+      "volume": 2900
+     },
+     {
+      "domain": "cornbreadhemp.com",
+      "name": "Cornbread Hemp",
+      "basis": "ai_answer",
+      "reason": "Cornbread Hemp sells USDA-organic THC gummies emphasizing premium, clean ingredients, competing on quality positioning with chef-crafted edibles.",
+      "searchNames": [
+       "cornbread hemp",
+       "cornbread hemp thc gummies",
+       "cornbread hemp thc"
+      ],
+      "volume": 1300
+     },
+     {
+      "domain": "roselosangeles.com",
+      "name": "Rose Los Angeles Delights",
+      "basis": "same_job",
+      "reason": "Rose LA produces chef-crafted cannabis edibles using premium California ingredients, directly co-producing the Zuni Café line and selling their own Delights range to the same premium edibles buyer.",
+      "searchNames": [
+       "rose los angeles delights"
+      ],
+      "volume": 10
+     }
+    ],
+    "terms": [
+     {
+      "term": "THC edibles",
+      "volume": 12100
+     },
+     {
+      "term": "cannabis gummies",
+      "volume": 9900
+     },
+     {
+      "term": "infused edibles",
+      "volume": 260
+     },
+     {
+      "term": "cannabis edibles",
+      "volume": 0
+     },
+     {
+      "term": "weed edibles",
+      "volume": 0
+     },
+     {
+      "term": "marijuana edibles",
+      "volume": 0
+     },
+     {
+      "term": "cannabis-infused edibles",
+      "volume": 0
+     },
+     {
+      "term": "buy edibles online",
+      "volume": 0
+     },
+     {
+      "term": "premium cannabis edibles",
+      "volume": 0
+     },
+     {
+      "term": "gourmet cannabis edibles",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "THC edibles",
+    "termsAt": "2026-10-07T16:36:14.786Z",
+    "demand": {
+     "at": "2026-10-07T16:37:55.543Z",
+     "own": 49500,
+     "brands": {
+      "3chi": 18100,
+      "zunicafe": 0,
+      "zuni café": 49500,
+      "3chi edibles": 0,
+      "camino gummies": 27100,
+      "cornbread hemp": 0,
+      "sense cannabis": 0,
+      "kiva confections": 2900,
+      "cornbread hemp thc": 20,
+      "défoncé chocolatier": 30,
+      "sense cannabis edibles": 0,
+      "rose los angeles delights": 10,
+      "cornbread hemp thc gummies": 1300
+     },
+     "searches": {
+      "3chi alternatives": 0,
+      "sense alternatives": 0,
+      "camino alternatives": 10,
+      "défoncé alternatives": 0,
+      "cornbread hemp alternatives": 0,
+      "kiva confections alternatives": 0,
+      "rose los angeles delights alternatives": 0
+     }
+    }
+   },
+   "deadRivals": [
+    "kivalconfections.com"
+   ],
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "searches": [
+    "best thc edibles",
+    "thc edibles near me",
+    "edibles online thc"
+   ],
+   "knowledgePages": null,
+   "questions": [],
+   "audience": [
+    "diners",
+    "restaurant guests"
+   ],
+   "topics": [
+    {
+     "query": "best thc edibles",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 590
+    },
+    {
+     "query": "camino alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 10
+    },
+    {
+     "query": "3chi alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "kiva confections alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "cornbread hemp alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "zuni caf vs camino",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "zuni caf vs 3chi",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "zuni caf vs kiva confections",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "zuni caf vs cornbread hemp",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "zuni caf vs rose los angeles delights",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "chef made cannabis gummies san francisco",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "high end cannabis gummies bay area",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "how to experience chef-crafted cannabis edibles with restaurant-quality ingredients",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null
+    }
+   ],
+   "cents": 27.246900000000004,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 4.8,
+    "site-profile": 0.4566,
+    "profile": 0.3209,
+    "market-inference": 0.3808,
+    "market-terms": 0.6612,
+    "dataforseo_labs/google/keyword_overview": 2.3,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "question-phrasing": 0.1363,
+    "serp/google/ai_mode": 1.5999999999999999,
+    "serp/google/organic": 0.8,
+    "ai_optimization/chat_gpt/llm_scraper": 0.36,
+    "site-knowledge": 2.2032,
+    "rival-inference": 2.5467,
+    "topic-buyer-searches": 0.192,
+    "topic-typed": 0.1792,
+    "topic-fit": 2.7921,
+    "opportunity-typing": 0.1235,
+    "topic-same-question": 0.1944
+   },
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "fail",
+     "detail": "\"Cannabis edibles\" is not this business's market (restaurant, single location: restaurant, dining, café, cafe)",
+     "items": [
+      "Cannabis edibles",
+      "cannabis-infused edibles",
+      "THC edibles",
+      "cannabis products"
+     ]
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"THC edibles\" 12100/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+     "verdict": "fail",
+     "detail": "Camino — camino.com, 27100/mo, same_job; 3Chi — 3chi.com, 18100/mo, ranks; Kiva Confections — kivalconfections.com, 2900/mo, same_job; Cornbread Hemp — cornbreadhemp.com, 1300/mo, ai_answer; Rose Los Angeles Delights — roselosangeles.com, 10/mo, same_job",
+     "items": [
+      "kivalconfections.com does not resolve: no such site"
+     ]
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "3 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "review",
+     "detail": "the knowledge base holds no buyer question",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"San Francisco diners and cannabis consumers seeking premium edibles\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "13 read",
+     "items": []
+    },
+    {
+     "check": "a local business is measured in its own place",
+     "verdict": "review",
+     "detail": "1 of 6 terms and searches name san francisco or sf or \"near me\"; are the rest, and the rivals, this place's?",
+     "items": [
+      "THC edibles 12100/mo",
+      "cannabis gummies 9900/mo",
+      "infused edibles 260/mo",
+      "best thc edibles",
+      "edibles online thc",
+      "rival: Camino (camino.com)",
+      "rival: 3Chi (3chi.com)",
+      "rival: Kiva Confections (kivalconfections.com)",
+      "rival: Cornbread Hemp (cornbreadhemp.com)",
+      "rival: Rose Los Angeles Delights (roselosangeles.com)"
+     ]
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "3 searched terms; \"THC edibles\" has 12100"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": false,
+     "detail": "1 of 4 SERP reads timed out"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "zunicafe.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10143,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10316,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10401,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10610,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10686,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10816,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10895,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 30532,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    }
+   ],
+   "seconds": 147,
+   "evidenceLoaded": 0
+  },
+  {
+   "site": {
+    "domain": "austinplumbery.com",
+    "kind": "local service, single location (plumber)",
+    "country": "US",
+    "language": "en",
+    "market": [
+     "plumb"
+    ],
+    "place": [
+     "austin"
+    ],
+    "why": "A family plumbing firm in one city (Austin, Texas). Its buyers search a trade and a place, its rivals are other local plumbers, and the listings that fill its top tens (Yelp, Angi) are not rivals."
+   },
+   "siteName": "Austin Plumbery",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "homeowners and business owners in Austin needing plumbing work",
+    "job": "fix plumbing problems and maintain plumbing systems",
+    "category": "plumbing repair and maintenance",
+    "synonyms": [
+     "plumbing services",
+     "plumber near me",
+     "emergency plumbing"
+    ],
+    "differentiators": [
+     "local Austin service",
+     "comprehensive inspections to prevent problems",
+     "serves both residential and commercial",
+     "educational blog content on plumbing issues"
+    ],
+    "notOurMarket": [
+     "plumbing supplies",
+     "plumbing education courses",
+     "DIY plumbing tools",
+     "water treatment systems"
+    ],
+    "categoryReason": "The headline and products show Austin Plumbery is a local service provider offering repair, maintenance, remodeling and construction for both residential and commercial plumbing needs.",
+    "rivals": [
+     {
+      "domain": "rotorooter.com",
+      "name": "Roto-Rooter",
+      "basis": "ai_answer",
+      "reason": "National plumbing repair and drain cleaning franchise with a strong Austin presence serving both residential and commercial customers 24/7.",
+      "searchNames": [
+       "roto-rooter"
+      ],
+      "volume": 135000
+     },
+     {
+      "domain": "benjaminfranklinplumbing.com",
+      "name": "Benjamin Franklin Plumbing",
+      "basis": "ai_answer",
+      "reason": "Franchise plumbing service brand offering residential repair, maintenance, and emergency plumbing with Austin-area locations.",
+      "searchNames": [
+       "benjamin franklin plumbing"
+      ],
+      "volume": 27100
+     },
+     {
+      "domain": "mrrooter.com",
+      "name": "Mr. Rooter Plumbing",
+      "basis": "ranks",
+      "reason": "National plumbing franchise offering 24-hour emergency repair and maintenance for homes and businesses, competing directly in the Austin market.",
+      "searchNames": [
+       "mr. rooter plumbing",
+       "mr rooter plumbing"
+      ],
+      "volume": 8100
+     },
+     {
+      "domain": "plumblineservices.com",
+      "name": "Plumbline Services",
+      "basis": "ranks",
+      "reason": "Full-service plumbing company offering emergency repair, drain cleaning, and maintenance for residential and commercial clients.",
+      "searchNames": [
+       "plumbline services"
+      ],
+      "volume": 2900
+     },
+     {
+      "domain": "midwayplumbing.com",
+      "name": "Midway Plumbing",
+      "basis": "ranks",
+      "reason": "Local plumbing company offering repair and maintenance services to homeowners and businesses in Texas.",
+      "searchNames": [
+       "midway plumbing"
+      ],
+      "volume": 590
+     }
+    ],
+    "terms": [
+     {
+      "term": "plumber near me",
+      "volume": 823000
+     },
+     {
+      "term": "emergency plumber",
+      "volume": 74000
+     },
+     {
+      "term": "water heater repair",
+      "volume": 74000
+     },
+     {
+      "term": "plumbing services",
+      "volume": 49500
+     },
+     {
+      "term": "local plumber",
+      "volume": 22200
+     },
+     {
+      "term": "plumbing repair",
+      "volume": 18100
+     },
+     {
+      "term": "drain cleaning service",
+      "volume": 12100
+     },
+     {
+      "term": "24 hour plumber",
+      "volume": 8100
+     },
+     {
+      "term": "plumbing maintenance",
+      "volume": 1300
+     },
+     {
+      "term": "fix leaking pipe",
+      "volume": 140
+     }
+    ],
+    "searchTerm": "plumber near me",
+    "termsAt": "2026-10-07T16:42:30.714Z",
+    "demand": {
+     "at": "2026-10-07T16:45:49.430Z",
+     "own": 6600,
+     "brands": {
+      "roto-rooter": 135000,
+      "austinplumbery": 0,
+      "austin plumbery": 6600,
+      "midway plumbing": 590,
+      "mr rooter plumbing": 8100,
+      "plumbline services": 2900,
+      "mr. rooter plumbing": 0,
+      "monkey wrench plumbers": 0,
+      "benjamin franklin plumbing": 27100
+     },
+     "searches": {
+      "roto-rooter alternatives": 0,
+      "midway plumbing alternatives": 0,
+      "plumbline services alternatives": 0,
+      "mr. rooter plumbing alternatives": 0,
+      "monkey wrench plumbers alternatives": 0,
+      "benjamin franklin plumbing alternatives": 0
+     }
+    }
+   },
+   "deadRivals": [],
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "searches": [
+    "emergency plumbing fix",
+    "plumbing repair services",
+    "residential plumber near me",
+    "emergency plumbing repair",
+    "home services plumbing",
+    "commercial plumbing services",
+    "plumber repair service near me",
+    "plumbing repair services near me",
+    "residential plumbing services",
+    "services plumbing",
+    "austin emergency plumbing",
+    "plumbing repair and maintenance"
+   ],
+   "knowledgePages": 0,
+   "questions": [],
+   "audience": [],
+   "topics": [
+    {
+     "query": "services plumbing",
+     "status": "open",
+     "type": "expand_page",
+     "fit": 2,
+     "volume": 1000
+    },
+    {
+     "query": "emergency plumbing fix",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 1900
+    },
+    {
+     "query": "plumbing repair services",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 2900
+    },
+    {
+     "query": "residential plumber near me",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 2900
+    },
+    {
+     "query": "home services plumbing",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 1900
+    },
+    {
+     "query": "commercial plumbing services",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 2,
+     "volume": 1600
+    },
+    {
+     "query": "austin emergency plumbing",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 3,
+     "volume": 880
+    },
+    {
+     "query": "austin plumbery vs roto-rooter",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "austin plumbery vs benjamin franklin plumbing",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "austin plumbery vs mr. rooter plumbing",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "austin plumbery vs plumbline services",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    },
+    {
+     "query": "austin plumbery vs midway plumbing",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null
+    }
+   ],
+   "cents": 32.5329,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 4.8,
+    "site-profile": 0.5722,
+    "profile": 0.2428,
+    "market-inference": 0.3649,
+    "market-terms": 0.6573,
+    "dataforseo_labs/google/keyword_overview": 2.25,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "question-phrasing": 0.2686,
+    "serp/google/organic": 2.4,
+    "serp/google/ai_mode": 4.000000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 1.4400000000000004,
+    "rival-inference": 2.5377,
+    "topic-buyer-searches": 0.1989,
+    "topic-typed": 0.2196,
+    "topic-fit": 3.549,
+    "opportunity-typing": 1.3771999999999998,
+    "topic-same-question": 0.4547
+   },
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"plumbing repair and maintenance\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"plumber near me\" 823000/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+     "verdict": "pass",
+     "detail": "Roto-Rooter — rotorooter.com, 135000/mo, ai_answer; Benjamin Franklin Plumbing — benjaminfranklinplumbing.com, 27100/mo, ai_answer; Mr. Rooter Plumbing — mrrooter.com, 8100/mo, ranks; Plumbline Services — plumblineservices.com, 2900/mo, ranks; Midway Plumbing — midwayplumbing.com, 590/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "fail",
+     "detail": "the knowledge base was not built: no page of the site was read into it",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"homeowners and business owners in Austin needing plumbing work\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "a local business is measured in its own place",
+     "verdict": "review",
+     "detail": "5 of 22 terms and searches name austin or \"near me\"; are the rest, and the rivals, this place's?",
+     "items": [
+      "emergency plumber 74000/mo",
+      "water heater repair 74000/mo",
+      "plumbing services 49500/mo",
+      "local plumber 22200/mo",
+      "plumbing repair 18100/mo",
+      "drain cleaning service 12100/mo",
+      "24 hour plumber 8100/mo",
+      "plumbing maintenance 1300/mo",
+      "fix leaking pipe 140/mo",
+      "emergency plumbing fix",
+      "plumbing repair services",
+      "emergency plumbing repair",
+      "home services plumbing",
+      "commercial plumbing services",
+      "residential plumbing services",
+      "services plumbing",
+      "plumbing repair and maintenance",
+      "rival: Roto-Rooter (rotorooter.com)",
+      "rival: Benjamin Franklin Plumbing (benjaminfranklinplumbing.com)",
+      "rival: Mr. Rooter Plumbing (mrrooter.com)",
+      "rival: Plumbline Services (plumblineservices.com)",
+      "rival: Midway Plumbing (midwayplumbing.com)"
+     ]
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "10 searched terms; \"plumber near me\" has 823000"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 12 SERP reads timed out"
+    }
+   ],
+   "events": [],
+   "seconds": 262,
+   "evidenceLoaded": 0
+  },
+  {
+   "site": {
+    "domain": "baeckerei-hinkel.de",
+    "kind": "German small business, German-language site (bakery)",
+    "country": "DE",
+    "language": "de",
+    "market": [
+     "bäcker",
+     "backwaren",
+     "brot",
+     "bakery"
+    ],
+    "place": [
+     "düsseldorf",
+     "duesseldorf",
+     "dusseldorf"
+    ],
+    "why": "A Düsseldorf bakery whose site is in German only. Its market, terms, searches, questions and topics have to be German and measured in Germany."
+   },
+   "siteName": "Bäckerei HINKEL",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "Consumers seeking fresh baked goods",
+    "job": "Buy fresh bread and baked products",
+    "category": "Artisan bakery",
+    "synonyms": [
+     "craft bakery",
+     "local bakery",
+     "fresh bread shop"
+    ],
+    "differentiators": [
+     "Bake-stage pass for customers to observe baking process",
+     "Focus on bread for bread enthusiasts",
+     "Multi-generational family bakery with documented history"
+    ],
+    "notOurMarket": [
+     "Industrial bread manufacturing",
+     "Grocery store bakery section",
+     "Online baking courses",
+     "Baking supplies retail"
+    ],
+    "categoryReason": "The headline identifies itself as \"Die Bäckerei der Brotfreunde\" (the bakery for bread friends), positioning as a specialty bakery selling fresh baked goods directly to consumers.",
+    "rivals": [
+     {
+      "domain": "scratchbakingct.com",
+      "name": "Scratch Baking",
+      "basis": "ai_answer",
+      "reason": "Artisan bakery specializing in fresh scratch-made breads and baked goods for local consumers.",
+      "searchNames": [
+       "scratch baking"
+      ],
+      "volume": 22200
+     },
+     {
+      "domain": "bigskybreadokc.com",
+      "name": "Big Sky Bread",
+      "basis": "ai_answer",
+      "reason": "Local artisan bakery focused on fresh bread and baked goods sold directly to consumers.",
+      "searchNames": [
+       "big sky bread"
+      ],
+      "volume": 1900
+     },
+     {
+      "domain": "stevedorebakery.com",
+      "name": "Stevedore Bakery",
+      "basis": "ranks",
+      "reason": "Artisan bakery and coffee shop offering fresh-baked breads and goods to local consumers.",
+      "searchNames": [
+       "stevedore bakery"
+      ],
+      "volume": 1900
+     },
+     {
+      "domain": "livbreads.com",
+      "name": "Liv Breads",
+      "basis": "ranks",
+      "reason": "Artisan bread bakery specializing in laminated doughs and fresh loaves sold to consumers.",
+      "searchNames": [
+       "liv breads"
+      ],
+      "volume": 1900
+     },
+     {
+      "domain": "farmtomarketbread.com",
+      "name": "Farm to Market Bread",
+      "basis": "ai_answer",
+      "reason": "Artisan bread bakery selling fresh-baked loaves directly to consumers, competing as a craft bread specialist.",
+      "searchNames": [
+       "farm to market bread"
+      ],
+      "volume": 590
+     }
+    ],
+    "terms": [
+     {
+      "term": "bakery near me",
+      "volume": 3350000
+     },
+     {
+      "term": "artisan bread",
+      "volume": 40500
+     },
+     {
+      "term": "best bakery near me",
+      "volume": 33100
+     },
+     {
+      "term": "sourdough bread near me",
+      "volume": 22200
+     },
+     {
+      "term": "local bakery near me",
+      "volume": 14800
+     },
+     {
+      "term": "artisan bakery",
+      "volume": 9900
+     },
+     {
+      "term": "fresh bread near me",
+      "volume": 9900
+     },
+     {
+      "term": "craft bakery",
+      "volume": 2900
+     },
+     {
+      "term": "fresh baked goods",
+      "volume": 1900
+     },
+     {
+      "term": "specialty bakery",
+      "volume": 1300
+     }
+    ],
+    "searchTerm": "bakery near me",
+    "termsAt": "2026-10-07T16:49:17.883Z",
+    "demand": {
+     "at": "2026-10-07T16:52:37.711Z",
+     "own": 50,
+     "brands": {
+      "oak & ore": 260,
+      "liv breads": 1900,
+      "big sky bread": 1900,
+      "novaks bakery": 10,
+      "novak's bakery": 10,
+      "scratch baking": 22200,
+      "baeckerei-hinkel": 0,
+      "bäckerei hinkel": 50,
+      "fratellis pastry": 0,
+      "stevedore bakery": 1900,
+      "fratelli's pastry": 20,
+      "le sourdough haven": 0,
+      "oak and ore bakery": 0,
+      "panificio italiano": 20,
+      "farm to market bread": 590
+     },
+     "searches": {
+      "oak & ore alternatives": 0,
+      "liv breads alternatives": 0,
+      "big sky bread alternatives": 0,
+      "novak's bakery alternatives": 0,
+      "scratch baking alternatives": 0,
+      "stevedore bakery alternatives": 0,
+      "fratelli's pastry alternatives": 0,
+      "le sourdough haven alternatives": 0,
+      "panificio italiano alternatives": 0,
+      "farm to market bread alternatives": 0
+     }
+    }
+   },
+   "deadRivals": [],
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "searches": [
+    "best local bakery near me",
+    "best local bakery",
+    "local bakery sourdough",
+    "local bakery near me for bread",
+    "local gluten free bakery",
+    "what is artisan bakery",
+    "craft bakery near me",
+    "local bakery shop",
+    "local bakery shop near me",
+    "local sourdough bakery near me",
+    "bakery craft",
+    "the artisan bakery"
+   ],
+   "knowledgePages": 0,
+   "questions": [],
+   "audience": [],
+   "topics": [
+    {
+     "query": "best local bakery near me",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 260
+    },
+    {
+     "query": "local bakery sourdough",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 260
+    },
+    {
+     "query": "local bakery near me for bread",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 140
+    },
+    {
+     "query": "local gluten free bakery",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 1,
+     "volume": 140
+    },
+    {
+     "query": "what is artisan bakery",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 1,
+     "volume": 110
+    },
+    {
+     "query": "the artisan bakery",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 2,
+     "volume": 140
+    }
+   ],
+   "cents": 31.639100000000003,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 4.8,
+    "site-profile": 0.3574,
+    "profile": 0.3426,
+    "market-inference": 0.3776,
+    "market-terms": 0.6576,
+    "dataforseo_labs/google/keyword_overview": 2.35,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "question-phrasing": 0.3134,
+    "serp/google/ai_mode": 4.000000000000001,
+    "serp/google/organic": 3.600000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 1.4400000000000004,
+    "rival-inference": 2.5752,
+    "topic-buyer-searches": 0.1909,
+    "topic-typed": 0.2153,
+    "topic-fit": 2.2974,
+    "opportunity-typing": 0.7636,
+    "topic-same-question": 0.1581
+   },
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"Artisan bakery\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"bakery near me\" 3350000/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "fail",
+     "detail": "a de site in Germany was read in United States / en",
+     "items": [
+      "bakery near me",
+      "artisan bread",
+      "best bakery near me",
+      "sourdough bread near me",
+      "local bakery near me",
+      "artisan bakery",
+      "fresh bread near me",
+      "craft bakery",
+      "fresh baked goods",
+      "specialty bakery"
+     ]
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+     "verdict": "pass",
+     "detail": "Scratch Baking — scratchbakingct.com, 22200/mo, ai_answer; Big Sky Bread — bigskybreadokc.com, 1900/mo, ai_answer; Stevedore Bakery — stevedorebakery.com, 1900/mo, ranks; Liv Breads — livbreads.com, 1900/mo, ranks; Farm to Market Bread — farmtomarketbread.com, 590/mo, ai_answer",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "fail",
+     "detail": "the knowledge base was not built: no page of the site was read into it",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"Consumers seeking fresh baked goods\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "fail",
+     "detail": "2 of 6 open at fit 0 or 1",
+     "items": [
+      "local gluten free bakery — open at business fit 1",
+      "what is artisan bakery — open at business fit 1"
+     ]
+    },
+    {
+     "check": "a local business is measured in its own place",
+     "verdict": "review",
+     "detail": "10 of 22 terms and searches name düsseldorf or duesseldorf or dusseldorf or \"near me\"; are the rest, and the rivals, this place's?",
+     "items": [
+      "artisan bread 40500/mo",
+      "artisan bakery 9900/mo",
+      "craft bakery 2900/mo",
+      "fresh baked goods 1900/mo",
+      "specialty bakery 1300/mo",
+      "best local bakery",
+      "local bakery sourdough",
+      "local gluten free bakery",
+      "what is artisan bakery",
+      "local bakery shop",
+      "bakery craft",
+      "the artisan bakery",
+      "rival: Scratch Baking (scratchbakingct.com)",
+      "rival: Big Sky Bread (bigskybreadokc.com)",
+      "rival: Stevedore Bakery (stevedorebakery.com)",
+      "rival: Liv Breads (livbreads.com)",
+      "rival: Farm to Market Bread (farmtomarketbread.com)"
+     ]
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "10 searched terms; \"bakery near me\" has 3350000"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": false,
+     "detail": "9 of 18 SERP reads timed out"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "baeckerei-hinkel.de",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10325,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10520,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10589,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10801,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 10887,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11046,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11218,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11456,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11662,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11803,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11840,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 11918,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12058,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12162,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12222,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12317,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12353,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12522,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 12579,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 13017,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 30235,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 30721,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 31111,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 31995,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 32764,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 32954,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 30055,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "serp_retry",
+     "because": "timeout",
+     "outcome": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 30238,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "serp_retry",
+     "because": "timeout",
+     "outcome": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 30372,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    },
+    {
+     "event": "serp_retry",
+     "because": "timeout",
+     "outcome": "unmeasured"
+    },
+    {
+     "event": "ai_answers_card",
+     "coverage": "cached_only",
+     "cells": [
+      "no_answer",
+      "unmeasured",
+      "no_answer",
+      "answered",
+      "no_answer",
+      "answered",
+      "unmeasured",
+      "unmeasured",
+      "no_answer",
+      "no_answer",
+      "no_answer",
+      "no_answer"
+     ]
+    }
+   ],
+   "seconds": 245,
+   "evidenceLoaded": 0
+  }
+ ]
+}
