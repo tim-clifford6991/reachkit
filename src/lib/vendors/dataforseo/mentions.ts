@@ -185,7 +185,7 @@ export async function llmMentions(
         ? LLM_MENTIONS_WORST_CASE_C
         : PRICE_BOOK.LLM_MENTIONS_REQUEST_C + rows.length * PRICE_BOOK.LLM_MENTIONS_ROW_C,
     fetch: () =>
-      callEndpoint(SEARCH_MENTIONS_PATHS, a.mode, {
+      callEndpoint(SEARCH_MENTIONS_PATHS, a.mode, null, {
         target: [
           {
             domain: a.domain,

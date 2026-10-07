@@ -33,7 +33,9 @@
 //
 // Pure: the same pack gives the same table, so the pack's check, the writer's
 // prompt and the laid-out page all read one table.
-import { copy } from "@/lib/presentation/copy";
+import { pagePathAlternation } from "@/lib/locale/language";
+import type { CopyKey } from "@/lib/presentation/copy";
+import { copyIn } from "@/lib/presentation/copy/translated";
 import { isPlaceholderCell } from "../rules/cells";
 import type { ContextPack } from "./pack";
 import { completeTables, currenciesOf } from "./sources";
@@ -67,7 +69,19 @@ export interface ComparisonTable {
   options: string[];
 }
 
-type TablePack = Pick<ContextPack, "business" | "profile" | "facts" | "claims" | "products" | "builtAt">;
+type TablePack = Pick<ContextPack, "business" | "profile" | "facts" | "claims" | "products" | "builtAt"> & Pick<Partial<ContextPack>, "locale">;
+
+/** The table's own labels, in the page's language (D66). */
+function say(pack: TablePack, key: CopyKey, vars?: Record<string, string | number>): string {
+  return copyIn(pack.locale?.language ?? "en", key, vars);
+}
+
+/** The day a price was checked, as the page's language writes it. */
+function dayOf(pack: TablePack, at: Date): string {
+  return pack.locale?.language === "de"
+    ? new Intl.DateTimeFormat("de-DE", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(at)
+    : DAY.format(at);
+}
 
 const PRICED_RE = /[$€£¥]\s?\d|\d\s?(?:usd|eur|gbp|[$€£¥])/i;
 const PRICE_RE = /[$€£¥]\s?\d|\d\s?(?:usd|eur|gbp|[$€£¥])|\bfree\b/i;
@@ -76,7 +90,7 @@ const CUSTOM_RE = /\b(?:custom|tailored|bespoke|on request|quote|contact (?:us|s
 const DAY = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 const FROM_RE = /\b(?:starts?|starting|from)\b/i;
 const ONE_PLAN_RE = /\benterprise\b/i;
-const PRICE_PAGE_RE = /\/(?:pricing|prices?|plans?)(?![a-z])[^/]*\/?$/i;
+const PRICE_PAGE_RE = new RegExp(`/(?:pricing|prices?|plans?|${pagePathAlternation("pricing")})(?![a-z])[^/]*/?$`, "i");
 const isUrl = (text: string): boolean => /^https?:\/\//.test(text);
 
 /** A value a table can hold: said in words, and not words that say a value
@@ -139,7 +153,7 @@ function rivalOption(pack: TablePack, domain: string): Option {
     own: false,
     readAt: claims.map((claim) => claim.readAt),
     cells: {
-      pricing: priced !== undefined ? cell(priced.passage, priced.url) : custom !== undefined ? cell(copy("body.table.custom"), custom.url) : undefined,
+      pricing: priced !== undefined ? cell(priced.passage, priced.url) : custom !== undefined ? cell(say(pack, "body.table.custom"), custom.url) : undefined,
       does: cell(does?.passage, does?.url ?? null),
     },
   };
@@ -173,7 +187,7 @@ export function comparisonTable(pack: TablePack, minRivals: number): ComparisonT
 
   const whole = options.every((option) => criteria.every((criterion) => option.cells[criterion] !== undefined));
   const row = (cells: readonly string[]): string => `| ${cells.join(" | ")} |`;
-  const header = whole ? criteria.map((criterion) => copy(HEADER[criterion])) : [copy("body.table.stated")];
+  const header = whole ? criteria.map((criterion) => say(pack, HEADER[criterion])) : [say(pack, "body.table.stated")];
   const rows = options.map((option) => {
     const held = criteria.flatMap((criterion) => {
       const value = option.cells[criterion];
@@ -183,10 +197,10 @@ export function comparisonTable(pack: TablePack, minRivals: number): ComparisonT
       option.name.replace(/\|/g, "/"),
       // Every criterion a column, or — where an option lacks one — one cell
       // an option, each saying which criteria it states.
-      ...(whole ? held.map((each) => written(each.value)) : [held.map((each) => `${copy(HEADER[each.criterion])}: ${written(each.value)}`).join(" · ")]),
+      ...(whole ? held.map((each) => written(each.value)) : [held.map((each) => `${say(pack, HEADER[each.criterion])}: ${written(each.value)}`).join(" · ")]),
     ]);
   });
-  const markdown = [row([copy("body.table.option"), ...header]), row(["---", ...header.map(() => "---")]), ...rows].join("\n");
+  const markdown = [row([say(pack, "body.table.option"), ...header]), row(["---", ...header.map(() => "---")]), ...rows].join("\n");
   // What the page pass would take a row or a column out of is not a table
   // this page can stand on.
   if (completeTables(markdown) !== markdown) return null;
@@ -196,8 +210,8 @@ export function comparisonTable(pack: TablePack, minRivals: number): ComparisonT
   const currencies = new Set(criteria.includes("pricing") ? options.flatMap((option) => [...currenciesOf(option.cells.pricing?.text ?? "")]) : []);
   return {
     markdown,
-    checked: copy("body.table.checked", { date: DAY.format(new Date(oldest)) }),
-    currencies: currencies.size > 1 ? copy("body.table.currencies") : null,
+    checked: say(pack, "body.table.checked", { date: dayOf(pack, new Date(oldest)) }),
+    currencies: currencies.size > 1 ? say(pack, "body.table.currencies") : null,
     options: options.map((option) => option.name),
   };
 }

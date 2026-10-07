@@ -48,6 +48,7 @@ import type { CostContext, VendorFailure } from "@/lib/costs";
 import { isVendorFailure } from "@/lib/costs";
 import { VENDOR } from "@/lib/config/constants";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
+import type { Locale } from "@/lib/locale/locales";
 import { sendGet, sendRequest, type DataForSeoMode, type TransportFailure } from "./transport";
 
 /** Task-level status codes the queue flow reads, vendor-documented. */
@@ -259,6 +260,10 @@ export interface EndpointPaths {
 export async function callEndpoint(
   paths: EndpointPaths,
   mode: DataForSeoMode,
+  /** The site's country and language (D66), or `null` for the one family
+   *  that takes none. Both legs of a queued call are the one task, so it
+   *  rides on the post alone. */
+  locale: Locale | null,
   fields: Record<string, unknown>,
   /** The wall clock each request of this call may hold (issue 875) — the
    *  caller's, where it has one. Both legs of the standard queue take it:
@@ -287,7 +292,7 @@ export async function callEndpoint(
   const abort = timeoutMs === undefined ? {} : { timeoutMs };
   if (mode === "live") {
     if (!paths.live) return failure("no_surface", false, "dataforseo: endpoint has no live surface");
-    const out = await sendRequest<unknown>({ path: paths.live, mode, fields, ...abort });
+    const out = await sendRequest<unknown>({ path: paths.live, mode, locale, fields, ...abort });
     return out.ok ? withCharge(firstResult(out.payload, false), out.payload) : fromTransport(out);
   }
 
@@ -299,7 +304,7 @@ export async function callEndpoint(
     return failure("deadline", false, "dataforseo: the caller's ceiling ran out before the task was posted");
   }
   const std = paths.std;
-  const posted = await sendRequest<unknown>({ path: std.taskPost, mode, fields, ...abort });
+  const posted = await sendRequest<unknown>({ path: std.taskPost, mode, locale, fields, ...abort });
   if (!posted.ok) return fromTransport(posted);
   const task = firstTask(posted.payload);
   const id = task ? asString(task.id) : undefined;

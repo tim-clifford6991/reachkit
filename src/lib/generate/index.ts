@@ -30,6 +30,7 @@
 // `regenerateRestarted` is the customer's Regenerate carried out: the
 // restart moves the row back into `generating`, and the next draft tick
 // rewrites that row for the date it already holds.
+import { siteLocale } from "@/lib/locale/site";
 import {
   assessFixPages,
   assessReadiness,
@@ -418,6 +419,8 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
   // corrections applied over the crawl — through `readConfirmedBusiness`
   // (#978), the read both screens use. Read once for the day.
   const confirmed = await confirmedForWriting({ siteId: a.siteId, domain: site.domain });
+  // D66: the page is researched and written in the site's own country and language.
+  const locale = await siteLocale(a.siteId);
 
   // SPEC §7 (2026-10-04, issue 1248): the page is written for the site's
   // market in force (`sites.market`, D28) — the report's category is the one
@@ -499,6 +502,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
         live,
         previousResearch,
         now: new Date(),
+        locale,
       });
     // 2. Research, for the types that read public pages (SPEC §7, *Two pools
     //    of facts*; issue 1135): at most two model calls, and for *current
@@ -511,6 +515,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
       ? NO_RESEARCH
       : await researchMarket(cost, {
           siteId: a.siteId,
+          locale,
           domain: site.domain,
           searches: targetSearches(o),
           report,

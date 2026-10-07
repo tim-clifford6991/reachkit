@@ -2,6 +2,7 @@
 // §6, owner D50 of 2026-10-05, issue 1271): the keyword-overview call D49
 // added, asked for the business's brand and each rival candidate's. What is
 // done with the volumes is `demand.ts`.
+import type { Locale } from "@/lib/locale/locales";
 import type { CostContext } from "@/lib/costs";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { byDemand, comparisonsOf, keywordsOwed, mergeDemand, ownKeywords, searched, searchesOwed } from "./demand";
@@ -21,6 +22,8 @@ export async function readBrandDemand(
     domain: string;
     siteName: string | null;
     at: Date;
+    /** The site's country and language (D66): where the volumes are read. */
+    locale: Locale;
   }
 ): Promise<Measured<BrandDemand>> {
   const own = ownKeywords(a);
@@ -35,12 +38,13 @@ export async function readBrandDemand(
     product: own[0] ?? null,
     ownSearched: searched(held.own),
     searchedOnly: false,
+    language: a.locale.language,
   }).map((comparison) => comparison.query);
   const owedSearches = searchesOwed({ demand: a.demand, wanted, at: a.at });
   if (owed.length === 0 && owedSearches.length === 0 && a.demand !== undefined) return measured(a.demand, a.at);
   if (owed.length === 0 && a.demand === undefined) return unmeasured("not_attempted", a.at);
   const { keywordOverview } = await import("@/lib/vendors/dataforseo");
-  const volumes = await keywordOverview(c, { keywords: [...owed, ...owedSearches] });
+  const volumes = await keywordOverview(c, { keywords: [...owed, ...owedSearches], locale: a.locale });
   if (volumes.kind === "unmeasured") {
     // The brands are held and only the comparisons were asked: what is held stands.
     if (owed.length === 0 && a.demand !== undefined) return measured(a.demand, a.at);

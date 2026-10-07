@@ -21,6 +21,7 @@
 // Cache-first is the seam's, not this file's: `keywordSuggestions` runs inside
 // `CostContext.recordFetch` (§6.5), which serves the 30-day suggestions
 // window from `fetches` before it spends (§6.4).
+import type { Locale } from "@/lib/locale/locales";
 import type { CostContext } from "@/lib/costs";
 import { SELECTION, VENDOR } from "@/lib/config/constants";
 import {
@@ -85,7 +86,7 @@ export interface MarketSet {
  */
 export async function deriveMarketSet(
   c: CostContext,
-  a: { seeds: string[]; ownRanked: number }
+  a: { seeds: string[]; ownRanked: number; locale: Locale }
 ): Promise<Measured<SuggestionRow[]>> {
   const volume = suggestionsWindow(a.ownRanked);
   const rows: SuggestionRow[] = [];
@@ -95,7 +96,7 @@ export async function deriveMarketSet(
   let at: Date | undefined;
 
   for (const seed of a.seeds) {
-    const result = await keywordSuggestions(c, { seed, rows: VENDOR.suggestionsRows, volume });
+    const result = await keywordSuggestions(c, { seed, rows: VENDOR.suggestionsRows, volume, locale: a.locale });
     at ??= result.at;
     if (result.kind === "unmeasured") {
       reason = reason === undefined ? result.reason : worseReason(reason, result.reason);

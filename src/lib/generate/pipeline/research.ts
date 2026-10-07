@@ -59,6 +59,8 @@ import { llm } from "@/lib/llm";
 import { visibleText } from "@/lib/measure/parse";
 import type { StoredReport } from "@/lib/scan/report";
 import type { WritingMarket } from "../voice/market";
+import { languagePack, pagePathAlternation } from "@/lib/locale/language";
+import type { Locale } from "@/lib/locale/locales";
 import type { NewsRow } from "@/lib/vendors/dataforseo/types";
 import { keywordOverview, serpNews, serpOrganic } from "@/lib/vendors/dataforseo";
 
@@ -220,12 +222,12 @@ const RIVAL_PAGE_KINDS: readonly RivalPageKind[] = ["rival_pricing", "rival_feat
  *  label, has to say for the page to be its pricing page, or its product or
  *  features page. `/blog/pricing-update` is neither. */
 const RIVAL_SEGMENT_RES = {
-  rival_pricing: /^(?:pricing|prices?|plans?)(?![a-z])/i,
-  rival_features: /^(?:features?|products?|platform)(?![a-z])/i,
+  rival_pricing: new RegExp(`^(?:pricing|prices?|plans?|${pagePathAlternation("pricing")})(?![a-z])`, "i"),
+  rival_features: new RegExp(`^(?:features?|products?|platform|${pagePathAlternation("features", "product")})(?![a-z])`, "i"),
 } as const;
 const RIVAL_LABEL_RES = {
-  rival_pricing: /^(?:pricing|plans)$/i,
-  rival_features: /^(?:features|product|platform)$/i,
+  rival_pricing: new RegExp(`^(?:pricing|plans|${pagePathAlternation("pricing")})$`, "i"),
+  rival_features: new RegExp(`^(?:features|product|platform|${pagePathAlternation("features", "product")})$`, "i"),
 } as const;
 const ANCHOR_RE = /<a\b[^>]*\bhref\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi;
 const LOC_RE = /<loc>\s*(?:<!\[CDATA\[)?\s*([^<\]\s]+)/gi;
@@ -409,7 +411,7 @@ interface RecentRead extends ReadPage {
  *  kept, and where the call cannot be made or does not answer, none is. */
 async function recentPages(
   c: CostContext,
-  a: { siteId: string; today: Date; recent: { searches: readonly string[]; days: number; market: Pick<WritingMarket, "category" | "synonyms" | "market"> } },
+  a: { siteId: string; locale: Locale; today: Date; recent: { searches: readonly string[]; days: number; market: Pick<WritingMarket, "category" | "synonyms" | "market"> } },
   notOurs: (url: string) => boolean,
   taken: ReadonlySet<string>
 ): Promise<{ pages: RecentRead[]; news: JudgedResult[] }> {
@@ -420,7 +422,7 @@ async function recentPages(
   const results: NewsRow[][] = [];
   for (const query of terms) {
     if (c.capHit()) break;
-    const news = await serpNews(c, { query, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.news });
+    const news = await serpNews(c, { query, locale: a.locale, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.news });
     if (news.kind === "unmeasured") continue;
     results.push(news.value.filter((row) => inWindow(row.publishedAt) && notOurs(row.url) && !taken.has(row.url)));
   }
@@ -450,6 +452,7 @@ async function recentPages(
   const answer = await llm(c, {
     site: "generate.news_fit",
     tier: "haiku",
+    locale: a.locale,
     schema: NEWS_FIT_SCHEMA,
     input: {
       task:
@@ -490,9 +493,10 @@ async function recentPages(
 
 /** One SERP, read for its "People also ask" and its related searches
  *  (D61). Ledgered; `null` where the call fails. */
-async function askedBeside(c: CostContext, a: { siteId: string; query: string }): Promise<{ peopleAlsoAsk: string[]; searches: string[] } | null> {
+async function askedBeside(c: CostContext, a: { siteId: string; locale: Locale; query: string }): Promise<{ peopleAlsoAsk: string[]; searches: string[] } | null> {
   const serp = await serpOrganic(c, {
     query: a.query,
+    locale: a.locale,
     mode: "live",
     loadAsyncAiOverview: false,
     scope: { site: a.siteId },
@@ -509,10 +513,10 @@ async function askedBeside(c: CostContext, a: { siteId: string; query: string })
 /** The related searches that have a measured volume: one keyword-overview
  *  call for at most `RESEARCH.relatedSearches` of them. Ledgered; none where
  *  the call fails or the ceiling is met. */
-async function withVolume(c: CostContext, searches: readonly string[]): Promise<BuyersAsk["related"]> {
+async function withVolume(c: CostContext, locale: Locale, searches: readonly string[]): Promise<BuyersAsk["related"]> {
   const asked = searches.slice(0, RESEARCH.relatedSearches);
   if (asked.length === 0 || c.capHit()) return [];
-  const volumes = await keywordOverview(c, { keywords: asked });
+  const volumes = await keywordOverview(c, { keywords: asked, locale });
   if (volumes.kind === "unmeasured") return [];
   const volumeOf = new Map(volumes.value.map((row) => [row.keyword, row.searchVolume]));
   return asked.map((search) => ({ search, volume: volumeOf.get(search) ?? 0 })).filter((row) => row.volume > 0);
@@ -522,10 +526,10 @@ async function withVolume(c: CostContext, searches: readonly string[]): Promise<
  *  read for its "People also ask" and its related searches, and one
  *  keyword-overview call that keeps the related searches with a measured
  *  volume. A call that fails or meets the ceiling leaves its half empty. */
-async function buyersAsk(c: CostContext, a: { siteId: string; target: string }): Promise<BuyersAsk> {
-  const beside = await askedBeside(c, { siteId: a.siteId, query: a.target });
+async function buyersAsk(c: CostContext, a: { siteId: string; locale: Locale; target: string }): Promise<BuyersAsk> {
+  const beside = await askedBeside(c, { siteId: a.siteId, locale: a.locale, query: a.target });
   if (beside === null) return { peopleAlsoAsk: [], related: [] };
-  return { peopleAlsoAsk: beside.peopleAlsoAsk, related: await withVolume(c, beside.searches) };
+  return { peopleAlsoAsk: beside.peopleAlsoAsk, related: await withVolume(c, a.locale, beside.searches) };
 }
 
 const sameWords = (text: string): string => text.toLowerCase().replace(/\s+/g, " ").trim();
@@ -548,7 +552,7 @@ const sameWords = (text: string): string => text.toLowerCase().replace(/\s+/g, "
  */
 async function borrowedAsk(
   c: CostContext,
-  a: { siteId: string; target: string; terms: readonly string[]; asked: BuyersAsk; held: (asked: BuyersAsk) => QuestionsHeld }
+  a: { siteId: string; locale: Locale; target: string; terms: readonly string[]; asked: BuyersAsk; held: (asked: BuyersAsk) => QuestionsHeld }
 ): Promise<{ asked: BuyersAsk; borrowed: { terms: string[]; added: number } } | null> {
   const first = a.held(a.asked);
   if (first.enough) return null;
@@ -561,7 +565,7 @@ async function borrowedAsk(
     .filter((term, at, all) => term !== "" && sameWords(term) !== sameWords(a.target) && all.findIndex((other) => sameWords(other) === sameWords(term)) === at);
   for (const term of terms) {
     if (c.capHit() || a.held(asked).enough) break;
-    const beside = await askedBeside(c, { siteId: a.siteId, query: term });
+    const beside = await askedBeside(c, { siteId: a.siteId, locale: a.locale, query: term });
     if (beside === null) continue;
     read.push(term);
     const known = new Set(asked.peopleAlsoAsk.map(sameWords));
@@ -570,7 +574,7 @@ async function borrowedAsk(
       if (!unmeasured.includes(search) && !asked.related.some((row) => row.search === search)) unmeasured.push(search);
     }
   }
-  if (!a.held(asked).enough) asked = { ...asked, related: [...asked.related, ...(await withVolume(c, unmeasured))] };
+  if (!a.held(asked).enough) asked = { ...asked, related: [...asked.related, ...(await withVolume(c, a.locale, unmeasured))] };
   return { asked, borrowed: { terms: read, added: a.held(asked).kept - first.kept } };
 }
 
@@ -578,6 +582,9 @@ export async function researchMarket(
   c: CostContext,
   a: {
     siteId: string;
+    /** The site's country and language (D66): every search this step buys
+     *  is made in it. */
+    locale: Locale;
     domain: string;
     /** The target search and every search the row absorbed. */
     searches: readonly string[];
@@ -635,7 +642,8 @@ export async function researchMarket(
   if (a.recent === undefined && !c.capHit()) {
     const studyUrls: string[] = [];
     const serp = await serpOrganic(c, {
-      query: `${target} statistics study`,
+      query: languagePack(a.locale.language).studySearch(target),
+      locale: a.locale,
       mode: "live",
       loadAsyncAiOverview: false,
       scope: { site: a.siteId },
@@ -654,7 +662,7 @@ export async function researchMarket(
 
   // 2b. A Q&A's questions (D61), bought before the claim calls so a ceiling
   //     met there does not cost the page its questions.
-  const asked = a.questions === true && !c.capHit() ? await buyersAsk(c, { siteId: a.siteId, target }) : null;
+  const asked = a.questions === true && !c.capHit() ? await buyersAsk(c, { siteId: a.siteId, locale: a.locale, target }) : null;
 
   // The recent pages lead on a *current insights* page: they are what it is
   // written from, and the claim calls read the first pages only.
@@ -690,6 +698,7 @@ export async function researchMarket(
     const answer = await llm(c, {
       site: "generate.research",
       tier: "haiku",
+      locale: a.locale,
       schema: CLAIMS_SCHEMA,
       input: {
         task:
@@ -731,7 +740,7 @@ export async function researchMarket(
   const more =
     asked === null || borrow === undefined
       ? null
-      : await borrowedAsk(c, { siteId: a.siteId, target, terms: borrow.terms, asked, held: (each) => borrow.held({ ...research, asked: each }) });
+      : await borrowedAsk(c, { siteId: a.siteId, locale: a.locale, target, terms: borrow.terms, asked, held: (each) => borrow.held({ ...research, asked: each }) });
   const questions = more?.asked ?? asked;
   logResearch({
     siteId: a.siteId,

@@ -93,6 +93,8 @@ function refusedHome(refusal: "too_large" | "timeout" | "dns"): DomainMeasuremen
     robots: unmeasured("not_attempted", AT),
     ownRanked: unmeasured("not_attempted", AT),
     ownRankedRows: [],
+    locale: { country: "US", language: "en" },
+    localeFellBack: null,
     homeRefusal: refusal,
   };
 }

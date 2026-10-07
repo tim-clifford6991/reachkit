@@ -34,7 +34,7 @@ function escape(text: string): string {
 function says(text: string, phrase: string): boolean {
   const wanted = phrase.trim();
   if (wanted.length < 3) return false;
-  return new RegExp(`(?<![a-z0-9])${escape(wanted)}(?![a-z0-9])`, "i").test(text);
+  return new RegExp(`(?<![\\p{L}\\p{N}])${escape(wanted)}(?![\\p{L}\\p{N}])`, "iu").test(text);
 }
 
 /** An address without its tracking parameters and fragment, so one page

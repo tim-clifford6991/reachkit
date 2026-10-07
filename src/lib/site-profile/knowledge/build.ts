@@ -3,6 +3,7 @@
 // The pages are the ones the pass's crawl already read and ledgered: this
 // fetches nothing. It runs as a step of its own in the onboarding pass and
 // in a pass measured again now (`@/lib/scan/deep/run`), on the pass's money.
+import { siteLocale } from "@/lib/locale/site";
 import type { CostContext } from "@/lib/costs";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { readMeasuredText } from "@/lib/measure/text";
@@ -62,7 +63,7 @@ export async function buildKnowledge(
   const current = held.filter((page) => listed.has(sameAddress(page.url)));
   const pages = current.length > 0 ? current : held;
   const previous = await readStoredKnowledge(a.domain);
-  const read = await readKnowledge(c, { domain: a.domain, pages, previous });
+  const read = await readKnowledge(c, { domain: a.domain, pages, previous, locale: await siteLocale(a.siteId) });
   if (read.knowledge.pages.length > 0) await writeStoredKnowledge(a.domain, read.knowledge);
   // SPEC §5 (2026-10-07, issue 1314): a base no page was read into is said,
   // never silent. Two sites of the customer panel ended a pass with an

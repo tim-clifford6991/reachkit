@@ -15,13 +15,15 @@
 // holds a page to its own stated date where it has one.
 //
 // Live only: a page is written inside one invocation, and the standard
-// queue's wait is longer than that. Depth 10 and `SERP_LOCATION` are fixed
+// queue's wait is longer than that. Depth 10 is fixed and the locale written
 // in `transport.ts`, as they are for the organic SERP.
 //
 // Cache: keyed on the query, the locale and whose purchase it is, like the
 // organic SERP's (`serp.ts`, #75). The window is the caller's.
 import type { CostContext } from "@/lib/costs";
-import { PRICE_BOOK, SERP_LOCATION } from "@/lib/config/constants";
+import { PRICE_BOOK } from "@/lib/config/constants";
+import type { Locale } from "@/lib/locale/locales";
+import { localeCacheKey } from "./transport";
 import type { Measured } from "@/lib/measure/measured";
 import { asArray, asString, callEndpoint, isRecord, ledgered, type EndpointPaths } from "./envelope";
 import { scopeKey, type CacheScope, type NewsRow } from "./types";
@@ -76,6 +78,9 @@ export async function serpNews(
   c: CostContext,
   a: {
     query: string;
+    /** The site's country and language (D66): where the read is made, and
+     *  part of its cache key. */
+    locale: Locale;
     /** Whose purchase this is, as on `serpOrganic`. */
     scope: CacheScope;
     /** The caller's window: `CACHE_WINDOWS_D.news`. */
@@ -84,10 +89,10 @@ export async function serpNews(
 ): Promise<Measured<NewsRow[]>> {
   return ledgered<NewsRow>(c, {
     source: "serp/google/news",
-    cacheKey: `${a.query}|${SERP_LOCATION.location}|${SERP_LOCATION.language}|${scopeKey(a.scope)}`,
+    cacheKey: `${a.query}|${localeCacheKey(a.locale)}|${scopeKey(a.scope)}`,
     freshnessDays: a.freshnessDays,
     costCents: PRICE_BOOK.NEWS_LIVE_C,
-    fetch: () => callEndpoint(PATHS, "live", { keyword: a.query }),
+    fetch: () => callEndpoint(PATHS, "live", a.locale, { keyword: a.query }),
     parse: parseNews,
   });
 }

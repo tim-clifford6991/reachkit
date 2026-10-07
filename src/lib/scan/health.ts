@@ -65,7 +65,7 @@ export function failingChecks(health: ScanHealth | null): readonly HealthResult[
   return health === null ? [] : health.checks.filter((result) => !result.pass);
 }
 
-const key = (text: string): string => text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const key = (text: string): string => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
 const result = (check: HealthCheck, items: readonly string[], detail: string): HealthResult => ({
   check,

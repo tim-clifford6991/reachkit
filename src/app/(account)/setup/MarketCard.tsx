@@ -8,6 +8,7 @@
 // founder is part-way through typing, and which of the two is open.
 "use client";
 
+import { COUNTRIES, LANGUAGES, SUPPORTED_LOCALES, localeKey } from "@/lib/locale/locales";
 import type React from "react";
 import { useId, useMemo, useState, useTransition, type Dispatch, type KeyboardEvent, type SetStateAction } from "react";
 import { Globe, ListOrdered } from "lucide-react";
@@ -49,9 +50,15 @@ export function MarketCard(p: {
   setState: Dispatch<SetStateAction<SetupState>>;
   questions: SetupQuestions | null;
   resolveDomain: (host: string) => Promise<ResolveDomainResponse>;
+  /** The site's country and language (SPEC §6, owner D66, issue 1311), as
+   *  `localeKey` spells it: what was read of the site until the founder
+   *  chooses another. */
+  locale: string;
+  setLocale: (locale: string) => void;
 }): React.JSX.Element {
   const { state, setState } = p;
   const addressId = useId();
+  const localeId = useId();
   const marketId = useId();
   const [addressDraft, setAddressDraft] = useState(state.siteDomain ?? "");
   const [addressRefusal, setAddressRefusal] = useState<AddressRefusal | null>(null);
@@ -78,6 +85,8 @@ export function MarketCard(p: {
     setEditingAddress(false);
     // REQ-026 c6: the market card then stands by the address they gave.
     setState((current) => onDomainChanged(current, { domain: checked.domain, report: answer.report }));
+    // D66: a new address is a new reading of where its buyers are.
+    if (typeof answer.locale === "string") p.setLocale(answer.locale);
   }
 
   function commitMarket(): void {
@@ -242,6 +251,32 @@ export function MarketCard(p: {
               </p>
             </>
           )}
+          {/* D66: one question, filled with what was read of the site. The
+              founder's answer wins. The list is the closed one every vendor
+              read is made from. */}
+          <div className="flex flex-col gap-1.5">
+            <label className={QUIET} htmlFor={localeId}>
+              {copy("setup.locale.label")}
+            </label>
+            <select
+              id={localeId}
+              name="locale"
+              className="select w-full"
+              value={p.locale}
+              data-testid="setup-locale"
+              onChange={(event) => p.setLocale(event.target.value)}
+            >
+              {SUPPORTED_LOCALES.map((each) => (
+                <option key={localeKey(each)} value={localeKey(each)}>
+                  {copy("setup.locale.option", {
+                    country: COUNTRIES[each.country].location,
+                    language: LANGUAGES[each.language].name,
+                  })}
+                </option>
+              ))}
+            </select>
+            <p className={QUIET}>{copy("setup.locale.note")}</p>
+          </div>
         </div>
       </section>
 

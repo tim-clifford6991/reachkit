@@ -124,6 +124,8 @@ function measurement(ownRankedRows: DomainMeasurement["ownRankedRows"]): DomainM
     robots: measured(ROBOTS, AT),
     ownRanked: measured(3, AT),
     ownRankedRows,
+    locale: { country: "US", language: "en" },
+    localeFellBack: null,
     homeRefusal: null,
   };
 }

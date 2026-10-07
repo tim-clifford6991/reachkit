@@ -20,6 +20,7 @@
 // publishing subsystem import the mail seam for one occasion. The job runs
 // the check and then tells; the two obligations of one tick are visible in
 // the job, not hidden inside the check.
+import { siteLocale } from "@/lib/locale/site";
 import { dbAdmin } from "@/lib/db";
 import { tellingFor } from "@/lib/publish/verify";
 import { sendEmail } from "../send";
@@ -97,6 +98,7 @@ export async function sendPublishedMail(publicationId: string): Promise<Publishe
   const mail = buildPublished({ telling, timeZone: site.timezone ?? FALLBACK_ZONE });
   const result = await sendEmail({
     kind: "published",
+    language: (await siteLocale(telling.siteId)).language,
     to,
     userId: site.user_id,
     subject: mail.subject,

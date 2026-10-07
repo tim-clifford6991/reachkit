@@ -21,8 +21,9 @@
 import { env } from "@/lib/config/env";
 import { dbAdmin } from "@/lib/db";
 import type { MeasuredText } from "@/lib/measure/text";
-import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { readStoredReport, type StoredReport } from "@/lib/scan/report";
+import type { CopyKey } from "@/lib/presentation/copy";
+import { copyIn } from "@/lib/presentation/copy/translated";
+import { localeOfReport, readStoredReport, type StoredReport } from "@/lib/scan/report";
 
 /** The most rivals named, one sentence each — the ones cited most. */
 const MAX_RIVAL_FACTS = 3;
@@ -53,7 +54,13 @@ export function reportAddress(domain: string): string {
 export function reportSentences(report: StoredReport): string[] {
   if (!report.complete) return [];
   const domain = report.domain;
-  const date = DAY.format(new Date(report.verdict.measuredAt));
+  // D66: a German site's own figures are stated in German, as its page is.
+  const language = localeOfReport(report).language;
+  const copy = (key: CopyKey, vars?: Record<string, string | number>): string => copyIn(language, key, vars);
+  const date =
+    language === "de"
+      ? new Intl.DateTimeFormat("de-DE", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(report.verdict.measuredAt))
+      : DAY.format(new Date(report.verdict.measuredAt));
   const out: string[] = [];
 
   const score = report.verdict.scoreAndBand;
@@ -89,7 +96,8 @@ export function reportSentences(report: StoredReport): string[] {
     rows.some((row) => row.engines.some((cell) => cell.engine === engine && cell.cell.kind !== "unmeasured"))
   );
   if (asked.length > 0) {
-    const engines = listed(asked.map((engine) => copy(ENGINE_LABEL[engine])));
+    const names = asked.map((engine) => copy(ENGINE_LABEL[engine]));
+    const engines = language === "en" ? listed(names) : new Intl.ListFormat(language, { type: "conjunction" }).format(names);
     out.push(copy("fact.report.method", { domain, date, engines }));
   }
   return out;

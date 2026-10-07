@@ -14,7 +14,8 @@
 // opens the collapse around it; the robots lines a founder pastes live
 // here, under the method that says where to paste them.
 import type React from "react";
-import { copy, type CopyKey } from "@/lib/presentation/copy";
+import type { CopyKey } from "@/lib/presentation/copy";
+import { copy } from "@/lib/presentation/copy/reader";
 import { METHOD_ANCHOR, PasteBlock } from "./cards";
 import { PROBLEM_ORDER, type ProblemName } from "./model";
 

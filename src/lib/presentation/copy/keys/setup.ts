@@ -806,4 +806,14 @@ export const SETUP_COPY = Object.freeze({
     "Usually within minutes of saving the record. We’ll mail you when it does.",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
+
+  // SPEC §6, owner D66 (issue 1311): the site step's one question — where
+  // the site's buyers are and the language they search in, filled with what
+  // was read of the site. Drafted (#759).
+  "setup.locale.label": ["Where your buyers are, and the language they search in", { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1311" }],
+  "setup.locale.option": ["{country} · {language}", { slots: { country: "text", language: "text" }, fixedBy: "SPEC §6 · D66 · issue 1311" }],
+  "setup.locale.note": [
+    "Read from your site. Searches, AI answers and rivals are measured there, and your pages are written in that language.",
+    { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1311" },
+  ],
 }) satisfies CopyPartition;

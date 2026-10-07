@@ -306,6 +306,8 @@ describe("step one — your site and your market (REQ-021 c6/c7, REQ-026 c1/c3)"
         <MarketCard
           state={onMarketStated(model().state, category)}
           setState={() => {}}
+          locale="US/en"
+          setLocale={() => {}}
           questions={q}
           resolveDomain={async () => {
             throw new Error("no address change here");
@@ -338,6 +340,8 @@ describe("step one — your site and your market (REQ-021 c6/c7, REQ-026 c1/c3)"
       <MarketCard
         state={onMarketStated(model().state, "time tracking software")}
         setState={() => {}}
+        locale="US/en"
+        setLocale={() => {}}
         questions={thin}
         resolveDomain={async () => {
           throw new Error("no address change here");

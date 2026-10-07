@@ -18,7 +18,7 @@
 // address, a link like the search is a form — no script. No ReachKit name,
 // link or colour.
 import type React from "react";
-import { copy } from "@/lib/presentation/copy";
+import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedPage } from "@/lib/publish/destinations/hosted";
 import { Surface } from "@/ui/layout";
 import { HostedFooter, HostedHeader, type HostedBusiness } from "./chrome";

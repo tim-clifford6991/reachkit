@@ -79,7 +79,7 @@ const NO_ROW: Spend = () => Promise.reject(new Error("no claimed row"));
 describe('REQ-026 c7 — "it offers suggested rivals drawn from that market"', () => {
   it("suggestRivals/inferred-path-uses-the-report — the report's own derivation, and zero vendor calls", async () => {
     const { state, report: facts } = inferred({ rivals: ["one.com", "two.com"] });
-    const out = await suggestRivals(spendIn(fakeCostContext()), { state, report: facts, at: AT });
+    const out = await suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state, report: facts, at: AT });
 
     expect(out).toEqual({ kind: "measured", value: ["one.com", "two.com"], at: AT });
     expect(competitorsMock).not.toHaveBeenCalled();
@@ -87,10 +87,10 @@ describe('REQ-026 c7 — "it offers suggested rivals drawn from that market"', (
 
   it("suggestRivals/stated-path-uses-competitors-domain — exactly one call, on the address the account will use", async () => {
     competitorsMock.mockResolvedValue(competitors(["rival.com"]));
-    const out = await suggestRivals(spendIn(fakeCostContext()), { state: stated(), report: null, at: AT });
+    const out = await suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state: stated(), report: null, at: AT });
 
     expect(competitorsMock).toHaveBeenCalledTimes(1);
-    expect(competitorsMock).toHaveBeenCalledWith(expect.anything(), { domain: "customer.com" });
+    expect(competitorsMock).toHaveBeenCalledWith(expect.anything(), { domain: "customer.com", locale: { country: "US", language: "en" } });
     expect(out).toEqual({ kind: "measured", value: ["rival.com"], at: AT });
   });
 
@@ -98,14 +98,14 @@ describe('REQ-026 c7 — "it offers suggested rivals drawn from that market"', (
     const empty = initialSetupState(null);
     competitorsMock.mockResolvedValue(competitors([]));
 
-    await suggestRivals(spendIn(fakeCostContext()), { state: empty, report: null, at: AT });
+    await suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state: empty, report: null, at: AT });
     expect(competitorsMock).toHaveBeenCalledTimes(0);
 
     const { state, report: facts } = inferred();
-    await suggestRivals(spendIn(fakeCostContext()), { state, report: facts, at: AT });
+    await suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state, report: facts, at: AT });
     expect(competitorsMock).toHaveBeenCalledTimes(0);
 
-    await suggestRivals(spendIn(fakeCostContext()), { state: stated(), report: null, at: AT });
+    await suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state: stated(), report: null, at: AT });
     expect(competitorsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -128,7 +128,7 @@ describe('REQ-026 c7 — "it offers suggested rivals drawn from that market"', (
     });
     if (!added.ok) throw new Error("fixture: held.com should have been addable");
 
-    const out = await suggestRivals(spendIn(fakeCostContext()), {
+    const out = await suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" },
       state: { ...state, rivals: added.set },
       report: facts,
       at: AT,
@@ -139,7 +139,7 @@ describe('REQ-026 c7 — "it offers suggested rivals drawn from that market"', (
   it("suggestRivals/never-offers-more-than-the-set-holds", async () => {
     const many = Array.from({ length: BATTERY.COMPETITORS_MAX + 4 }, (_, i) => `r${i}.com`);
     const { state, report: facts } = inferred({ rivals: many });
-    const out = await suggestRivals(spendIn(fakeCostContext()), { state, report: facts, at: AT });
+    const out = await suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state, report: facts, at: AT });
 
     expect(out.kind).toBe("measured");
     if (out.kind !== "unmeasured") expect(out.value).toHaveLength(BATTERY.COMPETITORS_MAX);
@@ -150,14 +150,14 @@ describe('REQ-026 c7 — "it offers suggested rivals drawn from that market"', (
     const facts = report({ rivals: ["from-the-report.com"] });
     const state = onMarketStated(initialSetupState({ domain: "customer.com", report: facts }), "something else");
 
-    const out = await suggestRivals(spendIn(fakeCostContext()), { state, report: facts, at: AT });
+    const out = await suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state, report: facts, at: AT });
     expect(out.kind === "unmeasured" ? [] : out.value).toEqual(["vendor-said.com"]);
   });
 });
 
 describe('REQ-026 c10 — "it says it is waiting on their market, never that no rivals were found"', () => {
   it("suggestRivals/empty-market-makes-no-call — nothing sought, and the arm says so", async () => {
-    const out = await suggestRivals(spendIn(fakeCostContext()), { state: initialSetupState(null), report: null, at: AT });
+    const out = await suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state: initialSetupState(null), report: null, at: AT });
 
     expect(out).toEqual({ kind: "unmeasured", reason: "not_attempted", at: AT });
     expect(competitorsMock).not.toHaveBeenCalled();
@@ -165,7 +165,7 @@ describe('REQ-026 c10 — "it says it is waiting on their market, never that no 
 
   it("suggestRivals/sought-and-nothing-came-back — a call was made and the answer was none", async () => {
     competitorsMock.mockResolvedValue(competitors([]));
-    const out = await suggestRivals(spendIn(fakeCostContext()), { state: stated(), report: null, at: AT });
+    const out = await suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state: stated(), report: null, at: AT });
 
     expect(competitorsMock).toHaveBeenCalledTimes(1);
     expect(out).toEqual({ kind: "zero", value: [], at: AT });
@@ -173,7 +173,7 @@ describe('REQ-026 c10 — "it says it is waiting on their market, never that no 
 
   it("suggestRivals/cold-start-is-an-empty-answer-not-an-error — a domain that ranks for nothing has no competitors to return", async () => {
     competitorsMock.mockResolvedValue({ kind: "zero", value: [], at: AT });
-    const out = await suggestRivals(spendIn(fakeCostContext()), { state: stated(), report: null, at: AT });
+    const out = await suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state: stated(), report: null, at: AT });
     expect(out.kind).toBe("zero");
   });
 });
@@ -187,7 +187,7 @@ describe("BP-034 NFR budget — setup is never held on suggestions", () => {
     vi.useFakeTimers();
     competitorsMock.mockReturnValue(new Promise(() => {}));
 
-    const pending = suggestRivals(spendIn(fakeCostContext()), { state: stated(), report: null, at: AT });
+    const pending = suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state: stated(), report: null, at: AT });
     await vi.advanceTimersByTimeAsync(TIMING.suggestCeilingS * 1000);
 
     await expect(pending).resolves.toEqual({ kind: "unmeasured", reason: "undeterminable", at: AT });
@@ -196,12 +196,12 @@ describe("BP-034 NFR budget — setup is never held on suggestions", () => {
   it("suggestRivals/vendor-failure-releases-setup — the reason survives and the promise never rejects", async () => {
     competitorsMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
     await expect(
-      suggestRivals(spendIn(fakeCostContext()), { state: stated(), report: null, at: AT })
+      suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state: stated(), report: null, at: AT })
     ).resolves.toEqual({ kind: "unmeasured", reason: "undeterminable", at: AT });
   });
 
   it("suggestRivals/unopenable-spend-releases-setup — no row to spend against settles like a vendor failure", async () => {
-    await expect(suggestRivals(NO_ROW, { state: stated(), report: null, at: AT })).resolves.toEqual({
+    await expect(suggestRivals(NO_ROW, { locale: { country: "US", language: "en" }, state: stated(), report: null, at: AT })).resolves.toEqual({
       kind: "unmeasured",
       reason: "undeterminable",
       at: AT,
@@ -211,7 +211,7 @@ describe("BP-034 NFR budget — setup is never held on suggestions", () => {
 
   it("suggestRivals/the-inferred-path-opens-no-spend — the report's rivals need no row at all", async () => {
     const { state, report: facts } = inferred({ rivals: ["one.com"] });
-    const out = await suggestRivals(NO_ROW, { state, report: facts, at: AT });
+    const out = await suggestRivals(NO_ROW, { locale: { country: "US", language: "en" }, state, report: facts, at: AT });
     expect(out).toEqual({ kind: "measured", value: ["one.com"], at: AT });
   });
 
@@ -232,16 +232,16 @@ describe("issue 838 — setup always offers rivals, even when the report found n
   it("suggestRivals/inferred-with-no-rivals-falls-back — competitors_domain on the founder's own address", async () => {
     competitorsMock.mockResolvedValue(competitors(["rival.com", "customer.com"]));
     const { state, report: facts } = inferred({ rivals: [] });
-    const out = await suggestRivals(spendIn(fakeCostContext()), { state, report: facts, at: AT });
+    const out = await suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state, report: facts, at: AT });
 
     expect(competitorsMock).toHaveBeenCalledTimes(1);
-    expect(competitorsMock).toHaveBeenCalledWith(expect.anything(), { domain: "customer.com" });
+    expect(competitorsMock).toHaveBeenCalledWith(expect.anything(), { domain: "customer.com", locale: { country: "US", language: "en" } });
     expect(out).toEqual({ kind: "measured", value: ["rival.com"], at: AT });
   });
 
   it("suggestRivals/the-site's-named-rivals-come-first-and-free — no call while they are there", async () => {
     const { state, report: facts } = inferred({ rivals: ["one.com"], namedRivals: ["Named.io", "Asana", "one.com"] });
-    const out = await suggestRivals(NO_ROW, { state, report: facts, at: AT });
+    const out = await suggestRivals(NO_ROW, { locale: { country: "US", language: "en" }, state, report: facts, at: AT });
 
     // "Asana" is not a domain, so it is not offered; one.com once.
     expect(out).toEqual({ kind: "measured", value: ["named.io", "one.com"], at: AT });
@@ -253,14 +253,14 @@ describe("issue 838 — setup always offers rivals, even when the report found n
     const state = onMarketStated(initialSetupState({ domain: "customer.com", report: facts }), "something else");
 
     competitorsMock.mockResolvedValue(competitors(["vendor-said.com", "named.io"]));
-    await expect(suggestRivals(spendIn(fakeCostContext()), { state, report: facts, at: AT })).resolves.toEqual({
+    await expect(suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state, report: facts, at: AT })).resolves.toEqual({
       kind: "measured",
       value: ["named.io", "vendor-said.com"],
       at: AT,
     });
 
     competitorsMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
-    await expect(suggestRivals(spendIn(fakeCostContext()), { state, report: facts, at: AT })).resolves.toEqual({
+    await expect(suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state, report: facts, at: AT })).resolves.toEqual({
       kind: "measured",
       value: ["named.io"],
       at: AT,
@@ -269,7 +269,7 @@ describe("issue 838 — setup always offers rivals, even when the report found n
 
   it("suggestRivals/no-spend-leaves-the-fallback-unsought — a caller that cannot buy says nothing was sought", async () => {
     const { state, report: facts } = inferred({ rivals: [] });
-    const out = await suggestRivals(null, { state, report: facts, at: AT });
+    const out = await suggestRivals(null, { locale: { country: "US", language: "en" }, state, report: facts, at: AT });
 
     expect(out).toEqual({ kind: "unmeasured", reason: "not_attempted", at: AT });
     expect(competitorsMock).not.toHaveBeenCalled();
@@ -277,7 +277,7 @@ describe("issue 838 — setup always offers rivals, even when the report found n
 
   it("suggestRivals/an-unopenable-spend-on-the-fallback-settles — the kill switch or no row answers none found", async () => {
     const { state, report: facts } = inferred({ rivals: [] });
-    await expect(suggestRivals(NO_ROW, { state, report: facts, at: AT })).resolves.toEqual({
+    await expect(suggestRivals(NO_ROW, { locale: { country: "US", language: "en" }, state, report: facts, at: AT })).resolves.toEqual({
       kind: "unmeasured",
       reason: "undeterminable",
       at: AT,
@@ -303,13 +303,13 @@ describe("issue 858 — setup offers the vendor's competitors right-sized to the
     competitorsMock.mockResolvedValue(
       sized([["zapier.com", 218_224], ["unsized.io", undefined], ["middle.io", 400], ["ahrefs.com", 59_767], ["near.io", 80]], 3)
     );
-    const out = await suggestRivals(spendIn(fakeCostContext()), { state: stated(), report: null, at: AT });
+    const out = await suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state: stated(), report: null, at: AT });
     expect(out).toEqual({ kind: "measured", value: ["near.io", "middle.io", "unsized.io"], at: AT });
   });
 
   it("only far competitors: none is offered, and the card says none were found rather than offering a giant", async () => {
     competitorsMock.mockResolvedValue(sized([["zapier.com", 218_224], ["ahrefs.com", 59_767]], 3));
-    const out = await suggestRivals(spendIn(fakeCostContext()), { state: stated(), report: null, at: AT });
+    const out = await suggestRivals(spendIn(fakeCostContext()), { locale: { country: "US", language: "en" }, state: stated(), report: null, at: AT });
     expect(out).toEqual({ kind: "zero", value: [], at: AT });
   });
 });

@@ -109,7 +109,7 @@ describe("the research step reads the market's pages and keeps only what they sa
       })
     );
     const c = cost();
-    const found = await researchMarket(c, {
+    const found = await researchMarket(c, { locale: { country: "US", language: "en" },
       siteId: SITE_ID,
       domain: "example.com",
       searches: ["best project management software"],
@@ -141,7 +141,7 @@ describe("the research step reads the market's pages and keeps only what they sa
 
   it("a site whose market cannot be read is still written — research yields nothing and asks no model", async () => {
     safeFetchMock.mockResolvedValue({ ok: false, reason: "timeout", url: "x", readAt: TODAY });
-    const found = await researchMarket(cost(), {
+    const found = await researchMarket(cost(), { locale: { country: "US", language: "en" },
       siteId: SITE_ID,
       domain: "example.com",
       searches: ["best project management software"],
@@ -163,7 +163,7 @@ describe("the research step reads the market's pages and keeps only what they sa
       )
     );
     overviewMock.mockResolvedValue(measured([{ keyword: "project software free", searchVolume: 320 }]));
-    const found = await researchMarket(cost(), {
+    const found = await researchMarket(cost(), { locale: { country: "US", language: "en" },
       siteId: SITE_ID,
       domain: "example.com",
       searches: ["best project management software"],
@@ -186,7 +186,7 @@ describe("the research step reads the market's pages and keeps only what they sa
       "ai search visibility": { peopleAlsoAsk: ["How do I measure AI search visibility?"] },
     };
     const asks = (borrow: { terms: readonly string[]; held: (research: { asked?: { peopleAlsoAsk: string[]; related: unknown[] } }) => { kept: number; enough: boolean } }, c = cost()) =>
-      researchMarket(c, { siteId: SITE_ID, domain: "example.com", searches: [TARGET], report: REPORT, rivals: [], today: TODAY, questions: true, borrow });
+      researchMarket(c, { locale: { country: "US", language: "en" }, siteId: SITE_ID, domain: "example.com", searches: [TARGET], report: REPORT, rivals: [], today: TODAY, questions: true, borrow });
     /** The pack keeps every question but the target's own off-market one. */
     const keeps = (enough: number) => (research: { asked?: { peopleAlsoAsk: string[]; related: unknown[] } }) => {
       const kept = (research.asked?.peopleAlsoAsk.length ?? 0) - 1 + (research.asked?.related.length ?? 0);
@@ -231,7 +231,7 @@ describe("the research step reads the market's pages and keeps only what they sa
       // term whose SERP cannot be read is not counted as read.
       expect(queries()).toEqual([TARGET, ...TERMS, "a term nobody ranks for"]);
       expect(overviewMock).toHaveBeenCalledTimes(1);
-      expect(overviewMock).toHaveBeenCalledWith(expect.anything(), { keywords: ["geo vs seo difference", "answer engine optimization examples"] });
+      expect(overviewMock).toHaveBeenCalledWith(expect.anything(), { keywords: ["geo vs seo difference", "answer engine optimization examples"], locale: { country: "US", language: "en" } });
       expect(found.asked?.related).toEqual([{ search: "geo vs seo difference", volume: 90 }]);
       expect(found.borrowed).toEqual({ terms: TERMS, added: 4 });
     });
@@ -302,7 +302,7 @@ describe("the research step reads the market's pages and keeps only what they sa
       market: { category: "project management software", buyer: null, job: "Plan a team's work", rivals: [], notOurMarket: ["Security software"] },
     };
 
-    const found = await researchMarket(cost(), {
+    const found = await researchMarket(cost(), { locale: { country: "US", language: "en" },
       siteId: SITE_ID,
       domain: "example.com",
       searches: ["project management news"],
@@ -342,7 +342,7 @@ describe("the research step reads the market's pages and keeps only what they sa
     llmMock.mockImplementation(async (_c: unknown, call: { site: string }) =>
       call.site === "generate.news_fit" ? { kind: "unmeasured", reason: "undeterminable", at: AT } : measured({ claims: [] })
     );
-    const unjudged = await researchMarket(cost(), {
+    const unjudged = await researchMarket(cost(), { locale: { country: "US", language: "en" },
       siteId: SITE_ID,
       domain: "example.com",
       searches: ["project management news"],

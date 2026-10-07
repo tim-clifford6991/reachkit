@@ -180,7 +180,7 @@ function wordsOf(text: string): Set<string> {
   return new Set(
     text
       .toLowerCase()
-      .split(/[^a-z0-9]+/)
+      .split(/[^\p{L}\p{N}]+/u)
       .filter((word) => word.length > 2)
   );
 }

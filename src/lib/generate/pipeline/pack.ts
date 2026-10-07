@@ -21,6 +21,8 @@
 // whose words are on none of the top results the research step read.
 //
 // Pure. The reads are the caller's (`../index.ts`, `scripts/page/`).
+import { LANGUAGE_PACKS, SHAPES, modelInstruction } from "@/lib/locale/language";
+import type { Language, Locale } from "@/lib/locale/locales";
 import { ADDS, PACK, RIVAL_PRICE_MAX_AGE_D } from "@/lib/config/constants";
 import { promptTemplateOf } from "@/lib/market/prompts/generate";
 import { GENERIC_TOKENS, brandOf } from "@/lib/market/questions/select";
@@ -95,6 +97,12 @@ export interface ContextPack {
   version: 1;
   type: ContentType;
   builtAt: string;
+  /** The site's country and language (SPEC §6, owner D66, issue 1311),
+   *  where they are not the United States and English: the page is written
+   *  in this language, for buyers in this country, and its questions and
+   *  searches are in it. Absent on a pack built before D66 and on every US
+   *  English one, which is what every pack was. */
+  locale?: Locale;
   target: { question: string; searches: string[] };
   business: {
     name: string | null;
@@ -133,16 +141,20 @@ export interface ContextPack {
   missing: PackNeed[];
 }
 
-const STOP = new Set(
-  "a an and are as at be best but by can do does for from how i in is it my of on or our that the to top vs was we what when which who why will with you your".split(" ")
-);
+// The English words every pack was read by, and each other supported
+// language's function words beside them (D66): a pack does not say which
+// language a stored title or question is in.
+const STOP = new Set([
+  ..."a an and are as at be best but by can do does for from how i in is it my of on or our that the to top vs was we what when which who why will with you your".split(" "),
+  ...LANGUAGE_PACKS.filter((pack) => pack.language !== "en").flatMap((pack) => [...pack.stopWords]),
+]);
 
 /** The content words of a text: what tells two topics apart. */
 export function topicWords(text: string): Set<string> {
   return new Set(
     text
       .toLowerCase()
-      .split(/[^a-z0-9]+/)
+      .split(/[^\p{L}\p{N}]+/u)
       .filter((word) => word.length > 2 && !STOP.has(word))
       .map((word) => word.replace(/(?:ies|es|s)$/, (end) => (end === "ies" ? "y" : "")))
   );
@@ -231,15 +243,15 @@ interface NamedRival {
 /** A question names a rival by its name, every word of it, or by its
  *  domain's own label ("aeoengine"). */
 function namesRival(question: string, rival: NamedRival): boolean {
-  const said = new Set(question.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
-  const name = rival.name.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const said = new Set(question.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean));
+  const name = rival.name.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
   return (name.length > 0 && name.every((word) => said.has(word))) || said.has(brandOf(rival.domain));
 }
 
 /** The fewest words a related search has to be read as a question (D61). */
 const RELATED_MIN_WORDS = 3;
 
-const ASKS_PRICE_RE = /\b(?:costs?|prices?|priced|pricing|how much|value|cheap\w*|expensive)\b/i;
+const ASKS_PRICE_RE = SHAPES.asksPrice;
 
 /**
  * A measured question is on the site's current market (issue 1263) where
@@ -317,6 +329,7 @@ function buyerQuestions(a: {
   facts: readonly PackFact[];
   claims: readonly PackClaim[];
   knowledge: PromptKnowledge | undefined;
+  language: Language;
 }): string[] {
   // Every product a question could name: the rivals in force, the ones the
   // conclusion names beside them, and the stored report's. Only a rival in
@@ -341,7 +354,7 @@ function buyerQuestions(a: {
   // nobody is asking anything by.
   const related = (a.asked?.related ?? [])
     .filter((row) => row.search.trim().split(/\s+/).length >= RELATED_MIN_WORDS)
-    .map((row) => ({ text: templateQuestion(row.search), search: row.search }));
+    .map((row) => ({ text: templateQuestion(row.search, a.language), search: row.search }));
   // Google lists what people also ask beside any search, on the market or
   // off it ("What is the 30% rule for AI?"): each is held to the market, as
   // a measured question is.
@@ -350,7 +363,7 @@ function buyerQuestions(a: {
     .map((question) => question.text);
   // SPEC §6 (D49, issue 1270): a label of the market nobody searches is
   // never printed.
-  const flat = (text: string): string => ` ${text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()} `;
+  const flat = (text: string): string => ` ${text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim()} `;
   const labels = (a.market?.unsearched ?? []).map(flat);
   const printable = (text: string): boolean => !labels.some((label) => flat(text).includes(label));
   // The stored report may carry a tracked prompt among its questions; it is
@@ -473,6 +486,9 @@ export interface PackInputs {
   /** The measurements the site's last research page was written from. */
   previousResearch?: PackMeasurements | null;
   now: Date;
+  /** The site's country and language (D66). Absent is the United States in
+   *  English. */
+  locale?: Locale;
 }
 
 /** Whether a claim is a rival's price read too long ago to state (D59):
@@ -515,6 +531,7 @@ export function buildPack(a: PackInputs): ContextPack {
     version: 1,
     type: a.type,
     builtAt: a.now.toISOString(),
+    ...(a.locale === undefined || modelInstruction(a.locale) === null ? {} : { locale: { country: a.locale.country, language: a.locale.language } }),
     target: { question, searches },
     business: {
       name: a.site.businessName,
@@ -544,6 +561,7 @@ export function buildPack(a: PackInputs): ContextPack {
             facts,
             claims,
             knowledge: a.profile?.knowledge,
+            language: a.locale?.language ?? "en",
           })
         : [],
     measurements: a.type === "research" ? measurementsOf(a.report) : null,

@@ -37,7 +37,7 @@
 import type React from "react";
 import { Search } from "lucide-react";
 import { PresenceBars } from "@/ui/charts";
-import { copy } from "@/lib/presentation/copy";
+import { copy } from "@/lib/presentation/copy/reader";
 import { ABSENT_FROM_MAX } from "@/lib/config/constants";
 import type { PresenceSection } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";

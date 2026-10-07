@@ -63,7 +63,7 @@ function poolRow(row: RankedRow, rival: string | null): PoolRow {
 }
 
 function words(text: string): string[] {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter((w) => w !== "");
+  return text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().split(" ").filter((w) => w !== "");
 }
 
 /**

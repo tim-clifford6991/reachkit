@@ -7,7 +7,6 @@
 // are each written so that deleting the behaviour fails a named test.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ZodType } from "zod";
-import { SERP_LOCATION } from "../../../src/lib/config/constants.ts";
 import type { CostContext } from "../../../src/lib/costs/index.ts";
 import type { SelectedSearch } from "../../../src/lib/market/questions/select.ts";
 import type { Question } from "../../../src/lib/market/questions/phrase.ts";
@@ -104,7 +103,7 @@ describe("phraseQuestions — the one nano call it issues", () => {
       "Name no brand, product or company the keyword does not itself name",
       'add no "best" or "top" the keyword does not carry',
       "one sentence and ends with a question mark",
-      `${SERP_LOCATION.language}, as searched on Google in ${SERP_LOCATION.location}`,
+      "en, as searched on Google in United States",
     ]) {
       expect(PHRASE_TASK).toContain(clause);
     }

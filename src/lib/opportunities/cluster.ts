@@ -17,6 +17,7 @@
 // Pure. No model, no fetch, no clock. Every family keys the same way, so a
 // family added later (an Earn row's readiness, say) clusters with no branch
 // here.
+import { PRICE_WORDS } from "@/lib/locale/language";
 import { SAME_TOPIC_SHARED_ADDRESSES } from "@/lib/config/constants";
 import { GENERIC_TOKENS, stemKey } from "@/lib/market/questions/select";
 import { registrableDomain } from "@/lib/market/rivals/domains";
@@ -153,7 +154,6 @@ export function coveredTopics(report: StoredReport, brandTokens: readonly string
   return topics;
 }
 
-const PRICE_WORDS: ReadonlySet<string> = new Set(["price", "pricing", "cost"]);
 
 /**
  * The parent topic of a query, or `null` where it has none: no query (a Fix

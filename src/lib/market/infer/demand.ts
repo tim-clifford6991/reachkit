@@ -9,6 +9,8 @@
 // candidate carries its brand's volume, and the searched ones come first.
 //
 // Pure: no I/O. `read-demand.ts` buys the volumes.
+import { languagePack } from "@/lib/locale/language";
+import type { Language } from "@/lib/locale/locales";
 import { RIVAL_DEMAND } from "@/lib/config/constants";
 import { comparisonName } from "@/lib/market/questions/well-formed";
 import type { BrandDemand, MarketConclusion, RivalConclusion } from "./types";
@@ -133,16 +135,19 @@ export function comparisonsOf(a: {
   product: string | null;
   ownSearched: boolean;
   searchedOnly: boolean;
+  /** The language the searches are written in (D66). Absent is English. */
+  language?: Language;
 }): { query: string; rival: string }[] {
+  const pack = languagePack(a.language ?? "en");
   const out: { query: string; rival: string }[] = [];
   const inDemand = a.rivals.filter((rival) => searched(rival.volume)).sort((x, y) => (y.volume ?? 0) - (x.volume ?? 0));
-  for (const rival of a.searchedOnly ? inDemand : a.rivals) out.push({ query: `${comparisonName(rival)} alternatives`, rival: rival.domain });
+  for (const rival of a.searchedOnly ? inDemand : a.rivals) out.push({ query: pack.alternativesSearch(comparisonName(rival)), rival: rival.domain });
   if (a.product !== null && a.ownSearched) {
-    for (const rival of a.rivals) out.push({ query: `${a.product} vs ${comparisonName(rival)}`, rival: rival.domain });
+    for (const rival of a.rivals) out.push({ query: pack.versusSearch(a.product, comparisonName(rival)), rival: rival.domain });
   } else {
     const leading = inDemand.slice(0, RIVAL_DEMAND.PAIRS);
     leading.forEach((first, i) => {
-      for (const second of leading.slice(i + 1)) out.push({ query: `${comparisonName(first)} vs ${comparisonName(second)}`, rival: first.domain });
+      for (const second of leading.slice(i + 1)) out.push({ query: pack.versusSearch(comparisonName(first), comparisonName(second)), rival: first.domain });
     });
   }
   return out;

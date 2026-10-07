@@ -20,6 +20,7 @@
 // is `other` on purpose: it is the whole site's front door and claiming it
 // as `product` or `about` would put a false row in the inventory that
 // cross-linking (§7) would then link to as if it were a product page.
+import { pageHeadingPhrases, pagePathWords, type PageKind } from "@/lib/locale/language";
 import type { PagePurpose } from "./types";
 
 /** Path tokens, in the order they are tested. A page whose address carries
@@ -32,7 +33,7 @@ import type { PagePurpose } from "./types";
  *  (legal, contact) before the three commercial ones, and the editorial
  *  arm before the two that describe the product, because a post about a
  *  feature is a post. */
-const PATH_RULES: readonly { purpose: PagePurpose; tokens: readonly string[] }[] = [
+const ENGLISH_PATHS: readonly { purpose: PagePurpose; tokens: readonly string[] }[] = [
   {
     purpose: "legal",
     tokens: [
@@ -52,7 +53,7 @@ const PATH_RULES: readonly { purpose: PagePurpose; tokens: readonly string[] }[]
  *  against the title and the `h1` together, lower-cased, as whole words —
  *  so "About" matches "About us" and "About ReachKit" but not "roundabout".
  *  Same precedence as the path table, and the same reason for it. */
-const HEADING_RULES: readonly { purpose: PagePurpose; phrases: readonly string[] }[] = [
+const ENGLISH_HEADINGS: readonly { purpose: PagePurpose; phrases: readonly string[] }[] = [
   { purpose: "legal", phrases: ["privacy policy", "privacy notice", "terms of service", "terms and conditions", "terms of use", "legal notice", "imprint", "impressum", "cookie policy"] },
   { purpose: "contact", phrases: ["contact us", "contact", "get in touch", "talk to us", "support"] },
   { purpose: "pricing", phrases: ["pricing", "prices", "our plans", "plans and pricing", "what it costs"] },
@@ -68,6 +69,14 @@ const HEADING_RULES: readonly { purpose: PagePurpose; phrases: readonly string[]
  * than a throw — the crawl only ever hands this URLs it fetched, and a
  * classification is never the reason a pass fails.
  */
+// D66: each supported language's own words for the same pages
+// (`src/lib/locale/language/`), read beside the English ones.
+const PATH_RULES = ENGLISH_PATHS.map((rule) => ({ purpose: rule.purpose, tokens: pagePathWords(rule.purpose as PageKind, rule.tokens) }));
+const HEADING_RULES = ENGLISH_HEADINGS.map((rule) => ({
+  purpose: rule.purpose,
+  phrases: pageHeadingPhrases(rule.purpose as PageKind, rule.phrases),
+}));
+
 export function derivePurpose(a: { url: string; title: string; h1: string }): PagePurpose {
   const segments = pathSegments(a.url);
 
@@ -116,5 +125,5 @@ function containsPhrase(haystack: string, phrase: string): boolean {
 }
 
 function isWordChar(ch: string): boolean {
-  return /[a-z0-9]/i.test(ch);
+  return /[\p{L}\p{N}]/u.test(ch);
 }

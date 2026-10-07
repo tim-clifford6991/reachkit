@@ -44,6 +44,7 @@ import dns from "node:dns";
 import http from "node:http";
 import https from "node:https";
 import { vi } from "vitest";
+import { registerSiteLocaleStore } from "../src/lib/locale/site";
 
 vi.mock("next/font/local", () => ({
   default: () => ({ className: "", style: {}, variable: "" }),
@@ -82,4 +83,20 @@ if (typeof Range !== "undefined") {
     return list;
   };
   Range.prototype.getBoundingClientRect ??= zeroRect;
+}
+
+// SPEC §6, D66 (issue 1311): a site's country and language are a row of the
+// database, and no test in this corpus has one. Every suite starts with a
+// store that holds what it was last told for a site and nothing else, so a
+// site nobody has read is the United States in English, as before D66. A
+// suite about the stored locale writes to it; the `db` project's own put
+// the real row back with `registerSiteLocaleStore(null)`.
+{
+  const held = new Map<string, { country: unknown; language: unknown }>();
+  registerSiteLocaleStore({
+    read: async (siteId) => held.get(siteId) ?? null,
+    write: async (siteId, locale) => {
+      held.set(siteId, locale);
+    },
+  });
 }

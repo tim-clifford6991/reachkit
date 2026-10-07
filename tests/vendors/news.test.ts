@@ -38,13 +38,13 @@ describe("the news search returns dated results, in order, with who published th
   it("asks once, live, ten deep, at the price book's figure, and keeps only what it dates", async () => {
     const stub = stubVendorFetch(() => envelope(RESULT));
     const fake = fakeCostContext("DRAFT");
-    const found = await news.serpNews(fake.ctx, { query: "ai answer visibility", scope: { site: "site-1" }, freshnessDays: constants.CACHE_WINDOWS_D.news });
+    const found = await news.serpNews(fake.ctx, { locale: { country: "US", language: "en" }, query: "ai answer visibility", scope: { site: "site-1" }, freshnessDays: constants.CACHE_WINDOWS_D.news });
 
     expect(stub.requests.map((request) => request.url)).toEqual(["https://api.dataforseo.com/v3/serp/google/news/live/advanced"]);
     expect(stub.tasks[0]).toEqual({
       keyword: "ai answer visibility",
-      location_name: constants.SERP_LOCATION.location,
-      language_code: constants.SERP_LOCATION.language,
+      location_name: "United States",
+      language_code: "en",
       depth: 10,
     });
     expect(fake.calls[0]).toMatchObject({ source: "serp/google/news", costCents: constants.PRICE_BOOK.NEWS_LIVE_C, freshnessDays: 1 });
@@ -58,7 +58,7 @@ describe("the news search returns dated results, in order, with who published th
 
   it("a search with no results is a measured nothing, and a shape it does not know is not a result", async () => {
     stubVendorFetch(() => envelope({ keyword: "x", items: null }));
-    const none = await news.serpNews(fakeCostContext("DRAFT").ctx, { query: "x", scope: { site: "site-1" }, freshnessDays: 1 });
+    const none = await news.serpNews(fakeCostContext("DRAFT").ctx, { locale: { country: "US", language: "en" }, query: "x", scope: { site: "site-1" }, freshnessDays: 1 });
     expect(none).toMatchObject({ kind: "zero", value: [] });
     expect(news.parseNews("not a result")).toBeUndefined();
   });

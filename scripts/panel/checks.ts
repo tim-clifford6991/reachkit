@@ -63,6 +63,10 @@ export interface SiteResult {
   market: MarketConclusion | null;
   /** Every market a paid vendor read was asked in, once each. */
   locales: readonly VendorLocale[];
+  /** The country and language the pass stored on the site (D66): what it
+   *  read of the site, since the panel answers no setup question. Absent
+   *  on a run stored before D66. */
+  stored?: { country: string | null; language: string | null };
   /** Rival domains that do not resolve: no such site exists. */
   deadRivals: readonly string[];
   /** Rival domains whose home page was read and never names the rival:
@@ -191,6 +195,15 @@ export function checkLocale(r: SiteResult): CheckResult {
   if (r.locales.length === 0) return { check, verdict: "review", detail: "no vendor read was seen, so where the volumes were read is unknown", items: terms };
   if (expected === undefined) {
     return { check, verdict: "review", detail: `${r.site.country} is not a country this check knows the vendor's name for`, items: r.locales.map((l) => `${l.location} / ${l.language}`) };
+  }
+  // D66: what the pass read of the site and stored on it is the site's own.
+  if (r.stored !== undefined && (r.stored.country !== r.site.country || r.stored.language !== r.site.language)) {
+    return {
+      check,
+      verdict: "fail",
+      detail: `a ${r.site.language} site in ${r.site.country} was read as ${r.stored.country ?? "no country"} / ${r.stored.language ?? "no language"}`,
+      items: terms,
+    };
   }
   const wrong = r.locales.filter((l) => l.location !== expected || l.language !== r.site.language);
   if (wrong.length > 0) {

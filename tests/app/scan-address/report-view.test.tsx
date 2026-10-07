@@ -66,6 +66,27 @@ function stripComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
 }
 
+describe("SPEC §6, D66 (issue 1311) — the report says where it was measured", () => {
+  it("a report measured in US Google in English keeps its one measurement line and says nothing more", () => {
+    const html = render(FIXTURE_REPORT);
+    expect(html).toContain("report.measurement");
+    expect(html).not.toContain("report.measurement.in");
+    expect(html).not.toContain("report.locale.fell-back");
+  });
+
+  it("a German site's report names Germany and German", () => {
+    const html = render({ ...FIXTURE_REPORT, locale: { country: "DE", language: "de" } });
+    expect(html).toContain("report.measurement.in(Germany|German)");
+    expect(html).not.toContain("report.locale.fell-back");
+  });
+
+  it("a site in a country and language that are not measured is told so in one line", () => {
+    const html = render({ ...FIXTURE_REPORT, locale: { country: "GB", language: "en", fellBack: { country: "FR", language: "fr" } } });
+    expect(count(html, "report.locale.fell-back(")).toBe(1);
+    expect(html).toContain("report.locale.fell-back(United Kingdom|English|report.locale.site.pair(France|French))");
+  });
+});
+
 describe("REQ-004 c1 — the verdict strip names the score, its band, the domain and the date", () => {
   const html = render(FIXTURE_REPORT);
 

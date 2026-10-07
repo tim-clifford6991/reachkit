@@ -96,7 +96,7 @@ describe("issue #504 — a failed vendor call is a row, never a null payload", (
     stubVendorFetch(answer as () => unknown);
     const heard: unknown[] = [];
     const result = await inContext((c) =>
-      rankedKeywords(c, { domain: "example.com", rows: 50, onFailure: (f) => heard.push(f) })
+      rankedKeywords(c, { locale: { country: "US", language: "en" }, domain: "example.com", rows: 50, onFailure: (f) => heard.push(f) })
     );
 
     expect(result).toMatchObject({ kind: "unmeasured", reason: "undeterminable" });
@@ -117,7 +117,7 @@ describe("issue #504 — a failed vendor call is a row, never a null payload", (
 
   it("a 2xx body that is not JSON is `unparseable`, billed at the reservation", async () => {
     stubNonJsonBody();
-    await inContext((c) => rankedKeywords(c, { domain: "example.com", rows: 50 }));
+    await inContext((c) => rankedKeywords(c, { locale: { country: "US", language: "en" }, domain: "example.com", rows: 50 }));
     const row = fetchInserts()[0]!;
     expect(row.payload).toEqual({ vendorFailure: "unparseable", endpoint: RANKED, billed: true });
     expect(row.cost_cents).toBe(row.reserved_cents);
@@ -127,7 +127,7 @@ describe("issue #504 — a failed vendor call is a row, never a null payload", (
     stubVendorFetch((_request, index) => (index === 0 ? taskCreated() : taskInQueue()));
     vi.useFakeTimers();
     const pending = inContext((c) =>
-      serpOrganic(c, {
+      serpOrganic(c, { locale: { country: "US", language: "en" },
         query: "best crm",
         mode: "std",
         loadAsyncAiOverview: false,
@@ -147,7 +147,7 @@ describe("issue #504 — a failed vendor call is a row, never a null payload", (
   it("a `task_post` the standard queue did not accept is its task code, unbilled", async () => {
     stubVendorFetch(() => envelope(undefined, 40501));
     await inContext((c) =>
-      serpOrganic(c, {
+      serpOrganic(c, { locale: { country: "US", language: "en" },
         query: "best crm",
         mode: "std",
         loadAsyncAiOverview: false,
@@ -163,7 +163,7 @@ describe("issue #504 — a failed vendor call is a row, never a null payload", (
   it("a failed task on a flagged SERP is not settled by the surcharge rule: unbilled is 0", async () => {
     stubVendorFetch(() => ({ status: 500, statusText: "Internal Server Error" }));
     await inContext((c) =>
-      serpOrganic(c, {
+      serpOrganic(c, { locale: { country: "US", language: "en" },
         query: "best crm",
         mode: "live",
         loadAsyncAiOverview: true,
@@ -184,7 +184,7 @@ describe("issue #504 — a failed vendor call is a row, never a null payload", (
         cacheKey: "k",
         freshnessDays: 7,
         costCents: 1.2,
-        fetch: () => callEndpoint({}, "live", {}),
+        fetch: () => callEndpoint({}, "live", { country: "US", language: "en" }, {}),
         parse: () => [],
       })
     );
@@ -200,7 +200,7 @@ describe("issue #504 — a failed vendor call is a row, never a null payload", (
       if (typeof line === "string") lines.push(JSON.parse(line) as Record<string, unknown>);
     });
     stubVendorFetch(() => ({ status: 503, statusText: "Service Unavailable" }));
-    await inContext((c) => rankedKeywords(c, { domain: "example.com", rows: 50 }));
+    await inContext((c) => rankedKeywords(c, { locale: { country: "US", language: "en" }, domain: "example.com", rows: 50 }));
     expect(lines.filter((l) => l.event === "vendor_call")).toEqual([
       expect.objectContaining({ source: RANKED, outcome: "failed", failure: "http_503", billed: false, costCents: 0 }),
     ]);

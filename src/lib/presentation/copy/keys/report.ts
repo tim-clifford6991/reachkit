@@ -802,4 +802,16 @@ export const REPORT_COPY = Object.freeze({
   // never *Trusted by*.
   "landing.strip.label": ["Recently scanned", { slots: {}, fixedBy: "issue 1069 · R12-1" }],
   "landing.strip.all": ["See all free scans", { slots: {}, fixedBy: "issue 1069 · R12-1" }],
+
+  // SPEC §6, owner D66 (issue 1311): the one line a report owes its reader
+  // where the site named a country or a language that is not measured yet.
+  // Drafted (#759).
+  "report.locale.fell-back": [
+    "Measured as searched in {country}, in {language}. ReachKit does not measure {unmeasured} yet.",
+    { slots: { country: "text", language: "text", unmeasured: "text" }, fixedBy: "SPEC §6 · D66 · issue 1311" },
+  ],
+  "report.locale.site.pair": ["{country} in {language}", { slots: { country: "text", language: "text" }, fixedBy: "SPEC §6 · D66 · issue 1311" }],
+  // The measurement line of a report measured anywhere but in US Google in
+  // English (D66). Drafted (#759).
+  "report.measurement.in": ["Measured in Google {country}, in {language}.", { slots: { country: "text", language: "text" }, fixedBy: "SPEC §6 · D66 · issue 1311" }],
 }) satisfies CopyPartition;

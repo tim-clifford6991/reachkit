@@ -115,7 +115,7 @@ import { gfmTableFromMarkdown } from "mdast-util-gfm-table";
 import type { PhrasingContent, RootContent } from "mdast";
 
 import { MARKDOWN_LINK_SCHEMES } from "@/lib/config/constants";
-import { copy } from "@/lib/presentation/copy";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 
 export type Inline =
   | { kind: "text"; text: string }
@@ -359,6 +359,25 @@ function blocksOf(nodes: readonly RootContent[], src: string, insideAnswer: bool
   return out;
 }
 
+/** `copy()`, or `copy()` in a page's own language. This module is read by
+ *  the browser too, so it holds no translation: the server hands one in. */
+export type Say = (key: CopyKey, vars?: Record<string, string | number>) => string;
+
+/**
+ * The blocks with the three labels this module mints — the table's, the
+ * short answer's and the takeaways' — said in the page's own language
+ * (SPEC §6, owner D66, issue 1311). The words a page's writer wrote are
+ * untouched.
+ */
+export function labelledIn(blocks: readonly Block[], say: Say): Block[] {
+  return blocks.map((block) => {
+    if (block.kind === "table") return { ...block, label: say("body.table.label") };
+    if (block.kind === "answer") return { ...block, label: say("body.answer.heading"), children: labelledIn(block.children, say) };
+    if (block.kind === "takeaways") return { ...block, label: say("body.takeaways.heading"), children: labelledIn(block.children, say) };
+    return block;
+  });
+}
+
 /** Markdown in, blocks out. */
 export function parseMarkdown(md: string): Block[] {
   const src = md.replace(/\r\n?/g, "\n");
@@ -380,10 +399,12 @@ export function guidesBlock(a: {
    *  domain, and the label says so. */
   publisher: string;
   items: readonly GuideLink[];
+  /** The page's own language (D66); absent is English. */
+  say?: Say;
 }): Block {
   return {
     kind: "guides",
-    label: copy("body.guides.heading", { publisher: a.publisher }),
+    label: (a.say ?? copy)("body.guides.heading", { publisher: a.publisher }),
     items: a.items.filter((item) => isAddressable(item.href)),
   };
 }
@@ -707,8 +728,9 @@ export function toHtml(blocks: readonly Block[], classes: HtmlClasses = {}): str
 
 /** Markdown in, HTML out — the whole renderer in one call, unclassed: the
  *  bytes the copy-as-HTML control hands over. */
-export function renderMarkdownHtml(md: string): string {
-  return toHtml(parseMarkdown(md));
+export function renderMarkdownHtml(md: string, say?: Say): string {
+  const blocks = parseMarkdown(md);
+  return toHtml(say === undefined ? blocks : labelledIn(blocks, say));
 }
 
 /**

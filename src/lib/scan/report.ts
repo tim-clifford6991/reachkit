@@ -149,6 +149,7 @@
 // produced is `null`, which the screen renders as a named absent section
 // with one written line (REQ-004 c10/c11), never as an empty card and
 // never as a spinner.
+import { measuredLocale, type Locale } from "@/lib/locale/locales";
 import { AI_READER_AGENTS } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import type { RobotsPolicy } from "@/lib/egress/types";
@@ -539,7 +540,23 @@ export interface StoredReport {
    *  said (D19, #1162) — what the AI mention rate, share of voice and
    *  *your pages cited* are read from. Absent where a pass asked none. */
   prompts?: PromptsSection;
+  /** The country and language this pass measured in (SPEC §6, owner D66,
+   *  issue 1311), where they are not the United States and English, or
+   *  where the site said something of itself that is not measured.
+   *  `fellBack` is that something: the country or language the reading
+   *  named that ReachKit does not measure yet, which the report says in one
+   *  line. Absent on every report before D66 and on every one measured as
+   *  those were: the United States, in English, with nothing fallen back
+   *  from. */
+  locale?: ReportLocale;
 }
+
+export interface ReportLocale extends Locale {
+  fellBack?: { country: string | null; language: string | null };
+}
+
+/** The locale a stored report was measured in. */
+export const localeOfReport: (report: Pick<StoredReport, "locale">) => Locale = measuredLocale;
 
 /** The two engines a tracked prompt is asked on (D19, #1162). */
 export const PROMPT_ENGINES = ["ai_mode", "chatgpt"] as const;

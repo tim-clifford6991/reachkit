@@ -17,6 +17,8 @@
 // The engine spends nothing here beyond the rows the scan already bought:
 // winnability reads counts already in `fetches`, and the only model call is
 // `opportunity-typing`, inside the pass's own cap.
+import type { Locale } from "@/lib/locale/locales";
+import { siteLocale } from "@/lib/locale/site";
 import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { TOPIC_FIT } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
@@ -47,6 +49,10 @@ import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 
 export interface DeriveInput {
   siteId: string;
+  /** The site's country and language (SPEC §6, owner D66): the searches
+   *  this derivation writes are written in it. Absent, the site's stored
+   *  one is read. */
+  locale?: Locale;
   scanId: string;
   report: StoredReport;
   /** The customer's own measured ranked count. `unmeasured` reads as the
@@ -136,6 +142,7 @@ export async function deriveOpportunities(
   const base = { siteId: a.siteId, scanId: a.scanId, report: a.report };
 
   const market = a.market ?? null;
+  const locale = a.locale ?? (await siteLocale(a.siteId));
   const named = brandsOf({ report: a.report, market });
   const brands = [...named.own, ...named.rivals];
   const write = writeCandidates({
@@ -177,7 +184,7 @@ export async function deriveOpportunities(
   const comparisons: { query: string; rival: string }[] = [];
   const aRivalsPrice = (row: { family: Candidate["family"]; targetQuery: string | null }): boolean => {
     if (row.family !== "write" || row.targetQuery === null) return false;
-    const priced = rivalPriceOf(row.targetQuery, { own: named.own, ownSearched: ownSearched(market), rivals: rivalNames });
+    const priced = rivalPriceOf(row.targetQuery, { own: named.own, ownSearched: ownSearched(market), rivals: rivalNames, language: locale.language });
     if (priced === null) return false;
     if (priced.comparison !== null) comparisons.push({ query: priced.comparison, rival: priced.rival });
     return true;
@@ -232,7 +239,7 @@ export async function deriveOpportunities(
   // market's own vocabulary and the searches it read, and the open rows no
   // pass has judged yet. Stored on the row; nothing downstream asks again.
   const judgedHere = derived.filter((candidate) => candidate.family !== "fix" && candidate.targetQuery !== null);
-  const written = await writeBuyerSearches(c, { market, prompts: a.prompts ?? [], brands });
+  const written = await writeBuyerSearches(c, { market, prompts: a.prompts ?? [], brands, locale });
   const offered = proposedTopics({
     report: a.report,
     market,
@@ -241,6 +248,7 @@ export async function deriveOpportunities(
     max: Math.max(0, TOPIC_FIT.maxCandidates - judgedHere.length - HELD_ROWS_JUDGED),
     comparisons,
     written,
+    language: locale.language,
   });
 
   // SPEC §6 (2026-10-03, issue 1208): "would a buyer search this?" — one
@@ -262,6 +270,7 @@ export async function deriveOpportunities(
     searches: [...unmeasuredOffers.map((topic) => topic.query), ...unmeasuredRows.map((row) => row.targetQuery!)],
     market,
     brands,
+    locale,
   });
   const proposals = offered.filter((topic) => topic.volume !== null || typed?.has(unmeasuredOffers.indexOf(topic)) === true);
   if (typed !== null) {
@@ -306,6 +315,7 @@ export async function deriveOpportunities(
     profile: a.report.market.kind === "unmeasured" ? null : a.report.market.value.profile,
     domain: a.report.domain,
     knowledge: a.knowledge ?? null,
+    locale,
   });
 
   const angle = new Map<Candidate, string>();

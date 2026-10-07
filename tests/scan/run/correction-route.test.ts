@@ -103,6 +103,8 @@ function measurement(): DomainMeasurement {
     robots: measured(ROBOTS, AT),
     ownRanked: measuredZero(0, AT),
     ownRankedRows: [],
+    locale: { country: "US", language: "en" },
+    localeFellBack: null,
     homeRefusal: null,
   };
 }
@@ -200,7 +202,7 @@ describe("the report's correction, through the real route and the real pass (#78
     expect(new Set(recorded.map((c) => c.args.p_scan_id))).toEqual(new Set([body.scanId]));
 
     // Seeded on the market the visitor gave, and it replaces the report it corrects.
-    expect(deriveMarketSet).toHaveBeenCalledWith(expect.anything(), { seeds: [CATEGORY], ownRanked: expect.any(Number) });
+    expect(deriveMarketSet).toHaveBeenCalledWith(expect.anything(), { seeds: [CATEGORY], ownRanked: expect.any(Number), locale: { country: "US", language: "en" } });
     const stored = (storeCurrentReport.mock.calls.at(-1) as unknown as [{ supersedesScanId?: string; report: StoredReport }])[0];
     expect(stored.report.scanId).toBe(body.scanId);
     expect(stored.supersedesScanId).toBe(CORRECTED);

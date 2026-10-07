@@ -142,6 +142,25 @@ async function siteById(siteId: string): Promise<SiteSetupRow> {
 }
 
 /** One `sites` update, with the one error message every caller here uses. */
+/**
+ * The founder's answer to the site step's one question (SPEC §6, owner D66,
+ * issue 1311): the country and language the site is measured and written
+ * in. It wins over anything read. A value that is not a pair on the list
+ * writes nothing, and so does a write that fails: the pass then reads the
+ * site itself, and no founder is refused their other answers for it.
+ */
+async function writeLocale(siteId: string, key: string | undefined): Promise<void> {
+  const { localeFromKey } = await import("@/lib/locale/locales");
+  const locale = localeFromKey(key);
+  if (locale === null) return;
+  try {
+    const { writeSiteLocale } = await import("@/lib/locale/site");
+    await writeSiteLocale(siteId, locale);
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "setup_locale_unwritten", siteId, detail: String(error) }));
+  }
+}
+
 async function updateSite(siteId: string, values: Record<string, unknown>): Promise<void> {
   const { error } = await untyped().from<SiteSetupRow>("sites").update(values).eq("id", siteId);
   if (error) throw new Error(`setup store: writing site ${siteId}: ${error.message}`);
@@ -391,6 +410,7 @@ export function liveSetupStore(): SetupStore {
         competitors: [...a.submission.competitors],
       });
       await markSetupOverride(a.siteId, { category: a.submission.category, competitors: a.submission.competitors, shown });
+      await writeLocale(a.siteId, a.submission.locale);
 
       await writeVoice({
         siteId: a.siteId,
@@ -438,6 +458,7 @@ export function liveSetupStore(): SetupStore {
       if (step === "site") {
         await updateSite(a.siteId, { domain: a.save.domain, category: a.save.category });
         await markSetupOverride(a.siteId, { category: a.save.category });
+        await writeLocale(a.siteId, a.save.locale);
       } else if (step === "rivals") {
         const shown = await shownRivals(a.siteId);
         await updateSite(a.siteId, { competitors: [...a.save.competitors] });

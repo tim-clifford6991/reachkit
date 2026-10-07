@@ -16,6 +16,7 @@
 // A founder's override stands; neither moment touches a field they set.
 // Every failure leaves what is stored alone: a pass never loses its market
 // because a model call did not come back.
+import { siteLocale } from "@/lib/locale/site";
 import type { CostContext } from "@/lib/costs";
 import { evidenceDomains, type EvidencePage } from "@/lib/market/infer/evidence";
 import type { BrandDemand, MarketConclusion, RivalConclusion } from "@/lib/market/infer/types";
@@ -103,7 +104,7 @@ export async function concludeMarketForPass(a: {
     claims: text.claims,
     report: before,
   });
-  const fresh = await inferMarketFields(a.cost, evidence);
+  const fresh = await inferMarketFields(a.cost, evidence, await siteLocale(a.siteId));
   if (fresh.kind === "unmeasured") {
     log("market_conclusion_unmeasured", { siteId: a.siteId, reason: fresh.reason });
     return passMarket(site.stored.current, site.stored.rivalsOverridden, await founderBuyer(a.siteId));
@@ -162,7 +163,7 @@ async function withSearchTerms(a: {
       import("@/lib/market/infer/read-terms"),
     ]);
     if (!termsDue(market, a.at)) return market;
-    const read = await readMarketTerms(a.cost, { market, siteName: a.siteName, domain: a.domain, at: a.at });
+    const read = await readMarketTerms(a.cost, { market, siteName: a.siteName, domain: a.domain, at: a.at, locale: await siteLocale(a.siteId) });
     if (read.kind === "unmeasured") {
       log("market_terms_unmeasured", { siteId: a.siteId, reason: read.reason, because: read.because ?? null });
       return market;
@@ -194,7 +195,7 @@ export async function judgeSearchesForPass(a: {
       import("@/lib/market/questions/measured"),
       import("@/lib/market/infer/stored"),
     ]);
-    const read = await judgeSearches(a.cost, { market: a.market, searches: a.searches });
+    const read = await judgeSearches(a.cost, { market: a.market, searches: a.searches, locale: await siteLocale(a.siteId) });
     if (read.kind === "unmeasured") {
       log("market_searches_unmeasured", { siteId: a.siteId, reason: read.reason, because: read.because ?? null });
       return null;
@@ -286,7 +287,7 @@ export async function recheckRivals(a: {
     claims: text.claims,
     report: a.report,
   });
-  const fresh = await inferRivals(a.cost, evidence, market, RIVAL_CANDIDATES);
+  const fresh = await inferRivals(a.cost, evidence, market, RIVAL_CANDIDATES, await siteLocale(a.siteId));
   if (fresh.kind === "unmeasured") {
     log("rival_conclusion_unmeasured", { siteId: a.siteId, reason: fresh.reason });
     return none;
@@ -367,7 +368,7 @@ async function weighByDemand(a: {
       import("@/lib/market/infer/read-demand"),
       import("@/lib/market/infer/demand"),
     ]);
-    const read = await readBrandDemand(a.cost, a);
+    const read = await readBrandDemand(a.cost, { ...a, locale: await siteLocale(a.siteId) });
     if (read.kind === "unmeasured") {
       log("rival_demand_unmeasured", { siteId: a.siteId, reason: read.reason, because: read.because ?? null });
       return null;
@@ -401,7 +402,7 @@ export async function promptsInForce(a: { siteId: string; domain: string }): Pro
   if (market === null) return null;
   const stored = await readPromptSet(a.siteId);
   const siteName = promptSiteName((await siteText(a.domain)).siteName, a.domain);
-  return { market, stored, siteName, generated: generatePrompts(spokenMarket(market, await founderBuyer(a.siteId)), siteName) };
+  return { market, stored, siteName, generated: generatePrompts(spokenMarket(market, await founderBuyer(a.siteId)), siteName, (await siteLocale(a.siteId)).language) };
 }
 
 /**
@@ -552,14 +553,15 @@ export async function concludeAtSetup(a: {
     import("@/lib/market/infer/infer"),
     import("@/lib/market/infer/stored"),
   ]);
+  const locale = await siteLocale(a.siteId);
   const concluded = await a.spend(async (c) => {
-    const fields = await inferMarketFields(c, evidence);
+    const fields = await inferMarketFields(c, evidence, locale);
     if (fields.kind === "unmeasured") return null;
     const market =
       a.stated === null || a.stated.trim() === ""
         ? fields.value
         : { ...fields.value, category: a.stated.trim(), synonyms: [], categoryReason: "" };
-    const rivals = await inferRivals(c, evidence, market, RIVAL_CANDIDATES);
+    const rivals = await inferRivals(c, evidence, market, RIVAL_CANDIDATES, locale);
     if (rivals.kind === "unmeasured") return { market, rivals: [], demand: undefined };
     const candidates = await withCheckedDomains({ siteId: a.siteId, domain: a.domain, rivals: rivals.value, seen: evidenceDomains(evidence) });
     // D50: the rivals setup offers are the ones buyers search for.

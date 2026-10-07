@@ -9,6 +9,7 @@
 // The hosted page draws the line in its own header. A WordPress post has no
 // template of ours, so the line is the first paragraph of the content this
 // product sends — escaped like every other character of it.
+import type { Say } from "./markdown";
 import { copy } from "@/lib/presentation/copy";
 import { escapeHtml } from "./markdown";
 
@@ -21,7 +22,12 @@ export const PAGE_LOCALE = "en-US";
  * month, year: a page stays live for years, and a bare day and month on it
  * is ambiguous.
  */
-export function writePageDate(at: Date, timeZone: string | null): string {
+export function writePageDate(at: Date, timeZone: string | null, tag: string = PAGE_LOCALE): string {
+  // A page in another language writes its date as that language does
+  // (D66): "4. Sept. 2026".
+  if (tag !== PAGE_LOCALE) {
+    return new Intl.DateTimeFormat(tag, { timeZone: timeZone ?? "UTC", day: "numeric", month: "short", year: "numeric" }).format(at);
+  }
   const parts = new Intl.DateTimeFormat(PAGE_LOCALE, {
     timeZone: timeZone ?? "UTC",
     day: "numeric",
@@ -42,12 +48,17 @@ export function bylineLine(a: {
   published: Date;
   updated: Date | null;
   timeZone: string | null;
+  /** The page's own language and how it writes a date (D66); absent is
+   *  English. */
+  say?: Say;
+  tag?: string;
 }): string {
-  const date = writePageDate(a.published, a.timeZone);
-  const updated = a.updated === null ? null : writePageDate(a.updated, a.timeZone);
+  const say = a.say ?? copy;
+  const date = writePageDate(a.published, a.timeZone, a.tag);
+  const updated = a.updated === null ? null : writePageDate(a.updated, a.timeZone, a.tag);
   return updated === null || updated === date
-    ? copy("hosted.published", { date, publisher: a.byline })
-    : copy("hosted.updated", { date, updated, publisher: a.byline });
+    ? say("hosted.published", { date, publisher: a.byline })
+    : say("hosted.updated", { date, updated, publisher: a.byline });
 }
 
 /** The line as the first paragraph of a post's content; `""` for a page
@@ -57,6 +68,8 @@ export function bylineHtml(a: {
   published: Date;
   updated: Date | null;
   timeZone: string | null;
+  say?: Say;
+  tag?: string;
 }): string {
   if (a.byline === null || a.byline.trim() === "") return "";
   return `<p>${escapeHtml(bylineLine({ ...a, byline: a.byline }))}</p>\n`;

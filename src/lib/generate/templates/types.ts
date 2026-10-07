@@ -77,3 +77,14 @@ export interface Template {
   research: boolean;
   packMustHold: readonly PackRequirement[];
 }
+
+/**
+ * What one language other than English supplies for the templates (SPEC §6,
+ * owner D66): each type's title formulas and what its title never does, in
+ * that language's own words, and the rules a page in that language follows
+ * beside the house rules. English is the templates as they are written.
+ */
+export interface TemplateWords {
+  titles: Readonly<Record<ContentType, { titles: readonly string[]; titleNever?: string }>>;
+  rules: readonly string[];
+}

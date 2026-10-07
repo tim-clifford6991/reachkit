@@ -16,6 +16,7 @@
 // change one — a score for an index it was not shown does not count. An
 // unavailable model or a reached cap is no judgement at all: nothing is
 // scored, nothing is proposed, and the pass derives what it derived before.
+import type { Locale } from "@/lib/locale/locales";
 import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { z } from "zod";
 import { TOPIC_FIT } from "@/lib/config/constants";
@@ -107,6 +108,8 @@ export async function judgeFit(
   a: {
     searches: readonly FitSearch[];
     market: MarketConclusion | null;
+    /** The site's country and language (D66): the searches are in it. */
+    locale?: Locale;
     profile: Profile | null;
     domain: string;
     knowledge?: KnowledgeDigest | null;
@@ -143,6 +146,7 @@ export async function judgeFit(
     },
     schema: FIT_SCHEMA,
     tier: "sonnet",
+    ...(a.locale === undefined ? {} : { locale: a.locale }),
   });
   if (answer.kind === "unmeasured") return new Map();
   return boundTopFit(answer.value.scores, answer.value.strongest, searches.length);

@@ -178,6 +178,9 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   // SPEC.md §5 (2026-09-12): the voice as the founder will leave it — what
   // the scan read, or what they already saved over it.
   const [voiceDraft, setVoiceDraft] = useState(p.model.voiceText);
+  // D66: the site's country and language, opened on what was read of it;
+  // the founder's answer is what is saved.
+  const [locale, setLocale] = useState(p.model.locale);
   const [destination, setDestination] = useState<DestinationKind>(defaults.destination);
   // SPEC §5 (2026-09-12): the subdomain label is the customer's, and the
   // card is drawn with the default until they change it.
@@ -251,6 +254,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         voiceText: voiceDraft,
         // Issue #783: the site has a zone before its first draft is selected.
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        locale,
       },
     };
   }
@@ -262,7 +266,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
       case "site": {
         const checked = validateSetup(state);
         if (!checked.ok) return null;
-        return { step, domain: state.siteDomain, category: settledCategory(state) };
+        return { step, domain: state.siteDomain, category: settledCategory(state), locale };
       }
       case "business":
         // #970: the lists as the founder left them, and #1038 *What you do*. What is *stored*
@@ -449,6 +453,8 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                   setState={setState}
                   questions={p.model.questions}
                   resolveDomain={resolveDomain}
+                  locale={locale}
+                  setLocale={setLocale}
                 />
               ) : null}
 

@@ -4,6 +4,7 @@
 // The writer is told it (`./write.ts`) and stage 4 checks it
 // (`../rules/title.ts`) from this one reading, so the title a writer is
 // asked for and the title the check passes are one description.
+import { languagePack } from "@/lib/locale/language";
 import { TITLE } from "@/lib/config/constants";
 import { brandOf } from "@/lib/market/questions/select";
 import type { TitleRuleInputs } from "../rules/title";
@@ -31,6 +32,7 @@ export function titleRuleFor(pack: ContextPack, description: string): TitleRuleI
     year: new Date(pack.builtAt).getUTCFullYear(),
     titles: pack.pages.flatMap((page) => text(page.title)),
     description,
+    ...(pack.locale === undefined ? {} : { language: pack.locale.language }),
   };
 }
 
@@ -48,7 +50,7 @@ export function titleBrief(pack: ContextPack): Record<string, unknown> {
       dated
         ? "It may carry `year`, in brackets or before a colon, never as its last word, and no other year."
         : "It carries no year.",
-      `Never ${TITLE.banned.map((phrase) => `"${phrase}"`).join(", ")}, a square bracket, a pipe, or the same word twice.`,
+      `Never ${languagePack(pack.locale?.language ?? "en").title.banned.map((phrase) => `"${phrase}"`).join(", ")}, a square bracket, a pipe, or the same word twice.`,
       "It does not read like the title of any page in `pack.pages`.",
     ],
   };

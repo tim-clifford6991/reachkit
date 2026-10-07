@@ -35,6 +35,7 @@
 //
 // No sentence is written here. `RivalSize`'s arms are states; the words
 // each state picks are the copy registry's and the surface's.
+import type { Locale } from "@/lib/locale/locales";
 import { CACHE_WINDOWS_D, PRICE_BOOK } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { measured, measuredZero, type Measured } from "@/lib/measure/measured";
@@ -105,6 +106,9 @@ export async function sizeRivals(
     rivals: readonly string[];
     ownRanked: number;
     at: Date;
+    /** The site's country and language (D66): a rival is sized where the
+     *  site's buyers search. */
+    locale: Locale;
     previous?: readonly RivalSize[];
     /** What a domain this call could not size says, where no entry in
      *  `previous` carries it (issue 901). Defaults to the pair `previous`
@@ -130,7 +134,7 @@ export async function sizeRivals(
       continue;
     }
 
-    const rows = await rankedKeywords(c, { domain, rows: PRICE_BOOK.RANKED_RIVAL_ROWS });
+    const rows = await rankedKeywords(c, { domain, rows: PRICE_BOOK.RANKED_RIVAL_ROWS, locale: a.locale });
     if (rows.kind === "unmeasured") {
       entries.push(carriedForward(domain, before, a.previous !== undefined, a.neverSizedBecause));
       continue;

@@ -338,6 +338,10 @@ export async function collect(a: { site: PanelSite; bought: readonly FetchRow[];
     aiMode: { reads: aiReads.length, timeouts: aiReads.filter((row) => (row.payload as { vendorFailure?: unknown } | null)?.vendorFailure === "timeout").length },
     pageQuestions,
     locales: [...a.locales],
+    stored: {
+      country: typeof stored.site?.country === "string" ? stored.site.country : null,
+      language: typeof stored.site?.language === "string" ? stored.site.language : null,
+    },
     searches: report === null || report.questions.kind === "unmeasured" ? [] : report.questions.value.map((question) => question.search.keyword),
     knowledgePages: knowledge.pages.length,
     questions: [...new Set(knowledge.pages.flatMap((page) => page.reading.questions))],

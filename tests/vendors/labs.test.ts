@@ -56,7 +56,7 @@ describe("BUILD §6.3 — rankedKeywords parses the vendor's own shape into Rank
       })
     );
     const { ctx } = fakeCostContext();
-    const result = await labs.rankedKeywords(ctx, { domain: "example.com", rows: 50 });
+    const result = await labs.rankedKeywords(ctx, { locale: { country: "US", language: "en" }, domain: "example.com", rows: 50 });
 
     expect(result.kind).toBe("measured");
     if (result.kind !== "measured") throw new Error("unreachable");
@@ -79,7 +79,7 @@ describe("BUILD §6.3 — rankedKeywords parses the vendor's own shape into Rank
       })
     );
     const { ctx } = fakeCostContext();
-    const result = await labs.rankedKeywords(ctx, { domain: "example.com", rows: 50 });
+    const result = await labs.rankedKeywords(ctx, { locale: { country: "US", language: "en" }, domain: "example.com", rows: 50 });
 
     expect(result.kind).toBe("measured");
     if (result.kind !== "measured") throw new Error("unreachable");
@@ -94,7 +94,7 @@ describe("BUILD §6.3 — rankedKeywords parses the vendor's own shape into Rank
       envelope({ items_count: 1, items: [rankedItem("crm software", 4, 1900, "https://example.com/crm")] })
     );
     const { ctx } = fakeCostContext();
-    const result = await labs.rankedKeywords(ctx, { domain: "example.com", rows: 50 });
+    const result = await labs.rankedKeywords(ctx, { locale: { country: "US", language: "en" }, domain: "example.com", rows: 50 });
 
     expect(result.kind).toBe("measured");
     if (result.kind !== "measured") throw new Error("unreachable");
@@ -106,7 +106,7 @@ describe("BUILD §6.3 — rankedKeywords parses the vendor's own shape into Rank
       envelope({ total_count: 9000, items: [rankedItem("k", 1, 10, "https://example.com/k")] })
     );
     const { ctx, ledgered } = fakeCostContext();
-    await labs.rankedKeywords(ctx, { domain: "example.com", rows: 100 });
+    await labs.rankedKeywords(ctx, { locale: { country: "US", language: "en" }, domain: "example.com", rows: 100 });
 
     expect(stub.requests).toHaveLength(1);
     expect(stub.tasks[0]).toMatchObject({ limit: 100 });
@@ -116,7 +116,7 @@ describe("BUILD §6.3 — rankedKeywords parses the vendor's own shape into Rank
   it("sends the row count as the vendor's `limit` and the domain as its `target`", async () => {
     const stub = stubVendorFetch(() => envelope({ items: [] }));
     const { ctx } = fakeCostContext();
-    await labs.rankedKeywords(ctx, { domain: "example.com", rows: 300 });
+    await labs.rankedKeywords(ctx, { locale: { country: "US", language: "en" }, domain: "example.com", rows: 300 });
 
     expect(stub.requests[0]?.url).toBe("https://api.dataforseo.com/v3/dataforseo_labs/google/ranked_keywords/live");
     expect(stub.tasks[0]).toMatchObject({ target: "example.com", limit: 300 });
@@ -131,7 +131,7 @@ describe('BP-008 error behaviour — "Zero rows is a legal, billed result … ne
   ])("%s yields the `zero` arm, not `unmeasured`", async (_name, result) => {
     stubVendorFetch(() => envelope(result));
     const { ctx, ledgered } = fakeCostContext();
-    const measured = await labs.rankedKeywords(ctx, { domain: "cold-start.example", rows: 50 });
+    const measured = await labs.rankedKeywords(ctx, { locale: { country: "US", language: "en" }, domain: "cold-start.example", rows: 50 });
 
     expect(measured.kind).toBe("zero");
     if (measured.kind !== "zero") throw new Error("unreachable");
@@ -160,7 +160,7 @@ describe('BP-008 error behaviour — "A vendor error, a timeout or an unparseabl
   ])("%s yields `unmeasured / undeterminable` and never throws", async (_name, answer) => {
     stubVendorFetch(answer as () => unknown);
     const { ctx } = fakeCostContext();
-    const result = await labs.rankedKeywords(ctx, { domain: "example.com", rows: 50 });
+    const result = await labs.rankedKeywords(ctx, { locale: { country: "US", language: "en" }, domain: "example.com", rows: 50 });
 
     expect(result.kind).toBe("unmeasured");
     if (result.kind !== "unmeasured") throw new Error("unreachable");
@@ -176,10 +176,10 @@ describe("BUILD §6.5 — a cap-skipped call is `not_attempted` and never reache
       const { ctx } = cappedCostContext();
       const result =
         name === "rankedKeywords"
-          ? await labs.rankedKeywords(ctx, { domain: "example.com", rows: 50 })
+          ? await labs.rankedKeywords(ctx, { locale: { country: "US", language: "en" }, domain: "example.com", rows: 50 })
           : name === "keywordSuggestions"
-            ? await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: WINDOW })
-            : await labs.competitorsDomain(ctx, { domain: "example.com" });
+            ? await labs.keywordSuggestions(ctx, { locale: { country: "US", language: "en" }, seed: "crm", rows: 50, volume: WINDOW })
+            : await labs.competitorsDomain(ctx, { locale: { country: "US", language: "en" }, domain: "example.com" });
 
       expect(result.kind).toBe("unmeasured");
       if (result.kind !== "unmeasured") throw new Error("unreachable");
@@ -197,14 +197,14 @@ describe("BUILD §6.1 price book — each call reserves the pinned price, read f
   ] as const)("rankedKeywords @%i rows reserves PRICE_BOOK.%s", async (rows, pin) => {
     stubVendorFetch(() => envelope({ items: [] }));
     const { ctx, calls } = fakeCostContext();
-    await labs.rankedKeywords(ctx, { domain: "example.com", rows });
+    await labs.rankedKeywords(ctx, { locale: { country: "US", language: "en" }, domain: "example.com", rows });
     expect(calls[0]?.costCents).toBe(constants.PRICE_BOOK[pin]);
   });
 
   it("keywordSuggestions reserves PRICE_BOOK.SUGGESTIONS_COST_C at VENDOR.suggestionsRows", async () => {
     const stub = stubVendorFetch(() => envelope({ items: [] }));
     const { ctx, calls } = fakeCostContext();
-    await labs.keywordSuggestions(ctx, { seed: "crm software", rows: 50, volume: WINDOW });
+    await labs.keywordSuggestions(ctx, { locale: { country: "US", language: "en" }, seed: "crm software", rows: 50, volume: WINDOW });
     expect(calls[0]?.costCents).toBe(constants.PRICE_BOOK.SUGGESTIONS_COST_C);
     expect(stub.tasks[0]).toMatchObject({ keyword: "crm software", limit: constants.VENDOR.suggestionsRows });
   });
@@ -212,7 +212,7 @@ describe("BUILD §6.1 price book — each call reserves the pinned price, read f
   it("competitorsDomain reserves PRICE_BOOK.COMPETITORS_DOMAIN_COST_C at the row count that price is derived from", async () => {
     const stub = stubVendorFetch(() => envelope({ items: [] }));
     const { ctx, calls } = fakeCostContext();
-    await labs.competitorsDomain(ctx, { domain: "example.com" });
+    await labs.competitorsDomain(ctx, { locale: { country: "US", language: "en" }, domain: "example.com" });
     expect(calls[0]?.costCents).toBe(constants.PRICE_BOOK.COMPETITORS_DOMAIN_COST_C);
     expect(stub.tasks[0]).toMatchObject({ target: "example.com", limit: constants.VENDOR.competitorsDomainRows });
   });
@@ -229,7 +229,7 @@ describe("SPEC §6 (D49, issue 1270) — keywordOverview reads a list's search v
       })
     );
     const { ctx, calls } = fakeCostContext();
-    const result = await labs.keywordOverview(ctx, { keywords: ["AI SEO", "AI visibility tool", "AI discovery monitoring"] });
+    const result = await labs.keywordOverview(ctx, { locale: { country: "US", language: "en" }, keywords: ["AI SEO", "AI visibility tool", "AI discovery monitoring"] });
 
     expect(stub.tasks).toHaveLength(1);
     expect(stub.tasks[0]).toMatchObject({ keywords: ["ai discovery monitoring", "ai seo", "ai visibility tool"] });
@@ -250,36 +250,36 @@ describe('BUILD §6.4 — "Cache windows: own domain 7d · rivals 30d … sugges
   ] as const)("rankedKeywords @%i rows passes CACHE_WINDOWS_D.%s", async (rows, window) => {
     stubVendorFetch(() => envelope({ items: [] }));
     const { ctx, calls } = fakeCostContext();
-    await labs.rankedKeywords(ctx, { domain: "example.com", rows });
+    await labs.rankedKeywords(ctx, { locale: { country: "US", language: "en" }, domain: "example.com", rows });
     expect(calls[0]?.freshnessDays).toBe(constants.CACHE_WINDOWS_D[window]);
   });
 
   it("keywordSuggestions passes CACHE_WINDOWS_D.suggestions", async () => {
     stubVendorFetch(() => envelope({ items: [] }));
     const { ctx, calls } = fakeCostContext();
-    await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: WINDOW });
+    await labs.keywordSuggestions(ctx, { locale: { country: "US", language: "en" }, seed: "crm", rows: 50, volume: WINDOW });
     expect(calls[0]?.freshnessDays).toBe(constants.CACHE_WINDOWS_D.suggestions);
   });
 
   it("competitorsDomain passes CACHE_WINDOWS_D.rival — a warm-start supplement keyed on the customer's rankings", async () => {
     stubVendorFetch(() => envelope({ items: [] }));
     const { ctx, calls } = fakeCostContext();
-    await labs.competitorsDomain(ctx, { domain: "example.com" });
+    await labs.competitorsDomain(ctx, { locale: { country: "US", language: "en" }, domain: "example.com" });
     expect(calls[0]?.freshnessDays).toBe(constants.CACHE_WINDOWS_D.rival);
   });
 
   it("the cache key separates row counts, seeds and domains, and carries the pinned locale (BUILD §6.3a)", async () => {
     stubVendorFetch(() => envelope({ items: [] }));
     const { ctx, calls } = fakeCostContext();
-    await labs.rankedKeywords(ctx, { domain: "example.com", rows: 50 });
-    await labs.rankedKeywords(ctx, { domain: "example.com", rows: 300 });
-    await labs.rankedKeywords(ctx, { domain: "other.example", rows: 50 });
+    await labs.rankedKeywords(ctx, { locale: { country: "US", language: "en" }, domain: "example.com", rows: 50 });
+    await labs.rankedKeywords(ctx, { locale: { country: "US", language: "en" }, domain: "example.com", rows: 300 });
+    await labs.rankedKeywords(ctx, { locale: { country: "US", language: "en" }, domain: "other.example", rows: 50 });
 
     const keys = calls.map((c) => c.cacheKey);
     expect(new Set(keys).size).toBe(3);
     for (const key of keys) {
-      expect(key).toContain(constants.SERP_LOCATION.location);
-      expect(key).toContain(constants.SERP_LOCATION.language);
+      expect(key).toContain("United States");
+      expect(key).toContain("en");
     }
   });
 });
@@ -289,7 +289,7 @@ describe("keywordSuggestions buys inside the right-sizing window (issue 846)", (
     const { suggestionsWindow } = await import("../../src/lib/market/questions/market-set.ts");
     const stub = stubVendorFetch(() => envelope({ items: [] }));
     const { ctx } = fakeCostContext();
-    await labs.keywordSuggestions(ctx, { seed: "project management software", rows: 50, volume: suggestionsWindow(848) });
+    await labs.keywordSuggestions(ctx, { locale: { country: "US", language: "en" }, seed: "project management software", rows: 50, volume: suggestionsWindow(848) });
 
     expect(stub.tasks[0]).toMatchObject({
       keyword: "project management software",
@@ -308,9 +308,9 @@ describe("keywordSuggestions buys inside the right-sizing window (issue 846)", (
   it("the cache key differs between two ceilings, so rows bought for one are never served for the other", async () => {
     stubVendorFetch(() => envelope({ items: [] }));
     const { ctx, calls } = fakeCostContext();
-    await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: { min: 10, max: 1000, maxDifficulty: 30 } });
-    await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: { min: 10, max: 8480, maxDifficulty: 30 } });
-    await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: { min: 10, max: 8480, maxDifficulty: 59 } });
+    await labs.keywordSuggestions(ctx, { locale: { country: "US", language: "en" }, seed: "crm", rows: 50, volume: { min: 10, max: 1000, maxDifficulty: 30 } });
+    await labs.keywordSuggestions(ctx, { locale: { country: "US", language: "en" }, seed: "crm", rows: 50, volume: { min: 10, max: 8480, maxDifficulty: 30 } });
+    await labs.keywordSuggestions(ctx, { locale: { country: "US", language: "en" }, seed: "crm", rows: 50, volume: { min: 10, max: 8480, maxDifficulty: 59 } });
 
     expect(new Set(calls.map((call) => call.cacheKey)).size).toBe(3);
   });
@@ -328,7 +328,7 @@ describe("BUILD §6.3 — keywordSuggestions and competitorsDomain parse into th
       })
     );
     const { ctx } = fakeCostContext();
-    const result = await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: WINDOW });
+    const result = await labs.keywordSuggestions(ctx, { locale: { country: "US", language: "en" }, seed: "crm", rows: 50, volume: WINDOW });
 
     expect(result.kind).toBe("measured");
     if (result.kind !== "measured") throw new Error("unreachable");
@@ -349,7 +349,7 @@ describe("BUILD §6.3 — keywordSuggestions and competitorsDomain parse into th
       })
     );
     const { ctx } = fakeCostContext();
-    const result = await labs.competitorsDomain(ctx, { domain: "example.com" });
+    const result = await labs.competitorsDomain(ctx, { locale: { country: "US", language: "en" }, domain: "example.com" });
 
     if (result.kind !== "measured") throw new Error("expected measured");
     expect(result.value).toEqual([
@@ -369,7 +369,7 @@ describe("BUILD §6.3 — keywordSuggestions and competitorsDomain parse into th
       })
     );
     const { ctx } = fakeCostContext();
-    const result = await labs.competitorsDomain(ctx, { domain: "example.com" });
+    const result = await labs.competitorsDomain(ctx, { locale: { country: "US", language: "en" }, domain: "example.com" });
 
     expect(result.kind).toBe("measured");
     if (result.kind !== "measured") throw new Error("unreachable");
@@ -384,9 +384,9 @@ describe("BUILD §6.4 never-list — Labs is live-only, so no Labs call can reac
   it("every Labs request goes to a `/live` path and never to `task_post`", async () => {
     const stub = stubVendorFetch(() => envelope({ items: [] }));
     const { ctx } = fakeCostContext();
-    await labs.rankedKeywords(ctx, { domain: "example.com", rows: 50 });
-    await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: WINDOW });
-    await labs.competitorsDomain(ctx, { domain: "example.com" });
+    await labs.rankedKeywords(ctx, { locale: { country: "US", language: "en" }, domain: "example.com", rows: 50 });
+    await labs.keywordSuggestions(ctx, { locale: { country: "US", language: "en" }, seed: "crm", rows: 50, volume: WINDOW });
+    await labs.competitorsDomain(ctx, { locale: { country: "US", language: "en" }, domain: "example.com" });
 
     expect(stub.requests).toHaveLength(3);
     for (const request of stub.requests) {

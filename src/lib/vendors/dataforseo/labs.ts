@@ -13,13 +13,14 @@
 // that is the caller's tier logic — this module offers exactly the three
 // row counts the price book prices and nothing else.
 import type { CostContext } from "@/lib/costs";
-import { CACHE_WINDOWS_D, PRICE_BOOK, SERP_LOCATION, VENDOR } from "@/lib/config/constants";
+import { CACHE_WINDOWS_D, PRICE_BOOK, VENDOR } from "@/lib/config/constants";
+import type { Locale } from "@/lib/locale/locales";
 import type { Measured } from "@/lib/measure/measured";
 import { asArray, asNumber, asString, callEndpoint, isRecord, ledgered, ledgeredWithTotal, type OnVendorFailure } from "./envelope";
+import { localeCacheKey } from "./transport";
 import type { CompetitorRow, KeywordVolumeRow, RankedResult, RankedRow, SuggestionRow, VolumeWindow } from "./types";
 
 const LABS = "/v3/dataforseo_labs/google";
-const LOCALE_KEY = `${SERP_LOCATION.location}|${SERP_LOCATION.language}`;
 
 export type RankedRows = typeof PRICE_BOOK.RANKED_FREE_ROWS | typeof PRICE_BOOK.RANKED_RIVAL_ROWS | typeof PRICE_BOOK.RANKED_PAID_ROWS;
 
@@ -154,6 +155,9 @@ export async function rankedKeywords(
   a: {
     domain: string;
     rows: RankedRows;
+    /** The site's country and language (D66): where the read is made, and
+     *  part of its cache key. */
+    locale: Locale;
     /** Issue 1170: a narrower window than the row count's own, for a pass
      *  that may not be served a read from before its week. Never wider. */
     windowDays?: number;
@@ -171,14 +175,14 @@ export async function rankedKeywords(
     // `{ rows, total }` would report a cached rival as having no rows.
     // `|etv`: rows bought before #1161 were the vendor's unordered first
     // rows, and are never served as a domain's top keywords.
-    cacheKey: `${a.domain}|${a.rows}|${LOCALE_KEY}|p${VENDOR.rankedPayloadVersion}|etv`,
+    cacheKey: `${a.domain}|${a.rows}|${localeCacheKey(a.locale)}|p${VENDOR.rankedPayloadVersion}|etv`,
     freshnessDays:
       a.windowDays === undefined
         ? rankedFreshnessDays(a.rows)
         : Math.min(rankedFreshnessDays(a.rows), a.windowDays),
     costCents: rankedCostCents(a.rows),
     fetch: () =>
-      callEndpoint({ live: `${LABS}/ranked_keywords/live` }, "live", {
+      callEndpoint({ live: `${LABS}/ranked_keywords/live` }, "live", a.locale, {
         target: a.domain,
         limit: a.rows,
         // #1161: without an order the vendor answers its rows near
@@ -194,17 +198,17 @@ export async function rankedKeywords(
 
 export async function keywordSuggestions(
   c: CostContext,
-  a: { seed: string; rows: typeof VENDOR.suggestionsRows; volume: VolumeWindow }
+  a: { seed: string; rows: typeof VENDOR.suggestionsRows; volume: VolumeWindow; locale: Locale }
 ): Promise<Measured<SuggestionRow[]>> {
   return ledgered<SuggestionRow>(c, {
     source: "dataforseo_labs/google/keyword_suggestions",
     // The window is part of the key (issue 846): rows bought for one
     // ceiling are never served to a pass with another.
-    cacheKey: `${a.seed}|${a.rows}|v${a.volume.min}-${a.volume.max}|d${a.volume.maxDifficulty}|${LOCALE_KEY}`,
+    cacheKey: `${a.seed}|${a.rows}|v${a.volume.min}-${a.volume.max}|d${a.volume.maxDifficulty}|${localeCacheKey(a.locale)}`,
     freshnessDays: CACHE_WINDOWS_D.suggestions,
     costCents: PRICE_BOOK.SUGGESTIONS_COST_C,
     fetch: () =>
-      callEndpoint({ live: `${LABS}/keyword_suggestions/live` }, "live", {
+      callEndpoint({ live: `${LABS}/keyword_suggestions/live` }, "live", a.locale, {
         keyword: a.seed,
         limit: a.rows,
         // The vendor's own syntax (docs.dataforseo.com, keyword_suggestions/
@@ -246,34 +250,34 @@ function parseOverview(result: unknown): KeywordVolumeRow[] | undefined {
 }
 
 /**
- * How often each keyword is searched a month in `SERP_LOCATION` (SPEC §6,
+ * How often each keyword is searched a month in the site's country (SPEC §6,
  * owner D49 of 2026-10-05, issue 1270): one request for the whole list. A
  * keyword the vendor holds nothing for has no row, which the caller reads
  * as no searches.
  */
 export async function keywordOverview(
   c: CostContext,
-  a: { keywords: readonly string[] }
+  a: { keywords: readonly string[]; locale: Locale }
 ): Promise<Measured<KeywordVolumeRow[]>> {
   const keywords = [...new Set(a.keywords.map((k) => k.trim().toLowerCase()).filter(Boolean))].sort();
   return ledgered<KeywordVolumeRow>(c, {
     source: "dataforseo_labs/google/keyword_overview",
-    cacheKey: `${keywords.join(",")}|${LOCALE_KEY}`,
+    cacheKey: `${keywords.join(",")}|${localeCacheKey(a.locale)}`,
     freshnessDays: CACHE_WINDOWS_D.suggestions,
     costCents: PRICE_BOOK.KEYWORD_OVERVIEW_REQUEST_C + keywords.length * PRICE_BOOK.KEYWORD_OVERVIEW_KEYWORD_C,
-    fetch: () => callEndpoint({ live: `${LABS}/keyword_overview/live` }, "live", { keywords }),
+    fetch: () => callEndpoint({ live: `${LABS}/keyword_overview/live` }, "live", a.locale, { keywords }),
     parse: parseOverview,
   });
 }
 
-export async function competitorsDomain(c: CostContext, a: { domain: string }): Promise<Measured<CompetitorRow[]>> {
+export async function competitorsDomain(c: CostContext, a: { domain: string; locale: Locale }): Promise<Measured<CompetitorRow[]>> {
   return ledgered<CompetitorRow>(c, {
     source: "dataforseo_labs/google/competitors_domain",
-    cacheKey: `${a.domain}|${LOCALE_KEY}`,
+    cacheKey: `${a.domain}|${localeCacheKey(a.locale)}`,
     freshnessDays: CACHE_WINDOWS_D.rival,
     costCents: PRICE_BOOK.COMPETITORS_DOMAIN_COST_C,
     fetch: () =>
-      callEndpoint({ live: `${LABS}/competitors_domain/live` }, "live", {
+      callEndpoint({ live: `${LABS}/competitors_domain/live` }, "live", a.locale, {
         target: a.domain,
         limit: VENDOR.competitorsDomainRows,
       }),

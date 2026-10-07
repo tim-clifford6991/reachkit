@@ -111,6 +111,7 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
     // SPEC §5 (2026-09-20, #922): the answers this founder already gave and
     // the step they left, so `/setup` reopens where they stopped.
     saved: await savedSetupFor(founder.userId),
+    locale: await localeFor(founder),
     // SPEC §5 (2026-09-20, #923): the rivals panel, off the same stored
     // report the market card is drawn from — one read, already cached, and
     // no vendor call for a panel.
@@ -280,6 +281,34 @@ export function setupStore(): SetupStore {
  * change it back and the inferred card returns. A read that fails is
  * `null` — the empty card — never a screen the founder cannot get past.
  */
+/**
+ * The country and language setup's one question opens on for `domain`
+ * (SPEC §6, owner D66, issue 1311), as the key the form carries: what the
+ * site's own scan measured it in, else what its address alone says. No
+ * fetch and no vendor call; a read that fails is the address's own reading.
+ */
+export async function readLocaleFor(domain: string): Promise<string> {
+  const { localeKey } = await import("@/lib/locale/locales");
+  const { readLocale } = await import("@/lib/locale/read");
+  const fromAddress = readLocale({ domain, html: null }).locale;
+  if (domain === "") return localeKey(fromAddress);
+  const report = await storedReportFor(domain).catch(() => null);
+  if (report === null || report.locale === undefined) return localeKey(fromAddress);
+  const { localeOfReport } = await import("@/lib/scan/report");
+  return localeKey(localeOfReport(report));
+}
+
+/** The locale the founder's site already holds, else the reading. */
+async function localeFor(founder: { siteId: string; domain: string }): Promise<string> {
+  const { localeKey } = await import("@/lib/locale/locales");
+  if (founder.siteId !== "") {
+    const { readStoredLocale } = await import("@/lib/locale/site");
+    const stored = await readStoredLocale(founder.siteId).catch(() => null);
+    if (stored !== null) return localeKey(stored);
+  }
+  return readLocaleFor(founder.domain);
+}
+
 export async function readReportFor(domain: string): Promise<ReportFacts | null> {
   const report = await storedReportFor(domain);
   if (report === null) return null;

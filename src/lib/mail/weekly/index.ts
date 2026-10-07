@@ -32,6 +32,7 @@
 // the next three from the ranking as
 // it stands. A mail that re-measured to state a movement would report a
 // different week from the one it announces.
+import { siteLocale } from "@/lib/locale/site";
 import { dbAdmin } from "@/lib/db";
 import { env } from "@/lib/config/env";
 import { ANSWER_RATE_WEEKS, MENTION_RATE_MIN_WEEKS, WEEKLY_NEXT_COUNT } from "@/lib/config/constants";
@@ -133,6 +134,7 @@ export async function sendWeeklyDigest(a: {
 
   const result = await sendEmail({
     kind: "weekly",
+    language: (await siteLocale(a.siteId)).language,
     to: recipient.email,
     userId: recipient.userId,
     subject: mail.subject,

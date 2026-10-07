@@ -29,6 +29,7 @@
 // call: `llm()` already returns `unmeasured` for it, and this module hands
 // that back untouched — no default voice, no site name guessed from the
 // domain, no empty `VoiceSummary` substituted for one that was not read.
+import type { Locale } from "@/lib/locale/locales";
 import { z } from "zod";
 import { SITE_PROFILE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
@@ -169,7 +170,7 @@ export function boundPages(
  */
 export function deriveVoice(
   c: CostContext,
-  a: { domain: string; pages: readonly PageSample[]; tier: Tier }
+  a: { domain: string; pages: readonly PageSample[]; tier: Tier; locale?: Locale }
 ): Promise<Measured<SiteReading>> {
   const pages = boundPages(a.pages, SITE_PROFILE.VOICE_INPUT_MAX_CHARS);
   return llm(c, {
@@ -179,6 +180,7 @@ export function deriveVoice(
     input: { task: SITE_READING_TASK, fields: SITE_READING_FIELDS, domain: a.domain, pages },
     schema: SITE_READING_SCHEMA,
     tier: "nano",
+    ...(a.locale === undefined ? {} : { locale: a.locale }),
   }).then((result) => {
     logVoiceOutcome(result);
     return result;

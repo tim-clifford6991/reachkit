@@ -9,11 +9,10 @@
 //
 // Every address here is on the customer's own host. None names ReachKit.
 import type { Metadata } from "next";
-import { copy } from "@/lib/presentation/copy";
+import { copy, readerTag } from "@/lib/presentation/copy/reader";
 import type { HostedPage } from "@/lib/publish/destinations/hosted";
 import { OG_SIZE } from "@/app/(public)/_seo/og-card";
 import { INDEX_PATH, LOGO_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
-import { PAGE_LOCALE } from "./present";
 
 /** The feed, on the customer's own host (`../rss.xml`). */
 export const FEED_PATH = "/rss.xml";
@@ -153,7 +152,7 @@ export function blogPostingSchema(a: {
     // The dates the page itself prints (SPEC §7, 2026-09-29).
     datePublished: a.page.firstPublishedAt.toISOString(),
     dateModified: a.page.publishedAt.toISOString(),
-    inLanguage: PAGE_LOCALE,
+    inLanguage: readerTag(),
     image: shareImageUrl(origin, a.page.slug),
     author: authorOf(a.page.byline, a.business),
     publisher: publisherOf(a.business, origin),
@@ -195,14 +194,14 @@ export function blogSchema(a: {
   return jsonLd({
     "@context": SCHEMA_CONTEXT,
     "@graph": [
-      { "@type": "WebSite", "@id": site, url: a.canonical, name: a.business.name, inLanguage: PAGE_LOCALE },
+      { "@type": "WebSite", "@id": site, url: a.canonical, name: a.business.name, inLanguage: readerTag() },
       {
         "@type": "Blog",
         "@id": `${a.canonical}#blog`,
         url: a.canonical,
         name: a.business.name,
         description: indexDescription(a.business),
-        inLanguage: PAGE_LOCALE,
+        inLanguage: readerTag(),
         isPartOf: { "@id": site },
         publisher: publisherOf(a.business, origin),
         blogPost: a.listed.map((page) => ({
@@ -239,7 +238,7 @@ function shareTags(a: {
       title: a.title,
       ...described,
       siteName: a.business.name,
-      locale: PAGE_LOCALE.replace("-", "_"),
+      locale: readerTag().replace("-", "_"),
       images: [{ url: a.image, ...OG_SIZE, alt: a.title }],
     },
     twitter: { card: "summary_large_image", title: a.title, ...described, images: [a.image] },

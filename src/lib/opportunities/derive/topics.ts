@@ -21,6 +21,8 @@
 // (`derive/fit.ts`) scores it, and only one at fit 3 is written down: "a
 // search at fit 3 is a write target even below the volume floor, including
 // zero-volume problem and product-anchored searches" (owner, 2026-10-03).
+import { PRICE_FILLER, SHAPES, languagePack } from "@/lib/locale/language";
+import type { Language } from "@/lib/locale/locales";
 import { EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
 import { comparisonsOf, ownSearched, searched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
@@ -34,11 +36,11 @@ import { demandBand } from "../winnability/band";
 import { qualifyingDemand } from "../winnability/bars";
 import { slugify, type Candidate } from "./candidate";
 
-const BEST_X = /\b(?:best|top)\b/;
-const PRODUCT_SHAPES = /\b(?:vs|versus|alternatives?|pricing|price|cost|integrations?)\b/;
-const COMPARISON_SHAPES = /\b(?:vs|versus|alternatives?)\b/;
-const PROBLEM_SHAPES =
-  /^(?:how|why)\b|\b(?:problems?|issues?|errors?|not working|fix|troubleshoot(?:ing)?|broken)\b/;
+// Every supported language's words for each shape (D66).
+const BEST_X = SHAPES.best;
+const PRODUCT_SHAPES = SHAPES.product;
+const COMPARISON_SHAPES = SHAPES.comparison;
+const PROBLEM_SHAPES = SHAPES.problem;
 
 /** A search or a name as these rules compare it: lower case, punctuation
  *  to spaces. Its letters stay as they are written (issue 1314): "Zuni
@@ -76,8 +78,7 @@ export function sourceOf(
   return "category";
 }
 
-const PRICE_SHAPES = /\b(?:pricing|prices?|costs?)\b/;
-const PRICE_FILLER = new Set(["pricing", "price", "prices", "cost", "costs", "how", "much", "is", "does", "do", "the", "a", "plan", "plans"]);
+const PRICE_SHAPES = SHAPES.price;
 
 /**
  * SPEC §6 (2026-10-03, issue 1208): a rival's own price is a topic only as
@@ -91,7 +92,7 @@ const PRICE_FILLER = new Set(["pricing", "price", "prices", "cost", "costs", "ho
  */
 export function rivalPriceOf(
   query: string,
-  a: { own: readonly string[]; ownSearched: boolean; rivals: readonly { name: string; domain: string }[] }
+  a: { own: readonly string[]; ownSearched: boolean; rivals: readonly { name: string; domain: string }[]; language?: Language }
 ): { rival: string; comparison: string | null } | null {
   const text = normalise(query);
   if (!PRICE_SHAPES.test(text) || COMPARISON_SHAPES.test(text) || names(text, a.own)) return null;
@@ -101,7 +102,8 @@ export function rivalPriceOf(
     const rest = ` ${text} `.replace(` ${name} `, " ").trim().split(" ").filter((word) => !PRICE_FILLER.has(word));
     if (rest.length > 0) return null;
     const product = a.ownSearched ? (a.own[0] ?? null) : null;
-    return { rival: rival.domain, comparison: product === null ? null : `${product} vs ${name} pricing` };
+    const pack = languagePack(a.language ?? "en");
+    return { rival: rival.domain, comparison: product === null ? null : pack.priceSearch(pack.versusSearch(product, name)) };
   }
   return null;
 }
@@ -254,10 +256,6 @@ function phrase(text: string, maxWords: number): string | null {
   return cleaned.split(" ").length > maxWords ? null : cleaned.toLowerCase();
 }
 
-function lowerFirst(text: string): string {
-  return text.length === 0 ? text : text[0]!.toLowerCase() + text.slice(1);
-}
-
 /** The brands a search may name: the site's own tokens and each rival's
  *  name and domain label. */
 export function brandsOf(a: {
@@ -296,6 +294,9 @@ export function proposedTopics(a: {
    *  (`derive/buyer-searches.ts`), after the rival comparisons and before
    *  the market's own names. Absent reads as none. */
   written?: readonly string[];
+  /** The language the site's searches are in (D66): the searches written
+   *  here from the market's own words are written in it. Absent is English. */
+  language?: Language;
 }): ProposedTopic[] {
   const { own, rivals } = brandsOf(a);
   const brands = [...own, ...rivals];
@@ -327,6 +328,8 @@ export function proposedTopics(a: {
   for (const comparison of a.comparisons ?? []) add(comparison.query, "product", comparison.rival);
 
   const market = a.market;
+  const language = a.language ?? "en";
+  const pack = languagePack(language);
   if (market !== null) {
     const product = own[0] ?? null;
     const category = phrase(market.category, 6);
@@ -341,24 +344,24 @@ export function proposedTopics(a: {
     // most-searched rivals against each other (D50) — the category for its
     // buyer, its price, and what it is not.
     // D50's comparisons, by the one derivation the pass read volumes for (D64).
-    for (const comparison of comparisonsOf({ rivals: market.rivals, product, ownSearched: ownSearched(market), searchedOnly: true })) {
+    for (const comparison of comparisonsOf({ rivals: market.rivals, product, ownSearched: ownSearched(market), searchedOnly: true, language })) {
       add(comparison.query, "product", comparison.rival);
     }
     for (const search of a.written ?? []) add(search, sourceOf(search, { brands }), null);
     // The market's own names. They are the vendor's words until the pass's
     // "would a buyer search this?" check says a buyer types them.
     for (const name of namesOfMarket) {
-      if (buyer !== null) add(`${name} for ${buyer}`, "product", null);
-      add(`${name} pricing`, "product", null);
+      if (buyer !== null) add(pack.forBuyerSearch(name, buyer), "product", null);
+      add(pack.priceSearch(name), "product", null);
     }
     if (category !== null) {
       for (const contrast of market.notOurMarket) {
         const other = phrase(contrast, 5);
-        if (other !== null) add(`${category} vs ${other}`, "product", null);
+        if (other !== null) add(pack.versusSearch(category, other), "product", null);
       }
     }
     // The problem the product is hired for.
-    if (job !== null) add(`how to ${lowerFirst(job)}`, "problem", null);
+    if (job !== null) add(pack.jobSearch(job), "problem", null);
   }
 
   // What the pass read and did not ask: its market set, largest first, at

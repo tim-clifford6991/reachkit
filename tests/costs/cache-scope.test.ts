@@ -49,7 +49,7 @@ const A_DOMAIN = { domain: "acme.com" } as const;
 
 async function serpKey(scope: { site: string } | { domain: string }): Promise<string> {
   const { ctx, calls } = fakeCostContext();
-  await serp.serpOrganic(ctx, {
+  await serp.serpOrganic(ctx, { locale: { country: "US", language: "en" },
     query: QUERY,
     mode: "live",
     loadAsyncAiOverview: false,
@@ -79,7 +79,7 @@ describe("DATA-COSTS §5's roll-up is stated per customer, and the key now is to
 
   it("the scope is the last segment of the key, and the rest of it is unchanged", async () => {
     const key = await serpKey(A_SITE);
-    expect(key.startsWith(`${QUERY}|${pins.SERP_LOCATION.location}|${pins.SERP_LOCATION.language}|`)).toBe(true);
+    expect(key.startsWith(`${QUERY}|${"United States"}|${"en"}|`)).toBe(true);
     expect(key.endsWith("|site:site-1")).toBe(true);
   });
 
@@ -95,8 +95,8 @@ describe("the AI battery's two engines carry the scope too", () => {
     for (const scope of [A_SITE, ANOTHER_SITE]) {
       const { ctx, calls } = fakeCostContext();
       stubVendorFetch(() => envelope({ items: [{ type: "ai_overview", markdown: "an answer", references: [] }] }));
-      if (engine === "aiMode") await ai.aiMode(ctx, { query: QUERY, mode: "live", scope });
-      else await ai.llmScraper(ctx, { query: QUERY, mode: "std", scope });
+      if (engine === "aiMode") await ai.aiMode(ctx, { locale: { country: "US", language: "en" }, query: QUERY, mode: "live", scope });
+      else await ai.llmScraper(ctx, { locale: { country: "US", language: "en" }, query: QUERY, mode: "std", scope });
       keys.push(calls[0]?.cacheKey ?? "");
     }
     expect(keys[0]).not.toBe(keys[1]);
@@ -110,7 +110,7 @@ describe("BUILD §6.4's windows, each passed by the call site that owns it", () 
   it("a SERP is asked for at whatever window the caller passes, and the caller's own pin is what it passes", async () => {
     for (const window of [pins.CACHE_WINDOWS_D.serp, pins.CACHE_WINDOWS_D.serpWeeklyRecheck]) {
       const { ctx, calls } = fakeCostContext();
-      await serp.serpOrganic(ctx, {
+      await serp.serpOrganic(ctx, { locale: { country: "US", language: "en" },
         query: QUERY,
         mode: "live",
         loadAsyncAiOverview: false,
@@ -124,8 +124,8 @@ describe("BUILD §6.4's windows, each passed by the call site that owns it", () 
   it.each(["aiMode", "llmScraper"] as const)("%s asks at the window that names the battery, never the customer's own domain", async (engine) => {
     const { ctx, calls } = fakeCostContext();
     stubVendorFetch(() => envelope({ items: [{ type: "ai_overview", markdown: "an answer", references: [] }] }));
-    if (engine === "aiMode") await ai.aiMode(ctx, { query: QUERY, mode: "live", scope: A_SITE });
-    else await ai.llmScraper(ctx, { query: QUERY, mode: "std", scope: A_SITE });
+    if (engine === "aiMode") await ai.aiMode(ctx, { locale: { country: "US", language: "en" }, query: QUERY, mode: "live", scope: A_SITE });
+    else await ai.llmScraper(ctx, { locale: { country: "US", language: "en" }, query: QUERY, mode: "std", scope: A_SITE });
 
     expect(calls[0]?.freshnessDays).toBe(pins.CACHE_WINDOWS_D.aiBattery);
     // The defect this closes: `own` means "the customer's own domain", so

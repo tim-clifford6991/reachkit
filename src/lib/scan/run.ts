@@ -90,6 +90,8 @@ import type { RivalSizeBand } from "@/lib/market/rivals/band";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
 import { freePageOf } from "@/lib/opportunities/free-page";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/locale/locales";
+import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
 import { aiPresenceOf, measureDomain, type DomainMeasurement } from "@/lib/measure";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { InputOutcome, ScanInput } from "@/lib/measure/partition";
@@ -126,6 +128,7 @@ import {
   readCurrentReport,
   readScanReport,
   type PageQuestionsSection,
+  type ReportLocale,
   type RetiredPageQuestion,
 } from "./report";
 import type {
@@ -821,6 +824,11 @@ export interface RunScanArgs {
    *  "fixes the twelve questions"), and its words join the relevance guard's
    *  support set. Absent, the pass seeds from the profile as before. */
   category?: string;
+  /** The site's stored country and language (SPEC §6, owner D66, issue
+   *  1311): the founder's answer at setup. Where present every vendor read
+   *  of the pass is made in it. Absent — a free scan, or a site that has
+   *  not answered — the pass reads it from the address and the home page. */
+  locale?: Locale;
   /** SPEC §6 (owner D28, #1185): this pass re-checks the site's market
    *  before it seeds one, and measures the market that stands after — the
    *  deep and weekly passes. Needs `siteId`. A category the founder set
@@ -970,6 +978,12 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   //    body's return value still gives back everything measured before it,
   //    and `spend` holds the one cost context so its roll-up can be read
   //    after it has closed.
+  // D66: a paying site is measured in the country and language stored on
+  // it. A site with none stored is read in stage one, and the reading is
+  // stored there, so every later stage and pass reads the one answer.
+  const storedLocale =
+    a.locale ?? (a.siteId === undefined ? null : await readStoredLocale(a.siteId).catch(() => null));
+
   const sections = freshSections(startedAt);
   const spend: { cents: number; degraded: boolean } = { cents: 0, degraded: false };
   const { ending } = await withScanBounds(
@@ -996,6 +1010,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
           ...(a.siteId === undefined ? {} : { siteId: a.siteId }),
           ...(a.onStage === undefined ? {} : { onStage: a.onStage }),
           ...(a.category === undefined ? {} : { category: a.category }),
+          ...(storedLocale === null ? {} : { locale: storedLocale }),
           ...(a.concludesMarket === true ? { concludesMarket: true } : {}),
           ...(a.asksTrackedPrompts === true ? { asksTrackedPrompts: true } : {}),
           ...(a.measuredSince === undefined
@@ -1181,6 +1196,8 @@ interface StageArgs {
   onStage?: (stage: StageName) => void | Promise<void>;
   /** `RunScanArgs.category`, carried to the market stage. */
   category?: string;
+  /** `RunScanArgs.locale`. Stages read `localeOfPass`, never this. */
+  locale?: Locale;
   /** `RunScanArgs.concludesMarket`. */
   concludesMarket?: boolean;
   /** `RunScanArgs.asksTrackedPrompts`. */
@@ -1193,6 +1210,23 @@ interface StageArgs {
    *  `reading_your_market` a read of the stored report rather than a
    *  purchase — see `retry.ts` for why that stage and no other. */
   retry?: { report: StoredReport; part: RetryPart };
+}
+
+/** What the report records of where it was measured (D66): nothing for the
+ *  United States in English with no fallback, which is what every report
+ *  before D66 was. */
+function reportLocale(m: DomainMeasurement): ReportLocale | null {
+  const usual = m.locale.country === DEFAULT_LOCALE.country && m.locale.language === DEFAULT_LOCALE.language;
+  if (usual && m.localeFellBack === null) return null;
+  return { country: m.locale.country, language: m.locale.language, ...(m.localeFellBack === null ? {} : { fellBack: m.localeFellBack }) };
+}
+
+/** The country and language this pass measures in (D66): the one stage one
+ *  settled — the site's stored answer, else the reading of its home page.
+ *  Before stage one has read the site nothing is bought, so the fallback
+ *  below is reached by no vendor call. */
+function localeOfPass(a: Pick<StageArgs, "sections" | "locale">): Locale {
+  return a.sections.measurement?.locale ?? a.locale ?? DEFAULT_LOCALE;
 }
 
 /**
@@ -1248,6 +1282,7 @@ async function runStages(a: StageArgs): Promise<void> {
       measureDomain(cost, {
         domain,
         tier: a.tier,
+        ...(a.locale === undefined ? {} : { locale: a.locale }),
         ...(a.sinceDays === undefined ? {} : { ownWindowDays: a.sinceDays }),
       })
     )
@@ -1268,6 +1303,16 @@ async function runStages(a: StageArgs): Promise<void> {
   const measurement = read.value;
   if (!failed(measurement)) sections.measurement = measurement;
   await exitStage(scanId, "reading_your_site");
+  if (!failed(measurement) && measurement.homeRefusal === null && a.siteId !== undefined && a.locale === undefined) {
+    // The reading is the site's from here on (D66). A write that fails
+    // costs nothing this pass, which already holds it: the next pass reads
+    // the site again.
+    await writeSiteLocale(a.siteId, measurement.locale).catch((error: unknown) =>
+      console.log(
+        JSON.stringify({ event: "site_locale_unwritten", because: error instanceof Error ? error.message : String(error) })
+      )
+    );
+  }
 
   // A site whose own home document could not be read — refused by the
   // fetcher, or a read that raised — is not measured by anything after it,
@@ -1320,6 +1365,7 @@ async function runStages(a: StageArgs): Promise<void> {
         homeHtml: null,
         sitemaps: measurement.robots.kind === "unmeasured" ? [] : measurement.robots.value.sitemaps,
         tier: a.tier,
+        locale: measurement.locale,
       });
       // SPEC §9: the technical-issue checks run over exactly this crawl —
       // the one run, nothing fetched beyond its set (2026-09-12).
@@ -1519,6 +1565,7 @@ async function sizeTrackedRivals(a: StageArgs): Promise<void> {
       rivals,
       ownRanked,
       at,
+      locale: localeOfPass(a),
       // Absent, never `[]`: an empty array says "the last pass sized these
       // and found none", which would make every rival here
       // `added_since_last_sizing` instead of `awaiting_deep_pass`.
@@ -1624,6 +1671,7 @@ async function sizeSerpRivals(a: StageArgs): Promise<void> {
       rivals: candidates,
       ownRanked,
       at,
+      locale: localeOfPass(a),
       neverSizedBecause: "budget_reached",
     })
   );
@@ -1721,6 +1769,7 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
 
   const profile = await attempt("reading_your_market", () =>
     deriveProfile(cost, {
+      locale: localeOfPass(a),
       home: measurement.text.home as string,
       ...(measurement.text.pricing === null ? {} : { pricing: measurement.text.pricing }),
     })
@@ -1784,7 +1833,7 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   const ownRanked = ownRankedValue(measurement.ownRanked);
   if (bounds.stopNow() !== null) return;
   const market = await attempt("reading_your_market", () =>
-    deriveMarketSet(cost, { seeds: seeds.slice(0, 1 + upfront), ownRanked })
+    deriveMarketSet(cost, { seeds: seeds.slice(0, 1 + upfront), ownRanked, locale: localeOfPass(a) })
   );
   if (failed(market) || abandoned()) return;
   sections.marketRows = market;
@@ -1860,7 +1909,7 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
     // Widening never spends what the questions already held are asked
     // with (issues 835 and 1235).
     if (!affordsSeed({ remainingCents: bounds.remainingCents(), selected: held() })) break;
-    const more = await attempt("reading_your_market", () => deriveMarketSet(cost, { seeds: [seed], ownRanked }));
+    const more = await attempt("reading_your_market", () => deriveMarketSet(cost, { seeds: [seed], ownRanked, locale: localeOfPass(a) }));
     if (abandoned()) return;
     if (failed(more)) break;
     sections.marketRows = joinMarketSets(sections.marketRows, more);
@@ -1878,7 +1927,7 @@ async function phrase(a: StageArgs, abandoned: () => boolean): Promise<void> {
   if (bounds.stopNow() !== null) return;
   if (a.parameters.questionsFitThePurse) sections.selected = whatThePurseCanAsk(a);
   const questions = await attempt("reading_your_market", () =>
-    phraseQuestions(cost, { selected: sections.selected })
+    phraseQuestions(cost, { selected: sections.selected, locale: localeOfPass(a) })
   );
   if (!failed(questions) && !abandoned()) sections.questions = questions;
 }
@@ -2065,6 +2114,7 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean, pass: Bounds
     const serp = await attempt("asking_the_twelve", () =>
       serpOrganic(cost, {
         query: keyword,
+        locale: localeOfPass(a),
         mode: parameters.serpMode,
         loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
         scope: cacheScope(a),
@@ -2225,7 +2275,7 @@ async function askTheMarketPrompts(a: StageArgs): Promise<void> {
   const { bounds, cost, parameters, sections } = a;
   if (!parameters.battery || parameters.marketPrompts === 0 || sections.market === null) return;
   // D49: asked in the words buyers search, for the buyer the founder named.
-  const prompts = buyerPrompts(spokenMarket(sections.market, sections.founderBuyer), parameters.marketPrompts);
+  const prompts = buyerPrompts(spokenMarket(sections.market, sections.founderBuyer), parameters.marketPrompts, localeOfPass(a).language);
   const own = a.domain.toLowerCase().replace(/^www\./, "");
   const brand = own.split(".")[0] ?? own;
   await Promise.all(
@@ -2234,6 +2284,7 @@ async function askTheMarketPrompts(a: StageArgs): Promise<void> {
       const got = await attempt("asking_the_twelve", () =>
         aiMode(cost, {
           query: prompt,
+          locale: localeOfPass(a),
           mode: parameters.serpMode,
           scope: cacheScope(a),
           untilMs: untilCeiling(bounds, parameters),
@@ -2309,7 +2360,7 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
         : sections.founderBuyer;
     // D54: a set built from another label is rebuilt whole from the search
     // term here, once.
-    const set = nextPromptSet(stored, generatePrompts(spokenMarket(market, buyer), siteName), new Date(), searchedName(market));
+    const set = nextPromptSet(stored, generatePrompts(spokenMarket(market, buyer), siteName, localeOfPass(a).language), new Date(), searchedName(market));
     if (set.prompts.length === 0 || sections.sealed) return;
     if (set !== stored) await writePromptSet(siteId, set);
     if (set.rebuiltAt !== undefined && set.rebuiltAt !== stored.rebuiltAt) {
@@ -2324,12 +2375,13 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
       asked += 1;
       const scope = cacheScope(a);
       const untilMs = untilCeiling(bounds, parameters);
+      const locale = localeOfPass(a);
       const got = await attempt("asking_the_twelve", () =>
         engine === "chatgpt"
-          ? llmScraper(cost, { query: prompt.text, mode: "std", scope, untilMs, run, asOf })
+          ? llmScraper(cost, { query: prompt.text, mode: "std", scope, locale, untilMs, run, asOf })
           : // The standard queue on every tier: the measure is the same
             // ask whichever pass makes it, at the price D19 was costed at.
-            aiMode(cost, { query: prompt.text, mode: "std", scope, untilMs, run, asOf, abortMs: serpAbortFor(bounds, parameters) })
+            aiMode(cost, { query: prompt.text, mode: "std", scope, locale, untilMs, run, asOf, abortMs: serpAbortFor(bounds, parameters) })
       );
       if (failed(got) || got.kind === "unmeasured" || !got.value.answered) return;
       const reading = readPromptAnswer({
@@ -2494,6 +2546,7 @@ async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Prom
         attempt("asking_the_twelve", () =>
           serpOrganic(a.cost, {
             query: candidate.search,
+            locale: localeOfPass(a),
             mode: parameters.serpMode,
             loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
             scope: cacheScope(a),
@@ -2603,7 +2656,7 @@ async function askTheBattery(
     bounds.stopNow() !== null
       ? unmeasured<AiAnswer>("not_attempted", at)
       : engineAnswer(at, "chatgpt", watch, (onFailure) =>
-          llmScraper(cost, { query, mode: "std", scope: cacheScope(a), onFailure, untilMs: untilCeiling(bounds, parameters) })
+          llmScraper(cost, { query, mode: "std", scope: cacheScope(a), locale: localeOfPass(a), onFailure, untilMs: untilCeiling(bounds, parameters) })
         ),
     bounds.stopNow() !== null
       ? unmeasured<AiAnswer>("not_attempted", at)
@@ -2612,6 +2665,7 @@ async function askTheBattery(
             query,
             mode: parameters.serpMode,
             scope: cacheScope(a),
+            locale: localeOfPass(a),
             onFailure,
             untilMs: untilCeiling(bounds, parameters),
             // D63 (issue 1314): AI Mode waits as the pass's other SERP reads do.
@@ -2950,9 +3004,11 @@ function composeReport(a: {
   });
   // SPEC §2 (issue 787): the one first-page proposal is the best right-sized
   // Write target this pass measured — derived, never padded.
+  const measuredIn = m === null ? null : reportLocale(m);
   const report: StoredReport = {
     ...assembled,
     freePage: freePageOf(assembled) ?? carried?.freePage ?? null,
+    ...(measuredIn === null ? {} : { locale: measuredIn }),
   };
 
   // #770: a market read and found too small buys no SERP, so AI presence

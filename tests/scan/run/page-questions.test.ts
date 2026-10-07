@@ -151,6 +151,8 @@ const MEASUREMENT: DomainMeasurement = {
   robots: measured(ROBOTS, AT),
   ownRanked: measured(LIVE_PAGES, AT),
   ownRankedRows: OWN_RANKED_ROWS,
+  locale: { country: "US", language: "en" },
+  localeFellBack: null,
   homeRefusal: null,
 };
 

@@ -28,7 +28,8 @@
 // never cached (§6.4: no negative cache) — and surfaces as the `zero` arm
 // carrying `answered: false`.
 import type { CostContext } from "@/lib/costs";
-import { CACHE_WINDOWS_D, PRICE_BOOK, SERP_LOCATION } from "@/lib/config/constants";
+import { CACHE_WINDOWS_D, PRICE_BOOK } from "@/lib/config/constants";
+import type { Locale } from "@/lib/locale/locales";
 import { mapMeasured, unmeasured, type Measured } from "@/lib/measure/measured";
 import {
   asArray,
@@ -41,10 +42,9 @@ import {
   type EndpointPaths,
   type OnVendorFailure,
 } from "./envelope";
-import type { DataForSeoMode } from "./transport";
+import { localeCacheKey, type DataForSeoMode } from "./transport";
 import { scopeKey, type AiAnswer, type CacheScope } from "./types";
 
-const LOCALE_KEY = `${SERP_LOCATION.location}|${SERP_LOCATION.language}`;
 const NO_ANSWER: AiAnswer = { answered: false, text: "", citedDomains: [] };
 
 const AI_MODE = "/v3/serp/google/ai_mode";
@@ -112,6 +112,9 @@ export async function aiMode(
     query: string;
     mode: DataForSeoMode;
     scope: CacheScope;
+    /** The site's country and language (D66): where the read is made, and
+     *  part of its cache key. */
+    locale: Locale;
     /** Where the battery hears why a call failed (issue 869), so a pass can
      *  stop buying an engine that is refusing and say on the cell what it
      *  was told. */
@@ -142,10 +145,10 @@ export async function aiMode(
   if (refused) return refused;
   const rows = await ledgered<AiAnswer>(c, {
     source: "serp/google/ai_mode",
-    cacheKey: `${a.query}|${LOCALE_KEY}|${scopeKey(a.scope)}${runKey(a.run, a.asOf)}`,
+    cacheKey: `${a.query}|${localeCacheKey(a.locale)}|${scopeKey(a.scope)}${runKey(a.run, a.asOf)}`,
     freshnessDays: CACHE_WINDOWS_D.aiBattery,
     costCents: a.mode === "live" ? PRICE_BOOK.AI_MODE_LIVE_C : PRICE_BOOK.AI_MODE_STD_C,
-    fetch: () => callEndpoint(AI_MODE_PATHS, a.mode, { keyword: a.query }, a.abortMs, a.untilMs),
+    fetch: () => callEndpoint(AI_MODE_PATHS, a.mode, a.locale, { keyword: a.query }, a.abortMs, a.untilMs),
     parse: parseAiMode,
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),
   });
@@ -154,16 +157,16 @@ export async function aiMode(
 
 export async function llmScraper(
   c: CostContext,
-  a: { query: string; mode: "std"; scope: CacheScope; onFailure?: OnVendorFailure; untilMs?: number; run?: number; asOf?: string }
+  a: { query: string; mode: "std"; scope: CacheScope; locale: Locale; onFailure?: OnVendorFailure; untilMs?: number; run?: number; asOf?: string }
 ): Promise<Measured<AiAnswer>> {
   const refused = paidOnly<AiAnswer>(c, new Date());
   if (refused) return refused;
   const rows = await ledgered<AiAnswer>(c, {
     source: "ai_optimization/chat_gpt/llm_scraper",
-    cacheKey: `${a.query}|${LOCALE_KEY}|${scopeKey(a.scope)}${runKey(a.run, a.asOf)}`,
+    cacheKey: `${a.query}|${localeCacheKey(a.locale)}|${scopeKey(a.scope)}${runKey(a.run, a.asOf)}`,
     freshnessDays: CACHE_WINDOWS_D.aiBattery,
     costCents: PRICE_BOOK.CHATGPT_SCRAPE_STD_C,
-    fetch: () => callEndpoint(LLM_SCRAPER_PATHS, a.mode, { keyword: a.query }, undefined, a.untilMs),
+    fetch: () => callEndpoint(LLM_SCRAPER_PATHS, a.mode, a.locale, { keyword: a.query }, undefined, a.untilMs),
     parse: parseLlmScraper,
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),
   });

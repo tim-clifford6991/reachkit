@@ -16,7 +16,7 @@
 import type React from "react";
 import { BAND_TONE } from "@/ui/bands";
 import type { Tone } from "@/ui/types";
-import { copy } from "@/lib/presentation/copy";
+import { copy } from "@/lib/presentation/copy/reader";
 import { LIMITING_LINES, SCORE_BANDS } from "@/lib/presentation/bands";
 import type { Verdict } from "@/lib/measure/verdict";
 import type { Measured } from "@/lib/measure/measured";
@@ -134,6 +134,9 @@ export function VerdictStrip(p: {
   measuredOn: string;
   /** Whether the category correction is on offer (SPEC §2, #786). */
   correction: CorrectionOffer;
+  /** Where the report was measured, already worded, where that is not US
+   *  Google in English (D66). Absent, the line every report carried. */
+  measurement?: string;
 }): React.JSX.Element {
   const { verdict } = p;
   const scoreAndBand = verdict.scoreAndBand;
@@ -160,7 +163,7 @@ export function VerdictStrip(p: {
               </Num>
               {/* SPEC §2 (#715): what was measured, in one line that is
                   always shown — beside the date it was measured on. */}
-              <span>{copy("report.measurement")}</span>
+              <span>{p.measurement ?? copy("report.measurement")}</span>
               {/* The category correction: an inline field that re-measures
                   on the market given, and follows the rerun here (#786). */}
               <CategoryCorrection domain={verdict.domain} offer={p.correction} />

@@ -17,7 +17,7 @@
 import { adapter } from "../../_adapter";
 import { resolvesInDns } from "@/lib/egress";
 import { registrableDomain } from "@/lib/market/rivals/domains";
-import { readReportFor } from "@/app/(account)/setup/_setup/provider";
+import { readLocaleFor, readReportFor } from "@/app/(account)/setup/_setup/provider";
 import type { ReportFacts } from "@/lib/market/setup/state";
 
 const BAD_REQUEST = 400;
@@ -30,6 +30,9 @@ export interface ResolveDomainResponse {
   /** A completed report for this address, or `null` where the product
    *  holds none (REQ-026 c3). */
   report: ReportFacts | null;
+  /** The country and language read for this address (D66), as `localeKey`
+   *  spells it: what the site step's question is then filled with. */
+  locale: string;
 }
 
 export const POST = adapter(
@@ -48,7 +51,7 @@ export const POST = adapter(
 
     const domain = registrableDomain(host);
     if (domain === null) {
-      const answer: ResolveDomainResponse = { domain: null, resolves: false, report: null };
+      const answer: ResolveDomainResponse = { domain: null, resolves: false, report: null, locale: await readLocaleFor("") };
       return Response.json(answer);
     }
 
@@ -59,6 +62,7 @@ export const POST = adapter(
       // (REQ-021 c11) — which is what this seam answering `null` means,
       // not a value withheld.
       report: await readReportFor(domain),
+      locale: await readLocaleFor(domain),
     };
     return Response.json(answer);
   }

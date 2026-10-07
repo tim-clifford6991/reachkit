@@ -50,6 +50,7 @@
 // c12): this function reads only the current `siteDomain` and the
 // `ReportFacts` the caller currently holds, both re-keyed by
 // `onDomainChanged`, so a stale report cannot reach it.
+import type { Locale } from "@/lib/locale/locales";
 import { BATTERY, TIMING } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
@@ -96,7 +97,7 @@ export type Spend = <T>(body: (c: CostContext) => Promise<T>) => Promise<T>;
  */
 export async function suggestRivals(
   spend: Spend | null,
-  a: { state: SetupState; report: ReportFacts | null; at: Date }
+  a: { state: SetupState; report: ReportFacts | null; at: Date; locale: Locale }
 ): Promise<Measured<string[]>> {
   const own = a.state.siteDomain;
 
@@ -135,7 +136,7 @@ export async function suggestRivals(
   }
 
   const rows = await withinCeiling(
-    spend((c) => competitorsDomain(c, { domain: own })).catch(() =>
+    spend((c) => competitorsDomain(c, { domain: own, locale: a.locale })).catch(() =>
       unmeasured<CompetitorRow[]>("undeterminable", a.at)
     ),
     a.at

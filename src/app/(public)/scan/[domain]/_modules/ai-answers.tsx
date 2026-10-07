@@ -55,7 +55,8 @@
 //
 import type React from "react";
 import { Bot } from "lucide-react";
-import { copy, type CopyKey } from "@/lib/presentation/copy";
+import type { CopyKey } from "@/lib/presentation/copy";
+import { copy } from "@/lib/presentation/copy/reader";
 import { renderQuestion } from "@/lib/presentation/generated";
 import type {
   AiAnswersSection,

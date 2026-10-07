@@ -44,6 +44,8 @@
 //   the one case BP-024 defines it for — the caller's own cost ceiling
 //   stopping the call before it was ever attempted (`recordFetch`'s
 //   `{ skipped: "cap" }`). Recorded as an open `rests-on` row on WO-026.
+import { modelInstruction } from "@/lib/locale/language";
+import type { Locale } from "@/lib/locale/locales";
 import Anthropic from "@anthropic-ai/sdk";
 import { createHash } from "node:crypto";
 import { z, type ZodType } from "zod";
@@ -579,6 +581,15 @@ function logCall(record: LogRecord): void {
   console.log(JSON.stringify(record));
 }
 
+/** The caller's input with the locale's one instruction beside it, where
+ *  there is one to give. Every call site's input is an object; anything
+ *  else is sent as it is. */
+function inputIn(input: unknown, locale: Locale | undefined): unknown {
+  const instruction = locale === undefined ? null : modelInstruction(locale);
+  if (instruction === null || typeof input !== "object" || input === null || Array.isArray(input)) return input;
+  return { ...input, locale: instruction };
+}
+
 /** BP-009 `## Public interface`, verbatim signature (`site`'s type is the
  *  one declared deviation — see file header). Runs inside the caller's
  *  `CostContext` via `recordFetch`, with the call site as the ledger
@@ -592,11 +603,17 @@ export async function llm<T>(
     input: unknown;
     schema: ZodType<T>;
     tier: Tier;
+    /** Whose market the answer is for (SPEC §6, owner D66, issue 1311): the
+     *  site's country and language. The model is told once, in a `locale`
+     *  field beside the caller's own input, to write as buyers there do.
+     *  Absent, and for the United States in English, the input is sent as
+     *  the caller wrote it. */
+    locale?: Locale;
   }
 ): Promise<Measured<T>> {
   const at = new Date();
   const binding = tierBinding(call.tier);
-  const inputText = JSON.stringify(call.input);
+  const inputText = JSON.stringify(inputIn(call.input, call.locale));
   const maxOutputTokens = INFERENCE_MAX_OUTPUT_TOKENS[call.site];
   const tool = forcedToolFor(call.site, call.schema);
   const cacheKey = createHash("sha256").update(`${call.site}:${call.tier}:${inputText}`).digest("hex");

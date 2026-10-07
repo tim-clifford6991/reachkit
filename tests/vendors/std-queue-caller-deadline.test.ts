@@ -55,7 +55,7 @@ describe("a caller's own ceiling bounds the standard queue's wait (issue 902)", 
     const { ctx } = fakeCostContext();
     vi.useFakeTimers();
 
-    const pending = ai.llmScraper(ctx, {
+    const pending = ai.llmScraper(ctx, { locale: { country: "US", language: "en" },
       query: "best onboarding software",
       mode: "std",
       scope: SCOPE,
@@ -79,7 +79,7 @@ describe("a caller's own ceiling bounds the standard queue's wait (issue 902)", 
     const { ctx } = fakeCostContext();
     vi.useFakeTimers();
 
-    const pending = ai.llmScraper(ctx, { query: "best onboarding software", mode: "std", scope: SCOPE });
+    const pending = ai.llmScraper(ctx, { locale: { country: "US", language: "en" }, query: "best onboarding software", mode: "std", scope: SCOPE });
     await vi.advanceTimersByTimeAsync((constants.VENDOR.stdQueueDeadlineMin + 1) * 60 * 1000);
     const result = await pending;
 
@@ -96,7 +96,7 @@ describe("a caller's own ceiling bounds the standard queue's wait (issue 902)", 
     const { ctx } = fakeCostContext();
     vi.useFakeTimers();
 
-    const pending = serp.serpOrganic(ctx, {
+    const pending = serp.serpOrganic(ctx, { locale: { country: "US", language: "en" },
       query: "best crm",
       mode: "std",
       loadAsyncAiOverview: false,
@@ -120,7 +120,7 @@ describe("a caller's own ceiling bounds the standard queue's wait (issue 902)", 
     const stub = stubVendorFetch(() => envelope({ items: [] }));
     const { ctx, ledgered } = fakeCostContext();
 
-    const result = await ai.llmScraper(ctx, {
+    const result = await ai.llmScraper(ctx, { locale: { country: "US", language: "en" },
       query: "best onboarding software",
       mode: "std",
       scope: SCOPE,
@@ -143,7 +143,7 @@ describe("a caller's own ceiling bounds the standard queue's wait (issue 902)", 
     const { ctx } = fakeCostContext();
     vi.useFakeTimers();
 
-    const pending = ai.llmScraper(ctx, {
+    const pending = ai.llmScraper(ctx, { locale: { country: "US", language: "en" },
       query: "best onboarding software",
       mode: "std",
       scope: SCOPE,

@@ -12,6 +12,7 @@
 // tens; asked second, against the market it has just concluded, it judges
 // each domain by the job it does. Only what survives `concludeRivals()` is
 // a rival.
+import type { Locale } from "@/lib/locale/locales";
 import { z } from "zod";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
@@ -178,7 +179,10 @@ export function concludeMarket(answer: MarketAnswer): Omit<MarketConclusion, "ri
  *  made up in its place. */
 export async function inferMarketFields(
   c: CostContext,
-  e: MarketEvidence
+  e: MarketEvidence,
+  /** The site's country and language (D66): the market is named in the
+   *  words its buyers search. Absent is the United States in English. */
+  locale?: Locale
 ): Promise<Measured<Omit<MarketConclusion, "rivals">>> {
   const evidence = boundEvidence(e);
   const answer = await llm(c, {
@@ -186,6 +190,7 @@ export async function inferMarketFields(
     input: { task: MARKET_TASK, fields: MARKET_FIELDS, evidence },
     schema: MARKET_SCHEMA,
     tier: "haiku",
+    ...(locale === undefined ? {} : { locale }),
   });
   if (answer.kind === "unmeasured") return unmeasured(answer.reason, answer.at, answer.because);
   return measured(concludeMarket(answer.value), answer.at);
@@ -198,7 +203,8 @@ export async function inferRivals(
   c: CostContext,
   e: MarketEvidence,
   market: Omit<MarketConclusion, "rivals">,
-  max: number = RIVALS_MAX
+  max: number = RIVALS_MAX,
+  locale?: Locale
 ): Promise<Measured<RivalConclusion[]>> {
   const evidence = boundEvidence(e);
   const answer = await llm(c, {
@@ -215,6 +221,7 @@ export async function inferRivals(
     // SPEC §6 (owner, D56; issue 1282): `haiku` read Meltwater under its
     // bare name in one run of three on the same evidence.
     tier: "sonnet",
+    ...(locale === undefined ? {} : { locale }),
   });
   if (answer.kind === "unmeasured") return unmeasured(answer.reason, answer.at, answer.because);
   return measured(concludeRivals(answer.value, evidence, max), answer.at);
@@ -225,9 +232,9 @@ export async function inferRivals(
  *  setup and the offline proof ask for. Rivals that did not come back
  *  leave the market standing with none, which a caller reads as "keep the
  *  rivals you have". */
-export async function inferMarket(c: CostContext, e: MarketEvidence): Promise<Measured<MarketConclusion>> {
-  const market = await inferMarketFields(c, e);
+export async function inferMarket(c: CostContext, e: MarketEvidence, locale?: Locale): Promise<Measured<MarketConclusion>> {
+  const market = await inferMarketFields(c, e, locale);
   if (market.kind === "unmeasured") return unmeasured(market.reason, market.at, market.because);
-  const rivals = await inferRivals(c, e, market.value);
+  const rivals = await inferRivals(c, e, market.value, RIVALS_MAX, locale);
   return measured({ ...market.value, rivals: rivals.kind === "unmeasured" ? [] : rivals.value }, market.at);
 }

@@ -45,13 +45,11 @@ const ENV_FIXTURE: Record<string, string> = {
 
 let dataforseo: typeof import("../../src/lib/vendors/dataforseo/index.ts");
 let transport: typeof import("../../src/lib/vendors/dataforseo/transport.ts");
-let constants: typeof import("../../src/lib/config/constants.ts");
 
 beforeAll(async () => {
   for (const [key, value] of Object.entries(ENV_FIXTURE)) process.env[key] = value;
   dataforseo = await import("../../src/lib/vendors/dataforseo/index.ts");
   transport = await import("../../src/lib/vendors/dataforseo/transport.ts");
-  constants = await import("../../src/lib/config/constants.ts");
 });
 
 /**
@@ -211,25 +209,43 @@ describe('BP-008 decision 1 — "a generic dataforseo(endpoint, params) with a r
   void _llmMentionsRequiresMode;
 }
 
-describe('BP-008 public interface — "Every call is fixed to SERP_LOCATION … and depth 10" (WO-023 test-plan row 3)', () => {
-  it("buildRequest sets location_name and language_code from SERP_LOCATION and depth to 10 on a request with no such fields", () => {
-    const req = transport.buildRequest({ path: "/v3/serp/google/organic/live/advanced", mode: "live", fields: { keyword: "x" } });
-    const task = JSON.parse(req.body)[0];
-    expect(task.location_name).toBe(constants.SERP_LOCATION.location);
-    expect(task.language_code).toBe(constants.SERP_LOCATION.language);
-    expect(task.depth).toBe(10);
+describe("every call is made in the site's own country and language, from a closed list, at depth 10 (SPEC §6, D66)", () => {
+  const US = { country: "US", language: "en" } as const;
+  const DE = { country: "DE", language: "de" } as const;
+  const GB = { country: "GB", language: "en" } as const;
+
+  it("buildRequest writes the vendor's name for the locale's country, its language, and depth 10", () => {
+    const task = (locale: { country: "US" | "DE" | "GB"; language: "en" | "de" }) =>
+      JSON.parse(transport.buildRequest({ path: "/v3/serp/google/organic/live/advanced", mode: "live", locale, fields: { keyword: "x" } }).body)[0];
+    expect(task(US)).toMatchObject({ location_name: "United States", language_code: "en", depth: 10 });
+    expect(task(DE)).toMatchObject({ location_name: "Germany", language_code: "de", depth: 10 });
+    expect(task(GB)).toMatchObject({ location_name: "United Kingdom", language_code: "en", depth: 10 });
   });
 
-  it("a caller-supplied location_name, language_code or depth is overridden, not merged — no way to override", () => {
+  it("a location, a language or a depth in the caller's own fields is dropped — the locale is the only way in", () => {
     const req = transport.buildRequest({
       path: "/v3/serp/google/organic/live/advanced",
       mode: "live",
+      locale: DE,
       fields: { location_name: "Nowhere", language_code: "zz", depth: 999 },
     });
     const task = JSON.parse(req.body)[0];
-    expect(task.location_name).toBe(constants.SERP_LOCATION.location);
-    expect(task.language_code).toBe(constants.SERP_LOCATION.language);
+    expect(task.location_name).toBe("Germany");
+    expect(task.language_code).toBe("de");
     expect(task.depth).toBe(10);
+  });
+
+  it("a locale that is not a row of the list is refused before anything is sent", () => {
+    const build = (locale: unknown) => () =>
+      transport.buildRequest({ path: "/v3/dataforseo_labs/google/keyword_overview/live", mode: "live", locale: locale as never, fields: {} });
+    expect(build({ country: "FR", language: "fr" })).toThrow(/not on the list/);
+    expect(build({ country: "DE", language: "en" })).toThrow(/not on the list/);
+    expect(build(null)).toThrow(/not on the list/);
+  });
+
+  it("a read bought in one country is never served to a site in another: the locale is in every cache key", () => {
+    expect(transport.localeCacheKey(US)).toBe("United States|en");
+    expect(new Set([US, DE, GB, { country: "AT", language: "de" } as const].map(transport.localeCacheKey)).size).toBe(4);
   });
 
   // #1004. LLM Mentions declares neither locale field, and DataForSEO
@@ -243,6 +259,7 @@ describe('BP-008 public interface — "Every call is fixed to SERP_LOCATION … 
     const req = transport.buildRequest({
       path: "/v3/ai_optimization/llm_mentions/search_mentions/live",
       mode: "live",
+      locale: null,
       fields: { target: [{ domain: "example.com" }], limit: 100 },
     });
     const task = JSON.parse(req.body)[0];
@@ -257,6 +274,7 @@ describe('BP-008 public interface — "Every call is fixed to SERP_LOCATION … 
     const req = transport.buildRequest({
       path: "/v3/ai_optimization/llm_mentions/search_mentions/live",
       mode: "live",
+      locale: null,
       fields: { location_name: "Nowhere", language_code: "zz" },
     });
     const task = JSON.parse(req.body)[0];
@@ -295,7 +313,7 @@ describe('BP-008 error behaviour — "Credentials come from BP-005\'s env and ne
   });
 
   it("the request's own Authorization header does carry the credential (sanity: the transport is not silently unauthenticated)", () => {
-    const req = transport.buildRequest({ path: "/v3/serp/google/organic/live/advanced", mode: "live" });
+    const req = transport.buildRequest({ locale: { country: "US", language: "en" }, path: "/v3/serp/google/organic/live/advanced", mode: "live" });
     const expected = `Basic ${Buffer.from(`${ENV_FIXTURE.DATAFORSEO_LOGIN}:${ENV_FIXTURE.DATAFORSEO_PASSWORD}`).toString("base64")}`;
     expect(req.headers.Authorization).toBe(expected);
   });
@@ -306,7 +324,7 @@ describe('BP-008 error behaviour — "Credentials come from BP-005\'s env and ne
     let thrown: unknown;
     let outcome: Awaited<ReturnType<typeof transport.sendRequest>> | undefined;
     try {
-      outcome = await transport.sendRequest({ path: "/v3/serp/google/organic/live/advanced", mode: "live", fields: { keyword: "x" } });
+      outcome = await transport.sendRequest({ locale: { country: "US", language: "en" }, path: "/v3/serp/google/organic/live/advanced", mode: "live", fields: { keyword: "x" } });
     } catch (error) {
       thrown = error;
     }
@@ -332,7 +350,7 @@ describe('BP-008 error behaviour — "Credentials come from BP-005\'s env and ne
       })
     );
 
-    const outcome = await transport.sendRequest({ path: "/v3/serp/google/organic/live/advanced", mode: "live" });
+    const outcome = await transport.sendRequest({ locale: { country: "US", language: "en" }, path: "/v3/serp/google/organic/live/advanced", mode: "live" });
     assertNoSecretIn(outcome);
     expect(outcome.ok).toBe(false);
 
@@ -352,7 +370,7 @@ describe('BP-008 error behaviour — "Credentials come from BP-005\'s env and ne
       })
     );
 
-    const outcome = await transport.sendRequest<typeof body>({ path: "/v3/serp/google/organic/live/advanced", mode: "live" });
+    const outcome = await transport.sendRequest<typeof body>({ locale: { country: "US", language: "en" }, path: "/v3/serp/google/organic/live/advanced", mode: "live" });
     expect(outcome).toEqual({ ok: true, payload: body });
     assertNoSecretIn(outcome);
   });
