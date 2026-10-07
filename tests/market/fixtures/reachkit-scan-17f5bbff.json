@@ -139,5 +139,12 @@
   "rows": {
     "staleComparison": "aeo engine alternatives",
     "retarget": "best AI visibility tools for small businesses"
+  },
+  "pass": {
+    "note": "scans.report->prompts of 17f5bbff, counted in production on 2026-10-06 (issue 1287): the asks, the answers that came back, and the unbranded ones",
+    "asks": 100,
+    "answers": 96,
+    "unbrandedAnswers": 88,
+    "unbrandedMentions": 0
   }
 }

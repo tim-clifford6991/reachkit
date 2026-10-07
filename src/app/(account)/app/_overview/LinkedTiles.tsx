@@ -42,7 +42,7 @@ import { carriedBy, formatCount, renderValue } from "./present";
 import type { AiPresenceWindow, Module, OverviewModel } from "./model";
 import { TAB_COPY_KEY, TAB_HREF, type OverviewTab } from "./tabs";
 import type { AbsoluteRival, RatioRival, RivalGapModule } from "./rivals";
-import { ANSWER_RATE_WEEKS } from "@/lib/config/constants";
+import { ANSWER_RATE_WEEKS, MENTION_RATE_MIN_WEEKS } from "@/lib/config/constants";
 import { percent, type PromptsModel } from "./prompts-model";
 
 const SEARCHES_LABEL = "overview.tile.searches.label" satisfies CopyKey;
@@ -238,13 +238,18 @@ function QuestionsTile(p: {
  * range is what says whether a week's move means anything.
  */
 function MentionRateTile(p: { prompts: Extract<PromptsModel, { kind: "measured" }> }): React.JSX.Element {
-  const { rate, shareOfVoice, pages } = p.prompts;
+  const { rate, rateShown, shareOfVoice, pages } = p.prompts;
+  const mentioned = formatCount(rate.linked + rate.named);
   const lines = [
-    copy("overview.tile.mention-rate.of", {
-      mentioned: formatCount(rate.linked + rate.named),
-      answers: formatCount(rate.samples),
-      weeks: formatCount(ANSWER_RATE_WEEKS),
-    }),
+    // D58 (issue 1287): no rate before two weeks of this prompt set. The
+    // count and its sample stand in its place.
+    rateShown
+      ? copy("overview.tile.mention-rate.of", {
+          mentioned,
+          answers: formatCount(rate.samples),
+          weeks: formatCount(ANSWER_RATE_WEEKS),
+        })
+      : copy("overview.tile.mention-rate.early", { weeks: formatCount(MENTION_RATE_MIN_WEEKS) }),
     shareOfVoice === null
       ? null
       : copy("overview.tile.mention-rate.share", { share: formatCount(percent(shareOfVoice)) }),
@@ -258,17 +263,19 @@ function MentionRateTile(p: { prompts: Extract<PromptsModel, { kind: "measured" 
       label={copy(MENTION_RATE_LABEL)}
       tab="ai_answers"
       testId="overview-tile-mention-rate"
-      figure={`${formatCount(percent(rate.rate))}%`}
+      figure={rateShown ? `${formatCount(percent(rate.rate))}%` : mentioned}
       against={
         <Against>
-          {copy("overview.tile.mention-rate.band", {
-            low: formatCount(percent(rate.low)),
-            high: formatCount(percent(rate.high)),
-          })}
+          {rateShown
+            ? copy("overview.tile.mention-rate.band", {
+                low: formatCount(percent(rate.low)),
+                high: formatCount(percent(rate.high)),
+              })
+            : copy("overview.tile.mention-rate.early.of", { answers: formatCount(rate.samples) })}
         </Against>
       }
       line={lines.join(" · ")}
-      trend={p.prompts.trend}
+      trend={rateShown ? p.prompts.trend : []}
     />
   );
 }

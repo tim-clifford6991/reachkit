@@ -56,6 +56,13 @@ export type OpsIncident =
         smokeTests: { count: number; cents: number };
         totalCents: number | null;
       };
+      // Issue 1287 (D58): the passes one of their own health checks failed
+      // on, each with the check and what it found.
+      unhealthy?: readonly {
+        scanId: string;
+        domain: string;
+        failing: readonly { check: string; detail: string }[];
+      }[];
     }
   // Issue #799: no error — a scheduled job has not run for twice its
   // interval. The facts are the job id, its last run as an instant and its
@@ -76,6 +83,7 @@ const SUBJECT = "mail.ops.incident.subject" satisfies CopyKey;
 const HEADING = "mail.ops.incident.heading" satisfies CopyKey;
 const STOPPED_WEEK = "mail.ops.incident.drafts-stopped-week" satisfies CopyKey;
 const COSTS_WEEK = "mail.ops.incident.costs-week" satisfies CopyKey;
+const HEALTH_WEEK = "mail.ops.incident.health-week" satisfies CopyKey;
 
 const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "job-failed": "mail.ops.incident.job-failed",
@@ -206,7 +214,7 @@ function costFacts(costs: WeekCosts): FactRow[] {
  *  say, so a week with stalled pages and no thin market does not claim one. */
 function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small-week" }>): MailBlock[] {
   const blocks: MailBlock[] = [];
-  if (incident.scanIds.length > 0 || (incident.stopped === undefined && incident.costs === undefined)) {
+  if (incident.scanIds.length > 0 || (incident.stopped === undefined && incident.costs === undefined && incident.unhealthy === undefined)) {
     blocks.push({ block: "paragraph", text: BODY[incident.occasion] }, { block: "facts", items: factsOf(incident) });
   }
   if (incident.stopped !== undefined) {
@@ -222,6 +230,21 @@ function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small
             ...site.causes.map((cause): FactRow => ({ label: "mail.ops.incident.fact.cause", value: `${closedName(cause.cause)}: ${count(cause.count)}` })),
           ]),
         ],
+      }
+    );
+  }
+  if (incident.unhealthy !== undefined) {
+    blocks.push(
+      { block: "paragraph", text: HEALTH_WEEK },
+      {
+        block: "facts",
+        items: incident.unhealthy.flatMap((pass): FactRow[] => [
+          { label: "mail.ops.incident.fact.site", value: closedDomain(pass.domain) },
+          { label: "mail.ops.incident.fact.scan", value: closedId(pass.scanId) },
+          ...pass.failing.map(
+            (failed): FactRow => ({ label: "mail.ops.incident.fact.health-check", value: `${closedName(failed.check)}: ${sentenceValue(failed.detail)}` })
+          ),
+        ]),
       }
     );
   }

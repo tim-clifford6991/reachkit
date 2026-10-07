@@ -34,7 +34,7 @@
 // different week from the one it announces.
 import { dbAdmin } from "@/lib/db";
 import { env } from "@/lib/config/env";
-import { ANSWER_RATE_WEEKS, WEEKLY_NEXT_COUNT } from "@/lib/config/constants";
+import { ANSWER_RATE_WEEKS, MENTION_RATE_MIN_WEEKS, WEEKLY_NEXT_COUNT } from "@/lib/config/constants";
 import { measurePrompts } from "@/lib/market/prompts/rate";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
@@ -266,6 +266,8 @@ async function mentionRateOf(
         answers: measure.rate.samples,
         weeks: ANSWER_RATE_WEEKS,
         pagesCited: measure.pages.length,
+        // D58: no rate before two weeks of the current prompt set.
+        ...(window.weeks.length >= MENTION_RATE_MIN_WEEKS ? {} : { rateAfterWeeks: MENTION_RATE_MIN_WEEKS }),
       },
     };
   } catch {

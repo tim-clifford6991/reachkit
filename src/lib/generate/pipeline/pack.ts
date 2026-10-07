@@ -21,7 +21,7 @@
 // whose words are on none of the top results the research step read.
 //
 // Pure. The reads are the caller's (`../index.ts`, `scripts/page/`).
-import { ADDS, PACK } from "@/lib/config/constants";
+import { ADDS, PACK, RIVAL_PRICE_MAX_AGE_D } from "@/lib/config/constants";
 import { GENERIC_TOKENS, brandOf } from "@/lib/market/questions/select";
 import type { ContentType } from "@/lib/opportunities/content-type";
 import type { SitePage } from "@/lib/opportunities/site-pages";
@@ -431,6 +431,15 @@ export interface PackInputs {
   now: Date;
 }
 
+/** Whether a claim is a rival's price read too long ago to state (D59):
+ *  more than `RIVAL_PRICE_MAX_AGE_D` days before `now`. A date that cannot
+ *  be read is not an age. */
+export function staleRivalPrice(claim: Pick<PackClaim, "kind" | "readAt">, now: Date): boolean {
+  if (claim.kind !== "rival_pricing") return false;
+  const read = Date.parse(claim.readAt);
+  return !Number.isNaN(read) && now.getTime() - read > RIVAL_PRICE_MAX_AGE_D * 86_400_000;
+}
+
 export function buildPack(a: PackInputs): ContextPack {
   const searches = [...(a.opportunity.targetQuery === null ? [] : [a.opportunity.targetQuery]), ...a.opportunity.absorbedQueries];
   const question = searches[0] ?? a.opportunity.title ?? a.opportunity.targetRef;
@@ -440,7 +449,14 @@ export function buildPack(a: PackInputs): ContextPack {
     readAt: sourced.fact.readAt.toISOString(),
     ...(sourced.report === true ? { report: true as const } : {}),
   }));
-  const claims: PackClaim[] = a.research.facts.map((fact) => ({
+  // SPEC §7 (owner D59, issue 1287): a rival's price read more than 30
+  // days ago is not handed to the writer. A product left with no claim of
+  // its own is no longer one the page may name.
+  const current = a.research.facts.filter((fact) => !staleRivalPrice({ kind: fact.kind, readAt: fact.readAt.toISOString() }, a.now));
+  const products = a.research.products
+    .map((product) => ({ ...product, pages: product.pages.filter((url) => current.some((fact) => fact.product === product.domain && fact.url === url)) }))
+    .filter((product) => product.pages.length > 0);
+  const claims: PackClaim[] = current.map((fact) => ({
     passage: fact.passage,
     url: fact.url,
     title: fact.title,
@@ -469,7 +485,7 @@ export function buildPack(a: PackInputs): ContextPack {
     neverClaim: [...a.site.doNotClaim],
     facts,
     claims,
-    products: a.research.products,
+    products,
     ...(a.research.news === undefined ? {} : { news: a.research.news }),
     pages: a.sitePages.slice(0, PACK.pages),
     links: a.links.map((link) => ({ url: link.url, label: link.label, purpose: link.source === "site" ? link.purpose : null })),

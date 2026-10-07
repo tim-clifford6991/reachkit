@@ -27,7 +27,7 @@ import type { StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import type { RankedCounts } from "../winnability/counts";
 import { pageTypeOf } from "../page-type";
-import { addRejections, noRejections, type Opportunity, type RejectionCount } from "../types";
+import { addRejections, isRetarget, noRejections, type Opportunity, type RejectionCount } from "../types";
 import type { Candidate } from "./candidate";
 import { earnCandidates } from "./earn";
 import { fixCandidates } from "./fix";
@@ -41,7 +41,7 @@ import { refineType } from "./typing";
 import { applyKnownContent, type KnownContentGate } from "./known";
 import { writeCandidates } from "./write";
 import { judgeFit, type FitSearch } from "./fit";
-import { brandsOf, candidateFor, comparisonWithoutDemand, proposedTopics, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
+import { brandsOf, candidateFor, comparisonWithoutDemand, noLongerRelevant, proposedTopics, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 
 export interface DeriveInput {
@@ -191,9 +191,22 @@ export async function deriveOpportunities(
     row.source !== "ai_gap" &&
     (row.volume === null || row.volume.kind === "unmeasured") &&
     comparisonWithoutDemand(row.targetQuery, { market, own: named.own });
+  // SPEC §6 (owner D59, issue 1287): context stays relevant. An open topic
+  // nothing was ever drafted from goes where it names a rival that is no
+  // longer current, or uses a term of a market that is not this one. A
+  // topic with a draft or a publication is never touched, and neither is
+  // the search an operator retargeted a live page to (issue 1285). A store
+  // that cannot say which topics were drafted prunes nothing.
+  const drafted = store.draftedOpportunityIds === undefined ? null : await store.draftedOpportunityIds(a.siteId).catch(() => null);
+  const irrelevant = (row: (typeof held)[number]): boolean =>
+    drafted !== null &&
+    !drafted.has(row.id) &&
+    row.targetQuery !== null &&
+    !isRetarget(row) &&
+    noLongerRelevant(row.targetQuery, { market, own: named.own }) !== null;
   const gone = new Set<string>();
   for (const row of held) {
-    if (row.status === "open" && (aRivalsPrice(row) || unsearchedComparison(row))) gone.add(row.id);
+    if (row.status === "open" && (aRivalsPrice(row) || unsearchedComparison(row) || irrelevant(row))) gone.add(row.id);
   }
   const mine = planned.filter((candidate) => !aRivalsPrice(candidate));
   const derived: Candidate[] = [

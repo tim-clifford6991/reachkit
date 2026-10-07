@@ -1504,6 +1504,15 @@ export const OVERVIEW_TRAILING_WEEKS = 12 as const;           // BUILD §4.5 · 
  *  where `OVERVIEW_TRAILING_WEEKS` counts *weeks*. */
 export const ANSWER_RATE_WEEKS = 4 as const;                  // SPEC §6 2026-09-20
 
+/** SPEC §6 (owner, D58 of 2026-10-06, issue 1287): no mention rate is shown
+ *  until this many weeks of the current prompt set exist. Before then the
+ *  count and its sample stand in its place ("0 of 46 answers"). */
+export const MENTION_RATE_MIN_WEEKS = 2 as const;             // SPEC §6 2026-10-06 D58
+
+/** SPEC §7 (owner, D59 of 2026-10-06, issue 1287): a context pack drops a
+ *  rival pricing fact read more than this many days ago. */
+export const RIVAL_PRICE_MAX_AGE_D = 30 as const;             // SPEC §7 2026-10-06 D59
+
 /** BUILD §4.5, verbatim: "up to two alerts". The remainder is stated as a
  *  count with where to see it, never as a third alert. */
 export const OVERVIEW_ALERT_CAP = 2 as const;                 // BUILD §4.5

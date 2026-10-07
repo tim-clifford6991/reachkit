@@ -9,6 +9,7 @@ import type { PromptSample, PromptWeek, PromptWindow } from "@/lib/market/prompt
 import type { PromptsSection } from "../report";
 import { previousWeekStart } from "./movement";
 import { dbAdmin } from "@/lib/db";
+import { unhealthyScans } from "../health-record";
 import { readSiteZone, readWeekScans } from "./store";
 import { weekStartFor } from "./week";
 
@@ -40,6 +41,7 @@ export function promptWindowWeeks(weekStart: string): string[] {
 }
 
 interface DeepRow {
+  id?: string;
   created_at: string;
   prompts: unknown;
 }
@@ -66,22 +68,22 @@ async function readRemeasures(a: {
   siteId: string;
   zone: string;
   weekStarts: readonly string[];
-}): Promise<{ weekStart: string; at: number; section: PromptsSection }[]> {
+}): Promise<{ scanId: string | null; weekStart: string; at: number; section: PromptsSection }[]> {
   const since = new Date(Date.parse(`${a.weekStarts[0]}T00:00:00.000Z`) - 86_400_000).toISOString();
   const client = dbAdmin() as unknown as { from(table: string): DeepQuery };
   const { data, error } = await client
     .from("scans")
-    .select("created_at, prompts:report->prompts")
+    .select("id, created_at, prompts:report->prompts")
     .eq("site_id", a.siteId)
     .eq("tier", "deep")
     .gte("created_at", since);
   if (error !== null || data === null) return [];
-  const out: { weekStart: string; at: number; section: PromptsSection }[] = [];
+  const out: { scanId: string | null; weekStart: string; at: number; section: PromptsSection }[] = [];
   for (const row of data) {
     if (!isSection(row.prompts)) continue;
     const at = new Date(row.created_at);
     const weekStart = weekStartFor({ at, zone: a.zone });
-    if (a.weekStarts.includes(weekStart)) out.push({ weekStart, at: at.getTime(), section: row.prompts });
+    if (a.weekStarts.includes(weekStart)) out.push({ scanId: row.id ?? null, weekStart, at: at.getTime(), section: row.prompts });
   }
   return out;
 }
@@ -93,21 +95,29 @@ async function readRemeasures(a: {
  * the answers read without doubling what was learned. **One set**: a week
  * that asked the set as it was before a rebuild (D54) is left out, so the
  * rate starts again with the rebuilt set and never mixes the two.
+ * **Healthy passes only** (D58, issue 1287): a pass one of its own health
+ * checks failed on is nobody's sample, so the headline numbers stay on the
+ * last healthy pass. Its data stays stored, and a healthy pass of the same
+ * week stands in for it.
  */
 export async function readPromptWindow(a: { siteId: string; weekStart: string; zone?: string }): Promise<PromptWindow> {
   const weekStarts = promptWindowWeeks(a.weekStart);
   const zone = a.zone ?? (await readSiteZone(a.siteId));
-  const [scans, remeasures] = await Promise.all([
+  const since = new Date(Date.parse(`${weekStarts[0]}T00:00:00.000Z`) - 86_400_000).toISOString();
+  const [scans, remeasures, unhealthy] = await Promise.all([
     readWeekScans({ siteId: a.siteId, weekStarts }),
     zone === null ? [] : readRemeasures({ siteId: a.siteId, zone, weekStarts }).catch(() => []),
+    unhealthyScans({ siteId: a.siteId, since }),
   ]);
   const read: { week: PromptWeek; section: PromptsSection }[] = [];
   for (const weekStart of weekStarts) {
-    const report = scans.get(weekStart)?.report;
+    const weekly = scans.get(weekStart);
+    const report = weekly === undefined || unhealthy.has(weekly.scanId) ? undefined : weekly.report;
     let section = report?.prompts;
     let at = section === undefined || report == null ? -1 : report.verdict.measuredAt.getTime();
     for (const remeasure of remeasures) {
       if (remeasure.weekStart !== weekStart || remeasure.at <= at) continue;
+      if (remeasure.scanId !== null && unhealthy.has(remeasure.scanId)) continue;
       section = remeasure.section;
       at = remeasure.at;
     }

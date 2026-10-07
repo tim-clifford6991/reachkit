@@ -138,6 +138,10 @@ export interface OpportunityStore {
    *  over alongside a pass's new candidates. A published topic is in it
    *  (#1181), so a pass never plans a second page on it. */
   clusterable(siteId: string): Promise<readonly OpportunityRow[]>;
+  /** The ids of this site's rows a draft was ever written from, published
+   *  or not (SPEC §6, D59, issue 1287): the rows a pass's relevance prune
+   *  never touches. Optional: a store that cannot answer prunes nothing. */
+  draftedOpportunityIds?(siteId: string): Promise<ReadonlySet<string>>;
   /** The non-Fix row whose page was drafted or published last — the day
    *  before the first one the ranking plans (#1181). */
   latestPage(siteId: string): Promise<OpportunityRow | null>;
@@ -514,6 +518,15 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .limit(1);
       if (error) throw new Error(`opportunities.latestPage: ${error.message}`);
       return (await atCurrentHost(siteId, data ?? []))[0] ?? null;
+    },
+
+    async draftedOpportunityIds(siteId) {
+      const { data, error } = await untyped()
+        .from<{ opportunity_id: string | null }>("drafts")
+        .select("opportunity_id")
+        .eq("site_id", siteId);
+      if (error) throw new Error(`opportunities.draftedOpportunityIds: ${error.message}`);
+      return new Set((data ?? []).flatMap((draft) => (draft.opportunity_id === null ? [] : [draft.opportunity_id])));
     },
 
     async draftedPages(siteId, limit) {

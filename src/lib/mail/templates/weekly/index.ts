@@ -58,6 +58,7 @@ const PAGES_LIVE = "mail.weekly.pagesLive" satisfies CopyKey;
 const SCORE = "mail.weekly.score" satisfies CopyKey;
 const AI_ANSWERS = "mail.weekly.aiAnswers" satisfies CopyKey;
 const MENTION_RATE = "mail.weekly.mentionRate" satisfies CopyKey;
+const MENTION_COUNT = "mail.weekly.mentionCount" satisfies CopyKey;
 const PAGES_CITED = "mail.weekly.pagesCited" satisfies CopyKey;
 const NOW_NAMED = "mail.weekly.nowNamed" satisfies CopyKey;
 const NOW_NAMED_ITEM = "mail.weekly.nowNamed.item" satisfies CopyKey;
@@ -151,6 +152,10 @@ export function buildWeekly(a: {
     readonly answers: number;
     readonly weeks: number;
     readonly pagesCited: number;
+    /** D58 (issue 1287): present while the window holds fewer weeks of the
+     *  current prompt set than a rate needs — that many. The mail then
+     *  states the count and its sample, never the rate. */
+    readonly rateAfterWeeks?: number;
   };
 }): WeeklyMail {
   const issues = a.issues === undefined ? [] : issueChangeRows(a.issues);
@@ -185,23 +190,7 @@ export function buildWeekly(a: {
       ...movementBlock(a.scoreDelta),
       { block: "paragraph", text: BODY },
       ...(a.marketChanges ?? []).map((change) => ({ block: "paragraph", text: change.line, vars: change.vars }) as const),
-      ...(a.mentionRate === undefined
-        ? []
-        : ([
-            {
-              block: "paragraph",
-              text: MENTION_RATE,
-              vars: {
-                rate: String(a.mentionRate.rate),
-                low: String(a.mentionRate.low),
-                high: String(a.mentionRate.high),
-                mentioned: String(a.mentionRate.mentioned),
-                answers: String(a.mentionRate.answers),
-                weeks: String(a.mentionRate.weeks),
-              },
-            },
-            { block: "paragraph", text: PAGES_CITED, vars: { pages: String(a.mentionRate.pagesCited) } },
-          ] as const)),
+      ...mentionBlocks(a.mentionRate),
       // The other three Overview numbers, with their change. Two to a row;
       // each is dropped on its own, and the group goes when none is left.
       {
@@ -269,6 +258,24 @@ export function buildWeekly(a: {
  * rule every number in this mail is held to, applied to a sentence about a
  * number.
  */
+/** D22's first number as the mail says it: the rate with its range, or —
+ *  before a rate may be shown (D58, issue 1287) — the count and its sample;
+ *  then the pages cited. Nothing where no pass asked the prompts. */
+function mentionBlocks(rate: Parameters<typeof buildWeekly>[0]["mentionRate"]): readonly MailBlock[] {
+  if (rate === undefined) return [];
+  const counted = { mentioned: String(rate.mentioned), answers: String(rate.answers) };
+  return [
+    rate.rateAfterWeeks !== undefined
+      ? { block: "paragraph", text: MENTION_COUNT, vars: { ...counted, weeks: String(rate.rateAfterWeeks) } }
+      : {
+          block: "paragraph",
+          text: MENTION_RATE,
+          vars: { rate: String(rate.rate), low: String(rate.low), high: String(rate.high), ...counted, weeks: String(rate.weeks) },
+        },
+    { block: "paragraph", text: PAGES_CITED, vars: { pages: String(rate.pagesCited) } },
+  ];
+}
+
 function movementBlock(scoreDelta: Measured<number>): readonly MailBlock[] {
   if (scoreDelta.kind === "unmeasured") return [];
   const text = scoreDelta.value > 0 ? MOVED_UP : scoreDelta.value < 0 ? MOVED_DOWN : MOVED_FLAT;

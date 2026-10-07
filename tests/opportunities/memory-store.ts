@@ -194,6 +194,10 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       return pages.sort((a, b) => at(b.id) - at(a.id))[0] ?? null;
     },
 
+    async draftedOpportunityIds() {
+      return new Set((state.drafted ?? []).map((page) => page.row.id));
+    },
+
     async draftedPages(_siteId, limit) {
       return (state.drafted ?? []).slice(0, limit);
     },

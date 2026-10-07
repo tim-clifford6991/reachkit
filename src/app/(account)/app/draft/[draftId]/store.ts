@@ -44,6 +44,7 @@
 // `writtenAt` is not among them: it is `drafts.created_at`, a column the
 // baseline declares `not null`, so the day the page was written is read
 // from the row rather than from what generation remembered to write down.
+import { now as clock } from "@/lib/config/now";
 import { dbAdmin } from "@/lib/db";
 import { readRecordedFact } from "@/lib/generate/fact";
 import { readPack } from "@/lib/generate/pipeline/pack";
@@ -132,7 +133,14 @@ const DRAFT_STATES: readonly string[] = [
  *  written before the pack. Every member is read defensively: the column is
  *  JSON and `readPack` vouches only for the pack's version and its two fact
  *  lists. */
-function packAt(meta: Record<string, unknown> | null): { pack?: PackView } {
+/** Whole days from `readAt` to `at` (D59, issue 1287): 0 on the day it was
+ *  read. Nothing where the pack kept no date a calendar can read. */
+export function ageOf(readAt: unknown, at: Date): { ageDays?: number } {
+  const read = typeof readAt === "string" ? Date.parse(readAt) : Number.NaN;
+  return Number.isNaN(read) ? {} : { ageDays: Math.max(0, Math.floor((at.getTime() - read) / 86_400_000)) };
+}
+
+function packAt(meta: Record<string, unknown> | null, at: Date): { pack?: PackView } {
   const pack = readPack(meta);
   if (pack === null) return {};
   const texts = (value: unknown): string[] =>
@@ -152,6 +160,7 @@ function packAt(meta: Record<string, unknown> | null): { pack?: PackView } {
                 url: claim.url,
                 title: typeof claim.title === "string" ? claim.title : "",
                 readAt: typeof claim.readAt === "string" ? claim.readAt : "",
+                ...ageOf(claim.readAt, at),
               },
             ]
           : []
@@ -211,20 +220,23 @@ function textsAt(meta: Record<string, unknown> | null, key: string): readonly st
  *  is unknown, and the card says so rather than dropping the sentence — a
  *  fact with no address is exactly what the card exists to surface. */
 function factsUsedAt(
-  meta: Record<string, unknown> | null
-): readonly { passage: string; url: string | null }[] {
+  meta: Record<string, unknown> | null,
+  at: Date
+): readonly { passage: string; url: string | null; ageDays?: number }[] {
   const value = meta?.factsUsed;
   if (!Array.isArray(value)) return [];
-  const out: { passage: string; url: string | null }[] = [];
+  // The pack holds the same passages with the day each was read (D59).
+  const readAt = new Map((readPack(meta)?.facts ?? []).map((fact) => [fact?.passage, fact?.readAt]));
+  const out: { passage: string; url: string | null; ageDays?: number }[] = [];
   for (const entry of value) {
     if (typeof entry === "string" && entry.trim() !== "") {
       out.push({ passage: entry, url: null });
       continue;
     }
     if (entry === null || typeof entry !== "object") continue;
-    const row = entry as { passage?: unknown; url?: unknown };
+    const row = entry as { passage?: unknown; url?: unknown; readAt?: unknown };
     if (typeof row.passage !== "string" || row.passage.trim() === "") continue;
-    out.push({ passage: row.passage, url: typeof row.url === "string" ? row.url : null });
+    out.push({ passage: row.passage, url: typeof row.url === "string" ? row.url : null, ...ageOf(row.readAt ?? readAt.get(row.passage), at) });
   }
   return out;
 }
@@ -456,7 +468,9 @@ export async function readDraftRow(a: {
   const generated = stringAt(row.meta, "body_md_generated") ?? bodyMd;
   const firstEdited = stringAt(row.meta, "first_edited_at");
   const lastSaved = stringAt(row.meta, "last_saved_at");
-  const { pack } = packAt(row.meta);
+  // One clock read for the screen: every fact's age is as of this read.
+  const at = clock();
+  const { pack } = packAt(row.meta, at);
 
   return {
     draftId: row.id,
@@ -471,7 +485,7 @@ export async function readDraftRow(a: {
     // nobody wrote a record for.
     writtenFrom: {
       profileItems: textsAt(row.meta, "profileItems"),
-      facts: factsUsedAt(row.meta),
+      facts: factsUsedAt(row.meta, at),
       ...(Array.isArray(row.meta?.marketFacts)
         ? {
             marketFacts: (row.meta.marketFacts as unknown[]).flatMap((entry) => {

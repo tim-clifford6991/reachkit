@@ -217,6 +217,12 @@ export const MAIL_COPY = Object.freeze({
     "AI mention rate: {rate}% (likely {low}–{high}%). AI named you in {mentioned} of {answers} answers to your buyer prompts over the last {weeks} weeks.",
     { slots: { rate: "text", low: "text", high: "text", mentioned: "text", answers: "text", weeks: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
   ],
+  // D58 (issue 1287, drafted): before two weeks of the current prompt set
+  // exist the mail states the count and its sample, never a rate.
+  "mail.weekly.mentionCount": [
+    "AI named you in {mentioned} of {answers} answers to your buyer prompts so far. A mention rate appears after {weeks} weeks of these prompts.",
+    { slots: { mentioned: "text", answers: "text", weeks: "text" }, fixedBy: "SPEC §6 2026-10-06 D58 (drafted)" },
+  ],
   "mail.weekly.pagesCited": [
     "Your pages cited in those answers: {pages}.",
     { slots: { pages: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
@@ -777,6 +783,10 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.fact.cost-free-scans": ["Free scans (total × count)", { slots: {}, fixedBy: "issue 1286 (drafted)" }],
   "mail.ops.incident.fact.cost-smoke-tests": ["Smoke tests (total × count)", { slots: {}, fixedBy: "issue 1286 (drafted)" }],
   "mail.ops.incident.fact.cost-total": ["Week total, all spend", { slots: {}, fixedBy: "issue 1286 (drafted)" }],
+  // Issue 1287 (D58, drafted): the passes one of their own health checks
+  // failed on. Owner-only, so the site is named.
+  "mail.ops.incident.health-week": ["These passes failed one of their own health checks in the last seven days. Their data is stored, and the headline numbers stay on the last healthy pass.", { slots: {}, fixedBy: "issue 1287 (drafted)" }],
+  "mail.ops.incident.fact.health-check": ["Failed check", { slots: {}, fixedBy: "issue 1287 (drafted)" }],
   // Issue #799: a scheduled job has gone quiet for twice its interval.
   "mail.ops.incident.job-stale": ["A scheduled job has not run for more than twice its usual interval.", { slots: {}, fixedBy: "issue 799" }],
   "mail.ops.incident.fact.last-run": ["Last run", { slots: {}, fixedBy: "issue 799" }],

@@ -782,6 +782,17 @@ export const OVERVIEW_COPY = Object.freeze({
     "Named in {mentioned} of {answers} AI answers, last {weeks} weeks",
     { slots: { mentioned: "text", answers: "text", weeks: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
   ],
+  // D58 (issue 1287, drafted): no rate is shown until two weeks of the
+  // current prompt set exist. The count stands beside its sample
+  // ("0" · "of 46 answers"), and one line says when the rate appears.
+  "overview.tile.mention-rate.early.of": [
+    "of {answers} answers",
+    { slots: { answers: "text" }, fixedBy: "SPEC §6 2026-10-06 D58 (drafted)" },
+  ],
+  "overview.tile.mention-rate.early": [
+    "AI answers that named you so far. A rate appears after {weeks} weeks of these prompts",
+    { slots: { weeks: "text" }, fixedBy: "SPEC §6 2026-10-06 D58 (drafted)" },
+  ],
   "overview.tile.mention-rate.share": [
     "{share}% share of voice against your rivals",
     { slots: { share: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
