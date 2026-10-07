@@ -204,11 +204,13 @@ export function DayCard(p: {
     // date this calendar has anything to say about, and emphatically not
     // padding. It keeps the card's height so the row's baseline does not
     // move, and the library has already disabled it, so nothing can be
-    // pressed on it.
+    // pressed on it. `block`, as a card is a flex box: an inline button
+    // sits on a text baseline and made its week 5.6px taller than a week
+    // of cards (issue 1320).
     return (
       <button
         {...p.buttonProps}
-        className={`rounded-box w-full ${CARD_HEIGHT}`}
+        className={`rounded-box block w-full ${CARD_HEIGHT}`}
         aria-hidden="true"
         tabIndex={-1}
         aria-label={undefined}

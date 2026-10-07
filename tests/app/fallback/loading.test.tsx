@@ -128,3 +128,29 @@ describe("every /app route — skeletons of its own cards (SPEC §4, 2026-09-20)
     expect(markup).not.toContain("<main");
   });
 });
+
+describe("Plan waits in the shape of the Plan that arrives (issue 1320)", () => {
+  const PLAN = html(CalendarLoading);
+  const part = (testId: string): string => {
+    const at = PLAN.indexOf(`data-testid="${testId}"`);
+    if (at === -1) throw new Error(`no ${testId} in the waiting Plan`);
+    return PLAN.slice(PLAN.lastIndexOf("<", at), PLAN.indexOf(">", at));
+  };
+
+  it("is headed as the loaded screen is, with the month switcher's place held", () => {
+    // The name has no read behind it, so it is there from the first paint
+    // and is not replaced; the switcher names a month, so it is a box.
+    expect(PLAN).toContain(`>${COPY["shell.nav.plan"]}</h1>`);
+    expect(part("month-switcher-skeleton")).toContain("skeleton");
+  });
+
+  it("is a list of days on a phone and the month grid from md, never seven columns below it", () => {
+    // The loaded screen's own media queries (`CalendarView`): the list is
+    // `md:hidden`, the grid `hidden md:block`.
+    expect(part("plan-skeleton-list")).toContain("md:hidden");
+    expect(part("plan-skeleton-grid")).toMatch(/\bhidden\b.*md:block/);
+    expect(PLAN).not.toContain("grid-cols-7");
+    // The day panel has a place wherever the loaded screen opens one.
+    expect(part("plan-skeleton-panel")).toMatch(/\bhidden\b.*md:flex/);
+  });
+});

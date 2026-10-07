@@ -26,8 +26,8 @@
 // `useSearchParams`, which a client component may only do inside a boundary
 // (`01-app/03-api-reference/04-functions/use-search-params.md`: "We
 // recommend wrapping the Client Component that uses `useSearchParams` in a
-// `<Suspense/>` boundary"). One daisyUI `skeleton` holds its place, which
-// is what SPEC §5 (2026-09-20) asks of every waiting state in the app.
+// `<Suspense/>` boundary"). `PlanSkeleton` holds its place — the same boxes
+// `loading.tsx` draws under the head, so the month waits in one shape.
 //
 // It declares no `Surface`: the shell's layout owns this route's screen
 // root (`../layout.tsx`).
@@ -37,7 +37,9 @@ import type { Metadata } from "next";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
+import { PlanSkeleton } from "../_shell/skeletons";
 import { CalendarView } from "./CalendarView";
+import { PlanHead } from "./PlanHead";
 import { addMonths, monthNameOnly, monthShortLabel } from "./dates";
 import { parseMonth, readMonth, readStalledWeek, readSupplyNotice } from "./provider";
 import { stalledLine, supplyLine } from "./supply";
@@ -76,21 +78,9 @@ export default async function CalendarPage({
   // as nothing, never as a placeholder sentence.
   const plannedNote = writtenLine("calendar.footnote.planned");
   const supplyNote = writtenLine("calendar.footnote.supply");
-  // SPEC §4 (2026-09-20, #908, issue #914): "*Plan* is the calendar's
-  // on-screen name." The screen is named by the menu item that reaches it,
-  // which is the idiom Settings and Overview already keep — their `h1` is
-  // `shell.nav.*` and the written line sits under it. `calendar.head` is
-  // that line here (the owner's sentence of 2026-09-11, #516), so nothing
-  // it says is lost by the heading taking the name.
-  const head = writtenLine("calendar.head");
-
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-1">
-          <h1 className="text-2xl font-semibold">{copy("shell.nav.plan")}</h1>
-          {head === null ? null : <p className="min-w-0 wrap-anywhere">{head}</p>}
-        </div>
+      <PlanHead>
         {/* One grouped control (issue 1071, board R12-5-Plan): the month
             between its two neighbours, and *Today* after a hairline. */}
         <nav className="join rounded-field bg-base-100 shadow-(--shadow-card)" data-testid="month-switcher">
@@ -125,7 +115,7 @@ export default async function CalendarPage({
             {copy("calendar.month.today")}
           </a>
         </nav>
-      </div>
+      </PlanHead>
 
       <FirstPageNotice state={onboarding} />
       {/* §7's one statement of supply, at the calendar's top and nowhere
@@ -157,7 +147,7 @@ export default async function CalendarPage({
           {stalledStatement}
         </p>
       )}
-      <Suspense fallback={<div className="skeleton h-96 w-full" />}>
+      <Suspense fallback={<PlanSkeleton />}>
         <CalendarView model={model} />
       </Suspense>
 
