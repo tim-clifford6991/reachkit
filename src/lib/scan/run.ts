@@ -277,7 +277,12 @@ interface TierParameters {
    *  tier is back on `VENDOR.requestAbortMs`. The parameter stays, and the
    *  transport still carries the bound per call: that shape is what lets a
    *  tier be given its own figure once the recorded durations say what one
-   *  should be. */
+   *  should be.
+   *
+   *  D63 (issue 1298) is that figure for the paid tiers:
+   *  `VENDOR.paidSerpAbortMs`, never past the pass's own ceiling
+   *  (`serpAbortFor`). The free path keeps the short bound and asks a
+   *  timed-out read once more instead. */
   serpAbortMs: number;
   /** SPEC §6 (2026-09-20, #919) — does this pass ask the published pages'
    *  own questions beside the twelve?
@@ -352,7 +357,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     ladderStopsAt: "twelve",
     marketTooSmallAlert: "immediate",
     questionsFitThePurse: false,
-    serpAbortMs: VENDOR.requestAbortMs,
+    serpAbortMs: VENDOR.paidSerpAbortMs,
     pageQuestions: false,
     askReserveS: TIMING.paidPassAskReserveS,
     marketPrompts: BATTERY.MARKET_PROMPTS,
@@ -376,7 +381,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     ladderStopsAt: "twelve",
     marketTooSmallAlert: "digest",
     questionsFitThePurse: false,
-    serpAbortMs: VENDOR.requestAbortMs,
+    serpAbortMs: VENDOR.paidSerpAbortMs,
     pageQuestions: true,
     askReserveS: TIMING.paidPassAskReserveS,
     marketPrompts: 0,
@@ -1387,6 +1392,7 @@ async function runStages(a: StageArgs): Promise<void> {
   // questions already bought come back from `fetches` free of charge and
   // only the ones the ceiling cut off are paid for.
   let twelve: StageOutcome<void> = SKIPPED_STAGE;
+  let asking: Promise<void> = Promise.resolve();
   if (retry !== undefined && RETRY_STAGE[retry.part] !== "asking_the_twelve") {
     resumeSerps(sections, retry.report);
   } else {
@@ -1405,8 +1411,9 @@ async function runStages(a: StageArgs): Promise<void> {
         // both sets together costs the pass no time.
         // The market's buyer prompts join them (#1195), so the rivals are
         // concluded from answers in the market this pass measures.
+        asking = askTheTwelve({ ...a, bounds: b }, abandoned, bounds);
         await Promise.all([
-          askTheTwelve({ ...a, bounds: b }, abandoned),
+          asking,
           askThePageQuestions({ ...a, bounds: b }, abandoned),
           askTheMarketPrompts({ ...a, bounds: b }),
           askTheTrackedPrompts({ ...a, bounds: b }),
@@ -1415,6 +1422,14 @@ async function runStages(a: StageArgs): Promise<void> {
       twelveCents
     );
   }
+  // D63 (issue 1298): a stage that spent its clock stops waiting, and the
+  // asks it left go on. The pass waits for them here — the reads still in
+  // flight and the one more ask of a read that timed out — so what was
+  // bought is scored. No new first ask starts, each wait is one request's
+  // bound, and it waits only while its own ceiling holds one: a stage that
+  // ended too near the ceiling is left as it was, and the pass still ends
+  // `complete`.
+  if (twelve.spent && roomForOneRead(bounds, a.parameters)) await asking;
   if (bounds.abandoned()) return;
   if (!twelve.spent) await exitStage(scanId, "asking_the_twelve");
 
@@ -1924,7 +1939,36 @@ function untilCeiling(bounds: Bounds, parameters: TierParameters): number {
   return Date.now() + Math.max(0, bounds.remainingMs() - parameters.askReserveS * 1000);
 }
 
-async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<void> {
+/**
+ * The wall clock one SERP request of this pass may hold (D63, issue 1298):
+ * the tier's bound, and on a pass with no stage budgets never more than is
+ * left of its ceiling. The free path's stage clock does not shorten its
+ * bound — a shorter one only buys aborted, billed calls (issue 877).
+ */
+function serpAbortFor(pass: Bounds, parameters: TierParameters): number {
+  if (parameters.stageBudgets) return parameters.serpAbortMs;
+  return Math.max(1, Math.min(parameters.serpAbortMs, pass.remainingMs()));
+}
+
+/** What a pass keeps beyond one request's bound to ledger and score its
+ *  answer, so waiting for a read never runs the pass into its ceiling. */
+const SERP_SETTLE_MS = 2_000;
+
+/**
+ * Whether the pass's clock holds one more whole SERP read (D63). On the
+ * free path that is the bound and the time to store what it brings; a paid
+ * pass's bound is already cut to what is left of its ceiling.
+ */
+function roomForOneRead(pass: Bounds, parameters: TierParameters): boolean {
+  if (!parameters.stageBudgets) return pass.remainingMs() > 0;
+  return pass.remainingMs() >= parameters.serpAbortMs + SERP_SETTLE_MS;
+}
+
+/**
+ * `pass` is the pass's own bounds where `a.bounds` is one stage's: the one
+ * more ask (below) is bounded by the pass's clock, not the stage's.
+ */
+async function askTheTwelve(a: StageArgs, abandoned: () => boolean, pass: Bounds = a.bounds): Promise<void> {
   const { bounds, cost, parameters, sections } = a;
   const questions = sections.questions;
   const asked = questions.kind === "unmeasured" ? [] : questions.value;
@@ -1959,7 +2003,7 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
         loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
         scope: cacheScope(a),
         freshnessDays: serpWindowOf(a),
-        abortMs: parameters.serpAbortMs,
+        abortMs: serpAbortFor(pass, parameters),
         untilMs: untilCeiling(bounds, parameters),
         onFailure: (failure) => {
           heard.failure = failure;
@@ -2060,22 +2104,34 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
   // purse with no room refuses it rather than raising anything. A question
   // reserves the async-AI-Overview surcharge and a failed call settles the
   // base price, which is the room this ask is made in.
+  //
+  // **It is bounded by the pass, not by the stage** (D63, issue 1298). On
+  // the free path a read that met its 10 s bound left three of the stage's
+  // thirteen seconds, so the second ask was made and its answer dropped, or
+  // never made. It is asked while the report is not composed, the purse
+  // still holds it, and the pass's own ceiling leaves room for one whole
+  // bound; `runStages` waits for it. A paid pass has no stage clock, and
+  // this is the rule it always had.
+  const mayAskAgain = (): boolean =>
+    !sections.sealed && !pass.abandoned() && !bounds.capHit() && roomForOneRead(pass, parameters);
   let nextRetry = 0;
   const askAgain = async (): Promise<void> => {
     for (;;) {
       const owed = worthOneMore[nextRetry];
       nextRetry += 1;
       if (owed === undefined) return;
-      if (bounds.stopNow() !== null || abandoned()) return;
+      if (!mayAskAgain()) return;
       const got = await askOne(owed.keyword);
-      if (abandoned()) return;
+      // The seal the first asks are written under: a late answer is kept.
+      if (sections.sealed) return;
       const cell = cellFor(got, questions.at);
       logSerpRetry({ because: owed.because, outcome: cell.kind === "unmeasured" ? "unmeasured" : "measured" });
       sections.serps[owed.index] = cell;
+      if (abandoned()) rescore(a);
     }
   };
 
-  if (worthOneMore.length > 0 && !abandoned() && bounds.stopNow() === null) {
+  if (worthOneMore.length > 0 && mayAskAgain()) {
     await Promise.all(
       Array.from({ length: Math.min(parameters.serpFanout, worthOneMore.length) }, () => askAgain())
     );
@@ -2375,7 +2431,7 @@ async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Prom
             loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
             scope: cacheScope(a),
             freshnessDays: serpWindowOf(a),
-            abortMs: parameters.serpAbortMs,
+            abortMs: serpAbortFor(bounds, parameters),
             untilMs: untilCeiling(bounds, parameters),
           })
         ),

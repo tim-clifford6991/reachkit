@@ -350,6 +350,7 @@ describe("a stage that spends its own budget (issue #539)", () => {
     vi.useFakeTimers();
     try {
       const { STAGE_BUDGETS } = await import("../../../src/lib/scan/budgets");
+      const { TIMING } = await import("../../../src/lib/config/constants");
       let answer: () => void = () => undefined;
       const held = new Promise<void>((resolve) => {
         answer = resolve;
@@ -361,6 +362,10 @@ describe("a stage that spends its own budget (issue #539)", () => {
 
       const pass = runScan({ domain: DOMAIN, tier: "free" });
       await vi.advanceTimersByTimeAsync(STAGE_BUDGETS.asking_the_twelve.seconds * 1000);
+      // D63 (issue 1298): the pass waits for reads still in flight while
+      // its own ceiling holds one. These never answer — the transport's
+      // abort is doubled away here — so the ceiling is what ends the wait.
+      await vi.advanceTimersByTimeAsync(TIMING.reportCeilingS * 1000);
       await pass;
 
       const report = storedReport();

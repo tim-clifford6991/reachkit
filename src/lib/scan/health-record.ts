@@ -9,7 +9,7 @@
 // It never throws and never changes the pass: a pass whose health could not
 // be recorded keeps `health` null, which no reader calls unhealthy.
 import { dbAdmin } from "@/lib/db";
-import { checkHealth, failingChecks, parseHealth, type ScanHealth } from "./health";
+import { checkHealth, failingChecks, parseHealth, type ScanHealth, type SerpReads } from "./health";
 import type { StoredReport } from "./report";
 
 interface Result<T> {
@@ -26,8 +26,32 @@ interface Query<T> extends PromiseLike<Result<T>> {
   not(column: string, operator: string, value: null): Query<T>;
 }
 
+function table<T>(name: string): Query<T> {
+  return (dbAdmin() as unknown as { from(table: string): Query<T> }).from(name);
+}
+
 function scans<T>(): Query<T> {
-  return (dbAdmin() as unknown as { from(table: string): Query<T> }).from("scans");
+  return table<T>("scans");
+}
+
+/** The ledger's name for a Google SERP read (`serpOrganic`'s `source`). */
+export const SERP_SOURCE = "serp/google/organic";
+
+/** A failed call's kind, read out of the row's stored failure. */
+export const FAILURE_KIND = "payload->>vendorFailure";
+
+/**
+ * The SERP reads one pass's ledger rows hold (D63, issue 1298). A row is a
+ * call that reached the vendor, so a search asked twice is two reads. `null`
+ * where the ledger could not be read: the check then fails nothing.
+ */
+export async function serpReadsOf(scanId: string): Promise<SerpReads | null> {
+  const { data, error } = await table<{ failure: string | null }>("fetches")
+    .select(`failure:${FAILURE_KIND}`)
+    .eq("scan_id", scanId)
+    .eq("source", SERP_SOURCE);
+  if (error !== null || data === null) return null;
+  return { reads: data.length, timeouts: data.filter((row) => row.failure === "timeout").length };
 }
 
 export async function recordPassHealth(a: {
@@ -45,7 +69,10 @@ export async function recordPassHealth(a: {
       import("./weekly/prompts"),
       import("@/lib/market/infer/demand"),
     ]);
-    const inForce = await promptsInForce({ siteId: a.siteId, domain: a.domain });
+    const [inForce, serp] = await Promise.all([
+      promptsInForce({ siteId: a.siteId, domain: a.domain }),
+      serpReadsOf(a.scanId).catch(() => null),
+    ]);
     const section = a.report.prompts;
     const health = checkHealth({
       market: inForce?.market ?? null,
@@ -53,6 +80,7 @@ export async function recordPassHealth(a: {
       asked: section?.asked ?? inForce?.stored.prompts ?? [],
       generated: inForce?.generated ?? [],
       samples: a.asksPrompts ? (section === undefined ? [] : samplesOf(section)) : null,
+      serp,
       at: new Date(),
     });
     const { error } = await scans<{ id: string }>().update({ health }).eq("id", a.scanId);

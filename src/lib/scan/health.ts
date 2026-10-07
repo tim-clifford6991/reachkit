@@ -4,7 +4,7 @@
 // Scan 17f5bbff stored a rival read at 22,200 searches for a first name and
 // asked five prompts about rivals the same pass dropped, and nothing said
 // so: the numbers went to the screens as they were. So a paid pass ends by
-// asking four questions of what it stored, and keeps the answers on its own
+// asking five questions of what it stored, and keeps the answers on its own
 // row (`scans.health`):
 //
 //   brand_volume   no rival's brand volume is polluted — none is larger
@@ -12,7 +12,9 @@
 //                  (issue 1285's `brandKeywords`);
 //   prompt_rivals  every tracked prompt names only current rivals;
 //   market_terms   the market has at least one searched term with volume;
-//   mention_rate   the mention rate states its sample size and margin.
+//   mention_rate   the mention rate states its sample size and margin;
+//   serp_timeouts  no more than a fifth of the pass's SERP reads timed out
+//                  (owner D63 of 2026-10-07, issue 1298).
 //
 // A failing check deletes nothing. It is listed in the Monday owner digest,
 // and the headline numbers are read from the last pass that had none
@@ -26,7 +28,18 @@ import type { GeneratedPrompt, PromptKind } from "@/lib/market/prompts/generate"
 import { measurePrompts, type PromptSample } from "@/lib/market/prompts/rate";
 import { followRivals } from "@/lib/market/prompts/set";
 
-export const HEALTH_CHECKS = ["brand_volume", "prompt_rivals", "market_terms", "mention_rate"] as const;
+export const HEALTH_CHECKS = ["brand_volume", "prompt_rivals", "market_terms", "mention_rate", "serp_timeouts"] as const;
+
+/** D63: the share of a pass's SERP reads that may time out. More fails. */
+export const SERP_TIMEOUT_SHARE = 0.2;
+
+/** A pass's SERP reads as the ledger holds them: every read that reached
+ *  the vendor, a second ask of one search included, and how many of them
+ *  met our own request bound. An answer served from the cache is no read. */
+export interface SerpReads {
+  reads: number;
+  timeouts: number;
+}
 export type HealthCheck = (typeof HEALTH_CHECKS)[number];
 
 export interface HealthResult {
@@ -135,6 +148,16 @@ function mentionRate(samples: readonly PromptSample[] | null): HealthResult {
   );
 }
 
+/** A pass that lost more than a fifth of its SERP reads to the clock holds
+ *  that much less of its top tens. Reads that could not be counted, and a
+ *  pass that made none, fail nothing. */
+function serpTimeouts(serp: SerpReads | null | undefined): HealthResult {
+  if (serp === null || serp === undefined) return result("serp_timeouts", [], "the SERP reads were not counted");
+  if (serp.reads === 0) return result("serp_timeouts", [], "this pass made no SERP read");
+  const found = `${serp.timeouts} of ${serp.reads} SERP reads timed out`;
+  return result("serp_timeouts", serp.timeouts / serp.reads > SERP_TIMEOUT_SHARE ? [found] : [], found);
+}
+
 export interface HealthInput {
   /** The market in force when the pass ended. */
   market: MarketConclusion | null;
@@ -146,13 +169,15 @@ export interface HealthInput {
   generated: readonly GeneratedPrompt[];
   /** The pass's answers as samples; `null` where the pass asks no prompts. */
   samples: readonly PromptSample[] | null;
+  /** The pass's SERP reads; `null` where the ledger could not be read. */
+  serp?: SerpReads | null;
   at: Date;
 }
 
 export function checkHealth(a: HealthInput): ScanHealth {
   return {
     at: a.at.toISOString(),
-    checks: [brandVolume(a.market), promptRivals(a), marketTerms(a.market), mentionRate(a.samples)],
+    checks: [brandVolume(a.market), promptRivals(a), marketTerms(a.market), mentionRate(a.samples), serpTimeouts(a.serp)],
   };
 }
 

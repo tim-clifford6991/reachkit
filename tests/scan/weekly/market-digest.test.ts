@@ -210,6 +210,19 @@ describe("#796 — a Monday's thin weekly passes are one owner digest", () => {
       { id: "d2", site_id: SITE, scheduled_for: "2026-09-09", state: "published", transitions: [], cost_cents: 10 },
     ]);
     db.rpcs.set("fetches_spend_since", (args: Row) => (String(args.p_since) < "2026-09-14" ? 318 : 99));
+    // D63 (issue 1298): the week's SERP reads. The fake filters on a column
+    // name, so the failure kind is seeded under the path the query names.
+    const serp = (created_at: string, over: Row = {}): Row => ({ source: "serp/google/organic", created_at, cost_cents: 0.2, ...over });
+    const timedOut = { "payload->>vendorFailure": "timeout" };
+    db.seed("fetches", [
+      serp("2026-09-08T10:00:01.000Z"),
+      serp("2026-09-08T10:00:02.000Z", timedOut),
+      serp("2026-09-09T10:00:00.000Z", timedOut),
+      serp("2026-09-10T09:00:00.000Z"),
+      serp("2026-09-12T10:00:00.000Z", { ...timedOut, cost_cents: 0.06 }),
+      serp("2026-09-14T06:00:00.000Z", timedOut), // this Monday's: next week's
+      { source: "labs/keyword_overview", created_at: "2026-09-08T10:00:00.000Z", cost_cents: 1, ...timedOut },
+    ]);
 
     await tick();
 
@@ -222,6 +235,8 @@ describe("#796 — a Monday's thin weekly passes are one owner digest", () => {
     expect(html).toContain("20.0¢ × 2"); // free scans
     expect(html).toContain("8.0¢ × 1"); // the smoke test, apart
     expect(html).toContain("219.0¢"); // the ledger's week
+    expect(html).toContain("60% (3 / 5)"); // SERP reads that timed out
+    expect(html).toContain("0.5¢"); // what they were billed: 0.2 + 0.2 + 0.06
     // A visitor's domain is not the owner's site, and this Monday's own pass is next week's.
     expect(html).not.toContain("visitor-a.example");
     expect(html).not.toContain("99.0¢");

@@ -1416,6 +1416,11 @@ export const VENDOR = Object.freeze({                         // #23 · BUILD §
    *  #539's bound, pinned here by issue 875 so a tier can carry its own).
    *  Every call takes this unless its call site names another. */
   requestAbortMs: 10_000,
+  /** SPEC §6 (owner, D63, 2026-10-07, issue 1298): what a paid pass's
+   *  SERP request may hold. Live reads answered in 6–10 s that week and
+   *  20–40% met the 10 s bound, each billed. A free scan keeps
+   *  `requestAbortMs`. */
+  paidSerpAbortMs: 30_000,
   // Issue 877: **there is no free-path abort pin any more.** Issue 875 put
   // one here at 5 s on the owner's ruling, and the first free scan after it
   // shipped — `linear.app`, 2026-09-18 — aborted 5 of its 7 SERP calls and

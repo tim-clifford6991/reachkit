@@ -63,6 +63,7 @@ describe("the four checks, each passing and failing", () => {
       ["prompt_rivals", true],
       ["market_terms", true],
       ["mention_rate", true],
+      ["serp_timeouts", true],
     ]);
     expect(health.checks[3]!.detail).toBe("1 of 3 answers, 6–79%");
     // What the row keeps reads back as it was written.
@@ -97,6 +98,30 @@ describe("the four checks, each passing and failing", () => {
   });
 });
 
+describe("D63 (issue 1298): serp_timeouts", () => {
+  it("fails a pass that lost more than a fifth of its SERP reads to the clock, and no pass at a fifth or under", () => {
+    expect(failed({ serp: { reads: 12, timeouts: 3 } })).toEqual(["serp_timeouts"]);
+    expect(failed({ serp: { reads: 10, timeouts: 2 } })).toEqual([]);
+    expect(failed({ serp: { reads: 12, timeouts: 0 } })).toEqual([]);
+    expect(failingChecks(checkHealth(input({ serp: { reads: 12, timeouts: 3 } })))[0]).toMatchObject({
+      detail: "3 of 12 SERP reads timed out",
+      items: ["3 of 12 SERP reads timed out"],
+    });
+  });
+
+  it("a pass that made no read, or whose reads could not be counted, is not called unhealthy", () => {
+    expect(failed({ serp: { reads: 0, timeouts: 0 } })).toEqual([]);
+    expect(failed({ serp: null })).toEqual([]);
+  });
+
+  it("the dry run: production's 08:00 UTC hour of 2026-10-07, 7 of 9 reads timed out, fails", () => {
+    const health = checkHealth(input({ serp: { reads: 9, timeouts: 7 } }));
+    expect(failingChecks(health).map((result) => [result.check, result.detail])).toEqual([["serp_timeouts", "7 of 9 SERP reads timed out"]]);
+    // 2026-10-03's whole day, 1 of 16, would not.
+    expect(failed({ serp: { reads: 16, timeouts: 1 } })).toEqual([]);
+  });
+});
+
 describe("the dry run on scan 17f5bbff's stored rows", () => {
   const stored = JSON.parse(readFileSync("tests/market/fixtures/reachkit-scan-17f5bbff.json", "utf8")) as {
     siteName: string;
@@ -126,6 +151,7 @@ describe("the dry run on scan 17f5bbff's stored rows", () => {
       ["prompt_rivals", false],
       ["market_terms", true],
       ["mention_rate", true],
+      ["serp_timeouts", true],
     ]);
     const [volume, prompts, terms, rate] = health.checks;
     expect(volume!.items).toEqual(['Brandi: stored 22200, "brandi ai" has 260']);
