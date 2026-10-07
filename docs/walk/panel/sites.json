@@ -1,0 +1,153 @@
+{
+  "about": "The customer panel (SPEC §0, owner 2026-10-07, issue 1304): real public sites chosen for spread, run by `npm run panel`. None is a ReachKit rival. `country` and `language` are where the business's buyers are and what its site is written in; the checks hold the pass to them. `market` is word roots of what the business is, in its own language: the concluded category has to be spoken in one of them. The order is the run order, most different kinds first, so a run its cap cuts short still covers a spread. `place` is where a business that trades in one place trades; what of its market is not said there is listed for a person to read.",
+  "sites": [
+    {
+      "domain": "zunicafe.com",
+      "kind": "restaurant, single location",
+      "country": "US",
+      "language": "en",
+      "market": [
+        "restaurant",
+        "dining",
+        "café",
+        "cafe"
+      ],
+      "place": [
+        "san francisco",
+        "sf"
+      ],
+      "why": "One restaurant in San Francisco with a short site: a menu, hours and a story. Little text to read, buyers who search a cuisine and a neighbourhood, and review and booking sites all over its top tens."
+    },
+    {
+      "domain": "austinplumbery.com",
+      "kind": "local service, single location (plumber)",
+      "country": "US",
+      "language": "en",
+      "market": [
+        "plumb"
+      ],
+      "place": [
+        "austin"
+      ],
+      "why": "A family plumbing firm in one city (Austin, Texas). Its buyers search a trade and a place, its rivals are other local plumbers, and the listings that fill its top tens (Yelp, Angi) are not rivals."
+    },
+    {
+      "domain": "baeckerei-hinkel.de",
+      "kind": "German small business, German-language site (bakery)",
+      "country": "DE",
+      "language": "de",
+      "market": [
+        "bäcker",
+        "backwaren",
+        "brot",
+        "bakery"
+      ],
+      "place": [
+        "düsseldorf",
+        "duesseldorf",
+        "dusseldorf"
+      ],
+      "why": "A Düsseldorf bakery whose site is in German only. Its market, terms, searches, questions and topics have to be German and measured in Germany."
+    },
+    {
+      "domain": "alexander.co.uk",
+      "kind": "professional services (accountancy, UK)",
+      "country": "GB",
+      "language": "en",
+      "market": [
+        "account",
+        "tax"
+      ],
+      "place": [
+        "manchester"
+      ],
+      "why": "An independent firm of chartered accountants in Manchester. A UK professional-services firm with many service lines and a large site: the audience and the category must stay specific."
+    },
+    {
+      "domain": "tattly.com",
+      "kind": "e-commerce shop",
+      "country": "US",
+      "language": "en",
+      "market": [
+        "tattoo"
+      ],
+      "why": "A shop that sells one kind of product (temporary tattoos) from its own site. Its market is a product category, its rivals are other shops, and marketplaces (Amazon, Etsy) are not rivals."
+    },
+    {
+      "domain": "savvycal.com",
+      "kind": "B2B SaaS, not ReachKit's market (scheduling)",
+      "country": "US",
+      "language": "en",
+      "market": [
+        "schedul",
+        "calendar",
+        "booking",
+        "meeting"
+      ],
+      "why": "A small scheduling product. The kind of site the passes were built on, in a market that is not ReachKit's: it shows whether a result is general or fitted to one site."
+    },
+    {
+      "domain": "clearleft.com",
+      "kind": "agency or consultancy (design, UK)",
+      "country": "GB",
+      "language": "en",
+      "market": [
+        "design",
+        "ux"
+      ],
+      "why": "A design consultancy in Brighton. It sells time and expertise, not a product: its rivals are other studios, and the agency directories (Clutch) are not rivals."
+    },
+    {
+      "domain": "wesbos.com",
+      "kind": "creator and course business",
+      "country": "US",
+      "language": "en",
+      "market": [
+        "course",
+        "javascript",
+        "web development",
+        "coding",
+        "programming"
+      ],
+      "why": "One person selling web-development courses under his own name. The brand is a person, the site is mostly a blog, and course marketplaces (Udemy) are not rivals."
+    },
+    {
+      "domain": "pdxsmiledesign.com",
+      "kind": "local service (dentist)",
+      "country": "US",
+      "language": "en",
+      "market": [
+        "dent"
+      ],
+      "place": [
+        "portland"
+      ],
+      "why": "A dental practice in Portland, Oregon. A regulated local service with many treatments on one site: the category has to be the practice, not one treatment, and health directories must not be rivals."
+    },
+    {
+      "domain": "fletcherelectric.co.uk",
+      "kind": "local service (electrician, UK)",
+      "country": "GB",
+      "language": "en",
+      "market": [
+        "electric"
+      ],
+      "place": [
+        "leeds"
+      ],
+      "why": "A small electrical contractor in north Leeds. A trades firm outside the United States: its searches and their volumes are British, and its rivals are other Leeds electricians."
+    },
+    {
+      "domain": "streaksapp.com",
+      "kind": "app business (consumer iOS app)",
+      "country": "US",
+      "language": "en",
+      "market": [
+        "habit",
+        "to-do",
+        "todo"
+      ],
+      "why": "A habit-tracking app sold through the App Store, with a one-page site. Very little text, a consumer buyer, and rivals that are other apps."
+    }
+  ]
+}

@@ -11,6 +11,8 @@ Pinned numbers live in `src/lib/config/constants.ts`. Each section states the ru
 
 **Current focus (owner, 2026-10-03, D35, #1210)** *"the sole goal we are currently trying to solve is that our users site measurement returns correct rivals, category, keywords to work towards and AI answers to optimize for. this context, together with the users own site information are used to build the daily content post."* So the work in hand is the measurement: a site's pass must return the correct rivals, market category, keywords to work towards and AI answers to optimise for (§6). That context and the site's own information are what the daily page is built from (§7). The Goal above stands; this names what is being solved now.
 
+**Every kind of customer, never one site (owner, 2026-10-07, #1304)** *"this must never be built or optimized to get the correct answers for reachkit as dogfood but for all variety of customers who signup and use the solution. this must be organically baked in and validated before customers start paying."* A rule in market understanding, the knowledge base, rivals, terms, measured searches or topics is a general rule: it holds for a plumber, a restaurant, a shop and a German bakery as it holds for reachkit.app. Every change to these stages passes the **customer panel** — `npm run panel`, the real businesses of `docs/walk/panel/sites.json` — not only reachkit.app, before the owner is asked to measure (`docs/PROCESS.md`, *Testing budget*).
+
 | Term | Meaning |
 |---|---|
 | **SEO / GEO** | Google organic findability of the customer’s domain / whether ChatGPT, Google AI Mode and AI Overviews name them. |
