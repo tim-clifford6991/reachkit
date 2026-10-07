@@ -35,7 +35,7 @@ import { TEMPLATES, type PackNeed, type PackRequirement } from "../templates";
 import type { WritingMarket } from "../voice/market";
 import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import type { SourcedFact } from "./grounding";
-import type { BuyersAsk, JudgedResult, MarketFact, MarketResearch, ResearchedProduct } from "./research";
+import type { BuyersAsk, JudgedResult, MarketFact, MarketResearch, QuestionsHeld, ResearchedProduct } from "./research";
 import { comparisonTable } from "./table";
 
 export interface PackFact {
@@ -295,6 +295,9 @@ function answerable(
  * ask" for the target, the target's related searches that have a measured
  * volume, and the stored report's measured questions on the site's current
  * market — in that order, those that share a word with the target first.
+ * Where those are too few, the first two lists also hold what the research
+ * step read beside the market's searched terms (D62), and every rule here
+ * is asked of those as of the target's own.
  *
  * **A tracked buyer prompt is never one** (D61): the prompts are templated
  * so they can be measured (D19), and a page headed by them asks one question
@@ -553,6 +556,14 @@ export function buildPack(a: PackInputs): ContextPack {
   // of its own is not that case: the page stops and asks for it, as before.
   if (a.type === "listicle" && missing.includes("options") && !missing.includes("own_price")) return buildPack({ ...a, type: "qa" });
   return { ...pack, missing };
+}
+
+/** What a pack holds for a Q&A (owner, D62; issue 1297): the questions it
+ *  keeps, and whether they are as many as the template asks. It is what the
+ *  research step reads to know whether the target's own SERP was enough; a
+ *  pack that is not written as a Q&A asks for none. */
+export function questionsHeld(pack: ContextPack): QuestionsHeld {
+  return { kept: pack.questions.length, enough: pack.type !== "qa" || !pack.missing.includes("buyer_questions") };
 }
 
 /** The pack as the row keeps it, read back. `null` on a row written before

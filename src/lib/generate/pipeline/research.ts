@@ -13,7 +13,10 @@
 // 1262).
 // A Q&A (owner, D61; issue 1295) also buys the target's own SERP for
 // Google's "People also ask" and its related searches, and one keyword
-// overview that measures those searches' volume: its questions.
+// overview that measures those searches' volume: its questions. Where that
+// leaves the Q&A short of the questions its template asks, the same two lists
+// are read beside the market's searched terms, one at a time, until it is not
+// (owner, D62; issue 1297).
 // Each claim is kept with the address it was read from and the date it was
 // read, and is cited beside the sentence that uses it.
 //
@@ -106,11 +109,23 @@ export interface BuyersAsk {
   related: { search: string; volume: number }[];
 }
 
+/** What a pack built from this research holds for a Q&A (D62): the
+ *  questions it keeps, and whether they are as many as its template asks.
+ *  A page that is not written as a Q&A has `enough`. */
+export interface QuestionsHeld {
+  kept: number;
+  enough: boolean;
+}
+
 export interface MarketResearch {
   facts: MarketFact[];
   products: ResearchedProduct[];
   /** A Q&A's question sources, where the step was asked for them. */
   asked?: BuyersAsk;
+  /** D62: the market's searched terms whose SERPs were read because the
+   *  target's own left the Q&A short, and the questions they added to the
+   *  ones kept. Absent where the target's own SERP was enough. */
+  borrowed?: { terms: string[]; added: number };
   /** *Current insights*: every news result the judgement was asked about. */
   news?: JudgedResult[];
   /** The target's top results as they were read (issue 1143): what a new
@@ -473,31 +488,90 @@ async function recentPages(
   };
 }
 
-/** What buyers ask about the target (D61): one SERP of the target itself,
- *  read for its "People also ask" and its related searches, and one
- *  keyword-overview call that keeps the related searches with a measured
- *  volume. Both are ledgered; a call that fails or meets the ceiling leaves
- *  its half empty. */
-async function buyersAsk(c: CostContext, a: { siteId: string; target: string }): Promise<BuyersAsk> {
+/** One SERP, read for its "People also ask" and its related searches
+ *  (D61). Ledgered; `null` where the call fails. */
+async function askedBeside(c: CostContext, a: { siteId: string; query: string }): Promise<{ peopleAlsoAsk: string[]; searches: string[] } | null> {
   const serp = await serpOrganic(c, {
-    query: a.target,
+    query: a.query,
     mode: "live",
     loadAsyncAiOverview: false,
     scope: { site: a.siteId },
     freshnessDays: CACHE_WINDOWS_D.serp,
     questions: true,
   });
-  if (serp.kind === "unmeasured") return { peopleAlsoAsk: [], related: [] };
-  const peopleAlsoAsk = [...(serp.value.peopleAlsoAsk ?? [])];
-  const searches = [...new Set((serp.value.relatedSearches ?? []).map((search) => search.trim().toLowerCase()))].slice(0, RESEARCH.relatedSearches);
-  if (searches.length === 0 || c.capHit()) return { peopleAlsoAsk, related: [] };
-  const volumes = await keywordOverview(c, { keywords: searches });
-  if (volumes.kind === "unmeasured") return { peopleAlsoAsk, related: [] };
-  const volumeOf = new Map(volumes.value.map((row) => [row.keyword, row.searchVolume]));
+  if (serp.kind === "unmeasured") return null;
   return {
-    peopleAlsoAsk,
-    related: searches.map((search) => ({ search, volume: volumeOf.get(search) ?? 0 })).filter((row) => row.volume > 0),
+    peopleAlsoAsk: [...(serp.value.peopleAlsoAsk ?? [])],
+    searches: [...new Set((serp.value.relatedSearches ?? []).map((search) => search.trim().toLowerCase()))],
   };
+}
+
+/** The related searches that have a measured volume: one keyword-overview
+ *  call for at most `RESEARCH.relatedSearches` of them. Ledgered; none where
+ *  the call fails or the ceiling is met. */
+async function withVolume(c: CostContext, searches: readonly string[]): Promise<BuyersAsk["related"]> {
+  const asked = searches.slice(0, RESEARCH.relatedSearches);
+  if (asked.length === 0 || c.capHit()) return [];
+  const volumes = await keywordOverview(c, { keywords: asked });
+  if (volumes.kind === "unmeasured") return [];
+  const volumeOf = new Map(volumes.value.map((row) => [row.keyword, row.searchVolume]));
+  return asked.map((search) => ({ search, volume: volumeOf.get(search) ?? 0 })).filter((row) => row.volume > 0);
+}
+
+/** What buyers ask about the target (D61): one SERP of the target itself,
+ *  read for its "People also ask" and its related searches, and one
+ *  keyword-overview call that keeps the related searches with a measured
+ *  volume. A call that fails or meets the ceiling leaves its half empty. */
+async function buyersAsk(c: CostContext, a: { siteId: string; target: string }): Promise<BuyersAsk> {
+  const beside = await askedBeside(c, { siteId: a.siteId, query: a.target });
+  if (beside === null) return { peopleAlsoAsk: [], related: [] };
+  return { peopleAlsoAsk: beside.peopleAlsoAsk, related: await withVolume(c, beside.searches) };
+}
+
+const sameWords = (text: string): string => text.toLowerCase().replace(/\s+/g, " ").trim();
+
+/**
+ * A thin SERP borrows from the market's searched terms (owner, D62; issue
+ * 1297). Where the target's own SERP leaves the pack short of a Q&A's
+ * questions, the SERP of each of `terms` is read in turn — the market's
+ * search term, then its other searched terms, most searched first — for its
+ * "People also ask", and the reading stops as soon as the pack keeps enough
+ * or the terms run out. Each is one SERP, about 0.2¢.
+ *
+ * The terms' related searches are measured only where their questions were
+ * not enough, in one keyword-overview call for all of them: a call a term
+ * would cost five times the SERP it follows.
+ *
+ * Nothing is kept here. `held` is the pack's own count, so a borrowed
+ * question passes the market filter, the template limit and the heading
+ * measure a question of the target's own SERP does.
+ */
+async function borrowedAsk(
+  c: CostContext,
+  a: { siteId: string; target: string; terms: readonly string[]; asked: BuyersAsk; held: (asked: BuyersAsk) => QuestionsHeld }
+): Promise<{ asked: BuyersAsk; borrowed: { terms: string[]; added: number } } | null> {
+  const first = a.held(a.asked);
+  if (first.enough) return null;
+  let asked = a.asked;
+  const read: string[] = [];
+  const unmeasured: string[] = [];
+  // Each term once, and never the target, whose SERP is already read.
+  const terms = a.terms
+    .map((term) => term.trim())
+    .filter((term, at, all) => term !== "" && sameWords(term) !== sameWords(a.target) && all.findIndex((other) => sameWords(other) === sameWords(term)) === at);
+  for (const term of terms) {
+    if (c.capHit() || a.held(asked).enough) break;
+    const beside = await askedBeside(c, { siteId: a.siteId, query: term });
+    if (beside === null) continue;
+    read.push(term);
+    const known = new Set(asked.peopleAlsoAsk.map(sameWords));
+    asked = { ...asked, peopleAlsoAsk: [...asked.peopleAlsoAsk, ...beside.peopleAlsoAsk.filter((question) => !known.has(sameWords(question)))] };
+    for (const search of beside.searches) {
+      if (!unmeasured.includes(search) && !asked.related.some((row) => row.search === search)) unmeasured.push(search);
+    }
+  }
+  if (!a.held(asked).enough) asked = { ...asked, related: [...asked.related, ...(await withVolume(c, unmeasured))] };
+  return { asked, borrowed: { terms: read, added: a.held(asked).kept - first.kept } };
 }
 
 export async function researchMarket(
@@ -519,6 +593,10 @@ export async function researchMarket(
     /** A Q&A, or a comparison that may be written as one (D47): what buyers
      *  ask about the target is read too (D61). */
     questions?: boolean;
+    /** D62: where the target's own SERP leaves the Q&A short, the market's
+     *  searched terms are read for more — `terms` in the order they are
+     *  read, and `held`, what a pack built from this research holds. */
+    borrow?: { terms: readonly string[]; held: (research: MarketResearch) => QuestionsHeld };
   }
 ): Promise<MarketResearch> {
   const target = a.searches[0];
@@ -640,6 +718,21 @@ export async function researchMarket(
       pages: [...new Set(ordered.filter((fact) => fact.product === domain).map((fact) => fact.url))],
     }))
     .filter((product) => product.pages.length > 0);
+  const research: MarketResearch = {
+    facts: ordered,
+    products,
+    topResults: pages.filter((page) => page.kind === "top_result").map((page) => ({ url: page.url, text: page.text })),
+    ...(recent === null ? {} : { news: recent.news }),
+  };
+  // 5. A Q&A the target's own SERP leaves short borrows from the market's
+  //    searched terms (D62). It follows the claim calls because a question
+  //    is kept only where a fact answers it.
+  const borrow = a.borrow;
+  const more =
+    asked === null || borrow === undefined
+      ? null
+      : await borrowedAsk(c, { siteId: a.siteId, target, terms: borrow.terms, asked, held: (each) => borrow.held({ ...research, asked: each }) });
+  const questions = more?.asked ?? asked;
   logResearch({
     siteId: a.siteId,
     pagesRead: pages.length,
@@ -650,14 +743,14 @@ export async function researchMarket(
     newsOffMarket: recent === null ? null : recent.news.filter((result) => !result.onMarket).length,
     facts: ordered.length,
     products: products.length,
-    peopleAlsoAsk: asked === null ? null : asked.peopleAlsoAsk.length,
-    relatedSearches: asked === null ? null : asked.related.length,
+    peopleAlsoAsk: questions === null ? null : questions.peopleAlsoAsk.length,
+    relatedSearches: questions === null ? null : questions.related.length,
+    borrowedTerms: more === null ? null : more.borrowed.terms.length,
+    borrowedQuestions: more === null ? null : more.borrowed.added,
   });
   return {
-    facts: ordered,
-    products,
-    topResults: pages.filter((page) => page.kind === "top_result").map((page) => ({ url: page.url, text: page.text })),
-    ...(recent === null ? {} : { news: recent.news }),
-    ...(asked === null ? {} : { asked }),
+    ...research,
+    ...(questions === null ? {} : { asked: questions }),
+    ...(more === null ? {} : { borrowed: more.borrowed }),
   };
 }

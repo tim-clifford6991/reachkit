@@ -37,13 +37,13 @@ import { bodyWords } from "@/lib/generate/length";
 import { clusterLinkTargets, siteLinkTargets } from "@/lib/generate/links/select";
 import { generateDraft, targetSearches, type GenerateOutcome } from "@/lib/generate/pipeline";
 import { allowedFacts, readAllFacts } from "@/lib/generate/pipeline/grounding";
-import { buildPack } from "@/lib/generate/pipeline/pack";
+import { buildPack, questionsHeld, type ContextPack } from "@/lib/generate/pipeline/pack";
 import { NO_RESEARCH, researchMarket, type MarketResearch } from "@/lib/generate/pipeline/research";
 import { readRecordedRules, readRecordedVerdict } from "@/lib/generate/record";
 import { HARD_RULES } from "@/lib/generate/rules/types";
 import { setGenerateStore, type DraftInsert, type DraftPatch, type DraftRow, type GenerateStore } from "@/lib/generate/store";
 import { TEMPLATES } from "@/lib/generate/templates";
-import { writingMarket } from "@/lib/generate/voice/market";
+import { marketSearches, writingMarket } from "@/lib/generate/voice/market";
 import { promptProfile } from "@/lib/generate/voice/profile-block";
 import { parseStoredMarket } from "@/lib/market/infer/stored";
 import { measured } from "@/lib/measure/measured";
@@ -267,6 +267,46 @@ export async function main(opts: Options): Promise<number> {
     ];
 
     // 2. The context pack.
+    const packOf = (research: MarketResearch): ContextPack =>
+      buildPack({
+        type,
+        opportunity,
+        site,
+        category,
+        market: writingFor.market === null ? { from: "report", category } : { from: "site", ...writingFor.market },
+        writingFor,
+        byline: snapshot.knowledge?.answers.byline ?? businessName,
+        voice: snapshot.site?.voiceText ?? null,
+        profile: promptProfile(
+          confirmedProfile({
+            profile:
+              snapshot.siteProfile === null
+                ? null
+                : {
+                    domain: opts.site,
+                    siteName: snapshot.siteProfile.siteName,
+                    products: snapshot.siteProfile.products,
+                    claims: snapshot.siteProfile.claims,
+                    voice: snapshot.siteProfile.voice,
+                    inventory,
+                    pagesRead: inventory.length,
+                    refreshedAt: new Date(snapshot.scan.finishedAt),
+                  },
+            market: profile,
+            edits: NO_EDITS,
+          }),
+          snapshot.knowledge === undefined ? null : knowledgeBase(snapshot.knowledge)
+        ),
+        facts,
+        research,
+        report,
+        sitePages: (snapshot.written ?? [])
+          .filter((page) => page.url !== live?.url)
+          .map((page) => ({ title: page.title, question: page.question, url: page.url, kind: null, status: "published" as const })),
+        links,
+        live: live === null ? null : { url: live.url, title: live.title, markdown: live.markdown, why: "age" },
+        now: new Date(),
+      });
     const packFile = path.join(opts.root, ".review/page/packs", `${opts.site}.${type}.${slugOf(topic)}.json`);
     // The research is what is cached: its reads and its model calls are what
     // a pack costs. The pack is built from it on every run, so a change to
@@ -283,6 +323,7 @@ export async function main(opts: Options): Promise<number> {
             rivals,
             today: new Date(),
             questions: type === "qa" || type === "listicle",
+            borrow: { terms: marketSearches(writingFor), held: (found) => questionsHeld(packOf(found)) },
             ...(type === "insights" ? { recent: { searches: [category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } } : {}),
           });
       cached = { research, researchCents: ledger.spentCents() };
@@ -290,45 +331,7 @@ export async function main(opts: Options): Promise<number> {
       writeFileSync(packFile, `${JSON.stringify(cached, null, 1)}\n`);
     }
     const research = cached.research;
-    const pack = buildPack({
-      type,
-      opportunity,
-      site,
-      category,
-      market: writingFor.market === null ? { from: "report", category } : { from: "site", ...writingFor.market },
-      writingFor,
-      byline: snapshot.knowledge?.answers.byline ?? businessName,
-      voice: snapshot.site?.voiceText ?? null,
-      profile: promptProfile(
-        confirmedProfile({
-          profile:
-            snapshot.siteProfile === null
-              ? null
-              : {
-                  domain: opts.site,
-                  siteName: snapshot.siteProfile.siteName,
-                  products: snapshot.siteProfile.products,
-                  claims: snapshot.siteProfile.claims,
-                  voice: snapshot.siteProfile.voice,
-                  inventory,
-                  pagesRead: inventory.length,
-                  refreshedAt: new Date(snapshot.scan.finishedAt),
-                },
-          market: profile,
-          edits: NO_EDITS,
-        }),
-        snapshot.knowledge === undefined ? null : knowledgeBase(snapshot.knowledge)
-      ),
-      facts,
-      research,
-      report,
-      sitePages: (snapshot.written ?? [])
-        .filter((page) => page.url !== live?.url)
-        .map((page) => ({ title: page.title, question: page.question, url: page.url, kind: null, status: "published" as const })),
-      links,
-      live: live === null ? null : { url: live.url, title: live.title, markdown: live.markdown, why: "age" },
-      now: new Date(),
-    });
+    const pack = packOf(research);
     if (opts.packOnly) {
       mkdirSync(opts.outDir, { recursive: true });
       writeFileSync(path.join(opts.outDir, `${type}.pack.json`), `${JSON.stringify(pack, null, 1)}\n`);
@@ -336,6 +339,13 @@ export async function main(opts: Options): Promise<number> {
       console.log(`pack    ${pack.facts.length} business facts, ${pack.claims.length} market claims, ${pack.products.length} rivals read`);
       console.log(`short   ${pack.missing.length === 0 ? "of nothing" : `of ${pack.missing.join(", ")}`}`);
       if (pack.questions.length > 0) console.log(`\nquestions\n${pack.questions.map((text) => `  ${text}`).join("\n")}`);
+      // D62: what the market's searched terms added where the target's own
+      // SERP left the Q&A short.
+      const borrowed = research.borrowed;
+      if (borrowed !== undefined) {
+        const read = borrowed.terms.length === 0 ? "none could be read" : `read beside ${borrowed.terms.map((term) => `“${term}”`).join(", ")}`;
+        console.log(`\nborrowed the market's searched terms added ${borrowed.added} of ${pack.questions.length} questions (${read})`);
+      }
       console.log(`\ncost    ${cents(ledger.spentCents())} this run`);
       return 0;
     }

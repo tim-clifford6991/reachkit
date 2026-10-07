@@ -52,6 +52,18 @@ export interface WritingMarket {
   market: PromptMarket | null;
 }
 
+/**
+ * The market's searched terms, as a search is made for each (D49): its
+ * search term, then its other searched terms, most searched first — the
+ * order the market stores them in. They are what a Q&A whose own SERP is
+ * thin is also read beside (owner, D62; issue 1297). None where the
+ * report's category stands in: no market was concluded to hold any.
+ */
+export function marketSearches(market: WritingMarket): string[] {
+  if (market.from === "report") return [];
+  return [market.category, ...market.synonyms].map((term) => term.trim()).filter((term) => term !== "");
+}
+
 function bounded(value: string): string | null {
   const text = value.trim().slice(0, MARKET_PROMPT.chars);
   return text === "" ? null : text;

@@ -59,12 +59,12 @@ import {
 import { urlKey, type LinkTarget } from "./links/select";
 import { generateDraft, targetSearches, type GenerateOutcome } from "./pipeline";
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
-import { buildPack, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
+import { buildPack, questionsHeld, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
 import { generatePageFix } from "./pipeline/page-fix";
 import type { FixNote } from "./pipeline/repair";
-import { NO_RESEARCH, researchMarket } from "./pipeline/research";
+import { NO_RESEARCH, researchMarket, type MarketResearch } from "./pipeline/research";
 import { TEMPLATES } from "./templates";
-import { writingMarket } from "./voice/market";
+import { marketSearches, writingMarket } from "./voice/market";
 import { DraftDateTaken, generateStore, type RestartedDraft, type SiteFacts } from "./store";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
@@ -473,11 +473,40 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
     const type = contentTypeOf(o);
     if (type === null) return null;
     const template = TEMPLATES[type];
+    const links = linksFor(o).filter((link) => link.url !== o.targetRef);
+    const live = type === "update" ? await livePageOf(a, o, known, facts) : null;
+    const previousResearch = type === "research" ? await previousResearchOf(a.siteId) : null;
+    const packOf = (research: MarketResearch): ContextPack =>
+      buildPack({
+        type,
+        opportunity: o,
+        site: ruleInputs,
+        category,
+        // Issue 1248: the market the page is written for, and whether it is
+        // the site's own or the stored report's category.
+        market: writingFor.market === null ? { from: "report", category } : { from: "site", ...writingFor.market },
+        writingFor,
+        // The founder's own line from setup's fifth question (#1133), else the
+        // business's name.
+        byline: confirmed.profile?.knowledge?.byline ?? measuredBrand,
+        voice: site.voiceText,
+        profile: confirmed.profile,
+        facts,
+        research,
+        report,
+        sitePages,
+        links,
+        live,
+        previousResearch,
+        now: new Date(),
+      });
     // 2. Research, for the types that read public pages (SPEC §7, *Two pools
     //    of facts*; issue 1135): at most two model calls, and for *current
     //    insights* one more that holds its news to the market (issue 1262).
     //    A read that fails leaves the page to its business facts and never
-    //    stops it.
+    //    stops it. A Q&A its target's own SERP leaves short of questions is
+    //    read beside the market's searched terms too (owner, D62; issue
+    //    1297): the pack says when it holds enough.
     const market = !template.research
       ? NO_RESEARCH
       : await researchMarket(cost, {
@@ -488,6 +517,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
           rivals: site.rivals,
           today: new Date(),
           questions: type === "qa" || type === "listicle",
+          borrow: { terms: marketSearches(writingFor), held: (research) => questionsHeld(packOf(research)) },
           ...(type === "insights"
             ? { recent: { searches: [category === "" ? (targetSearches(o)[0] ?? "") : category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } }
             : {}),
@@ -495,31 +525,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
           console.warn(JSON.stringify({ event: "draft_research_failed", siteId: a.siteId, error: String(error).slice(0, 200) }));
           return NO_RESEARCH;
         });
-    const links = linksFor(o).filter((link) => link.url !== o.targetRef);
-    const pack = buildPack({
-      type,
-      opportunity: o,
-      site: ruleInputs,
-      category,
-      // Issue 1248: the market the page is written for, and whether it is
-      // the site's own or the stored report's category.
-      market: writingFor.market === null ? { from: "report", category } : { from: "site", ...writingFor.market },
-      writingFor,
-      // The founder's own line from setup's fifth question (#1133), else the
-      // business's name.
-      byline: confirmed.profile?.knowledge?.byline ?? measuredBrand,
-      voice: site.voiceText,
-      profile: confirmed.profile,
-      facts,
-      research: market,
-      report,
-      sitePages,
-      links,
-      live: type === "update" ? await livePageOf(a, o, known, facts) : null,
-      previousResearch: type === "research" ? await previousResearchOf(a.siteId) : null,
-      now: new Date(),
-    });
-    return { pack, links };
+    return { pack: packOf(market), links };
   };
 
   // #788: one row for the date across every attempt.
