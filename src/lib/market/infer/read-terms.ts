@@ -69,3 +69,66 @@ export async function readMarketTerms(
   if (volumes.kind === "unmeasured") return unmeasured(volumes.reason, volumes.at, volumes.because);
   return measured({ ...searchedTerms(candidates, volumes.value), termsAt: a.at.toISOString() }, a.at);
 }
+
+// ── D65: the searches a pass is about to measure, judged ───────────────────
+
+/** How many searches one judgement reads: the twelve and their runners-up. */
+export const JUDGED_SEARCHES_MAX = 24;
+
+const VERDICTS = ["on_market", "other_meaning", "other_market", "company_name"] as const;
+
+export const SEARCHES_SCHEMA = z.strictObject({
+  searches: z.array(z.strictObject({ search: z.string(), verdict: z.enum(VERDICTS) })).max(JUDGED_SEARCHES_MAX * 2),
+});
+
+export const SEARCHES_TASK = [
+  "You judge Google searches against one market. A business is about to measure where it stands for each search, and a search that is not its market measures nothing.",
+  "For each search under `searches`, answer one verdict, and answer for every search exactly as it is written.",
+  "on_market: most people who type it want what this business sells, or are choosing among or learning about products that do its job.",
+  "other_meaning: the phrase mostly means something else to the people who type it — a word or acronym that belongs to another field, or a broader subject where this market is a small part of what they want.",
+  "other_market: they want a different kind of product or service — one on notOurMarket, or a service bought from an agency or a professional where this business sells a product (or the reverse).",
+  "company_name: the search is the name of a company, a product or a website, typed to go there. A name beside another word (\"alternatives\", \"pricing\", \"vs\") is not this.",
+  "Judge what the searcher wants, never how the business would like to be found. Where you cannot tell, answer on_market.",
+].join(" ");
+
+/**
+ * The searches judged against the market (SPEC §6, owner D65, issue 1303):
+ * the same judgement the terms call makes of a term that mostly means
+ * something else, asked of the searches a pass selected. `true` where a
+ * search is on the market. A search the answer left out is not judged.
+ */
+export async function judgeSearches(
+  c: CostContext,
+  a: { market: MarketConclusion; searches: readonly string[] }
+): Promise<Measured<Record<string, boolean>>> {
+  const at = new Date();
+  const searches = [...new Set(a.searches.map((search) => search.toLowerCase().trim()))].filter(Boolean).slice(0, JUDGED_SEARCHES_MAX);
+  if (searches.length === 0) return measured({}, at);
+  const { market } = a;
+  const answer = await llm(c, {
+    site: "market-searches",
+    input: {
+      task: SEARCHES_TASK,
+      fields: { searches: "one object {search, verdict} for each search given, in the order given" },
+      market: {
+        category: market.category,
+        searchedAs: (market.terms ?? []).filter((t) => t.volume > 0 && t.polluted !== true).map((t) => t.term),
+        buyer: market.buyer,
+        job: market.job,
+        notOurMarket: market.notOurMarket,
+        rivals: market.rivals.map((r) => r.name),
+      },
+      searches,
+    },
+    schema: SEARCHES_SCHEMA,
+    tier: "sonnet",
+  });
+  if (answer.kind === "unmeasured") return unmeasured(answer.reason, answer.at, answer.because);
+  const asked = new Set(searches);
+  const judged: Record<string, boolean> = {};
+  for (const entry of answer.value.searches) {
+    const search = entry.search.toLowerCase().trim();
+    if (asked.has(search)) judged[search] = entry.verdict === "on_market";
+  }
+  return measured(judged, answer.at);
+}

@@ -81,6 +81,7 @@ import { phraseQuestions, type Question } from "@/lib/market/questions/phrase";
 import { deriveProfile, type Profile } from "@/lib/market/questions/profile";
 import { selectTwelve, type SelectedSearch } from "@/lib/market/questions/select";
 import { isShort, poolFrom, seedLadder, selectWidened, type PoolRow } from "@/lib/market/questions/widen";
+import { marketSeeds, measuredMarketOf, unjudged } from "@/lib/market/questions/measured";
 import { serpDomainsToSize } from "@/lib/market/rivals/candidates";
 import { deriveRivals, type RivalCandidate } from "@/lib/market/rivals/derive";
 import { buildPresenceCard, type PresenceCard } from "@/lib/market/rivals/presence";
@@ -1767,11 +1768,14 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
 
   // SPEC §6 thin markets (#778): the first seed is the one every pass buys.
   // The rest of the ladder is bought one seed at a time, only while short —
-  // except a concluded market's synonyms, which are bought with the category
-  // inside the same three extra purchases (#1159).
-  const seeds = seedLadder(profile.value, measuredUnder, synonyms);
-  const isSynonym = (seed: string): boolean => synonyms.some((x) => x.trim().toLowerCase() === seed.toLowerCase());
-  const leading = seeds.slice(1).findIndex((seed) => !isSynonym(seed));
+  // except the market's other names, which are bought with the first inside
+  // the same three extra purchases (#1159): its searched terms where it
+  // holds any (D65, issue 1303), else a concluded market's synonyms.
+  const searched = marketSeeds(sections.market);
+  const seeds = seedLadder(profile.value, measuredUnder, synonyms, searched);
+  const withFirst = searched.length > 0 ? searched : synonyms;
+  const boughtWithFirst = (seed: string): boolean => withFirst.some((x) => x.trim().toLowerCase() === seed.toLowerCase());
+  const leading = seeds.slice(1).findIndex((seed) => !boughtWithFirst(seed));
   const upfront = Math.min(leading === -1 ? seeds.length - 1 : leading, a.parameters.extraSeeds);
   // The site's own footprint, the same number derivation bands by, read
   // before any market is bought: every suggestions purchase asks only for
@@ -1787,10 +1791,53 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   if (market.kind === "unmeasured") return;
 
   // The market's other names are its words too (#1195): a search in them is
-  // about this market, not off it.
-  const category = { ...(measuredUnder === undefined ? {} : { category: measuredUnder }), synonyms };
-  sections.selected = selectTwelve({ profile: profile.value, market: [...market.value], ownRanked, ...category });
-  if (!isShort(sections.selected)) return phrase(a, abandoned);
+  // about this market, not off it. And the market in force says which of
+  // its own searches are measured and which searches never are (D65).
+  let measuredMarket = measuredMarketOf(sections.market);
+  const category = (): Pick<Parameters<typeof selectTwelve>[0], "category" | "synonyms" | "measured"> => ({
+    ...(measuredUnder === undefined ? {} : { category: measuredUnder }),
+    synonyms: [...synonyms, ...searched],
+    ...(measuredMarket === undefined ? {} : { measured: measuredMarket }),
+  });
+  const widen = (floors?: readonly number[], limit?: number): SelectedSearch[] => {
+    const rows = sections.marketRows;
+    return selectWidened({
+      profile: profile.value,
+      suggestions: rows.kind === "unmeasured" ? [] : rows.value,
+      pool: poolOf(sections),
+      ownRanked,
+      ...category(),
+      ...(floors === undefined ? {} : { floors }),
+      ...(limit === undefined ? {} : { limit }),
+    });
+  };
+  // D65: before a search is worded and asked, the ones the market holds no
+  // judgement for are judged — the twelve and their runners-up in one call —
+  // and the twelve are chosen again without the ones that are off it.
+  const judgeThenPhrase = async (): Promise<void> => {
+    const marketNow = sections.market;
+    if (measuredMarket !== undefined && marketNow !== null && a.siteId !== undefined && bounds.stopNow() === null) {
+      if (unjudged(sections.selected, measuredMarket).length > 0) {
+        const { judgeSearchesForPass } = await import("./market-conclusion");
+        const judged = await judgeSearchesForPass({
+          siteId: a.siteId,
+          cost,
+          market: marketNow,
+          searches: unjudged(widen(undefined, BATTERY.QUESTIONS * 2), measuredMarket),
+        });
+        if (abandoned()) return;
+        if (judged !== null) {
+          sections.market = judged;
+          measuredMarket = measuredMarketOf(judged);
+          sections.selected = widen();
+        }
+      }
+    }
+    return phrase(a, abandoned);
+  };
+
+  sections.selected = selectTwelve({ profile: profile.value, market: [...market.value], ownRanked, ...category() });
+  if (!isShort(sections.selected)) return judgeThenPhrase();
 
   // Short. Widen in SPEC §6's order, stopping as soon as twelve survive:
   // the ranked rows the pass already buys join the pool (the rivals' are
@@ -1798,17 +1845,6 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   // nothing), then further seeds at the first step, then the lower steps.
   if (a.parameters.sizesRivals && bounds.stopNow() === null) await sizeTrackedRivals(a);
   if (abandoned()) return;
-  const widen = (floors?: readonly number[]): SelectedSearch[] => {
-    const rows = sections.marketRows;
-    return selectWidened({
-      profile: profile.value,
-      suggestions: rows.kind === "unmeasured" ? [] : rows.value,
-      pool: poolOf(sections),
-      ownRanked,
-      ...category,
-      ...(floors === undefined ? {} : { floors }),
-    });
-  };
   sections.selected = widen([SELECTION.volumeFloorPerMonth]);
   // What the pass would ask if it stopped here. The free path reads every
   // volume step, because that is what it falls back to below.
@@ -1832,7 +1868,7 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   }
 
   if (isShort(sections.selected)) sections.selected = widen();
-  return phrase(a, abandoned);
+  return judgeThenPhrase();
 }
 
 /** §6.7 step 4: the selected searches, worded — as many of them as the

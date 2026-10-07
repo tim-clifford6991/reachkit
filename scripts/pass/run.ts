@@ -25,15 +25,21 @@
 //
 // # What it runs
 //
+//   0. **The measured searches** (D65, issue 1303): the seeds the market in
+//      force yields, their suggestions through the product's
+//      `deriveMarketSet`, the selection over them and the stored pool, and
+//      the judgement of the searches the market holds no verdict for. The
+//      stored pass's own questions stand as its report; this step says what
+//      the pass would measure now.
 //   1. **Sizing**: the tracked rivals, then `serpDomainsToSize` over the
 //      report's own top tens, each through the product's `sizeRivals`.
 //   2. **After the report**: the deep pass's own `afterDeepReport` — the
 //      rival conclusion and its brand volumes, the prompts that follow the
 //      rivals, the topics and their prune, and the health checks.
 //
-// The stages before the report (reading the site, asking the searches and
-// the prompts) are not run: the stored report is their result, and their
-// cost is carried as the pass recorded it.
+// The other stages before the report (reading the site, asking the searches
+// and the prompts) are not run: the stored report is their result, and
+// their cost is carried as the pass recorded it.
 //
 // # How a call is answered
 //
@@ -48,19 +54,24 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { PRICE_BOOK, SERP_RIVAL_SIZING, WEEKLY_RIVAL_RESIZES } from "@/lib/config/constants";
-import { ownKeywords } from "@/lib/market/infer/demand";
+import { BATTERY, PRICE_BOOK, SELECTION, SERP_RIVAL_SIZING, WEEKLY_RIVAL_RESIZES } from "@/lib/config/constants";
+import { brandKeywords, ownKeywords } from "@/lib/market/infer/demand";
 import { parseStoredMarket } from "@/lib/market/infer/stored";
 import { spokenMarket } from "@/lib/market/infer/terms";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { generatePrompts, promptSiteName } from "@/lib/market/prompts/generate";
 import { parsePromptSet } from "@/lib/market/prompts/set";
+import { deriveMarketSet, type SuggestionRow } from "@/lib/market/questions/market-set";
+import { marketSeeds, measuredMarketOf, neverMeasured, searchKey, unjudged } from "@/lib/market/questions/measured";
+import type { SelectedSearch } from "@/lib/market/questions/select";
+import { isShort, seedLadder, selectWidened } from "@/lib/market/questions/widen";
 import { serpDomainsToSize } from "@/lib/market/rivals/candidates";
 import { sizeRivals } from "@/lib/market/rivals/size";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
 import { withStoredPassSpend } from "@/lib/scan/ceilings";
 import { afterDeepReport } from "@/lib/scan/deep/run";
+import { judgeSearchesForPass } from "@/lib/scan/market-conclusion";
 import { parseHealth } from "@/lib/scan/health";
 import { readStoredReport } from "@/lib/scan/report";
 import { appendSpend } from "../spend-log.mjs";
@@ -105,6 +116,7 @@ const KEYWORDS = "dataforseo_labs/google/keyword_overview";
 /** A conclusion whose evidence is the stored report itself: the pass's own
  *  answer stands where only the key around it moved. */
 const SAME_QUESTION = new Set(["rival-inference", "market-inference", "market-terms"]);
+const SUGGESTIONS = "dataforseo_labs/google/keyword_suggestions";
 const OWNER = "00000000-0000-4000-8000-000000001301";
 
 const cents = (n: number): string => `${n.toFixed(2)}¢`;
@@ -172,6 +184,40 @@ function readSnapshot(o: Options): { snapshot: Snapshot; bought: FetchRow[]; bou
   return { snapshot, bought, boughtFile };
 }
 
+/**
+ * The rivals as they stood before this pass's own change (D65): the ones it
+ * added taken out, the ones it dropped put back. A dropped rival's record is
+ * the newest earlier rival conclusion's, with the volume the market holds
+ * for it. `null` where this pass changed nothing or a record is not held.
+ */
+function beforeOwnChange(snapshot: Snapshot, market: MarketConclusion): { rivals: MarketConclusion["rivals"]; note: string } | null {
+  const change = (snapshot.site.market as { lastChange?: { scanId?: string; added?: { domain: string }[]; dropped?: string[] } } | null)?.lastChange;
+  if (change === undefined || change === null || change.scanId !== snapshot.scan.id) return null;
+  const added = new Set((change.added ?? []).map((r) => r.domain));
+  const rivals = market.rivals.filter((r) => !added.has(r.domain));
+  const earlier = snapshot.fetches
+    .filter((f) => f.source === "rival-inference" && f.scan_id !== snapshot.scan.id)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  type Candidate = { name: string; basis: string; domain: string; reason: string; searchName?: string | null };
+  for (const domain of change.dropped ?? []) {
+    let found: Candidate | undefined;
+    for (const row of earlier) {
+      const candidates = ((row.payload as { value?: { candidates?: Candidate[] } } | null)?.value?.candidates ?? []) as Candidate[];
+      found = candidates.find((c) => c.domain.toLowerCase().replace(/^www\./, "") === domain);
+      if (found !== undefined) break;
+    }
+    if (found === undefined) return null;
+    const basis = found.basis === "ai_answer" || found.basis === "ranks" ? found.basis : "same_job";
+    const searchNames = [found.name.toLowerCase(), ...(found.searchName ? [found.searchName.toLowerCase()] : [])];
+    const record = { domain, name: found.name, basis, reason: found.reason, searchNames: [...new Set(searchNames)] } as MarketConclusion["rivals"][number];
+    const volume = Math.max(0, ...brandKeywords(record).map((keyword) => market.demand?.brands[keyword] ?? 0));
+    rivals.push({ ...record, volume });
+  }
+  rivals.sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
+  const dropped = change.dropped ?? [];
+  return { rivals, note: dropped.length === 0 ? "" : `; ${dropped.join(", ")} put back from the last conclusion that named it` };
+}
+
 const keywordsOf = (row: Pick<FetchRow, "cache_key">): string[] => (row.cache_key.split("|")[0] ?? "").split(",").filter(Boolean);
 
 function startingState(snapshot: Snapshot): { site: Row; opportunities: Row[]; notes: string[] } {
@@ -182,6 +228,7 @@ function startingState(snapshot: Snapshot): { site: Row; opportunities: Row[]; n
   const market = stored.current;
   const raw = (site.market ?? {}) as { current?: Row; lastChange?: { added?: unknown[] } };
   let current: Row | undefined = raw.current;
+  let competitors: string[] | null = null;
 
   if (market !== null && current !== undefined) {
     // The rivals' order: the one that yields the comparison prompts this pass asked.
@@ -193,7 +240,12 @@ function startingState(snapshot: Snapshot): { site: Row; opportunities: Row[]; n
       return comparisons.length > 0 && comparisons.every((p) => asked.has(p.text));
     };
     const before = parseStoredMarket({ ...raw, current: { ...current, rivals: raw.lastChange?.added ?? [] } }).current?.rivals ?? [];
-    if (asked.size === 0) notes.push("the pass asked no comparison prompts, so the rivals start in the order they are stored in now");
+    const undone = beforeOwnChange(snapshot, market);
+    if (undone !== null && yields(undone.rivals)) {
+      current = { ...current, rivals: undone.rivals };
+      competitors = undone.rivals.map((rival) => rival.domain);
+      notes.push(`the rivals start as they stood before this pass changed them (${undone.rivals.map((r) => r.name).join(", ")}): that set yields the prompts the pass asked${undone.note}`);
+    } else if (asked.size === 0) notes.push("the pass asked no comparison prompts, so the rivals start in the order they are stored in now");
     else if (yields(market.rivals)) notes.push("the rivals start in the order they are stored in now: it yields the prompts the pass asked");
     else if (before.length > 0 && yields(before)) {
       current = { ...current, rivals: raw.lastChange?.added };
@@ -229,7 +281,7 @@ function startingState(snapshot: Snapshot): { site: Row; opportunities: Row[]; n
   );
 
   return {
-    site: { ...site, user_id: OWNER, market: { ...raw, current }, tracked_prompts: { ...(site.tracked_prompts as Row), prompts } },
+    site: { ...site, ...(competitors === null ? {} : { competitors }), user_id: OWNER, market: { ...raw, current }, tracked_prompts: { ...(site.tracked_prompts as Row), prompts } },
     opportunities,
     notes,
   };
@@ -365,14 +417,59 @@ export async function main(o: Options): Promise<number> {
   const say = console.log;
   if (process.env.RK_PASS_VERBOSE === undefined) console.log = () => undefined;
 
-  // 1. Sizing.
   const report = readStoredReport(scan.report);
   const marketBefore = parseStoredMarket(start.site.market).current;
+  const ownRankedNow = report.ownRanked.kind === "unmeasured" ? 0 : report.ownRanked.value;
+
+  // 0. The measured searches (D65): what the pass would measure now.
+  let measured: SelectedSearch[] = [];
+  let measuredMarket = measuredMarketOf(marketBefore);
+  let suggestions: SuggestionRow[] = [];
+  const set0 = report.market.kind === "unmeasured" ? null : report.market.value;
+  if (set0 !== null && marketBefore !== null && measuredMarket !== undefined) {
+    const searched = marketSeeds(marketBefore);
+    const synonyms = marketBefore.synonyms;
+    const seeds = seedLadder(set0.profile, snapshot.site.category ?? marketBefore.category, synonyms, searched);
+    const withFirst = searched.length > 0 ? searched : synonyms;
+    const leading = seeds.slice(1).findIndex((seed) => !withFirst.some((x) => x.trim().toLowerCase() === seed.toLowerCase()));
+    const upfront = Math.min(leading === -1 ? seeds.length - 1 : leading, SELECTION.maxExtraSeeds);
+    const select = (limit?: number): SelectedSearch[] =>
+      selectWidened({
+        profile: set0.profile,
+        suggestions,
+        pool: set0.pool ?? [],
+        ownRanked: ownRankedNow,
+        category: snapshot.site.category ?? marketBefore.category,
+        synonyms: [...synonyms, ...searched],
+        ...(measuredMarket === undefined ? {} : { measured: measuredMarket }),
+        ...(limit === undefined ? {} : { limit }),
+      });
+    await withStoredPassSpend({ scanId: scan.id, cap: "DEEP" }, async (cost) => {
+      const first = await deriveMarketSet(cost, { seeds: seeds.slice(0, 1 + upfront), ownRanked: ownRankedNow });
+      if (first.kind !== "unmeasured") suggestions = [...first.value];
+      measured = select();
+      for (const seed of seeds.slice(1 + upfront, 1 + SELECTION.maxExtraSeeds)) {
+        if (!isShort(measured)) break;
+        const more = await deriveMarketSet(cost, { seeds: [seed], ownRanked: ownRankedNow });
+        if (more.kind !== "unmeasured") suggestions = [...suggestions, ...more.value.filter((row) => !suggestions.some((held) => held.keyword === row.keyword))];
+        measured = select();
+      }
+      if (measuredMarket !== undefined && unjudged(measured, measuredMarket).length > 0) {
+        const judged = await judgeSearchesForPass({ siteId, cost, market: marketBefore, searches: unjudged(select(BATTERY.QUESTIONS * 2), measuredMarket) });
+        if (judged !== null) {
+          measuredMarket = measuredMarketOf(judged);
+          measured = select();
+        }
+      }
+    });
+  }
+
+  // 1. Sizing.
   const serps: MarketSerp[] = [];
   for (const serp of report.serps) if (serp.kind !== "unmeasured") serps.push(serp.value as MarketSerp);
   const tracked = (await trackedRivals(siteId)) ?? [];
   const at = report.verdict.measuredAt;
-  const ownRanked = report.ownRanked.kind === "unmeasured" ? 0 : report.ownRanked.value;
+  const ownRanked = ownRankedNow;
   let topTens = { inTopTens: 0, domains: [] as string[] };
   await withStoredPassSpend({ scanId: scan.id, cap: "DEEP" }, async (cost) => {
     const sized = await sizeRivals(cost, { rivals: tracked, ownRanked, at });
@@ -396,8 +493,28 @@ export async function main(o: Options): Promise<number> {
 
   say("\nMarket");
   say(`  ${market?.category ?? "none"} · searched as "${market?.searchTerm ?? "—"}" (${(market?.terms ?? []).filter((t) => t.volume > 0).map((t) => `${t.term} ${t.volume}`).join(", ")})`);
+  // D65: the searches the pass would measure now, beside the ones it did.
+  const terms = measuredMarket?.terms ?? [];
+  const wasMeasured = report.questions.kind === "unmeasured" ? [] : report.questions.value.map((q) => q.search);
+  say(`\nMeasured searches: ${measured.length} now (the stored pass measured ${wasMeasured.length})`);
+  for (const search of measured) {
+    const verdict = search.term === true ? "a searched term of the market" : measuredMarket?.judged[searchKey(search.keyword)] === true ? "judged on the market" : "not judged";
+    say(`  ${String(search.volume).padStart(6)}/mo  ${search.keyword} — ${verdict}`);
+  }
+  const reasons = { not_our_market: "uses a term from notOurMarket", brand: "only a rival's or another product's name", judged: "judged off the market" } as const;
+  for (const search of wasMeasured) {
+    if (measured.some((now) => searchKey(now.keyword) === searchKey(search.keyword))) continue;
+    const why = measuredMarket === undefined ? null : neverMeasured(search.keyword, measuredMarket);
+    say(`  no longer measured: ${search.keyword} (${search.volume}/mo) — ${why === null ? "outranked by the searches above" : reasons[why]}`);
+  }
+
+  const rivalsBefore = marketBefore?.rivals ?? [];
+  const stateAfter = parseStoredMarket(after.site.market);
   say("\nRivals, in the order the pass leaves them");
   for (const rival of rivals) say(`  ${rival.name} (${rival.volume ?? "unread"}) — ${rival.domain}`);
+  say(`  before the pass: ${rivalsBefore.map((rival) => rival.name).join(", ") || "none"}`);
+  if ((stateAfter.rivalsLeftOut ?? []).length > 0) say(`  left out by this pass, kept until a second pass leaves them out: ${stateAfter.rivalsLeftOut!.join(", ")}`);
+  if ((stateAfter.rivalsWaiting ?? []).length > 0) say(`  waiting one pass: ${stateAfter.rivalsWaiting!.join(", ")}`);
 
   const pure = (lookup: Lookup): boolean => lookup.served !== "earlier pass";
   const sizing = lookups.filter((lookup) => lookup.source === RANKED);
@@ -411,7 +528,7 @@ export async function main(o: Options): Promise<number> {
 
   // The cost: the stored pass, less its calls this run did not make again,
   // plus the calls it never made.
-  const replayed = new Set([RANKED, KEYWORDS, "rival-inference", "opportunity-typing", "topic-buyer-searches", "topic-typed", "topic-fit", "topic-same-question"]);
+  const replayed = new Set([RANKED, KEYWORDS, SUGGESTIONS, "market-searches", "rival-inference", "opportunity-typing", "topic-buyer-searches", "topic-typed", "topic-fit", "topic-same-question"]);
   const again = (row: FetchRow): boolean =>
     lookups.some((lookup) => lookup.source === row.source && (lookup.key === row.cache_key || lookup.served === "stored answer, same evidence"));
   const notAgain = snapshot.fetches.filter((f) => f.scan_id === scan.id && replayed.has(f.source) && !f.cache_key.startsWith(`${o.site}|`) && !again(f));
@@ -485,6 +602,12 @@ export async function main(o: Options): Promise<number> {
   const comparisons = topics.filter((row) => row.status === "open" && row.type === "comparison_page");
   const withVolume = comparisons.filter((row) => row.volume !== null && row.volume > 0);
   const brandOnly = topics.filter((row) => row.status !== "dismissed" && everNamed.some((name) => padded(name) === padded(row.target_query ?? "")));
+  const measuredTerms = terms.slice(0, SELECTION.maxMarketTerms);
+  const offMarket = measured.filter((search) => search.term !== true && measuredMarket !== undefined && neverMeasured(search.keyword, measuredMarket) !== null);
+  const notJudged = measuredMarket === undefined ? [] : unjudged(measured, measuredMarket);
+  const leftOutBefore = parseStoredMarket(start.site.market).rivalsLeftOut ?? [];
+  const droppedNow = rivalsBefore.map((rival) => rival.domain).filter((domain) => !rivals.some((rival) => rival.domain === domain));
+  const enteredNow = rivals.map((rival) => rival.domain).filter((domain) => !rivalsBefore.some((rival) => rival.domain === domain));
   const checks: [boolean, string][] = [
     [rivals.length > 0 && inOrder, `rivals in demand order: ${rivals.map((rival) => `${rival.name}(${rival.volume ?? "?"})`).join(", ")}`],
     [reads.length <= 6, `ranked_keywords reads ≤ 6: ${reads.length}`],
@@ -496,6 +619,17 @@ export async function main(o: Options): Promise<number> {
     [comparisons.length > 0 && withVolume.length > 0, `comparison topics carry volumes: ${withVolume.length} of ${comparisons.length} open (${comparisons.map((row) => `${row.target_query} ${row.volume ?? "none"}`).join(", ")})`],
     [set.prompts.length === 25 && strangers.length === 0 && usesOld.length === 0, `the ${set.prompts.length} prompts name only current rivals and none uses the old category or job`],
     [refused.length === 0, `every call was answered: ${refused.length} refused`],
+    // ── Issue 1303 (D65) ──
+    [
+      measuredTerms.length > 0 && measuredTerms.every((term) => measured.some((search) => search.term === true && searchKey(search.keyword) === searchKey(term.term))),
+      `the measured searches hold the market's searched terms: ${measuredTerms.map((term) => `${term.term} ${term.volume}`).join(", ") || "the market holds none"}`,
+    ],
+    [offMarket.length === 0, `no measured search is off the market or only a brand${offMarket.length === 0 ? "" : `: ${offMarket.map((search) => search.keyword).join(", ")}`}`],
+    [notJudged.length === 0, `every other measured search was judged on the market${notJudged.length === 0 ? "" : `; not judged: ${notJudged.join(", ")}`}`],
+    [
+      droppedNow.every((domain) => leftOutBefore.includes(domain)) && rivals.length <= 5,
+      `the rivals are stable: ${droppedNow.length === 0 && enteredNow.length === 0 ? "the same set as before the pass" : `dropped ${droppedNow.join(", ") || "none"}, entered ${enteredNow.join(", ") || "none"}`}`,
+    ],
   ];
   say("\nAcceptance");
   for (const [ok, line] of checks) say(`  ${ok ? "✓" : "✗"} ${line}`);

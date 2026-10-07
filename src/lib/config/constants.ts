@@ -304,6 +304,9 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   /** SPEC §6 (D49, issue 1270): a market's candidate search terms — up to
    *  ten short phrases with a flag each: ~250 needed. */
   "market-terms": 500,
+  /** SPEC §6 (D65, issue 1303): one verdict for each search a pass is
+   *  about to measure — up to 24 short objects: ~450 needed. */
+  "market-searches": 900,
   /** SPEC §5 (2026-09-29, #1133): one page's share of the knowledge base —
    *  eight short lists bounded by `KNOWLEDGE_BASE.PAGE_ITEMS`, each item a
    *  phrase or one sentence: ~900 needed on a full pricing page. */
@@ -322,6 +325,7 @@ export const INFERENCE_TEMPERATURE: Readonly<Partial<Record<keyof typeof INFEREN
     "market-inference": 0,
     "rival-inference": 0,
     "market-terms": 0,
+    "market-searches": 0,
     "topic-fit": 0,
     "topic-buyer-searches": 0,
     "topic-typed": 0,
@@ -1059,6 +1063,11 @@ export const SELECTION = Object.freeze({                    // BP-025 · REQ-006
    *  its intent score, so long-tail searches carrying the profile's words
    *  lead the twelve. Owner-correctable defaults. */
   longTailWords: 3, longTailWeight: 2,
+  /** SPEC §6 (owner D65 of 2026-10-07, issue 1303): the most of the twelve
+   *  that are the market's own searched terms, most searched first; the
+   *  other places go to the searches its seeds and pool yield, by score.
+   *  A drafted default the owner may correct. */
+  maxMarketTerms: 6,
 } as const);
 
 /** SPEC §6 *Topics by business fit* (2026-09-29, 2026-10-03; issue 1134).

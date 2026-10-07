@@ -128,13 +128,22 @@ export function settleMarket(a: {
 }
 
 /**
- * The rivals after one pass's conclusion. `fresh` is every rival the pass
- * concluded, more than five where it found more: the ones buyers search for
- * first where their volume was read (D50), then closest first. A standing
- * rival the pass concluded again keeps its place among rivals searched as
- * it is; new ones fill the rest, so a set that is still right does not
- * reshuffle week to week. A pass that
- * concluded none changes nothing, and the founder's own set stands.
+ * The rivals after one pass's conclusion (SPEC §6, owner D65 of 2026-10-07,
+ * issue 1303). `fresh` is every rival the pass concluded, more than five
+ * where it found more: the ones buyers search for first where their volume
+ * was read (D50), then closest first. The five D50 would choose from it are
+ * what the pass *wants*; the set moves towards them one careful step at a
+ * time, so one pass's noise never swaps a rival:
+ *
+ * - A rival in force that the pass left out stays, and is remembered as
+ *   left out. It is dropped only when the next pass leaves it out as well.
+ * - A new rival enters at once only where a place is free and buyers search
+ *   it more than the weakest rival in force; otherwise it waits one pass,
+ *   and enters on the next pass that wants it again, where a place is free.
+ * - Never more than `RIVALS_MAX`.
+ *
+ * A site with no rivals yet takes the pass's own. A pass that concluded
+ * none changes nothing, and the founder's own set stands.
  */
 export function settleRivals(a: {
   stored: StoredMarketWithChange;
@@ -150,29 +159,74 @@ export function settleRivals(a: {
   // D50: the rivals buyers search for are chosen first; among those, and
   // then among the rest, a standing one before a new one.
   const standing = (r: RivalConclusion): boolean => a.standing.includes(r.domain);
-  const chosen = [
+  const wanted = [
     ...a.fresh.filter((r) => searched(r.volume) && standing(r)),
     ...a.fresh.filter((r) => searched(r.volume) && !standing(r)),
     ...a.fresh.filter((r) => !searched(r.volume) && standing(r)),
     ...a.fresh.filter((r) => !searched(r.volume) && !standing(r)),
   ].slice(0, RIVALS_MAX);
-  const ordered = a.fresh.filter((r) => chosen.includes(r));
+  const wants = new Set(wanted.map((r) => r.domain));
+
+  // A rival in force as this pass read it, else as it is stored.
+  const held = new Map(stored.current.rivals.map((r) => [r.domain, r]));
+  const read = new Map(a.fresh.map((r) => [r.domain, r]));
+  const recordOf = (domain: string): RivalConclusion =>
+    read.get(domain) ?? held.get(domain) ?? { domain, name: domain, basis: "same_job", reason: "" };
+
+  const leftOutBefore = new Set(stored.rivalsLeftOut ?? []);
+  const kept: string[] = [];
+  const leftOut: string[] = [];
+  const dropped: string[] = [];
+  for (const domain of a.standing) {
+    if (wants.has(domain)) kept.push(domain);
+    else if (leftOutBefore.has(domain)) dropped.push(domain);
+    else {
+      kept.push(domain);
+      leftOut.push(domain);
+    }
+  }
+
+  const weakest = Math.min(...kept.map((domain) => recordOf(domain).volume ?? 0));
+  const waitedBefore = new Set(stored.rivalsWaiting ?? []);
+  const entering: RivalConclusion[] = [];
+  const waiting: string[] = [];
+  for (const rival of wanted) {
+    if (a.standing.includes(rival.domain)) continue;
+    const room = kept.length + entering.length < RIVALS_MAX;
+    const outranks = kept.length === 0 || (searched(rival.volume) && (rival.volume ?? 0) > weakest);
+    if (room && (outranks || waitedBefore.has(rival.domain))) entering.push(rival);
+    else waiting.push(rival.domain);
+  }
+
+  // The order the pass read them in — most searched first (D50) — with a
+  // rival it did not read placed by the volume it holds.
+  const order = new Map(a.fresh.map((r, i) => [r.domain, i]));
+  const ordered = [...kept.map(recordOf), ...entering]
+    .map((rival, i) => ({ rival, i }))
+    .sort((x, y) => {
+      const sx = searched(x.rival.volume);
+      const sy = searched(y.rival.volume);
+      if (sx !== sy) return sx ? -1 : 1;
+      if (sx && x.rival.volume !== y.rival.volume) return (y.rival.volume ?? 0) - (x.rival.volume ?? 0);
+      return (order.get(x.rival.domain) ?? a.fresh.length + x.i) - (order.get(y.rival.domain) ?? a.fresh.length + y.i);
+    })
+    .map((entry) => entry.rival);
   const domains = ordered.map((r) => r.domain);
-  const newOnes = ordered.filter((r) => !a.standing.includes(r.domain));
-  const dropped = a.standing.filter((d) => !domains.includes(d));
-  const changed = newOnes.length > 0 || dropped.length > 0;
+  const changed = entering.length > 0 || dropped.length > 0;
 
   const sameScan = stored.lastChange?.scanId === a.scanId ? stored.lastChange : null;
   return {
     next: {
       ...stored,
       current: { ...stored.current, rivals: ordered },
+      rivalsLeftOut: leftOut,
+      rivalsWaiting: waiting,
       lastChange: changed
         ? {
             scanId: a.scanId,
             at: a.at.toISOString(),
             category: sameScan?.category ?? null,
-            added: newOnes,
+            added: entering,
             dropped,
           }
         : (stored.lastChange ?? null),

@@ -19,6 +19,7 @@
 // that passed the same gates.
 import { BATTERY, SELECTION } from "@/lib/config/constants";
 import type { SuggestionRow } from "./market-set";
+import type { MeasuredMarket } from "./measured";
 import type { Profile } from "./profile";
 import type { RankedRow } from "@/lib/vendors/dataforseo/types";
 import { STOP_WORDS, difficultyField, selectTwelve, type MarketRow, type SelectedSearch } from "./select";
@@ -97,7 +98,16 @@ export function headTermOf(category: string): string | null {
  * synonyms, which the pass buys with the category. Case-insensitively distinct; empty where the
  * profile names nothing.
  */
-export function seedLadder(profile: Profile, confirmed?: string, synonyms: readonly string[] = []): string[] {
+export function seedLadder(
+  profile: Profile,
+  confirmed?: string,
+  synonyms: readonly string[] = [],
+  /** The market's searched terms, most searched first (SPEC §6, owner D65,
+   *  issue 1303; `marketSeeds`). Where it holds any they lead the ladder,
+   *  and the category and its synonyms — labels nobody need search for
+   *  (D49) — follow as the seeds a pass buys only while short. */
+  searched: readonly string[] = []
+): string[] {
   const seeds: string[] = [];
   const add = (candidate: string): void => {
     const seed = candidate.trim();
@@ -108,6 +118,9 @@ export function seedLadder(profile: Profile, confirmed?: string, synonyms: reado
     for (const term of profile.vocabulary) add(term);
     return seeds;
   }
+  // D65: the market's searched terms lead; the category and its synonyms
+  // are labels nobody need search for (D49), bought only while short.
+  for (const term of searched) add(term);
   add(category);
   // A concluded market's other names come next (#1159, #1185): each is the
   // same market in a buyer's other words, so each is a seed before the
@@ -163,20 +176,27 @@ export function selectWidened(a: {
    *  at every step, so widening continues until twelve right-sized
    *  searches survive (issue 830). */
   ownRanked: number;
+  /** The market in force and how many to return, as `selectTwelve` reads
+   *  them (D65). */
+  measured?: MeasuredMarket;
+  limit?: number;
 }): SelectedSearch[] {
   const category = {
     ...(a.category === undefined ? {} : { category: a.category }),
     ...(a.synonyms === undefined ? {} : { synonyms: a.synonyms }),
+    ...(a.measured === undefined ? {} : { measured: a.measured }),
+    ...(a.limit === undefined ? {} : { limit: a.limit }),
   };
   const { ownRanked } = a;
+  const enough = a.limit ?? BATTERY.QUESTIONS;
   let best = selectTwelve({ profile: a.profile, market: a.suggestions, ownRanked, ...category });
-  if (best.length >= BATTERY.QUESTIONS) return best;
+  if (best.length >= enough) return best;
 
   const market = pooledMarket(a.suggestions, a.pool);
   for (const floor of a.floors ?? SELECTION.volumeSteps) {
     const widened = selectTwelve({ profile: a.profile, market, floor, ownRanked, ...category });
     if (widened.length > best.length) best = widened;
-    if (best.length >= BATTERY.QUESTIONS) break;
+    if (best.length >= enough) break;
   }
   return best;
 }

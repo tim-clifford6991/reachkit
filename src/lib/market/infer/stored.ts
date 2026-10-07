@@ -126,6 +126,10 @@ function conclusionOf(value: unknown): MarketConclusion | null {
       : { terms: termsOf(value.terms), searchTerm: str(value.searchTerm), termsAt: str(value.termsAt)! }),
     // D50: likewise, "never read" is not "read, and nobody searches it".
     ...(demandOf(value.demand) === null ? {} : { demand: demandOf(value.demand)! }),
+    // D65: the searches a pass judged against this market.
+    ...(isRecord(value.judged)
+      ? { judged: Object.fromEntries(Object.entries(value.judged).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean")) }
+      : {}),
   };
 }
 
@@ -155,6 +159,9 @@ export function parseStoredMarket(value: unknown): StoredMarketWithChange {
     pending: conclusionOf(value.pending),
     categoryOverridden: value.categoryOverridden === true,
     rivalsOverridden: value.rivalsOverridden === true,
+    // D65: what the last pass left out and held back.
+    ...(Array.isArray(value.rivalsLeftOut) ? { rivalsLeftOut: strings(value.rivalsLeftOut) } : {}),
+    ...(Array.isArray(value.rivalsWaiting) ? { rivalsWaiting: strings(value.rivalsWaiting) } : {}),
     lastChange: changeOf(value.lastChange),
   };
 }

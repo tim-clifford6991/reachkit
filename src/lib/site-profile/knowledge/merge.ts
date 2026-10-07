@@ -7,6 +7,7 @@
 // gives "is a fact with the founder as its source" (§5), and where they
 // have said who buys from them, that outranks what a page was read to say.
 import { KNOWLEDGE_BASE } from "@/lib/config/constants";
+import { isBuyerQuestion, isSpecificAudience } from "./clean";
 import { readFirstRank } from "./priority";
 import {
   KNOWLEDGE_LISTS,
@@ -27,6 +28,14 @@ const ANSWER_LIST = {
   asked: "questions",
   result: "proof",
 } as const satisfies Partial<Record<keyof FounderAnswers, KnowledgeList>>;
+
+/** What a list keeps of a page's reading (D65, `./clean.ts`), applied here
+ *  too so a page read before the rule is cleaned without a new read. The
+ *  founder's answer is never judged. */
+const READ_KEEPS: Partial<Record<KnowledgeList, (text: string) => boolean>> = {
+  audience: isSpecificAudience,
+  questions: (text) => isBuyerQuestion(text),
+};
 
 function stated(value: string | undefined): string | null {
   const text = (value ?? "").replace(/\s+/g, " ").trim();
@@ -88,7 +97,9 @@ export function knowledgeBase(a: { stored: StoredKnowledge; answers: FounderAnsw
       [
         ...(founder === null ? [] : [{ text: founder, source: FOUNDER }]),
         ...pages.flatMap((page) =>
-          page.reading[name].map((text): KnowledgeItem => ({ text, source: { kind: "page", url: page.url } }))
+          page.reading[name]
+            .filter(READ_KEEPS[name] ?? (() => true))
+            .map((text): KnowledgeItem => ({ text, source: { kind: "page", url: page.url } }))
         ),
       ],
       (item) => item.text,
