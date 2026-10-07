@@ -482,6 +482,28 @@ page already has that update open or queued. The next generation run records the
 and ranks it with the site's other topics; nothing publishes until that day's page is written. The
 page is written as the new search's own type and replaces the live text at the same address.
 
+### Checking a stored pass again
+
+`npm run pass -- --site <domain> --replay <scanId>` runs a stored deep pass again through the
+pass's own steps (SPEC §6, D64): the sizing, the rival conclusion, the prompts that follow the
+rivals, the topics and their prune, and the health checks. It costs 0¢ and reaches neither
+production nor a vendor. It prints the rivals, the sizings, the cost against the stored pass, the
+checks, the topics and the prompts, and exits 0 when the acceptance list holds.
+
+The pass is read from `scripts/pass/snapshot/<first 8 of the scan id>.json`. To add one, run the
+statement in `scripts/pass/export.sql` through the Supabase connector, read-only, in the checked
+chunks `scripts/pass/assemble.mjs` describes, and commit the file it writes.
+
+| Flag | Does |
+|---|---|
+| `--live --env-file <path>` | Buys the calls the stored pass never made, and keeps them in `<first 8>.live.json` so the next replay is 0¢. |
+| `--cap-cents <n>` | The live run's ceiling. Default 30. |
+| `--keep` | Leaves the local database up afterwards. |
+
+It rebuilds this worktree's local database (`scripts/db-substrate/`), so do not run it beside
+`vitest --project db` or the layout sweep in the same worktree. `RK_PASS_VERBOSE=1` prints the
+pass's own log lines.
+
 ### Testing one page
 
 `npm run page -- --site <domain> --type <type> [--topic "<q>"]` writes one page through the
@@ -760,7 +782,7 @@ appends a line to **`/root/ops/reachkit/spend.jsonl`** instead (SPEC §6, D57, #
 ```
 
 `issue` is the number of an `issue-<N>` branch, else the branch's name. A call that settled at
-nothing writes no line. The scripts that write it are `npm run page`, `scripts/market-inference.mjs`,
+nothing writes no line. The scripts that write it are `npm run page`, `npm run pass -- --live`, `scripts/market-inference.mjs`,
 `npm run eval:content`, `scripts/d19-cost.mjs` and `scripts/llm-mentions-pilot.mjs`; they all go
 through `appendSpend()` in `scripts/spend-log.mjs`, and **a new script that calls a vendor or a
 model calls it too**. `RK_SPEND_LOG=<file>` writes to another file.

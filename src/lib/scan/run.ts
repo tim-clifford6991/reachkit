@@ -47,6 +47,7 @@ import {
   PRICE_BOOK,
   SELECTION,
   SERP_RIVAL_SIZING,
+  WEEKLY_RIVAL_RESIZES,
   TIMING,
   TRACKED_PROMPTS,
   VENDOR,
@@ -80,7 +81,7 @@ import { phraseQuestions, type Question } from "@/lib/market/questions/phrase";
 import { deriveProfile, type Profile } from "@/lib/market/questions/profile";
 import { selectTwelve, type SelectedSearch } from "@/lib/market/questions/select";
 import { isShort, poolFrom, seedLadder, selectWidened, type PoolRow } from "@/lib/market/questions/widen";
-import { serpRivalCandidates } from "@/lib/market/rivals/candidates";
+import { serpDomainsToSize } from "@/lib/market/rivals/candidates";
 import { deriveRivals, type RivalCandidate } from "@/lib/market/rivals/derive";
 import { buildPresenceCard, type PresenceCard } from "@/lib/market/rivals/presence";
 import { sizeRivals, type RivalSize } from "@/lib/market/rivals/size";
@@ -193,6 +194,9 @@ interface TierParameters {
    *  inside `rankedKeywords`) and not a second schedule here: a weekly pass
    *  inside the window re-reads the same rows and spends nothing. */
   sizesRivals: boolean;
+  /** How many tracked rivals one pass of this tier sizes again when their
+   *  30 days are up (D64, issue 1301); `null` sizes every one that is due. */
+  rivalResizes: number | null;
   /** §6.2's paid weekly battery — "ChatGPT std + AI Mode std +
    *  AI-Overview piggyback = 2.2¢/week" — bought per question inside
    *  `asking_the_twelve`, beside the SERP whose own AI Overview is the
@@ -326,6 +330,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     adoptsClaim: true,
     servesStoredReport: true,
     sizesRivals: false,
+    rivalResizes: null,
     battery: false,
     stageBudgets: true,
     serpWindowDays: CACHE_WINDOWS_D.serp,
@@ -350,6 +355,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     adoptsClaim: true,
     servesStoredReport: false,
     sizesRivals: true,
+    rivalResizes: null,
     battery: true,
     stageBudgets: false,
     serpWindowDays: CACHE_WINDOWS_D.serp,
@@ -374,6 +380,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     adoptsClaim: false,
     servesStoredReport: false,
     sizesRivals: true,
+    rivalResizes: WEEKLY_RIVAL_RESIZES,
     battery: true,
     stageBudgets: false,
     serpWindowDays: CACHE_WINDOWS_D.serpWeeklyRecheck,
@@ -1504,8 +1511,10 @@ async function sizeTrackedRivals(a: StageArgs): Promise<void> {
   const ownRanked = measurement === null ? 0 : ownRankedValue(measurement.ownRanked);
 
   const previous = await attempt("checking_your_presence", () => previousSizes(a.domain));
+  // D64: a weekly pass sizes one due rival again; the rest keep their size.
+  const purse = a.parameters.rivalResizes === null ? a.cost : withPurse(a.cost, a.parameters.rivalResizes * PRICE_BOOK.RANKED_RIVAL_COST_C);
   const sized = await attempt("checking_your_presence", () =>
-    sizeRivals(a.cost, {
+    sizeRivals(purse, {
       rivals,
       ownRanked,
       at,
@@ -1584,12 +1593,21 @@ async function sizeSerpRivals(a: StageArgs): Promise<void> {
     }
   }
 
-  const candidates = serpRivalCandidates({
+  // SPEC §6 (owner D64, issue 1301): of the top tens' domains, only the ones
+  // this market holds as on-market are sized — never a publisher, an
+  // aggregator or a domain a conclusion left out. The market is the one this
+  // pass concluded, else the one the site holds.
+  const market = sections.market ?? (await storedMarketOf(a.siteId));
+  if (bounds.abandoned()) return;
+  const { inTopTens, domains: candidates } = serpDomainsToSize({
     serps,
     ownDomain: a.domain,
+    market,
+    answers: sections.marketPrompts,
+    alreadySized: current,
     max: SERP_RIVAL_SIZING.candidatesMax,
-  }).filter((domain) => !current.has(domain));
-  logSerpCandidates(candidates.length, current.size);
+  });
+  logSerpCandidates(candidates.length, current.size, inTopTens);
   if (candidates.length === 0) return;
 
   const measurement = sections.measurement;
@@ -1660,8 +1678,20 @@ function withPurse(cost: CostContext, cents: number): CostContext {
  *  pass took as candidates and how many it already held a fresh size for.
  *  Counts only — no domain reaches a log line from here, the same
  *  discipline `size.ts` and `derive.ts` keep. */
-function logSerpCandidates(candidates: number, alreadySized: number): void {
-  console.log(JSON.stringify({ event: "serp_rival_candidates", candidates, alreadySized }));
+function logSerpCandidates(candidates: number, alreadySized: number, inTopTens: number): void {
+  console.log(JSON.stringify({ event: "serp_rival_candidates", candidates, alreadySized, inTopTens }));
+}
+
+/** The market a site holds, or `null` where it holds none or it could not
+ *  be read: a pass that knows no market sizes no top-ten domain (D64). */
+async function storedMarketOf(siteId: string | undefined): Promise<MarketConclusion | null> {
+  if (siteId === undefined) return null;
+  try {
+    const { readSiteMarket } = await import("@/lib/market/infer/stored");
+    return (await readSiteMarket(siteId))?.stored.current ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** The customer's own count as a number for the banding. `unmeasured` is

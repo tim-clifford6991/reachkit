@@ -21,8 +21,8 @@
 // (`derive/fit.ts`) scores it, and only one at fit 3 is written down: "a
 // search at fit 3 is a write target even below the volume floor, including
 // zero-volume problem and product-anchored searches" (owner, 2026-10-03).
-import { EFFORT_BY_TYPE, RIVAL_DEMAND, TOPIC_FIT } from "@/lib/config/constants";
-import { ownSearched, searched } from "@/lib/market/infer/demand";
+import { EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
+import { comparisonsOf, ownSearched, searched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { brandOf, classifyIntent } from "@/lib/market/questions/select";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
@@ -168,6 +168,49 @@ export function noLongerRelevant(
 
 /** Each rival as a search may name it: its product name and its domain's
  *  label, with the domain a row points at. */
+/**
+ * Is this search only a rival's brand name? (SPEC §6, owner D64, issue
+ * 1301.) Someone who types "rankscale ai" is going to Rankscale: the search
+ * is navigational and no page of this business answers it, so it is never a
+ * topic. A rival's name beside anything else — "rankscale alternatives",
+ * "profound vs otterly", "otterly pricing" — is a different search and is
+ * not judged here. The names are the rivals in force by every name they are
+ * searched under, and the brands the market read demand for (D50).
+ */
+export function rivalBrandOnly(
+  query: string,
+  a: { market: MarketConclusion | null; own: readonly string[]; rivals: readonly string[] }
+): boolean {
+  const text = normalise(query);
+  if (text === "" || a.own.includes(text)) return false;
+  const brands = new Set(a.rivals.map(normalise));
+  for (const rival of a.market?.rivals ?? []) {
+    for (const name of [rival.name, rival.domain, brandOf(rival.domain), ...(rival.searchNames ?? [])]) brands.add(normalise(name));
+  }
+  for (const keyword of Object.keys(a.market?.demand?.brands ?? {})) brands.add(normalise(keyword));
+  return brands.has(text);
+}
+
+/**
+ * The products a search names, as one comparable string (SPEC §6, owner D64,
+ * issue 1301). "profound alternatives" and "otterly alternatives" are worded
+ * alike and are two pages: a buyer leaving Profound is not a buyer leaving
+ * Otterly. The same-question judgement paired them on reachkit.app's
+ * re-measure of 2026-10-07 and the collapse then dismissed the Otterly row,
+ * so two searches are one question only where they name the same products.
+ */
+export function productsNamed(query: string, a: { market: MarketConclusion | null; rivals: readonly string[] }): string {
+  const text = ` ${normalise(query)} `;
+  const brands = new Set(a.rivals.map(normalise));
+  for (const rival of a.market?.rivals ?? []) {
+    for (const name of [rival.name, brandOf(rival.domain), ...(rival.searchNames ?? [])]) brands.add(normalise(name));
+  }
+  for (const keyword of Object.keys(a.market?.demand?.brands ?? {})) brands.add(normalise(keyword));
+  // The first word of a name is the product ("otterly ai" is Otterly).
+  const named = [...brands].filter((brand) => brand.length > 2 && text.includes(` ${brand} `)).map((brand) => brand.split(" ")[0]!);
+  return [...new Set(named)].sort().join(" ");
+}
+
 export function rivalNamesOf(a: {
   report: StoredReport;
   market: MarketConclusion | null;
@@ -253,9 +296,15 @@ export function proposedTopics(a: {
   for (const row of suggestions) {
     if (!volumes.has(queryKey(row.keyword))) volumes.set(queryKey(row.keyword), row.volume);
   }
+  // SPEC §6 (owner D64, issue 1301): a comparison search the pass read the
+  // volume of carries it. One nobody searches stays unmeasured, as before.
+  for (const [search, volume] of Object.entries(a.market?.demand?.searches ?? {})) {
+    if (volume > 0 && !volumes.has(queryKey(search))) volumes.set(queryKey(search), volume);
+  }
   const add = (query: string, source: ProposedTopic["source"], rival: string | null): void => {
     const key = queryKey(query);
     if (key === "" || seen.has(key) || out.length >= a.max) return;
+    if (rivalBrandOnly(key, { market: a.market, own, rivals })) return;
     // D50: a comparison of names nobody searches is no topic, unless the
     // pass read demand for the search itself.
     if (!volumes.has(key) && comparisonWithoutDemand(key, { market: a.market, own })) return;
@@ -279,20 +328,10 @@ export function proposedTopics(a: {
     // product against each rival where its own brand is searched — else the
     // most-searched rivals against each other (D50) — the category for its
     // buyer, its price, and what it is not.
-    const nameOf = (rival: MarketConclusion["rivals"][number]): string => phrase(rival.name, 4) ?? brandOf(rival.domain);
-    const inDemand = market.rivals
-      .filter((rival) => searched(rival.volume))
-      .sort((x, y) => (y.volume ?? 0) - (x.volume ?? 0));
-    for (const rival of inDemand) add(`${nameOf(rival)} alternatives`, "product", rival.domain);
-    if (product !== null && ownSearched(market)) {
-      for (const rival of market.rivals) add(`${product} vs ${nameOf(rival)}`, "product", rival.domain);
-    } else {
-      const leading = inDemand.slice(0, RIVAL_DEMAND.PAIRS);
-      leading.forEach((first, i) => {
-        for (const second of leading.slice(i + 1)) add(`${nameOf(first)} vs ${nameOf(second)}`, "product", first.domain);
-      });
+    // D50's comparisons, by the one derivation the pass read volumes for (D64).
+    for (const comparison of comparisonsOf({ rivals: market.rivals, product, ownSearched: ownSearched(market), searchedOnly: true })) {
+      add(comparison.query, "product", comparison.rival);
     }
-    // The job and its problems as the buyer words them (issue 1208).
     for (const search of a.written ?? []) add(search, sourceOf(search, { brands }), null);
     // The market's own names. They are the vendor's words until the pass's
     // "would a buyer search this?" check says a buyer types them.

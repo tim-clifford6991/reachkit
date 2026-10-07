@@ -197,15 +197,23 @@
     "at": "2026-10-06T11:25:21.177Z",
     "own": 0,
     "brands": {
+     "dooza": 0,
+     "temso": 30,
      "brandi": 22200,
+     "geopta": 0,
      "maxaeo": 0,
      "otterly": 880,
+     "peec ai": 2400,
+     "dooza ai": 0,
      "reachkit": 0,
+     "temso ai": 0,
      "brandi ai": 260,
+     "llm pulse": 0,
      "rankscale": 480,
      "aeo engine": 70,
      "otterly ai": 720,
      "leadjourney": 0,
+     "llmpulse ai": 0,
      "profound ai": 6600,
      "rankscale ai": 90,
      "the seo agent": 0,
@@ -215,21 +223,10 @@
    },
    "rivals": [
     {
-     "name": "Brandi",
-     "basis": "ai_answer",
-     "domain": "mybrandi.ai",
-     "reason": "AI visibility platform for generative engine optimization that tracks brand mentions and citations across LLMs.",
-     "volume": 22200,
-     "searchNames": [
-      "brandi",
-      "brandi ai"
-     ]
-    },
-    {
      "name": "Profound",
      "basis": "ai_answer",
      "domain": "tryprofound.com",
-     "reason": "Tracks how often AI engines cite and recommend your brand across ChatGPT, Perplexity, Gemini, and Google AI Overviews, directly competing on AI discovery monitoring.",
+     "reason": "Tracks how often AI engines cite and recommend your brand across ChatGPT, Perplexity, Gemini, and Google AI Overviews, competing directly on AI discovery monitoring.",
      "volume": 6600,
      "searchNames": [
       "profound ai"
@@ -248,7 +245,7 @@
     },
     {
      "name": "Omniscient",
-     "basis": "ai_answer",
+     "basis": "same_job",
      "domain": "beomniscient.com",
      "reason": "GEO platform that tracks brand citations and recommendations inside AI ecosystems and helps optimize content to win them.",
      "volume": 590,
@@ -265,6 +262,16 @@
      "searchNames": [
       "rankscale",
       "rankscale ai"
+     ]
+    },
+    {
+     "name": "Brandi",
+     "basis": "ai_answer",
+     "domain": "mybrandi.ai",
+     "reason": "AI visibility platform for generative engine optimization that tracks brand mentions and citations across LLMs.",
+     "volume": 260,
+     "searchNames": [
+      "brandi ai"
      ]
     }
    ],
@@ -291,7 +298,31 @@
     "Free scan with first page proposed before any payment"
    ]
   },
-  "pending": null,
+  "pending": {
+   "job": "Understand where AI engines and search send buyers, then write pages to rank in those results",
+   "buyer": "Founders and business owners who need to understand where AI and search engines send their buyers",
+   "rivals": [],
+   "category": "AI search visibility tracking",
+   "synonyms": [
+    "generative engine optimization tools",
+    "answer engine optimization platforms",
+    "AI visibility monitoring"
+   ],
+   "notOurMarket": [
+    "Traditional SEO tools",
+    "Content management systems",
+    "Marketing automation platforms",
+    "PR monitoring software",
+    "Keyword rank tracking"
+   ],
+   "categoryReason": "The headline and all pages emphasize tracking where AI engines and search send buyers, then writing content to change that outcome\u2014the buyer's job is visibility in AI answers and search, not content creation or SEO generally.",
+   "differentiators": [
+    "Writes one page a day automatically to improve AI and search visibility",
+    "Free scan shows where AI answers and Google search send buyers to competitors",
+    "Weekly re-measurement of entire market with movement email",
+    "24-hour review window before pages go live"
+   ]
+  },
   "adoptedAt": "2026-10-02T22:02:51.534Z",
   "lastChange": {
    "at": "2026-10-06T11:25:21.177Z",

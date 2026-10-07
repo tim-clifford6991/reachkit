@@ -189,40 +189,7 @@ export async function runDeepPass(a: {
   // under its own cap, from the report the first step stored. A derivation
   // that throws is logged: zero proposals is legal, never faked (§4.3).
   const rivals = await step("opportunities", async () => {
-    let rivalsChanged = false;
-    try {
-      await spendOnStoredReport({ scanId: result.scanId, tier: "deep" }, async ({ report, cost }) => {
-        // SPEC §6 (owner D28, #1185): the rivals, re-checked from this
-        // pass's own answers before anything is derived against them.
-        const { recheckRivalsOf } = await import("../market-conclusion");
-        rivalsChanged = await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
-        try {
-          await deriveForPass(cost, {
-            tier: "deep",
-            siteId: a.siteId,
-            report,
-            // Onboarding's pass runs on a payment that has just cleared, so
-            // the gate is answered `true` here and never guessed at inside
-            // the engine (`topUp`'s own rule, which the deep arm does not read).
-            hasActiveAccess: true,
-          });
-        } finally {
-          // SPEC §6 (owner D58, issue 1287): the pass checks its own health
-          // last, against the rivals it leaves in force. Only a re-measure
-          // asks the tracked prompts. It never throws.
-          const { recordPassHealth } = await import("../health-record");
-          await recordPassHealth({ scanId: result.scanId, siteId: a.siteId, domain: a.domain, report, asksPrompts: a.remeasure === true });
-        }
-      });
-    } catch (error) {
-      console.log(
-        JSON.stringify({
-          event: "after_report_failed",
-          scanId: result.scanId,
-          because: error instanceof Error ? error.message : String(error),
-        })
-      );
-    }
+    const { rivalsChanged } = await afterDeepReport({ scanId: result.scanId, siteId: a.siteId, domain: a.domain, remeasure: a.remeasure === true });
 
     // The pass derived the paid voice; seed the customer's field from it, so
     // the first draft is written in it (issue 737). Setup could not: a
@@ -267,6 +234,56 @@ export async function runDeepPass(a: {
   }
 
   return { scanId: result.scanId, status: result.status, reason };
+}
+
+/**
+ * What a deep pass does with the report it stored, on the pass's own money:
+ * the rivals re-checked, the topics derived and pruned, and the pass's own
+ * health recorded last. One function, so `npm run pass -- --replay` runs the
+ * same steps in the same order over a stored report (SPEC §6, D64, issue
+ * 1301). It never throws.
+ */
+export async function afterDeepReport(a: {
+  scanId: string;
+  siteId: string;
+  domain: string;
+  remeasure: boolean;
+}): Promise<{ rivalsChanged: boolean }> {
+  let rivalsChanged = false;
+  try {
+    await spendOnStoredReport({ scanId: a.scanId, tier: "deep" }, async ({ report, cost }) => {
+      // SPEC §6 (owner D28, #1185): the rivals, re-checked from this
+      // pass's own answers before anything is derived against them.
+      const { recheckRivalsOf } = await import("../market-conclusion");
+      rivalsChanged = await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report });
+      try {
+        await deriveForPass(cost, {
+          tier: "deep",
+          siteId: a.siteId,
+          report,
+          // Onboarding's pass runs on a payment that has just cleared, so
+          // the gate is answered `true` here and never guessed at inside
+          // the engine (`topUp`'s own rule, which the deep arm does not read).
+          hasActiveAccess: true,
+        });
+      } finally {
+        // SPEC §6 (owner D58, issue 1287): the pass checks its own health
+        // last, against the rivals it leaves in force. Only a re-measure
+        // asks the tracked prompts. It never throws.
+        const { recordPassHealth } = await import("../health-record");
+        await recordPassHealth({ scanId: a.scanId, siteId: a.siteId, domain: a.domain, report, asksPrompts: a.remeasure });
+      }
+    });
+  } catch (error) {
+    console.log(
+      JSON.stringify({
+        event: "after_report_failed",
+        scanId: a.scanId,
+        because: error instanceof Error ? error.message : String(error),
+      })
+    );
+  }
+  return { rivalsChanged };
 }
 
 /** The pass's first step: the row, the category and the one pipeline. */

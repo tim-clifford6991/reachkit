@@ -68,6 +68,17 @@ vi.mock("@/lib/market/rivals/tracked", () => ({
   trackedRivals: (...a: unknown[]) => trackedRivals(...a),
 }));
 
+// SPEC §6 (owner D64, issue 1301): a top-ten domain is sized only where the
+// site's market holds it as on-market. This site's holds the reachable competitor as a searched product.
+const MARKET_HELD = {
+  rivals: [],
+  demand: { at: "2026-09-01T00:00:00.000Z", own: 0, brands: { rohringresults: 500 } },
+};
+vi.mock("@/lib/market/infer/stored", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../src/lib/market/infer/stored")>()),
+  readSiteMarket: async () => ({ stored: { current: MARKET_HELD } }),
+}));
+
 const readCurrentReport = vi.fn();
 vi.mock("@/lib/scan/report", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../src/lib/scan/report")>()),

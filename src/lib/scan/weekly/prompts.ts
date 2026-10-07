@@ -109,20 +109,31 @@ export async function readPromptWindow(a: { siteId: string; weekStart: string; z
     zone === null ? [] : readRemeasures({ siteId: a.siteId, zone, weekStarts }).catch(() => []),
     unhealthyScans({ siteId: a.siteId, since }),
   ]);
-  const read: { week: PromptWeek; section: PromptsSection }[] = [];
-  for (const weekStart of weekStarts) {
-    const weekly = scans.get(weekStart);
-    const report = weekly === undefined || unhealthy.has(weekly.scanId) ? undefined : weekly.report;
-    let section = report?.prompts;
-    let at = section === undefined || report == null ? -1 : report.verdict.measuredAt.getTime();
-    for (const remeasure of remeasures) {
-      if (remeasure.weekStart !== weekStart || remeasure.at <= at) continue;
-      if (remeasure.scanId !== null && unhealthy.has(remeasure.scanId)) continue;
-      section = remeasure.section;
-      at = remeasure.at;
+  const weeksOf = (leftOut: ReadonlySet<string>): { week: PromptWeek; section: PromptsSection }[] => {
+    const read: { week: PromptWeek; section: PromptsSection }[] = [];
+    for (const weekStart of weekStarts) {
+      const weekly = scans.get(weekStart);
+      const report = weekly === undefined || leftOut.has(weekly.scanId) ? undefined : weekly.report;
+      let section = report?.prompts;
+      let at = section === undefined || report == null ? -1 : report.verdict.measuredAt.getTime();
+      for (const remeasure of remeasures) {
+        if (remeasure.weekStart !== weekStart || remeasure.at <= at) continue;
+        if (remeasure.scanId !== null && leftOut.has(remeasure.scanId)) continue;
+        section = remeasure.section;
+        at = remeasure.at;
+      }
+      if (section === undefined) continue;
+      read.push({ week: { weekStart, asks: section.asks, samples: samplesOf(section) }, section });
     }
-    if (section === undefined) continue;
-    read.push({ week: { weekStart, asks: section.asks, samples: samplesOf(section) }, section });
+    return read;
+  };
+  const read = weeksOf(unhealthy);
+  // D64 (issue 1301): where no pass in the window is healthy, the newest
+  // pass that asked the prompts is shown as a first measurement — its own
+  // week alone, never a rate over several.
+  if (read.length === 0 && unhealthy.size > 0) {
+    const first = weeksOf(new Set()).at(-1);
+    if (first !== undefined) return { weeks: [first.week], prompts: first.section.asked, firstMeasurement: true };
   }
   const newest = read.at(-1)?.section;
   return {

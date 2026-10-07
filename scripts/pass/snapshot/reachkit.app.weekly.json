@@ -1,0 +1,21 @@
+{
+ "scan": "a3ce51db",
+ "at": "2026-10-05T04:00:31Z",
+ "cents": 28.5783,
+ "sizingCents": 0,
+ "ledger": {
+  "ai_optimization/chat_gpt/llm_scraper": 6.0,
+  "dataforseo_labs/google/keyword_suggestions": 7.2,
+  "dataforseo_labs/google/ranked_keywords": 4.8,
+  "market-inference": 0.95,
+  "profile": 0.39,
+  "question-phrasing": 0.16,
+  "serp/google/ai_mode": 6.0,
+  "serp/google/organic": 0.24,
+  "site-profile": 0.96,
+  "topic-buyer-searches": 0.25,
+  "topic-fit": 1.34,
+  "topic-same-question": 0.14,
+  "topic-typed": 0.15
+ }
+}

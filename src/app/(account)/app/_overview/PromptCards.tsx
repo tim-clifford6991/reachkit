@@ -41,7 +41,7 @@ function Card(p: { testId: string; title: string; lead: string; children: React.
 /** The rate's own card: the figure, its range, the split and why the
  *  range is there. */
 function RateCard(p: { model: Measured }): React.JSX.Element {
-  const { rate, rateShown, branded } = p.model;
+  const { rate, rateShown, firstMeasurement, branded } = p.model;
   const quiet = rate.linked + rate.named === 0;
   return (
     <section
@@ -75,7 +75,9 @@ function RateCard(p: { model: Measured }): React.JSX.Element {
                 answers: formatCount(rate.samples),
                 weeks: formatCount(ANSWER_RATE_WEEKS),
               })
-            : copy("overview.tile.mention-rate.early", { weeks: formatCount(MENTION_RATE_MIN_WEEKS) })}
+            : copy(firstMeasurement ? "overview.tile.mention-rate.first" : "overview.tile.mention-rate.early", {
+                weeks: formatCount(MENTION_RATE_MIN_WEEKS),
+              })}
         </p>
         <p className={`text-xs ${INK}`}>
           {copy("overview.prompts.rate.split", {

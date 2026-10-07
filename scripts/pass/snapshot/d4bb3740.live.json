@@ -1,0 +1,272 @@
+[
+ {
+  "source": "dataforseo_labs/google/keyword_overview",
+  "payload": [
+   {
+    "keyword": "peec ai",
+    "searchVolume": 2400
+   },
+   {
+    "keyword": "peec ai alternatives",
+    "searchVolume": 210
+   },
+   {
+    "keyword": "profound alternatives",
+    "searchVolume": 210
+   },
+   {
+    "keyword": "temso",
+    "searchVolume": 30
+   }
+  ],
+  "scan_id": "issue-box:d4bb3740",
+  "cache_key": "brandi alternatives,dooza,dooza ai,dooza alternatives,geopta,geopta alternatives,llm pulse,llm pulse alternatives,llmpulse ai,omniscient alternatives,otterly alternatives,otterly vs omniscient,peec ai,peec ai alternatives,profound alternatives,profound vs omniscient,profound vs otterly,rankscale alternatives,temso,temso ai,temso alternatives|United States|en",
+  "cost_cents": 1.21,
+  "created_at": "2026-10-07T12:33:01.461326+00:00",
+  "duration_ms": 330,
+  "policy_version": 1,
+  "reserved_cents": 1.21
+ },
+ {
+  "source": "topic-fit",
+  "payload": {
+   "value": {
+    "scores": [
+     {
+      "i": 0,
+      "fit": 1,
+      "title": ""
+     },
+     {
+      "i": 1,
+      "fit": 2,
+      "title": "Track how often AI search names you vs. rivals, weekly"
+     },
+     {
+      "i": 2,
+      "fit": 1,
+      "title": ""
+     },
+     {
+      "i": 3,
+      "fit": 3,
+      "title": "See and grow your AI search visibility — automated, daily"
+     },
+     {
+      "i": 4,
+      "fit": 2,
+      "title": "How to get named in AI Overviews: the page-by-page approach"
+     },
+     {
+      "i": 5,
+      "fit": 2,
+      "title": "AI ranking tools built for founders, not SEO agencies"
+     },
+     {
+      "i": 6,
+      "fit": 0,
+      "title": ""
+     },
+     {
+      "i": 7,
+      "fit": 2,
+      "title": "Track AI Overviews: see who gets named and close the gap"
+     },
+     {
+      "i": 8,
+      "fit": 0,
+      "title": ""
+     },
+     {
+      "i": 9,
+      "fit": 1,
+      "title": ""
+     },
+     {
+      "i": 10,
+      "fit": 3,
+      "title": "Omniscient alternatives that write content and track AI answers"
+     },
+     {
+      "i": 11,
+      "fit": 3,
+      "title": "Brandi alternatives: AI visibility + daily content for founders"
+     },
+     {
+      "i": 12,
+      "fit": 3,
+      "title": "Profound vs Otterly — and what does both plus daily content"
+     },
+     {
+      "i": 13,
+      "fit": 3,
+      "title": "Profound vs Omniscient — and the tool that tracks and writes"
+     },
+     {
+      "i": 14,
+      "fit": 2,
+      "title": "Otterly vs Omniscient: AI visibility tools compared for founders"
+     },
+     {
+      "i": 15,
+      "fit": 3,
+      "title": "Answer engine optimization pricing: what you get per plan"
+     },
+     {
+      "i": 16,
+      "fit": 3,
+      "title": "AI search visibility pricing: one plan, one page a day"
+     },
+     {
+      "i": 17,
+      "fit": 3,
+      "title": "AEO pricing: free scan, then one flat plan for founders"
+     },
+     {
+      "i": 18,
+      "fit": 2,
+      "title": "Best AEO tools for AI visibility: tracking + content in one"
+     },
+     {
+      "i": 19,
+      "fit": 2,
+      "title": "Best answer optimization tools for AI visibility, ranked"
+     },
+     {
+      "i": 20,
+      "fit": 2,
+      "title": "Top answer engine optimization tools for AI visibility"
+     },
+     {
+      "i": 21,
+      "fit": 2,
+      "title": "Best AI visibility tools with built-in answer engine optimization"
+     },
+     {
+      "i": 22,
+      "fit": 1,
+      "title": ""
+     }
+    ],
+    "strongest": [
+     12,
+     13,
+     17,
+     15,
+     16,
+     3,
+     10,
+     11
+    ]
+   },
+   "tokensIn": 2069,
+   "tokensOut": 725,
+   "durationMs": 12176,
+   "parseOutcome": "success"
+  },
+  "scan_id": "issue-box:d4bb3740",
+  "cache_key": "6f693374395ba6015a7e01028bc87db6cdd861d15ab1e4fbfc7c8d3c29b88724",
+  "cost_cents": 1.7082,
+  "created_at": "2026-10-07T12:33:15.231322+00:00",
+  "duration_ms": 12177,
+  "policy_version": 1,
+  "reserved_cents": 9.975
+ },
+ {
+  "source": "opportunity-typing",
+  "payload": {
+   "value": {
+    "slug": "ai-ranking-tools",
+    "type": "listed_page",
+    "title": "Best AI Ranking Tools"
+   },
+   "tokensIn": 831,
+   "tokensOut": 77,
+   "durationMs": 1000,
+   "parseOutcome": "success"
+  },
+  "scan_id": "issue-box:d4bb3740",
+  "cache_key": "96c33d708f2d126c85068f3b31bdb85f314941e8377738cbb5a1e1b83358b02e",
+  "cost_cents": 0.1216,
+  "created_at": "2026-10-07T12:33:16.267166+00:00",
+  "duration_ms": 1000,
+  "policy_version": 1,
+  "reserved_cents": 0.2728
+ },
+ {
+  "source": "topic-same-question",
+  "payload": {
+   "value": {
+    "pairs": [
+     {
+      "i": 0,
+      "sameAs": 3
+     },
+     {
+      "i": 1,
+      "sameAs": 7
+     },
+     {
+      "i": 2,
+      "sameAs": 3
+     },
+     {
+      "i": 3,
+      "sameAs": 0
+     },
+     {
+      "i": 4,
+      "sameAs": 9
+     },
+     {
+      "i": 5,
+      "sameAs": 9
+     },
+     {
+      "i": 6,
+      "sameAs": 19
+     },
+     {
+      "i": 7,
+      "sameAs": 1
+     },
+     {
+      "i": 8,
+      "sameAs": 5
+     },
+     {
+      "i": 9,
+      "sameAs": 4
+     },
+     {
+      "i": 12,
+      "sameAs": 14
+     },
+     {
+      "i": 13,
+      "sameAs": 14
+     },
+     {
+      "i": 14,
+      "sameAs": 12
+     },
+     {
+      "i": 16,
+      "sameAs": 17
+     }
+    ]
+   },
+   "tokensIn": 1282,
+   "tokensOut": 230,
+   "durationMs": 2120,
+   "parseOutcome": "success"
+  },
+  "scan_id": "issue-box:d4bb3740",
+  "cache_key": "0ecfac56d084793c53997a5325619949edd0240be5fc9e13ac8bfd19b4a68652",
+  "cost_cents": 0.2432,
+  "created_at": "2026-10-07T12:33:18.415725+00:00",
+  "duration_ms": 2120,
+  "policy_version": 1,
+  "reserved_cents": 0.6042
+ }
+]

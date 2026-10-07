@@ -211,6 +211,7 @@ describe("a paid pass whose engine is slower than its ceiling (issue 902)", () =
     // not wait for: loaded here, the timeline below is the pass's own.
     await import("@/lib/site-profile");
     await import("@/lib/site-issues");
+    await import("@/lib/market/infer/stored");
     llmScraper.mockImplementation(
       stillQueueing((failure) => {
         const onFailure = (llmScraper.mock.calls.at(-1) as unknown as [unknown, { onFailure?: (f: unknown) => void }])[1]

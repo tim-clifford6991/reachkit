@@ -61,6 +61,17 @@ vi.mock("@/lib/market/rivals/tracked", () => ({
   trackedRivals: (...a: unknown[]) => trackedRivals(...a),
 }));
 
+// SPEC §6 (owner D64, issue 1301): a top-ten domain is sized only where the
+// site's market holds it as on-market. This site's holds both of its top ten's products as searched.
+const MARKET_HELD = {
+  rivals: [],
+  demand: { at: "2026-09-01T00:00:00.000Z", own: 0, brands: { appcues: 900, userpilot: 700 } },
+};
+vi.mock("@/lib/market/infer/stored", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../src/lib/market/infer/stored")>()),
+  readSiteMarket: async () => ({ stored: { current: MARKET_HELD } }),
+}));
+
 const readCurrentReport = vi.fn();
 vi.mock("@/lib/scan/report", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../src/lib/scan/report")>()),
@@ -323,12 +334,10 @@ describe("what could not be read is never stored as a measurement", () => {
     expect(entries.map((entry) => entry.domain)).toEqual(FROM_OUR_OWN_SERPS);
   });
 
-  it("a paid pass with no site reads no tracked rivals — there are none without one", async () => {
+  it("a paid pass with no site reads no tracked rivals and holds no market, so it sizes nothing (D64)", async () => {
     await runScan({ domain: DOMAIN, tier: "deep" });
     expect(trackedRivals).not.toHaveBeenCalled();
-    const sizes = storedReport().rivalSizes;
-    const entries = sizes.kind === "unmeasured" ? [] : sizes.value;
-    expect(entries.map((entry) => entry.domain)).toEqual(FROM_OUR_OWN_SERPS);
+    expect(rankedKeywords).not.toHaveBeenCalled();
   });
 
   it("the customer's own count that could not be read is unmeasured, never a 0 in the blob", async () => {

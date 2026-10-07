@@ -92,7 +92,18 @@ function demandOf(value: unknown): BrandDemand | null {
       if (typeof volume === "number" && volume >= 0) brands[keyword] = volume;
     }
   }
-  return { at, own: typeof value.own === "number" && value.own > 0 ? value.own : 0, brands };
+  const searches: Record<string, number> = {};
+  if (isRecord(value.searches)) {
+    for (const [search, volume] of Object.entries(value.searches)) {
+      if (typeof volume === "number" && volume >= 0) searches[search] = volume;
+    }
+  }
+  return {
+    at,
+    own: typeof value.own === "number" && value.own > 0 ? value.own : 0,
+    brands,
+    ...(isRecord(value.searches) ? { searches } : {}),
+  };
 }
 
 function conclusionOf(value: unknown): MarketConclusion | null {

@@ -2,7 +2,7 @@
 // often buyers search a candidate's brand, and a pass buys a brand's volume
 // once.
 import { describe, expect, it } from "vitest";
-import { byDemand, keywordsOwed, mergeDemand } from "@/lib/market/infer/demand";
+import { byDemand, comparisonsOf, keywordsOwed, mergeDemand, searchesOwed } from "@/lib/market/infer/demand";
 import { settleRivals, type StoredMarketWithChange } from "@/lib/market/infer/stability";
 import { EMPTY_STORED_MARKET, type BrandDemand, type RivalConclusion } from "@/lib/market/infer/types";
 
@@ -76,5 +76,41 @@ describe("rivals weighed by brand search volume", () => {
       at: AT,
     });
     expect(merged).toEqual({ at: AT.toISOString(), own: 0, brands: { reachkit: 0, "profound ai": 6600, maxaeo: 0 } });
+  });
+});
+
+describe("D64 (issue 1301): the comparison searches are read with the brands", () => {
+  const weighed = byDemand(CANDIDATES, DEMAND);
+
+  it("asks about every candidate's alternatives and the three most searched against each other", () => {
+    const wanted = comparisonsOf({ rivals: weighed, product: "reachkit", ownSearched: false, searchedOnly: false }).map((c) => c.query);
+    expect(wanted).toEqual([
+      "profound alternatives",
+      "peec ai alternatives",
+      "otterly alternatives",
+      "aeo engine alternatives",
+      "maxaeo alternatives",
+      "profound vs peec ai",
+      "profound vs otterly",
+      "peec ai vs otterly",
+    ]);
+    // A topic is proposed only for a rival buyers search.
+    const proposed = comparisonsOf({ rivals: weighed, product: "reachkit", ownSearched: false, searchedOnly: true }).map((c) => c.query);
+    expect(proposed).not.toContain("maxaeo alternatives");
+    expect(proposed).toContain("otterly alternatives");
+  });
+
+  it("keeps what it read apart from the brands, and owes only what it does not hold", () => {
+    const merged = mergeDemand({
+      demand: DEMAND,
+      bought: [],
+      searched: ["profound alternatives", "maxaeo alternatives"],
+      volumes: [{ keyword: "profound alternatives", searchVolume: 210 }],
+      own: ["reachkit"],
+      at: AT,
+    });
+    expect(merged.brands).toEqual(DEMAND.brands);
+    expect(merged.searches).toEqual({ "profound alternatives": 210, "maxaeo alternatives": 0 });
+    expect(searchesOwed({ demand: merged, wanted: ["profound alternatives", "otterly alternatives"], at: AT })).toEqual(["otterly alternatives"]);
   });
 });

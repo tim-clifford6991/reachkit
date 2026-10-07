@@ -4,7 +4,7 @@
 // done with the volumes is `demand.ts`.
 import type { CostContext } from "@/lib/costs";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
-import { keywordsOwed, mergeDemand, ownKeywords } from "./demand";
+import { byDemand, comparisonsOf, keywordsOwed, mergeDemand, ownKeywords, searched, searchesOwed } from "./demand";
 import type { BrandDemand, RivalConclusion } from "./types";
 
 /**
@@ -17,7 +17,7 @@ export async function readBrandDemand(
   c: CostContext,
   a: {
     demand: BrandDemand | undefined;
-    rivals: readonly Pick<RivalConclusion, "name" | "searchNames" | "domain">[];
+    rivals: readonly RivalConclusion[];
     domain: string;
     siteName: string | null;
     at: Date;
@@ -25,10 +25,26 @@ export async function readBrandDemand(
 ): Promise<Measured<BrandDemand>> {
   const own = ownKeywords(a);
   const owed = keywordsOwed({ demand: a.demand, rivals: a.rivals, own, at: a.at });
-  if (owed.length === 0 && a.demand !== undefined) return measured(a.demand, a.at);
-  if (owed.length === 0) return unmeasured("not_attempted", a.at);
+  // SPEC §6 (owner D64, issue 1301): the comparison searches these rivals
+  // yield are read in this same call, so a comparison topic carries a
+  // volume. They are derived from the volumes already held — a brand read
+  // for the first time here joins a pair on the next read.
+  const held = a.demand ?? { at: a.at.toISOString(), own: 0, brands: {} };
+  const wanted = comparisonsOf({
+    rivals: byDemand(a.rivals, held),
+    product: own[0] ?? null,
+    ownSearched: searched(held.own),
+    searchedOnly: false,
+  }).map((comparison) => comparison.query);
+  const owedSearches = searchesOwed({ demand: a.demand, wanted, at: a.at });
+  if (owed.length === 0 && owedSearches.length === 0 && a.demand !== undefined) return measured(a.demand, a.at);
+  if (owed.length === 0 && a.demand === undefined) return unmeasured("not_attempted", a.at);
   const { keywordOverview } = await import("@/lib/vendors/dataforseo");
-  const volumes = await keywordOverview(c, { keywords: owed });
-  if (volumes.kind === "unmeasured") return unmeasured(volumes.reason, volumes.at, volumes.because);
-  return measured(mergeDemand({ demand: a.demand, bought: owed, volumes: volumes.value, own, at: a.at }), a.at);
+  const volumes = await keywordOverview(c, { keywords: [...owed, ...owedSearches] });
+  if (volumes.kind === "unmeasured") {
+    // The brands are held and only the comparisons were asked: what is held stands.
+    if (owed.length === 0 && a.demand !== undefined) return measured(a.demand, a.at);
+    return unmeasured(volumes.reason, volumes.at, volumes.because);
+  }
+  return measured(mergeDemand({ demand: a.demand, bought: owed, searched: owedSearches, volumes: volumes.value, own, at: a.at }), a.at);
 }

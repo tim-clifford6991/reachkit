@@ -238,7 +238,7 @@ function QuestionsTile(p: {
  * range is what says whether a week's move means anything.
  */
 function MentionRateTile(p: { prompts: Extract<PromptsModel, { kind: "measured" }> }): React.JSX.Element {
-  const { rate, rateShown, shareOfVoice, pages } = p.prompts;
+  const { rate, rateShown, firstMeasurement, shareOfVoice, pages } = p.prompts;
   const mentioned = formatCount(rate.linked + rate.named);
   const lines = [
     // D58 (issue 1287): no rate before two weeks of this prompt set. The
@@ -249,7 +249,9 @@ function MentionRateTile(p: { prompts: Extract<PromptsModel, { kind: "measured" 
           answers: formatCount(rate.samples),
           weeks: formatCount(ANSWER_RATE_WEEKS),
         })
-      : copy("overview.tile.mention-rate.early", { weeks: formatCount(MENTION_RATE_MIN_WEEKS) }),
+      : copy(firstMeasurement ? "overview.tile.mention-rate.first" : "overview.tile.mention-rate.early", {
+          weeks: formatCount(MENTION_RATE_MIN_WEEKS),
+        }),
     shareOfVoice === null
       ? null
       : copy("overview.tile.mention-rate.share", { share: formatCount(percent(shareOfVoice)) }),

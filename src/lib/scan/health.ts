@@ -111,12 +111,47 @@ export function namesAny(text: string, brands: readonly string[]): boolean {
 /** The prompts that name a rival that is not current: a comparison or
  *  branded prompt today's rivals do not yield (issue 1285's `followRivals`),
  *  and any prompt that names a product a pass read and did not keep. */
+const literal = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Does this prompt name only rivals in force? (SPEC §6, owner D64, issue
+ * 1301.) The comparison and branded prompts are built from the rivals in
+ * demand order, and a pass re-orders its rivals after it has asked them:
+ * "Profound or Otterly: which is the better choice…" named two current
+ * rivals and was flagged because the set now began "Otterly or Omniscient".
+ * So the order is not read. A prompt passes where it is one the rivals in
+ * force yield, in any of the places a rival's name takes, and every name it
+ * puts there is a current rival's.
+ */
+function namesCurrentRivals(
+  prompt: { kind: PromptKind; text: string },
+  generated: readonly GeneratedPrompt[],
+  rivals: readonly string[]
+): boolean {
+  const current = new Set(rivals.map(key));
+  const names = [...rivals].sort((x, y) => y.length - x.length).map(literal);
+  if (names.length === 0) return false;
+  const anyRival = new RegExp(`\\b(?:${names.join("|")})\\b`, "g");
+  for (const yielded of generated) {
+    if (yielded.kind !== prompt.kind) continue;
+    const parts = yielded.text.split(anyRival);
+    if (parts.length === 1) continue;
+    const shape = new RegExp(`^${parts.map(literal).join("(.+?)")}$`, "i");
+    const named = shape.exec(prompt.text);
+    if (named !== null && named.slice(1).every((name) => current.has(key(name)))) return true;
+  }
+  return false;
+}
+
 function promptRivals(a: Pick<HealthInput, "market" | "asked" | "generated" | "ownNames" | "at">): HealthResult {
   if (a.asked.length === 0) return result("prompt_rivals", [], "no tracked prompts");
   const stored = { prompts: a.asked.map((prompt) => ({ ...prompt, addedAt: "" })), rotations: [] };
   const followed = new Set(followRivals(stored, a.generated, a.at).prompts.map((prompt) => prompt.id));
   const former = a.market === null ? [] : formerRivals(a.market, a.ownNames);
-  const stale = a.asked.filter((prompt) => !followed.has(prompt.id) || namesAny(prompt.text, former));
+  const rivals = (a.market?.rivals ?? []).map((rival) => rival.name);
+  const stale = a.asked.filter(
+    (prompt) => (!followed.has(prompt.id) && !namesCurrentRivals(prompt, a.generated, rivals)) || namesAny(prompt.text, former)
+  );
   return result(
     "prompt_rivals",
     stale.map((prompt) => prompt.text),

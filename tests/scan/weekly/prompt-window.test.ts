@@ -79,6 +79,19 @@ describe("the tracked prompts' window", () => {
     expect((await readPromptWindow({ siteId: "s", weekStart: "2026-10-05" })).weeks.map((week) => week.weekStart)).toEqual(["2026-09-28", "2026-10-05"]);
   });
 
+  it("D64: where no pass in the window is healthy, the newest one is shown as a first measurement", async () => {
+    const failing = { at: "2026-10-06T11:26:00.000Z", checks: [{ check: "prompt_rivals", pass: false, detail: "", items: ["x"] }] };
+    deepRows = [
+      { id: "d1", created_at: "2026-10-06T11:21:00Z", prompts: section(false), health: failing },
+      { id: "d2", created_at: "2026-10-07T11:28:00Z", prompts: section(true), health: failing },
+    ];
+    const window = await readPromptWindow({ siteId: "s", weekStart: "2026-10-05" });
+    expect(window.firstMeasurement).toBe(true);
+    expect(window.weeks).toHaveLength(1);
+    expect(window.weeks[0]?.samples.every((sample) => sample.named)).toBe(true);
+    expect(assemblePrompts(window)).toMatchObject({ kind: "measured", rateShown: false, firstMeasurement: true, rate: { samples: 2, named: 2 } });
+  });
+
   it("D58: one week of the current set shows the count and its sample, never a rate; two weeks show the rate", async () => {
     weekly.set("2026-10-05", { report: { prompts: section(false), verdict: { measuredAt: new Date("2026-10-05T04:00:00Z") } } });
     const one = assemblePrompts(await readPromptWindow({ siteId: "s", weekStart: "2026-10-05" }));

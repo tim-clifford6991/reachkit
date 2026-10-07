@@ -85,6 +85,9 @@ export function keywordsOwed(a: {
 export function mergeDemand(a: {
   demand: BrandDemand | undefined;
   bought: readonly string[];
+  /** The comparison searches read in the same call (D64); kept apart from
+   *  the brands. */
+  searched?: readonly string[];
   volumes: readonly { keyword: string; searchVolume: number }[];
   own: readonly string[];
   at: Date;
@@ -93,13 +96,60 @@ export function mergeDemand(a: {
   const fresh = new Map(a.volumes.map((row) => [key(row.keyword), Math.max(0, row.searchVolume)]));
   const brands: Record<string, number> = old ? {} : { ...(a.demand?.brands ?? {}) };
   for (const keyword of a.bought) brands[key(keyword)] = fresh.get(key(keyword)) ?? 0;
+  const searches: Record<string, number> = old ? {} : { ...(a.demand?.searches ?? {}) };
+  for (const search of a.searched ?? []) searches[key(search)] = fresh.get(key(search)) ?? 0;
   return {
     // Names added to a read that still stands keep its date, so the whole
     // list is read again together.
     at: old || a.demand === undefined ? a.at.toISOString() : a.demand.at,
     own: Math.max(0, ...a.own.map((keyword) => brands[keyword] ?? 0)),
     brands,
+    ...(Object.keys(searches).length > 0 ? { searches } : {}),
   };
+}
+
+/** A rival as a comparison names it: its name in lower case where that is
+ *  at most four words, else its domain's label. */
+function comparisonName(rival: Pick<RivalConclusion, "name" | "domain">): string {
+  const name = key(rival.name).replace(/[.?!]+$/, "");
+  return name !== "" && name.split(" ").length <= 4 ? name : labelOf(rival.domain).replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * The comparison searches a set of rivals yields (SPEC §6, D50): "{rival}
+ * alternatives" for each one, and either "{product} vs {rival}" for each
+ * where the business's own brand is searched, or the `RIVAL_DEMAND.PAIRS`
+ * most-searched set against each other. One derivation, so the searches a
+ * pass reads the volume of (D64) are the searches it then proposes.
+ * `searchedOnly` leaves out a rival nobody searches, which is what a topic
+ * needs; the volume read asks about every candidate, searched or not yet
+ * read.
+ */
+export function comparisonsOf(a: {
+  rivals: readonly (Pick<RivalConclusion, "name" | "domain"> & { volume?: number })[];
+  product: string | null;
+  ownSearched: boolean;
+  searchedOnly: boolean;
+}): { query: string; rival: string }[] {
+  const out: { query: string; rival: string }[] = [];
+  const inDemand = a.rivals.filter((rival) => searched(rival.volume)).sort((x, y) => (y.volume ?? 0) - (x.volume ?? 0));
+  for (const rival of a.searchedOnly ? inDemand : a.rivals) out.push({ query: `${comparisonName(rival)} alternatives`, rival: rival.domain });
+  if (a.product !== null && a.ownSearched) {
+    for (const rival of a.rivals) out.push({ query: `${a.product} vs ${comparisonName(rival)}`, rival: rival.domain });
+  } else {
+    const leading = inDemand.slice(0, RIVAL_DEMAND.PAIRS);
+    leading.forEach((first, i) => {
+      for (const second of leading.slice(i + 1)) out.push({ query: `${comparisonName(first)} vs ${comparisonName(second)}`, rival: first.domain });
+    });
+  }
+  return out;
+}
+
+/** The comparison searches whose volume the market does not hold: every one
+ *  where the brands are older than their 30 days, as the brands are. */
+export function searchesOwed(a: { demand: BrandDemand | undefined; wanted: readonly string[]; at: Date }): string[] {
+  const held = stale(a.demand, a.at) ? {} : (a.demand?.searches ?? {});
+  return [...new Set(a.wanted.map(key))].filter((search) => held[search] === undefined);
 }
 
 /**

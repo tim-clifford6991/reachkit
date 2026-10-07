@@ -964,6 +964,15 @@ export const SERP_RIVAL_SIZING = Object.freeze({
   candidatesMax: 12, reserveCents: 14,
 } as const);
 
+/** SPEC §6 (owner D64, issue 1301; a drafted default the owner may correct):
+ *  how many of a site's rivals one weekly pass sizes again. A sizing is kept
+ *  30 days, and a site's five rivals are usually first sized on one day, so
+ *  they fall due together: 12¢ in one week, which with the rest of a weekly
+ *  pass is over `CAPS.WEEKLY_C`. One a week keeps every weekly pass under
+ *  its cap; the others keep the size they had, dated, until their week. A
+ *  deep pass and a re-measure size every rival that is due. */
+export const WEEKLY_RIVAL_RESIZES = 1 as const;
+
 /** `BUILD.md` §5's four score bands, as lower bounds on a 0–100 score:
  *  "Bands: 0–24 Invisible · 25–49 Hard to find · 50–74 Findable · 75–100
  *  Dominant". BP-024's `bandOf(score)` says "thresholds are BP-005 pins" and
