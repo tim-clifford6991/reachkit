@@ -55,6 +55,9 @@ export type OpsIncident =
         freeScans: { count: number; cents: number };
         smokeTests: { count: number; cents: number };
         totalCents: number | null;
+        // Issue 1298 (D63): the week's Google SERP reads, how many timed
+        // out, and what the timed-out ones were billed.
+        serp?: { reads: number; timeouts: number; wastedCents: number } | null;
       };
       // Issue 1287 (D58): the passes one of their own health checks failed
       // on, each with the check and what it found.
@@ -207,6 +210,15 @@ function costFacts(costs: WeekCosts): FactRow[] {
     { label: "mail.ops.incident.fact.cost-free-scans", value: `${money(costs.freeScans.cents)} × ${count(costs.freeScans.count)}` },
     { label: "mail.ops.incident.fact.cost-smoke-tests", value: `${money(costs.smokeTests.cents)} × ${count(costs.smokeTests.count)}` },
     ...(costs.totalCents === null ? [] : [{ label: "mail.ops.incident.fact.cost-total", value: money(costs.totalCents) } as const]),
+    ...(costs.serp === undefined || costs.serp === null || costs.serp.reads <= 0
+      ? []
+      : ([
+          {
+            label: "mail.ops.incident.fact.serp-timeouts",
+            value: `${Math.round((costs.serp.timeouts / costs.serp.reads) * 100)}% (${count(costs.serp.timeouts)} / ${count(costs.serp.reads)})`,
+          },
+          { label: "mail.ops.incident.fact.serp-timeout-cost", value: money(costs.serp.wastedCents) },
+        ] as const)),
   ];
 }
 

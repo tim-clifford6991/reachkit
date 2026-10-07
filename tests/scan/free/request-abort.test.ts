@@ -219,16 +219,33 @@ describe("issue 875 — the abort is the tier's, and the transport carries it pe
     expect(new Set(organicAborts())).toEqual(new Set([VENDOR.requestAbortMs]));
   });
 
-  it("a deep pass keeps the ten-second one", async () => {
-    vendorSlowOnce(7_000);
+  it("D63 (issue 1298): a deep pass waits thirty seconds, so a read that takes twelve is answered", async () => {
+    vendorSlowOnce(12_000);
     await runScan({ domain: DOMAIN, tier: "deep" });
 
-    expect(TIER_PARAMETERS.deep.serpAbortMs).toBe(VENDOR.requestAbortMs);
-    expect(new Set(organicAborts())).toEqual(new Set([VENDOR.requestAbortMs]));
+    expect(new Set(organicAborts())).toEqual(new Set([30_000]));
+    expect(asks.filter((ask) => ask.keyword === SLOW).map((ask) => ask.answered)).toEqual([true]);
   });
 
-  it("a weekly pass keeps it too", () => {
-    expect(TIER_PARAMETERS.weekly.serpAbortMs).toBe(VENDOR.requestAbortMs);
+  it("D63: a weekly pass waits thirty seconds too, and a free scan still does not", () => {
+    expect(TIER_PARAMETERS.weekly.serpAbortMs).toBe(30_000);
+    expect(TIER_PARAMETERS.free.serpAbortMs).toBe(10_000);
+  });
+
+  it("D63: a paid pass never waits past its own ceiling", async () => {
+    // Twenty seconds of the pass are left when the questions are asked.
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-10-07T08:00:00Z") });
+    const startedAt = Date.now();
+    deriveProfile.mockImplementation(async () => {
+      vi.setSystemTime(startedAt + (TIER_PARAMETERS.deep.ceilingS - 20) * 1000);
+      return measured(PROFILE, AT);
+    });
+    vendorSlowOnce(1_000);
+    await runScan({ domain: DOMAIN, tier: "deep" });
+    vi.useRealTimers();
+
+    expect(organicAborts()).not.toHaveLength(0);
+    expect(Math.max(...organicAborts())).toBeLessThanOrEqual(20_000);
   });
 });
 
@@ -294,29 +311,76 @@ describe("issue 875 — an answer that arrives after its stage was abandoned is 
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
     const vendor = vendorHoldingOne();
 
-    // The answer lands while the pass is entering its scoring stage — the
-    // window every real pass has, where the report is not yet composed.
-    let landed = false;
-    const pass = runScan({
-      domain: DOMAIN,
-      tier: "free",
-      onStage: async (stage: string) => {
-        if (stage !== "scoring" || landed) return;
-        landed = true;
-        vendor.release();
-        await vi.advanceTimersByTimeAsync(0);
-      },
-    } as never);
+    const pass = runScan({ domain: DOMAIN, tier: "free" });
 
     // Past `asking_the_twelve`'s own budget, so the stage is abandoned
-    // with that one call still in flight.
-    await vi.advanceTimersByTimeAsync(30_000);
+    // with that one call still in flight. The pass waits for it (D63,
+    // issue 1298): the report is not composed until it has answered.
+    await vi.advanceTimersByTimeAsync(14_000);
+    expect(storeCurrentReport).not.toHaveBeenCalled();
+    vendor.release();
+    await vi.advanceTimersByTimeAsync(1_000);
     await pass;
 
     const report = storedReport();
     const slowIndex = TWELVE.findIndex((search) => search.keyword === SLOW);
     expect(report.serps[slowIndex]?.kind).not.toBe("unmeasured");
-    expect(landed).toBe(true);
+  });
+});
+
+describe("D63 (issue 1298) — a free scan asks a timed-out read once more, past its stage's clock", () => {
+  /** The vendor, with one question whose first ask times out when this
+   *  test says so and whose second answers at once. */
+  function vendorTimingOutOne(): { timeOut: () => void; asksOfSlow: () => number } {
+    let timeOut = (): void => {};
+    const held = new Promise<void>((resolve) => {
+      timeOut = resolve;
+    });
+    let slowAsks = 0;
+    stubVendorFetch((request) => (request.url.includes("/serp/google/organic") ? serpBody() : envelope({ items: [] })));
+    const answer = globalThis.fetch;
+    // The harness reads a handler's promise as the body, so the request
+    // that is held and then aborted is made to reject here.
+    vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
+      const response = await answer(url, init);
+      if (!String(init?.body ?? "").includes(`"${SLOW}"`)) return response;
+      slowAsks += 1;
+      if (slowAsks > 1) return response;
+      await held;
+      throw timeoutError();
+    });
+    return { timeOut: () => timeOut(), asksOfSlow: () => slowAsks };
+  }
+
+  /** `ms` is how long the first ask of the slow question waited. */
+  async function passWithTimeoutAt(ms: number): Promise<{ slow: StoredReport["serps"][number] | undefined; asks: number }> {
+    vi.spyOn(AbortSignal, "timeout").mockImplementation(() => new AbortController().signal);
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    const vendor = vendorTimingOutOne();
+    const pass = runScan({ domain: DOMAIN, tier: "free" });
+    // The stages before the asking take no time on the fake clock; wait on
+    // the real one until the slow question is in flight.
+    while (vendor.asksOfSlow() === 0) await new Promise((resolve) => setImmediate(resolve));
+    await vi.advanceTimersByTimeAsync(ms);
+    vendor.timeOut();
+    await vi.advanceTimersByTimeAsync(0);
+    await pass;
+    vi.useRealTimers();
+    return { slow: storedReport().serps[TWELVE.findIndex((search) => search.keyword === SLOW)], asks: vendor.asksOfSlow() };
+  }
+
+  it("the read that timed out after the stage's thirteen seconds is asked again and measured", async () => {
+    const got = await passWithTimeoutAt(20_000);
+
+    expect(got.asks).toBe(2);
+    expect(got.slow?.kind).not.toBe("unmeasured");
+  });
+
+  it("no second ask is made where the pass's fifty seconds leave no room for one", async () => {
+    const got = await passWithTimeoutAt(45_000);
+
+    expect(got.asks).toBe(1);
+    expect(got.slow?.kind).toBe("unmeasured");
   });
 });
 

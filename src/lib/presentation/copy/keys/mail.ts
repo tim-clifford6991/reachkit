@@ -783,6 +783,9 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.fact.cost-free-scans": ["Free scans (total × count)", { slots: {}, fixedBy: "issue 1286 (drafted)" }],
   "mail.ops.incident.fact.cost-smoke-tests": ["Smoke tests (total × count)", { slots: {}, fixedBy: "issue 1286 (drafted)" }],
   "mail.ops.incident.fact.cost-total": ["Week total, all spend", { slots: {}, fixedBy: "issue 1286 (drafted)" }],
+  // Issue 1298 (D63, drafted): the week's Google SERP reads that timed out.
+  "mail.ops.incident.fact.serp-timeouts": ["Google SERP reads that timed out (timed out / all)", { slots: {}, fixedBy: "issue 1298 (drafted)" }],
+  "mail.ops.incident.fact.serp-timeout-cost": ["Billed for timed-out SERP reads", { slots: {}, fixedBy: "issue 1298 (drafted)" }],
   // Issue 1287 (D58, drafted): the passes one of their own health checks
   // failed on. Owner-only, so the site is named.
   "mail.ops.incident.health-week": ["These passes failed one of their own health checks in the last seven days. Their data is stored, and the headline numbers stay on the last healthy pass.", { slots: {}, fixedBy: "issue 1287 (drafted)" }],

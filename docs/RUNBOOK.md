@@ -430,8 +430,9 @@ and never faked, and the calendar then states which kind of empty each date is.
 
 Every deep pass, weekly pass and re-measure ends by checking what it stored (SPEC §6, D58, #1287)
 and keeps the answers on its own row, `scans.health`: `brand_volume`, `prompt_rivals`,
-`market_terms` and `mention_rate`, each with `pass`, a one-line `detail` and the `items` that
-failed. The log line is `{"event":"pass_health"}` with the failing checks; `pass_health_failed`
+`market_terms`, `mention_rate` and `serp_timeouts` (D63, #1298: more than a fifth of the pass's
+Google SERP reads met our own request bound), each with `pass`, a one-line `detail` and the
+`items` that failed. The log line is `{"event":"pass_health"}` with the failing checks; `pass_health_failed`
 means the checks could not be recorded, and the row then holds null, which nothing reads as
 unhealthy. A pass with a failing check keeps its data and is left out of the rolling window the AI
 mention rate is read from; the Monday owner digest lists it.
@@ -701,7 +702,8 @@ be crossed slightly rather than triggered early. And the alerts at 80% and 100% 
 **The owner's surface for production spend is the Monday digest** (SPEC §6, D57, #1286). Its cost
 section reports the seven dates before that Monday: per site the average cost of a measurement and
 of a page written (stopped pages included) with how many there were, the site's total, free scans
-and smoke tests on separate lines, and the ledger's total for the week. `scripts/smoke.sh` sends
+and smoke tests on separate lines, the ledger's total for the week, and (D63, #1298) the share of
+the week's Google SERP reads that timed out with what those reads were billed. `scripts/smoke.sh` sends
 `"smoke": true` with its scan start and the route stores it as `scans.smoke`, which is what tells a
 smoke test from a customer's free scan:
 
