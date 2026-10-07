@@ -12,7 +12,8 @@ import { AT, SITE_ID } from "../fixtures";
 import type { StoredReport } from "../../../src/lib/scan/report";
 import type { CostContext } from "../../../src/lib/costs";
 
-const { llmMock, safeFetchMock, serpMock, newsMock } = vi.hoisted(() => ({
+const { llmMock, safeFetchMock, serpMock, newsMock, overviewMock } = vi.hoisted(() => ({
+  overviewMock: vi.fn(),
   llmMock: vi.fn(),
   safeFetchMock: vi.fn(),
   serpMock: vi.fn(),
@@ -20,7 +21,7 @@ const { llmMock, safeFetchMock, serpMock, newsMock } = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 vi.mock("@/lib/egress", () => ({ safeFetch: safeFetchMock }));
-vi.mock("@/lib/vendors/dataforseo", () => ({ serpOrganic: serpMock, serpNews: newsMock }));
+vi.mock("@/lib/vendors/dataforseo", () => ({ serpOrganic: serpMock, serpNews: newsMock, keywordOverview: overviewMock }));
 
 import { admittedClaims, researchMarket, rivalPage } from "../../../src/lib/generate/pipeline/research";
 import { repairMechanical } from "../../../src/lib/generate/pipeline/repair";
@@ -150,6 +151,29 @@ describe("the research step reads the market's pages and keeps only what they sa
     });
     expect(found).toEqual({ facts: [], products: [], topResults: [] });
     expect(llmMock).not.toHaveBeenCalled();
+  });
+
+  it("a Q&A's research reads what buyers ask: the target's People also ask, and its related searches that have a volume (D61)", async () => {
+    safeFetchMock.mockResolvedValue({ ok: false, reason: "timeout", url: "x", readAt: TODAY });
+    serpMock.mockImplementation(async (_c: unknown, a: { questions?: true }) =>
+      measured(
+        a.questions === true
+          ? { organic: [], aiOverview: { present: false }, peopleAlsoAsk: ["Is free project software any good?"], relatedSearches: ["Project Software Free", "project software reddit"] }
+          : { organic: [], aiOverview: { present: false } }
+      )
+    );
+    overviewMock.mockResolvedValue(measured([{ keyword: "project software free", searchVolume: 320 }]));
+    const found = await researchMarket(cost(), {
+      siteId: SITE_ID,
+      domain: "example.com",
+      searches: ["best project management software"],
+      report: REPORT,
+      rivals: [],
+      today: TODAY,
+      questions: true,
+    });
+    expect(serpMock).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ query: "best project management software", questions: true }));
+    expect(found.asked).toEqual({ peopleAlsoAsk: ["Is free project software any good?"], related: [{ search: "project software free", volume: 320 }] });
   });
 
   it("current insights reads the news for the category and its synonyms, and keeps what is dated inside 30 days and about the market, with its date and source", async () => {

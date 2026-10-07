@@ -395,6 +395,8 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
         ...(table === null ? {} : { rivals: table.options.slice(1) }),
       },
       titleRule: titleRuleFor(pack, candidate.laid.body.description),
+      // D61: a Q&A's questions are each their own.
+      distinctHeadings: pack.type === "qa",
       heading: candidate.laid.body.heading,
       ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }),
     });
@@ -472,6 +474,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       if (note.rule === "title" && title !== undefined && "faults" in title) {
         const body = stopped.page.laid.body;
         return { ...note, sentences: titleNotes(body.title, titleRuleFor(pack, body.description), title.faults) };
+      }
+      if (note.rule === "distinct_headings") {
+        return { ...note, sentences: [`headings: ${note.sentences.map((heading) => `"${heading}"`).join(" and ")} ask almost the same thing; each section must ask a different question of \`pack.questions\`, in different words`] };
       }
       if (note.rule === "first_block_answers") {
         const box = PAGE_BLOCKS.answerWords;

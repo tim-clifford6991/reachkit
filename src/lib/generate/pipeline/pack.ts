@@ -22,17 +22,20 @@
 //
 // Pure. The reads are the caller's (`../index.ts`, `scripts/page/`).
 import { ADDS, PACK, RIVAL_PRICE_MAX_AGE_D } from "@/lib/config/constants";
+import { promptTemplateOf } from "@/lib/market/prompts/generate";
 import { GENERIC_TOKENS, brandOf } from "@/lib/market/questions/select";
+import { templateQuestion } from "@/lib/market/questions/template";
 import type { ContentType } from "@/lib/opportunities/content-type";
 import type { SitePage } from "@/lib/opportunities/site-pages";
 import type { Opportunity } from "@/lib/opportunities/types";
 import type { StoredReport } from "@/lib/scan/report";
 import type { LinkTarget } from "../links/select";
+import { alikeHeadings } from "../rules/headings";
 import { TEMPLATES, type PackNeed, type PackRequirement } from "../templates";
 import type { WritingMarket } from "../voice/market";
 import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import type { SourcedFact } from "./grounding";
-import type { JudgedResult, MarketFact, MarketResearch, ResearchedProduct } from "./research";
+import type { BuyersAsk, JudgedResult, MarketFact, MarketResearch, ResearchedProduct } from "./research";
 import { comparisonTable } from "./table";
 
 export interface PackFact {
@@ -120,8 +123,8 @@ export interface ContextPack {
   pages: SitePage[];
   /** The site's own pages this page links. */
   links: { url: string; label: string; purpose: string | null }[];
-  /** A Q&A's questions: tracked or measured on the current market, each
-   *  with a fact in this pack that answers it (issue 1263). */
+  /** A Q&A's questions: what buyers were seen to ask about the target, each
+   *  with a fact in this pack that answers it (issue 1263; D61). */
   questions: string[];
   measurements: PackMeasurements | null;
   live: PackLivePage | null;
@@ -233,6 +236,9 @@ function namesRival(question: string, rival: NamedRival): boolean {
   return (name.length > 0 && name.every((word) => said.has(word))) || said.has(brandOf(rival.domain));
 }
 
+/** The fewest words a related search has to be read as a question (D61). */
+const RELATED_MIN_WORDS = 3;
+
 const ASKS_PRICE_RE = /\b(?:costs?|prices?|priced|pricing|how much|value|cheap\w*|expensive)\b/i;
 
 /**
@@ -283,13 +289,25 @@ function answerable(
   });
 }
 
-/** The questions a Q&A may answer (SPEC §7, D42; issue 1263): the tracked
- *  buyer prompts and the measured questions on the site's current market,
- *  each only where the pack holds a fact that answers it — those that share
- *  a word with the target first. None is written here, and none comes from
- *  anywhere else. */
+/**
+ * The questions a Q&A may answer (SPEC §7, D42; issue 1263; owner D61, issue
+ * 1295). They are questions buyers were seen to ask: Google's "People also
+ * ask" for the target, the target's related searches that have a measured
+ * volume, and the stored report's measured questions on the site's current
+ * market — in that order, those that share a word with the target first.
+ *
+ * **A tracked buyer prompt is never one** (D61): the prompts are templated
+ * so they can be measured (D19), and a page headed by them asks one question
+ * seven times. Wherever a templated phrasing still arrives, one question a
+ * prompt template is kept; and of two questions that would make headings too
+ * alike for stage 4 (`../rules/headings.ts`), the first is.
+ *
+ * Each goes in only where the pack holds a fact that answers it. None is
+ * written here.
+ */
 function buyerQuestions(a: {
   report: StoredReport;
+  asked: BuyersAsk | undefined;
   target: string;
   market: WritingMarket | null;
   rivals: readonly string[];
@@ -314,19 +332,42 @@ function buyerQuestions(a: {
   const measured = (a.report.questions.kind === "unmeasured" ? [] : a.report.questions.value)
     .filter((question) => onMarket({ text: question.text, search: question.search.keyword }, a.market))
     .map((question) => question.text);
-  // The tracked buyer prompts (SPEC §6, D19) are built from the market in force.
-  const tracked = (a.report.prompts?.asked ?? []).map((asked) => asked.text);
+  // A related search is a search, not a sentence: it is worded as the
+  // question it asks, the way a measured search is (`templateQuestion`).
+  // One of a word or two is a name or a topic ("hubspot", "apollo ai"), which
+  // nobody is asking anything by.
+  const related = (a.asked?.related ?? [])
+    .filter((row) => row.search.trim().split(/\s+/).length >= RELATED_MIN_WORDS)
+    .map((row) => ({ text: templateQuestion(row.search), search: row.search }));
+  // Google lists what people also ask beside any search, on the market or
+  // off it ("What is the 30% rule for AI?"): each is held to the market, as
+  // a measured question is.
+  const seen = [...(a.asked?.peopleAlsoAsk ?? []).map((text) => ({ text, search: "" })), ...related]
+    .filter((question) => onMarket(question, a.market))
+    .map((question) => question.text);
   // SPEC §6 (D49, issue 1270): a label of the market nobody searches is
-  // never printed. A prompt built before the market's terms were read still
-  // carries one until it rotates out (D33), and is not a question here.
+  // never printed.
   const flat = (text: string): string => ` ${text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()} `;
   const labels = (a.market?.unsearched ?? []).map(flat);
   const printable = (text: string): boolean => !labels.some((label) => flat(text).includes(label));
-  const all = [...new Set([...tracked, ...measured].map((text) => text.replace(/\s+/g, " ").trim()).filter(Boolean))]
+  // The stored report may carry a tracked prompt among its questions; it is
+  // a measuring tool wherever it is stored.
+  const tracked = new Set((a.report.prompts?.asked ?? []).map((asked) => flat(asked.text)));
+  const all = [...new Set([...seen, ...measured].map((text) => text.replace(/\s+/g, " ").trim()).filter(Boolean))]
+    .filter((text) => !tracked.has(flat(text)))
     .filter(printable)
     .filter((text) => answerable(text, { facts: a.facts, claims: a.claims, knowledge: a.knowledge, rivals }));
   const words = topicWords(a.target);
-  return [...all.filter((text) => shares(words, text)), ...all.filter((text) => !shares(words, text))].slice(0, PACK.questions);
+  const kept: string[] = [];
+  const templates = new Set<string>();
+  for (const text of [...all.filter((each) => shares(words, each)), ...all.filter((each) => !shares(words, each))]) {
+    const template = promptTemplateOf(text);
+    if (template !== null && templates.has(template)) continue;
+    if (kept.some((held) => alikeHeadings(held, text))) continue;
+    if (template !== null) templates.add(template);
+    kept.push(text);
+  }
+  return kept.slice(0, PACK.questions);
 }
 
 /**
@@ -493,6 +534,7 @@ export function buildPack(a: PackInputs): ContextPack {
       a.type === "qa"
         ? buyerQuestions({
             report: a.report,
+            asked: a.research.asked,
             target: question,
             market: a.writingFor ?? null,
             rivals: a.site.rivals,

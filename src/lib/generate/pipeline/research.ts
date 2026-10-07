@@ -11,6 +11,9 @@
 // A news search matches words, so each result it returns is then judged
 // against the site's market, and only one that is about it is kept (issue
 // 1262).
+// A Q&A (owner, D61; issue 1295) also buys the target's own SERP for
+// Google's "People also ask" and its related searches, and one keyword
+// overview that measures those searches' volume: its questions.
 // Each claim is kept with the address it was read from and the date it was
 // read, and is cited beside the sentence that uses it.
 //
@@ -54,7 +57,7 @@ import { visibleText } from "@/lib/measure/parse";
 import type { StoredReport } from "@/lib/scan/report";
 import type { WritingMarket } from "../voice/market";
 import type { NewsRow } from "@/lib/vendors/dataforseo/types";
-import { serpNews, serpOrganic } from "@/lib/vendors/dataforseo";
+import { keywordOverview, serpNews, serpOrganic } from "@/lib/vendors/dataforseo";
 
 /** The `fetches.source` of every public page this step reads. */
 export const RESEARCH_READ_SOURCE = "generate.research.read";
@@ -95,9 +98,19 @@ export interface JudgedResult {
   onMarket: boolean;
 }
 
+/** What buyers ask about the target (owner, D61; issue 1295): Google's
+ *  "People also ask" for it, and its related searches that have a measured
+ *  monthly volume. */
+export interface BuyersAsk {
+  peopleAlsoAsk: string[];
+  related: { search: string; volume: number }[];
+}
+
 export interface MarketResearch {
   facts: MarketFact[];
   products: ResearchedProduct[];
+  /** A Q&A's question sources, where the step was asked for them. */
+  asked?: BuyersAsk;
   /** *Current insights*: every news result the judgement was asked about. */
   news?: JudgedResult[];
   /** The target's top results as they were read (issue 1143): what a new
@@ -460,6 +473,33 @@ async function recentPages(
   };
 }
 
+/** What buyers ask about the target (D61): one SERP of the target itself,
+ *  read for its "People also ask" and its related searches, and one
+ *  keyword-overview call that keeps the related searches with a measured
+ *  volume. Both are ledgered; a call that fails or meets the ceiling leaves
+ *  its half empty. */
+async function buyersAsk(c: CostContext, a: { siteId: string; target: string }): Promise<BuyersAsk> {
+  const serp = await serpOrganic(c, {
+    query: a.target,
+    mode: "live",
+    loadAsyncAiOverview: false,
+    scope: { site: a.siteId },
+    freshnessDays: CACHE_WINDOWS_D.serp,
+    questions: true,
+  });
+  if (serp.kind === "unmeasured") return { peopleAlsoAsk: [], related: [] };
+  const peopleAlsoAsk = [...(serp.value.peopleAlsoAsk ?? [])];
+  const searches = [...new Set((serp.value.relatedSearches ?? []).map((search) => search.trim().toLowerCase()))].slice(0, RESEARCH.relatedSearches);
+  if (searches.length === 0 || c.capHit()) return { peopleAlsoAsk, related: [] };
+  const volumes = await keywordOverview(c, { keywords: searches });
+  if (volumes.kind === "unmeasured") return { peopleAlsoAsk, related: [] };
+  const volumeOf = new Map(volumes.value.map((row) => [row.keyword, row.searchVolume]));
+  return {
+    peopleAlsoAsk,
+    related: searches.map((search) => ({ search, volume: volumeOf.get(search) ?? 0 })).filter((row) => row.volume > 0),
+  };
+}
+
 export async function researchMarket(
   c: CostContext,
   a: {
@@ -476,6 +516,9 @@ export async function researchMarket(
      *  synonyms — and a result is kept where it is dated inside `days` and
      *  is about `market` (issue 1262). */
     recent?: { searches: readonly string[]; days: number; market: Pick<WritingMarket, "category" | "synonyms" | "market"> };
+    /** A Q&A, or a comparison that may be written as one (D47): what buyers
+     *  ask about the target is read too (D61). */
+    questions?: boolean;
   }
 ): Promise<MarketResearch> {
   const target = a.searches[0];
@@ -530,6 +573,10 @@ export async function researchMarket(
     const studyReads = await Promise.all(studyUrls.slice(0, RESEARCH.studies * 2).map(fetchPage));
     found.push(...studyReads.filter((read) => read !== null).slice(0, RESEARCH.studies).map((read) => ({ ...read.page, kind: "study" as const })));
   }
+
+  // 2b. A Q&A's questions (D61), bought before the claim calls so a ceiling
+  //     met there does not cost the page its questions.
+  const asked = a.questions === true && !c.capHit() ? await buyersAsk(c, { siteId: a.siteId, target }) : null;
 
   // The recent pages lead on a *current insights* page: they are what it is
   // written from, and the claim calls read the first pages only.
@@ -603,11 +650,14 @@ export async function researchMarket(
     newsOffMarket: recent === null ? null : recent.news.filter((result) => !result.onMarket).length,
     facts: ordered.length,
     products: products.length,
+    peopleAlsoAsk: asked === null ? null : asked.peopleAlsoAsk.length,
+    relatedSearches: asked === null ? null : asked.related.length,
   });
   return {
     facts: ordered,
     products,
     topResults: pages.filter((page) => page.kind === "top_result").map((page) => ({ url: page.url, text: page.text })),
     ...(recent === null ? {} : { news: recent.news }),
+    ...(asked === null ? {} : { asked }),
   };
 }

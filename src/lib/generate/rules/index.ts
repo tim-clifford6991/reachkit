@@ -31,6 +31,7 @@ import { checkPlaceholderCell } from "./cells";
 import { checkDemoText } from "./demo";
 import { fitCheck, type FitVerdict } from "../claims/fit";
 import type { PromptKnowledge } from "../voice/profile-block";
+import { checkDistinctHeadings } from "./headings";
 import { checkHonestRow } from "./honest";
 import { checkGrounding } from "./grounding";
 import { checkHiddenText } from "./hidden";
@@ -102,6 +103,9 @@ export interface DeterministicInputs {
   /** What the page's structure is held to (issue 1137). Passed only for a
    *  page this product generated; absent, `required_blocks` asks nothing. */
   blocks?: BlockRuleInputs;
+  /** Whether the page's H2s must differ (D61, issue 1295). Passed only for
+   *  a Q&A this product generated; absent, `distinct_headings` asks nothing. */
+  distinctHeadings?: boolean;
   /** What the `<title>` is held to (D51, issue 1266). Passed only for a
    *  page this product generated; absent, `title` asks nothing. */
   titleRule?: TitleRuleInputs;
@@ -161,6 +165,7 @@ export function runDeterministicRules(
     required_blocks: checkRequiredBlocks({ markdown: a.markdown, title: a.title, blocks: a.blocks ?? null }),
     no_placeholder_cell: checkPlaceholderCell({ markdown: a.markdown }),
     no_demo_text: checkDemoText({ markdown: a.markdown, phrases: a.demoPhrases }),
+    distinct_headings: checkDistinctHeadings({ markdown: a.markdown, apply: a.distinctHeadings === true }),
     title: checkTitle({ title: a.title, rule: a.titleRule ?? null }),
   };
 }

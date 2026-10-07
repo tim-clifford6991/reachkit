@@ -110,6 +110,13 @@ export interface SerpResult {
    * came from cannot be asked again afterwards.
    */
   reusedFrom?: string;
+  /** Google's "People also ask" questions on this SERP, in its order (SPEC
+   *  §7, owner D61; issue 1295). Absent where it showed none, and on a SERP
+   *  stored before they were read — which is why a caller that needs them
+   *  buys under a key of its own (`serpOrganic`'s `questions`). */
+  peopleAlsoAsk?: readonly string[];
+  /** The searches Google lists as related to this one. Absent as above. */
+  relatedSearches?: readonly string[];
 }
 
 /** `serpNews` — one result of a Google News search (SPEC §7, D48): the

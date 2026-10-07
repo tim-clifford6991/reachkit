@@ -134,6 +134,8 @@ describe("a Q&A's questions are on the current market, each with a fact that ans
   const fact = (passage: string) => ({ fact: { ...GROUNDED, passage }, sourceText: passage });
   const BOARDS = [fact("Acme's task boards show every project a small team runs."), ...FACTS];
   const qa = (over: Partial<PackInputs>) => buildPack(inputs({ type: "qa", writingFor: MARKET, facts: BOARDS, research: { facts: [], products: [] }, ...over }));
+  /** What the research step read buyers asking (D61). */
+  const asked = (peopleAlsoAsk: string[], related: { search: string; volume: number }[] = []) => ({ peopleAlsoAsk, related });
 
   it("a measured question from another market's pool is left out; a site with no concluded market keeps its report's own", () => {
     const stored = reportWith([
@@ -147,13 +149,11 @@ describe("a Q&A's questions are on the current market, each with a fact that ans
   });
 
   it("a question naming a rival goes in only where that rival's own page yielded a claim, its pricing page for a price", () => {
-    const stored = reportWith(
-      [["How much does Other cost?", "other cost"]],
-      // The last names a rival the founder's own choice left out: nothing was read for it.
-      ["How does Rival Board compare with Other for project management?", "What are the best alternatives to Rival Board?", "How does Rival Board compare with Dropped?"]
-    );
+    const stored = reportWith([["How much does Other cost?", "other cost"]]);
+    // The last names a rival the founder's own choice left out: nothing was read for it.
+    const people = asked(["How does Rival Board compare with Other for project management?", "What are the best alternatives to Rival Board?", "How does Rival Board compare with Dropped?"]);
     const features = { ...claimOf("other.example"), kind: "rival_features" as const, passage: "Other syncs boards with calendars." };
-    const read = (facts: (typeof features | ReturnType<typeof claimOf>)[]) => qa({ report: stored, research: { facts, products: [] } }).questions;
+    const read = (facts: (typeof features | ReturnType<typeof claimOf>)[]) => qa({ report: stored, research: { facts, products: [], asked: people } }).questions;
     expect(read([claimOf("rival.example")])).toEqual(["What are the best alternatives to Rival Board?"]);
     expect(read([claimOf("rival.example"), features])).toEqual([
       "How does Rival Board compare with Other for project management?",
@@ -163,10 +163,42 @@ describe("a Q&A's questions are on the current market, each with a fact that ans
   });
 
   it("a question no fact answers is dropped, and fewer than five leaves the pack short (D26 takes the day on)", () => {
-    const stored = reportWith([], ["Which task boards suit a small team?", "Which project management software has an offline mode for field crews?"]);
-    const pack = qa({ report: stored });
+    const people = asked(["Which task boards suit a small team?", "Which project management software has an offline mode for field crews?"]);
+    const pack = qa({ report: reportWith([]), research: { facts: [], products: [], asked: people } });
     expect(pack.questions).toEqual(["Which task boards suit a small team?"]);
     expect(pack.missing).toContain("buyer_questions");
+  });
+
+  it("questions come from People also ask, related searches with a volume and measured questions; a tracked prompt is never one (D61)", () => {
+    const stored = reportWith(
+      [["Which task boards suit a small team?", "task boards for small teams"]],
+      // Both are answerable from the pack, and neither is asked on the page.
+      ["Which project board tools work on a small budget?", "Which task boards suit a small team?"]
+    );
+    // Google's list is not held to the market, and a bare name asks nothing.
+    const people = asked(
+      ["Do small teams need project boards?", "What is the 30% rule for small teams?"],
+      [{ search: "how to plan team projects", volume: 90 }, { search: "project boards", volume: 9000 }]
+    );
+    expect(qa({ report: stored, research: { facts: [], products: [], asked: people } }).questions).toEqual([
+      "Do small teams need project boards?",
+      "How do I plan team projects?",
+    ]);
+  });
+
+  it("one question a prompt template is kept, and of two that would make headings alike the first is (D61)", () => {
+    const people = asked([
+      "Which project board tools work on a small budget?",
+      "Which team board tools suit a team of one?",
+      "How do small teams run projects on boards day to day?",
+      "How do small teams run projects on boards in practice?",
+      "Is a task board enough for a small team?",
+    ]);
+    expect(qa({ report: reportWith([]), research: { facts: [], products: [], asked: people } }).questions).toEqual([
+      "Which project board tools work on a small budget?",
+      "How do small teams run projects on boards day to day?",
+      "Is a task board enough for a small team?",
+    ]);
   });
 
   it("the knowledge base's own recorded questions are not a source", () => {

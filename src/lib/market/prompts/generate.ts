@@ -125,3 +125,35 @@ export function generatePrompts(market: PromptMarket, siteName: string): Generat
   }
   return out;
 }
+
+const SLOT = "\u0001";
+
+/** Every prompt shape `generatePrompts` can write, each with its slots open.
+ *  Built from the set itself — once with no other name for the market and
+ *  once with one, which between them write every shape — so a template added
+ *  above is known here without a second list. */
+const SHAPES: readonly { template: string; shape: RegExp }[] = (() => {
+  const rivals = [1, 2, 3].map(() => ({ name: SLOT, domain: SLOT }));
+  const shapes = new Map<string, string>();
+  for (const synonyms of [[], [SLOT]]) {
+    for (const prompt of generatePrompts({ category: SLOT, synonyms, buyer: SLOT, rivals }, SLOT)) {
+      // The use cases are one template with seven endings.
+      shapes.set(clean(prompt.text), prompt.kind === "use-case" ? prompt.kind : clean(prompt.text));
+    }
+  }
+  return [...shapes].map(([text, template]) => ({
+    template,
+    shape: new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").split(SLOT).join(".+")}$`, "i"),
+  }));
+})();
+
+/**
+ * The prompt template a question is written from, or `null` where it is
+ * from none (SPEC §7, owner D61; issue 1295). The tracked prompts are
+ * templated so they can be measured (D19); a page that asks one template
+ * twice asks one question twice.
+ */
+export function promptTemplateOf(question: string): string | null {
+  const text = clean(question);
+  return SHAPES.find((each) => each.shape.test(text))?.template ?? null;
+}

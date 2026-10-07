@@ -346,6 +346,11 @@ export const PIPELINE = Object.freeze({
  *  (D36: at most 100), and a Q&A page's questions (D42: 5–8). */
 export const PACK = Object.freeze({ facts: 40, pages: 100, questions: 8 } as const);
 
+/** SPEC §7 (owner, D61; issue 1295): two headings are too alike where they
+ *  share this fraction of the longer one's words, or open with this many of
+ *  the same words. */
+export const DISTINCT_HEADINGS = Object.freeze({ overlap: 0.6, opening: 6 } as const);
+
 /** How many entries each of the business profile's lists may carry (BUILD
  *  §6.7 step 1). The schema the model's answer is parsed against and the
  *  prompt that asks for it both read these, so the two cannot disagree
@@ -1756,6 +1761,9 @@ export const RESEARCH = Object.freeze({
   /** D41 (drafted default): a *current insights* page reads web results
    *  published inside this many days. */
   recentDays: 30,
+  /** A Q&A's questions (owner, D61; issue 1295): the related searches of the
+   *  target's SERP whose volume one keyword-overview call measures. */
+  relatedSearches: 10,
   /** A market comparison stands on at least this many cited market facts
    *  (issue 1135's done-when). */
   comparisonMinFacts: 3,
