@@ -128,9 +128,9 @@ describe("required_blocks — the first block a generated page lacks", () => {
     ["fact_label", markdown.replace("Seats: read the people", "Seats [F3]: read the people")],
     ["answer_box", markdown.replace(/^:::answer\n.*\n:::\n\n/, "")],
     ["takeaways", markdown.replace(/(:::takeaways\n- [^\n]*\n)- [^\n]*\n- [^\n]*\n/, "$1")],
-    ["sections", markdown.replace(/## Seats: can guests join for free\?[\s\S]*?(?=## Seats: what happens when)/, "")],
-    ["question_headings", markdown.replace("can guests join for free?", "can guests join for free")],
-    ["section_opening", markdown.replace("can guests join for free?\n\n", "can guests join for free?\n\n- ")],
+    ["sections", markdown.replace(/## Seats: can outside guests join without paying\?[\s\S]*?(?=## Seats: what happens after)/, "")],
+    ["question_headings", markdown.replace("join without paying?", "join without paying")],
+    ["section_opening", markdown.replace("join without paying?\n\n", "join without paying?\n\n- ")],
     ["business_section", markdown.replace(/https:\/\/example\.com/g, "https://other.test")],
     ["closing", markdown.replace(/\n\n\[Count your seats[^\n]*$/, "\n\nCount your seats.")],
   ])("%s", (block, broken) => {

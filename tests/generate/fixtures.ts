@@ -381,7 +381,7 @@ export function pageParts(first: string = CLEAN_MARKDOWN, over: Partial<PagePart
   const t = topic.charAt(0).toUpperCase() + topic.slice(1);
   // Five questions of their own: stage 4 stops a Q&A whose headings are one
   // question asked again (D61).
-  const asks = ["who needs a login today?", "when does the bill change?", "can guests join for free?", "what happens when someone leaves?", "how are admins counted?"];
+  const asks = ["who needs a login on day one?", "when does the monthly bill change?", "can outside guests join without paying?", "what happens after somebody leaves the company?", "do admins count toward the plan limit?"];
   const heading = (index: number): string => `${t}: ${asks[index - 1]}`;
   return {
     // A title D51's check passes for `opportunity()`'s search and for the
