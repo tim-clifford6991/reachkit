@@ -176,6 +176,81 @@ describe("the research step reads the market's pages and keeps only what they sa
     expect(found.asked).toEqual({ peopleAlsoAsk: ["Is free project software any good?"], related: [{ search: "project software free", volume: 320 }] });
   });
 
+  describe("a thin SERP borrows People also ask from the market's searched terms (D62)", () => {
+    const TARGET = "tools to track where ai sends potential customers";
+    const TERMS = ["generative engine optimization", "answer engine optimization", "ai search visibility"];
+    const serps: Record<string, { peopleAlsoAsk?: string[]; relatedSearches?: string[] }> = {
+      [TARGET]: { peopleAlsoAsk: ["What is the 30% rule for AI?"] },
+      "generative engine optimization": { peopleAlsoAsk: ["What is generative engine optimization?", "what is the 30% rule for ai?"], relatedSearches: ["geo vs seo difference"] },
+      "answer engine optimization": { peopleAlsoAsk: ["How does answer engine optimization work?"], relatedSearches: ["answer engine optimization examples", "geo vs seo difference"] },
+      "ai search visibility": { peopleAlsoAsk: ["How do I measure AI search visibility?"] },
+    };
+    const asks = (borrow: { terms: readonly string[]; held: (research: { asked?: { peopleAlsoAsk: string[]; related: unknown[] } }) => { kept: number; enough: boolean } }, c = cost()) =>
+      researchMarket(c, { siteId: SITE_ID, domain: "example.com", searches: [TARGET], report: REPORT, rivals: [], today: TODAY, questions: true, borrow });
+    /** The pack keeps every question but the target's own off-market one. */
+    const keeps = (enough: number) => (research: { asked?: { peopleAlsoAsk: string[]; related: unknown[] } }) => {
+      const kept = (research.asked?.peopleAlsoAsk.length ?? 0) - 1 + (research.asked?.related.length ?? 0);
+      return { kept, enough: kept >= enough };
+    };
+    const queries = () => serpMock.mock.calls.filter((call) => call[1].questions === true).map((call) => call[1].query);
+
+    beforeEach(() => {
+      safeFetchMock.mockResolvedValue({ ok: false, reason: "timeout", url: "x", readAt: TODAY });
+      serpMock.mockImplementation(async (_c: unknown, a: { query: string; questions?: true }) =>
+        a.questions === true && serps[a.query] !== undefined
+          ? measured({ organic: [], aiOverview: { present: false }, ...serps[a.query] })
+          : { kind: "unmeasured", reason: "undeterminable", at: AT }
+      );
+      overviewMock.mockReset();
+      overviewMock.mockResolvedValue(measured([{ keyword: "geo vs seo difference", searchVolume: 90 }]));
+    });
+
+    it("reads the terms in the order given, and stops at the first that leaves enough kept", async () => {
+      const found = await asks({ terms: TERMS, held: keeps(2) });
+      expect(queries()).toEqual([TARGET, "generative engine optimization", "answer engine optimization"]);
+      // A question a term repeats is held once; the third term is never bought.
+      expect(found.asked?.peopleAlsoAsk).toEqual([
+        "What is the 30% rule for AI?",
+        "What is generative engine optimization?",
+        "How does answer engine optimization work?",
+      ]);
+      expect(found.borrowed).toEqual({ terms: ["generative engine optimization", "answer engine optimization"], added: 2 });
+      // Enough were kept from the questions, so no term's related search is measured.
+      expect(overviewMock).not.toHaveBeenCalled();
+    });
+
+    it("reads no term where the target's own SERP is enough", async () => {
+      const found = await asks({ terms: TERMS, held: () => ({ kept: 5, enough: true }) });
+      expect(queries()).toEqual([TARGET]);
+      expect(found.borrowed).toBeUndefined();
+    });
+
+    it("stops when the terms run out, and only then measures their related searches, in one call", async () => {
+      const found = await asks({ terms: [TARGET.toUpperCase(), ...TERMS, "Answer Engine  Optimization", "a term nobody ranks for"], held: keeps(9) });
+      // The target is not read twice, nor a term the market lists twice; a
+      // term whose SERP cannot be read is not counted as read.
+      expect(queries()).toEqual([TARGET, ...TERMS, "a term nobody ranks for"]);
+      expect(overviewMock).toHaveBeenCalledTimes(1);
+      expect(overviewMock).toHaveBeenCalledWith(expect.anything(), { keywords: ["geo vs seo difference", "answer engine optimization examples"] });
+      expect(found.asked?.related).toEqual([{ search: "geo vs seo difference", volume: 90 }]);
+      expect(found.borrowed).toEqual({ terms: TERMS, added: 4 });
+    });
+
+    it("buys nothing more once the ceiling is met", async () => {
+      const c = cost();
+      let calls = 0;
+      // The ceiling is met by the first term's SERP.
+      c.capHit = () => calls > 1;
+      serpMock.mockImplementation(async (_c: unknown, a: { query: string; questions?: true }) => {
+        if (a.questions === true) calls++;
+        return measured({ organic: [], aiOverview: { present: false }, ...serps[a.query] });
+      });
+      const found = await asks({ terms: TERMS, held: keeps(9) }, c);
+      expect(found.borrowed).toEqual({ terms: ["generative engine optimization"], added: 1 });
+      expect(overviewMock).not.toHaveBeenCalled();
+    });
+  });
+
   it("current insights reads the news for the category and its synonyms, and keeps what is dated inside 30 days and about the market, with its date and source", async () => {
     const CHANGE = "Google said AI Overviews now appear on a larger share of commercial searches than in the spring.";
     const OTHER = "The assistant began showing a list of cited shops beside every product answer this week.";

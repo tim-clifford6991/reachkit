@@ -3,8 +3,8 @@
 // pack short of it names what is missing.
 import "../env";
 import { describe, expect, it } from "vitest";
-import { buildPack, missingFrom, packAdds, readPack, type PackInputs } from "../../../src/lib/generate/pipeline/pack";
-import type { WritingMarket } from "../../../src/lib/generate/voice/market";
+import { buildPack, missingFrom, packAdds, questionsHeld, readPack, type PackInputs } from "../../../src/lib/generate/pipeline/pack";
+import { marketSearches, type WritingMarket } from "../../../src/lib/generate/voice/market";
 import type { PromptProfile } from "../../../src/lib/generate/voice/profile-block";
 import type { StoredReport } from "../../../src/lib/scan/report";
 import { AT, FACTS, GROUNDED, opportunity, report } from "../fixtures";
@@ -199,6 +199,29 @@ describe("a Q&A's questions are on the current market, each with a fact that ans
       "How do small teams run projects on boards day to day?",
       "Is a task board enough for a small team?",
     ]);
+  });
+
+  it("the pack says when a thin SERP has borrowed enough: a Q&A short of five has not, and a comparison asks for none (D62)", () => {
+    const own = ["Which task boards suit a small team?", "What is the 30% rule for small teams?"];
+    // What the market's searched terms' SERPs added: one is off the market
+    // and one repeats a heading, so the filters leave four of the six.
+    const borrowed = [
+      "Do small teams need project boards?",
+      "How do small teams run projects on boards day to day?",
+      "How do small teams run projects on boards in practice?",
+      "What are the big 3 AI tools?",
+      "Is a task board enough for a small team?",
+      "Can a team run a project on a task board?",
+    ];
+    const held = (peopleAlsoAsk: string[]) => questionsHeld(qa({ report: reportWith([]), research: { facts: [], products: [], asked: asked(peopleAlsoAsk) } }));
+    expect(held(own)).toEqual({ kept: 1, enough: false });
+    expect(held([...own, ...borrowed.slice(0, 4)])).toEqual({ kept: 3, enough: false });
+    expect(held([...own, ...borrowed])).toEqual({ kept: 5, enough: true });
+    expect(questionsHeld(buildPack(inputs()))).toEqual({ kept: 0, enough: true });
+    // The terms are read in the market's own order: its search term, then
+    // its other searched terms; a site with no concluded market has none.
+    expect(marketSearches(MARKET)).toEqual(["project management software", "task boards"]);
+    expect(marketSearches({ ...MARKET, from: "report", market: null })).toEqual([]);
   });
 
   it("the knowledge base's own recorded questions are not a source", () => {

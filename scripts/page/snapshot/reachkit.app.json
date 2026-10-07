@@ -10,8 +10,11 @@
   "voiceText": "You write in plain terms about a straightforward product. Your sentences are short and direct, often fragments. You avoid jargon and speak as though the reader already understands the problem \u2014 that buyers ask AI what to use, and the answer matters. You matter-of-factly list what your service does and costs, with no hype. The tone is calm and confident, as if stating facts that do not need embellishment.",
   "doNotClaim": [],
   "competitors": [
-   "aeoengine.ai",
-   "meltwater.com"
+   "mybrandi.ai",
+   "tryprofound.com",
+   "otterly.ai",
+   "beomniscient.com",
+   "rankscale.ai"
   ],
   "category": "AI discovery monitoring and content"
  },
@@ -147,32 +150,132 @@
   "current": {
    "job": "Understand where AI and search send buyers, then write pages to rank in those results",
    "buyer": "B2B SaaS and software companies seeking to be discovered by buyers researching solutions",
-   "rivals": [
+   "terms": [
     {
-     "name": "AEO Engine",
-     "basis": "ranks",
-     "domain": "aeoengine.ai",
-     "reason": "Tracks AI citations and optimizes content to win brand mentions in AI search results."
+     "term": "generative engine optimization",
+     "volume": 4400
     },
     {
-     "name": "MaxAEO",
-     "basis": "ranks",
-     "domain": "maxaeo.ai",
-     "reason": "Provides answer engine optimization services to improve visibility in AI-powered search and answer engines."
+     "term": "answer engine optimization",
+     "volume": 2400
     },
     {
-     "name": "Meltwater",
-     "basis": "ranks",
-     "domain": "meltwater.com",
-     "reason": "Monitors where AI and search engines cite your brand, tracking AI answer visibility across multiple platforms."
+     "term": "AI search visibility",
+     "volume": 390
+    },
+    {
+     "term": "GEO software",
+     "volume": 170,
+     "polluted": true
+    },
+    {
+     "term": "AEO software",
+     "volume": 110
+    },
+    {
+     "term": "AI citation tracking",
+     "volume": 0
+    },
+    {
+     "term": "AI answer monitoring",
+     "volume": 0
+    },
+    {
+     "term": "AI brand mention tracking",
+     "volume": 0
+    },
+    {
+     "term": "rank in AI search results",
+     "volume": 0
+    },
+    {
+     "term": "AI search ranking tool",
+     "volume": 0
     }
    ],
+   "demand": {
+    "at": "2026-10-06T11:25:21.177Z",
+    "own": 0,
+    "brands": {
+     "brandi": 22200,
+     "maxaeo": 0,
+     "otterly": 880,
+     "reachkit": 0,
+     "brandi ai": 260,
+     "rankscale": 480,
+     "aeo engine": 70,
+     "otterly ai": 720,
+     "leadjourney": 0,
+     "profound ai": 6600,
+     "rankscale ai": 90,
+     "the seo agent": 0,
+     "discovered labs": 0,
+     "omniscient digital": 590
+    }
+   },
+   "rivals": [
+    {
+     "name": "Brandi",
+     "basis": "ai_answer",
+     "domain": "mybrandi.ai",
+     "reason": "AI visibility platform for generative engine optimization that tracks brand mentions and citations across LLMs.",
+     "volume": 22200,
+     "searchNames": [
+      "brandi",
+      "brandi ai"
+     ]
+    },
+    {
+     "name": "Profound",
+     "basis": "ai_answer",
+     "domain": "tryprofound.com",
+     "reason": "Tracks how often AI engines cite and recommend your brand across ChatGPT, Perplexity, Gemini, and Google AI Overviews, directly competing on AI discovery monitoring.",
+     "volume": 6600,
+     "searchNames": [
+      "profound ai"
+     ]
+    },
+    {
+     "name": "Otterly",
+     "basis": "ai_answer",
+     "domain": "otterly.ai",
+     "reason": "Monitors brand visibility and citations across AI search engines and answer engines, targeting the same GEO/AEO tracking job.",
+     "volume": 880,
+     "searchNames": [
+      "otterly",
+      "otterly ai"
+     ]
+    },
+    {
+     "name": "Omniscient",
+     "basis": "ai_answer",
+     "domain": "beomniscient.com",
+     "reason": "GEO platform that tracks brand citations and recommendations inside AI ecosystems and helps optimize content to win them.",
+     "volume": 590,
+     "searchNames": [
+      "omniscient digital"
+     ]
+    },
+    {
+     "name": "Rankscale",
+     "basis": "ai_answer",
+     "domain": "rankscale.ai",
+     "reason": "Tracks how a brand appears across 17+ AI engines with visibility scores and citation analysis, competing directly on AI discovery monitoring.",
+     "volume": 480,
+     "searchNames": [
+      "rankscale",
+      "rankscale ai"
+     ]
+    }
+   ],
+   "termsAt": "2026-10-06T11:21:17.905Z",
    "category": "AI discovery monitoring and content",
    "synonyms": [
     "AI answer visibility",
     "search and AI ranking",
     "buyer discovery tracking"
    ],
+   "searchTerm": "generative engine optimization",
    "notOurMarket": [
     "SEO content writing software",
     "General AI writing assistants",
@@ -188,64 +291,73 @@
     "Free scan with first page proposed before any payment"
    ]
   },
-  "pending": {
-   "job": "Understand where AI and search engines send buyers, then create content to rank in those results",
-   "buyer": "Marketing and content teams at B2B SaaS and tech companies",
-   "rivals": [],
-   "category": "AI visibility and content optimization",
-   "synonyms": [
-    "Generative engine optimization",
-    "AI answer visibility tracking",
-    "AI discovery monitoring"
-   ],
-   "notOurMarket": [
-    "SEO tools",
-    "Content management systems",
-    "Marketing analytics platforms",
-    "Buyer intent tracking",
-    "PR monitoring tools"
-   ],
-   "categoryReason": "The headline and all pages emphasize seeing what AI tells buyers about your market and writing pages to rank in those results\u2014the outcome buyers pay for is visibility in AI answers and search, achieved through content creation.",
-   "differentiators": [
-    "Scans how AI answers and Google search cite competitors instead of you",
-    "Writes and publishes one page per day automatically",
-    "Weekly market re-measurement and movement tracking",
-    "Free scan with first page proposal before any payment"
-   ]
-  },
+  "pending": null,
   "adoptedAt": "2026-10-02T22:02:51.534Z",
   "lastChange": {
-   "at": "2026-10-02T22:57:36.741Z",
+   "at": "2026-10-06T11:25:21.177Z",
    "added": [
     {
-     "name": "AEO Engine",
-     "basis": "ranks",
-     "domain": "aeoengine.ai",
-     "reason": "Tracks AI citations and optimizes content to win brand mentions in AI search results."
+     "name": "Brandi",
+     "basis": "ai_answer",
+     "domain": "mybrandi.ai",
+     "reason": "AI visibility platform for generative engine optimization that tracks brand mentions and citations across LLMs.",
+     "volume": 22200,
+     "searchNames": [
+      "brandi",
+      "brandi ai"
+     ]
     },
     {
-     "name": "MaxAEO",
-     "basis": "ranks",
-     "domain": "maxaeo.ai",
-     "reason": "Provides answer engine optimization services to improve visibility in AI-powered search and answer engines."
+     "name": "Profound",
+     "basis": "ai_answer",
+     "domain": "tryprofound.com",
+     "reason": "Tracks how often AI engines cite and recommend your brand across ChatGPT, Perplexity, Gemini, and Google AI Overviews, directly competing on AI discovery monitoring.",
+     "volume": 6600,
+     "searchNames": [
+      "profound ai"
+     ]
     },
     {
-     "name": "Meltwater",
-     "basis": "ranks",
-     "domain": "meltwater.com",
-     "reason": "Monitors where AI and search engines cite your brand, tracking AI answer visibility across multiple platforms."
+     "name": "Otterly",
+     "basis": "ai_answer",
+     "domain": "otterly.ai",
+     "reason": "Monitors brand visibility and citations across AI search engines and answer engines, targeting the same GEO/AEO tracking job.",
+     "volume": 880,
+     "searchNames": [
+      "otterly",
+      "otterly ai"
+     ]
+    },
+    {
+     "name": "Omniscient",
+     "basis": "ai_answer",
+     "domain": "beomniscient.com",
+     "reason": "GEO platform that tracks brand citations and recommendations inside AI ecosystems and helps optimize content to win them.",
+     "volume": 590,
+     "searchNames": [
+      "omniscient digital"
+     ]
+    },
+    {
+     "name": "Rankscale",
+     "basis": "ai_answer",
+     "domain": "rankscale.ai",
+     "reason": "Tracks how a brand appears across 17+ AI engines with visibility scores and citation analysis, competing directly on AI discovery monitoring.",
+     "volume": 480,
+     "searchNames": [
+      "rankscale",
+      "rankscale ai"
+     ]
     }
    ],
-   "scanId": "2415236e-1f43-4a0b-bd25-62c4761467a8",
+   "scanId": "17f5bbff-81dc-4d83-9565-8163a92f356d",
    "dropped": [
-    "zapier.com",
-    "ahrefs.com",
-    "onelittleweb.com",
-    "marketermilk.com"
+    "aeoengine.ai",
+    "meltwater.com"
    ],
    "category": null
   },
-  "rivalsOverridden": true,
+  "rivalsOverridden": false,
   "categoryOverridden": false
  },
  "report": {
