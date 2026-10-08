@@ -803,6 +803,29 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
   "overview.tile.mention-rate.pages.one": ["1 of your pages cited", { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" }],
 
+  // Issue 1319 (owner, 2026-10-07): Overview leads with the action, then
+  // D22's four numbers, each a tile that opens its screen. The tiles for
+  // the second, third and fourth are **drafted** (#759); the pull request
+  // names each so the owner can correct it.
+  "overview.tile.pages-cited.label": ["Your pages cited", { slots: {}, fixedBy: "SPEC §4 2026-10-07 (drafted)" }],
+  "overview.tile.pages-cited.window": [
+    "in AI answers, last {weeks} weeks",
+    { slots: { weeks: "text" }, fixedBy: "SPEC §4 2026-10-07 (drafted)" },
+  ],
+  "overview.tile.top-20.label": ["Your pages in Google’s top 20", { slots: {}, fixedBy: "SPEC §4 2026-10-07 (drafted)" }],
+  // AI visits, on a hosted blog. The figure is the pages an answer engine
+  // fetched; the people who arrived stand under it and are never added in.
+  "overview.tile.ai-visits.label": ["AI visits to your blog", { slots: {}, fixedBy: "SPEC §4 2026-10-07 (drafted)" }],
+  "overview.tile.ai-visits.at-least": ["at least", { slots: {}, fixedBy: "SPEC §4 2026-10-07 (drafted)" }],
+  "overview.tile.ai-visits.window": [
+    "pages read, last {days} days",
+    { slots: { days: "text" }, fixedBy: "SPEC §4 2026-10-07 (drafted)" },
+  ],
+  "overview.tile.ai-visits.referrals": [
+    "At least {visitors} people came from an AI answer",
+    { slots: { visitors: "text" }, fixedBy: "SPEC §4 2026-10-07 (drafted)" },
+  ],
+
   // The AI answers tab: the rate's own card.
   "overview.prompts.rate.split": [
     "{linked} link to you · {named} name you without a link",

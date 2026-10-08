@@ -1,9 +1,12 @@
-// tests/app/overview/goals.test.ts — BUILD §4.5's data rule, and DECISIONS
-// 2026-09-03's amendment to it.
+// tests/app/overview/goals.test.ts — the goal pins, where they are still
+// read.
 //
-// Two things are decided here: every goal's number comes from the pins and
-// from nowhere else, and there is no score goal — because there is no score
-// tile.
+// SPEC §4, D22 and D23 (2026-10-02): the app leads with four numbers and
+// has no fixed goals, and since issue 1319 (2026-10-07) the Overview tab
+// draws neither a goal nor the Discoverability Score — `page.test.tsx`
+// asserts that on the rendered screen. The Search and AI answers tabs still
+// read `goals.ts`, so what is decided here is only that every number they
+// read comes from the pins and from nowhere else.
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -34,27 +37,6 @@ describe("the three goals, and their values", () => {
   it("the three meaning keys are distinct — three goals are never one sentence", () => {
     const keys = GOAL_KEYS.map((key) => GOALS[key].meansKey);
     expect(new Set(keys).size).toBe(keys.length);
-  });
-});
-
-describe("ruling 6a — the score's tile came back to Overview", () => {
-  // DECISIONS 2026-09-03 read "The composite score has no tile on
-  // Overview", and this block asserted exactly that. The owner's approved
-  // screen set (2026-09-08) reverses it: ruling 6a names "Overview tile"
-  // among the surfaces that label the Discoverability Score, and S12 draws
-  // it first of the three. The DECISIONS row recording the supersession is
-  // the owner's to write; the set is the newer artifact and #353 follows
-  // it.
-  it("there is a score goal key, and it is the pin the free report already used", () => {
-    expect(GOAL_KEYS).toContain("score");
-    expect(Object.keys(GOALS)).toContain("score");
-    expect(GOALS.score.value).toBe(GOAL_VALUES.score);
-  });
-
-  it("the first half of the 2026-09-03 ruling stands — the AI tile still shows one reading", () => {
-    // No second AI-answers goal, and no per-question key: the amendment
-    // that survived is the one about movement, not the one about the tile.
-    expect(GOAL_KEYS.filter((key) => key.startsWith("ai"))).toEqual(["ai_answers"]);
   });
 });
 

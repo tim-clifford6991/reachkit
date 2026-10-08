@@ -70,12 +70,13 @@ describe("SPEC §4 — four tabs, each its own address", () => {
 });
 
 describe("SPEC §4 — every part of the Overview tab opens the tab behind it", () => {
-  it("each of the three tiles is a link to its own tab", async () => {
+  it("each headline number is a link to the screen that holds its detail", async () => {
     const html = renderToStaticMarkup(await OverviewPage());
     for (const [testId, tab] of [
-      ["overview-tile-searches", "search"],
       ["overview-tile-mention-rate", "ai_answers"],
-      ["overview-tile-rivals", "rivals"],
+      ["overview-tile-pages-cited", "ai_answers"],
+      ["overview-tile-top-20", "search"],
+      ["overview-tile-ai-visits", "ai_answers"],
     ] as const) {
       const tile = new RegExp(`<a[^>]*href="${TAB_HREF[tab]}"[^>]*data-testid="${testId}"`);
       expect(html, `${testId} does not open ${TAB_HREF[tab]}`).toMatch(tile);

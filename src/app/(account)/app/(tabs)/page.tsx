@@ -1,31 +1,20 @@
-// SPEC §4 (2026-09-20, #908) — the Overview tab, at `/app`.
+// SPEC §4 (2026-10-07, issue 1319) — the Overview tab, at `/app`.
 //
-// The screen a signed-in customer lands on, in the order that date's ruling
-// puts it in: "the Discoverability Score with change and goal in the header;
-// the page waiting for review with a one-sentence reason, a small view of it
-// as readers will see it, *Read it* and *Stop this page*; three tiles with a
-// trend — searches you appear for, questions that name you, your nearest
-// rival's lead — each opening its tab; this week, opening Plan; needs you."
+// A dashboard, in the order that date's ruling puts it in: the action
+// first — the page in review as one line with *Read it* and *Stop this
+// page* — then D22's four headline numbers, each opening its screen, then
+// this week and needs you. No Discoverability Score and no goal (D22, D23),
+// and the page as a reader will see it is behind *Read it*, not here.
 //
-// **What left this screen, and where it went.** The twelve-week growth card,
-// the AI-answers matrix and the rival rows are the Search, AI answers and
-// Rivals tabs' own (#916, #918, #917) — each of those readings still stands
-// here as one tile that opens the tab behind it. The modules that draw them
-// (`GrowthModule`, `TileRow`, `RivalModule`) are unchanged and still tested;
-// they are what those three issues build their tabs from.
+// **The head is said once.** While a page waits, the action card carries
+// the screen's `h1`; with nothing in review the head stands alone.
 //
-// **One read, and the modules are pure over it.** `readOverview()` is the
-// one call this file makes; no module fetches for itself, so the render
-// performs no measurement, no vendor call and no model call — a property
-// `tests/app/overview/page.test.tsx` asserts rather than assumes.
-//
-// **The calm layer (SPEC §4 2026-09-24, #1070, boards R12-4 · R12-7).**
-// Same content, same order. The head stands beside a compact score card —
-// from `md` up in one row, vertically centred; on a phone the score card
-// follows the page waiting for review, which is the phone board's order and
-// is done with `order`, not a second render. The *broader categories*
-// choice is a one-line notice inside *This week* rather than a card above
-// the headline, and the week and *Needs you* stretch to one height.
+// **Every read is a stored one, and the modules are pure over them.** No
+// module fetches for itself, so the render performs no measurement, no
+// vendor call and no model call — a property
+// `tests/app/overview/page.test.tsx` asserts rather than assumes. The
+// top-20 number is the Search tab's own reading and AI visits is the AI
+// answers tab's, each through that tab's request-cached provider.
 //
 // **It declares no `Surface`:** the shell's layout owns this route's screen
 // root (see `../layout.tsx`), and a second one would be a second
@@ -39,16 +28,17 @@ import type { Metadata } from "next";
 import { readShell } from "../_shell/provider";
 import { readOverview } from "../_overview/provider";
 import { readPrompts } from "../_overview/prompts-provider";
+import { readBlogReads } from "../_overview/blog-reads-provider";
 import { overviewNotice, readOnboarding, readReleaseNotice } from "../_shell/onboarding";
 import { FirstPageNotice, ReleaseNoticeLine } from "../_shell/OnboardingStatus";
 import { MARKET_TOO_SMALL, readCategoryChoice } from "../_shell/remeasure";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
-import { formatDate, formatDateTime, formatTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { copy } from "@/lib/presentation/copy";
+import { unmeasured } from "@/lib/measure/measured";
 import { LinkedTiles } from "../_overview/LinkedTiles";
 import { NeedsYouModule } from "../_overview/NeedsYouModule";
-import { ScoreCard, ScoreHead } from "../_overview/ScoreHead";
+import { ScoreHead } from "../_overview/ScoreHead";
 import { WaitingPageCard } from "../_overview/WaitingPageCard";
 import { WeekModule } from "../_overview/WeekModule";
 import { WeekWaiting } from "../_overview/WeekWaiting";
@@ -63,11 +53,22 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   // the shell's own request-cached provider rather than restated here: two
   // readers of a customer's time zone is how two parts of one screen come to
   // state two different days.
-  const [shell, overview, onboarding, prompts] = await Promise.all([
+  const [shell, overview, onboarding, prompts, top20, blogReads] = await Promise.all([
     readShell(),
     readOverview(),
     readOnboarding(),
     readPrompts(),
+    // The Search tab's own provider, reached at the call: `search-model.ts`
+    // type-imports the page target, whose graph reaches the vendor clients,
+    // and this screen's import graph holds neither (`_overview/waiting.ts`
+    // says the same of its own target). A stored read, like the rest. It is
+    // one headline, not the screen: where that tab's read fails, the tile
+    // says the number could not be read and the rest of Overview stands.
+    import("../_overview/search-provider")
+      .then((tab) => tab.readSearch())
+      .then((model) => model.tiles.firstTwoPages)
+      .catch(() => null),
+    readBlogReads(),
   ]);
   // issue 784: the founder's reason when the pass released them short — what the
   // shell's panel is not already saying.
@@ -100,32 +101,23 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
       <FirstPageNotice state={onboarding} />
       <ReleaseNoticeLine noticeKey={topNotice} />
 
-      <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,18rem)] md:items-center">
-        <ScoreHead
-          head={overview.head}
-          today={overview.today}
+      {overview.waitingPage === null ? (
+        <ScoreHead head={overview.head} today={overview.today} timeZone={shell.timeZone} />
+      ) : (
+        <WaitingPageCard
+          page={overview.waitingPage}
+          head={writtenLine(overview.head.key)}
           timeZone={shell.timeZone}
-          sub={headSub(overview.head.key, overview.waitingPage?.goesLiveAt ?? null, overview.today, shell.timeZone)}
+          now={overview.today}
         />
-        <ScoreCard score={overview.score} className="max-md:order-2" />
-        {overview.waitingPage === null ? null : (
-          <WaitingPageCard
-            page={overview.waitingPage}
-            timeZone={shell.timeZone}
-            now={overview.today}
-            className="max-md:order-1 md:col-span-2"
-          />
-        )}
-      </div>
+      )}
 
       <LinkedTiles
-        searches={overview.searches}
-        searchTrend={overview.searchTrend}
-        pagesPublished={overview.pagesPublished}
         aiAnswers={overview.aiAnswers}
-        rivals={overview.rivals}
         engineLine={engineLine}
         prompts={prompts}
+        top20={top20 ?? { value: unmeasured("undeterminable", overview.today), of: unmeasured("undeterminable", overview.today) }}
+        blogReads={blogReads}
       />
 
       {/* The week takes the wider of the two columns: seven day cells each
@@ -148,14 +140,4 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
       </div>
     </div>
   );
-}
-
-/** The line under the head while a page waits on a clock (R12-4): the time
- *  alone when it is today, the date and time when it is not. */
-function headSub(key: string, at: Date | null, today: Date, timeZone: string): string | null {
-  if (key !== "overview.head.waiting" || at === null) return null;
-  const sameDay = formatDate(at, timeZone) === formatDate(today, timeZone);
-  return writtenLine("overview.head.waiting.sub", {
-    at: sameDay ? formatTime(at, timeZone) : formatDateTime(at, timeZone),
-  });
 }

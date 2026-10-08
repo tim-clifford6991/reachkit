@@ -90,8 +90,8 @@ describe("REQ-041 c1 — Overview is the screen a signed-in customer lands on", 
   });
 
   it("renders the five parts SPEC §4 (2026-09-20) puts on the Overview tab", async () => {
-    // The owner's enumeration of that date, in its own order: the score in
-    // the header, the page waiting for review, three linked tiles, this
+    // The owner's enumeration, as 2026-10-07 reorders it: the page in
+    // review as an action carrying the head, the headline numbers, this
     // week, needs you. It supersedes the six cards #353 drew — the growth
     // card, the AI matrix and the rival rows are the Search, AI answers and
     // Rivals tabs' own now (#916, #918, #917).
@@ -107,12 +107,31 @@ describe("REQ-041 c1 — Overview is the screen a signed-in customer lands on", 
     }
   });
 
-  it("renders three tiles and no fourth, each one a door to its tab", async () => {
+  it("renders D22's four headline numbers and no fifth", async () => {
     const html = await markup();
-    expect(html).toContain('data-testid="overview-tile-searches"');
-    expect(html).toContain('data-testid="overview-tile-mention-rate"');
-    expect(html).toContain('data-testid="overview-tile-rivals"');
-    expect(html.split('data-testid="overview-tile-').length - 1).toBe(3);
+    for (const tile of ["mention-rate", "pages-cited", "top-20", "ai-visits"]) {
+      expect(html).toContain(`data-testid="overview-tile-${tile}"`);
+    }
+    expect(html.split('data-testid="overview-tile-').length - 1).toBe(4);
+  });
+
+  it("the page in review is the first thing on the screen, as an action (issue 1319)", async () => {
+    const html = await markup();
+    const card = html.indexOf('data-testid="overview-waiting"');
+    expect(card).toBeGreaterThan(-1);
+    expect(card).toBeLessThan(html.indexOf('data-testid="overview-tiles"'));
+    expect(html.indexOf("<h1>")).toBeGreaterThan(card);
+    expect(html).toContain('data-testid="overview-waiting-read"');
+    expect(html).toContain('data-testid="overview-stop-action"');
+    // The page as a reader will see it is behind *Read it*, not here.
+    expect(html).not.toContain("mockup-browser");
+  });
+
+  it("draws no Discoverability Score and no goal (D22, D23)", async () => {
+    const html = await markup();
+    expect(html).not.toContain('data-testid="overview-score"');
+    expect(html).not.toContain(COPY["overview.tile.score.label"]);
+    expect(html).not.toMatch(/goal: \d/);
   });
 
   it("the twelve-week growth card and the rival rows have left this tab", async () => {
