@@ -12,29 +12,30 @@
 // place that header is placed is a request's own `Authorization` field —
 // never logged, never included in a thrown value or a `DataForSeoOutcome`.
 //
-// **Every call is fixed to `SERP_LOCATION` (Google US / en) and depth 10**
-// (BP-008 `## Public interface`, both read from `constants.ts`, never a
-// caller argument). `buildRequest` enforces this structurally: the three
-// reserved task keys are deleted from whatever the caller supplies and then
-// set from the pins, in that order, so a caller cannot shadow them even by
-// constructing an object that carries those keys. `depth` is *set* only on
-// the one vendor family that has a `depth` parameter — organic SERPs
-// (`/v3/serp/google/organic/`); Labs, AI Mode and the LLM scraper have no
-// such field and the vendor rejects unknown fields (`40501 Invalid Field`),
-// so on those paths the key is stripped and left unset. The same is true
-// of the two locale pins on one family: LLM Mentions declares neither, and
-// its dataset is US/English by construction, so `NO_LOCALE_PATH_PREFIX`
-// below leaves them unset there (SPEC §6, 2026-09-22, #1004). Either way no
-// caller can set any of the three — the never-list's "SERP depth > 10"
-// stays enforced by absence (BUILD §6.4), and a caller-supplied locale is
-// still deleted before anything is pinned.
+// **Every call is made in the site's own country and language, and at depth
+// 10** (SPEC §6, owner D66 of 2026-10-07, issue 1311; before it every call
+// was fixed to Google US / en). The locale is the caller's — the site's,
+// read or confirmed — and it is one row of `src/lib/locale`'s closed list:
+// `buildRequest` writes the vendor's name for that row's country and its
+// language, and has no other source for either. The three reserved task
+// keys are still deleted from whatever the caller's `fields` carry and then
+// set here, so a locale cannot arrive as a free string in `fields`, and
+// `depth` cannot arrive at all. `depth` is *set* only on the vendor
+// families that have a `depth` parameter — organic SERPs and the news
+// search; Labs, AI Mode and the LLM scraper have no such field and the
+// vendor rejects unknown fields (`40501 Invalid Field`), so on those paths
+// the key is stripped and left unset. The same is true of the locale on one
+// family: LLM Mentions declares neither field, and its dataset is
+// US/English by construction, so `NO_LOCALE_PATH_PREFIX` below leaves them
+// unset there (SPEC §6, 2026-09-22, #1004) and its spec carries `null`.
 //
 // **Two request shapes, both built here.** Live endpoints are one `POST`.
 // The standard queue (`mode: "std"`, BUILD §6.4 "everything scheduled =
 // standard queue") is `task_post` followed by a `GET task_get/…/{id}` —
 // `sendGet` below is that second leg, same credential, same outcome shape.
 import { env } from "@/lib/config/env";
-import { SERP_LOCATION, VENDOR } from "@/lib/config/constants";
+import { VENDOR } from "@/lib/config/constants";
+import { COUNTRIES, localeOf, type Locale } from "@/lib/locale/locales";
 
 const DATAFORSEO_BASE_URL = "https://api.dataforseo.com";
 
@@ -72,10 +73,10 @@ export const LLM_MENTIONS_PATH_PREFIX = NO_LOCALE_PATH_PREFIX;
  *  decided is a compile error, not an inherited value. */
 export type DataForSeoMode = "live" | "std";
 
-/** The three fields `buildRequest` fixes on every task, never accepted from
- *  a caller (BP-008: "Every call is fixed to SERP_LOCATION … and depth
- *  10"). Named once so the strip-then-set logic below and its test can
- *  both cite the same closed list. */
+/** The three fields `buildRequest` alone writes on a task: the two the
+ *  spec's `locale` decides, and the depth. Never taken from `fields`. Named
+ *  once so the strip-then-set logic below and its test can both cite the
+ *  same closed list. */
 const RESERVED_TASK_KEYS = ["location_name", "language_code", "depth"] as const;
 
 export interface DataForSeoRequestSpec {
@@ -85,6 +86,12 @@ export interface DataForSeoRequestSpec {
    *  export takes an endpoint name). */
   path: string;
   mode: DataForSeoMode;
+  /** The country and language this read is made in (D66): the site's own,
+   *  one row of the closed list. `null` only for the one family that takes
+   *  no locale at all (`NO_LOCALE_PATH_PREFIX`). Required, never defaulted:
+   *  a default would measure somebody's market in the wrong country
+   *  without anyone having decided it. */
+  locale: Locale | null;
   /** Endpoint-specific task fields — everything DataForSEO's own request
    *  body needs beyond the three pinned fields below. A key named among
    *  `RESERVED_TASK_KEYS` is silently dropped, never merged: those three
@@ -95,6 +102,14 @@ export interface DataForSeoRequestSpec {
    *  twelve takes. It is per call and never per module because one process
    *  serves every tier. */
   timeoutMs?: number;
+}
+
+/** A locale as every cache key of this package spells it: the vendor's
+ *  country name and the language, so a read bought in one country is never
+ *  served to a site in another (D66). The United States in English is
+ *  spelled as it was before D66, so the reads held from then still serve. */
+export function localeCacheKey(locale: Locale): string {
+  return `${COUNTRIES[locale.country].location}|${locale.language}`;
 }
 
 export interface DataForSeoRequest {
@@ -113,14 +128,21 @@ function authorizationHeader(): string {
 }
 
 /** Builds the one shape of request this module ever issues: `POST`, JSON
- *  body of one task, `SERP_LOCATION` and depth 10 fixed, credentials in the
- *  `Authorization` header only. Never exported outside this package. */
+ *  body of one task, the spec's locale and depth 10 written here,
+ *  credentials in the `Authorization` header only. Never exported outside
+ *  this package.
+ *
+ *  Throws on a locale that is not a row of the list, and on a path that
+ *  takes one being handed none: both are a caller's mistake, made before
+ *  anything is bought. */
 export function buildRequest(spec: DataForSeoRequestSpec): DataForSeoRequest {
   const task: Record<string, unknown> = { ...(spec.fields ?? {}) };
   for (const key of RESERVED_TASK_KEYS) delete task[key];
   if (!spec.path.startsWith(NO_LOCALE_PATH_PREFIX)) {
-    task.location_name = SERP_LOCATION.location;
-    task.language_code = SERP_LOCATION.language;
+    const locale = spec.locale === null ? null : localeOf(spec.locale.country, spec.locale.language);
+    if (locale === null) throw new Error(`dataforseo: ${spec.path} was asked for in a locale that is not on the list`);
+    task.location_name = COUNTRIES[locale.country].location;
+    task.language_code = locale.language;
   }
   if (DEPTH_PATH_PREFIXES.some((prefix) => spec.path.startsWith(prefix))) task.depth = SERP_DEPTH;
 

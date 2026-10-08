@@ -10,7 +10,7 @@
 //
 // Every sentence goes through `copy()`; every number through `formatStat`.
 // This module renders no markup and knows nothing about either body.
-import { copy } from "@/lib/presentation/copy";
+import { copy } from "@/lib/mail/language";
 import { formatStat } from "./format";
 import { keptStatRows } from "./omit";
 import type { MailBlock } from "./types";

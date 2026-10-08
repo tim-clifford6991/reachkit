@@ -2,6 +2,7 @@
 // (SPEC §6, owner D49 of 2026-10-05, issue 1270): one model call proposes
 // the candidates and one keyword-overview call reads their volume. What is
 // done with them is `terms.ts`.
+import type { Locale } from "@/lib/locale/locales";
 import { z } from "zod";
 import { MARKET_TERMS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
@@ -39,7 +40,7 @@ export const TERMS_FIELDS = Object.freeze({
  */
 export async function readMarketTerms(
   c: CostContext,
-  a: { market: MarketConclusion; siteName: string | null; domain: string; at: Date }
+  a: { market: MarketConclusion; siteName: string | null; domain: string; at: Date; locale: Locale }
 ): Promise<Measured<Required<Pick<MarketConclusion, "terms" | "searchTerm" | "termsAt">>>> {
   const { market } = a;
   const answer = await llm(c, {
@@ -58,6 +59,7 @@ export async function readMarketTerms(
     },
     schema: TERMS_SCHEMA,
     tier: "sonnet",
+    locale: a.locale,
   });
   if (answer.kind === "unmeasured") return unmeasured(answer.reason, answer.at, answer.because);
   const brands = [a.siteName ?? "", a.domain.split(".")[0] ?? "", ...market.rivals.flatMap((r) => [r.name, r.domain.split(".")[0] ?? ""])];
@@ -65,7 +67,7 @@ export async function readMarketTerms(
   if (candidates.length === 0) return unmeasured("not_attempted", a.at);
 
   const { keywordOverview } = await import("@/lib/vendors/dataforseo");
-  const volumes = await keywordOverview(c, { keywords: candidates.map((x) => x.term) });
+  const volumes = await keywordOverview(c, { keywords: candidates.map((x) => x.term), locale: a.locale });
   if (volumes.kind === "unmeasured") return unmeasured(volumes.reason, volumes.at, volumes.because);
   return measured({ ...searchedTerms(candidates, volumes.value), termsAt: a.at.toISOString() }, a.at);
 }
@@ -99,7 +101,7 @@ export const SEARCHES_TASK = [
  */
 export async function judgeSearches(
   c: CostContext,
-  a: { market: MarketConclusion; searches: readonly string[] }
+  a: { market: MarketConclusion; searches: readonly string[]; locale?: Locale }
 ): Promise<Measured<Record<string, boolean>>> {
   const at = new Date();
   const searches = [...new Set(a.searches.map((search) => search.toLowerCase().trim()))].filter(Boolean).slice(0, JUDGED_SEARCHES_MAX);
@@ -122,6 +124,7 @@ export async function judgeSearches(
     },
     schema: SEARCHES_SCHEMA,
     tier: "sonnet",
+    ...(a.locale === undefined ? {} : { locale: a.locale }),
   });
   if (answer.kind === "unmeasured") return unmeasured(answer.reason, answer.at, answer.because);
   const asked = new Set(searches);

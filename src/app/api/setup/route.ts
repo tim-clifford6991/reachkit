@@ -66,7 +66,7 @@ function parseStepSave(body: unknown): SetupStepSave | null | undefined {
   switch (step) {
     case "site":
       if (typeof b.domain !== "string" || typeof b.category !== "string") return undefined;
-      return { step, domain: b.domain, category: b.category };
+      return { step, domain: b.domain, category: b.category, ...(typeof b.locale === "string" ? { locale: b.locale } : {}) };
     case "business": {
       // #970: a record of list name to strings. A key the tuple does not
       // name is dropped rather than refused — the browser cannot invent a
@@ -176,6 +176,9 @@ function parseSubmission(body: unknown): SetupSubmission | null {
     destination,
     voiceText: typeof b.voiceText === "string" ? b.voiceText : "",
     timezone: typeof b.timezone === "string" ? b.timezone : null,
+    // D66: the country and language. A value that is not on the list is the
+    // store's to ignore, never a refusal of the founder's answers.
+    ...(typeof b.locale === "string" ? { locale: b.locale } : {}),
   };
 }
 

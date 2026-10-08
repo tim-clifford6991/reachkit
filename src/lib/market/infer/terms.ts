@@ -133,7 +133,7 @@ export function unsearched(market: Pick<MarketConclusion, "category" | "synonyms
 function buyerPhrase(answer: string): string {
   const text = answer.replace(/\s+/g, " ").trim().replace(/[.?!]+$/, "");
   const words = text.split(" ").filter((w) => w.length > 3);
-  const titled = words.length > 1 && words.every((w) => /^[A-Z][a-z]+$/.test(w));
+  const titled = words.length > 1 && words.every((w) => /^\p{Lu}\p{Ll}+$/u.test(w));
   return titled ? text.toLowerCase() : text;
 }
 

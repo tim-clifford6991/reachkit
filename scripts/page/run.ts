@@ -30,6 +30,8 @@
 //
 // It prints the page's path, each check's result and the cost, and writes
 // the page as Markdown and its pack as JSON under `--out`.
+import { DEFAULT_LOCALE, localeOf, type Language } from "@/lib/locale/locales";
+import { slugify } from "@/lib/opportunities/derive/candidate";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { CAPS, EFFORT_BY_TYPE, RESEARCH } from "@/lib/config/constants";
@@ -88,7 +90,13 @@ function reviveResearch(cached: CachedResearch): CachedResearch {
 
 const SITE_ID = "00000000-0000-4000-8000-000000000001";
 const cents = (n: number): string => `${n.toFixed(2)}¢`;
-const slugOf = (text: string): string => text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+const slugOf = (text: string): string => slugify(text).slice(0, 60);
+
+/** Each type's topic where `--topic` names none, in the site's language. */
+const DEFAULT_TOPIC: Readonly<Record<Language, (category: string) => Record<ContentType, string>>> = {
+  en: (category) => ({ listicle: `best ${category} tools`, how_to: `how to choose ${category}`, documentation: `what is ${category}`, research: `${category} statistics`, qa: `${category} questions`, insights: `${category} news`, update: "" }),
+  de: (category) => ({ listicle: `beste ${category}`, how_to: `wie finde ich ${category}`, documentation: `was ist ${category}`, research: `${category} statistik`, qa: `${category} fragen`, insights: `${category} neuigkeiten`, update: "" }),
+};
 
 /** The opportunity type a tested page is written as: an update refreshes a
  *  live page, every other type is a new page for its question. */
@@ -216,12 +224,15 @@ export async function main(opts: Options): Promise<number> {
     (report.rivals.kind === "unmeasured" ? [] : report.rivals.value.map((rival) => rival.domain));
   const businessName = profile.brandTokens[0] ?? snapshot.siteProfile?.siteName ?? opts.site;
 
+  // D66: the site's own country and language, as the export carried them.
+  const locale = localeOf(snapshot.site?.country, snapshot.site?.language) ?? DEFAULT_LOCALE;
+
   // 1. Decide.
   const live = type === "update" ? ((snapshot.written ?? []).find((page) => opts.topic === null || page.question === opts.topic) ?? null) : null;
   const topic =
     opts.topic ??
     live?.question ??
-    { listicle: `best ${category} tools`, how_to: `how to choose ${category}`, documentation: `what is ${category}`, research: `${category} statistics`, qa: `${category} questions`, insights: `${category} news`, update: "" }[type];
+    DEFAULT_TOPIC[locale.language](category)[type];
   const at = report.verdict.measuredAt;
   const opportunityType = OPPORTUNITY_TYPE[type];
   const volume = measured(0, at);
@@ -306,6 +317,7 @@ export async function main(opts: Options): Promise<number> {
         links,
         live: live === null ? null : { url: live.url, title: live.title, markdown: live.markdown, why: "age" },
         now: new Date(),
+        locale,
       });
     const packFile = path.join(opts.root, ".review/page/packs", `${opts.site}.${type}.${slugOf(topic)}.json`);
     // The research is what is cached: its reads and its model calls are what
@@ -317,6 +329,7 @@ export async function main(opts: Options): Promise<number> {
         ? NO_RESEARCH
         : await researchMarket(cost, {
             siteId: SITE_ID,
+            locale,
             domain: opts.site,
             searches: targetSearches(opportunity),
             report,

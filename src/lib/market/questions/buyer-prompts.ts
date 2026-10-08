@@ -7,13 +7,11 @@
 // Pure: no I/O. The prompts are what the engines are asked, never a
 // customer-visible sentence, and they are never counted in the score — the
 // twelve stay the AI measure until D19 takes effect (§6).
+import { languagePack } from "@/lib/locale/language";
+import type { Language } from "@/lib/locale/locales";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 
 type Market = Pick<MarketConclusion, "category" | "synonyms" | "buyer" | "job" | "rivals">;
-
-function lowerFirst(text: string): string {
-  return text.length === 0 ? text : text[0]!.toLowerCase() + text.slice(1);
-}
 
 function clean(text: string): string {
   return text.replace(/\s+/g, " ").trim().replace(/[.?!]+$/, "");
@@ -25,19 +23,20 @@ function clean(text: string): string {
  * standing rival. Distinct by wording; empty where the market names no
  * category.
  */
-export function buyerPrompts(market: Market, max: number): string[] {
+export function buyerPrompts(market: Market, max: number, language: Language = "en"): string[] {
+  const wording = languagePack(language).buyerPrompts;
   const category = clean(market.category);
   if (category === "" || max <= 0) return [];
   const out: string[] = [];
   const add = (prompt: string): void => {
     if (!out.some((held) => held.toLowerCase() === prompt.toLowerCase())) out.push(prompt);
   };
-  add(`What are the best ${category} tools?`);
-  for (const synonym of market.synonyms.map(clean).filter(Boolean)) add(`What are the best ${synonym} tools?`);
+  add(wording.best(category));
+  for (const synonym of market.synonyms.map(clean).filter(Boolean)) add(wording.best(synonym));
   const buyer = clean(market.buyer);
-  if (buyer !== "") add(`Which ${category} tool is best for ${buyer}?`);
+  if (buyer !== "") add(wording.forBuyer(category, buyer));
   const job = clean(market.job);
-  if (job !== "") add(`Which tools help me ${lowerFirst(job)}?`);
-  for (const rival of market.rivals) add(`What are the best alternatives to ${clean(rival.name) || rival.domain}?`);
+  if (job !== "") add(wording.job(job));
+  for (const rival of market.rivals) add(wording.alternatives(clean(rival.name) || rival.domain));
   return out.slice(0, max);
 }

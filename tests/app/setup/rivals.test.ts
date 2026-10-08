@@ -128,7 +128,7 @@ describe("direct purchase — the founder states the market, and competitors_dom
     const row = db.tables.scans![0]!;
     expect(row).toMatchObject({ tier: "deep", status: "running", site_id: "site-1", domain: "founder.io" });
     expect(opened).toEqual([{ scanId: row.id, cap: "DEEP", policyVersion: 1, rollUp: "add" }]);
-    expect(competitorsDomain).toHaveBeenCalledWith(expect.anything(), { domain: "founder.io" });
+    expect(competitorsDomain).toHaveBeenCalledWith(expect.anything(), { domain: "founder.io", locale: { country: "US", language: "en" } });
   });
 
   it("giving the address claims the row before any market exists, and seeks nothing (REQ-026 c10)", async () => {
@@ -213,7 +213,7 @@ describe("issue 838 — a report that found no rivals still offers them", () => 
       "rival-one.com",
       "rival-two.com",
     ]);
-    expect(competitorsDomain).toHaveBeenCalledWith(expect.anything(), { domain: "example.com" });
+    expect(competitorsDomain).toHaveBeenCalledWith(expect.anything(), { domain: "example.com", locale: { country: "US", language: "en" } });
     expect(db.tables.scans).toHaveLength(1);
     const row = db.tables.scans![0]!;
     expect(row).toMatchObject({ tier: "deep", status: "running", site_id: "site-1", domain: "example.com" });

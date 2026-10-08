@@ -1,0 +1,178 @@
+// src/lib/locale/read.ts — a site's country and language, read from its own
+// address and home page (SPEC §6, owner D66 of 2026-10-07, issue 1311).
+//
+// Five signals, the ones D66 names: the country domain, `<html lang>`, the
+// currency, the address and the phone prefix. Each names a country or
+// nothing; the country is the one the strongest signal names. The language
+// is the page's own `lang`, else the country's.
+//
+// Pure: it reads the bytes it is handed. No fetch, no model call, no clock.
+import { parse } from "node-html-parser";
+import { COUNTRIES, resolveLocale, type Country, type LocaleReading, type ResolvedLocale } from "./locales";
+
+/** Country endings sold as generic names: they say nothing of where a
+ *  business is. */
+const GENERIC_CC_TLDS: ReadonlySet<string> = new Set([
+  "ai", "io", "co", "me", "tv", "cc", "fm", "ly", "gg", "to", "sh", "so", "im", "la", "ws", "vc", "eu",
+]);
+
+const TLD_COUNTRY: ReadonlyMap<string, string> = new Map(
+  (Object.keys(COUNTRIES) as Country[]).flatMap((country) => COUNTRIES[country].tlds.map((tld) => [tld, country] as const))
+);
+
+/** The country an address's ending names: `.de`, `.co.uk`, `.com.au`. A
+ *  generic ending names none; another country's two letters name it. */
+export function countryOfDomain(domain: string): string | null {
+  const tld = domain.toLowerCase().replace(/\.$/, "").split(".").pop() ?? "";
+  if (!/^[a-z]{2}$/.test(tld) || GENERIC_CC_TLDS.has(tld)) return null;
+  return TLD_COUNTRY.get(tld) ?? tld.toUpperCase();
+}
+
+/** `de-AT` → German, Austria. `en` → English, no country. */
+function ofLangTag(tag: string | undefined): LocaleReading {
+  const match = /^\s*([a-z]{2,3})(?:[-_]([a-z]{2}))?\b/i.exec(tag ?? "");
+  if (match === null) return { country: null, language: null };
+  return { language: match[1]!.toLowerCase(), country: match[2] === undefined ? null : match[2].toUpperCase() };
+}
+
+const PHONE_COUNTRY: ReadonlyMap<string, Country> = new Map(
+  (Object.keys(COUNTRIES) as Country[]).flatMap((country) => {
+    const prefix = COUNTRIES[country].phone;
+    return prefix === null ? [] : [[prefix, country] as const];
+  })
+);
+/** Longest first, so `+353` is Ireland and never `+35…`. */
+const PHONE_PREFIXES = [...PHONE_COUNTRY.keys()].sort((a, b) => b.length - a.length);
+
+/** The country the first international number names. `+1` names two
+ *  countries, so it names none. */
+function countryOfPhone(text: string): Country | null {
+  for (const match of text.matchAll(/(?:\+|\b00)\s?(\d[\d\s().\-/]{6,18}\d)/g)) {
+    const digits = match[1]!.replace(/\D/g, "");
+    const prefix = PHONE_PREFIXES.find((each) => digits.startsWith(each));
+    if (prefix !== undefined) return PHONE_COUNTRY.get(prefix)!;
+  }
+  return null;
+}
+
+function escaped(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** The country whose own currency mark the page shows most. The dollar and
+ *  the euro belong to no one country and are not read. */
+function countryOfCurrency(text: string): Country | null {
+  let best: { country: Country; count: number } | null = null;
+  for (const country of Object.keys(COUNTRIES) as Country[]) {
+    let count = 0;
+    for (const mark of COUNTRIES[country].currency) {
+      const pattern = /^[A-Z]{3}$/.test(mark) ? `\\b${mark}\\b` : escaped(mark);
+      count += [...text.matchAll(new RegExp(`${pattern}\\s?\\d|\\d\\s?${pattern}`, "g"))].length;
+    }
+    if (count > 0 && (best === null || count > best.count)) best = { country, count };
+  }
+  return best?.country ?? null;
+}
+
+/** How each country writes a postcode beside a town, where that is its own:
+ *  a British postcode, a Canadian one, an Australian state and its four
+ *  digits. The five German digits are also Austria's four and Switzerland's,
+ *  near enough, so those are told apart by the country's name. */
+const POSTCODES: readonly (readonly [Country, RegExp])[] = [
+  ["GB", /\b[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}\b/],
+  ["CA", /\b[ABCEGHJ-NPRSTVXY]\d[A-Z] \d[A-Z]\d\b/],
+  ["AU", /\b(?:NSW|VIC|QLD|TAS|ACT)\s+\d{4}\b/],
+];
+
+/** The country an address on the page names: its name on an address line,
+ *  or a postcode only that country writes. A country named in a sentence
+ *  ("we ship to Canada") is no address: the name counts where it is a line
+ *  of its own, or shares a short line with a postcode. */
+function countryOfAddress(text: string): Country | null {
+  const lines = text.split("\n").map((line) => line.trim()).filter((line) => line !== "" && line.length <= 80);
+  let best: { country: Country; count: number } | null = null;
+  for (const country of Object.keys(COUNTRIES) as Country[]) {
+    const names = COUNTRIES[country].names.map(escaped).join("|");
+    const alone = new RegExp(`^(?:${names})$`, "iu");
+    const within = new RegExp(`(?<![\\p{L}])(?:${names})(?![\\p{L}])`, "u");
+    const count = lines.filter((line) => alone.test(line) || (/\b\d{4,5}\b/.test(line) && within.test(line))).length;
+    if (count > 0 && (best === null || count > best.count)) best = { country, count };
+  }
+  if (best !== null) return best.country;
+  for (const [country, pattern] of POSTCODES) if (pattern.test(text)) return country;
+  return null;
+}
+
+/** The words only one language uses all the time. A page is in the language
+ *  whose words it mostly uses, whatever its `lang` attribute was left at. */
+const FUNCTION_WORDS: Readonly<Record<string, ReadonlySet<string>>> = Object.freeze({
+  en: new Set(["the", "and", "for", "with", "our", "you", "your", "are", "from", "that", "this", "have", "we", "of"]),
+  de: new Set(["und", "der", "die", "das", "für", "mit", "nicht", "wir", "sie", "ist", "unsere", "auf", "von", "eine", "sich", "auch"]),
+});
+const WORDS_TO_DECIDE = 12;
+
+/** The supported language the page's own words are in, or `null` where
+ *  there are too few to say or no one language leads three to one. */
+export function languageOfText(text: string): string | null {
+  const counts = new Map<string, number>();
+  for (const word of text.toLowerCase().match(/\p{L}+/gu) ?? []) {
+    for (const [language, words] of Object.entries(FUNCTION_WORDS)) {
+      if (words.has(word)) counts.set(language, (counts.get(language) ?? 0) + 1);
+    }
+  }
+  const ranked = [...counts].sort((a, b) => b[1] - a[1]);
+  const [first, second] = ranked;
+  if (first === undefined || first[1] < WORDS_TO_DECIDE) return null;
+  return second === undefined || first[1] >= 3 * second[1] ? first[0] : null;
+}
+
+/** `addressCountry` out of the page's structured data: the one place a
+ *  site states its country as a field. */
+function countryOfStructuredData(html: string): string | null {
+  const match = /"addressCountry"\s*:\s*(?:"([^"]{2,40})"|\{[^}]*?"name"\s*:\s*"([^"]{2,40})")/i.exec(html);
+  const value = (match?.[1] ?? match?.[2] ?? "").trim();
+  if (value === "") return null;
+  if (/^[A-Za-z]{2}$/.test(value)) return value.toUpperCase() === "UK" ? "GB" : value.toUpperCase();
+  for (const country of Object.keys(COUNTRIES) as Country[]) {
+    if (COUNTRIES[country].names.some((name) => name.toLowerCase() === value.toLowerCase())) return country;
+  }
+  return null;
+}
+
+/**
+ * What the site says of itself (D66). The country, strongest signal first:
+ * its country domain, the country its structured data states, the phone
+ * prefix, the address, the region of `<html lang>`, the currency. The
+ * language is the one the page's own words are in, where they say; else
+ * `<html lang>`'s. Many sites leave `lang` at their builder's "en-US".
+ *
+ * `html` is `null` where the home page was not read: the address alone is
+ * read then.
+ */
+export function readLocaleSignals(a: { domain: string; html: string | null }): LocaleReading {
+  const fromDomain = countryOfDomain(a.domain);
+  if (a.html === null) return { country: fromDomain, language: null };
+
+  const root = parse(a.html, { blockTextElements: { script: false, style: false, noscript: false } });
+  const lang = ofLangTag(root.querySelector("html")?.getAttribute("lang"));
+  const telephones = root.querySelectorAll('a[href^="tel:"]').map((link) => link.getAttribute("href") ?? "").join(" ");
+  const text = root.querySelector("body")?.structuredText ?? root.structuredText;
+
+  // A `lang` the page's own words contradict says nothing of its country either.
+  const written = languageOfText(text);
+  const langHolds = written === null || written === lang.language;
+  const country =
+    fromDomain ??
+    countryOfStructuredData(a.html) ??
+    countryOfPhone(`${telephones} ${text}`) ??
+    countryOfAddress(text) ??
+    (langHolds ? lang.country : null) ??
+    countryOfCurrency(text);
+  return { country, language: written ?? lang.language };
+}
+
+/** The supported locale a site is measured in, read from its address and
+ *  home page, and what of the reading is not measured. */
+export function readLocale(a: { domain: string; html: string | null }): ResolvedLocale {
+  return resolveLocale(readLocaleSignals(a));
+}

@@ -126,6 +126,8 @@ function measurement(over: Partial<DomainMeasurement> = {}): DomainMeasurement {
     robots: measured(ROBOTS, AT),
     ownRanked: measuredZero(0, AT),
     ownRankedRows: [],
+    locale: { country: "US", language: "en" },
+    localeFellBack: null,
     homeRefusal: null,
     ...over,
   };
@@ -211,7 +213,31 @@ describe("the six stages", () => {
 
   it("seeds the market on the founder's confirmed category ahead of the inferred one — still one seed (#767)", async () => {
     await runScan({ domain: DOMAIN, tier: "free", category: "employee scheduling software" });
-    expect(deriveMarketSet).toHaveBeenCalledWith(expect.anything(), { seeds: ["employee scheduling software"], ownRanked: expect.any(Number) });
+    expect(deriveMarketSet).toHaveBeenCalledWith(expect.anything(), { seeds: ["employee scheduling software"], ownRanked: expect.any(Number), locale: { country: "US", language: "en" } });
+  });
+
+  // SPEC §6, owner D66 (issue 1311).
+  it("D66 — a German site is asked about in Germany, in German, by every read of the pass, and its report says where", async () => {
+    const DE = { country: "DE", language: "de" } as const;
+    measureDomain.mockResolvedValue(measurement({ locale: DE }));
+    await runScan({ domain: DOMAIN, tier: "free" });
+
+    expect(deriveProfile).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ locale: DE }));
+    expect(deriveMarketSet).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ locale: DE }));
+    expect(serpOrganic.mock.calls.length).toBeGreaterThan(0);
+    for (const [, call] of serpOrganic.mock.calls as [unknown, { locale: unknown }][]) expect(call.locale).toEqual(DE);
+    expect(storedReport().locale).toEqual(DE);
+  });
+
+  it("D66 — a report measured in the United States in English records no locale, and one that fell back says from what", async () => {
+    await runScan({ domain: DOMAIN, tier: "free" });
+    expect(storedReport().locale).toBeUndefined();
+
+    measureDomain.mockResolvedValue(
+      measurement({ locale: { country: "GB", language: "en" }, localeFellBack: { country: "FR", language: "fr" } })
+    );
+    await runScan({ domain: DOMAIN, tier: "free" });
+    expect(storedReport().locale).toEqual({ country: "GB", language: "en", fellBack: { country: "FR", language: "fr" } });
   });
 
   it("issue 866 — the stored report records the category the pass measured under", async () => {

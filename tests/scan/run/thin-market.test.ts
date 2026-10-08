@@ -103,6 +103,8 @@ const MEASUREMENT: DomainMeasurement = {
   // A new site: it ranks for almost nothing.
   ownRanked: measured(1, AT),
   ownRankedRows: [{ keyword: "saas onboarding tool", position: 40, searchVolume: 10, url: "https://example.com/" }],
+  locale: { country: "US", language: "en" },
+  localeFellBack: null,
   homeRefusal: null,
 };
 

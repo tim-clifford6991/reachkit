@@ -12,7 +12,7 @@
 import type React from "react";
 import Link from "next/link";
 import { Clock, RefreshCw } from "lucide-react";
-import { copy } from "@/lib/presentation/copy";
+import { copy } from "@/lib/presentation/copy/reader";
 import { QuietPage } from "@/app/_quiet/QuietCard";
 import LandingPage from "@/app/(public)/page";
 import { ReportView } from "./report-view";

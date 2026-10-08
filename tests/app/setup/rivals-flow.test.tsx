@@ -225,7 +225,7 @@ describe("issue 838 — a report that found no rivals: the card asks, and compet
 
     await until(() => offered(root).length > 0, COLD_ROUTE_MS);
     expect(offered(root)).toEqual(["surferseo.com"]);
-    expect(competitorsDomain).toHaveBeenCalledWith(expect.anything(), { domain: "example.com" });
+    expect(competitorsDomain).toHaveBeenCalledWith(expect.anything(), { domain: "example.com", locale: { country: "US", language: "en" } });
     expect(db.tables.scans).toHaveLength(1);
   });
 
@@ -257,6 +257,7 @@ describe("SPEC §5 (2026-09-20) — each step saves as it is left", () => {
         step: "site",
         domain: "example.com",
         category: "project management software for agencies",
+        locale: "US/en",
       },
     ]);
     expect(at(root)).toBe("business");
@@ -321,7 +322,7 @@ describe("direct purchase — address, then market, then rivals", () => {
 
     await until(() => offered(root).length > 0);
     expect(offered(root)).toEqual(["rival-one.com", "rival-two.com"]);
-    expect(competitorsDomain).toHaveBeenCalledWith(expect.anything(), { domain: "founder.io" });
+    expect(competitorsDomain).toHaveBeenCalledWith(expect.anything(), { domain: "founder.io", locale: { country: "US", language: "en" } });
     expect(db.tables.scans).toHaveLength(1);
   });
 

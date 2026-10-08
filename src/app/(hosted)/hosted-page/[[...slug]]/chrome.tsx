@@ -6,7 +6,7 @@
 // primary colour: the product's colour would be our branding on their page.
 import type React from "react";
 import { ArrowUpRight } from "lucide-react";
-import { copy } from "@/lib/presentation/copy";
+import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedIdentity } from "@/lib/publish/destinations/hosted";
 import { QUIET_LINE } from "./present";
 

@@ -38,7 +38,8 @@
 //
 // The Fix family keeps its own predicate (`fixPageReadiness`): its readiness
 // is a question about the destination, not about the market.
-import { FORMAT_PAGE_ALLOWED, KEYWORD_PAGE_MIN_VOLUME, TOPIC_FIT } from "@/lib/config/constants";
+import { SHAPES } from "@/lib/locale/language";
+import { KEYWORD_PAGE_MIN_VOLUME, TOPIC_FIT } from "@/lib/config/constants";
 import { classifyIntent } from "@/lib/market/questions/select";
 import type { Profile } from "@/lib/market/questions/profile";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
@@ -90,7 +91,7 @@ const COMMERCIAL_INTENTS: ReadonlySet<string> = new Set(["decision", "solution"]
 
 /** The format words, as whole words, plural or not — the pin's four and
  *  the owner's "vs". */
-const FORMAT_WORDS = new RegExp(`\\b(?:${[...FORMAT_PAGE_ALLOWED, "vs", "versus"].join("|")})s?\\b`, "i");
+const FORMAT_WORDS = SHAPES.format;
 
 function volumeOf(o: Opportunity): number {
   return o.volume === null || o.volume.kind === "unmeasured" ? 0 : o.volume.value;

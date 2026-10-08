@@ -10,7 +10,8 @@
 //
 // No sentence is written here: every string is the copy registry's, and
 // the unit word around the wait figure is the owner's too.
-import { copy, type CopyKey } from "@/lib/presentation/copy";
+import type { CopyKey } from "@/lib/presentation/copy";
+import { copy } from "@/lib/presentation/copy/reader";
 import type { AddressRefusal } from "./state";
 
 /** One key per reason. `satisfies` over the union means a reason added to

@@ -20,6 +20,7 @@
 //      substituted for it — a test that survives deleting that pass-through
 //      would turn an unreadable home page into a paid call over invented
 //      output.
+import type { Language, Locale } from "@/lib/locale/locales";
 import { z } from "zod";
 import type { CostContext } from "@/lib/costs";
 import type { Measured } from "@/lib/measure/measured";
@@ -35,6 +36,11 @@ export interface Profile {
   namedRivals: readonly string[]; // rivals the site itself names
   vocabulary: readonly string[]; // the relevance guard's support set
   brandTokens: readonly string[]; // the own-brand drop set
+  /** The language the site's buyers search in (SPEC §6, owner D66, issue
+   *  1311), where that is not English: the selection reads a search's stop
+   *  words, endings and compounds by it. Never asked of the model — the
+   *  pass sets it from the site's locale. Absent is English. */
+  language?: Language;
 }
 
 /**
@@ -106,7 +112,7 @@ function listOf(bounds: { readonly min: number; readonly max: number }, what: st
  *  attempt that parsed was luck. One key per schema field, in the
  *  schema's own order; `tests/market/questions/profile.test.ts` asserts
  *  the key set and every list's bounds against the schema itself. */
-export const PROFILE_FIELDS: Readonly<Record<keyof Profile, string>> = Object.freeze({
+export const PROFILE_FIELDS: Readonly<Record<Exclude<keyof Profile, "language">, string>> = Object.freeze({
   category:
     "one string: the product category in the words a buyer would type into Google, not the site's own marketing language",
   job: "one string: the job the product does for the person who buys it",
@@ -181,19 +187,23 @@ export function boundPageText(
  *  failure; this function does not retry again). */
 export function deriveProfile(
   c: CostContext,
-  a: { home: string; pricing?: string }
+  a: { home: string; pricing?: string; locale?: Locale }
 ): Promise<Measured<Profile>> {
   const pages = boundPageText(a, PROFILE_INPUT_MAX_CHARS);
-  return llm(c, {
+  const language = a.locale?.language ?? "en";
+  return llm<Profile>(c, {
     site: "profile",
     // The fixed instruction, then the customer's own two pages and nothing
     // else of theirs: no keyword, no search term, no selection state.
     input: { task: PROFILE_TASK, fields: PROFILE_FIELDS, home: pages.home, pricing: pages.pricing },
     schema: PROFILE_SCHEMA,
     tier: "nano",
+    ...(a.locale === undefined ? {} : { locale: a.locale }),
   }).then((result) => {
     logProfileOutcome(result);
-    return result;
+    // The profile carries its language where that is not English, so every
+    // later reader of a stored report reads its searches the same way.
+    return result.kind === "unmeasured" || language === "en" ? result : { ...result, value: { ...result.value, language } };
   });
 }
 

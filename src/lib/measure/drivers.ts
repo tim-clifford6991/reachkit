@@ -307,7 +307,7 @@ function hostOf(reference: string): string {
  *  a query word. */
 function tokensOf(reference: string): readonly string[] {
   return asciiLowerCase(reference)
-    .split(/[^a-z0-9]+/)
+    .split(/[^\p{L}\p{N}]+/u)
     .filter((token) => token.length > 0);
 }
 

@@ -40,7 +40,7 @@ async function ask(cached: boolean): Promise<Measured<import("../../src/lib/vend
   const context = cached
     ? cachedCostContext(() => cachedPayload(), STORED_AT)
     : fakeCostContext();
-  return serpOrganic(context.ctx, {
+  return serpOrganic(context.ctx, { locale: { country: "US", language: "en" },
     query: "best user onboarding software",
     mode: "live",
     loadAsyncAiOverview: true,

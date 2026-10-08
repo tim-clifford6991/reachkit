@@ -51,6 +51,7 @@
 // where every keyword it asks was read before. Anything else is a call the
 // stored pass did not make: `--replay` refuses it and lists it; `--live`
 // buys it, inside the cap, and keeps it in `<first 8>.live.json`.
+import { DEFAULT_LOCALE, localeOf } from "@/lib/locale/locales";
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -382,6 +383,9 @@ export async function main(o: Options): Promise<number> {
   const { snapshot, bought, boughtFile } = readSnapshot(o);
   const { scan } = snapshot;
   const siteId = snapshot.site.id;
+  // D66: the replay measures in the country and language the site holds.
+  const stored = snapshot.site as { country?: unknown; language?: unknown };
+  const locale = localeOf(stored.country, stored.language) ?? DEFAULT_LOCALE;
   const start = startingState(snapshot);
 
   console.log(`Pass ${short(scan.id)} of ${o.site} (${scan.tier}, ${scan.created_at.slice(0, 16).replace("T", " ")} UTC, stored cost ${cents(Number(scan.cost_cents))})`);
@@ -445,12 +449,12 @@ export async function main(o: Options): Promise<number> {
         ...(limit === undefined ? {} : { limit }),
       });
     await withStoredPassSpend({ scanId: scan.id, cap: "DEEP" }, async (cost) => {
-      const first = await deriveMarketSet(cost, { seeds: seeds.slice(0, 1 + upfront), ownRanked: ownRankedNow });
+      const first = await deriveMarketSet(cost, { seeds: seeds.slice(0, 1 + upfront), ownRanked: ownRankedNow, locale });
       if (first.kind !== "unmeasured") suggestions = [...first.value];
       measured = select();
       for (const seed of seeds.slice(1 + upfront, 1 + SELECTION.maxExtraSeeds)) {
         if (!isShort(measured)) break;
-        const more = await deriveMarketSet(cost, { seeds: [seed], ownRanked: ownRankedNow });
+        const more = await deriveMarketSet(cost, { seeds: [seed], ownRanked: ownRankedNow, locale });
         if (more.kind !== "unmeasured") suggestions = [...suggestions, ...more.value.filter((row) => !suggestions.some((held) => held.keyword === row.keyword))];
         measured = select();
       }
@@ -472,10 +476,10 @@ export async function main(o: Options): Promise<number> {
   const ownRanked = ownRankedNow;
   let topTens = { inTopTens: 0, domains: [] as string[] };
   await withStoredPassSpend({ scanId: scan.id, cap: "DEEP" }, async (cost) => {
-    const sized = await sizeRivals(cost, { rivals: tracked, ownRanked, at });
+    const sized = await sizeRivals(cost, { rivals: tracked, ownRanked, at, locale });
     const alreadySized = new Set(sized.kind === "unmeasured" ? [] : sized.value.flatMap((size) => (size.state === "sized" && size.current ? [size.domain] : [])));
     topTens = serpDomainsToSize({ serps, ownDomain: o.site, market: marketBefore, answers: report.marketPrompts ?? [], alreadySized, max: SERP_RIVAL_SIZING.candidatesMax });
-    await sizeRivals(cost, { rivals: topTens.domains, ownRanked, at, neverSizedBecause: "budget_reached" });
+    await sizeRivals(cost, { rivals: topTens.domains, ownRanked, at, neverSizedBecause: "budget_reached", locale });
   });
 
   // 2. After the report: rivals, prompts, topics and prune, health.
@@ -594,7 +598,7 @@ export async function main(o: Options): Promise<number> {
   if (usesOld.length > 0) for (const prompt of usesOld) say(`  uses the category or the job: ${prompt.text}`);
 
   // ── The acceptance list (issue 1301) ─────────────────────────────────────
-  const padded = (text: string): string => ` ${text.toLowerCase().replace(/[^a-z0-9]+/g, " ")} `;
+  const padded = (text: string): string => ` ${text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ")} `;
   const current = new Set(names.map((name) => name.toLowerCase()));
   const strangers = naming.filter((prompt) => everNamed.some((name) => !current.has(name.toLowerCase()) && name.length > 2 && padded(prompt.text).includes(padded(name))));
   const inOrder = rivals.every((rival, i) => i === 0 || (rivals[i - 1]!.volume ?? 0) >= (rival.volume ?? 0));

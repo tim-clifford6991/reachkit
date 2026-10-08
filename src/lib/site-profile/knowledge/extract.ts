@@ -19,6 +19,7 @@
 // pages are asked in `readFirstRank` order, so what is left out is what
 // mattered least. A page whose text has not changed keeps its stored
 // reading and costs nothing.
+import type { Locale } from "@/lib/locale/locales";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { INFERENCE_MAX_OUTPUT_TOKENS, KNOWLEDGE_BASE } from "@/lib/config/constants";
@@ -245,7 +246,7 @@ export interface KnowledgeRead {
  */
 export async function readKnowledge(
   c: CostContext,
-  a: { domain: string; pages: readonly KnowledgePage[]; previous: StoredKnowledge; now?: Date }
+  a: { domain: string; pages: readonly KnowledgePage[]; previous: StoredKnowledge; now?: Date; locale?: Locale }
 ): Promise<KnowledgeRead> {
   const deadline = Date.now() + KNOWLEDGE_BASE.STEP_MS;
   const before = new Map(a.previous.pages.map((page) => [`${page.url}\n${page.hash}`, page]));
@@ -295,6 +296,7 @@ export async function readKnowledge(
         },
         schema: PAGE_READING_SCHEMA,
         tier: "nano",
+        ...(a.locale === undefined ? {} : { locale: a.locale }),
       });
       reserved -= worst;
       if (answer.kind === "unmeasured") {

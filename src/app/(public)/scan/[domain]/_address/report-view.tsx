@@ -27,8 +27,10 @@
 import type React from "react";
 import { CircleAlert } from "lucide-react";
 import { Surface } from "@/ui/layout";
-import { copy, type CopyKey } from "@/lib/presentation/copy";
+import type { CopyKey } from "@/lib/presentation/copy";
+import { copy, readerLanguage } from "@/lib/presentation/copy/reader";
 import type { ScoreFactorName } from "@/lib/measure/score";
+import { measuredLocale } from "@/lib/locale/locales";
 import type { StoredReport } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
@@ -57,8 +59,11 @@ import { categoryOf, trainingOptOutOf } from "@/lib/scan/sections";
 
 /** BUILD §6.3a / DECISIONS 2026-08-28: MVP is US-English only, one
  *  location constant, so the date a report was measured is formatted once,
- *  here, in that one locale. */
-const REPORT_LOCALE = "en-US";
+ *  here, in that one locale. Since D66 (SPEC §6, issue 1311) the locale is
+ *  the report's own: the country and language it was measured in. */
+function reportTag(): string {
+  return readerLanguage() === "de" ? "de-DE" : "en-US";
+}
 
 /** The factor's own name, for the notice line that lists what was not
  *  measured. The same three keys the verdict strip's own missing-factor
@@ -71,7 +76,7 @@ const FACTOR_NAME_KEY: Readonly<Record<ScoreFactorName, CopyKey>> =
   });
 
 function formatMeasuredOn(at: Date): string {
-  return at.toLocaleDateString(REPORT_LOCALE, {
+  return at.toLocaleDateString(reportTag(), {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -142,6 +147,57 @@ function noticeOf(notice: AddressNotice): { line: string; warn: boolean } {
       return exhaustive;
     }
   }
+}
+
+/**
+ * SPEC §6 (owner D66, issue 1311): where the site said a country or a
+ * language ReachKit does not measure yet, the report was measured in the
+ * nearest supported country in English, and says so in one line. Nothing is
+ * drawn for a report measured in what its site said.
+ */
+function MeasuredInLine(p: { report: StoredReport }): React.JSX.Element | null {
+  const fellBack = p.report.locale?.fellBack;
+  if (fellBack === undefined) return null;
+  const measured = measuredLocale(p.report);
+  const tag = reportTag();
+  const countries = new Intl.DisplayNames(tag, { type: "region" });
+  const languages = new Intl.DisplayNames(tag, { type: "language" });
+  const named = (code: string, names: Intl.DisplayNames): string => {
+    try {
+      return names.of(code) ?? code;
+    } catch {
+      return code;
+    }
+  };
+  const country = fellBack.country === null ? null : named(fellBack.country, countries);
+  const language = fellBack.language === null ? null : named(fellBack.language, languages);
+  const unmeasured =
+    country !== null && language !== null
+      ? copy("report.locale.site.pair", { country, language })
+      : (country ?? language);
+  if (unmeasured === null) return null;
+  return (
+    <p className="col-span-full text-sm text-base-content/70" data-testid="report-measured-in">
+      {copy("report.locale.fell-back", {
+        country: named(measured.country, countries),
+        language: named(measured.language, languages),
+        unmeasured,
+      })}
+    </p>
+  );
+}
+
+/** SPEC §2's measurement line for a report measured outside US Google in
+ *  English (D66); `null` for one measured there, whose line is unchanged. */
+function measurementLine(report: StoredReport): string | null {
+  if (report.locale === undefined) return null;
+  const measured = measuredLocale(report);
+  if (measured.country === "US" && measured.language === "en") return null;
+  const tag = reportTag();
+  return copy("report.measurement.in", {
+    country: new Intl.DisplayNames(tag, { type: "region" }).of(measured.country) ?? measured.country,
+    language: new Intl.DisplayNames(tag, { type: "language" }).of(measured.language) ?? measured.language,
+  });
 }
 
 function NoticeLine(p: { notice: AddressNotice | null }): React.JSX.Element | null {
@@ -233,6 +289,7 @@ export function ReportView(p: {
 }): React.JSX.Element {
   const { report, notice, control, correction } = p.state;
   const measuredOn = formatMeasuredOn(report.verdict.measuredAt);
+  const measurement = measurementLine(report);
   const cards = cardsOf(report, unblockLines(report.blockedAgents));
   const cutOff = cutByCeiling(report);
 
@@ -296,6 +353,7 @@ export function ReportView(p: {
             hands the bar this address. REQ-001 c7 is unchanged — the
             control is on the screen that owns the address — and it is on it
             once. */}
+        <MeasuredInLine report={report} />
         <div className="col-span-full">
           {/* SPEC §2's measurement line is in the card, beside the date
               (#1068). */}
@@ -304,6 +362,7 @@ export function ReportView(p: {
             category={categoryOf(report.market)}
             measuredOn={measuredOn}
             correction={correction}
+            {...(measurement === null ? {} : { measurement })}
           />
         </div>
 

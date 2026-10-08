@@ -17,6 +17,7 @@
 // `drafts.meta.fix` is what the update carries: the page, the checks, the
 // new values, and the values they replace — so the draft view and the
 // delivery read one record and cannot disagree about what changes.
+import { siteLocale } from "@/lib/locale/site";
 import { z } from "zod";
 import { CACHE_WINDOWS_D, SITE_PROFILE } from "@/lib/config/constants";
 import { refusalOf, type CostContext, type FetchRefusal } from "@/lib/costs";
@@ -119,11 +120,14 @@ export async function generatePageFix(
   const fixesDescription = issues.includes("meta_descriptions");
 
   if (c.capHit()) return { ok: false, reason: "step_failed", draftId: a.draftId ?? null, step: "page_fix" };
+  const locale = await siteLocale(a.siteId);
   const written = await import("@/lib/llm").then(({ llm }) =>
     llm(c, {
       site: "generate.page_fix",
       tier: "nano",
       schema: FIX_SCHEMA,
+      // D66: the customer's own page is rewritten in its own language.
+      locale,
       input: {
         task:
           "Rewrite this page's HTML title and meta description. Use only facts stated in the page " +

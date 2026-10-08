@@ -11,6 +11,7 @@
 // takes the first shape its search has, in the order below, and otherwise
 // its opportunity type's own: an Earn page and a format page compare, the
 // rest answer the questions buyers ask.
+import { SHAPES } from "@/lib/locale/language";
 import { ASSET_KIND_OF, isRetarget, type Opportunity, type OpportunityType } from "./types";
 
 export type ContentType = "listicle" | "how_to" | "documentation" | "research" | "qa" | "insights" | "update";
@@ -25,13 +26,13 @@ export const CONTENT_TYPES: readonly ContentType[] = Object.freeze([
   "update",
 ]);
 
-const LISTICLE_SHAPES = /\b(?:vs|versus|alternatives?|compare|compared|comparison|best|top|reviews?)\b/;
-const HOW_TO_SHAPES =
-  /^how (?:to|do i|do you|can i|should i)\b|\b(?:step by step|steps|set ?up|setup|install|configure|tutorial|checklist|template|troubleshoot(?:ing)?|fix)\b/;
-const INSIGHTS_SHAPES = /\b(?:news|latest|new in|what changed|changes|updates?|trends?|this (?:year|month|week))\b/;
-const RESEARCH_SHAPES = /\b(?:statistics|stats|data|study|studies|report|benchmarks?|survey|research|numbers)\b/;
-const DOCUMENTATION_SHAPES =
-  /^(?:what is|what are|how does|how do)\b|\b(?:documentation|docs|reference|explained|meaning|definition|guide|features?|api|integrations?)\b/;
+// The shapes, in every supported language at once (D66): `SHAPES` is built
+// from each language's own words.
+const LISTICLE_SHAPES = SHAPES.listicle;
+const HOW_TO_SHAPES = SHAPES.guide;
+const INSIGHTS_SHAPES = SHAPES.insights;
+const RESEARCH_SHAPES = SHAPES.research;
+const DOCUMENTATION_SHAPES = SHAPES.documentation;
 
 /** The type a new page's opportunity type gives it where its search has no
  *  shape of its own. */
@@ -53,7 +54,7 @@ export function contentTypeOf(
   if (asset === null) return null;
   if (asset === "update" && !isRetarget(o)) return "update";
   if (o.type === "comparison_page") return "listicle";
-  const text = (o.targetQuery ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const text = (o.targetQuery ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
   if (LISTICLE_SHAPES.test(text)) return "listicle";
   if (HOW_TO_SHAPES.test(text)) return "how_to";
   if (INSIGHTS_SHAPES.test(text)) return "insights";

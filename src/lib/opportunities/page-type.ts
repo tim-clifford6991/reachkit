@@ -19,6 +19,7 @@
 //
 // A leaf: the draft editor asks it in the browser, so it imports nothing
 // that reaches the database.
+import { SHAPES } from "@/lib/locale/language";
 import { contentTypeOf } from "./content-type";
 import { FAMILY_OF, isRetarget, type Opportunity, type PageType } from "./types";
 
@@ -29,7 +30,7 @@ export const PAGE_TYPES: readonly PageType[] = Object.freeze(["product", "market
 /** A search anchored on a product by its own words, whatever source it was
  *  found through — an AI-answer gap for "acme alternatives" is still a page
  *  about the product. */
-const ANCHORED_SHAPES = /\b(?:vs|versus|alternatives?|pricing|prices?|costs?)\b/;
+const ANCHORED_SHAPES = SHAPES.anchored;
 
 /** `null` for a row that writes no new page of ReachKit's: an Improve page
  *  is the customer's own, and a Fix has none. A live page of ours rewritten

@@ -111,11 +111,14 @@ export const POST = adapter("POST /api/setup/voice-sample", async (): Promise<Re
     import("@/lib/llm"),
   ]);
 
+  const locale = await (await import("@/lib/locale/site")).siteLocale(siteId);
   const written = await withCostContext(
     { scanId, cap: "DEEP", policyVersion: FREE_SCAN_POLICY_VERSION, rollUp: "add" },
     async (cost) =>
       llm(cost, {
         site: "setup.voice-sample",
+        // D66: the sample is in the language the pages will be written in.
+        locale,
         input: voiceSampleInput({
           voice,
           businessName: model.profile?.siteName ?? null,

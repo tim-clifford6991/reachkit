@@ -31,6 +31,8 @@
 // `aiPresenceOf` (`drivers.ts`) over SERPs it has already bought, then
 // hands the completed `Drivers` to `verdictOf`. Buying a SERP here would
 // spend the free path's ceiling twice on the same rows (§6.4).
+import { pagePathAlternation } from "@/lib/locale/language";
+import { readLocale, type Locale, type ResolvedLocale } from "@/lib/locale";
 import { BATTERY, CACHE_WINDOWS_D, PRICE_BOOK } from "@/lib/config/constants";
 import {
   isFetchRefusal,
@@ -86,7 +88,7 @@ export interface MeasurePorts {
   readRobots: (origin: string) => Promise<RobotsPolicy | { ok: false; reason: string }>;
   rankedKeywords: (
     c: CostContext,
-    a: { domain: string; rows: 50 | 100 | 300; onFailure?: (failure: VendorFailure) => void }
+    a: { domain: string; rows: 50 | 100 | 300; locale: Locale; onFailure?: (failure: VendorFailure) => void }
   ) => Promise<Measured<RankedResult>>;
 }
 
@@ -189,7 +191,8 @@ function stampedAt<T>(m: Measured<T>, at: Date): Measured<T> {
 // first same-host anchor whose path's last segment is a pricing word.
 // Deterministic — document order, first match.
 const ANCHOR_HREF_RE = /<a\b[^>]*?\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>/gi;
-const PRICING_PATH_RE = /(?:^|\/)(?:pricing|prices?|plans)\/?$/i;
+// The other supported languages name the same page in their own words (D66).
+const PRICING_PATH_RE = new RegExp(`(?:^|/)(?:pricing|prices?|plans|${pagePathAlternation("pricing")})/?$`, "i");
 
 export function detectPricingUrl(html: string, homeUrl: string): string | null {
   let home: URL;
@@ -252,6 +255,15 @@ export interface DomainMeasurement {
    *  selects over the site's own ranked keywords without buying them again.
    *  Empty where the call was not made or did not answer. */
   ownRankedRows: readonly RankedRow[];
+  /** The country and language this site is measured in (SPEC §6, owner D66,
+   *  issue 1311): the caller's where it holds the founder's own answer, else
+   *  the reading of the address and the home document. Every vendor read of
+   *  the pass is made in it. */
+  locale: Locale;
+  /** What the site said of itself that is not measured, where the reading
+   *  fell back to the nearest supported country in English; `null`
+   *  otherwise, and wherever the locale was the caller's. */
+  localeFellBack: ResolvedLocale["fellBack"];
   /** Why the fetcher refused the home document, where it did (issue #479);
    *  `null` where it was read. A refused home is the whole site unread:
    *  nothing after it is attempted — no pricing page, no robots read, no
@@ -274,6 +286,11 @@ export async function measureDomain(
   a: {
     domain: string;
     tier: Tier;
+    /** The site's stored country and language (D66): the founder's answer
+     *  at setup, which wins over anything read. Absent on a free scan and
+     *  on a site that has not answered, which are read from the address and
+     *  the home document. */
+    locale?: Locale;
     pages?: readonly string[];
     /** SPEC §6 (issue 1170): how old a stored read may be and still be this
      *  pass's own. The home document's `readAt` dates every factor, so a
@@ -292,6 +309,8 @@ export async function measureDomain(
   const home = await readDocument(c, ports, homeUrl, windowDays);
   const at = home.at;
   const onPage = home.facts;
+  const read: ResolvedLocale =
+    a.locale === undefined ? readLocale({ domain: a.domain, html: home.html }) : { locale: a.locale, fellBack: null };
 
   // 1a. A refused home document is an unread site. Nothing else is read or
   //     bought for it: the pass stops here and says why (issue #479).
@@ -311,6 +330,8 @@ export async function measureDomain(
       robots,
       ownRanked: unmeasured("not_attempted", at),
       ownRankedRows: [],
+      locale: read.locale,
+      localeFellBack: read.fellBack,
       homeRefusal: home.refusal,
     };
   }
@@ -406,6 +427,7 @@ export async function measureDomain(
         const ranked = await ports.rankedKeywords(c, {
           domain: a.domain,
           rows: RANKED_ROWS_BY_TIER[a.tier],
+          locale: read.locale,
           ...(a.ownWindowDays === undefined ? {} : { windowDays }),
           onFailure: (failure) => {
             heard.failure = failure;
@@ -476,6 +498,8 @@ export async function measureDomain(
     robots,
     ownRanked,
     ownRankedRows,
+    locale: read.locale,
+    localeFellBack: read.fellBack,
     homeRefusal: null,
   };
 }

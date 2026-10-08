@@ -24,6 +24,8 @@
 //     common (Jaccard), the measure `./similarity.ts` uses for a page.
 //
 // Deterministic, no I/O. A failure carries handles, never a sentence.
+import { languagePack } from "@/lib/locale/language";
+import type { Language } from "@/lib/locale/locales";
 import { TITLE } from "@/lib/config/constants";
 import type { ContentType } from "@/lib/opportunities/content-type";
 import type { RuleFailure } from "./types";
@@ -46,30 +48,47 @@ export interface TitleRuleInputs {
   titles: readonly string[];
   /** The page's meta description. */
   description: string;
+  /** The page's language (SPEC §6, owner D66): the filler words, the banned
+   *  phrases and how a question opens are that language's. Absent is English. */
+  language?: Language;
 }
 
-const FILLER = new Set(
-  "a an and are as at be best but by can do does for from how i in is it my of on or our that the to top vs was we what when which who why will with you your".split(" ")
-);
-const ASKS_RE = /^(?:how|what|why|which|who|when|where|can|does|do|is|are|should)\b/i;
 const YEAR_RE = /\b(?:19|20)\d\d\b/g;
-const PRICE_RE = /(?:[$€£]\s?\d|\d\s?(?:usd|eur|gbp|€|\$|£)|\bfree\b)/i;
+const MONEY_RE = /(?:[$€£]\s?\d|\d\s?(?:usd|eur|gbp|chf|€|\$|£))/i;
 
-/** A title's words: lowercased, a plural read as its singular. */
-function wordsOf(text: string): string[] {
-  return text
+const languageOf = (a: Pick<TitleRuleInputs, "language">): Language => a.language ?? "en";
+
+/** A whole word or phrase of `alternation`, wherever `flags` say. */
+function wordsPattern(alternation: string, anchored: boolean): RegExp {
+  return new RegExp(`${anchored ? "^" : "(?<![\\p{L}\\p{N}])"}(?:${alternation})(?![\\p{L}\\p{N}])`, "iu");
+}
+
+/** A title's words: lowercased, a plural read as its singular. English
+ *  reads its plurals as it always did; another language by its own endings. */
+function wordsOf(text: string, language: Language = "en"): string[] {
+  const words = text
     .toLowerCase()
     .split(/[^\p{L}\p{N}]+/u)
-    .filter(Boolean)
-    .map((word) => (word.length > 3 && !word.endsWith("ss") ? word.replace(/(?:ies|s)$/, (end) => (end === "ies" ? "y" : "")) : word));
+    .filter(Boolean);
+  if (language !== "en") return words.map((word) => languagePack(language).stem(word));
+  return words.map((word) => (word.length > 3 && !word.endsWith("ss") ? word.replace(/(?:ies|s)$/, (end) => (end === "ies" ? "y" : "")) : word));
 }
 
-const subjectOf = (text: string): string[] => [...new Set(wordsOf(text).filter((word) => !FILLER.has(word)))];
+/** The language's filler, as `wordsOf` spells a word. */
+function fillerOf(language: Language): ReadonlySet<string> {
+  const pack = languagePack(language);
+  return language === "en" ? pack.title.filler : new Set([...pack.title.filler].flatMap((word) => [word, pack.stem(word)]));
+}
+
+const subjectOf = (text: string, language: Language = "en"): string[] => {
+  const filler = fillerOf(language);
+  return [...new Set(wordsOf(text, language).filter((word) => !filler.has(word)))];
+};
 
 /** The title leads with the term: its first words are all there, and the
  *  first of them is inside the head. A term of filler alone asks nothing. */
-function leadsWith(title: readonly string[], term: string): boolean | null {
-  const subject = subjectOf(term).slice(0, TITLE.termWords);
+function leadsWith(title: readonly string[], term: string, language: Language): boolean | null {
+  const subject = subjectOf(term, language).slice(0, TITLE.termWords);
   if (subject.length === 0) return null;
   return subject.every((word) => title.includes(word)) && title.slice(0, TITLE.headWords).includes(subject[0]!);
 }
@@ -81,10 +100,12 @@ function names(title: string, phrase: string): boolean {
 
 function hasSpecific(title: string, a: TitleRuleInputs): boolean {
   if (/\d/.test(title.replace(YEAR_RE, ""))) return true;
-  if (title.includes("?") || ASKS_RE.test(title.trim()) || PRICE_RE.test(title)) return true;
+  const pack = languagePack(languageOf(a));
+  if (title.includes("?") || wordsPattern(pack.title.asksStart, true).test(title.trim())) return true;
+  if (MONEY_RE.test(title) || wordsPattern(pack.title.free, false).test(title)) return true;
   if (TITLE.engines.some((engine) => names(title, engine)) || a.rivals.some((rival) => names(title, rival))) return true;
-  const said = new Set(subjectOf(title));
-  return a.audience.some((text) => subjectOf(text).some((word) => word.length > 3 && said.has(word)));
+  const said = new Set(subjectOf(title, languageOf(a)));
+  return a.audience.some((text) => subjectOf(text, languageOf(a)).some((word) => word.length > 3 && said.has(word)));
 }
 
 function yearMisplaced(title: string, a: TitleRuleInputs): boolean {
@@ -94,10 +115,11 @@ function yearMisplaced(title: string, a: TitleRuleInputs): boolean {
   return years.some((year) => Number(year) !== a.year) || /(?:19|20)\d\d$/.test(title.trim());
 }
 
-function hasBanned(title: string): boolean {
+function hasBanned(title: string, language: Language): boolean {
   const lower = title.toLowerCase();
-  if (/[[\]|]/.test(title) || TITLE.banned.some((phrase) => lower.includes(phrase))) return true;
-  const words = wordsOf(title).filter((word) => word.length > 2 && !FILLER.has(word));
+  if (/[[\]|]/.test(title) || languagePack(language).title.banned.some((phrase) => lower.includes(phrase))) return true;
+  const filler = fillerOf(language);
+  const words = wordsOf(title, language).filter((word) => word.length > 2 && !filler.has(word));
   return new Set(words).size < words.length;
 }
 
@@ -119,15 +141,16 @@ export function closestTitle(title: string, titles: readonly string[]): string |
 /** What the title and its description fail, in a fixed order. */
 export function titleFaults(title: string, a: TitleRuleInputs): TitleFault[] {
   const chars = [...title.trim()].length;
-  const words = wordsOf(title);
-  const led = a.terms.map((term) => leadsWith(words, term)).filter((answer) => answer !== null);
+  const language = languageOf(a);
+  const words = wordsOf(title, language);
+  const led = a.terms.map((term) => leadsWith(words, term, language)).filter((answer) => answer !== null);
   const description = [...a.description.trim()].length;
   const faults: (TitleFault | false)[] = [
     (chars < TITLE.chars.min || chars > TITLE.chars.max) && "length",
     led.length > 0 && !led.includes(true) && "term",
     !hasSpecific(title, a) && "specific",
     yearMisplaced(title, a) && "year",
-    hasBanned(title) && "banned",
+    hasBanned(title, language) && "banned",
     closestTitle(title, a.titles) !== null && "overlap",
     (description < TITLE.description.min || description > TITLE.description.max) && "description",
   ];
@@ -150,7 +173,7 @@ export function titleNotes(title: string, a: TitleRuleInputs, faults: readonly T
     year: (TITLE.yearTypes as readonly ContentType[]).includes(a.type)
       ? `title: the only year it may carry is ${a.year}, in brackets or before a colon, never as its last word`
       : "title: a page of this type carries no year in its title",
-    banned: `title: it must not use ${TITLE.banned.map((phrase) => `"${phrase}"`).join(", ")}, a square bracket, a pipe, or the same word twice`,
+    banned: `title: it must not use ${languagePack(languageOf(a)).title.banned.map((phrase) => `"${phrase}"`).join(", ")}, a square bracket, a pipe, or the same word twice`,
     overlap: `title: it reads almost the same as this site's page "${close ?? ""}"; lead with what this page has that one does not`,
     description: `description: it has ${[...a.description.trim()].length} characters and must have ${TITLE.description.min} to ${TITLE.description.max}, opening with the answer`,
   };

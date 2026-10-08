@@ -115,7 +115,7 @@ export function serpRivalCandidates(a: {
   return picked;
 }
 
-const letters = (text: string): string => text.toLowerCase().replace(/[^a-z0-9]/g, "");
+const letters = (text: string): string => text.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
 
 /**
  * **Only an on-market candidate is sized** (SPEC §6, owner D64, issue 1301).
@@ -145,7 +145,7 @@ export function onMarketCandidates(a: {
   const rivals = new Set(a.market.rivals.map((rival) => registrableDomain(rival.domain) ?? rival.domain));
   const brands = Object.entries(a.market.demand?.brands ?? {}).map(([keyword, volume]) => ({ keyword, volume, spelt: letters(keyword) }));
   const cited = new Set(a.answers.flatMap((answer) => answer.citedDomains.map((domain) => registrableDomain(domain) ?? domain)));
-  const said = ` ${a.answers.map((answer) => (answer.excerpt ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ")).join(" ")} `;
+  const said = ` ${a.answers.map((answer) => (answer.excerpt ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ")).join(" ")} `;
   return a.candidates.filter((domain) => {
     if (rivals.has(domain)) return true;
     const [label = "", ...ending] = domain.split(".");

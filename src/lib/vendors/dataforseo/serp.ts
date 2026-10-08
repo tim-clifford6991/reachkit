@@ -2,7 +2,7 @@
 //
 // The SERP the product already buys carries the `ai_overview` item and its
 // per-domain `references` at 0¢ extra (§6.2) — one call, one ledger row,
-// both halves in one `SerpResult`. Depth 10 and `SERP_LOCATION` are fixed
+// both halves in one `SerpResult`. Depth 10 is fixed and the locale written
 // in `transport.ts`; `mode` is required (a scheduled caller cannot inherit
 // `live`).
 //
@@ -34,7 +34,8 @@
 // passes `CACHE_WINDOWS_D.serp` or `.serpWeeklyRecheck` from its own
 // parameters.
 import type { CostContext } from "@/lib/costs";
-import { ASYNC_AIO_SURCHARGE_MULTIPLIER, PRICE_BOOK, SERP_LOCATION } from "@/lib/config/constants";
+import { ASYNC_AIO_SURCHARGE_MULTIPLIER, PRICE_BOOK } from "@/lib/config/constants";
+import type { Locale } from "@/lib/locale/locales";
 import { mapMeasured, type Measured } from "@/lib/measure/measured";
 import {
   asArray,
@@ -48,7 +49,7 @@ import {
   type EndpointPaths,
   type OnVendorFailure,
 } from "./envelope";
-import type { DataForSeoMode } from "./transport";
+import { localeCacheKey, type DataForSeoMode } from "./transport";
 import { scopeKey, type CacheScope, type SerpAiOverview, type SerpOrganicRow, type SerpResult } from "./types";
 
 const ORGANIC = "/v3/serp/google/organic";
@@ -140,6 +141,9 @@ export async function serpOrganic(
     /** Whose purchase this is — the site on a paid pass, the domain on the
      *  free one. Required, never defaulted: a default would be a decision
      *  about somebody's costs made by whoever forgot to pass it. */
+    /** The site's country and language (D66): where the read is made, and
+     *  part of its cache key. */
+    locale: Locale;
     scope: CacheScope;
     /** §6.4's window for this call site: `CACHE_WINDOWS_D.serp` at every
      *  one except the weekly target re-check, which passes
@@ -174,7 +178,7 @@ export async function serpOrganic(
   let reusedFrom: Date | null = null;
   const rows = await ledgered<SerpResult>(c, {
     source: "serp/google/organic",
-    cacheKey: `${a.query}|${SERP_LOCATION.location}|${SERP_LOCATION.language}|aio:${flagged ? "async" : "cached"}|${scopeKey(a.scope)}${a.questions === true ? "|paa" : ""}`,
+    cacheKey: `${a.query}|${localeCacheKey(a.locale)}|aio:${flagged ? "async" : "cached"}|${scopeKey(a.scope)}${a.questions === true ? "|paa" : ""}`,
     freshnessDays: a.freshnessDays,
     costCents: flagged ? base * ASYNC_AIO_SURCHARGE_MULTIPLIER : base,
     ...(flagged ? { settleCents: (r: readonly SerpResult[] | null) => settledCents(base, r) } : {}),
@@ -182,6 +186,7 @@ export async function serpOrganic(
       callEndpoint(
         PATHS,
         a.mode,
+        a.locale,
         {
           keyword: a.query,
           // The never-list's one admitted exception, and this is the only

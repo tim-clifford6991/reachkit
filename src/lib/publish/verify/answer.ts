@@ -126,7 +126,7 @@ function documentTitle(html: string): string | null {
  *  published title's words are all present in it rather than whether the
  *  two strings are equal. */
 function titleWords(value: string): string[] {
-  return value.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  return value.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
 }
 
 function resolve(href: string, against: string): string | null {

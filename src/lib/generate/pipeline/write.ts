@@ -24,7 +24,7 @@ import { unmeasured, type Measured } from "@/lib/measure/measured";
 import type { PageType } from "@/lib/opportunities/types";
 import { REGISTER_FLOOR } from "../rules/figures";
 import { HONESTY_INSTRUCTION } from "../rules/honest";
-import type { Template } from "../templates";
+import { languageRules, titleFormulas, type Template } from "../templates";
 import type { ContextPack } from "./pack";
 import type { FixNote } from "./repair";
 import { comparisonTable } from "./table";
@@ -165,10 +165,12 @@ export interface WriteInputs {
 /** What the writer is told about the page's shape: the template, as data. */
 function templateFor(a: WriteInputs): Record<string, unknown> {
   const { template } = a;
+  // D51's formulas in the page's own language (D66).
+  const words = titleFormulas(template.type, a.pack.locale?.language ?? "en");
   return {
     for: template.for,
-    titles: template.titles,
-    ...(template.titleNever === undefined ? {} : { titleNever: template.titleNever }),
+    titles: words?.titles ?? template.titles,
+    ...(template.titleNever === undefined ? {} : { titleNever: words?.titleNever ?? template.titleNever }),
     sections: template.sections,
     blocks: template.blocks,
     words: a.length,
@@ -206,7 +208,7 @@ function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<s
     pack: a.pack,
     titleRules: titleBrief(a.pack),
     ...(table === null ? {} : { table: table.markdown }),
-    rules: [...HOUSE_RULES, table === null ? WRITTEN_TABLE_RULE : BUILT_TABLE_RULE],
+    rules: [...HOUSE_RULES, table === null ? WRITTEN_TABLE_RULE : BUILT_TABLE_RULE, ...languageRules(a.pack.locale?.language ?? "en")],
     ...extra,
   };
 }
@@ -220,6 +222,7 @@ export async function writePage(c: CostContext, a: WriteInputs): Promise<Measure
       tier: a.tier ?? "writer",
       schema: ANSWER_SCHEMA,
       input: inputFor(a),
+      ...(a.pack.locale === undefined ? {} : { locale: a.pack.locale }),
     })
   );
 }
@@ -244,6 +247,7 @@ export async function fixPage(
     site: "generate.fix",
     tier: a.tier ?? "writer",
     schema: ANSWER_SCHEMA,
+    ...(a.pack.locale === undefined ? {} : { locale: a.pack.locale }),
     input: inputFor(a, {
       task:
         `${taskFor(a)} \`page\` is the page as it was written, and it was stopped: \`fix\` names each check it ` +

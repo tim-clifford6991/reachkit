@@ -73,6 +73,10 @@ export interface SetupFacts {
    *  which step they left. `null` for a founder with nothing saved — the
    *  screen then opens on its first step with only what the scan read. */
   saved: SavedAnswers | null;
+  /** The country and language the site step's question opens on (SPEC §6,
+   *  owner D66, issue 1311), as `localeKey` spells it: the site's stored
+   *  answer, else the reading of the site. */
+  locale: string;
   /** SPEC §5 (2026-09-20, #923): the rivals step's own panel — the searches
    *  the scan measured × the customer and each rival. `null` where nothing
    *  has been measured for this address, and the panel then draws a shape
@@ -123,6 +127,8 @@ export interface SetupScreenModel {
   /** What the voice box opens on: the founder's own words where a voice
    *  step has stored some, else the paragraph the scan read, else empty. */
   voiceText: string;
+  /** `SetupFacts.locale`: what the site step's one question is filled with. */
+  locale: string;
   /** SPEC §5 (2026-09-20): the step `/setup` opens on when the address
    *  carries no `?step=` of its own. */
   openAt: SetupStepId;
@@ -171,6 +177,7 @@ export function assembleSetup(facts: SetupFacts): SetupScreenModel {
     competitorsMax: BATTERY.COMPETITORS_MAX,
     questions: facts.questions,
     voiceText: facts.saved?.voiceText ?? facts.profile?.voice?.text ?? "",
+    locale: facts.locale,
     openAt: openAtFor(facts.saved),
     rivalGrid: facts.rivalGrid,
     passStage: facts.passStage,

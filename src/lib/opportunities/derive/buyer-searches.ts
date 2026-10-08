@@ -15,6 +15,7 @@
 // Neither decides a write target: a search still needs the top fit. An
 // unavailable model or a reached cap writes no search and passes none, so
 // the pass proposes less, never something unchecked.
+import type { Locale } from "@/lib/locale/locales";
 import { z } from "zod";
 import { BUYER_SEARCHES } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
@@ -53,7 +54,7 @@ function shaped(text: string): string | null {
  */
 export async function writeBuyerSearches(
   c: CostContext,
-  a: { market: MarketConclusion | null; prompts: readonly string[]; brands: readonly string[] }
+  a: { market: MarketConclusion | null; prompts: readonly string[]; brands: readonly string[]; locale?: Locale }
 ): Promise<string[]> {
   if (a.market === null) return [];
   const answer = await llm(c, {
@@ -71,6 +72,7 @@ export async function writeBuyerSearches(
     },
     schema: WRITTEN_SCHEMA,
     tier: "haiku",
+    ...(a.locale === undefined ? {} : { locale: a.locale }),
   });
   if (answer.kind === "unmeasured") return [];
 
@@ -101,7 +103,7 @@ const TYPED_TASK = [
  */
 export async function judgeTyped(
   c: CostContext,
-  a: { searches: readonly string[]; market: MarketConclusion | null; brands: readonly string[] }
+  a: { searches: readonly string[]; market: MarketConclusion | null; brands: readonly string[]; locale?: Locale }
 ): Promise<ReadonlySet<number> | null> {
   const searches = a.searches.slice(0, BUYER_SEARCHES.maxChecked);
   if (searches.length === 0) return new Set();
@@ -115,6 +117,7 @@ export async function judgeTyped(
     },
     schema: TYPED_SCHEMA,
     tier: "haiku",
+    ...(a.locale === undefined ? {} : { locale: a.locale }),
   });
   if (answer.kind === "unmeasured") return null;
   return new Set(answer.value.typed.filter((i) => i >= 0 && i < searches.length));

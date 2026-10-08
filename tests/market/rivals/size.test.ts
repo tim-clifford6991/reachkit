@@ -68,7 +68,7 @@ function fakeCostContext(a: { capHit?: boolean } = {}): CostContext {
 describe('REQ-096 c1 — "each tracked rival carries a measured size … held beside the customer\'s own measured count from the same pass"', () => {
   it("size/one-at-per-call — every sized entry carries the identical date, and one customer count bands them all", async () => {
     rankedMock.mockResolvedValueOnce(rows(3)).mockResolvedValueOnce(rows(7));
-    const out = await sizeRivals(fakeCostContext(), {
+    const out = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" },
       rivals: ["a.com", "b.com"],
       ownRanked: 40,
       at: AT,
@@ -84,11 +84,12 @@ describe('REQ-096 c1 — "each tracked rival carries a measured size … held be
 
   it("size/rows-is-the-pin — every call asks for the rival row count and no other endpoint is reached", async () => {
     rankedMock.mockResolvedValue(rows(2));
-    await sizeRivals(fakeCostContext(), { rivals: ["a.com"], ownRanked: 0, at: AT });
+    await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" }, rivals: ["a.com"], ownRanked: 0, at: AT });
 
     expect(rankedMock).toHaveBeenCalledWith(expect.anything(), {
       domain: "a.com",
       rows: PRICE_BOOK.RANKED_RIVAL_ROWS,
+      locale: { country: "US", language: "en" },
     });
     expect(codeOf("size.ts")).not.toContain("competitorsDomain");
     expect(codeOf("size.ts")).not.toContain("serpOrganic");
@@ -96,7 +97,7 @@ describe('REQ-096 c1 — "each tracked rival carries a measured size … held be
 
   it("size/before-the-pass-there-is-no-band — a rival never measured is unsized, and the arm carries no band and no count", async () => {
     rankedMock.mockResolvedValue(failed());
-    const out = await sizeRivals(fakeCostContext(), { rivals: ["a.com"], ownRanked: 0, at: AT });
+    const out = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" }, rivals: ["a.com"], ownRanked: 0, at: AT });
 
     const entry = out.kind === "unmeasured" ? undefined : out.value[0];
     expect(entry?.state).toBe("unsized");
@@ -110,7 +111,7 @@ describe('REQ-096 c2 — the storage limb: "the band travels with its counts"', 
   it("size/band-re-derives-from-the-stored-counts", async () => {
     rankedMock.mockResolvedValueOnce(rows(4)).mockResolvedValueOnce(rows(90));
     const ownRanked = 12;
-    const out = await sizeRivals(fakeCostContext(), {
+    const out = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" },
       rivals: ["a.com", "b.com"],
       ownRanked,
       at: AT,
@@ -136,7 +137,7 @@ describe('REQ-096 c3 — "last measured a month ago or longer … is measured ag
 
   it("size/added-since-last-sizing-is-sized-next-pass — a rival added after the pass is sized at the next one, with that call's date", async () => {
     rankedMock.mockResolvedValue(failed());
-    const first = await sizeRivals(fakeCostContext(), {
+    const first = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" },
       rivals: ["new.com"],
       ownRanked: 5,
       at: EARLIER,
@@ -147,7 +148,7 @@ describe('REQ-096 c3 — "last measured a month ago or longer … is measured ag
 
     rankedMock.mockReset();
     rankedMock.mockResolvedValue(rows(6));
-    const second = await sizeRivals(fakeCostContext(), {
+    const second = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" },
       rivals: ["new.com"],
       ownRanked: 5,
       at: AT,
@@ -172,7 +173,7 @@ describe('REQ-096 c4 — "the last measured band is shown with that earlier date
       a.domain === "stale.com" ? failed() : rows(9)
     );
 
-    const out = await sizeRivals(fakeCostContext(), {
+    const out = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" },
       rivals: ["stale.com", "fresh.com"],
       ownRanked: 30,
       at: AT,
@@ -186,7 +187,7 @@ describe('REQ-096 c4 — "the last measured band is shown with that earlier date
 
   it("size/stale-never-becomes-unsized — a rival we have measured never reads as one we never have", async () => {
     rankedMock.mockResolvedValue(failed());
-    const out = await sizeRivals(fakeCostContext(), {
+    const out = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" },
       rivals: ["stale.com"],
       ownRanked: 30,
       at: AT,
@@ -198,7 +199,7 @@ describe('REQ-096 c4 — "the last measured band is shown with that earlier date
 
   it("size/cap-carries-forward-too — a ceiling reached mid-pass degrades, it does not drop or throw", async () => {
     rankedMock.mockResolvedValue(rows(5));
-    const out = await sizeRivals(fakeCostContext({ capHit: true }), {
+    const out = await sizeRivals(fakeCostContext({ capHit: true }), { locale: { country: "US", language: "en" },
       rivals: ["stale.com", "never.com"],
       ownRanked: 30,
       at: AT,
@@ -215,7 +216,7 @@ describe('REQ-096 c4 — "the last measured band is shown with that earlier date
 describe("issue 901 — a caller may name what its own unmeasured domains say", () => {
   it("size/never-sized-because — a purse that ran out says so, rather than borrowing a reason about a customer's set", async () => {
     rankedMock.mockResolvedValue(rows(5));
-    const out = await sizeRivals(fakeCostContext({ capHit: true }), {
+    const out = await sizeRivals(fakeCostContext({ capHit: true }), { locale: { country: "US", language: "en" },
       rivals: ["from-our-serp.com"],
       ownRanked: 3,
       at: AT,
@@ -238,7 +239,7 @@ describe("issue 901 — a caller may name what its own unmeasured domains say", 
       current: true,
     };
     rankedMock.mockResolvedValue(failed());
-    const out = await sizeRivals(fakeCostContext(), {
+    const out = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" },
       rivals: ["known.com"],
       ownRanked: 3,
       at: AT,
@@ -252,7 +253,7 @@ describe("issue 901 — a caller may name what its own unmeasured domains say", 
 
   it("size/default-is-unchanged — a caller that names nothing gets the two reasons `previous` decides", async () => {
     rankedMock.mockResolvedValue(failed());
-    const out = await sizeRivals(fakeCostContext(), { rivals: ["a.com"], ownRanked: 0, at: AT });
+    const out = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" }, rivals: ["a.com"], ownRanked: 0, at: AT });
     const entry = out.kind === "unmeasured" ? undefined : out.value[0];
     expect(entry).toEqual({ domain: "a.com", state: "unsized", because: "awaiting_deep_pass" });
   });
@@ -261,8 +262,8 @@ describe("issue 901 — a caller may name what its own unmeasured domains say", 
 describe('REQ-096 c5 and c7 — "no band ever removes a rival, hides it, drops it from a comparison, or stops it being measured"', () => {
   it("size/unsized-is-a-state-not-a-blank — both reasons come back as discriminated arms, never null or a hole", async () => {
     rankedMock.mockResolvedValue(failed());
-    const noPass = await sizeRivals(fakeCostContext(), { rivals: ["a.com"], ownRanked: 0, at: AT });
-    const afterPass = await sizeRivals(fakeCostContext(), {
+    const noPass = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" }, rivals: ["a.com"], ownRanked: 0, at: AT });
+    const afterPass = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" },
       rivals: ["a.com"],
       ownRanked: 0,
       at: AT,
@@ -284,7 +285,7 @@ describe('REQ-096 c5 and c7 — "no band ever removes a rival, hides it, drops i
         return index % 3 === 0 ? failed() : rows(index * 7);
       });
 
-      const out = await sizeRivals(fakeCostContext(), {
+      const out = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" },
         rivals,
         ownRanked: index0(length),
         at: AT,
@@ -318,7 +319,7 @@ describe("§6.4 — per-rival ranked_keywords never reaches the free path", () =
 describe("cold start — a customer who ranks for nothing still sizes every rival", () => {
   it("size/zero-own-count-is-ordinary", async () => {
     rankedMock.mockResolvedValue(rows(80));
-    const out = await sizeRivals(fakeCostContext(), {
+    const out = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" },
       rivals: ["a.com", "b.com"],
       ownRanked: 0,
       at: AT,
@@ -329,7 +330,7 @@ describe("cold start — a customer who ranks for nothing still sizes every riva
   });
 
   it("size/an-empty-set-is-zero-not-a-failure", async () => {
-    const out = await sizeRivals(fakeCostContext(), { rivals: [], ownRanked: 0, at: AT });
+    const out = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" }, rivals: [], ownRanked: 0, at: AT });
     expect(out).toEqual({ kind: "zero", value: [], at: AT });
     expect(rankedMock).not.toHaveBeenCalled();
   });
@@ -352,7 +353,7 @@ function index0(length: number): number {
 describe("REQ-096 c2 · BUILD §7 — a rival's size is the vendor's own total, not the page of rows bought", () => {
   it("size/count-is-the-total — the rows bought do not bound the count", async () => {
     rankedMock.mockResolvedValueOnce(rows(PRICE_BOOK.RANKED_RIVAL_ROWS, 4231));
-    const out = await sizeRivals(fakeCostContext(), { rivals: ["big.com"], ownRanked: 40, at: AT });
+    const out = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" }, rivals: ["big.com"], ownRanked: 40, at: AT });
 
     const entry = (out.kind === "unmeasured" ? [] : out.value)[0] as Extract<RivalSize, { state: "sized" }>;
     expect(entry.rankedCount).toBe(4231);
@@ -364,7 +365,7 @@ describe("REQ-096 c2 · BUILD §7 — a rival's size is the vendor's own total, 
 
   it("size/far-is-reachable — a rival above the middle bar bands `far` and the swap offer fires", async () => {
     rankedMock.mockResolvedValueOnce(rows(PRICE_BOOK.RANKED_RIVAL_ROWS, 4231));
-    const out = await sizeRivals(fakeCostContext(), { rivals: ["big.com"], ownRanked: 40, at: AT });
+    const out = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" }, rivals: ["big.com"], ownRanked: 40, at: AT });
 
     const entry = (out.kind === "unmeasured" ? [] : out.value)[0] as Extract<RivalSize, { state: "sized" }>;
     expect(entry.band).toBe("far");
@@ -393,7 +394,7 @@ describe("REQ-096 c2 · BUILD §7 — a rival's size is the vendor's own total, 
     // `far` rivals and fewer swap offers — never a swap offered against a
     // rival we cannot show is out of reach.
     rankedMock.mockResolvedValueOnce(rows(PRICE_BOOK.RANKED_RIVAL_ROWS));
-    const out = await sizeRivals(fakeCostContext(), { rivals: ["big.com"], ownRanked: 40, at: AT });
+    const out = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" }, rivals: ["big.com"], ownRanked: 40, at: AT });
 
     const entry = (out.kind === "unmeasured" ? [] : out.value)[0] as Extract<RivalSize, { state: "sized" }>;
     expect(entry.rankedCount).toBe(PRICE_BOOK.RANKED_RIVAL_ROWS);
@@ -404,7 +405,7 @@ describe("REQ-096 c2 · BUILD §7 — a rival's size is the vendor's own total, 
 
   it("size/total-of-zero-is-a-count — a domain that ranks for nothing is measured, not unknown", async () => {
     rankedMock.mockResolvedValueOnce(rows(0, 0));
-    const out = await sizeRivals(fakeCostContext(), { rivals: ["nothing.com"], ownRanked: 40, at: AT });
+    const out = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" }, rivals: ["nothing.com"], ownRanked: 40, at: AT });
 
     const entry = (out.kind === "unmeasured" ? [] : out.value)[0] as Extract<RivalSize, { state: "sized" }>;
     expect(entry.state).toBe("sized");
@@ -414,18 +415,19 @@ describe("REQ-096 c2 · BUILD §7 — a rival's size is the vendor's own total, 
 
   it("size/no-extra-rows-bought — the total costs nothing: one call, at the pinned row count", async () => {
     rankedMock.mockResolvedValueOnce(rows(PRICE_BOOK.RANKED_RIVAL_ROWS, 4231));
-    await sizeRivals(fakeCostContext(), { rivals: ["big.com"], ownRanked: 40, at: AT });
+    await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" }, rivals: ["big.com"], ownRanked: 40, at: AT });
 
     expect(rankedMock).toHaveBeenCalledTimes(1);
     expect(rankedMock.mock.calls[0]?.[1]).toEqual({
       domain: "big.com",
       rows: PRICE_BOOK.RANKED_RIVAL_ROWS,
+      locale: { country: "US", language: "en" },
     });
   });
 
   it("size/band-still-re-derives-from-the-stored-counts — now over the total", async () => {
     rankedMock.mockResolvedValueOnce(rows(PRICE_BOOK.RANKED_RIVAL_ROWS, 4231));
-    const out = await sizeRivals(fakeCostContext(), { rivals: ["big.com"], ownRanked: 40, at: AT });
+    const out = await sizeRivals(fakeCostContext(), { locale: { country: "US", language: "en" }, rivals: ["big.com"], ownRanked: 40, at: AT });
 
     const entry = (out.kind === "unmeasured" ? [] : out.value)[0] as Extract<RivalSize, { state: "sized" }>;
     expect(entry.band).toBe(bandRivalSize({ rivalRanked: entry.rankedCount, ownRanked: 40 }));

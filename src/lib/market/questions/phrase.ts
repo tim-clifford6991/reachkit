@@ -30,8 +30,8 @@
 // The template forms are mechanical transforms of the keyword — BUILD §6.7
 // step 4's own "best X" / "X vs Y" shapes — not sentences the product speaks
 // in its own voice, so no copy key is minted here (BP-025 decision 3).
+import { COUNTRIES, DEFAULT_LOCALE, type Locale } from "@/lib/locale/locales";
 import { z } from "zod";
-import { SERP_LOCATION } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import { measured, measuredZero, type Measured } from "@/lib/measure/measured";
@@ -76,19 +76,27 @@ const PHRASING_SCHEMA = z.strictObject({
  *     "phrasing never changes which searches were selected"). A keyword that
  *     names brands ("X vs Y") keeps them, as step 4's own template does;
  *   - one sentence ending in a question mark — step 4's template forms;
- *   - the market's language — `SERP_LOCATION` (§6.3a, US English today).
+ *   - the market's language — the site's own (SPEC §6, owner D66): US
+ *     English is this sentence as it always read; any other locale is told
+ *     to the model beside it, by the seam (`llm`'s `locale`).
  *
  *  No REQ fixes the question mark, so `PHRASING_SCHEMA` does not enforce it:
  *  a wording without one is still the same measured search. */
-export const PHRASE_TASK =
-  "Each entry under `keywords` is a search buyers type into Google. For each one, write the question " +
-  "a buyer in this market would ask an AI assistant instead: one question per keyword, in the buyer's " +
-  "own words, standing for that search and no other. " +
-  'Name no brand, product or company the keyword does not itself name, and add no "best" or "top" ' +
-  "the keyword does not carry. " +
-  "Each question is one sentence and ends with a question mark, in the market's language: " +
-  `${SERP_LOCATION.language}, as searched on Google in ${SERP_LOCATION.location}. ` +
-  "Answer with one entry per keyword: its `id`, unchanged, and the question as `text`; no other field.";
+export function phraseTask(locale: Locale): string {
+  return (
+    "Each entry under `keywords` is a search buyers type into Google. For each one, write the question " +
+    "a buyer in this market would ask an AI assistant instead: one question per keyword, in the buyer's " +
+    "own words, standing for that search and no other. " +
+    'Name no brand, product or company the keyword does not itself name, and add no "best" or "top" ' +
+    "the keyword does not carry. " +
+    "Each question is one sentence and ends with a question mark, in the market's language: " +
+    `${locale.language}, as searched on Google in ${COUNTRIES[locale.country].location}. ` +
+    "Answer with one entry per keyword: its `id`, unchanged, and the question as `text`; no other field."
+  );
+}
+
+/** The task as every pass before D66 carried it: the United States, in English. */
+export const PHRASE_TASK = phraseTask(DEFAULT_LOCALE);
 
 /**
  * One question per selected search, in the selection's own order, each
@@ -102,8 +110,9 @@ export const PHRASE_TASK =
  */
 export async function phraseQuestions(
   c: CostContext,
-  a: { selected: SelectedSearch[] }
+  a: { selected: SelectedSearch[]; locale?: Locale }
 ): Promise<Measured<Question[]>> {
+  const language = a.locale?.language ?? "en";
   if (a.selected.length === 0) {
     logPhrasing(0, 0);
     return measuredZero<Question[]>([], new Date());
@@ -113,11 +122,12 @@ export async function phraseQuestions(
   const worded = await llm(c, {
     site: "question-phrasing",
     input: {
-      task: PHRASE_TASK,
+      task: phraseTask(a.locale ?? DEFAULT_LOCALE),
       keywords: a.selected.map((search, index) => ({ id: ids[index], keyword: search.keyword })),
     },
     schema: PHRASING_SCHEMA,
     tier: "nano",
+    ...(a.locale === undefined ? {} : { locale: a.locale }),
   });
 
   const wordings = new Map<string, string>();
@@ -132,7 +142,7 @@ export async function phraseQuestions(
     const text = wordings.get(id)?.trim();
     return text !== undefined && text !== ""
       ? { id, text, search, phrasing: "model" }
-      : { id, text: templateQuestion(search.keyword), search, phrasing: "template" };
+      : { id, text: templateQuestion(search.keyword, language), search, phrasing: "template" };
   });
 
   logPhrasing(questions.length, questions.filter((q) => q.phrasing === "template").length);

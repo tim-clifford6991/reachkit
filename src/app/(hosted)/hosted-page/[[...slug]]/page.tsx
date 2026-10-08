@@ -79,12 +79,15 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import type React from "react";
 import { HOSTED_BODY_CLASSES, HOSTED_GUIDES_CLASSES } from "../body-classes";
-import { copy } from "@/lib/presentation/copy";
+import { copy, readIn, readerLanguage, readerTag } from "@/lib/presentation/copy/reader";
+import { localeTag } from "@/lib/locale/locales";
+import { siteLocale } from "@/lib/locale/site";
 import {
   guidesBlock,
   headingsUnderTitle,
   inlineText,
   markPassage,
+  labelledIn,
   parseMarkdown,
   toHtml,
   withHeadingIds,
@@ -137,6 +140,10 @@ interface Resolved {
 
 /** The business a resolved host belongs to, as its pages draw it. */
 async function businessOf(site: { siteId: string; domain: string }): Promise<HostedBusiness> {
+  // D66: the blog is read in its site's own language. Said here, where the
+  // host is resolved, so the listing, a page and their metadata all read it.
+  const locale = await siteLocale(site.siteId);
+  readIn(locale.language, localeTag(locale));
   return { ...(await hostedIdentity(site)), domain: site.domain };
 }
 
@@ -446,7 +453,7 @@ export default async function HostedPageRoute({
   // sanitiser someone has to remember to call. A second renderer here is
   // exactly what that module's header forbids.
   const levelled = headingsUnderTitle(
-    withoutRepeatedTitle(withoutRepeatedTitle(parseMarkdown(page.bodyMd), page.title), page.heading ?? page.title)
+    withoutRepeatedTitle(withoutRepeatedTitle(labelledIn(parseMarkdown(page.bodyMd), copy), page.title), page.heading ?? page.title)
   );
   const grounded = page.grounded;
   // The mark first, the ids after: an id is minted from a heading's words
@@ -464,6 +471,7 @@ export default async function HostedPageRoute({
     [
       guidesBlock({
         publisher: business.name,
+        say: copy,
         items: relatedGuides(page, others).map((other) => ({ href: other.liveUrl, label: other.title })),
       }),
     ],
@@ -491,7 +499,7 @@ export default async function HostedPageRoute({
 
       <HostedHeader business={business} />
 
-      <main className="mx-auto w-full max-w-5xl px-4 py-10 lg:grid lg:grid-cols-[minmax(0,1fr)_14rem] lg:gap-10">
+      <main lang={readerLanguage()} className="mx-auto w-full max-w-5xl px-4 py-10 lg:grid lg:grid-cols-[minmax(0,1fr)_14rem] lg:gap-10">
         <article className="mx-auto w-full max-w-2xl min-w-0">
           {page.publisher.category === null ? null : (
             <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
@@ -512,6 +520,8 @@ export default async function HostedPageRoute({
                 published: page.firstPublishedAt,
                 updated: page.publishedAt,
                 timeZone: page.publisher.timeZone,
+                say: copy,
+                tag: readerTag(),
               })}
             </time>
             <span className="before:mx-1.5 before:content-['·']">

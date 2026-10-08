@@ -24,6 +24,7 @@
 // caller that must send at most once carries its own natural key. It
 // retries nothing either; the retry window belongs to whoever owns the
 // occasion.
+import type { Language } from "@/lib/locale/locales";
 import { TODO_COPY_MARKER, type CopyKey } from "@/lib/presentation/copy";
 import type { CopyVars, MailBlock } from "./blocks/types";
 import { MAIL_KINDS, type MailKind } from "./kinds";
@@ -38,6 +39,9 @@ type ToggleKind = { [K in MailKind]: (typeof MAIL_KINDS)[K]["stoppable"] extends
 
 interface SendCommon {
   to: string;
+  /** The language the mail is read in (SPEC §6, owner D66, issue 1311):
+   *  the customer's site's own. Absent is English. */
+  language?: Language;
   subject: CopyKey;
   subjectVars?: CopyVars;
   blocks: readonly MailBlock[];
@@ -218,6 +222,7 @@ function compose(m: SendInput): ReturnType<typeof composeMail> {
   return m.kind === "weekly"
     ? composeMail({
         kind: m.kind,
+        ...(m.language === undefined ? {} : { language: m.language }),
         subject: m.subject,
         subjectVars: m.subjectVars,
         blocks: m.blocks,
@@ -228,6 +233,7 @@ function compose(m: SendInput): ReturnType<typeof composeMail> {
       })
     : composeMail({
         kind: m.kind,
+        ...(m.language === undefined ? {} : { language: m.language }),
         subject: m.subject,
         subjectVars: m.subjectVars,
         blocks: m.blocks,

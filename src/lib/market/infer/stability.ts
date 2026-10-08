@@ -31,7 +31,7 @@ const STOP = new Set(["and", "for", "the", "with", "software", "tool", "tools", 
 function words(text: string): string[] {
   return text
     .toLowerCase()
-    .split(/[^a-z0-9]+/)
+    .split(/[^\p{L}\p{N}]+/u)
     .filter((w) => w.length >= 2 && !STOP.has(w))
     .map((w) => (w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w));
 }

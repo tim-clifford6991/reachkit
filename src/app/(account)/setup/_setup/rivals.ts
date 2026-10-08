@@ -126,8 +126,11 @@ export async function seekRivals(a: {
       }
     }
 
-    const { suggestRivals } = await import("@/lib/market/rivals/suggest");
-    return unsought(settledRivals(await suggestRivals(spend, { state, report, at: a.at })));
+    const [{ suggestRivals }, { siteLocale }] = await Promise.all([
+      import("@/lib/market/rivals/suggest"),
+      import("@/lib/locale/site"),
+    ]);
+    return unsought(settledRivals(await suggestRivals(spend, { state, report, at: a.at, locale: await siteLocale(progress.siteId) })));
   } catch (error) {
     logUnsought(error);
     return unsought([]);

@@ -532,6 +532,21 @@ the failure can be read.
 
 ---
 
+### Countries and languages (D66)
+
+A site is measured in the country and language stored on it (`sites.country`, `sites.language`; SPEC §6, D66, #1311). To see or correct one site's:
+
+```sql
+select domain, country, language from sites where domain = 'example.de';
+update sites set country = 'DE', language = 'de' where domain = 'example.de';  -- a pair from the list only
+```
+
+Both null means no pass has read the site yet; its next pass reads and stores the pair. A pair that is not on the list is read as none.
+
+**To add a country** to a language that is already supported, add one row to `COUNTRIES` in `src/lib/locale/locales.ts`: the vendor's own name for it (DataForSEO `location_name`), its language, its domain ending, dialling prefix, currency marks and names. Check first that the vendor serves that country in that language on every endpoint a pass uses: one live call each to Labs `keyword_overview`, the organic SERP, AI Mode and the ChatGPT scraper, inside the testing budget (§8).
+
+**To add a language**, add a row to `LANGUAGES`, a pack beside `src/lib/locale/language/de.ts` (shape words, stop words, stemming, the searches, questions and tracked prompts ReachKit writes, the title words and banned patterns), a template file beside `src/lib/generate/templates/de.ts`, and its sentences under `src/lib/presentation/copy/keys/<language>/`. `tests/locale/`, `tests/generate/templates-de.test.ts` and `tests/presentation/copy/translated.test.ts` show what each must hold. Then add a site in that language to the panel and run it.
+
 ### The customer panel
 
 `npm run panel -- --env-file ../../reachkitv3/.env.local` runs every site of

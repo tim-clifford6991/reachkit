@@ -35,7 +35,7 @@
 import type React from "react";
 import { ArrowRight, Check, ShieldCheck } from "lucide-react";
 import { VETO } from "@/lib/config/constants";
-import { copy } from "@/lib/presentation/copy";
+import { copy } from "@/lib/presentation/copy/reader";
 import { FLOAT } from "@/ui/lift";
 import { Num } from "../_address/measured";
 

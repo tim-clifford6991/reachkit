@@ -22,6 +22,8 @@
 // survives only under that reading: the weaker "shares at least one token"
 // rule WO-073 step 4 wrote down would keep it alive on `onboarding` alone.
 // Where the spec rules, the archived plan does not re-open it (CLAUDE.md).
+import { SHAPES, languagePack } from "@/lib/locale/language";
+import type { Language } from "@/lib/locale/locales";
 import { BATTERY, SELECTION, WINNABILITY } from "@/lib/config/constants";
 import { difficultyCeiling, qualifyingDemand } from "@/lib/opportunities/winnability/bars";
 import { neverMeasured, type MeasuredMarket } from "./measured";
@@ -83,97 +85,57 @@ export function difficultyField(difficulty: number | null | undefined): { diffic
  *  tried before `solution` so an anchored "how to …" stays a problem search
  *  even when its object happens to carry an offering noun. */
 export const INTENT_PATTERNS: ReadonlyArray<readonly [Intent, readonly RegExp[]]> = Object.freeze([
-  ["decision", Object.freeze([/\bbest\b/, /\bvs\b/, /\bversus\b/, /\balternatives?\b/, /\btop\b/])],
-  [
-    "problem",
-    Object.freeze([
-      /^how (?:to|do|does|can|d[oi] i)\b/,
-      /\bproblems?\b/,
-      /\bissues?\b/,
-      /\berrors?\b/,
-      /\bnot working\b/,
-      /\bfix\b/,
-      /\btroubleshoot(?:ing)?\b/,
-      /\bbroken\b/,
-    ]),
-  ],
-  ["solution", Object.freeze([/\b(?:software|tools?|apps?|platforms?)\b/])],
-  [
-    "informational",
-    Object.freeze([/^what (?:is|are)\b/, /^why\b/, /^who\b/, /^when\b/, /^where\b/, /\bdefinitions?\b/, /\bmeaning\b/]),
-  ],
+  ["decision", Object.freeze([SHAPES.best, SHAPES.comparison])],
+  ["problem", Object.freeze([SHAPES.howTo, SHAPES.pain])],
+  ["solution", Object.freeze([SHAPES.solution])],
+  ["informational", Object.freeze([SHAPES.informational])],
 ] as const);
 
 /** The "how-to" shape `SELECTION.maxHowTo` caps — the anchored form only, not
  *  every pain phrase that classifies as `problem`. */
-const HOW_TO = /^how (?:to|do|does|can|d[oi] i)\b/;
+const HOW_TO = SHAPES.howTo;
 
-/** Function words. Dropped by `stemKey` (so word order and connectives cannot
- *  make two spellings of one search look like two searches) and never counted
- *  as a token the relevance guard demands support for. */
-export const STOP_WORDS: ReadonlySet<string> = Object.freeze(
-  new Set([
-    "a", "an", "the", "and", "or", "of", "for", "to", "in", "on", "at", "by",
-    "from", "with", "is", "are", "be", "my", "your", "our", "their", "it",
-    "its", "that", "this", "i", "you", "we", "do", "does", "can",
-  ])
-);
+/** English function words. Dropped by `stemKey` (so word order and
+ *  connectives cannot make two spellings of one search look like two
+ *  searches) and never counted as a token the relevance guard demands
+ *  support for. Each language has its own (`src/lib/locale/language/`);
+ *  these two are the English ones, for the readers that name them. */
+export const STOP_WORDS: ReadonlySet<string> = languagePack("en").stopWords;
 
 /** Tokens that carry a search's *shape* rather than its *subject*. The
  *  relevance guard demands profile support for every other token; demanding
  *  it for these would kill "best {category} software" on the word "best". */
-export const GENERIC_TOKENS: ReadonlySet<string> = Object.freeze(
-  new Set([
-    "best", "top", "vs", "versus", "alternative", "comparison", "compare",
-    "review", "software", "tool", "app", "platform", "solution", "how",
-    "what", "why", "which", "who", "when", "where", "online",
-    "price", "pricing", "cost", "guide", "example",
-    "template", "list", "near", "me", "new", "good", "great", "not",
-    "working", "fix", "problem", "issue", "error", "broken", "troubleshoot",
-  ])
-);
+export const GENERIC_TOKENS: ReadonlySet<string> = languagePack("en").genericTokens;
 
 // ── Normalisation, shared by every predicate below ─────────────────────────
 
 /** Lower-case, punctuation to space, whitespace collapsed. Word order and
  *  stop-words survive: the shape tables read them. */
 function normalise(keyword: string): string {
-  return keyword.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+  return keyword.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
 }
 
 /** Plural content tokens to their singular. Deliberately blunt and total —
  *  both sides of every comparison pass through it, so a word it stems oddly
  *  still matches itself. */
-function singular(token: string): string {
-  if (token.length <= 3) return token;
-  if (token.endsWith("ies")) return `${token.slice(0, -3)}y`;
-  if (/(?:sses|shes|ches|xes|zes)$/.test(token)) return token.slice(0, -2);
-  if (token.endsWith("ss") || token.endsWith("us")) return token;
-  if (token.endsWith("s")) return token.slice(0, -1);
-  return token;
-}
-
-/** The tokens a search is *about*: normalised, stop-words dropped, singular. */
-function contentTokens(text: string): string[] {
+function contentTokens(text: string, language: Language = "en"): string[] {
+  const pack = languagePack(language);
   const out: string[] = [];
   for (const token of normalise(text).split(" ")) {
-    if (token === "" || STOP_WORDS.has(token)) continue;
-    out.push(singular(token));
+    if (token === "" || pack.stopWords.has(token)) continue;
+    out.push(pack.stem(token));
   }
   return out;
 }
 
-/** True when every token of `phrase` appears among `tokens` — a token match,
- *  never a substring one, so a brand cannot swallow an unrelated word that
- *  merely contains it. A phrase with no content tokens matches nothing. */
-function phraseIsPresent(phrase: string, tokens: ReadonlySet<string>): boolean {
-  const wanted = contentTokens(phrase);
+function phraseIsPresent(phrase: string, tokens: ReadonlySet<string>, language: Language): boolean {
+  const wanted = contentTokens(phrase, language);
   return wanted.length > 0 && wanted.every((token) => tokens.has(token));
 }
 
-function namesAnyOf(keyword: string, phrases: readonly string[]): boolean {
-  const tokens = new Set(contentTokens(keyword));
-  return phrases.some((phrase) => phraseIsPresent(phrase, tokens));
+function namesAnyOf(keyword: string, phrases: readonly string[], language: Language = "en"): boolean {
+  const tokens = new Set(contentTokens(keyword, language));
+  return phrases.some((phrase) => phraseIsPresent(phrase, tokens, language));
 }
 
 // ── The four predicates ────────────────────────────────────────────────────
@@ -184,7 +146,7 @@ function namesAnyOf(keyword: string, phrases: readonly string[]): boolean {
  * dropped before its shape is ever read (BUILD §6.7 step 3).
  */
 export function classifyIntent(keyword: string, p: Profile): Intent | "own_brand" {
-  if (namesAnyOf(keyword, p.brandTokens)) return "own_brand";
+  if (namesAnyOf(keyword, p.brandTokens, p.language)) return "own_brand";
   const text = normalise(keyword);
   for (const [intent, patterns] of INTENT_PATTERNS) {
     if (patterns.some((pattern) => pattern.test(text))) return intent;
@@ -209,8 +171,8 @@ export function intentWeight(keyword: string, p: Profile): number {
  * form, word order, punctuation or stop-words produce the same key, and two
  * differing in any content token do not.
  */
-export function stemKey(keyword: string): string {
-  return contentTokens(keyword).sort().join(" ");
+export function stemKey(keyword: string, language: Language = "en"): string {
+  return contentTokens(keyword, language).sort().join(" ");
 }
 
 /**
@@ -241,14 +203,15 @@ export function passesRelevanceGuard(
   category?: string,
   rivals: readonly string[] = []
 ): boolean {
+  const pack = languagePack(p.language ?? "en");
   const support = supportSet(p, category, rivals);
   let supported = 0;
-  for (const token of contentTokens(keyword)) {
-    if (support.has(token)) {
+  for (const token of contentTokens(keyword, p.language)) {
+    if (pack.supports(token, support)) {
       supported++;
       continue;
     }
-    if (!GENERIC_TOKENS.has(token)) return false;
+    if (!pack.genericTokens.has(token)) return false;
   }
   return supported > 0;
 }
@@ -266,7 +229,7 @@ function supportSet(p: Profile, category?: string, rivals: readonly string[] = [
     ...rivals.map(brandOf),
   ];
   for (const source of sources) {
-    for (const token of contentTokens(source)) tokens.add(token);
+    for (const token of contentTokens(source, p.language)) tokens.add(token);
   }
   return tokens;
 }
@@ -395,7 +358,7 @@ export function selectTwelve(a: {
     if (intent === "own_brand") continue;
     const rivals = row.rivals ?? [];
     if (!passesRelevanceGuard(row.keyword, profile, marketWords, rivals)) continue;
-    const longTail = coldStart && contentTokens(row.keyword).length >= SELECTION.longTailWords;
+    const longTail = coldStart && contentTokens(row.keyword, profile.language).length >= SELECTION.longTailWords;
     survivors.push({
       keyword: row.keyword,
       volume: row.volume,
@@ -405,7 +368,7 @@ export function selectTwelve(a: {
         SELECTION.intentWeights[intent] *
         Math.log10(row.volume + 1) *
         (longTail ? SELECTION.longTailWeight : 1),
-      rivalBrand: namesAnyOf(row.keyword, [...profile.namedRivals, ...rivals.map(brandOf)]),
+      rivalBrand: namesAnyOf(row.keyword, [...profile.namedRivals, ...rivals.map(brandOf)], profile.language),
       howTo: HOW_TO.test(normalise(row.keyword)),
       term: false,
     });
@@ -416,7 +379,7 @@ export function selectTwelve(a: {
   // group's winner does not depend on the order the market arrived in.
   const byStem = new Map<string, Candidate>();
   for (const candidate of survivors) {
-    const key = stemKey(candidate.keyword);
+    const key = stemKey(candidate.keyword, profile.language);
     const held = byStem.get(key);
     // A market term stands for its stem: it is the measured volume.
     if (held?.term === true && !candidate.term) continue;

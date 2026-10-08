@@ -56,7 +56,10 @@ export interface Snapshot {
   scan: { id: string; tier: string; status: string; finishedAt: string };
   report: unknown;
   siteProfile: { siteName: string | null; products: string[]; claims: string[]; voice: VoiceSummary | null } | null;
-  site: { voiceText: string | null; doNotClaim: string[] } | null;
+  /** `country` and `language` are `sites.country` and `sites.language`
+   *  (D66), where the export carried them; absent is the United States in
+   *  English. */
+  site: { voiceText: string | null; doNotClaim: string[]; country?: string | null; language?: string | null } | null;
   /** `sites.market`, where the export carried it (#1164): the market the
    *  site holds now, which a stored report's own reading may be older than. */
   market?: unknown;

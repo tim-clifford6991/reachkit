@@ -15,8 +15,8 @@
 // that would make such a claim true on the free path, and this module
 // buys nothing at all: it resolves no import into `src/lib/vendors/`,
 // `src/lib/costs/` or `src/lib/llm/`, takes no cost context and takes no
-// locale — every figure on it comes from calls made at the one pinned
-// `SERP_LOCATION`, which the vendor client exposes no way to vary.
+// locale — every figure on it comes from calls the pass made in the
+// site's own locale (D66).
 //
 // No sentence is written here. `framing` is a state; the words that state
 // picks are the copy registry's and the report surface's.

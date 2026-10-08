@@ -738,9 +738,6 @@ export const LLM_MENTIONS_EVERY_WEEKS = 4 as const;
 export const TRACKED_QUESTIONS_MAX = 24 as const;             // SPEC §6 2026-09-20
 export const PAGE_QUESTION_RETIRE_WEEKS = 8 as const;         // SPEC §6 2026-09-20
 
-export const SERP_LOCATION = Object.freeze({
-  location: "United States", language: "en",
-} as const);
 
 /** `BUILD.md` §6.1's price-book row: "`PLATFORM_DOMAINS` | reddit, quora,
  *  youtube, wikipedia, g2, capterra, medium, linkedin, producthunt,

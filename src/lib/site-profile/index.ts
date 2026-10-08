@@ -33,6 +33,7 @@
 // This module never writes `sites.voice_text`. Seeding the customer's own
 // field from the derived voice is `adoptVoiceText`'s, called where a site
 // and its account are known; a scan has neither on the free path.
+import type { Locale } from "@/lib/locale/locales";
 import type { CostContext } from "@/lib/costs";
 import type { Tier } from "@/lib/measure";
 import { crawlSite, type CrawlOutcome } from "./crawl";
@@ -78,6 +79,9 @@ interface ProfileArgs {
   homeHtml: string | null;
   sitemaps: readonly string[];
   tier: Tier;
+  /** The site's country and language (D66): what was read of the site is
+   *  recorded in its own language. Absent is the United States in English. */
+  locale?: Locale;
 }
 
 /**
@@ -122,7 +126,7 @@ export async function buildSiteProfileWithCrawl(
   const reading =
     a.tier === "free"
       ? null
-      : await deriveVoice(c, { domain: a.domain, pages: crawl.pages, tier: a.tier });
+      : await deriveVoice(c, { domain: a.domain, pages: crawl.pages, tier: a.tier, ...(a.locale === undefined ? {} : { locale: a.locale }) });
   const read = reading === null || reading.kind === "unmeasured" ? null : reading.value;
 
   const profile: SiteProfile = {

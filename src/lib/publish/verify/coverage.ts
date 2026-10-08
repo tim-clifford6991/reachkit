@@ -31,7 +31,7 @@ import { visibleText } from "@/lib/measure/parse";
  *  wholly present, while leaving a page that returned none of its words
  *  nowhere to hide. */
 function tokens(text: string): string[] {
-  return text.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  return text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
 }
 
 function counts(of: readonly string[]): Map<string, number> {

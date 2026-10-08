@@ -12,7 +12,7 @@ import type { Profile } from "./profile";
 import { headTermOf } from "./widen";
 
 function words(text: string): string[] {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter((w) => w !== "");
+  return text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().split(" ").filter((w) => w !== "");
 }
 
 /** The shorter tails of a category's head term, broadest last:

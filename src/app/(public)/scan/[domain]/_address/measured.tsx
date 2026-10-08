@@ -9,7 +9,8 @@
 import type React from "react";
 import type { Measured } from "@/lib/measure/measured";
 import { renderMeasured } from "@/lib/presentation/measured";
-import { copy, type CopyKey } from "@/lib/presentation/copy";
+import type { CopyKey } from "@/lib/presentation/copy";
+import { copy } from "@/lib/presentation/copy/reader";
 
 /** REQ-004 c6 vs c9: which of the two owner-written lines an unmeasured
  *  value carries. The choice is the reason's, never the caller's. */
