@@ -377,6 +377,26 @@ describe("REQ-043 c9 — the panel renders exactly the projection, and adds noth
   });
 });
 
+describe("issue 1326 — a day with a page leads with its actions, and the measurements open from one line", () => {
+  it("the actions follow the title and come before the rows, which start closed", () => {
+    const root = panel("2026-09-15");
+    const title = root.querySelector('[data-testid="day-title"]');
+    const actions = root.querySelector('[data-testid="day-actions"]');
+    const why = root.querySelector('[data-testid="day-why"]');
+    expect(title && actions && why).toBeTruthy();
+    const FOLLOWING = Node.DOCUMENT_POSITION_FOLLOWING;
+    expect((title as Element).compareDocumentPosition(actions as Element) & FOLLOWING).toBeTruthy();
+    expect((actions as Element).compareDocumentPosition(why as Element) & FOLLOWING).toBeTruthy();
+    // Closed until the founder opens it, and the rows are inside it and
+    // nowhere else.
+    expect(why?.tagName).toBe("DETAILS");
+    expect(why?.hasAttribute("open")).toBe(false);
+    expect(why?.querySelector("summary")?.textContent).toBe("calendar.why.title");
+    expect(root.querySelectorAll('[data-testid="target-rows"]')).toHaveLength(1);
+    expect(why?.querySelector('[data-testid="target-rows"]')).not.toBeNull();
+  });
+});
+
 describe("REQ-043 c11 — an empty day states one account and offers no control", () => {
   const empties: readonly [string, string][] = [
     ["2026-09-13", "stopped.work.line"],

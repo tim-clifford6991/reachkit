@@ -4,11 +4,13 @@
 //   head      the stage word, the date, and the control that closes it
 //   title     the page, two lines
 //   chips     what the page is (new or an update), its band
-//   Search    the rows `TargetRows` draws — one projection, one renderer,
-//             shared with the draft screen
-//   AI answers the three engines, in the same block
+//   actions   `actions.ts`, exactly as #942 left them — every one answers.
+//             They sit with the title (SPEC §7, 2026-10-07, issue 1326):
+//             the actions are what the day is for
 //   goes live the one dated line the page's own stage earns
-//   actions   `actions.ts`, exactly as #942 left them — every one answers
+//   why       one closed line that opens in place onto the rows
+//             `TargetRows` draws — Search and AI answers, one projection,
+//             one renderer, shared with the draft screen
 //
 // Two arms, and the union `DayCell` gives them is what keeps them apart:
 //
@@ -470,6 +472,7 @@ function PageDayPanel(p: {
         <span className="badge badge-sm badge-ghost max-w-full self-start" data-testid="day-kind">
           {kindWord(page.update)}
         </span>
+        <DayActions cell={shown} destination={p.destination} onCommand={command} busy={busy} pressed={busy ? pressed : null} />
 
         <div className="flex flex-col gap-1 text-sm">
           {needsYouLine === null ? null : <p data-testid="day-needs-you-line">{needsYouLine}</p>}
@@ -484,9 +487,19 @@ function PageDayPanel(p: {
             )}
           </p>
         )}
-        <TargetRows facts={page.why} />
+        {/* The measurements start closed, one line, and open in place
+            (SPEC §7, 2026-10-07, issue 1326). `details`, so the rows are in
+            the document with no JavaScript; the line is the block's own
+            name (REQ-043 c8). Flush with the panel's edge, under a rule: the
+            panel is 20rem beside the month, and the collapse's own side
+            padding would come out of the value column. */}
+        <details className="collapse collapse-arrow border-base-300 rounded-none border-t" data-testid="day-why">
+          <summary className="collapse-title py-3 pl-0 text-sm">{copy("calendar.why.title")}</summary>
+          <div className="collapse-content min-w-0 px-0">
+            <TargetRows facts={page.why} />
+          </div>
+        </details>
       </div>
-      <DayActions cell={shown} destination={p.destination} onCommand={command} busy={busy} pressed={busy ? pressed : null} />
       {provenance === null ? null : (
         <p className="text-xs opacity-70" data-testid="day-provenance">
           {provenance}
