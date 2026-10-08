@@ -12,14 +12,13 @@
 //   - a Settings tab change keeps `settings/layout.tsx` mounted. The tab
 //     bar is that layout's own element; the same DOM node, in the same
 //     document, is still on screen after the change.
-//   - on a phone, a tap in the side panel still closes it. A full load used
-//     to do that by itself; a transition keeps the shell — and its open
-//     drawer — mounted, so the menu closes it.
+//   - on a phone, a tap on the bottom bar keeps the shell mounted. Below
+//     `lg` the bar is the only navigation (SPEC §4, 2026-10-08, issue
+//     1339): there is no side panel and nothing that opens one.
 import { describe, expect, it } from "vitest";
 import type { Page } from "playwright";
 import { BAND_MIN } from "@/ui/layout/bands";
 import { DESTINATION_HREF } from "@/app/(account)/app/_shell/destinations";
-import { DRAWER_TOGGLE_ID } from "@/app/(account)/app/_shell/drawer";
 import { SETTINGS_TABS, SETTINGS_TAB_HREF } from "@/app/(account)/app/settings/tabs";
 import { getAccountCookie, getBaseURL, withPage } from "./browser";
 
@@ -52,18 +51,14 @@ interface After {
   readonly sameElement: boolean;
   /** The marked tab or destination, by `data-testid`. */
   readonly current: string | null;
-  /** The drawer's box: checked is open, below `lg`. */
-  readonly drawerOpen: boolean;
 }
 
-function read(args: { selector: string; toggleId: string }): After {
-  const el = document.querySelector(args.selector);
-  const toggle = document.getElementById(args.toggleId);
+function read(selector: string): After {
+  const el = document.querySelector(selector);
   return {
     sameDocument: (window as unknown as { rkDocument?: boolean }).rkDocument === true,
     sameElement: (el as unknown as { rkMounted?: boolean } | null)?.rkMounted === true,
     current: el?.querySelector('[aria-current="page"]')?.getAttribute("data-testid") ?? null,
-    drawerOpen: toggle instanceof HTMLInputElement && toggle.checked,
   };
 }
 
@@ -86,7 +81,7 @@ describe("SPEC §4 (2026-10-08) — in-app navigation is a client transition", (
           await page.click(`[data-testid="settings-tab-${to}"]`);
           await arrive(page, SETTINGS_TAB_HREF[to]);
           await page.waitForSelector(`[data-testid="settings-tab-${to}"][aria-current="page"]`);
-          return page.evaluate(read, { selector: bar, toggleId: DRAWER_TOGGLE_ID });
+          return page.evaluate(read, bar);
         },
         { extraHTTPHeaders: { Cookie: getAccountCookie() } }
       );
@@ -99,29 +94,25 @@ describe("SPEC §4 (2026-10-08) — in-app navigation is a client transition", (
   );
 
   it(
-    `at ${PHONE_PX}px a tap in the side panel goes to ${DESTINATION_HREF.calendar} and closes the panel`,
+    `at ${PHONE_PX}px a tap on the bottom bar goes to ${DESTINATION_HREF.calendar} and keeps the shell mounted`,
     async () => {
-      const nav = '[data-testid="shell-sidebar-nav"]';
+      const dock = '[data-testid="shell-dock"]';
       const after = await withPage(
         PHONE_PX,
         async (page) => {
           await page.goto(urlFor(DESTINATION_HREF.overview));
-          expect(await page.evaluate(mark, nav), "the panel's menu was not drawn").toBe(true);
-          await page.click('[data-testid="shell-menu-button"]');
-          await page.click(`${nav} [data-testid="shell-navlink-calendar"]`);
+          expect(await page.evaluate(mark, dock), "the bottom bar was not drawn").toBe(true);
+          await page.click(`${dock} [data-testid="shell-docklink-calendar"]`);
           await arrive(page, DESTINATION_HREF.calendar);
-          // Attached, not visible: the panel this link is in has closed.
-          await page.waitForSelector(`${nav} [data-testid="shell-navlink-calendar"][aria-current="page"]`, {
-            state: "attached",
-          });
-          return page.evaluate(read, { selector: nav, toggleId: DRAWER_TOGGLE_ID });
+          await page.waitForSelector(`${dock} [data-testid="shell-docklink-calendar"][aria-current="page"]`);
+          return page.evaluate(read, dock);
         },
         { extraHTTPHeaders: { Cookie: getAccountCookie() } }
       );
 
+      expect(after.current).toBe("shell-docklink-calendar");
       expect(after.sameDocument, "the tap loaded a new document").toBe(true);
       expect(after.sameElement, "the tap remounted the shell").toBe(true);
-      expect(after.drawerOpen, "the panel stayed open over the screen").toBe(false);
     },
     PER_CASE_MS
   );
