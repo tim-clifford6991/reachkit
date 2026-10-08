@@ -12,9 +12,11 @@
 // with a different contract (fixed to the foot of the viewport), reading
 // the same tuple.
 //
-// Links are `<a href>`: navigation that works with no client runtime. It is
-// a client component only to read the pathname that marks the current
-// destination.
+// Links are `next/link` with `prefetch` (SPEC §4, 2026-10-08, issue 1341):
+// the destination is loaded before the tap and the shell stays mounted. It
+// is a client component to read the pathname that marks the current
+// destination, and to close the phone's drawer once a tap has been taken
+// (`closeDrawer`, below).
 //
 // SPEC §4 (2026-09-20) moves the waiting count from Plan to Overview
 // (`WAITING_ON`). The rule under it is REQ-040 c2's and is unchanged: when
@@ -22,7 +24,8 @@
 "use client";
 
 import type React from "react";
-import { Suspense, use } from "react";
+import { Suspense, use, useEffect } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Calendar, Settings, TrendingUp, type LucideIcon } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
@@ -34,6 +37,7 @@ import {
   destinationOf,
   type Destination,
 } from "./destinations";
+import { DRAWER_TOGGLE_ID, RAIL_MEDIA_QUERY } from "./drawer";
 
 /** Each destination's glyph. A `Record` over the one tuple, so a fourth
  *  destination without a glyph is a compile error. */
@@ -82,14 +86,35 @@ function WaitingBadge(p: { waiting: Promise<number>; className: string }): React
   );
 }
 
+/**
+ * Close the phone's drawer. Below `lg` the panel is a drawer over the
+ * screen, and a full document load used to be what closed it after a tap.
+ * A client transition keeps the shell mounted — the checkbox with it — so
+ * the panel would stay open over the screen the customer just asked for.
+ *
+ * At `lg` the same box means "collapsed to the rail" (`drawer.ts`), which
+ * is a remembered choice and not this function's to change.
+ */
+function closeDrawer(): void {
+  if (window.matchMedia(RAIL_MEDIA_QUERY).matches) return;
+  const toggle = document.getElementById(DRAWER_TOGGLE_ID);
+  if (toggle instanceof HTMLInputElement) toggle.checked = false;
+}
+
 export function SidebarNav(p: {
   /** The count, as a promise: the nav does not wait for it (issue 912). */
   waiting: Promise<number>;
   /** The collapsed icon rail's arm: the same three links, icon only. */
   rail?: boolean;
 }): React.JSX.Element {
-  const current = destinationOf(usePathname());
+  const pathname = usePathname();
+  const current = destinationOf(pathname);
   const rail = p.rail === true;
+
+  // Any arrival closes it — the panel's *Waiting for you* card and the
+  // screen's own links navigate too. The press handler below covers the one
+  // case with no arrival: a tap on the destination already on screen.
+  useEffect(closeDrawer, [pathname]);
 
   return (
     <nav
@@ -105,8 +130,10 @@ export function SidebarNav(p: {
           const carries = destination === WAITING_ON;
           return (
             <li key={destination}>
-              <a
+              <Link
                 href={DESTINATION_HREF[destination]}
+                prefetch={true}
+                onClick={closeDrawer}
                 // The rail's link is a 48px square — the same box for all
                 // three, so none of them reads as the odd one — with the
                 // word as its accessible name and its tooltip; the panel's
@@ -146,7 +173,7 @@ export function SidebarNav(p: {
                     />
                   </Suspense>
                 )}
-              </a>
+              </Link>
             </li>
           );
         })}

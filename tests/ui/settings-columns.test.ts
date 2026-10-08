@@ -61,11 +61,11 @@ describe("SPEC §4 — the seven tabs are a daisyUI bar of addresses that cannot
     expect(bar).toMatch(/\btab-active\b/);
   });
 
-  it("every tab is an address, so the bar needs no client runtime to navigate", () => {
-    // Links, not buttons: `<a href>` moves the browser, the back button
-    // works between tabs, and nothing here is a widget with state. The one
-    // reason the component is a client component is reading the pathname.
-    expect(bar).toMatch(/<a\b/);
+  it("every tab is an address: a link, never a button", () => {
+    // Links, not buttons: the back button works between tabs, and nothing
+    // here is a widget with state. Since SPEC §4's 2026-10-08 line (issue
+    // 1341) the link is `next/link`, so the tab is loaded before the tap.
+    expect(bar).toMatch(/<Link\b/);
     expect(bar).not.toMatch(/<button\b/);
     expect(bar).toMatch(/aria-current=/);
   });

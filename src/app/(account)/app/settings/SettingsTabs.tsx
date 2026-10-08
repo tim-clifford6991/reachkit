@@ -2,8 +2,10 @@
 // routes.
 //
 // daisyUI `tabs tabs-border` with links rather than a widget: each tab is
-// its own address, so navigation works with no client runtime and the
-// browser's own back button moves between them. `aria-current="page"` marks
+// its own address, so the browser's own back button moves between them.
+// Each is a `next/link` with `prefetch` (SPEC §4, 2026-10-08, issue 1341):
+// the tab is loaded before the tap, and `settings/layout.tsx` — this bar
+// included — stays mounted across the change. `aria-current="page"` marks
 // the one the customer is on, which is what a screen reader reads and what
 // `tab-active` paints.
 //
@@ -41,6 +43,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { copy } from "@/lib/presentation/copy";
 import { UNDER_TOP_BAR } from "../_shell/bar";
@@ -86,16 +89,17 @@ export function SettingsTabs(): React.JSX.Element {
         {SETTINGS_TABS.map((tab) => {
           const onThisTab = tab === current;
           return (
-            <a
+            <Link
               key={tab}
               ref={onThisTab ? here : undefined}
               href={SETTINGS_TAB_HREF[tab]}
+              prefetch={true}
               className={`tab whitespace-nowrap max-sm:h-11 ${onThisTab ? "tab-active" : ""}`}
               data-testid={`settings-tab-${tab}`}
               aria-current={onThisTab ? "page" : undefined}
             >
               {copy(SETTINGS_TAB_COPY_KEY[tab])}
-            </a>
+            </Link>
           );
         })}
       </div>

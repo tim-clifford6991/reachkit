@@ -26,6 +26,7 @@
 // four empty tracks would say the second. The card states its written line
 // instead — REQ-004, at the card level.
 import type React from "react";
+import Link from "next/link";
 import { PresenceBars } from "@/ui/charts";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { CLOSED, formatCount } from "./present";
@@ -125,9 +126,9 @@ export function RivalPresence(p: {
       >
         {/* The count and the cells it was counted from are one reading, and
             this is the way through to them. */}
-        <a href={p.answersHref} className="link link-primary text-xs" data-testid="rivals-see-answers">
+        <Link href={p.answersHref} prefetch={true} className="link link-primary text-xs" data-testid="rivals-see-answers">
           {copy("overview.rivals.named.see-all")}
-        </a>
+        </Link>
       </Card>
     </div>
   );
