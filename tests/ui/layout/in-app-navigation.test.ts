@@ -110,7 +110,10 @@ describe("SPEC §4 (2026-10-08) — in-app navigation is a client transition", (
           await page.click('[data-testid="shell-menu-button"]');
           await page.click(`${nav} [data-testid="shell-navlink-calendar"]`);
           await arrive(page, DESTINATION_HREF.calendar);
-          await page.waitForSelector(`${nav} [data-testid="shell-navlink-calendar"][aria-current="page"]`);
+          // Attached, not visible: the panel this link is in has closed.
+          await page.waitForSelector(`${nav} [data-testid="shell-navlink-calendar"][aria-current="page"]`, {
+            state: "attached",
+          });
           return page.evaluate(read, { selector: nav, toggleId: DRAWER_TOGGLE_ID });
         },
         { extraHTTPHeaders: { Cookie: getAccountCookie() } }
