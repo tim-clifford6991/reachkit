@@ -410,17 +410,21 @@ describe("REQ-040 c5 / SPEC §4 (2026-09-20) — a viewport too narrow keeps all
     at.pathname = "/app";
   });
 
-  it("the phone's top bar carries the brand, the domain and the drawer's button", async () => {
+  it("the phone's top bar carries the domain, the theme control and the publishing line, and opens nothing", async () => {
+    // Owner, 2026-10-08 (issue 1339): on a phone the dock is the
+    // navigation. No control anywhere below `lg` opens a panel, and what
+    // the panel held that a phone still needs is on the bar.
     const root = await renderLayout();
     const top = root.querySelector("[data-testid='shell-top']");
     expect(top).not.toBeNull();
     expect(top?.textContent).toContain("example.com");
-    expect(top?.querySelector("[data-testid='shell-menu-button']")?.getAttribute("for")).toBe(
-      DRAWER_TOGGLE_ID
+    expect(top?.querySelector("[data-testid='theme-toggle']")).not.toBeNull();
+    // The panel's own statement, not a second sentence.
+    expect(top?.querySelector("[data-testid='shell-top-publishing']")?.textContent).toBe(
+      root.querySelector("[data-testid='shell-publishing-line']")?.textContent
     );
-    // Issue 1322: the panel comes in from the left, so its control is the
-    // bar's first item — the tap and the panel are on one side.
-    expect(top?.firstElementChild?.getAttribute("data-testid")).toBe("shell-menu-button");
+    expect(top?.querySelector(`[for='${DRAWER_TOGGLE_ID}']`)).toBeNull();
+    expect(root.querySelector("[data-testid='shell-menu-button']")).toBeNull();
     expect(root.querySelector("[data-testid='shell-dock']")).not.toBeNull();
   });
 
@@ -440,7 +444,7 @@ describe("SPEC §4 (2026-09-20) — one button collapses the panel, and the choi
     const toggle = root.querySelector(`#${DRAWER_TOGGLE_ID}`);
     expect(toggle?.getAttribute("type")).toBe("checkbox");
     expect(toggle?.className).toContain("drawer-toggle");
-    for (const id of ["shell-collapse", "shell-expand", "shell-menu-button"]) {
+    for (const id of ["shell-collapse", "shell-expand"]) {
       expect(root.querySelector(`[data-testid='${id}']`)?.getAttribute("for"), id).toBe(
         DRAWER_TOGGLE_ID
       );
@@ -474,16 +478,14 @@ describe("SPEC §4 (2026-09-20) — one button collapses the panel, and the choi
     // #328. The checkbox above is the only thing here a keyboard can
     // operate — Space on it collapses and expands the panel — and daisyUI
     // draws it at `width: 0; height: 0; opacity: 0`, so it can paint no
-    // focus ring of its own. At `lg` the top bar is hidden and daisyUI's
-    // own `~ .drawer-content label.drawer-button` rule therefore matches
-    // nothing on screen: a reader tabbing into `/app` was moved to a
+    // focus ring of its own: a reader tabbing into `/app` was moved to a
     // control that showed nothing, which is WCAG 2.1 2.4.7, Level AA.
     //
     // What a customer observes is that every button the toggle drives
     // lights up when the toggle has focus. That is what is asserted, on
-    // all three, rather than the selector that achieves it.
+    // both, rather than the selector that achieves it.
     const root = await renderLayout();
-    for (const id of ["shell-collapse", "shell-expand", "shell-menu-button"]) {
+    for (const id of ["shell-collapse", "shell-expand"]) {
       expect(root.querySelector(`[data-testid='${id}']`)?.className, id).toContain(
         DRAWER_FOCUS_RING
       );
@@ -491,10 +493,10 @@ describe("SPEC §4 (2026-09-20) — one button collapses the panel, and the choi
   });
 
   it("what is remembered is remembered per browser, and only where the rail exists", () => {
-    // One checked box means "collapsed" at `lg` and "the drawer is open"
-    // below it, so a remembered choice restored on a phone would be a menu
-    // over every screen. The script guards the restore with the same media
-    // query the layout uses, and re-applies it when the band changes.
+    // A checked box means "collapsed" at `lg`; below it there is no panel
+    // and the box is not drawn (issue 1339). The script guards the restore
+    // with the same media query the layout uses, and re-applies it when the
+    // band changes.
     expect(RAIL_SCRIPT).toContain(RAIL_STORAGE_KEY);
     expect(RAIL_SCRIPT).toContain("localStorage");
     expect(RAIL_SCRIPT).toContain("matchMedia");

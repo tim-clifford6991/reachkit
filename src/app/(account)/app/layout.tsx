@@ -8,9 +8,11 @@
 //                      `is-drawer-close:` variants. No script opens or
 //                      closes anything; `_shell/drawer.ts` only remembers
 //                      the choice for this browser.
-//   below `lg`         the same side is a drawer over the screen, opened by
-//                      the top bar's button, and the three menu items stand
-//                      in a daisyUI `dock` at the foot of the viewport.
+//   below `lg`         **there is no side panel** (owner, 2026-10-08,
+//                      issue 1339): the daisyUI `dock` at the foot of the
+//                      viewport is the navigation, and `TopBar` sticks to
+//                      the top with the brand, the domain, the theme control
+//                      and the publishing line. Nothing opens anything.
 //
 // The panel holds, in order: the brand with the collapse button, the domain
 // block, the menu (Overview · Plan · Settings, the waiting count on
@@ -23,6 +25,12 @@
 // whether it was the visible copy. One drawer needs one copy, so both the
 // double render and that guard are gone.
 //
+// **Issue 1339 keeps that true without a phone drawer.** Below `lg` the
+// frame is a plain column and the side's box is laid out in it, under the
+// sticky bar, with everything in it hidden except the status line of a pass
+// that is running. So that line is still mounted once, and polls once, at
+// every width: in the panel from `lg`, under the bar below it.
+//
 // REQ-040's promise is that the publishing state is visible from *every*
 // screen, which is why it lives in this layout and in no screen.
 //
@@ -34,7 +42,8 @@
 // own edges, so it takes no centred measure and no gutter: at `lg` and up
 // the side runs the viewport's full height from its left edge, and the
 // content beside it is the one thing that scrolls. Below `lg` the content
-// keeps the compact gutter (`p-4`) it had from the surface.
+// keeps the compact gutter (`p-4`) it had from the surface, and the document
+// is the scroller, which is what the top bar and the tab bars stick to.
 //
 // **2026-09-20 (#908, issue 912): the frame paints before any of it is
 // read.** SPEC §4 — "No loading screens in the app: a route paints its
@@ -129,18 +138,20 @@ export default async function AppLayout({
           element, which already holds the whole frame, puts it inside one
           without moving it a line. The role is explicit because a `<div>`
           has none; the name is the registry's. */}
-      <div role="region" aria-label={copy("shell.frame.label")} className="drawer lg:drawer-open lg:h-dvh">
+      <div role="region" aria-label={copy("shell.frame.label")} className="drawer flex flex-col lg:grid lg:drawer-open lg:h-dvh">
         {/*
           The one control. It is the focusable, announceable thing behind
           every `<label>` in this shell, which is why it carries the panel's
           name; daisyUI hides it entirely at `drawer-open`, and `lg:block!`
           puts it back so the collapse is reachable from the keyboard at the
-          band where the collapse exists at all.
+          band where the collapse exists at all. Below `lg` there is no
+          panel for it to open (issue 1339), so it is not drawn and a
+          keyboard does not stop on it.
         */}
         <input
           id={DRAWER_TOGGLE_ID}
           type="checkbox"
-          className="drawer-toggle lg:block!"
+          className="drawer-toggle hidden lg:block!"
           aria-label={copy("shell.panel.label")}
         />
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: RAIL_SCRIPT }} />
@@ -156,10 +167,15 @@ export default async function AppLayout({
             rather than the `auto` a vertical scroller implies, so a box
             wider than the content is still an offender to the layout
             gate's containment check instead of a sideways scrollbar. */}
-        <div className="drawer-content flex min-w-0 flex-col gap-4 p-4 pb-28 lg:overflow-x-hidden lg:overflow-y-auto lg:py-6 lg:ps-10 lg:pe-6 xl:py-8 xl:pe-8">
-          <Suspense fallback={<TopBarSkeleton />}>
-            <TopBarSlot shell={shell} />
-          </Suspense>
+        {/* The phone's bar is the frame's own child, not the content's: it
+            sticks to the document, and the pass's status line (the side,
+            below) stands between it and the screen. `order-1` is
+            what puts the content after that line on a phone while the
+            markup keeps the order it has from `lg`. */}
+        <Suspense fallback={<TopBarSkeleton />}>
+          <TopBarSlot shell={shell} />
+        </Suspense>
+        <div className="drawer-content flex min-w-0 flex-col gap-4 order-1 p-4 pb-28 lg:order-none lg:overflow-x-hidden lg:overflow-y-auto lg:py-6 lg:ps-10 lg:pe-6 xl:py-8 xl:pe-8">
           <main className={`flex min-w-0 flex-1 flex-col gap-4 ${ENTER_APP}`}>
             {/* REQ-092 c3: stated once, on the screen the customer lands on.
                 No fallback: a stop is the exception, so a box held for one
@@ -180,11 +196,19 @@ export default async function AppLayout({
           own vertical scrollbar, so nothing tall is trapped. daisyUI's own
           `100dvh` sticky side is the full-height column the 2026-09-25
           ruling asks for (#1100).
+
+          Below `lg` it is not a drawer (issue 1339). The unprefixed
+          utilities undo daisyUI's off-canvas box, so this is an ordinary
+          block in the column, and the `lg:` ones put back what
+          `drawer-open` gives the side. The panel and its scroller are
+          `contents` there and every part but the pass's status line is
+          `hidden`. With no pass running the block is empty and takes no
+          room.
         */}
-        <div className="drawer-side z-30 lg:overflow-visible!">
-          <label htmlFor={DRAWER_TOGGLE_ID} className="drawer-overlay" aria-hidden="true" />
+        <div className="drawer-side pointer-events-auto visible static z-auto block h-auto overflow-visible px-4 opacity-100 lg:sticky lg:z-30 lg:h-dvh lg:px-0 lg:overflow-visible!">
+          <label htmlFor={DRAWER_TOGGLE_ID} className="drawer-overlay hidden lg:inline" aria-hidden="true" />
           <aside
-            className="border-base-300 bg-base-100 flex h-full w-60 max-w-[85vw] flex-col gap-5 border-e p-4 lg:is-drawer-open:w-18 lg:is-drawer-open:items-center lg:is-drawer-open:p-2"
+            className="border-base-300 bg-base-100 contents h-full w-60 max-w-[85vw] flex-col gap-5 border-e p-4 lg:flex lg:is-drawer-open:w-18 lg:is-drawer-open:items-center lg:is-drawer-open:p-2"
             // Named for the same reason the draft screen's panel is (#328):
             // a screen can carry a second `<aside>`, and two unnamed
             // complementary landmarks are indistinguishable. It is the
@@ -200,7 +224,7 @@ export default async function AppLayout({
                 scroller that tooltip hung 69px past the edge and gave the
                 panel a sideways scroll at every desktop width. Out here
                 nothing clips it and nothing scrolls. */}
-            <div className="flex min-w-0 shrink-0 items-center gap-2 lg:is-drawer-open:hidden">
+            <div className="hidden min-w-0 shrink-0 items-center gap-2 lg:is-drawer-close:flex">
               <Brand href="/app" testId="shell-brand" />
               <label
                 htmlFor={DRAWER_TOGGLE_ID}
@@ -211,29 +235,38 @@ export default async function AppLayout({
                 <PanelLeftClose size={20} strokeWidth={1.75} aria-hidden />
               </label>
             </div>
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto lg:is-drawer-open:hidden">
-              <Suspense fallback={<DomainSkeleton />}>
-                <DomainSlot shell={shell} />
-              </Suspense>
-              <div className="flex min-w-0 flex-col gap-1">
-                {/* `.eyebrow`, not `text-xs`: the rung is ruled
-                    (`docs/DESIGN.md`: "eyebrow 11 uppercase 700 .1em") and
-                    carries its case, weight and ink with the size, which no
-                    single utility does. It was first reached for because
-                    `type.css` out-ranked `text-xs`; that is fixed at the
-                    cause now (#941) and the class is still the right one. */}
-                <h2 className="eyebrow px-0">{copy("shell.workspace")}</h2>
-                <SidebarNav waiting={waiting} />
+            <div className="contents min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto lg:is-drawer-close:flex lg:is-drawer-open:hidden">
+              {/* `lg:contents`: from `lg` these three are the scroller's own
+                  flex items, as they were; below it the group is not drawn
+                  (the domain is on the top bar, the menu and the waiting
+                  count are the dock's). */}
+              <div className="hidden lg:contents">
+                <Suspense fallback={<DomainSkeleton />}>
+                  <DomainSlot shell={shell} />
+                </Suspense>
+                <div className="flex min-w-0 flex-col gap-1">
+                  {/* `.eyebrow`, not `text-xs`: the rung is ruled
+                      (`docs/DESIGN.md`: "eyebrow 11 uppercase 700 .1em") and
+                      carries its case, weight and ink with the size, which no
+                      single utility does. It was first reached for because
+                      `type.css` out-ranked `text-xs`; that is fixed at the
+                      cause now (#941) and the class is still the right one. */}
+                  <h2 className="eyebrow px-0">{copy("shell.workspace")}</h2>
+                  <SidebarNav waiting={waiting} />
+                </div>
+                <Suspense fallback={<PanelCardSkeleton testId="shell-waiting-skeleton" className="h-20 w-full" />}>
+                  <WaitingCardSlot shell={shell} />
+                </Suspense>
               </div>
-              <Suspense fallback={<PanelCardSkeleton testId="shell-waiting-skeleton" className="h-20 w-full" />}>
-                <WaitingCardSlot shell={shell} />
-              </Suspense>
               {/* Issue #782: the deep pass and the first draft run in the
-                  background; the panel says which step until they end. */}
-              <Suspense fallback={<PanelCardSkeleton testId="shell-onboarding-skeleton" className="h-12 w-full" />}>
+                  background; the panel says which step until they end.
+                  Issue 1339: the one copy at every width. Below `lg` it is
+                  the line under the top bar, drawn only while a pass runs,
+                  so it holds no place while it is read. */}
+              <Suspense fallback={<PanelCardSkeleton testId="shell-onboarding-skeleton" className="hidden h-12 w-full lg:block" />}>
                 <OnboardingSlot shell={shell} />
               </Suspense>
-              <div className="mt-auto flex min-w-0 flex-col gap-3">
+              <div className="mt-auto hidden min-w-0 flex-col gap-3 lg:flex">
                 <Suspense fallback={<PanelCardSkeleton testId="shell-shortcuts-skeleton" className="h-8 w-full" />}>
                   <ShortcutsSlot shell={shell} />
                 </Suspense>

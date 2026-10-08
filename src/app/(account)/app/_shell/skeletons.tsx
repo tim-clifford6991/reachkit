@@ -24,6 +24,7 @@
 // file is for. Nothing here wraps `skeleton` itself.
 import type React from "react";
 import { SKELETON_EXIT, ViewTransition } from "@/ui/motion";
+import { TOP_BAR } from "./bar";
 
 /** One box. Spelled here so the class name is written once per shape
  *  rather than once per box, and so `height` is the only thing a caller
@@ -87,15 +88,19 @@ export function PanelCardSkeleton(p: { testId: string; className: string }): Rea
   );
 }
 
-/** The top bar, below `lg`: the menu button at the start, then the brand. */
+/** The top bar, below `lg`, in the bar's own box: the brand and the theme
+ *  control's place on one row, the publishing line under it. */
 export function TopBarSkeleton(): React.JSX.Element {
   return (
     <Waiting
-      className="navbar border-base-300 bg-base-100 min-h-0 gap-2 rounded-box border p-2 lg:hidden"
+      className={`border-base-300 bg-base-100 flex min-w-0 flex-col justify-center gap-2 border-b px-4 ${TOP_BAR}`}
       testId="shell-top-skeleton"
     >
-      <Box className="h-8 w-8 shrink-0" />
-      <Box className="h-6 w-24" />
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <Box className="h-6 w-24" />
+        <Box className="h-8 w-8 shrink-0" />
+      </div>
+      <Box className="h-4 w-56 max-w-full" />
     </Waiting>
   );
 }

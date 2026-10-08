@@ -19,6 +19,7 @@ import type { Page } from "playwright";
 import { BAND_MIN } from "@/ui/layout/bands";
 import { RAIL_STORAGE_KEY } from "@/app/(account)/app/_shell/drawer";
 import { getAccountCookie, getBaseURL, withPage } from "./browser";
+import { BREAKPOINT_MD_PX } from "./widths";
 
 /** The widest screen the owner measured the centred box on (#1100): at
  *  1920 the side started at x=352 and `main` stayed 936px wide. */
@@ -146,6 +147,94 @@ describe("the /app shell is full width: the side is fixed at the left edge and o
           expect(after.side, "scrolling the content does not move the side").toEqual(before.side);
           expect(before.sidewaysScrollers, "nothing in the side scrolls sideways").toEqual([]);
           expect(seen.menu, "the theme menu opens on screen, unclipped").toBe(true);
+        },
+        PER_CASE_MS
+      );
+    }
+  }
+});
+
+/** Closure-free, as `measureFrame` is. What a phone's shell is, read off
+ *  the screen: where the bar and the tab bar stand, and what can be pressed. */
+function measurePhone(): {
+  bar: { top: number; bottom: number } | null;
+  tabs: { top: number } | null;
+  publishing: string | null;
+  dock: boolean;
+  panelControls: number;
+  panelLinks: number;
+  status: { top: number; bottom: number }[];
+  main: { top: number } | null;
+  scrolled: number;
+} {
+  const shown = (el: Element): boolean => {
+    if (el.getClientRects().length === 0) return false;
+    const style = getComputedStyle(el);
+    return style.visibility !== "hidden" && style.opacity !== "0";
+  };
+  const box = (selector: string): DOMRect | null => {
+    const el = Array.from(document.querySelectorAll(selector)).find(shown);
+    return el ? el.getBoundingClientRect() : null;
+  };
+  const bar = box('[data-testid="shell-top"]');
+  const tabs = box('[data-testid="overview-tabs"], [data-testid="settings-tabs"]');
+  const main = box("main");
+  const line = Array.from(document.querySelectorAll('[data-testid="shell-top-publishing"]')).find(shown);
+  return {
+    bar: bar ? { top: bar.top, bottom: bar.bottom } : null,
+    tabs: tabs ? { top: tabs.top } : null,
+    publishing: line ? (line.textContent ?? "").trim() : null,
+    dock: box('[data-testid="shell-dock"]') !== null,
+    // Anything on screen that drives the panel's toggle, and the toggle.
+    panelControls: Array.from(document.querySelectorAll('.drawer-toggle, label[for="app-drawer"]')).filter(shown).length,
+    panelLinks: Array.from(document.querySelectorAll('[data-testid="shell-sidebar"] a')).filter(shown).length,
+    status: Array.from(document.querySelectorAll('[data-testid="shell-onboarding"]'))
+      .filter(shown)
+      .map((el) => el.getBoundingClientRect())
+      .map((r) => ({ top: r.top, bottom: r.bottom })),
+    main: main ? { top: main.top } : null,
+    scrolled: window.scrollY,
+  };
+}
+
+describe("on a phone the bottom bar is the navigation, and the top bar sticks (owner, 2026-10-08, issue 1339)", () => {
+  for (const width of [BAND_MIN.compact, BREAKPOINT_MD_PX]) {
+    for (const path of ["/app", "/app/settings"]) {
+      it(
+        `${width}px, ${path}: no panel, and the bar and the tab bar stay put while the page scrolls`,
+        async () => {
+          const seen = await withPage(
+            width,
+            async (page) => {
+              // A remembered rail must not come back as a panel on a phone.
+              await page.addInitScript((key) => {
+                try {
+                  localStorage.setItem(key, "1");
+                } catch {
+                  // A storage that refuses remembers nothing, which is fine.
+                }
+              }, RAIL_STORAGE_KEY);
+              await page.goto(urlFor(path));
+              const before = await page.evaluate(measurePhone);
+              await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+              const after = await page.evaluate(measurePhone);
+              return { before, after };
+            },
+            { extraHTTPHeaders: { Cookie: getAccountCookie() } }
+          );
+          const { before, after } = seen;
+
+          expect(before.panelControls, "nothing on screen opens a panel").toBe(0);
+          expect(before.panelLinks, "the panel's menu is not drawn").toBe(0);
+          expect(before.dock, "the dock is the navigation").toBe(true);
+          expect(before.bar?.top, "the bar starts at the top").toBeCloseTo(0, 0);
+          expect(before.publishing, "the publishing line is on the bar").toBeTruthy();
+          expect(before.status, "no pass is running, so no status line").toEqual([]);
+
+          expect(after.scrolled, "the screen is taller than the viewport, so it scrolled").toBeGreaterThan(0);
+          expect(after.bar, "the bar does not move").toEqual(before.bar);
+          expect(after.publishing).toBe(before.publishing);
+          expect(after.tabs?.top, "the tab bar is directly under the bar").toBeCloseTo(after.bar?.bottom ?? -1, 0);
         },
         PER_CASE_MS
       );

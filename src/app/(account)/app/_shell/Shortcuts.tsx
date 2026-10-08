@@ -1,5 +1,7 @@
 // SPEC §4 (2026-09-20, #908) — the side panel's two shortcuts, under the
-// menu and above the autopilot line: *Visit your blog* and *Help*.
+// menu and above the autopilot line: *Visit your blog* and *Help*. Settings
+// › Account draws the same two (2026-10-08, issue 1339), which is where a
+// phone, with no panel, reaches them.
 //
 // **Each is drawn only where it can act** (SPEC §4 of the same date: "a
 // control that cannot act is not drawn"). The blog link needs a live hosted

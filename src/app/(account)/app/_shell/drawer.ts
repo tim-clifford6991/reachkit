@@ -1,11 +1,12 @@
-// SPEC §4 (2026-09-20, #908) — "One button collapses it to an icon rail;
-// below the large breakpoint it is a drawer."
+// SPEC §4 (2026-09-20, #908) — "One button collapses it to an icon rail."
+// Below the large breakpoint there is no side panel and nothing to toggle
+// (owner, 2026-10-08, issue 1339).
 //
-// Both are the one daisyUI `drawer` toggle, and **nothing here opens or
+// It is the one daisyUI `drawer` toggle, and **nothing here opens or
 // closes it**: the checkbox is what the `<label>` buttons drive and what
 // daisyUI's `is-drawer-open:` / `is-drawer-close:` variants read, so the
-// panel collapses, expands and opens with the page's JavaScript switched
-// off entirely.
+// panel collapses and expands with the page's JavaScript switched off
+// entirely.
 //
 // What the one line of script below does is *remember* the choice — the
 // issue's own words, "no script; remember the choice per browser". It is
@@ -14,18 +15,15 @@
 // first paint, and record it again when it changes. It carries the
 // request's CSP nonce, like that one.
 //
-// **It only ever applies at the large breakpoint**, and that is the whole
-// subtlety. One checked box means two different things either side of
-// `lg`: at `lg` the side is always on screen (`lg:drawer-open`) and checked
-// means *collapsed to the rail*; below `lg` checked means *the drawer is
-// open over the screen*. A remembered "collapsed" restored on a phone would
-// therefore be a menu covering the screen on every load, so the restore is
-// guarded by the same media query the layout is, and leaving the large band
-// clears the box rather than leaving it to mean the other thing.
+// **It only ever applies at the large breakpoint.** At `lg` the side is
+// always on screen (`lg:drawer-open`) and checked means *collapsed to the
+// rail*. Below `lg` the box is not drawn, and daisyUI still reads a checked
+// one as *lock the page's scroll*, so the restore is guarded by the same
+// media query the layout is and leaving the large band clears the box.
 
-/** The one drawer toggle in an `/app` document. A constant because three
- *  files name it — the input, the top bar's button and the panel's own two
- *  buttons — and a typo in any of them is a control that does nothing. */
+/** The one drawer toggle in an `/app` document. A constant because the
+ *  input and the panel's own two buttons name it, and a typo in any of
+ *  them is a control that does nothing. */
 export const DRAWER_TOGGLE_ID = "app-drawer";
 
 /**
@@ -49,9 +47,8 @@ export const DRAWER_TOGGLE_ID = "app-drawer";
  *
  * So the ring is drawn where the reader is already looking: on whichever
  * `<label>` is on screen. `.drawer-toggle:focus-visible ~ * &` reaches
- * every following sibling's descendants, which is both `.drawer-content`
- * (the top bar's Open) and `.drawer-side` (the panel's Collapse and the
- * rail's Expand) — the same 2px primary outline at the same 2px offset
+ * every following sibling's descendants, which reaches `.drawer-side` (the
+ * panel's Collapse and the rail's Expand) — the same 2px primary outline at the same 2px offset
  * every other control in the product paints, because that is what
  * `:focus-visible` already gives them.
  *
