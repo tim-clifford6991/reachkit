@@ -144,13 +144,17 @@ describe("Plan waits in the shape of the Plan that arrives (issue 1320)", () => 
     expect(part("month-switcher-skeleton")).toContain("skeleton");
   });
 
-  it("is a list of days on a phone and the month grid from md, never seven columns below it", () => {
+  it("is this week's seven days below lg and the month grid from it (issue 1340)", () => {
     // The loaded screen's own media queries (`CalendarView`): the list is
-    // `md:hidden`, the grid `hidden md:block`.
-    expect(part("plan-skeleton-list")).toContain("md:hidden");
-    expect(part("plan-skeleton-grid")).toMatch(/\bhidden\b.*md:block/);
+    // `lg:hidden`, the grid `hidden lg:block`.
+    expect(part("plan-skeleton-list")).toContain("lg:hidden");
+    expect(part("plan-skeleton-grid")).toMatch(/\bhidden\b.*lg:block/);
     expect(PLAN).not.toContain("grid-cols-7");
+    // A week of rows, not a month of them, and no switcher for a month
+    // that is not on screen.
+    expect(occurrences(PLAN, "list-row")).toBe(7);
+    expect(part("month-switcher-skeleton")).toMatch(/\bhidden\b.*lg:block/);
     // The day panel has a place wherever the loaded screen opens one.
-    expect(part("plan-skeleton-panel")).toMatch(/\bhidden\b.*md:flex/);
+    expect(part("plan-skeleton-panel")).toMatch(/\bhidden\b.*lg:flex/);
   });
 });

@@ -12,36 +12,39 @@
 //                    for the whole month is already here, so opening a day
 //                    asks the server for nothing.
 //   ?day=none        the panel, closed, at every width.
-//   (absent)         **open on today from `md` up, closed below it.**
+//   (absent)         **open on today from `lg` up, closed below it.**
 //
-// **REQ-043 c7 is now read as "from `md` up"** (owner, PR #961,
-// 2026-09-21). "There is no month in which nothing is selected" is how
-// this screen has always opened, and on a desktop it still does: the panel
-// stands beside the month and opening on today costs the founder nothing.
-// Below `md` the panel is a sheet over the month, so the same default
-// meant a customer who tapped Plan landed on a sheet covering their plan.
-// So an absent `?day` opens on today from `md` up and is closed below it;
-// today is still marked in the list, and a tap opens the sheet. An
-// **explicit** `?day` — a date or `none` — is obeyed at every width, so a
-// linked day is a linked day on a phone too.
+// **REQ-043 c7 is read as "where the month is"** (owner, PR #961,
+// 2026-09-21; the width is `lg` since 2026-10-08, issue 1340). "There is no
+// month in which nothing is selected" is how this screen has always opened,
+// and on a desktop it still does: the panel stands beside the month and
+// opening on today costs the founder nothing. Below `lg` the panel is a
+// sheet over the list, so the same default meant a customer who tapped Plan
+// landed on a sheet covering their plan. So an absent `?day` opens on today
+// from `lg` up and is closed below it; today is still marked in the list,
+// and a tap opens the sheet. An **explicit** `?day` — a date or `none` — is
+// obeyed at every width, so a linked day is a linked day on a phone too,
+// whether or not this week's list holds it.
 //
 // One DOM, and the difference is one utility: the implicitly-open panel
-// carries `max-md:hidden`. Each shape of the month is handed the selection
-// that is true at the widths it is visible at — the grid the full one
-// (`hidden md:block`, where implicit means open), the list the explicit one
-// only (`md:hidden`, where implicit means closed) — so neither ever marks a
-// day as open while the panel beside it is not.
+// carries `hidden lg:flex`. Each shape is handed the selection that is true
+// at the widths it is visible at — the grid the full one (`hidden
+// lg:block`, where implicit means open), the list the explicit one only
+// (`lg:hidden`, where implicit means closed) — so neither ever marks a day
+// as open while the panel beside it is not.
 //
-// **Two shapes, one month.** From `md` the month is
-// `react-day-picker`'s grid of fixed-height cards (`MonthGrid`); below it
-// the same three facts are a list of days (`DayList`), because seven
-// columns at 390px give a day 47 pixels and a two-line title does not fit
-// in them. Both are rendered and one is shown: the choice is a media query,
-// so it is right before any script runs and cannot flash the wrong one.
+// **Two shapes, and the phone's is a week** (SPEC §7, 2026-10-08, issue
+// 1340). From `lg` — where the phone shell ends — Plan is the month,
+// `react-day-picker`'s grid of fixed-height cards (`MonthGrid`). Below it
+// Plan is the recent days and the days ahead: this week, Monday through the
+// plan horizon, as a list (`DayList`). Both are rendered and one is shown:
+// the choice is a media query, so it is right before any script runs and
+// cannot flash the wrong one. The stage filter counts what each shape
+// shows, by the same query.
 //
 // The day panel is one element in both shapes — a card beside the month
-// from `xl`, and the sheet a phone opens from the bottom below that
-// (`DayPanelView`'s own note).
+// from `xl`, under it from `lg`, and the sheet a phone opens from the
+// bottom below that (`DayPanelView`'s own note).
 "use client";
 
 import type React from "react";
@@ -54,7 +57,7 @@ import { MonthGrid } from "./MonthGrid";
 import { DayList } from "./DayList";
 import type { DayKey } from "./dates";
 import type { StageFilter as StageFilterId } from "./stages";
-import { cellFor, type MonthModel } from "./month";
+import { cellFor, type MonthModel, type WeekModel } from "./month";
 
 /** The `?day=` value that means "the founder closed the panel". A stated
  *  value, not an absent parameter: see the header. */
@@ -69,7 +72,7 @@ export function openOn(model: MonthModel): DayKey {
   return today?.day ?? first?.day ?? model.today;
 }
 
-export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
+export function CalendarView(p: { model: MonthModel; week: WeekModel }): React.JSX.Element {
   const [filter, setFilter] = useState<StageFilterId>("all");
   // Nullable rather than defaulted, because **which day** and **who chose
   // it** are two facts and the second decides the phone. `null` is an
@@ -78,7 +81,12 @@ export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
 
   const implicit = day === null;
   const selected: DayKey | null = day === DAY_CLOSED ? null : (day ?? openOn(p.model));
-  const cell = selected === null ? undefined : cellFor(p.model, selected);
+  // The month's own cell, or this week's: on a phone a day of the list can
+  // belong to a month the address did not ask for.
+  const cell =
+    selected === null
+      ? undefined
+      : (cellFor(p.model, selected) ?? p.week.cells.find((found) => found.day === selected));
 
   /** Opening a day and closing the panel are the same write with two
    *  values, so there is one place the address changes. Both write the
@@ -94,7 +102,7 @@ export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
           never a second one — §7 (issue 857) states supply once, at the
           top of the screen. */}
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <StageFilter counts={p.model.counts} selected={filter} onSelect={setFilter} />
+        <StageFilter counts={p.model.counts} weekCounts={p.week.counts} selected={filter} onSelect={setFilter} />
         <p className="text-xs opacity-70" data-testid="calendar-live-number-note">
           {copy("calendar.note.live-number")}
         </p>
@@ -102,9 +110,9 @@ export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
 
       <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
-          {/* The month, in the shape the width can read. From `md` it sits
-              in one card, so its flat empty days read against white. */}
-          <div className="card card-border bg-base-100 hidden p-2 md:block">
+          {/* The month from `lg`, in one card so its flat empty days read
+              against white; this week as a list below it. */}
+          <div className="card card-border bg-base-100 hidden p-2 lg:block">
             <MonthGrid
               model={p.model}
               filter={filter}
@@ -112,11 +120,11 @@ export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
               onSelect={(next) => openDay(next)}
             />
           </div>
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <DayList
-              model={p.model}
+              cells={p.week.cells}
               filter={filter}
-              // The list is drawn below `md`, where an implicitly open day
+              // The list is drawn below `lg`, where an implicitly open day
               // is a closed panel — so it marks none.
               selected={implicit ? null : selected}
               onSelect={(next) => openDay(next)}
@@ -130,8 +138,8 @@ export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
             timeZone={p.model.timeZone}
             stopped={p.model.stopped}
             destination={p.model.destination}
-            // Nobody chose this day, so below `md` — where the panel is a
-            // sheet over the month — it is not open.
+            // Nobody chose this day, so below `lg` — where the panel is a
+            // sheet over the list — it is not open.
             hiddenOnPhone={implicit}
             onClose={() => openDay(null)}
           />

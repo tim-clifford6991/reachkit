@@ -1010,8 +1010,8 @@ describe("three decisions → deep pass → the first page already on the calend
       // renders the view on its own, so it brings the same testing adapter
       // the calendar suites use — the adapter is stood in, never the
       // screen.
-      const { withNuqs } = await import("../app/calendar/nuqs-adapter");
-      const html = renderToStaticMarkup(withNuqs(createElement(CalendarView, { model })));
+      const { shown, withNuqs } = await import("../app/calendar/nuqs-adapter");
+      const html = renderToStaticMarkup(withNuqs(createElement(CalendarView, shown(model))));
       expect(html).toContain(first?.scheduledFor.slice(-2));
       expect(html).toContain("calendar.stage.planned");
     },

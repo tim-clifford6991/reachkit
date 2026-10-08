@@ -157,19 +157,21 @@ export function TableSkeleton(p: { testId: string; rows?: number }): React.JSX.E
 }
 
 /**
- * Plan below its head: the stage filters with their one note, the month in
- * the two shapes `calendar/CalendarView.tsx` draws it in, and the day panel.
+ * Plan below its head: the stage filters with their one note, Plan in the
+ * two shapes `calendar/CalendarView.tsx` draws it in, and the day panel.
  *
  * The classes that decide a box are that file's own — the row the filters
- * wrap in, the card around the grid from `md`, the list below it, the
+ * wrap in, the card around the grid from `lg`, the list below it, the
  * `20rem` column the panel takes from `xl` — so the same media queries
- * choose the same shape here that they choose when the month lands. A day
- * in the grid is `DayCard`'s fixed `h-26`; a day in the list is `DayList`'s
+ * choose the same shape here that they choose when Plan lands. A day in
+ * the grid is `DayCard`'s fixed `h-26`; a day in the list is `DayList`'s
  * three tracks at its `min-h-16`.
  *
- * Five weeks and thirty days, because a route's waiting state is not told
- * which month was asked for: most months are five rows, and the rows a
- * longer one adds are below everything else on the screen.
+ * Below `lg` it is seven rows (SPEC §7, 2026-10-08, issue 1340): the list
+ * is this week, Monday through Sunday, whatever the date. From `lg` it is
+ * five weeks, because a route's waiting state is not told which month was
+ * asked for: most months are five rows, and the row a longer one adds is
+ * below everything else on the screen.
  */
 export function PlanSkeleton(): React.JSX.Element {
   return (
@@ -185,7 +187,7 @@ export function PlanSkeleton(): React.JSX.Element {
 
       <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
-          <div className="card card-border bg-base-100 hidden p-2 md:block" data-testid="plan-skeleton-grid">
+          <div className="card card-border bg-base-100 hidden p-2 lg:block" data-testid="plan-skeleton-grid">
             {/* A table with `MonthGrid`'s own classes, so a row here is a
                 row there by the same arithmetic rather than by a number
                 copied from it. */}
@@ -213,10 +215,10 @@ export function PlanSkeleton(): React.JSX.Element {
             </table>
           </div>
           <div
-            className="list bg-base-100 rounded-box border border-base-200 md:hidden"
+            className="list bg-base-100 rounded-box border border-base-200 lg:hidden"
             data-testid="plan-skeleton-list"
           >
-            {Array.from({ length: 30 }, (_, at) => (
+            {Array.from({ length: 7 }, (_, at) => (
               <div
                 key={at}
                 className="list-row grid min-h-16 w-full min-w-0 grid-cols-[2.25rem_minmax(0,1fr)_minmax(4rem,auto)] items-center gap-3 px-4 py-2.5"
@@ -229,9 +231,9 @@ export function PlanSkeleton(): React.JSX.Element {
           </div>
         </div>
 
-        {/* The day panel's place: under the month from `md`, beside it from
-            `xl`. Below `md` an unopened Plan has no panel, so nor has this. */}
-        <div className="card card-border bg-base-100 hidden min-w-0 md:flex" data-testid="plan-skeleton-panel">
+        {/* The day panel's place: under the month from `lg`, beside it from
+            `xl`. Below `lg` an unopened Plan has no panel, so nor has this. */}
+        <div className="card card-border bg-base-100 hidden min-w-0 lg:flex" data-testid="plan-skeleton-panel">
           <div className="card-body min-w-0 gap-3 p-4">
             <Box className="h-8 w-full" />
             <Box className="h-6 w-4/5" />
