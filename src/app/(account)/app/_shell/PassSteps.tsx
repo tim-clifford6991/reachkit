@@ -9,9 +9,9 @@
 // **It replaces a spinner.** The panel used to draw `loading loading-spinner`
 // beside the current step's words. A spinner is the one thing every rule
 // about this product's waiting states forbids — SPEC §4's own line for
-// `/app`, REQ-003 c1's "no unlabelled spinner", `_fallback/Waiting.tsx`'s
-// header — and it was the more wrong for being avoidable: this pass has
-// named steps, so it can say which one it is on. Where this product has
+// `/app`, REQ-003 c1's "no unlabelled spinner" — and it was the more wrong
+// for being avoidable: this pass has named steps, so it can say which one
+// it is on. Where this product has
 // stages to name, it names them.
 //
 // **The rows are the setup screen's own** (`_setup/stages.ts`): the same

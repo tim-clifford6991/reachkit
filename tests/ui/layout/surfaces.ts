@@ -151,7 +151,7 @@ export function unenumeratedSurfaces(): readonly UnenumeratedSurface[] {
       route: { path: "/setup", cookie: getSetupAccountCookie() },
       stand: { selector: SCREEN_ROOT, markup: renderToStaticMarkup(AccountError()) },
     },
-    // The two waiting lines (#327). The report's is a screen root of its
+    // The two waiting states (#327). The report's is a screen root of its
     // own, like the seven arms it stands in for; the app's is not — it
     // replaces the Overview's content well and the shell stays drawn around
     // it, which is the whole point of putting the boundary below the

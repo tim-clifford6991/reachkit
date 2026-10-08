@@ -69,7 +69,7 @@ export const ATTRIBUTE_ALLOWLIST: readonly AllowlistedAttribute[] = Object.freez
     kind: "exact",
     name: "data-waiting",
     reason:
-      "the same category and the same reader (issue #327): _fallback/Waiting.tsx writes it as a " +
+      "the same category and the same reader (issue #327): every waiting state writes it as a " +
       "structural marker so tests/ui/layout can wait for a screen to stop waiting before it " +
       "measures one. It carries no value at all and is never rendered to a reader.",
   },

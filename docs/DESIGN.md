@@ -51,6 +51,8 @@ The current look of every screen, drawn on board [`Calm`](design/boards/R12-0-Ca
 
 - 2026-10-07  **A sentence that explains a number starts closed** (owner, #1324; `docs/SPEC.md` §4 of this date). It is a daisyUI `collapse collapse-arrow` on a `details`, with no client code. On a number tile the `summary` is the tile itself: its name, the figure and what the figure is read against. On a card the `summary` is the card's title. There is no separate control and no word for one. The classes are spelled once, in `_overview/present.ts`. The boards for Search, AI answers and Rivals still draw a lead sentence under the screen's name and a sentence on every tile; the screens draw neither open.
 
+- 2026-10-07  **A long section starts closed too** (owner, #1328; `docs/SPEC.md` §2 of this date). On the report the same daisyUI `collapse collapse-arrow` on a `details` closes a list under its own name inside a result card, and closes *What holds you back* and the first page under theirs. The Report boards still draw every section open and the offer last; the screen draws the offer under the two result cards.
+
 ## Layout that cannot overflow
 
 - No element is wider than its container and no text is clipped by its card at 390, 768 and 1280 pixels, in light and dark. CI renders every route at those widths and fails on either; `@axe-core/playwright` runs in the same pass.

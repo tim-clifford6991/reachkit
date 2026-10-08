@@ -518,41 +518,47 @@ export function AiAnswersCard(p: {
           />
         </div>
 
-        <AnswerColumns rows={section.rows} />
-
-        <div className="divider my-0" />
-
-        <p className="eyebrow grow-0">
-          {partial
-            ? copy("ai-answers.questions.title.partial", { total, measured })
-            : copy("ai-answers.questions.title", { total })}
-        </p>
-        {/* Issue 873: what was measured, stated rather than counted off the
-            rows. `measuredSearches` is the cells that came back, so a
-            question the pass asked and could not read is not counted here —
-            and neither is one it never reached. */}
-        <p className="text-base-content/70 grow-0 text-xs">
-          {copy(partial ? "ai-answers.questions.measured.partial" : "ai-answers.questions.measured", {
-            measured,
-            total,
-          })}
-        </p>
-        <QuestionRows rows={shown} />
-        {/* REQ-006 c8: the first four visible and the remainder one action
-            away — `details`, so they are in the document with no JavaScript. */}
-        {rest.length === 0 ? null : (
-          <details className="collapse collapse-arrow border-base-300 border">
-            <summary className="collapse-title text-sm">
-              {copy("ai-answers.questions.show-all", { total })}
-            </summary>
-            <div className="collapse-content">
-              <QuestionRows rows={rest} />
-            </div>
-          </details>
-        )}
-        <p className="text-base-content/70 grow-0 text-xs">
-          {copy("ai-answers.method", { total: measured })}
-        </p>
+        {/* SPEC §2 (owner, 2026-10-07, issue 1328): the card is its finding
+            and its drawing; the questions open from their own name. A
+            `details`, so every row is in the first response and opens with
+            no script. Inside it is what stood here open. */}
+        <details className="collapse collapse-arrow border-base-300 border" data-testid="ai-answers-questions">
+          <summary className="collapse-title">
+            <span className="eyebrow">
+              {partial
+                ? copy("ai-answers.questions.title.partial", { total, measured })
+                : copy("ai-answers.questions.title", { total })}
+            </span>
+          </summary>
+          <div className="collapse-content flex min-w-0 flex-col gap-4">
+            <AnswerColumns rows={section.rows} />
+            {/* Issue 873: what was measured, stated rather than counted off
+                the rows. `measuredSearches` is the cells that came back, so a
+                question the pass asked and could not read is not counted
+                here — and neither is one it never reached. */}
+            <p className="text-base-content/70 text-xs">
+              {copy(partial ? "ai-answers.questions.measured.partial" : "ai-answers.questions.measured", {
+                measured,
+                total,
+              })}
+            </p>
+            <QuestionRows rows={shown} />
+            {/* REQ-006 c8: the first four visible and the remainder one
+                action away — `details`, so they are in the document with no
+                JavaScript. */}
+            {rest.length === 0 ? null : (
+              <details className="collapse collapse-arrow border-base-300 border">
+                <summary className="collapse-title text-sm">
+                  {copy("ai-answers.questions.show-all", { total })}
+                </summary>
+                <div className="collapse-content">
+                  <QuestionRows rows={rest} />
+                </div>
+              </details>
+            )}
+            <p className="text-base-content/70 text-xs">{copy("ai-answers.method", { total: measured })}</p>
+          </div>
+        </details>
       </div>
     </section>
   );

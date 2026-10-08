@@ -40,7 +40,7 @@ export function Box(p: { className: string }): React.JSX.Element {
  * part of the page is coming, once, rather than eleven times — and
  * `data-waiting` is the layout suite's own hook for "do not measure this
  * yet" (`tests/ui/layout/browser.ts` waits for it to leave the DOM), which
- * `_fallback/Waiting.tsx` established and this keeps rather than inventing
+ * issue #327 established and this keeps rather than inventing
  * a second name for the same state.
  */
 export function Waiting(p: {
