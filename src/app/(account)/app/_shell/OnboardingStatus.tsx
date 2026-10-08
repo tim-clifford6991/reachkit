@@ -31,7 +31,7 @@ export function OnboardingStatus(p: {
 
   if (p.state.kind === "notice") {
     return (
-      <div role="status" className="alert alert-warning flex-col items-start text-sm" data-testid="shell-onboarding-notice">
+      <div role="status" className="alert alert-warning hidden flex-col items-start text-sm lg:grid" data-testid="shell-onboarding-notice">
         <span>{copy(p.state.key)}</span>
         {p.choice === undefined || p.choice === null ? null : <MarketChoice choice={p.choice} />}
       </div>
@@ -78,7 +78,7 @@ export function PassEndLine(p: { end: PassEnd; timeZone: string }): React.JSX.El
   return (
     <div
       role="status"
-      className={`alert alert-soft ${tone} items-start text-sm`}
+      className={`alert alert-soft ${tone} hidden items-start text-sm lg:grid`}
       data-testid="shell-pass-ended"
       data-outcome={p.end.outcome}
     >

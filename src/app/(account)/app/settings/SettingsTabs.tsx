@@ -43,6 +43,7 @@
 import React, { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { copy } from "@/lib/presentation/copy";
+import { UNDER_TOP_BAR } from "../_shell/bar";
 import {
   SETTINGS_TABS,
   SETTINGS_TAB_COPY_KEY,
@@ -77,7 +78,7 @@ export function SettingsTabs(): React.JSX.Element {
 
   return (
     <nav
-      className="min-w-0 sm:overflow-x-auto"
+      className={`min-w-0 sm:overflow-x-auto ${UNDER_TOP_BAR}`}
       aria-label={copy("settings.tabs.label")}
       data-testid="settings-tabs"
     >

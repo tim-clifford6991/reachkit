@@ -120,7 +120,7 @@ export function OnboardingPanel(p: {
     <div
       role="status"
       aria-live="polite"
-      className="alert flex-col items-start text-sm"
+      className="alert flex-col items-start mt-4 text-sm lg:mt-0"
       data-testid="shell-onboarding"
       data-stage={shown}
     >

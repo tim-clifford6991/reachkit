@@ -19,6 +19,7 @@
 import type React from "react";
 import { usePathname } from "next/navigation";
 import { copy } from "@/lib/presentation/copy";
+import { UNDER_TOP_BAR } from "../_shell/bar";
 import { OVERVIEW_TABS, TAB_COPY_KEY, TAB_HREF, tabOf } from "./tabs";
 
 export function OverviewTabs(): React.JSX.Element {
@@ -26,7 +27,7 @@ export function OverviewTabs(): React.JSX.Element {
 
   return (
     <nav
-      className="min-w-0 overflow-x-auto"
+      className={`min-w-0 overflow-x-auto ${UNDER_TOP_BAR}`}
       aria-label={copy("overview.tabs.label")}
       data-testid="overview-tabs"
     >

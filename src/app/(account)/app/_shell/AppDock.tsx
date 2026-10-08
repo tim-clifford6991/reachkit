@@ -1,5 +1,6 @@
-// SPEC §4 (2026-09-20, #908) — "below the large breakpoint it is a drawer
-// and the three menu items move to a bottom bar."
+// SPEC §4 (2026-10-08, owner, issue 1339) — "On a phone the bottom bar is
+// the navigation." Below the large breakpoint there is no side panel and
+// this is the only menu.
 //
 // A daisyUI `dock`: the same three destinations, from the same tuple, with
 // their words under their glyphs and the waiting count where the panel puts
