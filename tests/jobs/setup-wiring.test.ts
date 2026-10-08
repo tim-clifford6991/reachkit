@@ -19,7 +19,7 @@ const finishStuckScan = vi.fn();
 vi.mock("@/lib/scan/deep/run", () => ({ runDeepPass: (a: unknown) => deepPass(a) }));
 // Issue 737: the first draft is started when the pass ends, through the
 // evening tick's own selection and pipeline — both stood in.
-const selection = vi.fn(async () => ({ sites: [] as { siteId: string; timeZone: string }[], held: null }));
+const selection = vi.fn(async () => ({ sites: [] as { siteId: string; timeZone: string; publishTime: string; vetoHours: number }[], held: null }));
 const dayPage = vi.fn<(a: { siteId: string; publishDate: string }) => Promise<unknown>>(async () => ({ ok: false, because: "no_opportunity" }));
 vi.mock("@/lib/publish/daily", () => ({ sitesForDailyTick: () => selection() }));
 vi.mock("@/lib/generate", () => ({ generateDayPage: (a: { siteId: string; publishDate: string }) => dayPage(a) }));
@@ -218,7 +218,7 @@ describe("§4.3 — the deep pass is `scan/run` at tier deep", () => {
 
   it("issue #782 — the first draft is written inside the pass, before the founder's release", async () => {
     const order: string[] = [];
-    selection.mockResolvedValueOnce({ sites: [{ siteId: "site-1", timeZone: "America/New_York" }], held: null });
+    selection.mockResolvedValueOnce({ sites: [{ siteId: "site-1", timeZone: "America/New_York", publishTime: "09:00", vetoHours: 24 }], held: null });
     dayPage.mockImplementationOnce(async () => {
       order.push("first-draft");
       return { ok: false, because: "no_opportunity" };
@@ -237,9 +237,10 @@ describe("§4.3 — the deep pass is `scan/run` at tier deep", () => {
   });
 
   it("issue 737 — when the pass ends, a site the tick would draft for gets its first draft for the tick's own date", async () => {
-    selection.mockResolvedValueOnce({ sites: [{ siteId: "site-1", timeZone: "America/New_York" }], held: null });
+    selection.mockResolvedValueOnce({ sites: [{ siteId: "site-1", timeZone: "America/New_York", publishTime: "09:00", vetoHours: 24 }], held: null });
     const outcome = await engine.kickOffFirstDraft({ siteId: "site-1", now: NOW });
-    // 12:00 UTC is 08:00 in New York on 6 Sep, so tomorrow there is the 7th.
+    // 12:00 UTC is 08:00 in New York on 6 Sep: a 24 h window ends at 08:00
+    // on the 7th, before that day's 09:00 publish time.
     expect(dayPage).toHaveBeenCalledWith({ siteId: "site-1", publishDate: "2026-09-07", now: NOW });
     expect(outcome).toEqual({ degraded: "first-draft:generate:no_opportunity" });
   });

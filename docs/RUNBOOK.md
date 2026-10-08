@@ -225,7 +225,7 @@ not in it is unreachable over HTTP. `src/jobs/client.ts` is the only file that n
 | Job | Trigger | Does | In the kill switch |
 |---|---|---|---|
 | `scan/run` | event `scan/run` | the one pipeline; tier is a parameter | ● |
-| `draft/generate` | cron `0 * * * *` | next opportunity → pipeline → `in_review`, veto clock starts, daily mail. The tick is hourly; the work is gated to the site's own evening hour | ● |
+| `draft/generate` | cron `0 * * * *` | next opportunity → pipeline → `in_review`, veto clock starts, daily mail. The tick is hourly; a site's page for a date is written in the hour whose start plus its veto window is at, or less than an hour before, that date's publish time in the site's zone (#1337) | ● |
 | `publish/execute` | event `publish/execute` | state machine → destination | ● |
 | `publish/verify` | event `publish/verify`, +24h | liveness checks on a published page | |
 | `publish/retry` | cron `0 * * * *` | claims failed pages whose retry moment has come round | ● |

@@ -50,7 +50,7 @@ beforeEach(() => {
 
 describe("activeSites() is the selection the engine owns, and nothing of its own", () => {
   it("hands back exactly what the engine answered", async () => {
-    const selection = { sites: [{ siteId: "s1", timeZone: "America/New_York" }], held: null };
+    const selection = { sites: [{ siteId: "s1", timeZone: "America/New_York", publishTime: "09:00", vetoHours: 24 }], held: null };
     sitesForDailyTick.mockResolvedValue(selection);
     expect(await activeSites()).toEqual(selection);
     expect(sitesForDailyTick).toHaveBeenCalledTimes(1);

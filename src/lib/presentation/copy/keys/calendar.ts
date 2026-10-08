@@ -251,8 +251,11 @@ export const CALENDAR_COPY = Object.freeze({
   // measurements. When opportunities run out, future days are empty — the
   // calendar is never padded." The supply half was owner-owed and empty
   // until the set worded it; the planned half gains the set's comma.
+  // Issue 1337: a page is no longer written at one evening hour. It is
+  // written a full time-to-stop before its day's publish time, so the
+  // planned half is drafted again for the owner to correct.
   "calendar.footnote.planned": [
-    "Planned pages are written the evening before, from Monday's measurements.",
+    "Planned pages are written ahead of their day, leaving your time to stop them, from Monday's measurements.",
     { slots: {}, fixedBy: "BUILD §4.6" },
   ],
   "calendar.footnote.supply": [

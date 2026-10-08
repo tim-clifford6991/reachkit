@@ -342,7 +342,7 @@ vi.mock("@anthropic-ai/sdk", () => {
 
 // ── The modules, after the fixtures above are in place ──────────────────
 
-const { CAPS, VETO, PUBLISH_VERIFY_DELAY_H, DRAFT_DUE_HOUR_LOCAL, PUBLISH_RETRY_BACKOFF_MIN } =
+const { CAPS, VETO, PUBLISH_VERIFY_DELAY_H, PUBLISH_RETRY_BACKOFF_MIN } =
   await import("../../src/lib/config/constants");
 const { isDraftDue, nextPublishDate, localClock } = await import("../../src/jobs/site-clock");
 const engine = await import("../../src/jobs/engine");
@@ -389,11 +389,16 @@ const DEST_ID = "dest-journey-05";
 const TIME_ZONE = "America/New_York";
 const EMAIL = "founder@acme.example";
 
-/** The evening the tick runs — `DRAFT_DUE_HOUR_LOCAL` in the site's own
- *  zone, which in September in New York is 22:00 UTC the same day. */
-const EVENING = new Date("2026-09-01T22:00:00.000Z");
-/** The moment the page enters review, and the window opens. */
-const TOLD_AT = new Date("2026-09-01T22:05:00.000Z");
+/** What the site's due hour is decided from: the column default publish
+ *  time and the default window. */
+const SITE_CLOCK = { timeZone: TIME_ZONE, publishTime: "09:00", vetoHours: VETO.defaultHours };
+/** The hour the tick writes the page (issue 1337): 09:00 in New York, which
+ *  in September is 13:00 UTC, a full window before the next day's publish
+ *  time. */
+const EVENING = new Date("2026-09-01T13:00:00.000Z");
+/** The moment the page enters review, and the window opens: the tick's own
+ *  hour. */
+const TOLD_AT = EVENING;
 /** The page the customer's own measurement already read. */
 const SOURCE_HTML =
   "<html><body><h1>Pricing</h1><p>Teams on the starter plan get 25 seats and " +
@@ -650,7 +655,7 @@ async function generateTonightsPage(): Promise<string> {
   await seedOneOpportunity();
   const outcome = await generateDayPage({
     siteId: SITE_ID,
-    publishDate: nextPublishDate(EVENING, TIME_ZONE),
+    publishDate: nextPublishDate(EVENING, SITE_CLOCK),
   });
   if (!outcome.ok) throw new Error(`generation did not produce a page: ${JSON.stringify(outcome)}`);
   return outcome.draftId;
@@ -713,21 +718,22 @@ function payingCustomer(): void {
 }
 
 describe("the daily loop: pick → generate → tell → publish → +24h check (JN-003)", () => {
-  it("the tick is due in the site's own evening, and the page it prepares is tomorrow's", async () => {
+  it("the tick is due in the site's own hour, and the page it prepares publishes on its date", async () => {
     // The gate is the site's own hour and never UTC (ADR-060).
-    expect(localClock(EVENING, TIME_ZONE).hour).toBe(DRAFT_DUE_HOUR_LOCAL);
-    expect(isDraftDue(EVENING, TIME_ZONE)).toBe(true);
-    expect(isDraftDue(new Date(EVENING.getTime() + 3_600_000), TIME_ZONE)).toBe(false);
-    // The evening before the publish date, in the site's own zone.
-    expect(nextPublishDate(EVENING, TIME_ZONE)).toBe("2026-09-02");
+    expect(localClock(EVENING, TIME_ZONE).hour).toBe(9);
+    expect(isDraftDue(EVENING, SITE_CLOCK)).toBe(true);
+    expect(isDraftDue(new Date(EVENING.getTime() + 3_600_000), SITE_CLOCK)).toBe(false);
+    expect(isDraftDue(new Date(EVENING.getTime() - 3_600_000), SITE_CLOCK)).toBe(false);
+    // A full window before the publish date's own publish time.
+    expect(nextPublishDate(EVENING, SITE_CLOCK)).toBe("2026-09-02");
 
     // The two holes in this chain are filled (#173), so this asserts what
     // they now do rather than that they throw. The tick walks a real list:
     // this founder's site is on it, with the zone the gate above is decided
     // in, and the composition of the two is the tick's own selection.
     const selection = await engine.activeSites();
-    expect(selection).toEqual({ sites: [{ siteId: SITE_ID, timeZone: TIME_ZONE }], held: null });
-    expect(selection.sites.filter((site) => isDraftDue(EVENING, site.timeZone))).toHaveLength(1);
+    expect(selection).toEqual({ sites: [{ siteId: SITE_ID, ...SITE_CLOCK }], held: null });
+    expect(selection.sites.filter((site) => isDraftDue(EVENING, site))).toHaveLength(1);
 
     // And a site the customer has stopped is not prepared a page at all —
     // the discriminating half, because a list that returned every row would
@@ -1223,7 +1229,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       const page = facts.drafts.find((draft) => draft.draftId === draftId);
       expect(page).toBeDefined();
       expect(page?.state).toBe("in_review");
-      expect(page?.scheduledFor).toBe(nextPublishDate(EVENING, TIME_ZONE));
+      expect(page?.scheduledFor).toBe(nextPublishDate(EVENING, SITE_CLOCK));
       // Its own veto window, read off the row the telling was composed
       // from.
       expect(page?.vetoDeadline).not.toBeNull();
@@ -1252,7 +1258,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
         await seedOneOpportunity();
         const outcome = await generateDayPage({
           siteId: SITE_ID,
-          publishDate: nextPublishDate(EVENING, TIME_ZONE),
+          publishDate: nextPublishDate(EVENING, SITE_CLOCK),
         });
         expect(outcome.ok).toBe(false);
         expect(modelCalls).toHaveLength(0);
