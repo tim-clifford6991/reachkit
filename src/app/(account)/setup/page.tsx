@@ -26,8 +26,9 @@
 // `useSearchParams`, which a client component may only do inside a boundary
 // (`01-app/03-api-reference/04-functions/use-search-params.md`: "We
 // recommend wrapping the Client Component that uses `useSearchParams` in a
-// `<Suspense/>` boundary"). One daisyUI `skeleton` holds its place, which
-// is what SPEC §5 (2026-09-20) asks of every waiting state in the app.
+// `<Suspense/>` boundary"). `SetupSkeleton` holds its place in the step's
+// own shape — the indicator, the question, the panel and the bar (SPEC §5,
+// 2026-10-07, #1327).
 //
 // **No stylesheet of its own.** Every rule this screen needs is a Tailwind
 // utility written where it applies.
@@ -36,7 +37,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { readSetupScreen } from "./_setup/provider";
 import { SetupForm } from "./SetupForm";
-import { SKELETON_EXIT, ViewTransition } from "@/ui/motion";
+import { SetupSkeleton } from "./SetupSkeleton";
 import { copy } from "@/lib/presentation/copy";
 
 /** /setup's own `<title>` (#945). Without it this screen announced
@@ -48,14 +49,9 @@ export default async function SetupPage(): Promise<React.JSX.Element> {
   const model = await readSetupScreen();
 
   return (
-    <Suspense
-      fallback={
-        // The reveal (#1065): the skeleton leaves and the step crossfades in.
-        <ViewTransition {...SKELETON_EXIT}>
-          <div className="skeleton m-4 h-96" />
-        </ViewTransition>
-      }
-    >
+    // The fallback is the step's own regions (#1327), and it leaves by the
+    // reveal of #1065: `Waiting` carries the exit, the step crossfades in.
+    <Suspense fallback={<SetupSkeleton />}>
       <SetupForm model={model} />
     </Suspense>
   );

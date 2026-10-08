@@ -29,6 +29,7 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { BusinessPanel } from "./BusinessPanel";
 import { RivalsPanel } from "./RivalsPanel";
 import { VoicePanel } from "./VoicePanel";
+import { PANEL, PANEL_BODY, QUIET } from "./frame";
 import type { BusinessDraft } from "./_setup/business";
 import type { FounderAnswers } from "@/lib/site-profile/knowledge/types";
 import type { RivalGrid } from "./_setup/panel-rivals";
@@ -77,13 +78,13 @@ export function SetupPanel(p: {
     // stands exactly as tall as the step beside it rather than stopping
     // short of it. Below `lg` there is nothing beside it and it is only as
     // tall as it is.
-    <aside className="flex min-w-0 flex-col gap-4" data-testid="setup-panel" data-step={p.step}>
+    <aside className={PANEL} data-testid="setup-panel" data-step={p.step}>
       {/* Keyed on the step, so the panel's side of a step change rises in
           one stagger (60ms) after the question's. The status line below
           stays mounted: it holds the pass's subscription. */}
       <div
         key={p.step}
-        className="flex min-w-0 grow flex-col gap-4 motion-safe:animate-rise motion-safe:[animation-delay:60ms]"
+        className={`${PANEL_BODY} motion-safe:animate-rise motion-safe:[animation-delay:60ms]`}
       >
         <h2 className="min-w-0 text-base font-medium wrap-anywhere" data-testid="setup-panel-title">
           {p.step === "business" && p.businessName !== null
@@ -109,7 +110,7 @@ export function SetupPanel(p: {
         )}
       </div>
 
-      <p className="text-sm text-base-content/70" data-testid="setup-panel-note">
+      <p className={QUIET} data-testid="setup-panel-note">
         {copy("setup.panel.note")}
       </p>
       {/* The pass's current step, where one is running. It is the last

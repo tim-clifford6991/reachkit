@@ -111,6 +111,39 @@ describe("/setup", () => {
     }
   });
 
+  it("waits in the step's own regions — indicator, question, panel, bar (#1327)", async () => {
+    const { SetupSkeleton } = await import("@/app/(account)/setup/SetupSkeleton");
+    const waiting = document.createElement("div");
+    waiting.innerHTML = renderToStaticMarkup(<SetupSkeleton />);
+    const step = await renderPage(() => import("@/app/(account)/setup/page"));
+
+    // The layout of each region, without the step's own entrance motion.
+    const layout = (el: Element | null | undefined) =>
+      (el?.getAttribute("class") ?? "missing").split(" ").filter((c) => !c.startsWith("motion-safe:")).join(" ");
+    const regions = (tree: Element) => {
+      const steps = tree.querySelector("ul.steps");
+      const columns = steps?.nextElementSibling;
+      return {
+        frame: layout(tree.firstElementChild),
+        body: layout(steps?.parentElement),
+        steps: `${layout(steps)} × ${steps?.children.length}`,
+        columns: `${layout(columns)} × ${columns?.children.length}`,
+        question: layout(columns?.children[0]),
+        panel: layout(columns?.children[1]),
+        bar: layout(tree.querySelector("footer")),
+        barActions: layout(tree.querySelector("footer > div > div")),
+      };
+    };
+    expect(regions(waiting)).toEqual(regions(step));
+
+    // The bar's sentence is the same before and after; nothing spins.
+    expect(waiting.querySelector("footer p")?.textContent).toBe(
+      step.querySelector('[data-testid="setup-footer-line"]')?.textContent,
+    );
+    expect(waiting.querySelector(".loading")).toBeNull();
+    expect(waiting.querySelector('[role="status"][aria-busy="true"]')).not.toBeNull();
+  });
+
   it("the publishing step shows no record — it is its own step after setup (#924)", async () => {
     // Owner, 2026-09-20, reversing #757. The record's own screen, and the
     // property that its target is the deployment's binding rather than a
