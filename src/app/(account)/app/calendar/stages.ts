@@ -180,7 +180,8 @@ export const TONE_INK: Readonly<Record<Tone, string>> = Object.freeze({
  *     6px dot + 4px gap + the word + 8px gap + 12px mark + 4px to spare
  *
  * over the words as Plus Jakarta Sans 600 draws them at 11px (Live 22,
- * Planned 44, Needs you 57, Scheduled 59, Your review 63).
+ * Planned 44, Needs you 57, Scheduled 59, Ready to read about 80 —
+ * the word *Your review* left with the approval it implied, issue 1337).
  *
  * **A wrong number here is caught rather than trusted.** Both the word and
  * the mark are `shrink-0`, so if a threshold is too low the *mark* is what
@@ -196,5 +197,5 @@ export const STAGE_MARK_AT: Readonly<Record<Stage, string>> = Object.freeze({
   planned: "@min-[80px]/day:block",
   needs_you: "@min-[92px]/day:block",
   scheduled: "@min-[96px]/day:block",
-  your_review: "@min-[100px]/day:block",
+  your_review: "@min-[120px]/day:block",
 });

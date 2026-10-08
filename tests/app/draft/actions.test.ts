@@ -64,16 +64,14 @@ const reviewed = (state: State) => ({ state, enteredReview: true });
 const stopped = { state: "needs_attention" as State, enteredReview: false };
 
 const TARGET: Record<string, State> = {
-  approve: "approved",
   veto: "skipped",
   skip: "skipped",
   regenerate: "generating",
 };
 
 describe("REQ-045 c4 — the controls, offered where the state allows them", () => {
-  it("a page in review offers Approve, Edit and Stop, in §4.6's own order", () => {
+  it("a page in review offers Edit and Stop, and no Approve (owner 2026-10-08, issue 1337)", () => {
     expect(keysOf(draftActionsFor(reviewed("in_review")))).toEqual([
-      "draft.action.approve",
       "draft.action.edit",
       "draft.action.veto",
     ]);
@@ -153,7 +151,7 @@ describe("REQ-045 c4 — the controls, offered where the state allows them", () 
           },
         };
         const commands = (list: readonly { kind: string; command?: string }[]) =>
-          list.filter((a) => a.kind === "command" && a.command !== "approve").map((a) => a.command).sort();
+          list.filter((a) => a.kind === "command").map((a) => a.command).sort();
         expect(commands(draftActionsFor({ state, enteredReview })), state).toEqual(commands(actionsFor(cell)));
       }
     }
@@ -165,26 +163,9 @@ describe("neither seam claims a write succeeded, and both of them answer", () =>
     transition.mockReset();
   });
 
-  it("approve asks §9's machine for the in_review → approved edge", async () => {
-    transition.mockResolvedValue({ ok: true, state: "approved" });
-    await publishing.approve({ draftId: "d1" });
-    expect(transition).toHaveBeenCalledWith("d1", "approved", {
-      kind: "customer",
-      userId: RESERVED_ACCOUNT.userId,
-    });
-    expect(schedulePublish).toHaveBeenCalledWith({ draftId: "d1" });
-  });
-
-  it("a refused approve comes back refused, carrying the machine's own word", async () => {
-    transition.mockResolvedValue({
-      ok: false,
-      refused: "not_a_transition",
-      state: "published",
-    });
-    await expect(publishing.approve({ draftId: "d1" })).resolves.toEqual({
-      ok: false,
-      refused: "not_a_transition",
-    });
+  // Owner, 2026-10-08 (issue 1337): the customer has no approve.
+  it("the seam has no approve to ask for", () => {
+    expect(Object.keys(publishing)).not.toContain("approve");
   });
 
   it("veto behaves alike — the same seam, the → skipped edge, refused the same way", async () => {

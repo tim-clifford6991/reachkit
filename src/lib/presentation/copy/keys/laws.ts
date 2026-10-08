@@ -84,7 +84,7 @@ export const LAWS_COPY = Object.freeze({
   ],
   "next-publish.paused": ["Publishing is off.", { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" }],
   "next-publish.nothing-approved": [
-    "Nothing approved yet.",
+    "No page is ready yet.",
     { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" },
   ],
   "next-publish.none-planned": [
@@ -174,7 +174,7 @@ export const LAWS_COPY = Object.freeze({
    *  it knows rather than a word it would have to work out. */
   "shell.waiting.head": ["Ready to read", { slots: {}, fixedBy: "issue 1337" }],
   "shell.waiting.goes-live": [
-    "Goes live on its own {when}. Read it or stop it until then.",
+    "Goes live on its own {when}. Edit or stop it until then.",
     { slots: { when: "date" }, fixedBy: "issue 1337" },
   ],
   /** SPEC §4 (2026-09-20) — the side panel's two shortcuts. Each is drawn

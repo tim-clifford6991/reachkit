@@ -141,7 +141,8 @@ describe("every settings fact is read for the account that owns it (#228)", () =
     const facts = await readLiveSettingsFacts(ACCOUNT);
     // The fixture's values, for comparison: none of them may appear here
     // by having been spread rather than read.
-    expect(facts.mode).toBe("copilot");
+    // A stored copilot is read as autopilot (issue 1337).
+    expect(facts.mode).toBe("autopilot");
     expect(facts.vetoHours).toBe(48);
     expect(facts.publishTime).toBe("07:30");
     expect(facts.publishingEnabled).toBe(false);
@@ -154,7 +155,7 @@ describe("every settings fact is read for the account that owns it (#228)", () =
   it("and none of them equals the fixture's, which is what the spread used to give them", async () => {
     seed();
     const facts = await readLiveSettingsFacts(ACCOUNT);
-    expect(facts.mode).not.toBe(FIXTURE_SETTINGS_FACTS.mode);
+    // Not the mode: autopilot is the only one (issue 1337).
     expect(facts.vetoHours).not.toBe(FIXTURE_SETTINGS_FACTS.vetoHours);
     expect(facts.publishTime).not.toBe(FIXTURE_SETTINGS_FACTS.publishTime);
     expect(facts.publishingEnabled).not.toBe(FIXTURE_SETTINGS_FACTS.publishingEnabled);

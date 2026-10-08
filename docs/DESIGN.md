@@ -38,7 +38,7 @@ The current look of every screen, drawn on board [`Calm`](design/boards/R12-0-Ca
 
 ## Busy and done
 
-- 2026-10-02  **One busy pattern for every action that starts work** (owner, #1196). It covers Measure again now, Check connection, Write it again, Skip, Approve, Stop this page, setup's steps, every Save in Settings, and billing.
+- 2026-10-02  **One busy pattern for every action that starts work** (owner, #1196). It covers Measure again now, Check connection, Write it again, Skip, Stop this page, setup's steps, every Save in Settings, and billing.
   1. **Pressed.** The button is disabled at once and shows daisyUI `loading loading-spinner loading-xs` in place of its icon, so a second press cannot happen. The pending state comes from React: `useActionState`, `useFormStatus` or `useTransition`. A screen does not build its own flag for it.
   2. **Background work.** A deep pass or a re-measure is described in one place only: the side panel's status line. That line shows the current step, the time the step started, and then its end, which is *done*, *failed* with its reason, or *stopped* with its cause. It never shows a step from an earlier pass. A press clears the previous pass's state before the new one is drawn. A page being written shows its own *writing* state on the screen that holds it. The press that started the work answers once; it does not leave a second status line behind.
   3. **Done.** The screen that started the work refreshes itself when the work ends. The button becomes active again. A `sonner` toast or one inline line says what changed.

@@ -80,8 +80,8 @@ describe("REQ-040 c2 — the waiting count", () => {
 
 describe("REQ-040 c3 — the mode and the next scheduled publish", () => {
   it("a scheduled publish carries the mode and the time, and no reason", () => {
-    const shell = assembleShell(facts({ mode: "copilot" }));
-    expect(shell.publishing.mode).toBe("copilot");
+    const shell = assembleShell(facts({ mode: "autopilot" }));
+    expect(shell.publishing.mode).toBe("autopilot");
     expect(shell.publishing.next).toEqual(new Date(Date.UTC(2026, 8, 16, 13, 0, 0)));
     expect(shell.publishing).not.toHaveProperty("because");
   });

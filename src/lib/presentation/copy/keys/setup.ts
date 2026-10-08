@@ -784,7 +784,7 @@ export const SETUP_COPY = Object.freeze({
   "setup.connect.onward": ["Go to your dashboard", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
   "setup.connect.onward.live": ["It’s connected — go to your dashboard", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
   "setup.connect.skipping": [
-    "Skipping is fine. Pages are still written and wait for you to read them — they just can’t go live until this record exists. You’ll find it again under Overview and in Settings.",
+    "Skipping is fine. Pages are still written and you can read them — they just can’t go live until this record exists. You’ll find it again under Overview and in Settings.",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
 

@@ -17,14 +17,8 @@
 //      interval they already had on a page in front of them.
 //   3. **Lengthened keeps the later.** A draft in review whose window is
 //      lengthened keeps `max(currentDeadline, enteredReviewAt + next)`.
-//   4. **The Copilot restart.** A draft in review whose window already
-//      expired **under Copilot** starts its window again at the moment of
-//      the change — so a switch to Autopilot never makes a held draft
-//      publishable without the interval the settings state.
-//
-// Rule 4 is scoped to `in_review` on purpose: a draft already in `approved`
-// reached that state through an explicit approval, and a settings change
-// does not revoke an approval.
+//   (Rule 4, the Copilot restart, left with copilot: owner 2026-10-08,
+//   issue 1337.)
 //
 // The archived plan is WO-220.
 import type { State } from "../types";
@@ -73,18 +67,6 @@ export function newVetoDeadline(a: ReDeadlineInput): Date {
   if (!isNotYetPublished(a.state)) return a.currentDeadline;
 
   const nextWindowMs = a.next.vetoHours * MS_PER_HOUR;
-
-  // Rule 4 — the Copilot restart. A draft held in review under Copilot past
-  // its own deadline has no interval left; the change gives it one, counted
-  // from the moment of the change. Checked before rule 3 because a draft
-  // whose window has already expired is not a window "being lengthened".
-  if (
-    a.state === "in_review" &&
-    a.previous.mode === "copilot" &&
-    a.currentDeadline.getTime() <= a.changedAt.getTime()
-  ) {
-    return new Date(a.changedAt.getTime() + nextWindowMs);
-  }
 
   // Rule 3 — a draft in review whose window is lengthened keeps the later
   // of the two expiry moments. Written as a max rather than as a

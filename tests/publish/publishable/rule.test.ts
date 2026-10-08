@@ -61,8 +61,8 @@ describe("`publishable_and_due` is publishable AND due", () => {
   });
 
   it("a page that is not publishable is never due, however late the clock", () => {
-    const copilot = view({ governing: pair({ mode: "copilot" }) });
-    expect(publishableAndDue(copilot, new Date("2027-01-01T00:00:00Z"))).toBe(false);
+    const noWindow = view({ vetoDeadline: null });
+    expect(publishableAndDue(noWindow, new Date("2027-01-01T00:00:00Z"))).toBe(false);
   });
 });
 

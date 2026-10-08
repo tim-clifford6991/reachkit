@@ -91,12 +91,11 @@ beforeEach(() => {
   seedDestination("hosted", "ok");
 });
 
-describe('REQ-057 c1 / c7 — the three kinds come from the governing pair alone', () => {
-  it("autopilot above zero is `interval`, autopilot at zero is `no_interval`, copilot at any window is `approval_only`", () => {
+describe('REQ-057 c1 / c7 — the two kinds come from the governing pair alone', () => {
+  it("a window above zero is `interval`, a window of zero is `no_interval`, and no kind asks for an approval", () => {
     expect(kindOf(pair({ mode: "autopilot", vetoHours: 24 }))).toBe("interval");
+    expect(kindOf(pair({ mode: "autopilot", vetoHours: 168 }))).toBe("interval");
     expect(kindOf(pair({ mode: "autopilot", vetoHours: 0 }))).toBe("no_interval");
-    expect(kindOf(pair({ mode: "copilot", vetoHours: 0 }))).toBe("approval_only");
-    expect(kindOf(pair({ mode: "copilot", vetoHours: 168 }))).toBe("approval_only");
   });
 
   it("the interval telling names the publish moment, the stop action and its own key", async () => {
@@ -110,11 +109,6 @@ describe('REQ-057 c1 / c7 — the three kinds come from the governing pair alone
     expect(t.copy).toBe("mail.draftReady.autopilotWindow");
     expect(t.publishesAt.toISOString()).toBe("2026-09-03T09:00:00.000Z");
     expect(t.stopAction.token).toBe("tok");
-  });
-
-  it("the copilot telling names no publish moment and no stop action — nothing happens until they approve", async () => {
-    const t = await tellingFor({ draft: view({ governing: pair({ mode: "copilot" }) }), destination: "hosted" });
-    expect(t).toEqual({ kind: "approval_only", destination: null, copy: "mail.draftReady.copilot" });
   });
 
   it("switching the draft-ready mail off changes neither the interval nor the draft in review", async () => {
@@ -138,12 +132,7 @@ describe('REQ-057 c7 — "no notification setting suppresses it and it carries n
     expect(isUnsuppressible(zero)).toBe(true);
 
     const interval = await tellingFor({ draft: view(), destination: "hosted" });
-    const copilot = await tellingFor({
-      draft: view({ governing: pair({ mode: "copilot" }) }),
-      destination: "hosted",
-    });
     expect(isUnsuppressible(interval)).toBe(false);
-    expect(isUnsuppressible(copilot)).toBe(false);
   });
 
   it("the zero-window telling offers no stop action, because no interval exists in which one could be used", async () => {
@@ -178,7 +167,9 @@ describe('REQ-057 c8 — "no page publishes on a pair the customer was never tol
   });
 
   it.each([
-    ["mode", pair({ mode: "copilot" })],
+    // A row told under copilot, before it was removed (issue 1337), is
+    // owed a new telling on the pair now in force.
+    ["mode", { ...pair(), mode: "copilot" } as unknown as ReturnType<typeof pair>],
     ["vetoHours", pair({ vetoHours: 72 })],
     ["publishTime", pair({ publishTime: "17:00" })],
     ["timezone", pair({ timezone: "Asia/Tokyo" })],
@@ -274,13 +265,6 @@ describe('REQ-057 c9 — the destination clause', () => {
       "mail.draftReady.dest.goesLiveAtOnce"
     );
 
-    const copilot = await tellingFor({
-      draft: view({ governing: pair({ mode: "copilot" }) }),
-      destination: "wordpress",
-    });
-    expect(copilot.kind === "approval_only" && copilot.destination?.copy).toBe(
-      "mail.draftReady.dest.goesLiveOnApproval"
-    );
   });
 
   it("where the site cannot be published to at compose time, the clause says so instead", async () => {

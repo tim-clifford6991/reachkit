@@ -38,7 +38,7 @@ export interface ShellSite {
   siteId: string;
   domain: string;
   timeZone: string;
-  mode: "autopilot" | "copilot";
+  mode: "autopilot";
   createdAt: Date;
 }
 

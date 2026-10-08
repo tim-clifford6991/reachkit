@@ -37,16 +37,11 @@ function view(over: Partial<DraftView> = {}): DraftView {
 }
 
 describe('REQ-057 c2 — "it publishes under this rule and no other"', () => {
-  it("each of the four conjuncts falsified alone returns its own reason", () => {
+  it("each of the three conjuncts falsified alone returns its own reason", () => {
     // 1. the window has not started (autopilot, no deadline)
     expect(becomesPublishable(view({ vetoDeadline: null }))).toEqual({
       publishable: false,
       because: "window",
-    });
-    // 2. copilot without an explicit approval
-    expect(becomesPublishable(view({ governing: pair({ mode: "copilot" }) }))).toEqual({
-      publishable: false,
-      because: "unapproved",
     });
     // 3. an unsaved edit
     expect(becomesPublishable(view({ hasUnsavedEdit: true }))).toEqual({
@@ -85,14 +80,12 @@ describe('REQ-057 c2 — "it publishes under this rule and no other"', () => {
     expect(first).toEqual(second);
   });
 
-  it("an explicit approval is the moment it became publishable, under either mode", () => {
+  it("the system's approval is the moment it became publishable", () => {
     const approvedAt = new Date("2026-09-05T08:00:00Z");
-    for (const mode of ["autopilot", "copilot"] as const) {
-      const answer = becomesPublishable(view({ approvedAt, governing: pair({ mode }) }));
-      expect(answer.publishable, mode).toBe(true);
-      if (!answer.publishable) continue;
-      expect(answer.at.toISOString(), mode).toBe("2026-09-05T09:00:00.000Z");
-    }
+    const answer = becomesPublishable(view({ approvedAt }));
+    expect(answer.publishable).toBe(true);
+    if (!answer.publishable) return;
+    expect(answer.at.toISOString()).toBe("2026-09-05T09:00:00.000Z");
   });
 
   it("the unsaved_edit arm is present and returns its own reason — the arm is a guard, not a behaviour", () => {
@@ -104,25 +97,6 @@ describe('REQ-057 c2 — "it publishes under this rule and no other"', () => {
       "because",
       "unsaved_edit"
     );
-  });
-});
-
-describe('REQ-057 c3 — "under copilot, expiry does not make the page publishable — only an explicit approval does"', () => {
-  it.each([-1, 0, 1])("at the boundary and %s ms either side, expiry is not an approval", (delta) => {
-    const deadline = new Date(DEADLINE.getTime() + delta);
-    expect(becomesPublishable(view({ vetoDeadline: deadline, governing: pair({ mode: "copilot" }) }))).toEqual(
-      { publishable: false, because: "unapproved" }
-    );
-  });
-
-  it("a copilot page stays approvable across later days and never becomes publishable of its own accord", () => {
-    for (const days of [1, 7, 30]) {
-      const deadline = new Date(DEADLINE.getTime() - days * 24 * HOUR);
-      expect(
-        becomesPublishable(view({ vetoDeadline: deadline, governing: pair({ mode: "copilot" }) })),
-        `${days}d`
-      ).toEqual({ publishable: false, because: "unapproved" });
-    }
   });
 });
 
@@ -141,13 +115,6 @@ describe('REQ-057 c4 — "expiry without a veto makes it publishable; a veto mea
 });
 
 describe('REQ-057 c5 — "the window that governs it is the one the customer\'s publishing settings hold at that moment"', () => {
-  it("two evaluations of one draft under two pairs give two answers, and the predicate reads no settings itself", () => {
-    const asAutopilot = becomesPublishable(view({ governing: pair({ mode: "autopilot" }) }));
-    const asCopilot = becomesPublishable(view({ governing: pair({ mode: "copilot" }) }));
-    expect(asAutopilot.publishable).toBe(true);
-    expect(asCopilot.publishable).toBe(false);
-  });
-
   it("moving the publish hour moves the moment the page goes out", () => {
     const nine = becomesPublishable(view({ governing: pair({ publishTime: "09:00" }) }));
     const noon = becomesPublishable(view({ governing: pair({ publishTime: "12:00" }) }));
@@ -177,16 +144,15 @@ describe("a site with no stated time zone is held, never published in a zone nob
     });
   });
 
-  it("it is not one of criterion 2's four conjuncts — the four still each have their own reason", () => {
+  it("it is not one of criterion 2's conjuncts — each still has its own reason", () => {
     const reasons = new Set(
       [
         becomesPublishable(view({ vetoDeadline: null })),
-        becomesPublishable(view({ governing: pair({ mode: "copilot" }) })),
         becomesPublishable(view({ hasUnsavedEdit: true })),
         becomesPublishable(view({ claimRecheckOutstanding: true })),
         becomesPublishable(view({ governing: pair({ timezone: null }) })),
       ].map((answer) => (answer.publishable ? "publishable" : answer.because))
     );
-    expect(reasons.size).toBe(5);
+    expect(reasons.size).toBe(4);
   });
 });

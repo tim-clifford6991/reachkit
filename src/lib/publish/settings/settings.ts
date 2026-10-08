@@ -31,7 +31,9 @@ import { VETO } from "@/lib/config/constants";
 import { publishDb } from "../db";
 import { governingVetoHours, isWholeDays, vetoHoursFromDays } from "./veto";
 
-export type Mode = "autopilot" | "copilot";
+/** Autopilot only (SPEC §7, 2026-09-11; owner 2026-10-08, issue 1337).
+ *  A stored row that still says `copilot` is read as autopilot. */
+export type Mode = "autopilot";
 
 export interface PublishingSettings {
   mode: Mode;
@@ -88,7 +90,7 @@ export function isResolvableZone(zone: unknown): zone is string {
 export function invalidFields(patch: Partial<PublishingSettings>): readonly SettingsField[] {
   const bad: SettingsField[] = [];
 
-  if (patch.mode !== undefined && patch.mode !== "autopilot" && patch.mode !== "copilot") {
+  if (patch.mode !== undefined && (patch.mode as string) !== "autopilot") {
     bad.push("mode");
   }
 
@@ -136,7 +138,8 @@ const DEFAULT_PUBLISH_TIME = "09:00";
 
 export function toPublishingSettings(row: SiteSettingsRow): PublishingSettings {
   return {
-    mode: row.mode === "copilot" ? "copilot" : "autopilot",
+    // Autopilot only: a stored `copilot` is read as autopilot (issue 1337).
+    mode: "autopilot",
     vetoHours: governingVetoHours(row.veto_hours),
     publishTime: toHhMm(row.publish_time),
     // Never a fallback. A null zone travels as null.
@@ -168,18 +171,16 @@ export async function readPublishingSettings(siteId: string): Promise<Publishing
 /** REQ-073 c2's one written line — the key, never the sentence. */
 export type PairCopyKey =
   | "settings.publishing.pair.autopilotWindow"
-  | "settings.publishing.pair.autopilotZero"
-  | "settings.publishing.pair.copilot";
+  | "settings.publishing.pair.autopilotZero";
 
 /**
  * The one place in the product where a mode-and-window pair becomes a
  * statement: what the selected pair does to a draft the customer never acts
- * on. Three pairs, three keys, and a fourth is a type error.
+ * on. Two pairs, two keys, and a third is a type error.
  *
  * It returns a key and writes no string — the sentences are the owner's.
  */
 export function explainPair(s: Pick<PublishingSettings, "mode" | "vetoHours">): PairCopyKey {
-  if (s.mode === "copilot") return "settings.publishing.pair.copilot";
   return s.vetoHours === 0
     ? "settings.publishing.pair.autopilotZero"
     : "settings.publishing.pair.autopilotWindow";
