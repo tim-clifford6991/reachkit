@@ -1,4 +1,6 @@
 // SPEC §7 (2026-09-20, #908) · issue #931 — the three cards beside the page.
+// Since 2026-10-07 (issue 1325) each is a note: one closed line under the
+// article, opened in place.
 //
 // "…with beside it: why this page; **how it appears in search results**;
 // ***written from your business*** — each fact, quote and promise used and
@@ -28,6 +30,7 @@ import type React from "react";
 import { FileText, Quote, Search, Sparkles } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { formatDate } from "../../_shell/format";
+import { CLOSED } from "../../_overview/present";
 import {
   PACK_NEED_COPY,
   writtenFromIsEmpty,
@@ -40,6 +43,19 @@ import {
 /** The eyebrow every card on this screen heads itself with. Matches the
  *  rows already on it rather than minting a second heading style. */
 const CARD_HEAD = "eyebrow flex items-center gap-2";
+
+/**
+ * A note under the page (SPEC §7, 2026-10-07, issue 1325): a card that is
+ * one closed line, named by its own title, and opens in place. The
+ * `details` and its `summary` take `CLOSED`'s classes, the ones Search, AI
+ * answers and Rivals close a sentence with (`docs/DESIGN.md`, *Closed
+ * sentences*); these three are the card around them and the column inside.
+ */
+export const NOTE = Object.freeze({
+  card: "card card-border bg-base-100 min-w-0",
+  pad: "min-w-0 p-4",
+  inner: "flex min-w-0 flex-col gap-3",
+});
 
 /**
  * An address as a reader reads it: the host and the path, with the scheme
@@ -82,11 +98,11 @@ const PACK_SEPARATOR = " · ";
  * title as the link, description under it — so the customer reads the thing
  * a searcher will read rather than three form fields.
  *
- * **Half of a card, not a card** (board `R12-6-Page`, #1072): it shares one
- * card with *What this page is for* (`TargetBlock`), on a quiet ground of
- * its own the way a result sits on a results page. The description is
- * drawn whole rather than clamped to two lines as the board draws it: the
- * layout sweep's check 5 does not admit a clamp on this card.
+ * **A note of its own** (issue 1325; it was half of `TargetBlock`'s card,
+ * #1072): one closed line under *What this page is for*, on a quiet ground
+ * the way a result sits on a results page. The description is drawn whole
+ * rather than clamped to two lines as the board draws it: the layout
+ * sweep's check 5 does not admit a clamp on this card.
  *
  * **It is a rendering of their own text, not a judgement of it.** No length
  * warning, no score, no "too long": the editor is where a length count
@@ -99,39 +115,43 @@ export function SearchResult(p: {
   publisher: Publisher;
 }): React.JSX.Element {
   return (
-    <section
-      className="flex min-w-0 flex-col gap-3"
-      data-testid="draft-search-result"
-    >
-      <h2 className={CARD_HEAD}>
-        <Search size={14} strokeWidth={1.75} aria-hidden />
-        {copy("draft.search-result.title")}
-      </h2>
-
-      <div className="rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-4">
-        <span
-          className={`num text-xs text-base-content/70 ${VALUE_BOX}`}
-          tabIndex={0}
-        >
-          {readableAddress(p.publisher.url)}
-        </span>
-        {/* The title as a result draws it: the one blue line. Not a link —
-            there is nowhere to send a reviewer, and a dead link in a
-            preview reads as a broken page. */}
-        <span
-          className="text-primary text-lg font-medium wrap-anywhere"
-          data-testid="search-result-title"
-        >
-          {p.title}
-        </span>
-        {p.description === "" ? null : (
-          <span
-            className="text-sm text-base-content/70 wrap-anywhere"
-            data-testid="search-result-description"
-          >
-            {p.description}
-          </span>
-        )}
+    <section className={NOTE.card} data-testid="draft-search-result">
+      <div className={NOTE.pad}>
+        <details className={CLOSED.root}>
+          <summary className={CLOSED.head}>
+            <h2 className={CARD_HEAD}>
+              <Search size={14} strokeWidth={1.75} aria-hidden />
+              {copy("draft.search-result.title")}
+            </h2>
+          </summary>
+          <div className={CLOSED.body}>
+            <div className="rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-4">
+              <span
+                className={`num text-xs text-base-content/70 ${VALUE_BOX}`}
+                tabIndex={0}
+              >
+                {readableAddress(p.publisher.url)}
+              </span>
+              {/* The title as a result draws it: the one blue line. Not a link —
+                  there is nowhere to send a reviewer, and a dead link in a
+                  preview reads as a broken page. */}
+              <span
+                className="text-primary text-lg font-medium wrap-anywhere"
+                data-testid="search-result-title"
+              >
+                {p.title}
+              </span>
+              {p.description === "" ? null : (
+                <span
+                  className="text-sm text-base-content/70 wrap-anywhere"
+                  data-testid="search-result-description"
+                >
+                  {p.description}
+                </span>
+              )}
+            </div>
+          </div>
+        </details>
       </div>
     </section>
   );
@@ -164,98 +184,103 @@ export function WrittenFromCard(p: {
   const { facts, profileItems, pack } = p.writtenFrom;
 
   return (
-    <section
-      className="card card-border bg-base-100 min-w-0"
-      data-testid="draft-written-from"
-    >
-      <div className="card-body min-w-0 gap-3">
-        <h2 className={CARD_HEAD}>
-          <Quote size={14} strokeWidth={1.75} aria-hidden />
-          {copy("draft.written-from.title")}
-        </h2>
-        <p className="text-sm text-base-content/70 wrap-anywhere">
-          {copy("draft.written-from.lead")}
-        </p>
+    <section className={NOTE.card} data-testid="draft-written-from">
+      <div className={NOTE.pad}>
+        <details className={CLOSED.root}>
+          <summary className={CLOSED.head}>
+            <h2 className={CARD_HEAD}>
+              <Quote size={14} strokeWidth={1.75} aria-hidden />
+              {copy("draft.written-from.title")}
+            </h2>
+          </summary>
+          <div className={CLOSED.body}>
+            <div className={NOTE.inner}>
+              <p className="text-sm text-base-content/70 wrap-anywhere">
+                {copy("draft.written-from.lead")}
+              </p>
 
-        {facts.length === 0 ? null : (
-          <ul
-            className="list bg-base-100 min-w-0 rounded-box"
-            data-testid="written-from-facts"
-          >
-            {facts.map((fact) => (
-              // **`list-col-grow` and `list-col-wrap`, not `flex-col`.**
-              // `.list-row` is a *grid* with `minmax(0,auto) 1fr` columns
-              // (daisyUI's `list.css`), so `flex-col` set a flex direction
-              // on a grid and changed nothing: the passage took the auto
-              // column, the address was handed a 0-width one and its text
-              // overflowed the card — a sideways document scroll at 390 and
-              // 768, which is exactly what `docs/DESIGN.md`'s no-overflow
-              // rule forbids. These two are the component's own way of
-              // saying "one wide column, and this part on the next line".
-              <li className="list-row min-w-0" key={fact.passage}>
-                <span className="list-col-grow min-w-0 text-sm wrap-anywhere">
-                  {fact.passage}
-                </span>
-                {/* One second row: the source, then the fact's age (D59, issue
-                    1287). One `list-col-wrap`, so the grid keeps its one
-                    column. */}
-                <span className="list-col-wrap flex min-w-0 flex-col gap-1">
-                  {fact.url === null ? (
-                    // A draft written before the source was recorded (#927's
-                    // first shape). The sentence is still what the page stands
-                    // on, so it is listed and said to be unsourced rather than
-                    // dropped — which is what this card is for.
-                    //
-                    // `/70`, not `/50`: the owner's ruling of 2026-09-22
-                    // (#946) took every thinned arm off the floor, and half an
-                    // ink is under 4.5:1 whatever the ink is. This is the same
-                    // quiet colour the two lines above it take.
-                    <span className="min-w-0 text-xs text-base-content/70 wrap-anywhere">
-                      {copy("draft.written-from.source-unknown")}
-                    </span>
-                  ) : (
-                    <span className={VALUE_BOX}>
-                      <a
-                        className="link link-hover num text-xs"
-                        href={fact.url}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {readableAddress(fact.url)}
-                      </a>
-                    </span>
-                  )}
-                  {fact.ageDays === undefined ? null : (
-                    <span className="min-w-0 text-xs text-base-content/70" data-testid="written-from-fact-age">
-                      {ageLine(fact.ageDays)}
-                    </span>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {profileItems.length === 0 ? null : (
-          <div className="flex min-w-0 flex-col gap-2 border-t border-base-300 pt-3">
-            <h3 className="eyebrow">{copy("draft.written-from.profile")}</h3>
-            <div
-              className="flex min-w-0 flex-wrap gap-2"
-              data-testid="written-from-profile"
-            >
-              {profileItems.map((item) => (
-                <span
-                  className="badge badge-ghost h-auto max-w-full min-w-0 py-1 whitespace-normal wrap-anywhere"
-                  key={item}
+              {facts.length === 0 ? null : (
+                <ul
+                  className="list bg-base-100 min-w-0 rounded-box"
+                  data-testid="written-from-facts"
                 >
-                  {item}
-                </span>
-              ))}
+                  {facts.map((fact) => (
+                    // **`list-col-grow` and `list-col-wrap`, not `flex-col`.**
+                    // `.list-row` is a *grid* with `minmax(0,auto) 1fr` columns
+                    // (daisyUI's `list.css`), so `flex-col` set a flex direction
+                    // on a grid and changed nothing: the passage took the auto
+                    // column, the address was handed a 0-width one and its text
+                    // overflowed the card — a sideways document scroll at 390 and
+                    // 768, which is exactly what `docs/DESIGN.md`'s no-overflow
+                    // rule forbids. These two are the component's own way of
+                    // saying "one wide column, and this part on the next line".
+                    <li className="list-row min-w-0" key={fact.passage}>
+                      <span className="list-col-grow min-w-0 text-sm wrap-anywhere">
+                        {fact.passage}
+                      </span>
+                      {/* One second row: the source, then the fact's age (D59, issue
+                          1287). One `list-col-wrap`, so the grid keeps its one
+                          column. */}
+                      <span className="list-col-wrap flex min-w-0 flex-col gap-1">
+                        {fact.url === null ? (
+                          // A draft written before the source was recorded (#927's
+                          // first shape). The sentence is still what the page stands
+                          // on, so it is listed and said to be unsourced rather than
+                          // dropped — which is what this card is for.
+                          //
+                          // `/70`, not `/50`: the owner's ruling of 2026-09-22
+                          // (#946) took every thinned arm off the floor, and half an
+                          // ink is under 4.5:1 whatever the ink is. This is the same
+                          // quiet colour the two lines above it take.
+                          <span className="min-w-0 text-xs text-base-content/70 wrap-anywhere">
+                            {copy("draft.written-from.source-unknown")}
+                          </span>
+                        ) : (
+                          <span className={VALUE_BOX}>
+                            <a
+                              className="link link-hover num text-xs"
+                              href={fact.url}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {readableAddress(fact.url)}
+                            </a>
+                          </span>
+                        )}
+                        {fact.ageDays === undefined ? null : (
+                          <span className="min-w-0 text-xs text-base-content/70" data-testid="written-from-fact-age">
+                            {ageLine(fact.ageDays)}
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {profileItems.length === 0 ? null : (
+                <div className="flex min-w-0 flex-col gap-2 border-t border-base-300 pt-3">
+                  <h3 className="eyebrow">{copy("draft.written-from.profile")}</h3>
+                  <div
+                    className="flex min-w-0 flex-wrap gap-2"
+                    data-testid="written-from-profile"
+                  >
+                    {profileItems.map((item) => (
+                      <span
+                        className="badge badge-ghost h-auto max-w-full min-w-0 py-1 whitespace-normal wrap-anywhere"
+                        key={item}
+                      >
+                        {item}
+                      </span>
+                    ))}
             </div>
           </div>
         )}
 
         {pack === undefined ? null : <PackFold pack={pack} timeZone={p.timeZone} />}
+            </div>
+          </div>
+        </details>
       </div>
     </section>
   );
@@ -420,44 +445,55 @@ export function WhatAddsCard(p: { adds: PageAdds | undefined }): React.JSX.Eleme
   const { claims, ask } = p.adds;
 
   return (
-    <section className="card card-border bg-base-100 min-w-0" data-testid="draft-adds">
-      <div className="card-body min-w-0 gap-3">
-        <h2 className={CARD_HEAD}>
-          <Sparkles size={14} strokeWidth={1.75} aria-hidden />
-          {copy("draft.adds.title")}
-        </h2>
-        <p className="text-sm text-base-content/70 wrap-anywhere">
-          {copy(claims.length === 0 ? "draft.adds.none" : "draft.adds.lead")}
-        </p>
+    <section className={NOTE.card} data-testid="draft-adds">
+      <div className={NOTE.pad}>
+        {/* Open where it asks for a fact: that sentence is what the founder
+            has to do, and a held page must not hide it (SPEC §7,
+            2026-10-07). */}
+        <details className={CLOSED.root} open={ask}>
+          <summary className={CLOSED.head}>
+            <h2 className={CARD_HEAD}>
+              <Sparkles size={14} strokeWidth={1.75} aria-hidden />
+              {copy("draft.adds.title")}
+            </h2>
+          </summary>
+          <div className={CLOSED.body}>
+            <div className={NOTE.inner}>
+              <p className="text-sm text-base-content/70 wrap-anywhere">
+                {copy(claims.length === 0 ? "draft.adds.none" : "draft.adds.lead")}
+              </p>
 
-        {claims.length === 0 ? null : (
-          <ul className="list bg-base-100 min-w-0 rounded-box" data-testid="draft-adds-claims">
-            {claims.map((each) => (
-              <li className="list-row min-w-0" key={each.claim}>
-                <span className="list-col-grow min-w-0 text-sm wrap-anywhere">{each.claim}</span>
-                {each.business ? (
-                  <span className="list-col-wrap min-w-0">
-                    <span className="badge badge-ghost h-auto max-w-full py-1 whitespace-normal wrap-anywhere">
-                      {copy("draft.adds.business")}
-                    </span>
-                  </span>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
+              {claims.length === 0 ? null : (
+                <ul className="list bg-base-100 min-w-0 rounded-box" data-testid="draft-adds-claims">
+                  {claims.map((each) => (
+                    <li className="list-row min-w-0" key={each.claim}>
+                      <span className="list-col-grow min-w-0 text-sm wrap-anywhere">{each.claim}</span>
+                      {each.business ? (
+                        <span className="list-col-wrap min-w-0">
+                          <span className="badge badge-ghost h-auto max-w-full py-1 whitespace-normal wrap-anywhere">
+                            {copy("draft.adds.business")}
+                          </span>
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
 
-        {ask ? (
-          <div
-            className="flex min-w-0 flex-col items-start gap-1 border-t border-base-300 pt-3 text-sm"
-            data-testid="draft-adds-ask"
-          >
-            <p className="min-w-0 wrap-anywhere">{copy("draft.adds.ask")}</p>
-            <a className="link" href="/app/settings">
-              {copy("draft.adds.ask.action")}
-            </a>
+              {ask ? (
+                <div
+                  className="flex min-w-0 flex-col items-start gap-1 border-t border-base-300 pt-3 text-sm"
+                  data-testid="draft-adds-ask"
+                >
+                  <p className="min-w-0 wrap-anywhere">{copy("draft.adds.ask")}</p>
+                  <a className="link" href="/app/settings">
+                    {copy("draft.adds.ask.action")}
+                  </a>
+                </div>
+              ) : null}
+            </div>
           </div>
-        ) : null}
+        </details>
       </div>
     </section>
   );
@@ -543,47 +579,50 @@ export function WhatPublishesCard(p: {
   ];
 
   return (
-    <section
-      className="card card-border bg-base-100 min-w-0"
-      data-testid="draft-publishes"
-    >
-      <div className="card-body min-w-0 gap-3">
-        <h2 className={CARD_HEAD}>
-          <FileText size={14} strokeWidth={1.75} aria-hidden />
-          {copy("draft.publishes.title")}
-        </h2>
-        {/* `dt`/`dd` are the grid's own children — **no `display: contents`
-            wrapper around each pair.** An element with no box of its own
-            makes every child read as escaping its parent, which is 12
-            containment offenders on this card alone and a real defect the
-            first time a value needs to be measured against its column.
-            A flat list of cells is what a two-column `dl` is. */}
-        <dl className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
-          {rows
-            .filter((row) => row.value !== "")
-            .flatMap((row) => [
-              <dt
-                className="min-w-0 text-base-content/70"
-                key={`${row.key}-label`}
-              >
-                {row.label}
-              </dt>,
-              <dd
-                className={
-                  row.value_num
-                    ? `num num-phrase ${VALUE_BOX}`
-                    : "min-w-0 wrap-anywhere"
-                }
-                data-testid={`draft-publishes-${row.key}`}
-                key={`${row.key}-value`}
-                // A value gets the box; a sentence (the title, the
-                // description) wraps at its spaces and needs none.
-                tabIndex={row.value_num ? 0 : undefined}
-              >
-                {row.value}
-              </dd>,
-            ])}
-        </dl>
+    <section className={NOTE.card} data-testid="draft-publishes">
+      <div className={NOTE.pad}>
+        <details className={CLOSED.root}>
+          <summary className={CLOSED.head}>
+            <h2 className={CARD_HEAD}>
+              <FileText size={14} strokeWidth={1.75} aria-hidden />
+              {copy("draft.publishes.title")}
+            </h2>
+          </summary>
+          <div className={CLOSED.body}>
+            {/* `dt`/`dd` are the grid's own children — **no `display: contents`
+                wrapper around each pair.** An element with no box of its own
+                makes every child read as escaping its parent, which is 12
+                containment offenders on this card alone and a real defect the
+                first time a value needs to be measured against its column.
+                A flat list of cells is what a two-column `dl` is. */}
+            <dl className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
+              {rows
+                .filter((row) => row.value !== "")
+                .flatMap((row) => [
+                  <dt
+                    className="min-w-0 text-base-content/70"
+                    key={`${row.key}-label`}
+                  >
+                    {row.label}
+                  </dt>,
+                  <dd
+                    className={
+                      row.value_num
+                        ? `num num-phrase ${VALUE_BOX}`
+                        : "min-w-0 wrap-anywhere"
+                    }
+                    data-testid={`draft-publishes-${row.key}`}
+                    key={`${row.key}-value`}
+                    // A value gets the box; a sentence (the title, the
+                    // description) wraps at its spaces and needs none.
+                    tabIndex={row.value_num ? 0 : undefined}
+                  >
+                    {row.value}
+                  </dd>,
+                ])}
+            </dl>
+          </div>
+        </details>
       </div>
     </section>
   );
