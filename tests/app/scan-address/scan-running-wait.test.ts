@@ -8,7 +8,7 @@
 // the running scan's own age — never the pass's design ceiling, which would
 // send the visitor back to be refused a second time. At or past the bound the
 // row waits on the next maintenance sweep, so the wait is the tick interval,
-// never 0 (master review on PR #520).
+// never 0 (review on PR #520).
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import "../../scan/run/harness";
 import { MAINTENANCE_TICK_MINUTES, TIMING } from "@/lib/config/constants";

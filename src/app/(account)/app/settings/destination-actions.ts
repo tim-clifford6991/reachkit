@@ -70,7 +70,7 @@ export type ConnectOutcome =
 
 /** The credential, as the form hands it over.
  *
- *  **Three fields and no fourth** (master's ruling, 2026-09-07). A
+ *  **Three fields and no fourth** (ruling, 2026-09-07). A
  *  WordPress application password authenticates as
  *  `username:app-password` and is scoped to the account that created it,
  *  so the user it was issued to is part of the credential and not

@@ -158,7 +158,7 @@ describe("REQ-097 — the model carries no billing value at all", () => {
   // card or the invoice history. So the assertion is not "every value has
   // provenance" any more — it is that there is no such value on the model.
   it("the billing slice is the plan state, the access-end day, the destination and the card — and nothing else", () => {
-    // The card on file joined the slice on the master's review of #391
+    // The card on file joined the slice on the review of #391
     // (issue #374): the approved S18 draws a card row, and the row needs
     // somewhere to read four digits from. Everything else on the slice is
     // still ReachKit's own — the state from `users.cancelled_at`, the day

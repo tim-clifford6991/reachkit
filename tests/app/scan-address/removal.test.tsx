@@ -1,10 +1,7 @@
 // tests/app/scan-address/removal.test.tsx
 //
-// BUILD §4.1 · REQ-002 — the removal address on every report, the one
-// written line a removed address serves, and the 410 the owner ruled on
-// 2026-09-05 (#28). Criteria quoted verbatim from
-// `archive/sdlc-factory-2026-09-04/corpus/docs/requirements/REQ-002.md`
-// and `REQ-001.md`; carries WO-067's test plan, which WO-282 superseded.
+// The removal address on every report, the one written line a removed
+// address serves, and the 410 the owner ruled on 2026-09-05 (#28).
 //
 // **Rendering convention**: `tests/app/**` runs under Vitest's `node`
 // project, so this file renders with `react-dom/server`'s

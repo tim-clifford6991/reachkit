@@ -48,7 +48,7 @@ export function explain<K extends ExplainKey>(
   // this check is not written twice. copy.ts is not in this WO's file
   // plan (§'## File plan' lists no Modify row for it), and rule 2 holds
   // touching an unlisted file to be paused and referred back rather than
-  // done on this implementer's own authority. This three-line check is
+  // done outside the listed file plan. This three-line check is
   // therefore duplicated from copy.ts's own guard rather than extracted
   // and shared; no acceptance criterion in `## Test plan` asserts a single
   // shared guard. Residual risk recorded as a `rests-on` row.

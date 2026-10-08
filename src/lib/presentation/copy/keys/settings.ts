@@ -34,7 +34,7 @@
 // (constitution §1). Flagged in this issue's PR body.
 //
 // 2026-09-10, issue #460: every sentence this partition still owed is now
-// written — the owner approved the master's drafted set ("copy proposal
+// written — the owner approved the drafted set ("copy proposal
 // approved", proposal sheet
 // https://claude.ai/code/artifact/546f45a0-a996-4d25-b85e-fb03fda7b102)
 // and the strings land here byte for byte. The values that approval names
@@ -542,8 +542,8 @@ export const SETTINGS_COPY = Object.freeze({
   // own line (`destination.line.*`, minted by #48) on a redrawn card — not
   // a sentence this form composed, and never anything the site said back.
   "settings.destination.site-url": ["Site URL", { slots: {}, fixedBy: "REQ-060" }],
-  // The WordPress user the application password was issued to (master's
-  // ruling, 2026-09-07). A WordPress application password authenticates as
+  // The WordPress user the application password was issued to (ruling,
+  // 2026-09-07). A WordPress application password authenticates as
   // `username:app-password` — it is scoped to the account that created it —
   // so without this field the REST index cannot be read and every real site
   // would refuse. The mockup's "two fields and no third" is amended by that
@@ -585,7 +585,7 @@ export const SETTINGS_COPY = Object.freeze({
   // or 'waiting for DNS'", and §12 ruling 7 says it again. They are the
   // owner's own strings, quoted here rather than composed — which is why
   // they are values and not `TODO(copy)`: nothing about them was chosen by
-  // an implementer.
+  // the code.
   //
   // They are not `settings.destination.health.*` renamed. Health is what
   // the destination's end can be seen to be; these say whether the

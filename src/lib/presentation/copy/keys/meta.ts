@@ -33,7 +33,7 @@
 // scope, so the empty value's throw would take the whole route down rather
 // than one string on it.
 //
-// 2026-09-10, issue #459: the owner approved the master's drafted copy for
+// 2026-09-10, issue #459: the owner approved the drafted copy for
 // every key this partition still owed ("copy proposal approved"; proposal
 // sheet artifact 546f45a0-a996-4d25-b85e-fb03fda7b102), and the 20 approved
 // strings are applied here byte for byte. No key in this partition is

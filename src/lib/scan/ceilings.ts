@@ -1,8 +1,6 @@
-// src/lib/scan/ceilings.ts — BP-023 `## Public interface`, WO-281
-// (consolidates WO-059; see `archive/sdlc-factory-2026-09-04/corpus/docs/work-orders/WO-281.md`
-// `## Consolidation`)
+// src/lib/scan/ceilings.ts — the two spend ceilings on one scan.
 //
-// **Read `decisions/ADR-021.md` first.** Two ceilings — the pinned
+// Two ceilings — the pinned
 // `TIMING.reportCeilingS` and the free path's spend cap
 // (`CAPS.FREE_C`, reached through BP-007's `CostContext.capHit()`) — and
 // exactly one `Ending` however a free scan stops. Raising either ceiling
@@ -30,7 +28,7 @@
 //
 // **The pin, and only the pin.** REQ-003 c5 states that bound as 90
 // seconds and this file used to repeat the figure in prose. It is 50 now
-// (master ruling 2026-09-10, issue #456): the invocation this runs inside
+// (ruling 2026-09-10, issue #456): the invocation this runs inside
 // is frozen by the platform at 60, so a design ceiling above that could
 // never fire and the partial report the criterion promises could never be
 // stored. Nothing here spells a number — the deadline is read from

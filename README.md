@@ -48,7 +48,7 @@ weekly scan → calendar → email → technical issues — but all nine are MVP
 | 6 | `docs/RUNBOOK.md` | How the box and the vendors are operated after a change is merged. |
 | 7 | `CLAUDE.md` | What an agent reads first. It points at the pages above and does not restate a different rule. |
 
-`docs/archive/` is frozen history — not instructions. A difference between the code and `SPEC.md` is a defect in the code — CI's `audit` check blocks the PR. A difference between these pages is fixed in the same change. The milestone **Launch** is the list of open issues for that checklist.
+A difference between the code and `SPEC.md` is a defect in the code — CI's `audit` check blocks the PR. A difference between these pages is fixed in the same change. The milestone **Launch** is the list of open issues for that checklist.
 
 ## Where work is tracked
 

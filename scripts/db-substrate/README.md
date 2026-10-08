@@ -77,7 +77,7 @@ discipline in reverse: it signals only pids `up.sh` recorded, checked against
 prove is this run's.
 
 `--run` names the run after the current directory — on this layout, the
-worktree — so each implementer gets **one** database and reuses it rather
+worktree — so each worktree gets **one** database and reuses it rather
 than accumulating one per invocation. `--run <id>` names it explicitly.
 The database is `reachkit_scratch_<id>` and the run's **four** service ports
 are derived from the same id, so two worktrees never share a port or a row.
@@ -92,7 +92,7 @@ PostgREST, so every pair of adjacent offsets collided by construction: run
 3200-3999.
 **No lock is needed for the database.** The interim `flock /tmp/layout.lock`
 rule this replaced is no longer necessary *for isolation* — though on a box
-running several implementers it is still worth holding for **memory**, since
+running several worktrees it is still worth holding for **memory**, since
 `next build` and Chromium together are the largest thing either suite does.
 
 `up.sh` prints every binding as an `export` line on stdout — the database

@@ -437,11 +437,11 @@ describe("REQ-079 c1 — each danger-zone action states its consequence before i
 
 // ── REQ-097 ────────────────────────────────────────────────────────────────
 describe("REQ-097 — the Billing card renders no number ReachKit computed", () => {
-  // **2026-09-09, on the master's review of #391 (issue #374).** REQ-097 c5
+  // **2026-09-09, on the review of #391 (issue #374).** REQ-097 c5
   // reads "no ReachKit surface states any of those values", and the ruling
   // on issue #34 settled §4.7's four things down to the plan, the price and
   // the control. The approved screen set draws the next-invoice row and the
-  // card row, and the master — having been shown c5 and that ruling in the
+  // card row, and the review — having been shown c5 and that ruling in the
   // PR body — asked for both. So the two rows are drawn, and **c5 needs
   // amending to say so**; that is named in #391 and is the owner's to do.
   //

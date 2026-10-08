@@ -130,7 +130,7 @@ describe("**no id crosses the wire**", () => {
   it("the argument carries exactly the three fields, and none is an id", () => {
     // A type-level statement made at runtime: the only keys the caller can
     // supply. A site id here would let any signed-in customer write
-    // another account's destination. Three since the master's ruling of
+    // another account's destination. Three since the ruling of
     // 2026-09-07 — a WordPress application password authenticates as
     // `username:app-password`, so the user is part of the credential.
     expect(Object.keys(CREDENTIAL).sort()).toEqual([

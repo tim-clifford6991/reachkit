@@ -196,7 +196,7 @@ describe("safeFetch · size cap (BP-006 NFR: 2 MB, `too_large` not a truncated p
   });
 });
 
-// Issue #479, master ruling 2026-09-10: the customer's own documents are
+// Issue #479, ruling 2026-09-10: the customer's own documents are
 // read with their own cap (`OWN_DOCUMENT_MAX_BYTES`, passed by
 // `own-fetch.ts`'s `OWN_FETCH_OPTS`); every other read keeps the default.
 describe("safeFetch · the own-document cap (issue #479 — one pin, OWN_DOCUMENT_MAX_BYTES)", () => {

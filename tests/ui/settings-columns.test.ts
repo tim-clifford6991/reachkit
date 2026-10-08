@@ -22,10 +22,9 @@
 //    scroll sideways instead of pushing the screen wider
 //    (`docs/DESIGN.md`'s no-overflow rule).
 //
-// **The file keeps its name** though the columns it was named for are gone:
-// `docs/archive/2026-09-11/design-reference.md` names this path and the
-// archive is frozen and unread (`docs/PROCESS.md`), so renaming the file
-// would leave a pointer in a document nobody may fix.
+// **The file keeps its name** though the columns it was named for are gone.
+// The tests still describe the Settings screen, and the name is what issues
+// and pull requests already cite.
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";

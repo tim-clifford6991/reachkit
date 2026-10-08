@@ -6,7 +6,7 @@
 // written so that deleting or inverting the behaviour it names breaks it,
 // and the never-list row in particular is written so that *adding* a
 // forbidden export breaks it too — see this file's own header note on the
-// probe the implementer ran (WO-023 return).
+// probe recorded on the WO-023 return.
 //
 // Signature note (see `src/lib/vendors/dataforseo/index.ts`'s header,
 // rule 4.2): this file is written to *current* BP-008 (amended by

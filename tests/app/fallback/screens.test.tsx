@@ -115,7 +115,7 @@ describe("S8 — one shape, and every mount wears it", () => {
     // S8 draws nothing of the error page but its shape — "the same shape
     // with one written line" — so its eyebrow, its heading and its line are
     // all three the owner's (12a). The eyebrow was written from issue
-    // #372's own Done-when until the master's review of #407 owed it back:
+    // #372's own Done-when until the review of #407 owed it back:
     // a Done-when is a brief, not the owner's pen. The owner approved all
     // three on 2026-09-10 (#459), and each lands in its own element.
     for (const key of ["chrome.error.eyebrow", "chrome.error.heading", "chrome.error.line"] as const) {

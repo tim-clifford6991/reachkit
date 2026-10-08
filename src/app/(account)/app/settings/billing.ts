@@ -94,8 +94,8 @@ export interface BillingCard {
    *  are all done. Every billing control on the screen leads here. */
   surfaceHref: string;
   /**
-   * The last four digits of the card on file, or `null` (issue #374, on the
-   * master's review of #391).
+   * The last four digits of the card on file, or `null` (issue #374, review
+   * of #391).
    *
    * **This is the one value on this card that ReachKit does not own**, and
    * it is carried honestly rather than invented: `billingSummary` reads

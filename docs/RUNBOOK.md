@@ -8,8 +8,15 @@ by the running app.
 
 ## 1. Landing a change
 
-How a change reaches `main` is `docs/PROCESS.md`: three required checks, then
-`gh pr merge --squash --delete-branch` (or the GitHub UI). This page starts after the merge.
+How a change reaches `main` is `docs/PROCESS.md`: the four gates (`typecheck · lint · unit`,
+`audit`, `schema · RLS`, `no overflow · axe`), then `gh pr merge --squash --delete-branch`
+(or the GitHub UI). A documentation-only pull request merges on a green `audit` alone.
+This page starts after the merge.
+
+2026-10-08  **The guard watches the box** (owner, #1348). `rk-guard` reports low memory,
+swap, load, leaked processes whose directory is gone, and heavy work in the main checkout
+`/root/projects/reachkitv3`. A layout run, a browser sweep, and a production build on this box
+are the gates and the deploys.
 
 Dev (`dev.reachkit.app`) deploys from `main` via `rk-deployer`. If it has not moved after a
 merge, run `bash /root/ops/reachkit/bin/deploy-dev-once.sh`. Production is batched (at most
@@ -752,8 +759,7 @@ figure is ever rendered to a customer**, and there is no `site_id`: a site is re
 
 `src/lib/config/constants.ts`, `CAPS`, in cents. Per pass: free `12` · deep `150` · weekly `40` ·
 draft `45`. Product-wide: `DAILY_PRODUCT_C = 5000` for one **UTC** day, measured over
-`fetches.cost_cents`. The unit prices behind them are `PRICE_BOOK`, transcribed from
-the price book archived at `docs/archive/2026-09-11/DATA-COSTS.md`.
+`fetches.cost_cents`. The unit prices behind them are `PRICE_BOOK` in that same file.
 
 **A cap degrades, it never throws.** Hitting one skips the remaining optional work and marks the
 scan `degraded`; the run finishes with a smaller report rather than an error. Hitting the daily

@@ -43,7 +43,7 @@
 // `warnOnce`s at build time. WO-003's `## Interfaces` and BP-001's `code:`
 // glob both name `src/middleware.ts` and `export function middleware`
 // explicitly, and the glob is the architect's to change, not this
-// implementer's — so this file follows the WO exactly, on the working half
+// file's — so this file follows the WO exactly, on the working half
 // of a deprecated (not removed) convention, and the migration is left for
 // a work order that touches BP-001's own `code:` list.
 import { NextResponse } from "next/server";
