@@ -60,6 +60,8 @@ Before pushing, an engineer runs `npm run typecheck`, `npm run lint`, and the te
 
 Where the jobs run is `docs/RUNBOOK.md` §1. There is no fifth merge gate.
 
+`scripts/hygiene.mjs` runs inside `audit`. It fails when an authority page is missing, when Current and the workflows disagree on the four gates, when a second process page appears, or when a name in that script's list is back in the tree. The nightly run of the audit workflow, and `rk-hygiene.timer` at 05:30 UTC, open one issue titled `[hygiene]` when the check is red, or comment on the open one. The check does not edit the tree. An engineer starts from that issue, one worktree, then the tab closes. It is not a fifth gate.
+
 ### Testing budget
 
 Tests prove customer-observable behaviour. Until a paying user, tests are at most one third of a product PR. A test that transcribes a markdown row is deleted.
@@ -105,6 +107,7 @@ The milestone **Launch** is the launch queue. Take an open Launch issue that is 
 - Add a merge gate beyond the four above.
 - Spawn an implementation agent as a subagent of the orchestration session. It is a Herdr tab in the reachkit workspace, one issue, then the tab is closed.
 - Keep a second copy of these rules in a memory file, a settings note, or `/root/ops`.
+- Schedule a standing agent to re-read these pages. The hygiene check is the daily pass, and an engineer starts only from the issue it files.
 
 ## History
 
@@ -137,3 +140,5 @@ Dated rulings. They explain Current. They are not instructions to carry out.
 2026-10-07  **The customer panel is the acceptance test for market understanding** (owner, #1304). Stated in Current. The product is validated for the variety of customers who sign up, not tuned to make reachkit.app score well.
 
 2026-10-08  **Engineers run only the tests their change touches** (owner). CI runs the full unit suite. Stated in Current.
+
+2026-10-08  **The hygiene check keeps the documents and the box on Current** (owner). Stated in Current. It is part of `audit`, not a fifth gate. The timer is `docs/RUNBOOK.md`.

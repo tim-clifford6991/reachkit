@@ -18,6 +18,14 @@ swap, load, leaked processes whose directory is gone, and heavy work in the main
 `/root/projects/reachkitv3`. A layout run, a browser sweep, and a production build on this box
 are the gates and the deploys.
 
+2026-10-08  **Hygiene runs every day** (owner). `scripts/hygiene.mjs` is part of the
+`audit` gate. On a pull request a finding fails the check. The nightly drift-audit
+run, and `rk-hygiene.timer` at 05:30 UTC, file one open issue titled `[hygiene]` when
+the check is red and comment on it when it is still red. The timer runs
+`/root/ops/reachkit/bin/hygiene.sh`, which executes that script with `--box` so the
+template, the units, and `/root/ops/reachkit` are included. The shell file only finds
+the script. The log is `/root/ops/reachkit/log/hygiene.log`. A green run changes nothing.
+
 Dev (`dev.reachkit.app`) deploys from `main` via `rk-deployer`. If it has not moved after a
 merge, run `bash /root/ops/reachkit/bin/deploy-dev-once.sh`. Production is batched (at most
 every two hours) and receives every merge, the same as dev (no freeze, owner 2026-09-17, #844).
