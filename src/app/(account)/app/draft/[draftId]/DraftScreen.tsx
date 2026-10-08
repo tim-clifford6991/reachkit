@@ -47,6 +47,7 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import { AUTOSAVE_DEBOUNCE_MS, TIMING } from "@/lib/config/constants";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { copy } from "@/lib/presentation/copy";
 import { ArrowLeft, LoaderCircle } from "lucide-react";
@@ -775,10 +776,10 @@ export function DraftScreen(p: {
       data-testid="draft-view"
     >
       <nav data-testid="draft-back">
-        <a href="/app/calendar" className="btn btn-sm btn-ghost">
+        <Link href="/app/calendar" prefetch={true} className="btn btn-sm btn-ghost">
           <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
           {copy("draft.back")}
-        </a>
+        </Link>
       </nav>
 
       {state === "generating" ? <Rewriting /> : null}

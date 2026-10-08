@@ -23,6 +23,7 @@
 // A Server Component: it reads no session of its own — the group layout
 // above it already required one — and no store.
 import type React from "react";
+import Link from "next/link";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { ArrowLeft } from "lucide-react";
 import { NotFoundScreen } from "@/app/_fallback/Fallback";
@@ -40,10 +41,10 @@ export default function AccountNotFound(): React.JSX.Element {
     <NotFoundScreen
       line={<p>{copy(LINE)}</p>}
       action={
-        <a href={OVERVIEW} className="btn btn-ghost">
+        <Link href={OVERVIEW} prefetch={true} className="btn btn-ghost">
           <ArrowLeft size={20} strokeWidth={1.75} aria-hidden />
           {copy("chrome.back-to-overview")}
-        </a>
+        </Link>
       }
       testId={TEST_ID}
     />

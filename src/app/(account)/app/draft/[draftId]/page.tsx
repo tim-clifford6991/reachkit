@@ -23,6 +23,7 @@
 // `[data-surface]` in the document.
 import type React from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { fromStored, renderGenerated } from "@/lib/presentation/generated";
@@ -87,10 +88,10 @@ export default async function DraftPage(p: {
     return (
       <div className="flex flex-col items-start gap-4" data-testid="draft-not-found">
         {line === null ? null : <p>{line}</p>}
-        <a href={DESTINATION_HREF.calendar} className="btn btn-sm btn-primary" data-testid="draft-not-found-back">
+        <Link href={DESTINATION_HREF.calendar} prefetch={true} className="btn btn-sm btn-primary" data-testid="draft-not-found-back">
           <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
           {copy("draft.back")}
-        </a>
+        </Link>
       </div>
     );
   }

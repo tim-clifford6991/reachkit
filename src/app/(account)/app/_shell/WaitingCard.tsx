@@ -13,6 +13,7 @@
 // go-live line where no time is set: the shell states the day it read, not
 // a word it worked out.
 import type React from "react";
+import Link from "next/link";
 import { Clock } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { formatDateTime } from "./format";
@@ -26,8 +27,9 @@ export function WaitingCard(p: {
   if (review === null) return null;
 
   return (
-    <a
+    <Link
       href={`/app/draft/${review.draftId}`}
+      prefetch={true}
       // `alert-vertical` is what stacks the three lines: daisyUI's `alert`
       // is a grid with `grid-auto-flow: column`, so a flex direction would
       // be ignored and all three would land in one cell on top of each
@@ -55,6 +57,6 @@ export function WaitingCard(p: {
           })}
         </span>
       )}
-    </a>
+    </Link>
   );
 }

@@ -34,6 +34,7 @@
 import type React from "react";
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
@@ -87,14 +88,15 @@ export default async function CalendarPage({
             `lg` only: below it Plan is this week and there is no month to
             switch (SPEC §7, 2026-10-08, issue 1340). */}
         <nav className="join rounded-field bg-base-100 shadow-(--shadow-card) hidden lg:inline-flex" data-testid="month-switcher">
-          <a
+          <Link
             href={`/app/calendar?month=${previous}`}
+            prefetch={true}
             className="btn btn-sm btn-ghost join-item"
             aria-label={monthNameOnly(previous)}
             data-testid="month-previous"
           >
             <ChevronLeft size={20} strokeWidth={1.75} aria-hidden />
-          </a>
+          </Link>
           <span
             className="btn btn-sm btn-ghost join-item num pointer-events-none font-semibold"
             aria-current="page"
@@ -102,21 +104,23 @@ export default async function CalendarPage({
           >
             {monthShortLabel(month)}
           </span>
-          <a
+          <Link
             href={`/app/calendar?month=${next}`}
+            prefetch={true}
             className="btn btn-sm btn-ghost join-item"
             aria-label={monthNameOnly(next)}
             data-testid="month-next"
           >
             <ChevronRight size={20} strokeWidth={1.75} aria-hidden />
-          </a>
-          <a
+          </Link>
+          <Link
             href="/app/calendar"
+            prefetch={true}
             className="btn btn-sm btn-ghost join-item border-s border-s-base-300"
             data-testid="month-today"
           >
             {copy("calendar.month.today")}
-          </a>
+          </Link>
         </nav>
       </PlanHead>
 

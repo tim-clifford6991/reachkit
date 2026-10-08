@@ -14,6 +14,13 @@
 // (REQ-040), and a shell that could not be read must not be drawn from
 // nothing.
 //
+// **The control is a plain `<a>`, not `next/link`** (issue 1341). Every
+// other in-app link is a prefetched client transition (SPEC §4,
+// 2026-10-08). This one is the exception because Next's error boundary
+// clears its error only when the pathname changes: a client transition
+// from a failed `/app` to `/app` would leave this screen standing and the
+// control would do nothing. A full load is what tries again.
+//
 // **An error boundary is a Client Component** (Next's requirement). It
 // takes no props: the thrown `error` is not ours to print, and a retry
 // control is one S8 does not draw and no approved string names.
