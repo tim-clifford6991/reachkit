@@ -102,8 +102,6 @@ describe("mail, report and dashboard agree for one measurement", () => {
 
 describe("the weekly digest carries what changed since last Monday", () => {
   const base = {
-    scoreDelta: measured(1, AT),
-    aiAnswersDelta: measured(0, AT),
     pages: measured([], AT),
     next: measured([], AT),
   };

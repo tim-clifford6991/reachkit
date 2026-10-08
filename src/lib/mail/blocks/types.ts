@@ -57,10 +57,10 @@ export interface VerdictRow {
   readonly verdict: CopyKey;
 }
 
-/** How a `stat` block's number is written. Three forms, closed: a plain
- *  integer, a signed delta, and a per-month rate. A fourth form is a
- *  change to this union, not a caller's string. */
-export type StatFormat = "integer" | "delta" | "perMonth";
+/** How a `stat` block's number is written. Four forms, closed: a plain
+ *  integer, a signed delta, a per-month rate and a whole percentage. A
+ *  fifth form is a change to this union, not a caller's string. */
+export type StatFormat = "integer" | "delta" | "perMonth" | "percent";
 
 /** One number in a `stats` group: the same three fields a `stat` carries,
  *  plus the change beside it. Its own interface because the group holds
@@ -74,6 +74,15 @@ export interface StatRow {
    *  it was not measured: a number with no comparison is still a number,
    *  and a "0" change nobody measured would be a claim. */
   readonly change?: Measured<number>;
+  /** A written word that stands before the figure: "at least". */
+  readonly before?: CopyKey;
+  /** What the figure is read against, under it: its range, its sample, its
+   *  window. It travels with the figure, as a `stat`'s note does. */
+  readonly note?: { readonly text: CopyKey; readonly vars?: CopyVars };
+  /** SPEC §8 (2026-10-07, issue 1329): the line a headline number states
+   *  where it was not measured. A row that carries one is kept and says
+   *  so; a row without one is omitted, as before. Never a zero. */
+  readonly unmeasuredLine?: CopyKey;
 }
 
 export type MailBlock =
@@ -149,7 +158,8 @@ export type MailBlock =
        * A group and not four `stat` blocks, because the four are read
        * together: the renderer lays them two to a row, and a mail that
        * dropped one of them keeps the shape rather than leaving a gap.
-       * Each row is omitted on its own; the group goes when none is left.
+       * Each row is omitted on its own, unless it carries the line that
+       * says it was not measured; the group goes when none is left.
        */
       readonly block: "stats";
       readonly items: readonly StatRow[];

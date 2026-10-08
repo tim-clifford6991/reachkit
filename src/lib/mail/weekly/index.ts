@@ -28,23 +28,23 @@
 //
 // **The digest is composed for the week, never re-measured.** Every figure
 // comes from what is already stored: the standings from `weeklyDigest`,
-// the two deltas and the technical checks that moved from `weekMovement`,
-// the next three from the ranking as
-// it stands. A mail that re-measured to state a movement would report a
+// D22's four headline numbers from the prompt window, the week's verdict
+// rows and the hosted blog's read counts, the technical checks that moved
+// from `weekMovement`, the next three from the ranking as it stands. A mail that re-measured to state a movement would report a
 // different week from the one it announces.
 import { siteLocale } from "@/lib/locale/site";
 import { dbAdmin } from "@/lib/db";
 import { env } from "@/lib/config/env";
-import { ANSWER_RATE_WEEKS, MENTION_RATE_MIN_WEEKS, WEEKLY_NEXT_COUNT } from "@/lib/config/constants";
+import { ANSWER_RATE_WEEKS, BLOG_READS_WINDOW_D, MENTION_RATE_MIN_WEEKS, WEEKLY_NEXT_COUNT } from "@/lib/config/constants";
 import { measurePrompts } from "@/lib/market/prompts/rate";
 import type { CopyKey } from "@/lib/presentation/copy";
-import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
+import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import { rankOpen, weeklyDigest } from "@/lib/opportunities";
 import { opportunityStore, readOpportunity } from "@/lib/opportunities/store";
-import { accountForWeek, readPromptWindow, weekMovement, type UnmeasuredPart } from "@/lib/scan/weekly";
+import { accountForWeek, previousWeekStart, readPromptWindow, weekMovement, type UnmeasuredPart } from "@/lib/scan/weekly";
 import type { MeasurementState } from "../shell/compose";
 import { sendEmail } from "../send";
-import { buildWeekly, type WeeklyNeedsYou, type WeeklyPage } from "../templates/weekly";
+import { buildWeekly, type WeeklyNeedsYou, type WeeklyNumbers, type WeeklyPage } from "../templates/weekly";
 
 /** Why a digest did not go out. Every arm is reported; none is silent, and
  *  `not-composable` is its own arm rather than folded into `mail` —
@@ -161,20 +161,9 @@ type Composed = { mail: ReturnType<typeof buildWeekly>; measurement: Measurement
 function unmeasuredWeek(nextDueOn: Date, now: Date): Composed {
   const gap = unmeasured<never>("undeterminable", now);
   return {
-    mail: buildWeekly({
-      scoreDelta: gap,
-      aiAnswersDelta: gap,
-      // #933: a week that measured nothing has no number to put up top and
-      // none beside it. Every one of them is unmeasured, so every one is
-      // omitted and the whole-mail line says why.
-      score: gap,
-      aiAnswers: gap,
-      searches: gap,
-      searchesDelta: gap,
-      pagesLive: gap,
-      pages: gap,
-      next: gap,
-    }),
+    // No numbers at all: the whole-mail line says the week was not
+    // measured, once, and four rows saying it again would repeat it.
+    mail: buildWeekly({ pages: gap, next: gap }),
     measurement: { state: "none", nextDueOn },
   };
 }
@@ -203,16 +192,8 @@ async function measuredWeek(
 
   const needsYou = await oneNeedsYou(a.siteId);
   const mail = buildWeekly({
-    scoreDelta: movement.scoreDelta,
-    aiAnswersDelta: movement.aiAnswersDelta,
-    // SPEC §8 (2026-09-20, #933): the four Overview numbers, with their
-    // change. Three are the week's own measurement; the fourth — pages
-    // live — is a count of what is published, read here.
-    score: movement.score,
-    aiAnswers: movement.aiAnswers,
-    searches: movement.searches,
-    searchesDelta: movement.searchesDelta,
-    pagesLive: await pagesLive(a.siteId, at),
+    // SPEC §8 (2026-10-07, issue 1329): D22's four headline numbers lead.
+    numbers: await headlineNumbers(a.siteId, a.weekStart, at),
     ...(needsYou === undefined ? {} : { needsYou }),
     // Measured, and measured-empty where the week judged nothing: "you
     // have published nothing yet" is a result, and the template's own
@@ -230,7 +211,6 @@ async function measuredWeek(
     ),
     // D28 (#1185): what ReachKit changed about the market this week.
     marketChanges: await marketChangesSince(a.siteId, a.weekStart),
-    ...(await mentionRateOf(a.siteId, a.weekStart)),
   });
   return { mail, measurement: measurementStateOf(account) };
 }
@@ -245,35 +225,129 @@ function answerUrlOf(search: string): string {
 }
 
 /**
- * D22 · D19 (#1162): the AI mention rate as the Overview states it — the
- * same window, the same measure — or nothing where no pass in the window
- * asked the prompts. A window that cannot be read says nothing either: the
- * mail is never held back for one line.
+ * D22's four headline numbers (SPEC §4, 2026-10-02), each from stored rows.
+ *
+ * Every read fails soft into `unmeasured`, and the row then says the number
+ * was not measured: the mail is never held back for one number, and a read
+ * that failed is never a zero.
  */
-async function mentionRateOf(
+async function headlineNumbers(siteId: string, weekStart: string, at: Date): Promise<WeeklyNumbers> {
+  const [prompts, top20, aiVisits] = await Promise.all([
+    promptNumbers(siteId, weekStart, at),
+    top20Pages(siteId, weekStart, at),
+    aiVisitsOf(siteId, at),
+  ]);
+  return { ...prompts, weeks: ANSWER_RATE_WEEKS, ...top20, ...(aiVisits === undefined ? {} : { aiVisits }) };
+}
+
+/**
+ * D22 · D19 (#1162): the AI mention rate as the Overview states it — the
+ * same window, the same measure — and the pages those answers cited. Both
+ * are unmeasured where no pass in the window asked the prompts, or the
+ * window cannot be read.
+ */
+async function promptNumbers(
   siteId: string,
-  weekStart: string
-): Promise<Pick<Parameters<typeof buildWeekly>[0], "mentionRate">> {
+  weekStart: string,
+  at: Date
+): Promise<Pick<WeeklyNumbers, "mentions" | "pagesCited">> {
+  const gap = unmeasured<number>("undeterminable", at);
+  const none = { mentions: { kind: "rate", rate: gap, low: 0, high: 0 }, pagesCited: gap } as const;
   try {
     const window = await readPromptWindow({ siteId, weekStart });
     const measure = measurePrompts(window.weeks.flatMap((week) => week.samples));
-    if (measure.rate === null) return {};
+    if (measure.rate === null) return none;
     const percent = (fraction: number): number => Math.round(fraction * 100);
+    const mentioned = measure.rate.linked + measure.rate.named;
     return {
-      mentionRate: {
-        rate: percent(measure.rate.rate),
-        low: percent(measure.rate.low),
-        high: percent(measure.rate.high),
-        mentioned: measure.rate.linked + measure.rate.named,
-        answers: measure.rate.samples,
-        weeks: ANSWER_RATE_WEEKS,
-        pagesCited: measure.pages.length,
-        // D58: no rate before two weeks of the current prompt set.
-        ...(window.weeks.length >= MENTION_RATE_MIN_WEEKS ? {} : { rateAfterWeeks: MENTION_RATE_MIN_WEEKS }),
-      },
+      // D58: no rate before two weeks of the current prompt set — the
+      // count and its sample stand in its place.
+      mentions:
+        window.weeks.length >= MENTION_RATE_MIN_WEEKS
+          ? {
+              kind: "rate",
+              rate: counted(percent(measure.rate.rate), at),
+              low: percent(measure.rate.low),
+              high: percent(measure.rate.high),
+            }
+          : { kind: "count", mentioned: counted(mentioned, at), answers: measure.rate.samples },
+      pagesCited: counted(measure.pages.length, at),
     };
   } catch {
-    return {};
+    return none;
+  }
+}
+
+/** A count that was taken: a zero is a result, in its own arm. */
+function counted(value: number, at: Date): Measured<number> {
+  return value === 0 ? measuredZero(0, at) : measured(value, at);
+}
+
+/** The best place D22's third number counts (SPEC §4, 2026-10-02). */
+const TOP_PLACES = 20;
+
+/**
+ * D22's third: the published pages whose search the site holds a top-20
+ * place for, counted from the week's own verdict rows — the place
+ * `judgeWeek` stored beside each verdict (`page_verdicts.measured`). The
+ * same rows the mail's *pages judged* list is read from, so the count and
+ * the list cannot disagree, and nothing is measured again for it.
+ *
+ * A week that judged no page holds no place, which is a zero that was
+ * measured: this function is reached only for a week that was. A week that
+ * judged pages and stored a place for none of them is unmeasured.
+ *
+ * The change is against the Monday before, where that week stored places
+ * too: two measurements or no change stated.
+ */
+async function top20Pages(
+  siteId: string,
+  weekStart: string,
+  at: Date
+): Promise<Pick<WeeklyNumbers, "top20" | "top20Change">> {
+  try {
+    const { verdictStore } = await import("@/lib/opportunities/verdicts/store");
+    const store = verdictStore();
+    const [thisWeek, weekBefore] = await Promise.all([
+      store.verdictsForWeek({ siteId, week: weekStart }),
+      store.verdictsForWeek({ siteId, week: previousWeekStart(weekStart) }),
+    ]);
+    const now = placedInTop(thisWeek.map((row) => row.measured));
+    if (now === null) return { top20: unmeasured<number>("undeterminable", at) };
+    const before = weekBefore.length === 0 ? null : placedInTop(weekBefore.map((row) => row.measured));
+    return {
+      top20: counted(now, at),
+      ...(before === null ? {} : { top20Change: counted(now - before, at) }),
+    };
+  } catch {
+    return { top20: unmeasured<number>("undeterminable", at) };
+  }
+}
+
+/** How many of a week's stored places are inside the top twenty. `null`
+ *  where rows exist and none of them stored a place. */
+function placedInTop(places: readonly (Measured<number> | null)[]): number | null {
+  const read = places.filter((place) => place !== null && place.kind !== "unmeasured");
+  if (places.length > 0 && read.length === 0) return null;
+  return read.filter((place) => place?.kind === "measured" && place.value >= 1 && place.value <= TOP_PLACES).length;
+}
+
+/**
+ * D22's fourth: pages an answer engine fetched on the hosted blog, over the
+ * window the AI answers tab reads — the same facts and the same model, so
+ * the mail and the tile state one number. `undefined` off a hosted blog or
+ * before a page is live there, and the mail then has no such row.
+ */
+async function aiVisitsOf(siteId: string, at: Date): Promise<WeeklyNumbers["aiVisits"]> {
+  try {
+    const [{ readBlogReadFacts }, { assembleBlogReads }] = await Promise.all([
+      import("@/lib/publish/reads/facts"),
+      import("@/lib/publish/reads/model"),
+    ]);
+    const reads = assembleBlogReads(await readBlogReadFacts({ siteId }, at, BLOG_READS_WINDOW_D), BLOG_READS_WINDOW_D, at);
+    return reads.show ? { fetches: reads.fetches, windowDays: reads.windowDays } : undefined;
+  } catch {
+    return undefined;
   }
 }
 
@@ -352,32 +426,6 @@ async function stampSent(scanId: string, at: Date): Promise<void> {
     .eq("id", scanId);
   if (error !== null) {
     throw new Error(`sendWeeklyDigest: could not stamp the digest as sent: ${error.message}`);
-  }
-}
-
-/**
- * SPEC §8 (2026-09-20, #933) — "Pages live", the fourth Overview number.
- *
- * A count of this site's publications that are live now: published, not
- * since unpublished. Not a measurement of the week — nothing measures it —
- * so it is counted here, as of the date every other figure in this mail is
- * stated as of.
- *
- * A read that fails is `unmeasured`, which omits the number rather than
- * claiming the customer has none.
- */
-async function pagesLive(siteId: string, at: Date): Promise<Measured<number>> {
-  try {
-    const { data, error } = await untyped()
-      .from<{ id: string }>("publications")
-      .select("id")
-      .eq("site_id", siteId)
-      .not("published_at", "is", null)
-      .is("unpublished_at", null);
-    if (error !== null) return unmeasured<number>("undeterminable", at);
-    return measured((data ?? []).length, at);
-  } catch {
-    return unmeasured<number>("undeterminable", at);
   }
 }
 

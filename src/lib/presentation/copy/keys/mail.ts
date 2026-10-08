@@ -209,53 +209,36 @@ export const MAIL_COPY = Object.freeze({
   // omission arm: a mail whose subject could not be composed does not go
   // out at all, so the approved subject carries no number (issue #388).
   "mail.weekly.subject": ["Monday: what moved this week", { slots: {}, fixedBy: "§12" }],
-  "mail.weekly.score": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
-  "mail.weekly.aiAnswers": ["AI answers", { slots: {}, fixedBy: "§12 · S20 (11a)" }],
-  // D22 · D19 (#1162): the AI mention rate over the tracked buyer prompts,
-  // with its range, and the site's own pages cited. Drafted (#759).
-  "mail.weekly.mentionRate": [
-    "AI mention rate: {rate}% (likely {low}–{high}%). AI named you in {mentioned} of {answers} answers to your buyer prompts over the last {weeks} weeks.",
-    { slots: { rate: "text", low: "text", high: "text", mentioned: "text", answers: "text", weeks: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
+  // SPEC §8 (2026-10-07, issue 1329): the Monday mail leads with D22's four
+  // headline numbers, and the Discoverability Score is not in it. The
+  // words are the Overview tiles' own (`overview.tile.*`), kept here so the
+  // mail has its German: a second spelling of a number's name would be the
+  // second place the product speaks (ADR-001). Drafted (#759).
+  "mail.weekly.number.mentionRate": ["AI mention rate", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
+  "mail.weekly.number.mentionRate.band": [
+    "likely {low}–{high}%",
+    { slots: { low: "text", high: "text" }, fixedBy: "SPEC §8 2026-10-07 (drafted)" },
   ],
-  // D58 (issue 1287, drafted): before two weeks of the current prompt set
-  // exist the mail states the count and its sample, never a rate.
-  "mail.weekly.mentionCount": [
-    "AI named you in {mentioned} of {answers} answers to your buyer prompts so far. A mention rate appears after {weeks} weeks of these prompts.",
-    { slots: { mentioned: "text", answers: "text", weeks: "text" }, fixedBy: "SPEC §6 2026-10-06 D58 (drafted)" },
+  // D58 (issue 1287): before two weeks of the current prompt set exist the
+  // mail states the count and its sample, never a rate.
+  "mail.weekly.number.mentionRate.early": [
+    "of {answers} answers",
+    { slots: { answers: "text" }, fixedBy: "SPEC §8 2026-10-07 (drafted)" },
   ],
-  "mail.weekly.pagesCited": [
-    "Your pages cited in those answers: {pages}.",
-    { slots: { pages: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
+  "mail.weekly.number.pagesCited": ["Your pages cited", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
+  "mail.weekly.number.pagesCited.window": [
+    "in AI answers, last {weeks} weeks",
+    { slots: { weeks: "text" }, fixedBy: "SPEC §8 2026-10-07 (drafted)" },
   ],
-
-  // ── SPEC §8 (2026-09-20, #933): the Monday mail as the approved board
-  // draws it — the four Overview numbers with their change, one headline
-  // sentence for the direction the week actually went, and the one item
-  // waiting on the customer.
-  //
-  // "The gap is closing…" is the owner's own drafted sentence and is used
-  // as it was written, for the one direction it is true of. The two beside
-  // it are drafted in the registry's voice under the 2026-09-16 ruling
-  // (#759), and #933's PR names them: a week that went the other way must
-  // not be told the gap is closing, and a week that did not move must not
-  // be told either thing.
-  "mail.weekly.moved.up": [
-    "The gap is closing. Every week so far has been up. Here’s what moved.",
-    { slots: {}, fixedBy: "SPEC §8 2026-09-20" },
+  "mail.weekly.number.top20": ["Your pages in Google’s top 20", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
+  "mail.weekly.number.aiVisits": ["AI visits to your blog", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
+  "mail.weekly.number.aiVisits.atLeast": ["at least", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
+  "mail.weekly.number.aiVisits.window": [
+    "pages read, last {days} days",
+    { slots: { days: "text" }, fixedBy: "SPEC §8 2026-10-07 (drafted)" },
   ],
-  "mail.weekly.moved.flat": [
-    "Your score held where it was this week. Here’s everything that was measured.",
-    { slots: {}, fixedBy: "SPEC §8 2026-09-20" },
-  ],
-  "mail.weekly.moved.down": [
-    "Your score came down this week. Here’s what moved, and what is being written next.",
-    { slots: {}, fixedBy: "SPEC §8 2026-09-20" },
-  ],
-  // The two Overview numbers the mail did not already name. The words are
-  // the Overview's own: a second spelling of "searches you appear in"
-  // would be the second place the product speaks (ADR-001).
-  "mail.weekly.searches": ["Searches you appear in", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
-  "mail.weekly.pagesLive": ["Pages live", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  // A headline number nobody measured says so, in the figure's place.
+  "mail.weekly.number.unmeasured": ["Not measured this week", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
   // The one item waiting on them, and the button that opens it. The line
   // itself is the record's own — `mail.weekly.needsYou` states what kind of
   // thing it is, with the page's address in its slot.
@@ -686,10 +669,6 @@ export const MAIL_COPY = Object.freeze({
   ],
   "mail.published.action": ["View the page", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.weekly.heading": ["What moved this week", { slots: {}, fixedBy: "S20 (11a)" }],
-  "mail.weekly.body": [
-    "Only what was measured. A number that was not measured is not here.",
-    { slots: {}, fixedBy: "S20 (11a)" },
-  ],
   // D28 (owner, 2026-10-02, #1185): what ReachKit changed about the market
   // it measures. Drafted, named in the pull request.
   "mail.weekly.market.changed": [

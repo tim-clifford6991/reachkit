@@ -25,7 +25,7 @@ import { generatedLabel } from "@/lib/presentation/generated";
 import { token } from "../shell/tokens";
 import { formatStat } from "./format";
 import { isMeasuredEmpty, omittedIndexes } from "./omit";
-import { factRowsOf, rowsOf, statRowsOf, type RenderedRow } from "./rows";
+import { factRowsOf, rowsOf, statRowsOf, type RenderedRow, type StatRowText } from "./rows";
 import type { MailBlock } from "./types";
 
 /** Attribute values that are layout tokens rather than voice, bound to a
@@ -232,9 +232,14 @@ function Hero(a: {
 function Stats({
   items,
 }: {
-  items: readonly { label: string; value: string; change: string | null }[];
+  items: readonly StatRowText[];
 }): ReactNode {
-  const cell = (item: { label: string; value: string; change: string | null }, key: number): ReactNode => (
+  // What the figure is read against — or, where nobody measured it, the
+  // line that says so in the figure's place.
+  const line = (text: string): ReactNode => (
+    <div style={{ fontSize: token("--t-sm"), color: token("--ink-2"), paddingTop: "2px" }}>{text}</div>
+  );
+  const cell = (item: StatRowText, key: number): ReactNode => (
     // A gutter between the two cells, on the cell rather than as a gap: a
     // long label in the left one would otherwise run straight into the
     // right one's on a phone, which is what #933's 390 shot caught.
@@ -254,21 +259,29 @@ function Stats({
       >
         {item.label}
       </div>
-      <div style={{ fontSize: token("--h3"), fontWeight: 700, color: token("--color-base-content") }}>
-        <Mono>{item.value}</Mono>
-        {item.change === null ? null : (
-          <span
-            style={{
-              fontSize: token("--t-sm"),
-              fontWeight: 700,
-              color: token("--ink-2"),
-              paddingLeft: "6px",
-            }}
-          >
-            <Mono>{item.change}</Mono>
-          </span>
-        )}
-      </div>
+      {item.value === null ? null : (
+        <div style={{ fontSize: token("--h3"), fontWeight: 700, color: token("--color-base-content") }}>
+          {item.before === null ? null : (
+            <span style={{ fontSize: token("--t-sm"), fontWeight: 400, color: token("--ink-2"), paddingRight: "6px" }}>
+              {item.before}
+            </span>
+          )}
+          <Mono>{item.value}</Mono>
+          {item.change === null ? null : (
+            <span
+              style={{
+                fontSize: token("--t-sm"),
+                fontWeight: 700,
+                color: token("--ink-2"),
+                paddingLeft: "6px",
+              }}
+            >
+              <Mono>{item.change}</Mono>
+            </span>
+          )}
+        </div>
+      )}
+      {item.line === null ? null : line(item.line)}
     </Column>
   );
 

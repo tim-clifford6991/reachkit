@@ -32,7 +32,7 @@ import type React from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { BlogEngine } from "@/lib/publish/reads/classify";
 import { CLOSED, formatCount, renderValue } from "./present";
-import type { BlogReadsModel } from "./blog-reads-model";
+import type { BlogReadsModel } from "@/lib/publish/reads/model";
 
 const FETCHES_LABEL = "overview.blog.fetches.label" satisfies CopyKey;
 const REFERRALS_LABEL = "overview.blog.referrals.label" satisfies CopyKey;

@@ -25,7 +25,7 @@ import {
   assembleBlogReads,
   windowStartDay,
   type BlogReadsFacts,
-} from "@/app/(account)/app/_overview/blog-reads-model";
+} from "@/lib/publish/reads/model";
 import { FIXTURE_BLOG_READS_FACTS } from "@/app/(account)/app/_overview/blog-reads-fixture";
 import { BlogReads } from "@/app/(account)/app/_overview/BlogReads";
 

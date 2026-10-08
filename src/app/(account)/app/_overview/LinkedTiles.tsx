@@ -34,7 +34,7 @@ import { TAB_COPY_KEY, TAB_HREF, type OverviewTab } from "./tabs";
 import { ANSWER_RATE_WEEKS, MENTION_RATE_MIN_WEEKS } from "@/lib/config/constants";
 import { percent, type PromptsModel } from "./prompts-model";
 import type { Measured } from "@/lib/measure/measured";
-import type { BlogReadsModel } from "./blog-reads-model";
+import type { BlogReadsModel } from "@/lib/publish/reads/model";
 
 const QUESTIONS_LABEL = "overview.tile.questions.label" satisfies CopyKey;
 const MENTION_RATE_LABEL = "overview.tile.mention-rate.label" satisfies CopyKey;
@@ -251,7 +251,7 @@ function Top20Tile(p: { tile: Top20 }): React.JSX.Element {
 
 /** D22's fourth, on a hosted blog: pages an answer engine fetched, as "at
  *  least", and under it the people who arrived from an answer. Two
- *  measures, never added together (`blog-reads-model.ts`). */
+ *  measures, never added together (`@/lib/publish/reads/model`). */
 function AiVisitsTile(p: { model: BlogReadsModel }): React.JSX.Element {
   const fetches = renderValue(p.model.fetches, AI_VISITS_LABEL);
   const referrals = renderValue(p.model.referrals, AI_VISITS_LABEL);

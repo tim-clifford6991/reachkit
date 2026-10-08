@@ -565,12 +565,8 @@ async function measureTheWeek(now = MONDAY) {
 /**
  * §12's four weekly sections, and the lines that speak them.
  *
- * Two dropped off this list on 2026-09-08 (issue #376): `mail.weekly.score`
- * and `mail.weekly.aiAnswers` are labels UI-SPEC S20 writes unbracketed —
- * "Discoverability Score", "AI answers" — which ruling 11a makes approved
- * copy, so they are filled by transcription. The nine below, subject
- * included (issue #388), were filled by issue #458 on the owner's
- * 2026-09-10 approval, so none of them is owed any more.
+ * The nine below, subject included (issue #388), were filled by issue #458
+ * on the owner's 2026-09-10 approval, so none of them is owed any more.
  */
 const DIGEST_KEYS = [
   "mail.weekly.subject",
@@ -797,17 +793,16 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     expect(digest.standings).toHaveLength(1);
     expect(digest.weekMeasuredAt).toBeInstanceOf(Date);
 
-    // §12's four sections, in §12's order — and since #933 the score is the
-    // one number up top, with the week's own direction said under it and
-    // the other three Overview numbers together below.
+    // SPEC §8 (2026-10-07, issue 1329): the four headline numbers lead,
+    // then the pages and the next three.
     const whole = buildWeekly({
-      scoreDelta: measured(4, MONDAY),
-      // A measured zero is a result — "no movement" — and prints.
-      aiAnswersDelta: measuredZero(0, MONDAY),
-      score: measured(58, MONDAY),
-      searches: measured(21, MONDAY),
-      aiAnswers: measuredZero(0, MONDAY),
-      pagesLive: measured(3, MONDAY),
+      numbers: {
+        mentions: { kind: "rate", rate: measured(25, MONDAY), low: 12, high: 44 },
+        // A measured zero is a result — no page cited — and prints.
+        pagesCited: measuredZero(0, MONDAY),
+        weeks: 4,
+        top20: measured(1, MONDAY),
+      },
       pages: measured(
         digest.standings.map((standing) => ({ liveUrl: standing.liveUrl, standing: standing.standing })),
         MONDAY
@@ -815,32 +810,16 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       next: measured([{ targetQuery: "agency capacity planning tool" }], MONDAY),
     });
     expect(whole.subject).toBe("mail.weekly.subject");
-    expect(whole.blocks.map((block) => block.block)).toEqual([
-      "heading",
-      "hero",
-      "paragraph",
-      "paragraph",
-      "stats",
-      "verdicts",
-      "list",
-      "action",
-    ]);
+    expect(whole.blocks.map((block) => block.block)).toEqual(["heading", "stats", "verdicts", "list", "action"]);
     expect(omittedIndexes(whole.blocks)).toEqual([]);
 
-    // A week that reached neither the score nor the AI answers omits both
-    // blocks rather than printing a 0 for a measurement nobody made.
+    // A week that measured nothing states no number and omits both lists
+    // rather than printing a 0 for a measurement nobody made.
     const partial = buildWeekly({
-      scoreDelta: unmeasured("undeterminable", MONDAY),
-      aiAnswersDelta: unmeasured("not_attempted", MONDAY),
       pages: unmeasured("not_attempted", MONDAY),
       next: unmeasured("not_attempted", MONDAY),
     });
-    // Since #933 the conditional sections are the number up top, the group
-    // of three beside it, the verdicts and the next three — four again, and
-    // all four drop. The heading and the body line lead and neither is
-    // conditional; the headline sentence is not composed at all for a week
-    // with no measured movement to name.
-    expect(omittedIndexes(partial.blocks)).toEqual([1, 3, 4, 5]);
+    expect(omittedIndexes(partial.blocks)).toEqual([1, 2]);
     // Every conditional section dropped: the mail carries the one line
     // that says so rather than standing empty.
     expect(chooseWholeMailLine({ blocks: partial.blocks })).toBe("mail.nothing_to_report");
@@ -895,8 +874,6 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       return { status: 200, headers: {}, body: JSON.stringify({ id: "resend-1" }) };
     });
     const mail = buildWeekly({
-      scoreDelta: measured(4, MONDAY),
-      aiAnswersDelta: measuredZero(0, MONDAY),
       pages: measured([], MONDAY),
       next: measured([], MONDAY),
     });

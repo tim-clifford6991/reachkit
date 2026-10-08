@@ -103,11 +103,14 @@ export function renderBlocksText(blocks: readonly MailBlock[]): {
         // the HTML grid reads: the twin states the same four numbers.
         parts.push(
           statRowsOf(block)
-            .map((item) =>
-              item.change === null
-                ? `${item.label}: ${item.value}`
-                : `${item.label}: ${item.value} (${item.change})`
-            )
+            .map((item) => {
+              // A number nobody measured is its written line, on the line
+              // its figure would stand on.
+              if (item.value === null) return `${item.label}: ${item.line ?? ""}`;
+              const value = item.before === null ? item.value : `${item.before} ${item.value}`;
+              const figure = item.change === null ? value : `${value} (${item.change})`;
+              return item.line === null ? `${item.label}: ${figure}` : `${item.label}: ${figure} · ${item.line}`;
+            })
             .join("\n")
         );
         break;

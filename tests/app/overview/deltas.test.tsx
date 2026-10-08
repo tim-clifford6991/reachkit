@@ -104,7 +104,7 @@ beforeAll(async () => {
     import("@/app/(account)/app/_overview/store"),
     import("@/app/(account)/app/_overview/search-provider"),
     import("@/app/(account)/app/_overview/search-store"),
-    import("@/app/(account)/app/_overview/blog-reads-store"),
+    import("@/lib/publish/reads/facts"),
   ]);
 }, 60_000);
 
