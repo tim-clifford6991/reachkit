@@ -1,20 +1,24 @@
-// BUILD §12 — the Monday mail: "`weekly` (score delta, AI answers delta,
-// pages verdicts, next 3 — all values conditional: a missing number omits
-// its section, never prints 0)".
+// SPEC §8 (2026-10-07, issue 1329) — the Monday mail: the four headline
+// numbers first, then what moved, the pages and the asks.
 //
 // One directory per mail kind, named for the kind (ADR-040), holding a
 // block list and nothing else: no shell, no formatter, no vendor
-// knowledge, no sentence of its own — and, crucially, **no conditional of
-// its own**. Every value that can be absent enters as a `Measured<T>`, so
-// §12's omission rule is decided once in `blocks/omit.ts` and cannot be
-// forgotten here: a delta that was not measured omits its stat, a list
-// that was not measured omits its section, and a measured zero prints as
-// the result it is.
+// knowledge, no sentence of its own. Every value that can be absent enters
+// as a `Measured<T>`, so what is printed for a value nobody measured is
+// decided once in `blocks/omit.ts`: a headline number says it was not
+// measured, a list that was not measured omits its section, and a measured
+// zero prints as the result it is.
 //
-// The four sections are §12's own four, in its own order. `weekly` is
-// `stoppable: 'toggle'` in the register; the stop control is the caller's to
-// hand `sendEmail`, and this file carries none. No caller hands one yet:
-// there is no `/unsubscribe/{token}` page for the signed token to land on.
+// **The numbers are D22's four, in D22's order** — the AI mention rate, the
+// site's pages cited, its pages in Google's top 20, and AI visits to a
+// hosted blog — and the Discoverability Score is not in this mail: it is
+// the free report's grade. Under them every block is a fact. No sentence
+// says a number again.
+//
+// `weekly` is `stoppable: 'toggle'` in the register; the stop control is the
+// caller's to hand `sendEmail`, and this file carries none. No caller hands
+// one yet: there is no `/unsubscribe/{token}` page for the signed token to
+// land on.
 //
 // **What is not here.** The whole-mail line a week that was not measured
 // (or was measured only in part) carries is `composeMail`'s, chosen from
@@ -28,18 +32,17 @@
 // not admit model text into a mail as ReachKit's own statement about the
 // reader's market (§8, ADR-012).
 import { env } from "@/lib/config/env";
-import { unmeasured, type Measured } from "@/lib/measure/measured";
+import type { Measured } from "@/lib/measure/measured";
 import type { WeekStanding } from "@/lib/opportunities";
 import { PAGE_VERDICTS } from "@/lib/presentation/bands";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { IssueChange } from "@/lib/site-issues/changes";
 import { formatStat } from "../../blocks/format";
 import { issueChangeRows } from "../../blocks/site-issues";
-import type { CopyVars, ListRow, MailBlock, VerdictRow } from "../../blocks/types";
+import type { CopyVars, ListRow, MailBlock, StatRow, VerdictRow } from "../../blocks/types";
 
 const SUBJECT = "mail.weekly.subject" satisfies CopyKey;
 const HEADING = "mail.weekly.heading" satisfies CopyKey;
-const BODY = "mail.weekly.body" satisfies CopyKey;
 const ACTION = "mail.weekly.action" satisfies CopyKey;
 const REASON = "mail.reason.weekly" satisfies CopyKey;
 
@@ -49,17 +52,17 @@ const REASON = "mail.reason.weekly" satisfies CopyKey;
 function overviewHref(): string {
   return new URL("/app", env.NEXT_PUBLIC_APP_URL).toString();
 }
-const MOVED_UP = "mail.weekly.moved.up" satisfies CopyKey;
-const MOVED_FLAT = "mail.weekly.moved.flat" satisfies CopyKey;
-const MOVED_DOWN = "mail.weekly.moved.down" satisfies CopyKey;
 const NEEDS_YOU_ACTION = "mail.weekly.needsYou.action" satisfies CopyKey;
-const SEARCHES = "mail.weekly.searches" satisfies CopyKey;
-const PAGES_LIVE = "mail.weekly.pagesLive" satisfies CopyKey;
-const SCORE = "mail.weekly.score" satisfies CopyKey;
-const AI_ANSWERS = "mail.weekly.aiAnswers" satisfies CopyKey;
-const MENTION_RATE = "mail.weekly.mentionRate" satisfies CopyKey;
-const MENTION_COUNT = "mail.weekly.mentionCount" satisfies CopyKey;
-const PAGES_CITED = "mail.weekly.pagesCited" satisfies CopyKey;
+const MENTION_RATE = "mail.weekly.number.mentionRate" satisfies CopyKey;
+const MENTION_RATE_BAND = "mail.weekly.number.mentionRate.band" satisfies CopyKey;
+const MENTION_RATE_EARLY = "mail.weekly.number.mentionRate.early" satisfies CopyKey;
+const PAGES_CITED = "mail.weekly.number.pagesCited" satisfies CopyKey;
+const PAGES_CITED_WINDOW = "mail.weekly.number.pagesCited.window" satisfies CopyKey;
+const TOP_20 = "mail.weekly.number.top20" satisfies CopyKey;
+const AI_VISITS = "mail.weekly.number.aiVisits" satisfies CopyKey;
+const AI_VISITS_AT_LEAST = "mail.weekly.number.aiVisits.atLeast" satisfies CopyKey;
+const AI_VISITS_WINDOW = "mail.weekly.number.aiVisits.window" satisfies CopyKey;
+const NOT_MEASURED = "mail.weekly.number.unmeasured" satisfies CopyKey;
 const NOW_NAMED = "mail.weekly.nowNamed" satisfies CopyKey;
 const NOW_NAMED_ITEM = "mail.weekly.nowNamed.item" satisfies CopyKey;
 const VERDICTS = "mail.weekly.verdicts" satisfies CopyKey;
@@ -85,14 +88,6 @@ export interface WeeklyMail {
   readonly blocks: readonly MailBlock[];
 }
 
-/**
- * §12's four sections, in §12's order.
- *
- * `scoreDelta` and `aiAnswersDelta` are deltas and not levels — "score
- * delta, AI answers delta" — so they carry the `delta` format, whose
- * measured zero prints as `0`: no movement is a result, and REQ-064 c2 is
- * explicit that a measured zero is shown.
- */
 /** SPEC §8 (2026-09-20, #933): the one item that needs the customer this
  *  week, as the caller read it — the written line's own key and the address
  *  of the thing that needs them. Absent where nothing does, and then the
@@ -104,18 +99,36 @@ export interface WeeklyNeedsYou {
   readonly href: string;
 }
 
+/**
+ * D22's four headline numbers (SPEC §4, 2026-10-02), as the caller read
+ * them from stored rows. Whole percentages and counts, as the app states
+ * them. A number nobody measured is `unmeasured`, and its row says so.
+ */
+export interface WeeklyNumbers {
+  /** The AI mention rate over the tracked buyer prompts, as a whole
+   *  percentage, with the range it likely sits in. Before a rate may be
+   *  shown (D58, issue 1287) it is the count of answers that named the
+   *  site, with its sample. */
+  readonly mentions:
+    | { readonly kind: "rate"; readonly rate: Measured<number>; readonly low: number; readonly high: number }
+    | { readonly kind: "count"; readonly mentioned: Measured<number>; readonly answers: number };
+  /** Distinct pages of the site those answers cited, over `weeks` weeks. */
+  readonly pagesCited: Measured<number>;
+  readonly weeks: number;
+  /** Published pages whose search the site holds a top-20 place for this
+   *  week, and the change since the week before where both are stored. */
+  readonly top20: Measured<number>;
+  readonly top20Change?: Measured<number>;
+  /** Pages an answer engine fetched over `windowDays` days, a floor. Only
+   *  on a hosted blog with a page live: absent anywhere else, and then the
+   *  mail has no such row, as Overview has no such tile. */
+  readonly aiVisits?: { readonly fetches: Measured<number>; readonly windowDays: number };
+}
+
 export function buildWeekly(a: {
-  scoreDelta: Measured<number>;
-  aiAnswersDelta: Measured<number>;
-  /** SPEC §8 (2026-09-20, #933): the four Overview numbers as the app
-   *  states them — the score up top with its change, and the three beside
-   *  it. Each is omitted on its own where the week did not measure it. */
-  score?: Measured<number>;
-  searches?: Measured<number>;
-  searchesDelta?: Measured<number>;
-  aiAnswers?: Measured<number>;
-  pagesLive?: Measured<number>;
-  pagesLiveDelta?: Measured<number>;
+  /** Absent on a week that measured nothing: the whole-mail line says so
+   *  once, and four rows saying it again would repeat it. */
+  numbers?: WeeklyNumbers;
   /** The one thing waiting on the customer, where there is one. */
   needsYou?: WeeklyNeedsYou;
   /** The week's standings. `unmeasured` where the week produced none to
@@ -140,67 +153,17 @@ export function buildWeekly(a: {
    *  site, each by its search and with the answer's address. A week with
    *  none says nothing about it. */
   nowNamed?: Measured<readonly { search: string; answerUrl: string }[]>;
-  /** D22 · D19 (#1162): the AI mention rate over the tracked buyer prompts
-   *  with its range, and how many of the site's pages those answers cited.
-   *  Whole percentages and counts, as the app states them. Absent where no
-   *  weekly pass has asked the prompts, and then nothing is said. */
-  mentionRate?: {
-    readonly rate: number;
-    readonly low: number;
-    readonly high: number;
-    readonly mentioned: number;
-    readonly answers: number;
-    readonly weeks: number;
-    readonly pagesCited: number;
-    /** D58 (issue 1287): present while the window holds fewer weeks of the
-     *  current prompt set than a rate needs — that many. The mail then
-     *  states the count and its sample, never the rate. */
-    readonly rateAfterWeeks?: number;
-  };
 }): WeeklyMail {
   const issues = a.issues === undefined ? [] : issueChangeRows(a.issues);
-  const unknownAt = unmeasured<number>("undeterminable", new Date(0));
   return {
     subject: SUBJECT,
     reason: REASON,
     blocks: [
-      // S20's shape: the heading and the one line that says what this mail
-      // is and is not — "Only what was measured. A number that was not
-      // measured is not here." — then the measured sections, which §12's
-      // omission rule drops one at a time.
       { block: "heading", text: HEADING },
-      // SPEC §8 (2026-09-20, #933): the one number up top is the score,
-      // with the week's change beside it. A week that did not measure it
-      // takes the whole block with it — including the change, which is a
-      // movement of nothing without its number.
-      {
-        block: "hero",
-        label: SCORE,
-        value: a.score ?? unknownAt,
-        format: "integer",
-        change: a.scoreDelta,
-      },
-      // The headline sentence, chosen by what the week actually did. One
-      // key per direction rather than one sentence with a slot: "the gap is
-      // closing" is not a thing to say about a week that went the other
-      // way. A week that measured no movement says none of the three — the
-      // whole-mail line states that it could not be measured, and a
-      // sentence claiming the score held would be a measurement nobody
-      // took.
-      ...movementBlock(a.scoreDelta),
-      { block: "paragraph", text: BODY },
+      // The first thing is the numbers (owner, 2026-10-07): D22's four, two
+      // to a row, each with what it is read against.
+      ...(a.numbers === undefined ? [] : [{ block: "stats", items: numberRows(a.numbers) } as const]),
       ...(a.marketChanges ?? []).map((change) => ({ block: "paragraph", text: change.line, vars: change.vars }) as const),
-      ...mentionBlocks(a.mentionRate),
-      // The other three Overview numbers, with their change. Two to a row;
-      // each is dropped on its own, and the group goes when none is left.
-      {
-        block: "stats",
-        items: [
-          { label: SEARCHES, value: a.searches ?? unknownAt, format: "integer", ...(a.searchesDelta === undefined ? {} : { change: a.searchesDelta }) },
-          { label: AI_ANSWERS, value: a.aiAnswers ?? unknownAt, format: "integer", change: a.aiAnswersDelta },
-          { label: PAGES_LIVE, value: a.pagesLive ?? unknownAt, format: "integer", ...(a.pagesLiveDelta === undefined ? {} : { change: a.pagesLiveDelta }) },
-        ],
-      },
       // What moved among the technical checks: last week's count, then this
       // week's figure. Nothing measured, or nothing moved: no block.
       ...(issues.length === 0 ? [] : [{ block: "facts", items: issues } as const]),
@@ -243,43 +206,53 @@ export function buildWeekly(a: {
   };
 }
 
-/**
- * SPEC §8 (2026-09-20, #933) — the headline sentence, from the week's own
- * movement.
- *
- * Three keys and no slot: a sentence that read "the gap is {direction}"
- * would be one sentence pretending to be three, and the owner's drafted
- * line ("The gap is closing…") is true of exactly one of the three.
- *
- * **A week that measured nothing says none of them.** "Your score held
- * where it was" is a measurement, and a week with no measurement behind it
- * has not earned it; the whole-mail line says what happened instead. So
- * this returns no block at all rather than the neutral sentence — the same
- * rule every number in this mail is held to, applied to a sentence about a
- * number.
- */
-/** D22's first number as the mail says it: the rate with its range, or —
- *  before a rate may be shown (D58, issue 1287) — the count and its sample;
- *  then the pages cited. Nothing where no pass asked the prompts. */
-function mentionBlocks(rate: Parameters<typeof buildWeekly>[0]["mentionRate"]): readonly MailBlock[] {
-  if (rate === undefined) return [];
-  const counted = { mentioned: String(rate.mentioned), answers: String(rate.answers) };
+/** D22's four as rows, in D22's order. Each carries the line it states
+ *  where nobody measured it, so a row is never dropped and never a zero. */
+function numberRows(n: WeeklyNumbers): readonly StatRow[] {
+  const weeks = String(n.weeks);
   return [
-    rate.rateAfterWeeks !== undefined
-      ? { block: "paragraph", text: MENTION_COUNT, vars: { ...counted, weeks: String(rate.rateAfterWeeks) } }
+    n.mentions.kind === "rate"
+      ? {
+          label: MENTION_RATE,
+          value: n.mentions.rate,
+          format: "percent",
+          note: { text: MENTION_RATE_BAND, vars: { low: String(n.mentions.low), high: String(n.mentions.high) } },
+          unmeasuredLine: NOT_MEASURED,
+        }
       : {
-          block: "paragraph",
-          text: MENTION_RATE,
-          vars: { rate: String(rate.rate), low: String(rate.low), high: String(rate.high), ...counted, weeks: String(rate.weeks) },
+          label: MENTION_RATE,
+          value: n.mentions.mentioned,
+          format: "integer",
+          note: { text: MENTION_RATE_EARLY, vars: { answers: String(n.mentions.answers) } },
+          unmeasuredLine: NOT_MEASURED,
         },
-    { block: "paragraph", text: PAGES_CITED, vars: { pages: String(rate.pagesCited) } },
+    {
+      label: PAGES_CITED,
+      value: n.pagesCited,
+      format: "integer",
+      note: { text: PAGES_CITED_WINDOW, vars: { weeks } },
+      unmeasuredLine: NOT_MEASURED,
+    },
+    {
+      label: TOP_20,
+      value: n.top20,
+      format: "integer",
+      ...(n.top20Change === undefined ? {} : { change: n.top20Change }),
+      unmeasuredLine: NOT_MEASURED,
+    },
+    ...(n.aiVisits === undefined
+      ? []
+      : [
+          {
+            label: AI_VISITS,
+            value: n.aiVisits.fetches,
+            format: "integer",
+            before: AI_VISITS_AT_LEAST,
+            note: { text: AI_VISITS_WINDOW, vars: { days: String(n.aiVisits.windowDays) } },
+            unmeasuredLine: NOT_MEASURED,
+          } as const,
+        ]),
   ];
-}
-
-function movementBlock(scoreDelta: Measured<number>): readonly MailBlock[] {
-  if (scoreDelta.kind === "unmeasured") return [];
-  const text = scoreDelta.value > 0 ? MOVED_UP : scoreDelta.value < 0 ? MOVED_DOWN : MOVED_FLAT;
-  return [{ block: "paragraph", text }];
 }
 
 /** `mapMeasured` over a list, keeping the arm and the date: an unmeasured

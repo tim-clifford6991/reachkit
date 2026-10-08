@@ -56,17 +56,42 @@ export function factRowsOf(
   return block.items.map((item) => ({ label: copy(item.label), value: item.value }));
 }
 
+/** One drawn row of a `stats` group. `value` is `null` where the number was
+ *  not measured, and `line` then says so; otherwise `line` is what the
+ *  figure is read against, or nothing. */
+export interface StatRowText {
+  readonly label: string;
+  readonly value: string | null;
+  /** A written word that stands before the figure, or nothing. */
+  readonly before: string | null;
+  readonly change: string | null;
+  readonly line: string | null;
+}
+
 /** The rows of a kept `stats` group, rendered through `copy()` and
- *  `formatStat`. An unmeasured change is no change stated, never a zero. */
-export function statRowsOf(
-  block: Extract<MailBlock, { block: "stats" }>
-): readonly { label: string; value: string; change: string | null }[] {
-  return keptStatRows(block).map((item) => ({
-    label: copy(item.label),
-    value: formatStat(item.value, item.format),
-    change:
-      item.change === undefined || item.change.kind === "unmeasured"
-        ? null
-        : formatStat(item.change, "delta"),
-  }));
+ *  `formatStat`. An unmeasured change is no change stated, never a zero,
+ *  and an unmeasured number is its written line, never a figure. */
+export function statRowsOf(block: Extract<MailBlock, { block: "stats" }>): readonly StatRowText[] {
+  return keptStatRows(block).map((item) => {
+    const label = copy(item.label);
+    if (item.value.kind === "unmeasured") {
+      return {
+        label,
+        value: null,
+        before: null,
+        change: null,
+        line: item.unmeasuredLine === undefined ? null : copy(item.unmeasuredLine),
+      };
+    }
+    return {
+      label,
+      value: formatStat(item.value, item.format),
+      before: item.before === undefined ? null : copy(item.before),
+      change:
+        item.change === undefined || item.change.kind === "unmeasured"
+          ? null
+          : formatStat(item.change, "delta"),
+      line: item.note === undefined ? null : copy(item.note.text, item.note.vars),
+    };
+  });
 }

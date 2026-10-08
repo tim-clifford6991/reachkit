@@ -12,7 +12,7 @@
 // a referral count far below the fetch count — which is what real traffic
 // looks like and what the "at least" line is about.
 import type { BlogReadRow } from "@/lib/publish/reads/store";
-import type { BlogReadsFacts } from "./blog-reads-model";
+import type { BlogReadsFacts } from "@/lib/publish/reads/model";
 
 /** Two of the fixture account's own live pages. The ids are opaque to the
  *  card — it counts rows, it does not link to a page — so they are spelled
