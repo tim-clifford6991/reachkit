@@ -234,6 +234,51 @@ describe("ADR-094 decision 3a — a flagged call reserves the surcharge and sett
   });
 });
 
+describe("issue 1352 — a queued read somebody is waiting for", () => {
+  const waited = () => ({
+    locale: { country: "US", language: "en" } as const,
+    query: "best crm",
+    mode: "std" as const,
+    priority: "high" as const,
+    pollMs: constants.VENDOR.waitedQueuePollIntervalS * 1000,
+    scope: SCOPE,
+    freshnessDays: WINDOW(),
+  });
+
+  it("is posted at the queue's high priority, reserves that price, and is collected at its own poll", async () => {
+    const stub = stubVendorFetch((request) => (request.url.includes("task_post") ? taskCreated() : envelope({ items: [organic(1, "rival-one.com")] })));
+    const { ctx, calls } = fakeCostContext();
+    vi.useFakeTimers();
+    const pending = serp.serpOrganic(ctx, { ...waited(), loadAsyncAiOverview: true });
+    await vi.advanceTimersByTimeAsync(constants.VENDOR.waitedQueuePollIntervalS * 1000);
+    const result = await pending;
+
+    expect(result.kind).toBe("measured");
+    expect(stub.tasks[0]?.priority).toBe(2);
+    expect(calls[0]?.costCents).toBe(constants.PRICE_BOOK.SERP_STD_HIGH_C * constants.ASYNC_AIO_SURCHARGE_MULTIPLIER);
+  });
+
+  it("an ask the clock lost does not lose the task: it is asked again and measured", async () => {
+    const stub = stubVendorFetch((request, index) => {
+      if (request.url.includes("task_post")) return taskCreated();
+      if (index === 1) {
+        const error = new Error("The operation was aborted due to timeout");
+        error.name = "TimeoutError";
+        throw error;
+      }
+      return envelope({ items: [organic(1, "rival-one.com")] });
+    });
+    const { ctx } = fakeCostContext();
+    vi.useFakeTimers();
+    const pending = serp.serpOrganic(ctx, { ...waited(), loadAsyncAiOverview: false });
+    await vi.advanceTimersByTimeAsync(constants.VENDOR.waitedQueuePollIntervalS * 1000 * 2);
+    const result = await pending;
+
+    expect(stub.requests).toHaveLength(3);
+    expect(result.kind).toBe("measured");
+  });
+});
+
 describe('BUILD §6.4 — "Everything scheduled = standard queue": task_post, then poll task_get', () => {
   it("posts the task, polls until the queue completes it, and returns the completed result", async () => {
     const stub = stubVendorFetch((request, index) => {

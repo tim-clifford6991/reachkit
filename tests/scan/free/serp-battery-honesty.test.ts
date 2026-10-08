@@ -19,10 +19,18 @@
 // the same reason: this suite is about the battery, not about them.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb } from "../run/harness";
-import { envelope, setEnvFixture, stubVendorFetch } from "../../vendors/harness";
+import { asQueue, envelope, pollTheQueueAtOnce, setEnvFixture, stubVendorFetch as stubFetch } from "../../vendors/harness";
+
 import { measured } from "../../../src/lib/measure/measured";
 import type { StoredReport } from "../../../src/lib/scan/report";
 import { AT, PROFILE, QUESTION, ROBOTS, SELECTED } from "../report/fixtures";
+
+/** The vendor, with the Google reads on the queue (issue 1352): a handler
+ *  answers each search once, at its post. */
+function stubVendorFetch(handler: Parameters<typeof asQueue>[0]) {
+  pollTheQueueAtOnce(2000);
+  return stubFetch(asQueue(handler));
+}
 
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
@@ -131,7 +139,7 @@ function serpBody(): unknown {
 
 /** Every organic SERP request the vendor saw, as the keyword it asked. */
 function serpQueries(requests: { url: string; task: Record<string, unknown> | undefined }[]): string[] {
-  return requests.filter((r) => r.url.includes("/serp/google/organic")).map((r) => String(r.task?.keyword ?? ""));
+  return requests.filter((r) => r.url.includes("/serp/google/organic/task_post")).map((r) => String(r.task?.keyword ?? ""));
 }
 
 function storedCall(): { report: StoredReport; degraded: boolean; costCents: number } {
@@ -265,7 +273,7 @@ describe("issue 865 — one more ask, paid for out of what the question already 
     expect(linesOf("serp_retry")).toEqual([{ event: "serp_retry", because: "timeout", outcome: "measured" }]);
   });
 
-  it("the second ask spends nothing the question had not already reserved, and the stage stays inside its purse", async () => {
+  it("the second ask is paid from the stage's own purse, which holds the twelve and their second asks", async () => {
     const seen = new Map<string, number>();
     stubVendorFetch((request) => {
       if (!request.url.includes("/serp/google/organic")) return envelope({ items: [] });
@@ -280,12 +288,12 @@ describe("issue 865 — one more ask, paid for out of what the question already 
 
     const rows = serpRows();
     const retried = rows.filter((row) => row.cache_key.startsWith(`${DROPPED[0]}|`));
-    // Two rows for that question — the timeout the vendor bills, and the
-    // answer — and together they cost no more than one question reserves.
+    // Two rows for that question: the post that timed out, ledgered at all
+    // it reserved because a queued task is charged when it is posted (issue
+    // 1352), and the answer.
     expect(retried).toHaveLength(2);
     expect(retried.map((row) => row.reserved_cents)).toEqual([QUESTION_SERP_RESERVE_C, QUESTION_SERP_RESERVE_C]);
-    const spentOnTheQuestion = retried.reduce((sum, row) => sum + row.cost_cents, 0);
-    expect(spentOnTheQuestion).toBeLessThanOrEqual(QUESTION_SERP_RESERVE_C);
+    expect(retried[0]?.cost_cents).toBe(QUESTION_SERP_RESERVE_C);
     // And the twelve as a whole stay inside the purse they are budgeted.
     const spentOnTheTwelve = rows.reduce((sum, row) => sum + row.cost_cents, 0);
     expect(spentOnTheTwelve).toBeLessThanOrEqual(STAGE_BUDGETS.asking_the_twelve.cents);
@@ -326,5 +334,73 @@ describe("issue 865 — one more ask, paid for out of what the question already 
     expect(linesOf("serp_retry")).toEqual([]);
     const missed = storedCall().report.serps.filter((serp) => serp.kind === "unmeasured");
     expect(missed).toEqual([expect.objectContaining({ kind: "unmeasured", reason: "undeterminable", because: "http_400" })]);
+  });
+});
+
+describe("issue 1352 — a Google read that never came back is not an absence", () => {
+  /** The vendor's queue, with the named searches never ready: the task is
+   *  posted and paid for, and every ask after it says it is still queued. */
+  function neverReady(stuck: readonly string[]) {
+    return stubVendorFetch((request) => {
+      if (!request.url.includes("/serp/google/organic")) return envelope({ items: [] });
+      if (stuck.includes(String(request.task?.keyword ?? ""))) return new Promise(() => {});
+      return serpBody();
+    });
+  }
+
+  /** A whole free scan, with the clock faked from the moment its Google
+   *  reads are posted: the stages before them take no time on a fake clock,
+   *  so they are waited for on the real one. */
+  async function scanToItsCeiling(vendor: { requests: { url: string }[] }): Promise<{ report: StoredReport; tookMs: number }> {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    const startedMs = Date.now();
+    const pass = runScan({ domain: "example.com", tier: "free" });
+    let stored = false;
+    void pass.then(() => {
+      stored = true;
+    });
+    while (!vendor.requests.some((r) => r.url.includes("/task_post"))) await new Promise((resolve) => setImmediate(resolve));
+    while (!stored && Date.now() - startedMs < 60_000) await vi.advanceTimersByTimeAsync(500);
+    await pass;
+    const tookMs = Date.now() - startedMs;
+    vi.useRealTimers();
+    return { report: storedCall().report, tookMs };
+  }
+
+  it("every read timing out leaves the score unmeasured and says so: no zero, no absence, and the scan ends inside its ceiling", async () => {
+    const { report, tookMs } = await scanToItsCeiling(neverReady(KEYWORDS));
+
+    expect(tookMs).toBeLessThanOrEqual(50_000);
+    expect(report.stoppedReason).toBe("complete");
+    expect(report.serps).toHaveLength(12);
+    for (const cell of report.serps) {
+      expect(cell).toMatchObject({ kind: "unmeasured", reason: "undeterminable", because: "deadline" });
+    }
+    // No score is made out of searches nobody read, and the report names
+    // the factor that has no value.
+    expect(report.verdict.scoreAndBand.kind).toBe("unmeasured");
+    expect(report.verdict.factors.presence.kind).toBe("unmeasured");
+    expect(report.verdict.missing.map((m) => m.factor)).toEqual(["presence"]);
+    // Nothing is counted against the site.
+    expect(report.presence?.absentFrom ?? []).toEqual([]);
+    expect(report.aiAnswers?.measuredSearches ?? 0).toBe(0);
+    expect(report.aiAnswers?.answeredSearches ?? 0).toBe(0);
+  });
+
+  it("half the reads timing out still gives a score, counted over the six that were read", async () => {
+    const stuck = KEYWORDS.filter((_, i) => i % 2 === 1);
+    const { report, tookMs } = await scanToItsCeiling(neverReady(stuck));
+
+    expect(tookMs).toBeLessThanOrEqual(50_000);
+    expect(report.stoppedReason).toBe("complete");
+    expect(report.serps.filter((serp) => serp.kind !== "unmeasured")).toHaveLength(6);
+    expect(report.verdict.scoreAndBand.kind).not.toBe("unmeasured");
+    expect(report.verdict.missing).toEqual([]);
+    // The six that were read are the whole denominator: an unread search is
+    // an unmeasured row, never a search the site was absent from.
+    expect(report.aiAnswers?.measuredSearches).toBe(6);
+    for (const row of report.presence?.absentFrom ?? []) expect(stuck).not.toContain(row.keyword);
+    const unread = report.serps.map((serp, i) => (serp.kind === "unmeasured" ? KEYWORDS[i] : null)).filter((k) => k !== null);
+    expect(unread).toEqual(stuck);
   });
 });

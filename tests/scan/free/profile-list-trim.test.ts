@@ -19,6 +19,7 @@
 // with the cause named, rather than an empty report that reads as finished.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type DbQuery } from "../run/harness";
+import { asQueue, pollTheQueueAtOnce } from "../../vendors/harness";
 import { PROFILE_LIST_BOUNDS } from "../../../src/lib/config/constants";
 import { toolUseMessage } from "../../llm/fixtures";
 import type { FetchOutcome, RobotsPolicy } from "../../../src/lib/egress/types";
@@ -216,13 +217,17 @@ beforeEach(() => {
   vi.spyOn(console, "log").mockImplementation((line: unknown) => {
     logLines.push(String(line));
   });
+  // The Google reads are a queued task and its collection (issue 1352).
+  const queue = asQueue((request) => vendorAnswer(request.url, request.task ?? {}));
+  pollTheQueueAtOnce(2000);
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
       const body = typeof init?.body === "string" ? (JSON.parse(init.body) as unknown[]) : [];
       const task = (body[0] ?? {}) as Record<string, unknown>;
       vendorRequests.push({ url, task });
-      return { ok: true, status: 200, statusText: "OK", json: async () => vendorAnswer(url, task) };
+      const request = { url, method: init?.method ?? "GET", task: init?.body === undefined ? undefined : task };
+      return { ok: true, status: 200, statusText: "OK", json: async () => queue(request, 0) };
     })
   );
 });

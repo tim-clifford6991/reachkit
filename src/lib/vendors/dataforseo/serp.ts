@@ -19,7 +19,8 @@
 // Cache (§6.4): keyed on query, locale, the flag and **whose purchase it
 // is** — a flagged call is never served an unflagged SERP, whose `null`
 // overview could mean "not fetched" rather than "none appeared" (ADR-094
-// d4). Mode is not in the key: live and standard return the same SERP.
+// d4). Mode is not in the key: live and standard return the same SERP, and
+// so do the queue's two priorities.
 //
 // **The scope is in the key, and the window is the caller's** (#75).
 // Neither was expressible before, and §6.4 states both. A key of query and
@@ -61,14 +62,23 @@ const PATHS: EndpointPaths = {
 const NO_AI_OVERVIEW: SerpAiOverview = { present: false, asynchronousAiOverview: false, referenceDomains: [] };
 export const EMPTY_SERP: SerpResult = { organic: [], aiOverview: NO_AI_OVERVIEW };
 
-function basePriceCents(mode: DataForSeoMode): number {
-  return mode === "live" ? PRICE_BOOK.SERP_LIVE_C : PRICE_BOOK.SERP_STD_C;
+/** The vendor's number for the queue's high priority (`priority`, 1 or 2). */
+const QUEUE_PRIORITY_HIGH = 2;
+
+function basePriceCents(mode: DataForSeoMode, highPriority: boolean): number {
+  if (mode === "live") return PRICE_BOOK.SERP_LIVE_C;
+  return highPriority ? PRICE_BOOK.SERP_STD_HIGH_C : PRICE_BOOK.SERP_STD_C;
 }
 
-/** The vendor's documented refund rule, read off the response. */
-function settledCents(base: number, rows: readonly SerpResult[] | null): number {
+/** The vendor's documented refund rule, read off a live response. A queued
+ *  task is charged when it is posted, surcharge included — the post's own
+ *  `cost` said so on every one of the reads of 2026-10-08 (issue 1352) —
+ *  so it settles at what it reserved, whatever came back. */
+function settledCents(base: number, mode: DataForSeoMode, rows: readonly SerpResult[] | null): number {
+  const surcharged = base * ASYNC_AIO_SURCHARGE_MULTIPLIER;
+  if (mode === "std") return surcharged;
   const overview = rows?.[0]?.aiOverview;
-  return overview?.present && overview.asynchronousAiOverview ? base * ASYNC_AIO_SURCHARGE_MULTIPLIER : base;
+  return overview?.present && overview.asynchronousAiOverview ? surcharged : base;
 }
 
 function parseAiOverview(item: Record<string, unknown>): SerpAiOverview {
@@ -173,13 +183,22 @@ export async function serpOrganic(
      *  and that wait is inside the call where a between-calls ceiling check
      *  cannot reach it. */
     untilMs?: number;
+    /** The queue's high priority (issue 1352), for a pass somebody is
+     *  waiting on: twice the queue's price, and ready in seconds where the
+     *  normal queue has taken minutes. Read on the standard queue only;
+     *  the live surface has no such field. */
+    priority?: "high";
+    /** How often the queue is asked whether the task is ready, where the
+     *  caller cannot wait `VENDOR.stdQueuePollIntervalS` between asks. */
+    pollMs?: number;
     /** The caller reads this SERP's "People also ask" and related searches
      *  (D61). It is then keyed apart, so it is never served a SERP stored
      *  before they were read, whose silence about them means nothing. */
     questions?: true;
   }
 ): Promise<Measured<SerpResult>> {
-  const base = basePriceCents(a.mode);
+  const highPriority = a.mode === "std" && a.priority === "high";
+  const base = basePriceCents(a.mode, highPriority);
   const flagged = a.loadAsyncAiOverview;
   /** Issue 715: set only where the seam served this answer out of
    *  `fetches`, and then to the moment that row was bought. */
@@ -189,7 +208,7 @@ export async function serpOrganic(
     cacheKey: `${a.query}|${placeCacheKey(a.locale)}|aio:${flagged ? "async" : "cached"}|${scopeKey(a.scope)}${a.questions === true ? "|paa" : ""}`,
     freshnessDays: a.freshnessDays,
     costCents: flagged ? base * ASYNC_AIO_SURCHARGE_MULTIPLIER : base,
-    ...(flagged ? { settleCents: (r: readonly SerpResult[] | null) => settledCents(base, r) } : {}),
+    ...(flagged ? { settleCents: (r: readonly SerpResult[] | null) => settledCents(base, a.mode, r) } : {}),
     fetch: () =>
       callEndpoint(
         PATHS,
@@ -201,9 +220,11 @@ export async function serpOrganic(
           // line in the module that can set it. Only ever the caller's own
           // decided boolean; `false` is sent explicitly, never omitted.
           load_async_ai_overview: flagged,
+          ...(highPriority ? { priority: QUEUE_PRIORITY_HIGH } : {}),
         },
         a.abortMs,
-        a.untilMs
+        a.untilMs,
+        a.pollMs
       ),
     parse: parseSerp,
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),
