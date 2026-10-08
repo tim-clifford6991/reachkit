@@ -225,7 +225,7 @@ vi.mock("@/lib/egress", () => ({
 
 // ── Anthropic ───────────────────────────────────────────────────────────
 
-/** Seven evenings, seven questions, and seven pages that are each their
+/** Seven days, seven questions, and seven pages that are each their
  *  own page — §8's near-duplicate rule compares every draft against the
  *  site's queued and published ones, so a week of one body would be a week
  *  of one page. Every page states the grounded passage word for word and
@@ -444,14 +444,14 @@ function joinedGenerateStore(): ReturnType<typeof generateFixtures.memoryStore> 
   return inner;
 }
 
-/** Seven opportunities §7 left for the week, one per evening. */
+/** Seven opportunities §7 left for the week, one per day. */
 async function seedTheWeeksSupply(
   opportunities: ReturnType<typeof opportunityDoubles.newMemoryState>
 ): Promise<void> {
   const store = opportunityDoubles.memoryStore(opportunities);
   for (const [topic] of TOPICS) {
     // The topic's own words: a "best …" search is a listicle, a type the
-    // mix leaves out for now (D46), so it would fill no evening.
+    // mix leaves out for now (D46), so it would fill no day.
     const query: string = topic;
     const slug = topic.replace(/\s+/g, "-");
     const seedRow = generateFixtures.opportunity({ targetQuery: query, targetRef: slug });
@@ -674,21 +674,22 @@ describe("one site, left alone for a week (issue 323)", () => {
     "the week, day by day, in the site's own calendar — every hour that did something, and nothing else",
     async () => {
       await leaveTheSiteAloneForAWeek();
-      // The record issue 323 asks for. Each evening prepares tomorrow's page
-      // and tells the customer; its 24-hour window runs out the next evening
-      // and it goes out at the following 09:00, so the first page is live on
-      // Thursday; the check runs a day after each go-live; the site's own
-      // Monday is measured at 06:00, before that morning's page goes out.
-      // Each page goes out through the `publish/execute` its evening sent
-      // for that 09:00 (issue #790) — the hourly sweep finds nothing left.
+      // The record issue 323 asks for. Each morning's 09:00 tick prepares
+      // tomorrow's page and tells the customer; its 24-hour window runs out
+      // at the next 09:00 and it goes out then, on its own calendar day
+      // (issue 1337), so the first page is live on Wednesday; the check runs
+      // a day after each go-live; the site's own Monday is measured at
+      // 06:00, before that morning's page goes out. Each page goes out
+      // through the `publish/execute` its tick sent for that 09:00
+      // (issue #790) — the hourly sweep finds nothing left.
       expect(dayLedger()).toEqual({
         "2026-09-08": ["draft/generate:ran"],
-        "2026-09-09": ["draft/generate:ran"],
-        "2026-09-10": ["publish/execute:ran", "draft/generate:ran"],
-        "2026-09-11": ["publish/execute:ran", "publish/verify:ran", "draft/generate:ran"],
-        "2026-09-12": ["publish/execute:ran", "publish/verify:ran", "draft/generate:ran"],
-        "2026-09-13": ["publish/execute:ran", "publish/verify:ran", "draft/generate:ran"],
-        "2026-09-14": ["weekly/refresh:ran", "publish/execute:ran", "publish/verify:ran", "draft/generate:ran"],
+        "2026-09-09": ["publish/execute:ran", "draft/generate:ran"],
+        "2026-09-10": ["publish/verify:ran", "publish/execute:ran", "draft/generate:ran"],
+        "2026-09-11": ["publish/verify:ran", "publish/execute:ran", "draft/generate:ran"],
+        "2026-09-12": ["publish/verify:ran", "publish/execute:ran", "draft/generate:ran"],
+        "2026-09-13": ["publish/verify:ran", "publish/execute:ran", "draft/generate:ran"],
+        "2026-09-14": ["weekly/refresh:ran", "publish/verify:ran", "publish/execute:ran", "draft/generate:ran"],
       });
       // One write call a page, seven pages, and not one fix call.
       expect(modelCalls).toHaveLength(7);
@@ -698,12 +699,12 @@ describe("one site, left alone for a week (issue 323)", () => {
 
 
   it(
-    "every evening the tick prepares a page, and every page enters review with the customer told",
+    "every day the tick prepares a page, and every page enters review with the customer told",
     async () => {
       await leaveTheSiteAloneForAWeek();
 
       const generated = runs.filter((run) => run.job === "draft/generate" && run.outcome.outcome !== "skipped");
-      // One evening a day, at the site's own due hour, and nothing degraded.
+      // One tick a day, at the site's own due hour, and nothing degraded.
       expect(generated.map((run) => run.outcome)).toEqual(
         Array.from({ length: 7 }, () => ({ outcome: "ran", subjectId: null }))
       );
@@ -737,6 +738,8 @@ describe("one site, left alone for a week (issue 323)", () => {
         expect(new Date(String(publication.published_at)).getTime()).toBeGreaterThanOrEqual(
           new Date(String(draft.veto_deadline)).getTime()
         );
+        // On the calendar day its row names (issue 1337).
+        expect(localDay(new Date(String(publication.published_at)))).toBe(draft.scheduled_for);
         const actors = (draft.transitions as { to: string; actor: { kind: string } }[]).map((t) => t.actor.kind);
         expect(actors.every((kind) => kind === "system")).toBe(true);
       }
