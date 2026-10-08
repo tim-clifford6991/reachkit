@@ -1,18 +1,17 @@
-// SPEC §7 (2026-09-20, #908, issue 930) — "on a phone the month is a list
-// of days and the day opens as a sheet".
+// SPEC §7 (2026-10-08, issue 1340) — "on a phone Plan is the recent days
+// and the days ahead", and the day opens as a sheet.
 //
 // **The same three facts, in a shape a phone can read.** A seven-column
 // grid at 390px gives each day 47 pixels, which cannot hold a two-line
-// title, so below `md` the month is a list: one row per date, the weekday
-// and the date on the left, the title and the stage word in the middle, and
-// the day's one number on the right. Nothing is dropped and nothing is
-// added — it is the card's own parts (`DayCard.tsx`) laid out along a row
-// instead of down a card.
+// title, so below `lg` Plan is a list: one row per date, the weekday and
+// the date on the left, the title and the stage word in the middle, and
+// the day's one number on the right. It is the card's own parts
+// (`DayCard.tsx`) laid out along a row instead of down a card.
 //
-// **Only the dates this calendar has something to say about.** A leading or
-// trailing column position is a fact about a grid, and a list has no
-// columns to hold — so out-of-month cells are simply not in the list, which
-// is what "it is not padding" means when there is no grid to pad.
+// **This week, not the month.** The rows are the site-local week that
+// contains today, Monday through the plan horizon (`month.ts`'s `weekOf`).
+// Which week that is, is decided there and not here: this file draws the
+// cells it is handed.
 //
 // **Its own test hooks.** Both shapes are in the document at every width —
 // the choice between them is a media query, so it is right before any
@@ -44,20 +43,18 @@ import { CardNumber, StageMark, UpdateMark, cardLineFor, pageShownBy } from "./D
 import { cardLabel, shortCauseFor } from "./card-lines";
 import { dayNumberOf } from "./day-number";
 import { dayNumber, weekdayShort, type DayKey } from "./dates";
-import type { MonthModel } from "./month";
+import type { DayCell } from "./month";
 import type { StageFilter } from "./stages";
 
 export function DayList(p: {
-  model: MonthModel;
+  cells: readonly DayCell[];
   filter: StageFilter;
   selected: DayKey | null;
   onSelect: (day: DayKey) => void;
 }): React.JSX.Element {
-  const dates = p.model.cells.filter((cell) => cell.inMonth);
-
   return (
     <ul className="list bg-base-100 rounded-box border border-base-200" data-testid="calendar-list">
-      {dates.map((cell) => {
+      {p.cells.map((cell) => {
         const page = pageShownBy(cell, p.filter);
         const line = cardLineFor(cell, p.filter);
         const isCause = line !== null && shortCauseFor(cell) !== null;

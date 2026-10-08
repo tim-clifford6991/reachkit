@@ -69,6 +69,8 @@ describe("the two formatters, and which position takes which", () => {
 describe("the switcher's shape", () => {
   it("is a row of three: an arrow, the month, an arrow", () => {
     expect(PAGE).toContain('data-testid="month-switcher"');
+    // Issue 1340: only where the month is. Below `lg` Plan is this week.
+    expect(PAGE).toMatch(/className="join [^"]*hidden lg:inline-flex"[^>]*data-testid="month-switcher"/);
     // The arrows are lucide glyphs — a direction, not a sentence — so they
     // need no registry key.
     expect(PAGE).toContain("<ChevronLeft");

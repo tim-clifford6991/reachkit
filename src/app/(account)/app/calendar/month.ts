@@ -24,7 +24,7 @@ import { accountFor, isLawCause, isSupplyCause, type EmptyAccount, type EmptyFac
 import type { PageStanding } from "./day-number";
 import type { WorkStop } from "@/lib/presentation/stopped";
 import { STAGE_OF, type State, type Stage, type StageFilter } from "./stages";
-import { dayKeyOf, monthGrid, monthOf, planHorizonEnd, type DayKey, type MonthKey } from "./dates";
+import { dayKeyOf, monthGrid, monthOf, planHorizonEnd, planWeek, type DayKey, type MonthKey } from "./dates";
 
 /** REQ-043 criterion 8's evidence, and §7's day-panel rows.
  *
@@ -336,6 +336,38 @@ function countsOf(cells: readonly DayCell[]): Record<StageFilter, number> {
     counts[cell.page.stage] += 1;
   }
   return counts;
+}
+
+/** What Plan lists on a phone (SPEC §7, 2026-10-08, issue 1340): this
+ *  week's days, and the counts the stage filter shows beside them. */
+export interface WeekModel {
+  cells: readonly DayCell[];
+  counts: Readonly<Record<StageFilter, number>>;
+}
+
+/**
+ * This week's days, taken from the months that hold them.
+ *
+ * A week can lie across two months, and a month's model speaks only for
+ * its own dates — so the caller hands in the model of every month the week
+ * touches, and a date none of them holds is left out rather than invented.
+ * Nothing is assembled a second time: a day here is the very cell its month
+ * drew, so the list and the grid cannot disagree about a date.
+ *
+ * A law cause is stated once per plan (issue 857), and each month states
+ * its own first — so across a month's end the second is dropped here.
+ */
+export function weekOf(months: readonly MonthModel[], today: DayKey): WeekModel {
+  let lawStated = false;
+  const cells: DayCell[] = [];
+  for (const day of planWeek(today)) {
+    const cell = months.map((model) => cellFor(model, day)).find((found) => found !== undefined);
+    if (cell === undefined) continue;
+    const law = cell.statesLine && cell.when === "plan" && cell.empty !== null && isLawCause(cell.empty.cause);
+    cells.push(law && lawStated ? { ...cell, statesLine: false } : cell);
+    lawStated ||= law;
+  }
+  return { cells, counts: countsOf(cells) };
 }
 
 /** The cell a day panel is opened on. `undefined` only for a day outside

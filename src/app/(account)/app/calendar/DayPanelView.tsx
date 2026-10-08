@@ -243,7 +243,7 @@ function Heading(p: { word: string; tone: Tone; date: string; onClose: () => voi
 function Panel(p: {
   heading: React.ReactNode;
   /** Whether this day was opened by nobody — an absent `?day`. Such a
-   *  panel is open from `md` up and closed below it (`CalendarView`'s
+   *  panel is open from `lg` up and closed below it (`CalendarView`'s
    *  header). One utility, on one DOM. */
   hiddenOnPhone: boolean;
   children: React.ReactNode;
@@ -258,7 +258,7 @@ function Panel(p: {
       //           above (`_toast/Answers.tsx`'s `BOTTOM_MENU_PX`). The
       //           month behind it is a list, which the sheet is meant to
       //           sit over.
-      //   md–xl   in flow, under the month. A sheet fixed over a month
+      //   lg–xl   in flow, under the month. A sheet fixed over a month
       //           that is still a seven-column grid would cover the very
       //           dates it is about.
       //   xl      the card beside the month, sticky as the month scrolls
@@ -271,8 +271,8 @@ function Panel(p: {
       // the same answer a `textarea` and an `overflow-x-auto` table give,
       // and the proof measures that neither the fixture's longest day nor
       // the owner's stress case reaches it.
-      className={`card card-border bg-base-100 fixed inset-x-2 bottom-[calc(80px+env(safe-area-inset-bottom,0px))] z-30 max-h-[calc(100dvh-104px)] min-w-0 overflow-y-auto shadow-2xl md:static md:z-auto md:max-h-none md:overflow-visible md:shadow-none xl:sticky xl:top-6 ${
-        p.hiddenOnPhone ? "max-md:hidden" : ""
+      className={`card card-border bg-base-100 fixed inset-x-2 bottom-[calc(80px+env(safe-area-inset-bottom,0px))] z-30 max-h-[calc(100dvh-104px)] min-w-0 overflow-y-auto shadow-2xl lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:shadow-none xl:sticky xl:top-6 ${
+        p.hiddenOnPhone ? "hidden lg:flex" : ""
       }`}
       data-testid="day-panel"
       data-implicit={p.hiddenOnPhone ? "" : undefined}
@@ -289,8 +289,8 @@ export function DayPanelView(p: {
   cell: DayCell;
   timeZone: string;
   /** SPEC §7 / REQ-043 c7 as the owner now reads it (PR #961): a day
-   *  nobody asked for is open from `md` up and closed below it, because
-   *  below `md` this panel is a sheet over the month. `false` for a day
+   *  nobody asked for is open from `lg` up and closed below it, because
+   *  below `lg` this panel is a sheet over the month. `false` for a day
    *  the address names — an explicit `?day` is obeyed at every width. */
   hiddenOnPhone?: boolean;
   /** What the site publishes to (issue 880) — which decides whether a page

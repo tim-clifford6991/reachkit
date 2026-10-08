@@ -30,7 +30,7 @@ import {
   FIXTURE_CALENDAR_FACTS,
   FIXTURE_MONTH,
 } from "@/app/(account)/app/calendar/fixture";
-import { withNuqs } from "./nuqs-adapter";
+import { shown, withNuqs } from "./nuqs-adapter";
 
 function render(el: React.ReactElement): Element {
   const container = document.createElement("div");
@@ -41,7 +41,7 @@ function render(el: React.ReactElement): Element {
 const MODEL = assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH);
 
 function view(): Element {
-  return render(withNuqs(<CalendarView model={MODEL} />));
+  return render(withNuqs(<CalendarView {...shown(MODEL)} />));
 }
 
 function cellEl(root: Element, day: string): Element {
@@ -116,7 +116,7 @@ describe("REQ-043 c3 and ADR-061 — the two grey lines are never swapped", () =
       // Unreadable depth, no other cause: ADR-061's own mutation case.
       unusedSupply: null,
     };
-    const root = render(withNuqs(<CalendarView model={assembleMonth(facts, FIXTURE_MONTH)} />));
+    const root = render(withNuqs(<CalendarView {...shown(assembleMonth(facts, FIXTURE_MONTH))} />));
     const text = root.textContent ?? "";
     // `copy()` is mocked to the key, so the assertion names which key the
     // line resolved from rather than the owner's wording. On the card that
@@ -154,7 +154,7 @@ describe("REQ-043 c3 and ADR-061 — the two grey lines are never swapped", () =
     const lines = (["publishing_off", "destination_pending_dns", "destination_disconnected"] as const).map(
       (setting) => {
         const facts: CalendarFacts = { ...FIXTURE_CALENDAR_FACTS, customerChangeHoldsPages: setting };
-        const root = render(withNuqs(<CalendarView model={assembleMonth(facts, FIXTURE_MONTH)} />));
+        const root = render(withNuqs(<CalendarView {...shown(assembleMonth(facts, FIXTURE_MONTH))} />));
         // 2026-09-20 is emptied by proven-zero supply in the fixture, which
         // the saved setting outranks.
         // Issue 930: the card says why in at most two words and the day
