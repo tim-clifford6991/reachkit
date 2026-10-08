@@ -87,15 +87,15 @@ export function PanelCardSkeleton(p: { testId: string; className: string }): Rea
   );
 }
 
-/** The top bar, below `lg`: brand, then the two controls on the end. */
+/** The top bar, below `lg`: the menu button at the start, then the brand. */
 export function TopBarSkeleton(): React.JSX.Element {
   return (
     <Waiting
       className="navbar border-base-300 bg-base-100 min-h-0 gap-2 rounded-box border p-2 lg:hidden"
       testId="shell-top-skeleton"
     >
+      <Box className="h-8 w-8 shrink-0" />
       <Box className="h-6 w-24" />
-      <Box className="ms-auto h-8 w-8 shrink-0" />
     </Waiting>
   );
 }

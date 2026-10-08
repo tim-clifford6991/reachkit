@@ -418,6 +418,9 @@ describe("REQ-040 c5 / SPEC §4 (2026-09-20) — a viewport too narrow keeps all
     expect(top?.querySelector("[data-testid='shell-menu-button']")?.getAttribute("for")).toBe(
       DRAWER_TOGGLE_ID
     );
+    // Issue 1322: the panel comes in from the left, so its control is the
+    // bar's first item — the tap and the panel are on one side.
+    expect(top?.firstElementChild?.getAttribute("data-testid")).toBe("shell-menu-button");
     expect(root.querySelector("[data-testid='shell-dock']")).not.toBeNull();
   });
 
