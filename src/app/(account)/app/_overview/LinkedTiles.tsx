@@ -48,13 +48,12 @@ export interface Top20 {
 }
 
 /** What a tile is read against, drawn bare beside the number: the range,
- *  the sample, the denominator. Values, never a sentence. */
+ *  the sample, the denominator, the window. A count with words, so it is
+ *  `num-phrase` and folds between them: `.num` alone never wraps, and in a
+ *  phone's half-width tile "in AI answers, last 4 weeks" stood 82px out of
+ *  its row (the fourth gate, on this issue's first push). */
 function Against(p: { children: React.ReactNode }): React.JSX.Element {
-  return (
-    <span className="num flex flex-wrap items-baseline gap-1 text-sm text-base-content/70">
-      {p.children}
-    </span>
-  );
+  return <span className="num num-phrase min-w-0 text-sm text-base-content/70">{p.children}</span>;
 }
 
 /** One tile. The head names it and the tab it opens; the figure row holds
