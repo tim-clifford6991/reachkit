@@ -1,20 +1,21 @@
 // BUILD §4.1 — the report, whole
 //
-// The six modules in §4.1's order, at most one notice, exactly one control
+// The six modules, at most one notice, exactly one control
 // (or none), and the removal address at the foot. A screen composition,
 // daisyUI classes in the route (DESIGN rule 1): `alert` for the notice,
 // `btn` for the one control; every module below is its own card.
 //
-// §4.1's own order, with the two 2026-09-03 amendments folded in:
-//   1. verdict strip — score, band, one written line. No driver bars.
+// The order is SPEC §2's of 2026-10-07 (owner, issue 1328): the result and
+// the action first, everything longer closed beneath them.
+//   1. verdict strip — score, band, one written line, the driver bars.
 //   2. two equal cards, side by side — AI answers · Google search. Each
 //      one leads with its verdict and draws its own figure: §2.4's AI
 //      dot matrix on the left, its presence bars on the right (issue
-//      #352). No per-question volume, no market-total footnote.
-//   3. three problem cards.
-//   4. three DIY collapses.
-//   5. free page card.
-//   6. pricing card.
+//      #352). Each card's list is closed under the list's own name.
+//   3. pricing card — the offer.
+//   4. three problem cards and the eight checks, closed.
+//   5. three DIY collapses.
+//   6. free page card, closed.
 //
 // **Nothing on this screen branches on payment, session or tier.** There
 // is no parameter here that could carry one, which is how REQ-004 c5's "no
@@ -381,18 +382,38 @@ export function ReportView(p: {
           <GooglePresenceCard section={report.presence} />
         )}
 
+        {/* SPEC §2 (owner, 2026-10-07, issue 1328): the offer is the fourth
+            thing on the report, under the score and the two results, and
+            everything longer opens from below it. Issue #785: Start buys
+            from this report — its scan is the checkout's origin, so the
+            site is provisioned on this domain. #1068: the report's price
+            close spans the screen, its heading and terms beside the price. */}
+        <div id="start" className="col-span-full scroll-mt-20">
+          <PricingCard
+            startAction={startReportCheckout.bind(null, report.domain, report.scanId)}
+            refused={p.checkoutRefused === true}
+            close
+          />
+        </div>
+
         {/* What holds you back (#1068): the three that cost most as cards,
             then SPEC §9's eight checks as one list (#570) — a check that
-            could not run has a grey dot and its why-line — then the method,
-            where each card's link lands. */}
-        <section className="col-span-full mt-5 flex flex-col gap-3">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            could not run has a grey dot and its why-line. Closed under its
+            own name since issue 1328: daisyUI `collapse` on a `details`, so
+            it is in the first response and opens with no script. `px-px`
+            keeps the cards' 1px ring inside the collapse's clip. */}
+        <details className="collapse collapse-arrow col-span-full rounded-none" data-testid="report-problems">
+          <summary className="collapse-title min-h-0 px-px py-2 pe-10 after:end-2 after:top-6">
             <h2 className="text-2xl font-bold">{copy("problem.section.title")}</h2>
+          </summary>
+          <div className="collapse-content flex min-w-0 flex-col gap-3 px-px">
             <p className="text-base-content/70 text-sm">{copy("problem.section.sub")}</p>
+            <ProblemCards cards={cards} firstPage={report.freePage !== null} />
+            <CheckCards cards={checkCardsOf(readingsOf(report.siteIssues, report.verdict.measuredAt))} />
           </div>
-          <ProblemCards cards={cards} firstPage={report.freePage !== null} />
-          <CheckCards cards={checkCardsOf(readingsOf(report.siteIssues, report.verdict.measuredAt))} />
-        </section>
+        </details>
+        {/* The method: three sections, each closed, where each problem
+            card's link lands — following one opens the section it is in. */}
         <div className="col-span-full">
           <MethodSections
             for={PROBLEM_ORDER}
@@ -404,28 +425,16 @@ export function ReportView(p: {
           />
         </div>
 
-        {/* Modules 5 and 6 are full-width rows, not two cards side by
-            side: UI-SPEC S2 draws the giveaway across the report and the
-            offer centred under it at the reading measure. They are the
-            screen's two trades, and a trade beside a trade reads as a
-            choice between them. */}
+        {/* The giveaway is a full-width row (UI-SPEC S2). The proposal is
+            closed under the card's own name (issue 1328); a report with no
+            page to propose is not closed, because its one line is the whole
+            of what the section says. */}
         <div className="col-span-full">
           {report.freePage === null ? (
             <FreePageAbsent cutOff={cutOff} domain={report.domain} />
           ) : (
             <FreePageCard section={report.freePage} scanId={report.scanId} />
           )}
-        </div>
-        <div id="start" className="col-span-full mt-3 scroll-mt-20">
-          {/* Issue #785: Start buys from this report — its scan is the
-              checkout's origin, so the site is provisioned on this domain.
-              #1068: the report's price close spans the screen, its heading
-              and terms beside the price. */}
-          <PricingCard
-            startAction={startReportCheckout.bind(null, report.domain, report.scanId)}
-            refused={p.checkoutRefused === true}
-            close
-          />
         </div>
 
         <div className="text-base-content/70 col-span-full text-center text-xs">

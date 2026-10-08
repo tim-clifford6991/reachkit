@@ -9,7 +9,7 @@
 // stops, and no job moved it on. These are the two moves that were missing,
 // and each is one call into the module that owns the rule.
 //
-// **Opening the window** (`enterReview`) is the evening tick's, right after
+// **Opening the window** (`enterReview`) is the draft tick's, right after
 // a generation that passed: the deadline is stamped, the page enters
 // review, and the customer is told through `sendDraftReadyMail` — which
 // mints the one stop link and records the telling the `customer_told` guard
@@ -41,7 +41,9 @@
 // see and stop it.
 import { VETO } from "@/lib/config/constants";
 import { localClock } from "@/lib/scan/weekly/week";
-import { publishDb } from "../db";
+import { publishDb, type PublishQuery } from "../db";
+import { publishDateAtOrAfter } from "../settings/clock";
+import { settingsOf } from "../settings/pair";
 import { machineDraftFor, transition } from "../machine";
 import { becomesPublishable } from "../publishable/predicate";
 import { customerTold, publishableAndDue } from "../publishable/rule";
@@ -119,7 +121,14 @@ export async function enterReview(a: { draftId: string; at: Date; by?: Actor }):
     throw new Error(`publish/window: could not stamp the veto deadline: ${stamped.error.message}`);
   }
 
-  await takeDate(a.draftId, localClock(deadline, draft.governing.timezone ?? "UTC").date);
+  // The day the page goes out untouched, which is the only date its row
+  // may carry (issue 1337). A site with no zone publishes nothing, and its
+  // page is dated by the deadline alone until it has one.
+  const publishes =
+    draft.governing.timezone === null
+      ? localClock(deadline, "UTC").date
+      : publishDateAtOrAfter(deadline, settingsOf(draft.governing));
+  await takeDate(a.draftId, publishes);
 
   const moved = await transition(a.draftId, "in_review", by, { at: a.at });
   if (!moved.ok) return { kind: "not_entered", reason: "moved" };
@@ -132,26 +141,38 @@ export async function enterReview(a: { draftId: string; at: Date; by?: Actor }):
 const MS_PER_DAY = 24 * MS_PER_HOUR;
 const UNIQUE_VIOLATION = "23505";
 
+const isoDate = (ms: number): string => new Date(ms).toISOString().slice(0, 10);
+
 /**
- * SPEC §7 (D26, issue 1179): a stopped draft the run moved on from gave its
- * date to the page written in its place. Rewritten or edited until it
- * passes, it takes the first date no page of the site holds, from the day
- * its window ends. A row that carries a date keeps it: the update matches
- * no row.
+ * The page's row takes the day it publishes on (`from`), or the first date
+ * after it that no page of the site holds.
+ *
+ * Two rows need it. A stopped draft the run moved on from gave its date to
+ * the page written in its place (SPEC §7, D26, issue 1179), and holds none.
+ * A page rewritten or edited after its day's due hour holds a date its new
+ * window ends too late for (issue 1337). A row whose date is `from` or
+ * later keeps it: neither update matches.
  */
 async function takeDate(draftId: string, from: string): Promise<void> {
   const start = Date.parse(`${from}T00:00:00.000Z`);
-  for (let day = 0; day < 31; day++) {
-    const date = new Date(start + day * MS_PER_DAY).toISOString().slice(0, 10);
-    const taken = await publishDb()
-      .from<{ id: string }>("drafts")
-      .update({ scheduled_for: date })
-      .eq("id", draftId)
-      .is("scheduled_for", null);
-    if (taken.error === null) return;
-    if (taken.error.code !== UNIQUE_VIOLATION) {
-      throw new Error(`publish/window: could not date the page: ${taken.error.message}`);
+  const dayBefore = isoDate(start - MS_PER_DAY);
+  const undatedOrTooEarly = [
+    (rows: PublishQuery<{ id: string }>) => rows.is("scheduled_for", null),
+    (rows: PublishQuery<{ id: string }>) => rows.lte("scheduled_for", dayBefore),
+  ];
+  dates: for (let day = 0; day < 31; day++) {
+    const date = isoDate(start + day * MS_PER_DAY);
+    for (const only of undatedOrTooEarly) {
+      const taken = await only(
+        publishDb().from<{ id: string }>("drafts").update({ scheduled_for: date }).eq("id", draftId)
+      );
+      if (taken.error === null) continue;
+      if (taken.error.code !== UNIQUE_VIOLATION) {
+        throw new Error(`publish/window: could not date the page: ${taken.error.message}`);
+      }
+      continue dates;
     }
+    return;
   }
 }
 

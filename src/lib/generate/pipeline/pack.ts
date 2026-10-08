@@ -531,7 +531,7 @@ export function buildPack(a: PackInputs): ContextPack {
     version: 1,
     type: a.type,
     builtAt: a.now.toISOString(),
-    ...(a.locale === undefined || modelInstruction(a.locale) === null ? {} : { locale: { country: a.locale.country, language: a.locale.language } }),
+    ...(a.locale === undefined || modelInstruction({ country: a.locale.country, language: a.locale.language }) === null ? {} : { locale: { country: a.locale.country, language: a.locale.language } }),
     target: { question, searches },
     business: {
       name: a.site.businessName,

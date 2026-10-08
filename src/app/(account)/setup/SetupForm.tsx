@@ -61,6 +61,19 @@ import { PublishingCard } from "./PublishingCard";
 import { RivalsCard } from "./RivalsCard";
 import { PassStatusLine } from "./PassStatusLine";
 import { SetupPanel } from "./SetupPanel";
+import {
+  BAR,
+  BAR_ACTIONS,
+  BAR_INNER,
+  BODY,
+  COLUMNS,
+  FRAME,
+  QUESTION,
+  QUESTION_HEAD,
+  QUIET,
+  SETUP_ARMS,
+  STEPS,
+} from "./frame";
 import { VoiceCard } from "./VoiceCard";
 import {
   isLastStep,
@@ -135,7 +148,6 @@ const PURPOSE_COPY = {
 const APP_PATH = "/app";
 const CONNECT_PATH = "/setup/connect";
 
-const QUIET = "text-sm text-base-content/70";
 const ICON = { strokeWidth: 1.75, "aria-hidden": true } as const;
 
 async function resolveDomain(host: string): Promise<ResolveDomainResponse> {
@@ -181,6 +193,10 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   // D66: the site's country and language, opened on what was read of it;
   // the founder's answer is what is saved.
   const [locale, setLocale] = useState(p.model.locale);
+  // D67: the city or area it serves, opened on what was read. It is sent
+  // once it holds something or the founder has touched it: an empty field
+  // nobody touched is no answer.
+  const [place, setPlace] = useState<{ value: string; answered: boolean }>({ value: p.model.place, answered: p.model.place !== "" });
   const [destination, setDestination] = useState<DestinationKind>(defaults.destination);
   // SPEC §5 (2026-09-12): the subdomain label is the customer's, and the
   // card is drawn with the default until they change it.
@@ -255,6 +271,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         // Issue #783: the site has a zone before its first draft is selected.
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         locale,
+        ...(place.answered ? { place: place.value } : {}),
       },
     };
   }
@@ -266,7 +283,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
       case "site": {
         const checked = validateSetup(state);
         if (!checked.ok) return null;
-        return { step, domain: state.siteDomain, category: settledCategory(state), locale };
+        return { step, domain: state.siteDomain, category: settledCategory(state), locale, ...(place.answered ? { place: place.value } : {}) };
       }
       case "business":
         // #970: the lists as the founder left them, and #1038 *What you do*. What is *stored*
@@ -383,25 +400,15 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     // carry a blank band under it. The `Surface` above it holds the band's
     // gutter and the ruled measure; the bar sits outside it, which is what
     // lets it run edge to edge on a phone.
-    <div className="grid min-h-svh grid-rows-[1fr_auto]">
-      <Surface
-        arms={{
-          compact: { kind: "columns", count: 1 },
-          medium: { kind: "columns", count: 2 },
-          wide: { kind: "same-as-below" },
-        }}
-      >
+    <div className={FRAME}>
+      <Surface arms={SETUP_ARMS}>
         {/* `pb-28` is the bar's own height and a little over: the content
             scrolls *behind* a pinned bar, so the last line of it has to
             clear the bar rather than pass under it. */}
-        <main
-          className="grid min-w-0 grid-cols-1 content-start gap-6 p-4 pb-28"
-          data-testid="setup-form"
-          data-step={step}
-        >
+        <main className={BODY} data-testid="setup-form" data-step={step}>
           {/* SPEC §5 (2026-09-20) and docs/DESIGN.md: a daisyUI `steps` with
               one-word labels, five equal columns at every width. */}
-          <ul className="steps w-full text-xs" data-testid="setup-steps" data-current={step}>
+          <ul className={STEPS} data-testid="setup-steps" data-current={step}>
             {SETUP_STEPS.map((id, index) => {
               const done = index < at;
               const current = index === at;
@@ -435,12 +442,9 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               the step change rises in — the column is keyed on the step, so
               each step mounts fresh (as its own card always did) and takes
               `animate-rise` once. Reduced motion draws it in place. */}
-          <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
-            <div
-              key={step}
-              className="grid min-w-0 grid-cols-1 content-start gap-4 motion-safe:animate-rise"
-            >
-              <div className="grid gap-2">
+          <div className={COLUMNS}>
+            <div key={step} className={`${QUESTION} motion-safe:animate-rise`}>
+              <div className={QUESTION_HEAD}>
                 <h1 className="text-xl font-semibold wrap-anywhere">{copy(STEP_QUESTION[step])}</h1>
                 <p className={QUIET} data-testid="setup-step-line">
                   {stepLine(step, { pagesRead, max: p.model.competitorsMax })}
@@ -455,6 +459,8 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                   resolveDomain={resolveDomain}
                   locale={locale}
                   setLocale={setLocale}
+                  place={place.value}
+                  setPlace={(value, by) => setPlace({ value, answered: by === "founder" || value !== "" })}
                 />
               ) : null}
 
@@ -557,9 +563,9 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
           all (`region`, on all five steps). It is the screen's footer in
           every sense: the step's two controls and the standing line under
           them. The element changes; nothing it draws does. */}
-      <footer className="sticky bottom-0 border-t border-base-300 bg-base-100 px-8 lg:px-10 xl:px-12">
-        <div className="mx-auto grid w-full max-w-(--w-wide) gap-3 py-3">
-          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+      <footer className={BAR}>
+        <div className={BAR_INNER}>
+          <div className={BAR_ACTIONS}>
             <button
               type="button"
               className="btn btn-ghost"

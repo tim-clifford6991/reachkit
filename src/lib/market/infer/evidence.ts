@@ -5,6 +5,8 @@
 // Pure and bounded: the caller hands over what a pass already holds, and
 // this trims it to one prompt's worth. Nothing here buys anything.
 
+import type { PlaceSignals } from "@/lib/locale/place";
+
 /** One page of the site, as the crawl read it. */
 export interface EvidencePage {
   url: string;
@@ -37,6 +39,9 @@ export interface EvidenceTopTen {
 }
 
 export interface MarketEvidence {
+  /** What the home page's structured data states of the business's address
+   *  (SPEC §6, owner D67, issue 1318). Absent where it states nothing. */
+  stated?: PlaceSignals;
   domain: string;
   siteName: string | null;
   /** The home page's title and first heading — what the site leads with. */
@@ -122,6 +127,7 @@ export function boundEvidence(e: MarketEvidence): MarketEvidence {
     list.slice(0, EVIDENCE_BOUNDS.listItems).map((item) => clip(item, EVIDENCE_BOUNDS.itemChars));
 
   return {
+    ...(e.stated === undefined || Object.keys(e.stated).length === 0 ? {} : { stated: e.stated }),
     domain: e.domain,
     siteName: e.siteName,
     headline: e.headline === null ? null : clip(e.headline, EVIDENCE_BOUNDS.itemChars * 2),

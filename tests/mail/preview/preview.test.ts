@@ -155,14 +155,36 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     const mail = await composeUnmeasuredWeek();
     expect(mail.subject).toBe(COPY["mail.weekly.subject"]);
     expect(mail.wholeMailLine).toBe("mail.week_unmeasured");
-    // #933: the number up top, the three beside it, the verdicts and the
-    // next three — four sections, all of them measurements, all dropped.
-    // The heading, the headline sentence, the body line and the button
-    // stand, which is what "still arrives, saying so" means.
-    expect(mail.omitted).toEqual([1, 3, 4, 5]);
+    // The verdicts and the next three are measurements, and both are
+    // dropped. No number is stated and none is said to be missing four
+    // times over: the whole-mail line says it once. The heading and the
+    // button stand, which is what "still arrives, saying so" means.
+    expect(mail.omitted).toEqual([1, 2]);
+    expect(mail.text).not.toContain(COPY["mail.weekly.number.unmeasured"]);
     for (const body of [mail.html, mail.text]) expect(body).toContain("2026-09-14");
 
     writeSample("weekly-unmeasured", mail, "variant");
+  });
+
+  it("the Monday mail leads with the four headline numbers, and the score is not in it", async () => {
+    // SPEC §8 (2026-10-07, issue 1329). The figures are the fixture's.
+    const mail = await composePreview("weekly");
+    const numbers = [
+      `${COPY["mail.weekly.number.mentionRate"]}: 34% · likely 22–48%`,
+      `${COPY["mail.weekly.number.pagesCited"]}: 3 · in AI answers, last 4 weeks`,
+      `${COPY["mail.weekly.number.top20"]}: 5 (+2)`,
+      `${COPY["mail.weekly.number.aiVisits"]}: at least 12 · pages read, last 7 days`,
+    ];
+    // The twin states them one to a line, straight under the heading and
+    // above everything else the mail says.
+    expect(mail.text).toContain([COPY["mail.weekly.heading"], numbers.join("\n")].join("\n\n"));
+    const firstOf = (body: string, parts: readonly string[]): number => Math.min(...parts.map((part) => body.indexOf(part)));
+    const after = [COPY["mail.weekly.verdicts"], COPY["mail.weekly.next"], COPY["mail.weekly.action"]];
+    for (const body of [mail.html, mail.text]) {
+      expect(body.indexOf(COPY["mail.weekly.number.aiVisits"])).toBeGreaterThan(0);
+      expect(body.indexOf(COPY["mail.weekly.number.aiVisits"])).toBeLessThan(firstOf(body, after));
+      expect(body).not.toMatch(/Discoverability Score/i);
+    }
   });
 
   for (const kind of previewable) {

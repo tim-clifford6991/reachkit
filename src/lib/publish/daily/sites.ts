@@ -1,11 +1,11 @@
 // BUILD §11, §9 — `draft/generate`'s site list (BP-014).
 //
-// The evening tick's candidates: every site ReachKit is still working for,
+// The draft tick's candidates: every site ReachKit is still working for,
 // that has somewhere to publish once the page is written, and that carries
-// a zone to be evening *in*.
+// a zone for its publish time to be read in.
 //
 // **The hour is not decided here, and that is deliberate.** ADR-060's gate
-// is `isDraftDue(now, zone)` in `src/jobs/site-clock.ts`, where the tick's
+// is `isDraftDue(tick, site)` in `src/jobs/site-clock.ts`, where the tick's
 // own `now` lives, and it is already applied by `draft/generate` to every
 // row this returns. Two homes for one clock rule is how a tick starts
 // firing in a different hour than the one the calendar promised, so this
@@ -17,7 +17,7 @@
 // of the gate that owns it:**
 //
 //   1. a zone. A site with none cannot be told whether it is its own
-//      evening, and inventing UTC for it would publish at the wrong time
+//      due hour, and inventing UTC for it would publish at the wrong time
 //      of day rather than not at all.
 //   2. `publishing_enabled` — the customer's own stop (§9: "pause is one
 //      click and instant"). A stopped site is not prepared a page: §8's
@@ -66,11 +66,18 @@
 // change.
 import { sitesWithActiveAccess } from "@/lib/scan/weekly/access";
 import { publishDb } from "../db";
+import { toPublishingSettings } from "../settings/settings";
 
-/** One candidate, with the zone its own evening is decided in. */
+/** One candidate, with the three settings its own due hour is decided
+ *  from (issue 1337): the zone, the publish time read in it, and the veto
+ *  window that has to end by then. */
 export interface DailySite {
   readonly siteId: string;
   readonly timeZone: string;
+  /** `HH:mm`, read in `timeZone`. */
+  readonly publishTime: string;
+  /** The governing window: never below a day. */
+  readonly vetoHours: number;
 }
 
 /** What one tick's selection found. `held` is non-null exactly where the
@@ -84,6 +91,8 @@ export interface DailySelection {
 interface SiteRow {
   id: string;
   timezone: string | null;
+  veto_hours?: number | null;
+  publish_time?: string | null;
 }
 
 interface DestinationSiteRow {
@@ -93,7 +102,7 @@ interface DestinationSiteRow {
 export async function sitesForDailyTick(): Promise<DailySelection> {
   const allSites = await publishDb()
     .from<SiteRow>("sites")
-    .select("id, timezone")
+    .select("id, timezone, veto_hours, publish_time")
     .eq("publishing_enabled", true)
     .not("timezone", "is", null);
   if (allSites.error !== null) {
@@ -127,7 +136,15 @@ export async function sitesForDailyTick(): Promise<DailySelection> {
   const hasDestination = new Set((destinations.data ?? []).map((row) => row.site_id));
   const candidates = withAZone
     .filter((row) => hasDestination.has(row.id))
-    .map((row): DailySite => ({ siteId: row.id, timeZone: row.timezone }));
+    .map((row): DailySite => {
+      const { publishTime, vetoHours } = toPublishingSettings({
+        mode: null,
+        timezone: row.timezone,
+        veto_hours: row.veto_hours ?? null,
+        publish_time: row.publish_time ?? null,
+      });
+      return { siteId: row.id, timeZone: row.timezone, publishTime, vetoHours };
+    });
   if (candidates.length === 0) {
     logSelection({ sites: withAZone.length, withDestination: 0, paying: 0 });
     return { sites: [], held: null };

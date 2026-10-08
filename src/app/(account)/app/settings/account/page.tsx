@@ -12,10 +12,18 @@
 // Both panels move as they are (#925's Build). `DangerZone` reads nothing
 // from the model — it holds its own hand-over state — so only the account
 // card takes a slice.
+//
+// **And the two shortcuts** (owner, 2026-10-08, issue 1339): "*Visit your
+// blog* and *Help* stay reachable from Settings as well as from the desktop
+// panel." Below `lg` there is no panel, so this is where a phone reaches
+// them. It is the panel's own `Shortcuts` — the same two links, the same
+// rule for when the blog is drawn — between the account and the zone.
 import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { readSettings } from "../provider";
+import { readShell } from "../../_shell/provider";
+import { Shortcuts } from "../../_shell/Shortcuts";
 import { AccountPanel } from "../panels/AccountPanel";
 import { DangerZone } from "../panels/DangerZone";
 
@@ -26,11 +34,17 @@ import { DangerZone } from "../panels/DangerZone";
 export const metadata: Metadata = { title: copy("meta.app.settings.account.title") };
 
 export default async function SettingsAccountTab(): Promise<React.JSX.Element> {
-  const settings = await readSettings();
+  // `readShell` is request-cached: the layout above already started it.
+  const [settings, shell] = await Promise.all([readSettings(), readShell()]);
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-account">
       <AccountPanel account={settings.account} />
+      <section className="card card-border bg-base-100 min-w-0" data-testid="settings-shortcuts">
+        <div className="card-body min-w-0 p-2">
+          <Shortcuts blog={shell.blog} />
+        </div>
+      </section>
       <DangerZone />
     </div>
   );

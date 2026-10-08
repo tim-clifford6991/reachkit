@@ -298,9 +298,17 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   /** #1185: the market ReachKit concludes for a site — seven fields, the
    *  longest a sentence: ~450 needed. */
   "market-inference": 900,
-  /** #1185: its rivals — up to ten candidates with a reason each: ~800
-   *  needed. */
-  "rival-inference": 1400,
+  /** #1185: its rivals — up to ten candidates with a reason each.
+   *
+   *  2400 since issue 1318. A candidate has grown from five fields to nine
+   *  (D50's two, the closeness of issue 1314, and D67's `national`), and a
+   *  German reason takes more tokens than an English one. At 1400 the
+   *  Düsseldorf bakery's ten candidates were cut off at exactly the ceiling
+   *  on both attempts — the retry is at temperature 0, so it is the same
+   *  answer cut at the same place — and the pass paid 6.3¢ to conclude no
+   *  rival at all. The three English panel sites of the same run answered
+   *  in about 1,300. */
+  "rival-inference": 2400,
   /** SPEC §6 (D49, issue 1270): a market's candidate search terms — up to
    *  ten short phrases with a flag each: ~250 needed. */
   "market-terms": 500,
@@ -1482,14 +1490,6 @@ export const REPORT_REMOVED_STATUS = 410 as const;
  *  site and narrow enough that one tick cannot open more vendor work than
  *  the cost seam's caps were sized for. Reversal cost: one number. */
 export const JOB_FAN_OUT_CONCURRENCY = 10 as const;           // BP-003 · BUILD §11
-/** The site-local hour `draft/generate` is due. BUILD §11 says "daily,
- *  evening" and BP-003 adds "in the site's time zone … must finish before
- *  the veto window would start"; neither states an hour, so 18:00 local is
- *  chosen here as a parameter (rule 1.1) — the first hour that is evening
- *  everywhere, leaving `VETO.defaultHours` clear of the next publish date.
- *  Site-local, never UTC, on the same grounds ADR-060 states for the
- *  weekly tick. Reversal cost: one number. */
-export const DRAFT_DUE_HOUR_LOCAL = 18 as const;              // BP-003 · BUILD §11 (chosen)
 /** BUILD §11: `publish/verify` runs "+24h" after a publish. Distinct from
  *  `DAILY_WINDOW_H`, which is BP-023's free-scan rate-limit window and
  *  happens to share the number; the two move independently. */

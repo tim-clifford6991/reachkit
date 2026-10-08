@@ -316,7 +316,7 @@ export function getWeekZeroAccountCookie(): string {
 
 /**
  * The one attribute every waiting state carries
- * (`src/app/_fallback/Waiting.tsx`, issue #327).
+ * (`_shell/skeletons.tsx`'s `Waiting`, issue #327).
  *
  * Since this product has `loading.tsx` files, a navigation can land on a
  * screen that has not finished answering: the shell is drawn, the content

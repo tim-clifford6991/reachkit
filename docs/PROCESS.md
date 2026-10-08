@@ -56,7 +56,7 @@ Every owner decision is a dated line in `docs/SPEC.md`, `docs/DESIGN.md`, `docs/
 
 A documentation-only pull request runs `audit` alone (owner, #1053). When every file it changes is under `docs/` or is markdown outside `src/`, `tests/`, `supabase/`, `.github/` and `scripts/`, the other three gates report skipped. Any other file runs all four.
 
-Before pushing, an engineer runs `npm run typecheck`, `npm run lint`, and the test files that cover the files it changed (`npx vitest run <paths>`). Each heavy command goes through `bash /root/ops/reachkit/bin/heavy.sh`. CI runs the full `typecheck · lint · unit` suite. A red full suite is read from the CI log (owner, 2026-10-08).
+Before pushing, an engineer runs `npm run typecheck`, `npm run lint`, and the test files that cover the files it changed (`npx vitest run <paths>`). Each heavy command goes through `bash /root/ops/reachkit/bin/heavy.sh`. CI runs the full `typecheck · lint · unit` suite. An engineer does not run the whole `vitest run --project node --project ui` locally. A red full suite is read from the CI log (owner, 2026-10-08).
 
 Where the jobs run is `docs/RUNBOOK.md` §1. There is no fifth merge gate.
 
@@ -131,7 +131,7 @@ Dated rulings. They explain Current. They are not instructions to carry out.
 
 2026-09-25  **Light jobs hosted, the browser job on the box** (owner, #1113; partly reverses #1013). `what changed`, `typecheck · lint · unit`, `schema · RLS` and `audit` run on GitHub-hosted runners, in parallel. `no overflow · axe` stays on `reachkit-box`. The light jobs take `runs-on` from `CI_LIGHT_RUNNER`. When the hosted minutes run out, those jobs fail with a billing error, and the fix is `gh variable set CI_LIGHT_RUNNER --body '["self-hosted","reachkit-light"]'`. `gh variable delete CI_LIGHT_RUNNER` sends them back to hosted. The minutes switch and the second runner are `docs/RUNBOOK.md` §1.
 
-2026-09-25  **A second runner on the box, for light jobs only** (owner, #1113; revises #1035). `reachkit-light` carries only the `reachkit-light` label and takes the light jobs when `CI_LIGHT_RUNNER` sends them to the box. It is capped at 1.5 GB at the lowest CPU priority. The browser job stays on the single `reachkit` runner, so two browser sweeps never run at once.
+2026-09-25  **A second runner on the box, for light jobs only** (owner, #1113; revises #1035). `reachkit-light` carries only the `reachkit-light` label and takes the light jobs when `CI_LIGHT_RUNNER` sends them to the box. It is capped at 1.5 GB (`MemoryMax`) at the lowest CPU priority, so it cannot starve the browser job or the implementation agents. The browser job stays on the single `reachkit` runner, so two browser sweeps never run at once.
 
 2026-10-03  **The smallest test that gives the same result** (owner, D34, #1210). The seven rules in Current.
 
@@ -139,6 +139,6 @@ Dated rulings. They explain Current. They are not instructions to carry out.
 
 2026-10-07  **The customer panel is the acceptance test for market understanding** (owner, #1304). Stated in Current. The product is validated for the variety of customers who sign up, not tuned to make reachkit.app score well.
 
-2026-10-08  **Engineers run only the tests their change touches** (owner). CI runs the full unit suite. Stated in Current.
+2026-10-08  **Engineers run only the tests their change touches** (owner). CI runs the full `typecheck · lint · unit` suite on the box. An engineer does not run the whole `vitest run --project node --project ui` locally. Stated in Current. This frees the box's two heavy cores for the gates.
 
 2026-10-08  **The hygiene check keeps the documents and the box on Current** (owner). Stated in Current. It is part of `audit`, not a fifth gate. The timer is `docs/RUNBOOK.md`.

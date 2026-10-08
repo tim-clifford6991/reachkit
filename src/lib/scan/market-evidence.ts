@@ -5,6 +5,7 @@
 // `src/lib/market` never imports `src/lib/scan`'s report (the cycle
 // `market/setup/state.ts` explains).
 import type { EvidenceAnswer, EvidencePage, EvidenceTopTen, MarketEvidence } from "@/lib/market/infer/evidence";
+import type { PlaceSignals } from "@/lib/locale/place";
 import type { StoredReport } from "./report";
 
 function bare(domain: string): string {
@@ -41,7 +42,9 @@ function topTensOf(report: StoredReport | null, own: string): EvidenceTopTen[] {
   const tally = new Map<string, EvidenceTopTen>();
   for (const serp of report?.serps ?? []) {
     if (serp.kind !== "measured") continue;
-    for (const row of serp.value.organic) {
+    // D67: a business in the local pack is found for this search as one
+    // in the top ten is.
+    for (const row of [...serp.value.organic, ...(serp.value.localPack ?? [])]) {
       const domain = bare(row.domain);
       if (domain === own) continue;
       const seen = tally.get(domain);
@@ -60,9 +63,12 @@ export function marketEvidence(a: {
   products: readonly string[];
   claims: readonly string[];
   report: StoredReport | null;
+  /** What the home page's structured data states of its address (D67). */
+  stated?: PlaceSignals;
 }): MarketEvidence {
   const own = bare(a.domain);
   return {
+    ...(a.stated === undefined ? {} : { stated: a.stated }),
     domain: own,
     siteName: a.siteName,
     headline: a.headline,

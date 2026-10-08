@@ -20,7 +20,7 @@ export {
   type SettingsField,
 } from "./settings";
 export { pairOf, samePair, settingsOf } from "./pair";
-export { nextPublishTimeAtOrAfter } from "./clock";
+export { nextPublishTimeAtOrAfter, publishDateAtOrAfter } from "./clock";
 export { NOT_YET_PUBLISHED, isNotYetPublished, newVetoDeadline, type ReDeadlineInput } from "./apply";
 export {
   enteredReviewAt,

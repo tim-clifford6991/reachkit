@@ -117,6 +117,10 @@ export interface SerpResult {
   peopleAlsoAsk?: readonly string[];
   /** The searches Google lists as related to this one. Absent as above. */
   relatedSearches?: readonly string[];
+  /** The businesses Google's local pack shows on this SERP that have a site
+   *  of their own (SPEC §6, owner D67, issue 1318). Absent where it showed
+   *  none: a search that is not asked of a place has no pack. */
+  localPack?: readonly { title: string; domain: string }[];
 }
 
 /** `serpNews` — one result of a Google News search (SPEC §7, D48): the

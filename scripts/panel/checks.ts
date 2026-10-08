@@ -28,6 +28,9 @@ export interface PanelSite {
   /** Where a business that trades in one place trades, as its buyers type
    *  it ("austin"). Absent for a business with no one place. */
   place?: readonly string[];
+  /** The kinds of business the conclusion may record it as (D69), from the
+   *  product's closed list. Absent, any kind passes. */
+  kinds?: readonly string[];
   /** True where the business is itself a publisher, an aggregator, a
    *  marketplace or a directory: its rivals may be too. */
   listsOthers?: boolean;
@@ -89,6 +92,17 @@ export interface SiteResult {
   topics: readonly PanelTopic[];
   cents: number;
   costBySource: Readonly<Record<string, number>>;
+  /** Where the pass stored the business as serving (D67): its place, and
+   *  the search vendor's name for it where the vendor lists it. `place` is
+   *  `null` for a business stored as selling nationally. Absent on a run
+   *  stored before D67. */
+  area?: { place: string | null; location: string | null } | null;
+  /** Every domain this pass's own results showed: its top tens, its local
+   *  packs and the sites its AI answers cited. Absent before D67. */
+  resultDomains?: readonly string[];
+  /** The tracked prompts the market yields (D69): a first pass asks none,
+   *  so they are generated here, at 0¢. Absent on a run stored before D69. */
+  prompts?: readonly { kind: string; text: string }[];
 }
 
 export type Verdict = "pass" | "fail" | "review";
@@ -205,7 +219,10 @@ export function checkLocale(r: SiteResult): CheckResult {
       items: terms,
     };
   }
-  const wrong = r.locales.filter((l) => l.location !== expected || l.language !== r.site.language);
+  // D67: a read made from the city the business serves is made in its country.
+  const city = r.area?.location ?? null;
+  const here = (location: string): boolean => location === expected || (city !== null && location === city && city.endsWith(`,${expected}`));
+  const wrong = r.locales.filter((l) => !here(l.location) || l.language !== r.site.language);
   if (wrong.length > 0) {
     return {
       check,
@@ -461,25 +478,79 @@ export function checkAudience(r: SiteResult): CheckResult {
 const NEAR_RE = /\b(near me|nearby|in der nähe|in meiner nähe)\b/iu;
 
 /**
- * For a business with one place, what of its market is not said in that
- * place. Never a failure: whether a plumber in one city is rightly measured
- * on a search the whole country types, against national chains, is for a
- * person to read. `null` for a business with no one place.
+ * A business is measured where it serves (SPEC §6, owner D67, issue 1318).
+ * One with a place: the pass stored that place, every searched term and
+ * measured search names it or says "near me", Google's results were read
+ * from it where the vendor lists it, and a national chain is a rival only
+ * where the pass's own results show it. One with no place: the pass stored
+ * none. A run stored before D67 is for a person to read, as it was.
  */
 export function checkPlace(r: SiteResult): CheckResult | null {
   const place = r.site.place ?? [];
-  if (place.length === 0) return null;
   const check = "a local business is measured in its own place";
+  if (place.length === 0) {
+    const stored = r.area?.place ?? null;
+    if (stored === null) return null;
+    return { check: "a business that sells everywhere is not measured in one place", verdict: "fail", detail: `stored as serving ${stored}`, items: [stored] };
+  }
   const local = (text: string): boolean => NEAR_RE.test(text) || place.some((name) => holds(text, name));
   const said = [...(r.market?.terms ?? []).filter((t) => t.volume > 0).map((t) => `${t.term} ${t.volume}/mo`), ...r.searches];
   const elsewhere = said.filter((text) => !local(text));
   const rivals = (r.market?.rivals ?? []).map((rival) => `rival: ${rival.name} (${rival.domain})`);
-  return {
-    check,
-    verdict: "review",
-    detail: `${said.length - elsewhere.length} of ${said.length} terms and searches name ${place.join(" or ")} or "near me"; are the rest, and the rivals, this place's?`,
-    items: [...elsewhere, ...rivals],
-  };
+  const counted = `${said.length - elsewhere.length} of ${said.length} terms and searches name ${place.join(" or ")} or "near me"`;
+  if (r.area === undefined) {
+    return { check, verdict: "review", detail: `${counted}; are the rest, and the rivals, this place's?`, items: [...elsewhere, ...rivals] };
+  }
+  const items: string[] = [];
+  const stored = r.area?.place ?? null;
+  if (stored === null) items.push("the pass stored no place: it was measured as a business that sells nationally");
+  else if (!place.some((name) => holds(stored, name))) items.push(`stored as serving ${stored}`);
+  for (const text of elsewhere) items.push(`not asked of the place: ${text}`);
+  if (said.length === 0) items.push("no searched term and no measured search");
+  const location = r.area?.location ?? null;
+  if (stored !== null && location === null) items.push(`the search vendor lists no city for ${stored}: its results were read from the country`);
+  if (location !== null && !r.locales.some((locale) => locale.location === location)) items.push(`no result was read from ${location}`);
+  const shown = new Set((r.resultDomains ?? []).map(bare));
+  for (const rival of r.market?.rivals ?? []) {
+    if (rival.national === true && !shown.has(bare(rival.domain))) items.push(`${rival.name} (${rival.domain}) is a national chain no result of this pass showed`);
+  }
+  if (items.length > 0) return { check, verdict: "fail", detail: `${counted}; ${items.length} things are not this place's`, items };
+  return { check, verdict: "pass", detail: `${counted}; read from ${location ?? "the country"}; ${rivals.length} rivals, every national one shown in this place's results`, items: [] };
+}
+
+// ── The tracked prompts fit the kind of business ───────────────────────────
+
+/** Words a software buyer's prompt uses and no other kind's does. */
+const SOFTWARE_WORDS_RE = /\b(tools?|software|platforms?|free trial|engineering team|anbieter|testphase|entwickler)\b/iu;
+/** The prompt kinds that name the market, and so its place. */
+const NAMES_MARKET = new Set(["category", "use-case", "persona", "problem"]);
+
+/**
+ * The tracked prompts are a buyer of this kind of business's own questions
+ * (SPEC §6, owner D69, issue 1318): the conclusion recorded a kind the
+ * panel allows, a kind that is not software asks nothing in software's
+ * words, and a local business's prompts name its place (D67).
+ */
+export function checkPrompts(r: SiteResult): CheckResult {
+  const check = "the tracked prompts fit the kind of business";
+  if (r.prompts === undefined) return { check, verdict: "review", detail: "stored before the kind of business was recorded (D69)", items: [] };
+  const kind = r.market?.kind ?? null;
+  const allowed = r.site.kinds ?? [];
+  const items: string[] = [];
+  if (kind === null) items.push("no kind of business was recorded");
+  else if (allowed.length > 0 && !allowed.includes(kind)) items.push(`recorded as ${kind}; it is ${allowed.join(" or ")}`);
+  if (r.prompts.length === 0) items.push("the market yields no prompt");
+  if (kind !== null && kind !== "software") {
+    for (const prompt of r.prompts) if (SOFTWARE_WORDS_RE.test(prompt.text)) items.push(`asks as a software buyer does: ${prompt.text}`);
+  }
+  const place = r.site.place ?? [];
+  if (place.length > 0) {
+    for (const prompt of r.prompts) {
+      if (NAMES_MARKET.has(prompt.kind) && !place.some((name) => holds(prompt.text, name))) items.push(`does not name the place: ${prompt.text}`);
+    }
+  }
+  if (items.length > 0) return { check, verdict: "fail", detail: `${kind ?? "no kind"}; ${items.length} of its ${r.prompts.length} prompts or facts do not fit`, items };
+  return { check, verdict: "pass", detail: `${kind}; ${r.prompts.length} prompts${place.length > 0 ? `, each naming ${place[0]}` : ""}`, items: [] };
 }
 
 // ── What the pass paid for ─────────────────────────────────────────────────
@@ -518,7 +589,7 @@ export function checkSpend(r: SiteResult): CheckResult {
 
 export function checkSite(r: SiteResult): CheckResult[] {
   const place = checkPlace(r);
-  return [checkCategory(r), checkSearchTerm(r), checkLocale(r), checkRivals(r), checkSearches(r), checkQuestions(r), checkAudience(r), checkTopics(r), checkSpend(r), ...(place === null ? [] : [place])];
+  return [checkCategory(r), checkSearchTerm(r), checkLocale(r), checkRivals(r), checkSearches(r), checkQuestions(r), checkAudience(r), checkTopics(r), checkSpend(r), checkPrompts(r), ...(place === null ? [] : [place])];
 }
 
 /** A defect kind and the sites it affects, for the run's summary. */

@@ -1,8 +1,10 @@
 // SPEC §4 (2026-09-20, #908) — the four tabs, drawn once for all four routes.
 //
 // daisyUI `tabs tabs-border` with `role="tablist"` off it: these are links,
-// not a widget — each tab is its own address, so navigation works with no
-// client runtime and the browser's own back button moves between them.
+// not a widget — each tab is its own address, so the browser's own back
+// button moves between them. Each is a `next/link` with `prefetch` (SPEC
+// §4, 2026-10-08, issue 1341): the tab is loaded before the tap, and the
+// `(tabs)` layout that draws this bar stays mounted.
 // `aria-current="page"` marks the one the customer is on, which is what a
 // screen reader reads and what `tab-active` paints.
 //
@@ -17,8 +19,10 @@
 "use client";
 
 import type React from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { copy } from "@/lib/presentation/copy";
+import { UNDER_TOP_BAR } from "../_shell/bar";
 import { OVERVIEW_TABS, TAB_COPY_KEY, TAB_HREF, tabOf } from "./tabs";
 
 export function OverviewTabs(): React.JSX.Element {
@@ -26,7 +30,7 @@ export function OverviewTabs(): React.JSX.Element {
 
   return (
     <nav
-      className="min-w-0 overflow-x-auto"
+      className={`min-w-0 overflow-x-auto ${UNDER_TOP_BAR}`}
       aria-label={copy("overview.tabs.label")}
       data-testid="overview-tabs"
     >
@@ -34,15 +38,16 @@ export function OverviewTabs(): React.JSX.Element {
         {OVERVIEW_TABS.map((tab) => {
           const here = tab === current;
           return (
-            <a
+            <Link
               key={tab}
               href={TAB_HREF[tab]}
+              prefetch={true}
               className={`tab whitespace-nowrap ${here ? "tab-active" : ""}`}
               data-testid={`overview-tab-${tab}`}
               aria-current={here ? "page" : undefined}
             >
               {copy(TAB_COPY_KEY[tab])}
-            </a>
+            </Link>
           );
         })}
       </div>

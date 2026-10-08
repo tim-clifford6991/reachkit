@@ -85,7 +85,8 @@ const actualOpportunities = await vi.importActual<typeof import("../../src/lib/o
 const { setOpportunityStore, opportunityById } = await import("../../src/lib/opportunities");
 
 const USER_ID = "44444444-4444-4444-8444-444444444444";
-/** 18:00 UTC is the site's evening: the tick drafts for 2026-09-08. */
+/** 18:00 UTC is the site's publish time, and its window is 24 h: the tick
+ *  at that hour drafts for 2026-09-08. */
 const EVENING = new Date("2026-09-07T18:00:00.000Z");
 /** The next morning — no site's evening, so only a restart is work. */
 const MORNING = new Date("2026-09-08T09:00:00.000Z");
@@ -118,7 +119,7 @@ beforeEach(async () => {
   readMeasuredTextMock.mockResolvedValue([
     { url: fixtures.GROUNDED.url, text: fixtures.SOURCE_TEXT, measuredAt: fixtures.GROUNDED.readAt },
   ]);
-  sitesForDailyTickMock.mockResolvedValue({ sites: [{ siteId: fixtures.SITE_ID, timeZone: "UTC" }], held: null });
+  sitesForDailyTickMock.mockResolvedValue({ sites: [{ siteId: fixtures.SITE_ID, timeZone: "UTC", publishTime: "18:00", vetoHours: 24 }], held: null });
 
   db.seed("sites", [
     {
@@ -130,7 +131,7 @@ beforeEach(async () => {
       competitors: [],
       mode: "autopilot",
       veto_hours: 24,
-      publish_time: "09:00",
+      publish_time: "18:00",
       timezone: "UTC",
     },
   ]);
@@ -212,9 +213,12 @@ describe("#788 — Regenerate is carried out by the draft tick", () => {
     expect(outcome).toEqual({ outcome: "ran", subjectId: null });
 
     expect(db.rows("drafts")).toHaveLength(1);
+    // Issue 1337: rewritten at 09:00 on the 8th, its 24 h window ends after
+    // that day's publish time has no room for it, so the row takes the 9th —
+    // the day it publishes on.
     expect(draft).toMatchObject({
       id: draftId,
-      scheduled_for: "2026-09-08",
+      scheduled_for: "2026-09-09",
       state: "in_review",
       body_md: expect.stringContaining("Start by counting the people who will open it"),
       hard_rules_passed: true,
@@ -269,7 +273,7 @@ describe("a page whose pack is short rests in needs_attention, not generating (#
     modelWrites(fixtures.CLEAN_MARKDOWN);
     expect(await draftGenerate.run({ data: {}, now: MORNING })).toEqual({ outcome: "ran", subjectId: null });
     expect(db.rows("drafts")).toHaveLength(1);
-    expect(draft).toMatchObject({ id: draftId, scheduled_for: "2026-09-08", state: "in_review", hard_rules_passed: true });
+    expect(draft).toMatchObject({ id: draftId, scheduled_for: "2026-09-09", state: "in_review", hard_rules_passed: true });
     expect(statusOf(opportunityId)).toBe("queued");
     expect(draftReadyMock).toHaveBeenCalledWith(expect.objectContaining({ draftId }));
   });

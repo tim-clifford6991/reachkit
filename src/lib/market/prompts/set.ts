@@ -20,6 +20,7 @@
 //
 // Pure: no I/O and no clock of its own.
 import { TRACKED_PROMPTS } from "@/lib/config/constants";
+import { DEFAULT_KIND, isBusinessKind, type BusinessKind } from "@/lib/market/kinds";
 import { PROMPT_KINDS, type GeneratedPrompt, type PromptKind } from "./generate";
 
 export interface TrackedPrompt {
@@ -44,6 +45,10 @@ export interface PromptSet {
   /** When the set was rebuilt whole from the search term (D54), ISO. It
    *  happens once; the four-week rate starts again here. */
   rebuiltAt?: string;
+  /** The kind of business the set is worded for (owner D69, issue 1318).
+   *  Absent on a set built before a kind was recorded, which is worded
+   *  for software. */
+  kind?: BusinessKind;
 }
 
 export const EMPTY_PROMPT_SET: PromptSet = Object.freeze({ prompts: [], rotations: [] });
@@ -91,6 +96,7 @@ export function parsePromptSet(value: unknown): PromptSet {
     rotations,
     ...(typeof record.builtFrom === "string" ? { builtFrom: record.builtFrom } : {}),
     ...(typeof record.rebuiltAt === "string" ? { rebuiltAt: record.rebuiltAt } : {}),
+    ...(isBusinessKind(record.kind) ? { kind: record.kind } : {}),
   };
 }
 
@@ -107,6 +113,18 @@ export function builtFromAnotherLabel(stored: PromptSet, searchTerm: string): bo
   if (term === "" || stored.prompts.length === 0 || stored.rebuiltAt !== undefined) return false;
   if (stored.builtFrom !== undefined) return named(stored.builtFrom) !== term;
   return !stored.prompts.some((p) => named(p.text).includes(term));
+}
+
+/**
+ * D69: whether the stored set is worded for another kind of business than
+ * the one now recorded. It is so once: a set with no kind was worded for
+ * software, and a site whose kind is first recorded as anything else asks
+ * its buyers' own questions from then on. A set that holds a kind is never
+ * rebuilt for another: a kind that changes later moves the set at the
+ * rotation rate only, as a search term does (D54).
+ */
+export function wordedForAnotherKind(stored: PromptSet, kind: BusinessKind | null): boolean {
+  return kind !== null && stored.prompts.length > 0 && stored.kind === undefined && kind !== DEFAULT_KIND;
 }
 
 /** The kinds whose wording names a rival. */
@@ -152,23 +170,33 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
  * keeps it, and swaps in what the allowance still has room for.
  * `searchTerm` is the market's name in `generated` where the market holds a
  * searched term (D49), else `null`: a set built from another label is
- * rebuilt whole from it, once (D54). Its comparison and branded prompts
- * follow the rivals first (`followRivals`), outside the allowance.
+ * rebuilt whole from it, once (D54). `kind` is the kind of business
+ * `generated` is worded for, where the market records one: a set worded for
+ * software is rebuilt whole for it, once (D69), under the same mark. Its
+ * comparison and branded prompts follow the rivals first (`followRivals`),
+ * outside the allowance.
  */
 export function nextPromptSet(
   before: PromptSet,
   generated: readonly GeneratedPrompt[],
   now: Date,
-  searchTerm: string | null = null
+  searchTerm: string | null = null,
+  kind: BusinessKind | null = null
 ): PromptSet {
   const at = now.toISOString();
   const whole = (): TrackedPrompt[] => generated.map((p) => ({ id: promptId(p.text), kind: p.kind, text: p.text, addedAt: at }));
-  const from = searchTerm === null ? {} : { builtFrom: searchTerm };
+  const from = { ...(searchTerm === null ? {} : { builtFrom: searchTerm }), ...(kind === null ? {} : { kind }) };
   if (before.prompts.length === 0) return { prompts: whole(), rotations: [], ...from };
+  if (generated.length > 0 && wordedForAnotherKind(before, kind)) {
+    return { prompts: whole(), rotations: [], ...from, rebuiltAt: at };
+  }
   if (searchTerm !== null && generated.length > 0 && builtFromAnotherLabel(before, searchTerm)) {
     return { prompts: whole(), rotations: [], ...from, rebuiltAt: at };
   }
-  const stored = followRivals(before, generated, now);
+  // A software set's kind is recorded without a rebuild: its wording is
+  // the one it already has.
+  const known = before.kind === undefined && kind !== null ? { ...before, kind } : before;
+  const stored = followRivals(known, generated, now);
 
   const yielded = new Set(generated.map((p) => promptId(p.text)));
   const held = new Set(stored.prompts.map((p) => p.id));

@@ -85,6 +85,18 @@ export function planHorizonEnd(today: DayKey): DayKey {
   return addDays(today, 6 - weekdayIndex(today));
 }
 
+/**
+ * The dates Plan lists on a phone (SPEC §7, 2026-10-08, issue 1340): the
+ * site-local week that contains today, Monday through the plan horizon.
+ * The recent days and the days ahead, and never a month.
+ */
+export function planWeek(today: DayKey): readonly DayKey[] {
+  const end = planHorizonEnd(today);
+  const days: DayKey[] = [];
+  for (let day = addDays(today, -weekdayIndex(today)); day <= end; day = addDays(day, 1)) days.push(day);
+  return days;
+}
+
 /** Every date in a month, in order. */
 export function daysOfMonth(month: MonthKey): readonly DayKey[] {
   const first = `${month}-01`;

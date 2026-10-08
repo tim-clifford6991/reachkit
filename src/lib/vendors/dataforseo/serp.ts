@@ -49,7 +49,7 @@ import {
   type EndpointPaths,
   type OnVendorFailure,
 } from "./envelope";
-import { localeCacheKey, type DataForSeoMode } from "./transport";
+import { placeCacheKey, type DataForSeoMode } from "./transport";
 import { scopeKey, type CacheScope, type SerpAiOverview, type SerpOrganicRow, type SerpResult } from "./types";
 
 const ORGANIC = "/v3/serp/google/organic";
@@ -100,6 +100,9 @@ export function parseSerp(result: unknown): SerpResult[] | undefined {
   // Google's "People also ask" and its related searches at no extra charge.
   const peopleAlsoAsk: string[] = [];
   const relatedSearches: string[] = [];
+  // SPEC §6 (owner D67, issue 1318): Google's local pack rides on the same
+  // SERP — the businesses it shows for a place, the ones with a site.
+  const localPack: { title: string; domain: string }[] = [];
   for (const item of result.items) {
     if (!isRecord(item)) continue;
     if (item.type === "organic") {
@@ -114,6 +117,10 @@ export function parseSerp(result: unknown): SerpResult[] | undefined {
         const question = isRecord(element) ? asString(element.title)?.trim() : undefined;
         if (question) peopleAlsoAsk.push(question);
       }
+    } else if (item.type === "local_pack") {
+      const domain = asString(item.domain)?.toLowerCase();
+      const title = asString(item.title)?.trim();
+      if (domain && title && !localPack.some((held) => held.domain === domain)) localPack.push({ title, domain });
     } else if (item.type === "related_searches") {
       for (const search of asArray(item.items)) {
         const text = asString(search)?.trim();
@@ -128,6 +135,7 @@ export function parseSerp(result: unknown): SerpResult[] | undefined {
       aiOverview,
       ...(peopleAlsoAsk.length === 0 ? {} : { peopleAlsoAsk }),
       ...(relatedSearches.length === 0 ? {} : { relatedSearches }),
+      ...(localPack.length === 0 ? {} : { localPack }),
     },
   ];
 }
@@ -178,7 +186,7 @@ export async function serpOrganic(
   let reusedFrom: Date | null = null;
   const rows = await ledgered<SerpResult>(c, {
     source: "serp/google/organic",
-    cacheKey: `${a.query}|${localeCacheKey(a.locale)}|aio:${flagged ? "async" : "cached"}|${scopeKey(a.scope)}${a.questions === true ? "|paa" : ""}`,
+    cacheKey: `${a.query}|${placeCacheKey(a.locale)}|aio:${flagged ? "async" : "cached"}|${scopeKey(a.scope)}${a.questions === true ? "|paa" : ""}`,
     freshnessDays: a.freshnessDays,
     costCents: flagged ? base * ASYNC_AIO_SURCHARGE_MULTIPLIER : base,
     ...(flagged ? { settleCents: (r: readonly SerpResult[] | null) => settledCents(base, r) } : {}),

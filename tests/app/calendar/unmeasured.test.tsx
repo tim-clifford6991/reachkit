@@ -73,7 +73,7 @@ const { cellFor } = await import("@/app/(account)/app/calendar/month");
 const { CalendarView } = await import("@/app/(account)/app/calendar/CalendarView");
 const { DayPanelView } = await import("@/app/(account)/app/calendar/DayPanelView");
 const { default: CalendarPage } = await import("@/app/(account)/app/calendar/page");
-import { withNuqs } from "./nuqs-adapter";
+import { shown, withNuqs } from "./nuqs-adapter";
 
 const AT = new Date(Date.UTC(2026, 8, 14, 6, 0, 0));
 
@@ -105,7 +105,7 @@ async function emptyDay() {
   const model = await provider.readMonth(MONTH);
   const cell = cellFor(model, EMPTY_DAY);
   if (cell === undefined) throw new Error("no cell");
-  const grid = render(withNuqs(<CalendarView model={model} />));
+  const grid = render(withNuqs(<CalendarView {...shown(model)} />));
   const panel = render(<DayPanelView cell={cell} timeZone={SITE.timeZone} stopped={null}  onClose={() => undefined} />);
   return {
     cause: cell.empty?.cause,

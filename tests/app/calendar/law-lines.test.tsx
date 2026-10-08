@@ -43,7 +43,7 @@ import {
 } from "@/app/(account)/app/calendar/empty";
 import { assembleMonth, cellFor, type CalendarFacts, type DayCell } from "@/app/(account)/app/calendar/month";
 import type { State } from "@/app/(account)/app/calendar/stages";
-import { withNuqs } from "./nuqs-adapter";
+import { shown, withNuqs } from "./nuqs-adapter";
 
 function render(el: React.ReactElement): Element {
   const container = document.createElement("div");
@@ -234,7 +234,7 @@ describe("REQ-092 c1, c2 and c4 — a stopped day carries all three lines", () =
 
   it("the grid cell states c1's line and no more — the panel is where c2 and c4 are read", () => {
     const model = assembleMonth(facts({ stop: STOP, stoppedDays: ["2026-09-16"] }), MONTH);
-    const root = render(withNuqs(<CalendarView model={model} />));
+    const root = render(withNuqs(<CalendarView {...shown(model)} />));
     const text = root.textContent ?? "";
     expect(text).toContain("stopped.work.line");
     // One sentence per cell: the needs line appears once, in the panel

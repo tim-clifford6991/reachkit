@@ -26,6 +26,7 @@ import { SHAPES, languagePack } from "@/lib/locale/language";
 import type { Language } from "@/lib/locale/locales";
 import { BATTERY, SELECTION, WINNABILITY } from "@/lib/config/constants";
 import { difficultyCeiling, qualifyingDemand } from "@/lib/opportunities/winnability/bars";
+import { withoutPlace } from "@/lib/locale/place";
 import { neverMeasured, type MeasuredMarket } from "./measured";
 import type { Profile } from "./profile";
 import type { SuggestionRow } from "./market-set";
@@ -357,7 +358,9 @@ export function selectTwelve(a: {
     const intent = classifyIntent(row.keyword, profile);
     if (intent === "own_brand") continue;
     const rivals = row.rivals ?? [];
-    if (!passesRelevanceGuard(row.keyword, profile, marketWords, rivals)) continue;
+    // D67: the place is where the search is asked, not part of what is sold.
+    const subject = a.measured?.place === undefined ? row.keyword : withoutPlace(row.keyword, a.measured.place);
+    if (!passesRelevanceGuard(subject, profile, marketWords, rivals)) continue;
     const longTail = coldStart && contentTokens(row.keyword, profile.language).length >= SELECTION.longTailWords;
     survivors.push({
       keyword: row.keyword,

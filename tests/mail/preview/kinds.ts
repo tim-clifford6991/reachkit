@@ -244,15 +244,15 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
     case "weekly": {
       const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");
       const mail = buildWeekly({
-        scoreDelta: measured(8, AT),
-        aiAnswersDelta: measured(1, AT),
-        // #933: the four Overview numbers, and the one thing waiting.
-        score: measured(62, AT),
-        searches: measured(34, AT),
-        searchesDelta: measured(5, AT),
-        aiAnswers: measured(6, AT),
-        pagesLive: measured(12, AT),
-        pagesLiveDelta: measured(1, AT),
+        // Issue 1329: D22's four headline numbers, on a hosted blog.
+        numbers: {
+          mentions: { kind: "rate", rate: measured(34, AT), low: 22, high: 48 },
+          pagesCited: measured(3, AT),
+          weeks: 4,
+          top20: measured(5, AT),
+          top20Change: measured(2, AT),
+          aiVisits: { fetches: measured(12, AT), windowDays: 7 },
+        },
         pages: measured(WEEKLY_PAGES, AT),
         next: measured(WEEKLY_NEXT, AT),
         needsYou: {
@@ -293,8 +293,6 @@ export async function composeUnmeasuredWeek(): Promise<PreviewMail> {
   const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");
   const { unmeasured } = await import("../../../src/lib/measure/measured");
   const mail = buildWeekly({
-    scoreDelta: unmeasured("not_attempted", AT),
-    aiAnswersDelta: unmeasured("not_attempted", AT),
     pages: unmeasured("not_attempted", AT),
     next: unmeasured("not_attempted", AT),
   });

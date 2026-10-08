@@ -77,6 +77,10 @@ export interface SetupFacts {
    *  owner D66, issue 1311), as `localeKey` spells it: the site's stored
    *  answer, else the reading of the site. */
   locale: string;
+  /** The city or area the site step's second question opens on (SPEC §6,
+   *  owner D67, issue 1318): the site's stored answer or reading, else what
+   *  its home page states, else empty. */
+  place: string;
   /** SPEC §5 (2026-09-20, #923): the rivals step's own panel — the searches
    *  the scan measured × the customer and each rival. `null` where nothing
    *  has been measured for this address, and the panel then draws a shape
@@ -129,6 +133,8 @@ export interface SetupScreenModel {
   voiceText: string;
   /** `SetupFacts.locale`: what the site step's one question is filled with. */
   locale: string;
+  /** `SetupFacts.place`: the city or area it serves, as read; empty for none. */
+  place: string;
   /** SPEC §5 (2026-09-20): the step `/setup` opens on when the address
    *  carries no `?step=` of its own. */
   openAt: SetupStepId;
@@ -178,6 +184,7 @@ export function assembleSetup(facts: SetupFacts): SetupScreenModel {
     questions: facts.questions,
     voiceText: facts.saved?.voiceText ?? facts.profile?.voice?.text ?? "",
     locale: facts.locale,
+    place: facts.place,
     openAt: openAtFor(facts.saved),
     rivalGrid: facts.rivalGrid,
     passStage: facts.passStage,

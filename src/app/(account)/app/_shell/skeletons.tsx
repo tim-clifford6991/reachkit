@@ -24,6 +24,7 @@
 // file is for. Nothing here wraps `skeleton` itself.
 import type React from "react";
 import { SKELETON_EXIT, ViewTransition } from "@/ui/motion";
+import { TOP_BAR } from "./bar";
 
 /** One box. Spelled here so the class name is written once per shape
  *  rather than once per box, and so `height` is the only thing a caller
@@ -39,7 +40,7 @@ export function Box(p: { className: string }): React.JSX.Element {
  * part of the page is coming, once, rather than eleven times — and
  * `data-waiting` is the layout suite's own hook for "do not measure this
  * yet" (`tests/ui/layout/browser.ts` waits for it to leave the DOM), which
- * `_fallback/Waiting.tsx` established and this keeps rather than inventing
+ * issue #327 established and this keeps rather than inventing
  * a second name for the same state.
  */
 export function Waiting(p: {
@@ -87,15 +88,19 @@ export function PanelCardSkeleton(p: { testId: string; className: string }): Rea
   );
 }
 
-/** The top bar, below `lg`: the menu button at the start, then the brand. */
+/** The top bar, below `lg`, in the bar's own box: the brand and the theme
+ *  control's place on one row, the publishing line under it. */
 export function TopBarSkeleton(): React.JSX.Element {
   return (
     <Waiting
-      className="navbar border-base-300 bg-base-100 min-h-0 gap-2 rounded-box border p-2 lg:hidden"
+      className={`border-base-300 bg-base-100 flex min-w-0 flex-col justify-center gap-2 border-b px-4 ${TOP_BAR}`}
       testId="shell-top-skeleton"
     >
-      <Box className="h-8 w-8 shrink-0" />
-      <Box className="h-6 w-24" />
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <Box className="h-6 w-24" />
+        <Box className="h-8 w-8 shrink-0" />
+      </div>
+      <Box className="h-4 w-56 max-w-full" />
     </Waiting>
   );
 }
@@ -158,19 +163,21 @@ export function TableSkeleton(p: { testId: string; rows?: number }): React.JSX.E
 }
 
 /**
- * Plan below its head: the stage filters with their one note, the month in
- * the two shapes `calendar/CalendarView.tsx` draws it in, and the day panel.
+ * Plan below its head: the stage filters with their one note, Plan in the
+ * two shapes `calendar/CalendarView.tsx` draws it in, and the day panel.
  *
  * The classes that decide a box are that file's own — the row the filters
- * wrap in, the card around the grid from `md`, the list below it, the
+ * wrap in, the card around the grid from `lg`, the list below it, the
  * `20rem` column the panel takes from `xl` — so the same media queries
- * choose the same shape here that they choose when the month lands. A day
- * in the grid is `DayCard`'s fixed `h-26`; a day in the list is `DayList`'s
+ * choose the same shape here that they choose when Plan lands. A day in
+ * the grid is `DayCard`'s fixed `h-26`; a day in the list is `DayList`'s
  * three tracks at its `min-h-16`.
  *
- * Five weeks and thirty days, because a route's waiting state is not told
- * which month was asked for: most months are five rows, and the rows a
- * longer one adds are below everything else on the screen.
+ * Below `lg` it is seven rows (SPEC §7, 2026-10-08, issue 1340): the list
+ * is this week, Monday through Sunday, whatever the date. From `lg` it is
+ * five weeks, because a route's waiting state is not told which month was
+ * asked for: most months are five rows, and the row a longer one adds is
+ * below everything else on the screen.
  */
 export function PlanSkeleton(): React.JSX.Element {
   return (
@@ -186,7 +193,7 @@ export function PlanSkeleton(): React.JSX.Element {
 
       <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
-          <div className="card card-border bg-base-100 hidden p-2 md:block" data-testid="plan-skeleton-grid">
+          <div className="card card-border bg-base-100 hidden p-2 lg:block" data-testid="plan-skeleton-grid">
             {/* A table with `MonthGrid`'s own classes, so a row here is a
                 row there by the same arithmetic rather than by a number
                 copied from it. */}
@@ -214,10 +221,10 @@ export function PlanSkeleton(): React.JSX.Element {
             </table>
           </div>
           <div
-            className="list bg-base-100 rounded-box border border-base-200 md:hidden"
+            className="list bg-base-100 rounded-box border border-base-200 lg:hidden"
             data-testid="plan-skeleton-list"
           >
-            {Array.from({ length: 30 }, (_, at) => (
+            {Array.from({ length: 7 }, (_, at) => (
               <div
                 key={at}
                 className="list-row grid min-h-16 w-full min-w-0 grid-cols-[2.25rem_minmax(0,1fr)_minmax(4rem,auto)] items-center gap-3 px-4 py-2.5"
@@ -230,9 +237,9 @@ export function PlanSkeleton(): React.JSX.Element {
           </div>
         </div>
 
-        {/* The day panel's place: under the month from `md`, beside it from
-            `xl`. Below `md` an unopened Plan has no panel, so nor has this. */}
-        <div className="card card-border bg-base-100 hidden min-w-0 md:flex" data-testid="plan-skeleton-panel">
+        {/* The day panel's place: under the month from `lg`, beside it from
+            `xl`. Below `lg` an unopened Plan has no panel, so nor has this. */}
+        <div className="card card-border bg-base-100 hidden min-w-0 lg:flex" data-testid="plan-skeleton-panel">
           <div className="card-body min-w-0 gap-3 p-4">
             <Box className="h-8 w-full" />
             <Box className="h-6 w-4/5" />

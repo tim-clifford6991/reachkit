@@ -1,7 +1,9 @@
 // SPEC §6 (2026-09-20, #908) measure (d) — the *AI engines on your blog*
 // card's facts, for a real account.
 //
-// The other half of `blog-reads-provider.ts`. It measures nothing and buys
+// Read by the app's `blog-reads-provider.ts` and by the Monday mail
+// (`src/lib/mail/weekly`), which is why it lives here and not beside the
+// card: `src/lib` never imports `src/app`. It measures nothing and buys
 // nothing: every value is a projection of rows the hosted route already
 // wrote, plus two cheap questions about the site — does it publish anywhere
 // we host, and has it published anything yet.
@@ -20,7 +22,7 @@ import { BLOG_READS_WINDOW_D } from "@/lib/config/constants";
 import { AI_BLOG_ENGINES } from "@/lib/config/constants";
 import { BLOG_READ_KINDS } from "@/lib/publish/reads/classify";
 import { readBlogReads } from "@/lib/publish/reads/store";
-import { windowStartDay, type BlogReadsFacts } from "./blog-reads-model";
+import { windowStartDay, type BlogReadsFacts } from "./model";
 
 interface MinimalResult<T> {
   data: T[] | null;

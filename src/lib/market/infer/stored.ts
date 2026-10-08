@@ -3,6 +3,8 @@
 // write conclusions through it, and the founder's saves set the overrides
 // through it.
 import { dbAdmin } from "@/lib/db";
+import { areaOf, placeOf } from "@/lib/locale/place";
+import { isBusinessKind } from "@/lib/market/kinds";
 import { registrableDomain } from "../rivals/domains";
 import type { MarketChange, StoredMarketWithChange } from "./stability";
 import { EMPTY_STORED_MARKET, type BrandDemand, type MarketConclusion, type MarketTerm, type RivalConclusion } from "./types";
@@ -65,6 +67,7 @@ function rivalsOf(value: unknown): RivalConclusion[] {
       // D50: only where a pass has read it.
       ...(typeof entry.volume === "number" && entry.volume >= 0 ? { volume: entry.volume } : {}),
       ...(entry.closeness === "partial" ? { closeness: "partial" as const } : {}),
+      ...(entry.national === true ? { national: true as const } : {}),
     });
   }
   return out;
@@ -131,6 +134,13 @@ function conclusionOf(value: unknown): MarketConclusion | null {
     ...(isRecord(value.judged)
       ? { judged: Object.fromEntries(Object.entries(value.judged).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean")) }
       : {}),
+    // D69 and D67: only where a conclusion said.
+    ...(isBusinessKind(value.kind) ? { kind: value.kind } : {}),
+    ...(value.serves === null
+      ? { serves: null }
+      : isRecord(value.serves) && placeOf(value.serves.name, value.serves.region) !== null
+        ? { serves: placeOf(value.serves.name, value.serves.region) }
+        : {}),
   };
 }
 
@@ -163,6 +173,7 @@ export function parseStoredMarket(value: unknown): StoredMarketWithChange {
     // D65: what the last pass left out and held back.
     ...(Array.isArray(value.rivalsLeftOut) ? { rivalsLeftOut: strings(value.rivalsLeftOut) } : {}),
     ...(Array.isArray(value.rivalsWaiting) ? { rivalsWaiting: strings(value.rivalsWaiting) } : {}),
+    ...(areaOf(value.area) === null ? {} : { area: areaOf(value.area)! }),
     lastChange: changeOf(value.lastChange),
   };
 }

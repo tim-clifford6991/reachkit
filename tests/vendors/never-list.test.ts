@@ -72,6 +72,9 @@ const APPROVED_EXPORTS = [
   "keywordSuggestions",
   "llmMentions",
   "llmScraper",
+  // SPEC §6, owner D67 (2026-10-07, issue 1318): the vendor's free list of
+  // cities, for a business that serves one place.
+  "placeLocation",
   "rankedKeywords",
   // SPEC §7, owner D48 (2026-10-04, issue 1259): Google News, for *current
   // insights*.

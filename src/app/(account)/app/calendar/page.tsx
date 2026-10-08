@@ -34,6 +34,7 @@
 import type React from "react";
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
@@ -41,7 +42,7 @@ import { PlanSkeleton } from "../_shell/skeletons";
 import { CalendarView } from "./CalendarView";
 import { PlanHead } from "./PlanHead";
 import { addMonths, monthNameOnly, monthShortLabel } from "./dates";
-import { parseMonth, readMonth, readStalledWeek, readSupplyNotice } from "./provider";
+import { parseMonth, readMonth, readStalledWeek, readSupplyNotice, readWeek } from "./provider";
 import { stalledLine, supplyLine } from "./supply";
 import { readOnboarding } from "../_shell/onboarding";
 import { FirstPageNotice } from "../_shell/OnboardingStatus";
@@ -61,6 +62,7 @@ export default async function CalendarPage({
   const asked = (await searchParams).month;
   const month = await parseMonth(typeof asked === "string" ? asked : undefined);
   const [model, onboarding] = await Promise.all([readMonth(month), readOnboarding()]);
+  const week = await readWeek(model.today);
   // §7's one statement of supply. At most one — the precedence between the
   // three arms is the engine's, and this screen renders whichever it
   // returned and never a second.
@@ -82,16 +84,19 @@ export default async function CalendarPage({
     <div className="flex min-w-0 flex-col gap-4">
       <PlanHead>
         {/* One grouped control (issue 1071, board R12-5-Plan): the month
-            between its two neighbours, and *Today* after a hairline. */}
-        <nav className="join rounded-field bg-base-100 shadow-(--shadow-card)" data-testid="month-switcher">
-          <a
+            between its two neighbours, and *Today* after a hairline. From
+            `lg` only: below it Plan is this week and there is no month to
+            switch (SPEC §7, 2026-10-08, issue 1340). */}
+        <nav className="join rounded-field bg-base-100 shadow-(--shadow-card) hidden lg:inline-flex" data-testid="month-switcher">
+          <Link
             href={`/app/calendar?month=${previous}`}
+            prefetch={true}
             className="btn btn-sm btn-ghost join-item"
             aria-label={monthNameOnly(previous)}
             data-testid="month-previous"
           >
             <ChevronLeft size={20} strokeWidth={1.75} aria-hidden />
-          </a>
+          </Link>
           <span
             className="btn btn-sm btn-ghost join-item num pointer-events-none font-semibold"
             aria-current="page"
@@ -99,21 +104,23 @@ export default async function CalendarPage({
           >
             {monthShortLabel(month)}
           </span>
-          <a
+          <Link
             href={`/app/calendar?month=${next}`}
+            prefetch={true}
             className="btn btn-sm btn-ghost join-item"
             aria-label={monthNameOnly(next)}
             data-testid="month-next"
           >
             <ChevronRight size={20} strokeWidth={1.75} aria-hidden />
-          </a>
-          <a
+          </Link>
+          <Link
             href="/app/calendar"
+            prefetch={true}
             className="btn btn-sm btn-ghost join-item border-s border-s-base-300"
             data-testid="month-today"
           >
             {copy("calendar.month.today")}
-          </a>
+          </Link>
         </nav>
       </PlanHead>
 
@@ -148,7 +155,7 @@ export default async function CalendarPage({
         </p>
       )}
       <Suspense fallback={<PlanSkeleton />}>
-        <CalendarView model={model} />
+        <CalendarView model={model} week={week} />
       </Suspense>
 
       {/* One footnote under the grid: the rule. What supply is doing right

@@ -1,5 +1,6 @@
-// SPEC §4 (2026-09-20, #908) — "below the large breakpoint it is a drawer
-// and the three menu items move to a bottom bar."
+// SPEC §4 (2026-10-08, owner, issue 1339) — "On a phone the bottom bar is
+// the navigation." Below the large breakpoint there is no side panel and
+// this is the only menu.
 //
 // A daisyUI `dock`: the same three destinations, from the same tuple, with
 // their words under their glyphs and the waiting count where the panel puts
@@ -16,11 +17,14 @@
 // second copy of the same three links would be a second navigation.
 //
 // A client component for one reason: the pathname that marks the current
-// item. Everything else is a plain `<a href>`.
+// item. Each item is a `next/link` with `prefetch` (SPEC §4, 2026-10-08,
+// issue 1341): the destination is loaded before the tap, and the shell
+// around it stays mounted.
 "use client";
 
 import type React from "react";
 import { Suspense, use } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { copy } from "@/lib/presentation/copy";
 import {
@@ -66,9 +70,10 @@ export function AppDock(p: {
         const here = destination === current;
         const carries = destination === WAITING_ON;
         return (
-          <a
+          <Link
             key={destination}
             href={DESTINATION_HREF[destination]}
+            prefetch={true}
             className={here ? "dock-active text-primary" : ""}
             aria-current={here ? "page" : undefined}
             data-testid={`shell-docklink-${destination}`}
@@ -89,7 +94,7 @@ export function AppDock(p: {
               )}
             </span>
             <span className="dock-label truncate text-(length:--t-eyebrow)">{copy(DESTINATION_COPY_KEY[destination])}</span>
-          </a>
+          </Link>
         );
       })}
     </nav>

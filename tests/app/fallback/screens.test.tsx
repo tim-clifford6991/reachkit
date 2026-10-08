@@ -204,7 +204,11 @@ describe("S8 — one control per screen, and it is the route group's own", () =>
     { name: "(account)/not-found.tsx", markup: html(AccountNotFound) },
     { name: "(account)/error.tsx", markup: html(AccountError) },
   ])("$name carries the quiet way back to the Overview and no scan field", ({ markup }) => {
-    expect(occurrences(markup, '<a href="/app"')).toBe(1);
+    // One anchor, and it goes to the Overview. `next/link` writes its
+    // attributes in its own order, so the anchor and its address are
+    // counted apart.
+    expect(occurrences(markup, "<a ")).toBe(1);
+    expect(occurrences(markup, 'href="/app"')).toBe(1);
     expect(markup).toContain(COPY["chrome.back-to-overview"]);
     expect(markup).not.toContain("<form");
     expect(markup).not.toContain("<input");

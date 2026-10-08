@@ -1,18 +1,19 @@
 // src/jobs/draft-generate.ts — BUILD §11
 //
-// "`draft/generate` · daily, evening · Next opportunity → pipeline →
-// `in_review`, veto clock starts, daily email." Evening is the site's own
-// evening: an hourly tick, gated on each site's local due hour, on the same
-// grounds ADR-060 states for the weekly one — a single UTC hour is a
-// different time of day in every zone, and the run must finish before the
-// site's own veto window would open on the next publish date.
+// "`draft/generate` · daily · Next opportunity → pipeline → `in_review`,
+// veto clock starts, daily email." An hourly tick, gated on each site's
+// own due hour, on the same grounds ADR-060 states for the weekly one — a
+// single UTC hour is a different time of day in every zone. The due hour
+// is the one whose veto window ends at the site's publish time on the date
+// the page is for (issue 1337, `site-clock.ts`), so a page nobody touches
+// publishes on its calendar day.
 //
 // In the kill switch's scope: `runJob()` stops it before this body's first
 // spend and first write.
 //
 // It is also where the customer's Regenerate is carried out (#788): the
 // restart only moves the page back into `generating`, and every tick —
-// not only a site's evening — writes one restarted page a site again.
+// not only a site's due hour — writes one restarted page a site again.
 //
 // **What makes a second delivery of one tick harmless** (issue 886).
 // Delivery is at-least-once and a clock tick carries no payload, so there
@@ -43,7 +44,7 @@ import {
   restartedDrafts,
 } from "@/jobs/engine";
 import { fanOut, settle } from "./fan-out";
-import { isDraftDue, nextPublishDate } from "./site-clock";
+import { isDraftDue, nextPublishDate, tickHour } from "./site-clock";
 import type { JobDefinition, Outcome } from "./types";
 
 /** Hourly, on the hour; due-ness is per site, inside the run. */
@@ -68,7 +69,10 @@ export const draftGenerate: JobDefinition = {
       regenerateDraft({ siteId: draft.siteId, draftId: draft.draftId, now: input.now })
     );
 
-    const due = selection.sites.filter((site) => isDraftDue(input.now, site.timeZone));
+    // The window a due page opens is counted from the tick's own hour, so
+    // it ends at or before the publish time however late the tick arrived.
+    const hour = tickHour(input.now);
+    const due = selection.sites.filter((site) => isDraftDue(hour, site));
     if (due.length === 0) {
       return restarted.length === 0
         ? { outcome: "skipped", subjectId: null, reason: "not-due" }
@@ -83,8 +87,8 @@ export const draftGenerate: JobDefinition = {
       await noticeBrokenDestination({ siteId: site.siteId, now: input.now });
       return generateDraft({
         siteId: site.siteId,
-        publishDate: nextPublishDate(input.now, site.timeZone),
-        now: input.now,
+        publishDate: nextPublishDate(hour, site),
+        now: hour,
       });
     });
     return settle([...regenerated, ...results], null);

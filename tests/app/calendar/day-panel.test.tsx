@@ -22,7 +22,7 @@ import {
   FIXTURE_MONTH,
   FIXTURE_TIME_ZONE,
 } from "@/app/(account)/app/calendar/fixture";
-import { withNuqs } from "./nuqs-adapter";
+import { shown, withNuqs } from "./nuqs-adapter";
 
 function render(el: React.ReactElement): Element {
   const container = document.createElement("div");
@@ -40,21 +40,21 @@ function panel(day: string): Element {
   );
 }
 
-describe("REQ-043 c7, read as 'from md up' — an absent ?day is open on a desktop and closed on a phone", () => {
+describe("REQ-043 c7, read as 'from lg up' — an absent ?day is open on a desktop and closed on a phone", () => {
   // Owner, PR #961. "There is no month in which nothing is selected" is
-  // unchanged from `md` up, where the panel stands beside the month. Below
-  // it the panel is a sheet **over** the month, and the same default meant
+  // unchanged from `lg` up (issue 1340), where the panel stands beside the
+  // month. Below it the panel is a sheet **over** the list, and the same default meant
   // a customer who tapped Plan landed on a sheet covering their plan.
   //
-  // One DOM: the difference is `max-md:hidden` on the implicitly-open
+  // One DOM: the difference is `hidden lg:flex` on the implicitly-open
   // panel, and which selection each shape of the month is handed.
-  it("a day nobody asked for is drawn, marked hidden below md, and marks nothing in the list", () => {
-    const root = render(withNuqs(<CalendarView model={MODEL} />));
+  it("a day nobody asked for is drawn, marked hidden below lg, and marks nothing in the list", () => {
+    const root = render(withNuqs(<CalendarView {...shown(MODEL)} />));
     const panel = root.querySelector('[data-testid="day-panel"]');
     expect(panel).not.toBeNull();
-    expect(panel?.className).toContain("max-md:hidden");
+    expect(panel?.className).toContain("hidden lg:flex");
     expect(panel?.hasAttribute("data-implicit")).toBe(true);
-    // The grid is drawn from `md` up, where this day *is* open.
+    // The grid is drawn from `lg` up, where this day *is* open.
     expect(
       root.querySelector(`[data-testid="calendar-cell-${MODEL.today}"]`)?.getAttribute("aria-current")
     ).toBe("date");
@@ -69,9 +69,9 @@ describe("REQ-043 c7, read as 'from md up' — an absent ?day is open on a deskt
   });
 
   it("a day the address names is open at every width, and the list marks it", () => {
-    const root = render(withNuqs(<CalendarView model={MODEL} />, { day: "2026-09-18" }));
+    const root = render(withNuqs(<CalendarView {...shown(MODEL)} />, { day: "2026-09-18" }));
     const panel = root.querySelector('[data-testid="day-panel"]');
-    expect(panel?.className).not.toContain("max-md:hidden");
+    expect(panel?.className).not.toContain("hidden lg:flex");
     expect(panel?.hasAttribute("data-implicit")).toBe(false);
     expect(
       root.querySelector('[data-testid="calendar-day-2026-09-18"]')?.getAttribute("aria-current")
@@ -79,7 +79,7 @@ describe("REQ-043 c7, read as 'from md up' — an absent ?day is open on a deskt
   });
 
   it("?day=none is closed at every width — the founder's own act, and it sticks", () => {
-    const root = render(withNuqs(<CalendarView model={MODEL} />, { day: "none" }));
+    const root = render(withNuqs(<CalendarView {...shown(MODEL)} />, { day: "none" }));
     expect(root.querySelector('[data-testid="day-panel"]')).toBeNull();
     expect(
       root.querySelectorAll('[data-testid^="calendar-cell-"][aria-current="date"]')
@@ -89,7 +89,7 @@ describe("REQ-043 c7, read as 'from md up' — an absent ?day is open on a deskt
 
 describe("REQ-043 c7 — today is the selected day when the calendar opens", () => {
   it("the panel the view renders on open is today's, not the month's first date", () => {
-    const root = render(withNuqs(<CalendarView model={MODEL} />));
+    const root = render(withNuqs(<CalendarView {...shown(MODEL)} />));
     const title = root.querySelector('[data-testid="day-title"]')?.textContent;
     const todayCell = cellFor(MODEL, MODEL.today);
     expect(MODEL.today).toBe("2026-09-15");
@@ -107,7 +107,7 @@ describe("REQ-043 c7 — today is the selected day when the calendar opens", () 
     );
     // 2026-09-15T14:00Z is 2026-09-16 02:00 in Auckland.
     expect(nz.today).toBe("2026-09-16");
-    const root = render(withNuqs(<CalendarView model={nz} />));
+    const root = render(withNuqs(<CalendarView {...shown(nz)} />));
     expect(
       root.querySelector('[data-testid="calendar-cell-2026-09-16"]')?.getAttribute("aria-current")
     ).toBe("date");
@@ -115,7 +115,7 @@ describe("REQ-043 c7 — today is the selected day when the calendar opens", () 
 
   it("a month that does not hold today still opens on a day — never on none", () => {
     const november = assembleMonth(FIXTURE_CALENDAR_FACTS, "2026-11");
-    const root = render(withNuqs(<CalendarView model={november} />));
+    const root = render(withNuqs(<CalendarView {...shown(november)} />));
     const pressed = [...root.querySelectorAll('[data-testid^="calendar-cell-"]')].filter(
       (c) => c.getAttribute("aria-current") === "date"
     );

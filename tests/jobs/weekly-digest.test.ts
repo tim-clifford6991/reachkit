@@ -114,23 +114,45 @@ describe("the Monday digest goes out for a week that was measured", () => {
     expect(sent[0]!.kind).toBe("weekly");
     expect(sent[0]!.to).toBe("founder@example.com");
     expect(sent[0]!.subject).toBe("mail.weekly.subject");
-    // SPEC §8 (2026-09-20, #933): the score is the one number up top, the
-    // headline sentence says which way the week went, and the other three
-    // Overview numbers stand together. §12's four sections are still here,
-    // in §12's order, between the shell's head and its one button.
-    // This fixture is a site's **first** measured week: there is no week
-    // before it to compare against, so the score is stated and no direction
-    // is claimed — the headline sentence is composed only where a movement
-    // was measured, and the body line stands alone here.
-    expect(sent[0]!.blocks.map((b) => b.block)).toEqual([
-      "heading",
-      "hero",
-      "paragraph",
-      "stats",
-      "verdicts",
-      "list",
-      "action",
+    // SPEC §8 (2026-10-07, issue 1329): the four headline numbers lead,
+    // straight under the heading; the pages, the next three and the one
+    // button follow. No score and no sentence about one.
+    expect(sent[0]!.blocks.map((b) => b.block)).toEqual(["heading", "stats", "verdicts", "list", "action"]);
+  });
+
+  it("issue 1329 — the top-20 number is counted from the week's stored verdict rows, with its change", async () => {
+    const at = "2026-09-07T06:00:00.000Z";
+    const row = (id: string, week: string, measured: unknown): Row => ({
+      id: `${id}-${week}`,
+      site_id: "site-1",
+      publication_id: id,
+      week_start: week,
+      verdict: "working",
+      cause: null,
+      measured_at: at,
+      measured,
+      movement: null,
+    });
+    db.seed("page_verdicts", [
+      row("p1", WEEK, { kind: "measured", value: 4, at }),
+      row("p2", WEEK, { kind: "measured", value: 18, at }),
+      // A page that holds no place is a result, and is not in the count.
+      row("p3", WEEK, { kind: "zero", value: 0, at }),
+      row("p1", "2026-08-31", { kind: "measured", value: 9, at }),
+      row("p2", "2026-08-31", { kind: "zero", value: 0, at }),
     ]);
+    await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
+
+    const stats = sent[0]!.blocks.find((b) => b.block === "stats") as unknown as {
+      items: readonly { label: string; value: { kind: string; value?: number }; change?: { value?: number } }[];
+    };
+    const top20 = stats.items.find((item) => item.label === "mail.weekly.number.top20");
+    expect(top20?.value).toMatchObject({ kind: "measured", value: 2 });
+    expect(top20?.change).toMatchObject({ value: 1 });
+    // No pass asked the prompts: the rate says it was not measured rather
+    // than reading 0%. And this site has no hosted blog, so no fourth row.
+    expect(stats.items[0]).toMatchObject({ label: "mail.weekly.number.mentionRate", value: { kind: "unmeasured" } });
+    expect(stats.items.map((item) => item.label)).not.toContain("mail.weekly.number.aiVisits");
   });
 
   it("a complete week says so, and carries no missed-section line", async () => {
@@ -252,24 +274,12 @@ describe("no row, no telling — and an unmeasured week that has one says so", (
     expect(outcome).toEqual({ sent: true, id: "vendor-1" });
     expect(sent).toHaveLength(1);
     expect(sent[0]?.measurement).toEqual({ state: "none", nextDueOn });
-    // No figure is stated for a week nobody measured: the number up top,
-    // the three beside it, the verdicts and the next three all go in
-    // unmeasured, so every one of them is omitted — and #933's headline
-    // sentence is not composed at all, because "your score held" is a
-    // measurement this week does not have.
-    const sections = (sent[0]?.blocks ?? []).filter((b) =>
-      ["hero", "list", "verdicts"].includes(b.block)
-    );
-    const arms = sections.map((b) => ((b as { value?: { kind: string } }).value ?? (b as { items?: { kind: string } }).items)?.kind);
-    expect(arms).toEqual(["unmeasured", "unmeasured", "unmeasured"]);
-    const stats = sent[0]?.blocks.find((b) => b.block === "stats") as unknown as {
-      items: readonly { value: { kind: string } }[];
-    };
-    expect(stats.items.every((item) => item.value.kind === "unmeasured")).toBe(true);
-    const paragraphs = (sent[0]?.blocks ?? []).filter((b) => b.block === "paragraph");
-    expect(paragraphs.map((b) => (b as unknown as { text: string }).text)).toEqual([
-      "mail.weekly.body",
-    ]);
+    // No figure is stated for a week nobody measured: there is no group
+    // of numbers at all, and the verdicts and the next three go in
+    // unmeasured, so both are omitted. The whole-mail line says why, once.
+    expect((sent[0]?.blocks ?? []).map((b) => b.block)).toEqual(["heading", "verdicts", "list", "action"]);
+    const sections = (sent[0]?.blocks ?? []).filter((b) => ["list", "verdicts"].includes(b.block));
+    expect(sections.map((b) => (b as { items?: { kind: string } }).items?.kind)).toEqual(["unmeasured", "unmeasured"]);
     expect(theScan().digest_sent_at).not.toBeNull();
     expect(await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW })).toEqual({ sent: false, reason: "already-sent" });
   });

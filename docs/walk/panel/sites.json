@@ -1,11 +1,14 @@
 {
-  "about": "The customer panel (SPEC §0, owner 2026-10-07, issue 1304): real public sites chosen for spread, run by `npm run panel`. None is a ReachKit rival. `country` and `language` are where the business's buyers are and what its site is written in; the checks hold the pass to them. `market` is word roots of what the business is, in its own language: the concluded category has to be spoken in one of them. The order is the run order, most different kinds first, so a run its cap cuts short still covers a spread. `place` is where a business that trades in one place trades; what of its market is not said there is listed for a person to read.",
+  "about": "The customer panel (SPEC §0, owner 2026-10-07, issue 1304): real public sites chosen for spread, run by `npm run panel`. None is a ReachKit rival. `country` and `language` are where the business's buyers are and what its site is written in; the checks hold the pass to them. `market` is word roots of what the business is, in its own language: the concluded category has to be spoken in one of them. The order is the run order, most different kinds first, so a run its cap cuts short still covers a spread. `place` is where a business that trades in one place trades. `kinds` is the kind of business the market conclusion may record it as (SPEC §6, D69), from the closed list in `src/lib/market/kinds.ts`; a local site's `place` is also where the pass has to measure it (D67): its terms, its searches, its prompts and its rivals.",
   "sites": [
     {
       "domain": "zunicafe.com",
       "kind": "restaurant, single location",
       "country": "US",
       "language": "en",
+      "kinds": [
+        "hospitality"
+      ],
       "market": [
         "restaurant",
         "dining",
@@ -23,6 +26,9 @@
       "kind": "local service, single location (plumber)",
       "country": "US",
       "language": "en",
+      "kinds": [
+        "local-service"
+      ],
       "market": [
         "plumb"
       ],
@@ -36,6 +42,10 @@
       "kind": "German small business, German-language site (bakery)",
       "country": "DE",
       "language": "de",
+      "kinds": [
+        "shop",
+        "hospitality"
+      ],
       "market": [
         "bäcker",
         "backwaren",
@@ -54,6 +64,9 @@
       "kind": "professional services (accountancy, UK)",
       "country": "GB",
       "language": "en",
+      "kinds": [
+        "professional-services"
+      ],
       "market": [
         "account",
         "tax"
@@ -68,6 +81,9 @@
       "kind": "e-commerce shop",
       "country": "US",
       "language": "en",
+      "kinds": [
+        "shop"
+      ],
       "market": [
         "tattoo"
       ],
@@ -78,6 +94,9 @@
       "kind": "B2B SaaS, not ReachKit's market (scheduling)",
       "country": "US",
       "language": "en",
+      "kinds": [
+        "software"
+      ],
       "market": [
         "schedul",
         "calendar",
@@ -91,6 +110,9 @@
       "kind": "agency or consultancy (design, UK)",
       "country": "GB",
       "language": "en",
+      "kinds": [
+        "professional-services"
+      ],
       "market": [
         "design",
         "ux"
@@ -102,6 +124,9 @@
       "kind": "creator and course business",
       "country": "US",
       "language": "en",
+      "kinds": [
+        "creator"
+      ],
       "market": [
         "course",
         "javascript",
@@ -116,6 +141,9 @@
       "kind": "local service (dentist)",
       "country": "US",
       "language": "en",
+      "kinds": [
+        "local-service"
+      ],
       "market": [
         "dent"
       ],
@@ -129,6 +157,9 @@
       "kind": "local service (electrician, UK)",
       "country": "GB",
       "language": "en",
+      "kinds": [
+        "local-service"
+      ],
       "market": [
         "electric"
       ],
@@ -142,6 +173,9 @@
       "kind": "app business (consumer iOS app)",
       "country": "US",
       "language": "en",
+      "kinds": [
+        "software"
+      ],
       "market": [
         "habit",
         "to-do",

@@ -30,6 +30,8 @@ function plain(value: number, format: StatFormat): string {
       return value > 0 ? `+${value}` : String(value);
     case "perMonth":
       return `${value}${PER_MONTH_SUFFIX}`;
+    case "percent":
+      return `${value}%`;
   }
 }
 

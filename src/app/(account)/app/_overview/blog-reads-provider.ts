@@ -8,13 +8,13 @@
 // answered from a fixture; and no module fetches for itself — the page
 // calls this once and the card is a pure function of what it returns.
 //
-// `blog-reads-store.ts` is imported **at the call**, never at the top: it
+// `@/lib/publish/reads/facts` is imported **at the call**, never at the top: it
 // resolves `@/lib/db`, which parses the deployment's own bindings at module
 // load, and the reserved account's card reaches no database at all.
 import { cache } from "react";
 import { BLOG_READS_WINDOW_D } from "@/lib/config/constants";
 import { isReservedFixtureAccount, requireSetUpAccount } from "../_session/account";
-import { assembleBlogReads, type BlogReadsModel } from "./blog-reads-model";
+import { assembleBlogReads, type BlogReadsModel } from "@/lib/publish/reads/model";
 import { FIXTURE_BLOG_READS_FACTS } from "./blog-reads-fixture";
 
 /** The instant the fixture's counts were taken — the Monday every other
@@ -27,7 +27,7 @@ export const readBlogReads = cache(async function readBlogReads(): Promise<BlogR
     return assembleBlogReads(FIXTURE_BLOG_READS_FACTS, BLOG_READS_WINDOW_D, FIXTURE_AT);
   }
 
-  const { readBlogReadFacts } = await import("./blog-reads-store");
+  const { readBlogReadFacts } = await import("@/lib/publish/reads/facts");
   const { now } = await import("@/lib/config/now");
   const at = now();
   return assembleBlogReads(

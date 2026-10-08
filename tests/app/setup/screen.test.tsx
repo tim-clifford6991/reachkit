@@ -173,7 +173,9 @@ describe('REQ-025 c3 — "when they look for anything that tunes the engine ... 
     const scanless = [...screenFor("site", SCANLESS).querySelectorAll("input[name]")].map((i) =>
       i.getAttribute("name"),
     );
-    expect(scanless.sort()).toEqual(["domain"]);
+    // D67 (issue 1318): and where the business serves, asked with the
+    // country — a fact about the business, not a setting of the engine.
+    expect(scanless.sort()).toEqual(["domain", "place"]);
   });
 
   it("there is no select, checkbox or radio at all — the two card pairs are buttons", () => {
@@ -307,6 +309,8 @@ describe("step one — your site and your market (REQ-021 c6/c7, REQ-026 c1/c3)"
           state={onMarketStated(model().state, category)}
           setState={() => {}}
           locale="US/en"
+          place=""
+          setPlace={() => {}}
           setLocale={() => {}}
           questions={q}
           resolveDomain={async () => {
@@ -341,6 +345,8 @@ describe("step one — your site and your market (REQ-021 c6/c7, REQ-026 c1/c3)"
         state={onMarketStated(model().state, "time tracking software")}
         setState={() => {}}
         locale="US/en"
+        place=""
+        setPlace={() => {}}
         setLocale={() => {}}
         questions={thin}
         resolveDomain={async () => {

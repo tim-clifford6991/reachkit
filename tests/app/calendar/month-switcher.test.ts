@@ -69,6 +69,8 @@ describe("the two formatters, and which position takes which", () => {
 describe("the switcher's shape", () => {
   it("is a row of three: an arrow, the month, an arrow", () => {
     expect(PAGE).toContain('data-testid="month-switcher"');
+    // Issue 1340: only where the month is. Below `lg` Plan is this week.
+    expect(PAGE).toMatch(/className="join [^"]*hidden lg:inline-flex"[^>]*data-testid="month-switcher"/);
     // The arrows are lucide glyphs — a direction, not a sentence — so they
     // need no registry key.
     expect(PAGE).toContain("<ChevronLeft");
@@ -87,8 +89,8 @@ describe("the switcher's shape", () => {
       ["month-next", "monthNameOnly(next)"],
     ] as const) {
       const at = PAGE.indexOf(`data-testid="${id}"`);
-      const opens = PAGE.lastIndexOf("<a", at);
-      const anchor = PAGE.slice(opens, PAGE.indexOf("</a>", at));
+      const opens = PAGE.lastIndexOf("<Link", at);
+      const anchor = PAGE.slice(opens, PAGE.indexOf("</Link>", at));
       expect(anchor, id).toContain(`aria-label={${formatter}}`);
       // The glyph is the anchor's whole content, and the label is what
       // names it — no second, off-screen copy of the month.
@@ -100,11 +102,13 @@ describe("the switcher's shape", () => {
     for (const id of ["month-previous", "month-next"]) {
       const at = PAGE.indexOf(`data-testid="${id}"`);
       expect(at, id).toBeGreaterThan(-1);
-      // The element that opens before that test id is an anchor with an
+      // The element that opens before that test id is a link with an
       // `?month=` href — never a `<button>`, which is what a `Tabs` would
-      // have made it.
+      // have made it — and the month it opens is loaded before the tap
+      // (SPEC §4, 2026-10-08, issue 1341).
       const element = PAGE.slice(PAGE.lastIndexOf("<", at), at);
-      expect(element, id).toContain("<a");
+      expect(element, id).toContain("<Link");
+      expect(element, id).toContain("prefetch={true}");
       expect(element, id).toContain("/app/calendar?month=");
     }
   });

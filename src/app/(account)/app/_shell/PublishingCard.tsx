@@ -18,15 +18,17 @@ import { formatDateTime } from "./format";
 import { writtenLine } from "./written";
 import type { ShellModel } from "./model";
 
-export function PublishingCard(p: { shell: ShellModel }): React.JSX.Element {
-  const { publishing, timeZone } = p.shell;
+/** The card's one statement, which the phone's top bar states too (SPEC §4,
+ *  2026-10-08, issue 1339): one sentence, resolved in one place. */
+export function publishingStatement(shell: ShellModel): { line: string } {
+  const { publishing, timeZone } = shell;
 
   // REQ-040 c3's time, or c4's line for the resolved reason — both through
   // `nextPublishStatement`, REQ-092 c7's one home: while ReachKit has stopped
   // its own work, the statement names the stop and gives no other reason.
   // `otherwise` still carries whichever other cause the shell resolved, and
   // the statement ignores it when stopped (ADR-011 point 5).
-  const statement = nextPublishStatement({
+  return nextPublishStatement({
     stopped: publishing.next === null && publishing.because === "reachkit_stopped",
     otherwise:
       publishing.next !== null
@@ -38,6 +40,10 @@ export function PublishingCard(p: { shell: ShellModel }): React.JSX.Element {
                 : NEXT_PUBLISH_OTHERWISE[publishing.because],
           },
   });
+}
+
+export function PublishingCard(p: { shell: ShellModel }): React.JSX.Element {
+  const statement = publishingStatement(p.shell);
   // Before the first weekly pass the card states that it is waiting on the
   // deep pass. The arm is the shell's own `WeekCount` — the same fact the
   // domain block reads — so the two cannot disagree. An unwritten sentence

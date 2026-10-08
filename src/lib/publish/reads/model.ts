@@ -7,9 +7,9 @@
 // not shown."
 //
 // **This file is pure.** Stored cells in, model out — the same split
-// `answers-model.ts` next door makes, so every rule below is settled by a
+// the app's `answers-model.ts` makes, so every rule below is settled by a
 // test with no database and no browser. Reading the cells is
-// `blog-reads-store.ts`'s (a real account) and `blog-reads-fixture.ts`'s
+// `facts.ts`'s (a real account) and the app's `blog-reads-fixture.ts`'s
 // (the reserved fixture account).
 //
 // **Two measures, and they are never added together.** A fetch is an engine

@@ -44,8 +44,8 @@ import { cache } from "react";
 import { now as clock } from "@/lib/config/now";
 import type { CalendarSupplyNotice } from "./supply";
 import { isReservedFixtureAccount, redirectForMissingZone, requireAppAccount } from "../_session/account";
-import { assembleMonth, type MonthModel } from "./month";
-import { addDays, dayKeyOf, monthOf, type MonthKey } from "./dates";
+import { assembleMonth, weekOf, type MonthModel, type WeekModel } from "./month";
+import { addDays, dayKeyOf, monthOf, planWeek, type DayKey, type MonthKey } from "./dates";
 import type { StalledCount } from "@/lib/publish/record/stalled";
 import { FIXTURE_CALENDAR_FACTS } from "./fixture";
 import { FIXTURE_DOMAIN } from "../_shell/fixture";
@@ -126,6 +126,20 @@ export const readMonth = cache(async function readMonth(month: MonthKey): Promis
   if (site === null) return assembleMonth(FIXTURE_CALENDAR_FACTS, month);
   const { readCalendarFacts } = await import("./store");
   return assembleMonth(await readCalendarFacts({ site, month, now: clock() }), month);
+});
+
+/**
+ * The week Plan lists on a phone (SPEC §7, 2026-10-08, issue 1340),
+ * whichever month the address asks for.
+ *
+ * It is read through `readMonth`, so in the usual case — the month today
+ * falls in, and a week inside it — it costs no read at all: the page has
+ * already asked for that month in this request. A week across a month's end
+ * asks for the second month, and that is the only time it does.
+ */
+export const readWeek = cache(async function readWeek(today: DayKey): Promise<WeekModel> {
+  const months = [...new Set(planWeek(today).map(monthOf))];
+  return weekOf(await Promise.all(months.map((month) => readMonth(month))), today);
 });
 
 /**
