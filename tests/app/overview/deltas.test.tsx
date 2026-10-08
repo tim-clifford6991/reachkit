@@ -10,7 +10,7 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { fakeDb, type FakeDb, type Row } from "../../publish/harness";
 import { REPORT_VERSION } from "@/lib/scan/report";
@@ -94,6 +94,19 @@ afterEach(() => {
   vi.useRealTimers();
   resetAccount();
 });
+
+// The page reaches its stores at the call, so the first render pays their
+// cold import. On a busy runner that alone passed the default timeout of
+// whichever case ran first; loading them once here keeps the cases about
+// the screen.
+beforeAll(async () => {
+  await Promise.all([
+    import("@/app/(account)/app/_overview/store"),
+    import("@/app/(account)/app/_overview/search-provider"),
+    import("@/app/(account)/app/_overview/search-store"),
+    import("@/app/(account)/app/_overview/blog-reads-store"),
+  ]);
+}, 60_000);
 
 // SPEC §4 (2026-09-20): the page in review leads the screen, and the card
 // says when it goes live if the customer does nothing. The instant is the
