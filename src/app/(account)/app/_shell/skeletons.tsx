@@ -28,7 +28,7 @@ import { SKELETON_EXIT, ViewTransition } from "@/ui/motion";
 /** One box. Spelled here so the class name is written once per shape
  *  rather than once per box, and so `height` is the only thing a caller
  *  thinks about. */
-function Box(p: { className: string }): React.JSX.Element {
+export function Box(p: { className: string }): React.JSX.Element {
   return <div className={`skeleton ${p.className}`} aria-hidden />;
 }
 

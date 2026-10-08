@@ -1,10 +1,14 @@
 // SPEC §4 (2026-09-20, #908) — Overview › Rivals.
 //
 // "Rivals tab: who is on the first page for the twelve searches, who the
-// three answer engines name, how far ahead each rival's footprint is over
-// twelve weeks, and the searches rivals win that the site does not, each
-// with what ReachKit is doing about it. Market leaders stay on their own
-// secondary line (§6, #858). Read from the stored weekly report."
+// three answer engines name, and the searches rivals win that the site does
+// not, each with what ReachKit is doing about it. Market leaders stay on
+// their own secondary line (§6, #858). Read from the stored weekly report."
+//
+// **The numbers first** (SPEC §4, 2026-10-07, issue 1324): the head, the
+// two counting cards, then the table. No sentence stands above them; what
+// a card counts is closed under its name. The card of rivals' rows follows
+// the table, without the line that said what its ratio is a ratio of (D24).
 //
 // **Two reads, and each one is the only read of its subject.**
 // `readRivals()` is this tab's own — the two counting cards and the table.
@@ -26,9 +30,8 @@
 // `nuqs`, which reads the query string with Next's own `useSearchParams` —
 // "We recommend wrapping the Client Component that uses `useSearchParams`
 // in a `<Suspense/>` boundary"
-// (`01-app/03-api-reference/04-functions/use-search-params.md`). One
-// daisyUI `skeleton` holds its place, which is what SPEC §4 (2026-09-20)
-// asks of every waiting state in the app: a shape, never a spinner.
+// (`01-app/03-api-reference/04-functions/use-search-params.md`). The
+// table's own skeleton holds its place — the one `loading.tsx` draws.
 import type React from "react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -43,6 +46,8 @@ import { formatCount } from "../../_overview/present";
 import { RivalModule } from "../../_overview/RivalModule";
 import { RivalPresence } from "../../_overview/RivalPresence";
 import { RivalTable } from "../../_overview/RivalTable";
+import { RivalTableSkeleton } from "../../_overview/skeletons";
+import { TabHead } from "../../_overview/TabHead";
 import { TAB_HREF } from "../../_overview/tabs";
 
 /** /app/rivals's own `<title>` (#945). Without it this screen announced
@@ -90,17 +95,17 @@ export default async function RivalsTabPage(): Promise<React.JSX.Element> {
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="rivals-tab">
-      <header className="flex min-w-0 flex-col gap-1">
-        <h1 className="card-title text-base" data-testid="rivals-title">
-          {copy("overview.tab.rivals")}
-        </h1>
-        <p className="max-w-prose text-sm text-base-content/70">{copy("overview.rivals.lead")}</p>
-        {measured === null ? null : (
-          <p className="text-xs text-base-content/70" data-testid="rivals-measured">
-            {measured}
-          </p>
-        )}
-      </header>
+      <TabHead
+        title={copy("overview.tab.rivals")}
+        testId="rivals"
+        measured={
+          measured === null ? null : (
+            <p className="text-xs text-base-content/70" data-testid="rivals-measured">
+              {measured}
+            </p>
+          )
+        }
+      />
 
       <RivalPresence
         firstPage={model.firstPage}
@@ -110,20 +115,19 @@ export default async function RivalsTabPage(): Promise<React.JSX.Element> {
         answersHref={TAB_HREF.ai_answers}
       />
 
+      <Suspense fallback={<RivalTableSkeleton />}>
+        <RivalTable model={model} />
+      </Suspense>
+
       {/* The card the Overview already draws, from the module the Overview
-          already reads — with the one line this tab adds and that tab has
-          no room for. */}
+          already reads, under the table: the rows of rivals and the market
+          leaders' line. */}
       <RivalModule
         rivals={overview.rivals}
         timeZone={shell.timeZone}
         weekZero={overview.weekZero}
-        lead={copy("overview.rivals.gap.lead")}
         leadersKey={LEADERS_KEY}
       />
-
-      <Suspense fallback={<div className="skeleton h-96 min-w-0" />}>
-        <RivalTable model={model} />
-      </Suspense>
     </div>
   );
 }

@@ -119,3 +119,30 @@ export function carriedBy(headline: HeadlineNumber<number>, subjectKey: CopyKey)
  *  `filter` radios, so `checked:` is the chosen state. */
 export const FILTER_PILL =
   "btn btn-sm btn-ghost rounded-full checked:border-base-content checked:bg-base-content checked:text-base-100";
+
+/** A sentence that explains a number, closed until the founder opens it
+ *  (SPEC §4, 2026-10-07, issue 1324). daisyUI `collapse` on a `details`:
+ *  the `summary` is the card's own name or the tile's own number, so there
+ *  is no second control and no word for one, and it opens without a client
+ *  bundle. `head` is a card's title row; a tile uses its whole body.
+ *  `TILE_FIGURE` is the height every tile's figure row holds, quiet or
+ *  not — the height the waiting tile holds too. */
+export const CLOSED = Object.freeze({
+  root: "collapse collapse-arrow min-w-0 rounded-none",
+  head: "collapse-title min-h-0 p-0 pe-10",
+  body: "collapse-content flex min-w-0 flex-col gap-1 px-0 pt-2",
+  // The arrow sits in the tile's name row, so the figure keeps the whole
+  // width of its own row; the name leaves room for it with `pe-6`.
+  tile: "collapse-title flex min-h-0 min-w-0 flex-col gap-2 p-4 after:end-4 after:top-6",
+  tileBody: "collapse-content flex min-w-0 flex-col gap-1 px-4",
+});
+
+/** The tile rows' own grids, spelled once: the row and the skeleton that
+ *  waits for it read the same string (issue 1324). */
+export const TILE_GRID = Object.freeze({
+  search: "sm:grid-cols-2 xl:grid-cols-4",
+  answers: "sm:grid-cols-2",
+});
+
+/** A number tile's figure row: one height whatever the tile reads. */
+export const TILE_FIGURE = "flex min-h-9.5 min-w-0 flex-wrap items-baseline gap-2";

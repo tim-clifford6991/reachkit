@@ -41,7 +41,7 @@ import {
   type ColumnFiltersState,
 } from "@tanstack/react-table";
 import { copy } from "@/lib/presentation/copy";
-import { FILTER_PILL, formatCount, renderValue } from "./present";
+import { CLOSED, FILTER_PILL, formatCount, renderValue } from "./present";
 import { ALL_RIVALS, type RivalSearchRow, type RivalsModel } from "./rivals-model";
 import {
   RIVAL_CELL_CLASS,
@@ -206,10 +206,18 @@ export function RivalTable(p: { model: RivalsModel }): React.JSX.Element {
       data-testid="rivals-table"
     >
       <div className="flex min-w-0 flex-col gap-3 p-4">
-        <h2 className="card-title text-base">{copy("overview.rivals.table.title")}</h2>
-        <p className="max-w-prose text-sm text-base-content/70">
-          {copy("overview.rivals.table.lead")}
-        </p>
+        {/* What the table lists, closed under its own name (SPEC §4,
+            2026-10-07, issue 1324). */}
+        <details className={CLOSED.root}>
+          <summary className={CLOSED.head}>
+            <h2 className="card-title text-base">{copy("overview.rivals.table.title")}</h2>
+          </summary>
+          <div className={CLOSED.body}>
+            <p className="max-w-prose text-sm text-base-content/70">
+              {copy("overview.rivals.table.lead")}
+            </p>
+          </div>
+        </details>
 
         {/* daisyUI `filter`: one chip per rival with its count, and a reset
             beside the chosen one. `All rivals` is that reset — it is the

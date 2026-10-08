@@ -34,7 +34,7 @@ import type React from "react";
 import { FileText, MessageCircleQuestion } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
-import { formatCount, formatMonthDay } from "./present";
+import { CLOSED, formatCount, formatMonthDay } from "./present";
 import { LLM_MENTIONS_MIN_FOOTPRINT } from "@/lib/config/constants";
 import { MENTIONS_WINDOW_WEEKS, type MentionsModel } from "./mentions-model";
 
@@ -50,8 +50,16 @@ function Card(p: {
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid={p.testId}>
       <div className="flex min-w-0 flex-col gap-3 p-4">
-        <h2 className="card-title text-base!">{p.title}</h2>
-        <p className="max-w-prose text-sm text-base-content/70">{p.lead}</p>
+        {/* What the card counts, closed under its own name (SPEC §4,
+            2026-10-07, issue 1324). */}
+        <details className={CLOSED.root}>
+          <summary className={CLOSED.head}>
+            <h2 className="card-title text-base!">{p.title}</h2>
+          </summary>
+          <div className={CLOSED.body}>
+            <p className="max-w-prose text-sm text-base-content/70">{p.lead}</p>
+          </div>
+        </details>
         {p.children}
       </div>
     </section>

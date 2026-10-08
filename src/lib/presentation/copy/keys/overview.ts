@@ -515,11 +515,10 @@ export const OVERVIEW_COPY = Object.freeze({
   // sentence below is drafted under the 2026-09-16 ruling (#759) and named
   // in the PR body for the owner to correct; the four status words and the
   // ceiling line are the issue's own drafts, taken verbatim.
-  "overview.search.lead": [
-    "The searches we’re going after for you, and where you stand on each.",
-    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
-  ],
-  // The line under the tabs: which measurement this whole screen is read
+  // The screen's own lead sentence is gone (SPEC §4, 2026-10-07, issue
+  // 1324): Search, AI answers and Rivals open on their numbers.
+  //
+  // The line in the head: which measurement this whole screen is read
   // from. No vendor and no cost — the date the pass was taken, and nothing
   // else.
   "overview.search.measured": [
@@ -679,11 +678,6 @@ export const OVERVIEW_COPY = Object.freeze({
   // rather than spelled again: the tile name ("Questions that name you"),
   // the window's "of {of}", and the three engine names, which are the
   // report screen's own keys.
-  "overview.answers.lead": [
-    "Whether the AI engines your buyers ask name you, link to you, and send people your way.",
-    { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
-  ],
-
   // The first tile: the four-week rate, its denominator, the split the
   // owner's ruling asks for, and the one line saying why four weeks.
   "overview.answers.rate.label": [
@@ -1061,11 +1055,6 @@ export const OVERVIEW_COPY = Object.freeze({
   // `overview.rivals.ratio`, `overview.rivals.was`, the two line keys and
   // the market-leaders sentence are the Overview's and are reused here
   // rather than spelled a second time.
-  "overview.rivals.lead": [
-    "What we learned from the sites you’re measured against.",
-    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
-  ],
-
   // The first counting card: who holds a place on Google's first page for
   // the twelve searches the pass buys a top ten for.
   "overview.rivals.first-page.title": [
@@ -1090,12 +1079,8 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
   "overview.rivals.named.see-all": ["See every answer", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
-  // The line under the card that was already built, which the Overview tab
-  // does not draw: what the ratio is a ratio of, and where level is.
-  "overview.rivals.gap.lead": [
-    "Searches each site appears for, against yours. 1.0× is level.",
-    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
-  ],
+  // `overview.rivals.gap.lead` is gone: no screen says what the ratio is a
+  // ratio of (D24, SPEC §4 2026-10-02; issue 1324).
 
   // A card whose reading the pass never took. It claims nothing about the
   // rivals; it says what is true of the measurement.

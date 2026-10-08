@@ -31,7 +31,7 @@
 // the box changes instead (docs/DESIGN.md's no-overflow rule).
 import type React from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { formatCount, renderValue } from "./present";
+import { CLOSED, TILE_FIGURE, TILE_GRID, formatCount, renderValue } from "./present";
 import type { SearchTile, SearchTiles as Tiles, TileReading } from "./search-model";
 
 /** A place on the results page, spoken the way the table speaks it. */
@@ -91,37 +91,60 @@ function Tile(p: {
       ? fixed
       : readingLine(p.tile.reading);
 
+  // The name, the number and what it is read against: what the tile shows
+  // closed, and all a tile with nothing to explain ever shows.
+  const reading = (
+    <>
+      {/* The tile's name is the product's own, not the customer's, so it
+          wraps rather than being clamped: four fixed phrases, and a name
+          cut in half is a name nobody can read (the same ruling
+          `LinkedTiles` records for its three). */}
+      <span className={`min-w-0 pe-6 text-xs font-semibold uppercase tracking-wide ${ink}`}>
+        {label}
+      </span>
+      {/* A quiet figure and a full one hold the same row, so a tile is one
+          height whatever it reads — and the skeleton's too. */}
+      <div className={TILE_FIGURE}>
+        <span
+          className={quiet ? "figure text-base leading-none text-base-content/70" : "figure text-3xl leading-none"}
+          data-testid={`${p.testId}-value`}
+        >
+          {value.text}
+        </span>
+        {against === null ? null : (
+          <span className={`num text-sm ${ink}`}>{against}</span>
+        )}
+      </div>
+    </>
+  );
+  const sentence =
+    means === null ? null : (
+      <p className={`text-xs ${ink}`} data-testid={`${p.testId}-means`}>
+        {means}
+      </p>
+    );
+
   return (
     <section
       className={quiet ? "card min-w-0 bg-base-200" : "card card-border min-w-0 bg-base-100"}
       data-testid={p.testId}
       data-quiet={quiet ? "" : undefined}
     >
-      <div className="card-body gap-2 p-4">
-        {/* The tile's name is the product's own, not the customer's, so it
-            wraps rather than being clamped: four fixed phrases, and a name
-            cut in half is a name nobody can read (the same ruling
-            `LinkedTiles` records for its three). */}
-        <span className={`min-w-0 text-xs font-semibold uppercase tracking-wide ${ink}`}>
-          {label}
-        </span>
-        <div className="flex min-w-0 flex-wrap items-baseline gap-2">
-          <span
-            className={quiet ? "figure text-base leading-none text-base-content/70" : "figure text-3xl leading-none"}
-            data-testid={`${p.testId}-value`}
-          >
-            {value.text}
-          </span>
-          {against === null ? null : (
-            <span className={`num text-sm ${ink}`}>{against}</span>
-          )}
+      {sentence === null || value.isDash ? (
+        // A dash keeps its line in sight: it is the date the number will
+        // be, not a sentence about a number (SPEC §4, 2026-09-20).
+        <div className="card-body gap-2 p-4">
+          {reading}
+          {sentence}
         </div>
-        {means === null ? null : (
-          <p className={`text-xs ${ink}`} data-testid={`${p.testId}-means`}>
-            {means}
-          </p>
-        )}
-      </div>
+      ) : (
+        // The sentence explains the number, so it is closed under it
+        // (SPEC §4, 2026-10-07).
+        <details className={CLOSED.root}>
+          <summary className={CLOSED.tile}>{reading}</summary>
+          <div className={CLOSED.tileBody}>{sentence}</div>
+        </details>
+      )}
     </section>
   );
 }
@@ -173,7 +196,7 @@ const TILES = [
 
 export function SearchTiles(p: { tiles: Tiles }): React.JSX.Element {
   return (
-    <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-4" data-testid="search-tiles">
+    <div className={`grid min-w-0 gap-4 ${TILE_GRID.search}`} data-testid="search-tiles">
       {TILES.map((tile) => (
         <Tile
           key={tile.id}

@@ -28,7 +28,7 @@
 import type React from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
-import { formatCount, renderValue } from "./present";
+import { CLOSED, TILE_FIGURE, TILE_GRID, formatCount, renderValue } from "./present";
 import { FULL_WINDOW, type AnswersModel } from "./answers-model";
 
 const RATE_LABEL = "overview.answers.rate.label" satisfies CopyKey;
@@ -54,53 +54,69 @@ function Tile(p: {
 }): React.JSX.Element {
   // /70 ink: the softer 2026-09-25 ink at /60 is under axe's floor even on white.
   const ink = "text-base-content/70";
+  const label = (
+    // The tile's name is the product's own, not the customer's, so it wraps
+    // rather than being clamped: two fixed phrases, and a name cut in half
+    // is a name nobody can read.
+    <span className={`min-w-0 pe-6 text-xs font-semibold tracking-wide uppercase ${ink}`}>
+      {copy(p.labelKey)}
+    </span>
+  );
+  const lines = p.lines.map((line) =>
+    line === null ? null : (
+      <p key={line} className={`text-xs ${ink}`}>
+        {line}
+      </p>
+    )
+  );
   return (
     <section
       className={p.quiet ? "card min-w-0 bg-base-200" : "card card-border min-w-0 bg-base-100"}
       data-testid={p.testId}
       data-quiet={p.quiet ? "" : undefined}
     >
-      <div className="card-body gap-2 p-4">
-        {/* The tile's name is the product's own, not the customer's, so it
-            wraps rather than being clamped: two fixed phrases, and a name
-            cut in half is a name nobody can read. */}
-        <span className={`min-w-0 text-xs font-semibold tracking-wide uppercase ${ink}`}>
-          {copy(p.labelKey)}
-        </span>
-        {p.figure === null ? (
+      {p.figure === null ? (
+        // A reading nobody took keeps its line in sight: it is what stands
+        // where the number would, not a sentence about one.
+        <div className="card-body gap-2 p-4">
+          {label}
           <p className="text-sm text-base-content/70">{p.line ?? copy(p.labelKey)}</p>
-        ) : (
-          <div className="flex min-w-0 flex-wrap items-baseline gap-2">
-            <span
-              className={p.quiet ? "figure text-base leading-none text-base-content/70" : "figure text-3xl leading-none"}
-              data-testid={`${p.testId}-value`}
-            >
-              {p.figure}
-            </span>
-            <span className={`num flex flex-wrap items-baseline gap-1 text-sm ${ink}`}>
-              {p.against}
-            </span>
-          </div>
-        )}
-        {p.lines.map((line) =>
-          line === null ? null : (
-            <p key={line} className={`text-xs ${ink}`}>
-              {line}
-            </p>
-          )
-        )}
-      </div>
+          {lines}
+        </div>
+      ) : (
+        // The lines explain the number, so they are closed under it (SPEC
+        // §4, 2026-10-07, issue 1324).
+        <details className={CLOSED.root}>
+          <summary className={CLOSED.tile}>
+            {label}
+            <div className={TILE_FIGURE}>
+              <span
+                className={p.quiet ? "figure text-base leading-none text-base-content/70" : "figure text-3xl leading-none"}
+                data-testid={`${p.testId}-value`}
+              >
+                {p.figure}
+              </span>
+              <span className={`num flex flex-wrap items-baseline gap-1 text-sm ${ink}`}>
+                {p.against}
+              </span>
+            </div>
+          </summary>
+          <div className={CLOSED.tileBody}>{lines}</div>
+        </details>
+      )}
     </section>
   );
 }
 
 export function AnswerTiles(p: {
   model: AnswersModel;
-  /** False once the tracked buyer prompts carry the rate (D19, #1162):
-   *  the twelve's own four-week rate is then not drawn a second time. */
-  rate?: boolean;
+  /** The tracked buyer prompts' own rate tile, once they carry the rate
+   *  (D19, #1162): it stands where the twelve's four-week rate stood, so
+   *  the rate is not drawn a second time and the row is two tiles either
+   *  way — the shape the waiting screen holds (issue 1324). */
+  rate?: React.ReactNode;
 }): React.JSX.Element {
-  const showRate = p.rate ?? true;
+  const promptRate = p.rate ?? null;
   const rate = renderValue(p.model.rate.value, RATE_LABEL);
   const asked = renderValue(p.model.rate.of, RATE_LABEL);
   const week = renderValue(p.model.week.value, WEEK_LABEL);
@@ -126,8 +142,8 @@ export function AnswerTiles(p: {
       });
 
   return (
-    <div className={showRate ? "grid min-w-0 gap-4 sm:grid-cols-2" : "grid min-w-0 gap-4"} data-testid="answers-tiles">
-      {!showRate ? null : <Tile
+    <div className={`grid min-w-0 gap-4 ${TILE_GRID.answers}`} data-testid="answers-tiles">
+      {promptRate !== null ? promptRate : <Tile
         labelKey={RATE_LABEL}
         testId="answers-tile-rate"
         figure={rate.isDash ? null : rate.text}
