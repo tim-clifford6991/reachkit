@@ -31,7 +31,7 @@
 import type React from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { BlogEngine } from "@/lib/publish/reads/classify";
-import { formatCount, renderValue } from "./present";
+import { CLOSED, formatCount, renderValue } from "./present";
 import type { BlogReadsModel } from "./blog-reads-model";
 
 const FETCHES_LABEL = "overview.blog.fetches.label" satisfies CopyKey;
@@ -84,14 +84,20 @@ export function BlogReads(p: { model: BlogReadsModel }): React.JSX.Element | nul
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid="blog-reads">
       <div className="card-body min-w-0 gap-3 p-4">
-        <header className="flex min-w-0 flex-col gap-1">
-          <h2 className="card-title text-base!" data-testid="blog-reads-title">
-            {copy("overview.blog.title")}
-          </h2>
-          <p className="text-xs text-base-content/70">
-            {copy("overview.blog.lead", { days: formatCount(p.model.windowDays) })}
-          </p>
-        </header>
+        {/* What the card counts, closed under its own name (SPEC §4,
+            2026-10-07, issue 1324). */}
+        <details className={CLOSED.root}>
+          <summary className={CLOSED.head}>
+            <h2 className="card-title text-base!" data-testid="blog-reads-title">
+              {copy("overview.blog.title")}
+            </h2>
+          </summary>
+          <div className={CLOSED.body}>
+            <p className="text-xs text-base-content/70">
+              {copy("overview.blog.lead", { days: formatCount(p.model.windowDays) })}
+            </p>
+          </div>
+        </details>
 
         <div className="grid min-w-0 gap-4 sm:grid-cols-2">
           <Figure

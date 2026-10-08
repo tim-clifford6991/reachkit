@@ -28,7 +28,7 @@
 import type React from "react";
 import { PresenceBars } from "@/ui/charts";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { formatCount } from "./present";
+import { CLOSED, formatCount } from "./present";
 import type { PresenceCard } from "./rivals-model";
 
 /**
@@ -62,8 +62,16 @@ function Card(p: {
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid={p.testId}>
       <div className="flex min-w-0 flex-col gap-3 p-4">
-        <h2 className="card-title text-base">{copy(p.titleKey)}</h2>
-        <p className="max-w-prose text-sm text-base-content/70">{p.lead}</p>
+        {/* What the count is of, closed under the card's own name (SPEC
+            §4, 2026-10-07, issue 1324). */}
+        <details className={CLOSED.root}>
+          <summary className={CLOSED.head}>
+            <h2 className="card-title text-base">{copy(p.titleKey)}</h2>
+          </summary>
+          <div className={CLOSED.body}>
+            <p className="max-w-prose text-sm text-base-content/70">{p.lead}</p>
+          </div>
+        </details>
         {p.card.of === 0 ? (
           <p className="text-sm text-base-content/70" data-testid={`${p.testId}-unmeasured`}>
             {copy("overview.rivals.card.unmeasured")}

@@ -10,7 +10,7 @@ import type React from "react";
 import { ANSWER_RATE_WEEKS, MENTION_RATE_MIN_WEEKS } from "@/lib/config/constants";
 import type { PromptKind } from "@/lib/market/prompts/generate";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { formatCount } from "./present";
+import { CLOSED, TILE_FIGURE, formatCount } from "./present";
 import { percent, type PromptsModel } from "./prompts-model";
 
 type Measured = Extract<PromptsModel, { kind: "measured" }>;
@@ -30,17 +30,27 @@ function Card(p: { testId: string; title: string; lead: string; children: React.
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid={p.testId}>
       <div className="flex min-w-0 flex-col gap-3 p-4">
-        <h2 className="card-title text-base!">{p.title}</h2>
-        <p className={`max-w-prose text-sm ${INK}`}>{p.lead}</p>
+        {/* What the card counts, closed under its own name (SPEC §4,
+            2026-10-07, issue 1324). */}
+        <details className={CLOSED.root}>
+          <summary className={CLOSED.head}>
+            <h2 className="card-title text-base!">{p.title}</h2>
+          </summary>
+          <div className={CLOSED.body}>
+            <p className={`max-w-prose text-sm ${INK}`}>{p.lead}</p>
+          </div>
+        </details>
         {p.children}
       </div>
     </section>
   );
 }
 
-/** The rate's own card: the figure, its range, the split and why the
- *  range is there. */
-function RateCard(p: { model: Measured }): React.JSX.Element {
+/** The rate's own tile: the figure and its range, with the count, the
+ *  split and why the range is there closed under it. The AI answers tab
+ *  draws it first, beside this week's count. */
+export function PromptRate(p: { model: PromptsModel }): React.JSX.Element | null {
+  if (p.model.kind !== "measured") return null;
   const { rate, rateShown, firstMeasurement, branded } = p.model;
   const quiet = rate.linked + rate.named === 0;
   return (
@@ -48,62 +58,66 @@ function RateCard(p: { model: Measured }): React.JSX.Element {
       className={quiet ? "card min-w-0 bg-base-200" : "card card-border min-w-0 bg-base-100"}
       data-testid="prompts-rate"
     >
-      <div className="card-body gap-2 p-4">
-        <span className={`min-w-0 text-xs font-semibold tracking-wide uppercase ${INK}`}>
-          {copy("overview.tile.mention-rate.label")}
-        </span>
-        <div className="flex min-w-0 flex-wrap items-baseline gap-2">
-          <span
-            className={quiet ? `figure text-base leading-none ${INK}` : "figure text-3xl leading-none"}
-            data-testid="prompts-rate-value"
-          >
-            {rateShown ? `${formatCount(percent(rate.rate))}%` : formatCount(rate.linked + rate.named)}
+      <details className={CLOSED.root}>
+        <summary className={CLOSED.tile}>
+          <span className={`min-w-0 pe-6 text-xs font-semibold tracking-wide uppercase ${INK}`}>
+            {copy("overview.tile.mention-rate.label")}
           </span>
-          <span className={`num text-sm ${INK}`}>
+          <div className={TILE_FIGURE}>
+            <span
+              className={quiet ? `figure text-base leading-none ${INK}` : "figure text-3xl leading-none"}
+              data-testid="prompts-rate-value"
+            >
+              {rateShown ? `${formatCount(percent(rate.rate))}%` : formatCount(rate.linked + rate.named)}
+            </span>
+            <span className={`num text-sm ${INK}`}>
+              {rateShown
+                ? copy("overview.tile.mention-rate.band", {
+                    low: formatCount(percent(rate.low)),
+                    high: formatCount(percent(rate.high)),
+                  })
+                : copy("overview.tile.mention-rate.early.of", { answers: formatCount(rate.samples) })}
+            </span>
+          </div>
+        </summary>
+        <div className={CLOSED.tileBody}>
+          <p className={`text-xs ${INK}`}>
             {rateShown
-              ? copy("overview.tile.mention-rate.band", {
-                  low: formatCount(percent(rate.low)),
-                  high: formatCount(percent(rate.high)),
+              ? copy("overview.tile.mention-rate.of", {
+                  mentioned: formatCount(rate.linked + rate.named),
+                  answers: formatCount(rate.samples),
+                  weeks: formatCount(ANSWER_RATE_WEEKS),
                 })
-              : copy("overview.tile.mention-rate.early.of", { answers: formatCount(rate.samples) })}
-          </span>
-        </div>
-        <p className={`text-xs ${INK}`}>
-          {rateShown
-            ? copy("overview.tile.mention-rate.of", {
-                mentioned: formatCount(rate.linked + rate.named),
-                answers: formatCount(rate.samples),
+              : copy(firstMeasurement ? "overview.tile.mention-rate.first" : "overview.tile.mention-rate.early", {
+                  weeks: formatCount(MENTION_RATE_MIN_WEEKS),
+                })}
+          </p>
+          <p className={`text-xs ${INK}`}>
+            {copy("overview.prompts.rate.split", {
+              linked: formatCount(rate.linked),
+              named: formatCount(rate.named),
+            })}
+          </p>
+          {/* The sentence explains the range, so it waits for the rate. */}
+          {rateShown ? (
+            <p className={`max-w-prose text-xs ${INK}`}>
+              {copy("overview.prompts.rate.means", {
+                prompts: formatCount(p.model.prompts.filter((prompt) => prompt.kind !== "branded").length),
                 weeks: formatCount(ANSWER_RATE_WEEKS),
-              })
-            : copy(firstMeasurement ? "overview.tile.mention-rate.first" : "overview.tile.mention-rate.early", {
-                weeks: formatCount(MENTION_RATE_MIN_WEEKS),
+                answers: formatCount(rate.samples),
               })}
-        </p>
-        <p className={`text-xs ${INK}`}>
-          {copy("overview.prompts.rate.split", {
-            linked: formatCount(rate.linked),
-            named: formatCount(rate.named),
-          })}
-        </p>
-        {/* The sentence explains the range, so it waits for the rate. */}
-        {rateShown ? (
-          <p className={`max-w-prose text-xs ${INK}`}>
-            {copy("overview.prompts.rate.means", {
-              prompts: formatCount(p.model.prompts.filter((prompt) => prompt.kind !== "branded").length),
-              weeks: formatCount(ANSWER_RATE_WEEKS),
-              answers: formatCount(rate.samples),
-            })}
-          </p>
-        ) : null}
-        {branded === null ? null : (
-          <p className={`max-w-prose text-xs ${INK}`} data-testid="prompts-branded">
-            {copy("overview.prompts.branded", {
-              mentioned: formatCount(branded.linked + branded.named),
-              answers: formatCount(branded.samples),
-            })}
-          </p>
-        )}
-      </div>
+            </p>
+          ) : null}
+          {branded === null ? null : (
+            <p className={`max-w-prose text-xs ${INK}`} data-testid="prompts-branded">
+              {copy("overview.prompts.branded", {
+                mentioned: formatCount(branded.linked + branded.named),
+                answers: formatCount(branded.samples),
+              })}
+            </p>
+          )}
+        </div>
+      </details>
     </section>
   );
 }
@@ -199,15 +213,16 @@ function ListCard(p: { model: Measured }): React.JSX.Element {
   );
 }
 
+/** The cards under the grid: share of voice, the site's own pages, and the
+ *  prompts themselves. The rate is `PromptRate`, drawn with the numbers. */
 export function PromptCards(p: { model: PromptsModel }): React.JSX.Element | null {
   if (p.model.kind !== "measured") return null;
   return (
     <div className="flex min-w-0 flex-col gap-4" data-testid="prompts-cards">
       <div className="grid min-w-0 gap-4 md:grid-cols-2">
-        <RateCard model={p.model} />
         <ShareCard model={p.model} />
+        <PagesCard model={p.model} />
       </div>
-      <PagesCard model={p.model} />
       <ListCard model={p.model} />
     </div>
   );

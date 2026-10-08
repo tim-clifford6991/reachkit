@@ -17,6 +17,12 @@
 //
 // **It writes no sentence.** Every word is the registry's.
 //
+// **The numbers first** (SPEC §4, 2026-10-07, issue 1324): the head, the
+// two number tiles, then the grid. No sentence stands above them; what a
+// number or a card means is closed on it. The cards that read further —
+// share of voice, the pages quoted, the prompts, the mentions and the blog
+// counts — follow the grid.
+//
 // **No client bundle.** The whole screen is server-rendered: there is
 // nothing on it to press, so there is no `"use client"`, no `nuqs` state
 // and no `Suspense` boundary — unlike the Search tab next door, which
@@ -52,7 +58,8 @@ import { BlogReads } from "../../_overview/BlogReads";
 import { readMentions } from "../../_overview/mentions-provider";
 import { MentionCards } from "../../_overview/MentionCards";
 import { readPrompts } from "../../_overview/prompts-provider";
-import { PromptCards } from "../../_overview/PromptCards";
+import { PromptCards, PromptRate } from "../../_overview/PromptCards";
+import { TabHead } from "../../_overview/TabHead";
 
 /** /app/ai-answers's own `<title>` (#945). Without it this screen announced
  *  nothing at all — the `(account)` layout's fallback is the floor, not
@@ -84,23 +91,23 @@ export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="ai-answers-tab">
-      <header className="flex min-w-0 flex-col gap-1">
-        <h1 className="card-title text-base!" data-testid="ai-answers-title">
-          {copy("overview.tile.ai-answers.label")}
-        </h1>
-        <p className="max-w-prose text-sm text-base-content/70">{copy("overview.answers.lead")}</p>
-        {measured === null ? null : (
-          <p className="text-xs text-base-content/70" data-testid="ai-answers-measured">
-            {measured}
-          </p>
-        )}
-      </header>
+      <TabHead
+        title={copy("overview.tile.ai-answers.label")}
+        testId="ai-answers"
+        measured={
+          measured === null ? null : (
+            <p className="text-xs text-base-content/70" data-testid="ai-answers-measured">
+              {measured}
+            </p>
+          )
+        }
+      />
 
       {/* D19 (#1162): once a weekly pass has asked the buyer prompts, they
           are the AI measure and their rate replaces the twelve's. */}
-      <PromptCards model={prompts} />
-      <AnswerTiles model={model} rate={prompts.kind !== "measured"} />
+      <AnswerTiles model={model} rate={<PromptRate model={prompts} />} />
       <AnswerGrid model={model} />
+      <PromptCards model={prompts} />
       <MentionCards model={mentions} timeZone={shell.timeZone} />
       <BlogReads model={blogReads} />
     </div>

@@ -48,7 +48,7 @@ import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import { renderQuestion } from "@/lib/presentation/generated";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
-import { formatCount } from "./present";
+import { CLOSED, formatCount } from "./present";
 import { PAGE_QUESTION_RETIRE_WEEKS } from "@/lib/config/constants";
 import { ANSWER_MARKS, type AnswerMark, type AnswerQuestion, type AnswersModel } from "./answers-model";
 import { MARK_COPY_KEY, MARK_ICON, MARK_TONE } from "./answers-words";
@@ -205,17 +205,26 @@ export function AnswerGrid(p: { model: AnswersModel }): React.JSX.Element {
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid="answers-grid">
       <div className="flex min-w-0 flex-col gap-3 p-4">
-        <h2 className="card-title text-base!">{copy("overview.answers.grid.title")}</h2>
-        <p className="max-w-prose text-sm text-base-content/70">
-          {copy("overview.answers.grid.lead", { of: formatCount(p.model.questions.length) })}
-        </p>
-        <p className="max-w-prose text-xs text-base-content/70" data-testid="answers-tracked">
-          {copy("overview.answers.grid.tracked", {
-            tracked: formatCount(p.model.tracked),
-            max: formatCount(p.model.cap),
-            weeks: formatCount(PAGE_QUESTION_RETIRE_WEEKS),
-          })}
-        </p>
+        {/* What the grid holds and how many questions it tracks, closed
+            under its own name (SPEC §4, 2026-10-07, issue 1324). The
+            legend stays: the marks cannot be read without it. */}
+        <details className={CLOSED.root}>
+          <summary className={CLOSED.head}>
+            <h2 className="card-title text-base!">{copy("overview.answers.grid.title")}</h2>
+          </summary>
+          <div className={CLOSED.body}>
+            <p className="max-w-prose text-sm text-base-content/70">
+              {copy("overview.answers.grid.lead", { of: formatCount(p.model.questions.length) })}
+            </p>
+            <p className="max-w-prose text-xs text-base-content/70" data-testid="answers-tracked">
+              {copy("overview.answers.grid.tracked", {
+                tracked: formatCount(p.model.tracked),
+                max: formatCount(p.model.cap),
+                weeks: formatCount(PAGE_QUESTION_RETIRE_WEEKS),
+              })}
+            </p>
+          </div>
+        </details>
         <Legend />
 
         <div

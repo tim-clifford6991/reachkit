@@ -18,13 +18,17 @@
 //
 // **It writes no sentence.** Every word is the registry's.
 //
+// **The numbers first** (SPEC §4, 2026-10-07, issue 1324): the head is the
+// screen's name and the day it was measured, then the tiles, then the
+// table. No sentence stands above them; what a number means is closed on
+// its own tile.
+//
 // **`Suspense`**: the table holds the chosen chip in the URL through
 // `nuqs`, which reads the query string with Next's own `useSearchParams` —
 // "We recommend wrapping the Client Component that uses `useSearchParams`
 // in a `<Suspense/>` boundary"
-// (`01-app/03-api-reference/04-functions/use-search-params.md`). One
-// daisyUI `skeleton` holds its place, which is what SPEC §4 (2026-09-20)
-// asks of every waiting state in the app: a shape, never a spinner.
+// (`01-app/03-api-reference/04-functions/use-search-params.md`). The
+// table's own skeleton holds its place — the one `loading.tsx` draws.
 import type React from "react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -34,6 +38,8 @@ import { readShell } from "../../_shell/provider";
 import { readSearch } from "../../_overview/search-provider";
 import { SearchTable } from "../../_overview/SearchTable";
 import { SearchTiles } from "../../_overview/SearchTiles";
+import { SearchTableSkeleton } from "../../_overview/skeletons";
+import { TabHead } from "../../_overview/TabHead";
 
 /** /app/search's own `<title>` (#945). Without it this screen announced
  *  nothing at all — the `(account)` layout's fallback is the floor, not
@@ -53,24 +59,24 @@ export default async function SearchTabPage(): Promise<React.JSX.Element> {
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="search-tab">
-      <header className="flex min-w-0 flex-col gap-1">
-        <h1 className="card-title text-base" data-testid="search-title">
-          {copy("overview.tab.search")}
-        </h1>
-        <p className="max-w-prose text-sm text-base-content/70">{copy("overview.search.lead")}</p>
-        {measured === null ? null : (
-          // A sentence with a date inside it, not a value: the UI face, the
-          // same way the shell states "re-measured 1 Oct 2026" beside the
-          // site (owner's review of this PR).
-          <p className="text-xs text-base-content/70" data-testid="search-measured">
-            {measured}
-          </p>
-        )}
-      </header>
+      <TabHead
+        title={copy("overview.tab.search")}
+        testId="search"
+        measured={
+          measured === null ? null : (
+            // A sentence with a date inside it, not a value: the UI face,
+            // the same way the shell states "re-measured 1 Oct 2026" beside
+            // the site (owner's review of this PR).
+            <p className="text-xs text-base-content/70" data-testid="search-measured">
+              {measured}
+            </p>
+          )
+        }
+      />
 
       <SearchTiles tiles={model.tiles} />
 
-      <Suspense fallback={<div className="skeleton h-96 min-w-0" />}>
+      <Suspense fallback={<SearchTableSkeleton />}>
         <SearchTable model={model} />
       </Suspense>
     </div>

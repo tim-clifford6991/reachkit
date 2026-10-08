@@ -28,11 +28,7 @@ const SWAP_HREF: Record<Extract<SwapOffer, { offered: true }>["destination"], st
   "settings.competitors": DESTINATION_HREF.settings,
 };
 
-/** The card. `lead` is the one line the Rivals tab states under the head
- *  and the Overview tab does not — what the ratio is a ratio of, and where
- *  level is. Optional and additive: the Overview passes none, and the tile
- *  beside it there has no room for a sentence. */
-function Card(p: { children: React.ReactNode; lead?: string | null }): React.JSX.Element {
+function Card(p: { children: React.ReactNode }): React.JSX.Element {
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid={TEST_ID}>
       <div className="card-body gap-4 p-5">
@@ -40,11 +36,6 @@ function Card(p: { children: React.ReactNode; lead?: string | null }): React.JSX
           <Users aria-hidden size={20} strokeWidth={1.75} />
           {copy(RIVAL_LABEL)}
         </h2>
-        {p.lead === undefined || p.lead === null ? null : (
-          <p className="max-w-prose text-sm text-base-content/70" data-testid="overview-rivals-lead">
-            {p.lead}
-          </p>
-        )}
         {p.children}
       </div>
     </section>
@@ -129,9 +120,6 @@ export function RivalModule(p: {
   rivals: RivalGapModule;
   timeZone: string;
   weekZero?: { firstDueOn: Date; startingOn: Date } | null;
-  /** SPEC §4 (2026-09-20), #917: the Rivals tab's own line under the head.
-   *  Already written by the caller — this module composes no sentence. */
-  lead?: string | null;
   /** Which market-leaders sentence this surface says (owner ruling
    *  2026-09-21, #983). A key and not a written line, because the sentence
    *  takes a slot this module fills with the leaders it was handed — the
@@ -144,7 +132,7 @@ export function RivalModule(p: {
       due: formatDate(weekZero.firstDueOn, p.timeZone),
     });
     return (
-      <Card lead={p.lead}>
+      <Card>
         {line === null ? null : <p className="text-sm text-base-content/70">{line}</p>}
       </Card>
     );
@@ -185,7 +173,7 @@ export function RivalModule(p: {
         ));
 
   return (
-    <Card lead={p.lead}>
+    <Card>
       {rows.length === 0 ? null : <ul className="flex min-w-0 flex-col gap-3">{rows}</ul>}
       {p.rivals.kind === "absolute" ? (
         <p className="flex flex-wrap items-baseline gap-2 text-sm" data-testid="overview-rivals-own">
