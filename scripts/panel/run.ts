@@ -40,6 +40,9 @@ import dns from "node:dns";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { parseStoredMarket } from "@/lib/market/infer/stored";
+import { verdictOf } from "@/lib/market/rivals/verify";
+import { OWN_FETCH_SOURCE } from "@/lib/measure/own-fetch";
+import { prose } from "@/lib/measure/prose";
 import { runDeepPass, type PassStep } from "@/lib/scan/deep/run";
 import { parseHealth } from "@/lib/scan/health";
 import { readStoredReport } from "@/lib/scan/report";
@@ -63,7 +66,7 @@ export interface Options {
 }
 
 type Row = Record<string, unknown>;
-type FetchRow = Row & { scan_id: string; source: string; cache_key: string; cost_cents: number | string; created_at: string };
+type FetchRow = Row & { scan_id: string; source: string; cache_key: string; cost_cents: number | string; created_at: string; payload?: unknown };
 
 /** The scan the stored evidence is loaded under: no site's own, so it is
  *  found by the cache and never counted as a run's spend. */
@@ -273,6 +276,25 @@ function boughtSince(at: string): FetchRow[] {
   );
 }
 
+/** AI Mode's reads, as the ledger names them. */
+const AI_MODE_SOURCE = "serp/google/ai_mode";
+
+/**
+ * How many questions the site's own pages ask (their FAQ schema, their FAQ
+ * sections, their headings), read from the pages the pass ledgered. `null`
+ * where they could not be read.
+ */
+function questionsOnPages(siteId: string): number | null {
+  try {
+    const pages = json<string[] | null>(
+      `select coalesce(jsonb_agg(f.payload->>'html'), '[]'::jsonb) from public.fetches f join public.scans c on c.id = f.scan_id where c.site_id = '${siteId}' and f.source = '${OWN_FETCH_SOURCE}' and f.payload ? 'html';`
+    );
+    return new Set((pages ?? []).flatMap((html) => prose(html).questions.map((question) => question.toLowerCase()))).size;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * What a finished pass left in the local database, as the panel's result
  * and its checks. It buys nothing and writes nothing, so a pass whose run
@@ -288,10 +310,21 @@ export async function collect(a: { site: PanelSite; bought: readonly FetchRow[];
   }
   const market = parseStoredMarket(stored.site?.market).current;
   const deadRivals: string[] = [];
+  const wrongRivals: string[] = [];
+  const { safeFetch } = await import("@/lib/egress/safe-fetch");
   for (const rival of market?.rivals ?? []) {
     const resolves = await dns.promises.lookup(rival.domain).then(() => true, () => false);
-    if (!resolves) deadRivals.push(rival.domain);
+    if (!resolves) {
+      deadRivals.push(rival.domain);
+      continue;
+    }
+    // The site answers: does its home page say whose it is? A page that
+    // would not be read says nothing either way.
+    const home = await safeFetch(`https://${rival.domain}/`, { userAgent: "reachkit-measure", timeoutMs: 8_000 });
+    if (verdictOf(home, rival) === "another_site") wrongRivals.push(rival.domain);
   }
+  const aiReads = a.bought.filter((row) => row.source === AI_MODE_SOURCE);
+  const pageQuestions = questionsOnPages(siteIdOf(site.domain));
   const report = stored.scan?.report === null || stored.scan?.report === undefined ? null : readStoredReport(stored.scan.report);
   const knowledge = storedKnowledgeOf(stored.profile?.knowledge);
   const result: SiteResult = {
@@ -301,6 +334,9 @@ export async function collect(a: { site: PanelSite; bought: readonly FetchRow[];
     stoppedReason: stored.scan?.stopped_reason ?? null,
     market,
     deadRivals,
+    wrongRivals,
+    aiMode: { reads: aiReads.length, timeouts: aiReads.filter((row) => (row.payload as { vendorFailure?: unknown } | null)?.vendorFailure === "timeout").length },
+    pageQuestions,
     locales: [...a.locales],
     searches: report === null || report.questions.kind === "unmeasured" ? [] : report.questions.value.map((question) => question.search.keyword),
     knowledgePages: knowledge.pages.length,
@@ -314,6 +350,7 @@ export async function collect(a: { site: PanelSite; bought: readonly FetchRow[];
         type: String(row.type),
         fit: typeof row.business_fit === "number" ? row.business_fit : null,
         volume: typeof row.volume === "number" ? row.volume : null,
+        ready: typeof row.ready === "boolean" ? row.ready : null,
       })),
     cents: Object.values(costBySource).reduce((sum, paid) => sum + paid, 0),
     costBySource,
@@ -394,9 +431,9 @@ function markdown(a: { o: Options; runs: readonly SiteRun[]; notRun: readonly Pa
     out.push(`- **Measured searches (${result.searches.length}):** ${result.searches.join("; ") || "none"}`);
     out.push(`- **Knowledge base:** ${result.knowledgePages === null ? "pages read not recorded" : `read from ${result.knowledgePages} pages`}`);
     out.push(`- **Knowledge-base audience (${result.audience.length}):** ${result.audience.slice(0, 8).join("; ") || "none"}`);
-    out.push(`- **Knowledge-base questions (${result.questions.length}):** ${result.questions.slice(0, 12).join(" · ") || "none"}`);
+    out.push(`- **Knowledge-base questions (${result.questions.length}):** ${result.questions.slice(0, 12).join(" · ") || "none"}${typeof result.pageQuestions === "number" ? `; the site's own pages ask ${result.pageQuestions}` : ""}`);
     const open = result.topics.filter((topic) => topic.status === "open");
-    out.push(`- **Topics (${open.length} open of ${result.topics.length}):** ${open.map((topic) => `${topic.query} (${topic.type}, ${topic.volume ?? "no volume"}${topic.fit === null ? "" : `, fit ${topic.fit}`})`).join("; ") || "none"}`);
+    out.push(`- **Topics (${open.length} open of ${result.topics.length}):** ${open.map((topic) => `${topic.query} (${topic.type}, ${topic.volume ?? "no volume"}${topic.fit === null ? "" : `, fit ${topic.fit}`}${topic.ready === false ? ", held back" : ""})`).join("; ") || "none"}`);
     out.push(`- **Cost:** ${cents(result.cents)} in ${run.seconds}s — ${Object.entries(result.costBySource).sort((x, y) => y[1] - x[1]).map(([source, paid]) => `${source} ${cents(paid)}`).join(", ") || "nothing bought"}${run.evidenceLoaded === 0 ? "" : `; ${run.evidenceLoaded} stored vendor reads loaded`}`);
     out.push("", "| Check | Result | Detail |", "|---|---|---|");
     for (const check of run.checks) out.push(`| ${check.check} | ${MARK[check.verdict]} | ${check.detail.replace(/\|/g, "/")} |`);
@@ -433,6 +470,10 @@ function storedRuns(file: string, panel: readonly PanelSite[]): { runs: SiteRun[
       stoppedReason: rest.stoppedReason,
       market: rest.market,
       deadRivals: rest.deadRivals ?? [],
+      ...(rest.wrongRivals === undefined ? {} : { wrongRivals: rest.wrongRivals }),
+      // A run stored before issue 1314 kept its AI Mode timeouts as events.
+      aiMode: rest.aiMode ?? { reads: null, timeouts: (events ?? []).filter((line) => line.event === "vendor_call" && line.source === AI_MODE_SOURCE && line.failure === "timeout").length },
+      pageQuestions: rest.pageQuestions ?? null,
       locales: rest.locales,
       searches: rest.searches,
       knowledgePages: rest.knowledgePages ?? null,

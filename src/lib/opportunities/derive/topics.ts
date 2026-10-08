@@ -25,6 +25,7 @@ import { EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
 import { comparisonsOf, ownSearched, searched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { brandOf, classifyIntent } from "@/lib/market/questions/select";
+import { malformedSearch } from "@/lib/market/questions/well-formed";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
 import { queryKey } from "../cluster";
@@ -39,13 +40,22 @@ const COMPARISON_SHAPES = /\b(?:vs|versus|alternatives?)\b/;
 const PROBLEM_SHAPES =
   /^(?:how|why)\b|\b(?:problems?|issues?|errors?|not working|fix|troubleshoot(?:ing)?|broken)\b/;
 
+/** A search or a name as these rules compare it: lower case, punctuation
+ *  to spaces. Its letters stay as they are written (issue 1314): "Zuni
+ *  Café" is "zuni café", never "zuni caf", in every topic it names. */
 function normalise(text: string): string {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+  return text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
+}
+
+/** Accents folded, for telling whether a name is said: a buyer types "zuni
+ *  cafe" for Zuni Café. */
+function folded(text: string): string {
+  return text.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
 }
 
 function names(text: string, brands: readonly string[]): boolean {
-  const padded = ` ${text} `;
-  return brands.some((brand) => brand.length > 2 && padded.includes(` ${brand} `));
+  const padded = ` ${folded(text)} `;
+  return brands.some((brand) => brand.length > 2 && padded.includes(` ${folded(brand)} `));
 }
 
 /**
@@ -305,6 +315,8 @@ export function proposedTopics(a: {
     const key = queryKey(query);
     if (key === "" || seen.has(key) || out.length >= a.max) return;
     if (rivalBrandOnly(key, { market: a.market, own, rivals })) return;
+    // Issue 1314: a search nobody would type as it stands is no topic.
+    if (malformedSearch(key, a.market?.rivals) !== null) return;
     // D50: a comparison of names nobody searches is no topic, unless the
     // pass read demand for the search itself.
     if (!volumes.has(key) && comparisonWithoutDemand(key, { market: a.market, own })) return;

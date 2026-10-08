@@ -20,6 +20,7 @@
 //
 // Pure, like `select.ts`, which reads this: no context, no clock, no I/O.
 import type { MarketConclusion } from "@/lib/market/infer/types";
+import { malformedSearch, type NamedRival } from "./well-formed";
 
 /** What selection reads of the market in force. */
 export interface MeasuredMarket {
@@ -31,6 +32,9 @@ export interface MeasuredMarket {
   brands: readonly string[];
   /** `MarketConclusion.judged`. */
   judged: Readonly<Record<string, boolean>>;
+  /** The rivals in force, by name and domain (issue 1314): a search that
+   *  calls one by its domain is not a search. */
+  rivals?: readonly NamedRival[];
 }
 
 /** A search as these rules compare it: lower case, punctuation to spaces. */
@@ -60,6 +64,7 @@ export function measuredMarketOf(market: MarketConclusion | null | undefined): M
     notOurMarket: market.notOurMarket,
     brands: [...brands],
     judged: market.judged ?? {},
+    rivals: market.rivals.map((rival) => ({ name: rival.name, domain: rival.domain, ...(rival.searchNames === undefined ? {} : { searchNames: rival.searchNames }) })),
   };
 }
 
@@ -82,7 +87,7 @@ const MARKET_SUFFIX = /\s+(?:tools?|software|platforms?|apps?|systems?|services?
  *  be. A term from `notOurMarket` is read as D59 reads it: the phrase, or
  *  the phrase without its closing "software" or "tools" where two words or
  *  more are left; one word alone is never a match. */
-export function neverMeasured(search: string, m: MeasuredMarket): "not_our_market" | "brand" | "judged" | null {
+export function neverMeasured(search: string, m: MeasuredMarket): "not_our_market" | "brand" | "judged" | "malformed" | null {
   const key = searchKey(search);
   if (m.judged[key] === false) return "judged";
   if (m.brands.includes(key)) return "brand";
@@ -94,6 +99,8 @@ export function neverMeasured(search: string, m: MeasuredMarket): "not_our_marke
       if (term.length > 2 && text.includes(` ${term} `)) return "not_our_market";
     }
   }
+  // Issue 1314: nor a search nobody would type as it stands.
+  if (malformedSearch(search, m.rivals) !== null) return "malformed";
   return null;
 }
 

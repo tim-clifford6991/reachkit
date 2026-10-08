@@ -17,7 +17,7 @@
 // Every failure leaves what is stored alone: a pass never loses its market
 // because a model call did not come back.
 import type { CostContext } from "@/lib/costs";
-import type { EvidencePage } from "@/lib/market/infer/evidence";
+import { evidenceDomains, type EvidencePage } from "@/lib/market/infer/evidence";
 import type { BrandDemand, MarketConclusion, RivalConclusion } from "@/lib/market/infer/types";
 import { RIVALS_MAX } from "@/lib/market/infer/types";
 import type { GeneratedPrompt } from "@/lib/market/prompts/generate";
@@ -291,14 +291,16 @@ export async function recheckRivals(a: {
     log("rival_conclusion_unmeasured", { siteId: a.siteId, reason: fresh.reason });
     return none;
   }
+  // Issue 1314: a candidate is a rival only at a domain that is its own.
+  const candidates = await withCheckedDomains({ siteId: a.siteId, domain: a.domain, rivals: fresh.value, seen: evidenceDomains(evidence) });
   // D50: the candidates weighed by how often buyers search their brand.
-  const weighed = await weighByDemand({ ...a, siteName: text.siteName, demand: market.demand, rivals: fresh.value });
+  const weighed = await weighByDemand({ ...a, siteName: text.siteName, demand: market.demand, rivals: candidates });
   const stored =
     weighed === null ? site.stored : { ...site.stored, current: { ...market, demand: weighed.demand } };
   const settled = settleRivals({
     stored,
     standing: site.competitors,
-    fresh: weighed?.rivals ?? fresh.value,
+    fresh: weighed?.rivals ?? candidates,
     scanId: a.report.scanId,
     at: a.at,
   });
@@ -317,6 +319,32 @@ export async function recheckRivals(a: {
   return settled.changed && change !== null && change !== undefined
     ? { changed: true, added: change.added, dropped: change.dropped }
     : none;
+}
+
+/**
+ * The candidates whose domain is their own (SPEC §6, 2026-10-07, issue
+ * 1314): each home page is read once, a domain that is no site or another
+ * company's is put right where the rival's own can be found, and the rival
+ * is dropped where it cannot. Costs nothing and never throws; what it
+ * changed is logged.
+ */
+async function withCheckedDomains(a: {
+  siteId: string;
+  domain: string;
+  rivals: readonly RivalConclusion[];
+  seen: Iterable<string>;
+}): Promise<readonly RivalConclusion[]> {
+  try {
+    const { verifyRivalDomains } = await import("@/lib/market/rivals/verify");
+    const checked = await verifyRivalDomains({ rivals: a.rivals, own: a.domain, seen: a.seen });
+    if (checked.fixed.length > 0 || checked.dropped.length > 0) {
+      log("rival_domains_checked", { siteId: a.siteId, fixed: checked.fixed, dropped: checked.dropped });
+    }
+    return checked.rivals;
+  } catch (error) {
+    log("rival_domains_failed", { siteId: a.siteId, because: error instanceof Error ? error.message : String(error) });
+    return a.rivals;
+  }
 }
 
 /**
@@ -533,6 +561,7 @@ export async function concludeAtSetup(a: {
         : { ...fields.value, category: a.stated.trim(), synonyms: [], categoryReason: "" };
     const rivals = await inferRivals(c, evidence, market, RIVAL_CANDIDATES);
     if (rivals.kind === "unmeasured") return { market, rivals: [], demand: undefined };
+    const candidates = await withCheckedDomains({ siteId: a.siteId, domain: a.domain, rivals: rivals.value, seen: evidenceDomains(evidence) });
     // D50: the rivals setup offers are the ones buyers search for.
     const weighed = await weighByDemand({
       siteId: a.siteId,
@@ -540,10 +569,10 @@ export async function concludeAtSetup(a: {
       siteName: profile?.siteName ?? null,
       cost: c,
       demand: undefined,
-      rivals: rivals.value,
+      rivals: candidates,
       at: a.at,
     });
-    return { market, rivals: (weighed?.rivals ?? rivals.value).slice(0, RIVALS_MAX), demand: weighed?.demand };
+    return { market, rivals: (weighed?.rivals ?? candidates).slice(0, RIVALS_MAX), demand: weighed?.demand };
   });
   if (concluded === null) return null;
 

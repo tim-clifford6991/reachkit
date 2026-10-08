@@ -6,7 +6,7 @@
 // makes and reports. A field the founder overrode is never replaced.
 //
 // Pure: no I/O, no clock. The caller reads and writes `sites.market`.
-import { searched } from "./demand";
+import { direct, searched } from "./demand";
 import { RIVALS_MAX, type MarketConclusion, type RivalConclusion, type StoredMarket } from "./types";
 
 export type MarketFields = Omit<MarketConclusion, "rivals">;
@@ -159,9 +159,13 @@ export function settleRivals(a: {
   // D50: the rivals buyers search for are chosen first; among those, and
   // then among the rest, a standing one before a new one.
   const standing = (r: RivalConclusion): boolean => a.standing.includes(r.domain);
+  // Issue 1314: of the searched, the ones that do the same job come before
+  // one that does part of it, however much more it is searched.
   const wanted = [
-    ...a.fresh.filter((r) => searched(r.volume) && standing(r)),
-    ...a.fresh.filter((r) => searched(r.volume) && !standing(r)),
+    ...a.fresh.filter((r) => searched(r.volume) && direct(r) && standing(r)),
+    ...a.fresh.filter((r) => searched(r.volume) && direct(r) && !standing(r)),
+    ...a.fresh.filter((r) => searched(r.volume) && !direct(r) && standing(r)),
+    ...a.fresh.filter((r) => searched(r.volume) && !direct(r) && !standing(r)),
     ...a.fresh.filter((r) => !searched(r.volume) && standing(r)),
     ...a.fresh.filter((r) => !searched(r.volume) && !standing(r)),
   ].slice(0, RIVALS_MAX);
@@ -207,6 +211,7 @@ export function settleRivals(a: {
       const sx = searched(x.rival.volume);
       const sy = searched(y.rival.volume);
       if (sx !== sy) return sx ? -1 : 1;
+      if (sx && direct(x.rival) !== direct(y.rival)) return direct(x.rival) ? -1 : 1;
       if (sx && x.rival.volume !== y.rival.volume) return (y.rival.volume ?? 0) - (x.rival.volume ?? 0);
       return (order.get(x.rival.domain) ?? a.fresh.length + x.i) - (order.get(y.rival.domain) ?? a.fresh.length + y.i);
     })

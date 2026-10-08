@@ -75,6 +75,8 @@ export const RIVALS_SCHEMA = z.strictObject({
           // D50: optional, so an answer without it is still an answer.
           searchName: z.string().optional(),
           otherSearches: z.boolean().optional(),
+          // Issue 1314: optional, as the two above are.
+          closeness: z.enum(["direct", "partial"]).optional(),
           kind: z.enum(KINDS),
           inMarket: z.boolean(),
           basis: z.enum(BASES),
@@ -93,12 +95,13 @@ export const RIVALS_TASK = [
   "The measured domains were bought for measuredUnder, an earlier guess at the market, so most of them may sell something else. A measured domain is a candidate only when its main product is this market's category; then its basis is ai_answer if an AI answer cited it, or ranks if it is in the top tens. An answer's excerpt is what an AI assistant told a buyer in this market: a product it names there is a candidate with basis ai_answer. A company you name from knowledge has basis same_job.",
   "inMarket is false for a company whose main product is a category on notOurMarket, even when it has a feature in this market, and for a company best known for a product outside this market unless what it sells here has a product name of its own, which is then the name. A publisher, blog, review site, directory, marketplace, forum, social network, agency or general platform is never a competitor: give it its kind if you list it at all. Never list the business itself.",
   "name is the product as buyers say it. otherSearches is true where most people who type that bare name into Google want something else: the name is a dictionary word or a first name (\"Linear\", \"Notion\", \"Amplitude\", \"Jasper\"), or the company is best known for a product outside this market. searchName is what a buyer types to find this product in this market: the name in lower case, with one word added where otherSearches is true — the word buyers really add, such as the one in its domain or its product line (\"linear app\", \"notion calendar\") — never a description of what it does.",
+  "closeness is direct where a buyer choosing this business would seriously weigh that product against it: it does the same job, for the same kind of buyer, with a comparable offer. It is partial where the product does only part of the job, serves a different kind of buyer, or is a free or single-purpose tool this business's buyer would not choose instead — however well known it is.",
   "Each reason is one short plain sentence a founder can read: what the company sells and why it competes.",
 ].join(" ");
 
 export const RIVALS_FIELDS = Object.freeze({
   candidates:
-    "up to 10 objects {domain, name, searchName, otherSearches, kind, inMarket, basis, reason}: domain is the company's own website; searchName is the name in lower case plus at most one word; otherSearches is a boolean; kind one of product|publisher|aggregator|platform|agency|other; basis one of ai_answer|ranks|same_job",
+    "up to 10 objects {domain, name, searchName, otherSearches, closeness, kind, inMarket, basis, reason}: domain is the company's own website; searchName is the name in lower case plus at most one word; otherSearches is a boolean; closeness one of direct|partial; kind one of product|publisher|aggregator|platform|agency|other; basis one of ai_answer|ranks|same_job",
 });
 
 /** The rivals from one checked answer: products in the market only —
@@ -150,6 +153,7 @@ export function concludeRivals(
       basis,
       reason: candidate.reason.trim(),
       searchNames,
+      ...(candidate.closeness === "partial" ? { closeness: "partial" as const } : {}),
     });
   }
   return rivals;

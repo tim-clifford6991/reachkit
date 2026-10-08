@@ -7,9 +7,12 @@
 // and names no site. A result the code cannot judge is `review`, listed for
 // a person to read, never passed.
 //
-// Plain data only: no database, no network, no product import beyond types,
-// so the checks are tested on fixtures.
+// Plain data only: no database, no network, and of the product only its
+// types, its pinned bounds and one pure rule, so the checks are tested on
+// fixtures.
+import { KNOWLEDGE_BASE } from "@/lib/config/constants";
 import type { MarketConclusion } from "@/lib/market/infer/types";
+import { malformedSearch, type Malformed } from "@/lib/market/questions/well-formed";
 
 export interface PanelSite {
   domain: string;
@@ -45,6 +48,9 @@ export interface PanelTopic {
   /** The pass's own business fit, 0–3; `null` where it judged none. */
   fit: number | null;
   volume: number | null;
+  /** Whether the pass left it ready to fill a day; `null` or absent where a
+   *  stored result did not record it. */
+  ready?: boolean | null;
 }
 
 export interface SiteResult {
@@ -59,6 +65,15 @@ export interface SiteResult {
   locales: readonly VendorLocale[];
   /** Rival domains that do not resolve: no such site exists. */
   deadRivals: readonly string[];
+  /** Rival domains whose home page was read and never names the rival:
+   *  another company's site. Absent where a stored result did not read them. */
+  wrongRivals?: readonly string[];
+  /** The pass's AI Mode reads, and how many met the request bound; `reads`
+   *  is `null` where a stored result kept only its timeouts. */
+  aiMode?: { reads: number | null; timeouts: number } | null;
+  /** How many questions the site's own pages ask, in their FAQ schema, FAQ
+   *  sections and headings; `null` or absent where it was not counted. */
+  pageQuestions?: number | null;
   /** The measured searches the pass seeded (the twelve). */
   searches: readonly string[];
   /** How many of the site's pages the knowledge base was read from; `null`
@@ -235,8 +250,13 @@ export function checkRivals(r: SiteResult): CheckResult {
     if (bare(rival.domain) === bare(r.site.domain)) items.push(`${rival.domain} is the site itself`);
     else if (r.site.listsOthers !== true && isListing(rival.domain)) items.push(`${rival.domain} lists or writes about businesses; it is not one`);
     if (r.deadRivals.includes(rival.domain)) items.push(`${rival.domain} does not resolve: no such site`);
+    if (r.wrongRivals?.includes(rival.domain) === true) items.push(`${rival.domain} is not ${rival.name}'s site: its home page never names it`);
     if ((rival.volume ?? 0) <= 0 && rival.basis !== "ai_answer") items.push(`${rival.name} (${rival.domain}) has no brand demand and no AI answer names it (${rival.basis})`);
   }
+  // Demand orders rivals that do the same job; it never puts a different
+  // product first.
+  const lead = rivals[0];
+  if (lead?.closeness === "partial") items.push(`${lead.name} leads the rivals and does only part of this business's job`);
   const named = rivals.map((rival) => `${rival.name} — ${rival.domain}, ${rival.volume ?? "unread"}/mo, ${rival.basis}`).join("; ");
   if (items.length > 0) return { check, verdict: "fail", detail: named === "" ? "no rivals were concluded" : named, items };
   return { check, verdict: "pass", detail: named, items: [] };
@@ -303,11 +323,43 @@ export function judgeQuery(query: string, r: SiteResult, rivalRule: "names" | "o
   return null;
 }
 
+const NOT_A_SEARCH: Readonly<Record<Malformed, string>> = {
+  repeated_phrase: "says a phrase twice",
+  empty_comparison: "compares with nothing",
+  web_address: "holds a web address in place of a name",
+  domain_for_name: "calls a rival by its domain, not its name",
+};
+
+/** The site's name as it reads with every letter outside ASCII dropped,
+ *  where that differs from the name: "zuni caf" for Zuni Café. */
+function nameWithLettersDropped(r: SiteResult): string | null {
+  const name = (r.siteName ?? "").toLowerCase();
+  const kept = words(name).join(" ");
+  const dropped = name.replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+  return kept === "" || dropped === "" || dropped === kept ? null : dropped;
+}
+
+/** Why a search or a topic is not a search anyone would type, whatever the
+ *  market: the product's own rule, and a name that lost its letters. */
+export function notASearch(query: string, r: SiteResult): string | null {
+  const malformed = malformedSearch(query, r.market?.rivals ?? []);
+  if (malformed !== null) return NOT_A_SEARCH[malformed];
+  const dropped = nameWithLettersDropped(r);
+  const kept = words(r.siteName ?? "").join(" ");
+  if (dropped !== null && holds(query, dropped) && !holds(query, kept)) return `the site's name lost its letters ("${dropped}")`;
+  return null;
+}
+
 function judged(check: string, queries: readonly string[], r: SiteResult, rivalRule: "names" | "only", none: CheckResult): CheckResult {
   if (queries.length === 0) return none;
   const failed: string[] = [];
   const unsure: string[] = [];
   for (const query of queries) {
+    const malformed = notASearch(query, r);
+    if (malformed !== null) {
+      failed.push(`${query} — ${malformed}`);
+      continue;
+    }
     const finding = judgeQuery(query, r, rivalRule);
     if (finding?.verdict === "fail") failed.push(`${query} — ${finding.why}`);
     else if (finding?.verdict === "review") unsure.push(`${query} — ${finding.why}`);
@@ -327,11 +379,17 @@ export function checkTopics(r: SiteResult): CheckResult {
   const open = r.topics.filter((topic) => topic.status === "open");
   const none: CheckResult = { check, verdict: "review", detail: `no open topic was derived (${r.topics.length} held)`, items: [] };
   const result = judged(check, open.map((topic) => topic.query), r, "only", none);
-  // The pass's own judgement outranks a word match: an open topic it scored
-  // as no fit, or as one the business can only be mentioned in, is off-market.
-  const lowFit = open.filter((topic) => topic.fit !== null && topic.fit <= 1).map((topic) => `${topic.query} — open at business fit ${topic.fit}`);
-  if (lowFit.length === 0) return result;
-  return { check, verdict: "fail", detail: `${lowFit.length} of ${open.length} open at fit 0 or 1`, items: [...lowFit, ...result.items] };
+  // The pass's own judgement outranks a word match: a topic it scored as no
+  // fit, or as one the business can only be mentioned in, is off-market. The
+  // pass keeps such a row with its reason and holds it back from every day
+  // (`low_fit`); one left ready to be written is the defect. A stored result
+  // from before readiness was recorded cannot say which, and is read by hand.
+  const lowFit = open.filter((topic) => topic.fit !== null && topic.fit <= 1);
+  const ready = lowFit.filter((topic) => topic.ready === true).map((topic) => `${topic.query} — ready to be written at business fit ${topic.fit}`);
+  const unknown = lowFit.filter((topic) => topic.ready === null || topic.ready === undefined).map((topic) => `${topic.query} — open at business fit ${topic.fit}; whether it was held back was not recorded`);
+  if (ready.length > 0) return { check, verdict: "fail", detail: `${ready.length} of ${open.length} ready at fit 0 or 1`, items: [...ready, ...unknown, ...result.items] };
+  if (unknown.length === 0 || result.verdict === "fail") return { ...result, items: [...result.items, ...unknown] };
+  return { check, verdict: "review", detail: `${unknown.length} of ${open.length} open at fit 0 or 1, readiness not recorded`, items: [...unknown, ...result.items] };
 }
 
 // ── 5. The knowledge base's questions ──────────────────────────────────────
@@ -350,7 +408,14 @@ export function isRealQuestion(text: string): boolean {
 export function checkQuestions(r: SiteResult): CheckResult {
   const check = "knowledge-base buyer questions are real questions, not headings";
   if (r.knowledgePages === 0) return { check, verdict: "fail", detail: "the knowledge base was not built: no page of the site was read into it", items: [] };
-  if (r.questions.length === 0) return { check, verdict: "review", detail: "the knowledge base holds no buyer question", items: [] };
+  if (r.questions.length === 0) {
+    // A site whose pages ask nothing is fine, and the result says so.
+    if (r.pageQuestions === 0) return { check, verdict: "pass", detail: "the site's own pages ask no question, and none is kept", items: [] };
+    if (typeof r.pageQuestions === "number") {
+      return { check, verdict: "fail", detail: `the site's own pages ask ${r.pageQuestions} questions and the knowledge base holds none`, items: [] };
+    }
+    return { check, verdict: "review", detail: "the knowledge base holds no buyer question", items: [] };
+  }
   const headings = r.questions.filter((question) => !isRealQuestion(question));
   if (headings.length > 0) return { check, verdict: "fail", detail: `${headings.length} of ${r.questions.length} are not questions`, items: headings };
   return { check, verdict: "pass", detail: `${r.questions.length} questions`, items: [] };
@@ -404,11 +469,43 @@ export function checkPlace(r: SiteResult): CheckResult | null {
   };
 }
 
+// ── What the pass paid for ─────────────────────────────────────────────────
+
+/** The share of a pass's AI Mode reads that may time out (the pass's own
+ *  `serp_timeouts` bound), and the count that fails a stored result which
+ *  kept no total. */
+const TIMEOUT_SHARE = 0.2;
+const TIMEOUTS_WITHOUT_TOTAL = 3;
+
+/** The model call the knowledge base is read with, as the ledger names it. */
+const KNOWLEDGE_SOURCE = "site-knowledge";
+
+/**
+ * Two bounds on what a pass buys, whatever the site's size: the knowledge
+ * base's read stays inside its budget, and AI Mode reads are answered, not
+ * timed out and billed.
+ */
+export function checkSpend(r: SiteResult): CheckResult {
+  const check = "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back";
+  const items: string[] = [];
+  const knowledge = r.costBySource[KNOWLEDGE_SOURCE] ?? 0;
+  if (knowledge > KNOWLEDGE_BASE.BUDGET_C) {
+    items.push(`the knowledge base cost ${knowledge.toFixed(2)}¢ for ${r.knowledgePages ?? "an unrecorded number of"} pages; its bound is ${KNOWLEDGE_BASE.BUDGET_C}¢`);
+  }
+  const ai = r.aiMode ?? null;
+  if (ai !== null) {
+    const failing = ai.reads === null ? ai.timeouts >= TIMEOUTS_WITHOUT_TOTAL : ai.reads > 0 && ai.timeouts / ai.reads > TIMEOUT_SHARE;
+    if (failing) items.push(`${ai.timeouts} of ${ai.reads ?? "its"} AI Mode reads timed out and were billed`);
+  }
+  if (items.length > 0) return { check, verdict: "fail", detail: items.join("; "), items };
+  return { check, verdict: "pass", detail: `knowledge base ${knowledge.toFixed(2)}¢${ai === null ? "" : `; ${ai.timeouts} of ${ai.reads ?? "an unrecorded number of"} AI Mode reads timed out`}`, items: [] };
+}
+
 // ── All of them ────────────────────────────────────────────────────────────
 
 export function checkSite(r: SiteResult): CheckResult[] {
   const place = checkPlace(r);
-  return [checkCategory(r), checkSearchTerm(r), checkLocale(r), checkRivals(r), checkSearches(r), checkQuestions(r), checkAudience(r), checkTopics(r), ...(place === null ? [] : [place])];
+  return [checkCategory(r), checkSearchTerm(r), checkLocale(r), checkRivals(r), checkSearches(r), checkQuestions(r), checkAudience(r), checkTopics(r), checkSpend(r), ...(place === null ? [] : [place])];
 }
 
 /** A defect kind and the sites it affects, for the run's summary. */

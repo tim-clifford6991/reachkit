@@ -2237,6 +2237,7 @@ async function askTheMarketPrompts(a: StageArgs): Promise<void> {
           mode: parameters.serpMode,
           scope: cacheScope(a),
           untilMs: untilCeiling(bounds, parameters),
+          abortMs: serpAbortFor(bounds, parameters),
         })
       );
       if (sections.sealed || failed(got) || got.kind === "unmeasured" || !got.value.answered) return;
@@ -2328,7 +2329,7 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
           ? llmScraper(cost, { query: prompt.text, mode: "std", scope, untilMs, run, asOf })
           : // The standard queue on every tier: the measure is the same
             // ask whichever pass makes it, at the price D19 was costed at.
-            aiMode(cost, { query: prompt.text, mode: "std", scope, untilMs, run, asOf })
+            aiMode(cost, { query: prompt.text, mode: "std", scope, untilMs, run, asOf, abortMs: serpAbortFor(bounds, parameters) })
       );
       if (failed(got) || got.kind === "unmeasured" || !got.value.answered) return;
       const reading = readPromptAnswer({
@@ -2607,7 +2608,15 @@ async function askTheBattery(
     bounds.stopNow() !== null
       ? unmeasured<AiAnswer>("not_attempted", at)
       : engineAnswer(at, "ai_mode", watch, (onFailure) =>
-          aiMode(cost, { query, mode: parameters.serpMode, scope: cacheScope(a), onFailure, untilMs: untilCeiling(bounds, parameters) })
+          aiMode(cost, {
+            query,
+            mode: parameters.serpMode,
+            scope: cacheScope(a),
+            onFailure,
+            untilMs: untilCeiling(bounds, parameters),
+            // D63 (issue 1314): AI Mode waits as the pass's other SERP reads do.
+            abortMs: serpAbortFor(bounds, parameters),
+          })
         ),
   ]);
 

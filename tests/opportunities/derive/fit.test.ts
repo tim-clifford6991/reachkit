@@ -283,6 +283,17 @@ describe("comparisons target names buyers search for (D50, issue 1271)", () => {
     expect(targets.filter((target) => target.includes("maxonboard"))).toEqual([]);
   });
 
+  it("a business's name keeps its letters in the topics that name it (issue 1314)", () => {
+    const report = defaultReport();
+    if (report.market.kind === "unmeasured") throw new Error("the fixture report holds a market");
+    const profile = { ...report.market.value.profile, brandTokens: ["Zuni Café"] };
+    const accented = { ...report, market: { ...report.market, value: { ...report.market.value, profile } } };
+    const searched: MarketConclusion = { ...unknownBrand, demand: { ...unknownBrand.demand!, own: 49500 } };
+    const targets = proposedTopics({ report: accented, market: searched, taken: [], ownRanked: 0, max: 40 }).map((t) => t.query);
+    expect(targets).toContain("zuni café vs appcues");
+    expect(targets.filter((target) => target.includes("zuni caf "))).toEqual([]);
+  });
+
   it("a comparison an earlier pass queued against a rival nobody searches is dismissed once the volumes are read", async () => {
     const fit = (search: string) => (search === `${OWN} vs maxonboard` ? 3 : 2);
     judgeWith(fit);

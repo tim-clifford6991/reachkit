@@ -418,30 +418,40 @@ export const PROFILE_PROMPT_CAPS = Object.freeze({
 } as const);
 
 /**
- * The knowledge base's bounds — SPEC §5 (2026-09-29, #1133): "the profile
- * crawl reads up to 100 pages" and one small-tier call per page. The
- * numbers are drafted defaults the owner may correct.
+ * The knowledge base's bounds — SPEC §5 (2026-09-29, #1133; bounded
+ * 2026-10-07, issue 1314). The numbers are drafted defaults the owner may
+ * correct.
+ *
+ * `MAX_PAGES` is how many pages one read asks about, the most informative
+ * first (`site-profile/knowledge/priority.ts`). It was the crawl's hundred,
+ * and the read's cost then grew with the site: 74 pages of one panel site
+ * cost 44¢, a third of a deep pass. Twenty pages hold the home page, the
+ * pricing, product or service, about, FAQ and location pages of a site of
+ * any size.
  *
  * `PAGE_INPUT_CHARS` is how much of one page's cleaned prose a call
  * carries: a pricing or features page is rarely longer, and at ~4
  * characters a token it is 2,000 tokens of input, 0.2¢. `BUDGET_C` is the
- * most one pass spends on the whole read — a hundred pages settle near
- * 30¢, inside the 150¢ of a deep pass that spends about 30¢ on everything
- * else. `STEP_MS` is the step's own clock, inside the 300 s a job
- * invocation has. A page whose text has not changed since the last read is
- * not asked about again.
+ * most one pass spends on the whole read, a tenth of `CAPS.DEEP_C`: a page
+ * is asked about only while the budget still holds the most that page can
+ * cost, so the read never ends above it. `STEP_MS` is the step's own
+ * clock, inside the 300 s a job invocation has. A page whose text has not
+ * changed since the last read is not asked about again.
  *
- * `PAGE_ITEMS` bounds what one page may answer with, per list, and
- * `ITEMS` what the whole base keeps per list once the pages are merged.
+ * `PAGE_ITEMS` bounds what one page may answer with, per list,
+ * `PAGE_QUESTIONS` how many buyer questions one page may hold once its own
+ * FAQ is added, and `ITEMS` what the whole base keeps per list once the
+ * pages are merged.
  */
 export const KNOWLEDGE_BASE = Object.freeze({
-  MAX_PAGES: 100,
+  MAX_PAGES: 20,
   PAGE_INPUT_CHARS: 8_000,
   PAGE_MIN_CHARS: 200,
   CONCURRENCY: 6,
-  BUDGET_C: 40,
+  BUDGET_C: 15,
   STEP_MS: 200_000,
   PAGE_ITEMS: 8,
+  PAGE_QUESTIONS: 20,
   ITEMS: 40,
   OFFERINGS: 12,
   ITEM_CHARS: 300,

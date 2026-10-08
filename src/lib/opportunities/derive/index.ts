@@ -22,6 +22,7 @@ import { TOPIC_FIT } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { ownSearched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
+import { malformedSearch } from "@/lib/market/questions/well-formed";
 import { measured, type Measured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
@@ -209,13 +210,18 @@ export async function deriveOpportunities(
   // an open row for one that nothing was drafted from goes too.
   const aRivalsBrand = (row: { targetQuery: string | null }): boolean =>
     row.targetQuery !== null && rivalBrandOnly(row.targetQuery, { market, own: named.own, rivals: named.rivals });
+  // SPEC §6 (2026-10-07, issue 1314): nor is a search nobody would type as
+  // it stands — a phrase said twice, a comparison with one side, a web
+  // address, a rival called by its domain.
+  const notASearch = (row: { targetQuery: string | null }): boolean =>
+    row.targetQuery !== null && malformedSearch(row.targetQuery, market?.rivals) !== null;
   const gone = new Set<string>();
   for (const row of held) {
     if (row.status !== "open") continue;
     const neverDrafted = drafted !== null && !drafted.has(row.id) && !isRetarget(row);
-    if (aRivalsPrice(row) || unsearchedComparison(row) || irrelevant(row) || (neverDrafted && aRivalsBrand(row))) gone.add(row.id);
+    if (aRivalsPrice(row) || unsearchedComparison(row) || irrelevant(row) || (neverDrafted && (aRivalsBrand(row) || notASearch(row)))) gone.add(row.id);
   }
-  const mine = planned.filter((candidate) => !aRivalsPrice(candidate) && !aRivalsBrand(candidate));
+  const mine = planned.filter((candidate) => !aRivalsPrice(candidate) && !aRivalsBrand(candidate) && !notASearch(candidate));
   const derived: Candidate[] = [
     ...(a.known === undefined ? mine : applyKnownContent(mine, a.known)),
     ...fix.candidates,

@@ -131,6 +131,11 @@ export async function aiMode(
      *  inside one call, where a pass's between-calls check cannot reach it.
      *  Passing this is how a bounded pass stays bounded. */
     untilMs?: number;
+    /** The wall clock one request of this call may hold (D63, issue 1314):
+     *  AI Mode is a SERP endpoint, and a paid pass's live read of it met the
+     *  10 s bound sixteen to twenty times a site, each billed. Absent, the
+     *  transport's own bound. */
+    abortMs?: number;
   }
 ): Promise<Measured<AiAnswer>> {
   const refused = paidOnly<AiAnswer>(c, new Date());
@@ -140,7 +145,7 @@ export async function aiMode(
     cacheKey: `${a.query}|${LOCALE_KEY}|${scopeKey(a.scope)}${runKey(a.run, a.asOf)}`,
     freshnessDays: CACHE_WINDOWS_D.aiBattery,
     costCents: a.mode === "live" ? PRICE_BOOK.AI_MODE_LIVE_C : PRICE_BOOK.AI_MODE_STD_C,
-    fetch: () => callEndpoint(AI_MODE_PATHS, a.mode, { keyword: a.query }, undefined, a.untilMs),
+    fetch: () => callEndpoint(AI_MODE_PATHS, a.mode, { keyword: a.query }, a.abortMs, a.untilMs),
     parse: parseAiMode,
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),
   });

@@ -78,7 +78,7 @@ const bakery: SiteResult = {
   audience: [],
   topics: [
     { query: "kamps", status: "open", type: "new_post", fit: 1, volume: 1000 },
-    { query: "bread baking classes", status: "open", type: "new_post", fit: 1, volume: 200 },
+    { query: "bread baking classes", status: "open", type: "new_post", fit: 1, volume: 200, ready: true },
   ],
   cents: 30,
   costBySource: {},
@@ -90,14 +90,14 @@ describe("npm run panel — a pass held to what the business is", () => {
   it("passes a local business the pass read as itself, and lets a topic compare with a rival", () => {
     const checks = checkSite(plumber);
 
-    expect(verdicts(checks)).toEqual(["pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass"]);
+    expect(verdicts(checks)).toEqual(["pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass"]);
   });
 
   it("fails a German bakery read as an American software company, and says what is wrong", () => {
     const checks = checkSite(bakery);
     const by = Object.fromEntries(checks.map((check) => [check.check, check]));
 
-    expect(verdicts(checks)).toEqual(["fail", "fail", "fail", "fail", "fail", "fail", "fail", "fail"]);
+    expect(verdicts(checks)).toEqual(["fail", "fail", "fail", "fail", "fail", "fail", "fail", "fail", "pass"]);
     expect(by["the category is specific, and is the business's own"]!.detail).toContain("names no market");
     expect(by["the terms are in the site's own language and country"]!.detail).toContain("a de site in Germany was read in United States / en");
     expect(by["3–5 rivals, none a listing, each with demand or AI evidence"]!.items).toEqual([
@@ -114,7 +114,61 @@ describe("npm run panel — a pass held to what the business is", () => {
     ]);
     expect(by["knowledge-base buyer questions are real questions, not headings"]!.items).toEqual(["Unsere Filialen", "FAQ"]);
     expect(by["the audience is specific"]!.detail).toContain("names no one in particular");
-    expect(by["topics are all on-market"]!.items).toContain("bread baking classes — open at business fit 1");
+    expect(by["topics are all on-market"]!.items).toContain("bread baking classes — ready to be written at business fit 1");
+  });
+
+  it("holds a pass to the general rules of issue 1314, on what the panel's own passes left", () => {
+    const by = (result: SiteResult) => Object.fromEntries(checkSite(result).map((check) => [check.check, check]));
+    const market = plumber.market!;
+    const pass: SiteResult = {
+      ...plumber,
+      siteName: "Zuni Café",
+      market: {
+        ...market,
+        rivals: [
+          { domain: "when2meet.example", name: "When2meet", basis: "ai_answer", reason: "A free poll.", volume: 110000, closeness: "partial" },
+          { domain: "abcplumbingaustin.example", name: "ABC Home & Commercial Services", basis: "same_job", reason: "Same job.", volume: 9900 },
+          { domain: "piper.example", name: "Chili Piper", basis: "same_job", reason: "Same job.", volume: 6600 },
+        ],
+      },
+      wrongRivals: ["piper.example"],
+      searches: ["best bakery near me near me", "chartered accountant vs", "emergency plumber austin"],
+      topics: [
+        { query: "zuni caf vs quince", status: "open", type: "comparison_page", fit: 3, volume: null, ready: true },
+        { query: "abcplumbingaustin alternatives", status: "open", type: "comparison_page", fit: 3, volume: null, ready: true },
+        { query: "plumbing tools for beginners", status: "open", type: "listed_page", fit: 1, volume: 2400, ready: false },
+      ],
+      knowledgePages: 74,
+      costBySource: { "site-knowledge": 44.41, "serp/google/ai_mode": 4 },
+      aiMode: { reads: 20, timeouts: 20 },
+    };
+    const found = by(pass);
+
+    expect(found["3–5 rivals, none a listing, each with demand or AI evidence"]!.items).toEqual([
+      "piper.example is not Chili Piper's site: its home page never names it",
+      "When2meet leads the rivals and does only part of this business's job",
+    ]);
+    expect(found["no measured search is off-market, a rival's brand or navigational"]!.items).toEqual([
+      "best bakery near me near me — says a phrase twice",
+      "chartered accountant vs — compares with nothing",
+    ]);
+    // A topic the pass holds back at low fit is not a defect; a malformed one is.
+    expect(found["topics are all on-market"]!.items).toEqual([
+      'zuni caf vs quince — the site\'s name lost its letters ("zuni caf")',
+      "abcplumbingaustin alternatives — calls a rival by its domain, not its name",
+    ]);
+    expect(found["the pass pays for answers: the knowledge base is bounded, AI Mode reads come back"]!.items).toEqual([
+      "the knowledge base cost 44.41¢ for 74 pages; its bound is 15¢",
+      "20 of 20 AI Mode reads timed out and were billed",
+    ]);
+  });
+
+  it("a site whose own pages ask nothing passes with no buyer question, and one whose pages ask some does not", () => {
+    const check = (pageQuestions: number | null) =>
+      checkSite({ ...plumber, questions: [], pageQuestions }).find((result) => result.check.startsWith("knowledge-base buyer questions"))!;
+    expect(check(0)).toMatchObject({ verdict: "pass", detail: "the site's own pages ask no question, and none is kept" });
+    expect(check(5).verdict).toBe("fail");
+    expect(check(null).verdict).toBe("review");
   });
 
   it("sends what it cannot judge to a person: a listing's own rivals, a non-English wording, an unread base", () => {
