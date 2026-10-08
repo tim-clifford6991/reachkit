@@ -8,6 +8,7 @@
 // is the business's own where it holds one of the business's words. And a
 // noun's article and ending follow its gender, which a template cannot
 // know, so every template below asks in a form that needs neither.
+import { DE_PROMPTS } from "./prompts/de";
 import type { LanguagePack } from "./types";
 
 function sentenceCase(text: string): string {
@@ -170,6 +171,8 @@ export const DE: LanguagePack = {
     return `${sentenceCase(text)}?`;
   },
   prompts: {
+    ...DE_PROMPTS,
+    software: {
     category: {
       best: (category) => `Was sind aktuell die besten Anbieter für ${category}, und worin ist jeder gut?`,
       recommended: (synonym) => `Welche Anbieter für ${synonym} werden dieses Jahr wirklich empfohlen?`,
@@ -209,6 +212,7 @@ export const DE: LanguagePack = {
       alternative: (name, first, category) => `Ist ${name} eine gute Alternative zu ${first} für ${category}?`,
     },
     buyerHead,
+    },
   },
   buyerPrompts: {
     best: (name) => `Was sind die besten Anbieter für ${name}?`,

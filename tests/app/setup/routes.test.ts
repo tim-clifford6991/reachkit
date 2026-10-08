@@ -326,7 +326,7 @@ describe("POST /api/setup/domain — does this address resolve", () => {
   it("a value that is not a domain answers domain: null, and asks no resolver", async () => {
     const { POST } = await import("@/app/api/setup/domain/route");
     const response = await POST(post("/api/setup/domain", { host: "not a domain" }), undefined);
-    await expect(response.json()).resolves.toEqual({ domain: null, resolves: false, report: null, locale: "US/en" });
+    await expect(response.json()).resolves.toEqual({ domain: null, resolves: false, report: null, locale: "US/en", place: "" });
   });
 
   it("a domain that does not resolve answers resolves: false, and still names the domain", async () => {
@@ -337,6 +337,7 @@ describe("POST /api/setup/domain — does this address resolve", () => {
       resolves: false,
       report: null,
       locale: "US/en",
+      place: "",
     });
   });
 

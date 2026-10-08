@@ -549,6 +549,10 @@ export interface StoredReport {
    *  those were: the United States, in English, with nothing fallen back
    *  from. */
   locale?: ReportLocale;
+  /** The city a home page's structured data states for a business that
+   *  marks itself a local one (SPEC §6, owner D67, issue 1318): what setup
+   *  fills its question with. Absent where the page states none. */
+  statedPlace?: { name: string; region?: string };
 }
 
 export interface ReportLocale extends Locale {

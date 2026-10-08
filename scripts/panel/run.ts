@@ -39,7 +39,10 @@ import { createHash } from "node:crypto";
 import dns from "node:dns";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { isLanguage } from "@/lib/locale/locales";
 import { parseStoredMarket } from "@/lib/market/infer/stored";
+import { spokenMarket } from "@/lib/market/infer/terms";
+import { generatePrompts, promptSiteName } from "@/lib/market/prompts/generate";
 import { verdictOf } from "@/lib/market/rivals/verify";
 import { OWN_FETCH_SOURCE } from "@/lib/measure/own-fetch";
 import { prose } from "@/lib/measure/prose";
@@ -308,7 +311,9 @@ export async function collect(a: { site: PanelSite; bought: readonly FetchRow[];
     const paid = Number(row.cost_cents);
     if (paid > 0) costBySource[row.source] = (costBySource[row.source] ?? 0) + paid;
   }
-  const market = parseStoredMarket(stored.site?.market).current;
+  const storedMarket = parseStoredMarket(stored.site?.market);
+  const market = storedMarket.current;
+  const area = storedMarket.area;
   const deadRivals: string[] = [];
   const wrongRivals: string[] = [];
   const { safeFetch } = await import("@/lib/egress/safe-fetch");
@@ -358,6 +363,25 @@ export async function collect(a: { site: PanelSite; bought: readonly FetchRow[];
       })),
     cents: Object.values(costBySource).reduce((sum, paid) => sum + paid, 0),
     costBySource,
+    // D67: where the pass stored the business as serving, and what its own
+    // results showed.
+    area: area === undefined ? null : { place: area.place?.name ?? null, location: area.place?.location ?? null },
+    resultDomains: [
+      ...new Set([
+        ...(report?.serps ?? []).flatMap((serp) => (serp.kind === "measured" ? [...serp.value.organic, ...(serp.value.localPack ?? [])].map((row) => row.domain) : [])),
+        ...(report?.marketPrompts ?? []).flatMap((prompt) => prompt.citedDomains),
+      ]),
+    ],
+    // D69: the 25 the market yields. A first pass asks none of them.
+    prompts:
+      market === null
+        ? []
+        : generatePrompts(
+            spokenMarket(market, null),
+            promptSiteName(typeof stored.profile?.site_name === "string" ? stored.profile.site_name : null, site.domain),
+            isLanguage(stored.site?.language) ? stored.site.language : "en",
+            area?.place ?? undefined
+          ).map((prompt) => ({ kind: prompt.kind, text: prompt.text })),
   };
   const health = (parseHealth(stored.scan?.health)?.checks ?? []).map((check) => ({ check: check.check, pass: check.pass, detail: check.detail }));
   const telling = /unmeasured|failed|undeterminable|skipped|threw|too_small|refus/;
@@ -431,7 +455,10 @@ function markdown(a: { o: Options; runs: readonly SiteRun[]; notRun: readonly Pa
     out.push(`- **Terms:** ${(market?.terms ?? []).map((term) => `${term.term} ${term.volume}${term.polluted === true ? " (polluted)" : ""}`).join(", ") || "none"}`);
     out.push(`- **Read in:** ${result.locales.map((locale) => `${locale.location} / ${locale.language}`).join(", ") || "no vendor read seen"}`);
     out.push(`- **Not its market:** ${(market?.notOurMarket ?? []).join(", ") || "none"}`);
-    out.push(`- **Rivals:** ${(market?.rivals ?? []).map((rival) => `${rival.name} (${rival.domain}, ${rival.volume ?? "unread"}/mo, ${rival.basis})`).join("; ") || "none"}`);
+    out.push(`- **Kind of business:** ${market?.kind ?? "not recorded"}`);
+    out.push(`- **Serves:** ${result.area === undefined ? "not recorded" : result.area === null || result.area.place === null ? "nationally or online" : `${result.area.place}${result.area.location === null ? " (the vendor lists no such city)" : `, read from ${result.area.location}`}`}`);
+    out.push(`- **Rivals:** ${(market?.rivals ?? []).map((rival) => `${rival.name} (${rival.domain}, ${rival.volume ?? "unread"}/mo, ${rival.basis}${rival.national === true ? ", national" : ""})`).join("; ") || "none"}`);
+    out.push(`- **Tracked prompts (${result.prompts?.length ?? 0}):** ${(result.prompts ?? []).map((prompt) => prompt.text).join(" · ") || "none"}`);
     out.push(`- **Measured searches (${result.searches.length}):** ${result.searches.join("; ") || "none"}`);
     out.push(`- **Knowledge base:** ${result.knowledgePages === null ? "pages read not recorded" : `read from ${result.knowledgePages} pages`}`);
     out.push(`- **Knowledge-base audience (${result.audience.length}):** ${result.audience.slice(0, 8).join("; ") || "none"}`);
@@ -486,6 +513,9 @@ function storedRuns(file: string, panel: readonly PanelSite[]): { runs: SiteRun[
       topics: rest.topics,
       cents: rest.cents,
       costBySource: rest.costBySource,
+      ...(rest.area === undefined ? {} : { area: rest.area }),
+      ...(rest.resultDomains === undefined ? {} : { resultDomains: rest.resultDomains }),
+      ...(rest.prompts === undefined ? {} : { prompts: rest.prompts }),
     };
     runs.push({ result, checks: checkSite(result), health: health ?? [], events: events ?? [], seconds: seconds ?? 0, evidenceLoaded: evidenceLoaded ?? 0 });
   }

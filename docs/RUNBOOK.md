@@ -577,9 +577,21 @@ changed code asks differently and the model's own calls, inside the vendor's 30-
 the evidence with the run. One database per worktree: do not run it beside `vitest --project db`,
 the layout sweep or `npm run pass`.
 
-To change the panel, edit `sites.json`: `country`, `language`, `market` (word roots of what the
-business is) and `place` are what the checks hold a pass to, so they are facts about the business,
-never a pass's own output.
+To change the panel, edit `sites.json`: `country`, `language`, `kinds` (the kinds of business it
+may be recorded as, D69), `market` (word roots of what the business is) and `place` are what the
+checks hold a pass to, so they are facts about the business, never a pass's own output.
+
+A site with a `place` is held to it (SPEC §6, D67, #1318): the pass stored that place, every
+searched term and measured search names it or says "near me", Google's results were read from the
+city where the vendor lists it, and a national chain is a rival only where one of the pass's own
+results shows it. A site with no `place` fails where the pass stored one. The 25 tracked prompts
+the concluded market yields are generated at 0¢ and checked too: the kind recorded is one the
+panel allows, a business that is not software is asked nothing in software's words, and a local
+site's prompts name its place.
+
+**The vendor's city list** is `GET /v3/serp/google/locations/<country>`, free, and 19 MB for the
+United States. A pass reads it once for a site that serves one place and keeps the city's name on
+`sites.market.area`; clear `located` there to have the next pass read it again.
 
 ## 5. The kill switch
 

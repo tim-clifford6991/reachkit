@@ -33,6 +33,7 @@
 // spend the free path's ceiling twice on the same rows (§6.4).
 import { pagePathAlternation } from "@/lib/locale/language";
 import { readLocale, type Locale, type ResolvedLocale } from "@/lib/locale";
+import { readPlaceSignals, type PlaceSignals } from "@/lib/locale/place";
 import { BATTERY, CACHE_WINDOWS_D, PRICE_BOOK } from "@/lib/config/constants";
 import {
   isFetchRefusal,
@@ -264,6 +265,9 @@ export interface DomainMeasurement {
    *  fell back to the nearest supported country in English; `null`
    *  otherwise, and wherever the locale was the caller's. */
   localeFellBack: ResolvedLocale["fellBack"];
+  /** What the home page's structured data states of the business's address
+   *  (SPEC §6, owner D67, issue 1318): evidence for where it serves. */
+  stated?: PlaceSignals;
   /** Why the fetcher refused the home document, where it did (issue #479);
    *  `null` where it was read. A refused home is the whole site unread:
    *  nothing after it is attempted — no pricing page, no robots read, no
@@ -332,6 +336,7 @@ export async function measureDomain(
       ownRankedRows: [],
       locale: read.locale,
       localeFellBack: read.fellBack,
+      stated: readPlaceSignals(home.html),
       homeRefusal: home.refusal,
     };
   }
@@ -500,6 +505,7 @@ export async function measureDomain(
     ownRankedRows,
     locale: read.locale,
     localeFellBack: read.fellBack,
+    stated: readPlaceSignals(home.html),
     homeRefusal: null,
   };
 }

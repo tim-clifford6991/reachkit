@@ -161,6 +161,34 @@ async function writeLocale(siteId: string, key: string | undefined): Promise<voi
   }
 }
 
+/**
+ * The founder's answer about where the business serves (SPEC §6, owner D67,
+ * issue 1318). It wins over anything read, and it stands: no pass replaces
+ * it. Empty is the answer that it sells nationally or online. Absent — the
+ * field was never touched — writes nothing, and a pass reads the site. A
+ * write that fails writes nothing either, for the same reason `writeLocale`
+ * gives.
+ */
+async function writePlace(siteId: string, answer: string | undefined): Promise<void> {
+  if (answer === undefined) return;
+  try {
+    const [{ placeOf }, { readSiteMarket, writeSiteMarket }] = await Promise.all([
+      import("@/lib/locale/place"),
+      import("@/lib/market/infer/stored"),
+    ]);
+    const site = await readSiteMarket(siteId);
+    if (site === null) return;
+    const place = placeOf(answer);
+    const held = site.stored.area;
+    // The same place keeps the search vendor's name for it.
+    const same = place !== null && held?.place !== null && held?.place !== undefined && held.place.name.toLowerCase() === place.name.toLowerCase();
+    const area = same ? { ...held!, by: "founder" as const } : { place, by: "founder" as const };
+    await writeSiteMarket(siteId, { stored: { ...site.stored, area } });
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "setup_place_unwritten", siteId, detail: String(error) }));
+  }
+}
+
 async function updateSite(siteId: string, values: Record<string, unknown>): Promise<void> {
   const { error } = await untyped().from<SiteSetupRow>("sites").update(values).eq("id", siteId);
   if (error) throw new Error(`setup store: writing site ${siteId}: ${error.message}`);
@@ -411,6 +439,7 @@ export function liveSetupStore(): SetupStore {
       });
       await markSetupOverride(a.siteId, { category: a.submission.category, competitors: a.submission.competitors, shown });
       await writeLocale(a.siteId, a.submission.locale);
+      await writePlace(a.siteId, a.submission.place);
 
       await writeVoice({
         siteId: a.siteId,
@@ -459,6 +488,7 @@ export function liveSetupStore(): SetupStore {
         await updateSite(a.siteId, { domain: a.save.domain, category: a.save.category });
         await markSetupOverride(a.siteId, { category: a.save.category });
         await writeLocale(a.siteId, a.save.locale);
+        await writePlace(a.siteId, a.save.place);
       } else if (step === "rivals") {
         const shown = await shownRivals(a.siteId);
         await updateSite(a.siteId, { competitors: [...a.save.competitors] });

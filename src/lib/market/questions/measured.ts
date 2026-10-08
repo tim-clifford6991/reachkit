@@ -19,6 +19,8 @@
 //     belongs to another market or is a company's name.
 //
 // Pure, like `select.ts`, which reads this: no context, no clock, no I/O.
+import type { Place } from "@/lib/locale/locales";
+import { isLocalSearch, namesPlace } from "@/lib/locale/place";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { malformedSearch, type NamedRival } from "./well-formed";
 
@@ -35,6 +37,10 @@ export interface MeasuredMarket {
   /** The rivals in force, by name and domain (issue 1314): a search that
    *  calls one by its domain is not a search. */
   rivals?: readonly NamedRival[];
+  /** The one place the business serves (SPEC §6, owner D67, issue 1318):
+   *  every measured search names it, or says "near me" where the search
+   *  can be read there. Absent for a business that sells nationally. */
+  place?: Place;
 }
 
 /** A search as these rules compare it: lower case, punctuation to spaces. */
@@ -48,7 +54,7 @@ function labelOf(domain: string): string {
 }
 
 /** The market as selection reads it; `undefined` where the site has none. */
-export function measuredMarketOf(market: MarketConclusion | null | undefined): MeasuredMarket | undefined {
+export function measuredMarketOf(market: MarketConclusion | null | undefined, place?: Place): MeasuredMarket | undefined {
   if (market === null || market === undefined) return undefined;
   const brands = new Set<string>();
   for (const rival of market.rivals) {
@@ -57,8 +63,11 @@ export function measuredMarketOf(market: MarketConclusion | null | undefined): M
   for (const keyword of Object.keys(market.demand?.brands ?? {})) brands.add(searchKey(keyword));
   brands.delete("");
   return {
+    ...(place === undefined ? {} : { place }),
     terms: (market.terms ?? [])
       .filter((term) => term.polluted !== true && term.volume > 0)
+      // D67: a term read before the place was known is the whole country's.
+      .filter((term) => place === undefined || namesPlace(term.term, place))
       .map((term) => ({ term: term.term, volume: term.volume }))
       .sort((a, b) => b.volume - a.volume),
     notOurMarket: market.notOurMarket,
@@ -73,9 +82,9 @@ export function measuredMarketOf(market: MarketConclusion | null | undefined): M
  * terms, most searched first. Empty where its terms were never read or
  * none is searched — the pass then seeds from the category, as before.
  */
-export function marketSeeds(market: MarketConclusion | null | undefined): string[] {
+export function marketSeeds(market: MarketConclusion | null | undefined, place?: Place): string[] {
   const seeds: string[] = [];
-  for (const { term } of measuredMarketOf(market)?.terms ?? []) {
+  for (const { term } of measuredMarketOf(market, place)?.terms ?? []) {
     if (!seeds.some((held) => searchKey(held) === searchKey(term))) seeds.push(term);
   }
   return seeds;
@@ -87,8 +96,9 @@ const MARKET_SUFFIX = /\s+(?:tools?|software|platforms?|apps?|systems?|services?
  *  be. A term from `notOurMarket` is read as D59 reads it: the phrase, or
  *  the phrase without its closing "software" or "tools" where two words or
  *  more are left; one word alone is never a match. */
-export function neverMeasured(search: string, m: MeasuredMarket): "not_our_market" | "brand" | "judged" | "malformed" | null {
+export function neverMeasured(search: string, m: MeasuredMarket): "not_our_market" | "brand" | "judged" | "malformed" | "elsewhere" | null {
   const key = searchKey(search);
+  if (m.place !== undefined && !localTo(search, m.place)) return "elsewhere";
   if (m.judged[key] === false) return "judged";
   if (m.brands.includes(key)) return "brand";
   const text = ` ${key} `;
@@ -102,6 +112,16 @@ export function neverMeasured(search: string, m: MeasuredMarket): "not_our_marke
   // Issue 1314: nor a search nobody would type as it stands.
   if (malformedSearch(search, m.rivals) !== null) return "malformed";
   return null;
+}
+
+/**
+ * Whether a search is one a business in `place` is measured on (D67): it
+ * names the place, or it says "near me" and the search vendor can read it
+ * from there. A search that names neither is asked by the whole country.
+ */
+export function localTo(search: string, place: Place): boolean {
+  if (namesPlace(search, place)) return true;
+  return place.location !== undefined && isLocalSearch(search, place);
 }
 
 /** The searches of `selected` the market holds no judgement for. A market

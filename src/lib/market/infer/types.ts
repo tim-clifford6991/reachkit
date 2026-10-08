@@ -6,6 +6,10 @@
 // offline proof can all name these without a runtime edge into the model
 // seam.
 
+import type { Place } from "@/lib/locale/locales";
+import type { ServingArea } from "@/lib/locale/place";
+import type { BusinessKind } from "@/lib/market/kinds";
+
 /** §0: a site has 3–5 rivals. */
 export const RIVALS_MAX = 5;
 
@@ -36,6 +40,11 @@ export interface RivalConclusion {
    *  any of `searchNames` (SPEC §6, owner D50 of 2026-10-05, issue 1271).
    *  Absent until a pass has read it. */
   volume?: number;
+  /** True where the company trades across the country — a chain, a
+   *  franchise or a national brand (SPEC §6, owner D67, issue 1318). For a
+   *  business that serves one place it is a rival only where that place's
+   *  own results show it, and its brand is weighed there. */
+  national?: true;
 }
 
 /** How often the business's and its rival candidates' brands are searched
@@ -102,6 +111,14 @@ export interface MarketConclusion {
    *  means something else, belongs to another market or is a company's
    *  name. Keyed by the search, lower-cased. A new market starts empty. */
   judged?: Readonly<Record<string, boolean>>;
+  /** The kind of business, from the closed list (SPEC §6, owner D69 of
+   *  2026-10-07, issue 1318). Absent on a market concluded before D69,
+   *  which is read as software: the prompts every site had. */
+  kind?: BusinessKind;
+  /** The one city or metro the conclusion read the business as serving
+   *  (D67); `null` where it read a business that sells nationally or
+   *  online. What a pass measures in is `StoredMarket.area`. */
+  serves?: Place | null;
 }
 
 /**
@@ -126,6 +143,10 @@ export interface StoredMarket {
   rivalsLeftOut?: readonly string[];
   /** Rivals the last pass wanted and held back one pass (D65). Domains. */
   rivalsWaiting?: readonly string[];
+  /** Where the business serves (D67): the founder's answer at setup, else
+   *  what the first pass that read it concluded. Absent until one of them
+   *  has said. It does not move with the market. */
+  area?: ServingArea;
 }
 
 export const EMPTY_STORED_MARKET: StoredMarket = Object.freeze({

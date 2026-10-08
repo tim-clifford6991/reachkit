@@ -61,6 +61,33 @@ const SERP_DEPTH = 10;
  *  caller can still set none of them. */
 const NO_LOCALE_PATH_PREFIX = "/v3/ai_optimization/llm_mentions";
 
+/** The path families that are read from a city (SPEC §6, owner D67 of
+ *  2026-10-07, issue 1318): Google's own results, organic and AI Mode,
+ *  which the vendor serves from any of the cities on its list. Labs holds
+ *  volumes by country alone and the ChatGPT scraper is asked by country,
+ *  so on every other family a place's read is made in its country. */
+const PLACE_PATH_PREFIXES = ["/v3/serp/google/organic/", "/v3/serp/google/ai_mode/"] as const;
+
+/** The vendor's name for where a read is made: the place's own where the
+ *  site serves one, the vendor lists it and the path is read by city; else
+ *  the country's. A place's name is the vendor's own, taken from its list
+ *  (`locations.ts`), and one that does not end in the locale's country is
+ *  not used: a stored string never moves a read to another country. */
+function locationName(path: string, locale: Locale): string {
+  const country = COUNTRIES[locale.country].location;
+  const city = locale.place?.location;
+  if (city === undefined || !city.endsWith(`,${country}`) || city.length > 160) return country;
+  return PLACE_PATH_PREFIXES.some((prefix) => path.startsWith(prefix)) ? city : country;
+}
+
+/** A locale as the cache key of a read made by city spells it: the
+ *  country's key, and the city where the read is made there (D67). A
+ *  business with no place keeps the key it had. */
+export function placeCacheKey(locale: Locale): string {
+  const city = locationName(PLACE_PATH_PREFIXES[0], locale);
+  return city === COUNTRIES[locale.country].location ? localeCacheKey(locale) : `${localeCacheKey(locale)}|${city}`;
+}
+
 /** The LLM Mentions family, for the endpoint module that builds its paths
  *  (`mentions.ts`) — one spelling, so the prefix that is exempted and the
  *  path that is exempted cannot drift apart. */
@@ -141,7 +168,7 @@ export function buildRequest(spec: DataForSeoRequestSpec): DataForSeoRequest {
   if (!spec.path.startsWith(NO_LOCALE_PATH_PREFIX)) {
     const locale = spec.locale === null ? null : localeOf(spec.locale.country, spec.locale.language);
     if (locale === null) throw new Error(`dataforseo: ${spec.path} was asked for in a locale that is not on the list`);
-    task.location_name = COUNTRIES[locale.country].location;
+    task.location_name = locationName(spec.path, { ...locale, ...(spec.locale?.place === undefined ? {} : { place: spec.locale.place }) });
     task.language_code = locale.language;
   }
   if (DEPTH_PATH_PREFIXES.some((prefix) => spec.path.startsWith(prefix))) task.depth = SERP_DEPTH;

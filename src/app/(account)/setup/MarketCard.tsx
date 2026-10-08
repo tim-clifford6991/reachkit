@@ -55,10 +55,16 @@ export function MarketCard(p: {
    *  chooses another. */
   locale: string;
   setLocale: (locale: string) => void;
+  /** The city or area the business serves (SPEC §6, owner D67, issue
+   *  1318): what was read of the site until the founder writes another,
+   *  empty for a business that sells everywhere. */
+  place: string;
+  setPlace: (place: string, by: "founder" | "read") => void;
 }): React.JSX.Element {
   const { state, setState } = p;
   const addressId = useId();
   const localeId = useId();
+  const placeId = useId();
   const marketId = useId();
   const [addressDraft, setAddressDraft] = useState(state.siteDomain ?? "");
   const [addressRefusal, setAddressRefusal] = useState<AddressRefusal | null>(null);
@@ -87,6 +93,8 @@ export function MarketCard(p: {
     setState((current) => onDomainChanged(current, { domain: checked.domain, report: answer.report }));
     // D66: a new address is a new reading of where its buyers are.
     if (typeof answer.locale === "string") p.setLocale(answer.locale);
+    // D67: and of where it serves.
+    if (typeof answer.place === "string") p.setPlace(answer.place, "read");
   }
 
   function commitMarket(): void {
@@ -276,6 +284,24 @@ export function MarketCard(p: {
               ))}
             </select>
             <p className={QUIET}>{copy("setup.locale.note")}</p>
+          </div>
+          {/* D67: asked with the question above. A place here is where
+              every search, rival and AI question is then measured. */}
+          <div className="flex flex-col gap-1.5">
+            <label className={QUIET} htmlFor={placeId}>
+              {copy("setup.place.label")}
+            </label>
+            <input
+              id={placeId}
+              name="place"
+              type="text"
+              className="input w-full"
+              maxLength={80}
+              value={p.place}
+              data-testid="setup-place"
+              onChange={(event) => p.setPlace(event.target.value, "founder")}
+            />
+            <p className={QUIET}>{copy("setup.place.note")}</p>
           </div>
         </div>
       </section>

@@ -1,0 +1,2839 @@
+{
+ "date": "2026-10-08",
+ "commit": "66904002",
+ "capCents": 149,
+ "spentCents": 148.527,
+ "refusedAtCap": 0,
+ "notRun": [
+  "tattly.com",
+  "savvycal.com",
+  "clearleft.com",
+  "wesbos.com",
+  "pdxsmiledesign.com",
+  "fletcherelectric.co.uk",
+  "streaksapp.com"
+ ],
+ "defects": [
+  {
+   "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+   "sites": [
+    {
+     "domain": "baeckerei-hinkel.de",
+     "detail": "no rivals were concluded",
+     "items": [
+      "0 rivals, not 3–5"
+     ]
+    }
+   ]
+  }
+ ],
+ "sites": [
+  {
+   "site": {
+    "domain": "austinplumbery.com",
+    "kind": "local service, single location (plumber)",
+    "country": "US",
+    "language": "en",
+    "kinds": [
+     "local-service"
+    ],
+    "market": [
+     "plumb"
+    ],
+    "place": [
+     "austin"
+    ],
+    "why": "A family plumbing firm in one city (Austin, Texas). Its buyers search a trade and a place, its rivals are other local plumbers, and the listings that fill its top tens (Yelp, Angi) are not rivals."
+   },
+   "siteName": "Austin Plumbery",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "homeowners and businesses in Austin needing plumbing work",
+    "job": "repair, maintain, or install plumbing systems",
+    "category": "plumbing repair and maintenance",
+    "synonyms": [
+     "plumbing services",
+     "plumber near me",
+     "emergency plumbing"
+    ],
+    "differentiators": [
+     "woman-owned and operated",
+     "hand-selected and mom-approved technicians",
+     "licensed, insured and bonded",
+     "serves both residential and commercial",
+     "local Austin heritage and commitment"
+    ],
+    "notOurMarket": [
+     "HVAC services",
+     "electrical services",
+     "general home repair",
+     "water heater installation only",
+     "drain cleaning services"
+    ],
+    "categoryReason": "The headline and all pages emphasize repair and maintenance services for plumbing systems in Austin, which is what buyers search for and hire the company to do.",
+    "rivals": [
+     {
+      "domain": "abacusplumbing.com",
+      "name": "Abacus Plumbing",
+      "basis": "ranks",
+      "reason": "Austin-area plumber offering full residential and commercial plumbing repair and maintenance, consistently appearing in top Austin search results and AI answers.",
+      "searchNames": [
+       "abacus plumbing",
+       "abacus plumbing austin"
+      ],
+      "volume": 4400
+     },
+     {
+      "domain": "radiantplumbing.com",
+      "name": "Radiant Plumbing",
+      "basis": "ranks",
+      "reason": "Well-known Austin-based plumbing service covering residential and commercial repair and installation, a frequent top result for Austin plumbing searches.",
+      "searchNames": [
+       "radiant plumbing",
+       "radiant plumbing austin"
+      ],
+      "volume": 3600
+     },
+     {
+      "domain": "reliantplumbing.com",
+      "name": "Reliant Plumbing",
+      "basis": "ranks",
+      "reason": "Austin plumber offering 24/7 emergency and routine plumbing repair with free estimates, targeting the same residential and commercial buyers.",
+      "searchNames": [
+       "reliant plumbing",
+       "reliant plumbing austin"
+      ],
+      "volume": 2900
+     },
+     {
+      "domain": "clarkekentplumbing.com",
+      "name": "Clarke Kent Plumbing",
+      "basis": "ranks",
+      "reason": "Local Austin plumber cited in AI answers for emergency plumbing and appearing in top-ten results, serving the same residential and commercial buyer.",
+      "searchNames": [
+       "clarke kent plumbing",
+       "clarke kent plumbing austin"
+      ],
+      "volume": 1000
+     },
+     {
+      "domain": "rotorooter.com",
+      "name": "Roto-Rooter",
+      "basis": "ranks",
+      "reason": "National plumbing franchise with an Austin location offering emergency and routine plumbing repair, appearing in top-ten results and multiple AI answers for Austin plumbing searches.",
+      "searchNames": [
+       "roto-rooter austin"
+      ],
+      "volume": 210,
+      "national": true
+     }
+    ],
+    "terms": [
+     {
+      "term": "plumber austin",
+      "volume": 6600
+     },
+     {
+      "term": "emergency plumber austin tx",
+      "volume": 880
+     },
+     {
+      "term": "plumbing repair austin",
+      "volume": 320
+     },
+     {
+      "term": "plumbing services austin",
+      "volume": 320
+     },
+     {
+      "term": "commercial plumber austin tx",
+      "volume": 320
+     },
+     {
+      "term": "local plumber austin tx",
+      "volume": 0
+     },
+     {
+      "term": "leak repair austin tx",
+      "volume": 0
+     },
+     {
+      "term": "pipe repair austin",
+      "volume": 0
+     },
+     {
+      "term": "fix plumbing austin tx",
+      "volume": 0
+     },
+     {
+      "term": "residential plumber austin",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "plumber austin",
+    "termsAt": "2026-10-08T07:44:25.496Z",
+    "demand": {
+     "at": "2026-10-08T07:45:58.465Z",
+     "own": 6600,
+     "brands": {
+      "we plumb": 50,
+      "we plumb atx": 0,
+      "austinplumbery": 0,
+      "abacus plumbing": 4400,
+      "austin plumbery": 6600,
+      "redbud plumbing": 210,
+      "mr rooter austin": 210,
+      "radiant plumbing": 3600,
+      "reliant plumbing": 2900,
+      "roto-rooter austin": 210,
+      "clarke kent plumbing": 1000,
+      "abacus plumbing austin": 210,
+      "redbud plumbing austin": 20,
+      "radiant plumbing austin": 3600,
+      "reliant plumbing austin": 2900,
+      "beyond wow plumbing austin": 40,
+      "mr. rooter plumbing austin": 0,
+      "clarke kent plumbing austin": 1000,
+      "beyond wow plumbing & drains": 0,
+      "abc home & commercial plumbing": 0,
+      "abc home commercial plumbing austin": 0
+     },
+     "searches": {
+      "abc home alternatives": 0,
+      "we plumb alternatives": 0,
+      "roto-rooter alternatives": 0,
+      "abacus plumbing alternatives": 0,
+      "redbud plumbing alternatives": 0,
+      "radiant plumbing alternatives": 0,
+      "reliant plumbing alternatives": 0,
+      "mr. rooter plumbing alternatives": 0,
+      "clarke kent plumbing alternatives": 0,
+      "beyond wow plumbing austin alternatives": 0
+     }
+    },
+    "judged": {
+     "plumber austin mn": false,
+     "best plumber austin": true,
+     "austin plumber reviews": true,
+     "plumber near austin tx": true,
+     "austin plumbing company": true,
+     "austin plumbing reviews": true,
+     "austin emergency plumber": true,
+     "austin tx plumbing repair": true,
+     "commercial plumber austin": true,
+     "plumbing services austin tx": true,
+     "best plumber in austin texas": true,
+     "plumbing repair austin texas": true,
+     "plumbing service austin texas": true,
+     "emergency plumber austin texas": true,
+     "plumbing companies austin texas": true,
+     "plumbing companies in austin tx": true,
+     "emergency plumbing services austin tx": true,
+     "residential plumbing services austin tx": true
+    },
+    "kind": "local-service",
+    "serves": {
+     "name": "Austin",
+     "region": "Texas"
+    }
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 19,
+    "timeouts": 0
+   },
+   "pageQuestions": 106,
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    },
+    {
+     "location": "Austin,Texas,United States",
+     "language": "en"
+    }
+   ],
+   "searches": [
+    "plumber austin",
+    "emergency plumber austin tx",
+    "best plumber austin",
+    "best plumber in austin texas",
+    "commercial plumber austin tx",
+    "plumbing repair austin",
+    "plumbing services austin",
+    "austin emergency plumber",
+    "emergency plumber austin texas",
+    "austin tx plumbing repair",
+    "commercial plumber austin",
+    "plumbing repair austin texas"
+   ],
+   "knowledgePages": 18,
+   "questions": [
+    "Why is it important to remove combustible items from around the water heater?",
+    "What are the dangers of inadequate ventilation for hot water heaters?",
+    "How often should the pressure relief valve be inspected?",
+    "How do I test the pressure relief valve?",
+    "What are the main areas of the home with plumbing fixtures?",
+    "What safety precautions should I take before starting plumbing work?",
+    "How do I use a plunger effectively?",
+    "Why is Teflon tape used in plumbing?",
+    "How much water does a dual-flush toilet save?",
+    "Are dual-flush toilets difficult to install?",
+    "Can I retrofit my existing toilet to a dual-flush system?",
+    "Do dual-flush toilets compromise flushing power?",
+    "Are dual-flush toilets more expensive than traditional toilets?",
+    "How can I clean out a clogged gutter myself?",
+    "What should I immediately do if my basement floods?",
+    "Why should you care about the age of your water heater?",
+    "How long does a typical water heater last?",
+    "What are some signs that my water heater is nearing the end of its lifespan?",
+    "Can I extend the life of my water heater with regular maintenance?",
+    "Should I replace my water heater proactively if it's reaching its expected lifespan?",
+    "Are newer water heaters more energy-efficient?",
+    "How often should I replace my water heater?",
+    "Can I repair my water heater by myself?",
+    "What type of water heater is best for my home?",
+    "How can I extend the life of my current water heater?",
+    "Can water heaters be energy-efficient?",
+    "Why Do I Have Low Water Pressure in My House?",
+    "Why is the water pressure low in my house?",
+    "Can I fix low water pressure in my house without professional help?",
+    "Are certain fixtures more prone to low water pressure than others?",
+    "Is low water pressure a sign of a hidden water leak?",
+    "How often should I check for low water pressure in my house?",
+    "Can hard water contribute to low water pressure?",
+    "Is low water pressure a common issue in older homes?",
+    "Why is my sink dripping, and is it a common issue?",
+    "Can I ignore a minor drip in my sink, or does it require immediate attention?",
+    "Can I fix a dripping sink myself, or should I hire a professional plumber?",
+    "How do I determine the specific cause of the drip in my sink?",
+    "Will tightening the faucet handle stop the drip in my sink?",
+    "Is a dripping sink more common in older homes?",
+    "How can I avoid sink drips in the future?",
+    "Is a rotten egg smell in water harmful to my health?",
+    "Why does the rotten egg smell occur only in hot water and not in cold water?",
+    "Will installing a water filtration system eliminate the rotten egg smell?",
+    "How often should I conduct water testing if I notice a rotten egg smell?",
+    "Can the rotten egg smell be seasonal or temporary?",
+    "What role do sulfate-reducing bacteria play in causing a rotten egg smell?",
+    "Can I handle the elimination of the rotten egg smell myself, or should I hire a professional?",
+    "Why do pipes freeze in winter?",
+    "How does letting a faucet drip prevent frozen pipes?",
+    "Which pipes are most vulnerable to freezing?",
+    "What should I use to seal cracks around pipes?",
+    "How can I monitor weather conditions to prevent frozen pipes?",
+    "Is it necessary to insulate crawl spaces for pipe protection?",
+    "How often should I check for cracks around pipes?",
+    "How can I get a quote for fixing frozen pipes or winter-proofing my home?",
+    "Is hard water harmful to my health?",
+    "Can hard water damage my water heater?",
+    "Are water softeners safe for drinking water?",
+    "How long does it take for a water softener to start working?",
+    "Can I install a water softener myself, or do I need a professional?",
+    "Are there alternatives to traditional water softeners for treating hard water?",
+    "Can I use a water softener for specific appliances, or does it treat all water in the house?",
+    "How Does a Plumbing Snake Work?",
+    "Can I use a plumbing snake on any type of drain clog?",
+    "Is using a plumbing snake difficult for a beginner?",
+    "Can a plumbing snake damage my pipes?",
+    "Are there different types of plumbing snakes available?",
+    "What should I do if the plumbing snake doesn't work?",
+    "Are there alternatives to using a plumbing snake for clearing drains?",
+    "Can I rent a plumbing snake, or should I buy one?",
+    "How do I know if there's a leak under my sink?",
+    "What should I do if I can't find the shut-off valve under the sink?",
+    "Can I use any replacement pipe, or do I need a specific type of pipe?",
+    "Is plumbers tape necessary, and how do I apply it correctly?",
+    "Can I use this guide for fixing pipes in other parts of my home?",
+    "How often should I inspect the pipes under my sink?",
+    "How can I get a quote for fixing a pipe?",
+    "How often should I pump my septic tank?",
+    "Can I connect to a public sewer if my property currently has a septic system?",
+    "Are there any restrictions on what can be flushed or poured down drains in a home with a septic system?",
+    "Do I need to worry about tree roots invading my septic system or sewer lines?",
+    "Can I build over my septic system's drain field or sewer lines?",
+    "Are there any health risks associated with septic systems or public sewers?",
+    "Can I use a garbage disposal with a septic system?",
+    "How do I compare water bills for water leaks?",
+    "Can a leak be present even if my water bill hasn't increased?",
+    "Are all water leaks visible, or can some be hidden from plain sight?",
+    "Are there any preventive measures I can take to reduce the risk of water leaks?",
+    "Can landscaping affect the likelihood of water leaks in my outdoor plumbing?",
+    "What should I do if I suspect a water leak?",
+    "How can I get a quote?"
+   ],
+   "audience": [
+    "homeowners"
+   ],
+   "topics": [
+    {
+     "query": "plumbing repair austin",
+     "status": "open",
+     "type": "expand_page",
+     "fit": 2,
+     "volume": 320,
+     "ready": false
+    },
+    {
+     "query": "best plumber austin",
+     "status": "open",
+     "type": "refresh_page",
+     "fit": 2,
+     "volume": 390,
+     "ready": true
+    },
+    {
+     "query": "best plumber in austin texas",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 390,
+     "ready": false
+    },
+    {
+     "query": "austin emergency plumber",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 880,
+     "ready": true
+    },
+    {
+     "query": "emergency plumber austin texas",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 880,
+     "ready": true
+    },
+    {
+     "query": "austin tx plumbing repair",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 320,
+     "ready": true
+    },
+    {
+     "query": "plumbing repair austin texas",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 320,
+     "ready": true
+    },
+    {
+     "query": "emergency plumber austin tx",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 2,
+     "volume": 880,
+     "ready": false
+    },
+    {
+     "query": "commercial plumber austin tx",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 2,
+     "volume": 320,
+     "ready": false
+    },
+    {
+     "query": "commercial plumber austin",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 2,
+     "volume": 320,
+     "ready": true
+    },
+    {
+     "query": "abacus plumbing alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "radiant plumbing alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "reliant plumbing alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "clarke kent plumbing alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "roto-rooter alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "austin plumbery vs abacus plumbing",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "austin plumbery vs radiant plumbing",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "austin plumbery vs reliant plumbing",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "austin plumbery vs clarke kent plumbing",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "austin plumbery vs roto-rooter",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "plumber austin pricing",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "emergency plumber austin tx pricing",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 35.0645,
+   "costBySource": {
+    "site-profile": 0.495,
+    "profile": 0.2413,
+    "market-inference": 0.5776,
+    "market-terms": 0.7065,
+    "dataforseo_labs/google/keyword_overview": 2.41,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "market-searches": 0.9546,
+    "question-phrasing": 0.2484,
+    "serp/google/organic": 2.6,
+    "serp/google/ai_mode": 3.400000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 1.3200000000000003,
+    "site-knowledge": 7.360100000000001,
+    "rival-inference": 3.5319,
+    "topic-buyer-searches": 0.1879,
+    "topic-typed": 0.2206,
+    "topic-fit": 3.2358,
+    "opportunity-typing": 0.3748
+   },
+   "area": {
+    "place": "Austin",
+    "location": "Austin,Texas,United States"
+   },
+   "resultDomains": [
+    "www.reddit.com",
+    "www.abacusplumbing.com",
+    "www.yelp.com",
+    "www.rotorooter.com",
+    "redbudplumbing.com",
+    "reliantplumbing.com",
+    "www.statesman.com",
+    "www.abchomeandcommercial.com",
+    "www.mrrooter.com",
+    "weplumbatx.com",
+    "radiantplumbing.com",
+    "google.com",
+    "www.austinsgreatestplumbing.com",
+    "www.thumbtack.com",
+    "www.facebook.com",
+    "www.angi.com",
+    "ultimateplumberaustin.com",
+    "plumbernearmetexas.vercel.app",
+    "www.plumbingzone.com",
+    "www.mapquest.com",
+    "beyondwow.com",
+    "m.yelp.com",
+    "bestplumbers.com",
+    "theplumberaustintx.com",
+    "mesquiteplumbingco.com",
+    "www.linkedin.com",
+    "www.bbb.org",
+    "www.alignable.com",
+    "www.lnpplumbing.com",
+    "laloplumbing.com",
+    "gandmplumbingtx.com",
+    "www.homeadvisor.com",
+    "www.goettl.com",
+    "www.plumbersthatcare.com",
+    "1800homeusa.com",
+    "ezflowplumbingtexas.com",
+    "plumbingrepairlocal.com",
+    "jibplumbingandheating.com",
+    "plumber-in-austin-tx.pages.dev",
+    "atxplumbingpros.com",
+    "www.clarkekentplumbing.com",
+    "www.coldisontheright.com",
+    "callrogersplumbing.com",
+    "www.benjaminfranklinplumbing.com",
+    "www.walmart.com",
+    "reviews.birdeye.com",
+    "www.serviceexperts.com",
+    "www.austinplumbing.com",
+    "commercialplumberaustin.com",
+    "www.fisher-services.com",
+    "downtobid.com",
+    "biggsplumbing.com",
+    "aircomechanical.com",
+    "efficienttexas.com",
+    "www.1sthomeandcommercialservices.com",
+    "eliteaustinac.com",
+    "austinsgreatestplumbing.com",
+    "www.magicplumbingatx.com",
+    "reddit.com",
+    "book.housecallpro.com",
+    "mrrooter.com",
+    "rotorooter.com",
+    "excaliburplumbing.com",
+    "linkedin.com"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Looking for the best plumber in Austin. Who would you recommend, and why?"
+    },
+    {
+     "kind": "category",
+     "text": "Which emergency plumber in Austin would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which plumbing repair in Austin would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which plumbing services in Austin would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which plumber in Austin would you suggest to someone booking for the first time?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which plumber in Austin can help the same day in an emergency?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which emergency plumber in Austin will give a fixed price before starting?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which plumbing repair in Austin can I book in the evening or at the weekend?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which plumbing services in Austin can I trust to be properly qualified and insured?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which plumber in Austin should I call for a small job on a tight budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which emergency plumber in Austin will guarantee the work?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which plumbing repair in Austin could take on a new customer this week?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are homeowners and businesses in Austin needing plumbing work. Which plumber in Austin would suit us best?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which plumber in Austin would you recommend for homeowners and businesses in Austin needing plumbing work?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which plumber in Austin do homeowners and businesses in Austin needing plumbing work tend to go back to?"
+    },
+    {
+     "kind": "persona",
+     "text": "I am asking for homeowners and businesses in Austin needing plumbing work. Which plumber in Austin should I point them to?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best plumber in Austin: how does Abacus Plumbing compare with Radiant Plumbing?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Abacus Plumbing for homeowners and businesses in Austin needing plumbing work?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best plumber in Austin: would you choose Radiant Plumbing or Reliant Plumbing?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best plumber in Austin for the money: Abacus Plumbing, Radiant Plumbing or Reliant Plumbing?"
+    },
+    {
+     "kind": "problem",
+     "text": "I need help today. Which plumber in Austin can I count on at short notice?"
+    },
+    {
+     "kind": "problem",
+     "text": "My last experience was poor. Which plumber in Austin would do the job properly?"
+    },
+    {
+     "kind": "problem",
+     "text": "Which plumber in Austin should I call first, and what should I ask before I book?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is Austin Plumbery a good choice for someone looking for the best plumber in Austin?"
+    },
+    {
+     "kind": "branded",
+     "text": "Looking for the best plumber in Austin: is Austin Plumbery a good alternative to Abacus Plumbing?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"plumbing repair and maintenance\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"plumber austin\" 6600/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+     "verdict": "pass",
+     "detail": "Abacus Plumbing — abacusplumbing.com, 4400/mo, ranks; Radiant Plumbing — radiantplumbing.com, 3600/mo, ranks; Reliant Plumbing — reliantplumbing.com, 2900/mo, ranks; Clarke Kent Plumbing — clarkekentplumbing.com, 1000/mo, ranks; Roto-Rooter — rotorooter.com, 210/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "92 questions",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"homeowners and businesses in Austin needing plumbing work\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "22 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 7.36¢; 0 of 19 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "local-service; 25 prompts, each naming austin",
+     "items": []
+    },
+    {
+     "check": "a local business is measured in its own place",
+     "verdict": "pass",
+     "detail": "17 of 17 terms and searches name austin or \"near me\"; read from Austin,Texas,United States; 5 rivals, every national one shown in this place's results",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "5 searched terms; \"plumber austin\" has 6600"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "1 of 32 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 18 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "austinplumbery.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0,
+     "fresh": true,
+     "durationMs": 15687,
+     "failure": "task_40101",
+     "billed": false,
+     "reason": "dataforseo: task 40101 Internal SE Server Error."
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0,
+     "fresh": true,
+     "durationMs": 17377,
+     "failure": "task_40101",
+     "billed": false,
+     "reason": "dataforseo: task 40101 Internal SE Server Error."
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.2,
+     "fresh": true,
+     "durationMs": 31304,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    }
+   ],
+   "seconds": 153,
+   "evidenceLoaded": 86
+  },
+  {
+   "site": {
+    "domain": "zunicafe.com",
+    "kind": "restaurant, single location",
+    "country": "US",
+    "language": "en",
+    "kinds": [
+     "hospitality"
+    ],
+    "market": [
+     "restaurant",
+     "dining",
+     "café",
+     "cafe"
+    ],
+    "place": [
+     "san francisco",
+     "sf"
+    ],
+    "why": "One restaurant in San Francisco with a short site: a menu, hours and a story. Little text to read, buyers who search a cuisine and a neighbourhood, and review and booking sites all over its top tens."
+   },
+   "siteName": "Zuni Café",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "diners in San Francisco",
+    "job": "eat a meal at a restaurant",
+    "category": "restaurant",
+    "synonyms": [
+     "fine dining",
+     "casual restaurant",
+     "café"
+    ],
+    "differentiators": [
+     "chef-developed recipes",
+     "seasonal California ingredients",
+     "established since 1979",
+     "signature cocktails",
+     "cannabis-infused edible collaborations"
+    ],
+    "notOurMarket": [
+     "catering services",
+     "meal delivery",
+     "cooking classes",
+     "food retail",
+     "cannabis dispensary"
+    ],
+    "categoryReason": "The site's headline and pages describe Zuni Café as a restaurant founded in 1979 serving meals with chef-developed recipes and seasonal ingredients in San Francisco.",
+    "rivals": [
+     {
+      "domain": "richtablesf.com",
+      "name": "Rich Table",
+      "basis": "ranks",
+      "reason": "Acclaimed SF restaurant serving seasonal California cuisine in a casual-fine setting, directly comparable to Zuni Café.",
+      "searchNames": [
+       "rich table",
+       "rich table sf"
+      ],
+      "volume": 33100
+     },
+     {
+      "domain": "lazybearsf.com",
+      "name": "Lazy Bear",
+      "basis": "ranks",
+      "reason": "San Francisco tasting-menu restaurant with a strong local following, competing for the same special-occasion diner.",
+      "searchNames": [
+       "lazy bear",
+       "lazy bear sf"
+      ],
+      "volume": 22200
+     },
+     {
+      "domain": "sisterita.com",
+      "name": "Sisterita",
+      "basis": "ranks",
+      "reason": "San Francisco restaurant with high measured visibility in local search results, competing for the same casual-dining diner.",
+      "searchNames": [
+       "sisterita",
+       "sisterita sf"
+      ],
+      "volume": 18100
+     },
+     {
+      "domain": "boardanddrinksf.com",
+      "name": "Board & Drink",
+      "basis": "ranks",
+      "reason": "San Francisco restaurant and bar appearing prominently in local top-ten results, competing for the same SF diner.",
+      "searchNames": [
+       "board & drink",
+       "board and drink sf"
+      ],
+      "volume": 390
+     },
+     {
+      "domain": "doppiosf.com",
+      "name": "Doppio Coffee & Brunch",
+      "basis": "ranks",
+      "reason": "SF café and brunch spot competing for the daytime meal occasion that Zuni Café also captures.",
+      "searchNames": [
+       "doppio coffee & brunch",
+       "doppio sf"
+      ],
+      "volume": 14800,
+      "closeness": "partial"
+     }
+    ],
+    "terms": [
+     {
+      "term": "restaurants san francisco",
+      "volume": 40500
+     },
+     {
+      "term": "restaurants in san francisco",
+      "volume": 40500
+     },
+     {
+      "term": "best restaurants san francisco",
+      "volume": 18100
+     },
+     {
+      "term": "brunch san francisco",
+      "volume": 12100
+     },
+     {
+      "term": "places to eat san francisco",
+      "volume": 4400
+     },
+     {
+      "term": "fine dining san francisco",
+      "volume": 1900
+     },
+     {
+      "term": "lunch spots san francisco",
+      "volume": 1000
+     },
+     {
+      "term": "dinner restaurants san francisco",
+      "volume": 720
+     },
+     {
+      "term": "casual dining san francisco",
+      "volume": 320
+     },
+     {
+      "term": "café san francisco",
+      "volume": 90
+     }
+    ],
+    "searchTerm": "restaurants san francisco",
+    "termsAt": "2026-10-08T07:48:50.930Z",
+    "demand": {
+     "at": "2026-10-08T07:50:04.901Z",
+     "own": 49500,
+     "brands": {
+      "zunicafe": 0,
+      "doppio sf": 0,
+      "lazy bear": 22200,
+      "sisterita": 18100,
+      "rich table": 33100,
+      "zuni café": 49500,
+      "tempest bar": 390,
+      "lazy bear sf": 4400,
+      "sisterita sf": 480,
+      "board & drink": 0,
+      "early to rise": 2900,
+      "rich table sf": 3600,
+      "el mariachi sf": 0,
+      "tempest bar sf": 1000,
+      "early to rise sf": 1900,
+      "board and drink sf": 390,
+      "doppio coffee & brunch": 14800
+     },
+     "searches": {
+      "tempest alternatives": 0,
+      "lazy bear alternatives": 0,
+      "sisterita alternatives": 0,
+      "rich table alternatives": 0,
+      "board & drink alternatives": 0,
+      "early to rise alternatives": 0,
+      "el mariachi sf alternatives": 0,
+      "doppio coffee & brunch alternatives": 0
+     }
+    },
+    "judged": {
+     "brunch restaurant san francisco": true,
+     "good restaurants in san francisco": true,
+     "top brunch spots in san francisco": true,
+     "best brunch place in san francisco": true,
+     "best brunch spots in san francisco": true,
+     "top brunch places in san francisco": true,
+     "french restaurants in san francisco": true,
+     "good brunch places in san francisco": true,
+     "new restaurants in san francisco ca": true,
+     "good restaurants in san francisco ca": true,
+     "great brunch places in san francisco": true,
+     "best new restaurants in san francisco": true,
+     "best new restaurants san francisco ca": true,
+     "best san francisco brunch restaurants": true,
+     "french restaurants in san francisco ca": true
+    },
+    "kind": "hospitality",
+    "serves": {
+     "name": "San Francisco",
+     "region": "California"
+    }
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 20,
+    "timeouts": 0
+   },
+   "pageQuestions": 0,
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    },
+    {
+     "location": "San Francisco,California,United States",
+     "language": "en"
+    }
+   ],
+   "searches": [
+    "restaurants in san francisco",
+    "best restaurants san francisco",
+    "brunch san francisco",
+    "places to eat san francisco",
+    "best new restaurants in san francisco",
+    "best new restaurants san francisco ca",
+    "fine dining san francisco",
+    "best brunch place in san francisco",
+    "best brunch spots in san francisco",
+    "lunch spots san francisco",
+    "top brunch places in san francisco",
+    "top brunch spots in san francisco"
+   ],
+   "knowledgePages": 5,
+   "questions": [],
+   "audience": [],
+   "topics": [
+    {
+     "query": "best brunch place in san francisco",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 1000,
+     "ready": false
+    },
+    {
+     "query": "top brunch places in san francisco",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 1000,
+     "ready": false
+    },
+    {
+     "query": "places to eat san francisco",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": 4400,
+     "ready": false
+    },
+    {
+     "query": "best new restaurants in san francisco",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 1,
+     "volume": 2400,
+     "ready": false
+    },
+    {
+     "query": "fine dining san francisco",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 2,
+     "volume": 1900,
+     "ready": false
+    },
+    {
+     "query": "lunch spots san francisco",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 2,
+     "volume": 1000,
+     "ready": false
+    },
+    {
+     "query": "zuni café vs rich table",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "zuni café vs lazy bear",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "zuni café vs sisterita",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "zuni café vs board & drink",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "zuni café vs doppio coffee & brunch",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "seasonal california cuisine san francisco",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 30.141600000000004,
+   "costBySource": {
+    "site-profile": 0.4166,
+    "profile": 0.3209,
+    "market-inference": 0.416,
+    "market-terms": 0.6903,
+    "dataforseo_labs/google/keyword_overview": 2.35,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "market-searches": 0.8841,
+    "question-phrasing": 0.3113,
+    "serp/google/organic": 2.1999999999999997,
+    "serp/google/ai_mode": 4.000000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 1.08,
+    "site-knowledge": 2.9364999999999997,
+    "rival-inference": 3.4779,
+    "topic-buyer-searches": 0.1963,
+    "topic-typed": 0.2236,
+    "topic-fit": 2.352,
+    "opportunity-typing": 0.8884000000000001,
+    "topic-same-question": 0.1977
+   },
+   "area": {
+    "place": "San Francisco",
+    "location": "San Francisco,California,United States"
+   },
+   "resultDomains": [
+    "www.tripadvisor.com",
+    "sf.eater.com",
+    "www.reddit.com",
+    "www.opentable.com",
+    "www.foodtalkcentral.com",
+    "www.hotelcaza.com",
+    "maps.apple.com",
+    "www.fodors.com",
+    "www.elmariachisf.com",
+    "tempest.pourguys.com",
+    "www.lazybearsf.com",
+    "kelseats.com",
+    "www.sftravel.com",
+    "www.yelp.com",
+    "www.cuddlynest.com",
+    "www.theinfatuation.com",
+    "www.zmenu.com",
+    "richtablesf.com",
+    "www.themorris-sf.com",
+    "allieeats.com",
+    "medium.com",
+    "halicopteraway.com",
+    "www.fourchairssf.com",
+    "www.peacockpansy.com",
+    "boardanddrinksf.com",
+    "www.sisterita.com",
+    "www.earlytorisesf.com",
+    "blog.resy.com",
+    "www.facebook.com",
+    "www.lemon8-app.com",
+    "www.hungryonion.org",
+    "www.travelinusa.us",
+    "rebrand.ly",
+    "www.grubstakesf.com",
+    "sfist.com",
+    "www.kron4.com",
+    "www.sfchronicle.com",
+    "indagare.com",
+    "guide.michelin.com",
+    "garydanko.com",
+    "www.richtablesf.com",
+    "theprogress-sf.com",
+    "saisonsf.com",
+    "www.sonsanddaughterssf.com",
+    "www.kilnsf.com",
+    "winejournal.robertparker.com",
+    "www.domino.com",
+    "doppiosf.com",
+    "downtownsf.org",
+    "www.quora.com",
+    "balloonrides.com",
+    "www.finedininglovers.com",
+    "www.atly.com",
+    "www.urbandaddy.com",
+    "daniellelazier.com",
+    "www.jsfashionista.com",
+    "shadesofpinck.com",
+    "m.yelp.com",
+    "www.sweetmaplesf.com",
+    "www.woodenspoonsf.com",
+    "thefriendlytraveler.com",
+    "resy.com",
+    "google.com",
+    "theinfatuation.com",
+    "reddit.com",
+    "facebook.com"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Looking for the best restaurants in San Francisco. Where would you go, and why?"
+    },
+    {
+     "kind": "category",
+     "text": "Which best restaurants in San Francisco would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which brunch in San Francisco would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which places to eat in San Francisco would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which restaurants in San Francisco would you suggest to someone visiting for the first time?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which restaurants in San Francisco would you book for a birthday or an anniversary?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which restaurants in San Francisco can take a large group?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which restaurants in San Francisco would you choose for the dish it is known for?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which restaurants in San Francisco would you pick for its neighbourhood and atmosphere?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which restaurants in San Francisco will look after vegetarians and people with allergies?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which restaurants in San Francisco can I get into without booking weeks ahead?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which restaurants in San Francisco would work for a business occasion?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are diners. Which restaurants in San Francisco would suit us best?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which restaurants in San Francisco would you recommend for diners?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which restaurants in San Francisco do diners tend to go back to?"
+    },
+    {
+     "kind": "persona",
+     "text": "I am booking for diners. Which restaurants in San Francisco should I choose?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best restaurants in San Francisco: how does Rich Table compare with Lazy Bear?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Rich Table for diners?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best restaurants in San Francisco: would you choose Lazy Bear or Sisterita?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best restaurants in San Francisco for the money: Rich Table, Lazy Bear or Sisterita?"
+    },
+    {
+     "kind": "problem",
+     "text": "I have left it late. Which restaurants in San Francisco could still fit me in tonight?"
+    },
+    {
+     "kind": "problem",
+     "text": "My last visit somewhere was a let-down. Which restaurants in San Francisco will not disappoint?"
+    },
+    {
+     "kind": "problem",
+     "text": "Which restaurants in San Francisco should I book for a special occasion, and what should I ask for?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is Zuni Café a good choice for someone looking for the best restaurants in San Francisco?"
+    },
+    {
+     "kind": "branded",
+     "text": "Looking for the best restaurants in San Francisco: is Zuni Café a good alternative to Rich Table?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"restaurant\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"restaurants san francisco\" 40500/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+     "verdict": "pass",
+     "detail": "Rich Table — richtablesf.com, 33100/mo, ranks; Lazy Bear — lazybearsf.com, 22200/mo, ranks; Sisterita — sisterita.com, 18100/mo, ranks; Board & Drink — boardanddrinksf.com, 390/mo, ranks; Doppio Coffee & Brunch — doppiosf.com, 14800/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "the site's own pages ask no question, and none is kept",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"diners in San Francisco\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 2.94¢; 0 of 20 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "hospitality; 25 prompts, each naming san francisco",
+     "items": []
+    },
+    {
+     "check": "a local business is measured in its own place",
+     "verdict": "pass",
+     "detail": "22 of 22 terms and searches name san francisco or sf or \"near me\"; read from San Francisco,California,United States; 5 rivals, every national one shown in this place's results",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "10 searched terms; \"restaurants san francisco\" has 40500"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 32 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 5 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "zunicafe.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0,
+     "fresh": true,
+     "durationMs": 18169,
+     "failure": "task_40101",
+     "billed": false,
+     "reason": "dataforseo: task 40101 Internal SE Server Error."
+    },
+    {
+     "event": "ai_answers_card",
+     "coverage": "cached_only",
+     "cells": [
+      "no_answer",
+      "no_answer",
+      "no_answer",
+      "no_answer",
+      "answered",
+      "unmeasured",
+      "no_answer",
+      "no_answer",
+      "answered",
+      "no_answer",
+      "no_answer",
+      "no_answer"
+     ]
+    }
+   ],
+   "seconds": 124,
+   "evidenceLoaded": 71
+  },
+  {
+   "site": {
+    "domain": "baeckerei-hinkel.de",
+    "kind": "German small business, German-language site (bakery)",
+    "country": "DE",
+    "language": "de",
+    "kinds": [
+     "shop",
+     "hospitality"
+    ],
+    "market": [
+     "bäcker",
+     "backwaren",
+     "brot",
+     "bakery"
+    ],
+    "place": [
+     "düsseldorf",
+     "duesseldorf",
+     "dusseldorf"
+    ],
+    "why": "A Düsseldorf bakery whose site is in German only. Its market, terms, searches, questions and topics have to be German and measured in Germany."
+   },
+   "siteName": "Bäckerei HINKEL",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "Brotfreunde in Düsseldorf, die handwerklich gefertigte Brote und Backwaren kaufen",
+    "job": "Frische, handwerklich gefertigte Brote und Backwaren kaufen",
+    "category": "Handwerksbäckerei",
+    "synonyms": [
+     "Bäckerei",
+     "Artisanale Bäckerei",
+     "Traditionsbäckerei"
+    ],
+    "differentiators": [
+     "Spezialisierung auf Brotbacken als Kernkompetenz",
+     "Fünf Generationen Bäckerhandwerk seit 1891",
+     "Vielfältige Brotsorten aus Weizen, Dinkel und Roggen",
+     "Verkaufswagen an mehreren Standorten in Düsseldorf",
+     "Virtuelle Backstube-Tour für Transparenz"
+    ],
+    "notOurMarket": [
+     "Industrielle Backwarenfabrik",
+     "Online-Lebensmittellieferservice",
+     "Supermarkt-Backwaren",
+     "Konditorei mit Schwerpunkt Torten",
+     "Café mit Backwaren"
+    ],
+    "categoryReason": "Die Website führt mit „Die Bäckerei der Brotfreunde\" und betont Leidenschaft, Tradition und Handwerk; das Kerngeschäft ist die Herstellung und der Verkauf von handwerklich gefertigten Broten und Backwaren an Endkunden vor Ort.",
+    "rivals": [],
+    "terms": [
+     {
+      "term": "bäckerei düsseldorf",
+      "volume": 3600
+     },
+     {
+      "term": "sauerteigbrot düsseldorf",
+      "volume": 140
+     },
+     {
+      "term": "backwaren düsseldorf",
+      "volume": 10
+     },
+     {
+      "term": "brötchen düsseldorf",
+      "volume": 10
+     },
+     {
+      "term": "handwerksbäckerei düsseldorf",
+      "volume": 0
+     },
+     {
+      "term": "brot kaufen düsseldorf",
+      "volume": 0
+     },
+     {
+      "term": "frisches brot düsseldorf",
+      "volume": 0
+     },
+     {
+      "term": "traditionsbäckerei düsseldorf",
+      "volume": 0
+     },
+     {
+      "term": "vollkornbrot düsseldorf",
+      "volume": 0
+     },
+     {
+      "term": "artisan bäckerei düsseldorf",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "bäckerei düsseldorf",
+    "termsAt": "2026-10-08T07:50:59.177Z",
+    "judged": {
+     "brotzeit düsseldorf": false,
+     "bäcker in düsseldorf": true,
+     "bio bäcker düsseldorf": true,
+     "bio bäckerei düsseldorf": true,
+     "bester bäcker düsseldorf": true,
+     "beste bäckerei düsseldorf": true,
+     "brötchen liefern düsseldorf": false,
+     "brötchen bestellen düsseldorf": true,
+     "traditionsbäcker in meiner nähe": true,
+     "bäckerei düsseldorf in der nähe": true
+    },
+    "kind": "shop",
+    "serves": {
+     "name": "Düsseldorf",
+     "region": "Nordrhein-Westfalen"
+    }
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 18,
+    "timeouts": 0
+   },
+   "pageQuestions": 0,
+   "locales": [
+    {
+     "location": "Germany",
+     "language": "de"
+    },
+    {
+     "location": "Dusseldorf,North Rhine-Westphalia,Germany",
+     "language": "de"
+    }
+   ],
+   "searches": [
+    "bäckerei düsseldorf",
+    "beste bäckerei düsseldorf",
+    "bester bäcker düsseldorf",
+    "sauerteigbrot düsseldorf",
+    "backwaren düsseldorf",
+    "brötchen düsseldorf",
+    "bäckerei düsseldorf in der nähe",
+    "bäcker in düsseldorf",
+    "bio bäcker düsseldorf",
+    "bio bäckerei düsseldorf",
+    "traditionsbäcker in meiner nähe",
+    "brötchen bestellen düsseldorf"
+   ],
+   "knowledgePages": 9,
+   "questions": [],
+   "audience": [
+    "Brotfreunde"
+   ],
+   "topics": [
+    {
+     "query": "sauerteigbrot düsseldorf",
+     "status": "open",
+     "type": "answerable_page",
+     "fit": 3,
+     "volume": 140,
+     "ready": false
+    },
+    {
+     "query": "beste bäckerei düsseldorf",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 170,
+     "ready": true
+    },
+    {
+     "query": "bio bäcker düsseldorf",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 1,
+     "volume": 90,
+     "ready": false
+    },
+    {
+     "query": "backwaren düsseldorf",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 2,
+     "volume": 10,
+     "ready": false
+    },
+    {
+     "query": "brötchen düsseldorf",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 2,
+     "volume": 10,
+     "ready": false
+    },
+    {
+     "query": "bäcker in düsseldorf",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 2,
+     "volume": 170,
+     "ready": false
+    },
+    {
+     "query": "traditionsbäcker in meiner nähe",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": 70,
+     "ready": true
+    },
+    {
+     "query": "bäckerei düsseldorf mit sauerteigbrot",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 45.999399999999994,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 4.8,
+    "site-profile": 0.6591,
+    "profile": 0.3985,
+    "market-inference": 0.745,
+    "market-terms": 0.8199,
+    "dataforseo_labs/google/keyword_overview": 1.1,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "market-searches": 0.8193,
+    "question-phrasing": 0.3297,
+    "serp/google/organic": 2.4,
+    "serp/google/ai_mode": 3.400000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 1.4400000000000004,
+    "site-knowledge": 4.3717,
+    "rival-inference": 12.612,
+    "topic-buyer-searches": 0.259,
+    "topic-typed": 0.2031,
+    "topic-fit": 3.5229,
+    "opportunity-typing": 0.7706999999999999,
+    "topic-same-question": 0.1485
+   },
+   "area": {
+    "place": "Düsseldorf",
+    "location": "Dusseldorf,North Rhine-Westphalia,Germany"
+   },
+   "resultDomains": [
+    "www.dasoertliche.de",
+    "www.wlw.de",
+    "www.dastelefonbuch.de",
+    "neotaste.com",
+    "www.instagram.com",
+    "www.kaufda.de",
+    "www.tripadvisor.de",
+    "www.gelbeseiten.de",
+    "www.lieferando.de",
+    "www.google.com",
+    "www.reddit.com",
+    "katrinhilger.com",
+    "www.golocal.de",
+    "www.werkenntdenbesten.de",
+    "www.dorfbaeckerei-ackermann.de",
+    "merkurist.de",
+    "www.ubereats.com",
+    "www.tripadvisor.at",
+    "www.baeckerei-hinkel.de",
+    "www.mrduesseldorf.de",
+    "wanderlog.com",
+    "www.regiomanager.de",
+    "www.feinschmecker.de",
+    "bulle-baeckerei.de",
+    "www.kocak-baeckerei.de",
+    "www.brotinstitut.de",
+    "www.facebook.com",
+    "www.tiktok.com",
+    "www.11880.com",
+    "der-business-tipp.de",
+    "branchenbuch.meinestadt.de",
+    "wolt.com",
+    "www.toogoodtogo.com",
+    "www.kaffeepott.info",
+    "baeckerbote-duesseldorf.de",
+    "www.branchen-duesseldorf.de",
+    "www.broetchenbursche.de",
+    "kamps-lieferservice.de",
+    "charcuterieduesseldorf.com",
+    "oehme24.de",
+    "www.duesseldorf.de",
+    "hercules-baeckerei.de",
+    "kamps.de",
+    "gobackerei.de",
+    "web2.cylex.de",
+    "www.xn--bckerei-dsseldorf-qqb87b.de",
+    "www.tonight.de",
+    "www.xn--ihr-bcker-schren-znb45b.de",
+    "press.wolt.com",
+    "www.freshplaza.de",
+    "www.youtube.com",
+    "restaurant-haco.com",
+    "rp-online.de",
+    "ernaehrungsrat-duesseldorf.de",
+    "www.mapquest.com",
+    "www.xn--biokiste-dsseldorf-v6b.de",
+    "regiofood-duesseldorf.de",
+    "www.slowfood.de",
+    "onlinestreet.de",
+    "speisekarte.menu",
+    "de.restaurantguru.com",
+    "www.earlytaste.de",
+    "catering.lieferzwerge.de",
+    "www.caterring.de",
+    "google.com",
+    "tripadvisor.de",
+    "baeckerei-hinkel.de",
+    "mrduesseldorf.de",
+    "zeitfuerbrot.com",
+    "reddit.com",
+    "mabonbread.com",
+    "baeckerei-terbuyken.com"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Bäckerei in Düsseldorf: Wo kaufen Sie am liebsten, und warum?"
+    },
+    {
+     "kind": "category",
+     "text": "Sauerteigbrot in Düsseldorf: Welche Adressen werden wirklich empfohlen?"
+    },
+    {
+     "kind": "category",
+     "text": "Backwaren in Düsseldorf: Welche Adressen werden wirklich empfohlen?"
+    },
+    {
+     "kind": "category",
+     "text": "Brötchen in Düsseldorf: Welche Adressen werden wirklich empfohlen?"
+    },
+    {
+     "kind": "category",
+     "text": "Ich kaufe zum ersten Mal. Bäckerei in Düsseldorf: Wo sollte ich anfangen?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wo finde ich ein schönes Geschenk?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wo kaufe ich gut bei kleinem Budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wer liefert schnell?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wer stellt noch selbst und in kleinen Mengen her?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wo finde ich etwas für einen besonderen Anlass?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wo werde ich beim Aussuchen gut beraten?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Welcher unabhängige Laden ist besser als die großen Ketten?"
+    },
+    {
+     "kind": "persona",
+     "text": "Wir sind Brotfreunde. Bäckerei in Düsseldorf: Wo sollten wir kaufen?"
+    },
+    {
+     "kind": "persona",
+     "text": "Bäckerei in Düsseldorf: Was empfehlen Sie für Brotfreunde?"
+    },
+    {
+     "kind": "persona",
+     "text": "Bäckerei in Düsseldorf: Wo kaufen Brotfreunde am liebsten?"
+    },
+    {
+     "kind": "persona",
+     "text": "Ich kaufe für Brotfreunde. Bäckerei in Düsseldorf: Wo werde ich fündig?"
+    },
+    {
+     "kind": "problem",
+     "text": "Mein letzter Kauf war eine Enttäuschung. Bäckerei in Düsseldorf: Auf wen ist Verlass?"
+    },
+    {
+     "kind": "problem",
+     "text": "Ich brauche es schnell. Bäckerei in Düsseldorf: Wer hat es rechtzeitig da?"
+    },
+    {
+     "kind": "problem",
+     "text": "Ich kann mich nicht entscheiden. Bäckerei in Düsseldorf: Wer hat die beste Auswahl, und worauf sollte ich achten?"
+    },
+    {
+     "kind": "branded",
+     "text": "Bäckerei in Düsseldorf: Ist Bäckerei HINKEL eine gute Wahl?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"Handwerksbäckerei\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"bäckerei düsseldorf\" 3600/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "review",
+     "detail": "read in Germany / de; the terms' own wording is read by hand",
+     "items": [
+      "bäckerei düsseldorf",
+      "sauerteigbrot düsseldorf",
+      "backwaren düsseldorf",
+      "brötchen düsseldorf",
+      "handwerksbäckerei düsseldorf",
+      "brot kaufen düsseldorf",
+      "frisches brot düsseldorf",
+      "traditionsbäckerei düsseldorf",
+      "vollkornbrot düsseldorf",
+      "artisan bäckerei düsseldorf"
+     ]
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+     "verdict": "fail",
+     "detail": "no rivals were concluded",
+     "items": [
+      "0 rivals, not 3–5"
+     ]
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "review",
+     "detail": "1 of 12 to read by hand",
+     "items": [
+      "traditionsbäcker in meiner nähe — shares no word with the market"
+     ]
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "the site's own pages ask no question, and none is kept",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"Brotfreunde in Düsseldorf, die handwerklich gefertigte Brote und Backwaren kaufen\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "review",
+     "detail": "1 of 8 to read by hand",
+     "items": [
+      "traditionsbäcker in meiner nähe — shares no word with the market"
+     ]
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 4.37¢; 0 of 18 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "shop; 20 prompts, each naming düsseldorf",
+     "items": []
+    },
+    {
+     "check": "a local business is measured in its own place",
+     "verdict": "pass",
+     "detail": "16 of 16 terms and searches name düsseldorf or duesseldorf or dusseldorf or \"near me\"; read from Dusseldorf,North Rhine-Westphalia,Germany; 0 rivals, every national one shown in this place's results",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "no brand volume was read"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "4 searched terms; \"bäckerei düsseldorf\" has 3600"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 30 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 9 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "baeckerei-hinkel.de",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0,
+     "fresh": true,
+     "durationMs": 18699,
+     "failure": "task_40101",
+     "billed": false,
+     "reason": "dataforseo: task 40101 Internal SE Server Error."
+    },
+    {
+     "event": "rival_conclusion_unmeasured",
+     "siteId": "de44defe-d009-581c-87a1-a8bffca766d5",
+     "reason": "undeterminable"
+    }
+   ],
+   "seconds": 168,
+   "evidenceLoaded": 93
+  },
+  {
+   "site": {
+    "domain": "alexander.co.uk",
+    "kind": "professional services (accountancy, UK)",
+    "country": "GB",
+    "language": "en",
+    "kinds": [
+     "professional-services"
+    ],
+    "market": [
+     "account",
+     "tax"
+    ],
+    "place": [
+     "manchester"
+    ],
+    "why": "An independent firm of chartered accountants in Manchester. A UK professional-services firm with many service lines and a large site: the audience and the category must stay specific."
+   },
+   "siteName": "Alexander & Co",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "Business owners and entrepreneurs in the UK seeking tax and accounting expertise",
+    "job": "Obtain expert tax advice, accounting services, and business financial guidance",
+    "category": "Chartered accountants and tax advisers",
+    "synonyms": [
+     "Tax advisers",
+     "Accountancy firms",
+     "Business accountants"
+    ],
+    "differentiators": [
+     "50 years of heritage and established reputation",
+     "ICAEW-regulated firm",
+     "Partner-led approach with personal service",
+     "Specialist teams in R&D tax credits and corporate finance",
+     "Offices in both Manchester and London"
+    ],
+    "notOurMarket": [
+     "Bookkeeping services",
+     "Payroll processing",
+     "Financial software platforms",
+     "Business consulting",
+     "Audit-only firms"
+    ],
+    "categoryReason": "The headline and all pages consistently position the firm as chartered accountants and tax advisers, which is the specific outcome buyers search for and hire them to deliver.",
+    "rivals": [
+     {
+      "domain": "jackross.com",
+      "name": "Jack Ross",
+      "basis": "ai_answer",
+      "reason": "Long-established Manchester city-centre chartered accountancy practice serving businesses and entrepreneurs, cited as best overall independent firm.",
+      "searchNames": [
+       "jack ross",
+       "jack ross chartered accountants",
+       "jack ross chartered"
+      ],
+      "volume": 1900
+     },
+     {
+      "domain": "sedulo.co.uk",
+      "name": "Sedulo",
+      "basis": "ai_answer",
+      "reason": "Manchester-based chartered accountancy and advisory firm targeting ambitious entrepreneurs and growing businesses, repeatedly named in AI answers.",
+      "searchNames": [
+       "sedulo accountants"
+      ],
+      "volume": 880
+     },
+     {
+      "domain": "mitchellcharlesworth.co.uk",
+      "name": "Mitchell Charlesworth",
+      "basis": "ranks",
+      "reason": "Mid-tier chartered accountancy firm with a Manchester office offering tax, audit and advisory services to owner-managed businesses.",
+      "searchNames": [
+       "mitchell charlesworth",
+       "mitchell charlesworth accountants"
+      ],
+      "volume": 720
+     },
+     {
+      "domain": "hurst.co.uk",
+      "name": "Hurst",
+      "basis": "ranks",
+      "reason": "Manchester-based chartered accountants and business advisers serving entrepreneurial and owner-managed businesses across the region.",
+      "searchNames": [
+       "hurst accountants manchester",
+       "hurst accountants"
+      ],
+      "volume": 480
+     },
+     {
+      "domain": "chadwickandco.co.uk",
+      "name": "Chadwick & Co",
+      "basis": "ranks",
+      "reason": "Manchester chartered accountants offering tax planning and business financial advice to SMEs and entrepreneurs.",
+      "searchNames": [
+       "chadwick & co",
+       "chadwick and co accountants manchester"
+      ],
+      "volume": 480
+     }
+    ],
+    "terms": [
+     {
+      "term": "accountant manchester",
+      "volume": 1900
+     },
+     {
+      "term": "accountancy firm manchester",
+      "volume": 480
+     },
+     {
+      "term": "chartered accountant manchester",
+      "volume": 170
+     },
+     {
+      "term": "small business accountant manchester",
+      "volume": 50
+     },
+     {
+      "term": "tax adviser manchester",
+      "volume": 0
+     },
+     {
+      "term": "corporation tax advice manchester",
+      "volume": 0
+     },
+     {
+      "term": "self assessment tax return manchester",
+      "volume": 0
+     },
+     {
+      "term": "VAT accountant manchester",
+      "volume": 0
+     },
+     {
+      "term": "business tax accountant manchester",
+      "volume": 0
+     },
+     {
+      "term": "capital gains tax advice manchester",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "accountant manchester",
+    "termsAt": "2026-10-08T07:53:47.295Z",
+    "demand": {
+     "at": "2026-10-08T07:55:03.721Z",
+     "own": 12100,
+     "brands": {
+      "alexander": 12100,
+      "jack ross": 1900,
+      "chadwick & co": 480,
+      "alexander & co": 880,
+      "hurst accountants": 480,
+      "sedulo accountants": 880,
+      "jack ross chartered": 0,
+      "mitchell charlesworth": 720,
+      "percy westhead & company": 0,
+      "a&c chartered accountants": 170,
+      "grant thornton manchester": 320,
+      "manchester tax accountant": 0,
+      "percy westhead accountants": 0,
+      "hurst accountants manchester": 20,
+      "saffery accountants manchester": 0,
+      "jack ross chartered accountants": 260,
+      "mitchell charlesworth accountants": 30,
+      "a&c chartered accountants manchester": 10,
+      "chadwick and co accountants manchester": 0
+     },
+     "searches": {
+      "hurst alternatives": 0,
+      "sedulo alternatives": 0,
+      "saffery alternatives": 0,
+      "jack ross alternatives": 0,
+      "chadwick & co alternatives": 0,
+      "grant thornton alternatives": 0,
+      "mitchell charlesworth alternatives": 0,
+      "percy westhead & company alternatives": 0,
+      "a&c chartered accountants alternatives": 0,
+      "manchester tax accountant alternatives": 0
+     }
+    },
+    "judged": {
+     "taxes near me": false,
+     "tax services near me": true,
+     "tax accountant near me": true,
+     "tax accountant manchester": true,
+     "best accountant manchester": true,
+     "accountants in manchester uk": true,
+     "accounting firms in manchester": true
+    },
+    "kind": "professional-services",
+    "serves": {
+     "name": "Manchester",
+     "region": "Greater Manchester"
+    }
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 16,
+    "timeouts": 0
+   },
+   "pageQuestions": 11,
+   "locales": [
+    {
+     "location": "United Kingdom",
+     "language": "en"
+    },
+    {
+     "location": "Manchester,Manchester,England,United Kingdom",
+     "language": "en"
+    }
+   ],
+   "searches": [
+    "accountant manchester",
+    "accountancy firm manchester",
+    "chartered accountant manchester",
+    "best accountant manchester",
+    "small business accountant manchester",
+    "accountants in manchester uk",
+    "tax accountant near me",
+    "accounting firms in manchester",
+    "tax services near me",
+    "tax accountant manchester"
+   ],
+   "knowledgePages": 7,
+   "questions": [
+    "Why work with Alexander & Co?",
+    "Why Choose Alexander & Co as Your Tax Consultants and Accountants?",
+    "Why should you seek out a team that understands tax legislation and your personal or business journey?",
+    "How does effective tax planning support growth and wealth preservation?",
+    "What unique challenges do entrepreneurs and startups face with tax?",
+    "How can property investors manage the intricacies of SDLT and capital gains tax?",
+    "Should You Set Up a Limited Company for Buy-to-Let Properties?",
+    "Can small businesses still claim R&D tax credits?",
+    "Can I claim R&D credits when using overseas contractors or EPWs?",
+    "What is the Additional Information Form (AIF)?",
+    "Can we claim R&D relief for failed projects?",
+    "How far back can a company claim R&D tax credits?",
+    "Do I need to notify HMRC before making an R&D claim?",
+    "Who Qualifies for R&D Tax Relief?",
+    "What are Qualifying Projects and Expenditure?"
+   ],
+   "audience": [
+    "entrepreneurial businesses",
+    "individuals",
+    "businesses UK wide",
+    "construction",
+    "real estate",
+    "property",
+    "creative industries",
+    "tech industries",
+    "entrepreneurs",
+    "owner-managed companies",
+    "owner-managed businesses",
+    "family businesses",
+    "start-ups",
+    "financial services companies",
+    "entrepreneurs launching a startup",
+    "established companies",
+    "high-net-worth individuals",
+    "property investors",
+    "landlords",
+    "MDs",
+    "families",
+    "owner-manager businesses",
+    "registered limited companies",
+    "manufacturing companies",
+    "software engineering companies",
+    "construction companies",
+    "food production companies",
+    "textile companies"
+   ],
+   "topics": [
+    {
+     "query": "accountant manchester",
+     "status": "open",
+     "type": "answerable_page",
+     "fit": 2,
+     "volume": 1900,
+     "ready": false
+    },
+    {
+     "query": "chartered accountant manchester",
+     "status": "open",
+     "type": "answerable_page",
+     "fit": 2,
+     "volume": 170,
+     "ready": false
+    },
+    {
+     "query": "tax services near me",
+     "status": "open",
+     "type": "answerable_page",
+     "fit": 2,
+     "volume": 390,
+     "ready": false
+    },
+    {
+     "query": "accountants in manchester uk",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 2,
+     "volume": 1900,
+     "ready": false
+    },
+    {
+     "query": "tax accountant near me",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 2,
+     "volume": 1600,
+     "ready": false
+    },
+    {
+     "query": "jack ross alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "sedulo alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "mitchell charlesworth alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "hurst alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "chadwick & co alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "alexander co vs jack ross",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "alexander co vs sedulo",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "alexander co vs mitchell charlesworth",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "alexander co vs hurst",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "alexander co vs chadwick & co",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "accountant manchester pricing",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "chartered accountant manchester pricing",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 37.32149999999999,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 4.8,
+    "site-profile": 0.4598,
+    "profile": 0.3978,
+    "market-inference": 0.5264,
+    "market-terms": 0.7143,
+    "dataforseo_labs/google/keyword_overview": 2.39,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "market-searches": 0.6069,
+    "question-phrasing": 0.2181,
+    "serp/google/organic": 1.9999999999999998,
+    "serp/google/ai_mode": 3.2000000000000006,
+    "ai_optimization/chat_gpt/llm_scraper": 1.2000000000000002,
+    "site-knowledge": 6.0149,
+    "rival-inference": 3.2889,
+    "topic-buyer-searches": 0.189,
+    "topic-typed": 0.1973,
+    "topic-fit": 3.2187,
+    "opportunity-typing": 0.4987,
+    "topic-same-question": 0.2007
+   },
+   "area": {
+    "place": "Manchester",
+    "location": "Manchester,Manchester,England,United Kingdom"
+   },
+   "resultDomains": [
+    "www.vouchedfor.co.uk",
+    "www.gumtree.com",
+    "find.icaew.com",
+    "legendfinancial.co.uk",
+    "www.unbiased.co.uk",
+    "www.protaxaccountant.co.uk",
+    "accountingsolutionsmcr.co.uk",
+    "www.starofservice.co.uk",
+    "www.invoiceberry.com",
+    "www.ac-accounts.co.uk",
+    "www.mwa-accounting.co.uk",
+    "www.thomasandcointernational.com",
+    "www.professional-accountants.co.uk",
+    "reactaccountancy.co.uk",
+    "www.pro-manchester.co.uk",
+    "www.thebusinessdesk.com",
+    "www.totaljobs.com",
+    "businessmondays.co.uk",
+    "www.propertytribes.com",
+    "www.linkedin.com",
+    "www.percywesthead.co.uk",
+    "www.gordonlevy.co.uk",
+    "www.localaccountants.co.uk",
+    "esaveaccounts.co.uk",
+    "www.manchesterprofessionals.co.uk",
+    "www.facebook.com",
+    "www.yell.com",
+    "www.reed.co.uk",
+    "www.reddit.com",
+    "alexander.co.uk",
+    "www.chadwickandco.co.uk",
+    "www.grantthornton.co.uk",
+    "acumon.com",
+    "www.parkerwhitwood.co.uk",
+    "www.hurst.co.uk",
+    "www.glassdoor.co.uk",
+    "www.accountsandlegal.co.uk",
+    "www.skaccountants.com",
+    "www.mitchellcharlesworth.co.uk",
+    "mooreaccountancy.co.uk",
+    "revenuebase.ai",
+    "www.haroldsharp.co.uk",
+    "accountsandlegal.co.uk",
+    "www.saffery.com",
+    "www.freeagent.com",
+    "a-wise.co.uk",
+    "www.bark.com",
+    "www.taxassist.co.uk",
+    "www.jackross.com",
+    "www.williamsoncroft.co.uk",
+    "skaccountants.com",
+    "www.dnsassociates.co.uk",
+    "accountingfirms.co.uk",
+    "www.recommendedcompany.co.uk",
+    "www.ukaccountingfirms.co.uk",
+    "www.goodfirms.co",
+    "octaaccountants.co.uk",
+    "mazelimited.co.uk",
+    "legaldirectorate.co.uk",
+    "pmarks.co.uk",
+    "www.thp.co.uk",
+    "threebestrated.co.uk",
+    "kingandtaylor.co.uk",
+    "www.ahaccountant.co.uk",
+    "www.manchestertaxaccountant.co.uk",
+    "vintagetax.co.uk",
+    "google.com",
+    "accountancyage.com",
+    "exuberantglobal.co.uk",
+    "jackross.com",
+    "designrush.com",
+    "glassdoor.co.uk",
+    "manchesterexperts.co.uk"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Looking for the best accountant in Manchester. Which firms would you recommend, and why?"
+    },
+    {
+     "kind": "category",
+     "text": "Which accountancy firm in Manchester would clients actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which chartered accountant in Manchester would clients actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which small business accountant in Manchester would clients actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which accountant in Manchester would you suggest to someone hiring for the first time?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which accountant in Manchester would take on a small business as a client?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which accountant in Manchester will quote a fixed fee up front?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which accountant in Manchester would you trust with a complicated case?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which accountant in Manchester can start within a week or two?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which accountant in Manchester will give me one named person to deal with?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which accountant in Manchester would suit a first project on a modest budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which accountant in Manchester can show results for businesses like mine?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are business owners and entrepreneurs in the UK. Which accountant in Manchester would suit us best?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which accountant in Manchester would you recommend for business owners and entrepreneurs in the UK?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which accountant in Manchester do business owners and entrepreneurs in the UK tend to hire?"
+    },
+    {
+     "kind": "persona",
+     "text": "I advise business owners and entrepreneurs in the UK. Which accountant in Manchester should I point them to?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best accountant in Manchester: how does Jack Ross compare with Sedulo?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Jack Ross for business owners and entrepreneurs in the UK?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best accountant in Manchester: would you choose Sedulo or Mitchell Charlesworth?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best accountant in Manchester for the money: Jack Ross, Sedulo or Mitchell Charlesworth?"
+    },
+    {
+     "kind": "problem",
+     "text": "We are unhappy with our current firm. Which accountant in Manchester should we talk to instead?"
+    },
+    {
+     "kind": "problem",
+     "text": "We have a deadline coming. Which accountant in Manchester can take us on at short notice?"
+    },
+    {
+     "kind": "problem",
+     "text": "Which accountant in Manchester should I speak to first, and what should I ask before I sign?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is Alexander & Co a good choice for someone looking for the best accountant in Manchester?"
+    },
+    {
+     "kind": "branded",
+     "text": "Looking for the best accountant in Manchester: is Alexander & Co a good alternative to Jack Ross?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"Chartered accountants and tax advisers\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"accountant manchester\" 1900/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United Kingdom / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+     "verdict": "pass",
+     "detail": "Jack Ross — jackross.com, 1900/mo, ai_answer; Sedulo — sedulo.co.uk, 880/mo, ai_answer; Mitchell Charlesworth — mitchellcharlesworth.co.uk, 720/mo, ranks; Hurst — hurst.co.uk, 480/mo, ranks; Chadwick & Co — chadwickandco.co.uk, 480/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "10 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "15 questions",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"Business owners and entrepreneurs in the UK seeking tax and accounting expertise\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "17 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 6.01¢; 0 of 16 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "professional-services; 25 prompts, each naming manchester",
+     "items": []
+    },
+    {
+     "check": "a local business is measured in its own place",
+     "verdict": "pass",
+     "detail": "14 of 14 terms and searches name manchester or \"near me\"; read from Manchester,Manchester,England,United Kingdom; 5 rivals, every national one shown in this place's results",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "4 searched terms; \"accountant manchester\" has 1900"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 26 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 7 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "alexander.co.uk",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    }
+   ],
+   "seconds": 134,
+   "evidenceLoaded": 51
+  }
+ ]
+}

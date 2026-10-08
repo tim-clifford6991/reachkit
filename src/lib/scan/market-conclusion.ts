@@ -16,6 +16,8 @@
 // A founder's override stands; neither moment touches a field they set.
 // Every failure leaves what is stored alone: a pass never loses its market
 // because a model call did not come back.
+import type { Locale, Place } from "@/lib/locale/locales";
+import type { PlaceSignals, ServingArea } from "@/lib/locale/place";
 import { siteLocale } from "@/lib/locale/site";
 import type { CostContext } from "@/lib/costs";
 import { evidenceDomains, type EvidencePage } from "@/lib/market/infer/evidence";
@@ -68,6 +70,58 @@ export interface PassMarket {
   rivalsOverridden: boolean;
   /** The founder's own answer about who buys, where they gave one (D49). */
   founderBuyer: string | null;
+  /** The one place the business serves (D67, issue 1318), as this pass
+   *  settled it; `null` where it sells nationally or online. The pass
+   *  measures there from here on. */
+  place: Place | null;
+}
+
+/**
+ * Where the site serves, settled for this pass (SPEC §6, owner D67, issue
+ * 1318). The founder's answer stands. Where nobody has said, the first
+ * market call that read it decides, once. A place the search vendor's list
+ * was not yet read for is looked up there — free, once — so Google's
+ * results are read from that city. Never throws: a lookup that fails
+ * leaves the place measured in its country, and the next pass asks again.
+ */
+export async function settleArea(a: {
+  siteId: string;
+  area: ServingArea | undefined;
+  /** What this pass's market call read; `undefined` where it made none. */
+  read: Place | null | undefined;
+  locale: Locale;
+}): Promise<ServingArea | undefined> {
+  let area = a.area ?? (a.read === undefined ? undefined : { place: a.read, by: "read" as const });
+  if (area === undefined || area.place === null || area.located === true) return area;
+  // The conclusion's own region tells two cities of one name apart where
+  // the founder gave none ("Portland").
+  const place: Place =
+    area.place.region === undefined &&
+    a.read !== null &&
+    a.read !== undefined &&
+    a.read.region !== undefined &&
+    a.read.name.toLowerCase() === area.place.name.toLowerCase()
+      ? { ...area.place, region: a.read.region }
+      : area.place;
+  try {
+    const { placeLocation } = await import("@/lib/vendors/dataforseo");
+    const found = await placeLocation({ place, country: a.locale.country });
+    if (found !== null) {
+      area = {
+        ...area,
+        place: { name: place.name, ...(place.region === undefined ? {} : { region: place.region }), ...(found.location === null ? {} : { location: found.location }) },
+        located: true,
+      };
+    }
+    log("serving_area_located", { siteId: a.siteId, place: place.name, location: found === null ? "unread" : found.location });
+  } catch (error) {
+    log("serving_area_unlocated", { siteId: a.siteId, because: error instanceof Error ? error.message : String(error) });
+  }
+  return area;
+}
+
+function sameArea(a: ServingArea | undefined, b: ServingArea | undefined): boolean {
+  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 }
 
 /**
@@ -82,6 +136,8 @@ export async function concludeMarketForPass(a: {
   cost: CostContext;
   pages: readonly (EvidencePage & { h1?: string })[];
   at: Date;
+  /** What the home page's structured data states of its address (D67). */
+  stated?: PlaceSignals;
 }): Promise<PassMarket | null> {
   const [{ readSiteMarket, writeSiteMarket }, { inferMarketFields }, { settleMarket }, { readCurrentReport }] =
     await Promise.all([
@@ -91,7 +147,15 @@ export async function concludeMarketForPass(a: {
       import("./report"),
     ]);
   const site = await readSiteMarket(a.siteId);
-  if (site === null || site.stored.categoryOverridden || a.pages.length === 0) return null;
+  if (site === null) return null;
+  const stored = await siteLocale(a.siteId);
+  if (site.stored.categoryOverridden || a.pages.length === 0) {
+    // No market is concluded here. A founder's place is still looked up,
+    // and the next pass, which reads it stored, is made from that city.
+    const area = await settleArea({ siteId: a.siteId, area: site.stored.area, read: undefined, locale: stored });
+    if (!sameArea(area, site.stored.area) && area !== undefined) await writeSiteMarket(a.siteId, { stored: { ...site.stored, area } });
+    return null;
+  }
 
   const before = await readCurrentReport(a.domain).catch(() => null);
   const text = await siteText(a.domain);
@@ -103,12 +167,17 @@ export async function concludeMarketForPass(a: {
     products: text.products,
     claims: text.claims,
     report: before,
+    ...(a.stated === undefined ? {} : { stated: a.stated }),
   });
-  const fresh = await inferMarketFields(a.cost, evidence, await siteLocale(a.siteId));
+  const fresh = await inferMarketFields(a.cost, evidence, stored);
   if (fresh.kind === "unmeasured") {
     log("market_conclusion_unmeasured", { siteId: a.siteId, reason: fresh.reason });
-    return passMarket(site.stored.current, site.stored.rivalsOverridden, await founderBuyer(a.siteId));
+    return passMarket(site.stored.current, site.stored.rivalsOverridden, await founderBuyer(a.siteId), site.stored.area?.place ?? null);
   }
+  // D67: where it serves is settled before anything is read for the market.
+  const area = await settleArea({ siteId: a.siteId, area: site.stored.area, read: fresh.value.serves, locale: stored });
+  const place = area?.place ?? null;
+  const locale: Locale = { country: stored.country, language: stored.language, ...(place === null ? {} : { place }) };
 
   const settled = settleMarket({
     stored: site.stored,
@@ -120,8 +189,14 @@ export async function concludeMarketForPass(a: {
   });
   // D49: the market that stands has its words checked against search
   // volume, on this pass's money.
+  // D69: a market that stands keeps its words and takes the kind the first
+  // call that read one gave it.
+  const standing = settled.next.current;
+  const kinded =
+    standing === null || standing.kind !== undefined || fresh.value.kind === undefined ? standing : { ...standing, kind: fresh.value.kind };
   const current = await withSearchTerms({
-    market: settled.next.current,
+    market: kinded,
+    locale,
     siteId: a.siteId,
     domain: a.domain,
     siteName: text.siteName,
@@ -129,7 +204,7 @@ export async function concludeMarketForPass(a: {
     at: a.at,
   });
   await writeSiteMarket(a.siteId, {
-    stored: { ...settled.next, current },
+    stored: { ...settled.next, current, ...(area === undefined ? {} : { area }) },
     ...(settled.adopted && current !== null ? { category: current.category } : {}),
   });
   log("market_conclusion", {
@@ -137,8 +212,10 @@ export async function concludeMarketForPass(a: {
     adopted: settled.adopted,
     pending: settled.next.pending !== null,
     searchTerm: current?.searchTerm ?? null,
+    kind: current?.kind ?? null,
+    place: place?.name ?? null,
   });
-  return passMarket(current, settled.next.rivalsOverridden, await founderBuyer(a.siteId));
+  return passMarket(current, settled.next.rivalsOverridden, await founderBuyer(a.siteId), place);
 }
 
 /**
@@ -154,16 +231,22 @@ async function withSearchTerms(a: {
   siteName: string | null;
   cost: CostContext;
   at: Date;
+  locale: Locale;
 }): Promise<MarketConclusion | null> {
   const { market } = a;
   if (market === null) return null;
   try {
-    const [{ termsDue }, { readMarketTerms }] = await Promise.all([
+    const [{ termsDue }, { readMarketTerms }, { namesPlace }] = await Promise.all([
       import("@/lib/market/infer/terms"),
       import("@/lib/market/infer/read-terms"),
+      import("@/lib/locale/place"),
     ]);
-    if (!termsDue(market, a.at)) return market;
-    const read = await readMarketTerms(a.cost, { market, siteName: a.siteName, domain: a.domain, at: a.at, locale: await siteLocale(a.siteId) });
+    // D67: terms read for the whole country are read again for the place,
+    // whatever their age.
+    const place = a.locale.place;
+    const elsewhere = place !== undefined && (market.terms ?? []).some((term) => term.volume > 0 && !namesPlace(term.term, place));
+    if (!termsDue(market, a.at) && !elsewhere) return market;
+    const read = await readMarketTerms(a.cost, { market, siteName: a.siteName, domain: a.domain, at: a.at, locale: a.locale });
     if (read.kind === "unmeasured") {
       log("market_terms_unmeasured", { siteId: a.siteId, reason: read.reason, because: read.because ?? null });
       return market;
@@ -231,11 +314,12 @@ async function founderBuyer(siteId: string): Promise<string | null> {
 function passMarket(
   market: MarketConclusion | null,
   rivalsOverridden: boolean,
-  founderBuyer: string | null
+  founderBuyer: string | null,
+  place: Place | null
 ): PassMarket | null {
   return market === null
     ? null
-    : { category: market.category, synonyms: market.synonyms, market, rivalsOverridden, founderBuyer };
+    : { category: market.category, synonyms: market.synonyms, market, rivalsOverridden, founderBuyer, place };
 }
 
 /**
@@ -402,7 +486,8 @@ export async function promptsInForce(a: { siteId: string; domain: string }): Pro
   if (market === null) return null;
   const stored = await readPromptSet(a.siteId);
   const siteName = promptSiteName((await siteText(a.domain)).siteName, a.domain);
-  return { market, stored, siteName, generated: generatePrompts(spokenMarket(market, await founderBuyer(a.siteId)), siteName, (await siteLocale(a.siteId)).language) };
+  const locale = await siteLocale(a.siteId);
+  return { market, stored, siteName, generated: generatePrompts(spokenMarket(market, await founderBuyer(a.siteId)), siteName, locale.language, locale.place) };
 }
 
 /**
@@ -553,16 +638,22 @@ export async function concludeAtSetup(a: {
     import("@/lib/market/infer/infer"),
     import("@/lib/market/infer/stored"),
   ]);
-  const locale = await siteLocale(a.siteId);
+  const stored = await siteLocale(a.siteId);
+  const held = await readSiteMarket(a.siteId);
   const concluded = await a.spend(async (c) => {
-    const fields = await inferMarketFields(c, evidence, locale);
+    const fields = await inferMarketFields(c, evidence, stored);
     if (fields.kind === "unmeasured") return null;
+    // D67: the founder's place where they gave one at the step before,
+    // else the one this call read — so the rivals offered are that place's.
+    const area: ServingArea | undefined = held?.stored.area ?? (fields.value.serves === undefined ? undefined : { place: fields.value.serves, by: "read" });
+    const place = area?.place ?? null;
+    const locale: Locale = { country: stored.country, language: stored.language, ...(place === null ? {} : { place }) };
     const market =
       a.stated === null || a.stated.trim() === ""
         ? fields.value
         : { ...fields.value, category: a.stated.trim(), synonyms: [], categoryReason: "" };
     const rivals = await inferRivals(c, evidence, market, RIVAL_CANDIDATES, locale);
-    if (rivals.kind === "unmeasured") return { market, rivals: [], demand: undefined };
+    if (rivals.kind === "unmeasured") return { market, rivals: [], demand: undefined, area };
     const candidates = await withCheckedDomains({ siteId: a.siteId, domain: a.domain, rivals: rivals.value, seen: evidenceDomains(evidence) });
     // D50: the rivals setup offers are the ones buyers search for.
     const weighed = await weighByDemand({
@@ -574,7 +665,7 @@ export async function concludeAtSetup(a: {
       rivals: candidates,
       at: a.at,
     });
-    return { market, rivals: (weighed?.rivals ?? candidates).slice(0, RIVALS_MAX), demand: weighed?.demand };
+    return { market, rivals: (weighed?.rivals ?? candidates).slice(0, RIVALS_MAX), demand: weighed?.demand, area };
   });
   if (concluded === null) return null;
 
@@ -583,6 +674,8 @@ export async function concludeAtSetup(a: {
     await writeSiteMarket(a.siteId, {
       stored: {
         ...site.stored,
+        // A founder's answer saved meanwhile stands over the reading.
+        ...(site.stored.area !== undefined || concluded.area === undefined ? {} : { area: concluded.area }),
         current: {
           ...concluded.market,
           rivals: concluded.rivals,

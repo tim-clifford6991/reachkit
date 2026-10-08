@@ -12,6 +12,8 @@
 //
 // Pure: no I/O. `read-terms.ts` buys the candidates and their volume.
 import { MARKET_TERMS } from "@/lib/config/constants";
+import type { Place } from "@/lib/locale/locales";
+import { localSearch } from "@/lib/locale/place";
 import type { MarketConclusion, MarketTerm } from "./types";
 
 /** One proposed term, and whether the phrase mostly means something else. */
@@ -43,6 +45,21 @@ export function candidateTerms(
   };
   for (const held of a.keep ?? []) if (held.volume > 0) add(held.term, held.polluted === true);
   for (const entry of proposed) add(entry.term, entry.otherMeaning);
+  return out;
+}
+
+/**
+ * The candidates as a business that serves one place is measured on them
+ * (SPEC §6, owner D67, issue 1318): each is the service plus the place, so
+ * "emergency plumber" and "emergency plumber near me" are both "emergency
+ * plumber austin", once.
+ */
+export function localTerms(candidates: readonly TermCandidate[], place: Place): TermCandidate[] {
+  const out: TermCandidate[] = [];
+  for (const candidate of candidates) {
+    const term = localSearch(candidate.term, place);
+    if (!out.some((held) => key(held.term) === key(term))) out.push({ term, polluted: candidate.polluted });
+  }
   return out;
 }
 

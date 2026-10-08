@@ -112,6 +112,7 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
     // the step they left, so `/setup` reopens where they stopped.
     saved: await savedSetupFor(founder.userId),
     locale: await localeFor(founder),
+    place: await placeFor(founder),
     // SPEC §5 (2026-09-20, #923): the rivals panel, off the same stored
     // report the market card is drawn from — one read, already cached, and
     // no vendor call for a panel.
@@ -307,6 +308,30 @@ async function localeFor(founder: { siteId: string; domain: string }): Promise<s
     if (stored !== null) return localeKey(stored);
   }
   return readLocaleFor(founder.domain);
+}
+
+/**
+ * The city or area setup's second question opens on for `domain` (SPEC §6,
+ * owner D67, issue 1318): what its home page states of itself as a local
+ * business, as its own scan read it. Empty where the scan read none, which
+ * says nothing either way. No fetch and no vendor call.
+ */
+export async function readPlaceFor(domain: string): Promise<string> {
+  if (domain === "") return "";
+  const report = await storedReportFor(domain).catch(() => null);
+  const stated = report?.statedPlace;
+  return stated === undefined ? "" : stated.region === undefined ? stated.name : `${stated.name}, ${stated.region}`;
+}
+
+/** The place the founder's site already holds — their own answer, or what
+ *  a pass read — else the reading of its home page. */
+async function placeFor(founder: { siteId: string; domain: string }): Promise<string> {
+  if (founder.siteId !== "") {
+    const { readSiteMarket } = await import("@/lib/market/infer/stored");
+    const area = (await readSiteMarket(founder.siteId).catch(() => null))?.stored.area;
+    if (area !== undefined) return area.place === null ? "" : area.place.region === undefined ? area.place.name : `${area.place.name}, ${area.place.region}`;
+  }
+  return readPlaceFor(founder.domain);
 }
 
 export async function readReportFor(domain: string): Promise<ReportFacts | null> {
