@@ -150,16 +150,18 @@ describe("the same six stages run at every tier", () => {
 });
 
 describe("what does differ is exactly the looked-up parameters", () => {
-  it("the SERP mode is live where a human is waiting and standard on the queue", async () => {
-    for (const [tier, mode] of [
-      ["free", "live"],
-      ["deep", "live"],
-      ["weekly", "std"],
+  it("every tier's Google read is queued, at high priority where a human is waiting (issue 1352)", async () => {
+    for (const [tier, priority] of [
+      ["free", "high"],
+      ["deep", "high"],
+      ["weekly", undefined],
     ] as const) {
       vi.clearAllMocks();
       db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false }]);
       await runScan({ domain: DOMAIN, tier });
-      expect((serpOrganic.mock.calls[0] as unknown as [unknown, { mode: string }])[1].mode).toBe(mode);
+      const asked = (serpOrganic.mock.calls[0] as unknown as [unknown, { mode: string; priority?: string }])[1];
+      expect(asked.mode).toBe("std");
+      expect(asked.priority).toBe(priority);
     }
   });
 

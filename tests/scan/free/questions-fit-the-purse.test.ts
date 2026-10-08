@@ -18,7 +18,7 @@
 // composition are real.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb } from "../run/harness";
-import { envelope, setEnvFixture, stubVendorFetch } from "../../vendors/harness";
+import { asQueue, envelope, pollTheQueueAtOnce, setEnvFixture, stubVendorFetch } from "../../vendors/harness";
 import { measured } from "../../../src/lib/measure/measured";
 import type { CostContext } from "../../../src/lib/costs";
 import type { StoredReport } from "../../../src/lib/scan/report";
@@ -141,7 +141,7 @@ function phrasedCount(): number {
 }
 
 function serpAsks(requests: { url: string }[]): number {
-  return requests.filter((r) => r.url.includes("/serp/google/organic")).length;
+  return requests.filter((r) => r.url.includes("/serp/google/organic/task_post")).length;
 }
 
 beforeEach(() => {
@@ -173,14 +173,17 @@ afterEach(() => {
 
 /** Every SERP answers; the market's spend is what varies. */
 function vendorAnswers() {
-  return stubVendorFetch((request) => {
-    if (request.url.includes("/serp/google/organic")) {
-      return envelope({
-        items: [{ type: "organic", rank_group: 1, domain: "rival.com", url: "https://rival.com/p", title: "Rival" }],
-      });
-    }
-    return envelope({ items: [] });
-  });
+  pollTheQueueAtOnce(2000);
+  return stubVendorFetch(
+    asQueue((request) => {
+      if (request.url.includes("/serp/google/organic")) {
+        return envelope({
+          items: [{ type: "organic", rank_group: 1, domain: "rival.com", url: "https://rival.com/p", title: "Rival" }],
+        });
+      }
+      return envelope({ items: [] });
+    })
+  );
 }
 
 describe("issue 873 — the free report asks as many questions as its purse can pay for", () => {

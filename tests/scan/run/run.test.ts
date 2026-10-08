@@ -303,10 +303,9 @@ describe("the six stages", () => {
   });
 
   // Issue #539: the twelve were bought one after another, which is most of
-  // the pass's own time target on its own. They are independent queries, so
-  // the stage now has several in flight at once.
-  it("buys the twelve concurrently, several in flight at once, and still exactly twelve", async () => {
-    const { SERP_FANOUT } = await import("../../../src/lib/scan/budgets");
+  // the pass's own time target on its own. They are independent queries, and
+  // each is a queued task since issue 1352, so all twelve wait together.
+  it("buys the twelve concurrently, all in flight at once, and still exactly twelve", async () => {
     let inFlight = 0;
     let mostAtOnce = 0;
     serpOrganic.mockImplementation(async () => {
@@ -319,7 +318,7 @@ describe("the six stages", () => {
 
     await runScan({ domain: DOMAIN, tier: "free" });
 
-    expect(mostAtOnce).toBe(SERP_FANOUT);
+    expect(mostAtOnce).toBe(12);
     expect(serpOrganic).toHaveBeenCalledTimes(12);
     expect(storedReport().serps).toHaveLength(12);
   });

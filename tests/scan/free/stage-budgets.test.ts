@@ -24,7 +24,6 @@ import {
   MARKET_PURSE_CENTS,
   PHRASING_RESERVE_C,
   QUESTION_SERP_RESERVE_C,
-  SERP_FANOUT,
   STAGE_BUDGETS,
   affordsSeed,
   twelveCentsAfter,
@@ -207,13 +206,6 @@ describe("a stage driven to its time budget ends there, and the pass does not", 
       async (stageBounds) => stageBounds.stopNow()
     );
     expect(outcome).toEqual({ spent: false, value: "time_ceiling" });
-  });
-});
-
-describe("the fan-out is narrower than the twelve it buys", () => {
-  it("so a pass never opens a socket per question at once", () => {
-    expect(SERP_FANOUT).toBeGreaterThan(1);
-    expect(SERP_FANOUT).toBeLessThan(12);
   });
 });
 
