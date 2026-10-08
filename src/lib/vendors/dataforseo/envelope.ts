@@ -257,6 +257,11 @@ export interface EndpointPaths {
   std?: { taskPost: string; taskGet: (id: string) => string };
 }
 
+/** The least one `task_get` is given, however near the deadline it is
+ *  made: under this nothing answers, and the last look would be a
+ *  timeout by construction. */
+const MIN_POLL_ABORT_MS = 1_000;
+
 export async function callEndpoint(
   paths: EndpointPaths,
   mode: DataForSeoMode,
@@ -287,7 +292,11 @@ export async function callEndpoint(
    *  buys. A deadline already gone when this is called posts nothing at
    *  all — an unbilled refusal, because a task nobody will collect is a
    *  purchase with no answer in it. */
-  untilMs?: number
+  untilMs?: number,
+  /** How long the queue's poll waits between asks (issue 1352) — the
+   *  caller's, where somebody is waiting on it. Absent is
+   *  `VENDOR.stdQueuePollIntervalS`. */
+  pollMs?: number
 ): Promise<VendorOutcome> {
   const abort = timeoutMs === undefined ? {} : { timeoutMs };
   if (mode === "live") {
@@ -326,13 +335,26 @@ export async function callEndpoint(
   // caller that must answer inside its ceiling is never held past it by a
   // task that is merely slow (issue 902).
   const deadline = Math.min(Date.now() + VENDOR.stdQueueDeadlineMin * MS_PER_MIN, untilMs ?? Number.POSITIVE_INFINITY);
+  const interval = pollMs ?? VENDOR.stdQueuePollIntervalS * MS_PER_S;
   for (;;) {
-    await sleep(VENDOR.stdQueuePollIntervalS * MS_PER_S);
-    const got = await sendGet<unknown>(std.taskGet(id), timeoutMs);
-    if (!got.ok) return withCharge(failure(got.failure, true, got.reason), posted.payload);
+    // Never asleep past the deadline, and no ask holds the caller past it
+    // (issue 1352): the last look is at the deadline, not an interval and a
+    // request's whole bound after it.
+    const left = deadline - Date.now();
+    await sleep(Math.max(0, Math.min(interval, left)));
+    const lastAsk = Date.now() >= deadline;
+    const untilDeadline = Math.max(MIN_POLL_ABORT_MS, deadline - Date.now());
+    const got = await sendGet<unknown>(std.taskGet(id), Math.min(timeoutMs ?? VENDOR.requestAbortMs, untilDeadline));
+    if (!got.ok) {
+      // The task is posted and paid for. An ask the clock or the network
+      // lost says nothing about it, so it is asked again while there is
+      // time (issue 1352); any other failure is the same answer twice.
+      if (!lastAsk && worthAskingAgain(got.failure)) continue;
+      return withCharge(failure(got.failure, true, got.reason), posted.payload);
+    }
     const polled = firstTask(got.payload);
     if (polled && typeof polled.status_code === "number" && TASK_IN_FLIGHT.has(polled.status_code)) {
-      if (Date.now() >= deadline) {
+      if (lastAsk || Date.now() >= deadline) {
         return withCharge(failure("deadline", true, "dataforseo: standard-queue task not ready by the pinned deadline"), posted.payload);
       }
       continue;
@@ -340,6 +362,7 @@ export async function callEndpoint(
     return withCharge(firstResult(got.payload, true), posted.payload);
   }
 }
+
 
 /** A failure as the row the ledger stores (issue #504): the kind, the
  *  endpoint (the ledger `source`), and whether the vendor bills it. The

@@ -402,7 +402,7 @@ they store a report — so a stage's cost is read back through `fetches.source`:
 | `reading_access_rules` | nothing | — |
 | `reading_your_market` | the profile, the twelve's wording, seed suggestions | `profile`, `question-phrasing`, `dataforseo_labs/google/keyword_suggestions` |
 | `checking_your_presence` | the customer at 300 rows, then each tracked rival at 100 | `dataforseo_labs/google/ranked_keywords`, `dataforseo_labs/google/competitors_domain` |
-| `asking_the_twelve` | twelve live SERPs and the paid battery | `serp/google/organic`, `serp/google/ai_mode`, `ai_optimization/chat_gpt/llm_scraper` |
+| `asking_the_twelve` | twelve queued SERPs (high priority on a free scan and a first pass, #1352) and the paid battery | `serp/google/organic`, `serp/google/ai_mode`, `ai_optimization/chat_gpt/llm_scraper` |
 | `scoring` | nothing | — |
 | *after the report* | one typing call per candidate | `opportunity-typing` |
 

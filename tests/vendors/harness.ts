@@ -105,6 +105,57 @@ export function taskInQueue(id = "task-id-fixture"): unknown {
   return { tasks: [{ id, status_code: 40602, status_message: "Task In Queue.", result: null }] };
 }
 
+/**
+ * The queue's two legs, answered from a handler written for one answer a
+ * search (issue 1352): a free scan's and a first pass's Google reads are a
+ * `task_post` and then `task_get`s.
+ *
+ * The handler is asked once, at the post, with the task. What it returns is
+ * the task's result, handed back by the first `task_get` after it settles;
+ * until then the task is in the queue. What it throws, and an explicit
+ * `{ status }`, fail the post itself. Only Google's organic reads are
+ * queued this way; every other request goes to the handler as it is.
+ */
+export function asQueue(
+  handler: (request: SeenRequest, index: number) => unknown
+): (request: SeenRequest, index: number) => unknown {
+  const tasks = new Map<string, { ready: boolean; answer?: unknown }>();
+  return (request, index) => {
+    if (request.url.includes("/serp/google/organic/task_post")) {
+      const answer = handler(request, index);
+      if (isStatus(answer)) return answer;
+      const id = `queued-${tasks.size + 1}`;
+      const task: { ready: boolean; answer?: unknown } = { ready: false };
+      tasks.set(id, task);
+      if (answer instanceof Promise) {
+        void answer.then((settled: unknown) => {
+          task.ready = true;
+          task.answer = settled;
+        });
+      } else {
+        task.ready = true;
+        task.answer = answer;
+      }
+      return taskCreated(id);
+    }
+    const id = /\/task_get\/[^?]*\/([^/?]+)$/.exec(request.url)?.[1];
+    const task = id === undefined ? undefined : tasks.get(decodeURIComponent(id));
+    if (task === undefined) return handler(request, index);
+    return task.ready ? task.answer : taskInQueue(id);
+  };
+}
+
+/**
+ * Makes the queue's wait between two `task_get`s take no time on the real
+ * clock, for a suite that runs whole passes and is not about that wait. Only
+ * a timer of exactly `pollMs` is touched, so a stage's budget and a pass's
+ * deadline keep their length. Undone by `vi.unstubAllGlobals()`.
+ */
+export function pollTheQueueAtOnce(pollMs: number): void {
+  const real = globalThis.setTimeout;
+  vi.stubGlobal("setTimeout", ((fn: () => void, ms?: number) => real(fn, ms === pollMs ? 0 : ms)) as unknown as typeof setTimeout);
+}
+
 export interface RecordedCall {
   source: string;
   cacheKey: string;

@@ -26,6 +26,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { fakeDb, type DbQuery } from "../scan/run/harness";
 import { CAPS } from "../../src/lib/config/constants";
 import { toolUseMessage } from "../llm/fixtures";
+import { pollTheQueueAtOnce } from "../vendors/harness";
 import type { FetchOutcome, RobotsPolicy } from "../../src/lib/egress/types";
 import { categoryOf } from "@/lib/scan/sections";
 
@@ -181,6 +182,11 @@ function envelope(result: unknown): unknown {
 const vendorRequests: { url: string; task: Record<string, unknown> }[] = [];
 
 function vendorAnswer(url: string): unknown {
+  // The twelve are queued (issue 1352): a `task_post` answers 20100 with an
+  // id, and the first `task_get` answers complete.
+  if (url.includes("/task_post")) {
+    return { tasks: [{ id: "task-queued", status_code: 20100, status_message: "Task Created." }] };
+  }
   if (url.includes("keyword_suggestions")) {
     return envelope({
       items: SUGGESTIONS.map((keyword, i) => ({
@@ -257,6 +263,7 @@ beforeEach(() => {
   db.answer = answerQuery;
   db.singles.set("scans", { id: scanId });
 
+  pollTheQueueAtOnce(2000);
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
@@ -459,12 +466,14 @@ describe("/ → /scan/{domain}: a stranger scans and reads a report (JN-001, JN-
     expect([...sources].some((source) => source.includes("ai_mode") || source.includes("llm_responses"))).toBe(false);
     expect([...sources].some((source) => source.includes("competitors_domain"))).toBe(false);
 
-    // Twelve SERPs, live, each carrying the one admitted never-list flag
-    // and none of the flags the never-list forbids.
-    const serpTasks = vendorRequests.filter((r) => r.url.includes("/serp/google/organic"));
+    // Twelve SERPs, queued at high priority because a visitor is waiting
+    // (issue 1352), each carrying the one admitted never-list flag and none
+    // of the flags the never-list forbids.
+    const serpTasks = vendorRequests.filter((r) => r.url.includes("/serp/google/organic/task_post"));
     expect(serpTasks).toHaveLength(12);
+    expect(vendorRequests.some((r) => r.url.includes("/serp/google/organic/live"))).toBe(false);
     for (const request of serpTasks) {
-      expect(request.url).toContain("/live/advanced");
+      expect(request.task.priority).toBe(2);
       expect(request.task.load_async_ai_overview).toBe(true);
       expect(request.task.depth).toBe(10);
       expect(request.task.location_name).toBe("United States");

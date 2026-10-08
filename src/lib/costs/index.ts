@@ -329,7 +329,7 @@ export async function withCostContext<T>(
       // returned, which left a window — the settlement, and the `await` on
       // the ledger write — where this call's money was in neither figure
       // `spentCents()` sums: no longer reserved, not yet ledgered. With the
-      // twelve bought `SERP_FANOUT` at a time that window is the ordinary
+      // twelve bought together that window is the ordinary
       // case, so a concurrent worker's check above read a stale total and
       // the pass could cross its cap by as many calls as were in it. The
       // `finally` releases on every path, a ledger write that raises
