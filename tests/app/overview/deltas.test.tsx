@@ -133,6 +133,31 @@ describe("when the page goes live is the draft's stored veto_deadline", () => {
     expect(card).not.toContain("TODO(copy)");
   });
 
+  // Owner, 2026-10-08 (issue 1337): autopilot asks for nothing. An untouched
+  // page in review names the moment the customer was told, and no line on
+  // the card asks them to approve it.
+  it("an untouched page names the moment the customer was told and asks for no approval", async () => {
+    db.seed("scans", [DEEP, WEEK_1, WEEK_2]);
+    db.seed("drafts", [
+      {
+        id: "d1",
+        site_id: SITE_ID,
+        state: "in_review",
+        title: "How to pick a CRM",
+        created_at: "2026-09-15T13:00:00.000Z",
+        veto_deadline: "2026-09-16T13:00:00.000Z",
+        told: { publishesAt: "2026-09-16T13:30:00.000Z" },
+      },
+    ]);
+    const html = await page();
+    const card = section(html, "overview-waiting");
+    // The told moment, not the window's end half an hour before it.
+    expect(card).toContain("13:30");
+    expect(card).toContain("Sep 16");
+    expect(card).toContain(copy("overview.head.waiting"));
+    expect(card.replace(/<[^>]+>/gu, " ")).not.toMatch(/approv|waiting for you|needs you|your review/iu);
+  });
+
   it("a page in review with no window running states no time at all", async () => {
     db.seed("scans", [DEEP, WEEK_1, WEEK_2]);
     db.seed("drafts", [

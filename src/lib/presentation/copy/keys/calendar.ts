@@ -327,7 +327,7 @@ export const CALENDAR_COPY = Object.freeze({
     { slots: { date: "date" }, fixedBy: "REQ-043 c10" },
   ],
   // SPEC §7 (2026-09-20, #914): the customer's word for the interval.
-  "calendar.status.veto-deadline": ["You can stop this page until {at}.", { slots: { at: "date" }, fixedBy: "SPEC §7 2026-09-20" }],
+  "calendar.status.veto-deadline": ["It goes live on its own. You can read it or stop it until {at}.", { slots: { at: "date" }, fixedBy: "issue 1337" }],
 
   // §7's one statement of supply, as §4.6's calendar makes it: the three
   // arms of `supplyNotice`, in the engine's own precedence (exhausted >

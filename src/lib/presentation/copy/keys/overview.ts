@@ -415,7 +415,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // The head, when a page is waiting to be read. The other four head lines
   // are the series' own (`OVERVIEW_HEAD`) and are unchanged: this arm is
   // about the customer's own queue, not about the gap.
-  "overview.head.waiting": ["One page is waiting for you.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.head.waiting": ["One page is ready to read.", { slots: {}, fixedBy: "issue 1337" }],
 
   // Every sparkline's accessible name: what it is a reading of, over how
   // many weeks. One key, because every trend on this screen is the same kind

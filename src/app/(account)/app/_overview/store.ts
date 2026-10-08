@@ -341,6 +341,16 @@ async function weekDrafts(
  * `null` is "nothing is in review", and a read that could not answer is the
  * same `null` — the Overview then draws no card rather than an empty one.
  */
+function goesLiveAtOf(row: {
+  veto_deadline: string | null;
+  told?: { publishesAt?: string | null } | null;
+}): Date | null {
+  const at = row.told?.publishesAt ?? row.veto_deadline;
+  if (at === null) return null;
+  const when = new Date(at);
+  return Number.isNaN(when.getTime()) ? null : when;
+}
+
 async function waitingPageFacts(
   site: OverviewSite,
   now: Date
@@ -352,9 +362,10 @@ async function waitingPageFacts(
       body_md: string | null;
       opportunity_id: string | null;
       veto_deadline: string | null;
+      told?: { publishesAt?: string | null } | null;
       created_at: string;
     }>("drafts")
-    .select("id, title, body_md, opportunity_id, veto_deadline, created_at")
+    .select("id, title, body_md, opportunity_id, veto_deadline, told, created_at")
     .eq("site_id", site.siteId)
     .eq("state", "in_review")
     .order("created_at", { ascending: true })
@@ -374,9 +385,11 @@ async function waitingPageFacts(
     // here.
     title: row.title,
     stage: "your_review",
-    // The window the publish sweep itself closes at, stamped from the site's
-    // own `veto_hours` (issue 794) — never a default counted here.
-    goesLiveAt: row.veto_deadline === null ? null : new Date(row.veto_deadline),
+    // The moment the customer was told (`told.publishesAt`, issue 1337), so
+    // the card and the mail name one time; else the window the publish sweep
+    // itself closes at, stamped from the site's own `veto_hours` (issue 794)
+    // — never a default counted here.
+    goesLiveAt: goesLiveAtOf(row),
     target,
     // SPEC §7 (2026-09-20)'s known-content rule decides update-or-new at
     // writing time; until #928 records it on the row, a page in review is a
