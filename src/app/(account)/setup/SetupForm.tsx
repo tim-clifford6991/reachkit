@@ -193,6 +193,10 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   // D66: the site's country and language, opened on what was read of it;
   // the founder's answer is what is saved.
   const [locale, setLocale] = useState(p.model.locale);
+  // D67: the city or area it serves, opened on what was read. It is sent
+  // once it holds something or the founder has touched it: an empty field
+  // nobody touched is no answer.
+  const [place, setPlace] = useState<{ value: string; answered: boolean }>({ value: p.model.place, answered: p.model.place !== "" });
   const [destination, setDestination] = useState<DestinationKind>(defaults.destination);
   // SPEC §5 (2026-09-12): the subdomain label is the customer's, and the
   // card is drawn with the default until they change it.
@@ -267,6 +271,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         // Issue #783: the site has a zone before its first draft is selected.
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         locale,
+        ...(place.answered ? { place: place.value } : {}),
       },
     };
   }
@@ -278,7 +283,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
       case "site": {
         const checked = validateSetup(state);
         if (!checked.ok) return null;
-        return { step, domain: state.siteDomain, category: settledCategory(state), locale };
+        return { step, domain: state.siteDomain, category: settledCategory(state), locale, ...(place.answered ? { place: place.value } : {}) };
       }
       case "business":
         // #970: the lists as the founder left them, and #1038 *What you do*. What is *stored*
@@ -454,6 +459,8 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                   resolveDomain={resolveDomain}
                   locale={locale}
                   setLocale={setLocale}
+                  place={place.value}
+                  setPlace={(value, by) => setPlace({ value, answered: by === "founder" || value !== "" })}
                 />
               ) : null}
 

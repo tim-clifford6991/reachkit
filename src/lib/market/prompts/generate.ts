@@ -6,7 +6,9 @@
 // first person; they are shown to the founder as the questions tracked.
 import { TRACKED_PROMPTS } from "@/lib/config/constants";
 import { LANGUAGE_PACKS, languagePack } from "@/lib/locale/language";
-import type { Language } from "@/lib/locale/locales";
+import type { Language, Place } from "@/lib/locale/locales";
+import { withoutPlace } from "@/lib/locale/place";
+import { BUSINESS_KINDS, BUSINESS_KIND_NAMES, DEFAULT_KIND, type BusinessKind } from "@/lib/market/kinds";
 
 export type PromptKind = keyof typeof TRACKED_PROMPTS.SPLIT;
 
@@ -24,6 +26,9 @@ export interface PromptMarket {
   synonyms: readonly string[];
   buyer: string;
   rivals: readonly { name: string; domain: string }[];
+  /** The kind of business (D69). Absent is software: the set every site
+   *  had before its kind was recorded. */
+  kind?: BusinessKind;
 }
 
 function clean(text: string): string {
@@ -48,13 +53,30 @@ export function promptSiteName(siteName: string | null, domain: string): string 
  * `TRACKED_PROMPTS.SPLIT`. Empty where the market names no category.
  *
  * The wording is the site's language's own (SPEC §6, owner D66, issue
- * 1311; `src/lib/locale/language/`); absent, it is English.
+ * 1311; `src/lib/locale/language/`); absent, it is English. And it is its
+ * kind of business's own (owner D69, issue 1318): a plumber's buyer asks
+ * about emergencies, cost and trust, not about a free trial.
+ *
+ * `place` is the one place the business serves (owner D67): its prompts
+ * name it — "the best emergency plumber in Austin" — where its kind is one
+ * that is bought in a place. The market's own names are said without it
+ * first, since a searched term already holds it ("plumber austin").
  */
-export function generatePrompts(market: PromptMarket, siteName: string, language: Language = "en"): GeneratedPrompt[] {
-  const wording = languagePack(language).prompts;
-  const category = clean(market.category);
+export function generatePrompts(market: PromptMarket, siteName: string, language: Language = "en", place?: Place): GeneratedPrompt[] {
+  const kind = market.kind ?? DEFAULT_KIND;
+  const wording = languagePack(language).prompts[kind];
+  const said = (name: string): string => {
+    const service = place === undefined ? clean(name) : clean(withoutPlace(clean(name), place));
+    if (service === "") return "";
+    const where = place !== undefined && BUSINESS_KINDS[kind].placed ? ` in ${place.name}` : "";
+    return `${wording.named?.(service) ?? service}${where}`;
+  };
+  const category = said(market.category);
   if (category === "") return [];
-  const buyer = wording.buyerHead(market.buyer);
+  const others = [...new Set(market.synonyms.map(said).filter((name) => name !== "" && name.toLowerCase() !== category.toLowerCase()))];
+  // The buyer is said without the place the market's name already says.
+  const who = wording.buyerHead(market.buyer);
+  const buyer = place !== undefined && BUSINESS_KINDS[kind].placed ? clean(withoutPlace(who, place)) : who;
   const name = clean(siteName);
   const rivals = market.rivals.map((r) => clean(r.name) || r.domain);
   const out: GeneratedPrompt[] = [];
@@ -64,7 +86,7 @@ export function generatePrompts(market: PromptMarket, siteName: string, language
   };
 
   add("category", wording.category.best(category));
-  for (const synonym of market.synonyms.map(clean).filter(Boolean).slice(0, 3)) {
+  for (const synonym of others.slice(0, 3)) {
     add("category", wording.category.recommended(synonym));
   }
   add("category", wording.category.newTo(category));
@@ -74,8 +96,11 @@ export function generatePrompts(market: PromptMarket, siteName: string, language
   add("category", wording.category.bestReviewed(category));
   add("category", wording.category.shortlist(category));
 
-  // The market's names in turn, so the seven are not one phrase seven times.
-  const spoken = [category, ...market.synonyms.map(clean).filter(Boolean).slice(0, 3)];
+  // The market's names in turn, so the seven are not one phrase seven times
+  // — for software. Any other kind's seven ask who can do a thing, and its
+  // other names are often the thing done ("drain cleaning"), not who does
+  // it: they are asked of its most-searched name alone (D69).
+  const spoken = kind === DEFAULT_KIND ? [category, ...others.slice(0, 3)] : [category];
   wording.useCases.forEach((ask, i) => add("use-case", ask(spoken[i % spoken.length]!)));
 
   if (buyer !== "") {
@@ -113,10 +138,15 @@ const SHAPES: readonly { template: string; shape: RegExp }[] = (() => {
   const rivals = [1, 2, 3].map(() => ({ name: SLOT, domain: SLOT }));
   const shapes = new Map<string, string>();
   for (const pack of LANGUAGE_PACKS) {
-    for (const synonyms of [[], [SLOT]]) {
-      for (const prompt of generatePrompts({ category: SLOT, synonyms, buyer: SLOT, rivals }, SLOT, pack.language)) {
-        // The use cases are one template with seven endings.
-        shapes.set(clean(prompt.text), prompt.kind === "use-case" ? prompt.kind : clean(prompt.text));
+    // Every kind of business has its own wording (D69). A slot stands for
+    // the market's name with its place, so one shape reads both.
+    for (const kind of BUSINESS_KIND_NAMES) {
+      for (const synonyms of [[], [`${SLOT}2`]]) {
+        for (const prompt of generatePrompts({ category: SLOT, synonyms, buyer: SLOT, rivals, kind }, SLOT, pack.language)) {
+          // The use cases are one template with seven endings.
+          const text = clean(prompt.text).split(`${SLOT}2`).join(SLOT);
+          shapes.set(text, prompt.kind === "use-case" ? prompt.kind : text);
+        }
       }
     }
   }

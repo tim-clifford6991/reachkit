@@ -1,6 +1,7 @@
 // src/lib/locale/language/en.ts — English (SPEC §6, D66). The words and
 // templates every pass ran on before D66, moved here unchanged.
 import { FORMAT_PAGE_ALLOWED, TITLE } from "@/lib/config/constants";
+import { EN_PROMPTS } from "./prompts/en";
 import type { LanguagePack } from "./types";
 
 function sentenceCase(text: string): string {
@@ -104,6 +105,8 @@ export const EN: LanguagePack = {
     return `${sentenceCase(text)}?`;
   },
   prompts: {
+    ...EN_PROMPTS,
+    software: {
     category: {
       best: (category) => `What are the best ${category} tools right now, and what is each one good at?`,
       recommended: (synonym) => `Which ${synonym} platforms do people actually recommend this year?`,
@@ -147,6 +150,7 @@ export const EN: LanguagePack = {
     // "B2B SaaS founders and marketing leaders", not the sentence the
     // conclusion stores.
     buyerHead: (buyer) => lowerFirst(clean(buyer).split(/\s+(?:whose|who|seeking|that|looking)\s+/)[0] ?? ""),
+    },
   },
   buyerPrompts: {
     best: (name) => `What are the best ${name} tools?`,

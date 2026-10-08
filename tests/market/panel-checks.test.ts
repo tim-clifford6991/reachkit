@@ -90,14 +90,16 @@ describe("npm run panel — a pass held to what the business is", () => {
   it("passes a local business the pass read as itself, and lets a topic compare with a rival", () => {
     const checks = checkSite(plumber);
 
-    expect(verdicts(checks)).toEqual(["pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass"]);
+    // The last is the tracked prompts: this fixture is a run stored before
+    // their kind was recorded (D69), which a person reads.
+    expect(verdicts(checks)).toEqual(["pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "review"]);
   });
 
   it("fails a German bakery read as an American software company, and says what is wrong", () => {
     const checks = checkSite(bakery);
     const by = Object.fromEntries(checks.map((check) => [check.check, check]));
 
-    expect(verdicts(checks)).toEqual(["fail", "fail", "fail", "fail", "fail", "fail", "fail", "fail", "pass"]);
+    expect(verdicts(checks)).toEqual(["fail", "fail", "fail", "fail", "fail", "fail", "fail", "fail", "pass", "review"]);
     expect(by["the category is specific, and is the business's own"]!.detail).toContain("names no market");
     expect(by["the terms are in the site's own language and country"]!.detail).toContain("a de site in Germany was read in United States / en");
     expect(by["3–5 rivals, none a listing, each with demand or AI evidence"]!.items).toEqual([
@@ -209,7 +211,7 @@ describe("npm run panel — a pass held to what the business is", () => {
     expect(checkSite({ ...restaurant, market: { ...restaurant.market!, category: "Mediterranean restaurant in San Francisco" } })[0]!.verdict).toBe("pass");
   });
 
-  it("fails a knowledge base no page was read into, and lists a one-place business's national terms and rivals to read", () => {
+  it("fails a knowledge base no page was read into, and lists a one-place business's national terms and rivals to read where a run was stored before D67", () => {
     const local: SiteResult = { ...plumber, site: { ...plumber.site, place: ["austin"] }, knowledgePages: 0, questions: [] };
     const by = Object.fromEntries(checkSite(local).map((check) => [check.check, check]));
 
@@ -221,6 +223,57 @@ describe("npm run panel — a pass held to what the business is", () => {
       "rival: Radiant Plumbing (radiantplumbing.example)",
       "rival: Stan's Pipes (stanspipes.example)",
       "rival: Abacus (abacusplumbing.example)",
+    ]);
+    expect(by["the tracked prompts fit the kind of business"]).toMatchObject({ verdict: "review" });
+  });
+
+  it("holds a local business to its place (D67): its searches, where they were read, and its national rivals", () => {
+    const check = "a local business is measured in its own place";
+    const austin: SiteResult = {
+      ...plumber,
+      site: { ...plumber.site, place: ["austin"] },
+      searches: ["emergency plumber austin", "plumber near me"],
+      locales: [{ location: "United States", language: "en" }, { location: "Austin,Texas,United States", language: "en" }],
+      area: { place: "Austin", location: "Austin,Texas,United States" },
+      resultDomains: ["radiantplumbing.example", "yelp.com"],
+    };
+    expect(checkSite(austin).find((c) => c.check === check)).toMatchObject({ verdict: "pass" });
+
+    const national: SiteResult = {
+      ...austin,
+      searches: ["emergency plumber austin", "water heater repair cost"],
+      market: { ...austin.market!, rivals: [...austin.market!.rivals, { domain: "rotorooter.example", name: "Roto-Rooter", basis: "same_job", reason: "", national: true }] },
+    };
+    expect(checkSite(national).find((c) => c.check === check)).toMatchObject({
+      verdict: "fail",
+      items: ["not asked of the place: water heater repair cost", "Roto-Rooter (rotorooter.example) is a national chain no result of this pass showed"],
+    });
+    expect(checkSite({ ...austin, area: null }).find((c) => c.check === check)!.items[0]).toBe("the pass stored no place: it was measured as a business that sells nationally");
+    // And a business that sells everywhere is not measured in one place.
+    expect(checkSite({ ...plumber, area: { place: "Austin", location: null } }).at(-1)).toMatchObject({ verdict: "fail", detail: "stored as serving Austin" });
+  });
+
+  it("holds the tracked prompts to the kind of business (D69) and a local site's to its place", () => {
+    const check = "the tracked prompts fit the kind of business";
+    const site = { ...plumber.site, place: ["austin"], kinds: ["local-service"] };
+    const good: SiteResult = {
+      ...plumber,
+      site,
+      market: { ...plumber.market!, kind: "local-service" },
+      prompts: [{ kind: "category", text: "Looking for the best plumber in Austin. Who would you recommend, and why?" }, { kind: "comparison", text: "What are the best alternatives to Radiant Plumbing?" }],
+    };
+    expect(checkSite(good).find((c) => c.check === check)).toMatchObject({ verdict: "pass" });
+    const odd: SiteResult = {
+      ...good,
+      market: { ...plumber.market!, kind: "software" },
+      prompts: [{ kind: "use-case", text: "Which plumber tools have a free trial?" }],
+    };
+    expect(checkSite(odd).find((c) => c.check === check)).toMatchObject({
+      verdict: "fail",
+      items: ["recorded as software; it is local-service", "does not name the place: Which plumber tools have a free trial?"],
+    });
+    expect(checkSite({ ...good, prompts: [{ kind: "use-case", text: "Which plumber in Austin tools have a free trial?" }] }).find((c) => c.check === check)!.items).toEqual([
+      "asks as a software buyer does: Which plumber in Austin tools have a free trial?",
     ]);
   });
 

@@ -195,6 +195,7 @@ export const FIXTURE_SETUP_FACTS: SetupFacts = Object.freeze({
   // A founder who has left no step yet: the screen opens on its first.
   saved: null,
   locale: "US/en",
+  place: "",
   // #923's rivals panel: the searches this fixture's scan measured against
   // the customer and the three rivals the report scored. Written out rather
   // than derived, because a fixture a rule produced changes when the rule

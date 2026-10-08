@@ -91,6 +91,7 @@ import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
 import { freePageOf } from "@/lib/opportunities/free-page";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/locale/locales";
+import { localSearch, placeOf } from "@/lib/locale/place";
 import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
 import { aiPresenceOf, measureDomain, type DomainMeasurement } from "@/lib/measure";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
@@ -1793,9 +1794,14 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
         cost,
         pages: sections.pagesRead,
         at: a.startedAt,
+        ...(measurement.stated === undefined ? {} : { stated: measurement.stated }),
       });
       if (abandoned()) return;
       if (concluded !== null) {
+        // D67 (issue 1318): from here the pass measures where the business
+        // serves — the place this conclusion settled, or none.
+        const country: Locale = { country: measurement.locale.country, language: measurement.locale.language };
+        sections.measurement = { ...measurement, locale: concluded.place === null ? country : { ...country, place: concluded.place } };
         measuredUnder = concluded.category;
         synonyms = concluded.synonyms;
         sections.concludedCategory = concluded.category;
@@ -1820,9 +1826,13 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   // except the market's other names, which are bought with the first inside
   // the same three extra purchases (#1159): its searched terms where it
   // holds any (D65, issue 1303), else a concluded market's synonyms.
-  const searched = marketSeeds(sections.market);
-  const seeds = seedLadder(profile.value, measuredUnder, synonyms, searched);
-  const withFirst = searched.length > 0 ? searched : synonyms;
+  const place = localeOfPass(a).place;
+  const searched = marketSeeds(sections.market, place);
+  // D67: a local business's market is bought for its place, so every seed
+  // is the service plus the place.
+  const ladder = seedLadder(profile.value, measuredUnder, synonyms, searched);
+  const seeds = place === undefined ? ladder : [...new Set(ladder.map((seed) => localSearch(seed, place)))];
+  const withFirst = (searched.length > 0 ? searched : synonyms).map((seed) => (place === undefined ? seed : localSearch(seed, place)));
   const boughtWithFirst = (seed: string): boolean => withFirst.some((x) => x.trim().toLowerCase() === seed.toLowerCase());
   const leading = seeds.slice(1).findIndex((seed) => !boughtWithFirst(seed));
   const upfront = Math.min(leading === -1 ? seeds.length - 1 : leading, a.parameters.extraSeeds);
@@ -1842,7 +1852,7 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   // The market's other names are its words too (#1195): a search in them is
   // about this market, not off it. And the market in force says which of
   // its own searches are measured and which searches never are (D65).
-  let measuredMarket = measuredMarketOf(sections.market);
+  let measuredMarket = measuredMarketOf(sections.market, place);
   const category = (): Pick<Parameters<typeof selectTwelve>[0], "category" | "synonyms" | "measured"> => ({
     ...(measuredUnder === undefined ? {} : { category: measuredUnder }),
     synonyms: [...synonyms, ...searched],
@@ -1877,7 +1887,7 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
         if (abandoned()) return;
         if (judged !== null) {
           sections.market = judged;
-          measuredMarket = measuredMarketOf(judged);
+          measuredMarket = measuredMarketOf(judged, place);
           sections.selected = widen();
         }
       }
@@ -2275,7 +2285,7 @@ async function askTheMarketPrompts(a: StageArgs): Promise<void> {
   const { bounds, cost, parameters, sections } = a;
   if (!parameters.battery || parameters.marketPrompts === 0 || sections.market === null) return;
   // D49: asked in the words buyers search, for the buyer the founder named.
-  const prompts = buyerPrompts(spokenMarket(sections.market, sections.founderBuyer), parameters.marketPrompts, localeOfPass(a).language);
+  const prompts = buyerPrompts(spokenMarket(sections.market, sections.founderBuyer), parameters.marketPrompts, localeOfPass(a).language, localeOfPass(a).place);
   const own = a.domain.toLowerCase().replace(/^www\./, "");
   const brand = own.split(".")[0] ?? own;
   await Promise.all(
@@ -2360,7 +2370,16 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
         : sections.founderBuyer;
     // D54: a set built from another label is rebuilt whole from the search
     // term here, once.
-    const set = nextPromptSet(stored, generatePrompts(spokenMarket(market, buyer), siteName, localeOfPass(a).language), new Date(), searchedName(market));
+    // D69: a set worded for software is rebuilt once for the kind of
+    // business the market records, and D67: a local business's prompts
+    // name its place.
+    const set = nextPromptSet(
+      stored,
+      generatePrompts(spokenMarket(market, buyer), siteName, localeOfPass(a).language, localeOfPass(a).place),
+      new Date(),
+      searchedName(market),
+      market.kind ?? null
+    );
     if (set.prompts.length === 0 || sections.sealed) return;
     if (set !== stored) await writePromptSet(siteId, set);
     if (set.rebuiltAt !== undefined && set.rebuiltAt !== stored.rebuiltAt) {
@@ -3005,10 +3024,13 @@ function composeReport(a: {
   // SPEC §2 (issue 787): the one first-page proposal is the best right-sized
   // Write target this pass measured — derived, never padded.
   const measuredIn = m === null ? null : reportLocale(m);
+  // D67: only a page that marks itself a local business states a place.
+  const statedPlace = m?.stated?.type === undefined ? null : placeOf(m.stated.locality, m.stated.region);
   const report: StoredReport = {
     ...assembled,
     freePage: freePageOf(assembled) ?? carried?.freePage ?? null,
     ...(measuredIn === null ? {} : { locale: measuredIn }),
+    ...(statedPlace === null ? {} : { statedPlace }),
   };
 
   // #770: a market read and found too small buys no SERP, so AI presence

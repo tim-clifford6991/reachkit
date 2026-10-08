@@ -812,6 +812,11 @@ export const SETUP_COPY = Object.freeze({
   // was read of the site. Drafted (#759).
   "setup.locale.label": ["Where your buyers are, and the language they search in", { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1311" }],
   "setup.locale.option": ["{country} · {language}", { slots: { country: "text", language: "text" }, fixedBy: "SPEC §6 · D66 · issue 1311" }],
+  "setup.place.label": ["The city or area you serve", { slots: {}, fixedBy: "SPEC §6 · D67 · issue 1318" }],
+  "setup.place.note": [
+    "Leave it empty if you sell across the country or online. A local business is measured in its own place: its searches, its rivals and the questions put to AI all name it.",
+    { slots: {}, fixedBy: "SPEC §6 · D67 · issue 1318" },
+  ],
   "setup.locale.note": [
     "Read from your site. Searches, AI answers and rivals are measured there, and your pages are written in that language.",
     { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1311" },

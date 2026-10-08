@@ -78,12 +78,20 @@ export const PRICE_FILLER: ReadonlySet<string> = new Set(LANGUAGE_PACKS.flatMap(
  * prompt was written for, and stays word for word what it was.
  */
 export function modelInstruction(locale: Locale): string | null {
-  if (locale.country === DEFAULT_LOCALE.country && locale.language === DEFAULT_LOCALE.language) return null;
+  const usual = locale.country === DEFAULT_LOCALE.country && locale.language === DEFAULT_LOCALE.language;
+  // D67 (issue 1318): a business that serves one place is written for there.
+  const local =
+    locale.place === undefined
+      ? null
+      : `This business serves ${locale.place.name}${locale.place.region === undefined ? "" : `, ${locale.place.region}`} and nowhere else: its buyers, its searches and its competitors are the ones in ${locale.place.name}.`;
+  if (usual) return local;
   const country = COUNTRIES[locale.country].location;
   const language = LANGUAGES[locale.language].name;
-  return locale.language === "en"
-    ? `This business's buyers are in ${country}. Write in English as it is written there, and name searches, prices and places as buyers there do.`
-    : `This business's buyers are in ${country} and search in ${language}. Write every search, term, question, name of a market and sentence you return in ${language}, as buyers there write it; never in English, and never as a translation of an English phrase. Keep brand names, addresses, ids and any value you are told to choose from exactly as given.`;
+  const national =
+    locale.language === "en"
+      ? `This business's buyers are in ${country}. Write in English as it is written there, and name searches, prices and places as buyers there do.`
+      : `This business's buyers are in ${country} and search in ${language}. Write every search, term, question, name of a market and sentence you return in ${language}, as buyers there write it; never in English, and never as a translation of an English phrase. Keep brand names, addresses, ids and any value you are told to choose from exactly as given.`;
+  return local === null ? national : `${national} ${local}`;
 }
 
 /** Every language's own path words for a kind of page, beside `english`:

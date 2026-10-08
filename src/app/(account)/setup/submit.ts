@@ -62,6 +62,11 @@ export interface SetupSubmission {
    *  (SPEC §6, owner D66), as `localeKey` spells it. Absent, or not a pair
    *  on the list, leaves what the site holds. */
   locale?: string;
+  /** The city or area the founder says the business serves (SPEC §6, owner
+   *  D67, issue 1318). Empty is their answer that it sells nationally or
+   *  online. Absent — the field was empty and never touched — leaves the
+   *  question to what a pass reads of the site. */
+  place?: string;
   /**
    * The browser's own IANA zone, as `Intl` reports it (issue #783). Not a
    * decision and not an engine parameter: the founder is asked nothing, and
@@ -108,7 +113,7 @@ export type SetupResult = { ok: true; siteId: string } | { ok: false; refused: S
  * that is the issue that gives publishing a save of its own.
  */
 export type SetupStepSave =
-  | { step: "site"; domain: string; category: string; locale?: string }
+  | { step: "site"; domain: string; category: string; locale?: string; place?: string }
   // #970: the lists as the founder left them, keyed by the stored field's
   // own name. What is *stored* is what they took out and what they added,
   // worked out against the same reading the screen drew — so a list named

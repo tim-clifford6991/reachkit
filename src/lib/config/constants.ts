@@ -298,9 +298,17 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   /** #1185: the market ReachKit concludes for a site — seven fields, the
    *  longest a sentence: ~450 needed. */
   "market-inference": 900,
-  /** #1185: its rivals — up to ten candidates with a reason each: ~800
-   *  needed. */
-  "rival-inference": 1400,
+  /** #1185: its rivals — up to ten candidates with a reason each.
+   *
+   *  2400 since issue 1318. A candidate has grown from five fields to nine
+   *  (D50's two, the closeness of issue 1314, and D67's `national`), and a
+   *  German reason takes more tokens than an English one. At 1400 the
+   *  Düsseldorf bakery's ten candidates were cut off at exactly the ceiling
+   *  on both attempts — the retry is at temperature 0, so it is the same
+   *  answer cut at the same place — and the pass paid 6.3¢ to conclude no
+   *  rival at all. The three English panel sites of the same run answered
+   *  in about 1,300. */
+  "rival-inference": 2400,
   /** SPEC §6 (D49, issue 1270): a market's candidate search terms — up to
    *  ten short phrases with a flag each: ~250 needed. */
   "market-terms": 500,

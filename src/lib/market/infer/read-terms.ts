@@ -2,13 +2,13 @@
 // (SPEC §6, owner D49 of 2026-10-05, issue 1270): one model call proposes
 // the candidates and one keyword-overview call reads their volume. What is
 // done with them is `terms.ts`.
-import type { Locale } from "@/lib/locale/locales";
+import type { Locale, Place } from "@/lib/locale/locales";
 import { z } from "zod";
 import { MARKET_TERMS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
-import { candidateTerms, searchedTerms } from "./terms";
+import { candidateTerms, localTerms, searchedTerms } from "./terms";
 import type { MarketConclusion } from "./types";
 
 export const TERMS_SCHEMA = z.strictObject({
@@ -28,6 +28,12 @@ export const TERMS_TASK = [
   "otherMeaning is true where most people typing that exact phrase want something else — a bare acronym or a word that belongs to another field.",
 ].join(" ");
 
+/** What the terms call is told beside its task where the business serves
+ *  one place (SPEC §6, owner D67, issue 1318). */
+export function localTermsInstruction(place: Place): string {
+  return `This business serves ${place.name} and nowhere else, so its buyers search for the service and the place. Write every term as a buyer in ${place.name} types it: the service, then the place ("plumber austin", "emergency plumber austin tx", "bäckerei düsseldorf"). Never a term without the place, and never "near me". List the services this business is hired for, the most searched first; "tool" and "software" belong to no term here.`;
+}
+
 export const TERMS_FIELDS = Object.freeze({
   terms: `up to ${MARKET_TERMS.MAX} objects {term, otherMeaning}, the most searched first`,
 });
@@ -43,10 +49,11 @@ export async function readMarketTerms(
   a: { market: MarketConclusion; siteName: string | null; domain: string; at: Date; locale: Locale }
 ): Promise<Measured<Required<Pick<MarketConclusion, "terms" | "searchTerm" | "termsAt">>>> {
   const { market } = a;
+  const place = a.locale.place;
   const answer = await llm(c, {
     site: "market-terms",
     input: {
-      task: TERMS_TASK,
+      task: place === undefined ? TERMS_TASK : `${TERMS_TASK} ${localTermsInstruction(place)}`,
       fields: TERMS_FIELDS,
       market: {
         category: market.category,
@@ -63,7 +70,8 @@ export async function readMarketTerms(
   });
   if (answer.kind === "unmeasured") return unmeasured(answer.reason, answer.at, answer.because);
   const brands = [a.siteName ?? "", a.domain.split(".")[0] ?? "", ...market.rivals.flatMap((r) => [r.name, r.domain.split(".")[0] ?? ""])];
-  const candidates = candidateTerms(answer.value.terms, { brands, keep: market.terms ?? [] });
+  const proposed = candidateTerms(answer.value.terms, { brands, keep: market.terms ?? [] });
+  const candidates = place === undefined ? proposed : localTerms(proposed, place);
   if (candidates.length === 0) return unmeasured("not_attempted", a.at);
 
   const { keywordOverview } = await import("@/lib/vendors/dataforseo");

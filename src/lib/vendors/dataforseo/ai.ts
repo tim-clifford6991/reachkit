@@ -42,7 +42,7 @@ import {
   type EndpointPaths,
   type OnVendorFailure,
 } from "./envelope";
-import { localeCacheKey, type DataForSeoMode } from "./transport";
+import { localeCacheKey, placeCacheKey, type DataForSeoMode } from "./transport";
 import { scopeKey, type AiAnswer, type CacheScope } from "./types";
 
 const NO_ANSWER: AiAnswer = { answered: false, text: "", citedDomains: [] };
@@ -145,7 +145,7 @@ export async function aiMode(
   if (refused) return refused;
   const rows = await ledgered<AiAnswer>(c, {
     source: "serp/google/ai_mode",
-    cacheKey: `${a.query}|${localeCacheKey(a.locale)}|${scopeKey(a.scope)}${runKey(a.run, a.asOf)}`,
+    cacheKey: `${a.query}|${placeCacheKey(a.locale)}|${scopeKey(a.scope)}${runKey(a.run, a.asOf)}`,
     freshnessDays: CACHE_WINDOWS_D.aiBattery,
     costCents: a.mode === "live" ? PRICE_BOOK.AI_MODE_LIVE_C : PRICE_BOOK.AI_MODE_STD_C,
     fetch: () => callEndpoint(AI_MODE_PATHS, a.mode, a.locale, { keyword: a.query }, a.abortMs, a.untilMs),

@@ -9,16 +9,20 @@
 // The database is reached only when a row is read or written, never when
 // this module is imported, so a caller that imports it needs no binding.
 import { DEFAULT_LOCALE, localeOf, type Locale } from "./locales";
+import { areaOf } from "./place";
 
 /** Where the pair is kept. The product's is the `sites` row. */
 export interface SiteLocaleStore {
-  read(siteId: string): Promise<{ country: unknown; language: unknown } | null>;
+  /** `market` is the site's stored market, which holds where it serves
+   *  (`sites.market.area`, D67); a store that holds none leaves it out. */
+  read(siteId: string): Promise<{ country: unknown; language: unknown; market?: unknown } | null>;
   write(siteId: string, locale: Locale): Promise<void>;
 }
 
 interface Row {
   country: unknown;
   language: unknown;
+  market?: unknown;
 }
 
 interface MinimalClient {
@@ -39,7 +43,7 @@ async function client(): Promise<MinimalClient> {
 
 const sitesRow: SiteLocaleStore = {
   async read(siteId) {
-    const { data, error } = await (await client()).from("sites").select("country, language").eq("id", siteId).limit(1);
+    const { data, error } = await (await client()).from("sites").select("country, language, market").eq("id", siteId).limit(1);
     if (error !== null) throw new Error(error.message);
     return data?.[0] ?? null;
   },
@@ -65,7 +69,12 @@ export async function readStoredLocale(siteId: string): Promise<Locale | null> {
   } catch (error) {
     throw new Error(`readStoredLocale: ${error instanceof Error ? error.message : String(error)}`);
   }
-  return row === null ? null : localeOf(row.country, row.language);
+  const locale = row === null ? null : localeOf(row.country, row.language);
+  if (locale === null) return null;
+  // D67 (issue 1318): a business that serves one place is measured there.
+  const market = row?.market;
+  const area = typeof market === "object" && market !== null ? areaOf((market as { area?: unknown }).area) : null;
+  return area === null || area.place === null ? locale : { ...locale, place: area.place };
 }
 
 /**

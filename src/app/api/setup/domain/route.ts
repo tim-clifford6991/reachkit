@@ -17,7 +17,7 @@
 import { adapter } from "../../_adapter";
 import { resolvesInDns } from "@/lib/egress";
 import { registrableDomain } from "@/lib/market/rivals/domains";
-import { readLocaleFor, readReportFor } from "@/app/(account)/setup/_setup/provider";
+import { readLocaleFor, readPlaceFor, readReportFor } from "@/app/(account)/setup/_setup/provider";
 import type { ReportFacts } from "@/lib/market/setup/state";
 
 const BAD_REQUEST = 400;
@@ -33,6 +33,9 @@ export interface ResolveDomainResponse {
   /** The country and language read for this address (D66), as `localeKey`
    *  spells it: what the site step's question is then filled with. */
   locale: string;
+  /** The city or area read for this address (D67), empty for none: what
+   *  the site step's second question is then filled with. */
+  place: string;
 }
 
 export const POST = adapter(
@@ -51,7 +54,7 @@ export const POST = adapter(
 
     const domain = registrableDomain(host);
     if (domain === null) {
-      const answer: ResolveDomainResponse = { domain: null, resolves: false, report: null, locale: await readLocaleFor("") };
+      const answer: ResolveDomainResponse = { domain: null, resolves: false, report: null, locale: await readLocaleFor(""), place: "" };
       return Response.json(answer);
     }
 
@@ -63,6 +66,7 @@ export const POST = adapter(
       // not a value withheld.
       report: await readReportFor(domain),
       locale: await readLocaleFor(domain),
+      place: await readPlaceFor(domain),
     };
     return Response.json(answer);
   }

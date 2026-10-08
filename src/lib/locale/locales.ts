@@ -47,10 +47,26 @@ interface CountryRow {
 
 export type Country = keyof typeof COUNTRIES;
 
-/** Where a site's buyers are and what they search in: one row of the list. */
+/**
+ * The one city or metro a business serves (SPEC §6, owner D67 of
+ * 2026-10-07, issue 1318). A business with none sells nationally or online.
+ */
+export interface Place {
+  /** As buyers there say it: "Austin", "Düsseldorf". */
+  name: string;
+  /** Its state, county or Land where that was read: "Texas". */
+  region?: string;
+  /** The search vendor's own name for it ("Austin,Texas,United States"),
+   *  where the vendor lists it. Absent, a read is made in the country. */
+  location?: string;
+}
+
+/** Where a site's buyers are and what they search in: one row of the list,
+ *  and the place where the business serves one (D67). */
 export interface Locale {
   country: Country;
   language: Language;
+  place?: Place;
 }
 
 /** What a site with no signal is measured in, and what every site was

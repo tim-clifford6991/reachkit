@@ -1,6 +1,7 @@
 // src/lib/locale/language/types.ts — what one language supplies (SPEC §6,
 // owner D66, issue 1311). Adding a language is one more file of this shape
 // and one row of `LANGUAGES`; no stage of a pass names a language itself.
+import type { BusinessKind } from "@/lib/market/kinds";
 import type { Language } from "../locales";
 
 /**
@@ -71,6 +72,10 @@ export interface PromptWording {
   };
   /** The buyer without its qualifying clause, as it sits inside a prompt. */
   buyerHead(buyer: string): string;
+  /** The market's name as these sentences open with it, where the language
+   *  writes it another way there (a German noun's capital). Absent, it is
+   *  used as it is. */
+  named?(name: string): string;
 }
 
 /** The kinds of page a site's own address or heading can name. */
@@ -126,7 +131,9 @@ export interface LanguagePack {
   // ── Questions and prompts ───────────────────────────────────────────────
   /** A search as the question a buyer would ask, by its shape. Total. */
   question(keyword: string): string;
-  prompts: PromptWording;
+  /** One wording for each kind of business (SPEC §6, owner D69, issue
+   *  1318): the same split, asked as that kind's buyer asks. */
+  prompts: Readonly<Record<BusinessKind, PromptWording>>;
   /** The few prompts a deep pass asks beside the twelve. */
   buyerPrompts: {
     best(name: string): string;
