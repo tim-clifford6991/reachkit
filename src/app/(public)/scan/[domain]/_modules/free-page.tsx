@@ -16,8 +16,8 @@
 // Start — the paying path. The field beside it asks for an address and
 // nothing else (REQ-010 c1): no account, no password, no payment.
 //
-// daisyUI in the route: `card` ringed in the theme primary, `badge`,
-// `input`, `btn`; lucide for the head glyph at stroke 1.75.
+// daisyUI in the route: `collapse` ringed in the theme primary, `card`,
+// `badge`, `input`, `btn`; lucide for the head glyph at stroke 1.75.
 import type React from "react";
 import { FileText } from "lucide-react";
 import type { CopyKey } from "@/lib/presentation/copy";
@@ -87,15 +87,23 @@ export function FreePageCard(p: { section: FreePageSection; scanId: string }): R
 
   return (
     // Board `R12-2-Report` (#1068): the proposal on the left, the one field
-    // and its control on the right; stacked at compact. `first-page` is
-    // where the missing-pages card's link lands.
-    <section
-      id="first-page"
-      className="card bg-base-100 ring-primary/30 scroll-mt-20 shadow-(--shadow-card) ring-1"
+    // and its control on the right; stacked at compact. Closed under the
+    // card's own name (SPEC §2, owner 2026-10-07, issue 1328): daisyUI
+    // `collapse` on a `details`. `first-page` is where the missing-pages
+    // card's link lands, and it is the content rather than the `details`
+    // so that following the link opens it.
+    <details
+      className="collapse collapse-arrow bg-base-100 ring-primary/30 shadow-(--shadow-card) ring-1"
+      data-testid="report-first-page"
     >
-      <div className="card-body grid gap-8 p-6 md:p-7 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <summary className="collapse-title">
+        <Head right={<span className="badge badge-soft badge-primary badge-sm">{copy("free-page.badge")}</span>} />
+      </summary>
+      <div
+        id="first-page"
+        className="collapse-content grid min-w-0 scroll-mt-20 gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]"
+      >
         <div className="flex min-w-0 flex-col gap-3">
-          <Head right={<span className="badge badge-soft badge-primary badge-sm">{copy("free-page.badge")}</span>} />
           <h2 className="text-2xl font-bold">{title.text}</h2>
           <dl className="flex flex-col">
             <Row label={copy("free-page.row.target")}>
@@ -127,7 +135,7 @@ export function FreePageCard(p: { section: FreePageSection; scanId: string }): R
           <LeadCapture scanId={p.scanId} />
         </div>
       </div>
-    </section>
+    </details>
   );
 }
 

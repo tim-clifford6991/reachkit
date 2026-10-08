@@ -28,6 +28,7 @@ vi.mock("@/lib/presentation/copy", () => ({
 }));
 
 import { ReportView } from "@/app/(public)/scan/[domain]/_address/report-view";
+import ReportLoading from "@/app/(public)/scan/[domain]/loading";
 import { RemovalAddressLine, RemovedView } from "@/app/(public)/scan/[domain]/_address/removal";
 import {
   FIXTURE_COLD_START_REPORT,
@@ -335,33 +336,107 @@ describe("REQ-001 c16 — exactly one measurement-starting control, or none", ()
   });
 });
 
-describe("BUILD §4.1 — the six modules, in order", () => {
+describe("SPEC §2, 2026-10-07 (issue 1328) — the result and the action first, the rest closed", () => {
   const html = render(FIXTURE_REPORT);
   const ORDER = [
-    "report.measured-at", // 1 · verdict strip
+    "report.measured-at", // 1 · the score
     "ai-answers.title", // 2a · AI answers
     "presence.title", // 2b · Google search
-    "problem.blocked-readers.title", // 3 · problem cards
-    "method.blocked-readers.title", // 4 · DIY collapses
-    "free-page.title", // 5 · free page
-    "price.amount", // 6 · pricing
+    "price.amount", // 3 · the offer
+    "problem.blocked-readers.title", // 4 · problem cards
+    "method.blocked-readers.title", // 5 · DIY collapses
+    "free-page.title", // 6 · free page
     "removal.line.on-report", // the foot
   ];
 
-  it("every module renders", () => {
-    for (const key of ORDER) expect(html).toContain(key);
-  });
+  /** The markup of every outermost `details` on the page, each cut at its
+   *  own end, so what is inside a closed section can be told from what is
+   *  not. Depth is counted because the questions hold a second one. */
+  function closedParts(markup: string): string {
+    const parts: string[] = [];
+    let depth = 0;
+    let from = 0;
+    for (const tag of markup.matchAll(/<details|<\/details>/g)) {
+      if (tag[0] === "<details") {
+        if (depth === 0) from = tag.index;
+        depth += 1;
+      } else {
+        depth -= 1;
+        if (depth === 0) parts.push(markup.slice(from, tag.index));
+      }
+    }
+    return parts.join("");
+  }
 
-  it("they render in §4.1's order", () => {
+  it("the score, the two results and the offer come before anything longer", () => {
     const positions = ORDER.map((key) => html.indexOf(key));
+    expect(positions).not.toContain(-1);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
   });
 
-  it("all three problem cards render, and all three method sections", () => {
-    for (const problem of ["blocked-readers", "missing-pages", "unquotable-pages"]) {
-      expect(html).toContain(`problem.${problem}.title`);
-      expect(html).toContain(`method.${problem}.title`);
+  it("no section starts open", () => {
+    expect(count(html, "<details")).toBeGreaterThan(0);
+    expect(html).not.toMatch(/<details[^>]*\sopen/);
+  });
+
+  it("the score, each card's finding and drawing, and Start are outside every closed section", () => {
+    const closed = closedParts(html);
+    for (const key of ["verdict.score.label", "ai-answers.finding", "presence.finding", "offer.start.priced"]) {
+      expect(html).toContain(key);
+      expect(closed).not.toContain(key);
     }
+  });
+
+  it("the questions, the searches, the problems, the checks, the method and the first page are all on the page, closed", () => {
+    const closed = closedParts(html);
+    for (const key of [
+      "ai-answers.questions.measured",
+      "ai-answers.method",
+      "presence.absent-from.column.search",
+      "problem.blocked-readers.title",
+      "problem.missing-pages.title",
+      "problem.unquotable-pages.title",
+      "check.legend",
+      "method.blocked-readers.body",
+      "method.missing-pages.body",
+      "method.unquotable-pages.body",
+      "free-page.row.target",
+    ]) {
+      expect(closed).toContain(key);
+    }
+  });
+
+  it("each closed section opens from its own name", () => {
+    const summaries = (html.match(/<summary[\s\S]*?<\/summary>/g) ?? []).join("");
+    for (const key of [
+      "ai-answers.questions.title",
+      "presence.absent-from.title",
+      "problem.section.title",
+      "method.blocked-readers.title",
+      "free-page.title",
+    ]) {
+      expect(summaries).toContain(key);
+    }
+  });
+
+  it("a link to the first page lands inside its closed section, so following it opens it", () => {
+    expect(html).toMatch(/<details[^>]*data-testid="report-first-page"[^>]*>[\s\S]*?<div id="first-page"/);
+    expect(html).not.toMatch(/<details[^>]*id="first-page"/);
+  });
+
+  it("a section the scan did not produce is not closed — it says so in its own line", () => {
+    const degraded = render(FIXTURE_DEGRADED_REPORT);
+    const closed = closedParts(degraded);
+    for (const key of ["ai-answers.absent", "presence.absent", "free-page.absent"]) {
+      if (degraded.includes(key)) expect(closed).not.toContain(key);
+    }
+    expect(degraded).toContain("free-page.absent");
+  });
+
+  it("the waiting state stands on the same columns the report does", () => {
+    const surface = (markup: string): string | undefined => /<[^>]*data-surface[^>]*>/.exec(markup)?.[0];
+    expect(surface(html)).toBeDefined();
+    expect(surface(renderToStaticMarkup(ReportLoading()))).toBe(surface(html));
   });
 });
 

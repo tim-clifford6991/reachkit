@@ -132,97 +132,103 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
             />
           </div>
         )}
-        <div className="divider my-0" />
+        {/* SPEC §2 (owner, 2026-10-07, issue 1328): the card is its finding
+            and its bars; the searches open from their own name. */}
+        <details className="collapse collapse-arrow border-base-300 border" data-testid="presence-absent-from">
+          <summary className="collapse-title">
+            <span className="eyebrow">{absentTitle}</span>
+          </summary>
+          <div className="collapse-content min-w-0">
+            {/* **One table, two shapes (#956).** From `sm` it is the three-column
+                table it has always been, in the wrap that lets a wide row scroll.
+                Below `sm` there is no scroller at all — a column pushed off the
+                right edge of one is a column a phone reader never sees, and this
+                is the first screen a prospect meets, most often on a phone. The
+                row falls instead: the search on its own line, then the volume and
+                the holder each on a line of their own, labelled by the column
+                head that would have named them. That is #952's shape for the AI
+                answers grid, and `docs/DESIGN.md`'s 2026-09-20 rule read for a
+                table — "a bar gets its own full-width line under its label".
 
-        <p className="eyebrow grow-0">{absentTitle}</p>
-        {/* **One table, two shapes (#956).** From `sm` it is the three-column
-            table it has always been, in the wrap that lets a wide row scroll.
-            Below `sm` there is no scroller at all — a column pushed off the
-            right edge of one is a column a phone reader never sees, and this
-            is the first screen a prospect meets, most often on a phone. The
-            row falls instead: the search on its own line, then the volume and
-            the holder each on a line of their own, labelled by the column
-            head that would have named them. That is #952's shape for the AI
-            answers grid, and `docs/DESIGN.md`'s 2026-09-20 rule read for a
-            table — "a bar gets its own full-width line under its label".
+                **No second DOM.** The head row is `hidden sm:table-header-group`
+                and each in-cell label is `sm:hidden`, so every string is written
+                once and only one of the two is ever on screen.
 
-            **No second DOM.** The head row is `hidden sm:table-header-group`
-            and each in-cell label is `sm:hidden`, so every string is written
-            once and only one of the two is ever on screen.
+                **The cells are subgrid, never `display: contents`** (#952's own
+                finding): a `contents` element generates no box, so
+                `getBoundingClientRect()` reports it at 0×0 and every value
+                inside measures as escaping its parent. A `col-span-2` subgrid
+                cell has a real box and still sits in the row's own two columns.
 
-            **The cells are subgrid, never `display: contents`** (#952's own
-            finding): a `contents` element generates no box, so
-            `getBoundingClientRect()` reports it at 0×0 and every value
-            inside measures as escaping its parent. A `col-span-2` subgrid
-            cell has a real box and still sits in the row's own two columns.
+                **Why the holder gets a line and not half of one.** It is a
+                domain — one unbreakable token in the mono face, which #256 fixed
+                in place by taking `break-words` off `.num`. Sharing a line with
+                the volume leaves it about 150px, which is where a fixture domain
+                already sits, so it would clamp; and a clamped value in the mono
+                face outside a scroller is what `checkNoClippingOrTruncation`
+                calls a clipped value, correctly. A full-width line is the box
+                changing instead, which is the rule.
 
-            **Why the holder gets a line and not half of one.** It is a
-            domain — one unbreakable token in the mono face, which #256 fixed
-            in place by taking `break-words` off `.num`. Sharing a line with
-            the volume leaves it about 150px, which is where a fixture domain
-            already sits, so it would clamp; and a clamped value in the mono
-            face outside a scroller is what `checkNoClippingOrTruncation`
-            calls a clipped value, correctly. A full-width line is the box
-            changing instead, which is the rule.
+                **It keeps #947's tab stop, and keeps it at every width.** From
+                `sm` this wrap can still scroll, and a pane that scrolls with no
+                way into it from a keyboard is #947's defect returning. An
+                attribute cannot be given a breakpoint, so the tab stop stands
+                below `sm` too, where the wrap no longer scrolls — and what it
+                costs there is one stop on a *named* landmark, which announces
+                "5 biggest searches you're absent from" rather than nothing. That
+                is the cheaper of the two errors available.
 
-            **It keeps #947's tab stop, and keeps it at every width.** From
-            `sm` this wrap can still scroll, and a pane that scrolls with no
-            way into it from a keyboard is #947's defect returning. An
-            attribute cannot be given a breakpoint, so the tab stop stands
-            below `sm` too, where the wrap no longer scrolls — and what it
-            costs there is one stop on a *named* landmark, which announces
-            "5 biggest searches you're absent from" rather than nothing. That
-            is the cheaper of the two errors available.
-
-            No market-total footnote follows (owner, 2026-09-03). */}
-        <div
-          className="min-w-0 sm:overflow-x-auto"
-          tabIndex={0}
-          role="region"
-          aria-label={absentTitle}
-        >
-          <table className="table table-zebra table-sm">
-            <thead className="hidden sm:table-header-group text-base-content/70">
-              <tr>
-                <th className="whitespace-normal">{copy("presence.absent-from.column.search")}</th>
-                <th className="whitespace-normal">{copy("presence.absent-from.column.volume")}</th>
-                <th className="whitespace-normal">{copy("presence.absent-from.column.holder")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {section.absentFrom.length === 0 ? (
-                <tr className="grid grid-cols-[auto_minmax(0,1fr)] sm:table-row">
-                  <td className="col-span-2 sm:table-cell" colSpan={3}>
-                    {copy("presence.absent-from.empty")}
-                  </td>
-                </tr>
-              ) : (
-                section.absentFrom.map((row, i) => (
-                  <tr
-                    key={`${i}-${row.keyword}`}
-                    className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 sm:table-row"
-                  >
-                    <td className="col-span-2 max-sm:border-0 max-sm:pb-1 sm:table-cell">
-                      <Num phrase>{row.keyword}</Num>
-                    </td>
-                    <td className="col-span-2 grid grid-cols-subgrid items-baseline max-sm:border-0 max-sm:py-0 sm:table-cell">
-                      <Label>{copy("presence.absent-from.column.volume")}</Label>
-                      <Num>{row.volume}</Num>
-                    </td>
-                    <td className="col-span-2 grid grid-cols-subgrid items-baseline max-sm:border-0 max-sm:pt-0 max-sm:pb-2 sm:table-cell">
-                      <Label>{copy("presence.absent-from.column.holder")}</Label>
-                      {row.topHolder === null ? (
-                        <span className="min-w-0">{copy("place.report.first-page.rival")}</span>
-                      ) : (
-                        <Num clamp={row.topHolder}>{row.topHolder}</Num>
-                      )}
-                    </td>
+                No market-total footnote follows (owner, 2026-09-03). */}
+            <div
+              className="min-w-0 sm:overflow-x-auto"
+              tabIndex={0}
+              role="region"
+              aria-label={absentTitle}
+            >
+              <table className="table table-zebra table-sm">
+                <thead className="hidden sm:table-header-group text-base-content/70">
+                  <tr>
+                    <th className="whitespace-normal">{copy("presence.absent-from.column.search")}</th>
+                    <th className="whitespace-normal">{copy("presence.absent-from.column.volume")}</th>
+                    <th className="whitespace-normal">{copy("presence.absent-from.column.holder")}</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {section.absentFrom.length === 0 ? (
+                    <tr className="grid grid-cols-[auto_minmax(0,1fr)] sm:table-row">
+                      <td className="col-span-2 sm:table-cell" colSpan={3}>
+                        {copy("presence.absent-from.empty")}
+                      </td>
+                    </tr>
+                  ) : (
+                    section.absentFrom.map((row, i) => (
+                      <tr
+                        key={`${i}-${row.keyword}`}
+                        className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 sm:table-row"
+                      >
+                        <td className="col-span-2 max-sm:border-0 max-sm:pb-1 sm:table-cell">
+                          <Num phrase>{row.keyword}</Num>
+                        </td>
+                        <td className="col-span-2 grid grid-cols-subgrid items-baseline max-sm:border-0 max-sm:py-0 sm:table-cell">
+                          <Label>{copy("presence.absent-from.column.volume")}</Label>
+                          <Num>{row.volume}</Num>
+                        </td>
+                        <td className="col-span-2 grid grid-cols-subgrid items-baseline max-sm:border-0 max-sm:pt-0 max-sm:pb-2 sm:table-cell">
+                          <Label>{copy("presence.absent-from.column.holder")}</Label>
+                          {row.topHolder === null ? (
+                            <span className="min-w-0">{copy("place.report.first-page.rival")}</span>
+                          ) : (
+                            <Num clamp={row.topHolder}>{row.topHolder}</Num>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
       </div>
     </section>
   );
