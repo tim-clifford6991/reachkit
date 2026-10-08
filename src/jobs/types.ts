@@ -16,7 +16,7 @@
 // trigger of its own: a retry's moment is derived from the failed row and
 // re-read each hour, which a chained event cannot do. It could
 // not ride an existing tick either — `draft/generate`'s is gated to the
-// site's own evening, and `account/maintenance` is deliberately outside
+// site's own due hour, and `account/maintenance` is deliberately outside
 // the kill switch, which a job that publishes may not be.
 //
 // Nothing here names the job platform. `client.ts` is the one file that
@@ -25,7 +25,7 @@
 /** Exactly eight, with their triggers. */
 export type JobId =
   | "scan/run" // on demand; tier is a parameter (free | deep | weekly)
-  | "draft/generate" // hourly tick, due at the site's own evening hour
+  | "draft/generate" // hourly tick, due a veto window before the site's own publish time
   | "publish/execute" // sent on approval and on window open, delivered at the page's due moment
   | "publish/verify" // +24h after a publish
   | "publish/retry" // hourly tick; the retries and the veto windows whose moment has come round

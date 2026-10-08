@@ -511,7 +511,7 @@ export const DRAFT_COPY = Object.freeze({
   // #1180: a page the rules stopped, fixed by the founder, enters review
   // on a passing save. Drafted (#759); the owner corrects the wording.
   "draft.edit.entered-review": [
-    "Your edit passes every rule. This page is in review now.",
+    "Your edit passes every rule. This page now goes live on its own, on schedule.",
     { slots: {}, fixedBy: "SPEC §7 · issue 1180" },
   ],
   "draft.edit.done": [

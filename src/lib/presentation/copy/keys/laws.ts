@@ -165,15 +165,17 @@ export const LAWS_COPY = Object.freeze({
    *  word the panel's own heading already uses for the same thing.
    *  Drafted in the registry's voice (#328); the owner may correct. */
   "shell.frame.label": ["Workspace", { slots: {}, fixedBy: "issue 328" }],
-  /** SPEC §4 (2026-09-20) — the *Waiting for you* card: the page in review,
-   *  its title, and when it publishes if the customer does nothing. The
+  /** SPEC §4 (2026-09-20) — the side panel's card for the page in review:
+   *  its title, and when it publishes if the customer does nothing. It asks
+   *  for nothing (owner 2026-10-08, issue 1337): the page publishes on its
+   *  own, and the card says so and until when it can be read or stopped. The
    *  time is the shell's own formatted date-time in the customer's zone
    *  (`format.ts`), never a composed "tomorrow": the shell states the day
    *  it knows rather than a word it would have to work out. */
-  "shell.waiting.head": ["Waiting for you", { slots: {}, fixedBy: "issue 911" }],
+  "shell.waiting.head": ["Ready to read", { slots: {}, fixedBy: "issue 1337" }],
   "shell.waiting.goes-live": [
-    "Goes live {when}",
-    { slots: { when: "date" }, fixedBy: "issue 911" },
+    "Goes live on its own {when}. Read it or stop it until then.",
+    { slots: { when: "date" }, fixedBy: "issue 1337" },
   ],
   /** SPEC §4 (2026-09-20) — the side panel's two shortcuts. Each is drawn
    *  only where it can act (SPEC §4, 2026-09-20: "a control that cannot act

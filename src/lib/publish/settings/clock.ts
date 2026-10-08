@@ -168,6 +168,20 @@ export function nextPublishTimeAtOrAfter(instant: Date, s: PublishingSettings): 
   );
 }
 
+/**
+ * The site-local calendar date of the first publish time at or after
+ * `instant` (issue 1337). Asked with the moment a veto window ends, it is
+ * the day an untouched page goes out, and so the only date its row, the
+ * calendar and the mail may name. The draft tick and `enterReview` both
+ * ask here, so the date a page is written for and the day it publishes on
+ * are one derivation.
+ */
+export function publishDateAtOrAfter(instant: Date, s: PublishingSettings): string {
+  const zone = s.timezone;
+  const { y, m, d } = localDate(nextPublishTimeAtOrAfter(instant, s), zone ?? "UTC");
+  return new Date(Date.UTC(y, m, d)).toISOString().slice(0, 10);
+}
+
 function resolvable(zone: string): boolean {
   try {
     new Intl.DateTimeFormat("en-US", { timeZone: zone });

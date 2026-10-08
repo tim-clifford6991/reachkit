@@ -6,7 +6,7 @@
 // with no destination at all are none of them candidates.
 //
 // The hour is not asserted here and is not this module's: ADR-060's gate
-// is `isDraftDue(now, zone)`, applied by the job to every row this returns.
+// is `isDraftDue(tick, site)`, applied by the job to every row this returns.
 //
 // **The access gate is registered per test, never assumed.** ADR-050 puts
 // the rule in `hasActiveAccess()` and `access.ts` throws while nothing is
@@ -60,10 +60,10 @@ afterEach(() => {
 });
 
 describe("the list is every site a page could actually reach tonight", () => {
-  it("returns a working site with the zone its own evening is decided in", async () => {
+  it("returns a working site with the zone, publish time and veto window its due hour is decided from", async () => {
     db.seed("sites", [site("s1")]);
     db.seed("destinations", [destination("s1")]);
-    expect(await sitesForDailyTick()).toEqual({ sites: [{ siteId: "s1", timeZone: ZONE }], held: null });
+    expect(await sitesForDailyTick()).toEqual({ sites: [{ siteId: "s1", timeZone: ZONE, publishTime: "09:00", vetoHours: 24 }], held: null });
   });
 
   it("returns every such site, not just the first", async () => {
@@ -107,7 +107,7 @@ describe("a site the tick must not prepare a page for", () => {
     for (const over of [{ health: "expired" }, { health: "error" }, { health: "expired", publish_capable: false }]) {
       db.seed("sites", [site("s1")]);
       db.seed("destinations", [destination("s1", over)]);
-      expect((await sitesForDailyTick()).sites).toEqual([{ siteId: "s1", timeZone: ZONE }]);
+      expect((await sitesForDailyTick()).sites).toEqual([{ siteId: "s1", timeZone: ZONE, publishTime: "09:00", vetoHours: 24 }]);
     }
   });
 
@@ -137,7 +137,7 @@ describe("active access is asked of the gate that owns it (#201, ADR-050)", () =
   it("a paying site is prepared a page", async () => {
     db.seed("sites", [site("s1")]);
     db.seed("destinations", [destination("s1")]);
-    expect((await sitesForDailyTick()).sites).toEqual([{ siteId: "s1", timeZone: ZONE }]);
+    expect((await sitesForDailyTick()).sites).toEqual([{ siteId: "s1", timeZone: ZONE, publishTime: "09:00", vetoHours: 24 }]);
   });
 
   it("a lapsed site is not — a day's page is spend", async () => {

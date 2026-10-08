@@ -251,8 +251,11 @@ export const CALENDAR_COPY = Object.freeze({
   // measurements. When opportunities run out, future days are empty — the
   // calendar is never padded." The supply half was owner-owed and empty
   // until the set worded it; the planned half gains the set's comma.
+  // Issue 1337: a page is no longer written at one evening hour. It is
+  // written a full time-to-stop before its day's publish time, so the
+  // planned half is drafted again for the owner to correct.
   "calendar.footnote.planned": [
-    "Planned pages are written the evening before, from Monday's measurements.",
+    "Planned pages are written ahead of their day, leaving your time to stop them, from Monday's measurements.",
     { slots: {}, fixedBy: "BUILD §4.6" },
   ],
   "calendar.footnote.supply": [
@@ -324,7 +327,7 @@ export const CALENDAR_COPY = Object.freeze({
     { slots: { date: "date" }, fixedBy: "REQ-043 c10" },
   ],
   // SPEC §7 (2026-09-20, #914): the customer's word for the interval.
-  "calendar.status.veto-deadline": ["You can stop this page until {at}.", { slots: { at: "date" }, fixedBy: "SPEC §7 2026-09-20" }],
+  "calendar.status.veto-deadline": ["It goes live on its own. You can read it or stop it until {at}.", { slots: { at: "date" }, fixedBy: "issue 1337" }],
 
   // §7's one statement of supply, as §4.6's calendar makes it: the three
   // arms of `supplyNotice`, in the engine's own precedence (exhausted >

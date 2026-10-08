@@ -750,7 +750,7 @@ describe("three decisions → deep pass → the first page already on the calend
       expect(site.timezone).toBe("Europe/Lisbon");
       expect(jobEvents.map((event) => event.name)).toEqual(["scan/run"]);
       expect(zoneWhenSent).toEqual(["Europe/Lisbon"]);
-      expect((await activeSites()).sites).toEqual([{ siteId: SITE_ID, timeZone: "Europe/Lisbon" }]);
+      expect((await activeSites()).sites).toEqual([{ siteId: SITE_ID, timeZone: "Europe/Lisbon", publishTime: "09:00", vetoHours: 24 }]);
     } finally {
       registerActiveAccessGate(null);
     }

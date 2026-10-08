@@ -76,7 +76,7 @@ export class EngineNotBuilt extends Error {
 // (ADR-050 — one rule, one reader).
 // It is not the weekly tick's list — `weeklyDueSites()` selects on four
 // predicates this one does not carry (issue #41) — and it is not the hour
-// either: ADR-060's gate is `isDraftDue(now, zone)` in
+// either: ADR-060's gate is `isDraftDue(tick, site)` in
 // `src/jobs/site-clock.ts`, applied by `draft/generate` to every row this
 // returns, where the tick's own `now` lives.
 //
@@ -95,11 +95,12 @@ async function ensureAccessGate(): Promise<void> {
   await ensureActiveAccessGate();
 }
 
-/** What one evening tick found: every site ReachKit is still working for
+/** What one draft tick found: every site ReachKit is still working for
  *  that a page could actually reach and whose owner is paying, with its
- *  own time zone — and, where the access gate could not be read, no site
- *  and the reason. Read by `draft/generate`'s fan-out, which gates each
- *  row on the site's own evening. */
+ *  own time zone, publish time and veto window — and, where the access
+ *  gate could not be read, no site and the reason. Read by
+ *  `draft/generate`'s fan-out, which gates each row on the site's own due
+ *  hour. */
 export async function activeSites(): Promise<DailySelection> {
   await ensureAccessGate();
   const { sitesForDailyTick } = await import("@/lib/publish/daily");
@@ -290,12 +291,12 @@ export async function runScan(a: {
 /**
  * The first draft, started when onboarding's pass ends (issue 737).
  *
- * The evening tick's own selection and its own date, for one site, without
- * waiting for the site's evening hour: a site the tick would not draft for
- * (no zone, not paying, no destination a page could reach) is not drafted
- * for here either. The draft is for the date the tick would pick, and
- * `generateDayPage` refuses a date that already has one, so this and a later
- * tick never write two.
+ * The draft tick's own selection, for one site, without waiting for the
+ * site's due hour: a site the tick would not draft for (no zone, not
+ * paying, no destination a page could reach) is not drafted for here
+ * either. The draft is for the first date whose publish time is at least
+ * the veto window away (issue 1337), and `generateDayPage` refuses a date
+ * that already has one, so this and a later tick never write two.
  *
  * Never a throw: the onboarding pass already ran and released its founder,
  * and a job that re-ran it because a first page could not be written would
@@ -310,7 +311,7 @@ export async function kickOffFirstDraft(a: { readonly siteId: string; readonly n
     const { nextPublishDate } = await import("./site-clock");
     const outcome = await generateDraft({
       siteId: a.siteId,
-      publishDate: nextPublishDate(a.now, site.timeZone),
+      publishDate: nextPublishDate(a.now, site),
       now: a.now,
     });
     return "degraded" in outcome ? { degraded: `first-draft:${outcome.degraded}` } : outcome;

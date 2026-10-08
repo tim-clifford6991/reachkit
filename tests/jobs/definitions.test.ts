@@ -30,7 +30,7 @@ function engineDouble(): Record<string, unknown> {
   return {
     EngineNotBuilt: class extends Error {},
     activeSites: record("activeSites", {
-      sites: [{ siteId: "site-1", timeZone: "UTC" }],
+      sites: [{ siteId: "site-1", timeZone: "UTC", publishTime: "18:00", vetoHours: 24 }],
       held: null,
     }),
     weeklyDueSites: record("weeklyDueSites", []),
@@ -233,8 +233,8 @@ describe("weekly/refresh — an hourly tick, due per site-local Monday (ADR-060)
   });
 });
 
-describe("draft/generate — the site's own evening, the next publish date", () => {
-  it("is an hourly tick and generates for tomorrow in the site's zone", async () => {
+describe("draft/generate — the site's own due hour, the date its window ends on", () => {
+  it("is an hourly tick and generates for the date whose publish time ends the window", async () => {
     const job = await definition("draft/generate");
     expect(job.trigger).toEqual({ kind: "cron", cron: "0 * * * *" });
     const outcome = await job.run({ data: {}, now: EVENING_UTC });
@@ -259,7 +259,7 @@ describe("draft/generate — the site's own evening, the next publish date", () 
     expect(calls.some((c) => c.fn === "noticeBrokenDestination")).toBe(false);
   });
 
-  it("a tick outside every site's evening is a recorded skip", async () => {
+  it("a tick outside every site's due hour is a recorded skip", async () => {
     const job = await definition("draft/generate");
     const outcome = await job.run({ data: {}, now: MONDAY_0600_UTC });
     expect(outcome).toEqual({ outcome: "skipped", subjectId: null, reason: "not-due" });

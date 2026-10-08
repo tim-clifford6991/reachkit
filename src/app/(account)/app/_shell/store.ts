@@ -86,6 +86,9 @@ interface DraftStateRow {
 interface WaitingDraftRow extends DraftStateRow {
   title: string;
   veto_deadline: string | null;
+  /** What the customer was last told (`drafts.told`): its `publishesAt` is
+   *  the moment the mail named, so the card names the same one (issue 1337). */
+  told?: { publishesAt?: string | null } | null;
 }
 
 /** One hosted destination, as the *Visit your blog* shortcut needs it: the
@@ -110,7 +113,7 @@ interface BlogDestinationRow {
 async function waiting(siteId: string): Promise<{ count: number; review: WaitingPage | null }> {
   const { data, error } = await client()
     .from<WaitingDraftRow>("drafts")
-    .select("id, state, scheduled_for, title, veto_deadline")
+    .select("id, state, scheduled_for, title, veto_deadline, told")
     .eq("site_id", siteId)
     .in("state", WAITING_STATES);
   if (error !== null || data === null) return { count: 0, review: null };
@@ -125,7 +128,7 @@ async function waiting(siteId: string): Promise<{ count: number; review: Waiting
 }
 
 function waitingPage(row: WaitingDraftRow): WaitingPage {
-  const at = row.veto_deadline ?? row.scheduled_for;
+  const at = row.told?.publishesAt ?? row.veto_deadline ?? row.scheduled_for;
   const goesLiveAt = at === null ? null : new Date(at);
   return {
     draftId: row.id,
