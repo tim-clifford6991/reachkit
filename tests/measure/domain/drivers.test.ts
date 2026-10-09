@@ -460,3 +460,18 @@ describe("BP-010 `## Module / boundary` — the driver arithmetic is pure", () =
     expect(CODE_ONLY).toMatch(/AI_READER_AGENTS/);
   });
 });
+
+describe("issue 1357 — an AI Overview whose sources were not loaded is not an answer naming nobody", () => {
+  const unread: SerpResult = { organic: [], aiOverview: { present: true, asynchronousAiOverview: true, referenceDomains: [], unread: true } };
+
+  it("is in neither rate: the site cited on the one SERP that was read scores as cited on all of them", () => {
+    const cited = measured(serp(["reachkit.app"]), AT);
+    const alone = aiPresenceOf({ serps: [cited], ownDomain: OWN, at: AT });
+    const beside = aiPresenceOf({ serps: [cited, measured(unread, AT), measured(unread, AT)], ownDomain: OWN, at: AT });
+    expect(valueOf(beside)).toBe(valueOf(alone));
+  });
+
+  it("a pass that read no overview's sources has no AI presence, not the floor", () => {
+    expect(aiPresenceOf({ serps: [measured(unread, AT)], ownDomain: OWN, at: AT }).kind).toBe("unmeasured");
+  });
+});

@@ -222,6 +222,17 @@ describe("ADR-094 decision 3a — a flagged call reserves the surcharge and sett
     expect(ledgered).toEqual([base()]);
   });
 
+  it("issue 1357: an unflagged read's asynchronous AI Overview with no sources is unread; a flagged one is not", async () => {
+    stubVendorFetch(() => envelope({ items: [organic(1, "a.com"), aiOverviewItem({ async: true, domains: [] })] }));
+    const ask = async (loadAsyncAiOverview: boolean) => {
+      const result = await serp.serpOrganic(fakeCostContext().ctx, { locale: { country: "US", language: "en" }, query: "best crm", mode: "live", loadAsyncAiOverview, scope: SCOPE, freshnessDays: WINDOW() });
+      if (result.kind === "unmeasured") throw new Error("expected a SERP");
+      return result.value.aiOverview.unread;
+    };
+    expect(await ask(false)).toBe(true);
+    expect(await ask(true)).toBeUndefined();
+  });
+
   it("the standard queue's base price is the pinned standard rate, not the live one", async () => {
     stubVendorFetch((request) => (request.url.includes("task_post") ? taskCreated() : envelope({ items: [] })));
     const { ctx, calls } = fakeCostContext();

@@ -7,8 +7,11 @@
 // `live`).
 //
 // `loadAsyncAiOverview` is required, never defaulted (DECISIONS 2026-09-03,
-// ADR-094): `true` on the free report's initial twelve-question pass only,
-// `false` everywhere else, including a correction's re-run. A flagged call
+// ADR-094): `true` on every pass's question SERPs (the paid passes' since
+// issue 1357), `false` on a correction's re-run and on the reads that take
+// no AI Overview from the SERP. An unflagged read whose AI Overview Google
+// loads after the page comes back with no sources; that overview is marked
+// `unread` here, never left to read as an answer that names nobody. A flagged call
 // **reserves** `ASYNC_AIO_SURCHARGE_MULTIPLIER` × the mode's base price and
 // **settles** the vendor's documented charge from the response — base
 // price where the `ai_overview` element is absent or carries
@@ -95,6 +98,16 @@ function parseAiOverview(item: Record<string, unknown>): SerpAiOverview {
     referenceDomains: [...seen],
     referenceUrls: [...urls],
   };
+}
+
+/** An AI Overview the vendor flagged as loaded after the page, on a read
+ *  that did not buy that load, with no sources: unread (issue 1357). Applied
+ *  where the answer is handed over, so a SERP served from the cache is
+ *  marked like one just bought. */
+function markUnread(serp: SerpResult, flagged: boolean): SerpResult {
+  const overview = serp.aiOverview;
+  if (flagged || !overview.present || !overview.asynchronousAiOverview || overview.referenceDomains.length > 0) return serp;
+  return { ...serp, aiOverview: { ...overview, unread: true } };
 }
 
 /** `[]` is the vendor's own zero-result — a SERP with no organic rows and
@@ -233,7 +246,7 @@ export async function serpOrganic(
     },
   });
   return mapMeasured(rows, (r) => {
-    const serp = r[0] ?? EMPTY_SERP;
+    const serp = markUnread(r[0] ?? EMPTY_SERP, flagged);
     // The stamp rides on the result the report stores, so a screen reading
     // a report months later still knows which of its answers were reused
     // and from when. Never written where the pass bought the answer.

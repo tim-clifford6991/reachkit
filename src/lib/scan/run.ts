@@ -166,9 +166,11 @@ interface TierParameters {
   /** How often this tier asks the queue whether a Google read is ready. */
   serpPollMs: number;
   /** §6.2 as amended (DECISIONS 2026-09-03): the free report's own twelve
-   *  question-SERPs count Google's actual AI answers. A correction's
-   *  re-run switches it off whatever the tier says — that is the
-   *  correction's parameter, not this table's. */
+   *  question-SERPs count Google's actual AI answers. The two paid tiers'
+   *  too (SPEC §6, 2026-10-09, issue 1357): without it most of their AI
+   *  Overviews came back with no sources. A correction's re-run switches
+   *  it off whatever the tier says — that is the correction's parameter,
+   *  not this table's. */
   asyncAiOverview: boolean;
   /** Whether the ceiling below is raced — the free report's, which a
    *  visitor is waiting on. A paid pass reads its ceiling between calls, as
@@ -325,7 +327,7 @@ interface TierParameters {
   /** Does the pass ask §6.2's two engines for each of the twelve? The deep
    *  pass does. The weekly pass does not (owner, D19 final of 2026-10-03,
    *  #1162): its AI measure is the tracked prompts, and the twelve keep
-   *  their Google searches — whose AI Overview rides free — for search. A
+   *  their Google searches — whose AI Overview is bought with them (issue 1357) — for search. A
    *  page's own question still asks both engines (#919). */
   batteryOnTheTwelve: boolean;
   /** D19: does the pass ask the site's tracked buyer prompts, on
@@ -367,7 +369,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     serpMode: "live",
     serpPriority: "high",
     serpPollMs: VENDOR.waitedQueuePollIntervalS * 1000,
-    asyncAiOverview: false,
+    asyncAiOverview: true,
     deadlineApplies: false,
     ceilingS: TIMING.paidPassCeilingS,
     serpFanout: PAID_SERP_FANOUT,
@@ -394,7 +396,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     serpMode: "std",
     serpPriority: "normal",
     serpPollMs: VENDOR.stdQueuePollIntervalS * 1000,
-    asyncAiOverview: false,
+    asyncAiOverview: true,
     deadlineApplies: false,
     ceilingS: TIMING.paidPassCeilingS,
     serpFanout: PAID_SERP_FANOUT,

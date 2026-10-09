@@ -349,7 +349,9 @@ export function classifyReferences(references: readonly string[], ownDomain: str
  *  could not read is not a SERP that named nobody. Every SERP `unmeasured`
  *  yields `unmeasured` with the fold of their reasons; no SERPs handed in
  *  at all is `undeterminable`. A measured set naming the customer nowhere
- *  is the `zero` arm, carrying the formula's floor of 1. */
+ *  is the `zero` arm, carrying the formula's floor of 1. A SERP whose AI
+ *  Overview's sources were not loaded (`unread`, issue 1357) is not one of
+ *  the measured: it is in neither rate. */
 export function aiPresenceOf(a: {
   serps: readonly Measured<SerpResult>[];
   ownDomain: string;
@@ -357,7 +359,7 @@ export function aiPresenceOf(a: {
 }): Measured<number> {
   const read: SerpResult[] = [];
   for (const serp of a.serps) {
-    if (serp.kind !== "unmeasured") read.push(serp.value);
+    if (serp.kind !== "unmeasured" && serp.value.aiOverview.unread !== true) read.push(serp.value);
   }
   if (read.length === 0) {
     return unmeasured(unmeasuredReasonOf(a.serps) ?? "undeterminable", a.at);
