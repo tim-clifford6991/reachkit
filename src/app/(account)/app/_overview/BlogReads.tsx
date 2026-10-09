@@ -75,11 +75,27 @@ function Figure(p: {
   );
 }
 
+/** The fetch figure's change on the window before it (SPEC §4, 2026-10-09,
+ *  issue 1364), written once for this card and the Overview's tile. `null`
+ *  where either window has no figure: a change is two counts, and one
+ *  nobody stored is not a zero. */
+export function fetchChangeLine(model: BlogReadsModel): string | null {
+  if (model.fetches.kind === "unmeasured" || model.previousFetches === null) return null;
+  const days = formatCount(model.windowDays);
+  const change = model.fetches.value - model.previousFetches;
+  if (change === 0) return copy("overview.blog.change.same", { days });
+  return copy(change > 0 ? "overview.blog.change.up" : "overview.blog.change.down", {
+    count: formatCount(Math.abs(change)),
+    days,
+  });
+}
+
 export function BlogReads(p: { model: BlogReadsModel }): React.JSX.Element | null {
   if (!p.model.show) return null;
 
   const fetches = renderValue(p.model.fetches, FETCHES_LABEL);
   const referrals = renderValue(p.model.referrals, REFERRALS_LABEL);
+  const change = fetchChangeLine(p.model);
 
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid="blog-reads">
@@ -112,6 +128,11 @@ export function BlogReads(p: { model: BlogReadsModel }): React.JSX.Element | nul
             }
             line={fetches.line ?? null}
           >
+            {change === null ? null : (
+              <p className="mt-2 text-xs text-base-content/70" data-testid="blog-reads-change">
+                {change}
+              </p>
+            )}
             {fetches.isDash ? null : (
               <ul className="list mt-2 min-w-0" aria-label={copy("overview.blog.engines.label")}>
                 {p.model.byEngine.map((row) => (

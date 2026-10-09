@@ -1,9 +1,9 @@
 // SPEC §4 (2026-10-07, issue 1319) — the Overview tab, at `/app`.
 //
-// A dashboard, in the order that date's ruling puts it in: what autopilot
-// is doing first — and, while a page is in review, that page with *Read or
-// edit* and *Stop this page* — then D22's four headline numbers, each
-// opening its screen, then this week and needs you. No Discoverability
+// A dashboard that opens with its numbers (owner 2026-10-09, issue 1364):
+// D22's four headline numbers, each opening its screen, then what autopilot
+// is doing — and, while a page is in review, that page with *Read or edit*
+// and *Stop this page* — then this week and needs you. No Discoverability
 // Score and no goal (D22, D23), and the page as a reader will see it is one
 // step away, not here.
 //
@@ -124,6 +124,17 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="overview">
+      {/* The headline numbers open the screen (owner 2026-10-09, issue
+          1364); what autopilot is doing, and everything else, is under
+          them. */}
+      <LinkedTiles
+        aiAnswers={overview.aiAnswers}
+        engineLine={engineLine}
+        prompts={prompts}
+        top20={top20 ?? { value: unmeasured("undeterminable", overview.today), of: unmeasured("undeterminable", overview.today) }}
+        blogReads={blogReads}
+      />
+
       <FirstPageNotice state={onboarding} />
       <ReleaseNoticeLine noticeKey={topNotice} />
 
@@ -139,14 +150,6 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
           now={overview.today}
         />
       )}
-
-      <LinkedTiles
-        aiAnswers={overview.aiAnswers}
-        engineLine={engineLine}
-        prompts={prompts}
-        top20={top20 ?? { value: unmeasured("undeterminable", overview.today), of: unmeasured("undeterminable", overview.today) }}
-        blogReads={blogReads}
-      />
 
       {/* The week takes the wider of the two columns: seven day cells each
           hold a stage word, and an even split leaves them narrow enough to

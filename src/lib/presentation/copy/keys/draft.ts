@@ -319,6 +319,18 @@ export const DRAFT_COPY = Object.freeze({
   // told what it is for. The block's own two sentences; its rows carry the
   // day panel's labels, so the two screens word one fact once. Drafted under
   // issue 759's ruling; the owner corrects the wording.
+  // Issue 1364 (owner, 2026-10-09): the page screen opens with the page's
+  // two numbers. *Difficulty* is the day panel's own word
+  // (`calendar.why.difficulty`). **Drafted** (#759); the pull request names
+  // both so the owner can correct them.
+  "draft.numbers.volume.label": [
+    "Searches a month",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-09 (drafted)" },
+  ],
+  "draft.numbers.difficulty.limit": [
+    "your limit is {ceiling}",
+    { slots: { ceiling: "text" }, fixedBy: "SPEC §7 2026-10-09 (drafted)" },
+  ],
   "draft.target.title": [
     "What this page is for",
     { slots: {}, fixedBy: "issue 867" },

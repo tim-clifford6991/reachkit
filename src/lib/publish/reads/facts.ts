@@ -82,7 +82,9 @@ export async function readBlogReadFacts(
     liveHostedPages(site.siteId),
     readBlogReads({
       siteId: site.siteId,
-      sinceDay: windowStartDay(at, windowDays),
+      // This window and the one before it: the model reads the change
+      // against the earlier one (issue 1364).
+      sinceDay: windowStartDay(at, windowDays * 2),
       knownEngines: AI_BLOG_ENGINES,
       knownKinds: BLOG_READ_KINDS,
     }),
