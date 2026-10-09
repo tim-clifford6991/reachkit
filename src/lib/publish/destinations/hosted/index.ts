@@ -35,7 +35,7 @@ import { livePagesForSite, siteForDraft } from "./store";
 
 export { hostedDnsRecord, hostedHostFor, liveUrlFor, liveUrlOnHost, previewHostFor } from "./address";
 export type { DnsPending, DnsRecord } from "./address";
-export { invalidateHosted, tags } from "./cache";
+export { invalidateHosted, taggedForHosted, tags } from "./cache";
 export { DEFAULT_HOSTED_LABEL, checkLabel, hostFor, normaliseLabel } from "./label";
 export { addressesOwnPage } from "./own-page";
 export type { HostedOwnPages } from "./own-page";
@@ -54,10 +54,11 @@ export {
   readDescription,
   readFaq,
   siteForDraft,
-  hostedAddressState,
+  hostedAddress,
 } from "./store";
 export type {
   AddressNow,
+  HostedAddress,
   FaqEntry,
   HostedGrounding,
   HostedIdentity,

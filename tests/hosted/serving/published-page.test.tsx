@@ -60,7 +60,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
       line: null,
       ...state.identity,
     }),
-    hostedAddressState: async () => "none",
+    hostedAddress: async () => ({ state: "none", publicationId: null }),
   };
 });
 

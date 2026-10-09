@@ -82,15 +82,22 @@ import { Answers } from "./_toast/Answers";
  *
  * Next's own guide states the consequence rather than hiding it: "When you
  * use nonces in your CSP, **all pages must be dynamically rendered**"
- * (`01-app/02-guides/content-security-policy.md`). One declaration on the
- * root layout is the whole of that, and it costs this product almost
- * nothing: every `(account)` screen already renders per request behind a
- * session, `/scan/{domain}`, `/veto/{token}` and all four `(hosted)`
- * addresses already declare `force-dynamic` for their own reasons, and what
- * is left is six small surfaces the middleware was already waking a Node
- * process for.
+ * (`01-app/02-guides/content-security-policy.md`).
+ *
+ * **The declaration is on the two group layouts, not here** (issue 1242):
+ * `(public)/layout.tsx` and `(account)/layout.tsx` each export
+ * `dynamic = "force-dynamic"`, and every `(hosted)` route declares its own.
+ * It was on this file until one route had to be cached. Next applies a
+ * layout's `force-dynamic` when it reaches that layout, whatever the page
+ * under it declares, so on the root it made the cached hosted article
+ * (`(hosted)/hosted-live/[host]/[slug]`) fail instead of render. That
+ * route is `force-static`, under which the `headers()` read below is empty
+ * and the script is drawn with no nonce — and the middleware answers it
+ * under `script-src 'none'`, so it is a page with no nonce on which no
+ * script runs. The screen this file serves with no group above it,
+ * `not-found.tsx`, is still rendered per request: the `headers()` read
+ * below is itself what makes it so.
  */
-export const dynamic = "force-dynamic";
 
 export default async function RootLayout({
   children,

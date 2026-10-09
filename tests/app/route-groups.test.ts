@@ -45,6 +45,7 @@ describe('BP-001 `## Module / boundary` — "It does **not** own `src/app/(hoste
       [
         "edge.ts",
         "hosted-gone",
+        "hosted-live",
         "hosted-page",
         "layout.tsx",
         "not-found.tsx",
@@ -62,6 +63,7 @@ describe('BP-001 `## Module / boundary` — "It does **not** own `src/app/(hoste
       "not-found.tsx",
       "resolve-host.ts",
       "hosted-page/[[...slug]]/page.tsx",
+      "hosted-live/[host]/[slug]/page.tsx",
       "robots.txt/route.ts",
       "sitemap.xml/route.ts",
       "hosted-gone/route.ts",

@@ -12,7 +12,9 @@
 // **Why the address is `/hosted-page/{…slug}` and the customer's is not.**
 // `src/middleware.ts` rewrites every request on a `content.` Host — except
 // `/robots.txt` and `/sitemap.xml`, which resolve the Host themselves — to
-// this catch-all. A rewrite, never a redirect: the visitor stays at
+// this catch-all, or, for an address it has just found live, to the cached
+// article beside it (`hosted-live/[host]/[slug]`, issue 1242; the article
+// both draw is `article.tsx`). A rewrite, never a redirect: the visitor stays at
 // `content.{their domain}/{slug}`, which is the address the canonical link,
 // the sitemap entry and `publications.live_url` all name. The rewrite is
 // also the authorisation boundary: with it, *no* path on a customer's
@@ -74,114 +76,28 @@
 // The archived plan is WO-230.
 import { cache } from "react";
 import { headers } from "next/headers";
-import { after } from "next/server";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import type React from "react";
-import { HOSTED_BODY_CLASSES, HOSTED_GUIDES_CLASSES } from "../body-classes";
-import { copy, readIn, readerLanguage, readerTag } from "@/lib/presentation/copy/reader";
-import { localeTag } from "@/lib/locale/locales";
-import { siteLocale } from "@/lib/locale/site";
-import {
-  guidesBlock,
-  headingsUnderTitle,
-  inlineText,
-  markPassage,
-  labelledIn,
-  parseMarkdown,
-  toHtml,
-  withHeadingIds,
-  type Block,
-  type HeadingEntry,
-} from "@/lib/publish/render/markdown";
-import {
-  hostedIdentity,
-  livePagesForSite,
-  type HostedPage,
-} from "@/lib/publish/destinations/hosted";
-import { topicSimilarity } from "@/lib/known-content/similarity";
-import { Surface } from "@/ui/layout";
+import { livePagesForSite, type HostedPage } from "@/lib/publish/destinations/hosted";
 import { resolveHost } from "../../resolve-host";
-import { AboutCard, HostedFooter, HostedHeader, INDEX_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
+import { HostedArticle, articleHead, businessOf, loadArticle, type Resolved } from "./article";
+import type { HostedBusiness } from "./chrome";
 import { HostedIndex, pageOf, queryOf } from "./listing";
-import { bylineLine } from "@/lib/publish/render/byline";
-import { writeDate } from "./present";
-import {
-  articleMetadata,
-  blogPostingSchema,
-  breadcrumbSchema,
-  indexMetadata,
-  jsonLd,
-} from "./seo";
-import { classifyBlogRead } from "@/lib/publish/reads/classify";
+import { indexMetadata } from "./seo";
 
-/** Nothing on this surface is cached (WO-028's NFR): a publication row that
- *  changes is read again on the very next request, so a takedown never
- *  waits on a TTL and a 410 is never served from a stale cache.
- *
- *  **It is also what makes the engine counter count** (issue #921). `after()`
- *  runs once per *render*, not once per request: on a cached or
- *  revalidated page the callback fires when the page is produced and never
- *  again, so every engine fetch and every AI-referred visit after that
- *  would go unrecorded. The issue asks this be confirmed rather than
- *  assumed, and the confirmation is this declaration plus the test that
- *  holds it in place — a future caching change to this route has to face
- *  the counter first. */
+/** This route is not cached: it reads the Host header and the index's
+ *  query, and it is where every address the middleware did not find live
+ *  ends — the index, a 404, and a page whose read missed its deadline. A
+ *  live article is cached, by its own route (`hosted-live/[host]/[slug]`,
+ *  issue 1242); nothing that has to be asked again on each request is. */
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-interface Resolved {
-  page: HostedPage;
-  canonical: string;
-  /** The site's other live pages, newest first. */
-  others: HostedPage[];
-  business: HostedBusiness;
+/** The article at this slug on the Host that was asked, or `null`. */
+async function load(slug: string): Promise<Resolved | null> {
+  return loadArticle((await headers()).get("host") ?? "", slug);
 }
-
-/** The business a resolved host belongs to, as its pages draw it. */
-async function businessOf(site: { siteId: string; domain: string }): Promise<HostedBusiness> {
-  // D66: the blog is read in its site's own language. Said here, where the
-  // host is resolved, so the listing, a page and their metadata all read it.
-  const locale = await siteLocale(site.siteId);
-  readIn(locale.language, localeTag(locale));
-  return { ...(await hostedIdentity(site)), domain: site.domain };
-}
-
-/** One resolution per request, shared by `generateMetadata` and the render.
- *  `cache` is React's own request-scoped memo — not a data cache, and not
- *  a TTL — so the two entry points below cannot disagree about which page
- *  they are describing, and the row is read once. */
-const load = cache(async (slug: string): Promise<Resolved | null> => {
-  const host = (await headers()).get("host") ?? "";
-  const disposition = await resolveHost(host);
-  // Every other disposition is somebody else's answer: `unknown` is the
-  // 404 this file falls through to, and `gone` is answered 410 by
-  // `../../gone/route.ts`, which the middleware rewrites to before this
-  // route is reached. A page never renders for either.
-  if (disposition.kind !== "site") return null;
-
-  // The site's whole list, which the page is found in and its related
-  // guides are chosen from: one read, the same one the sitemap makes.
-  const pages = await livePagesForSite(disposition.siteId, disposition.host);
-  const page = pages.find((candidate) => candidate.slug === slug);
-  if (page === undefined) return null;
-  return {
-    page,
-    others: pages.filter((candidate) => candidate !== page),
-    business: await businessOf(disposition),
-    // Always the customer's own domain, and always the page's own address:
-    // the store composed it from the host that resolved (`liveUrlOnHost`,
-    // which `liveUrlFor` is itself written in terms of), so the canonical,
-    // the sitemap entry and §9's record are one string rather than three
-    // compositions that can disagree. The host is the one that resolved —
-    // the label is the customer's since SPEC §5's ruling of 2026-09-12, and
-    // a host that moved under this page re-addresses it (SPEC §7,
-    // 2026-09-18, issue 888) — so the canonical names the address the
-    // visitor actually typed and never a stored guess at it. There is no
-    // argument to it that yields a ReachKit address.
-    canonical: page.liveUrl,
-  };
-});
 
 /** The catch-all takes an array; only a single-segment address is a page.
  *  `content.{domain}/a/b` is not a deeper page, it is not a page at all. */
@@ -229,186 +145,7 @@ export async function generateMetadata({
   const segment = oneSegment(slug);
   const resolved = segment === null ? null : await load(segment);
   if (resolved === null) return {};
-  return articleMetadata({ ...resolved, description: descriptionOf(resolved.page) });
-}
-
-/** A description's length in a search result, past which it is cut. */
-const DESCRIPTION_CHARS = 160;
-
-/**
- * The page's meta description: the one generation wrote for it, or — for a
- * page generated before that was stored — its own first paragraph, cut at a
- * word. Always the page's own words, never a sentence of ours. `undefined`
- * only for a page with neither, which declares no description rather than
- * an empty one.
- */
-function descriptionOf(page: HostedPage): string | undefined {
-  if (page.description !== null) return page.description;
-  const first = parseMarkdown(page.bodyMd).find(
-    (block): block is Extract<Block, { kind: "paragraph" }> => block.kind === "paragraph"
-  );
-  const text = first === undefined ? "" : inlineText(first.children).replace(/\s+/g, " ").trim();
-  if (text === "") return undefined;
-  if (text.length <= DESCRIPTION_CHARS) return text;
-  const cut = text.slice(0, DESCRIPTION_CHARS);
-  const space = cut.lastIndexOf(" ");
-  return `${(space > 0 ? cut.slice(0, space) : cut).trimEnd()}…`;
-}
-
-/** `FAQPage` from the stored section, or nothing at all. */
-function faqSchema(page: HostedPage, canonical: string): string | null {
-  if (page.faq.length === 0) return null;
-  return jsonLd({
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "@id": `${canonical}#faq`,
-    mainEntity: page.faq.map((entry) => ({
-      "@type": "Question",
-      name: entry.question,
-      acceptedAnswer: { "@type": "Answer", text: entry.answer },
-    })),
-  });
-}
-
-/** The source's host and path, without the scheme, the query or a trailing
- *  slash: `example.org/tools-compared`. An address that will not parse is
- *  shown as it was recorded. */
-function sourceOf(url: string): string {
-  try {
-    const { host, pathname } = new URL(url);
-    return `${host}${pathname}`.replace(/\/$/, "");
-  } catch {
-    return url;
-  }
-}
-
-/** The set's source line, or `null` for a page generation recorded no
- *  grounding for. The address stands in for the set's `[source title]`:
- *  what §8 records is where the fact was read, and a title we do not hold
- *  would have to be invented. */
-function sourceLineFor(page: HostedPage): string | null {
-  const grounded = page.grounded;
-  if (grounded === null || grounded.url === "") return null;
-  if (grounded.readAt === null) return null;
-  return copy("hosted.source", {
-    source: sourceOf(grounded.url),
-    date: writeDate(grounded.readAt, page.publisher.timeZone),
-  });
-}
-
-/** The words of a heading or title, for comparing the two: case, spacing
- *  and a trailing full stop or colon do not make them different. */
-function titleKey(text: string): string {
-  return text.replace(/\s+/g, " ").trim().replace(/[.:]$/, "").toLowerCase();
-}
-
-/** The body without a leading heading that repeats the page's title (SPEC
- *  §7, 2026-09-29): the title is the page's one `<h1>`, printed above the
- *  body, and a writer that also opens the body with it prints it twice. */
-function withoutRepeatedTitle(blocks: readonly Block[], title: string): Block[] {
-  const [first, ...rest] = blocks;
-  if (first?.kind === "heading" && titleKey(inlineText(first.children)) === titleKey(title)) {
-    return rest;
-  }
-  return [...blocks];
-}
-
-/** How many words a minute the reading time assumes. */
-const WORDS_A_MINUTE = 220;
-
-/** The page's reading time in whole minutes, never less than one. */
-function readingMinutes(bodyMd: string): number {
-  const words = bodyMd.split(/\s+/).filter((word) => /[\p{L}\p{N}]/u.test(word)).length;
-  return Math.max(1, Math.round(words / WORDS_A_MINUTE));
-}
-
-/** How many related guides an article's foot shows: one row of cards. */
-const RELATED_GUIDES = 3;
-
-/** The site's other live pages closest to this one's topic, then newest —
- *  `others` is already newest first and the sort is stable. */
-function relatedGuides(page: HostedPage, others: readonly HostedPage[]): HostedPage[] {
-  const about = `${page.title} ${page.record.targetQuery}`;
-  return others
-    .map((other) => ({ other, score: topicSimilarity(about, other.title) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, RELATED_GUIDES)
-    .map(({ other }) => other);
-}
-
-/** The headings a table of contents lists: the body's sections and the
- *  one level under them. A page with a single section draws none. */
-function contentsOf(headings: readonly HeadingEntry[]): HeadingEntry[] {
-  const listed = headings.filter((heading) => heading.level === 2 || heading.level === 3);
-  return listed.length < 2 ? [] : listed;
-}
-
-function Contents({ headings }: { headings: readonly HeadingEntry[] }): React.JSX.Element {
-  return (
-    <ul className="menu menu-sm w-full p-0">
-      {headings.map((heading) => (
-        <li key={heading.id} className={heading.level === 3 ? "pl-3" : undefined}>
-          <a href={`#${heading.id}`} className="text-base-content/70 whitespace-normal">
-            {heading.text}
-          </a>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/** One value from a query string that may repeat. A repeated `utm_source`
- *  is a malformed link, not two claims; the first is read and the rest are
- *  ignored. */
-function firstOf(value: string | string[] | undefined): string | null {
-  if (Array.isArray(value)) return value[0] ?? null;
-  return value ?? null;
-}
-
-/**
- * SPEC §6 (2026-09-20, #908) measure (d) · SPEC §7 of the same date, issue
- * #921 — count this read of this page, after the response has gone.
- *
- * **The three strings are read here, in the render, and never inside
- * `after()`.** A Server Component may not call `headers()` from an `after`
- * callback (Next 16's own rule for the API: request data is read during the
- * component's lifecycle and passed in), and — more to the point — they are
- * not what is passed in. `classifyBlogRead` reduces them to one
- * `{ engine, kind }` or to nothing before the callback is even scheduled,
- * so the agent string, the referrer and the query never reach the store and
- * cannot be written by accident. §7: "no cookie, no visitor identity …
- * nothing else about a visit is kept."
- *
- * **Ordinary traffic schedules nothing.** A request that is neither an AI
- * engine nor an AI referral classifies as `null` and this function returns
- * before `after()` is called at all — no module is resolved, no connection
- * is opened, nothing is queued behind the response.
- *
- * **The store is imported at the call.** A page nobody counted never
- * resolves `@/lib/db`.
- */
-async function countBlogRead(
-  page: HostedPage,
-  query: Record<string, string | string[] | undefined> | undefined
-): Promise<void> {
-  const head = await headers();
-  const read = classifyBlogRead({
-    userAgent: head.get("user-agent"),
-    referer: head.get("referer"),
-    utmSource: firstOf(query?.["utm_source"]),
-  });
-  if (read === null) return;
-
-  after(async () => {
-    const { recordBlogRead } = await import("@/lib/publish/reads/store");
-    const { now } = await import("@/lib/config/now");
-    await recordBlogRead({
-      siteId: page.siteId,
-      publicationId: page.publicationId,
-      at: now(),
-      read,
-    });
-  });
+  return articleHead(resolved);
 }
 
 export default async function HostedPageRoute({
@@ -433,161 +170,5 @@ export default async function HostedPageRoute({
   // any state but live all end here: 404, and never another customer's
   // page, never a ReachKit page, never a fallback.
   if (resolved === null) notFound();
-
-  const { page, canonical, others, business } = resolved;
-  // Counted before anything is rendered and written after everything is
-  // sent: the classification needs this request's own headers, and the
-  // write must not stand between the reader and the page.
-  await countBlogRead(page, await searchParams);
-  // What the page says about itself as data: always the posting and the
-  // breadcrumb, and the questions only where the page has them.
-  const faq = faqSchema(page, canonical);
-  const dataBlocks = [
-    blogPostingSchema({ page, canonical, business, description: descriptionOf(page) }),
-    breadcrumbSchema({ page, canonical, business }),
-    ...(faq === null ? [] : [faq]),
-  ];
-  // The one Markdown renderer (`markdown.ts`), which escapes every text
-  // node on the way out — so a body cannot introduce markup and this
-  // string is safe to set as HTML by construction rather than by a
-  // sanitiser someone has to remember to call. A second renderer here is
-  // exactly what that module's header forbids.
-  const levelled = headingsUnderTitle(
-    withoutRepeatedTitle(withoutRepeatedTitle(labelledIn(parseMarkdown(page.bodyMd), copy), page.title), page.heading ?? page.title)
-  );
-  const grounded = page.grounded;
-  // The mark first, the ids after: an id is minted from a heading's words
-  // and the mark changes none of them.
-  const { blocks, headings } = withHeadingIds(
-    grounded === null ? levelled : markPassage(levelled, grounded.passage).blocks
-  );
-  const body = toHtml(blocks, HOSTED_BODY_CLASSES);
-  const contents = contentsOf(headings);
-  const sourceLine = sourceLineFor(page);
-  // Related guides: the site's own live pages on this host, minted by
-  // `guidesBlock` (SPEC §7, 2026-09-20: "chosen in code, never by the
-  // model") and drawn by the one serialiser, as cards.
-  const guides = toHtml(
-    [
-      guidesBlock({
-        publisher: business.name,
-        say: copy,
-        items: relatedGuides(page, others).map((other) => ({ href: other.liveUrl, label: other.title })),
-      }),
-    ],
-    HOSTED_GUIDES_CLASSES
-  );
-  const tocLabel = copy("hosted.toc");
-
-  return (
-    <Surface
-      arms={{
-        // **Declared, not one column** (issue #375). A single-column arm
-        // caps the whole surface at `--w-read`, which is right for the
-        // article and wrong for everything around it. `declared` takes no
-        // measure and no gutter, so the widths on this screen are the
-        // screen's own: the frame at `max-w-5xl`, the article at
-        // `max-w-2xl`, and from `lg` the table of contents beside it.
-        compact: { kind: "declared", note: "their header, the article at max-w-2xl, their footer" },
-        medium: { kind: "same-as-below" },
-        wide: { kind: "declared", note: "the article with a sticky table of contents beside it" },
-      }}
-    >
-      {dataBlocks.map((block) => (
-        <script key={block} type="application/ld+json" dangerouslySetInnerHTML={{ __html: block }} />
-      ))}
-
-      <HostedHeader business={business} />
-
-      <main lang={readerLanguage()} className="mx-auto w-full max-w-5xl px-4 py-10 lg:grid lg:grid-cols-[minmax(0,1fr)_14rem] lg:gap-10">
-        <article className="mx-auto w-full max-w-2xl min-w-0">
-          {page.publisher.category === null ? null : (
-            <span className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
-              {page.publisher.category}
-            </span>
-          )}
-          <h1 className="text-base-content my-3 text-4xl font-extrabold tracking-tight text-balance">
-            {page.heading ?? page.title}
-          </h1>
-          {/* SPEC §7 (2026-09-29): the text face, not mono. The byline setup
-              recorded, else the business's name; the day the address first
-              carried a page, and the day it was last refreshed where it has
-              been; and the reading time. */}
-          <p className="text-base-content/70 text-sm">
-            <time dateTime={page.firstPublishedAt.toISOString().slice(0, 10)}>
-              {bylineLine({
-                byline: page.byline ?? business.name,
-                published: page.firstPublishedAt,
-                updated: page.publishedAt,
-                timeZone: page.publisher.timeZone,
-                say: copy,
-                tag: readerTag(),
-              })}
-            </time>
-            <span className="before:mx-1.5 before:content-['·']">
-              {copy("hosted.readingTime", { minutes: String(readingMinutes(page.bodyMd)) })}
-            </span>
-          </p>
-
-          <hr className="border-base-300 my-6" />
-
-          {/* Below `lg` the table of contents is a block that opens: a
-              `<details>`, so it works with no script. */}
-          {contents.length === 0 ? null : (
-            <details className="collapse-arrow bg-base-200 collapse mb-6 lg:hidden">
-              <summary className="collapse-title font-semibold">{tocLabel}</summary>
-              <nav className="collapse-content" aria-label={tocLabel}>
-                <Contents headings={contents} />
-              </nav>
-            </details>
-          )}
-
-          {/* The body, with §8's recorded passage marked where it is still
-              in the text. `markPassage` is the same call the draft screen
-              makes, so what the customer approved and what a visitor reads
-              are marked alike; a passage that no longer occurs marks
-              nothing rather than marking the nearest thing to it. */}
-          {/* SPEC §7 (2026-09-20, issue 929): `prose` — the article
-              typography `docs/DESIGN.md` admits for exactly this.
-              `max-w-none` because the column's measure is the article's
-              already, and a second one would narrow it again. */}
-          <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: body }} />
-          {/* The text face, not mono: it is a sentence, and the address
-              in it is a host and a path rather than a URL to copy. */}
-          {sourceLine === null ? null : (
-            <p className="text-base-content/70 mt-8 text-sm wrap-anywhere">{sourceLine}</p>
-          )}
-
-          <AboutCard business={business} />
-
-          {guides === "" ? null : <div dangerouslySetInnerHTML={{ __html: guides }} />}
-
-          {/* The site, the blog and the page. The list wraps, so a long
-              title folds under the other two instead of scrolling. */}
-          <nav className="breadcrumbs mt-10 overflow-visible text-sm" aria-label={copy("hosted.breadcrumb")}>
-            <ul className="flex-wrap whitespace-normal">
-              <li>
-                <a href={mainSiteOf(business)}>{business.name}</a>
-              </li>
-              <li>
-                <a href={INDEX_PATH}>{copy("hosted.index.heading")}</a>
-              </li>
-              <li aria-current="page" className="text-base-content/70 min-w-0">
-                {page.title}
-              </li>
-            </ul>
-          </nav>
-        </article>
-
-        {contents.length === 0 ? null : (
-          <nav className="sticky top-6 hidden self-start lg:block" aria-label={tocLabel}>
-            <p className="eyebrow mb-2">{tocLabel}</p>
-            <Contents headings={contents} />
-          </nav>
-        )}
-      </main>
-
-      <HostedFooter business={business} />
-    </Surface>
-  );
+  return <HostedArticle resolved={resolved} />;
 }

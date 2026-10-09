@@ -338,6 +338,16 @@ export class MissingRouteFixtureError extends Error {
   }
 }
 
+/**
+ * The cached hosted article (issue 1242) is a rewrite's destination and not
+ * an address: `src/middleware.ts` answers 404 for its path on every host,
+ * and sends a live page's reader to it from the customer's own address. So
+ * it is not enumerated as a route of its own. It is swept all the same —
+ * `PUBLISHED_HOST_FIXTURES`' page is live, so that row's request is the one
+ * the middleware rewrites here.
+ */
+const CACHED_ARTICLE_DIR = "(hosted)/hosted-live/";
+
 function isRouteGroup(segment: string): boolean {
   return segment.startsWith("(") && segment.endsWith(")");
 }
@@ -376,8 +386,11 @@ export function enumerateRoutes(appRoot: string, options: EnumerateOptions = {})
   const hostFixtures = options.hostFixtures ?? HOST_FIXTURES;
   const accountCookie = options.accountCookie ?? ACCOUNT_SESSION_COOKIE;
 
-  const pageFiles: string[] = [];
-  walk(appRoot, pageFiles);
+  const walked: string[] = [];
+  walk(appRoot, walked);
+  const pageFiles = walked.filter(
+    (file) => !path.relative(appRoot, file).split(path.sep).join("/").startsWith(CACHED_ARTICLE_DIR)
+  );
 
   const routes = pageFiles.map((file): EnumeratedRoute => {
     const rel = path.relative(appRoot, path.dirname(file));

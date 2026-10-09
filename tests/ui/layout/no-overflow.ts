@@ -366,9 +366,19 @@ export async function settleForMeasurement(page: Page): Promise<void> {
   // 1. The client runtime. `withPage`'s navigation already resolved on
   //    `load` and waited out any `[data-waiting]` fallback; this is the step
   //    after, and it is what makes the charts below possible at all.
-  await page
-    .waitForSelector(HYDRATION_MARKER, { state: "attached", timeout: SETTLE_MS })
-    .catch(() => undefined);
+  //
+  //    **Not on a page that runs no script.** The cached hosted article is
+  //    answered under `script-src 'none'` (issue 1242), so its client
+  //    runtime never starts and the marker can never appear: the page was
+  //    finished when `load` fired, like the canaries' `file://` fixtures.
+  //    `__next_f` is what Next's first inline script sets, so its absence
+  //    after `load` is a document whose scripts did not run.
+  const runsScript = await page.evaluate(() => "__next_f" in window).catch(() => true);
+  if (runsScript) {
+    await page
+      .waitForSelector(HYDRATION_MARKER, { state: "attached", timeout: SETTLE_MS })
+      .catch(() => undefined);
+  }
   // 2. The webfont. A run that races it measures the fallback face, whose
   //    glyphs are a different width — which is a layout pass reporting a
   //    clip that no reader will ever see, and the flake that gets a suite

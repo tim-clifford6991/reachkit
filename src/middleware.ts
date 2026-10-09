@@ -47,10 +47,12 @@
 // of a deprecated (not removed) convention, and the migration is left for
 // a work order that touches BP-001's own `code:` list.
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import type { NextFetchEvent, NextRequest } from "next/server";
 import { HOSTED_SUBDOMAIN_LABEL, PREVIEW_HOST_SUFFIX } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
+import { classifyBlogRead } from "@/lib/publish/reads/classify";
 import { isDomainRemoved } from "@/lib/scan/removal";
+import type { LiveAnswer } from "@/app/(hosted)/edge";
 import { isFixtureDomain } from "@/app/(public)/scan/[domain]/_fixture/states";
 import { GATE_PATH_HEADER } from "@/app/(account)/setup/gate";
 // Three names, one home (issue #35). `src/lib/account/identity/addresses.ts`
@@ -154,8 +156,21 @@ function mintNonce(): string {
  * by `Strict-Transport-Security`, and its presence would break every
  * `http://` render the layout sweep makes on a non-loopback hostname —
  * a check that cannot run is worse than a header that is not set.
+ *
+ * **`nonce: null` is the cached hosted article's policy** (issue 1242):
+ * `script-src 'none'`. A nonce has to be new on every request and a cached
+ * page is the same bytes on every request, so the two cannot be had
+ * together — Next's guide: "you must use dynamic rendering to add nonces".
+ * The article needs no script (its file's header: "zero client
+ * JavaScript"), so the cached copy is answered under a policy that runs
+ * none, which is stricter than the nonce and not a loosening of it. It is
+ * never `'unsafe-inline'`.
  */
-export function contentSecurityPolicy(nonce: string, isDev: boolean, siteIcons = false): string {
+export function contentSecurityPolicy(
+  nonce: string | null,
+  isDev: boolean,
+  siteIcons = false
+): string {
   return [
     "default-src 'self'",
     "base-uri 'self'",
@@ -164,7 +179,9 @@ export function contentSecurityPolicy(nonce: string, isDev: boolean, siteIcons =
     `form-action 'self' ${STRIPE_CHECKOUT} ${STRIPE_BILLING}`,
     // React reconstructs server stacks with `eval` in development and
     // nowhere else, which is the one thing that differs between the two.
-    `script-src 'self' 'nonce-${nonce}' ${VERCEL_LIVE}${isDev ? " 'unsafe-eval'" : ""}`,
+    nonce === null
+      ? "script-src 'none'"
+      : `script-src 'self' 'nonce-${nonce}' ${VERCEL_LIVE}${isDev ? " 'unsafe-eval'" : ""}`,
     `style-src 'self' 'unsafe-inline' ${VERCEL_LIVE}`,
     `img-src 'self' data: blob: ${VERCEL_LIVE} ${VERCEL_LIVE_IMG}${siteIcons ? " https:" : ""}`,
     `font-src 'self' ${VERCEL_LIVE} ${VERCEL_LIVE_FONTS}`,
@@ -354,10 +371,13 @@ function hostnameOf(req: NextRequest): string {
   return withoutPort.endsWith(".") ? withoutPort.slice(0, -1) : withoutPort;
 }
 
-/** The two destinations a hosted request is rewritten to, and no third: the
- *  page (200 or 404) and the `410 Gone` document. */
+/** The three destinations a hosted request is rewritten to, and no fourth:
+ *  the page as the Host names it (the index, a 404, and a page this file
+ *  could not confirm), the `410 Gone` document, and a live article by its
+ *  host and slug — the one that is cached (issue 1242). */
 const HOSTED_PAGE_PREFIX = "/hosted-page";
 const HOSTED_GONE_PATH = "/hosted-gone";
+const HOSTED_LIVE_SEGMENT = "hosted-live";
 
 /** The paths on a `content.` host that resolve the Host themselves and are
  *  therefore served where they stand, not rewritten. */
@@ -393,6 +413,50 @@ function isHostedEdgeHost(req: NextRequest): boolean {
 }
 
 /**
+ * SPEC §6 (2026-09-20, #908) measure (d) · SPEC §7 of the same date, issue
+ * #921 — count this read of this page, after the response has gone.
+ *
+ * **Counted here, because this is the one place every request passes**
+ * (issue 1242). The article is cached, and a cached page is rendered once:
+ * a count made in the render would see the first answer-engine fetch and
+ * none after it. This file runs on every request and before the cache.
+ *
+ * **The three strings are read and reduced here.** `classifyBlogRead` turns
+ * the agent, the referrer and `utm_source` into one `{ engine, kind }` or
+ * into nothing, so none of them reaches the store. §7: "no cookie, no
+ * visitor identity … nothing else about a visit is kept."
+ *
+ * **Ordinary traffic schedules nothing**, and the store is imported only
+ * for a read that is counted. The write is handed to `waitUntil`, so it
+ * does not stand between the reader and the page. Next always passes the
+ * event; the suites that call `middleware` with a request alone do not.
+ */
+function countBlogRead(
+  req: NextRequest,
+  live: LiveAnswer,
+  event: Pick<NextFetchEvent, "waitUntil"> | undefined
+): void {
+  const read = classifyBlogRead({
+    userAgent: req.headers.get("user-agent"),
+    referer: req.headers.get("referer"),
+    utmSource: req.nextUrl.searchParams.get("utm_source"),
+  });
+  if (read === null) return;
+
+  const write = (async (): Promise<void> => {
+    const { recordBlogRead } = await import("@/lib/publish/reads/store");
+    const { now } = await import("@/lib/config/now");
+    await recordBlogRead({
+      siteId: live.siteId,
+      publicationId: live.publicationId,
+      at: now(),
+      read,
+    });
+  })().catch(() => undefined);
+  event?.waitUntil(write);
+}
+
+/**
  * The hosted edge's own rewrite, on a customer's own host and nowhere else.
  *
  * **The second database read in this file, and narrow for the same reason
@@ -402,21 +466,38 @@ function isHostedEdgeHost(req: NextRequest): boolean {
  * ReachKit address is decided from the allow-list and the cookie with no
  * await on the way, exactly as before.
  *
+ * **It is also what stands in front of the cache** (issue 1242). Only an
+ * address this read found live, on a site it found served, is rewritten to
+ * the cached article. A page taken down and a site whose access ended are
+ * rewritten to the 410; a host that moved away, an address that never held
+ * a page and the index are rewritten to the uncached route. The cached
+ * route has no other way in — `middleware` answers 404 for its path on any
+ * other host — so no request reaches a cached copy without this read
+ * having just said the page is live.
+ *
  * **Bounded, and fails towards rendering.** A read that outlasts
- * `HOSTED_READ_DEADLINE_MS` or that throws rewrites to the page, which
- * answers 404 when it finds none. A 410 asserts that a page was taken
- * down; it is never something to say because a query was slow. The failure direction is safe in the one case that
- * matters: the page route resolves the Host again for itself, so a
- * departed customer's address that missed this deadline answers 404 —
- * never their page.
+ * `HOSTED_READ_DEADLINE_MS` or that throws rewrites to the uncached page,
+ * which answers 404 when it finds none. A 410 asserts that a page was taken
+ * down; it is never something to say because a query was slow. The failure
+ * direction is safe in the one case that matters: the uncached route
+ * resolves the Host again for itself, so a departed customer's address that
+ * missed this deadline answers 404 — never their page, and never a cached
+ * copy of it.
+ *
+ * `scriptFree` says which policy the answer leaves under: the cached
+ * article's (`contentSecurityPolicy`, `nonce: null`), or this request's.
  */
-async function hostedRewrite(req: NextRequest, forwarded: Headers): Promise<NextResponse | null> {
+async function hostedRewrite(
+  req: NextRequest,
+  forwarded: Headers,
+  event: Pick<NextFetchEvent, "waitUntil"> | undefined
+): Promise<{ response: NextResponse; scriptFree: boolean } | null> {
   if (!isHostedEdgeHost(req)) return null;
   const { pathname } = req.nextUrl;
   if (isNextInternal(pathname)) return null;
   if (HOSTED_DOCUMENT_PATHS.includes(pathname)) return null;
 
-  let answer: "gone" | "page" = "page";
+  let answer: "gone" | "page" | LiveAnswer = "page";
   try {
     const { hostedAnswer } = await import("@/app/(hosted)/edge");
     answer = await withDeadline(
@@ -428,6 +509,25 @@ async function hostedRewrite(req: NextRequest, forwarded: Headers): Promise<Next
   }
 
   const destination = req.nextUrl.clone();
+  if (typeof answer === "object") {
+    countBlogRead(req, answer, event);
+    // The host that resolved and the segment as it was asked for: the
+    // article is a function of this path and of nothing else in the
+    // request, which is what lets it be cached.
+    destination.pathname = `/${HOSTED_LIVE_SEGMENT}/${answer.host}/${answer.slug}`;
+    // No policy is forwarded. Next stamps the nonce it reads off this
+    // header onto the scripts it emits, and a nonce written into a cached
+    // page is one request's nonce served to every later one. Deleted, not
+    // left as it arrived: a caller's own header must not reach the render
+    // either.
+    const bare = new Headers(forwarded);
+    bare.delete(CSP_HEADER);
+    return {
+      response: NextResponse.rewrite(destination, { request: { headers: bare } }),
+      scriptFree: true,
+    };
+  }
+
   // The root is the hosted index, which the optional catch-all serves at
   // the prefix itself (SPEC §7, 2026-09-16).
   const page = pathname === "/" ? HOSTED_PAGE_PREFIX : `${HOSTED_PAGE_PREFIX}${pathname}`;
@@ -435,7 +535,10 @@ async function hostedRewrite(req: NextRequest, forwarded: Headers): Promise<Next
   // `forwarded` carries this request's CSP and nonce (issue #331). A
   // rewrite is still a render, and a render that never saw the nonce emits
   // script tags the policy on the way out refuses.
-  return NextResponse.rewrite(destination, { request: { headers: forwarded } });
+  return {
+    response: NextResponse.rewrite(destination, { request: { headers: forwarded } }),
+    scriptFree: false,
+  };
 }
 
 
@@ -510,13 +613,17 @@ export const GUARDED_SEGMENTS: readonly string[] = [
   // `src/app/(account)/**` — the two segments §4.3 and §4.4 serve.
   "app",
   "setup",
-  // `src/app/(hosted)/**` — the two destinations `hostedRewrite` writes.
+  // `src/app/(hosted)/**` — the three destinations `hostedRewrite` writes.
   // Guarded rather than left to fall through: they are reachable by path on
   // a ReachKit host as well as by rewrite on a `content.` one, and an
   // address on `reachkit.app` that answered a customer's published page
   // would be this product serving someone else's site.
   "hosted-gone",
   "hosted-page",
+  // The cached article (issue 1242). `middleware` answers 404 for it by
+  // path before the session is asked, signed in or not: it names its host
+  // in its path, so a session must not be a way to read it here.
+  HOSTED_LIVE_SEGMENT,
 ];
 
 /** Whether this product serves anything at all under the path's own
@@ -671,7 +778,10 @@ async function removedRewrite(req: NextRequest, forwarded: Headers): Promise<Nex
   return NextResponse.rewrite(destination, { request: { headers: forwarded } });
 }
 
-export async function middleware(req: NextRequest): Promise<NextResponse> {
+export async function middleware(
+  req: NextRequest,
+  event?: Pick<NextFetchEvent, "waitUntil">
+): Promise<NextResponse> {
   const { pathname } = req.nextUrl;
 
   // Issue #331. Minted before anything is decided, because every answer
@@ -699,18 +809,31 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   const forwarded = new Headers(req.headers);
   forwarded.set(CSP_HEADER, policy);
 
-  /** The one way out of this function: the policy on the response, whatever
-   *  the response turned out to be. */
-  const sealed = (res: NextResponse): NextResponse => {
-    res.headers.set(CSP_HEADER, policy);
+  /** The one way out of this function: a policy on the response, whatever
+   *  the response turned out to be — this request's, or the cached
+   *  article's script-free one. */
+  const sealed = (res: NextResponse, under: string = policy): NextResponse => {
+    res.headers.set(CSP_HEADER, under);
     return res;
   };
 
   // BUILD §9's hosted edge comes first: a customer's own domain is not a
   // ReachKit surface, and its authorisation is the rewrite rather than this
   // file's allow-list and session check.
-  const hosted = await hostedRewrite(req, forwarded);
-  if (hosted !== null) return sealed(hosted);
+  const hosted = await hostedRewrite(req, forwarded, event);
+  if (hosted !== null) {
+    return hosted.scriptFree
+      ? sealed(hosted.response, contentSecurityPolicy(null, false))
+      : sealed(hosted.response);
+  }
+
+  // The cached article's own path, asked for on a host that is not a
+  // customer's (issue 1242). It is a rewrite's destination and never an
+  // address: on a customer's host the rewrite above has already moved the
+  // request under `/hosted-page`, so only a ReachKit host arrives here.
+  if (pathname.split("/")[1] === HOSTED_LIVE_SEGMENT) {
+    return sealed(new NextResponse(null, { status: 404 }));
+  }
 
   const removed = await removedRewrite(req, forwarded);
   if (removed !== null) return sealed(removed);

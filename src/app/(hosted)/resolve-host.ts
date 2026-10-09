@@ -140,7 +140,10 @@ function goneFor(because: "retention_elapsed" | "account_deleted"): HostDisposit
  * One lookup on `sites.domain` for a `content.` host, then one lifecycle
  * question. Nothing here is cached: a `gone` disposition must not outlive
  * the request that found it, because a takedown is immediate (WO-028's
- * NFR) and a cached "serve" would keep a departed customer's pages up.
+ * NFR) and a cached "serve" would keep a departed customer's pages up. The
+ * cached article (issue 1242) does not change that: `src/middleware.ts`
+ * asks this again on every request, before the cache, and sends only a
+ * host that is a site now to the cached copy.
  */
 export async function resolveHost(host: string): Promise<HostDisposition> {
   const name = normaliseHost(host);
