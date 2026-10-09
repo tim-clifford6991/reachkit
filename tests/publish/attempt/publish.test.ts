@@ -335,16 +335,6 @@ describe("the outcome is written exactly as it happened", () => {
     expect(db.rows("drafts")[0]?.state).toBe("published");
   });
 
-  it("a copilot page is recorded as approved, not autopilot", async () => {
-    seed();
-    db.rows("sites")[0]!.mode = "copilot";
-    await publish({
-      draftId: "d1", destination: "hosted", by: SYSTEM, at: AT, deps: openDeps(),
-      adapterFor: () => stubAdapter({ ok: true, madeLive: true, liveUrl: "https://c.example/a" }),
-    });
-    expect(pub().mode).toBe("approved");
-  });
-
   it("a failed delivery writes its reason and the page becomes failed", async () => {
     const result = await publish({
       draftId: "d1", destination: "hosted", by: SYSTEM, at: AT, deps: openDeps(),

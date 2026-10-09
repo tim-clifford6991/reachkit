@@ -518,7 +518,6 @@ export const SETTINGS_COPY = Object.freeze({
     "With no time to stop a page, a draft you don’t touch publishes at your next publish time — there is no interval in which to stop it.",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
-  "settings.publishing.pair.copilot": ["A draft you don’t touch stays in review and never publishes on its own.", { slots: {}, fixedBy: "REQ-073 c2" }],
 
   // §4.7's own footnote, verbatim and complete, including its full stop.
   "settings.publishing.fix-note": [

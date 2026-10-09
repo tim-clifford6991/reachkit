@@ -146,7 +146,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { on: "date", due: "date" }, fixedBy: "issue 793" },
   ],
   "overview.tile.pages.first-review": [
-    "first page in review today",
+    "first page ready to read today",
     { slots: {}, fixedBy: "S13" },
   ],
 
@@ -338,7 +338,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // a clock, so the line states no countdown. Drafted (issue 794); the
   // owner corrects the wording.
   "overview.alert.pending-veto.no-window": [
-    "waits for you before it publishes",
+    "has no go-live time yet",
     { slots: {}, fixedBy: "issue 794" },
   ],
   "overview.alert.overflow": ["{remaining} more in the plan.", { slots: { remaining: "text" }, fixedBy: "SPEC §4 2026-09-20" }],
@@ -432,7 +432,7 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
   // A page in review with no window running: nothing publishes it on a
   // clock, so the line states no time.
-  "overview.waiting.waits": ["It waits for you before it publishes.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.waiting.waits": ["Its go-live time isn’t set yet.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   // SPEC §4 2026-09-24 (#1070): the card counts down to that same time.
   // `{left}` is the time left, `6h 12m 09s`, a value the card ticks; the
   // absolute time stays on the line's own `<time>`. Drafted; the owner
@@ -443,7 +443,7 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
   // The line under the head while a page waits with a time (R12-4).
   "overview.head.waiting.sub": [
-    "Read it before {at}, or let it go live on its own.",
+    "It goes live on its own {at}. Edit or stop it until then.",
     { slots: { at: "date" }, fixedBy: "SPEC §4 2026-09-24" },
   ],
   "overview.waiting.why.label": ["Why this page:", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
@@ -619,7 +619,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // SPEC §4's four status words, and the chip that stands for all of them.
   "overview.search.status.all": ["All", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.status.live": ["Page is live", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "overview.search.status.your-review": ["Your review", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.status.your-review": ["Ready to read", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.status.up-next": ["Up next", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.status.too-big": ["Too big for now", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   // A filter chip's whole text. It is one string because daisyUI's `filter`
@@ -1136,7 +1136,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // wins. None of them is "live": a search the customer already wins is not
   // in this table at all.
   "overview.rivals.status.in-review": [
-    "Page in your review",
+    "Page ready to read",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
   "overview.rivals.status.up-next": ["Up next", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],

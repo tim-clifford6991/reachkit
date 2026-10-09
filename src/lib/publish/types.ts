@@ -497,7 +497,7 @@ export interface DestinationAdapter {
  *  precondition c8 never names, and what holds a page against a destination
  *  that cannot publish is the `destination_working` guard. */
 export interface GoverningPair {
-  mode: "autopilot" | "copilot";
+  mode: "autopilot";
   vetoHours: number;
   /** `HH:mm`, 24-hour, read in `timezone`. */
   publishTime: string;
@@ -530,6 +530,8 @@ export interface VetoLink {
  *  comparison (BP-046 decision 5). */
 export interface ToldRecord {
   pair: GoverningPair;
+  /** `approval_only` is only ever read: rows told under copilot before it
+   *  was removed (issue 1337) still hold it. Nothing writes it. */
   kind: "interval" | "no_interval" | "approval_only";
   publishesAt: string | null;
   sentAt: string;

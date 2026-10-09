@@ -217,11 +217,7 @@ describe("issue #790 — the moment a page's attempt is sent for, and what the e
     expect((await publishDueAt("d1"))?.at).toEqual(new Date("2026-09-02T13:00:00.000Z"));
   });
 
-  it("a copilot page nobody approved has no moment, and neither has a page with nowhere to go", async () => {
-    seed({ site: { mode: "copilot" } });
-    await enterReview({ draftId: "d1", at: EVENING });
-    expect(await publishDueAt("d1")).toBeNull();
-    seed();
+  it("a page with nowhere to go has no moment", async () => {
     await enterReview({ draftId: "d1", at: EVENING });
     db.seed("destinations", []);
     expect(await publishDueAt("d1")).toBeNull();

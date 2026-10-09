@@ -39,7 +39,6 @@ const actions = await import("@/app/(account)/app/calendar/publishing-actions");
 const COMMANDS = [
   ["skipDraft", "skipped"],
   ["vetoDraft", "skipped"],
-  ["approveDraft", "approved"],
 ] as const;
 
 beforeEach(() => {
@@ -74,7 +73,7 @@ describe("the actor is the signed-in customer, never a stand-in", () => {
   });
 
   it("a transition is never anonymous: every call carries a customer actor", async () => {
-    await actions.approveDraft("draft-1");
+    await actions.vetoDraft("draft-1");
     const actor = transition.mock.calls[0]?.[2] as { kind: string };
     expect(actor.kind).toBe("customer");
   });
@@ -110,7 +109,7 @@ describe("§9's machine is never asked to move another account's page", () => {
 describe("the machine's own refusals still travel unchanged", () => {
   it("a guard's name comes back as the guard's name", async () => {
     transition.mockResolvedValue({ ok: false, refused: "guard", failedGuard: "destination_working" });
-    await expect(actions.approveDraft("draft-1")).resolves.toBe("destination_working");
+    await expect(actions.vetoDraft("draft-1")).resolves.toBe("destination_working");
   });
 
   it("a move outside the table comes back as `not_a_transition`, not as a guard", async () => {

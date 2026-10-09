@@ -507,11 +507,13 @@ describe("§9.1 idiom — one solid primary per screen, across src/app/(account)
     }
   });
 
-  it("the draft view draws exactly one, and it is Approve", () => {
+  // Owner, 2026-10-08 (issue 1337): there is no Approve, so the draft
+  // view's controls hold no solid primary at all.
+  it("the draft view's controls draw none: Edit and Stop, and no Approve", () => {
     const draft = cold.find((r) => r.route.url.startsWith("/app/draft"));
     const actions = draft?.doc.querySelector('[data-testid="draft-actions"]');
-    expect(actions?.querySelectorAll(SOLID_PRIMARY)).toHaveLength(1);
-    // The other two are the calm layer's quiet ranks (#1063, board
+    expect(actions?.querySelectorAll(SOLID_PRIMARY)).toHaveLength(0);
+    // The two are the calm layer's quiet ranks (#1063, board
     // R12-6-Page): Edit soft, and Stop a ghost carrying the warning tone.
     expect(actions?.querySelectorAll(".btn-ghost.btn-warning")).toHaveLength(1);
     expect(actions?.querySelectorAll(".btn-soft:not(.btn-warning)")).toHaveLength(1);

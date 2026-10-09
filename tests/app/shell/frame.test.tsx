@@ -247,7 +247,7 @@ describe("REQ-040 c3 — the mode with the next publish time, in the customer's 
   });
 
   it("a copilot row still reads Autopilot, and the card draws no mode picker (SPEC §7, #476)", () => {
-    const copilot: ShellModel = { ...SCHEDULED, publishing: { mode: "copilot", next: MONDAY(16) } };
+    const copilot: ShellModel = { ...SCHEDULED, publishing: { mode: "copilot" as never, next: MONDAY(16) } };
     const root = render(<PublishingCard shell={copilot} />);
     expect(root.textContent).toContain("shell.publishing.mode.autopilot");
     expect(root.textContent).not.toMatch(/copilot/i);

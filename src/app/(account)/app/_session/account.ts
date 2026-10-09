@@ -49,7 +49,7 @@ export interface AppAccount {
   /** REQ-073 c1's stated zone, or `null` where the customer has not stated
    *  one. Nullable by design — no read path falls back to the server's. */
   timeZone: string | null;
-  mode: "autopilot" | "copilot";
+  mode: "autopilot";
 }
 
 /** Why a surface has no account to draw. Two members, because the two are
@@ -108,7 +108,8 @@ const fromSession: AppAccountReader = async () => {
       domain: row.domain,
       createdAt: new Date(row.created_at),
       timeZone: row.timezone,
-      mode: row.mode === "copilot" ? "copilot" : "autopilot",
+      // Autopilot only: a stored `copilot` is read as autopilot (issue 1337).
+      mode: "autopilot",
     },
   };
 };

@@ -108,7 +108,6 @@ import { assembleSettings } from "@/app/(account)/app/settings/model";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
 import { NotificationsPanel } from "@/app/(account)/app/settings/panels/NotificationsPanel";
 import { PublishingPanel } from "@/app/(account)/app/settings/panels/PublishingPanel";
-import { formatDateTime } from "@/app/(account)/app/_shell/format";
 import { ANSWER_PLACEMENT } from "@/app/_toast/Answers";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -227,38 +226,29 @@ describe("Plan — a stop says what became of the page", () => {
   });
 });
 
-describe("the page — Approve and Stop both answer", () => {
+describe("the page — Stop answers, and there is no Approve (issue 1337)", () => {
   const rail = (root: HTMLElement, key: string): Element | null =>
     root.querySelector(`[data-testid="draft-action-${key}"]`);
 
-  it("an approval names the moment the page goes live", async () => {
-    const root = await mount(<DraftScreen view={DRAFT} generatedLabel="written by" />);
-    await press(rail(root, "draft.action.approve"));
-    const at = DRAFT.doNothing.publishesAt;
-    expect(at).not.toBeNull();
-    expect(said[0]?.text).toBe(
-      COPY["draft.answer.approve"].replace("{at}", formatDateTime(at!, DRAFT.timeZone))
-    );
-  });
-
-  it("a stop takes both decisions off the rail at once, before the machine answers", async () => {
+  it("a stop takes the controls off the rail at once, before the machine answers", async () => {
     machine.hold = true;
     const root = await mount(<DraftScreen view={DRAFT} generatedLabel="written by" />);
     await press(rail(root, "draft.action.veto"));
     expect(rail(root, "draft.action.approve")).toBeNull();
+    expect(rail(root, "draft.action.edit")).toBeNull();
     expect(rail(root, "draft.action.veto")).toBeNull();
     await answer();
     expect(said[0]?.text).toBe(COPY["draft.answer.veto"]);
   });
 
-  it("a refused decision says nothing changed, and leaves both controls where they were", async () => {
+  it("a refused stop says nothing changed, and leaves the controls where they were", async () => {
     machine.answer = "customer_told";
     // No hold: the refusal is answered, the optimistic state is dropped,
     // and what the rail then draws is the state the page still holds.
     const root = await mount(<DraftScreen view={DRAFT} generatedLabel="written by" />);
-    await press(rail(root, "draft.action.approve"));
+    await press(rail(root, "draft.action.veto"));
     expect(said[0]?.text).toBe(COPY["draft.answer.refused"]);
-    expect(rail(root, "draft.action.approve")).not.toBeNull();
+    expect(rail(root, "draft.action.approve")).toBeNull();
     expect(rail(root, "draft.action.veto")).not.toBeNull();
   });
 });

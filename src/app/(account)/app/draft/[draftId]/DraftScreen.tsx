@@ -129,7 +129,7 @@ const KEY_LABEL = "fieldset-legend text-sm font-normal text-base-content/70";
 function ask(
   command: DraftCommand,
   draftId: string,
-): ReturnType<typeof publishing.approve> {
+): ReturnType<typeof publishing.veto> {
   return publishing[command]({ draftId });
 }
 
@@ -185,17 +185,11 @@ export function DraftScreen(p: {
    *  1196). The pending state itself is the transition's. */
   const [pressed, setPressed] = useState<DraftCommand | null>(null);
 
-  /** What each decision says once the machine has answered. Approve names
-   *  the moment the page goes live where the screen holds one, and says so
-   *  plainly where it does not — never a sentence with a blank in it. */
+  /** What each decision says once the machine has answered. */
   function decisionLine(command: DraftCommand): string {
     if (command === "veto") return copy("draft.answer.veto");
     if (command === "skip") return copy("calendar.answer.skip");
-    if (command === "regenerate") return copy("calendar.answer.regenerate");
-    const at = view.doNothing.publishesAt;
-    return at === null
-      ? copy("draft.answer.approve-next")
-      : copy("draft.answer.approve", { at: formatDateTime(at, view.timeZone) });
+    return copy("calendar.answer.regenerate");
   }
 
   /** One press: show the state the command asks for, ask for it, and say

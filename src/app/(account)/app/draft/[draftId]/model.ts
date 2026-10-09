@@ -69,10 +69,9 @@ const NO_GROUNDING: Grounded = Object.freeze({
   present: false,
 });
 
-/** Criterion 4, "what will happen if you do nothing" — §9's two modes read
- *  as the two outcomes they produce. Autopilot auto-approves when the veto
- *  window expires; copilot publishes nothing without an explicit approve,
- *  so it has no time to state. */
+/** Criterion 4, "what will happen if you do nothing": the page goes live
+ *  on its own when the veto window expires (autopilot only — owner
+ *  2026-10-08, issue 1337). */
 export interface DoNothing {
   /** The sentence to draw, or `null` where there is nothing to say: an
    *  autopilot page with no veto window left (a published or vetoed one)
@@ -432,18 +431,14 @@ export interface DraftFacts {
   ruleFacts: RuleFacts;
 }
 
-/** The two keys criterion 4's outcome is spoken through. Named by the mode
- *  §9 names, never by a renderer. */
+/** The key criterion 4's outcome is spoken through. Named by the mode §9
+ *  names, never by a renderer. */
 export const DO_NOTHING_COPY_KEY: Readonly<Record<PublishingMode, CopyKey>> =
   Object.freeze({
     autopilot: "draft.do-nothing.autopilot",
-    copilot: "draft.do-nothing.copilot",
   });
 
-/** Criterion 4. Copilot states no time because it has none: "explicit
- *  approve only" (§9) means nothing happens if the customer does nothing,
- *  and inventing a time for that arm would be a promise the product does
- *  not keep. */
+/** Criterion 4. */
 export function doNothingOf(facts: DraftFacts): DoNothing {
   // **Autopilot with no window left says nothing at all.** `store.ts` reads
   // `autoApprovesAt` as non-null only while a page is `in_review`, so every
@@ -453,12 +448,9 @@ export function doNothingOf(facts: DraftFacts): DoNothing {
   // page that had already gone out: `copy(): "draft.do-nothing.autopilot"
   // requires slot "at"`, and the whole screen 500'd. The rule this follows
   // is the draft view's own, stated in `PageRecord`: no row without a fact.
-  const publishesAt = facts.mode === "autopilot" ? facts.autoApprovesAt : null;
+  const publishesAt = facts.autoApprovesAt;
   return {
-    key:
-      facts.mode === "autopilot" && publishesAt === null
-        ? null
-        : DO_NOTHING_COPY_KEY[facts.mode],
+    key: publishesAt === null ? null : DO_NOTHING_COPY_KEY[facts.mode],
     publishesAt,
   };
 }

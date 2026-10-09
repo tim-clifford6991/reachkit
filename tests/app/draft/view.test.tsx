@@ -270,61 +270,57 @@ describe("REQ-045 c3 and c11 — the claim outcome, in every case", () => {
   });
 });
 
-describe("REQ-045 c4 — told what happens if nothing is done, and able to approve, edit or veto here", () => {
-  it("all three controls render, without leaving the view", () => {
+// Owner, 2026-10-08 (issue 1337): "remove the approve button entirely,
+// autopilot only … they can solely edit or stop the content".
+describe("REQ-045 c4 — told when the page goes live on its own, and able to edit or stop it here", () => {
+  it("an untouched page in review shows its go-live time and Stop, and nothing asks for an approval", () => {
     const root = markup();
-    expect(textOf(root, "draft-action-draft.action.approve")).toBe(copy("draft.action.approve"));
-    expect(textOf(root, "draft-action-draft.action.edit")).toBe(copy("draft.action.edit"));
+    // The go-live time, in the site's zone: on the rail and on the phone bar.
+    expect(textOf(root, "draft-do-nothing-at")).toContain("Sep 16, 2026");
+    expect(textOf(root, "draft-do-nothing-bar")).toContain("Sep 16, 2026");
+    // Stop is there; Approve is not.
     expect(textOf(root, "draft-action-draft.action.veto")).toBe(copy("draft.action.veto"));
-    expect(root.querySelectorAll('[data-testid="draft-actions"] button').length).toBe(3);
+    expect(root.querySelector('[data-testid*="approve"]')).toBeNull();
+    // No heading, button or link asks for an approval, and none is a solid
+    // primary.
+    const asks = /approv|waiting for you|your review|decide/iu;
+    for (const control of root.querySelectorAll("h1, h2, h3, button, a")) {
+      expect(control.textContent ?? "", control.outerHTML.slice(0, 80)).not.toMatch(asks);
+      expect(control.getAttribute("aria-label") ?? "").not.toMatch(asks);
+    }
+    expect(root.querySelector('[data-testid="draft-decide"]')?.getAttribute("aria-label") ?? "").not.toMatch(asks);
+    expect(root.querySelectorAll(".btn-primary:not(.btn-soft, .btn-outline, .btn-ghost)")).toHaveLength(0);
   });
 
-  // Issue #271, from the account audit: Approve and Veto were both filled
-  // accent buttons — two calls to action of equal weight for opposite
-  // consequences, one of which destroys the draft — on a screen tokens.md
-  // §9.1 gives one solid primary. The classes are the ranks: `btn-primary`
-  // is the solid fill, `btn-outline` the outline secondary (carrying the
-  // one tone a rank may take), `btn-ghost` the quiet arm.
-  it("§9.1 — Approve is the one solid primary, Stop a ghost in warning, Edit the quiet arm", () => {
+  it("Edit and Stop are the only two controls, without leaving the view", () => {
+    const root = markup();
+    expect(textOf(root, "draft-action-draft.action.edit")).toBe(copy("draft.action.edit"));
+    expect(textOf(root, "draft-action-draft.action.veto")).toBe(copy("draft.action.veto"));
+    expect(root.querySelectorAll('[data-testid="draft-actions"] button').length).toBe(2);
+  });
+
+  it("Stop leads as a ghost in warning, and Edit is the quiet arm", () => {
     const root = markup();
     const button = (key: string): Element | null =>
       root.querySelector(`button[data-testid="draft-action-${key}"]`);
 
-    const approve = button("draft.action.approve");
-    expect(approve?.className).toContain("btn-primary");
-
     const veto = button("draft.action.veto");
     expect(veto?.className).toContain("btn-ghost");
-    expect(veto?.className).not.toContain("btn-primary");
     expect(veto?.className).toContain("btn-warning");
+    expect(veto?.className).toContain("order-first");
 
     const edit = button("draft.action.edit");
     expect(edit?.className).toContain("btn-soft");
     expect(edit?.className).not.toContain("btn-primary");
-
-    // One solid fill on the whole screen, not merely in this row.
-    expect(root.querySelectorAll(".btn-primary:not(.btn-soft, .btn-outline, .btn-ghost)")).toHaveLength(1);
   });
 
-  it("under autopilot the panel counts down to a stated time, and says what doing nothing means", () => {
+  it("the panel counts down to a stated time, and says what doing nothing means", () => {
     const root = markup();
     expect(textOf(root, "draft-countdown")).toContain(copy("draft.decide.goes-live-in"));
     expect(textOf(root, "draft-do-nothing-at")).toContain("Sep 16, 2026");
     expect(textOf(root, "draft-do-nothing")).toBe(copy("draft.do-nothing.schedule"));
     // The phone bar has no countdown, so its one line carries the time.
     expect(textOf(root, "draft-do-nothing-bar")).toContain("Sep 16, 2026");
-  });
-
-  it("under copilot it states no time, because nothing happens", () => {
-    // The pair `doNothingOf` answers under copilot: its own key, and no
-    // time. The key carries a sentence since #460, so it is read back too.
-    const root = markup({
-      ...VIEW,
-      doNothing: { key: "draft.do-nothing.copilot", publishesAt: null },
-    });
-    expect(root.querySelector('[data-testid="draft-do-nothing-at"]')).toBeNull();
-    expect(root.querySelector('[data-testid="draft-countdown"]')).toBeNull();
-    expect(textOf(root, "draft-do-nothing")).toContain(copy("draft.do-nothing.copilot"));
   });
 
   it("a page past review offers no control at all, and still renders whole", () => {
@@ -429,10 +425,10 @@ describe("the Decide bar — one DOM, pinned only below `md`", () => {
   it("there is one set of controls, not a phone copy beside a desktop one", () => {
     const root = markup();
     const controls = root.querySelectorAll('[data-testid^="draft-action-"]');
-    // The in-review fixture offers all three (§9's table, through
+    // The in-review fixture offers both (§9's table, through
     // `draftActionsFor`), and each appears exactly once.
-    expect(controls.length).toBe(3);
-    for (const key of ["draft.action.approve", "draft.action.edit", "draft.action.veto"]) {
+    expect(controls.length).toBe(2);
+    for (const key of ["draft.action.edit", "draft.action.veto"]) {
       expect(
         root.querySelectorAll(`[data-testid="draft-action-${key}"]`).length,
         `${key} must exist exactly once in the document`
@@ -493,20 +489,17 @@ describe("a published page on an autopilot site renders at all", () => {
 });
 
 describe("S16 — the Decide rail", () => {
-  it("it is the registered panel, labelled, with the three controls and the checks", () => {
+  it("it is the registered panel, labelled, with the two controls and the checks", () => {
     const root = markup();
     const rail = root.querySelector('[data-testid="draft-decide"]');
     expect(rail).not.toBeNull();
     expect(rail?.textContent).toContain(copy("draft.decide.title"));
     expect(rail?.textContent).toContain(copy("draft.checks.title"));
-    expect(rail?.querySelectorAll('[data-testid^="draft-action-"]').length).toBe(3);
+    expect(rail?.querySelectorAll('[data-testid^="draft-action-"]').length).toBe(2);
   });
 
-  it("Approve takes the whole column and the other two share the row under it", () => {
+  it("the two controls share one row", () => {
     const root = markup();
-    expect(
-      root.querySelector('[data-testid="draft-action-draft.action.approve"]')?.className
-    ).toContain("col-span-2");
     for (const key of ["draft.action.edit", "draft.action.veto"]) {
       expect(root.querySelector(`[data-testid="draft-action-${key}"]`)?.className).not.toContain(
         "col-span-2"
@@ -663,11 +656,10 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
 
   it("there is no save control anywhere in either arm", () => {
     mount();
-    // Board R12-6-Page: the panel's three, then its two copy-out ghosts at
+    // The panel's two, then its two copy-out ghosts at
     // its foot. The back link is a link and not a button, so it is not in
     // this list.
     expect([...container.querySelectorAll("button")].map((b) => b.textContent ?? "")).toEqual([
-      copy("draft.action.approve"),
       copy("draft.action.edit"),
       copy("draft.action.veto"),
       copy("draft.copy.markdown"),

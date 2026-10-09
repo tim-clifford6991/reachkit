@@ -176,14 +176,9 @@ export function buildDraftReady(a: {
   }
 
   // §12's "publishes tomorrow 09:00 unless you say no" — whichever of the
-  // three that is for this page. The date slot is on two of the three
-  // keys; `copilot` names no moment because there is none to name until
-  // the customer approves.
-  blocks.push(
-    a.telling.kind === "approval_only"
-      ? { block: "paragraph", text: a.telling.copy }
-      : { block: "paragraph", text: a.telling.copy, vars: { publishesAt: a.publishesAt ?? "" } }
-  );
+  // two that is for this page. Both name the moment; no arm asks for an
+  // approval (owner 2026-10-08, issue 1337).
+  blocks.push({ block: "paragraph", text: a.telling.copy, vars: { publishesAt: a.publishesAt ?? "" } });
 
   // REQ-057 c9's destination clause, where the page is bound for a site
   // ReachKit does not serve. A `notice` and not a second paragraph: it is

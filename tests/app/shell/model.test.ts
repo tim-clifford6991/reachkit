@@ -80,8 +80,8 @@ describe("REQ-040 c2 — the waiting count", () => {
 
 describe("REQ-040 c3 — the mode and the next scheduled publish", () => {
   it("a scheduled publish carries the mode and the time, and no reason", () => {
-    const shell = assembleShell(facts({ mode: "copilot" }));
-    expect(shell.publishing.mode).toBe("copilot");
+    const shell = assembleShell(facts({ mode: "autopilot" }));
+    expect(shell.publishing.mode).toBe("autopilot");
     expect(shell.publishing.next).toEqual(new Date(Date.UTC(2026, 8, 16, 13, 0, 0)));
     expect(shell.publishing).not.toHaveProperty("because");
   });
@@ -123,11 +123,9 @@ describe("REQ-040 c4 — no publish scheduled carries exactly one resolved reaso
     expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "nothing_approved" });
   });
 
-  it("no time and no cause at all is ReachKit's own stop (ADR-061), never a blank", () => {
-    // "An unattributed empty day is ReachKit's own stop." There is no arm of
-    // PublishingState with neither a time nor a reason.
+  it("no time and no cause at all is unexplained — never a stop nobody stored (issue 1321)", () => {
     const shell = assembleShell(facts({ next: null }));
-    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "reachkit_stopped" });
+    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "unexplained" });
   });
 });
 

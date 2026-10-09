@@ -9,7 +9,9 @@
 // (`src/lib/publish/machine/table.ts`) and the calendar's own words for its
 // edges (`STOP_COMMAND`, `RESTART_COMMAND`) rather than restating them.
 //
-//   Approve    — the `→ approved` edge (§9: "Copilot = explicit approve only").
+//   (no Approve — owner 2026-10-08, issue 1337: autopilot only. The page
+//                goes live on its own; the customer can edit or stop it.
+//                `in_review → approved` is the system's edge.)
 //   Edit       — `isEditableDraft`: text that can still be approved, or a
 //                page the rules stopped before review (SPEC §7, #833,
 //                #1180), whose passing save takes it into review.
@@ -50,9 +52,6 @@ export function draftActionsFor(page: DraftStanding): readonly DraftAction[] {
   const actions: DraftAction[] = [];
   const { state } = page;
 
-  if (isTransition(state, "approved")) {
-    actions.push({ key: "draft.action.approve", kind: "command", command: "approve" });
-  }
   if (isEditable(page)) {
     actions.push({ key: "draft.action.edit", kind: "edit" });
   }

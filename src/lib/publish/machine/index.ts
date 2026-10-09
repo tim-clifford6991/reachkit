@@ -327,7 +327,7 @@ export function toMachineDraft(row: DraftRow): MachineDraft {
     claimRecheckOutstanding: false,
     told: toldOf(row.told),
     governing: {
-      mode: row.sites?.mode === "copilot" ? "copilot" : "autopilot",
+      mode: "autopilot",
       vetoHours: governingVetoHours(row.sites?.veto_hours),
       publishTime: publishTimeOf(row.sites?.publish_time ?? null),
       timezone: typeof row.sites?.timezone === "string" ? row.sites.timezone : null,

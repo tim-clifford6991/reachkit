@@ -30,10 +30,8 @@ import type { DayCell, PageOnDay } from "./month";
 /**
  * The ≤2-word form of every cause, total over the union.
  *
- * `reachkit_stopped` and `unattributed` share one key: ADR-061 point 2 says
- * they are the same stop, one with a record behind it and one without, and
- * two words have no room to carry that difference — the panel's three lines
- * do (`stoppedWorkStatement`).
+ * `unattributed` has its own key (SPEC §7, 2026-10-07, issue 1321): a day
+ * says ReachKit stopped only where a stop is recorded for it.
  *
  * The three held-by-setting arms share one too. The long forms differ
  * because each names the setting and where to change it; at two words they
@@ -49,7 +47,7 @@ export const EMPTY_SHORT_COPY_KEY: Readonly<Record<EmptyCause, CopyKey>> = Objec
   page_held: "calendar.empty.short.page-held",
   supply_unmeasured: "calendar.empty.short.supply-unmeasured",
   supply_exhausted: "calendar.empty.short.supply-exhausted",
-  unattributed: "calendar.empty.short.reachkit-stopped",
+  unattributed: "calendar.empty.short.unexplained",
 });
 
 /**

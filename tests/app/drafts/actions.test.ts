@@ -34,7 +34,6 @@ vi.mock("@/jobs/client", () => ({
   },
 }));
 
-import { POST as approve } from "@/app/api/drafts/[id]/approve/route";
 import { POST as veto } from "@/app/api/drafts/[id]/veto/route";
 import { POST as skip } from "@/app/api/drafts/[id]/skip/route";
 import type { Actor } from "@/lib/publish/types";
@@ -49,7 +48,7 @@ function context(id = "d1") {
 }
 
 function request(): Request {
-  return new Request("https://dev.reachkit.app/api/drafts/d1/approve", { method: "POST" });
+  return new Request("https://dev.reachkit.app/api/drafts/d1/veto", { method: "POST" });
 }
 
 function seed(state: string, over: Row = {}): void {
@@ -88,10 +87,19 @@ beforeEach(() => {
   session = { userId: "u1", siteId: "s1" };
 });
 
-describe('REQ-045 c4 — "can approve, edit or veto without leaving the view"', () => {
-  it("each of the three routes takes its own move, once, with a customer actor", async () => {
+describe('REQ-045 c4 — the customer can stop a page without leaving the view', () => {
+  // Owner, 2026-10-08 (issue 1337): "remove the approve button entirely …
+  // they can solely edit or stop the content".
+  it("there is no approve route: the customer's routes are veto and skip", () => {
+    const routes = readdirSync(ROUTE_DIR, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort();
+    expect(routes).toEqual(["skip", "veto"]);
+  });
+
+  it("each of the two routes takes its own move, once, with a customer actor", async () => {
     for (const [handler, to, reason] of [
-      [approve, "approved", "approve"],
       [veto, "skipped", "veto"],
       [skip, "skipped", "skip"],
     ] as const) {
@@ -123,26 +131,14 @@ describe('REQ-045 c4 — "can approve, edit or veto without leaving the view"', 
   });
 
   it("no response is a redirect — the customer never leaves the view", async () => {
-    const response = await approve(request(), context());
+    const response = await veto(request(), context());
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
   });
 });
 
 describe('REQ-057 c2 — "it publishes under this rule and no other"', () => {
-  it("approving is not publishing: the page rests in `approved` and nothing was delivered", async () => {
-    const response = await approve(request(), context());
-    expect(await response.json()).toEqual({ state: "approved" });
-    expect(db.rows("drafts")[0]?.state).toBe("approved");
-    // No publication row, and nothing written outside the one move — which
-    // records the customer's approval with it (issue #790).
-    expect(db.rows("publications")).toEqual([]);
-    expect(db.queries.filter((q) => q.verb !== "select")).toEqual([]);
-    expect(db.rows("drafts")[0]).toMatchObject({ approved_by: { kind: "customer", userId: "u1" } });
-    expect(db.rows("drafts")[0]?.approved_at).toEqual(expect.any(String));
-  });
-
-  it("the predicate is not reachable from a route — none of the four files imports the publishable leaf", () => {
+  it("the predicate is not reachable from a route — none of the three files imports the publishable leaf", () => {
     for (const file of routeFiles()) {
       const source = readFileSync(file, "utf8");
       expect(source, file).not.toContain("publish/publishable");
@@ -171,43 +167,12 @@ describe('REQ-057 c2 — "it publishes under this rule and no other"', () => {
   });
 });
 
-describe("issue #790 — an approved page is sent for its own publish moment, not the hourly sweep", () => {
-  it("approving sends one publish/execute stamped for the site's next publish time after the approval", async () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    // 10:15 UTC on 16 September; the site publishes at 09:00 UTC, so the
-    // first publish time at or after the approval is 09:00 the next day.
-    vi.setSystemTime(new Date("2026-09-16T10:15:00.000Z"));
-    try {
-      seed("in_review", { told: null });
-      db.seed("destinations", [{ id: "dest-1", site_id: "s1", kind: "hosted", deleted_at: null }]);
-      const response = await approve(request(), context());
-      expect(await response.json()).toEqual({ state: "approved" });
-    } finally {
-      vi.useRealTimers();
-    }
-    const due = new Date("2026-09-17T09:00:00.000Z");
-    expect(sent).toEqual([
-      {
-        name: "publish/execute",
-        data: { draftId: "d1", destinationId: "dest-1", dueAt: due.toISOString() },
-        at: due,
-      },
-    ]);
-  });
-
-  it("a veto, a skip and a refused approval send nothing", async () => {
+describe("no customer route sends a publish", () => {
+  it("a veto and a skip send nothing", async () => {
     db.seed("destinations", [{ id: "dest-1", site_id: "s1", kind: "hosted", deleted_at: null }]);
     await veto(request(), context());
     seed("in_review");
     await skip(request(), context());
-    seed("published");
-    await approve(request(), context());
-    expect(sent).toEqual([]);
-  });
-
-  it("a page with nowhere to go is approved and sends nothing — the hourly tick is still its backstop", async () => {
-    const response = await approve(request(), context());
-    expect(await response.json()).toEqual({ state: "approved" });
     expect(sent).toEqual([]);
   });
 });
@@ -215,7 +180,7 @@ describe("issue #790 — an approved page is sent for its own publish moment, no
 describe('REQ-057 c3 / REQ-056 c2 — "refused with the page\'s state unchanged"', () => {
   it("a move that is not one of the fifteen answers 409 with the state the page still holds", async () => {
     seed("published");
-    const response = await approve(request(), context());
+    const response = await veto(request(), context());
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
       refused: "not_a_transition",
@@ -226,8 +191,8 @@ describe('REQ-057 c3 / REQ-056 c2 — "refused with the page\'s state unchanged"
   });
 
   it("the two refusals are two keys, so a customer whose page already published is never told something is holding it", async () => {
-    // No edge these three routes can take carries a guard today
-    // (`in_review → approved` and the three `→ skipped` edges have empty
+    // No edge these two routes can take carries a guard today
+    // (the three `→ skipped` edges have empty
     // guard lists), so the `guard` arm is not reachable from here — which
     // is itself the property worth pinning: a route that could produce it
     // would be deciding something. The mapping is asserted on the two keys
@@ -242,7 +207,7 @@ describe('REQ-057 c3 / REQ-056 c2 — "refused with the page\'s state unchanged"
 
   it("the route performs no second attempt and no fallback transition", async () => {
     seed("published");
-    await approve(request(), context());
+    await veto(request(), context());
     expect(db.rpcCalls).toHaveLength(0);
     expect(db.rows("drafts")[0]?.transitions).toEqual([]);
   });
@@ -252,16 +217,16 @@ describe("the session and the draft's owner", () => {
   it("no session is 401, and nothing is read or written", async () => {
     session = null;
     db.queries.length = 0;
-    const response = await approve(request(), context());
+    const response = await veto(request(), context());
     expect(response.status).toBe(401);
     expect(db.queries).toHaveLength(0);
   });
 
   it("a draft belonging to another site answers exactly as one that does not exist", async () => {
     session = { userId: "u2", siteId: "s2" };
-    const other = await approve(request(), context());
+    const other = await veto(request(), context());
     session = { userId: "u1", siteId: "s1" };
-    const missing = await approve(request(), context("nope"));
+    const missing = await veto(request(), context("nope"));
     expect(other.status).toBe(404);
     expect(missing.status).toBe(404);
     expect(await other.json()).toEqual(await missing.json());
@@ -269,14 +234,14 @@ describe("the session and the draft's owner", () => {
 
   it("a session with no site row yet is answered as a draft that does not exist, and takes no transition", async () => {
     session = { userId: "u1", siteId: null };
-    const response = await approve(request(), context());
+    const response = await veto(request(), context());
     expect(response.status).toBe(404);
     expect(db.rows("drafts")[0]?.state).toBe("in_review");
   });
 
   it("a refused ownership check takes no transition", async () => {
     session = { userId: "u2", siteId: "s2" };
-    await approve(request(), context());
+    await veto(request(), context());
     expect(db.rows("drafts")[0]?.state).toBe("in_review");
   });
 });
@@ -311,11 +276,11 @@ describe("the adapters hold no engine logic", () => {
     const spy = vi.spyOn(console, "log").mockImplementation((first: unknown) => {
       if (typeof first === "string") lines.push(first);
     });
-    await approve(request(), context());
+    await veto(request(), context());
     spy.mockRestore();
     const request_line = lines.map((line) => JSON.parse(line) as Record<string, unknown>)
       .find((line) => line.event === "request");
-    expect(request_line?.routeId).toBe("POST /api/drafts/{id}/approve");
+    expect(request_line?.routeId).toBe("POST /api/drafts/{id}/veto");
   });
 });
 

@@ -24,15 +24,14 @@ import type { DraftView } from "../types";
 import { nextPublishTimeAtOrAfter } from "../settings/clock";
 import { settingsOf } from "../settings/pair";
 
-/** The four conjuncts, closed. A fifth would be a change to criterion 2.
+/** The three conjuncts, closed. A fourth would be a change to criterion 2.
+ *  (`unapproved`, copilot's arm, left with copilot: owner 2026-10-08,
+ *  issue 1337.)
  *
- *  - `window` — autopilot with no veto window running, so nothing has yet
- *    expired.
- *  - `unapproved` — copilot without an explicit approval. Under copilot,
- *    expiry is not an approval (criterion 3).
+ *  - `window` — no veto window running, so nothing has yet expired.
  *  - `unsaved_edit` — criterion 2's third conjunct.
  *  - `claim_recheck` — criterion 2's fourth (REQ-053 c5's state). */
-export type NotPublishable = "window" | "unapproved" | "unsaved_edit" | "claim_recheck";
+export type NotPublishable = "window" | "unsaved_edit" | "claim_recheck";
 
 /** Not a fifth conjunct: the absence of the one input criterion 2's final
  *  clause needs. "It publishes at the first publish time" cannot be
@@ -76,17 +75,12 @@ export function becomesPublishable(d: DraftView): PublishableAnswer {
  * "Its veto window has expired **or** it was explicitly approved" — the
  * moment the page became publishable, or the reason it has not.
  *
- * The approval is checked first because it is unconditional: an approved
- * page is publishable under either mode, and under copilot it is the only
- * way. Under copilot the first disjunct is unconditionally false, so an
- * expired window answers `unapproved` and never `publishable` — criterion
- * 3, written as the absence of a branch rather than as a branch that
- * happens to be right.
+ * The approval is the system's own (`closeExpiredWindows`): the window
+ * ending is what approves a page. No customer approves one.
  */
 function becameAt(d: DraftView): Date | NotPublishable {
   if (d.approvedAt !== null) return d.approvedAt;
-  if (d.governing.mode === "copilot") return "unapproved";
-  // Autopilot: the deadline is the moment the window expires, and at a
+  // The deadline is the moment the window expires, and at a
   // window of zero the deadline is the moment the draft entered review, so
   // the page is publishable at once (criterion 7).
   if (d.vetoDeadline === null) return "window";

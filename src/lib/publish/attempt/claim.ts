@@ -175,7 +175,7 @@ export async function claim(a: ClaimArgs): Promise<ClaimResult> {
   }
 
   // 2. The row, before any destination call.
-  const mode = draft.approved_at !== null || draft.sites?.mode === "copilot" ? "approved" : "autopilot";
+  const mode = draft.approved_at !== null ? "approved" : "autopilot";
   const existing = await readPublication(a.draftId, a.destination);
 
   if (existing === null) {

@@ -84,13 +84,17 @@ export const LAWS_COPY = Object.freeze({
   ],
   "next-publish.paused": ["Publishing is off.", { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" }],
   "next-publish.nothing-approved": [
-    "Nothing approved yet.",
+    "No page is ready yet.",
     { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" },
   ],
   "next-publish.none-planned": [
     "No page planned yet.",
     { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" },
   ],
+  // No publish is scheduled and no cause is recorded (SPEC §7, 2026-10-07,
+  // issue 1321). Not a stop. Drafted under issue 759's ruling; the owner
+  // corrects it.
+  "next-publish.unexplained": ["No page is scheduled yet.", { law: "next-publish", slots: {}, fixedBy: "issue 1321" }],
   // 2026-09-06, issue #17: value moved from "" to `TODO(copy)`, on exactly
   // the footing the sibling key below records for 2026-09-05. §4.6's draft
   // view renders a *written* page's body, which is model text and therefore
@@ -174,7 +178,7 @@ export const LAWS_COPY = Object.freeze({
    *  it knows rather than a word it would have to work out. */
   "shell.waiting.head": ["Ready to read", { slots: {}, fixedBy: "issue 1337" }],
   "shell.waiting.goes-live": [
-    "Goes live on its own {when}. Read it or stop it until then.",
+    "Goes live on its own {when}. Edit or stop it until then.",
     { slots: { when: "date" }, fixedBy: "issue 1337" },
   ],
   /** SPEC §4 (2026-09-20) — the side panel's two shortcuts. Each is drawn

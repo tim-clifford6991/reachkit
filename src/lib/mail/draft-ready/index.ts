@@ -174,9 +174,7 @@ export async function sendDraftReadyMail(a: {
     // SPEC §8 (2026-09-20, #933): *Read the full page* is a deep link to
     // the page's own address in the app — the same one the calendar opens.
     readHref: readHref(a.draftId),
-    ...(telling.kind === "approval_only"
-      ? {}
-      : { publishesAt: writePublishesAt(telling.publishesAt, account.timeZone) }),
+    publishesAt: writePublishesAt(telling.publishesAt, account.timeZone),
     ...(telling.kind === "interval" && telling.stopAction.token !== ""
       ? { stopHref: stopHref(telling.stopAction.token) }
       : {}),

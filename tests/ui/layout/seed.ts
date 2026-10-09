@@ -205,7 +205,7 @@ const SEEDED_DRAFT_ID = "00000000-0000-0000-0000-0000000000d1";
  * settings a customer never chose are what this seed exists to stop being
  * indistinguishable from settings they did.
  *
- * `copilot` rather than `autopilot`, and a window that is not 24 hours, so
+ * A window that is not 24 hours (autopilot is the only mode, issue 1337), so
  * the pair sentence the screen writes (`explainPair`) is a different one
  * from the reserved pass's and both arms get measured.
  */
@@ -224,7 +224,7 @@ interface PublishingRow {
 }
 
 /** UI-SPEC S13's sidebar draws the mode as **Autopilot** with the switch
- *  on, so the week-0 account's row says so. `LIVE_PUBLISHING` is copilot —
+ *  on, so the week-0 account's row says so. `LIVE_PUBLISHING` differs in its window —
  *  which is the right arm for the live account's own screens, and the wrong
  *  picture for this one. Everything else is shared: the two accounts differ
  *  in what has been measured, not in how they are set up. */
@@ -256,7 +256,7 @@ const PUBLISHER_PUBLISHING = Object.freeze({
 });
 
 const LIVE_PUBLISHING = Object.freeze({
-  mode: "copilot",
+  mode: "autopilot",
   vetoHours: 36,
   publishTime: "07:30",
   enabled: true,
