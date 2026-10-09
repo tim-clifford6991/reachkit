@@ -193,24 +193,19 @@ describe("REQ-092 c1, c2 and c4 — a stopped day carries all three lines", () =
     expect(resumes).not.toBe("stopped.work.no-time-promised");
   });
 
-  it("an unattributed day is the same stop said without a record, and still carries three lines", () => {
-    // ADR-061 point 2. Nothing is known, so c2's arm is "nothing is needed"
-    // and c4's is "no time is promised" — both true statements, and c4's
-    // "never neither" is exactly what this arm satisfies.
+  it("a day with no stop recorded for it says none of the stop's lines (issue 1321)", () => {
+    // SPEC §7, 2026-10-07: the day nobody can account for has its own line.
     const model = assembleMonth(facts(), MONTH);
     const cell = cellFor(model, "2026-09-16") as DayCell;
     expect(cell.empty?.cause).toBe("unattributed");
 
     const root = render(<DayPanelView cell={cell} timeZone={ZONE} stopped={null}  onClose={() => undefined} />);
     expect(root.querySelector('[data-testid="day-empty-line"]')?.textContent).toBe(
-      "stopped.work.line"
+      "calendar.empty.unexplained"
     );
-    expect(root.querySelector('[data-testid="day-stopped-needs"]')?.textContent).toBe(
-      "stopped.work.needs-nothing"
-    );
-    expect(root.querySelector('[data-testid="day-stopped-resumes"]')?.textContent).toBe(
-      "stopped.work.no-time-promised"
-    );
+    expect(root.textContent).not.toContain("stopped.work");
+    expect(root.querySelector('[data-testid="day-stopped-needs"]')).toBeNull();
+    expect(root.querySelector('[data-testid="day-stopped-resumes"]')).toBeNull();
   });
 
   it("a day the calendar accounts for itself carries its own one line and no stop lines", () => {
@@ -233,7 +228,8 @@ describe("REQ-092 c1, c2 and c4 — a stopped day carries all three lines", () =
   });
 
   it("the grid cell states c1's line and no more — the panel is where c2 and c4 are read", () => {
-    const model = assembleMonth(facts({ stop: STOP, stoppedDays: ["2026-09-16"] }), MONTH);
+    // The panel opens on today, so today is the day the stop is recorded for.
+    const model = assembleMonth(facts({ stop: STOP, stoppedDays: ["2026-09-15"] }), MONTH);
     const root = render(withNuqs(<CalendarView {...shown(model)} />));
     const text = root.textContent ?? "";
     expect(text).toContain("stopped.work.line");
@@ -245,19 +241,17 @@ describe("REQ-092 c1, c2 and c4 — a stopped day carries all three lines", () =
 
 describe("stopForEmptyDay — two arms, and no invention in either", () => {
   it("carries the site's own stop where there is one", () => {
-    expect(stopForEmptyDay({ cause: "reachkit_stopped", stop: STOP, since: NOW })).toBe(STOP);
+    expect(stopForEmptyDay({ stop: STOP, since: NOW })).toBe(STOP);
   });
 
   it("answers a day with no record behind it with the two true statements", () => {
-    for (const cause of ["reachkit_stopped", "unattributed"] as const) {
-      const stop = stopForEmptyDay({ cause, stop: null, since: NOW });
-      expect(stop.needs).toEqual({ kind: "nothing" });
-      expect(stop.resumes).toEqual({ promised: false });
-      // A partial pass is REQ-092 c6's page-produced-anyway, and every day
-      // reaching here produced none.
-      expect(stop.partial).toBe(false);
-      expect(stop.since).toBe(NOW);
-    }
+    const stop = stopForEmptyDay({ stop: null, since: NOW });
+    expect(stop.needs).toEqual({ kind: "nothing" });
+    expect(stop.resumes).toEqual({ promised: false });
+    // A partial pass is REQ-092 c6's page-produced-anyway, and every day
+    // reaching here produced none.
+    expect(stop.partial).toBe(false);
+    expect(stop.since).toBe(NOW);
   });
 });
 

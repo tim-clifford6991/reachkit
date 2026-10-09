@@ -99,7 +99,12 @@ describe("each cause has its own line, and the line is chosen in one place", () 
 
   it("reachkit_stopped has no otherwise entry — it is passed as the stop itself", () => {
     expect(Object.keys(NEXT_PUBLISH_OTHERWISE)).not.toContain("reachkit_stopped");
-    expect(Object.keys(NEXT_PUBLISH_OTHERWISE)).toHaveLength(NO_PUBLISH_PRECEDENCE.length - 1);
+    // The three causes that are not the stop, and `unexplained` — no cause
+    // at all, which is its own line and never the stop's (issue 1321).
+    expect(Object.keys(NEXT_PUBLISH_OTHERWISE)).toHaveLength(NO_PUBLISH_PRECEDENCE.length);
+    expect(
+      nextPublishStatement({ stopped: false, otherwise: { tag: NEXT_PUBLISH_OTHERWISE.unexplained } }).key
+    ).toBe("next-publish.unexplained");
   });
 
   it("a stop resolves to next-publish.stopped — REQ-092 c7's own line", () => {
