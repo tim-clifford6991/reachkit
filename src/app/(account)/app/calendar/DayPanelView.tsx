@@ -316,7 +316,6 @@ export function DayPanelView(p: {
       cell.empty !== null && isLawCause(cell.empty.cause)
         ? stoppedWorkStatement(
             stopForEmptyDay({
-              cause: cell.empty.cause,
               stop: p.stopped,
               since: dayMarker(cell.day),
             }),

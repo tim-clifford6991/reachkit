@@ -106,7 +106,7 @@ describe("REQ-043 c2 — every rendered page carries its stage chip", () => {
 });
 
 describe("REQ-043 c3 and ADR-061 — the two grey lines are never swapped", () => {
-  it("an unattributed empty date renders the stopped-work cause and never the exhausted-supply one", () => {
+  it("an unattributed empty date renders its own words — never the stopped-work ones, never the exhausted-supply one", () => {
     const facts: CalendarFacts = {
       ...FIXTURE_CALENDAR_FACTS,
       drafts: [],
@@ -122,7 +122,11 @@ describe("REQ-043 c3 and ADR-061 — the two grey lines are never swapped", () =
     // line resolved from rather than the owner's wording. On the card that
     // is the two-word form (issue 930); `law-lines.test.tsx` asserts the
     // panel's three lines.
-    expect(text).toContain(EMPTY_SHORT_COPY_KEY.reachkit_stopped);
+    expect(text).toContain(EMPTY_SHORT_COPY_KEY.unattributed);
+    // SPEC §7, 2026-10-07 (issue 1321): no stop is recorded for the day, so
+    // neither of the stop's forms is on the screen.
+    expect(text).not.toContain(EMPTY_SHORT_COPY_KEY.reachkit_stopped);
+    expect(text).not.toContain("stopped.work.line");
     // The exhausted-supply key is owner-owed and empty, so the only way it
     // could appear is if the resolver had reached it — which is exactly
     // what this asserts it did not.

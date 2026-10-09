@@ -22,6 +22,12 @@ export type NoPublishReason =
   | "nothing_approved"
   | "nothing_planned";
 
+/** What the card states where no publish is scheduled: one of the four
+ *  causes, or `unexplained` where none of them holds. That last one is not
+ *  a stop: the card says ReachKit stopped only where a stop is stored
+ *  (SPEC §7, 2026-10-07, issue 1321). */
+export type NoPublishBecause = NoPublishReason | "unexplained";
+
 /** REQ-040 c4's four causes in the one order they are ever resolved in.
  *  `reachkit_stopped` is first: REQ-092 c7 requires that where ReachKit
  *  stopped its own work, that is the reason stated, whatever else is also
@@ -50,9 +56,10 @@ export type NoPublishCauses = Record<NoPublishReason, boolean>;
  *  stop is passed as the `stopped` flag, and the flag is what the function
  *  reads. */
 export const NEXT_PUBLISH_OTHERWISE: Record<
-  Exclude<NoPublishReason, "reachkit_stopped">,
+  Exclude<NoPublishBecause, "reachkit_stopped">,
   NextPublishCause
 > = {
+  unexplained: "unexplained",
   publishing_paused: "paused",
   nothing_approved: "nothing-approved",
   nothing_planned: "none-planned",

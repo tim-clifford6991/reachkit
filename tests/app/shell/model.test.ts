@@ -123,11 +123,9 @@ describe("REQ-040 c4 — no publish scheduled carries exactly one resolved reaso
     expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "nothing_approved" });
   });
 
-  it("no time and no cause at all is ReachKit's own stop (ADR-061), never a blank", () => {
-    // "An unattributed empty day is ReachKit's own stop." There is no arm of
-    // PublishingState with neither a time nor a reason.
+  it("no time and no cause at all is unexplained — never a stop nobody stored (issue 1321)", () => {
     const shell = assembleShell(facts({ next: null }));
-    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "reachkit_stopped" });
+    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "unexplained" });
   });
 });
 
