@@ -230,7 +230,7 @@ export const CALENDAR_COPY = Object.freeze({
   ],
   "calendar.why.band": ["Winnability", { slots: {}, fixedBy: "issue 867" }],
   // Where the AI engines stood on this question when the pass measured it.
-  "calendar.why.engines": ["AI answers", { slots: {}, fixedBy: "issue 867" }],
+  "calendar.why.engines": ["AI Visibility", { slots: {}, fixedBy: "issue 867" }],
   // Issue 930: each standing is a chip beside its engine rather than half
   // of a composed phrase, so each one is now a statement of its own and is
   // capitalised as one.

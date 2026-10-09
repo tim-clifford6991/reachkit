@@ -131,7 +131,7 @@ export const META_COPY = Object.freeze({
      PR body so the owner can correct any of them. */
   "meta.app.overview.title": ["Overview — ReachKit", { slots: {}, fixedBy: "issue 945" }],
   "meta.app.search.title": ["Search — ReachKit", { slots: {}, fixedBy: "issue 945" }],
-  "meta.app.ai-answers.title": ["AI answers — ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.ai-answers.title": ["AI Visibility — ReachKit", { slots: {}, fixedBy: "issue 945" }],
   "meta.app.rivals.title": ["Rivals — ReachKit", { slots: {}, fixedBy: "issue 945" }],
   "meta.app.plan.title": ["Plan — ReachKit", { slots: {}, fixedBy: "issue 945" }],
   "meta.app.draft.title": ["Your page — ReachKit", { slots: {}, fixedBy: "issue 945" }],

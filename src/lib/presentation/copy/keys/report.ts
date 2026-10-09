@@ -223,7 +223,7 @@ export const REPORT_COPY = Object.freeze({
   ],
 
   // ── Module 2, left card — AI answers (REQ-006) ────────────────────────
-  "ai-answers.title": ["AI answers", { slots: {}, fixedBy: "REQ-006 c1" }],
+  "ai-answers.title": ["AI Visibility", { slots: {}, fixedBy: "REQ-006 c1" }],
   "ai-answers.source": ["Google AI answers · {date}", { slots: { date: "text" }, fixedBy: "REQ-006 c9" }],
   // Issue 715: SPEC §2 — a category correction reuses the AI answers already
   // read, "and says so". Owner-owed.
@@ -432,7 +432,7 @@ export const REPORT_COPY = Object.freeze({
   "method.missing-pages.title": ["Write the missing pages", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.missing-pages.body": ["Each missing page answers one question your market asks that names rivals and not you. Take the question, answer it plainly in the first paragraph, then back the answer with facts from your own site — numbers, dates, names, with a link to where each one lives. Publish it at a plain address on your own domain and link to it from a page that already ranks. One page a day is a good pace; one a week still moves the number. ReachKit writes these for subscribers, but nothing here needs a subscription.", { slots: {}, fixedBy: "REQ-009 c6" }],
   "method.unquotable-pages.title": ["Make your pages quotable", { slots: {}, fixedBy: "REQ-009 c6" }],
-  "method.unquotable-pages.body": ["AI answers quote pages that answer a question directly. For each page of yours that has search value but reads like a brochure: turn its headings into the questions a buyer would ask, put a direct answer of two or three sentences right under each heading, and add evidence — a figure, a date, a source you link to. Keep the page’s address; rewriting in place keeps whatever it already ranks for.", { slots: {}, fixedBy: "REQ-009 c6" }],
+  "method.unquotable-pages.body": ["AI answers quote pages that answer a question directly. Writing for that is sometimes called GEO, generative engine optimisation. For each page of yours that has search value but reads like a brochure: turn its headings into the questions a buyer would ask, put a direct answer of two or three sentences right under each heading, and add evidence — a figure, a date, a source you link to. Keep the page’s address; rewriting in place keeps whatever it already ranks for.", { slots: {}, fixedBy: "REQ-009 c6" }],
 
   // ── Module 5, the free page card (REQ-010, BUILD §4.2's trade) ────────
   "free-page.title": ["Your first page", { slots: {}, fixedBy: "REQ-010 c1" }],
@@ -660,7 +660,7 @@ export const REPORT_COPY = Object.freeze({
   "landing.inside.title": ["Inside ReachKit", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.inside.tab.week": ["Your week", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.inside.tab.score": ["Your score", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.inside.tab.answers": ["AI answers", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.inside.tab.answers": ["AI Visibility", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.inside.tab.page": ["Your page", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   /** *AI answers*: the line over the answer, and the one under it. */
   "landing.inside.answers.head": ["What Google’s AI Overview says now", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
@@ -677,9 +677,9 @@ export const REPORT_COPY = Object.freeze({
   ],
   /** *Why you should care*: four features, each a title, a line and a
    *  small drawing whose words follow it. */
-  "landing.feature.ai.title": ["Get named in AI answers", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.ai.title": ["AI Visibility: get named by AI", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.ai.body": [
-    "We put about 25 questions your buyers ask to Google AI Mode and ChatGPT every week, twice each, and show how often they name you and which rivals they name instead. Then we write the page that earns the mention.",
+    "We put about 25 questions your buyers ask to Google AI Mode and ChatGPT every week, twice each, and show how often they name you and which rivals they name instead. Then we write the page that earns the mention. Some call this GEO, generative engine optimisation.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
   "landing.feature.ai.meter": ["named in {named} of {total} answers this week", { slots: { named: "text", total: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" }],
