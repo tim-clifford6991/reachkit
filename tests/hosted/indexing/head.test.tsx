@@ -57,7 +57,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
       logoType: state.logoType,
       line: state.line,
     }),
-    hostedAddressState: async () => "none",
+    hostedAddress: async () => ({ state: "none", publicationId: null }),
   };
 });
 

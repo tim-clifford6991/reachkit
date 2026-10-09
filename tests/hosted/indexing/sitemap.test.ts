@@ -31,7 +31,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     livePagesForSite: async (siteId: string) => pagesBySite.get(siteId) ?? [],
     hostedIdentity: async (a: { domain: string }) => ({ name: a.domain, logoType: null, line: null }),
     livePageBySlug: async () => null,
-    hostedAddressState: async () => "none",
+    hostedAddress: async () => ({ state: "none", publicationId: null }),
   };
 });
 

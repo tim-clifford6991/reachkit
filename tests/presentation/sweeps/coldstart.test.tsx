@@ -287,7 +287,12 @@ describe("REQ-091 c2 — every route renders for a domain that ranks for nothing
     // the shape of each URL, not the filled dynamic segments the other one
     // substitutes. A route either walk misses fails here.
     const layout = await import("../../ui/layout/routes");
-    const mine = enumerateRoutes(APP_ROOT);
+    // The cached hosted article (issue 1242) is rendered here by its own
+    // row and is not a row of the layout sweep's: no browser can ask for
+    // its path, and that sweep reaches it through the live page's address.
+    const mine = enumerateRoutes(APP_ROOT).filter(
+      (r) => !r.rel.startsWith("(hosted)/hosted-live/")
+    );
     const theirs = layout.enumerateRoutes(APP_ROOT);
     expect(mine.length).toBe(theirs.length);
     expect(mine.map((r) => r.url.split("/").length).sort()).toEqual(

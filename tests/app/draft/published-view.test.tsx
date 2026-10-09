@@ -125,7 +125,7 @@ describe("#931 — one serialiser: the viewer's body is the hosted page's body",
     // mark rule. Both files make the same three calls on the same map, and
     // the viewer names no second class table.
     const VIEWER = "src/app/(account)/app/draft/[draftId]/PublishedPageView.tsx";
-    const HOSTED = "src/app/(hosted)/hosted-page/[[...slug]]/page.tsx";
+    const HOSTED = "src/app/(hosted)/hosted-page/[[...slug]]/article.tsx";
     for (const file of [VIEWER, HOSTED]) {
       const code = codeOf(file);
       for (const call of ["parseMarkdown(", "markPassage(", "toHtml(", "HOSTED_BODY_CLASSES"]) {

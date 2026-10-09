@@ -111,6 +111,9 @@ export async function hostedModuleMock(
       slug === HOSTED_SWEEP_SLUG ? HOSTED_SWEEP_PAGE : null,
     livePagesForSite: async () => [HOSTED_SWEEP_PAGE],
     hostedIdentity: async (a: { domain: string }) => ({ name: a.domain, logoType: null, line: null }),
-    hostedAddressState: async () => "none",
+    hostedAddress: async () => ({ state: "none", publicationId: null }),
+    // The cached route tags its render through Next's own cache, which a
+    // sweep has none of.
+    taggedForHosted: async () => undefined,
   };
 }

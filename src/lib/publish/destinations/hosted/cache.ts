@@ -5,27 +5,29 @@
 // "Cache invalidation on publish and on unpublish is immediate; a 410 must
 // not be served from a stale cache and a takedown must not wait on a TTL."
 //
-// **Today the edge caches nothing, and that is the strongest form of the
-// promise, not a weaker one.** `src/app/(hosted)/**` declares
-// `dynamic = "force-dynamic"` and `revalidate = 0` on every surface it
-// serves, so a publication row that changes is read again on the very next
-// request and no TTL stands between a takedown and a 410. The tags below
-// are still named, and still cleared here, because the moment any hosted
-// read becomes cacheable the invalidation has to already exist at the call
-// sites — a cache added later with no invalidation is exactly the shape
-// that serves a removed page for a day.
+// **One thing is cached: a live article** (SPEC §7, 2026-10-09, issue
+// 1242), by `src/app/(hosted)/hosted-live/[host]/[slug]`. It carries the two
+// tags below, so a publish and an unpublish clear it at the moment they
+// happen. The promise above does not rest on that alone: `src/middleware.ts`
+// decides the 410 on every request, before the cache, so a page taken down
+// is not served from a cached copy even where no tag was cleared. Every
+// other hosted surface — the index, the sitemap, the robots document, the
+// feed, the 410 — is still rendered per request.
 //
-// Next 16's `use cache` is the way a read here would be tagged, and it is a
-// Cache Components feature gated on `cacheComponents` in `next.config.ts`
-// — a whole-application switch, not this issue's to throw. `unstable_cache`
-// would tag one read without it and is documented as "replaced by `use
-// cache` in Next.js 16", so it is not used.
+// **The tags are put on the render with `unstable_cache`.** Without Cache
+// Components a render is tagged by a tagged `fetch` or by this call and by
+// nothing else (`caching-without-cache-components.md`), and the page reads
+// its rows through the Supabase client, not `fetch`. `use cache` and
+// `cacheTag` would replace it, and they are gated on `cacheComponents` in
+// `next.config.ts` — a whole-application switch, not this module's to
+// throw. So `taggedForHosted` caches nothing worth the name: its value is
+// `null`, and what it is called for is the tags.
 //
 // **`{ expire: 0 }`, never the deprecated one-argument form and never
 // `"max"`.** The docs: "`{ expire: 0 }`: Stale content is never served, so
 // the next request is a blocking revalidate/cache miss. Use it when the
 // caller needs the data gone immediately." A takedown is that caller.
-import { revalidateTag } from "next/cache";
+import { revalidateTag, unstable_cache } from "next/cache";
 
 /** The two tags the hosted surface reads under. Named here rather than in
  *  `src/app/(hosted)/` because the callers are the publish and unpublish
@@ -38,6 +40,17 @@ export const tags = Object.freeze({
   /** One published page. */
   page: (publicationId: string): string => `hosted:page:${publicationId}`,
 });
+
+/**
+ * Puts one page's two tags on the render that awaits this, so
+ * `invalidateHosted` clears that render. See this file's header for why it
+ * is this call.
+ */
+export async function taggedForHosted(a: { siteId: string; publicationId: string }): Promise<void> {
+  await unstable_cache(async () => null, ["hosted-tags", a.siteId, a.publicationId], {
+    tags: [tags.site(a.siteId), tags.page(a.publicationId)],
+  })();
+}
 
 /**
  * Clears everything the edge could be holding for one site, and — where the
@@ -54,8 +67,9 @@ export function invalidateHosted(a: { siteId: string; publicationId?: string }):
     try {
       revalidateTag(tag, { expire: 0 });
     } catch {
-      // See above: outside a request scope there is no cache to clear, and
-      // the edge is uncached in any case. Nothing is swallowed that a
+      // See above: outside a request scope there is no cache to reach.
+      // The cached article is a minute old at most, and the middleware
+      // decides a takedown before the cache, so nothing is swallowed that a
       // caller could act on.
     }
   };

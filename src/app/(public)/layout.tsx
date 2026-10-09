@@ -54,6 +54,13 @@ import { appEntry } from "./_chrome/session";
 import { Footer } from "./_chrome/Footer";
 import { ENTER_PUBLIC } from "@/ui/motion";
 
+/** Every screen under this layout is rendered for its own request, so it
+ *  carries that request's nonce (issue #331). The reason is the root
+ *  layout's, and so was this declaration until issue 1242: Next applies a
+ *  layout's `force-dynamic` to every route under it, and one `(hosted)`
+ *  route is cached. */
+export const dynamic = "force-dynamic";
+
 export default async function PublicLayout({
   children,
 }: {

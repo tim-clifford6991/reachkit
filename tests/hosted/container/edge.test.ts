@@ -36,10 +36,13 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     livePageBySlug: async (siteId: string, slug: string) =>
       (live.get(siteId) ?? []).includes(slug) ? { slug } : null,
     // Live first, as the store answers it: a re-published slug is live.
-    hostedAddressState: async (siteId: string, slug: string) => {
+    hostedAddress: async (siteId: string, slug: string) => {
       await addressRead.wait();
-      if ((live.get(siteId) ?? []).includes(slug)) return "live";
-      return (everLive.get(siteId) ?? []).includes(slug) ? "retired" : "none";
+      if ((live.get(siteId) ?? []).includes(slug)) {
+        return { state: "live", publicationId: `pub-${slug}` };
+      }
+      const state = (everLive.get(siteId) ?? []).includes(slug) ? "retired" : "none";
+      return { state, publicationId: null };
     },
   };
 });
@@ -72,10 +75,10 @@ beforeEach(() => {
 });
 
 describe("every path on a customer's own domain lands in the hosted group", () => {
-  it("a live page is rewritten to the hosted catch-all, not redirected", async () => {
+  it("a live page is rewritten to the cached article, not redirected", async () => {
     const response = await middleware(requestTo("/a-page", "content.example.com"));
     expect(response.status).toBeLessThan(300);
-    expect(rewrittenTo(response)).toBe("/hosted-page/a-page");
+    expect(rewrittenTo(response)).toBe("/hosted-live/content.example.com/a-page");
     expect(response.headers.get("Location")).toBeNull();
   });
 
@@ -132,6 +135,8 @@ describe("every path on a customer's own domain lands in the hosted group", () =
     // the same record, served under `content.` and 404 under `blog.`.
     for (const host of ["blog.example.com", "news.example.com", "learn.acme.test"]) {
       const response = await middleware(requestTo("/a-page", host));
+      // No row carries these hosts in this suite, so none of them is a site
+      // and none is sent to the cached article.
       expect(rewrittenTo(response), host).toBe("/hosted-page/a-page");
     }
   });
@@ -151,7 +156,7 @@ describe("410 rather than 404, and only where a page was actually taken down", (
   it("a re-published page is not gone: the live check comes first", async () => {
     live.set("site-1", ["taken-down"]);
     const response = await middleware(requestTo("/taken-down", "content.example.com"));
-    expect(rewrittenTo(response)).toBe("/hosted-page/taken-down");
+    expect(rewrittenTo(response)).toBe("/hosted-live/content.example.com/taken-down");
   });
 
   it("a site whose access ended is gone at every address on it", async () => {
@@ -195,6 +200,83 @@ describe("a cold function's slow read (issue 1194)", () => {
   });
 });
 
+describe("the cached article is reached only by a page found live on this request (issue 1242)", () => {
+  const CACHED = "/hosted-live/content.example.com/a-page";
+
+  it("a live page is sent to the address its host and slug name", async () => {
+    // Whatever spelling the client sent, the path carries the host the site
+    // is served at, so one page has one cached copy.
+    for (const host of ["content.example.com", "CONTENT.Example.com:443", "content.example.com."]) {
+      expect(rewrittenTo(await middleware(requestTo("/a-page", host))), host).toBe(CACHED);
+    }
+  });
+
+  it("a page taken down is not: the very next request is the 410", async () => {
+    expect(rewrittenTo(await middleware(requestTo("/a-page", "content.example.com")))).toBe(CACHED);
+    live.set("site-1", []);
+    everLive.set("site-1", ["a-page"]);
+    expect(rewrittenTo(await middleware(requestTo("/a-page", "content.example.com")))).toBe(
+      "/hosted-gone"
+    );
+  });
+
+  it("a site whose access ended is not: the very next request is the 410", async () => {
+    expect(rewrittenTo(await middleware(requestTo("/a-page", "content.example.com")))).toBe(CACHED);
+    serving.set("site-1", { serve: false, because: "retention_elapsed" });
+    expect(rewrittenTo(await middleware(requestTo("/a-page", "content.example.com")))).toBe(
+      "/hosted-gone"
+    );
+  });
+
+  it("a host that moved is not: the old host goes to the uncached route, which resolves it and 404s", async () => {
+    expect(rewrittenTo(await middleware(requestTo("/a-page", "content.example.com")))).toBe(CACHED);
+    // The site is served at another host now; no row claims the old one.
+    sites.delete("example.com");
+    expect(rewrittenTo(await middleware(requestTo("/a-page", "content.example.com")))).toBe(
+      "/hosted-page/a-page"
+    );
+  });
+
+  it("a read that never answers is not: the uncached route decides for itself", async () => {
+    vi.useFakeTimers();
+    try {
+      addressRead.wait = () => new Promise(() => {});
+      const response = middleware(requestTo("/a-page", "content.example.com"));
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(rewrittenTo(await response)).toBe("/hosted-page/a-page");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("the cached address cannot be asked for by path on a ReachKit host, signed in or not", async () => {
+    const response = await middleware(requestTo(CACHED, "localhost"));
+    expect(response.status).toBe(404);
+    expect(rewrittenTo(response)).toBeNull();
+  });
+
+  it("nor on a customer's host, where it is one more path under the uncached route", async () => {
+    expect(rewrittenTo(await middleware(requestTo(CACHED, "content.example.com")))).toBe(
+      `/hosted-page${CACHED}`
+    );
+  });
+
+  it("it is answered under a policy that runs no script, and the render is handed no nonce", async () => {
+    const cached = await middleware(requestTo("/a-page", "content.example.com"));
+    const policy = cached.headers.get("content-security-policy") ?? "";
+    expect(policy).toContain("script-src 'none'");
+    expect(policy).not.toContain("nonce-");
+    // What the render is handed: Next lists the forwarded request headers
+    // here, and the policy is not among them.
+    expect(cached.headers.get("x-middleware-override-headers") ?? "").not.toContain(
+      "content-security-policy"
+    );
+    // The uncached route still gets this request's nonce.
+    const uncached = await middleware(requestTo("/", "content.example.com"));
+    expect(uncached.headers.get("content-security-policy") ?? "").toMatch(/'nonce-[^']+'/);
+  });
+});
+
 describe("the runtime this file is built for", () => {
   it("middleware runs on Node.js, because the hosted edge asks a question the Edge runtime cannot carry", async () => {
     // `hostedServingState` is reached through `@/lib/account/billing` —
@@ -217,7 +299,7 @@ describe("the decision itself", () => {
 
   it("it fails towards rendering, never towards a 410", async () => {
     const hosted = await import("@/lib/publish/destinations/hosted");
-    const spy = vi.spyOn(hosted, "hostedAddressState").mockRejectedValue(new Error("unreachable"));
+    const spy = vi.spyOn(hosted, "hostedAddress").mockRejectedValue(new Error("unreachable"));
     try {
       await expect(hostedAnswer("content.example.com", "/taken-down")).resolves.toBe("page");
     } finally {
