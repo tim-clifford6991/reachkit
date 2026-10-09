@@ -1,10 +1,7 @@
 // tests/vendors/labs.test.ts — BUILD §6.3's three Labs endpoints, their
 // BUILD §6.1 prices and their BUILD §6.4 cache windows (issue #23).
 //
-// Every row here is one of BP-008's stated behaviours (archived at
-// `archive/sdlc-factory-2026-09-04/corpus/docs/blueprints/BP-008.md`,
-// `## Error & edge behavior` and decision 4), read through the seam
-// BUILD §6.5 defines: a call that returns nothing is `unmeasured`, a call
+// Every row here is one Labs error or edge: a call that returns nothing is `unmeasured`, a call
 // that returns zero rows is `zero` and is billed, and neither is ever a
 // throw.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";

@@ -32,7 +32,7 @@
 -- the `auth.users` row after it (`src/lib/account/lifecycle/purge.ts`), so a
 -- cascade nobody wrote can never do it instead.
 --
--- Rollback (by hand, master only — PROCESS §3):
+-- Rollback (by hand):
 --   alter table users drop constraint if exists users_id_auth_users_fkey;
 --   alter table users add column sessions_valid_from timestamptz;
 --   -- then re-run the `create table auth_links …`, its grant, its RLS line

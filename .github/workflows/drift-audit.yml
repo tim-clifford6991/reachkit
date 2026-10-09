@@ -1,6 +1,7 @@
-# Deterministic spec ↔ code ↔ tests audit. On PRs it runs --strict: any
-# finding fails the `audit` check. Nightly it reports without --strict
-# (Actions summary only — it does not file issues).
+# Deterministic spec ↔ code ↔ tests audit, plus scripts/hygiene.mjs.
+# On a pull request, drift-audit.mjs runs --strict and any hygiene finding
+# fails the audit check. Nightly, drift-audit.mjs reports without --strict.
+# Hygiene opens or comments on one [hygiene] issue when it is red.
 name: Drift audit
 
 on:
@@ -22,6 +23,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,6 +40,30 @@ jobs:
           node scripts/drift-audit.mjs ${{ github.event_name == 'pull_request' && '--strict' || '' }} > drift.md
           echo "exit=$?" >> "$GITHUB_OUTPUT"
           cat drift.md >> "$GITHUB_STEP_SUMMARY"
+      - name: hygiene
+        id: hygiene
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          extra=""
+          if [ "${{ github.event_name }}" != "pull_request" ] && [ -f /root/ops/reachkit/bin/resource-guard.sh ]; then
+            extra="--box --file-issue"
+          elif [ "${{ github.event_name }}" != "pull_request" ]; then
+            extra="--file-issue"
+          fi
+          node scripts/hygiene.mjs --strict $extra > hygiene.md
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+          cat hygiene.md >> "$GITHUB_STEP_SUMMARY"
       - name: fail on hard findings
-        if: steps.audit.outputs.exit != '0'
-        run: cat drift.md; exit 1
+        if: steps.audit.outputs.exit != '0' || steps.hygiene.outputs.exit != '0'
+        run: |
+          if [ "${{ steps.audit.outputs.exit }}" != "0" ]; then
+            echo '## drift'
+            cat drift.md
+          fi
+          if [ "${{ steps.hygiene.outputs.exit }}" != "0" ]; then
+            echo '## hygiene'
+            cat hygiene.md
+          fi
+          exit 1

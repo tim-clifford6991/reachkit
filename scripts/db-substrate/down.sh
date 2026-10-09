@@ -131,7 +131,7 @@ if [[ "$ORPHANS" == "1" ]]; then
   done
 
   # Stacks with no state file at all — everything started before #273. They
-  # are found the way the master found them by hand: a substrate process
+  # are found by the process list: a substrate process
   # whose working directory has been deleted.
   for pid in $(pgrep -f 'postgrest|postgres-meta|rest-v1-proxy' 2>/dev/null || true); do
     if cwd_is_gone "$pid"; then

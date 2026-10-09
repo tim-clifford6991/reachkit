@@ -52,7 +52,7 @@
 // (below).
 //
 // 2026-09-10, issue #460: every sentence this partition still owed is now
-// written — the owner approved the master's drafted set ("copy proposal
+// written — the owner approved the drafted set ("copy proposal
 // approved", proposal sheet
 // https://claude.ai/code/artifact/546f45a0-a996-4d25-b85e-fb03fda7b102) and
 // the strings land here byte for byte. The values named in the approval

@@ -99,7 +99,7 @@ function refusalOf(admission: Exclude<Admission, { admit: true }>, now: Date): A
  *  back to be refused again. So the wait is the time left until that
  *  bound. At or past it the row is waiting on the next maintenance sweep,
  *  which runs every `MAINTENANCE_TICK_MINUTES`, so the wait is that
- *  interval, never 0 (master review on PR #520). A refusal whose running
+ *  interval, never 0 (review on PR #520). A refusal whose running
  *  row could not be re-read carries no clock, and the whole bound is the
  *  only figure that is still an upper bound. Whole seconds, rounded up,
  *  like admission's own waits. */

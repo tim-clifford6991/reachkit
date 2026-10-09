@@ -5,7 +5,7 @@ node_modules/
 .next/
 .env*.local
 coverage/
-# The review gallery's pictures (issue #383): a run's output, never a commit.
+# Local page packs and mail samples. A run's output, never a commit.
 .review/
 tsconfig.tsbuildinfo
 next-env.d.ts
@@ -13,9 +13,7 @@ next-env.d.ts
 .env*
 !.env.example
 
-# Renders an implementer took to prove a screen by hand. Evidence for a PR
-# body, never a baseline: the baselines live in tests/ui/layout/__screenshots__
-# and CI is what regenerates them.
+# Screen captures taken by hand. Evidence for a pull request, never a commit.
 zz-shots/
 
 # The LLM Mentions pilot's raw vendor responses (issue #920): bought evidence

@@ -15,7 +15,7 @@
 //     `PRICE_INTERVAL` are declared in BP-005's current `## Public
 //     interface` but are not part of WO-006's own enumerated file-plan
 //     list or WO-007's consuming test plan; flagged to the planner rather
-//     than added on this implementer's own authority (rule 4.2 — see the
+//     than added outside the listed file plan (rule 4.2 — see the
 //     WO-006 return for the full note).
 //
 // The nine band/severity words BP-005 decision 2 and decision 3's
@@ -70,8 +70,8 @@ export const LLM_MENTIONS_WORST_CASE_C =
  *  the day happened to bring. This is that missing number, in cents,
  *  measured over the ledger (`fetches.cost_cents`) for the UTC day.
  *
- *  Its size is read off the two figures the corpus already states, and is
- *  the master's under ship-then-steer — the owner's to rule:
+ *  Its size is read off the two figures already stated, and is the owner's
+ *  to rule:
  *   - the free path's own worst case at BUILD §11's bounds is
  *     `FREE_BOUNDS.scansPerDay * FREE_C` = 2400¢ (DATA-COSTS's own
  *     "worst-case daily exposure at the existing bounds" line is smaller
@@ -837,7 +837,7 @@ export const FREE_BOUNDS = Object.freeze({
 
 export const TIMING = Object.freeze({
   // **The design ceiling fires before the platform's, with margin to write
-  // the partial report** (master ruling 2026-09-10, issue #456). The free
+  // the partial report** (ruling 2026-09-10, issue #456). The free
   // pass runs inside the `POST /api/scan` invocation, and that invocation
   // is frozen by the platform at `platformCeilingS` below. A design ceiling
   // above it can never fire: the pass would be killed mid-flight, its row
@@ -1433,7 +1433,7 @@ export const DNS_TIMEOUT_MS = 5000 as const;                  // BP-006 · BUILD
  *  scan measured nothing. Vendor and rival reads keep that default. Above
  *  this cap the read is still refused, never truncated: a truncated
  *  document would mis-measure answerability. */
-export const OWN_DOCUMENT_MAX_BYTES = 6_000_000 as const;     // master ruling 2026-09-10 · #479 · BUILD §6.4
+export const OWN_DOCUMENT_MAX_BYTES = 6_000_000 as const;     // ruling 2026-09-10 · #479 · BUILD §6.4
 
 // ── Vendor client (issue #23) — BUILD §6.1–§6.4, ADR-094
 /** The one endpoint whose vendor charge is data-dependent (ADR-094 d3, d3a;

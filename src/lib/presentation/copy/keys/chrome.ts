@@ -7,12 +7,12 @@
 // header, a footer or a legal page. The owner's 2026-09-07 review
 // ("barely a shell — we are clearly missing the UI framework, navbars,
 // footers") is what opened it, and the surfaces are built under the
-// master's ship-then-steer ruling with the mockup linked on #266 and
+// ruling on #266, with the mockup linked there and
 // labelled *proposed — not in the approved idiom*: no approved artifact
 // draws either surface, which is why every sentence below that the set
 // does not write is the owner's rather than transcribed from one.
 //
-// 2026-09-10, issue #459: the owner approved the master's drafted copy for
+// 2026-09-10, issue #459: the owner approved the drafted copy for
 // every key this partition still owed ("copy proposal approved"; proposal
 // sheet artifact 546f45a0-a996-4d25-b85e-fb03fda7b102), and the 16 approved
 // strings are applied here byte for byte. No key in this partition is
@@ -40,7 +40,7 @@ export const CHROME_COPY = Object.freeze({
   "chrome.cta.scan": ["Free scan", { slots: {}, fixedBy: "issue 266" }],
   /** The accessible name of the compact-band control that opens the
    *  links. It is the registered `Collapse`, listing them under the
-   *  header — never a drawer or a dropdown (master, 2026-09-07). */
+   *  header — never a drawer or a dropdown (2026-09-07). */
   "chrome.nav.menu": ["Menu", { slots: {}, fixedBy: "issue 266" }],
   /** #681's Light / Dark / System control. Owner-approved 2026-09-14. */
   "chrome.theme.label": ["Theme", { slots: {}, fixedBy: "issue 681" }],
@@ -114,8 +114,8 @@ export const CHROME_COPY = Object.freeze({
      and its line are the owner's (approved 2026-09-10, #459).
 
      The eyebrow was once written here — "Something went wrong", issue
-     #372's own Done-when wording — and was returned to owed on the master's
-     review of #407 (2026-09-09): a Done-when is the master's brief, not
+     #372's own Done-when wording — and was returned to owed on the review
+     of #407 (2026-09-09): a Done-when is a brief, not
      the owner's pen, and rule 6 leaves exactly two footings for a rendered
      string, the set's unbracketed word (11a) or a BUILD/REQ line quoted
      verbatim. It had neither. Nothing in BUILD or the archived REQ set writes it. */

@@ -245,7 +245,7 @@ describe("the ask arm — what the set draws, in its own order", () => {
   });
 
   it("the moment is the set's own: weekday, day, short month, time, no ISO and no zone suffix", async () => {
-    // The master's review of #399: `2026-09-15 07:00 UTC` is not what S6
+    // Review of #399: `2026-09-15 07:00 UTC` is not what S6
     // draws, and the difference is not cosmetic — the reader is deciding
     // whether tomorrow morning is soon, in their own zone, and a suffixed
     // instant makes them do the arithmetic themselves.

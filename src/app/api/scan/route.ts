@@ -153,7 +153,7 @@ function landingRedirect(request: Request, problem: DomainProblem, value: string
  *  fact.** `TIMING.reportCeilingS` is the design figure the pass bounds
  *  itself by — ADR-021's, unraisable at runtime — and this is the
  *  platform's bound on how long the process the pass runs in exists at
- *  all. They no longer disagree: the master's ruling of 2026-09-10 (issue
+ *  all. They no longer disagree: the ruling of 2026-09-10 (issue
  *  #456) puts the design ceiling *below* this one, with margin to store
  *  the partial report, because where they disagreed the platform won and
  *  the design ceiling could never fire. A pass that still outlives this

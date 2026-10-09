@@ -73,17 +73,10 @@ export const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
  *
  * One row per enumerated route, keyed by the URL the enumerator produces —
  * dynamic segments already filled from `SEGMENT_FIXTURES`, so a row here is
- * the same string the sweep navigates to and the same string that names the
- * route's baseline images.
+ * the same string the sweep navigates to.
  *
- * **This is the layout suite's half of `docs/design-reference.md`.** That
- * file is the index a person reads: route → screen → UI-SPEC section → REQ
- * criteria → tests. This map is what a machine can check it against, and
- * `reference.test.ts` holds the two equal — a route with no row here, a row
- * for a route the tree no longer serves, or an S-id that disagrees with the
- * index fails there. The point is not the string: it is that a screen
- * cannot be rebuilt against nothing, and that "which screen is this?" has
- * one answer rather than one per reader.
+ * The route list the sweep navigates. One row per enumerated route, and
+ * one answer to "which screen is this?".
  *
  * The `REFERENCE:` line beside each row is written out so the answer is
  * legible in a diff, in the same words a UI issue and a PR body use.

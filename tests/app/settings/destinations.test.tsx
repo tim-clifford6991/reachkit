@@ -164,7 +164,7 @@ describe("REQ-060 — the one place a WordPress credential is typed", () => {
     });
     const form = host.querySelector('[data-testid="wp-credential-form"]')!;
     expect(form).not.toBeNull();
-    // Three since the master's ruling of 2026-09-07: an application
+    // Three since the ruling of 2026-09-07: an application
     // password authenticates as `username:app-password`, so the user it
     // was issued to is part of the credential.
     expect(form.querySelectorAll("input")).toHaveLength(3);

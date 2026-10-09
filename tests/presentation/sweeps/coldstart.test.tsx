@@ -355,7 +355,7 @@ describe("REQ-091 c3 — nothing stands in the place of what the customer does n
    *
    *  **Flagged rather than settled** (#266): `design/tokens.md` §9.4 raised
    *  "where does the specimen score come from?" and answered neither
-   *  surface; the master answered it for this build — the reserved
+   *  surface; this build answers it with the reserved
    *  fixture's, stated as such. If the owner would rather the landing show
    *  no other domain at all, the specimen loses its rival rows and this
    *  exclusion goes with them. */

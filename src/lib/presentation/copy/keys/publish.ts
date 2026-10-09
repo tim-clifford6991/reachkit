@@ -3,7 +3,7 @@
 // Publishing's sentences. Seeded empty by WO-041; the block that owns
 // publishing fills this file and touches no other partition.
 //
-// 2026-09-10, issue #459: the owner approved the master's drafted copy for
+// 2026-09-10, issue #459: the owner approved the drafted copy for
 // every key this partition still owed ("copy proposal approved"; proposal
 // sheet artifact 546f45a0-a996-4d25-b85e-fb03fda7b102), and the 38 approved
 // strings are applied here byte for byte. Where a note below says how a

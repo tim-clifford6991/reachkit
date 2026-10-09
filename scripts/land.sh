@@ -46,8 +46,8 @@ say() { printf '%s %s\n' "$(date -u +%H:%M:%S)" "$1"; }
 
 # ── 1. wait for the deployment to report ready ───────────────────────────
 #
-# Two readers, because there are two kinds of caller. The master lands by
-# hand and holds no token in the shell: for them "ready" is the deployment
+# Two readers, because there are two kinds of caller. Landing by hand
+# holds no token in the shell: for that caller "ready" is the deployment
 # answering its own address, which is exactly what a visitor sees. The
 # always-on deployer holds one: for it "ready" is the platform's
 # `readyState`, which distinguishes a build still running from one that

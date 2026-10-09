@@ -6,9 +6,7 @@
 // ending in its basename (`./Card`, `@/ui/charts`, `../bands.ts`). A file is
 // an *entry* when a tool finds it by convention rather than by name: a Next
 // route file, a test (vitest's globs), a migration (applied in order), a
-// workflow, a root config file, a layout baseline (named by the sweep at
-// run time), or one of the five corpus files. Anything under
-// `docs/archive/` is frozen and never listed.
+// workflow, a root config file, or one of the corpus files.
 //
 // Usage: `npm run orphans` (issue #561) — prints one path per line and exits 1 when any
 // file is listed.
@@ -20,7 +18,6 @@ const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..")
 const files = execSync("git ls-files", { cwd: ROOT, encoding: "utf8" }).trim().split("\n");
 
 const ENTRY = [
-  /^docs\/archive\//,
   /^(README|CLAUDE)\.md$/,
   /^docs\/(SPEC|DESIGN|PROCESS|RUNBOOK)\.md$/,
   /^\.github\//,
