@@ -115,11 +115,21 @@ describe("REQ-041 c1 — Overview is the screen a signed-in customer lands on", 
     expect(html.split('data-testid="overview-tile-').length - 1).toBe(4);
   });
 
-  it("the page in review is the first thing on the screen, as an action (issue 1319)", async () => {
+  it("opens with the headline numbers, AI visits first (issue 1364)", async () => {
+    const html = await markup();
+    const tiles = html.indexOf('data-testid="overview-tiles"');
+    expect(tiles).toBeGreaterThan(-1);
+    expect(tiles).toBeLessThan(html.indexOf('data-testid="overview-waiting"'));
+    expect(tiles).toBeLessThan(html.indexOf('data-testid="overview-week"'));
+    const first = html.indexOf('data-testid="overview-tile-');
+    expect(first).toBe(html.indexOf('data-testid="overview-tile-ai-visits"'));
+  });
+
+  it("the page in review is the action under the numbers (issues 1319, 1364)", async () => {
     const html = await markup();
     const card = html.indexOf('data-testid="overview-waiting"');
     expect(card).toBeGreaterThan(-1);
-    expect(card).toBeLessThan(html.indexOf('data-testid="overview-tiles"'));
+    expect(card).toBeLessThan(html.indexOf('data-testid="overview-week"'));
     expect(html.indexOf("<h1>")).toBeGreaterThan(card);
     expect(html).toContain('data-testid="overview-waiting-read"');
     expect(html).toContain('data-testid="overview-stop-action"');

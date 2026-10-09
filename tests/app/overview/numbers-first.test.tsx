@@ -43,7 +43,9 @@ const ROUTES = [
     Page: AnswersPage,
     Loading: AnswersLoading,
     head: "ai-answers",
-    loaded: ["answers-tiles", "answers-grid"],
+    // On a hosted blog *AI engines on your blog* stands between the two
+    // (issue 1364); the waiting state cannot know the blog is hosted.
+    loaded: ["answers-tiles", "blog-reads", "answers-grid"],
     waiting: ["tiles-skeleton", "answer-grid-skeleton"],
   },
   {
@@ -74,7 +76,7 @@ function regions(screen: Element): (string | null)[] {
 describe.each(ROUTES)("$name", ({ Page, Loading, head, loaded, waiting }) => {
   it("opens on its name, then the numbers, then the table or grid", async () => {
     const screen = dom(await Page());
-    expect(regions(screen).slice(0, 3)).toEqual([`${head}-title`, ...loaded]);
+    expect(regions(screen).slice(0, 1 + loaded.length)).toEqual([`${head}-title`, ...loaded]);
     // The head says the name and the day, and nothing else.
     const header = screen.querySelector("header");
     expect(header?.querySelectorAll("p")).toHaveLength(1);

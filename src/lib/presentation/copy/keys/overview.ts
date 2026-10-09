@@ -1036,6 +1036,21 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
   ],
   // The engine breakdown under the fetch figure, and its accessible name.
+  // Issue 1364 (owner, 2026-10-09): the fetch figure with its change on the
+  // window before it, on the card and on the Overview's tile. **Drafted**
+  // (#759); the pull request names each so the owner can correct it.
+  "overview.blog.change.up": [
+    "{count} more than the {days} days before",
+    { slots: { count: "text", days: "text" }, fixedBy: "SPEC §4 2026-10-09 (drafted)" },
+  ],
+  "overview.blog.change.down": [
+    "{count} fewer than the {days} days before",
+    { slots: { count: "text", days: "text" }, fixedBy: "SPEC §4 2026-10-09 (drafted)" },
+  ],
+  "overview.blog.change.same": [
+    "The same as the {days} days before",
+    { slots: { days: "text" }, fixedBy: "SPEC §4 2026-10-09 (drafted)" },
+  ],
   "overview.blog.engines.label": [
     "Which AI engine fetched your pages",
     { slots: {}, fixedBy: "SPEC §6 2026-09-20" },

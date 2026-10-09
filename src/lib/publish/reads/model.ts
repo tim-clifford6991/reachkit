@@ -61,6 +61,12 @@ export interface BlogReadsModel {
    *  the sentence beside it says so. */
   referrals: Measured<number>;
   byEngine: readonly BlogEngineCount[];
+  /** The fetches counted in the window before this one, for the change
+   *  (SPEC §4, 2026-10-09, issue 1364). `null` where nothing at all is
+   *  stored for that window: a blog nobody counted then has no earlier
+   *  figure to be compared against, and a change against nothing would be
+   *  an invented one. */
+  previousFetches: number | null;
   /** The window the figures are read over, in days. */
   windowDays: number;
   /** Whether the card is drawn at all. */
@@ -124,13 +130,22 @@ export function assembleBlogReads(
       fetches: unmeasured("undeterminable", at),
       referrals: unmeasured("undeterminable", at),
       byEngine: engineCounts([]),
+      previousFetches: null,
       windowDays,
       show,
     };
   }
 
-  const fetches = totalOf(rows, "answer_fetch");
-  const referrals = totalOf(rows, "referral");
+  // The store hands back this window and the one before it (`facts.ts`):
+  // the figures are this window's, and the earlier rows are only what the
+  // change is read against.
+  const start = windowStartDay(at, windowDays);
+  const earliest = windowStartDay(at, windowDays * 2);
+  const current = rows.filter((row) => row.day >= start);
+  const earlier = rows.filter((row) => row.day < start && row.day >= earliest);
+
+  const fetches = totalOf(current, "answer_fetch");
+  const referrals = totalOf(current, "referral");
   // A hosted blog with pages live that nothing has read is a real zero —
   // the reading was taken and it came back empty.
   const asMeasured = (total: number): Measured<number> =>
@@ -139,7 +154,8 @@ export function assembleBlogReads(
   return {
     fetches: asMeasured(fetches),
     referrals: asMeasured(referrals),
-    byEngine: engineCounts(rows),
+    byEngine: engineCounts(current),
+    previousFetches: earlier.length === 0 ? null : totalOf(earlier, "answer_fetch"),
     windowDays,
     show,
   };

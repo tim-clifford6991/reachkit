@@ -18,24 +18,25 @@
 // **It writes no sentence.** Every word is the registry's.
 //
 // **The numbers first** (SPEC §4, 2026-10-07, issue 1324): the head, the
-// two number tiles, then the grid. No sentence stands above them; what a
-// number or a card means is closed on it. The cards that read further —
-// share of voice, the pages quoted, the prompts, the mentions and the blog
-// counts — follow the grid.
+// two number tiles, then — on a hosted blog — *AI engines on your blog*
+// (owner 2026-10-09, issue 1364), then the grid. No sentence stands above
+// them; what a number or a card means is closed on it. The cards that read
+// further — share of voice, the pages quoted, the prompts and the mentions
+// — follow the grid.
 //
 // **No client bundle.** The whole screen is server-rendered: there is
 // nothing on it to press, so there is no `"use client"`, no `nuqs` state
 // and no `Suspense` boundary — unlike the Search tab next door, which
 // holds its chosen chip in the URL.
 //
-// **The hosted-blog counts are the card at the bottom** (#921, §6 measure
-// (d)). They are the one reading on this screen that is not bought from a
+// **The hosted-blog counts are the card under the tiles** (#921, §6 measure
+// (d); promoted from the bottom by issue 1364). They are the one reading on this screen that is not bought from a
 // vendor — they are ReachKit's own server counting what it served — and
 // they are drawn only for a site whose pages we host and who has published
 // one, because a card of zeroes would be a claim about engines rather than
 // a fact about the record.
 //
-// **The two mentions cards land between the grid and those counts** (#1004,
+// **The two mentions cards land under the grid** (#1004,
 // owner ruling 2026-09-22 after the #920 pilot): *Also appearing for* and
 // *Your pages AI quotes*, drawn from the LLM Mentions rows the Monday pass
 // stores. They are a second read (`readMentions`) rather than members of
@@ -106,10 +107,12 @@ export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
       {/* D19 (#1162): once a weekly pass has asked the buyer prompts, they
           are the AI measure and their rate replaces the twelve's. */}
       <AnswerTiles model={model} rate={<PromptRate model={prompts} />} />
+      {/* Promoted (owner 2026-10-09, issue 1364): the engines reading the
+          customer's own pages, above the per-answer detail. */}
+      <BlogReads model={blogReads} />
       <AnswerGrid model={model} />
       <PromptCards model={prompts} />
       <MentionCards model={mentions} timeZone={shell.timeZone} />
-      <BlogReads model={blogReads} />
     </div>
   );
 }

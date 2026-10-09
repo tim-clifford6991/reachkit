@@ -67,6 +67,11 @@ const ROWS: readonly BlogReadRow[] = Object.freeze([
   row(PAGE_B, DAYS[4], "chatgpt", "referral", 4),
   row(PAGE_A, DAYS[5], "perplexity", "referral", 2),
   row(PAGE_B, DAYS[6], "gemini", "referral", 1),
+  // The week before, which the card reads its change against and counts
+  // nowhere else.
+  row(PAGE_A, "2026-08-19", "chatgpt", "answer_fetch", 640),
+  row(PAGE_A, "2026-08-22", "perplexity", "answer_fetch", 180),
+  row(PAGE_B, "2026-08-23", "chatgpt", "referral", 5),
 ]);
 
 export const FIXTURE_BLOG_READS_FACTS: BlogReadsFacts = Object.freeze({

@@ -76,6 +76,7 @@ import { liveBreaks, type MarkInputs } from "./marks";
 import { Check } from "lucide-react";
 import { PageRecordBlock } from "./PageRecordBlock";
 import { TargetBlock } from "./TargetBlock";
+import { TargetNumbers } from "./TargetNumbers";
 import { factPresentIn } from "./grounded";
 import { PublishedPageView } from "./PublishedPageView";
 import { WhatAddsCard, WhatPublishesCard, WrittenFromCard } from "./ReviewCards";
@@ -818,6 +819,10 @@ export function DraftScreen(p: {
               {view.title}
             </h1>
           </header>
+
+          {/* The page's numbers open the screen (owner 2026-10-09, issue
+              1364); the note that explains them stays closed below. */}
+          <TargetNumbers target={view.target} />
 
           {packShort}
           {rulesHeld}

@@ -1,9 +1,11 @@
 // SPEC §4 (2026-10-02, D22 · 2026-10-07, issue 1319) — the headline numbers,
 // each one a door.
 //
-// D22's four, in its order: the AI mention rate, the site's own pages
-// cited, the written pages Google places in its top 20, and AI visits to a
-// hosted blog. Each opens the screen that already holds its detail.
+// D22's four: AI visits to a hosted blog, the AI mention rate, the site's
+// own pages cited, and the written pages Google places in its top 20. AI
+// visits stands first and carries its change on the week before (owner,
+// 2026-10-09, issue 1364); the other three keep D22's order. Each opens the
+// screen that already holds its detail.
 //
 // Each tile is an `<a>`, not a card with a link inside it: the whole box is
 // the control, and a nested control inside a link is not something a
@@ -13,6 +15,8 @@
 // Discoverability Score (D22), no rival's lead (D24), and no sentence that
 // only says the number again. The one line a tile may carry is a second
 // fact: share of voice, the engine counted from, the people who arrived.
+// AI visits also carries its change, which is a number and not a sentence
+// about one.
 //
 // **A number nobody has is not drawn as a tile.** Pages cited exists once a
 // weekly pass has asked the buyer prompts; AI visits exists on a hosted
@@ -35,6 +39,7 @@ import { ANSWER_RATE_WEEKS, MENTION_RATE_MIN_WEEKS } from "@/lib/config/constant
 import { percent, type PromptsModel } from "./prompts-model";
 import type { Measured } from "@/lib/measure/measured";
 import type { BlogReadsModel } from "@/lib/publish/reads/model";
+import { fetchChangeLine } from "./BlogReads";
 
 const QUESTIONS_LABEL = "overview.tile.questions.label" satisfies CopyKey;
 const MENTION_RATE_LABEL = "overview.tile.mention-rate.label" satisfies CopyKey;
@@ -70,9 +75,12 @@ function Tile(p: {
   before?: string;
   against?: React.ReactNode;
   line?: string | null;
+  /** The figure's change on the reading before it, already written. */
+  change?: string | null;
   trend?: readonly (number | null)[];
 }): React.JSX.Element {
   const line = p.line ?? null;
+  const change = p.change ?? null;
   return (
     <a
       href={TAB_HREF[p.tab]}
@@ -102,6 +110,11 @@ function Tile(p: {
               <span className="figure text-4xl leading-none">{p.figure}</span>
               {p.against}
             </div>
+            {change === null ? null : (
+              <p className="text-xs text-base-content/70" data-testid={p.testId.replace("-tile-", "-change-")}>
+                {change}
+              </p>
+            )}
             {line === null ? null : <p className="text-xs text-base-content/70">{line}</p>}
           </>
         )}
@@ -133,6 +146,7 @@ export function LinkedTiles(p: {
   blogReads: BlogReadsModel;
 }): React.JSX.Element {
   const tiles = [
+    p.blogReads.show ? <AiVisitsTile key="visits" model={p.blogReads} /> : null,
     p.prompts.kind === "measured" ? (
       <MentionRateTile key="rate" prompts={p.prompts} />
     ) : (
@@ -140,7 +154,6 @@ export function LinkedTiles(p: {
     ),
     p.prompts.kind === "measured" ? <PagesCitedTile key="cited" pages={p.prompts.pages.length} /> : null,
     <Top20Tile key="top-20" tile={p.top20} />,
-    p.blogReads.show ? <AiVisitsTile key="visits" model={p.blogReads} /> : null,
   ].filter((tile) => tile !== null);
 
   return (
@@ -249,9 +262,10 @@ function Top20Tile(p: { tile: Top20 }): React.JSX.Element {
   );
 }
 
-/** D22's fourth, on a hosted blog: pages an answer engine fetched, as "at
- *  least", and under it the people who arrived from an answer. Two
- *  measures, never added together (`@/lib/publish/reads/model`). */
+/** AI visits, on a hosted blog: pages an answer engine fetched, as "at
+ *  least", its change on the window before, and under it the people who
+ *  arrived from an answer. Two measures, never added together
+ *  (`@/lib/publish/reads/model`). */
 function AiVisitsTile(p: { model: BlogReadsModel }): React.JSX.Element {
   const fetches = renderValue(p.model.fetches, AI_VISITS_LABEL);
   const referrals = renderValue(p.model.referrals, AI_VISITS_LABEL);
@@ -263,6 +277,7 @@ function AiVisitsTile(p: { model: BlogReadsModel }): React.JSX.Element {
       figure={fetches.isDash ? null : fetches.text}
       before={copy("overview.tile.ai-visits.at-least")}
       against={<Against>{copy("overview.tile.ai-visits.window", { days: formatCount(p.model.windowDays) })}</Against>}
+      change={fetchChangeLine(p.model)}
       line={
         fetches.isDash
           ? (fetches.line ?? null)

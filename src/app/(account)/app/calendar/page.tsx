@@ -41,6 +41,7 @@ import { writtenLine } from "../_shell/written";
 import { PlanSkeleton } from "../_shell/skeletons";
 import { CalendarView } from "./CalendarView";
 import { PlanHead } from "./PlanHead";
+import { PlanNumbers } from "./PlanNumbers";
 import { addMonths, monthNameOnly, monthShortLabel } from "./dates";
 import { parseMonth, readMonth, readStalledWeek, readSupplyNotice, readWeek } from "./provider";
 import { stalledLine, supplyLine } from "./supply";
@@ -123,6 +124,9 @@ export default async function CalendarPage({
           </Link>
         </nav>
       </PlanHead>
+
+      {/* The numbers open the screen (owner 2026-10-09, issue 1364). */}
+      <PlanNumbers counts={model.counts} weekCounts={week.counts} month={monthShortLabel(month)} />
 
       <FirstPageNotice state={onboarding} />
       {/* §7's one statement of supply, at the calendar's top and nowhere
