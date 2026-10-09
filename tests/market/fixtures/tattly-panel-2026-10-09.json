@@ -1,0 +1,204 @@
+{
+  "from": "docs/walk/panel/2026-10-09.json, commit 0fd6379a",
+  "site": {
+    "domain": "tattly.com",
+    "kind": "e-commerce shop",
+    "country": "US",
+    "language": "en",
+    "kinds": [
+      "shop"
+    ],
+    "market": [
+      "tattoo"
+    ],
+    "why": "A shop that sells one kind of product (temporary tattoos) from its own site. Its market is a product category, its rivals are other shops, and marketplaces (Amazon, Etsy) are not rivals."
+  },
+  "siteName": "Tattly",
+  "market": {
+    "buyer": "consumers who want temporary tattoos",
+    "job": "apply temporary tattoos for self-expression or decoration",
+    "category": "temporary tattoos",
+    "synonyms": [
+      "temporary tattoos",
+      "fake tattoos",
+      "stick-on tattoos",
+      "transfer tattoos"
+    ],
+    "differentiators": [
+      "online store specializing in temporary tattoo designs",
+      "curated collection of temporary tattoo products",
+      "direct-to-consumer e-commerce model"
+    ],
+    "notOurMarket": [
+      "permanent tattoos",
+      "tattoo parlors",
+      "tattoo supplies for artists",
+      "body art services",
+      "costume accessories"
+    ],
+    "categoryReason": "The site is an online shop selling temporary tattoos as physical products, as indicated by its Shopify store structure and product collections.",
+    "rivals": [
+      {
+        "domain": "temporarytattoos.com",
+        "name": "Temporary Tattoos",
+        "basis": "ranks",
+        "reason": "Dedicated online store selling temporary tattoos direct to consumers, appearing across multiple top-ten search results.",
+        "searchNames": [
+          "temporary tattoos",
+          "temporarytattoos.com"
+        ],
+        "volume": 60500,
+        "national": true
+      },
+      {
+        "domain": "inkbox.com",
+        "name": "Inkbox",
+        "basis": "ai_answer",
+        "reason": "Sells semi-permanent and traditional temporary tattoos direct-to-consumer online, the most-cited brand in AI answers for this category.",
+        "searchNames": [
+          "inkbox"
+        ],
+        "volume": 33100,
+        "national": true
+      },
+      {
+        "domain": "easytatt.com",
+        "name": "EasyTatt",
+        "basis": "ranks",
+        "reason": "Online store selling realistic, long-lasting temporary tattoos direct to consumers, appearing in top search results and AI recommendations.",
+        "searchNames": [
+          "easytatt"
+        ],
+        "volume": 720,
+        "national": true
+      },
+      {
+        "domain": "ink-bond.com",
+        "name": "Ink Bond",
+        "basis": "ranks",
+        "reason": "Sells custom temporary tattoos online direct to consumers, appearing in top results for custom temporary tattoo searches.",
+        "searchNames": [
+          "ink bond"
+        ],
+        "volume": 480,
+        "national": true
+      },
+      {
+        "domain": "tatteco.com",
+        "name": "Tatteco",
+        "basis": "ranks",
+        "reason": "Online retailer specializing in semi-permanent temporary tattoos sold direct to consumers.",
+        "searchNames": [
+          "tatteco"
+        ],
+        "volume": 90,
+        "national": true
+      }
+    ],
+    "terms": [
+      {
+        "term": "temporary tattoos",
+        "volume": 60500
+      },
+      {
+        "term": "custom temporary tattoos",
+        "volume": 22200
+      },
+      {
+        "term": "fake tattoos",
+        "volume": 18100
+      },
+      {
+        "term": "semi permanent tattoos",
+        "volume": 12100
+      },
+      {
+        "term": "temporary tattoos for adults",
+        "volume": 1900
+      },
+      {
+        "term": "temporary tattoo sleeves",
+        "volume": 1900
+      },
+      {
+        "term": "realistic temporary tattoos",
+        "volume": 1600
+      },
+      {
+        "term": "stick on tattoos",
+        "volume": 590
+      },
+      {
+        "term": "transfer tattoos",
+        "volume": 590
+      },
+      {
+        "term": "temporary tattoos that look real",
+        "volume": 390
+      }
+    ],
+    "searchTerm": "temporary tattoos",
+    "termsAt": "2026-10-09T10:21:20.473Z",
+    "demand": {
+      "at": "2026-10-09T10:22:46.056Z",
+      "own": 1000,
+      "brands": {
+        "ezinks": 0,
+        "inkbox": 33100,
+        "tattly": 1000,
+        "tatteco": 90,
+        "easytatt": 720,
+        "ink bond": 480,
+        "tattooed now": 210,
+        "art wear tattoo": 10,
+        "temporary tattoos": 60500,
+        "stickeryou temporary": 0,
+        "temporarytattoos.com": 140,
+        "stickeryou temporary tattoos": 590
+      },
+      "searches": {
+        "ezinks alternatives": 0,
+        "inkbox alternatives": 390,
+        "tatteco alternatives": 0,
+        "easytatt alternatives": 0,
+        "ink bond alternatives": 0,
+        "stickeryou alternatives": 0,
+        "tattooed now alternatives": 0,
+        "art wear tattoo alternatives": 0,
+        "temporary tattoos alternatives": 0
+      }
+    },
+    "judged": {
+      "real fake tattoos": true,
+      "fake custom tattoos": true,
+      "fake sleeve tattoos": true,
+      "fake tattoos near me": true,
+      "fake realistic tattoos": true,
+      "fake tattoos look real": true,
+      "temporary tattoos near me": true,
+      "best custom temporary tattoos": true,
+      "semi permanent sleeve tattoos": true,
+      "custom temporary sleeve tattoos": true,
+      "custom temporary tattoos near me": true,
+      "fake tattoos that look realistic": true,
+      "semi permanent temporary tattoos": true,
+      "custom temporary tattoos for adults": true
+    },
+    "kind": "shop",
+    "serves": null
+  },
+  "searches": [
+    "temporary tattoos",
+    "custom temporary tattoos",
+    "fake tattoos",
+    "semi permanent tattoos",
+    "temporary tattoo sleeves",
+    "temporary tattoos for adults",
+    "realistic temporary tattoos",
+    "stick on tattoos",
+    "transfer tattoos",
+    "temporary tattoos that look real",
+    "best custom temporary tattoos",
+    "fake tattoos near me"
+  ]
+}
