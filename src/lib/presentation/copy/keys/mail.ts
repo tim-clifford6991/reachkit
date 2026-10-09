@@ -75,7 +75,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.section.on_page": ["your pages", { slots: {}, fixedBy: "REQ-064 c4" }],
   "mail.section.market": ["your market", { slots: {}, fixedBy: "REQ-064 c4" }],
   "mail.section.rankings": ["Google search", { slots: {}, fixedBy: "REQ-064 c4" }],
-  "mail.section.ai_answers": ["AI answers", { slots: {}, fixedBy: "REQ-064 c4" }],
+  "mail.section.ai_answers": ["AI Visibility", { slots: {}, fixedBy: "REQ-064 c4" }],
   "mail.section.rivals": ["rivals", { slots: {}, fixedBy: "REQ-064 c4" }],
   "mail.section.score": ["Discoverability Score", { slots: {}, fixedBy: "REQ-064 c4" }],
   "mail.unsubscribe.label": ["Switch off this mail", { slots: {}, fixedBy: "§12" }],
@@ -642,7 +642,7 @@ export const MAIL_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §8 · issue 638" },
   ],
   "mail.report.fact.score": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
-  "mail.report.fact.aiAnswers": ["AI answers", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.report.fact.aiAnswers": ["AI Visibility", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.report.fact.googleSearch": ["Google search", { slots: {}, fixedBy: "S20 (11a)" }],
 
   // The headings S20 gives the kinds whose heading is a sentence rather

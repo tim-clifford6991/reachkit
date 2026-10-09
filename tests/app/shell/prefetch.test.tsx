@@ -103,6 +103,9 @@ describe("SPEC §4 (2026-10-08) — a link to another screen of the app prefetch
         named={RIVALS.named}
         startedLine={null}
         enginesLine="Google AI Overview"
+        noRivalOnFirstPage=""
+        noRivalNamed=""
+        unseenLine={null}
         answersHref={TAB_HREF.ai_answers}
       />
     );

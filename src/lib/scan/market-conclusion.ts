@@ -22,7 +22,6 @@ import { siteLocale } from "@/lib/locale/site";
 import type { CostContext } from "@/lib/costs";
 import { evidenceDomains, type EvidencePage } from "@/lib/market/infer/evidence";
 import type { BrandDemand, MarketConclusion, RivalConclusion } from "@/lib/market/infer/types";
-import { RIVALS_MAX } from "@/lib/market/infer/types";
 import type { GeneratedPrompt } from "@/lib/market/prompts/generate";
 import type { PromptSet } from "@/lib/market/prompts/set";
 import { marketEvidence } from "./market-evidence";
@@ -335,10 +334,11 @@ export async function recheckRivals(a: {
   at: Date;
 }): Promise<{ changed: boolean; added: readonly RivalConclusion[]; dropped: readonly string[] }> {
   const none = { changed: false, added: [], dropped: [] };
-  const [{ readSiteMarket, writeSiteMarket }, { inferRivals }, { settleRivals }] = await Promise.all([
+  const [{ readSiteMarket, writeSiteMarket }, { inferRivals }, { settleRivals }, { seenByDomain }] = await Promise.all([
     import("@/lib/market/infer/stored"),
     import("@/lib/market/infer/infer"),
     import("@/lib/market/infer/stability"),
+    import("@/lib/market/infer/presence"),
   ]);
   // A pass its ceiling stopped did not finish reading its market (#1195):
   // its few answers are no measure of who competes in it.
@@ -382,10 +382,13 @@ export async function recheckRivals(a: {
   const weighed = await weighByDemand({ ...a, siteName: text.siteName, demand: market.demand, rivals: candidates });
   const stored =
     weighed === null ? site.stored : { ...site.stored, current: { ...market, demand: weighed.demand } };
+  // Issue 1365: and by what this pass's own first pages and answers show.
+  const seen = seenByDomain(evidence, candidates);
   const settled = settleRivals({
     stored,
     standing: site.competitors,
     fresh: weighed?.rivals ?? candidates,
+    seen,
     scanId: a.report.scanId,
     at: a.at,
   });
@@ -399,6 +402,7 @@ export async function recheckRivals(a: {
     changed: settled.changed,
     rivals: settled.rivals.length,
     searched: weighed === null ? null : (settled.next.current?.rivals ?? []).map((r) => `${r.name}:${r.volume ?? 0}`),
+    seen: candidates.map((r) => `${r.domain}:${seen.get(r.domain)?.firstPage ?? 0}/${seen.get(r.domain)?.named ?? 0}`),
     ownVolume: weighed?.demand.own ?? null,
   });
   return settled.changed && change !== null && change !== undefined
@@ -665,7 +669,10 @@ export async function concludeAtSetup(a: {
       rivals: candidates,
       at: a.at,
     });
-    return { market, rivals: (weighed?.rivals ?? candidates).slice(0, RIVALS_MAX), demand: weighed?.demand, area };
+    // Issue 1365: of those, the ones the free report's own results show.
+    const { chooseRivals, seenByDomain } = await import("@/lib/market/infer/presence");
+    const chosen = chooseRivals({ fresh: weighed?.rivals ?? candidates, seen: seenByDomain(evidence, candidates) });
+    return { market, rivals: chosen, demand: weighed?.demand, area };
   });
   if (concluded === null) return null;
 

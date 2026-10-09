@@ -272,7 +272,7 @@ export function isListing(domain: string): boolean {
 }
 
 export function checkRivals(r: SiteResult): CheckResult {
-  const check = "3–5 rivals, none a listing, each with demand or AI evidence";
+  const check = "3–5 rivals, none a listing, each with demand or seen by the pass";
   const rivals = r.market?.rivals ?? [];
   const items: string[] = [];
   if (rivals.length < 3 || rivals.length > 5) items.push(`${rivals.length} rivals, not 3–5`);
@@ -281,7 +281,10 @@ export function checkRivals(r: SiteResult): CheckResult {
     else if (r.site.listsOthers !== true && isListing(rival.domain)) items.push(`${rival.domain} lists or writes about businesses; it is not one`);
     if (r.deadRivals.includes(rival.domain)) items.push(`${rival.domain} does not resolve: no such site`);
     if (r.wrongRivals?.includes(rival.domain) === true) items.push(`${rival.domain} is not ${rival.name}'s site: its home page never names it`);
-    if ((rival.volume ?? 0) <= 0 && rival.basis !== "ai_answer") items.push(`${rival.name} (${rival.domain}) has no brand demand and no AI answer names it (${rival.basis})`);
+    // A rival the pass's own top tens hold is one whatever its brand's
+    // volume (SPEC §6, 2026-10-09, issue 1365); `ranks` is a basis the
+    // conclusion keeps only where the evidence bears it out.
+    if ((rival.volume ?? 0) <= 0 && rival.basis === "same_job") items.push(`${rival.name} (${rival.domain}) has no brand demand, and no AI answer or top ten of this pass shows it`);
   }
   // Demand orders rivals that do the same job; it never puts a different
   // product first.

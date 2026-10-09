@@ -21,7 +21,7 @@ export const MAIL_COPY_DE = {
   "mail.section.on_page": "Ihre Seiten",
   "mail.section.market": "Ihr Markt",
   "mail.section.rankings": "Google-Suche",
-  "mail.section.ai_answers": "KI-Antworten",
+  "mail.section.ai_answers": "KI-Sichtbarkeit",
   "mail.section.rivals": "Mitbewerber",
   "mail.section.score": "Auffindbarkeits-Score",
   "mail.unsubscribe.label": "Diese E-Mail abschalten",
@@ -170,7 +170,7 @@ export const MAIL_COPY_DE = {
   "mail.report.action": "Bericht öffnen",
   "mail.report.next": "Bei jedem Problem darin steht, wer es behebt, und die vollständige Methode ist dort nachzulesen, kostenlos.",
   "mail.report.fact.score": "Auffindbarkeits-Score",
-  "mail.report.fact.aiAnswers": "KI-Antworten",
+  "mail.report.fact.aiAnswers": "KI-Sichtbarkeit",
   "mail.report.fact.googleSearch": "Google-Suche",
 
   // Überschriften und Faktenzeilen

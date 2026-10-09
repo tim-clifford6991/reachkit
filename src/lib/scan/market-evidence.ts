@@ -36,17 +36,21 @@ function answersOf(report: StoredReport | null): EvidenceAnswer[] {
   })];
 }
 
-/** The domains of a report's measured top tens, with how often each
- *  appears and one of its titles. */
+/** The domains of a report's measured top tens, with how many of the
+ *  measured searches each appears on and one of its titles. A domain with
+ *  two results for one search holds that search once (issue 1365): the
+ *  count is what the rivals are chosen by, and what the Rivals tab draws. */
 function topTensOf(report: StoredReport | null, own: string): EvidenceTopTen[] {
   const tally = new Map<string, EvidenceTopTen>();
   for (const serp of report?.serps ?? []) {
     if (serp.kind !== "measured") continue;
+    const here = new Set<string>();
     // D67: a business in the local pack is found for this search as one
     // in the top ten is.
     for (const row of [...serp.value.organic, ...(serp.value.localPack ?? [])]) {
       const domain = bare(row.domain);
-      if (domain === own) continue;
+      if (domain === own || here.has(domain)) continue;
+      here.add(domain);
       const seen = tally.get(domain);
       if (seen === undefined) tally.set(domain, { domain, appearances: 1, title: row.title ?? "" });
       else seen.appearances += 1;

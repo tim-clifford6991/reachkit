@@ -157,7 +157,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // head. One key, reworded; drafted under issue 759's ruling and the
   // owner's to correct.
   "overview.tile.searches.label": ["Searches you appear for", { slots: {}, fixedBy: "issue 915" }],
-  "overview.tile.ai-answers.label": ["AI answers", { slots: {}, fixedBy: "BUILD §4.5" }],
+  "overview.tile.ai-answers.label": ["AI Visibility", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.tile.ai-answers.window": [
     "named in {weeks} of the last {of} weeks",
     { slots: { weeks: "text", of: "text" }, fixedBy: "REQ-041 c12" },
@@ -1082,6 +1082,27 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { engines: "text", of: "text" }, fixedBy: "SPEC §6 2026-09-20" },
   ],
   "overview.rivals.named.see-all": ["See every answer", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+
+  // A card that was measured and counted no tracked rival anywhere says so
+  // once, in place of a row of empty bars, and the rivals neither card
+  // counted are named under them (SPEC §4, 2026-10-09). Drafted (issue
+  // 759); the owner corrects the wording.
+  "overview.rivals.first-page.none": [
+    "None of your rivals is on the first page for these searches.",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-09" },
+  ],
+  "overview.rivals.first-page.none.holders": [
+    "None of your rivals is on the first page for these searches. The sites there most often: {holders}.",
+    { slots: { holders: "text" }, fixedBy: "SPEC §4 2026-10-09" },
+  ],
+  "overview.rivals.named.none": [
+    "None of these answers named one of your rivals.",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-09" },
+  ],
+  "overview.rivals.unseen": [
+    "On no first page and in no answer this week: {rivals}.",
+    { slots: { rivals: "text" }, fixedBy: "SPEC §4 2026-10-09" },
+  ],
 
   // `overview.rivals.gap.lead` is gone: no screen says what the ratio is a
   // ratio of (D24, SPEC §4 2026-10-02; issue 1324).
