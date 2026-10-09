@@ -102,11 +102,11 @@ describe('REQ-073 c4 — "it applies to every draft not yet published, including
   });
 
   it("the save is one statement — the four values and every draft go in the same call", async () => {
-    await savePublishingSettings("s1", { mode: "copilot", vetoHours: 72 }, BY, AT);
+    await savePublishingSettings("s1", { mode: "autopilot", vetoHours: 72 }, BY, AT);
     expect(db.rpcCalls).toHaveLength(1);
     const [call] = db.rpcCalls;
     expect(call?.fn).toBe("save_publishing_settings");
-    expect(call?.args.p_mode).toBe("copilot");
+    expect(call?.args.p_mode).toBe("autopilot");
     expect(call?.args.p_veto_hours).toBe(72);
     expect((call?.args.p_drafts as unknown[]).length).toBe(1);
   });
@@ -119,11 +119,11 @@ describe('REQ-073 c4 — "it applies to every draft not yet published, including
 });
 
 describe('REQ-073 c5 — "the publishing mode … is the same single setting this screen shows"', () => {
-  it("changing the mode from anywhere runs the same writer and the same re-deadline pass", async () => {
-    const result = await savePublishingSettings("s1", { mode: "copilot" }, BY, AT);
-    expect(result.ok).toBe(true);
-    expect(db.rows("sites")[0]?.mode).toBe("copilot");
-    expect(db.rpcCalls[0]?.args.p_drafts).toHaveLength(1);
+  // Autopilot only (owner 2026-10-08, issue 1337): no save can set copilot.
+  it("a save that asks for copilot is refused whole, and nothing is written", async () => {
+    const result = await savePublishingSettings("s1", { mode: "copilot" as never }, BY, AT);
+    expect(result.ok).toBe(false);
+    expect(db.rpcCalls).toHaveLength(0);
   });
 });
 
@@ -146,7 +146,6 @@ describe('REQ-073 c6 — "the next publication\'s date and time reflect the new 
 
 describe('REQ-057 c8 — a changed pair clears the telling and returns the draft as retell-owed', () => {
   it.each([
-    ["mode", { mode: "copilot" as const }],
     ["vetoHours", { vetoHours: 72 }],
     ["publishTime", { publishTime: "17:00" }],
     ["timezone", { timezone: "Asia/Tokyo" }],

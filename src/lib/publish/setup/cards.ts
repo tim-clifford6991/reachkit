@@ -27,7 +27,7 @@
 import type { CopyKey } from "@/lib/presentation/copy";
 import { DEFAULT_HOSTED_LABEL, hostFor } from "../destinations/hosted/label";
 
-export type PublishingMode = "autopilot" | "copilot";
+export type PublishingMode = "autopilot";
 export type DestinationKind = "hosted" | "wordpress";
 
 /** The one record a founder points at the hosted blog. `name` is the host

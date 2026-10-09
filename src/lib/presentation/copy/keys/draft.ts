@@ -61,7 +61,6 @@ import type { CopyPartition } from "../registry.ts";
 
 export const DRAFT_COPY = Object.freeze({
   // §4.6's three controls, over the declared publishing interface.
-  "draft.action.approve": ["Approve", { slots: {}, fixedBy: "BUILD §4.6" }],
   "draft.action.edit": ["Edit", { slots: {}, fixedBy: "BUILD §4.6" }],
   // SPEC §7 (2026-09-20, #908, issue #914) — "Screens and mail say *Stop
   // this page*. 'Veto' remains the internal word and the name of the
@@ -83,14 +82,6 @@ export const DRAFT_COPY = Object.freeze({
   // whose publish moment is known is told the moment, and a page whose
   // moment the screen does not hold is told the truth about that rather
   // than a blank where a time should be.
-  "draft.answer.approve": [
-    "Approved. It goes live at {at}.",
-    { slots: { at: "date" }, fixedBy: "SPEC §7 2026-09-20" },
-  ],
-  "draft.answer.approve-next": [
-    "Approved. It goes live at your next publishing time.",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
-  ],
   "draft.answer.veto": [
     "Stopped. This page won’t go live.",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
@@ -284,12 +275,8 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §7 2026-09-24" },
   ],
   "draft.do-nothing.autopilot": [
-    "It publishes at {at} unless you stop it.",
+    "It goes live on its own at {at}. Edit or stop it until then.",
     { slots: { at: "date" }, fixedBy: "SPEC §7 2026-09-20" },
-  ],
-  "draft.do-nothing.copilot": [
-    "Nothing publishes on its own.",
-    { slots: {}, fixedBy: "REQ-045 c4" },
   ],
 
   // §4.6's two editor panes.
@@ -398,7 +385,7 @@ export const DRAFT_COPY = Object.freeze({
   // controls under "Decide" are `draft.action.*` above; the rows under
   // "Checks" are the four below.
   "draft.decide.title": [
-    "Decide",
+    "This page",
     { slots: {}, fixedBy: "REQ-045 c4 · S16 (11a)" },
   ],
   "draft.checks.title": ["Checks", { slots: {}, fixedBy: "S16 (11a)" }],

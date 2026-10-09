@@ -395,7 +395,6 @@ describe("the publishing seam calls BUILD §9's one mover, and refuses honestly"
   it.each([
     ["skip", "skipped"],
     ["veto", "skipped"],
-    ["approve", "approved"],
   ] as const)("%s asks the machine for the %s edge, as the customer", async (command, to) => {
     transition.mockResolvedValue({ ok: true, state: to });
     await publishing[command]({ draftId: "d1" });
@@ -403,8 +402,8 @@ describe("the publishing seam calls BUILD §9's one mover, and refuses honestly"
       kind: "customer",
       userId: RESERVED_ACCOUNT.userId,
     });
-    // Issue #790: only an approval that moved sends the page for its moment.
-    expect(schedulePublish).toHaveBeenCalledTimes(to === "approved" ? 1 : 0);
+    // No customer command sends a page for publishing (issue 1337).
+    expect(schedulePublish).not.toHaveBeenCalled();
   });
 
   it("a refusal comes back as a value, carrying the machine's own word for why", async () => {
@@ -447,8 +446,8 @@ describe("the publishing seam calls BUILD §9's one mover, and refuses honestly"
     await expect(publishing.veto({ draftId: "d1" })).resolves.toMatchObject({ ok: false });
   });
 
-  it("Move is gone: the seam declares no such command and the panel offers none", () => {
-    expect(Object.keys(publishing).sort()).toEqual(["approve", "regenerate", "skip", "veto"]);
+  it("Move and Approve are gone: the seam declares no such command and the panel offers none", () => {
+    expect(Object.keys(publishing).sort()).toEqual(["regenerate", "skip", "veto"]);
     expect(Object.keys(COPY)).not.toContain("calendar.action.move");
     for (const state of STATES) {
       if (STAGE_OF[state] === null) continue;
@@ -461,7 +460,7 @@ describe("the publishing seam calls BUILD §9's one mover, and refuses honestly"
     // `COMMAND_TARGET` is what `useOptimistic` reads. It must be the same
     // edge the write asks for, or the badge would show a state the write
     // never requested.
-    for (const command of ["skip", "veto", "approve", "regenerate"] as const) {
+    for (const command of ["skip", "veto", "regenerate"] as const) {
       transition.mockResolvedValue({ ok: true, state: COMMAND_TARGET[command] });
       await publishing[command]({ draftId: "d1" });
       expect(transition, command).toHaveBeenLastCalledWith(

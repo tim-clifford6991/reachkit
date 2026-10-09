@@ -260,23 +260,23 @@ describe("SPEC §7 (#476) — there is no zero window: a stored 0 reads as the o
   });
 });
 
-describe("copilot — nothing happens until they approve", () => {
+// Autopilot only (owner 2026-10-08, issue 1337): a site whose stored row
+// still says copilot is told what every site is told — when the page goes
+// live on its own, with the link to stop it.
+describe("a stored copilot row is told as autopilot", () => {
   beforeEach(() => {
     seed({ site: { mode: "copilot" } });
   });
 
-  it("it names no moment and offers no stop link, and the switch is asked as usual", async () => {
+  it("the mail names the moment and offers the stop link", async () => {
     const outcome = await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
 
     expect(outcome.sent).toBe(true);
     const paragraphs = sent[0]!.blocks.filter((b) => b.block === "paragraph");
-    expect(paragraphs.map((b) => b.text)).toContain("mail.draftReady.copilot");
-    expect(paragraphs.find((b) => b.text === "mail.draftReady.copilot")?.vars).toBeUndefined();
-    // No stop link — and the one button left is the page's own address.
-    expect(sent[0]!.blocks.filter((b) => b.block === "action").map((b) => b.label)).toEqual([
-      "mail.draftReady.readAction",
-    ]);
-    expect(sent[0]!.suppressible).toBeUndefined();
+    expect(paragraphs.map((b) => b.text)).toContain("mail.draftReady.autopilotWindow");
+    expect(sent[0]!.blocks.filter((b) => b.block === "action").map((b) => b.label)).toContain(
+      "mail.draftReady.stopAction"
+    );
   });
 });
 

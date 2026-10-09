@@ -843,9 +843,8 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(inbox.length).toBe(inboxBefore + 1);
       expect(mails).toHaveLength(1);
       expect(mails[0]!.to).toEqual([EMAIL]);
-      // The right telling of the three, and no trace of the other two.
+      // The right telling of the two, and no trace of the other.
       expect(mails[0]!.html).toContain("mail.draftReady.autopilotWindow");
-      expect(mails[0]!.html).not.toContain("mail.draftReady.copilot");
       expect(mails[0]!.html).not.toContain("mail.draftReady.autopilotZero");
 
       // §12's "title, why-data" (#183). The page the mail is about is

@@ -43,7 +43,8 @@ beforeEach(() => seedSite());
 describe('REQ-073 c1 — "they can set the publishing mode … the veto window to any whole number of days from 0 to 7 … the time of day … and the time zone"', () => {
   it("the four values are settable within their stated ranges and nothing else is", () => {
     expect(invalidFields({ mode: "autopilot" })).toEqual([]);
-    expect(invalidFields({ mode: "copilot" })).toEqual([]);
+    // Autopilot only (owner 2026-10-08, issue 1337).
+    expect(invalidFields({ mode: "copilot" as never })).toEqual(["mode"]);
     expect(invalidFields({ mode: "supervised" as never })).toEqual(["mode"]);
 
     for (let days = VETO.minDays; days <= VETO.maxDays; days++) {
@@ -141,35 +142,27 @@ describe('REQ-073 c2 — "one written line states what that selected pair does t
     timezone: "UTC",
   };
 
-  it("autopilot above zero, autopilot at zero and copilot each get their own key", () => {
+  it("a window above zero and a window of zero each get their own key", () => {
     expect(explainPair({ ...base, mode: "autopilot", vetoHours: 24 })).toBe(
       "settings.publishing.pair.autopilotWindow"
     );
     expect(explainPair({ ...base, mode: "autopilot", vetoHours: 0 })).toBe(
       "settings.publishing.pair.autopilotZero"
     );
-    expect(explainPair({ ...base, mode: "copilot", vetoHours: 0 })).toBe(
-      "settings.publishing.pair.copilot"
-    );
-    expect(explainPair({ ...base, mode: "copilot", vetoHours: 168 })).toBe(
-      "settings.publishing.pair.copilot"
-    );
   });
 
-  it("the three keys are distinct, so the line discriminates the three pairs", () => {
+  it("the two keys are distinct, so the line discriminates the two pairs", () => {
     const keys = new Set([
       explainPair({ ...base, vetoHours: 24 }),
       explainPair({ ...base, vetoHours: 0 }),
-      explainPair({ ...base, mode: "copilot" }),
     ]);
-    expect(keys.size).toBe(3);
+    expect(keys.size).toBe(2);
   });
 
   it("it returns a key and never a sentence — no fixture in this module contains one", () => {
     for (const key of [
       explainPair({ ...base, vetoHours: 24 }),
       explainPair({ ...base, vetoHours: 0 }),
-      explainPair({ ...base, mode: "copilot" }),
     ]) {
       expect(key.startsWith("settings.publishing.pair.")).toBe(true);
       expect(key).not.toMatch(/\s/);

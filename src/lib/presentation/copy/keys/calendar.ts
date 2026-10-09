@@ -114,7 +114,7 @@ export const CALENDAR_COPY = Object.freeze({
   // §4.6's stage filter cards. `all` is a filter, not a stage.
   "calendar.stage.all": ["All", { slots: {}, fixedBy: "BUILD §4.6" }],
   "calendar.stage.live": ["Live", { slots: {}, fixedBy: "REQ-043 c2" }],
-  "calendar.stage.your-review": ["Your review", { slots: {}, fixedBy: "REQ-043 c2" }],
+  "calendar.stage.your-review": ["Ready", { slots: {}, fixedBy: "REQ-043 c2" }],
   "calendar.stage.scheduled": ["Scheduled", { slots: {}, fixedBy: "REQ-043 c2" }],
   "calendar.stage.planned": ["Planned", { slots: {}, fixedBy: "REQ-043 c2" }],
   "calendar.stage.needs-you": ["Needs you", { slots: {}, fixedBy: "REQ-043 c2" }],
@@ -327,7 +327,7 @@ export const CALENDAR_COPY = Object.freeze({
     { slots: { date: "date" }, fixedBy: "REQ-043 c10" },
   ],
   // SPEC §7 (2026-09-20, #914): the customer's word for the interval.
-  "calendar.status.veto-deadline": ["It goes live on its own. You can read it or stop it until {at}.", { slots: { at: "date" }, fixedBy: "issue 1337" }],
+  "calendar.status.veto-deadline": ["It goes live on its own. You can edit or stop it until {at}.", { slots: { at: "date" }, fixedBy: "issue 1337" }],
 
   // §7's one statement of supply, as §4.6's calendar makes it: the three
   // arms of `supplyNotice`, in the engine's own precedence (exhausted >

@@ -71,12 +71,6 @@ async function move(draftId: string, to: State): Promise<string | null> {
   const { transition } = await import("@/lib/publish/machine");
   const result = await transition(draftId, to, actor);
   if (result.ok) {
-    // Issue #790: an approval is sent for the page's own publish moment,
-    // not left to the hourly sweep. Imported here for the reason above.
-    if (result.state === "approved") {
-      const { schedulePublish } = await import("@/jobs/engine");
-      await schedulePublish({ draftId });
-    }
     // Issue #913: the screen that asked re-reads, so the optimistic badge
     // it drew on the press is replaced by the page's real state rather
     // than standing until the customer navigates. Both surfaces are
@@ -101,12 +95,6 @@ export async function skipDraft(draftId: string): Promise<string | null> {
  *  the word that matches what the customer is doing. */
 export async function vetoDraft(draftId: string): Promise<string | null> {
   return move(draftId, "skipped");
-}
-
-/** §4.6's **Approve** in the draft view — §9's `in_review → approved`, and
- *  §9's "Copilot = explicit approve only". */
-export async function approveDraft(draftId: string): Promise<string | null> {
-  return move(draftId, "approved");
 }
 
 /**

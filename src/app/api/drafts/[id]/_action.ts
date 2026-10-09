@@ -1,6 +1,8 @@
 // src/app/api/drafts/[id]/_action.ts — BUILD §9
 //
-// The one shared body of the three actions a customer takes on a draft:
+// The one shared body of the two actions a customer takes on a draft
+// (veto and skip; there is no customer approve — owner 2026-10-08, issue
+// 1337):
 // read the session, refuse a draft that is not theirs, call `transition()`
 // once, map the two arms. Each route file is three lines over it.
 //
@@ -8,11 +10,11 @@
 // beyond the target it is passed, and reads no veto window, no mode and no
 // publish time — a route that read the publishable predicate itself would
 // be the second decision point REQ-057 criterion 2's "under this rule and
-// no other" forbids. What may follow an approval, a veto or a skip is the
+// no other" forbids. What may follow a veto or a skip is the
 // state machine's answer, never a route's.
 //
-// Three sibling files calling one local helper is not logic in an adapter;
-// three copies of the same twelve lines would be.
+// Two sibling files calling one local helper is not logic in an adapter;
+// two copies of the same twelve lines would be.
 //
 // The session is `src/lib/account/identity`'s — verified by Supabase, with
 // the account's `siteId` read beside it, so the ownership check below is
@@ -45,11 +47,11 @@ export interface ActionAccepted {
 }
 
 /** Builds the `POST` handler for one action. `to` is the target state and
- *  `reason` is what the record carries — the only two things the three
+ *  `reason` is what the record carries — the only two things the two
  *  routes differ in. Veto and skip land on one state (§9's diagram has no
  *  eleventh), and the reason is what keeps the customer's two distinct
  *  actions distinguishable in history without adding one. */
-export function draftAction(routeId: string, to: State, reason: string) {
+export function draftAction(routeId: string, to: Extract<State, "skipped">, reason: string) {
   return adapter(routeId, async (_request: Request, context: { params: Promise<{ id: string }> }) => {
     const session = await currentSession();
     if (session === null) return Response.json({ error: "unauthenticated" }, { status: UNAUTHORIZED });
@@ -66,13 +68,6 @@ export function draftAction(routeId: string, to: State, reason: string) {
 
     const moved = await transition(id, to, { kind: "customer", userId: session.userId }, { reason });
     if (moved.ok) {
-      // Issue #790: an approved page is sent for its own publish moment
-      // rather than waiting on the hourly sweep. When that moment is, and
-      // whether the page then goes out, stays the engine's answer.
-      if (moved.state === "approved") {
-        const { schedulePublish } = await import("@/jobs/engine");
-        await schedulePublish({ draftId: id });
-      }
       return Response.json({ state: moved.state } satisfies ActionAccepted);
     }
 

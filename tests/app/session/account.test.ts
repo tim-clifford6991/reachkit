@@ -87,10 +87,11 @@ describe("who is asking, from the signed cookie and one site read", () => {
     expect(result.ok && result.account.mode).toBe("autopilot");
   });
 
-  it("copilot is carried through as itself", async () => {
+  // Autopilot only (owner 2026-10-08, issue 1337).
+  it("a stored copilot is read as autopilot", async () => {
     readAppSite.mockResolvedValue({ ...SITE, mode: "copilot" });
     const result = await account.appAccount();
-    expect(result.ok && result.account.mode).toBe("copilot");
+    expect(result.ok && result.account.mode).toBe("autopilot");
   });
 });
 

@@ -99,12 +99,10 @@ export const MAIL_COPY_DE = {
   "mail.account.hosting_end.export_stays": "Der Export Ihrer Inhalte bleibt danach verfügbar, ohne Enddatum.",
 
   // Entwurf fertig
-  "mail.draftReady.autopilotWindow": "Veröffentlichung: {publishesAt}, sofern Sie nicht Nein sagen.",
-  "mail.draftReady.autopilotZero": "Veröffentlichung: {publishesAt}. Es gibt keine Frist, in der Sie die Seite stoppen können.",
-  "mail.draftReady.copilot": "Sie wird erst veröffentlicht, wenn Sie sie freigeben.",
+  "mail.draftReady.autopilotWindow": "Geht von selbst online: {publishesAt}. Bis dahin können Sie sie bearbeiten oder stoppen.",
+  "mail.draftReady.autopilotZero": "Geht von selbst online: {publishesAt}. Es gibt keine Frist, in der Sie die Seite stoppen können.",
   "mail.draftReady.dest.goesLiveThen": "Sie geht in diesem Moment auf {site} online und ist für alle lesbar. Sie wartet dort nicht als Entwurf.",
   "mail.draftReady.dest.goesLiveAtOnce": "Sie geht auf {site} online, sobald sie veröffentlicht wird, und ist für alle lesbar. Sie wartet dort nicht als Entwurf.",
-  "mail.draftReady.dest.goesLiveOnApproval": "Sie geht erst auf {site} online, wenn Sie sie freigeben, und ist von da an für alle lesbar. Vorher gelangt nichts auf die Website.",
   "mail.draftReady.dest.cannotPublish": "So wie es jetzt eingerichtet ist, kann ReachKit nicht auf {site} veröffentlichen. Öffnen Sie Einstellungen › Veröffentlichen: Beim Veröffentlichungsziel steht dort, was zu ändern ist, bevor diese Seite online gehen kann.",
   "mail.draftReady.why.search": "Geschrieben für die Suchanfrage „{query}“.",
   "mail.draftReady.why.volume": "gesucht",
@@ -150,7 +148,7 @@ export const MAIL_COPY_DE = {
 
   // Veröffentlichungsziel muss neu verbunden werden
   "mail.account.destinationBroken.subject": "Neu verbinden erforderlich",
-  "mail.account.destinationBroken.body": "Ein Veröffentlichungsziel muss neu verbunden werden. Seiten werden zurückgehalten; sobald Sie neu verbinden, werden sie freigegeben.",
+  "mail.account.destinationBroken.body": "Ein Veröffentlichungsziel muss neu verbunden werden. Seiten werden zurückgehalten; sobald Sie neu verbinden, gehen sie online.",
   "mail.account.destinationBroken.held": "zurückgehaltene Seiten",
   "mail.account.destinationBroken.action": "Neu verbinden",
 
@@ -179,7 +177,7 @@ export const MAIL_COPY_DE = {
   "mail.magicLink.heading": "Bei ReachKit anmelden",
   "mail.magicLink.fact.for": "für",
   "mail.firstPage.fact.format": "Format",
-  "mail.draftReady.body": "Wird morgen um 07:00 veröffentlicht, sofern Sie nicht Nein sagen.",
+  "mail.draftReady.body": "Geht morgen um 07:00 von selbst online. Bis dahin können Sie sie bearbeiten oder stoppen.",
   "mail.draftReady.fact.search": "Suchanfrage",
   "mail.draftReady.fact.answeredBy": "wer heute antwortet",
   "mail.draftReady.fact.you": "Sie",
@@ -194,11 +192,11 @@ export const MAIL_COPY_DE = {
 
   // Kundenbindung
   "mail.inactivity.subject": "Ihre Seiten werden weiterhin veröffentlicht",
-  "mail.inactivity.line": "Sie haben sich seit einer Woche nicht angemeldet. ReachKit schreibt und veröffentlicht Ihre Seiten weiterhin, und jede Seite wartet darauf, dass Sie sie stoppen können, bevor sie online geht.",
+  "mail.inactivity.line": "Sie haben sich seit einer Woche nicht angemeldet. ReachKit schreibt und veröffentlicht Ihre Seiten weiterhin, und jede Seite geht von selbst online, sofern Sie sie nicht vorher stoppen.",
   "mail.inactivity.action": "Anmelden",
   "mail.reason.inactivity": "Verschickt nach 7 Tagen ohne Anmeldung · mit einer Anmeldung endet das.",
   "mail.vetoReminder.subject": "Eine Seite wird bald veröffentlicht",
-  "mail.vetoReminder.line": "„{page}“ wird veröffentlicht, wenn Sie die Seite nicht stoppen. Zeitpunkt: {closesAt}.",
+  "mail.vetoReminder.line": "„{page}“ geht von selbst online: {closesAt}. Bis dahin können Sie sie bearbeiten oder stoppen.",
   "mail.vetoReminder.action": "Diese Seite stoppen",
   "mail.reason.vetoReminder": "Verschickt, wenn weniger als 6 Stunden bleiben, um eine Seite zu stoppen.",
   "mail.paymentFailed.subject": "Ihre Zahlung ist fehlgeschlagen",
@@ -207,7 +205,7 @@ export const MAIL_COPY_DE = {
   "mail.cancellation.subject": "Ihr Abonnement ist gekündigt",
   "mail.cancellation.line": "Sie behalten den vollen Zugang bis {accessEndsOn}, und es wird nichts weiter abgebucht.",
   "mail.winback.subject": "Machen Sie dort weiter, wo Sie aufgehört haben",
-  "mail.winback.line": "ReachKit kann wieder Seiten für Ihre Website schreiben und veröffentlichen: eine pro Tag, und jede wartet darauf, dass Sie sie stoppen können, bevor sie online geht. €49 im Monat, jederzeit kündbar.",
+  "mail.winback.line": "ReachKit kann wieder Seiten für Ihre Website schreiben und veröffentlichen: eine pro Tag, und jede geht von selbst online, sofern Sie sie nicht vorher stoppen. €49 im Monat, jederzeit kündbar.",
   "mail.winback.action": "ReachKit fortsetzen",
   "mail.reason.winback": "Einmal verschickt, 30 Tage nach Ihrer Kündigung. Danach folgt keine weitere E-Mail.",
 } as const satisfies CopyTranslation;

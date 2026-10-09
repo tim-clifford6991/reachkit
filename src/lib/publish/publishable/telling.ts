@@ -11,12 +11,14 @@
 // the copy key and the values the key interpolates. `sendEmail()` sends;
 // the strings are the owner's.
 //
-// Three kinds, derived from the governing pair **alone** — nothing about
+// Two kinds, derived from the governing pair **alone** — nothing about
 // the destination enters the kind:
 //
 //   autopilot, window > 0  → `interval`      (c1)
 //   autopilot, window = 0  → `no_interval`   (c7)
-//   copilot, any window    → `approval_only` (c1)
+//
+// There is no `approval_only` (owner 2026-10-08, issue 1337): autopilot
+// only, and no telling says an approval is needed.
 //
 // The destination clause is composed separately, at the moment the telling
 // is composed, and is **not part of the pair** (BP-046 decision 5). Putting
@@ -51,8 +53,7 @@ export type DestinationClause =
       site: string;
       copy:
         | "mail.draftReady.dest.goesLiveThen"
-        | "mail.draftReady.dest.goesLiveAtOnce"
-        | "mail.draftReady.dest.goesLiveOnApproval";
+        | "mail.draftReady.dest.goesLiveAtOnce";
     }
   /** ReachKit already reads that site as one it cannot publish to. The
    *  telling says the page cannot go live there as things stand and what
@@ -76,11 +77,6 @@ export type Telling =
       publishesAt: Date;
       destination: DestinationClause | null;
       copy: "mail.draftReady.autopilotZero";
-    }
-  | {
-      kind: "approval_only";
-      destination: DestinationClause | null;
-      copy: "mail.draftReady.copilot";
     }
   /** The page has no publish moment to name yet — the site has no stated
    *  time zone, so no date exists to tell the customer. The page is held by
@@ -112,10 +108,6 @@ export interface TellingInput {
 export async function tellingFor(a: TellingInput): Promise<Telling> {
   const kind = kindOf(a.draft.governing);
   const destination = await destinationClause(a.draft.siteId, a.destination, kind);
-
-  if (kind === "approval_only") {
-    return { kind, destination, copy: "mail.draftReady.copilot" };
-  }
 
   const answer = becomesPublishable(withoutHolds(a.draft));
   if (!answer.publishable) {
@@ -151,7 +143,6 @@ export async function tellingFor(a: TellingInput): Promise<Telling> {
  * telling and criterion 8's further ones without a fourth arm.
  */
 export function kindOf(pair: GoverningPair): Exclude<TellingKind, "not_yet_tellable"> {
-  if (pair.mode === "copilot") return "approval_only";
   return pair.vetoHours === 0 ? "no_interval" : "interval";
 }
 
@@ -199,7 +190,7 @@ export async function recordTold(
   const record: ToldRecord = {
     pair,
     kind: t.kind,
-    publishesAt: t.kind === "approval_only" ? null : t.publishesAt.toISOString(),
+    publishesAt: t.publishesAt.toISOString(),
     sentAt: sentAt.toISOString(),
   };
   const { error } = await publishDb()
@@ -252,9 +243,7 @@ async function destinationClause(
     copy:
       telling === "no_interval"
         ? "mail.draftReady.dest.goesLiveAtOnce"
-        : telling === "approval_only"
-          ? "mail.draftReady.dest.goesLiveOnApproval"
-          : "mail.draftReady.dest.goesLiveThen",
+        : "mail.draftReady.dest.goesLiveThen",
   };
 }
 

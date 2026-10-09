@@ -15,7 +15,7 @@ import { resolveNoPublish, type NoPublishBecause, type NoPublishCauses } from ".
 import { weeksMeasured, type MeasuredWeek, type WeekCount } from "./weeks";
 
 /** BUILD §4.3's two modes, named by the spec and never by a renderer. */
-export type PublishingMode = "autopilot" | "copilot";
+export type PublishingMode = "autopilot";
 
 /** REQ-040 c3 and c4 as one closed union: either a time, or a reason there
  *  is none. There is no third arm and no `next?: Date` — an optional field

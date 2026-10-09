@@ -317,14 +317,13 @@ export const MAIL_COPY = Object.freeze({
   // what renders as "tomorrow at 07:00". The other two arms are not drawn
   // by the set; their lines are the owner's 2026-09-10 approval (#458).
   "mail.draftReady.autopilotWindow": [
-    "Publishes {publishesAt} unless you say no.",
+    "Goes live on its own {publishesAt}. You can edit or stop it until then.",
     { slots: { publishesAt: "date" }, fixedBy: "REQ-057 c1 · S20 (11a)" },
   ],
   "mail.draftReady.autopilotZero": [
-    "Publishes {publishesAt}. There’s no interval in which to stop it.",
+    "Goes live on its own {publishesAt}. There’s no interval in which to stop it.",
     { slots: { publishesAt: "date" }, fixedBy: "SPEC §8 2026-09-20" },
   ],
-  "mail.draftReady.copilot": ["It will not publish until you approve it.", { slots: {}, fixedBy: "REQ-057 c1" }],
 
   // Four for REQ-057 c9's destination clause — what the telling says about
   // a page bound for the customer's own site. `{site}` is the address the
@@ -337,10 +336,6 @@ export const MAIL_COPY = Object.freeze({
   // moment with no interval at all.
   "mail.draftReady.dest.goesLiveThen": ["It goes live on {site} at that moment, readable by anyone. It does not wait there as a draft.", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
   "mail.draftReady.dest.goesLiveAtOnce": ["It goes live on {site} the moment it publishes, readable by anyone. It does not wait there as a draft.", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
-  "mail.draftReady.dest.goesLiveOnApproval": [
-    "It goes live on {site} only once you approve it, readable by anyone from then on. Nothing reaches the site before that.",
-    { slots: { site: "text" }, fixedBy: "REQ-057 c9" },
-  ],
   // The site cannot be published to as things stand. It says what the
   // customer must change — and it never says the page will not go live at
   // the moment the mail names, because c9's final sentence keeps the date,
@@ -657,7 +652,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.firstPage.fact.format": ["format", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.draftReady.heading": ["{title}", { slots: { title: "text" }, fixedBy: "S20 (11a)" }],
   "mail.draftReady.body": [
-    "Publishes tomorrow at 07:00 unless you say no.",
+    "Goes live on its own tomorrow at 07:00. You can edit or stop it until then.",
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.draftReady.fact.search": ["search", { slots: {}, fixedBy: "S20 (11a)" }],
@@ -786,7 +781,7 @@ export const MAIL_COPY = Object.freeze({
   // nothing"). Slots are named for what the sequence can supply.
   "mail.inactivity.subject": ["Your pages are still going out", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
   "mail.inactivity.line": [
-    "You haven’t signed in for a week. ReachKit is still writing and publishing your pages, and every page waits for you to stop it before it goes live.",
+    "You haven’t signed in for a week. ReachKit is still writing and publishing your pages, and every page goes live on its own unless you stop it first.",
     { slots: {}, fixedBy: "SPEC §8 · issue 569" },
   ],
   "mail.inactivity.action": ["Sign in", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
@@ -798,7 +793,7 @@ export const MAIL_COPY = Object.freeze({
    *  closes, in the customer's zone. */
   "mail.vetoReminder.subject": ["A page publishes soon", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
   "mail.vetoReminder.line": [
-    "“{page}” publishes at {closesAt} unless you stop it.",
+    "“{page}” goes live on its own at {closesAt}. You can edit or stop it until then.",
     { slots: { page: "text", closesAt: "date" }, fixedBy: "SPEC §8 · issue 569" },
   ],
   "mail.vetoReminder.action": ["Stop this page", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
@@ -821,7 +816,7 @@ export const MAIL_COPY = Object.freeze({
   ],
   "mail.winback.subject": ["Pick up where you left off", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
   "mail.winback.line": [
-    "ReachKit can start writing and publishing pages for your site again: one a day, each waiting for you to stop it before it goes live. €49 a month, cancel any time.",
+    "ReachKit can start writing and publishing pages for your site again: one a day, each going live on its own unless you stop it first. €49 a month, cancel any time.",
     { slots: {}, fixedBy: "SPEC §8 · issue 569" },
   ],
   "mail.winback.action": ["Resume ReachKit", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],

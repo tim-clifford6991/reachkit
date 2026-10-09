@@ -1,11 +1,12 @@
 // BUILD §4.6 — the stage-appropriate actions, and the machine behind them.
 //
 // §4.6 gives four stages a control that changes something: review → Veto,
-// planned → Skip; needs-you → Write it again; the draft view adds Approve.
+// planned → Skip; needs-you → Write it again. The customer has no Approve
+// (owner 2026-10-08, issue 1337): the veto window ending is what publishes.
 // Every one of those is a write against §9's state machine, which now
 // exists: `src/lib/publish/`, issue #45.
 //
-// So this file is the seam and no longer the stub. All four commands are
+// So this file is the seam and no longer the stub. All three commands are
 // §9 edges and go to `transition()` — the one mover of state — through the
 // Server Functions in `./publishing-actions`.
 //
@@ -26,7 +27,7 @@
 // screen states which answer it got, and the machine's own word for why is
 // carried on the refusal for the developer who has to read it.
 import type { State } from "@/lib/publish/types";
-import { approveDraft, regenerateDraft, skipDraft, vetoDraft } from "./publishing-actions";
+import { regenerateDraft, skipDraft, vetoDraft } from "./publishing-actions";
 
 /** The two writes §4.6's day panel offers that end a page's run at its
  *  date. Named for what the customer does, not for the transition
@@ -34,12 +35,10 @@ import { approveDraft, regenerateDraft, skipDraft, vetoDraft } from "./publishin
  *  `skipped`, and they reach the same state by two different promises. */
 export type StopCommand = "skip" | "veto";
 
-/** 2026-09-06, issue #17: §4.6's *draft view* offers a fourth — "Approve /
- *  Edit / Veto". `edit` is not here and never will be: editing is a text
- *  write against the draft's own store (`draft/[draftId]/save.ts`), not a
- *  transition of §9's state machine, and putting it in this union would
- *  make one seam answer for two different promises. Approve is the
- *  `in_review → approved` edge and belongs here beside its own opposite. */
+/** `edit` is not here and never will be: editing is a text write against
+ *  the draft's own store (`draft/[draftId]/save.ts`), not a transition of
+ *  §9's state machine. `approve` is not here either (owner 2026-10-08,
+ *  issue 1337): `in_review → approved` is the system's edge alone. */
 /** 2026-09-07, issue #143: §9's `needs_attention → generating` — the
  *  customer's own restart, and the one edge §9 opens for them and for no
  *  one else. Its own type beside `StopCommand` because it is the opposite
@@ -47,7 +46,7 @@ export type StopCommand = "skip" | "veto";
  *  starts it over. */
 export type RestartCommand = "regenerate";
 
-export type PublishingCommand = StopCommand | RestartCommand | "approve";
+export type PublishingCommand = StopCommand | RestartCommand;
 
 /**
  * The §9 state each command asks the machine to move the page to.
@@ -65,7 +64,6 @@ export type PublishingCommand = StopCommand | RestartCommand | "approve";
 export const COMMAND_TARGET: Readonly<Record<PublishingCommand, State>> = Object.freeze({
   skip: "skipped",
   veto: "skipped",
-  approve: "approved",
   regenerate: "generating",
 });
 
@@ -86,9 +84,6 @@ export interface PublishingMachine {
   skip(a: { draftId: string }): Promise<PublishingOutcome>;
   /** Stop a page in review before its veto window closes (§9). */
   veto(a: { draftId: string }): Promise<PublishingOutcome>;
-  /** Approve a page in review, ahead of the veto window (§9: "Copilot =
-   *  explicit approve only"). */
-  approve(a: { draftId: string }): Promise<PublishingOutcome>;
   /**
    * Write a page again — §9's `needs_attention → generating`, the
    * customer's own restart (issue #143).
@@ -131,9 +126,6 @@ export const publishing: PublishingMachine = Object.freeze({
   },
   veto(a: { draftId: string }): Promise<PublishingOutcome> {
     return run(vetoDraft(a.draftId));
-  },
-  approve(a: { draftId: string }): Promise<PublishingOutcome> {
-    return run(approveDraft(a.draftId));
   },
   regenerate(a: { draftId: string }): Promise<PublishingOutcome> {
     return run(regenerateDraft(a.draftId));

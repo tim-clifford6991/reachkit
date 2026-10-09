@@ -279,7 +279,7 @@ export const PUBLISH_COPY = Object.freeze({
    *  sentence keeps what it promises and the offer becomes a control, so
    *  a reader who wants the page can reach it. Drafted (#759). */
   "publish.veto.ask.do-nothing": [
-    "Do nothing and it goes live as planned.",
+    "Do nothing and it goes live on its own. You can edit or stop it until then.",
     { slots: {}, fixedBy: "issue 937" },
   ],
   /** The offer that used to be the tail of the sentence above, as a link

@@ -107,51 +107,8 @@ describe('REQ-073 c4 rule 3 — "a draft already in review whose window is lengt
   });
 });
 
-describe('REQ-073 c4 rule 4 — "a draft whose window already expired under Copilot starts its window again at the moment of the change"', () => {
-  it("a switch to Autopilot never makes a held draft publishable without the stated interval", () => {
-    const expired = new Date(CHANGED.getTime() - HOUR);
-    const after = deadline({
-      state: "in_review",
-      currentDeadline: expired,
-      previous: settings({ mode: "copilot", vetoHours: 24 }),
-      next: settings({ mode: "autopilot", vetoHours: 24 }),
-    });
-    expect(after.getTime()).toBe(CHANGED.getTime() + 24 * HOUR);
-    expect(after.getTime()).toBeGreaterThan(CHANGED.getTime());
-  });
-
-  it("the restart is at the moment of the change, not at entry — an entry-based restart would still be expired", () => {
-    const expired = new Date(CHANGED.getTime() - HOUR);
-    const after = deadline({
-      currentDeadline: expired,
-      previous: settings({ mode: "copilot" }),
-      next: settings({ mode: "autopilot" }),
-    });
-    expect(after.getTime()).not.toBe(ENTERED.getTime() + 24 * HOUR);
-  });
-
-  it("a Copilot draft whose window has NOT expired is not restarted — rule 3 governs it", () => {
-    const running = new Date(CHANGED.getTime() + HOUR);
-    const after = deadline({
-      currentDeadline: running,
-      previous: settings({ mode: "copilot", vetoHours: 24 }),
-      next: settings({ mode: "autopilot", vetoHours: 24 }),
-    });
-    expect(after.getTime()).toBe(running.getTime());
-  });
-
-  it("rule 4 is scoped to in_review — an approved draft is untouched, because a settings change does not revoke an approval", () => {
-    const expired = new Date(CHANGED.getTime() - HOUR);
-    const after = deadline({
-      state: "approved",
-      currentDeadline: expired,
-      previous: settings({ mode: "copilot" }),
-      next: settings({ mode: "autopilot" }),
-    });
-    expect(after.getTime()).toBe(expired.getTime());
-  });
-
-  it("an Autopilot draft whose window expired is not restarted — the rule names Copilot", () => {
+describe("an expired window is never restarted by a settings change (rule 4, the Copilot restart, left with copilot — issue 1337)", () => {
+  it("a draft whose window expired is not restarted", () => {
     const expired = new Date(CHANGED.getTime() - HOUR);
     const after = deadline({
       currentDeadline: expired,

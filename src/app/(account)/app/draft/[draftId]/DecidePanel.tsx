@@ -1,13 +1,14 @@
-// SPEC §7 — the draft's rail: decide (Approve, Edit, Veto — or, on a page
-// the rules stopped, Edit, Write it again, Skip; #1180), what happens if you
-// do nothing, and the checks the draft passed.
+// SPEC §7 — the draft's rail: when the page goes live on its own, Edit and
+// Stop (or, on a page the rules stopped, Edit, Write it again, Skip; #1180),
+// what happens if you do nothing, and the checks the draft passed.
 //
-// **Board `R12-6-Page` (SPEC §7, 2026-09-24, #1072)**, top to bottom: the
-// *Goes live in* countdown with the absolute time under it, Approve as the
-// one solid button, Edit (soft) and Stop (ghost warning) side by side, the
-// checks as they finish, the do-nothing sentence, and the two copy-out
-// buttons as ghosts. The countdown and the sentence are the panel's; below
-// `md` the bar says the same thing in one line with the time in it.
+// **There is no Approve** (owner 2026-10-08, issue 1337: "remove the approve
+// button entirely, autopilot only … they can solely edit or stop the
+// content"). The rail asks for nothing: the *Goes live in* countdown with
+// the absolute time under it leads, then Stop (ghost warning) and Edit
+// (soft) side by side, the checks, the do-nothing sentence and the two
+// copy-out buttons. No control on it is a solid primary. Below `md` the bar
+// says the same thing in one line with the time in it.
 //
 // A daisyUI card in an `<aside>`, the same box the calendar's day panel
 // stands in: beside the page and sticky from `xl`, in flow under it below —
@@ -17,11 +18,11 @@
 // **Below `md` the three controls are a bar at the foot of the viewport**
 // (owner's review of #931, 2026-09-21). The page in its frame is ~5,300px
 // tall on a phone, and the rail was the last thing under it: a reviewer
-// could not approve or stop a page without scrolling past the whole of it
+// could not stop a page without scrolling past the whole of it
 // and every card. So the controls come to the reviewer.
 //
 // **One set of controls.** There is no phone copy of the buttons: the same
-// three are lifted out of flow by `max-md:` classes, and from `md` up every
+// ones are lifted out of flow by `max-md:` classes, and from `md` up every
 // such class is inert. A second copy would be a second thing to keep in step
 // with §9's transition table. The do-nothing sentence is the one thing said
 // twice, in two wordings for two widths, because the phone has no countdown.
@@ -33,9 +34,8 @@
 // **Nothing here decides which controls exist.** `draftActionsFor` projects
 // them from §9's transition table, so this rail and the calendar's day panel
 // cannot offer different actions for one state (REQ-044 c3). What this file
-// decides is the rank: Approve is the screen's one solid primary across the
-// column; Edit is soft and Stop a ghost in warning, sharing the row under
-// it. A state that offers none of them draws no control block at all.
+// decides is the rank: Stop leads as a ghost in warning and Edit is soft.
+// A state that offers none of them draws no control block at all.
 //
 // The state it projects from is the screen's, not the stored view's (issue
 // #913): while a decision is in flight that is the state the decision asks
@@ -121,8 +121,8 @@ export function DecidePanel(p: {
   /** The page's §9 state as the screen believes it — the stored one, or,
    *  while a decision is in flight, the one that decision asks for (issue
    *  #913). The controls are projected from it, so pressing Stop takes
-   *  both Stop and Approve off the rail at once rather than leaving a
-   *  second press that could only be refused. */
+   *  the controls off the rail at once rather than leaving a second press
+   *  that could only be refused. */
   state: State;
   /** Whether a decision this rail asked for is still in flight. Both
    *  controls are inert while one is. */
@@ -155,7 +155,7 @@ export function DecidePanel(p: {
   });
   const publishesAt = view.doNothing.publishesAt;
   /** The countdown runs only while the page can still be stopped: the
-   *  moment Stop or Approve is pressed the controls leave and so does it. */
+   *  moment Stop is pressed the controls leave and so does it. */
   const counting = publishesAt !== null && actions.length > 0;
 
   /** The bar's one line (below `md`): the sentence with the time in it,
@@ -194,7 +194,7 @@ export function DecidePanel(p: {
         {/* The bar. In flow inside the card from `md` up, and fixed to the
             foot of the viewport below it (owner's review of #931): the page
             is ~5,300px tall on a phone, so the controls come to the
-            reviewer. One DOM — the same three buttons at every width, so
+            reviewer. One DOM — the same buttons at every width, so
             the phone cannot offer an action §9's table refuses. It stacks
             at `z-[2]`, above the dock's `1` and below the drawer's `10`,
             and sits at the dock's own height (`4rem` + the safe area). */}
@@ -239,7 +239,9 @@ export function DecidePanel(p: {
                   <button
                     key={action.key}
                     type="button"
-                    className="btn btn-sm btn-ghost btn-warning"
+                    // Stop leads a page in review: it is the one thing the
+                    // customer can do that changes what happens.
+                    className={`btn btn-sm btn-ghost btn-warning${action.command === "veto" ? " order-first" : ""}`}
                     data-testid={`draft-action-${action.key}`}
                     disabled={p.deciding}
                     onClick={() => p.onCommand(action.command)}
@@ -251,7 +253,7 @@ export function DecidePanel(p: {
                     )}
                     {copy(action.key)}
                   </button>
-                ) : action.command === "regenerate" ? (
+                ) : (
                   <button
                     key={action.key}
                     type="button"
@@ -267,26 +269,7 @@ export function DecidePanel(p: {
                     )}
                     {copy(action.key)}
                   </button>
-                ) : (
-                  <button
-                    key={action.key}
-                    type="button"
-                    // `col-span-2` and `order-first`: Approve is the one
-                    // solid button, across the column and above the other
-                    // two. In the bar the three share one row.
-                    className="btn btn-primary order-first col-span-2 max-md:btn-sm max-md:order-none max-md:col-span-1"
-                    data-testid={`draft-action-${action.key}`}
-                    disabled={p.deciding}
-                    onClick={() => p.onCommand("approve")}
-                  >
-                    {p.pressed === "approve" ? (
-                      <span className="loading loading-spinner loading-xs" aria-hidden />
-                    ) : (
-                      <Check size={16} strokeWidth={1.75} aria-hidden />
-                    )}
-                    {copy(action.key)}
-                  </button>
-                ),
+                                ),
               )}
             </div>
           )}
