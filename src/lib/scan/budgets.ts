@@ -27,7 +27,7 @@
 // | `reading_access_rules`  |       1 |   0   | reports a read stage one already made — it buys nothing and waits for nothing |
 // | `reading_your_market`   |      14 |   5.0 | `keyword_suggestions` (1.8¢) and the free path's two nano calls — the profile and the phrasing (≈2.6¢ together at Haiku's row); the seed ladder's extra purchases are paid from the purse it shares with the twelve (below) |
 // | `checking_your_presence`|       1 |   0   | the free tier's `sizesRivals` is `false`: per-rival `ranked_keywords` is on §6.4's never-pull list for this path |
-// | `asking_the_twelve`     |      13 |   5.0 | twelve live SERPs, each reserving the async-AI-Overview surcharge (12 × `QUESTION_SERP_RESERVE_C` = 4.8¢) |
+// | `asking_the_twelve`     |      13 |   5.0 | twelve queued SERPs at high priority, each reserving the async-AI-Overview surcharge (12 × `QUESTION_SERP_RESERVE_C` = 2.88¢, issue 1352), and a second ask of one that failed |
 // | `scoring`               |       1 |   0   | both cards, the rivals and the coherence verdict, all counted over SERPs already paid for (§6.6's "zero extra cost") |
 //
 // **The market and the twelve share one purse** (issue 835, owner ruling
@@ -93,10 +93,10 @@ export const STAGE_BUDGETS = Object.freeze({
   scoring: Object.freeze({ seconds: 1, cents: 0 }),
 }) satisfies Readonly<Record<StageName, StageBudget>>;
 
-/** The most one question's live SERP reserves on the free path: the base
- *  price with the async-AI-Overview surcharge (ADR-094 d3). The twelve's
- *  row is twelve of these. */
-export const QUESTION_SERP_RESERVE_C = PRICE_BOOK.SERP_LIVE_C * ASYNC_AIO_SURCHARGE_MULTIPLIER;
+/** The most one question's SERP reserves on the free path: the high-priority
+ *  queue's price (issue 1352) with the async-AI-Overview surcharge (ADR-094
+ *  d3). The twelve's row holds twelve of these and their second asks. */
+export const QUESTION_SERP_RESERVE_C = PRICE_BOOK.SERP_STD_HIGH_C * ASYNC_AIO_SURCHARGE_MULTIPLIER;
 
 /** Issue 835: the purse `reading_your_market` spends from on the free path —
  *  its own row and the twelve's, because the seed ladder's extra purchases
@@ -146,7 +146,7 @@ export function affordsSeed(a: { remainingCents: number; selected: number }): bo
  * report a list of questions it can pay to answer.
  *
  * The epsilon is the binary representation, not a tolerance: the reserve is
- * a tenth-of-a-cent figure (`numeric(12,4)` in `fetches`), and 4.8/0.4
+ * a hundredth-of-a-cent figure (`numeric(12,4)` in `fetches`), and a sum of them
  * lands a hair under twelve in IEEE-754.
  */
 export function questionsAffordable(cents: number): number {
@@ -154,32 +154,16 @@ export function questionsAffordable(cents: number): number {
   return Math.floor((cents + 1e-9) / QUESTION_SERP_RESERVE_C);
 }
 
-/** How many of the twelve question-SERPs one pass has in flight at once
- *  (issue #539).
+/** The twelve, all at once (issue 855). Each of a paid pass's questions is
+ *  three calls — the SERP, the ChatGPT read on the standard queue and AI
+ *  Mode — so three waves of four are three times the slowest question's
+ *  calls, which a job invocation's ceiling does not hold. Twelve at once is
+ *  one wave; the cap is still checked against every reservation in flight.
  *
- *  The twelve were bought one after another, which is what made
- *  `asking_the_twelve` unaffordable in time: at a live SERP's ordinary
- *  couple of seconds, twelve in sequence is most of the pass's whole
- *  target on its own. They are independent of each other — twelve separate
- *  queries, no call reading another's answer — so they are bought
- *  concurrently, and the stage's 13-second budget is a bound the fan-out
- *  can actually finish inside.
- *
- *  Four is a parameter, chosen here and reversible in one line: wide
- *  enough that the twelve take three waves rather than twelve, narrow
- *  enough that one pass never opens twelve sockets at the vendor at once
- *  and that the cap is re-read between waves while there is still headroom
- *  to protect. `JOB_FANOUT` is the *job runner's* bound across customers
- *  and is deliberately not reused: this is one pass's own. */
-export const SERP_FANOUT = 4;
-
-/** A paid pass's twelve, all at once (issue 855). The free path's waves
- *  exist for its 13-second stage budget and its 12¢; a paid pass has
- *  neither, and each of its questions is three calls — the SERP, the
- *  ChatGPT read on the standard queue and AI Mode — so three waves of four
- *  are three times the slowest question's calls, which a job invocation's
- *  ceiling does not hold. Twelve at once is one wave; the cap is still
- *  checked against every reservation in flight. */
+ *  The free path's too since issue 1352. It asked in waves of four
+ *  (`SERP_FANOUT`, issue #539) while its reads were live; they are queued
+ *  now, and a wave that waits on the queue would start the next one after
+ *  the scan's time is spent. */
 export const PAID_SERP_FANOUT = 12;
 
 /** What a stage's work came back with, or the fact that the stage spent its

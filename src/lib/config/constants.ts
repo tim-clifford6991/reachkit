@@ -30,6 +30,10 @@ export const PRICE_BOOK = Object.freeze({
   RANKED_RIVAL_ROWS: 100, RANKED_RIVAL_COST_C: 2.4,
   COMPETITORS_DOMAIN_COST_C: 1.5, SUGGESTIONS_COST_C: 1.8,
   SERP_LIVE_C: 0.2, SERP_STD_C: 0.06,
+  /** The queue at the vendor's high priority (SPEC §6, 2026-10-08, issue
+   *  1352): twice the normal queue's price, charged on each of the 30
+   *  tasks posted that day. A free scan's and a first pass's Google reads. */
+  SERP_STD_HIGH_C: 0.12,
   /** Google News, live, ten results (SPEC §7, D48; issue 1259): the vendor's
    *  own charge on the cost check of 2026-10-04, 0.2 cents a call. */
   NEWS_LIVE_C: 0.2,
@@ -886,6 +890,11 @@ export const TIMING = Object.freeze({
    *  is that engine's unmeasured cell; the pass goes on to score inside its
    *  ceiling. No ceiling moves. */
   paidPassAskReserveS: 25,
+  /** How long before `reportCeilingS` a free scan stops waiting for a
+   *  queued Google read (SPEC §6, 2026-10-08, issue 1352): the time it
+   *  keeps to score, compose and store the report inside its ceiling. A
+   *  read still queued then is that search's unmeasured cell. */
+  freePassAskReserveS: 5,
   /** How long before `platformCeilingS` a free pass still running in its
    *  request marks its own row `failed` (issue 798). Past the design
    *  ceiling a pass is only storing its partial report; one still going
@@ -1445,6 +1454,12 @@ export const VENDOR = Object.freeze({                         // #23 · BUILD §
   competitorsDomainRows: 25,
   stdQueuePollIntervalS: 10,
   stdQueueDeadlineMin: 45,
+  /** How often a pass somebody is waiting for asks whether its queued
+   *  Google read is ready (SPEC §6, 2026-10-08, issue 1352). High-priority
+   *  tasks were ready 3–25 s after they were posted, so ten seconds between
+   *  asks would spend most of a free scan's wait not looking. A `task_get`
+   *  is free. */
+  waitedQueuePollIntervalS: 2,
   /** The wall clock one vendor request may hold, in milliseconds (issue
    *  #539's bound, pinned here by issue 875 so a tier can carry its own).
    *  Every call takes this unless its call site names another. */

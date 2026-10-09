@@ -65,9 +65,9 @@ export interface PublishingFacts {
    * field, and treating the first as the second draws planned dates over
    * pages that are in review or already live — a calendar that states work
    * nobody planned and hides work that is under way. So the caller plans
-   * nothing on a `false`, and every date resolves `unattributed`, which is
-   * ADR-061 point 2's own arm: "a date the product cannot explain is a
-   * date on which something of the product's failed".
+   * nothing on a `false`, and every date resolves `unattributed`: a date
+   * the product cannot explain, said in that cause's own words (SPEC §7,
+   * 2026-10-07).
    */
   readable: boolean;
   /** The page §9 put on each date of the month, by that date. A date a

@@ -24,10 +24,17 @@
 // envelope, `withCostContext`, the retry and the composition.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb } from "../run/harness";
-import { envelope, setEnvFixture, stubVendorFetch } from "../../vendors/harness";
+import { asQueue, envelope, pollTheQueueAtOnce, setEnvFixture, stubVendorFetch as stubFetch } from "../../vendors/harness";
+
 import { measured } from "../../../src/lib/measure/measured";
 import type { StoredReport } from "../../../src/lib/scan/report";
 import { AT, PROFILE, QUESTION, ROBOTS, SELECTED } from "../report/fixtures";
+
+/** The vendor, with the Google reads on the queue (issue 1352): a handler
+ *  answers each search once, at its post, and what it throws fails the post. */
+function stubVendorFetch(handler: Parameters<typeof asQueue>[0]) {
+  return stubFetch(asQueue(handler));
+}
 
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
@@ -150,6 +157,7 @@ function vendorSlowOnce(latencyMs: number) {
     const keyword = String(request.task?.keyword ?? "");
     const attempt = (seen.get(keyword) ?? 0) + 1;
     seen.set(keyword, attempt);
+    // The post's own bound: the last one the transport asked for.
     const abortMs = aborts.at(-1) ?? VENDOR.requestAbortMs;
     const slow = keyword === SLOW && attempt === 1;
     const answered = !slow || latencyMs <= abortMs;
@@ -202,6 +210,7 @@ beforeEach(() => {
   }));
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
+  pollTheQueueAtOnce(TIER_PARAMETERS.free.serpPollMs);
 });
 
 afterEach(() => {
@@ -233,11 +242,12 @@ describe("issue 875 — the abort is the tier's, and the transport carries it pe
   });
 
   it("D63: a paid pass never waits past its own ceiling", async () => {
-    // Twenty seconds of the pass are left when the questions are asked.
+    // Twenty-eight seconds of the pass are left when the questions are
+    // asked: three more than it keeps back from the queue, so it still asks.
     vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-10-07T08:00:00Z") });
     const startedAt = Date.now();
     deriveProfile.mockImplementation(async () => {
-      vi.setSystemTime(startedAt + (TIER_PARAMETERS.deep.ceilingS - 20) * 1000);
+      vi.setSystemTime(startedAt + (TIER_PARAMETERS.deep.ceilingS - 28) * 1000);
       return measured(PROFILE, AT);
     });
     vendorSlowOnce(1_000);
@@ -245,7 +255,8 @@ describe("issue 875 — the abort is the tier's, and the transport carries it pe
     vi.useRealTimers();
 
     expect(organicAborts()).not.toHaveLength(0);
-    expect(Math.max(...organicAborts())).toBeLessThanOrEqual(20_000);
+    expect(Math.max(...organicAborts())).toBeLessThanOrEqual(28_000);
+    expect(Math.max(...aborts)).toBeLessThanOrEqual(28_000);
   });
 });
 
@@ -319,7 +330,8 @@ describe("issue 875 — an answer that arrives after its stage was abandoned is 
     await vi.advanceTimersByTimeAsync(14_000);
     expect(storeCurrentReport).not.toHaveBeenCalled();
     vendor.release();
-    await vi.advanceTimersByTimeAsync(1_000);
+    // The queue is asked again within one poll.
+    await vi.advanceTimersByTimeAsync(TIER_PARAMETERS.free.serpPollMs);
     await pass;
 
     const report = storedReport();
@@ -363,7 +375,8 @@ describe("D63 (issue 1298) — a free scan asks a timed-out read once more, past
     while (vendor.asksOfSlow() === 0) await new Promise((resolve) => setImmediate(resolve));
     await vi.advanceTimersByTimeAsync(ms);
     vendor.timeOut();
-    await vi.advanceTimersByTimeAsync(0);
+    // A second ask is a task posted and collected one poll later.
+    await vi.advanceTimersByTimeAsync(TIER_PARAMETERS.free.serpPollMs + 1_000);
     await pass;
     vi.useRealTimers();
     return { slow: storedReport().serps[TWELVE.findIndex((search) => search.keyword === SLOW)], asks: vendor.asksOfSlow() };

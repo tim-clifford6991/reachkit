@@ -405,9 +405,9 @@ export async function readCalendarFacts(a: {
     // §9's own answers about this month (#175).
     readPublishingFacts({ siteId: a.site.siteId, month: a.month, today }),
     // §11's stop, read where the shell reads it and not a second time
-    // (#113). A read that throws is not a claim that nothing stopped: the
-    // day's own account falls to `unattributed`, which is the same stop
-    // said without a record behind it (ADR-061 point 2).
+    // (#113). A read that throws is not a claim that nothing stopped, and
+    // not a claim that something did: the day's own account falls to
+    // `unattributed`, which has its own words (issue 1321).
     readStop().catch(() => null),
     // REQ-071 c11's hold (#204). A read that could not answer is not a site
     // replacing nothing — but it is also not a licence to hold every date
@@ -464,17 +464,21 @@ export async function readCalendarFacts(a: {
 
   // 2 — the dates left, filled from supply in its own order. A date §9 has
   //     already spoken for is skipped without consuming a page from the
-  //     queue: the page supply chose for it is the page that is on it.
+  //     queue: the page supply chose for it is the page that is on it, and
+  //     the ranked list's first place is the first date with no page
+  //     (`mixOf`; issue 1321).
   //
   //     Nothing is planned at all where §9's facts could not be read: a
   //     month drawn as planned dates over pages that may be in review or
   //     already live is worse than a month that says something of ours
   //     failed, which is what every date then resolves to
   //     (`drafts-read.ts`'s own note, and ADR-061 point 2).
-  for (const [index, day] of publishing.readable ? dates.entries() : []) {
-    const opportunityId = queue[offset + index];
-    if (opportunityId === undefined) break; // supply ran out; the rest stay empty
+  let next = offset;
+  for (const day of publishing.readable ? dates : []) {
     if (publishing.pagesByDay.has(day)) continue;
+    const opportunityId = queue[next];
+    if (opportunityId === undefined) break; // supply ran out; the rest stay empty
+    next += 1;
     const choice = await explainChoice(opportunityId);
     if (choice === null) continue;
     drafts.push(plannedOn(day, choice, a.now));

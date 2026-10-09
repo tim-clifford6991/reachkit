@@ -867,13 +867,15 @@ describe("three decisions → deep pass → the first page already on the calend
       // Never the free path's own 50-row read: this pass buys 300.
       expect(ranked.some((row) => row.costCents === PRICE_BOOK.RANKED_FREE_COST_C)).toBe(false);
 
-      // One SERP per question the market yielded, live — a founder is
-      // watching this one — and none carries the free path's AI-Overview
-      // surcharge flag, because the paid battery buys AI Mode outright.
-      const serps = vendorRequests.filter((r) => r.url.includes("/serp/google/organic"));
+      // One SERP per question the market yielded, queued at high priority
+      // — a founder is watching this one (issue 1352) — and none carries
+      // the free path's AI-Overview surcharge flag, because the paid battery
+      // buys AI Mode outright.
+      const serps = vendorRequests.filter((r) => r.url.includes("/serp/google/organic/task_post"));
       expect(serps.length).toBeGreaterThan(0);
+      expect(vendorRequests.some((r) => r.url.includes("/serp/google/organic/live"))).toBe(false);
       for (const request of serps) {
-        expect(request.url).toContain("/live/advanced");
+        expect(request.task.priority).toBe(2);
         expect(request.task.load_async_ai_overview).toBe(false);
       }
 
@@ -885,11 +887,11 @@ describe("three decisions → deep pass → the first page already on the calend
       );
       expect(rows.filter((row) => row.source === "serp/google/ai_mode")).toHaveLength(serps.length);
 
-      // The standard queue was used for the one endpoint that has no live
-      // surface, and for nothing else.
+      // The queue was used for the Google reads and for the one endpoint
+      // that has no live surface, and for nothing else.
       const queued = vendorRequests.filter((r) => r.url.includes("/task_post"));
-      expect(queued).toHaveLength(serps.length);
-      for (const request of queued) expect(request.url).toContain("llm_scraper");
+      expect(queued).toHaveLength(serps.length * 2);
+      for (const request of queued) expect(request.url).toMatch(/llm_scraper|serp\/google\/organic/);
     },
     JOURNEY_TIMEOUT_MS
   );

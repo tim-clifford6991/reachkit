@@ -47,9 +47,10 @@ export function stoppedWorkStatement(
   };
 }
 
-/** The causes REQ-040 c4 admits when ReachKit has not stopped. This module
- *  adds none: the set is that criterion's and is closed there. */
-export type NextPublishCause = "paused" | "nothing-approved" | "none-planned";
+/** The causes REQ-040 c4 admits when ReachKit has not stopped, and
+ *  `unexplained`: no publish is scheduled and no cause is recorded, which
+ *  is not a stop (SPEC §7, 2026-10-07, issue 1321). */
+export type NextPublishCause = "paused" | "nothing-approved" | "none-planned" | "unexplained";
 
 export type NextPublishOtherwise = { tag: NextPublishCause } | { tag: "scheduled"; at: string };
 
@@ -58,6 +59,7 @@ const OTHERWISE_KEY = {
   paused: "next-publish.paused",
   "nothing-approved": "next-publish.nothing-approved",
   "none-planned": "next-publish.none-planned",
+  unexplained: "next-publish.unexplained",
 } as const satisfies Record<NextPublishOtherwise["tag"], CopyKey>;
 
 /** REQ-092 c7. Every statement of when the next page publishes — the

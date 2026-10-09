@@ -110,7 +110,6 @@ import type { AiAnswer, CacheScope, RankedRow, SerpResult } from "@/lib/vendors/
 import {
   MARKET_PURSE_CENTS,
   PAID_SERP_FANOUT,
-  SERP_FANOUT,
   STAGE_BUDGETS,
   affordsSeed,
   questionsAffordable,
@@ -155,8 +154,17 @@ interface TierParameters {
   /** Which of the four caps the pass spends against (§6.1). */
   cap: CapName;
   /** §6.4: live mode only where a human is waiting; everything scheduled
-   *  runs on the standard queue. */
+   *  runs on the standard queue. AI Mode's surface since issue 1352: every
+   *  tier's Google organic reads are queued (`serpPriority`). */
   serpMode: "live" | "std";
+  /** The queue priority of this tier's Google organic reads (SPEC §6,
+   *  2026-10-08, issue 1352). The live surface answered `50000 Internal
+   *  Server Error` after 16 s on 12 of 15 calls that day while queued tasks
+   *  came back in seconds, so no tier reads Google live. `high` where
+   *  somebody is waiting: the free scan and a site's first pass. */
+  serpPriority: "high" | "normal";
+  /** How often this tier asks the queue whether a Google read is ready. */
+  serpPollMs: number;
   /** §6.2 as amended (DECISIONS 2026-09-03): the free report's own twelve
    *  question-SERPs count Google's actual AI answers. A correction's
    *  re-run switches it off whatever the tier says — that is the
@@ -171,9 +179,10 @@ interface TierParameters {
    *  the job invocation it runs in. The free 50 s used to bound every tier,
    *  and a deep pass stopped asking its twelve after three SERPs. */
   ceilingS: number;
-  /** How many of the twelve are bought at once: the free path's waves
-   *  (`SERP_FANOUT`, for its stage budget), a paid pass's one wave
-   *  (`PAID_SERP_FANOUT`, issue 855). */
+  /** How many of the twelve are bought at once: one wave at every tier
+   *  (`PAID_SERP_FANOUT`, issue 855). The free path asked in waves of four
+   *  while its reads were live; a queued read costs its wait whether one
+   *  task is posted or twelve (issue 1352). */
   serpFanout: number;
   /** A free scan is never started outside admission control: it adopts the
    *  row the claim already inserted and never inserts a second. The deep
@@ -304,8 +313,9 @@ interface TierParameters {
   pageQuestions: boolean;
   /** #1195: how long before the ceiling this tier's asks stop waiting
    *  (`TIMING.paidPassAskReserveS`), so a slow queue costs one engine's
-   *  cell and never the pass's scoring. 0 on the free path, whose asks are
-   *  live and bounded by `serpAbortMs`. */
+   *  cell and never the pass's scoring. The free path's is
+   *  `TIMING.freePassAskReserveS` (issue 1352): its Google reads are queued
+   *  too, and it waits for them until that long before its own ceiling. */
   askReserveS: number;
   /** #1195: how many of the market's buyer prompts this tier asks AI Mode
    *  beside the twelve (`BATTERY.MARKET_PROMPTS`). The deep pass's: it is
@@ -328,10 +338,12 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
   free: Object.freeze({
     cap: "FREE",
     serpMode: "live",
+    serpPriority: "high",
+    serpPollMs: VENDOR.waitedQueuePollIntervalS * 1000,
     asyncAiOverview: true,
     deadlineApplies: true,
     ceilingS: TIMING.reportCeilingS,
-    serpFanout: SERP_FANOUT,
+    serpFanout: PAID_SERP_FANOUT,
     adoptsClaim: true,
     servesStoredReport: true,
     sizesRivals: false,
@@ -345,7 +357,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     questionsFitThePurse: true,
     serpAbortMs: VENDOR.requestAbortMs,
     pageQuestions: false,
-    askReserveS: 0,
+    askReserveS: TIMING.freePassAskReserveS,
     marketPrompts: 0,
     batteryOnTheTwelve: false,
     trackedPrompts: false,
@@ -353,6 +365,8 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
   deep: Object.freeze({
     cap: "DEEP",
     serpMode: "live",
+    serpPriority: "high",
+    serpPollMs: VENDOR.waitedQueuePollIntervalS * 1000,
     asyncAiOverview: false,
     deadlineApplies: false,
     ceilingS: TIMING.paidPassCeilingS,
@@ -378,6 +392,8 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
   weekly: Object.freeze({
     cap: "WEEKLY",
     serpMode: "std",
+    serpPriority: "normal",
+    serpPollMs: VENDOR.stdQueuePollIntervalS * 1000,
     asyncAiOverview: false,
     deadlineApplies: false,
     ceilingS: TIMING.paidPassCeilingS,
@@ -1478,13 +1494,12 @@ async function runStages(a: StageArgs): Promise<void> {
     );
   }
   // D63 (issue 1298): a stage that spent its clock stops waiting, and the
-  // asks it left go on. The pass waits for them here — the reads still in
-  // flight and the one more ask of a read that timed out — so what was
-  // bought is scored. No new first ask starts, each wait is one request's
-  // bound, and it waits only while its own ceiling holds one: a stage that
-  // ended too near the ceiling is left as it was, and the pass still ends
-  // `complete`.
-  if (twelve.spent && roomForOneRead(bounds, a.parameters)) await asking;
+  // asks it left go on. The pass waits for them here — the reads still
+  // queued and the one more ask of a read that failed — so what was bought
+  // is scored. No new first ask starts, and every queued read gives up by
+  // itself `askReserveS` before the pass's ceiling (issue 1352), so the
+  // pass still ends `complete`.
+  if (twelve.spent && stillCollecting(bounds, a.parameters)) await asking;
   if (bounds.abandoned()) return;
   if (!twelve.spent) await exitStage(scanId, "asking_the_twelve");
 
@@ -2075,18 +2090,33 @@ function serpAbortFor(pass: Bounds, parameters: TierParameters): number {
   return Math.max(1, Math.min(parameters.serpAbortMs, pass.remainingMs()));
 }
 
+/** How this tier's Google organic reads are queued (issue 1352). */
+function queueOf(parameters: TierParameters): { priority?: "high"; pollMs: number } {
+  return { ...(parameters.serpPriority === "high" ? { priority: "high" as const } : {}), pollMs: parameters.serpPollMs };
+}
+
 /** What a pass keeps beyond one request's bound to ledger and score its
  *  answer, so waiting for a read never runs the pass into its ceiling. */
 const SERP_SETTLE_MS = 2_000;
 
 /**
  * Whether the pass's clock holds one more whole SERP read (D63). On the
- * free path that is the bound and the time to store what it brings; a paid
- * pass's bound is already cut to what is left of its ceiling.
+ * free path that is one request's bound, the time to store what it brings
+ * and the time the pass keeps before its ceiling; a paid pass's bound is
+ * already cut to what is left of its ceiling.
  */
 function roomForOneRead(pass: Bounds, parameters: TierParameters): boolean {
   if (!parameters.stageBudgets) return pass.remainingMs() > 0;
-  return pass.remainingMs() >= parameters.serpAbortMs + SERP_SETTLE_MS;
+  return pass.remainingMs() >= parameters.askReserveS * 1000 + parameters.serpAbortMs + SERP_SETTLE_MS;
+}
+
+/**
+ * Whether the pass still waits for the Google reads it has posted (issue
+ * 1352): until `untilCeiling`, the moment every queued read gives up by
+ * itself. So waiting here never runs the pass into its ceiling.
+ */
+function stillCollecting(pass: Bounds, parameters: TierParameters): boolean {
+  return pass.remainingMs() > parameters.askReserveS * 1000;
 }
 
 /**
@@ -2125,12 +2155,15 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean, pass: Bounds
       serpOrganic(cost, {
         query: keyword,
         locale: localeOfPass(a),
-        mode: parameters.serpMode,
+        mode: "std",
+        ...queueOf(parameters),
         loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
         scope: cacheScope(a),
         freshnessDays: serpWindowOf(a),
         abortMs: serpAbortFor(pass, parameters),
-        untilMs: untilCeiling(bounds, parameters),
+        // The pass's clock, not the stage's (issue 1352): a queued read is
+        // paid for when it is posted, and the pass waits for it.
+        untilMs: untilCeiling(pass, parameters),
         onFailure: (failure) => {
           heard.failure = failure;
         },
@@ -2566,7 +2599,8 @@ async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Prom
           serpOrganic(a.cost, {
             query: candidate.search,
             locale: localeOfPass(a),
-            mode: parameters.serpMode,
+            mode: "std",
+            ...queueOf(parameters),
             loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
             scope: cacheScope(a),
             freshnessDays: serpWindowOf(a),

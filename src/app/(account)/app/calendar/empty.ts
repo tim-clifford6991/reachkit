@@ -2,8 +2,11 @@
 // empty state says so — the calendar is never padded."
 //
 // **Read ADR-061 before simplifying this file** (DECISIONS 2026-08-31:
-// "'Nothing worth publishing' is a proven arm, never the fallback; an
-// unattributed empty day is ReachKit's own stop"). Collapsing the last two
+// "'Nothing worth publishing' is a proven arm, never the fallback"). Its
+// second half — "an unattributed empty day is ReachKit's own stop" — is
+// superseded on this screen by SPEC §7, 2026-10-07 (issue 1321): a day says
+// ReachKit stopped only where a stop is recorded for it, and a day nobody
+// can account for has its own words. Collapsing the last two
 // arms into one `else` that says the market offered nothing is the obvious
 // cleanup, and it makes the product tell a customer their market is empty
 // on a day it merely broke. REQ-043 criterion 3's second sentence forbids
@@ -168,16 +171,11 @@ export interface EmptyFacts {
  * direct read of `stopped.work.line` returns the first of the three and
  * silently drops the other two, which is what this file used to do.
  *
- * `unattributed` is in the pair because ADR-061 point 2 puts it there on
- * the merits: "a date the product cannot explain is a date on which
- * something of the product's failed". It is not a weaker statement of the
- * same thing — it *is* ReachKit's own stop, and it is owed all three lines
- * for the same reason.
+ * `unattributed` is not one of them (SPEC §7, 2026-10-07, issue 1321): a
+ * day says ReachKit stopped only where a stop is recorded for it. A day the
+ * product cannot explain is the calendar's own cause, with its own line.
  */
-export const LAW_CAUSES: readonly EmptyCause[] = Object.freeze([
-  "reachkit_stopped",
-  "unattributed",
-] as const);
+export const LAW_CAUSES: readonly EmptyCause[] = Object.freeze(["reachkit_stopped"] as const);
 
 /** Issue 857: the two supply arms are a fact about the site's market, not
  *  about one date. The calendar states supply once, at its top
@@ -186,20 +184,19 @@ export function isSupplyCause(cause: EmptyCause): cause is "supply_unmeasured" |
   return cause === "supply_unmeasured" || cause === "supply_exhausted";
 }
 
-export type CalendarOwnCause = Exclude<EmptyCause, "reachkit_stopped" | "unattributed">;
+export type CalendarOwnCause = Exclude<EmptyCause, "reachkit_stopped">;
 
 /** The calendar's own causes that speak one line whatever they carry. The
  *  held-by-setting cause is not one: each setting has its own line. */
 export type OneLineCause = Exclude<CalendarOwnCause, "customer_change_holds_pages">;
 
-export function isLawCause(cause: EmptyCause): cause is "reachkit_stopped" | "unattributed" {
-  return cause === "reachkit_stopped" || cause === "unattributed";
+export function isLawCause(cause: EmptyCause): cause is "reachkit_stopped" {
+  return cause === "reachkit_stopped";
 }
 
 /** The line each cause the **calendar** speaks is spoken from **in a grid
- *  cell**. The two law causes are absent by type, so this file cannot name
- *  their key again: adding one back is a compile error, not a review
- *  comment. */
+ *  cell**. The law cause is absent by type, so this file cannot name its
+ *  key again: adding it back is a compile error, not a review comment. */
 export const EMPTY_COPY_KEY: Record<OneLineCause, CopyKey> = {
   instruction: "calendar.empty.instruction",
   page_cannot_go_live: "calendar.empty.page-cannot-go-live",
@@ -207,6 +204,7 @@ export const EMPTY_COPY_KEY: Record<OneLineCause, CopyKey> = {
   page_held: "calendar.empty.page-held",
   supply_unmeasured: "calendar.empty.supply-unmeasured",
   supply_exhausted: "cause.supply-exhausted",
+  unattributed: "calendar.empty.unexplained",
 };
 
 /** REQ-043 c4's held date, one line per setting (#754). The app knows which
@@ -248,31 +246,22 @@ export const EMPTY_ACCOUNT_COPY_KEY: Record<OneLineCause, CopyKey> = {
  * The stop a law-caused empty day states, as `stoppedWorkStatement` needs
  * it.
  *
- * Two arms and no invention in either:
+ * The site's own stop, read once by `_shell/stop.ts` and carried on the
+ * facts. Where that read found no stop, or could not be made at all —
+ * `calendar/store.ts` catches it to `null`, because a read that threw is
+ * not a claim that nothing stopped — the day's own stop is stated with the
+ * two **true** statements about it: nothing is known to be needed from the
+ * customer, and no resumption is promised.
  *
- *   · `reachkit_stopped` — the site's own stop, read once by
- *     `_shell/stop.ts` and carried on the facts. Where that read found no
- *     stop, or could not be made at all — `calendar/store.ts` catches it to
- *     `null`, because a read that threw is not a claim that nothing stopped
- *     — the day is exactly as explicable as an unattributed one and takes
- *     the same answer.
- *   · `unattributed` — ADR-061 point 2's stop, which has no record behind
- *     it. `needs: nothing` and `resumes: no time promised` are the two
- *     **true** statements about a day nobody can account for: nothing is
- *     known to be needed from the customer, and no resumption is promised.
- *     Neither is a placeholder, and c4's "never neither" is exactly the
- *     case this arm exists to satisfy.
- *
- * `partial` is false on both: a partial pass is REQ-092 c6's *page
- * produced anyway*, and every day reaching here produced none.
+ * `partial` is false: a partial pass is REQ-092 c6's *page produced
+ * anyway*, and every day reaching here produced none.
  */
 export function stopForEmptyDay(a: {
-  cause: "reachkit_stopped" | "unattributed";
   stop: WorkStop | null;
   /** The date itself, as the moment the day's own stop is dated from. */
   since: Date;
 }): WorkStop {
-  if (a.cause === "reachkit_stopped" && a.stop !== null) return a.stop;
+  if (a.stop !== null) return a.stop;
   return {
     since: a.since,
     resumes: { promised: false },

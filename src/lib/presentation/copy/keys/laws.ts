@@ -91,6 +91,10 @@ export const LAWS_COPY = Object.freeze({
     "No page planned yet.",
     { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" },
   ],
+  // No publish is scheduled and no cause is recorded (SPEC §7, 2026-10-07,
+  // issue 1321). Not a stop. Drafted under issue 759's ruling; the owner
+  // corrects it.
+  "next-publish.unexplained": ["No page is scheduled yet.", { law: "next-publish", slots: {}, fixedBy: "issue 1321" }],
   // 2026-09-06, issue #17: value moved from "" to `TODO(copy)`, on exactly
   // the footing the sibling key below records for 2026-09-05. §4.6's draft
   // view renders a *written* page's body, which is model text and therefore

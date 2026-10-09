@@ -132,9 +132,10 @@ export interface DayCell {
   day: DayKey;
   when: DayWhen;
   /** Whether the grid cell states its account's line. A supply cause never
-   *  does (the calendar states supply once, at its top), and a law cause is
-   *  stated on the first empty day in the plan only — never repeated per
-   *  cell (issue 857). The day panel still gives a selected day's account. */
+   *  does (the calendar states supply once, at its top), and a law cause or
+   *  an unexplained day is stated on the first such day in the plan only —
+   *  never repeated per cell (issue 857). The day panel still gives a
+   *  selected day's account. */
   statesLine: boolean;
   /** The one quiet marker at the horizon: the first date of this month
    *  after it that holds no page (issue 857). */
@@ -292,12 +293,13 @@ export function assembleMonth(facts: CalendarFacts, month: MonthKey): MonthModel
   });
 
   // Each site-wide statement once (issue 857): supply at the calendar's top
-  // and in no cell; a law cause on the first empty day in the plan.
+  // and in no cell; a law cause, or a day nobody can explain, on the first
+  // such day in the plan.
   let lawStated = false;
   for (const cell of cells) {
     if (cell.empty === null) continue;
     if (isSupplyCause(cell.empty.cause)) continue;
-    if (cell.when === "plan" && isLawCause(cell.empty.cause)) {
+    if (cell.when === "plan" && (isLawCause(cell.empty.cause) || cell.empty.cause === "unattributed")) {
       if (lawStated) continue;
       lawStated = true;
     }
