@@ -18,6 +18,10 @@ vi.mock("@/lib/scan/weekly", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/scan/weekly")>();
   return { ...actual, runWeekly: async () => weekly.outcome };
 });
+// The pass is a double, so it left nothing in the queue to read (#1160).
+vi.mock("@/lib/scan/weekly/collect", () => ({
+  collectLateAnswers: async () => ({ asks: 0, answered: 0, left: 0 }),
+}));
 
 // The digest, reading what this tick wrote through its own reader. The
 // mail itself is `tests/jobs/weekly-digest.test.ts`'s subject; what is

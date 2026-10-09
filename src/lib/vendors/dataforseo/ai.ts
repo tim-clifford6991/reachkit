@@ -35,6 +35,7 @@ import {
   asArray,
   asString,
   callEndpoint,
+  collectTask,
   isRecord,
   ledgered,
   referenceDomains,
@@ -98,6 +99,36 @@ export function parseLlmScraper(result: unknown): AiAnswer[] | undefined {
   return [];
 }
 
+/** The ledger `source` of each engine a tracked prompt is asked on. */
+export const AI_ANSWER_SOURCES = Object.freeze({
+  ai_mode: "serp/google/ai_mode",
+  chatgpt: "ai_optimization/chat_gpt/llm_scraper",
+} as const);
+
+/** What reading a paid, queued ask again came to (#1160): the rows the
+ *  first call would have stored (none for the engine's own no-answer), a
+ *  task still not ready, or a failure that reading again will not change. */
+export type CollectedAnswer =
+  | { readonly kind: "answer"; readonly rows: AiAnswer[] }
+  | { readonly kind: "pending" }
+  | { readonly kind: "failed"; readonly failure: string };
+
+/**
+ * Reads the answer to an ask an earlier pass posted, paid for and stopped
+ * waiting on (#1160). Free: nothing is posted. It waits until `untilMs`.
+ */
+export async function collectAiAnswer(a: {
+  engine: keyof typeof AI_ANSWER_SOURCES;
+  taskId: string;
+  untilMs: number;
+}): Promise<CollectedAnswer> {
+  const out = await collectTask(a.engine === "chatgpt" ? LLM_SCRAPER_PATHS : AI_MODE_PATHS, a.taskId, a.untilMs);
+  if (!out.ok) return out.taskId === undefined ? { kind: "failed", failure: out.failure } : { kind: "pending" };
+  if (out.noResults === true) return { kind: "answer", rows: [] };
+  const rows = (a.engine === "chatgpt" ? parseLlmScraper : parseAiMode)(out.result);
+  return rows === undefined ? { kind: "failed", failure: "unparseable" } : { kind: "answer", rows };
+}
+
 function runKey(run: number | undefined, asOf?: string): string {
   return `${asOf === undefined ? "" : `|asof:${asOf}`}${run === undefined || run <= 1 ? "" : `|run:${run}`}`;
 }
@@ -144,7 +175,7 @@ export async function aiMode(
   const refused = paidOnly<AiAnswer>(c, new Date());
   if (refused) return refused;
   const rows = await ledgered<AiAnswer>(c, {
-    source: "serp/google/ai_mode",
+    source: AI_ANSWER_SOURCES.ai_mode,
     cacheKey: `${a.query}|${placeCacheKey(a.locale)}|${scopeKey(a.scope)}${runKey(a.run, a.asOf)}`,
     freshnessDays: CACHE_WINDOWS_D.aiBattery,
     costCents: a.mode === "live" ? PRICE_BOOK.AI_MODE_LIVE_C : PRICE_BOOK.AI_MODE_STD_C,
@@ -162,7 +193,7 @@ export async function llmScraper(
   const refused = paidOnly<AiAnswer>(c, new Date());
   if (refused) return refused;
   const rows = await ledgered<AiAnswer>(c, {
-    source: "ai_optimization/chat_gpt/llm_scraper",
+    source: AI_ANSWER_SOURCES.chatgpt,
     cacheKey: `${a.query}|${localeCacheKey(a.locale)}|${scopeKey(a.scope)}${runKey(a.run, a.asOf)}`,
     freshnessDays: CACHE_WINDOWS_D.aiBattery,
     costCents: PRICE_BOOK.CHATGPT_SCRAPE_STD_C,

@@ -81,6 +81,8 @@ export interface VendorFailure {
   vendorFailure: string;
   endpoint: string;
   billed: boolean;
+  /** A queued task that was paid for and can still be read (#1160). */
+  taskId?: string;
 }
 
 /** Structural check over an `unknown` payload read back from `fetches`. */

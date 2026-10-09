@@ -65,18 +65,19 @@ async function loadRoute() {
 }
 
 /** One delivery of a scheduled function, as the platform sends it. */
-function tick(fnSlug: string): NextRequest {
+function tick(fnSlug: string, steps: Record<string, unknown> = {}): NextRequest {
+  const stack = Object.keys(steps);
   const body = {
     version: 1,
     event: { name: "inngest/scheduled.timer", data: {}, ts: Date.now() },
     events: [],
-    steps: {},
+    steps,
     ctx: {
       run_id: `run-${fnSlug}`,
       attempt: 0,
       disable_immediate_execution: false,
       use_api: false,
-      stack: { stack: [], current: 0 },
+      stack: { stack, current: Math.max(0, stack.length - 1) },
     },
   };
   return new NextRequest(`https://app.example.com/api/jobs?fnId=reachkit-${fnSlug}&stepId=step`, {
@@ -149,7 +150,17 @@ describe("issue 863 — /api/jobs answers who is paying without instrumentation'
     db.seed("scans", []);
 
     const { route } = await loadRoute();
-    const response = await route.POST(tick("weekly-refresh"), { params: Promise.resolve({}) });
+    // The tick is steps since issue 1160: the due list, then each site's
+    // pass, its late answers and its telling. Each delivery runs one, and
+    // the platform hands back what the earlier ones answered.
+    const steps: Record<string, unknown> = {};
+    let response = await route.POST(tick("weekly-refresh"), { params: Promise.resolve({}) });
+    for (let delivery = 0; response.status === 206 && delivery < 10; delivery += 1) {
+      for (const op of (await response.json()) as { id: string; data?: unknown }[]) {
+        steps[op.id] = { type: "data", data: op.data ?? null };
+      }
+      response = await route.POST(tick("weekly-refresh", steps), { params: Promise.resolve({}) });
+    }
     expect(response.status).toBe(200);
 
     expect(lines("weekly_due_selection")).toEqual([{ event: "weekly_due_selection", candidates: 2, due: 1 }]);

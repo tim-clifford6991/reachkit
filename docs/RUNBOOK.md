@@ -244,7 +244,7 @@ not in it is unreachable over HTTP. `src/jobs/client.ts` is the only file that n
 | `publish/execute` | event `publish/execute` | state machine → destination | ● |
 | `publish/verify` | event `publish/verify`, +24h | liveness checks on a published page | |
 | `publish/retry` | cron `0 * * * *` | claims failed pages whose retry moment has come round | ● |
-| `weekly/refresh` | cron `0 * * * *` | weekly scan per active site, gated on that site's local Monday | (stopped inside the run, not by the runner) |
+| `weekly/refresh` | cron `0 * * * *` | weekly scan per active site, gated on that site's local Monday. Steps: `due`, then per site `measure-…`, up to three `late-answers-…` (free reads of queued answers, #1160) and `tell-…` | (stopped inside the run, not by the runner) |
 | `lead/nurture` | cron `0 * * * *` | advances sequences over `next_touch_at` | |
 | `account/maintenance` | cron `*/15 * * * *` | five due-work queries: a payment awaiting sign-in, a payment with no account, a hosting-end notice, a hosting stop, an account due for purge | |
 

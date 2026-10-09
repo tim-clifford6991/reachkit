@@ -26,7 +26,8 @@
 // one call into a module that owns the rule, or a named refusal.
 import { runDeepPass } from "@/lib/scan/deep/run";
 import { sendSetupReminder, sitesDueSetupReminder as sitesDueSetupReminderRows } from "@/lib/mail/setup/reminders";
-import { dueSites, runWeekly, type DueSite } from "@/lib/scan/weekly";
+import { TIMING } from "@/lib/config/constants";
+import { dueSites, runWeekly, type DueSite, type WeeklyOutcome } from "@/lib/scan/weekly";
 import type { StepRunner } from "./types";
 
 /** A site and the zone its own clock runs in. Due-ness is computed from
@@ -140,20 +141,48 @@ export async function weeklyDueSites(now: Date): Promise<readonly DueSite[]> {
  *  same site-week row (`scans.digest_sent_at`), so a re-delivery of this
  *  tick measures nothing, judges nothing further and sends nothing.
  *
+ *  **Each is a step of its own, and between the pass and the telling the
+ *  late answers are read** (#1160). The pass fills its invocation, so the
+ *  tracked-prompt asks it paid for and stopped waiting on are read in up
+ *  to `TIMING.weeklyCollectRounds` further steps, each bounded by the
+ *  pass's own ceiling, before the week is judged and told.
+ *
  *  **A degraded pass still tells.** A week that reached only some of its
  *  sections is REQ-064 c4's case — measured, with the sections it missed
  *  named — and it is precisely the week a customer most needs an account
  *  of. Only a week with no measurement at all sends nothing, and that
  *  decision is `sendWeeklyDigest`'s, read from `accountForWeek`. */
-export async function startWeeklyScan(a: DueSite & { readonly now: Date }): Promise<EngineResult> {
+export async function startWeeklyScan(
+  a: DueSite & { readonly now: Date; readonly step?: StepRunner }
+): Promise<EngineResult> {
   await ensureAccessGate();
-  const outcome = await runWeekly({
-    siteId: a.siteId,
-    domain: a.domain,
-    zone: a.zone,
-    now: a.now,
-  });
+  const step: StepRunner = a.step ?? ((_name, body) => body());
+  const outcome = await step(`measure-${a.siteId}`, () =>
+    runWeekly({
+      siteId: a.siteId,
+      domain: a.domain,
+      zone: a.zone,
+      now: a.now,
+    })
+  );
 
+  if (outcome.ran && outcome.status !== "failed") {
+    const scanId = outcome.scanId;
+    for (let round = 1; round <= TIMING.weeklyCollectRounds; round += 1) {
+      const { left } = await step(`late-answers-${a.siteId}-${round}`, async () => {
+        const { collectLateAnswers } = await import("@/lib/scan/weekly/collect");
+        const untilMs = Date.now() + TIMING.paidPassCeilingS * 1000;
+        return collectLateAnswers({ scanId, siteId: a.siteId, domain: a.domain, untilMs });
+      });
+      if (left === 0) break;
+    }
+  }
+
+  return step(`tell-${a.siteId}`, () => tellWeek(a, outcome));
+}
+
+/** The week judged and told, after its measurement and its late answers. */
+async function tellWeek(a: DueSite & { readonly now: Date }, outcome: WeeklyOutcome): Promise<EngineResult> {
   // §6's verdict on every page published so far, written before the digest
   // reads it. A failed pass stored no report, so its week judges nothing.
   if (outcome.ran && outcome.status !== "failed") {
