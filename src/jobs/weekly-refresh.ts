@@ -14,6 +14,11 @@
 // database. The `(site_id, week_start)` key is likewise computed and
 // enforced behind that call; this file never writes one.
 //
+// The due list is a step of its own (#1160): each site's pass, its late
+// answers and its telling are steps too, so the body runs once per step,
+// and a site whose pass has stamped its week is no longer due when it runs
+// again.
+//
 // Not in the kill switch's scope directly; the scan each due site starts
 // is stopped at its own door, inside `runWeekly`, before any spend.
 import { startWeeklyScan, weeklyDueSites } from "@/jobs/engine";
@@ -29,10 +34,13 @@ export const weeklyRefresh: JobDefinition = {
   trigger: { kind: "cron", cron: WEEKLY_TICK_CRON },
   idempotencyKey: [],
   async run(input): Promise<Outcome> {
-    const due = await weeklyDueSites(input.now);
+    const step = input.step;
+    const due = step === undefined ? await weeklyDueSites(input.now) : await step("due", () => weeklyDueSites(input.now));
     if (due.length === 0) return { outcome: "skipped", subjectId: null, reason: "not-due" };
 
-    const results = await fanOut(due, (site) => startWeeklyScan({ ...site, now: input.now }));
+    const results = await fanOut(due, (site) =>
+      startWeeklyScan({ ...site, now: input.now, ...(step === undefined ? {} : { step }) })
+    );
     return settle(results, null);
   },
 };
