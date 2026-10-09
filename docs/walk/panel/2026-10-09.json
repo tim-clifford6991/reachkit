@@ -1,0 +1,2170 @@
+{
+ "date": "2026-10-09",
+ "commit": "f521644a",
+ "capCents": 100,
+ "spentCents": 83.9143,
+ "refusedAtCap": 0,
+ "notRun": [
+  "zunicafe.com",
+  "baeckerei-hinkel.de",
+  "tattly.com",
+  "savvycal.com",
+  "wesbos.com",
+  "pdxsmiledesign.com",
+  "fletcherelectric.co.uk",
+  "streaksapp.com"
+ ],
+ "defects": [
+  {
+   "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+   "sites": [
+    {
+     "domain": "clearleft.com",
+     "detail": "Ribot — ribot.co.uk, 210/mo, ai_answer; Long Story Short — longstoryshortdesign.co.uk, 6600/mo, ranks; Design Kind — designkind.org, 0/mo, ranks; Evoke — studioevoke.co.uk, 10/mo, ranks",
+     "items": [
+      "Design Kind (designkind.org) has no brand demand and no AI answer names it (ranks)"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "a business that sells everywhere is not measured in one place",
+   "sites": [
+    {
+     "domain": "clearleft.com",
+     "detail": "stored as serving Brighton",
+     "items": [
+      "Brighton"
+     ]
+    }
+   ]
+  }
+ ],
+ "sites": [
+  {
+   "site": {
+    "domain": "austinplumbery.com",
+    "kind": "local service, single location (plumber)",
+    "country": "US",
+    "language": "en",
+    "kinds": [
+     "local-service"
+    ],
+    "market": [
+     "plumb"
+    ],
+    "place": [
+     "austin"
+    ],
+    "why": "A family plumbing firm in one city (Austin, Texas). Its buyers search a trade and a place, its rivals are other local plumbers, and the listings that fill its top tens (Yelp, Angi) are not rivals."
+   },
+   "siteName": "Austin Plumbery",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "homeowners and businesses in Austin needing plumbing work",
+    "job": "repair, maintain, and install plumbing systems",
+    "category": "plumbing repair and maintenance",
+    "synonyms": [
+     "plumbing services",
+     "plumber",
+     "emergency plumbing"
+    ],
+    "differentiators": [
+     "woman-owned and operated",
+     "hand-selected and mom-approved technicians",
+     "licensed, insured and bonded",
+     "serves both residential and commercial"
+    ],
+    "notOurMarket": [
+     "HVAC services",
+     "water heater installation only",
+     "drain cleaning services",
+     "plumbing supply retail"
+    ],
+    "categoryReason": "The headline and all pages emphasize repair, maintenance, and installation services for plumbing systems, which is what buyers search for and hire the company to do.",
+    "rivals": [
+     {
+      "domain": "abacusplumbing.com",
+      "name": "Abacus Plumbing",
+      "basis": "ranks",
+      "reason": "Austin-area plumbing company serving residential and commercial clients with repair, maintenance, and emergency services.",
+      "searchNames": [
+       "abacus plumbing"
+      ],
+      "volume": 4400
+     },
+     {
+      "domain": "radiantplumbing.com",
+      "name": "Radiant Plumbing",
+      "basis": "ranks",
+      "reason": "Austin plumber offering residential and commercial plumbing repair, maintenance, and installation services.",
+      "searchNames": [
+       "radiant plumbing"
+      ],
+      "volume": 3600
+     },
+     {
+      "domain": "reliantplumbing.com",
+      "name": "Reliant Plumbing",
+      "basis": "ranks",
+      "reason": "Austin-based plumber offering residential and commercial repair, maintenance, and installation services — a direct local competitor.",
+      "searchNames": [
+       "reliant plumbing"
+      ],
+      "volume": 2900
+     },
+     {
+      "domain": "clarkekentplumbing.com",
+      "name": "Clarke Kent Plumbing",
+      "basis": "ranks",
+      "reason": "Austin-local plumber cited for emergency plumbing services, competing directly for the same residential and commercial buyers.",
+      "searchNames": [
+       "clarke kent plumbing"
+      ],
+      "volume": 1000
+     },
+     {
+      "domain": "beyondwow.com",
+      "name": "Beyond Wow Plumbing & Drains",
+      "basis": "ai_answer",
+      "reason": "Highly rated Austin plumber with thousands of reviews offering residential plumbing repair and drain services.",
+      "searchNames": [
+       "beyond wow plumbing & drains",
+       "beyond wow plumbing"
+      ],
+      "volume": 390
+     }
+    ],
+    "terms": [
+     {
+      "term": "plumber austin",
+      "volume": 6600
+     },
+     {
+      "term": "emergency plumber austin",
+      "volume": 880
+     },
+     {
+      "term": "plumbing repair austin tx",
+      "volume": 320
+     },
+     {
+      "term": "plumbing services austin tx",
+      "volume": 320
+     },
+     {
+      "term": "commercial plumber austin",
+      "volume": 320
+     },
+     {
+      "term": "leak repair austin",
+      "volume": 10
+     },
+     {
+      "term": "pipe repair austin tx",
+      "volume": 0
+     },
+     {
+      "term": "fix leaking pipe austin",
+      "volume": 0
+     },
+     {
+      "term": "residential plumber austin tx",
+      "volume": 0
+     },
+     {
+      "term": "plumbing installation austin tx",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "plumber austin",
+    "termsAt": "2026-10-09T00:49:17.621Z",
+    "demand": {
+     "at": "2026-10-09T00:53:05.165Z",
+     "own": 6600,
+     "brands": {
+      "we plumb atx": 0,
+      "austinplumbery": 0,
+      "abacus plumbing": 4400,
+      "austin plumbery": 6600,
+      "radiant plumbing": 3600,
+      "reliant plumbing": 2900,
+      "roto-rooter austin": 210,
+      "beyond wow plumbing": 390,
+      "clarke kent plumbing": 1000,
+      "mr rooter plumbing austin": 40,
+      "austin's greatest plumbing": 260,
+      "mr. rooter plumbing austin": 0,
+      "roto-rooter plumbing austin": 0,
+      "abc home commercial plumbing": 0,
+      "beyond wow plumbing & drains": 0,
+      "abc home & commercial plumbing": 0
+     },
+     "searches": {
+      "roto-rooter alternatives": 0,
+      "we plumb atx alternatives": 0,
+      "abacus plumbing alternatives": 0,
+      "radiant plumbing alternatives": 0,
+      "reliant plumbing alternatives": 0,
+      "beyond wow plumbing alternatives": 0,
+      "mr. rooter plumbing alternatives": 0,
+      "clarke kent plumbing alternatives": 0,
+      "austin's greatest plumbing alternatives": 0,
+      "abc home commercial plumbing alternatives": 0
+     }
+    },
+    "judged": {
+     "plumber austin mn": false,
+     "best plumber austin": true,
+     "austin plumber reviews": true,
+     "austin plumbing repair": true,
+     "plumber near austin tx": true,
+     "austin plumbing reviews": true,
+     "plumbing services austin": true,
+     "emergency plumber austin tx": true,
+     "best plumber in austin texas": true,
+     "commercial plumber austin tx": true,
+     "plumbing service austin texas": true,
+     "emergency plumber austin texas": true,
+     "emergency plumbing services austin tx": true,
+     "residential plumbing services austin tx": true
+    },
+    "kind": "local-service",
+    "serves": {
+     "name": "Austin",
+     "region": "Texas"
+    }
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 8,
+    "timeouts": 0
+   },
+   "pageQuestions": 106,
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    },
+    {
+     "location": "Austin,Texas,United States",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "US",
+    "language": "en"
+   },
+   "searches": [
+    "plumber austin",
+    "emergency plumber austin",
+    "best plumber austin",
+    "best plumber in austin texas",
+    "commercial plumber austin",
+    "plumbing repair austin tx",
+    "plumbing services austin tx",
+    "leak repair austin",
+    "emergency plumber austin texas",
+    "emergency plumber austin tx",
+    "commercial plumber austin tx",
+    "plumber near austin tx"
+   ],
+   "knowledgePages": 18,
+   "questions": [
+    "Why is it important to remove combustible items from around the water heater?",
+    "What are the dangers of inadequate ventilation for hot water heaters?",
+    "How often should the pressure relief valve be inspected?",
+    "How do I test the pressure relief valve?",
+    "What are the main areas of the home with plumbing fixtures?",
+    "What safety precautions should I take before starting plumbing work?",
+    "How do I use a plunger effectively?",
+    "Why is Teflon tape used in plumbing?",
+    "How much water does a dual-flush toilet save?",
+    "Are dual-flush toilets difficult to install?",
+    "Can I retrofit my existing toilet to a dual-flush system?",
+    "Do dual-flush toilets compromise flushing power?",
+    "Are dual-flush toilets more expensive than traditional toilets?",
+    "How can I clean out a clogged gutter myself?",
+    "What should I immediately do if my basement floods?",
+    "Why should you care about the age of your water heater?",
+    "How long does a typical water heater last?",
+    "What are some signs that my water heater is nearing the end of its lifespan?",
+    "Can I extend the life of my water heater with regular maintenance?",
+    "Should I replace my water heater proactively if it's reaching its expected lifespan?",
+    "Are newer water heaters more energy-efficient?",
+    "How often should I replace my water heater?",
+    "Can I repair my water heater by myself?",
+    "What type of water heater is best for my home?",
+    "How can I extend the life of my current water heater?",
+    "Can water heaters be energy-efficient?",
+    "Why Do I Have Low Water Pressure in My House?",
+    "Why is the water pressure low in my house?",
+    "Can I fix low water pressure in my house without professional help?",
+    "Are certain fixtures more prone to low water pressure than others?",
+    "Is low water pressure a sign of a hidden water leak?",
+    "How often should I check for low water pressure in my house?",
+    "Can hard water contribute to low water pressure?",
+    "Is low water pressure a common issue in older homes?",
+    "Why is my sink dripping, and is it a common issue?",
+    "Can I ignore a minor drip in my sink, or does it require immediate attention?",
+    "Can I fix a dripping sink myself, or should I hire a professional plumber?",
+    "How do I determine the specific cause of the drip in my sink?",
+    "Will tightening the faucet handle stop the drip in my sink?",
+    "Is a dripping sink more common in older homes?",
+    "How can I avoid sink drips in the future?",
+    "Why do pipes freeze in winter?",
+    "How does letting a faucet drip prevent frozen pipes?",
+    "Which pipes are most vulnerable to freezing?",
+    "What should I use to seal cracks around pipes?",
+    "How can I monitor weather conditions to prevent frozen pipes?",
+    "Is it necessary to insulate crawl spaces for pipe protection?",
+    "How often should I check for cracks around pipes?",
+    "How can I get a quote for fixing frozen pipes or winter-proofing my home?",
+    "Is hard water harmful to my health?",
+    "Can hard water damage my water heater?",
+    "Are water softeners safe for drinking water?",
+    "How long does it take for a water softener to start working?",
+    "Can I install a water softener myself, or do I need a professional?",
+    "Are there alternatives to traditional water softeners for treating hard water?",
+    "Can I use a water softener for specific appliances, or does it treat all water in the house?",
+    "How Does a Plumbing Snake Work?",
+    "Can I use a plumbing snake on any type of drain clog?",
+    "Is using a plumbing snake difficult for a beginner?",
+    "Can a plumbing snake damage my pipes?",
+    "Are there different types of plumbing snakes available?",
+    "What should I do if the plumbing snake doesn't work?",
+    "Are there alternatives to using a plumbing snake for clearing drains?",
+    "Can I rent a plumbing snake, or should I buy one?",
+    "How do I know if there's a leak under my sink?",
+    "What should I do if I can't find the shut-off valve under the sink?",
+    "Can I use any replacement pipe, or do I need a specific type of pipe?",
+    "Is plumbers tape necessary, and how do I apply it correctly?",
+    "Can I use this guide for fixing pipes in other parts of my home?",
+    "How often should I inspect the pipes under my sink?",
+    "How can I get a quote for fixing a pipe?",
+    "How often should I pump my septic tank?",
+    "Can I connect to a public sewer if my property currently has a septic system?",
+    "Are there any restrictions on what can be flushed or poured down drains in a home with a septic system?",
+    "Do I need to worry about tree roots invading my septic system or sewer lines?",
+    "Can I build over my septic system's drain field or sewer lines?",
+    "Are there any health risks associated with septic systems or public sewers?",
+    "Can I use a garbage disposal with a septic system?",
+    "Is a rotten egg smell in water harmful to my health?",
+    "Why does the rotten egg smell occur only in hot water and not in cold water?",
+    "Will installing a water filtration system eliminate the rotten egg smell?",
+    "How often should I conduct water testing if I notice a rotten egg smell?",
+    "Can the rotten egg smell be seasonal or temporary?",
+    "What role do sulfate-reducing bacteria play in causing a rotten egg smell?",
+    "Can I handle the elimination of the rotten egg smell myself, or should I hire a professional?",
+    "How do I compare water bills for water leaks?",
+    "Can a leak be present even if my water bill hasn't increased?",
+    "Are all water leaks visible, or can some be hidden from plain sight?",
+    "Are there any preventive measures I can take to reduce the risk of water leaks?",
+    "Can landscaping affect the likelihood of water leaks in my outdoor plumbing?",
+    "What should I do if I suspect a water leak?",
+    "How can I get a quote?"
+   ],
+   "audience": [
+    "homeowners"
+   ],
+   "topics": [
+    {
+     "query": "plumber near austin tx",
+     "status": "open",
+     "type": "expand_page",
+     "fit": 2,
+     "volume": 140,
+     "ready": false
+    },
+    {
+     "query": "best plumber austin",
+     "status": "open",
+     "type": "refresh_page",
+     "fit": 2,
+     "volume": 390,
+     "ready": true
+    },
+    {
+     "query": "best plumber in austin texas",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 390,
+     "ready": false
+    },
+    {
+     "query": "emergency plumber austin texas",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 880,
+     "ready": true
+    },
+    {
+     "query": "commercial plumber austin tx",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 2,
+     "volume": 320,
+     "ready": false
+    },
+    {
+     "query": "abacus plumbing alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "radiant plumbing alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "reliant plumbing alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "clarke kent plumbing alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "beyond wow plumbing alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "austin plumbery vs abacus plumbing",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "austin plumbery vs radiant plumbing",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "austin plumbery vs reliant plumbing",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "austin plumbery vs clarke kent plumbing",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "austin plumbery vs beyond wow plumbing",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 32.5418,
+   "costBySource": {
+    "site-profile": 0.9865,
+    "profile": 0.2353,
+    "market-inference": 0.5636,
+    "market-terms": 0.7071,
+    "dataforseo_labs/google/keyword_overview": 2.3600000000000003,
+    "dataforseo_labs/google/keyword_suggestions": 5.4,
+    "market-searches": 0.8271,
+    "question-phrasing": 0.2512,
+    "serp/google/ai_mode": 1.5999999999999999,
+    "serp/google/organic": 2.880000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 0.6,
+    "site-knowledge": 7.9512,
+    "rival-inference": 3.6201,
+    "topic-buyer-searches": 0.1872,
+    "topic-typed": 0.2232,
+    "topic-fit": 3.3294,
+    "opportunity-typing": 0.6271,
+    "topic-same-question": 0.1928
+   },
+   "area": {
+    "place": "Austin",
+    "location": "Austin,Texas,United States"
+   },
+   "resultDomains": [
+    "www.virtuance.com",
+    "www.austinplumbery.com",
+    "www.airtasker.com",
+    "eliteaustinac.com",
+    "www.yelp.com",
+    "plumbingoutfitters.com",
+    "www.facebook.com",
+    "www.consumeraffairs.com",
+    "radiantplumbing.com",
+    "www.abacusplumbing.com",
+    "weplumbatx.com",
+    "reliantplumbing.com",
+    "www.goettl.com",
+    "m.yelp.com",
+    "24hourplumbersaustin.com",
+    "www.austinsgreatestplumbing.com",
+    "www.clarkekentplumbing.com",
+    "www.reddit.com",
+    "www.mooremoreplumbing.com",
+    "www.angi.com",
+    "www.abchomeandcommercial.com",
+    "beyondwow.com",
+    "austinsgreatestplumbing.com",
+    "www.statesman.com",
+    "www.mrrooter.com",
+    "nextdoor.com",
+    "www.austinsbestplumbing.com",
+    "www.csmechanical.co",
+    "serviceagent.ai",
+    "www.cmmplumbing.com",
+    "www.thumbtack.com",
+    "www.1sthomeandcommercialservices.com",
+    "laloplumbing.com",
+    "www.wilsonplumbingaustin.com",
+    "neighborhoodplumbinganddrain.com",
+    "www.benjaminfranklinplumbing.com",
+    "www.cityof.com",
+    "www.magicplumbingatx.com",
+    "plumbandorder.com",
+    "pro.peakzi.me",
+    "blueribbonservices.com",
+    "www.accurateleak.com",
+    "google.com",
+    "www.rotorooter.com",
+    "www.coldisontheright.com",
+    "ultimateplumberaustin.com",
+    "iando.ai",
+    "www.fisher-services.com",
+    "commercialplumberaustin.com",
+    "downtobid.com",
+    "biggsplumbing.com",
+    "efficienttexas.com",
+    "jbgplumbingtx.com",
+    "www.lnpplumbing.com",
+    "redbudplumbing.com",
+    "reddit.com",
+    "mrrooter.com",
+    "rotorooter.com",
+    "book.housecallpro.com",
+    "excaliburplumbing.com",
+    "linkedin.com",
+    "yelp.com",
+    "thumbtack.com"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Looking for the best plumber in Austin. Who would you recommend, and why?"
+    },
+    {
+     "kind": "category",
+     "text": "Which emergency plumber in Austin would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which plumbing repair in Austin would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which plumbing services in Austin would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which plumber in Austin would you suggest to someone booking for the first time?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which plumber in Austin can help the same day in an emergency?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which plumber in Austin will give a fixed price before starting?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which plumber in Austin can I book in the evening or at the weekend?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which plumber in Austin can I trust to be properly qualified and insured?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which plumber in Austin should I call for a small job on a tight budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which plumber in Austin will guarantee the work?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which plumber in Austin could take on a new customer this week?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are homeowners and businesses. Which plumber in Austin would suit us best?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which plumber in Austin would you recommend for homeowners and businesses?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which plumber in Austin do homeowners and businesses tend to go back to?"
+    },
+    {
+     "kind": "persona",
+     "text": "I am asking for homeowners and businesses. Which plumber in Austin should I point them to?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best plumber in Austin: how does Abacus Plumbing compare with Radiant Plumbing?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Abacus Plumbing for homeowners and businesses?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best plumber in Austin: would you choose Radiant Plumbing or Reliant Plumbing?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best plumber in Austin for the money: Abacus Plumbing, Radiant Plumbing or Reliant Plumbing?"
+    },
+    {
+     "kind": "problem",
+     "text": "I need help today. Which plumber in Austin can I count on at short notice?"
+    },
+    {
+     "kind": "problem",
+     "text": "My last experience was poor. Which plumber in Austin would do the job properly?"
+    },
+    {
+     "kind": "problem",
+     "text": "Which plumber in Austin should I call first, and what should I ask before I book?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is Austin Plumbery a good choice for someone looking for the best plumber in Austin?"
+    },
+    {
+     "kind": "branded",
+     "text": "Looking for the best plumber in Austin: is Austin Plumbery a good alternative to Abacus Plumbing?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"plumbing repair and maintenance\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"plumber austin\" 6600/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+     "verdict": "pass",
+     "detail": "Abacus Plumbing — abacusplumbing.com, 4400/mo, ranks; Radiant Plumbing — radiantplumbing.com, 3600/mo, ranks; Reliant Plumbing — reliantplumbing.com, 2900/mo, ranks; Clarke Kent Plumbing — clarkekentplumbing.com, 1000/mo, ranks; Beyond Wow Plumbing & Drains — beyondwow.com, 390/mo, ai_answer",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "92 questions",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"homeowners and businesses in Austin needing plumbing work\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "15 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 7.95¢; 0 of 8 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "local-service; 25 prompts, each naming austin",
+     "items": []
+    },
+    {
+     "check": "a local business is measured in its own place",
+     "verdict": "pass",
+     "detail": "18 of 18 terms and searches name austin or \"near me\"; read from Austin,Texas,United States; 5 rivals, every national one shown in this place's results",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "6 searched terms; \"plumber austin\" has 6600"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 20 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 18 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "austinplumbery.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "site_profile_voice_outcome",
+     "kind": "unmeasured",
+     "reason": "undeterminable"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 173320,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 173337,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 173346,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 173352,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 173354,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    }
+   ],
+   "seconds": 298,
+   "evidenceLoaded": 132
+  },
+  {
+   "site": {
+    "domain": "alexander.co.uk",
+    "kind": "professional services (accountancy, UK)",
+    "country": "GB",
+    "language": "en",
+    "kinds": [
+     "professional-services"
+    ],
+    "market": [
+     "account",
+     "tax"
+    ],
+    "place": [
+     "manchester"
+    ],
+    "why": "An independent firm of chartered accountants in Manchester. A UK professional-services firm with many service lines and a large site: the audience and the category must stay specific."
+   },
+   "siteName": "Alexander & Co",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "business owners and entrepreneurs across the UK",
+    "job": "get expert tax advice and accountancy services to manage their finances and tax obligations",
+    "category": "chartered accountancy and tax advice",
+    "synonyms": [
+     "tax advisers",
+     "accountancy services",
+     "business accountants",
+     "tax planning"
+    ],
+    "differentiators": [
+     "50 years of heritage and established reputation",
+     "ICAEW-regulated firm with partner-led approach",
+     "offices in Manchester and London serving UK-wide clients",
+     "specialist expertise in R&D tax credits and corporate finance",
+     "intimate knowledge of clients' businesses through personal relationships"
+    ],
+    "notOurMarket": [
+     "bookkeeping services",
+     "payroll processing",
+     "financial auditing only",
+     "business consulting",
+     "financial planning for individuals"
+    ],
+    "categoryReason": "The headline and all pages lead with chartered accountancy and expert tax advice as the core service, which is what business owners hire them for.",
+    "rivals": [
+     {
+      "domain": "jackross.com",
+      "name": "Jack Ross",
+      "basis": "ai_answer",
+      "reason": "Established Manchester chartered accountancy firm (est. 1948) offering tax planning and business advisory to owner-managed businesses, directly comparable to Alexander & Co.",
+      "searchNames": [
+       "jack ross",
+       "jack ross chartered accountants manchester",
+       "jack ross chartered"
+      ],
+      "volume": 1900
+     },
+     {
+      "domain": "mitchellcharlesworth.co.uk",
+      "name": "Mitchell Charlesworth",
+      "basis": "ranks",
+      "reason": "Regional chartered accountancy firm with a Manchester office providing tax advice and business accountancy to SMEs and entrepreneurs.",
+      "searchNames": [
+       "mitchell charlesworth",
+       "mitchell charlesworth accountants manchester",
+       "mitchell charlesworth accountants"
+      ],
+      "volume": 720
+     },
+     {
+      "domain": "chadwickandco.co.uk",
+      "name": "Chadwick & Co",
+      "basis": "ranks",
+      "reason": "Manchester-based accountancy practice offering business start-up support and tax planning, appearing in tax planning Manchester search results.",
+      "searchNames": [
+       "chadwick & co",
+       "chadwick and co accountants manchester"
+      ],
+      "volume": 480
+     },
+     {
+      "domain": "haroldsharp.co.uk",
+      "name": "Harold Sharp",
+      "basis": "ranks",
+      "reason": "Established Greater Manchester chartered accountancy firm offering tax planning and business advisory to owner-managed businesses.",
+      "searchNames": [
+       "harold sharp",
+       "harold sharp accountants manchester",
+       "harold sharp accountants"
+      ],
+      "volume": 260
+     },
+     {
+      "domain": "ac-accounts.co.uk",
+      "name": "A&C Chartered Accountants",
+      "basis": "ranks",
+      "reason": "Manchester-based chartered accountancy firm appearing prominently in local search results for tax planning and small business accountancy.",
+      "searchNames": [
+       "a&c chartered accountants",
+       "a&c chartered accountants manchester"
+      ],
+      "volume": 170
+     }
+    ],
+    "terms": [
+     {
+      "term": "accountant manchester",
+      "volume": 1900
+     },
+     {
+      "term": "chartered accountant manchester",
+      "volume": 170
+     },
+     {
+      "term": "small business accountant manchester",
+      "volume": 50
+     },
+     {
+      "term": "tax planning manchester",
+      "volume": 40
+     },
+     {
+      "term": "tax adviser manchester",
+      "volume": 0
+     },
+     {
+      "term": "corporation tax advice manchester",
+      "volume": 0
+     },
+     {
+      "term": "self assessment tax return manchester",
+      "volume": 0
+     },
+     {
+      "term": "VAT returns manchester",
+      "volume": 0
+     },
+     {
+      "term": "business tax accountant manchester",
+      "volume": 0
+     },
+     {
+      "term": "manage business taxes manchester",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "accountant manchester",
+    "termsAt": "2026-10-09T00:54:39.479Z",
+    "demand": {
+     "at": "2026-10-09T00:58:28.602Z",
+     "own": 12100,
+     "brands": {
+      "alexander": 12100,
+      "jack ross": 1900,
+      "harold sharp": 0,
+      "chadwick & co": 480,
+      "alexander & co": 880,
+      "sk accountants": 480,
+      "legend financial": 30,
+      "williamson & croft": 70,
+      "jack ross chartered": 0,
+      "legend financial tax": 0,
+      "mitchell charlesworth": 720,
+      "harold sharp accountants": 260,
+      "a&c chartered accountants": 170,
+      "sk accountants manchester": 140,
+      "mha accountants manchester": 20,
+      "saffery accountants manchester": 0,
+      "mitchell charlesworth accountants": 30,
+      "harold sharp accountants manchester": 0,
+      "a&c chartered accountants manchester": 10,
+      "chadwick and co accountants manchester": 0,
+      "williamson croft accountants manchester": 0,
+      "legend financial tax advisers manchester": 0,
+      "jack ross chartered accountants manchester": 0,
+      "mitchell charlesworth accountants manchester": 0
+     },
+     "searches": {
+      "mha alternatives": 0,
+      "saffery alternatives": 0,
+      "jack ross alternatives": 0,
+      "harold sharp alternatives": 0,
+      "chadwick & co alternatives": 0,
+      "sk accountants alternatives": 0,
+      "legend financial alternatives": 0,
+      "williamson & croft alternatives": 0,
+      "mitchell charlesworth alternatives": 0,
+      "a&c chartered accountants alternatives": 0
+     }
+    },
+    "judged": {
+     "taxes near me": true,
+     "tax services near me": true,
+     "tax accountant near me": true,
+     "tax accountant manchester": true,
+     "best accountant manchester": true,
+     "property tax advice near me": true,
+     "accountants in manchester uk": true,
+     "property accountants near me": true,
+     "accounting firms in manchester": true,
+     "financial accountant manchester": true
+    },
+    "kind": "professional-services",
+    "serves": {
+     "name": "Manchester",
+     "region": "Greater Manchester"
+    }
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 6,
+    "timeouts": 0
+   },
+   "pageQuestions": 11,
+   "locales": [
+    {
+     "location": "United Kingdom",
+     "language": "en"
+    },
+    {
+     "location": "Manchester,Manchester,England,United Kingdom",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "GB",
+    "language": "en"
+   },
+   "searches": [
+    "accountant manchester",
+    "chartered accountant manchester",
+    "best accountant manchester",
+    "small business accountant manchester",
+    "tax planning manchester",
+    "accountants in manchester uk",
+    "tax accountant near me",
+    "property accountants near me",
+    "taxes near me",
+    "accounting firms in manchester",
+    "tax services near me",
+    "financial accountant manchester"
+   ],
+   "knowledgePages": 7,
+   "questions": [
+    "Why work with Alexander & Co?",
+    "Why Choose Alexander & Co as Your Tax Consultants and Accountants?",
+    "What tax services do you provide for individuals?",
+    "What tax services do you provide for businesses?",
+    "How do you help entrepreneurs and startups?",
+    "What specialist tax services do you offer?",
+    "Why should I choose Alexander & Co as my tax consultants?",
+    "Should You Set Up a Limited Company for Buy-to-Let Properties?",
+    "Whether you are starting a business, expanding through organic growth or an acquisition, or selling a company, how can corporate finance consultants assist you?",
+    "Can small businesses still claim R&D tax credits?",
+    "Can I claim R&D credits when using overseas contractors or EPWs?",
+    "What is the Additional Information Form (AIF)?",
+    "Can we claim R&D relief for failed projects?",
+    "How far back can a company claim R&D tax credits?",
+    "Do I need to notify HMRC before making an R&D claim?",
+    "Who Qualifies for R&D Tax Relief?",
+    "What types of projects and expenditure qualify for R&D tax relief?",
+    "How much can a company claim under the R&D tax relief schemes?"
+   ],
+   "audience": [
+    "entrepreneurial businesses",
+    "individuals",
+    "businesses UK wide",
+    "construction",
+    "real estate",
+    "property",
+    "creative industries",
+    "tech industries",
+    "Owner-Managed Businesses",
+    "Family Businesses",
+    "Creative, Digital & Technology businesses",
+    "Construction & Real Estate businesses",
+    "Property businesses",
+    "Manufacturing & Engineering businesses",
+    "Hospitality businesses",
+    "Retail businesses",
+    "financial services client",
+    "entrepreneurs launching a startup",
+    "established companies",
+    "high-net-worth individuals",
+    "property investors",
+    "landlords",
+    "owner-managed businesses",
+    "family businesses",
+    "MDs",
+    "entrepreneurs",
+    "families",
+    "owner-manager businesses",
+    "registered limited companies",
+    "manufacturing companies",
+    "software engineering companies",
+    "construction companies",
+    "food production companies",
+    "textile companies"
+   ],
+   "topics": [
+    {
+     "query": "accountant manchester",
+     "status": "open",
+     "type": "answerable_page",
+     "fit": 3,
+     "volume": 1900,
+     "ready": false
+    },
+    {
+     "query": "chartered accountant manchester",
+     "status": "open",
+     "type": "answerable_page",
+     "fit": 3,
+     "volume": 170,
+     "ready": false
+    },
+    {
+     "query": "tax planning manchester",
+     "status": "open",
+     "type": "answerable_page",
+     "fit": 3,
+     "volume": 40,
+     "ready": false
+    },
+    {
+     "query": "property accountants near me",
+     "status": "open",
+     "type": "answerable_page",
+     "fit": 3,
+     "volume": 880,
+     "ready": false
+    },
+    {
+     "query": "tax services near me",
+     "status": "open",
+     "type": "answerable_page",
+     "fit": 2,
+     "volume": 390,
+     "ready": false
+    },
+    {
+     "query": "financial accountant manchester",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 260,
+     "ready": true
+    },
+    {
+     "query": "tax accountant near me",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 2,
+     "volume": 1600,
+     "ready": false
+    },
+    {
+     "query": "jack ross alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "mitchell charlesworth alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "chadwick & co alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "harold sharp alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "a&c chartered accountants alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "alexander co vs jack ross",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "alexander co vs mitchell charlesworth",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "alexander co vs chadwick & co",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "alexander co vs harold sharp",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "alexander co vs a&c chartered accountants",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 26.5272,
+   "costBySource": {
+    "site-profile": 0.4698,
+    "profile": 0.3865,
+    "market-inference": 0.5277,
+    "market-terms": 0.7083,
+    "dataforseo_labs/google/keyword_overview": 2.4400000000000004,
+    "dataforseo_labs/google/keyword_suggestions": 1.8,
+    "market-searches": 0.6936,
+    "question-phrasing": 0.2386,
+    "serp/google/organic": 2.880000000000001,
+    "serp/google/ai_mode": 1.2,
+    "ai_optimization/chat_gpt/llm_scraper": 0.48,
+    "site-knowledge": 6.4671,
+    "rival-inference": 3.3282,
+    "topic-buyer-searches": 0.188,
+    "topic-typed": 0.2169,
+    "topic-fit": 3.5214,
+    "opportunity-typing": 0.7478,
+    "topic-same-question": 0.2333
+   },
+   "area": {
+    "place": "Manchester",
+    "location": "Manchester,Manchester,England,United Kingdom"
+   },
+   "resultDomains": [
+    "www.vouchedfor.co.uk",
+    "www.mha.co.uk",
+    "www.sqkaccountancy.co.uk",
+    "alexander.co.uk",
+    "themanifest.com",
+    "dunhamsaccountants.co.uk",
+    "www.accounts-manchester.co.uk",
+    "accountingsolutionsmcr.co.uk",
+    "fft.co.uk",
+    "www.contractoruk.com",
+    "www.ac-accounts.co.uk",
+    "www.thomasandcointernational.com",
+    "www.mwa-accounting.co.uk",
+    "www.saffery.com",
+    "acumon.com",
+    "skaccountants.com",
+    "www.facebook.com",
+    "www.kbmuk.co.uk",
+    "find.icaew.com",
+    "summitaccountants.co.uk",
+    "revenuebase.ai",
+    "www.yell.com",
+    "accountsandlegal.co.uk",
+    "www.unbiased.co.uk",
+    "www.jackross.com",
+    "www.freeagent.com",
+    "www.accountsandlegal.co.uk",
+    "www.skaccountants.com",
+    "a-wise.co.uk",
+    "www.mitchellcharlesworth.co.uk",
+    "www.chadwickandco.co.uk",
+    "www.slaterheelis.co.uk",
+    "www.madisons.co.uk",
+    "reactaccountancy.co.uk",
+    "www.haroldsharp.co.uk",
+    "www.tc-group.com",
+    "www.legendfinancial.co.uk",
+    "taxbite.uk",
+    "www.williamsoncroft.co.uk",
+    "www.ryans-uk.com",
+    "www.streets.uk",
+    "parkersaccountants.co.uk",
+    "www.designrush.com",
+    "sheffield.cylex-uk.co.uk",
+    "www.yelp.co.uk",
+    "www.taxassist.co.uk",
+    "www.hertfordshireprofessionals.co.uk",
+    "dereham.cylex-uk.co.uk",
+    "www.professionalsuk.co.uk",
+    "www.watsonbuckle.co.uk",
+    "www.knowleswarwick.com",
+    "hhmaccountants.co.uk",
+    "www.yorkrla.co.uk",
+    "mabeallen.co.uk",
+    "www.edgeaccountants.co.uk",
+    "www.bsassociate.co.uk",
+    "wisaccountancy.co.uk",
+    "www.whitleystimpson.co.uk",
+    "m.yelp.com",
+    "www.simpletaxes.co.uk",
+    "www.taxesdoneright.co.uk",
+    "www.groupams.co.uk",
+    "www.bdo.co.uk",
+    "www.djh.co.uk",
+    "google.com",
+    "www.percywesthead.co.uk",
+    "bdir.in",
+    "jobs.accaglobal.com",
+    "uk.indeed.com",
+    "www.cityjobs.com",
+    "www.michaelpage.co.uk",
+    "www.robertwalters.co.uk",
+    "www.roberthalf.com",
+    "uk.linkedin.com",
+    "www.totaljobs.com",
+    "exuberantglobal.co.uk",
+    "manchesterexperts.co.uk",
+    "accountancyage.com",
+    "jackross.com",
+    "designrush.com",
+    "glassdoor.co.uk",
+    "dan.pestcontrolcfo.co.uk",
+    "booking.setmore.com"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Looking for the best accountant in Manchester. Which firms would you recommend, and why?"
+    },
+    {
+     "kind": "category",
+     "text": "Which chartered accountant in Manchester would clients actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which small business accountant in Manchester would clients actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which tax planning in Manchester would clients actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which accountant in Manchester would you suggest to someone hiring for the first time?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which accountant in Manchester would take on a small business as a client?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which accountant in Manchester will quote a fixed fee up front?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which accountant in Manchester would you trust with a complicated case?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which accountant in Manchester can start within a week or two?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which accountant in Manchester will give me one named person to deal with?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which accountant in Manchester would suit a first project on a modest budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which accountant in Manchester can show results for businesses like mine?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are business owners and entrepreneurs across the UK. Which accountant in Manchester would suit us best?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which accountant in Manchester would you recommend for business owners and entrepreneurs across the UK?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which accountant in Manchester do business owners and entrepreneurs across the UK tend to hire?"
+    },
+    {
+     "kind": "persona",
+     "text": "I advise business owners and entrepreneurs across the UK. Which accountant in Manchester should I point them to?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best accountant in Manchester: how does Jack Ross compare with Mitchell Charlesworth?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Jack Ross for business owners and entrepreneurs across the UK?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best accountant in Manchester: would you choose Mitchell Charlesworth or Chadwick & Co?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best accountant in Manchester for the money: Jack Ross, Mitchell Charlesworth or Chadwick & Co?"
+    },
+    {
+     "kind": "problem",
+     "text": "We are unhappy with our current firm. Which accountant in Manchester should we talk to instead?"
+    },
+    {
+     "kind": "problem",
+     "text": "We have a deadline coming. Which accountant in Manchester can take us on at short notice?"
+    },
+    {
+     "kind": "problem",
+     "text": "Which accountant in Manchester should I speak to first, and what should I ask before I sign?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is Alexander & Co a good choice for someone looking for the best accountant in Manchester?"
+    },
+    {
+     "kind": "branded",
+     "text": "Looking for the best accountant in Manchester: is Alexander & Co a good alternative to Jack Ross?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"chartered accountancy and tax advice\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"accountant manchester\" 1900/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United Kingdom / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+     "verdict": "pass",
+     "detail": "Jack Ross — jackross.com, 1900/mo, ai_answer; Mitchell Charlesworth — mitchellcharlesworth.co.uk, 720/mo, ranks; Chadwick & Co — chadwickandco.co.uk, 480/mo, ranks; Harold Sharp — haroldsharp.co.uk, 260/mo, ranks; A&C Chartered Accountants — ac-accounts.co.uk, 170/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "18 questions",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"business owners and entrepreneurs across the UK\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "17 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 6.47¢; 0 of 6 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "professional-services; 25 prompts, each naming manchester",
+     "items": []
+    },
+    {
+     "check": "a local business is measured in its own place",
+     "verdict": "pass",
+     "detail": "16 of 16 terms and searches name manchester or \"near me\"; read from Manchester,Manchester,England,United Kingdom; 5 rivals, every national one shown in this place's results",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "4 searched terms; \"accountant manchester\" has 1900"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 18 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 7 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "alexander.co.uk",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 184086,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 184091,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 184091,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 184093,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    }
+   ],
+   "seconds": 299,
+   "evidenceLoaded": 94
+  },
+  {
+   "site": {
+    "domain": "clearleft.com",
+    "kind": "agency or consultancy (design, UK)",
+    "country": "GB",
+    "language": "en",
+    "kinds": [
+     "professional-services"
+    ],
+    "market": [
+     "design",
+     "ux"
+    ],
+    "why": "A design consultancy in Brighton. It sells time and expertise, not a product: its rivals are other studios, and the agency directories (Clutch) are not rivals."
+   },
+   "siteName": "Clearleft",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "ambitious teams and organizations seeking to transform their digital products and services",
+    "job": "transform their digital products, services and organizational practices through strategic design",
+    "category": "design transformation consulting",
+    "synonyms": [
+     "design strategy consulting",
+     "UX design services",
+     "digital design agency"
+    ],
+    "differentiators": [
+     "human-centered design research and discovery",
+     "internal service design for employee experience",
+     "design systems and product optimization",
+     "training and capability building for teams",
+     "strategic partnership approach with deep client investment"
+    ],
+    "notOurMarket": [
+     "web development",
+     "graphic design",
+     "marketing agencies",
+     "management consulting",
+     "software development"
+    ],
+    "categoryReason": "The site's headline and pages consistently position Clearleft as a strategic design partner focused on design transformation, user research, and product design—the outcome buyers pay for is transformed digital experiences and organizational design capability, not the methods used to deliver them.",
+    "rivals": [
+     {
+      "domain": "ribot.co.uk",
+      "name": "Ribot",
+      "basis": "ai_answer",
+      "reason": "Brighton-based UX and product design consultancy cited in AI answers as a shortlist firm for strategic digital design work.",
+      "searchNames": [
+       "ribot"
+      ],
+      "volume": 210
+     },
+     {
+      "domain": "longstoryshortdesign.co.uk",
+      "name": "Long Story Short",
+      "basis": "ranks",
+      "reason": "Brighton-based design studio appearing in top tens; likely serves smaller briefs than Clearleft's strategic transformation engagements.",
+      "searchNames": [
+       "long story short",
+       "long story short design"
+      ],
+      "volume": 6600,
+      "closeness": "partial"
+     },
+     {
+      "domain": "designkind.org",
+      "name": "Design Kind",
+      "basis": "ranks",
+      "reason": "Brighton-based design consultancy appearing in top tens; scope and scale relative to Clearleft's strategic transformation offer is unclear.",
+      "searchNames": [
+       "design kind"
+      ],
+      "volume": 0,
+      "closeness": "partial"
+     },
+     {
+      "domain": "studioevoke.co.uk",
+      "name": "Evoke",
+      "basis": "ranks",
+      "reason": "Brighton-based design studio appearing in top tens; competes for local digital design briefs though likely at a smaller strategic scale.",
+      "searchNames": [
+       "studio evoke"
+      ],
+      "volume": 10,
+      "closeness": "partial"
+     }
+    ],
+    "terms": [
+     {
+      "term": "UX design agency Brighton",
+      "volume": 10
+     },
+     {
+      "term": "UX design consultancy Brighton",
+      "volume": 0
+     },
+     {
+      "term": "user experience design Brighton",
+      "volume": 0
+     },
+     {
+      "term": "design strategy consultancy Brighton",
+      "volume": 0
+     },
+     {
+      "term": "digital design agency Brighton",
+      "volume": 0
+     },
+     {
+      "term": "service design consultancy Brighton",
+      "volume": 0
+     },
+     {
+      "term": "product design consultancy Brighton",
+      "volume": 0
+     },
+     {
+      "term": "UX consultancy Brighton",
+      "volume": 0
+     },
+     {
+      "term": "improve our digital product Brighton",
+      "volume": 0
+     },
+     {
+      "term": "design thinking consultancy Brighton",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "UX design agency Brighton",
+    "termsAt": "2026-10-09T01:00:11.590Z",
+    "demand": {
+     "at": "2026-10-09T01:03:52.145Z",
+     "own": 170,
+     "brands": {
+      "ribot": 210,
+      "clearleft": 170,
+      "design kind": 0,
+      "studio evoke": 10,
+      "long story short": 6600,
+      "long story short design": 10
+     },
+     "searches": {
+      "evoke alternatives": 0,
+      "ribot alternatives": 0,
+      "design kind alternatives": 0,
+      "long story short alternatives": 0
+     }
+    },
+    "kind": "professional-services",
+    "serves": {
+     "name": "Brighton",
+     "region": "East Sussex"
+    }
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 4,
+    "timeouts": 0
+   },
+   "pageQuestions": 0,
+   "locales": [
+    {
+     "location": "United Kingdom",
+     "language": "en"
+    },
+    {
+     "location": "Brighton,England,United Kingdom",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "GB",
+    "language": "en"
+   },
+   "searches": [
+    "ux design agency brighton"
+   ],
+   "knowledgePages": 8,
+   "questions": [],
+   "audience": [],
+   "topics": [
+    {
+     "query": "ux design agency brighton",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 3,
+     "volume": 10,
+     "ready": false
+    },
+    {
+     "query": "long story short alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "ribot alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "clearleft vs ribot",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 24.845299999999998,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 4.8,
+    "site-profile": 0.4729,
+    "profile": 0.2757,
+    "market-inference": 0.4906,
+    "market-terms": 0.7188,
+    "dataforseo_labs/google/keyword_overview": 2.2,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "question-phrasing": 0.1214,
+    "serp/google/ai_mode": 0.8,
+    "serp/google/organic": 0.24,
+    "ai_optimization/chat_gpt/llm_scraper": 0.12,
+    "site-knowledge": 2.6017,
+    "rival-inference": 2.7918,
+    "topic-buyer-searches": 0.1955,
+    "topic-typed": 0.169,
+    "topic-fit": 1.3836,
+    "opportunity-typing": 0.1255,
+    "topic-same-question": 0.1388
+   },
+   "area": {
+    "place": "Brighton",
+    "location": "Brighton,England,United Kingdom"
+   },
+   "resultDomains": [
+    "revenuebase.ai",
+    "themanifest.com",
+    "reborn.co",
+    "www.instagram.com",
+    "www.thelandedagency.co.uk",
+    "clutch.co",
+    "www.designkind.org",
+    "longstoryshortdesign.co.uk",
+    "studioevoke.co.uk",
+    "bamboonine.co.uk",
+    "uk.linkedin.com",
+    "clearleft.com",
+    "brightec.co.uk",
+    "designrush.com",
+    "ribot.co.uk",
+    "pavilionweb.com",
+    "google.com"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Looking for the best UX design agency in Brighton. Which firms would you recommend, and why?"
+    },
+    {
+     "kind": "category",
+     "text": "Which UX design agency in Brighton would you suggest to someone hiring for the first time?"
+    },
+    {
+     "kind": "category",
+     "text": "Which UX design agency in Brighton would be worth the fees, and why?"
+    },
+    {
+     "kind": "category",
+     "text": "Which UX design agency in Brighton would you trust most, going by what clients say?"
+    },
+    {
+     "kind": "category",
+     "text": "Looking for the best UX design agency in Brighton: which firms should be on my shortlist?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which UX design agency in Brighton would take on a small business as a client?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which UX design agency in Brighton will quote a fixed fee up front?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which UX design agency in Brighton would you trust with a complicated case?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which UX design agency in Brighton can start within a week or two?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which UX design agency in Brighton will give me one named person to deal with?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which UX design agency in Brighton would suit a first project on a modest budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which UX design agency in Brighton can show results for businesses like mine?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are ambitious teams and organizations. Which UX design agency in Brighton would suit us best?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which UX design agency in Brighton would you recommend for ambitious teams and organizations?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which UX design agency in Brighton do ambitious teams and organizations tend to hire?"
+    },
+    {
+     "kind": "persona",
+     "text": "I advise ambitious teams and organizations. Which UX design agency in Brighton should I point them to?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best UX design agency in Brighton: how does Ribot compare with Long Story Short?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Ribot for ambitious teams and organizations?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best UX design agency in Brighton: would you choose Long Story Short or Design Kind?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best UX design agency in Brighton for the money: Ribot, Long Story Short or Design Kind?"
+    },
+    {
+     "kind": "problem",
+     "text": "We are unhappy with our current firm. Which UX design agency in Brighton should we talk to instead?"
+    },
+    {
+     "kind": "problem",
+     "text": "We have a deadline coming. Which UX design agency in Brighton can take us on at short notice?"
+    },
+    {
+     "kind": "problem",
+     "text": "Which UX design agency in Brighton should I speak to first, and what should I ask before I sign?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is Clearleft a good choice for someone looking for the best UX design agency in Brighton?"
+    },
+    {
+     "kind": "branded",
+     "text": "Looking for the best UX design agency in Brighton: is Clearleft a good alternative to Ribot?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"design transformation consulting\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"UX design agency Brighton\" 10/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United Kingdom / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+     "verdict": "fail",
+     "detail": "Ribot — ribot.co.uk, 210/mo, ai_answer; Long Story Short — longstoryshortdesign.co.uk, 6600/mo, ranks; Design Kind — designkind.org, 0/mo, ranks; Evoke — studioevoke.co.uk, 10/mo, ranks",
+     "items": [
+      "Design Kind (designkind.org) has no brand demand and no AI answer names it (ranks)"
+     ]
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "1 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "the site's own pages ask no question, and none is kept",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"ambitious teams and organizations seeking to transform their digital products and services\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "4 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 2.60¢; 0 of 4 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "professional-services; 25 prompts",
+     "items": []
+    },
+    {
+     "check": "a business that sells everywhere is not measured in one place",
+     "verdict": "fail",
+     "detail": "stored as serving Brighton",
+     "items": [
+      "Brighton"
+     ]
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "4 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "1 searched terms; \"UX design agency Brighton\" has 10"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 5 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 8 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "clearleft.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 179813,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    }
+   ],
+   "seconds": 263,
+   "evidenceLoaded": 51
+  }
+ ]
+}

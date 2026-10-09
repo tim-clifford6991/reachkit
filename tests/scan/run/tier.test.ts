@@ -165,18 +165,14 @@ describe("what does differ is exactly the looked-up parameters", () => {
     }
   });
 
-  it("only the free report's own battery counts Google's actual AI answers", async () => {
-    for (const [tier, flagged] of [
-      ["free", true],
-      ["deep", false],
-      ["weekly", false],
-    ] as const) {
+  it("every tier's searches load their AI Overview's sources (issue 1357)", async () => {
+    for (const tier of ["free", "deep", "weekly"] as const) {
       vi.clearAllMocks();
       db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false }]);
       await runScan({ domain: DOMAIN, tier });
       expect(
         (serpOrganic.mock.calls[0] as unknown as [unknown, { loadAsyncAiOverview: boolean }])[1].loadAsyncAiOverview
-      ).toBe(flagged);
+      ).toBe(true);
     }
   });
 

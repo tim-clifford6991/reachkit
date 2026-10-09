@@ -244,3 +244,15 @@ describe("Observability — counts only, never a domain", () => {
     expect(line).not.toContain("rival.com");
   });
 });
+
+describe("issue 1357 — an AI Overview whose sources were not loaded", () => {
+  it("changes no rival's count: the SERP derives as it does without the overview", () => {
+    const organic = [{ position: 1, domain: "rival.com" }];
+    const unread = deriveRivals({
+      serps: [{ organic, aiOverview: { present: true, referenceDomains: [], unread: true } }],
+      ownDomain: "example.com",
+    });
+    const none = deriveRivals({ serps: [{ organic, aiOverview: { present: false, referenceDomains: [] } }], ownDomain: "example.com" });
+    expect(unread).toEqual(none);
+  });
+});

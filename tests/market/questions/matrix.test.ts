@@ -427,3 +427,16 @@ describe("Observability — cell kinds only", () => {
     expect(line).not.toContain("secret-rival.com");
   });
 });
+
+describe("issue 1357 — an AI Overview whose sources were not loaded", () => {
+  it("is an unmeasured cell: it lowers n and is counted in no other figure", () => {
+    const unread = measured<MarketSerp>(
+      { organic: [], aiOverview: { present: true, referenceDomains: [], unread: true } },
+      AT
+    );
+    const built = card({ serps: [unread, ok(["rival.com"])] });
+    expect(built.rows[0]?.cell.kind).toBe("unmeasured");
+    expect(built.measuredSearches).toBe(1);
+    expect(built.answeredSearches).toBe(1);
+  });
+});

@@ -90,6 +90,11 @@ export interface SerpAiOverview {
    *  1147). Absent on a response stored before it was read, which says
    *  nothing about what that answer cited. */
   referenceUrls?: readonly string[];
+  /** Google showed an AI Overview whose content loads after the page, and
+   *  this read did not buy that load (issue 1357): whom it names is not
+   *  known. Never an answer that names nobody. Absent where the sources
+   *  were read. */
+  unread?: true;
 }
 
 /** `serpOrganic` — organic top-10 **and** the `ai_overview` item with its

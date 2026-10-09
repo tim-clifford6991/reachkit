@@ -57,6 +57,10 @@ export interface MarketAiOverview {
   referenceDomains: readonly string[];
   /** The addresses it cited, where the response carried them (issue 1147). */
   referenceUrls?: readonly string[];
+  /** The overview's sources were not loaded by this read (issue 1357), so
+   *  nothing is known about whom it names. Every leaf here reads it as not
+   *  measured. */
+  unread?: true;
 }
 
 /** One battery engine's answer, as the AI-answers card reads it (§6.2's

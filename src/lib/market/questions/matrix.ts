@@ -15,9 +15,9 @@
 //
 // **Which answers this card could see** is `coverage`, decided by the
 // caller and carried on the card as a state, never as a sentence
-// (DECISIONS 2026-09-03 / ADR-094). The free report's initial twelve
-// question-SERPs are bought with `loadAsyncAiOverview: true` and count
-// Google's actual AI answers — `async_included`. A market correction's
+// (DECISIONS 2026-09-03 / ADR-094). Every pass's question-SERPs are bought
+// with `loadAsyncAiOverview: true` (the paid passes' since issue 1357) and
+// count Google's actual AI answers — `async_included`. A market correction's
 // re-run does not buy them: the free scan's 12¢ cap stands and a
 // correction spends no second allowance, so the corrected card counts only
 // what Google had already cached — `cached_only`, and the report's
@@ -158,8 +158,9 @@ function citedDomainsOf(hosts: readonly string[]): string[] {
 /**
  * One cell per question, one arm each:
  *
- *  - the SERP was not measured → `unmeasured`, carrying the reason the
- *    measurement itself gave. It lowers n and counts nowhere else.
+ *  - the SERP was not measured, or its AI Overview's sources were not
+ *    loaded → `unmeasured`, carrying the reason the measurement itself
+ *    gave. It lowers n and counts nowhere else.
  *  - Google served no AI Overview → `no_answer`, excluded from both
  *    counts.
  *  - otherwise `answered`. An AI answer that cited no domain at all is
@@ -184,6 +185,11 @@ export function overviewCellFor(measured: Measured<MarketSerp> | undefined, ownD
   // Issue 869: the reason the measurement heard travels with the cell.
   if (measured.kind === "unmeasured") return unmeasuredCell(measured);
   if (!measured.value.aiOverview.present) return { kind: "no_answer" };
+  // Issue 1357: an overview whose sources were not loaded says nothing
+  // about whom it names, so it is not an answered cell.
+  if (measured.value.aiOverview.unread === true) {
+    return { kind: "unmeasured", reason: "undeterminable", because: "ai_overview_not_loaded" };
+  }
 
   const citedDomains = citedDomainsOf(measured.value.aiOverview.referenceDomains);
   const urls = measured.value.aiOverview.referenceUrls;
