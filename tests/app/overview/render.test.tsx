@@ -34,7 +34,6 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
 
 import { measured, measuredZero, unmeasured } from "@/lib/measure/measured";
 import { assembleOverview, type OverviewFacts } from "@/app/(account)/app/_overview/model";
-import { HeadModule } from "@/app/(account)/app/_overview/HeadModule";
 import { GrowthModule } from "@/app/(account)/app/_overview/GrowthModule";
 import { TileRow } from "@/app/(account)/app/_overview/TileRow";
 import { RivalModule } from "@/app/(account)/app/_overview/RivalModule";
@@ -129,23 +128,6 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
 
 const html = (el: React.ReactElement): string => renderToStaticMarkup(el);
 const count = (source: string, needle: string): number => source.split(needle).length - 1;
-
-describe("the head, backed by the chart under it", () => {
-  it("a rising series renders the rising line and the badge", () => {
-    const model = assembleOverview(facts());
-    const markup = html(<HeadModule head={model.head} />);
-    expect(markup).toContain("overview.head.rising");
-    expect(markup).toContain("overview.head.badge");
-  });
-
-  it("a falling series renders the falling line and no badge at all", () => {
-    const model = assembleOverview(facts({ points: [week(10, 81), week(17, 36)], aiPresence: [true, true] }));
-    const markup = html(<HeadModule head={model.head} />);
-    expect(markup).toContain("overview.head.falling");
-    expect(markup).not.toContain("overview.head.rising");
-    expect(markup).not.toContain("overview.head.badge");
-  });
-});
 
 describe("the growth chart", () => {
   it("runs one line to the last measured week, with no vertex over the week that was not measured", () => {

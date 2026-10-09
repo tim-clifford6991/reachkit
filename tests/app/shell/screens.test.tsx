@@ -47,8 +47,8 @@
 // **Overview left it on 2026-09-05 as well (issue #15), and it was the
 // last one.** §4.5 gives the screen five modules and an async read, so it
 // can no more be rendered by the table's synchronous row than Settings
-// could; and its head is `OVERVIEW_HEAD[direction]`, one of four lines the
-// measured direction selects, rather than the single `overview.head` the
+// could; and its head was one of four lines the
+// measured direction selected (what autopilot is doing, since issue 1362), not the single line the
 // table asserted. Where none of the four is written it falls back to the
 // destination's nav word, so the document is never headless — which is the
 // one thing the table's first row was really holding.
@@ -199,20 +199,8 @@ describe("overview — the built screen still keeps the shell's contract", () =>
   it("renders, and is headed by a key from the registry", async () => {
     const html = await markup(OverviewPage());
     // `copy()` is mocked to the identity above, so the heading is whichever
-    // key the head resolved to — the direction's own line where the owner
-    // has written it, and the destination's name where they have not.
+    // key the head resolved to — what autopilot is doing (issue 1362).
     expect(html).toMatch(/<h1>[a-z.\-]+<\/h1>/);
     expect(html).toContain('data-testid="overview"');
-  });
-
-  it("its head keys all exist in the registry, so filling one is the whole change", () => {
-    const HEAD_KEYS: CopyKey[] = [
-      "overview.head",
-      "overview.head.rising",
-      "overview.head.flat",
-      "overview.head.falling",
-      "overview.head.badge",
-    ];
-    for (const key of HEAD_KEYS) expect(Object.keys(COPY)).toContain(key);
   });
 });

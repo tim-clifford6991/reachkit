@@ -83,7 +83,7 @@ beforeEach(() => {
   vi.setSystemTime(NOW);
   signedInAs(ACCOUNT);
   db.seed("sites", [
-    { id: SITE_ID, user_id: ACCOUNT.userId, domain: ACCOUNT.domain, timezone: ZONE, competitors: [], veto_hours: 4 },
+    { id: SITE_ID, user_id: ACCOUNT.userId, domain: ACCOUNT.domain, timezone: ZONE, competitors: [], veto_hours: 4, publishing_enabled: true },
   ]);
   db.seed("publications", []);
   db.seed("drafts", []);
@@ -154,7 +154,10 @@ describe("when the page goes live is the draft's stored veto_deadline", () => {
     // The told moment, not the window's end half an hour before it.
     expect(card).toContain("13:30");
     expect(card).toContain("Sep 16");
-    expect(card).toContain(copy("overview.head.waiting"));
+    // The head is the page's own go-live, as today's content of the daily
+    // autopilot (issue 1362): 13:30 UTC on the 16th, which is today.
+    expect(card).toContain(`<h1>${copy("overview.head.due.today", { time: "1:30 PM" })}</h1>`);
+    expect(card.replace(/<[^>]+>/gu, " ")).not.toMatch(/ready to read/iu);
     expect(card.replace(/<[^>]+>/gu, " ")).not.toMatch(/approv|waiting for you|needs you|your review/iu);
   });
 

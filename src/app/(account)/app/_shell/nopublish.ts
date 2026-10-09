@@ -1,12 +1,15 @@
 // BUILD §4.4 — the footer autopilot card's "next publish time", in the state
 // where there is none.
 //
-// REQ-040 criterion 4: "no publish is scheduled — publishing is paused,
-// nothing is approved, no page is planned, or ReachKit itself stopped the
-// work … in place of a time it carries one written line naming which of
-// those is the case; where it was ReachKit that stopped, that line names
-// ReachKit's stop as the reason no publish is scheduled (REQ-092 c7) and
-// never one of the other three."
+// REQ-040 criterion 4: with no publish scheduled, in place of a time the
+// card carries one written line naming which cause it is; where it was
+// ReachKit that stopped, that line names ReachKit's stop as the reason no
+// publish is scheduled (REQ-092 c7) and never one of the other three.
+//
+// **No cause is "nothing approved"** (owner 2026-10-09, issue 1362). No
+// customer approves a page: one in review goes live on its own, so it is a
+// scheduled publish and not a cause. What is left between "paused" and
+// "nothing planned" is a page that is planned and not written yet.
 //
 // ADR-011 (DECISIONS 2026-08-31), verbatim: "One arbiter decides a place's
 // single empty-state line over a closed cause union with fixed precedence;
@@ -19,7 +22,7 @@ import type { NextPublishCause } from "@/lib/presentation/stopped";
 export type NoPublishReason =
   | "reachkit_stopped"
   | "publishing_paused"
-  | "nothing_approved"
+  | "not_written"
   | "nothing_planned";
 
 /** What the card states where no publish is scheduled: one of the four
@@ -35,7 +38,7 @@ export type NoPublishBecause = NoPublishReason | "unexplained";
 export const NO_PUBLISH_PRECEDENCE: readonly NoPublishReason[] = Object.freeze([
   "reachkit_stopped",
   "publishing_paused",
-  "nothing_approved",
+  "not_written",
   "nothing_planned",
 ] as const);
 
@@ -61,7 +64,7 @@ export const NEXT_PUBLISH_OTHERWISE: Record<
 > = {
   unexplained: "unexplained",
   publishing_paused: "paused",
-  nothing_approved: "nothing-approved",
+  not_written: "being-written",
   nothing_planned: "none-planned",
 };
 

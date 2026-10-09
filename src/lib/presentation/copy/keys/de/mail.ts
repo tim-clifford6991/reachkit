@@ -106,7 +106,7 @@ export const MAIL_COPY_DE = {
   "mail.draftReady.dest.cannotPublish": "So wie es jetzt eingerichtet ist, kann ReachKit nicht auf {site} veröffentlichen. Öffnen Sie Einstellungen › Veröffentlichen: Beim Veröffentlichungsziel steht dort, was zu ändern ist, bevor diese Seite online gehen kann.",
   "mail.draftReady.why.search": "Geschrieben für die Suchanfrage „{query}“.",
   "mail.draftReady.why.volume": "gesucht",
-  "mail.draftReady.ready": "Ihre Seite ist bereit zum Lesen",
+  "mail.draftReady.ready": "Ihre nächste Seite ist geschrieben",
   "mail.draftReady.readAction": "Ganze Seite lesen",
   "mail.draftReady.stopNote": "„Diese Seite stoppen“ funktioniert direkt aus dieser E-Mail, ohne Anmeldung, bis die Seite online geht.",
   "mail.draftReady.fact.chances": "Ihre Chancen",

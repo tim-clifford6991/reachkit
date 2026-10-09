@@ -139,21 +139,51 @@ describe("§9's switch decides whether there is a next publish at all", () => {
   });
 });
 
+describe("a page in review is the next publish (issue 1362)", () => {
+  // Seen on reachkit.app on 2026-10-09: one page `in_review`, its window
+  // ending at 16:00 UTC, and the card reading that no page was ready.
+  const inReview = {
+    id: "d1",
+    site_id: "site-1",
+    state: "in_review",
+    scheduled_for: "2026-10-09",
+    veto_deadline: "2026-10-09T16:00:00.000Z",
+  };
+
+  it("it goes live on its own when its window ends, and no cause is stated", async () => {
+    rows.set("drafts", [inReview]);
+    const facts = await readShellFacts(SITE);
+    expect(facts.next).toEqual(new Date("2026-10-09T16:00:00.000Z"));
+    expect(facts.noPublishCauses.not_written).toBe(false);
+    expect(facts.noPublishCauses.nothing_planned).toBe(false);
+  });
+
+  it("the moment is the one the customer was told, where they were told one", async () => {
+    rows.set("drafts", [{ ...inReview, told: { publishesAt: "2026-10-09T17:00:00.000Z" } }]);
+    expect((await readShellFacts(SITE)).next).toEqual(new Date("2026-10-09T17:00:00.000Z"));
+  });
+
+  it("a page in review with no window running is not a scheduled publish", async () => {
+    rows.set("drafts", [{ ...inReview, veto_deadline: null }]);
+    expect((await readShellFacts(SITE)).next).toBeNull();
+  });
+});
+
 describe("the four causes are read as four facts", () => {
   it("a site with no page at all is `nothing_planned`", async () => {
     rows.set("drafts", []);
     const facts = await readShellFacts(SITE);
     expect(facts.noPublishCauses.nothing_planned).toBe(true);
-    expect(facts.noPublishCauses.nothing_approved).toBe(false);
+    expect(facts.noPublishCauses.not_written).toBe(false);
   });
 
-  it("a site with pages but none scheduled is `nothing_approved`, not `nothing_planned`", async () => {
+  it("a site with a page planned and not written is `not_written`, not `nothing_planned`", async () => {
     rows.set("drafts", [
       { id: "d1", site_id: "site-1", state: "planned", scheduled_for: null },
     ]);
     const facts = await readShellFacts(SITE);
     expect(facts.noPublishCauses.nothing_planned).toBe(false);
-    expect(facts.noPublishCauses.nothing_approved).toBe(true);
+    expect(facts.noPublishCauses.not_written).toBe(true);
   });
 
   it("the kill switch is ReachKit's own stop, and it is stated as one", async () => {

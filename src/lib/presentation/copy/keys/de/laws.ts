@@ -19,7 +19,7 @@ export const LAWS_COPY_DE = {
   "next-publish.stopped": "ReachKit hat die eigene Arbeit angehalten, deshalb ist keine Seite eingeplant.",
   "next-publish.scheduled": "Nächste Seite geht online: {at}",
   "next-publish.paused": "Das Veröffentlichen ist ausgeschaltet.",
-  "next-publish.nothing-approved": "Noch keine Seite bereit.",
+  "next-publish.being-written": "Die nächste Seite wird gerade geschrieben.",
   "next-publish.none-planned": "Noch keine Seite geplant.",
 
   // Von ReachKit geschriebener Text
@@ -39,7 +39,7 @@ export const LAWS_COPY_DE = {
   "shell.panel.collapse": "Seitenleiste einklappen",
   "shell.panel.open": "Seitenleiste öffnen",
   "shell.frame.label": "Arbeitsbereich",
-  "shell.waiting.head": "Bereit zum Lesen",
+  "shell.waiting.head": "Nächste Seite",
   "shell.waiting.goes-live": "Geht von selbst online: {when}. Bis dahin können Sie sie bearbeiten oder stoppen.",
   "shell.shortcut.blog": "Ihren Blog besuchen",
   "shell.shortcut.help": "Hilfe",

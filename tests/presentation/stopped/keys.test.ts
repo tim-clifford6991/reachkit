@@ -70,7 +70,7 @@ describe("REQ-092 c6 — the two day accounts reach two different keys", () => {
 });
 
 describe("REQ-092 c7 / ADR-011 point 5 — under a stop, one key and no other", () => {
-  it.each(["paused", "nothing-approved", "none-planned"] as const)(
+  it.each(["paused", "being-written", "none-planned"] as const)(
     "with %s also true, the line is next-publish.stopped and nothing else",
     (tag) => {
       const statement = nextPublishStatement({ stopped: true, otherwise: { tag } });
@@ -92,8 +92,8 @@ describe("REQ-092 c7 / ADR-011 point 5 — under a stop, one key and no other", 
       "next-publish.paused"
     );
     expect(
-      nextPublishStatement({ stopped: false, otherwise: { tag: "nothing-approved" } }).line
-    ).toBe("next-publish.nothing-approved");
+      nextPublishStatement({ stopped: false, otherwise: { tag: "being-written" } }).line
+    ).toBe("next-publish.being-written");
     expect(nextPublishStatement({ stopped: false, otherwise: { tag: "none-planned" } }).line).toBe(
       "next-publish.none-planned"
     );
