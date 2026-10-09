@@ -122,23 +122,32 @@ function place(
   return { text: rendered.text, line: rendered.line };
 }
 
+/** The target's two numbers, rendered once: the rows below and the page
+ *  screen's headline tiles (`TargetNumbers`, issue 1364) state the same
+ *  demand and the same difficulty, dash and written line included. */
+export function targetReadings(facts: Pick<TargetFacts, "volume" | "difficulty" | "search">) {
+  return {
+    volume: renderMeasured(facts.volume, {
+      format: formatCount,
+      unmeasuredLine: "unmeasured.undeterminable",
+      what: facts.search,
+    }),
+    difficulty: renderMeasured(facts.difficulty, {
+      format: (v) => String(v),
+      unmeasuredLine: "unmeasured.undeterminable",
+      what: facts.search,
+    }),
+  };
+}
+
 export function TargetRows(p: { facts: TargetFacts }): React.JSX.Element {
   const { facts } = p;
 
-  const volume = renderMeasured(facts.volume, {
-    format: formatCount,
-    unmeasuredLine: "unmeasured.undeterminable",
-    what: facts.search,
-  });
+  const { volume, difficulty } = targetReadings(facts);
   const volumeText = volume.isDash
     ? volume.text
     : copy("calendar.why.volume.value", { count: volume.text });
 
-  const difficulty = renderMeasured(facts.difficulty, {
-    format: (v) => String(v),
-    unmeasuredLine: "unmeasured.undeterminable",
-    what: facts.search,
-  });
   // A difficulty is not a verdict until it is beside the bar this site is
   // judged against (§6, issue 858). Where the row carries no ceiling it is
   // the number alone, never a limit nobody measured this page against.

@@ -27,7 +27,7 @@ import {
   type BlogReadsFacts,
 } from "@/lib/publish/reads/model";
 import { FIXTURE_BLOG_READS_FACTS } from "@/app/(account)/app/_overview/blog-reads-fixture";
-import { BlogReads } from "@/app/(account)/app/_overview/BlogReads";
+import { BlogReads, fetchChangeLine } from "@/app/(account)/app/_overview/BlogReads";
 
 const AT = new Date("2026-08-31T06:00:00.000Z");
 
@@ -208,5 +208,41 @@ describe("what a reader meets", () => {
     const el = render(<BlogReads model={model({ rows: null })} />);
     expect(el.querySelector('[data-testid="blog-reads-fetches-value"]')).toBeNull();
     expect(el.textContent).toContain(copy("overview.blog.fetches.label"));
+  });
+});
+
+describe("the change on the week before (issue 1364)", () => {
+  const days = formatCount(BLOG_READS_WINDOW_D);
+
+  it("is read against the seven days before, which are counted in no figure", () => {
+    const m = model({
+      rows: [
+        row("chatgpt", "answer_fetch", 30),
+        row("chatgpt", "answer_fetch", 12, "2026-08-24"),
+        row("claude", "referral", 4, "2026-08-20"),
+      ],
+    });
+    expect(m.fetches).toMatchObject({ value: 30 });
+    expect(m.referrals.kind).toBe("zero");
+    expect(m.byEngine.find((e) => e.engine === "chatgpt")?.fetches).toBe(30);
+    expect(m.previousFetches).toBe(12);
+    expect(fetchChangeLine(m)).toBe(copy("overview.blog.change.up", { count: "18", days }));
+  });
+
+  it("says fewer, and says the same", () => {
+    const fewer = model({ rows: [row("chatgpt", "answer_fetch", 5), row("chatgpt", "answer_fetch", 9, "2026-08-24")] });
+    expect(fetchChangeLine(fewer)).toBe(copy("overview.blog.change.down", { count: "4", days }));
+    const same = model({ rows: [row("chatgpt", "answer_fetch", 9), row("chatgpt", "answer_fetch", 9, "2026-08-24")] });
+    expect(fetchChangeLine(same)).toBe(copy("overview.blog.change.same", { days }));
+  });
+
+  it("draws no change where nothing is stored for the week before, or the count could not be read", () => {
+    const first = model({ rows: [row("chatgpt", "answer_fetch", 30)] });
+    expect(first.previousFetches).toBeNull();
+    expect(fetchChangeLine(first)).toBeNull();
+    expect(render(<BlogReads model={first} />).querySelector('[data-testid="blog-reads-change"]')).toBeNull();
+    expect(fetchChangeLine(model({ rows: null }))).toBeNull();
+    // Rows older than the week before are not a week before.
+    expect(model({ rows: [row("chatgpt", "answer_fetch", 7, "2026-08-10")] }).previousFetches).toBeNull();
   });
 });

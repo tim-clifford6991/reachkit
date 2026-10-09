@@ -156,7 +156,7 @@ describe("the head states what autopilot is doing, for a live account", () => {
     const stated = [...html.matchAll(/data-testid="overview-supply">(.*?)<\/p>/gu)].map((m) => m[1]);
     expect(stated).toEqual([copy("overview.supply.exhausted")]);
     // Under the head, not down in *This week*.
-    expect(html.indexOf('data-testid="overview-supply"')).toBeLessThan(html.indexOf('data-testid="overview-tiles"'));
+    expect(html.indexOf('data-testid="overview-supply"')).toBeLessThan(html.indexOf('data-testid="overview-week"'));
   });
 
   it("what went live last, and when, stands under the head", async () => {

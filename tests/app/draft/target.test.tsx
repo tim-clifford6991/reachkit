@@ -145,14 +145,18 @@ function seed(a: { evidence: Evidence; type?: string; fitBand?: string | null; o
   ]);
 }
 
-async function block(): Promise<Element> {
+async function screen(): Promise<Element> {
   const facts = await readDraftRow({ draftId: DRAFT_ID, site: SITE });
   if (facts === null) throw new Error("the draft did not read back");
   const container = document.createElement("div");
   container.innerHTML = renderToStaticMarkup(
     <DraftScreen view={assembleDraft(facts)} generatedLabel="written by ReachKit" />
   );
-  const found = container.querySelector('[data-testid="draft-target"]');
+  return container;
+}
+
+async function block(): Promise<Element> {
+  const found = (await screen()).querySelector('[data-testid="draft-target"]');
   if (found === null) throw new Error("the draft screen drew no target block");
   return found;
 }
@@ -254,5 +258,39 @@ describe("the draft screen says what the page is for (issue 867)", () => {
     const text = (await block()).textContent ?? "";
 
     expect(text).toContain(copy("draft.target.unknown"));
+  });
+});
+
+describe("the page screen opens with the page's numbers (issue 1364)", () => {
+  it("states the demand and the difficulty beside this site's limit, above the article", async () => {
+    seed({ evidence: writeEvidence({ difficulty: measured(12, AT), ceiling: 36, engines: ENGINES }) });
+    const drawn = await screen();
+    const numbers = drawn.querySelector('[data-testid="draft-numbers"]');
+    const article = drawn.querySelector('[data-testid="published-view"]');
+    if (numbers === null || article === null) throw new Error("the screen drew no numbers or no article");
+
+    expect(numbers.compareDocumentPosition(article) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(numbers.querySelector('[data-testid="draft-number-volume"]')?.textContent).toContain("40");
+    const difficulty = numbers.querySelector('[data-testid="draft-number-difficulty"]')?.textContent ?? "";
+    expect(difficulty).toContain("12");
+    expect(difficulty).toContain(copy("draft.numbers.difficulty.limit", { ceiling: "36" }));
+  });
+
+  it("a difficulty nobody read is its written line, never a 0", async () => {
+    seed({
+      evidence: writeEvidence({ difficulty: unmeasured<number>("undeterminable", AT), ceiling: 36, engines: ENGINES }),
+    });
+    const tile = (await screen()).querySelector('[data-testid="draft-number-difficulty"]');
+    expect(tile?.textContent).toContain(copy("unmeasured.undeterminable", { what: SEARCH }));
+    expect(tile?.querySelector(".figure")).toBeNull();
+  });
+
+  it("a fix page has no market measure, so no row is drawn", async () => {
+    seed({
+      evidence: { family: "fix", issues: [], pageUrl: "https://example.com/pricing" },
+      type: "fix_page",
+      fitBand: null,
+    });
+    expect((await screen()).querySelector('[data-testid="draft-numbers"]')).toBeNull();
   });
 });

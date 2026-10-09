@@ -455,6 +455,16 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.panel.search": ["Search", { slots: {}, fixedBy: "issue 930" }],
   "calendar.panel.close": ["Close", { slots: {}, fixedBy: "issue 930" }],
 
+  // Issue 1364 (owner, 2026-10-09): Plan opens with its numbers, each a
+  // stage word and a count. What the count is of stands beside it: the
+  // month from the large breakpoint, this week below it. **Drafted**
+  // (#759); the pull request names both so the owner can correct them.
+  "calendar.numbers.month": [
+    "in {month}",
+    { slots: { month: "text" }, fixedBy: "SPEC §7 2026-10-09 (drafted)" },
+  ],
+  "calendar.numbers.week": ["this week", { slots: {}, fixedBy: "SPEC §7 2026-10-09 (drafted)" }],
+
   // The one note under the month: what the number on a live card is. It is
   // not a supply statement and does not repeat one — it explains a value,
   // which is the only thing on the card a founder cannot read off the word
