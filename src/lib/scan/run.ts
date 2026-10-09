@@ -91,7 +91,7 @@ import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
 import { freePageOf } from "@/lib/opportunities/free-page";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/locale/locales";
-import { localSearch, placeOf } from "@/lib/locale/place";
+import { localSearch, statedPlace as statedPlaceOf } from "@/lib/locale/place";
 import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
 import { aiPresenceOf, measureDomain, type DomainMeasurement } from "@/lib/measure";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
@@ -3060,8 +3060,8 @@ function composeReport(a: {
   // SPEC §2 (issue 787): the one first-page proposal is the best right-sized
   // Write target this pass measured — derived, never padded.
   const measuredIn = m === null ? null : reportLocale(m);
-  // D67: only a page that marks itself a local business states a place.
-  const statedPlace = m?.stated?.type === undefined ? null : placeOf(m.stated.locality, m.stated.region);
+  // D67 and issue 1370: only a page that says it serves a place states one.
+  const statedPlace = m?.stated === undefined ? null : statedPlaceOf(m.stated);
   const report: StoredReport = {
     ...assembled,
     freePage: freePageOf(assembled) ?? carried?.freePage ?? null,

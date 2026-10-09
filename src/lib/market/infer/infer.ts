@@ -19,6 +19,7 @@ import { llm } from "@/lib/llm";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { isOwnDomain, isPlatformDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { localSearch, placeOf } from "@/lib/locale/place";
+import { servingEvidence } from "@/lib/locale/serving";
 import { BUSINESS_KINDS, BUSINESS_KIND_NAMES, type BusinessKind } from "@/lib/market/kinds";
 import { nameNeedsQualifier } from "./demand";
 import { boundEvidence, evidenceDomains, type MarketEvidence } from "./evidence";
@@ -52,7 +53,7 @@ export const MARKET_TASK = [
   "The site's own words decide it: its headline (the home page's title and first heading) says what it leads with, then its other pages, products and claims. The rest of the evidence — the AI answers measured (each question and the domains its answers cited), the domains in the measured Google top tens, and the searches the site ranks for — was bought for the category named in measuredUnder, which was an earlier guess and may be wrong. Use those measurements to confirm a market, never to override what the site says it does.",
   "The category is named by the outcome the buyer pays for, as the headline states it first, in the words a buyer would search — never by the method the product uses to get there (writing, scanning, automating, a dashboard), which is a differentiator. Prefer the specific category the site's own words support over a broad head category. notOurMarket is adjacent categories whose buyers want a different outcome from this business's buyers — never a category this business itself belongs to, however broad. measuredUnder goes on notOurMarket only when that is true of it.",
   "kind is the one kind of business this is, chosen from `kinds` by what it sells.",
-  "servesCity is the one city or metropolitan area the business serves its customers in, named as people there name it — only where its customers come from that area: a trade, a practice, a restaurant, a shop with premises, a firm whose clients are local. Read it from the address the site gives, its structured data (`stated`), a page about the areas it serves and its phone number. A business that sells across the country or online has none, wherever its office is: then servesCity is an empty string. Never a country, a state or a neighbourhood.",
+  "servesCity is the one city or metropolitan area the business serves its customers in, named as people there name it — only where its customers come from that area: a trade, a practice, a restaurant, a shop with premises, a firm whose clients are local. Read it from what the site says of whom it serves: the areas its structured data lists (`stated`), a page about the areas it serves, and the service named with the place (\"plumber in Austin\"). An address or a phone number says where the business is, never where it sells: a firm, agency or shop with one office and clients across the country or online has none, and then servesCity is an empty string. Never a country, a state or a neighbourhood.",
   "Every reason is one short plain sentence a founder can read.",
 ].join(" ");
 
@@ -213,6 +214,28 @@ export function concludeMarket(answer: MarketAnswer): Omit<MarketConclusion, "ri
   };
 }
 
+/**
+ * The conclusion with its serving area held to the site's own evidence
+ * (SPEC §6, issue 1370). The market call answers a town for a business
+ * whose only tie to it is an address; that answer stands only where the
+ * site says it serves the place, and what said so is kept beside it.
+ */
+export function heldToEvidence(
+  market: Omit<MarketConclusion, "rivals">,
+  e: MarketEvidence
+): Omit<MarketConclusion, "rivals"> {
+  if (market.serves === null || market.serves === undefined) return market;
+  const because = servingEvidence({
+    place: market.serves,
+    ...(e.stated === undefined ? {} : { stated: e.stated }),
+    pages: e.pages,
+    service: [market.category, ...market.synonyms],
+    localPack: e.ownLocalPack === true,
+    inPerson: market.kind !== undefined && BUSINESS_KINDS[market.kind].inPerson,
+  });
+  return because === null ? { ...market, serves: null } : { ...market, servesBecause: because };
+}
+
 /** The first call: the market, from the site's own words. An answer that
  *  did not come back is handed back unmeasured — no default market is ever
  *  made up in its place. */
@@ -232,7 +255,8 @@ export async function inferMarketFields(
     ...(locale === undefined ? {} : { locale }),
   });
   if (answer.kind === "unmeasured") return unmeasured(answer.reason, answer.at, answer.because);
-  return measured(concludeMarket(answer.value), answer.at);
+  // Held against every page the pass read, not the prompt's share of them.
+  return measured(heldToEvidence(concludeMarket(answer.value), e), answer.at);
 }
 
 /** The second call: the rivals for `market`, from the measured AI answers

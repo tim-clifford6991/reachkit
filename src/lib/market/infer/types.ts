@@ -7,7 +7,7 @@
 // seam.
 
 import type { Place } from "@/lib/locale/locales";
-import type { ServingArea } from "@/lib/locale/place";
+import type { ServingArea, ServingEvidence } from "@/lib/locale/place";
 import type { BusinessKind } from "@/lib/market/kinds";
 
 /** §0: a site has 3–5 rivals. */
@@ -119,6 +119,10 @@ export interface MarketConclusion {
    *  (D67); `null` where it read a business that sells nationally or
    *  online. What a pass measures in is `StoredMarket.area`. */
   serves?: Place | null;
+  /** What on the site said it serves that place (issue 1370). A place the
+   *  market call named with nothing of the site to bear it out is not
+   *  kept: `serves` is then `null`. */
+  servesBecause?: ServingEvidence;
 }
 
 /**

@@ -42,6 +42,9 @@ export interface MarketEvidence {
   /** What the home page's structured data states of the business's address
    *  (SPEC §6, owner D67, issue 1318). Absent where it states nothing. */
   stated?: PlaceSignals;
+  /** True where a measured search showed the site itself in Google's local
+   *  pack (issue 1370): Google reads it as a business of that place. */
+  ownLocalPack?: boolean;
   domain: string;
   siteName: string | null;
   /** The home page's title and first heading — what the site leads with. */
@@ -128,6 +131,7 @@ export function boundEvidence(e: MarketEvidence): MarketEvidence {
 
   return {
     ...(e.stated === undefined || Object.keys(e.stated).length === 0 ? {} : { stated: e.stated }),
+    ...(e.ownLocalPack === true ? { ownLocalPack: true } : {}),
     domain: e.domain,
     siteName: e.siteName,
     headline: e.headline === null ? null : clip(e.headline, EVIDENCE_BOUNDS.itemChars * 2),
