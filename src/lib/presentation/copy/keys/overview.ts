@@ -5,11 +5,6 @@
 // partial-week states. The block that owns Overview fills every other
 // sentence this surface needs.
 //
-// 2026-09-05: issue #9 (BUILD §4.4) adds `overview.head` — the one written
-// line this screen states inside the app shell until its own content lands
-// (issue #15, §4.5). It is a customer-visible sentence, and so the owner's
-// (constitution §1).
-//
 // 2026-09-05, separately: issue #15 (BUILD §4.5, as amended by DECISIONS
 // 2026-09-03) builds the screen itself and adds the keys its five modules
 // speak. Two categories, and the line between them is the one issue #9's own
@@ -20,9 +15,6 @@
 //   its own words, the AI-answers window reading, the cold-start rival line,
 //   the four alert lines and the three supply lines. Nothing here invents
 //   one; each was owed until the owner approved it (#460).
-//   `overview.head` stays and is not orphaned: it is the head of the screen
-//   where no week has been measured (`OVERVIEW_HEAD.no_data`), which is the
-//   only state it was ever written for.
 //
 //   **Filled, and every one a transcription** of a word or sentence
 //   `BUILD.md` §4.5 itself prints — the same footing as the thirteen band
@@ -64,34 +56,31 @@ export const OVERVIEW_COPY = Object.freeze({
     "Not measured this week. What was measured is shown with its date.",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-065 c4" },
   ],
-  "overview.head": ["Too early to call a direction.", { slots: {}, fixedBy: "BUILD §4.5" }],
-
-  // ── The head: one line per direction the stored series shows, and the
-  // badge §4.5 puts beside it. Four lines, not one: §4.5's "The gap is
-  // closing." is a claim about the chart directly under it, and a screen
-  // that states it over a widening gap has said something untrue.
-  "overview.head.rising": ["The gap is closing.", { slots: {}, fixedBy: "BUILD §4.5" }],
-  "overview.head.flat": ["The gap hasn’t moved yet.", { slots: {}, fixedBy: "BUILD §4.5" }],
-  "overview.head.falling": ["The gap has widened.", { slots: {}, fixedBy: "BUILD §4.5" }],
-  // Approved as written (ruling 11a): the set's badge claims every week
-  // and names no number, so the `weeks` slot goes with the wording rather
-  // than staying declared and unfilled — a slot the value never spends is
-  // a promise the registry cannot keep (`registry.test.ts` substitutes
-  // every declared slot and asserts it lands).
-  // ── UI-SPEC S13, the week-0 arm (REQ-040 c7).
-  //
-  // The deep pass has measured once and the first weekly pass is still
-  // due. Every string below is unbracketed in the set and so approved
-  // (11a). What the arm may not do is speak in the ordinary arm's words:
-  // "The gap is closing." over a single reading would be a direction
-  // nothing was compared to establish, which is the whole reason
-  // `headDirection` answers `no_data` under two points.
-  "overview.head.week-zero": [
-    "Your first page is ready to read.",
-    { slots: {}, fixedBy: "S13" },
+  // ── The head: what autopilot is doing (owner 2026-10-09, issue 1362).
+  // The four direction lines, the week-0 line and the two badges that stood
+  // here are gone with it: the head states the product's own status, from
+  // stored facts, and never a page waiting on the customer. Every other arm
+  // of the head is the shell's `next-publish.*` sentence. Drafted; the
+  // owner corrects the wording.
+  "overview.head.due.today": [
+    "Today’s page goes live at {time}.",
+    { slots: { time: "date" }, fixedBy: "issue 1362" },
   ],
-  "overview.head.badge.week-zero": ["week 0", { slots: {}, fixedBy: "S13" }],
-  "overview.head.badge": ["▲ every week since you started", { slots: {}, fixedBy: "S12" }],
+  "overview.head.due.tomorrow": [
+    "Tomorrow’s page goes live at {time}.",
+    { slots: { time: "date" }, fixedBy: "issue 1362" },
+  ],
+  "overview.head.writing.today": ["Today’s page is being written.", { slots: {}, fixedBy: "issue 1362" }],
+  "overview.head.writing.tomorrow": ["Tomorrow’s page is being written.", { slots: {}, fixedBy: "issue 1362" }],
+  "overview.head.planned": [
+    "The next page is planned for {on}.",
+    { slots: { on: "date" }, fixedBy: "issue 1362" },
+  ],
+  // What went live last, and when, under the head.
+  "overview.head.last-live": [
+    "Last page to go live: {title}, {on}.",
+    { slots: { title: "text", on: "date" }, fixedBy: "issue 1362" },
+  ],
 
   // ── The growth module.
   // The card head's right-hand chip (UI-SPEC S12: "re-measured Mon 1 Sep").
@@ -146,8 +135,8 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { on: "date", due: "date" }, fixedBy: "issue 793" },
   ],
   "overview.tile.pages.first-review": [
-    "first page ready to read today",
-    { slots: {}, fixedBy: "S13" },
+    "first page goes live on its own",
+    { slots: {}, fixedBy: "S13 · issue 1362" },
   ],
 
   // ── The score tile (UI-SPEC S12, ruling 6a).
@@ -300,8 +289,10 @@ export const OVERVIEW_COPY = Object.freeze({
   // Since #353 they are their own card, headed as the set heads it — §4.5
   // put them under "This week", and the approved set draws two cards.
   "overview.needs-you.title": ["Needs you", { slots: {}, fixedBy: "S12" }],
-  "overview.alert.pending-veto": ["{title} is ready to read", { slots: { title: "text" }, fixedBy: "REQ-041 c5" }],
-  "overview.alert.pending-veto.action": ["Read it", { slots: {}, fixedBy: "BUILD §4.5" }],
+  // A page in review is the next page of the daily autopilot, not something
+  // to read before it can go out (owner 2026-10-09, issue 1362).
+  "overview.alert.pending-veto": ["{title} goes live on its own", { slots: { title: "text" }, fixedBy: "REQ-041 c5 · issue 1362" }],
+  "overview.alert.pending-veto.action": ["Read or edit", { slots: {}, fixedBy: "issue 1362" }],
   "overview.alert.needs-you": ["{title} needs you before it can go out", { slots: { title: "text" }, fixedBy: "REQ-041 c5" }],
   // "Reconnect" is unbracketed in the approved set (ruling 11a) — the word
   // on the accent panel's outline pill. The alert's own title and the line
@@ -412,11 +403,6 @@ export const OVERVIEW_COPY = Object.freeze({
   // carried while it had only an address is gone with the last placeholder
   // that carried it. `_overview/tabs.ts` is where the four live.
 
-  // The head, when a page is waiting to be read. The other four head lines
-  // are the series' own (`OVERVIEW_HEAD`) and are unchanged: this arm is
-  // about the customer's own queue, not about the gap.
-  "overview.head.waiting": ["One page is ready to read.", { slots: {}, fixedBy: "issue 1337" }],
-
   // Every sparkline's accessible name: what it is a reading of, over how
   // many weeks. One key, because every trend on this screen is the same kind
   // of thing and a chart with no name is a chart a screen reader skips.
@@ -440,11 +426,6 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.waiting.goes-live-in": [
     "Goes live in {left} unless you stop it.",
     { slots: { left: "text" }, fixedBy: "SPEC §4 2026-09-24" },
-  ],
-  // The line under the head while a page waits with a time (R12-4).
-  "overview.head.waiting.sub": [
-    "It goes live on its own {at}. Edit or stop it until then.",
-    { slots: { at: "date" }, fixedBy: "SPEC §4 2026-09-24" },
   ],
   "overview.waiting.why.label": ["Why this page:", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   // The four arms of the reason, one per shape of evidence the opportunity
@@ -619,7 +600,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // SPEC §4's four status words, and the chip that stands for all of them.
   "overview.search.status.all": ["All", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.status.live": ["Page is live", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "overview.search.status.your-review": ["Ready to read", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.status.your-review": ["Page scheduled", { slots: {}, fixedBy: "issue 1362" }],
   "overview.search.status.up-next": ["Up next", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.status.too-big": ["Too big for now", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   // A filter chip's whole text. It is one string because daisyUI's `filter`
@@ -1136,8 +1117,8 @@ export const OVERVIEW_COPY = Object.freeze({
   // wins. None of them is "live": a search the customer already wins is not
   // in this table at all.
   "overview.rivals.status.in-review": [
-    "Page ready to read",
-    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+    "Page scheduled",
+    { slots: {}, fixedBy: "issue 1362" },
   ],
   "overview.rivals.status.up-next": ["Up next", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.rivals.status.needs-page": [
@@ -1201,8 +1182,8 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" },
   ],
   "overview.first-day.mail": [
-    "We’ll mail you when it’s ready to read. Nothing goes live until you’ve had 24 hours with it.",
-    { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" },
+    "We’ll mail you when it’s written. It goes live on its own 24 hours later, and you can edit or stop it until then.",
+    { slots: {}, fixedBy: "issue 912 · issue 1362" },
   ],
   "overview.first-day.week": [
     "Your week is planned as soon as the measurement finishes.",

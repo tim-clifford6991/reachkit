@@ -379,9 +379,9 @@ export const CALENDAR_COPY = Object.freeze({
   // Issue 1184 (drafted): why pages stall, as one line under the statement
   // of supply. `{rule}` is the writing rule's own name with its underscores
   // read as spaces.
-  "calendar.supply.stalled": ["Pages written in the last 7 days: {written}. Stopped before review: {stopped}.", { slots: { written: "text", stopped: "text" }, fixedBy: "issue 1184 (drafted)" }],
+  "calendar.supply.stalled": ["Pages written in the last 7 days: {written}. Stopped by the writing rules: {stopped}.", { slots: { written: "text", stopped: "text" }, fixedBy: "issue 1184 (drafted)" }],
   "calendar.supply.stalled.rule": [
-    "Pages written in the last 7 days: {written}. Stopped before review: {stopped}. The writing rule that stopped most: {rule}.",
+    "Pages written in the last 7 days: {written}. Stopped by the writing rules: {stopped}. The writing rule that stopped most: {rule}.",
     { slots: { written: "text", stopped: "text", rule: "text" }, fixedBy: "issue 1184 (drafted)" },
   ],
 
