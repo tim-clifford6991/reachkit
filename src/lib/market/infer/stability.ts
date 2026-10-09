@@ -7,6 +7,7 @@
 //
 // Pure: no I/O, no clock. The caller reads and writes `sites.market`.
 import { direct, searched } from "./demand";
+import { chooseRivals, type SeenByDomain } from "./presence";
 import { RIVALS_MAX, type MarketConclusion, type RivalConclusion, type StoredMarket } from "./types";
 
 export type MarketFields = Omit<MarketConclusion, "rivals">;
@@ -144,11 +145,15 @@ export function settleMarket(a: {
  *
  * A site with no rivals yet takes the pass's own. A pass that concluded
  * none changes nothing, and the founder's own set stands.
+ *
+ * `seen` is what the pass's own evidence shows of each candidate (issue
+ * 1365): the five the pass wants are `chooseRivals`'s.
  */
 export function settleRivals(a: {
   stored: StoredMarketWithChange;
   standing: readonly string[];
   fresh: readonly RivalConclusion[];
+  seen?: SeenByDomain;
   scanId: string;
   at: Date;
 }): { next: StoredMarketWithChange; rivals: readonly string[]; changed: boolean } {
@@ -156,19 +161,7 @@ export function settleRivals(a: {
   if (stored.rivalsOverridden || stored.current === null || a.fresh.length === 0) {
     return { next: stored, rivals: a.standing, changed: false };
   }
-  // D50: the rivals buyers search for are chosen first; among those, and
-  // then among the rest, a standing one before a new one.
-  const standing = (r: RivalConclusion): boolean => a.standing.includes(r.domain);
-  // Issue 1314: of the searched, the ones that do the same job come before
-  // one that does part of it, however much more it is searched.
-  const wanted = [
-    ...a.fresh.filter((r) => searched(r.volume) && direct(r) && standing(r)),
-    ...a.fresh.filter((r) => searched(r.volume) && direct(r) && !standing(r)),
-    ...a.fresh.filter((r) => searched(r.volume) && !direct(r) && standing(r)),
-    ...a.fresh.filter((r) => searched(r.volume) && !direct(r) && !standing(r)),
-    ...a.fresh.filter((r) => !searched(r.volume) && standing(r)),
-    ...a.fresh.filter((r) => !searched(r.volume) && !standing(r)),
-  ].slice(0, RIVALS_MAX);
+  const wanted = chooseRivals({ fresh: a.fresh, standing: a.standing, ...(a.seen === undefined ? {} : { seen: a.seen }) });
   const wants = new Set(wanted.map((r) => r.domain));
 
   // A rival in force as this pass read it, else as it is stored.

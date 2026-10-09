@@ -44,6 +44,13 @@ function table(searchParams: Record<string, string> = {}): Element {
   );
 }
 
+/** The sentences the page writes for a card that counted no rival. */
+const NO_RIVAL = {
+  noRivalOnFirstPage: copy("overview.rivals.first-page.none.holders", { holders: "holder.example" }),
+  noRivalNamed: copy("overview.rivals.named.none"),
+  unseenLine: null,
+};
+
 const presence = (): Element =>
   el(
     <RivalPresence
@@ -57,6 +64,7 @@ const presence = (): Element =>
         engines: "Google AI Overview",
         of: "36",
       })}
+      {...NO_RIVAL}
       answersHref="/app/ai-answers"
     />,
   );
@@ -110,6 +118,7 @@ describe("the two counting cards", () => {
           engines: "Google AI Overview",
           of: "36",
         })}
+        {...NO_RIVAL}
         answersHref="/app/ai-answers"
       />,
     );
@@ -117,6 +126,30 @@ describe("the two counting cards", () => {
       node.querySelector('[data-testid="rivals-card-first-page-unmeasured"]')
         ?.textContent,
     ).toBe(copy("overview.rivals.card.unmeasured"));
+  });
+
+  it("a card on which no rival was counted draws the customer alone and says why (issue 1365)", () => {
+    const none = assembleRivals({
+      ...FIXTURE_RIVALS_FACTS,
+      firstPage: new Map([[FIXTURE_RIVALS_FACTS.ownDomain, 2]]),
+    });
+    const node = el(
+      <RivalPresence
+        firstPage={none.firstPage}
+        named={none.named}
+        startedLine={null}
+        enginesLine=""
+        {...NO_RIVAL}
+        answersHref="/app/ai-answers"
+      />,
+    );
+    const card = node.querySelector('[data-testid="rivals-card-first-page"]');
+    expect(card?.querySelector('[data-testid="rivals-card-first-page-no-rival"]')?.textContent).toBe(NO_RIVAL.noRivalOnFirstPage);
+    // No rival's row of zero is drawn; the customer's own count still is.
+    for (const rival of none.firstPage.rivals) expect(card?.textContent).not.toContain(rival.domain);
+    expect(card?.textContent).toContain(`2/${none.firstPage.of}`);
+    // The other card counted them and is drawn as before.
+    expect(node.querySelector('[data-testid="rivals-card-named-no-rival"]')).toBeNull();
   });
 });
 

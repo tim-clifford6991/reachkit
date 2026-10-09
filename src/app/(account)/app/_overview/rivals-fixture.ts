@@ -113,6 +113,7 @@ export const FIXTURE_RIVALS_FACTS: RivalsFacts = Object.freeze({
   namedOf: NAMED_OF,
   // Where the customer stood in the first week this window measured.
   firstPageAtStart: 1,
+  firstPageHolders: Object.freeze([]),
   pool: Object.freeze(SPECS.map(rowOf)),
   measuredAt: MEASURED_AT,
 });
