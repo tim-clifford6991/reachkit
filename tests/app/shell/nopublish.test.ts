@@ -26,7 +26,7 @@ import {
 const NONE: NoPublishCauses = {
   reachkit_stopped: false,
   publishing_paused: false,
-  nothing_approved: false,
+  not_written: false,
   nothing_planned: false,
 };
 
@@ -40,7 +40,7 @@ describe("the four causes, and the order they are resolved in", () => {
     expect([...NO_PUBLISH_PRECEDENCE]).toEqual([
       "reachkit_stopped",
       "publishing_paused",
-      "nothing_approved",
+      "not_written",
       "nothing_planned",
     ]);
   });
@@ -64,7 +64,7 @@ describe("REQ-092 c7 — ReachKit's stop outranks every other cause that is also
   it("all four true resolve to reachkit_stopped", () => {
     expect(
       resolveNoPublish(
-        only("reachkit_stopped", "publishing_paused", "nothing_approved", "nothing_planned")
+        only("reachkit_stopped", "publishing_paused", "not_written", "nothing_planned")
       )
     ).toBe("reachkit_stopped");
   });
@@ -77,7 +77,7 @@ describe("REQ-092 c7 — ReachKit's stop outranks every other cause that is also
   });
 
   it("the three lower causes still resolve among themselves in order", () => {
-    expect(resolveNoPublish(only("nothing_approved", "nothing_planned"))).toBe("nothing_approved");
+    expect(resolveNoPublish(only("not_written", "nothing_planned"))).toBe("not_written");
     expect(resolveNoPublish(only("publishing_paused", "nothing_planned"))).toBe("publishing_paused");
   });
 });

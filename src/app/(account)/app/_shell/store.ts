@@ -69,14 +69,26 @@ function client(): MinimalClient {
  *  needing them. A page that is merely planned waits on nobody. */
 const WAITING_STATES = ["in_review", "needs_attention"] as const;
 
-/** The states a scheduled publish can still be in. A page already
- *  `published` is not next, and a `skipped` one never was. */
-const SCHEDULED_STATES = ["approved", "publishing"] as const;
+/** The states of a page that will go live on its own (owner 2026-10-09,
+ *  issue 1362). `in_review` is one: no customer approves a page, and the
+ *  window ending is what publishes it. A page already `published` is not
+ *  next, a `skipped` one never was, and `needs_attention` goes nowhere
+ *  until it is fixed. */
+const SCHEDULED_STATES = ["in_review", "approved", "publishing"] as const;
+
+/** The states of a page that is planned and not written yet. */
+const UNWRITTEN_STATES = ["planned", "generating"] as const;
 
 interface DraftStateRow {
   id: string;
   state: string;
   scheduled_for: string | null;
+}
+
+/** A page that will go live, with the three places its moment is stored. */
+interface ScheduledDraftRow extends DraftStateRow {
+  veto_deadline: string | null;
+  told?: { publishesAt?: string | null } | null;
 }
 
 /** The waiting rows, with the two facts the *Waiting for you* card states
@@ -162,53 +174,56 @@ async function blogAddress(siteId: string): Promise<string | null> {
 }
 
 /**
- * The next scheduled publish, or `null`. The date is the draft's own
- * `scheduled_for`; the *time* of day is §4.7's publish time, which the
- * shell does not state — it states the day.
+ * When the next page goes live on its own, or `null`.
+ *
+ * The moment is the one the customer was told (`told.publishesAt`), else the
+ * end of the page's window, else — for a page already past its window — the
+ * day it is scheduled for. A page in review with no window running has no
+ * moment: nothing publishes it on a clock, so it is not a scheduled publish.
  *
  * **A site whose publishing is switched off has no next publish**, and
  * that guard lives here rather than in the model. `publishingOf` gives a
  * `next` precedence over every cause except ReachKit's own stop (REQ-092
- * c7 names that one and no other), so a row still carrying a
- * `scheduled_for` would be announced as "the next page goes live" while
- * §9's switch holds it — "pause is one click and instant", and the page is
- * in `heldPages`, not on its way out. Nothing the fixture could produce
- * exercised that pair, which is why it surfaces here first: this is the
- * first feeder that reads both facts from real rows.
- *
+ * c7 names that one and no other), so a row still carrying a time would be
+ * announced as "the next page goes live" while §9's switch holds it.
  * Answering `null` puts the shell on the `publishing_paused` cause, which
- * is the true statement and the one the customer can act on.
+ * is the true statement.
  */
 async function nextScheduled(siteId: string, publishingOn: boolean): Promise<Date | null> {
   if (!publishingOn) return null;
-  return firstScheduled(siteId);
-}
-
-async function firstScheduled(siteId: string): Promise<Date | null> {
   const { data, error } = await client()
-    .from<DraftStateRow>("drafts")
-    .select("id, state, scheduled_for")
+    .from<ScheduledDraftRow>("drafts")
+    .select("id, state, scheduled_for, veto_deadline, told")
     .eq("site_id", siteId)
-    .in("state", SCHEDULED_STATES)
-    .not("scheduled_for", "is", null)
-    .order("scheduled_for", { ascending: true })
-    .limit(1);
+    .in("state", SCHEDULED_STATES);
   if (error !== null || data === null) return null;
-  const scheduled = data[0]?.scheduled_for;
-  return scheduled === undefined || scheduled === null ? null : new Date(scheduled);
+  const moments = data
+    .map(goesLiveAtOf)
+    .filter((at): at is Date => at !== null)
+    .sort((a, b) => a.getTime() - b.getTime());
+  return moments[0] ?? null;
 }
 
-/** Whether this site has any page at all that a publish could reach —
- *  §4.4's `nothing_planned`, which is a different fact from "nothing is
- *  approved". */
-async function plannedCount(siteId: string): Promise<number> {
+function goesLiveAtOf(row: ScheduledDraftRow): Date | null {
+  const at =
+    row.told?.publishesAt ?? row.veto_deadline ?? (row.state === "in_review" ? null : row.scheduled_for);
+  if (at === null || at === undefined) return null;
+  const moment = new Date(at);
+  return Number.isNaN(moment.getTime()) ? null : moment;
+}
+
+/** How many pages this site has planned and not written yet, and how many
+ *  it has that a publish could still reach at all — §4.4's `not_written`
+ *  and `nothing_planned`, from one read. */
+async function plannedCounts(siteId: string): Promise<{ unwritten: number; reachable: number }> {
   const { data, error } = await client()
     .from<DraftStateRow>("drafts")
     .select("id, state, scheduled_for")
     .eq("site_id", siteId)
-    .in("state", ["planned", "generating", "in_review", "approved", "publishing"]);
-  if (error !== null || data === null) return 0;
-  return data.length;
+    .in("state", [...UNWRITTEN_STATES, ...SCHEDULED_STATES]);
+  if (error !== null || data === null) return { unwritten: 0, reachable: 0 };
+  const unwritten = data.filter((row) => (UNWRITTEN_STATES as readonly string[]).includes(row.state));
+  return { unwritten: unwritten.length, reachable: data.length };
 }
 
 /**
@@ -235,7 +250,7 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     waiting(site.siteId),
     blogAddress(site.siteId),
     nextScheduled(site.siteId, publishingOn),
-    plannedCount(site.siteId),
+    plannedCounts(site.siteId),
     readStop(),
   ]);
 
@@ -256,8 +271,8 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     noPublishCauses: {
       reachkit_stopped: stopped !== null,
       publishing_paused: !publishingOn,
-      nothing_approved: next === null && planned > 0,
-      nothing_planned: planned === 0,
+      not_written: next === null && planned.unwritten > 0,
+      nothing_planned: planned.reachable === 0,
     },
   };
 }

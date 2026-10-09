@@ -1,15 +1,16 @@
-// SPEC §4 (2026-10-07, issue 1319) — the page in review, as an action.
+// SPEC §4 (2026-10-07, issue 1319; 2026-10-09, issue 1362) — today's page
+// of the daily autopilot, first on `/app` while one is in review.
 //
-// "On Overview, an element for the action shows first, not a full page for
-// review." So this is the first thing on `/app` while a page waits: the
-// screen's head, one line saying what the page is, when it goes live, and
-// the two controls. The reason, the chances and the page as a reader will
-// see it are one step away, behind *Read it*.
+// The screen's head — what autopilot is doing, which while a page is in
+// review is when that page goes live — then the page's own title, how long
+// until it goes live, and the two things the customer can do: edit it or
+// stop it. It asks for nothing. The reason, the chances and the page as a
+// reader will see it are one step away, behind the first control.
 //
-// **It carries the screen's `h1`.** While a page waits the head line is
-// about that page, so the two are one element and the screen says it once.
+// **It carries the screen's `h1`.** The head line is about this page, so
+// the two are one element and the screen says it once.
 //
-// **The screen's one solid button is *Read it*** (docs/DESIGN.md rule 1:
+// **The screen's one solid button opens the page** (docs/DESIGN.md rule 1:
 // one solid primary per screen). Stop is the warning ghost.
 //
 // **It writes no sentence.** The words are the registry's; the title is the
@@ -25,6 +26,7 @@ import { formatDateTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { BADGE } from "./badges";
 import { GoesLiveIn } from "./GoesLiveIn";
+import type { HeadNote } from "./ScoreHead";
 import { StopThisPage } from "./StopThisPage";
 import type { WaitingPage } from "./waiting";
 
@@ -57,29 +59,43 @@ function When(p: { goesLiveAt: Date | null; timeZone: string; now: Date }): Reac
 
 export function WaitingPageCard(p: {
   page: WaitingPage;
-  /** The screen's head line, already written, or `null`. */
-  head: string | null;
+  /** The screen's head line, already written. */
+  head: string;
+  /** The quiet lines under the page, already written. */
+  notes: readonly HeadNote[];
+  /** Whether a publish is scheduled at all — the shell's own answer. */
+  scheduled: boolean;
   timeZone: string;
   now: Date;
 }): React.JSX.Element {
   const { page } = p;
   // New page or update: the first of the model's chips.
   const [kindKey] = page.badges;
+  // Publishing is off, or ReachKit stopped: the head says so, and a
+  // countdown beside it would say the page is on its way.
+  const held = page.goesLiveAt !== null && !p.scheduled;
 
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid={TEST_ID}>
       <div className="card-body min-w-0 gap-4 p-4 sm:p-5 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 flex-col gap-1" data-testid="overview-head">
-          <h1>{p.head ?? copy("shell.nav.overview")}</h1>
+          <h1>{p.head}</h1>
           <div className="flex min-w-0 items-center gap-2 text-sm">
             {kindKey === undefined ? null : <span className={`${BADGE.neutral} shrink-0`}>{copy(kindKey)}</span>}
             <p className="min-w-0 truncate font-semibold" title={page.title} data-testid="overview-waiting-title">
               {page.title}
             </p>
           </div>
-          <p className="text-sm text-base-content/70" data-testid="overview-waiting-when">
-            <When goesLiveAt={page.goesLiveAt} timeZone={p.timeZone} now={p.now} />
-          </p>
+          {held ? null : (
+            <p className="text-sm text-base-content/70" data-testid="overview-waiting-when">
+              <When goesLiveAt={page.goesLiveAt} timeZone={p.timeZone} now={p.now} />
+            </p>
+          )}
+          {p.notes.map((note) => (
+            <p key={note.testId} className="min-w-0 text-sm text-base-content/70" data-testid={note.testId}>
+              {note.line}
+            </p>
+          ))}
         </div>
 
         <div className="flex min-w-0 shrink-0 flex-wrap items-start gap-3">

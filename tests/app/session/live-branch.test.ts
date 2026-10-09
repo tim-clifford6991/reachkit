@@ -46,7 +46,7 @@ const LIVE_SHELL_FACTS = {
   noPublishCauses: {
     reachkit_stopped: false,
     publishing_paused: false,
-    nothing_approved: false,
+    not_written: false,
     nothing_planned: true,
   },
 };

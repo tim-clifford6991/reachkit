@@ -42,7 +42,7 @@ const BASE: ShellFacts = {
   noPublishCauses: {
     reachkit_stopped: false,
     publishing_paused: false,
-    nothing_approved: false,
+    not_written: false,
     nothing_planned: false,
   },
 };
@@ -105,7 +105,7 @@ describe("REQ-040 c4 — no publish scheduled carries exactly one resolved reaso
         noPublishCauses: {
           reachkit_stopped: true,
           publishing_paused: true,
-          nothing_approved: true,
+          not_written: true,
           nothing_planned: true,
         },
       })
@@ -113,14 +113,14 @@ describe("REQ-040 c4 — no publish scheduled carries exactly one resolved reaso
     expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "reachkit_stopped" });
   });
 
-  it("nothing approved, alone, is the reason stated", () => {
+  it("a page not written yet, alone, is the reason stated", () => {
     const shell = assembleShell(
       facts({
         next: null,
-        noPublishCauses: { ...BASE.noPublishCauses, nothing_approved: true },
+        noPublishCauses: { ...BASE.noPublishCauses, not_written: true },
       })
     );
-    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "nothing_approved" });
+    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "not_written" });
   });
 
   it("no time and no cause at all is unexplained — never a stop nobody stored (issue 1321)", () => {

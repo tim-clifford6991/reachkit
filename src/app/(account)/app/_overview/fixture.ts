@@ -199,6 +199,13 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
     readerHost: "content.example.com",
   }),
 
+  // Issue 1362: what went live last, so the head's quiet line is drawn on
+  // the owner's preview and measured by the layout gate.
+  lastLive: Object.freeze({
+    title: "What an onboarding checklist should hold",
+    at: new Date(Date.UTC(2026, 8, 4, 13, 0, 0)),
+  }),
+
   // SPEC §4 (2026-09-20): what each day of the fixture's week holds. Friday
   // is today, Sunday carries the page in review, and Wednesday holds none —
   // so the strip shows all three of the words it can say.

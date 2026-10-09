@@ -271,7 +271,7 @@ describe("REQ-040 c3 — the mode with the next publish time, in the customer's 
 
 // ── criterion 4 ─────────────────────────────────────────────────────────
 describe("REQ-040 c4 — with no publish scheduled, one line for the resolved reason", () => {
-  const withReason = (because: "reachkit_stopped" | "publishing_paused" | "nothing_approved" | "nothing_planned"): ShellModel => ({
+  const withReason = (because: "reachkit_stopped" | "publishing_paused" | "not_written" | "nothing_planned"): ShellModel => ({
     ...SCHEDULED,
     publishing: { mode: "autopilot", next: null, because },
   });
@@ -289,12 +289,12 @@ describe("REQ-040 c4 — with no publish scheduled, one line for the resolved re
     expect(line?.textContent).toBe("next-publish.stopped");
     // Whichever it is, no *other* cause's line reached this card.
     expect(root.textContent).not.toContain("next-publish.paused");
-    expect(root.textContent).not.toContain("next-publish.nothing-approved");
+    expect(root.textContent).not.toContain("next-publish.being-written");
     expect(root.textContent).not.toContain("next-publish.none-planned");
     expect(root.textContent).not.toContain("next-publish.scheduled");
   });
 
-  it.each(["publishing_paused", "nothing_approved", "nothing_planned"] as const)(
+  it.each(["publishing_paused", "not_written", "nothing_planned"] as const)(
     "%s never renders the scheduled line, and never a second cause's",
     (because) => {
       const root = render(<PublishingCard shell={withReason(because)} />);
@@ -679,9 +679,8 @@ describe("the frame is the route's one screen root, and it invents no sentence",
       "next-publish.scheduled",
       "next-publish.stopped",
       "next-publish.paused",
-      "next-publish.nothing-approved",
+      "next-publish.being-written",
       "next-publish.none-planned",
-      "overview.head",
       "calendar.head",
       "settings.head",
     ];
