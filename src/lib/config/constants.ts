@@ -40,7 +40,12 @@ export const PRICE_BOOK = Object.freeze({
   /** Labs keyword overview (SPEC §6, D49; issue 1270): the vendor's list
    *  price, one cent a request and a hundredth of a cent a keyword. */
   KEYWORD_OVERVIEW_REQUEST_C: 1, KEYWORD_OVERVIEW_KEYWORD_C: 0.01,
-  CHATGPT_SCRAPE_STD_C: 0.12, AI_MODE_LIVE_C: 0.2, AI_MODE_STD_C: 0.12,
+  /** Google AI Mode, live (issue 1231): the vendor's list price, 0.4 cents a
+   *  page, twice a live organic read. The deep pass buys it: its twelve and
+   *  its market prompts (`BATTERY.QUESTIONS + BATTERY.MARKET_PROMPTS`) are
+   *  20 asks, 8 cents of `CAPS.DEEP_C`'s 150. */
+  AI_MODE_LIVE_C: 0.4,
+  CHATGPT_SCRAPE_STD_C: 0.12, AI_MODE_STD_C: 0.12,
   LLM_MENTIONS_ROWS: 100, LLM_MENTIONS_REQUEST_C: 10, LLM_MENTIONS_ROW_C: 0.1,
 } as const);
 
@@ -671,7 +676,7 @@ export const BATTERY = Object.freeze({
   QUESTIONS: 12, TARGET_SERPS_MAX: 13, MEASURED_PAGES_MAX: 25, COMPETITORS_MAX: 5,
   /** #1195: the market's buyer prompts a deep pass asks AI Mode beside the
    *  twelve, so the rivals are concluded from answers in the market it
-   *  measures (drafted default, the owner may correct it; ~1.6¢ live). */
+   *  measures (drafted default, the owner may correct it; 3.2¢ live). */
   MARKET_PROMPTS: 8,
 } as const);
 
