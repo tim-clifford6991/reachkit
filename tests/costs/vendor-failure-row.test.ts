@@ -140,7 +140,9 @@ describe("issue #504 — a failed vendor call is a row, never a null payload", (
 
     expect(result).toMatchObject({ kind: "unmeasured", reason: "undeterminable" });
     const row = fetchInserts()[0]!;
-    expect(row.payload).toEqual({ vendorFailure: "deadline", endpoint: SERP, billed: true });
+    // The task's id stays on the row (#1160): it is paid for, the vendor
+    // still answers it, and a later step reads it without buying it again.
+    expect(row.payload).toEqual({ vendorFailure: "deadline", endpoint: SERP, billed: true, taskId: "task-id-fixture" });
     expect(row.cost_cents).toBe(row.reserved_cents);
   });
 

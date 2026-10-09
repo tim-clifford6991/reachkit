@@ -895,6 +895,13 @@ export const TIMING = Object.freeze({
    *  is that engine's unmeasured cell; the pass goes on to score inside its
    *  ceiling. No ceiling moves. */
   paidPassAskReserveS: 25,
+  /** How many further job steps read the tracked-prompt answers a weekly
+   *  pass paid for and stopped waiting on (#1160; drafted default, the
+   *  owner may correct it). Each waits up to `paidPassCeilingS` inside its
+   *  own invocation and buys nothing. On 2026-10-05 the pass waited 185 s
+   *  and 73 of its 100 asks were still queued; three rounds give a task
+   *  about a quarter of an hour from its post. */
+  weeklyCollectRounds: 3,
   /** How long before `reportCeilingS` a free scan stops waiting for a
    *  queued Google read (SPEC §6, 2026-10-08, issue 1352): the time it
    *  keeps to score, compose and store the report inside its ceiling. A

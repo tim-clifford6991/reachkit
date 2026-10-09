@@ -157,6 +157,10 @@ export type VendorOutcome =
       billed: boolean;
       /** The log line's words; never stored. */
       reason: string;
+      /** The standard-queue task this call posted, paid for and stopped
+       *  waiting on (#1160). The vendor still finishes it, and reading it
+       *  later is free, so the ledger row keeps the id. */
+      taskId?: string;
     };
 
 type Failed = Extract<VendorOutcome, { ok: false }>;
@@ -335,6 +339,18 @@ export async function callEndpoint(
   // caller that must answer inside its ceiling is never held past it by a
   // task that is merely slow (issue 902).
   const deadline = Math.min(Date.now() + VENDOR.stdQueueDeadlineMin * MS_PER_MIN, untilMs ?? Number.POSITIVE_INFINITY);
+  return withCharge(await awaitTask(std.taskGet, id, deadline, timeoutMs, pollMs), posted.payload);
+}
+
+/** Polls one accepted task until it completes or `deadline` passes. Every
+ *  failure here is billed: the task was charged when it was posted. */
+async function awaitTask(
+  taskGet: (id: string) => string,
+  id: string,
+  deadline: number,
+  timeoutMs?: number,
+  pollMs?: number
+): Promise<VendorOutcome> {
   const interval = pollMs ?? VENDOR.stdQueuePollIntervalS * MS_PER_S;
   for (;;) {
     // Never asleep past the deadline, and no ask holds the caller past it
@@ -344,23 +360,41 @@ export async function callEndpoint(
     await sleep(Math.max(0, Math.min(interval, left)));
     const lastAsk = Date.now() >= deadline;
     const untilDeadline = Math.max(MIN_POLL_ABORT_MS, deadline - Date.now());
-    const got = await sendGet<unknown>(std.taskGet(id), Math.min(timeoutMs ?? VENDOR.requestAbortMs, untilDeadline));
+    const got = await sendGet<unknown>(taskGet(id), Math.min(timeoutMs ?? VENDOR.requestAbortMs, untilDeadline));
     if (!got.ok) {
       // The task is posted and paid for. An ask the clock or the network
       // lost says nothing about it, so it is asked again while there is
       // time (issue 1352); any other failure is the same answer twice.
       if (!lastAsk && worthAskingAgain(got.failure)) continue;
-      return withCharge(failure(got.failure, true, got.reason), posted.payload);
+      return {
+        ...failure(got.failure, true, got.reason),
+        // The ask was lost, not the task: it can still be read (#1160).
+        ...(worthAskingAgain(got.failure) ? { taskId: id } : {}),
+      };
     }
     const polled = firstTask(got.payload);
     if (polled && typeof polled.status_code === "number" && TASK_IN_FLIGHT.has(polled.status_code)) {
       if (lastAsk || Date.now() >= deadline) {
-        return withCharge(failure("deadline", true, "dataforseo: standard-queue task not ready by the pinned deadline"), posted.payload);
+        return {
+          ...failure("deadline", true, "dataforseo: standard-queue task not ready by the pinned deadline"),
+          taskId: id,
+        };
       }
       continue;
     }
-    return withCharge(firstResult(got.payload, true), posted.payload);
+    return firstResult(got.payload, true);
   }
+}
+
+/**
+ * Reads a task an earlier call posted and stopped waiting on (#1160). It
+ * posts nothing and costs nothing: the task was charged at `task_post`, and
+ * `task_get` is free. It waits until `untilMs` and answers as the first
+ * call would have, with the id still on a failure that can be read later.
+ */
+export async function collectTask(paths: EndpointPaths, taskId: string, untilMs: number): Promise<VendorOutcome> {
+  if (!paths.std) return failure("no_surface", false, "dataforseo: endpoint has no standard-queue surface");
+  return awaitTask(paths.std.taskGet, taskId, untilMs);
 }
 
 
@@ -368,7 +402,12 @@ export async function callEndpoint(
  *  endpoint (the ledger `source`), and whether the vendor bills it. The
  *  seam settles an unbilled one at 0 cents; the cache never serves one. */
 function failureRow(source: string, out: Failed): VendorFailure {
-  return { vendorFailure: out.failure, endpoint: source, billed: out.billed };
+  return {
+    vendorFailure: out.failure,
+    endpoint: source,
+    billed: out.billed,
+    ...(out.taskId === undefined ? {} : { taskId: out.taskId }),
+  };
 }
 
 /** Where the stage that made a call wants to hear why it failed (issue
