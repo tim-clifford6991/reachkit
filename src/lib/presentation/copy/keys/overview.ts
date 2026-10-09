@@ -168,7 +168,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // head. One key, reworded; drafted under issue 759's ruling and the
   // owner's to correct.
   "overview.tile.searches.label": ["Searches you appear for", { slots: {}, fixedBy: "issue 915" }],
-  "overview.tile.ai-answers.label": ["AI answers", { slots: {}, fixedBy: "BUILD §4.5" }],
+  "overview.tile.ai-answers.label": ["AI Visibility", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.tile.ai-answers.window": [
     "named in {weeks} of the last {of} weeks",
     { slots: { weeks: "text", of: "text" }, fixedBy: "REQ-041 c12" },

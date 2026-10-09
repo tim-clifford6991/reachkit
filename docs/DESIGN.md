@@ -69,7 +69,8 @@ The nav label, the heading in the docs and the screen name are the same word. Is
 |---|---|---|
 | Plan | `/app/calendar` | Plan — not “calendar”, not `F7` |
 | The draft | `/app/draft/{draftId}` | Draft. The editor is the editing state of that draft, not a second screen |
-| Overview, Search, AI answers, Rivals, Settings | unchanged | those words |
+| Overview, Search, Rivals, Settings | unchanged | those words |
+| AI Visibility | `/app/ai-answers` | AI Visibility. “AI answers” was its label until 2026-10-09 (#1363); the route keeps the old word |
 
 ## Boards
 
@@ -105,7 +106,7 @@ Each board is `docs/design/boards/<id>/<id>.dc.html` with its `.jpg` render. The
 | Overview, dark | `/app` | [board](design/boards/R5-D1-Overview/R5-D1-Overview.dc.html) · [render](design/boards/R5-D1-Overview/R5-D1-Overview.jpg) |
 | Search | `/app/search` | [board](design/boards/R4-05-Search/R4-05-Search.dc.html) · [render](design/boards/R4-05-Search/R4-05-Search.jpg) |
 | Search, dark | `/app/search` | [board](design/boards/R5-D3-Search/R5-D3-Search.dc.html) · [render](design/boards/R5-D3-Search/R5-D3-Search.jpg) |
-| AI answers | `/app/ai-answers` | [board](design/boards/R4-06-AI-answers/R4-06-AI-answers.dc.html) · [render](design/boards/R4-06-AI-answers/R4-06-AI-answers.jpg) |
+| AI Visibility | `/app/ai-answers` | [board](design/boards/R4-06-AI-answers/R4-06-AI-answers.dc.html) · [render](design/boards/R4-06-AI-answers/R4-06-AI-answers.jpg) |
 | Rivals | `/app/rivals` | [board](design/boards/R4-07-Rivals/R4-07-Rivals.dc.html) · [render](design/boards/R4-07-Rivals/R4-07-Rivals.jpg) |
 | Plan | `/app/calendar` | [board](design/boards/R12-5-Plan/R12-5-Plan.dc.html) · [render](design/boards/R12-5-Plan/R12-5-Plan.jpg) |
 | Plan, day cards | the day cards on Plan | [board](design/boards/R3-DayCards/R3-DayCards.dc.html) · [render](design/boards/R3-DayCards/R3-DayCards.jpg) |
