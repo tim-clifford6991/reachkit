@@ -365,7 +365,7 @@ export async function collect(a: { site: PanelSite; bought: readonly FetchRow[];
     costBySource,
     // D67: where the pass stored the business as serving, and what its own
     // results showed.
-    area: area === undefined ? null : { place: area.place?.name ?? null, location: area.place?.location ?? null },
+    area: area === undefined ? null : { place: area.place?.name ?? null, location: area.place?.location ?? null, ...(area.because === undefined ? {} : { because: area.because }) },
     resultDomains: [
       ...new Set([
         ...(report?.serps ?? []).flatMap((serp) => (serp.kind === "measured" ? [...serp.value.organic, ...(serp.value.localPack ?? [])].map((row) => row.domain) : [])),
@@ -456,7 +456,7 @@ function markdown(a: { o: Options; runs: readonly SiteRun[]; notRun: readonly Pa
     out.push(`- **Read in:** ${result.locales.map((locale) => `${locale.location} / ${locale.language}`).join(", ") || "no vendor read seen"}`);
     out.push(`- **Not its market:** ${(market?.notOurMarket ?? []).join(", ") || "none"}`);
     out.push(`- **Kind of business:** ${market?.kind ?? "not recorded"}`);
-    out.push(`- **Serves:** ${result.area === undefined ? "not recorded" : result.area === null || result.area.place === null ? "nationally or online" : `${result.area.place}${result.area.location === null ? " (the vendor lists no such city)" : `, read from ${result.area.location}`}`}`);
+    out.push(`- **Serves:** ${result.area === undefined ? "not recorded" : result.area === null || result.area.place === null ? "nationally or online" : `${result.area.place}${result.area.location === null ? " (the vendor lists no such city)" : `, read from ${result.area.location}`}${result.area.because === undefined ? "" : `; the site says so by ${result.area.because}`}`}`);
     out.push(`- **Rivals:** ${(market?.rivals ?? []).map((rival) => `${rival.name} (${rival.domain}, ${rival.volume ?? "unread"}/mo, ${rival.basis}${rival.national === true ? ", national" : ""})`).join("; ") || "none"}`);
     out.push(`- **Tracked prompts (${result.prompts?.length ?? 0}):** ${(result.prompts ?? []).map((prompt) => prompt.text).join(" · ") || "none"}`);
     out.push(`- **Measured searches (${result.searches.length}):** ${result.searches.join("; ") || "none"}`);

@@ -59,6 +59,14 @@ function topTensOf(report: StoredReport | null, own: string): EvidenceTopTen[] {
   return [...tally.values()];
 }
 
+/** Whether a measured search of the report showed the site in Google's
+ *  local pack (issue 1370). */
+function inLocalPack(report: StoredReport | null, own: string): boolean {
+  return (report?.serps ?? []).some(
+    (serp) => serp.kind === "measured" && (serp.value.localPack ?? []).some((row) => bare(row.domain) === own)
+  );
+}
+
 export function marketEvidence(a: {
   domain: string;
   siteName: string | null;
@@ -73,6 +81,7 @@ export function marketEvidence(a: {
   const own = bare(a.domain);
   return {
     ...(a.stated === undefined ? {} : { stated: a.stated }),
+    ...(inLocalPack(a.report, own) ? { ownLocalPack: true } : {}),
     domain: own,
     siteName: a.siteName,
     headline: a.headline,

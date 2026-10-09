@@ -96,7 +96,7 @@ export interface SiteResult {
    *  the search vendor's name for it where the vendor lists it. `place` is
    *  `null` for a business stored as selling nationally. Absent on a run
    *  stored before D67. */
-  area?: { place: string | null; location: string | null } | null;
+  area?: { place: string | null; location: string | null; because?: string } | null;
   /** Every domain this pass's own results showed: its top tens, its local
    *  packs and the sites its AI answers cited. Absent before D67. */
   resultDomains?: readonly string[];

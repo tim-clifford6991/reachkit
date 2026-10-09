@@ -17,7 +17,7 @@
 // Every failure leaves what is stored alone: a pass never loses its market
 // because a model call did not come back.
 import type { Locale, Place } from "@/lib/locale/locales";
-import type { PlaceSignals, ServingArea } from "@/lib/locale/place";
+import type { PlaceSignals, ServingArea, ServingEvidence } from "@/lib/locale/place";
 import { siteLocale } from "@/lib/locale/site";
 import type { CostContext } from "@/lib/costs";
 import { evidenceDomains, type EvidencePage } from "@/lib/market/infer/evidence";
@@ -78,7 +78,9 @@ export interface PassMarket {
 /**
  * Where the site serves, settled for this pass (SPEC §6, owner D67, issue
  * 1318). The founder's answer stands. Where nobody has said, the first
- * market call that read it decides, once. A place the search vendor's list
+ * market call that read it decides, once — and a place read before the
+ * site's own evidence was asked for (issue 1370: it carries no `because`)
+ * is decided again by the first pass that reads the site. A place the search vendor's list
  * was not yet read for is looked up there — free, once — so Google's
  * results are read from that city. Never throws: a lookup that fails
  * leaves the place measured in its country, and the next pass asks again.
@@ -88,9 +90,20 @@ export async function settleArea(a: {
   area: ServingArea | undefined;
   /** What this pass's market call read; `undefined` where it made none. */
   read: Place | null | undefined;
+  /** What on the site said it serves `read` (issue 1370). */
+  because?: ServingEvidence;
   locale: Locale;
 }): Promise<ServingArea | undefined> {
-  let area = a.area ?? (a.read === undefined ? undefined : { place: a.read, by: "read" as const });
+  const unproven = a.area !== undefined && a.area.by === "read" && a.area.place !== null && a.area.because === undefined;
+  let area = a.area;
+  if (a.read !== undefined && (area === undefined || unproven)) {
+    const same = a.read !== null && area !== undefined && area.place !== null && area.place.name.toLowerCase() === a.read.name.toLowerCase();
+    if (unproven) log("serving_area_decided_again", { siteId: a.siteId, was: a.area?.place?.name ?? null, is: a.read?.name ?? null, because: a.because ?? null });
+    // The same place keeps the search vendor's name for it.
+    area = same
+      ? { ...area!, ...(a.because === undefined ? {} : { because: a.because }) }
+      : { place: a.read, by: "read", ...(a.read === null || a.because === undefined ? {} : { because: a.because }) };
+  }
   if (area === undefined || area.place === null || area.located === true) return area;
   // The conclusion's own region tells two cities of one name apart where
   // the founder gave none ("Portland").
@@ -174,7 +187,13 @@ export async function concludeMarketForPass(a: {
     return passMarket(site.stored.current, site.stored.rivalsOverridden, await founderBuyer(a.siteId), site.stored.area?.place ?? null);
   }
   // D67: where it serves is settled before anything is read for the market.
-  const area = await settleArea({ siteId: a.siteId, area: site.stored.area, read: fresh.value.serves, locale: stored });
+  const area = await settleArea({
+    siteId: a.siteId,
+    area: site.stored.area,
+    read: fresh.value.serves,
+    ...(fresh.value.servesBecause === undefined ? {} : { because: fresh.value.servesBecause }),
+    locale: stored,
+  });
   const place = area?.place ?? null;
   const locale: Locale = { country: stored.country, language: stored.language, ...(place === null ? {} : { place }) };
 
@@ -196,6 +215,7 @@ export async function concludeMarketForPass(a: {
   const current = await withSearchTerms({
     market: kinded,
     locale,
+    was: site.stored.area?.place ?? null,
     siteId: a.siteId,
     domain: a.domain,
     siteName: text.siteName,
@@ -231,6 +251,8 @@ async function withSearchTerms(a: {
   cost: CostContext;
   at: Date;
   locale: Locale;
+  /** The place the site was stored as serving before this pass settled it. */
+  was: Place | null;
 }): Promise<MarketConclusion | null> {
   const { market } = a;
   if (market === null) return null;
@@ -244,7 +266,14 @@ async function withSearchTerms(a: {
     // whatever their age.
     const place = a.locale.place;
     const elsewhere = place !== undefined && (market.terms ?? []).some((term) => term.volume > 0 && !namesPlace(term.term, place));
-    if (!termsDue(market, a.at) && !elsewhere) return market;
+    // Issue 1370: and terms read for a place the site no longer serves are
+    // read again for where it sells.
+    const was = a.was;
+    const left =
+      was !== null &&
+      (place === undefined || place.name.toLowerCase() !== was.name.toLowerCase()) &&
+      (market.terms ?? []).some((term) => namesPlace(term.term, was));
+    if (!termsDue(market, a.at) && !elsewhere && !left) return market;
     const read = await readMarketTerms(a.cost, { market, siteName: a.siteName, domain: a.domain, at: a.at, locale: a.locale });
     if (read.kind === "unmeasured") {
       log("market_terms_unmeasured", { siteId: a.siteId, reason: read.reason, because: read.because ?? null });
@@ -649,7 +678,11 @@ export async function concludeAtSetup(a: {
     if (fields.kind === "unmeasured") return null;
     // D67: the founder's place where they gave one at the step before,
     // else the one this call read — so the rivals offered are that place's.
-    const area: ServingArea | undefined = held?.stored.area ?? (fields.value.serves === undefined ? undefined : { place: fields.value.serves, by: "read" });
+    const area: ServingArea | undefined =
+      held?.stored.area ??
+      (fields.value.serves === undefined
+        ? undefined
+        : { place: fields.value.serves, by: "read", ...(fields.value.servesBecause === undefined ? {} : { because: fields.value.servesBecause }) });
     const place = area?.place ?? null;
     const locale: Locale = { country: stored.country, language: stored.language, ...(place === null ? {} : { place }) };
     const market =

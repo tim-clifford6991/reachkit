@@ -2,7 +2,7 @@
 // one area is measured where it serves: how a search says a place, and what
 // a home page states of its own.
 import { describe, expect, it } from "vitest";
-import { areaOf, isLocalSearch, localSearch, namesPlace, readPlace, withoutPlace } from "../../src/lib/locale/place.ts";
+import { areaOf, isLocalSearch, localSearch, namesPlace, readPlaceSignals, statedPlace, withoutPlace } from "../../src/lib/locale/place.ts";
 import { modelInstruction } from "../../src/lib/locale/language/index.ts";
 
 const AUSTIN = { name: "Austin", region: "Texas" };
@@ -40,10 +40,17 @@ describe("what a home page states of where it is", () => {
   const page = (type: string): string =>
     `<script type="application/ld+json">{"@context":"https://schema.org","@type":"${type}","name":"Northside","address":{"@type":"PostalAddress","addressLocality":"Austin","addressRegion":"TX"}}</script>`;
 
+  const readPlace = (html: string) => statedPlace(readPlaceSignals(html));
+
   it("reads the town of a business that marks itself a local one, and none from a plain organisation's office", () => {
     expect(readPlace(page("Plumber"))).toEqual({ name: "Austin", region: "TX" });
     expect(readPlace(page("Organization"))).toBeNull();
     expect(readPlace("<p>Call us in Austin</p>")).toBeNull();
+  });
+
+  it("reads none from an office's address under a plain LocalBusiness, and reads it once the page lists the town as served (issue 1370)", () => {
+    expect(readPlace(page("LocalBusiness"))).toBeNull();
+    expect(readPlace(page("LocalBusiness").replace('"name":"Northside"', '"name":"Northside","areaServed":["Austin","Round Rock"]'))).toEqual({ name: "Austin", region: "TX" });
   });
 
   it("reads a stored area defensively: a founder's national answer, a place, and nothing from anything else", () => {

@@ -9,6 +9,16 @@
 // Pure: it reads the text it is handed. No fetch, no model call, no clock.
 import type { Place } from "./locales";
 
+/** What on a site said it serves a place, strongest first (issue 1370;
+ *  read by `servingEvidence` in `./serving`). */
+export const SERVING_EVIDENCE = ["area_served", "service_page", "service_wording", "local_pack", "in_person"] as const;
+
+export type ServingEvidence = (typeof SERVING_EVIDENCE)[number];
+
+function isServingEvidence(value: unknown): value is ServingEvidence {
+  return typeof value === "string" && (SERVING_EVIDENCE as readonly string[]).includes(value);
+}
+
 /** What is stored of where a site serves (`sites.market.area`). `place` is
  *  `null` for a business that sells nationally or online. */
 export interface ServingArea {
@@ -19,6 +29,10 @@ export interface ServingArea {
   /** True once the search vendor's list was read for `place`, whether or
    *  not it held it: a place the vendor does not list is not asked again. */
   located?: true;
+  /** What on the site said it serves the place a pass read (issue 1370).
+   *  A place read before that issue carries none, and the next pass that
+   *  reads the site decides it again. */
+  because?: ServingEvidence;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -43,12 +57,13 @@ export function placeOf(name: unknown, region?: unknown): Place | null {
 export function areaOf(value: unknown): ServingArea | null {
   if (!isRecord(value) || (value.by !== "founder" && value.by !== "read")) return null;
   const located = value.located === true ? { located: true as const } : {};
+  const because = isServingEvidence(value.because) ? { because: value.because } : {};
   if (value.place === null) return { place: null, by: value.by, ...located };
   if (!isRecord(value.place)) return null;
   const place = placeOf(value.place.name, value.place.region);
   if (place === null) return null;
   const location = text(value.place.location, 160);
-  return { place: { ...place, ...(location === "" ? {} : { location }) }, by: value.by, ...located };
+  return { place: { ...place, ...(location === "" ? {} : { location }) }, by: value.by, ...located, ...because };
 }
 
 /** Lower case, accents folded, punctuation to spaces: how a place and a
@@ -165,6 +180,10 @@ export interface PlaceSignals {
   telephone?: string;
   /** The schema.org type it gives itself: "Plumber", "Restaurant". */
   type?: string;
+  /** The page's own description of the business (`<meta name="description">`):
+   *  one sentence the site chose, which often says the service and the
+   *  place together (issue 1370). */
+  description?: string;
 }
 
 function field(html: string, name: string): string {
@@ -174,7 +193,7 @@ function field(html: string, name: string): string {
 
 /** schema.org's types for an organisation that is no local business, and
  *  for things that are not a business at all. */
-const NOT_A_BUSINESS_TYPE = /^(?:Organization|Corporation|WebSite|WebPage|Person|Brand|Product|Article|BlogPosting|BreadcrumbList|ImageObject|SearchAction|ItemList|ListItem|FAQPage|Question|Answer|Offer|PostalAddress|GeoCoordinates|OpeningHoursSpecification|AggregateRating|Review|Rating|ContactPoint|Service|Place|Country|City|State|EntryPoint|ReadAction|SiteNavigationElement|WPHeader|WPFooter|CollectionPage|AboutPage|ContactPage|NGO|EducationalOrganization|OnlineBusiness|OnlineStore)$/;
+const NOT_A_BUSINESS_TYPE = /^(?:PropertyValueSpecification|Organization|Corporation|WebSite|WebPage|Person|Brand|Product|Article|BlogPosting|BreadcrumbList|ImageObject|SearchAction|ItemList|ListItem|FAQPage|Question|Answer|Offer|PostalAddress|GeoCoordinates|OpeningHoursSpecification|AggregateRating|Review|Rating|ContactPoint|Service|Place|Country|City|State|EntryPoint|ReadAction|SiteNavigationElement|WPHeader|WPFooter|CollectionPage|AboutPage|ContactPage|NGO|EducationalOrganization|OnlineBusiness|OnlineStore)$/;
 
 /** The address fields of a page's structured data, each where it is given. */
 export function readPlaceSignals(html: string | null): PlaceSignals {
@@ -188,6 +207,8 @@ export function readPlaceSignals(html: string | null): PlaceSignals {
   const telephone = field(html, "telephone") || text(/href="tel:([^"]{6,24})"/i.exec(html)?.[1] ?? "", 24);
   const types = [...html.matchAll(/"@type"\s*:\s*(?:"([A-Za-z]{3,40})"|\[\s*"([A-Za-z]{3,40})")/g)].map((m) => m[1] ?? m[2] ?? "");
   const type = types.find((each) => !NOT_A_BUSINESS_TYPE.test(each));
+  const meta = /<meta\b[^>]*\bname\s*=\s*["']description["'][^>]*>/i.exec(html)?.[0] ?? "";
+  const description = text((/\bcontent\s*=\s*"([^"]*)"/i.exec(meta) ?? /\bcontent\s*=\s*'([^']*)'/i.exec(meta))?.[1] ?? "", 240);
   const locality = field(html, "addressLocality");
   const region = field(html, "addressRegion");
   return {
@@ -196,18 +217,27 @@ export function readPlaceSignals(html: string | null): PlaceSignals {
     ...(serves.length === 0 ? {} : { serves: serves.slice(0, 6) }),
     ...(telephone === "" ? {} : { telephone }),
     ...(type === undefined ? {} : { type }),
+    ...(description === "" ? {} : { description }),
   };
 }
 
+/** schema.org's types for a business with premises that say nothing of
+ *  whom it serves: a consultancy with one office marks itself with these. */
+const ANY_PREMISES_TYPE = /^(?:LocalBusiness|ProfessionalService|Store)$/;
+
 /**
- * The place a home page states for a business that says it is a local one:
- * structured data of a `LocalBusiness` kind (any business type that is not
- * a plain organisation) with a town in its address. `null` where the page
- * states none — which says nothing either way; a pass's market call reads
- * the rest of the site.
+ * The place a home page states for a business that says it serves it
+ * (issue 1370): a town in its address, and either that town among the areas
+ * it lists as served, or structured data of a kind carried out where the
+ * business is ("Plumber", "Restaurant", "Dentist"). An address under a
+ * plain `LocalBusiness` says where the business is and nothing more.
+ * `null` where the page states none — which says nothing either way; a
+ * pass's market call reads the rest of the site.
  */
-export function readPlace(html: string | null): Place | null {
-  const signals = readPlaceSignals(html);
-  if (signals.type === undefined || signals.locality === undefined) return null;
-  return placeOf(signals.locality, signals.region);
+export function statedPlace(signals: PlaceSignals): Place | null {
+  const place = placeOf(signals.locality, signals.region);
+  if (place === null) return null;
+  const served = (signals.serves ?? []).some((area) => namesPlace(area, place));
+  const inPerson = signals.type !== undefined && !ANY_PREMISES_TYPE.test(signals.type);
+  return served || inPerson ? place : null;
 }
