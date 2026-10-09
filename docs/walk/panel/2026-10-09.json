@@ -1,32 +1,17 @@
 {
  "date": "2026-10-09",
- "commit": "f521644a",
- "capCents": 100,
- "spentCents": 83.9143,
+ "commit": "0fd6379a",
+ "capCents": 183,
+ "spentCents": 172.6927,
  "refusedAtCap": 0,
  "notRun": [
-  "zunicafe.com",
   "baeckerei-hinkel.de",
-  "tattly.com",
-  "savvycal.com",
   "wesbos.com",
   "pdxsmiledesign.com",
   "fletcherelectric.co.uk",
   "streaksapp.com"
  ],
  "defects": [
-  {
-   "check": "3–5 rivals, none a listing, each with demand or AI evidence",
-   "sites": [
-    {
-     "domain": "clearleft.com",
-     "detail": "Ribot — ribot.co.uk, 210/mo, ai_answer; Long Story Short — longstoryshortdesign.co.uk, 6600/mo, ranks; Design Kind — designkind.org, 0/mo, ranks; Evoke — studioevoke.co.uk, 10/mo, ranks",
-     "items": [
-      "Design Kind (designkind.org) has no brand demand and no AI answer names it (ranks)"
-     ]
-    }
-   ]
-  },
   {
    "check": "a business that sells everywhere is not measured in one place",
    "sites": [
@@ -35,6 +20,24 @@
      "detail": "stored as serving Brighton",
      "items": [
       "Brighton"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "no measured search is off-market, a rival's brand or navigational",
+   "sites": [
+    {
+     "domain": "tattly.com",
+     "detail": "7 of 12",
+     "items": [
+      "temporary tattoos — a rival's brand (\"temporary tattoos\")",
+      "custom temporary tattoos — names a rival (\"temporary tattoos\")",
+      "semi permanent tattoos — off-market: \"permanent tattoos\" is a market this site is not in",
+      "temporary tattoos for adults — names a rival (\"temporary tattoos\")",
+      "realistic temporary tattoos — names a rival (\"temporary tattoos\")",
+      "temporary tattoos that look real — names a rival (\"temporary tattoos\")",
+      "best custom temporary tattoos — names a rival (\"temporary tattoos\")"
      ]
     }
    ]
@@ -253,10 +256,6 @@
      "language": "en"
     }
    ],
-   "stored": {
-    "country": "US",
-    "language": "en"
-   },
    "searches": [
     "plumber austin",
     "emergency plumber austin",
@@ -703,7 +702,7 @@
      "items": []
     },
     {
-     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
      "verdict": "pass",
      "detail": "Abacus Plumbing — abacusplumbing.com, 4400/mo, ranks; Radiant Plumbing — radiantplumbing.com, 3600/mo, ranks; Reliant Plumbing — reliantplumbing.com, 2900/mo, ranks; Clarke Kent Plumbing — clarkekentplumbing.com, 1000/mo, ranks; Beyond Wow Plumbing & Drains — beyondwow.com, 390/mo, ai_answer",
      "items": []
@@ -1088,10 +1087,6 @@
      "language": "en"
     }
    ],
-   "stored": {
-    "country": "GB",
-    "language": "en"
-   },
    "searches": [
     "accountant manchester",
     "chartered accountant manchester",
@@ -1533,7 +1528,7 @@
      "items": []
     },
     {
-     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
      "verdict": "pass",
      "detail": "Jack Ross — jackross.com, 1900/mo, ai_answer; Mitchell Charlesworth — mitchellcharlesworth.co.uk, 720/mo, ranks; Chadwick & Co — chadwickandco.co.uk, 480/mo, ranks; Harold Sharp — haroldsharp.co.uk, 260/mo, ranks; A&C Chartered Accountants — ac-accounts.co.uk, 170/mo, ranks",
      "items": []
@@ -1847,10 +1842,6 @@
      "language": "en"
     }
    ],
-   "stored": {
-    "country": "GB",
-    "language": "en"
-   },
    "searches": [
     "ux design agency brighton"
    ],
@@ -2057,12 +2048,10 @@
      "items": []
     },
     {
-     "check": "3–5 rivals, none a listing, each with demand or AI evidence",
-     "verdict": "fail",
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "pass",
      "detail": "Ribot — ribot.co.uk, 210/mo, ai_answer; Long Story Short — longstoryshortdesign.co.uk, 6600/mo, ranks; Design Kind — designkind.org, 0/mo, ranks; Evoke — studioevoke.co.uk, 10/mo, ranks",
-     "items": [
-      "Design Kind (designkind.org) has no brand demand and no AI answer names it (ranks)"
-     ]
+     "items": []
     },
     {
      "check": "no measured search is off-market, a rival's brand or navigational",
@@ -2165,6 +2154,1971 @@
    ],
    "seconds": 263,
    "evidenceLoaded": 51
+  },
+  {
+   "site": {
+    "domain": "zunicafe.com",
+    "kind": "restaurant, single location",
+    "country": "US",
+    "language": "en",
+    "kinds": [
+     "hospitality"
+    ],
+    "market": [
+     "restaurant",
+     "dining",
+     "café",
+     "cafe"
+    ],
+    "place": [
+     "san francisco",
+     "sf"
+    ],
+    "why": "One restaurant in San Francisco with a short site: a menu, hours and a story. Little text to read, buyers who search a cuisine and a neighbourhood, and review and booking sites all over its top tens."
+   },
+   "siteName": "Zuni Café",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "diners in San Francisco",
+    "job": "eat a meal at a restaurant",
+    "category": "restaurant",
+    "synonyms": [
+     "café",
+     "dining",
+     "restaurant bar"
+    ],
+    "differentiators": [
+     "chef-developed recipes",
+     "seasonal California ingredients",
+     "established since 1979",
+     "signature margarita",
+     "cannabis-infused edible collaborations"
+    ],
+    "notOurMarket": [
+     "cannabis edibles",
+     "cookbooks",
+     "catering services",
+     "meal delivery"
+    ],
+    "categoryReason": "The headline and primary pages describe Zuni Café as a restaurant founded in 1979 serving meals; the cannabis edibles and cookbook are secondary products, not the core business.",
+    "rivals": [
+     {
+      "domain": "waterbarsf.com",
+      "name": "Waterbar",
+      "basis": "ranks",
+      "reason": "A San Francisco seafood restaurant and bar with a strong local reputation, competing for diners seeking a full-service meal in the city.",
+      "searchNames": [
+       "waterbar sf"
+      ],
+      "volume": 74000
+     },
+     {
+      "domain": "richtablesf.com",
+      "name": "Rich Table",
+      "basis": "ranks",
+      "reason": "A San Francisco restaurant known for inventive California cuisine and a convivial dining room, drawing the same upscale local diner as Zuni Café.",
+      "searchNames": [
+       "rich table",
+       "rich table sf"
+      ],
+      "volume": 33100
+     },
+     {
+      "domain": "lazybearsf.com",
+      "name": "Lazy Bear",
+      "basis": "ranks",
+      "reason": "A celebrated San Francisco restaurant serving chef-driven tasting menus with seasonal California ingredients, competing for the same special-occasion diner.",
+      "searchNames": [
+       "lazy bear",
+       "lazy bear sf"
+      ],
+      "volume": 22200
+     },
+     {
+      "domain": "sisterita.com",
+      "name": "Sisterita",
+      "basis": "ranks",
+      "reason": "A San Francisco restaurant and bar appearing in top local search results, competing for the same SF diner seeking a restaurant-bar experience.",
+      "searchNames": [
+       "sisterita"
+      ],
+      "volume": 18100
+     },
+     {
+      "domain": "25lusk.com",
+      "name": "Rooftop 25",
+      "basis": "ranks",
+      "reason": "A San Francisco restaurant and bar appearing in top local search results, competing for the same diner looking for a distinctive meal-and-drinks experience.",
+      "searchNames": [
+       "rooftop 25",
+       "rooftop 25 sf"
+      ],
+      "volume": 8100
+     }
+    ],
+    "terms": [
+     {
+      "term": "restaurants san francisco",
+      "volume": 40500
+     },
+     {
+      "term": "restaurants in san francisco ca",
+      "volume": 40500
+     },
+     {
+      "term": "best restaurants san francisco",
+      "volume": 18100
+     },
+     {
+      "term": "brunch san francisco",
+      "volume": 12100
+     },
+     {
+      "term": "places to eat san francisco",
+      "volume": 4400
+     },
+     {
+      "term": "dinner san francisco",
+      "volume": 2900
+     },
+     {
+      "term": "lunch san francisco",
+      "volume": 2400
+     },
+     {
+      "term": "café san francisco",
+      "volume": 90
+     },
+     {
+      "term": "restaurant bar san francisco",
+      "volume": 30
+     },
+     {
+      "term": "good place to eat san francisco",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "restaurants san francisco",
+    "termsAt": "2026-10-09T10:18:00.766Z",
+    "demand": {
+     "at": "2026-10-09T10:20:24.929Z",
+     "own": 49500,
+     "brands": {
+      "zunicafe": 0,
+      "lazy bear": 22200,
+      "sisterita": 18100,
+      "rich table": 33100,
+      "rooftop 25": 8100,
+      "zuni café": 49500,
+      "waterbar sf": 74000,
+      "lazy bear sf": 4400,
+      "wooden spoon": 49500,
+      "early to rise": 2900,
+      "rich table sf": 3600,
+      "rooftop 25 sf": 110,
+      "board and drink": 9900,
+      "wooden spoon sf": 1600,
+      "early to rise sf": 1900,
+      "swan oyster depot": 40500,
+      "board and drink sf": 390
+     },
+     "searches": {
+      "waterbar alternatives": 0,
+      "lazy bear alternatives": 0,
+      "sisterita alternatives": 0,
+      "rich table alternatives": 0,
+      "rooftop 25 alternatives": 0,
+      "wooden spoon alternatives": 0,
+      "early to rise alternatives": 0,
+      "board and drink alternatives": 0,
+      "swan oyster depot alternatives": 0
+     }
+    },
+    "judged": {
+     "san francisco good restaurants": true,
+     "best brunch place in san francisco": true,
+     "top brunch places in san francisco": true,
+     "french restaurants in san francisco": true,
+     "good brunch places in san francisco": true,
+     "new restaurants in san francisco ca": true,
+     "top restaurants in san francisco ca": true,
+     "good restaurants in san francisco ca": true,
+     "great brunch places in san francisco": true,
+     "best new restaurants in san francisco": true,
+     "best new restaurants san francisco ca": true,
+     "best san francisco brunch restaurants": true,
+     "french restaurants in san francisco ca": true,
+     "best french restaurants in san francisco ca": true,
+     "best italian restaurants in san francisco ca": true
+    },
+    "kind": "hospitality",
+    "serves": {
+     "name": "San Francisco",
+     "region": "California"
+    }
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 8,
+    "timeouts": 0
+   },
+   "pageQuestions": 0,
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    },
+    {
+     "location": "San Francisco,California,United States",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "US",
+    "language": "en"
+   },
+   "searches": [
+    "restaurants in san francisco ca",
+    "restaurants san francisco",
+    "best restaurants san francisco",
+    "brunch san francisco",
+    "places to eat san francisco",
+    "dinner san francisco",
+    "best new restaurants in san francisco",
+    "best new restaurants san francisco ca",
+    "lunch san francisco",
+    "top restaurants in san francisco ca",
+    "best brunch place in san francisco",
+    "top brunch places in san francisco"
+   ],
+   "knowledgePages": 4,
+   "questions": [],
+   "audience": [],
+   "topics": [
+    {
+     "query": "best new restaurants in san francisco",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 2400,
+     "ready": false
+    },
+    {
+     "query": "top restaurants in san francisco ca",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 2400,
+     "ready": false
+    },
+    {
+     "query": "best brunch place in san francisco",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 1000,
+     "ready": false
+    },
+    {
+     "query": "waterbar alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "rich table alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "lazy bear alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "sisterita alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "rooftop 25 alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "zuni café vs waterbar",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "zuni café vs rich table",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "zuni café vs lazy bear",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "zuni café vs sisterita",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "zuni café vs rooftop 25",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 24.388799999999996,
+   "costBySource": {
+    "site-profile": 0.4266,
+    "profile": 0.3209,
+    "market-inference": 0.4153,
+    "market-terms": 0.6906,
+    "dataforseo_labs/google/keyword_overview": 2.3600000000000003,
+    "dataforseo_labs/google/keyword_suggestions": 1.8,
+    "market-searches": 0.8814,
+    "question-phrasing": 0.2357,
+    "serp/google/ai_mode": 3.1999999999999997,
+    "serp/google/organic": 2.880000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 0.6,
+    "site-knowledge": 3.0843,
+    "rival-inference": 3.6384,
+    "topic-buyer-searches": 0.2058,
+    "topic-typed": 0.2214,
+    "topic-fit": 2.4012,
+    "opportunity-typing": 0.7628000000000001,
+    "topic-same-question": 0.2644
+   },
+   "area": {
+    "place": "San Francisco",
+    "location": "San Francisco,California,United States"
+   },
+   "resultDomains": [
+    "resy.com",
+    "violetcooks.substack.com",
+    "blog.resy.com",
+    "www.exploretock.com",
+    "www.theinfatuation.com",
+    "www.thrillist.com",
+    "www.kqed.org",
+    "www.sfchronicle.com",
+    "www.bottegavalencia.com",
+    "www.lazybearsf.com",
+    "www.equalpartssf.com",
+    "sf.eater.com",
+    "www.jsfashionista.com",
+    "www.noahpinion.blog",
+    "www.reddit.com",
+    "www.jamesbeard.org",
+    "www.sftravel.com",
+    "guide.michelin.com",
+    "www.waterbarsf.com",
+    "www.25lusk.com",
+    "www.cntraveler.com",
+    "richtablesf.com",
+    "www.statebirdsf.com",
+    "m.yelp.com",
+    "townsendbrunch.com",
+    "www.woodenspoonsf.com",
+    "shadesofpinck.com",
+    "www.tripadvisor.com",
+    "boardanddrinksf.com",
+    "www.sisterita.com",
+    "www.earlytorisesf.com",
+    "www.tripadvisor.ca",
+    "maps.apple.com",
+    "scomas.com",
+    "www.thegrovesf.com",
+    "www.opentable.com",
+    "www.facebook.com",
+    "www.nytimes.com",
+    "medium.com",
+    "www.bontraveler.com",
+    "www.modernluxury.com",
+    "www.7x7.com",
+    "www.sergeantma.com",
+    "noorfusionkitchen.com",
+    "sangriaandsalt.com",
+    "theperfectspotsf.com",
+    "www.instagram.com",
+    "www.watersedgesf.com",
+    "www.worldofmouth.app",
+    "www.youtube.com",
+    "jaysgrills.com",
+    "allieeats.com",
+    "www.amysuto.com",
+    "doppiosf.com",
+    "halicopteraway.com",
+    "reddit.com",
+    "google.com",
+    "facebook.com",
+    "theinfatuation.com",
+    "swanoysterdepot.club"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Looking for the best restaurants in San Francisco. Where would you go, and why?"
+    },
+    {
+     "kind": "category",
+     "text": "Which best restaurants in San Francisco would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which brunch in San Francisco would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which places to eat in San Francisco would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which restaurants in San Francisco would you suggest to someone visiting for the first time?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which restaurants in San Francisco would you book for a birthday or an anniversary?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which restaurants in San Francisco can take a large group?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which restaurants in San Francisco would you choose for the dish it is known for?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which restaurants in San Francisco would you pick for its neighbourhood and atmosphere?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which restaurants in San Francisco will look after vegetarians and people with allergies?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which restaurants in San Francisco can I get into without booking weeks ahead?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which restaurants in San Francisco would work for a business occasion?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are diners. Which restaurants in San Francisco would suit us best?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which restaurants in San Francisco would you recommend for diners?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which restaurants in San Francisco do diners tend to go back to?"
+    },
+    {
+     "kind": "persona",
+     "text": "I am booking for diners. Which restaurants in San Francisco should I choose?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best restaurants in San Francisco: how does Waterbar compare with Rich Table?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Waterbar for diners?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best restaurants in San Francisco: would you choose Rich Table or Lazy Bear?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best restaurants in San Francisco for the money: Waterbar, Rich Table or Lazy Bear?"
+    },
+    {
+     "kind": "problem",
+     "text": "I have left it late. Which restaurants in San Francisco could still fit me in tonight?"
+    },
+    {
+     "kind": "problem",
+     "text": "My last visit somewhere was a let-down. Which restaurants in San Francisco will not disappoint?"
+    },
+    {
+     "kind": "problem",
+     "text": "Which restaurants in San Francisco should I book for a special occasion, and what should I ask for?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is Zuni Café a good choice for someone looking for the best restaurants in San Francisco?"
+    },
+    {
+     "kind": "branded",
+     "text": "Looking for the best restaurants in San Francisco: is Zuni Café a good alternative to Waterbar?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"restaurant\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"restaurants san francisco\" 40500/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "pass",
+     "detail": "Waterbar — waterbarsf.com, 74000/mo, ranks; Rich Table — richtablesf.com, 33100/mo, ranks; Lazy Bear — lazybearsf.com, 22200/mo, ranks; Sisterita — sisterita.com, 18100/mo, ranks; Rooftop 25 — 25lusk.com, 8100/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "the site's own pages ask no question, and none is kept",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"diners in San Francisco\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "13 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 3.08¢; 0 of 8 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "hospitality; 25 prompts, each naming san francisco",
+     "items": []
+    },
+    {
+     "check": "a local business is measured in its own place",
+     "verdict": "pass",
+     "detail": "21 of 21 terms and searches name san francisco or sf or \"near me\"; read from San Francisco,California,United States; 5 rivals, every national one shown in this place's results",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "9 searched terms; \"restaurants san francisco\" has 40500"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 20 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 4 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "zunicafe.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    }
+   ],
+   "seconds": 196,
+   "evidenceLoaded": 117
+  },
+  {
+   "site": {
+    "domain": "tattly.com",
+    "kind": "e-commerce shop",
+    "country": "US",
+    "language": "en",
+    "kinds": [
+     "shop"
+    ],
+    "market": [
+     "tattoo"
+    ],
+    "why": "A shop that sells one kind of product (temporary tattoos) from its own site. Its market is a product category, its rivals are other shops, and marketplaces (Amazon, Etsy) are not rivals."
+   },
+   "siteName": "Tattly",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "consumers who want temporary tattoos",
+    "job": "apply temporary tattoos for self-expression or decoration",
+    "category": "temporary tattoos",
+    "synonyms": [
+     "temporary tattoos",
+     "fake tattoos",
+     "stick-on tattoos",
+     "transfer tattoos"
+    ],
+    "differentiators": [
+     "online store specializing in temporary tattoo designs",
+     "curated collection of temporary tattoo products",
+     "direct-to-consumer e-commerce model"
+    ],
+    "notOurMarket": [
+     "permanent tattoos",
+     "tattoo parlors",
+     "tattoo supplies for artists",
+     "body art services",
+     "costume accessories"
+    ],
+    "categoryReason": "The site is an online shop selling temporary tattoos as physical products, as indicated by its Shopify store structure and product collections.",
+    "rivals": [
+     {
+      "domain": "temporarytattoos.com",
+      "name": "Temporary Tattoos",
+      "basis": "ranks",
+      "reason": "Dedicated online store selling temporary tattoos direct to consumers, appearing across multiple top-ten search results.",
+      "searchNames": [
+       "temporary tattoos",
+       "temporarytattoos.com"
+      ],
+      "volume": 60500,
+      "national": true
+     },
+     {
+      "domain": "inkbox.com",
+      "name": "Inkbox",
+      "basis": "ai_answer",
+      "reason": "Sells semi-permanent and traditional temporary tattoos direct-to-consumer online, the most-cited brand in AI answers for this category.",
+      "searchNames": [
+       "inkbox"
+      ],
+      "volume": 33100,
+      "national": true
+     },
+     {
+      "domain": "easytatt.com",
+      "name": "EasyTatt",
+      "basis": "ranks",
+      "reason": "Online store selling realistic, long-lasting temporary tattoos direct to consumers, appearing in top search results and AI recommendations.",
+      "searchNames": [
+       "easytatt"
+      ],
+      "volume": 720,
+      "national": true
+     },
+     {
+      "domain": "ink-bond.com",
+      "name": "Ink Bond",
+      "basis": "ranks",
+      "reason": "Sells custom temporary tattoos online direct to consumers, appearing in top results for custom temporary tattoo searches.",
+      "searchNames": [
+       "ink bond"
+      ],
+      "volume": 480,
+      "national": true
+     },
+     {
+      "domain": "tatteco.com",
+      "name": "Tatteco",
+      "basis": "ranks",
+      "reason": "Online retailer specializing in semi-permanent temporary tattoos sold direct to consumers.",
+      "searchNames": [
+       "tatteco"
+      ],
+      "volume": 90,
+      "national": true
+     }
+    ],
+    "terms": [
+     {
+      "term": "temporary tattoos",
+      "volume": 60500
+     },
+     {
+      "term": "custom temporary tattoos",
+      "volume": 22200
+     },
+     {
+      "term": "fake tattoos",
+      "volume": 18100
+     },
+     {
+      "term": "semi permanent tattoos",
+      "volume": 12100
+     },
+     {
+      "term": "temporary tattoos for adults",
+      "volume": 1900
+     },
+     {
+      "term": "temporary tattoo sleeves",
+      "volume": 1900
+     },
+     {
+      "term": "realistic temporary tattoos",
+      "volume": 1600
+     },
+     {
+      "term": "stick on tattoos",
+      "volume": 590
+     },
+     {
+      "term": "transfer tattoos",
+      "volume": 590
+     },
+     {
+      "term": "temporary tattoos that look real",
+      "volume": 390
+     }
+    ],
+    "searchTerm": "temporary tattoos",
+    "termsAt": "2026-10-09T10:21:20.473Z",
+    "demand": {
+     "at": "2026-10-09T10:22:46.056Z",
+     "own": 1000,
+     "brands": {
+      "ezinks": 0,
+      "inkbox": 33100,
+      "tattly": 1000,
+      "tatteco": 90,
+      "easytatt": 720,
+      "ink bond": 480,
+      "tattooed now": 210,
+      "art wear tattoo": 10,
+      "temporary tattoos": 60500,
+      "stickeryou temporary": 0,
+      "temporarytattoos.com": 140,
+      "stickeryou temporary tattoos": 590
+     },
+     "searches": {
+      "ezinks alternatives": 0,
+      "inkbox alternatives": 390,
+      "tatteco alternatives": 0,
+      "easytatt alternatives": 0,
+      "ink bond alternatives": 0,
+      "stickeryou alternatives": 0,
+      "tattooed now alternatives": 0,
+      "art wear tattoo alternatives": 0,
+      "temporary tattoos alternatives": 0
+     }
+    },
+    "judged": {
+     "real fake tattoos": true,
+     "fake custom tattoos": true,
+     "fake sleeve tattoos": true,
+     "fake tattoos near me": true,
+     "fake realistic tattoos": true,
+     "fake tattoos look real": true,
+     "temporary tattoos near me": true,
+     "best custom temporary tattoos": true,
+     "semi permanent sleeve tattoos": true,
+     "custom temporary sleeve tattoos": true,
+     "custom temporary tattoos near me": true,
+     "fake tattoos that look realistic": true,
+     "semi permanent temporary tattoos": true,
+     "custom temporary tattoos for adults": true
+    },
+    "kind": "shop",
+    "serves": null
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 18,
+    "timeouts": 1
+   },
+   "pageQuestions": 0,
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "US",
+    "language": "en"
+   },
+   "searches": [
+    "temporary tattoos",
+    "custom temporary tattoos",
+    "fake tattoos",
+    "semi permanent tattoos",
+    "temporary tattoo sleeves",
+    "temporary tattoos for adults",
+    "realistic temporary tattoos",
+    "stick on tattoos",
+    "transfer tattoos",
+    "temporary tattoos that look real",
+    "best custom temporary tattoos",
+    "fake tattoos near me"
+   ],
+   "knowledgePages": 1,
+   "questions": [],
+   "audience": [],
+   "topics": [
+    {
+     "query": "temporary tattoos for adults",
+     "status": "open",
+     "type": "answerable_page",
+     "fit": 3,
+     "volume": 1900,
+     "ready": false
+    },
+    {
+     "query": "realistic temporary tattoos",
+     "status": "open",
+     "type": "expand_page",
+     "fit": 3,
+     "volume": 1600,
+     "ready": false
+    },
+    {
+     "query": "transfer tattoos",
+     "status": "open",
+     "type": "answerable_page",
+     "fit": 2,
+     "volume": 590,
+     "ready": false
+    },
+    {
+     "query": "best custom temporary tattoos",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 210,
+     "ready": false
+    },
+    {
+     "query": "temporary tattoo sleeves",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 2,
+     "volume": 1900,
+     "ready": false
+    },
+    {
+     "query": "temporary tattoos that look real",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 3,
+     "volume": 390,
+     "ready": false
+    },
+    {
+     "query": "fake tattoos near me",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 1,
+     "volume": 6600,
+     "ready": false
+    },
+    {
+     "query": "temporary tattoos alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "inkbox alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 390,
+     "ready": true
+    },
+    {
+     "query": "easytatt alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "ink bond alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 22.739500000000003,
+   "costBySource": {
+    "site-profile": 0.2513,
+    "profile": 0.2248,
+    "market-inference": 0.3637,
+    "market-terms": 0.6594,
+    "dataforseo_labs/google/keyword_overview": 2.31,
+    "market-searches": 0.7326,
+    "question-phrasing": 0.2624,
+    "serp/google/ai_mode": 7.200000000000002,
+    "serp/google/organic": 2.880000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 0.24,
+    "site-knowledge": 0.3448,
+    "rival-inference": 3.4038,
+    "topic-buyer-searches": 0.2007,
+    "topic-typed": 0.2113,
+    "topic-fit": 2.7717,
+    "opportunity-typing": 0.5024,
+    "topic-same-question": 0.1806
+   },
+   "area": {
+    "place": null,
+    "location": null
+   },
+   "resultDomains": [
+    "easytatt.com",
+    "24hourwristbands.com",
+    "stickerplanet.com",
+    "tattly.com",
+    "www.walmart.com",
+    "www.tatteco.com",
+    "www.amazon.com",
+    "www.bigdotofhappiness.com",
+    "www.ink-bond.com",
+    "tattapic.com",
+    "californiatattoos.com",
+    "www.tattooednow.com",
+    "www.4allpromos.com",
+    "www.imprintnow.com",
+    "inkbox.com",
+    "ezink.co",
+    "www.youtube.com",
+    "www.temporarytattoos.com",
+    "www.target.com",
+    "www.pinterest.com",
+    "www.ebay.com",
+    "www.temporalis.tattoo",
+    "www.fashionbeans.com",
+    "artweartattoo.co.uk",
+    "duckystreet.com",
+    "www.stickermule.com",
+    "artweartattoo.com",
+    "ephemeral.tattoo",
+    "www.stickeryou.com",
+    "zugmonster.com",
+    "abeautifulmess.com",
+    "tinsleytransfers.com",
+    "www.reddit.com",
+    "nypost.com",
+    "www.facebook.com",
+    "www.4imprint.com",
+    "imprint.com",
+    "www.saveyourink.com",
+    "www.customlanyard.net",
+    "www.dollartree.com",
+    "www.yelp.com",
+    "www.spirithalloween.com",
+    "chicagocostume.com",
+    "booksy.com",
+    "www.michaels.com",
+    "sonnyshouse.com",
+    "www.purenumb.com",
+    "reddit.com",
+    "google.com",
+    "ink-today.com",
+    "fashionbeans.com",
+    "faketattoos.com",
+    "temporalis.tattoo"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Looking for the best temporary tattoos. Where would you shop, and why?"
+    },
+    {
+     "kind": "category",
+     "text": "Where do people actually recommend for the best custom temporary tattoos?"
+    },
+    {
+     "kind": "category",
+     "text": "Where do people actually recommend for the best fake tattoos?"
+    },
+    {
+     "kind": "category",
+     "text": "Where do people actually recommend for the best semi permanent tattoos?"
+    },
+    {
+     "kind": "category",
+     "text": "I am buying for the first time. Where should I look for the best temporary tattoos?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Where can I find the best temporary tattoos as a gift?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Where can I find the best temporary tattoos on a small budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Where can I get the best temporary tattoos delivered quickly?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Who makes the best temporary tattoos by hand or in small batches?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Where can I find the best temporary tattoos for a special occasion?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Who sells the best temporary tattoos and will help me choose?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Where can I buy the best temporary tattoos from an independent shop rather than a big chain?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are consumers. Where should we look for the best temporary tattoos?"
+    },
+    {
+     "kind": "persona",
+     "text": "Who sells the best temporary tattoos for consumers?"
+    },
+    {
+     "kind": "persona",
+     "text": "Where do consumers tend to buy the best temporary tattoos?"
+    },
+    {
+     "kind": "persona",
+     "text": "I am buying for consumers. Where would I find the best temporary tattoos?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best temporary tattoos: how does Temporary Tattoos compare with Inkbox?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Temporary Tattoos for consumers?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best temporary tattoos: would you choose Inkbox or EasyTatt?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best temporary tattoos for the money: Temporary Tattoos, Inkbox or EasyTatt?"
+    },
+    {
+     "kind": "problem",
+     "text": "My last purchase was a let-down. Who can I rely on for the best temporary tattoos?"
+    },
+    {
+     "kind": "problem",
+     "text": "I need it quickly. Who can get me the best temporary tattoos in time?"
+    },
+    {
+     "kind": "problem",
+     "text": "I cannot decide what to buy. Who offers the best temporary tattoos, and what should I look for?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is Tattly a good choice for someone looking for the best temporary tattoos?"
+    },
+    {
+     "kind": "branded",
+     "text": "Looking for the best temporary tattoos: is Tattly a good alternative to Temporary Tattoos?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"temporary tattoos\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"temporary tattoos\" 60500/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "pass",
+     "detail": "Temporary Tattoos — temporarytattoos.com, 60500/mo, ranks; Inkbox — inkbox.com, 33100/mo, ai_answer; EasyTatt — easytatt.com, 720/mo, ranks; Ink Bond — ink-bond.com, 480/mo, ranks; Tatteco — tatteco.com, 90/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "fail",
+     "detail": "7 of 12",
+     "items": [
+      "temporary tattoos — a rival's brand (\"temporary tattoos\")",
+      "custom temporary tattoos — names a rival (\"temporary tattoos\")",
+      "semi permanent tattoos — off-market: \"permanent tattoos\" is a market this site is not in",
+      "temporary tattoos for adults — names a rival (\"temporary tattoos\")",
+      "realistic temporary tattoos — names a rival (\"temporary tattoos\")",
+      "temporary tattoos that look real — names a rival (\"temporary tattoos\")",
+      "best custom temporary tattoos — names a rival (\"temporary tattoos\")"
+     ]
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "the site's own pages ask no question, and none is kept",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"consumers who want temporary tattoos\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "11 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 0.34¢; 1 of 18 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "shop; 25 prompts",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "10 searched terms; \"temporary tattoos\" has 60500"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "1 of 30 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 1 page"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "tattly.com",
+     "foundations": "measured",
+     "answerability": "zero",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.4,
+     "fresh": true,
+     "durationMs": 30704,
+     "failure": "timeout",
+     "billed": true,
+     "reason": "dataforseo: request failed: The operation was aborted due to timeout"
+    }
+   ],
+   "seconds": 132,
+   "evidenceLoaded": 51
+  },
+  {
+   "site": {
+    "domain": "savvycal.com",
+    "kind": "B2B SaaS, not ReachKit's market (scheduling)",
+    "country": "US",
+    "language": "en",
+    "kinds": [
+     "software"
+    ],
+    "market": [
+     "schedul",
+     "calendar",
+     "booking",
+     "meeting"
+    ],
+    "why": "A small scheduling product. The kind of site the passes were built on, in a market that is not ReachKit's: it shows whether a result is general or fitted to one site."
+   },
+   "siteName": "SavvyCal",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "teams and businesses that need to schedule meetings and appointments",
+    "job": "find a time to meet with multiple people across time zones",
+    "category": "meeting scheduling software",
+    "synonyms": [
+     "appointment scheduling software",
+     "calendar scheduling tool",
+     "meeting booking software",
+     "scheduling link service"
+    ],
+    "differentiators": [
+     "calendar overlay week view showing all participants' availability at once",
+     "team scheduling with round-robin distribution",
+     "custom branding for scheduling links",
+     "meeting polls and workflows",
+     "30-day money back guarantee"
+    ],
+    "notOurMarket": [
+     "calendar management software",
+     "time tracking software",
+     "project management tools",
+     "email clients",
+     "video conferencing platforms"
+    ],
+    "categoryReason": "The headline states \"The fresh way to find a time to meet\" and all pages emphasize scheduling meetings and appointments as the core outcome buyers pay for.",
+    "rivals": [
+     {
+      "domain": "calendly.com",
+      "name": "Calendly",
+      "basis": "ai_answer",
+      "reason": "The dominant meeting scheduling link tool for teams and businesses, directly competing on the same core job of booking meetings across time zones.",
+      "searchNames": [
+       "calendly"
+      ],
+      "volume": 368000,
+      "national": true
+     },
+     {
+      "domain": "acuityscheduling.com",
+      "name": "Acuity Scheduling",
+      "basis": "ai_answer",
+      "reason": "Appointment scheduling software for client-facing businesses with intake forms, custom branding, and automated workflows, competing on the same scheduling link job.",
+      "searchNames": [
+       "acuity scheduling"
+      ],
+      "volume": 90500,
+      "national": true
+     },
+     {
+      "domain": "appointy.com",
+      "name": "Appointy",
+      "basis": "ranks",
+      "reason": "Online appointment scheduling software for businesses with team scheduling, custom booking pages, and calendar sync.",
+      "searchNames": [
+       "appointy"
+      ],
+      "volume": 3600,
+      "national": true
+     },
+     {
+      "domain": "doodle.com",
+      "name": "Doodle",
+      "basis": "ai_answer",
+      "reason": "Group meeting poll and scheduling tool that helps teams find a time to meet, competing directly on multi-person scheduling across time zones.",
+      "searchNames": [
+       "doodle scheduling"
+      ],
+      "volume": 2400,
+      "national": true
+     },
+     {
+      "domain": "youcanbook.me",
+      "name": "YouCanBook.me",
+      "basis": "ranks",
+      "reason": "Scheduling link tool for teams and businesses that syncs with Google and Outlook calendars to let external parties book meetings.",
+      "searchNames": [
+       "youcanbook.me"
+      ],
+      "volume": 0,
+      "national": true
+     }
+    ],
+    "terms": [
+     {
+      "term": "online scheduling tool",
+      "volume": 6600
+     },
+     {
+      "term": "appointment scheduling software",
+      "volume": 2400
+     },
+     {
+      "term": "appointment booking software",
+      "volume": 1000
+     },
+     {
+      "term": "calendar scheduling software",
+      "volume": 480
+     },
+     {
+      "term": "meeting scheduling software",
+      "volume": 390
+     },
+     {
+      "term": "schedule meetings across time zones",
+      "volume": 140
+     },
+     {
+      "term": "meeting booking software",
+      "volume": 50
+     },
+     {
+      "term": "automated meeting scheduler",
+      "volume": 50
+     },
+     {
+      "term": "scheduling link tool",
+      "volume": 0
+     },
+     {
+      "term": "find a meeting time for teams",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "online scheduling tool",
+    "termsAt": "2026-10-09T10:23:35.034Z",
+    "demand": {
+     "at": "2026-10-09T10:27:20.086Z",
+     "own": 880,
+     "brands": {
+      "zencal": 110,
+      "cal.com": 0,
+      "lunacal": 390,
+      "appointy": 3600,
+      "calendly": 368000,
+      "savvycal": 880,
+      "when2meet": 110000,
+      "youcanbook.me": 0,
+      "acuity scheduling": 90500,
+      "doodle scheduling": 2400
+     },
+     "searches": {
+      "doodle alternatives": 720,
+      "zencal alternatives": 0,
+      "cal.com alternatives": 30,
+      "lunacal alternatives": 0,
+      "appointy alternatives": 10,
+      "calendly alternatives": 880,
+      "when2meet alternatives": 720,
+      "youcanbook alternatives": 0,
+      "acuity scheduling alternatives": 50
+     }
+    },
+    "judged": {
+     "best online scheduling tool": true,
+     "meeting scheduling tool online": true,
+     "online calendar scheduling tool": true,
+     "online scheduling tool for groups": true,
+     "online appointment scheduling tool": true,
+     "online appointment booking software": true,
+     "best appointment scheduling software": true,
+     "sales appointment scheduling software": true,
+     "appointment scheduling online software": true,
+     "what is appointment scheduling software": true,
+     "appointment scheduling calendar software": true,
+     "best online appointment scheduling software": true,
+     "appointment scheduling software for business": true,
+     "what is the best appointment scheduling software": true,
+     "appointment scheduling software for small business": true,
+     "best appointment scheduling software for small business": true
+    },
+    "kind": "software",
+    "serves": null
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 20,
+    "timeouts": 0
+   },
+   "pageQuestions": 53,
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "US",
+    "language": "en"
+   },
+   "searches": [
+    "online scheduling tool",
+    "appointment scheduling online software",
+    "online appointment booking software",
+    "appointment scheduling software",
+    "appointment booking software",
+    "appointment scheduling calendar software",
+    "calendar scheduling software",
+    "meeting scheduling software",
+    "meeting scheduling tool online",
+    "online appointment scheduling tool",
+    "best appointment scheduling software",
+    "schedule meetings across time zones"
+   ],
+   "knowledgePages": 12,
+   "questions": [
+    "How can we help?",
+    "Scheduling a meeting?",
+    "Do you offer a free trial?",
+    "How does company billing work?",
+    "Are there ways to save?",
+    "What happens if I cancel?",
+    "How can I eliminate unnecessary steps in my meeting and demo scheduling process?",
+    "How can I make personalization a priority in scheduling?",
+    "How can I give prospects a calendar instead of a list of time slots?",
+    "How can I propose times to meet quickly?",
+    "How can I connect all my calendars?",
+    "How can I embed scheduling directly on my website?",
+    "Can candidates overlay their calendar to find mutual availability?",
+    "Can interviews be double-booked?",
+    "Can reschedules be made with one click?",
+    "Can I create personalized links?",
+    "Can I check for conflicts across all my calendars?",
+    "Can I embed the scheduling link directly on my website?",
+    "Does SavvyCal integrate with Zoom and Google Meet?",
+    "How does SavvyCal help with podcast guest scheduling?",
+    "Can guests see my calendar availability?",
+    "What integrations does SavvyCal support?",
+    "Can I embed scheduling links on my website?"
+   ],
+   "audience": [
+    "software developers",
+    "individuals",
+    "small teams",
+    "marketing teams",
+    "sales teams",
+    "recruiting teams",
+    "podcasters",
+    "partners",
+    "colleagues"
+   ],
+   "topics": [
+    {
+     "query": "appointment scheduling online software",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 5400,
+     "ready": true
+    },
+    {
+     "query": "schedule meetings across time zones",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 3,
+     "volume": 140,
+     "ready": false
+    },
+    {
+     "query": "calendly alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 880,
+     "ready": false
+    },
+    {
+     "query": "acuity scheduling alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 50,
+     "ready": true
+    },
+    {
+     "query": "appointy alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 10,
+     "ready": true
+    },
+    {
+     "query": "doodle alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 720,
+     "ready": false
+    },
+    {
+     "query": "savvycal vs calendly",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": false
+    },
+    {
+     "query": "savvycal vs acuity scheduling",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "savvycal vs appointy",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "savvycal vs doodle",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "savvycal vs youcanbook",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 41.6501,
+   "costBySource": {
+    "site-profile": 0.9901,
+    "profile": 0.3507,
+    "market-inference": 0.5608,
+    "market-terms": 0.6507,
+    "dataforseo_labs/google/keyword_overview": 2.29,
+    "dataforseo_labs/google/keyword_suggestions": 5.4,
+    "market-searches": 0.8661,
+    "question-phrasing": 0.2287,
+    "serp/google/ai_mode": 7.600000000000002,
+    "serp/google/organic": 2.880000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 0.72,
+    "site-knowledge": 10.703300000000002,
+    "rival-inference": 3.3441,
+    "topic-buyer-searches": 0.1929,
+    "topic-typed": 0.1813,
+    "topic-fit": 3.0468,
+    "opportunity-typing": 1.3591000000000002,
+    "topic-same-question": 0.2855
+   },
+   "area": {
+    "place": null,
+    "location": null
+   },
+   "resultDomains": [
+    "youcanbook.me",
+    "www.recruiterslineup.com",
+    "scheduly.com",
+    "schedly.io",
+    "hrdailyadvisor.hci.org",
+    "microposter.so",
+    "www.joinglyph.com",
+    "calendly.com",
+    "www.appointy.com",
+    "www.emailtooltester.com",
+    "zapier.com",
+    "squareup.com",
+    "workspace.google.com",
+    "www.setmore.com",
+    "lunacal.ai",
+    "www.youtube.com",
+    "arraytics.com",
+    "www.reddit.com",
+    "www.zoho.com",
+    "www.uschamber.com",
+    "wpamelia.com",
+    "www.skylinesocial.com",
+    "salesdorado.com",
+    "www.jotform.com",
+    "www.workyard.com",
+    "blog.supersaas.com",
+    "www.calendar.com",
+    "www.gomarketbox.com",
+    "www.poper.ai",
+    "zencal.io",
+    "koalendar.com",
+    "cal.com",
+    "doodle.com",
+    "www.when2meet.com",
+    "peoplemanagingpeople.com",
+    "rallly.co",
+    "whenisgood.net",
+    "www.picktime.com",
+    "simplybook.me",
+    "www.spectrum.com",
+    "acuityscheduling.com",
+    "reclaim.ai",
+    "appinstitute.com",
+    "www.bookingpressplugin.com",
+    "www.webcommander.com",
+    "www.techjockey.com",
+    "docs.meeting-reminders.com",
+    "www.facebook.com",
+    "instantgroups.ai",
+    "calcbe.com",
+    "www.timezoners.com",
+    "twcinnovations.com",
+    "hackmd.io",
+    "timezone.business",
+    "www.mytimezoneplanner.com",
+    "saascompared.io",
+    "youtube.com",
+    "knock-ai.com",
+    "morsoftware.com",
+    "guideflow.com",
+    "theodorehq.com",
+    "oncehub.com",
+    "timeanddate.com",
+    "pumble.com"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "What are the best online scheduling tools right now, and what is each one good at?"
+    },
+    {
+     "kind": "category",
+     "text": "Which appointment scheduling platforms do people actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "Which appointment booking platforms do people actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "Which calendar scheduling platforms do people actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "I am new to online scheduling. Which products should I look at first?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which online scheduling tools work on a small budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which appointment scheduling tools can I use without hiring an agency?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which appointment booking tools suit a team of one?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which calendar scheduling tools can I set up in a single day?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which online scheduling tools need no engineering team?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which appointment scheduling tools work for a brand new website?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which appointment booking tools have a free trial?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are teams and businesses. Which online scheduling tool fits us best?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which online scheduling software is built for teams and businesses?"
+    },
+    {
+     "kind": "persona",
+     "text": "What do teams and businesses actually use for online scheduling?"
+    },
+    {
+     "kind": "persona",
+     "text": "I work with teams and businesses. Which online scheduling product should I recommend to them?"
+    },
+    {
+     "kind": "comparison",
+     "text": "How does Calendly compare with Acuity Scheduling for online scheduling?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Calendly for teams and businesses?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Acuity Scheduling or Appointy: which is the better choice for online scheduling?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Which is better value for online scheduling: Calendly, Acuity Scheduling or Appointy?"
+    },
+    {
+     "kind": "problem",
+     "text": "I am getting nowhere with online scheduling. Which tools can fix that?"
+    },
+    {
+     "kind": "problem",
+     "text": "Nothing I have tried for online scheduling is working. What software should I try next?"
+    },
+    {
+     "kind": "problem",
+     "text": "What is the fastest way to get results from online scheduling, and which products do it for me?"
+    },
+    {
+     "kind": "branded",
+     "text": "What is SavvyCal, and is it any good for online scheduling?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is SavvyCal a good alternative to Calendly for online scheduling?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"meeting scheduling software\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"online scheduling tool\" 6600/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "pass",
+     "detail": "Calendly — calendly.com, 368000/mo, ai_answer; Acuity Scheduling — acuityscheduling.com, 90500/mo, ai_answer; Appointy — appointy.com, 3600/mo, ranks; Doodle — doodle.com, 2400/mo, ai_answer; YouCanBook.me — youcanbook.me, 0/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "23 questions",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"teams and businesses that need to schedule meetings and appointments\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "11 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 10.70¢; 0 of 20 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "software; 25 prompts",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "8 searched terms; \"online scheduling tool\" has 6600"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 32 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 12 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "savvycal.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0,
+     "fresh": true,
+     "durationMs": 11163,
+     "failure": "task_40101",
+     "billed": false,
+     "reason": "dataforseo: task 40101 Internal SE Server Error."
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/organic",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.24,
+     "fresh": true,
+     "durationMs": 163787,
+     "failure": "task_40101",
+     "billed": true,
+     "reason": "dataforseo: task 40101 Internal SE Server Error."
+    },
+    {
+     "event": "ai_answers_card",
+     "coverage": "async_included",
+     "cells": [
+      "answered",
+      "answered",
+      "no_answer",
+      "answered",
+      "answered",
+      "unmeasured",
+      "answered",
+      "answered",
+      "answered",
+      "answered",
+      "answered",
+      "answered"
+     ]
+    }
+   ],
+   "seconds": 309,
+   "evidenceLoaded": 50
   }
  ]
 }
