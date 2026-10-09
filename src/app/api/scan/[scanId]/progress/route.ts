@@ -1,6 +1,5 @@
-// src/app/api/scan/[scanId]/progress/route.ts — BP-022 `## Public
-// interface`, WO-281 (consolidates WO-063; see `archive/sdlc-factory-2026-09-04/corpus/docs/
-// work-orders/WO-281.md` `## Consolidation`)
+// src/app/api/scan/[scanId]/progress/route.ts — the scan's stage stream as
+// server-sent events.
 //
 // "Serve BP-023's stage stream as server-sent events and nothing more —
 // one thin adapter" (WO-063's own goal, carried verbatim). This file

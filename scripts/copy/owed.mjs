@@ -6,19 +6,14 @@
 // spoken, what the approved set drew in its place, what fixes what it must
 // say, and how long the layout lets it be.
 //
-// **Everything here is derived.** Four readers, no hand-kept list of keys:
+// **Everything here is derived.** Two readers, no hand-kept list of keys:
 //
 //   1. the registry partitions (`src/lib/presentation/copy/keys/*.ts`) — the
 //      keys, their standing (`''` throws, `TODO(copy)` renders) and each
 //      one's `fixedBy` clause;
-//   2. the product tree (`src/**`) — which file speaks each key, on which
-//      line, and the JSX ancestry it sits in, which is what "card / row /
-//      control" is read off;
-//   3. the approved set (`docs/design/approved/full-set/…html`) — its own
-//      `SCREENS` table for the S1–S20 order (mails last, because the set
-//      itself puts them last), and the bracketed hints each screen draws;
-//   4. `docs/design-reference.md` — the route → `S<id>` index, which the
-//      one declaration below (`SCREEN_PATHS`) is checked against.
+//   2. the product tree (`src/**`) — which file speaks each key, and the JSX
+//      ancestry it sits in. `SCREEN_PATHS` below says which screen that file
+//      is.
 //
 // So the sheet cannot drift: a key written, added, moved between partitions
 // or re-read by a different component changes the sheet on the next run, and
@@ -33,8 +28,6 @@ import { fileURLToPath } from "node:url";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = path.resolve(HERE, "../..");
 export const SHEET_PATH = "docs/copy/owed.md";
-const SET_HTML = "docs/archive/2026-09-11/approved/full-set/reachkit-full-screen-set.html";
-const DESIGN_REFERENCE = "docs/archive/2026-09-11/design-reference.md";
 const KEYS_DIR = "src/lib/presentation/copy/keys";
 
 /** The marker `registry.ts` renders for a sentence still owed. Read from the
@@ -50,17 +43,10 @@ const read = (root, rel) => readFileSync(path.join(root, rel), "utf8");
 
 // ─────────────────────────────────────────────── the one declaration ──
 //
-// Which screen a source file speaks on. A file, not a route: the routes are
-// `docs/design-reference.md`'s index, but half the product's sentences are
-// spoken from a `_dir` beside a route (`_landing/`, `_modules/`, `_setup/`)
-// or from no route at all (`src/lib/mail/**` is S20, the fallback screens
-// are S8), and those have no URL to look up.
-//
-// Longest prefix wins. The key on the right is the set's own screen key —
-// `SCREENS` in the approved set — so a screen renamed there fails the test
-// rather than silently dropping a section. `owed-sheet.test.ts` also walks
-// `design-reference.md`'s index and checks every route's `page.tsx` resolves
-// here to the S-id that table gives it.
+// Which screen a source file speaks on. A file, not a route: half the
+// product's sentences are spoken from a `_dir` beside a route (`_landing/`,
+// `_modules/`, `_setup/`) or from no route at all (`src/lib/mail/**`,
+// the fallback screens). Longest prefix wins.
 const SCREEN_PATHS = [
   ["src/lib/mail/", "mail"], //                       S20 — the ten kinds, one shell
   ["src/app/(hosted)/not-found.tsx", "notfound"], //   S8  — no page at this address
@@ -106,34 +92,33 @@ export function screenForFile(rel) {
   return best ? best[1] : null;
 }
 
-/** Every screen key the map names, for the test that holds it against the
- *  approved set's own `SCREENS`. */
+/** Every screen key the map names. */
 export const MAPPED_SCREEN_KEYS = [...new Set(SCREEN_PATHS.map(([, s]) => s).filter(Boolean))];
 
-// ─────────────────────────────────────────── the route → screen index ──
-
-/**
- * `docs/design-reference.md`'s index: every route the product serves and the
- * `S<id>` it is built against. `tests/ui/design/reference.test.ts` already
- * holds that table equal to the route tree, so reading it here costs nothing
- * to keep true and gives the meta keys — which are spoken by one table for
- * nine routes — the screen each of them actually titles.
- */
-export function readRouteScreens(root) {
-  const md = read(root, DESIGN_REFERENCE);
-  const routes = new Map();
-  for (const line of md.split("\n")) {
-    if (!line.startsWith("|")) continue;
-    const cells = line.split("|").slice(1, -1);
-    if (cells.length < 2) continue;
-    const id = cells[1].match(/\bS(\d+)\b/);
-    if (!id) continue;
-    for (const route of cells[0].matchAll(/`([^`]+)`/g)) {
-      if (route[1].startsWith("/")) routes.set(route[1], `S${id[1]}`);
-    }
+/** Screens in the order `SCREEN_PATHS` first names them. */
+export function declaredScreens() {
+  const screens = [];
+  const seen = new Set();
+  for (const [, key] of SCREEN_PATHS) {
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    screens.push({ key, id: key, label: key, group: "product" });
   }
-  if (routes.size === 0) throw new Error("docs/archive/2026-09-11/design-reference.md's index parsed to no routes");
-  return routes;
+  return screens;
+}
+
+/** The public route a `<title>` key belongs to, as the screen `SCREEN_PATHS` names. */
+export function screenForPublicRoute(route) {
+  let best = null;
+  for (const [prefix, screen] of SCREEN_PATHS) {
+    if (!screen || !prefix.startsWith("src/app/(public)/")) continue;
+    if (/\.(tsx|ts)$/.test(prefix)) continue;
+    const rest = prefix.slice("src/app/(public)/".length).replace(/\/$/, "");
+    const url = rest ? `/${rest}` : "/";
+    const hit = route === url || (url !== "/" && (route === url || route.startsWith(`${url}/`)));
+    if (hit && (!best || url.length > best[0].length)) best = [url, screen];
+  }
+  return best ? best[1] : null;
 }
 
 /**
@@ -155,14 +140,6 @@ export function readSeoRoutes(root) {
 }
 
 // ───────────────────────────────────────────────────────── utilities ──
-
-const ENTITIES = {
-  "&mdash;": "—", "&ndash;": "–", "&rsquo;": "’", "&lsquo;": "‘",
-  "&rdquo;": "”", "&ldquo;": "“", "&hellip;": "…", "&middot;": "·",
-  "&amp;": "&", "&lt;": "<", "&gt;": ">", "&nbsp;": " ", "&quot;": '"', "&times;": "×",
-  "&larr;": "←", "&rarr;": "→", "&#9650;": "▲", "&#9660;": "▼",
-};
-const decode = (s) => s.replace(/&[#a-zA-Z0-9]+;/g, (e) => ENTITIES[e] ?? e);
 
 /** A markdown table cell: pipes and newlines would end the row. */
 const cell = (s) => (s ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ");
@@ -257,128 +234,6 @@ export function readRegistry(root) {
     }
   }
   return entries;
-}
-
-// ─────────────────────────────────────────────────── the approved set ──
-
-/**
- * The set's own `SCREENS` table — `S<id>`, label, group and the function that
- * draws each screen — in the order the set lists them, which is S1…S20 with
- * the mails last. Nothing about that order is written down here.
- */
-export function readScreens(html) {
-  const table = html.match(/var SCREENS\s*=\s*\{([\s\S]*?)\n\};/);
-  if (!table) throw new Error("the approved set no longer declares SCREENS");
-  const rows = [];
-  const row = /(\w+)\s*:\s*\{\s*id\s*:\s*"(S\d+)"\s*,\s*label\s*:\s*"([^"]*)"\s*,\s*group\s*:\s*"([^"]*)"\s*,\s*fn\s*:\s*(\w+)/g;
-  let m;
-  while ((m = row.exec(table[1]))) {
-    rows.push({ key: m[1], id: m[2], label: m[3], group: m[4], fn: m[5] });
-  }
-  if (rows.length === 0) throw new Error("the approved set's SCREENS table parsed to nothing");
-  return rows;
-}
-
-/** Every top-level `function name(){…}` in the set, by name. */
-function setFunctions(html) {
-  const bodies = new Map();
-  const re = /^function (\w+)\(/gm;
-  const starts = [...html.matchAll(re)];
-  starts.forEach((m, i) => {
-    const end = i + 1 < starts.length ? starts[i + 1].index : html.length;
-    bodies.set(m[1], html.slice(m.index, end));
-  });
-  return bodies;
-}
-
-/** A screen's own source plus, transitively, every helper it calls — the
- *  header CTA, the footer, the pricing card and the day panel are drawn by
- *  helpers, and their bracketed hints belong to the screens that spend them. */
-function screenSource(fnName, bodies, seen = new Set()) {
-  if (seen.has(fnName) || !bodies.has(fnName)) return "";
-  seen.add(fnName);
-  const body = bodies.get(fnName);
-  let out = body;
-  for (const call of body.matchAll(/\b([a-z]\w+)\s*\(/g)) {
-    if (bodies.has(call[1])) out += screenSource(call[1], bodies, seen);
-  }
-  return out;
-}
-
-/** A bracketed string in the set is a hint only if it reads as prose: the set
- *  also brackets JS array literals, attribute selectors and slot names. */
-function isHint(text) {
-  if (!/[a-zA-Z]/.test(text)) return false;
-  if (/["'{}=]/.test(text)) return false;
-  if (!/\s/.test(text)) return false;
-  return true;
-}
-
-/**
- * Per screen: the bracketed hints the set draws on it, each with the element
- * it is drawn in — which is what a maximum length is read off.
- */
-export function readHints(html, screens) {
-  const bodies = setFunctions(html);
-  const perScreen = new Map();
-  for (const screen of screens) {
-    const source = screenSource(screen.fn, bodies);
-    const hints = [];
-    for (const m of source.matchAll(/\[([^[\]]{3,200})\]/g)) {
-      const raw = m[1];
-      if (!isHint(raw)) continue;
-      const text = decode(raw);
-      if (hints.some((h) => h.text === text)) continue;
-      hints.push({ text, hint: `[${text}]`, element: elementBefore(source, m.index) });
-    }
-    perScreen.set(screen.key, hints);
-  }
-  return perScreen;
-}
-
-/** The innermost opening tag before an offset, as `tag` + `class`. The set is
- *  written as concatenated HTML strings, so a tag is a tag wherever it sits. */
-function elementBefore(source, index) {
-  const before = source.slice(0, index);
-  const tags = [...before.matchAll(/<(\/?)([a-zA-Z][\w-]*)((?:[^>]|'\+[^+]*\+')*?)(\/?)>/g)];
-  let closed = 0;
-  for (let i = tags.length - 1; i >= 0; i -= 1) {
-    const [, slash, tag, attrs, selfClose] = tags[i];
-    if (selfClose === "/") continue;
-    if (slash === "/") {
-      closed += 1;
-      continue;
-    }
-    if (closed > 0) {
-      closed -= 1;
-      continue;
-    }
-    const cls = attrs.match(/class="([^"]*)"/);
-    return { tag, className: cls ? cls[1].trim() : "" };
-  }
-  return null;
-}
-
-/**
- * The longest string the approved set draws in the same element anywhere else
- * — the layout's own statement of how long a sentence in that slot may be.
- * Only literal text is counted: a fragment holding a `+` is an expression,
- * and its rendered length is not a thing the set fixes.
- */
-export function longestInElement(html, element) {
-  if (!element || !element.className) return null;
-  const wanted = element.className.split(/\s+/).sort().join(" ");
-  const re = new RegExp(`<${element.tag}\\b([^>]*)>([^<'"+]{2,400})</${element.tag}>`, "g");
-  let longest = null;
-  for (const m of html.matchAll(re)) {
-    const cls = m[1].match(/class="([^"]*)"/);
-    if (!cls) continue;
-    if (cls[1].trim().split(/\s+/).sort().join(" ") !== wanted) continue;
-    const text = decode(m[2]).trim();
-    if (!/[a-zA-Z]/.test(text) || text.startsWith("[")) continue;
-    if (!longest || text.length > longest.length) longest = text;
-  }
-  return longest;
 }
 
 // ─────────────────────────────────────────────── the import graph ──
@@ -549,35 +404,6 @@ export function readUsage(root, keys) {
 
 // ───────────────────────────────────────────────────────── the sheet ──
 
-/** The hint on this screen that names this key: every significant word of the
- *  hint has to appear in the key, and the key has to be the only one on the
- *  screen the hint fits. A guess would be worse than a blank. */
-const STOP = new Set([
-  "owner", "owners", "the", "a", "an", "and", "or", "of", "for", "to", "in", "on", "is",
-  "it", "one", "line", "s", "this", "that", "here", "below", "each", "its",
-]);
-const words = (s) =>
-  s
-    .toLowerCase()
-    .replace(/[’']/g, "")
-    .split(/[^a-z0-9]+/)
-    .filter((w) => w && !STOP.has(w));
-
-function matchHints(hints, entries) {
-  const chosen = new Map();
-  for (const hint of hints) {
-    const head = hint.text.split(/\s*[—–-]{1,2}\s*owner/i)[0];
-    const tokens = words(head);
-    if (tokens.length === 0) continue;
-    const fits = entries.filter((e) => {
-      const keyWords = new Set(words(e.key));
-      return tokens.every((t) => keyWords.has(t) || [...keyWords].some((k) => k === t + "s" || t === k + "s"));
-    });
-    if (fits.length === 1) chosen.set(fits[0].key, hint);
-  }
-  return chosen;
-}
-
 /** A written sibling in the same group — `landing.does.item-2.title` beside
  *  `…item-1.title` — is the layout drawing the same slot at a known length. */
 function siblingBound(entry, byKey, unwritten) {
@@ -606,13 +432,10 @@ export function buildSheet(root = REPO_ROOT) {
   const unwrittenKeys = new Set(unwritten.map((e) => e.key));
   const usage = readUsage(root, new Set(byKey.keys()));
 
-  const html = read(root, SET_HTML);
-  const screens = readScreens(html);
-  const hintsByScreen = readHints(html, screens);
+  const screens = declaredScreens();
   const order = new Map(screens.map((s, i) => [s.key, i]));
-  const byId = new Map(screens.map((s) => [s.id, s.key]));
+  const known = new Set(screens.map((s) => s.key));
 
-  const routeScreens = readRouteScreens(root);
   const seoRoutes = readSeoRoutes(root);
   const reverse = importers(root);
   const reachCache = new Map();
@@ -637,8 +460,8 @@ export function buildSheet(root = REPO_ROOT) {
     const sites = usage.get(entry.key) ?? [];
     let found = [...new Set(sites.map((x) => x.screen).filter(Boolean))];
     if (found.length === 0 && seoRoutes.has(entry.key)) {
-      const id = routeScreens.get(seoRoutes.get(entry.key));
-      if (id && byId.has(id)) found = [byId.get(id)];
+      const key = screenForPublicRoute(seoRoutes.get(entry.key));
+      if (key && known.has(key)) found = [key];
     }
     if (found.length === 0 && sites.length > 0) {
       found = [...new Set(sites.flatMap((x) => reaching(x.file)))];
@@ -665,12 +488,11 @@ export function buildSheet(root = REPO_ROOT) {
     // 1. The file that speaks it is a screen's own file.
     let speaking = [...new Set(sites.map((s) => s.screen).filter(Boolean))];
     let how = "read here";
-    // 2. It is a document head: the table that spends it names the route,
-    //    and `design-reference.md` names that route's screen.
+    // 2. It is a document head: the table that spends it names the route.
     if (speaking.length === 0 && seoRoutes.has(entry.key)) {
-      const id = routeScreens.get(seoRoutes.get(entry.key));
-      if (id && byId.has(id)) {
-        speaking = [byId.get(id)];
+      const key = screenForPublicRoute(seoRoutes.get(entry.key));
+      if (key && known.has(key)) {
+        speaking = [key];
         how = `the head of \`${seoRoutes.get(entry.key)}\``;
       }
     }
@@ -680,16 +502,7 @@ export function buildSheet(root = REPO_ROOT) {
       speaking = [...new Set(sites.flatMap((s) => reaching(s.file)))];
       how = "reaches";
     }
-    // 4. Nothing reads it yet, but the clause that fixes it names a screen.
-    if (speaking.length === 0) {
-      const named = entry.fixedBy.match(/\bS(\d{1,2})\b/);
-      const key = named ? byId.get(`S${named[1]}`) : undefined;
-      if (key) {
-        speaking = [key];
-        how = "fixed for";
-      }
-    }
-    // 5. Still nothing: place it with the keys it is drawn beside.
+    // 4. Still nothing: place it with the keys it is drawn beside.
     if (speaking.length === 0) {
       const group = groupScreen(entry.key);
       if (group) {
@@ -744,16 +557,10 @@ export function buildSheet(root = REPO_ROOT) {
       "nothing reads yet, placed on the screen its neighbours are drawn on. No line numbers: a " +
       "line moves whenever an unrelated edit shifts a file, and this sheet is about sentences."
   );
+  out("- **fixed by** — the note on the key that says what the sentence must do.");
   out(
-    "- **the set says** — the approved set's bracketed hint for this slot, verbatim, where the " +
-      "hint names this key and no other on the screen. Blank is not a licence to invent: the " +
-      "screen's whole hint list is above its table."
-  );
-  out("- **fixed by** — the REQ criterion or BUILD § that fixes what the sentence must say.");
-  out(
-    "- **max** — a length the layout implies. `set` is the longest string the approved set draws " +
-      "in that same element anywhere; `sibling` is the longest sentence already written in the " +
-      "same group of keys. Blank where the layout implies nothing."
+    "- **max** — a length a written sibling in the same group of keys already uses. Blank where " +
+      "no sibling is written."
   );
   out();
   out("A key with slots (`{value}`, `{date}`) carries them beside its name; the sentence has to spend every one.");
@@ -779,23 +586,12 @@ export function buildSheet(root = REPO_ROOT) {
   for (const screen of screens) {
     const rows = placed.get(screen.key);
     if (rows.length === 0) continue;
-    const hints = hintsByScreen.get(screen.key) ?? [];
-    const matched = matchHints(hints, rows);
-    out(`## ${screen.id} · ${screen.label} — ${screen.group}`);
+    out(`## ${screen.id}`);
     out();
-    out(
-      `Screen \`${screen.id}\` · the set draws it as \`current="${screen.key}"\` ` +
-        `(\`docs/archive/2026-09-11/approved/full-set/screens/${screen.key}-light.png\`).`
-    );
-    out();
-    if (hints.length > 0) {
-      out(`Every bracketed hint the set draws on this screen: ${hints.map((h) => "`" + h.hint + "`").join(" · ")}`);
-      out();
-    }
-    out("| key | standing | where | the set says | fixed by | max |");
-    out("|---|---|---|---|---|---|");
+    out("| key | standing | where | fixed by | max |");
+    out("|---|---|---|---|---|");
     for (const row of rows.sort((a, b) => a.key.localeCompare(b.key))) {
-      out(renderRow(row, matched.get(row.key), html, byKey, unwrittenKeys, screens));
+      out(renderRow(row, byKey, unwrittenKeys, screens));
     }
     out();
   }
@@ -809,10 +605,10 @@ export function buildSheet(root = REPO_ROOT) {
         "route's answer rather than a thing on a screen. They are owed all the same."
     );
     out();
-    out("| key | standing | where | the set says | fixed by | max |");
-    out("|---|---|---|---|---|---|");
+    out("| key | standing | where | fixed by | max |");
+    out("|---|---|---|---|---|");
     for (const row of unplaced.sort((a, b) => a.key.localeCompare(b.key))) {
-      out(renderRow(row, undefined, html, byKey, unwrittenKeys, screens));
+      out(renderRow(row, byKey, unwrittenKeys, screens));
     }
     out();
   }
@@ -827,7 +623,7 @@ const anchor = (screen) =>
     .trim()
     .replace(/\s+/g, "-");
 
-function renderRow(row, hint, html, byKey, unwritten, screens) {
+function renderRow(row, byKey, unwritten, screens) {
   const slots = row.slots.length > 0 ? ` \`{${row.slots.join("} {")}}\`` : "";
   const key = `\`${row.key}\`${slots}<br>\`${row.partition}\``;
   const standing = row.value === "" ? "empty" : "marker";
@@ -853,17 +649,10 @@ function renderRow(row, hint, html, byKey, unwritten, screens) {
     }
   }
 
-  const bound = [];
-  if (hint) {
-    const longest = longestInElement(html, hint.element);
-    if (longest) bound.push(`${longest.length} — set, \`<${hint.element.tag} class="${hint.element.className}">\``);
-  }
-  if (bound.length === 0) {
-    const sibling = siblingBound(row, byKey, unwritten);
-    if (sibling) bound.push(`${sibling.value.length} — sibling \`${sibling.key}\``);
-  }
+  const sibling = siblingBound(row, byKey, unwritten);
+  const bound = sibling ? `${sibling.value.length} — sibling \`${sibling.key}\`` : "";
 
-  return `| ${key} | ${standing} | ${cell(where)} | ${hint ? "`" + cell(hint.hint) + "`" : ""} | ${cell(row.fixedBy)} | ${bound[0] ?? ""} |`;
+  return `| ${key} | ${standing} | ${cell(where)} | ${cell(row.fixedBy)} | ${bound} |`;
 }
 
 // ─────────────────────────────────────────────────────────────── main ──

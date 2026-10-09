@@ -1,13 +1,8 @@
 # .github/actions/layout-suite/action.yml — everything the browser sweep needs
 #
-# Two jobs run the layout suite now (issue #404): `layout` in `ci.yml`, which
-# checks the baselines and leaves the captures the master reviews, and
-# `regen` in `baselines.yml`, which rewrites them on a label. Before this
-# action they would have carried the same node, the same `npm ci`, the same
-# Chromium and the same twelve fixture bindings in two places — which is how
-# the two come to disagree about what "the layout suite" is, and a
-# regeneration against a different environment than the check is a
-# regeneration that fails the next run.
+# `layout` in `ci.yml` runs the suite (issue #404). This action is the shared
+# setup: Node, `npm ci`, Chromium and the twelve fixture bindings, so the job
+# does not carry that list itself.
 #
 # It runs on `reachkit-box`, the self-hosted runner (#1013), which has
 # Playwright's system libraries installed and no sudo — so Chromium is

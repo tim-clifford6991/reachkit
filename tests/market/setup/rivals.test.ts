@@ -1,8 +1,6 @@
-// tests/market/setup/rivals.test.ts — BUILD §4.3, REQ-026 criteria 8, 9, 11, 12
+// tests/market/setup/rivals.test.ts
 //
-// The rival set the founder leaves setup with. Every criterion below is
-// quoted from REQ-026 as it stands in
-// `archive/sdlc-factory-2026-09-04/corpus/docs/requirements/REQ-026.md`.
+// The rival set the founder leaves setup with.
 import { describe, expect, it } from "vitest";
 import {
   addRival,

@@ -48,7 +48,7 @@
 // pages yields nine rows, and nothing is invented to reach a hundred (§2,
 // and issue #577's own done-when).
 //
-// **The site's own rules, and three hard bounds** (master ruling under SPEC
+// **The site's own rules, and three hard bounds** (ruling under SPEC
 // §5, 2026-09-12, issue 610). A path the site's `robots.txt` disallows is
 // never read, and its `Crawl-delay` paces the reads, capped at
 // `SITE_PROFILE.CRAWL_DELAY_MAX_MS`. The byte bound is strict: each read in

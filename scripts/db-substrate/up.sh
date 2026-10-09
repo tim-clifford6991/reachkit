@@ -30,7 +30,7 @@
 # concurrent runs never share state and no lock is needed.
 #
 # The id defaults to the basename of the current directory, which on this
-# layout is the worktree — so each implementer gets one database and reuses
+# layout is the worktree — so each worktree gets one database and reuses
 # it, rather than accumulating one per invocation.
 #
 # **CI passes `--run` too** (#1013): its jobs run on the shared box, beside

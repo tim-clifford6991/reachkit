@@ -24,7 +24,7 @@ export const OWN_FETCH_SOURCE = "egress.safeFetch";
 
 /** The options every own-document read passes to `safeFetch`: the
  *  measurement token, and the customer's own documents' size cap
- *  (`OWN_DOCUMENT_MAX_BYTES`, master ruling 2026-09-10, #479). Vendor and
+ *  (`OWN_DOCUMENT_MAX_BYTES`, ruling 2026-09-10, #479). Vendor and
  *  rival reads never pass it — they keep the fetcher's 2 MB default. */
 export const OWN_FETCH_OPTS = Object.freeze({
   userAgent: "reachkit-measure",

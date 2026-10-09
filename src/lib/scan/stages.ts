@@ -1,6 +1,4 @@
-// src/lib/scan/stages.ts — BP-023 `## Public interface`, WO-281
-// (consolidates WO-060; see `archive/sdlc-factory-2026-09-04/corpus/docs/work-orders/WO-281.md`
-// `## Consolidation`)
+// src/lib/scan/stages.ts — the public stage handles for one scan.
 //
 // Six named handles, one per dataset boundary of `BUILD.md` §6.3's
 // free-scan list (BP-023 decision 7), and the stream that carries their

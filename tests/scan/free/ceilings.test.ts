@@ -17,7 +17,7 @@
 // so it needs no `--no-file-parallelism` flag and does not join
 // `tests/scan/free/schema.test.ts`'s own racing group.
 //
-// **REQ-003 c5's own 90 s is superseded on the pin** (master ruling
+// **REQ-003 c5's own 90 s is superseded on the pin** (ruling
 // 2026-09-10, issue #456): the invocation the free pass runs in is frozen
 // by the platform at 60 s, so a design ceiling above that could never fire
 // and the partial report ADR-021 promises could never be stored.

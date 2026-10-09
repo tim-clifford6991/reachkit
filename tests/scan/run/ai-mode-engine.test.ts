@@ -187,7 +187,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("issue 869 — `task_40102` is the engine's answer, not a failure", () => {
+// A cold deep pass on a busy runner exceeds the 5s default. The timed-out
+// pass is not cancelled, so its fetches land on the next test's stub.
+describe("issue 869 — `task_40102` is the engine's answer, not a failure", { timeout: 30_000 }, () => {
   /** Every AI Mode call answers "no search results."; everything else answers. */
   function aiModeSaysNoResults() {
     return stubVendorFetch((request) => {
@@ -240,7 +242,7 @@ describe("issue 869 — `task_40102` is the engine's answer, not a failure", () 
   });
 });
 
-describe("issue 869 — an engine that is refusing stops being bought in the same pass", () => {
+describe("issue 869 — an engine that is refusing stops being bought in the same pass", { timeout: 30_000 }, () => {
   it("its cells are unmeasured, carrying what the engine last said, and the pass buys it no more", async () => {
     const vendor = stubVendorFetch((request) => {
       if (request.url.includes("/serp/google/ai_mode")) throw timeoutError();

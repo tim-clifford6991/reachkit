@@ -120,7 +120,7 @@ describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any rep
     // The discriminating assertion for "on the same terms": both surfaces
     // render `PricingCard`, and this page states no term of its own.
     //
-    // Since the master's review of 2026-09-09 the card states S4's own
+    // Since the review of 2026-09-09 the card states S4's own
     // wording of the four terms on this surface — `terms="pricing"`, the
     // component's own discriminant, not a second list. The four *facts* are
     // the same four either way, which is what criterion 4 asks; which of the

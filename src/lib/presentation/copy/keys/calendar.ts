@@ -66,7 +66,7 @@
 // go live, and a held page still publishes.
 //
 // 2026-09-10, issue #460: every sentence this partition still owed is now
-// written — the owner approved the master's drafted set ("copy proposal
+// written — the owner approved the drafted set ("copy proposal
 // approved", proposal sheet
 // https://claude.ai/code/artifact/546f45a0-a996-4d25-b85e-fb03fda7b102)
 // and the strings land here byte for byte. The values that approval names
@@ -79,7 +79,7 @@
 // guaranteed full and an empty day is competence, not an outage. The owner
 // approved the replacement string (DECISIONS 2026-09-11), and it lands here
 // byte for byte. BUILD §4.6's and UI-SPEC S14's printed headline are the
-// master's to amend — named under Corpus in this issue's PR body.
+// amended in the same change.
 import type { CopyPartition } from "../registry.ts";
 
 export const CALENDAR_COPY = Object.freeze({

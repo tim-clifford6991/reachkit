@@ -254,7 +254,7 @@ describe("three tiles, and no fourth", () => {
     // The set's S12 pages tile (L711) draws `17` beside `6 already ranking`
     // and nothing else on the row: no `goal: 30`, no delta chip. A third
     // chip is what set the row's min-content width and stacked all of them
-    // under the figure — the defect the master read in CI's S12 render.
+    // under the figure — the defect in CI's S12 render.
     const pages = rowOf("overview-tile-pages");
     expect(pages).not.toContain("overview.goal(");
     expect(pages).not.toContain("overview.delta.");

@@ -6,12 +6,12 @@ import { defineConfig } from "vitest/config";
  * once so the `db` project's `include` and the `node` project's `exclude`
  * cannot diverge again — that divergence (four files hand-copied into both
  * lists while two more were added to neither) is the defect WO-276's
- * implementer found and this order fixes. A listed path that matches no
+ * author of that order found and this order fixes. A listed path that matches no
  * file on disk (`tests/costs/**`, `tests/measure/verdict/constraint.test.ts`
  * before WO-276 and WO-277 respectively merge) is not an error: these are
  * glob patterns evaluated against whatever files exist, not a manifest
  * that must resolve. `constraint.test.ts` belongs here on the same
- * grounds as the rest — WO-277's implementer independently found the same
+ * grounds as the rest — WO-277's author independently found the same
  * gap the same day (rule 4.2) and folded it into this list rather than
  * re-opening a second hand-maintained copy.
  */

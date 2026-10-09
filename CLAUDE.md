@@ -2,7 +2,7 @@
 
 Read `README.md` (nine features, what delivered means), then only the `docs/SPEC.md` section you are changing. Launch status is only `docs/GO-LIVE.md`. UI: `docs/DESIGN.md` — the stack, the theme, the shell, the names, and each screen's board. Flow, gates, worktrees and the queue: `docs/PROCESS.md`. Operating the box: `docs/RUNBOOK.md`. The owner tests live on `dev.reachkit.app`.
 
-Ship the paying path. Prefer a library over new code. Do not open `docs/archive/`.
+Ship the paying path. Prefer a library over new code. Follow **Current** in `docs/PROCESS.md`.
 
 ## Don't
 
@@ -11,8 +11,7 @@ Ship the paying path. Prefer a library over new code. Do not open `docs/archive/
 - Never match pixels or copy markup from a board; it says what a screen holds, daisyUI classes say how it looks. Never add a UI dependency that is not on `docs/DESIGN.md`’s list.
 - Never write a test that transcribes a document.
 - Never guess an owner decision — `blocked-on-owner` and ask; record the answer as a dated SPEC line.
-- Never edit `docs/archive/`.
-- Never reintroduce Master, Worker, dispatcher, lander, or an extra merge gate. One issue uses one worktree, removed when its pull request merges (`docs/PROCESS.md`).
+- Never add a merge gate beyond the four in `docs/PROCESS.md`. One issue uses one worktree, removed when its pull request merges.
 - Never copy a rule into a memory file or into `/root/ops` that these pages do not already state.
 - Never keep something only because a test, gate, ruling or approved file protects it; where a library does the job, delete the custom version and its test (owner 2026-09-25, `docs/PROCESS.md`, #1105).
 

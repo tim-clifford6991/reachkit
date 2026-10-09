@@ -21,7 +21,7 @@
 // byte for byte, and no longer owner-owed. `price.vat_included` and
 // `offer.cancel_self_service` were not part of this ruling.
 //
-// 2026-09-10, issue #459: the owner approved the master's drafted copy for
+// 2026-09-10, issue #459: the owner approved the drafted copy for
 // every key this partition still owed ("copy proposal approved"; proposal
 // sheet artifact 546f45a0-a996-4d25-b85e-fb03fda7b102), and the 6 approved
 // strings — `price.vat_included`, `plan.single` and the four `*.value`
@@ -71,7 +71,7 @@ export const OFFER_COPY = Object.freeze({
   // per surface: the report's card keeps the ruling it was written for,
   // the pricing page states the set's.
   //
-  // Split rather than overwritten, on the master's own instruction: a
+  // Split rather than overwritten: a
   // ruling is not re-opened by a later drawing, and neither sentence is
   // the other's draft. Nothing about *what is offered* differs — the four
   // facts are the same four, which is what keeps REQ-021 c4's "on the same

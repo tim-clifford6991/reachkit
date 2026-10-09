@@ -36,7 +36,7 @@
 //      all is still never returned: that page would have nowhere to go
 //      even once it was written.
 //   4. active access, asked of **the same registered gate the weekly tick
-//      asks** (issue #201, master's ruling; ADR-050 — one rule, one
+//      asks** (issue #201; ADR-050 — one rule, one
 //      reader). A day's page is spend, and a site whose access has ended
 //      is not prepared one. §13's grace, if there is any, is billing's to
 //      express inside `hasActiveAccess()` and is never a second clause

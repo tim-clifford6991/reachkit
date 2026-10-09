@@ -104,38 +104,16 @@ jobs:
     timeout-minutes: 45
     # **The fourth merge gate** (owner's ruling of 2026-09-21, closing #910;
     # `docs/PROCESS.md`'s Gates table is where it is written down), and the
-    # one browser job there is.
+    # one browser job there is. It runs the whole `layout` project: the
+    # route sweep, the eyebrow rung, the heading scale, the live and week-0
+    # accounts, Settings with a field open, the current Settings tab on
+    # screen, the security headers, the theme slots and the values, and the
+    # landing's script budget (#988). It takes no screenshot. The owner
+    # looks at the product on `dev.reachkit.app`.
     #
-    # Until 2026-09-21 two more ran, on `main` only: `layout conformance
-    # (browser)` and `review gallery`. They had been red since before the
-    # redesign and nobody could see it, because a job that runs only after a
-    # merge is a job whose findings arrive too late to act on and whose fix
-    # cannot be tried before it lands (#976). The owner's ruling was to fold
-    # what those two still said something true about into this job and
-    # retire the rest — so this job now runs the whole `layout` project and
-    # there is no second browser job:
-    #
-    #   folded in — the checks-1-to-5 route sweep, the eyebrow rung, the
-    #     heading scale, the live and week-0 accounts, Settings with a field
-    #     open, the current Settings tab being on screen, the security
-    #     headers, the theme slots and the values. Everything but the
-    #     web-vitals budget, for the reason the step below states.
-    #   retired — the committed PNG baselines and the review gallery, with
-    #     the `regen-baselines` workflow and the side-by-side comment that
-    #     served them. `docs/DESIGN.md` forbids a pixel baseline as a merge
-    #     gate, and the owner reviews the product on `dev.reachkit.app`.
-    #
-    # **And since #988 it carries the landing's script budget too.** That
-    # was the one subtraction left — `test:layout:gate` was `test:layout`
-    # minus `vitals.test.ts`, because `main` breached the budget by 130 kB
-    # and folding it in would have blocked every merge over a defect no PR
-    # introduced. `/` is inside the budget now, so the subtraction is gone
-    # and so is the script that expressed it: this job runs the whole
-    # `layout` project, which is what #988's third `Done when` asks for.
-    #
-    # Nothing here photographs anything. Every failure it can produce is a
-    # sentence naming an element on a named screen at a named width in a
-    # named theme, which is what makes it fit to block a merge.
+    # Every failure it can produce is a sentence naming an element on a
+    # named screen at a named width in a named theme, which is what makes
+    # it fit to block a merge.
     #
     # **Where the data comes from.**
     # `scripts/db-substrate/up.sh --run` against the box's own PostgreSQL 18,

@@ -150,7 +150,6 @@ Not admitted: a second component system (shadcn, Radix, Headless UI), a form, st
 
 ## Do not
 
-- Read or edit `docs/archive/`.
 - Add a stylesheet under `src/ui/`. `idiom.css` only shrinks, toward deletion.
 - Hand-roll an SVG chart. `chart-primitives.ts` survives only for the OG card's two SVG tokens and goes with that card.
 - Write a test that transcribes this file, pins a colour's private name, or forbids Tailwind's scale.

@@ -1,5 +1,5 @@
 // 2026-09-10, issue #458: every key in this partition carries the owner's
-// approved string. The owner approved the master's drafted set that day
+// approved string. The owner approved the drafted set that day
 // ("copy proposal approved"); the strings are applied byte for byte, and
 // no key here is owner-owed any more — none is empty, none carries the
 // `TODO(copy)` marker. Ruling 11a strings already here were not touched.
