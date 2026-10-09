@@ -54,6 +54,7 @@ function facts(over: Partial<RivalsFacts> = {}): RivalsFacts {
     ]),
     namedOf: 36,
     firstPageAtStart: 1,
+    firstPageHolders: [],
     pool: [],
     measuredAt: AT,
     ...over,
@@ -90,6 +91,42 @@ describe("the two counting cards", () => {
       facts({ firstPageOf: 0, firstPage: new Map() }),
     );
     expect(model.firstPage.of).toBe(0);
+  });
+});
+
+// SPEC §4 (2026-10-09, issue 1365).
+describe("a rival counted nowhere", () => {
+  it("a measured card on which no rival was counted says so, and names who holds those first pages", () => {
+    const model = assembleRivals(
+      facts({ firstPage: new Map([[OWN, 1]]), firstPageHolders: ["holder.example", "other.example"] }),
+    );
+    expect(model.firstPage.noRival).toBe(true);
+    expect(model.firstPageHolders).toEqual(["holder.example", "other.example"]);
+    // The other card counted them, so it draws its bars and nobody is unseen.
+    expect(model.named.noRival).toBe(false);
+    expect(model.unseen).toEqual([]);
+  });
+
+  it("names the holders only where no rival is on a first page", () => {
+    expect(assembleRivals(facts({ firstPageHolders: ["holder.example"] })).firstPageHolders).toEqual([]);
+  });
+
+  it("names the rival neither card counted, beside one that was", () => {
+    const model = assembleRivals(facts({ firstPage: new Map([[BIG, 4]]), named: new Map([[BIG, 2]]) }));
+    expect(model.firstPage.noRival).toBe(false);
+    expect(model.unseen).toEqual([SMALL]);
+  });
+
+  it("leaves that line out where both cards already say it of every rival", () => {
+    const model = assembleRivals(facts({ firstPage: new Map(), named: new Map() }));
+    expect(model.firstPage.noRival && model.named.noRival).toBe(true);
+    expect(model.unseen).toEqual([]);
+  });
+
+  it("a card that was not measured says nothing of a rival", () => {
+    const model = assembleRivals(facts({ firstPageOf: 0, firstPage: new Map(), named: new Map([[BIG, 2]]) }));
+    expect(model.firstPage.noRival).toBe(false);
+    expect(model.unseen).toEqual([SMALL]);
   });
 });
 

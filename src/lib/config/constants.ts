@@ -701,6 +701,17 @@ export const MARKET_TERMS = Object.freeze({ MAX: 10, REFRESH_DAYS: 30 } as const
 export const RIVAL_DEMAND = Object.freeze({ MIN_VOLUME: 100, REFRESH_DAYS: 30, PAIRS: 3 } as const);
 
 /**
+ * SPEC §6 (2026-10-09, issue 1365) — rivals are chosen from who the pass
+ * saw. `FIRST_PAGE_PLACES` of the five go first to the on-market products
+ * that hold the most first-page places on the measured searches, whatever
+ * their brand volume; the rest follow D50's order, one the pass saw before
+ * one it did not. `HOLDERS` is how many other sites the Rivals tab names
+ * where no tracked rival holds a first-page place. Drafted defaults; the
+ * owner may correct them.
+ */
+export const RIVAL_PRESENCE = Object.freeze({ FIRST_PAGE_PLACES: 2, HOLDERS: 3 } as const);
+
+/**
  * SPEC §6 (owner, D19 final, D32 and D33 of 2026-10-03, #1162) — the tracked
  * buyer prompts, which are the weekly AI measure.
  *

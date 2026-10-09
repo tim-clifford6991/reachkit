@@ -93,6 +93,15 @@ export default async function RivalsTabPage(): Promise<React.JSX.Element> {
     of: formatCount(model.named.of),
   });
 
+  // SPEC §4 (2026-10-09, issue 1365): a card on which no tracked rival was
+  // counted says so, and names who holds those first pages where it can.
+  const holders = model.firstPageHolders.join(", ");
+  const noRivalOnFirstPage =
+    holders === ""
+      ? copy("overview.rivals.first-page.none")
+      : copy("overview.rivals.first-page.none.holders", { holders });
+  const unseen = model.unseen.length === 0 ? null : copy("overview.rivals.unseen", { rivals: model.unseen.join(", ") });
+
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="rivals-tab">
       <TabHead
@@ -112,6 +121,9 @@ export default async function RivalsTabPage(): Promise<React.JSX.Element> {
         named={model.named}
         startedLine={started}
         enginesLine={engines}
+        noRivalOnFirstPage={noRivalOnFirstPage}
+        noRivalNamed={copy("overview.rivals.named.none")}
+        unseenLine={unseen}
         answersHref={TAB_HREF.ai_answers}
       />
 

@@ -58,6 +58,9 @@ function Card(p: {
   testId: string;
   lead: string;
   card: PresenceCard;
+  /** What the card says where it was measured and no tracked rival was
+   *  counted, already written by the caller (issue 1365). */
+  noRivalLine: string;
   children?: React.ReactNode;
 }): React.JSX.Element {
   return (
@@ -78,12 +81,21 @@ function Card(p: {
             {copy("overview.rivals.card.unmeasured")}
           </p>
         ) : (
-          <PresenceBars
-            you={{ name: p.card.you.domain, value: p.card.you.count }}
-            rivals={p.card.rivals.map((row) => ({ name: row.domain, value: row.count }))}
-            measured={p.card.of}
-            label={copy(p.titleKey)}
-          />
+          <>
+            {/* No row of empty bars for the rivals: that every one of them
+                counted zero is said once, in words (SPEC §4, 2026-10-09). */}
+            <PresenceBars
+              you={{ name: p.card.you.domain, value: p.card.you.count }}
+              rivals={p.card.noRival ? [] : p.card.rivals.map((row) => ({ name: row.domain, value: row.count }))}
+              measured={p.card.of}
+              label={copy(p.titleKey)}
+            />
+            {p.card.noRival ? (
+              <p className="text-sm text-base-content/70 wrap-anywhere" data-testid={`${p.testId}-no-rival`}>
+                {p.noRivalLine}
+              </p>
+            ) : null}
+          </>
         )}
         {p.children}
       </div>
@@ -99,6 +111,12 @@ export function RivalPresence(p: {
   startedLine: string | null;
   /** The three engines the second card counts over, already written. */
   enginesLine: string;
+  /** Each card's sentence for a week no tracked rival was counted on it,
+   *  and the line naming the rivals neither card counted — `null` where
+   *  there is none. All written by the caller. */
+  noRivalOnFirstPage: string;
+  noRivalNamed: string;
+  unseenLine: string | null;
   /** Where "See every answer" goes — the AI answers tab, which draws every
    *  one of the cells this card counts. */
   answersHref: string;
@@ -110,6 +128,7 @@ export function RivalPresence(p: {
         testId={CARD.firstPage.testId}
         lead={copy("overview.rivals.first-page.lead", { of: formatCount(p.firstPage.of) })}
         card={p.firstPage}
+        noRivalLine={p.noRivalOnFirstPage}
       >
         {p.startedLine === null ? null : (
           <p className="text-xs text-base-content/70" data-testid="rivals-started">
@@ -123,6 +142,7 @@ export function RivalPresence(p: {
         testId={CARD.named.testId}
         lead={p.enginesLine}
         card={p.named}
+        noRivalLine={p.noRivalNamed}
       >
         {/* The count and the cells it was counted from are one reading, and
             this is the way through to them. */}
@@ -130,6 +150,12 @@ export function RivalPresence(p: {
           {copy("overview.rivals.named.see-all")}
         </Link>
       </Card>
+
+      {p.unseenLine === null ? null : (
+        <p className="text-sm text-base-content/70 wrap-anywhere lg:col-span-2" data-testid="rivals-unseen">
+          {p.unseenLine}
+        </p>
+      )}
     </div>
   );
 }

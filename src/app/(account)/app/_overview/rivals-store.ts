@@ -37,7 +37,8 @@ import { measured, type Measured } from "@/lib/measure/measured";
 import type { AnswerCell, StoredReport } from "@/lib/scan/report";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { previousWeekStart, readWeekScans, weekStartFor } from "@/lib/scan/weekly";
-import { OVERVIEW_TRAILING_WEEKS } from "@/lib/config/constants";
+import { OVERVIEW_TRAILING_WEEKS, RIVAL_PRESENCE } from "@/lib/config/constants";
+import { isPlatformDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
 import { ANSWER_ENGINES, reachesYou } from "./answers-model";
 import { markOf } from "./answers-store";
@@ -148,6 +149,7 @@ export async function readRivalFacts(site: RivalsSite, at: Date): Promise<Rivals
     named,
     namedOf,
     firstPageAtStart: await startedAt(site, domains, at),
+    firstPageHolders: holdersOf(serps, domains),
     pool,
     // One date governs the whole blob (`src/lib/scan/report.ts`): the
     // verdict's own `measuredAt`.
@@ -155,9 +157,48 @@ export async function readRivalFacts(site: RivalsSite, at: Date): Promise<Rivals
   };
 }
 
-/** Whether a domain holds a first-page place on one measured top ten. */
+/** Whether a domain holds a first-page place on one measured search: one
+ *  of the ten, or the local pack above them (SPEC §6, D67) — the same
+ *  reading the rivals are chosen by (issue 1365). */
 export function onFirstPage(serp: SerpResult, domain: string): boolean {
-  return serp.organic.some((row) => row.position <= FIRST_PAGE && isTheirs(domain, [row.domain]));
+  return (
+    serp.organic.some((row) => row.position <= FIRST_PAGE && isTheirs(domain, [row.domain])) ||
+    (serp.localPack ?? []).some((row) => isTheirs(domain, [row.domain]))
+  );
+}
+
+/**
+ * The sites that hold the most of the measured first pages and are neither
+ * the customer's nor a tracked rival's (SPEC §4, 2026-10-09, issue 1365):
+ * who the card names where no rival is there. A forum or a social network
+ * is not a business and is never named. Most places first, then the better
+ * place.
+ */
+export function holdersOf(
+  serps: NonNullable<StoredReport["serps"]>,
+  tracked: readonly string[]
+): string[] {
+  const tally = new Map<string, { places: number; best: number }>();
+  for (const serp of serps) {
+    if (serp.kind === "unmeasured") continue;
+    const here = new Map<string, number>();
+    for (const row of [...(serp.value.localPack ?? []).map((local) => ({ ...local, position: 0 })), ...serp.value.organic]) {
+      if (row.position > FIRST_PAGE) continue;
+      const domain = registrableDomain(row.domain);
+      if (domain === null || here.has(domain) || isPlatformDomain(domain)) continue;
+      if (tracked.some((mine) => isTheirs(mine, [domain]))) continue;
+      here.set(domain, row.position);
+    }
+    for (const [domain, position] of here) {
+      const held = tally.get(domain);
+      if (held === undefined) tally.set(domain, { places: 1, best: position });
+      else tally.set(domain, { places: held.places + 1, best: Math.min(held.best, position) });
+    }
+  }
+  return [...tally.entries()]
+    .sort((a, b) => b[1].places - a[1].places || a[1].best - b[1].best || a[0].localeCompare(b[0]))
+    .slice(0, RIVAL_PRESENCE.HOLDERS)
+    .map(([domain]) => domain);
 }
 
 /**

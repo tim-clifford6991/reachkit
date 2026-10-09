@@ -48,6 +48,11 @@ export interface PresenceCard {
   /** The customer, drawn last and in the accent (§4.1). */
   you: PresenceRow;
   of: number;
+  /** The card was measured and every tracked rival counted zero (SPEC §4,
+   *  2026-10-09, issue 1365). A row of empty bars would read as a finding
+   *  about the rivals; it is a finding about who is tracked, and the card
+   *  says so in a sentence instead. */
+  noRival: boolean;
 }
 
 /**
@@ -93,6 +98,13 @@ export interface RivalsModel {
    *  no earlier week to compare with, and the line is then not drawn at all
    *  rather than drawn against zero. */
   firstPageAtStart: number | null;
+  /** The other sites that hold the most first-page places, most first —
+   *  named where no tracked rival holds one (issue 1365). */
+  firstPageHolders: readonly string[];
+  /** The tracked rivals neither card counted anywhere, where some rival
+   *  was counted: stated in words under the cards. Empty where every rival
+   *  is one, because both cards then say so themselves. */
+  unseen: readonly string[];
   /** The rows, already in the screen's one order (below). */
   rows: readonly RivalSearchRow[];
   /** The tracked rivals, in the customer's own order — the chips, after
@@ -120,6 +132,9 @@ export interface RivalsFacts {
   /** How many answers were asked and read — at most twelve × three. */
   namedOf: number;
   firstPageAtStart: number | null;
+  /** Sites that are neither the customer's nor a tracked rival's nor a
+   *  forum or network, by how many measured first pages they hold. */
+  firstPageHolders: readonly string[];
   pool: readonly RivalPoolFacts[];
   measuredAt: Date | null;
 }
@@ -183,10 +198,20 @@ export function assembleRivals(facts: RivalsFacts): RivalsModel {
     counts[rival] = rows.filter((row) => row.rival === rival).length;
   }
 
+  const firstPage = cardOf(facts.rivals, facts.ownDomain, facts.firstPage, facts.firstPageOf);
+  const named = cardOf(facts.rivals, facts.ownDomain, facts.named, facts.namedOf);
+  // A card that was not measured says nothing of a rival either way.
+  const cards = [firstPage, named].filter((card) => card.of > 0);
+  const nowhere = cards.length === 0 ? [] : facts.rivals.filter((domain) =>
+    cards.every((card) => card.rivals.every((row) => row.domain !== domain || row.count === 0))
+  );
+
   return {
-    firstPage: cardOf(facts.rivals, facts.ownDomain, facts.firstPage, facts.firstPageOf),
-    named: cardOf(facts.rivals, facts.ownDomain, facts.named, facts.namedOf),
+    firstPage,
+    named,
     firstPageAtStart: facts.firstPageAtStart,
+    firstPageHolders: firstPage.noRival ? facts.firstPageHolders : [],
+    unseen: nowhere.length === facts.rivals.length ? [] : nowhere,
     rows,
     rivals: facts.rivals,
     counts,
@@ -204,10 +229,12 @@ function cardOf(
   counts: ReadonlyMap<string, number>,
   of: number
 ): PresenceCard {
+  const rows = rivals.map((domain) => ({ domain, count: counts.get(domain) ?? 0 }));
   return {
-    rivals: rivals.map((domain) => ({ domain, count: counts.get(domain) ?? 0 })),
+    rivals: rows,
     you: { domain: ownDomain, count: counts.get(ownDomain) ?? 0 },
     of,
+    noRival: of > 0 && rows.length > 0 && rows.every((row) => row.count === 0),
   };
 }
 

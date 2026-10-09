@@ -102,11 +102,11 @@ describe("npm run panel — a pass held to what the business is", () => {
     expect(verdicts(checks)).toEqual(["fail", "fail", "fail", "fail", "fail", "fail", "fail", "fail", "pass", "review"]);
     expect(by["the category is specific, and is the business's own"]!.detail).toContain("names no market");
     expect(by["the terms are in the site's own language and country"]!.detail).toContain("a de site in Germany was read in United States / en");
-    expect(by["3–5 rivals, none a listing, each with demand or AI evidence"]!.items).toEqual([
+    expect(by["3–5 rivals, none a listing, each with demand or seen by the pass"]!.items).toEqual([
       "2 rivals, not 3–5",
       "yelp.com lists or writes about businesses; it is not one",
       "kamps.example does not resolve: no such site",
-      "Kamps (kamps.example) has no brand demand and no AI answer names it (same_job)",
+      "Kamps (kamps.example) has no brand demand, and no AI answer or top ten of this pass shows it",
     ]);
     expect(by["no measured search is off-market, a rival's brand or navigational"]!.items).toEqual([
       'kamps — a rival\'s brand ("kamps")',
@@ -146,7 +146,7 @@ describe("npm run panel — a pass held to what the business is", () => {
     };
     const found = by(pass);
 
-    expect(found["3–5 rivals, none a listing, each with demand or AI evidence"]!.items).toEqual([
+    expect(found["3–5 rivals, none a listing, each with demand or seen by the pass"]!.items).toEqual([
       "piper.example is not Chili Piper's site: its home page never names it",
       "When2meet leads the rivals and does only part of this business's job",
     ]);
@@ -182,7 +182,7 @@ describe("npm run panel — a pass held to what the business is", () => {
     };
     const by = Object.fromEntries(checkSite(directory).map((check) => [check.check, check]));
 
-    expect(by["3–5 rivals, none a listing, each with demand or AI evidence"]!.items).not.toContain("yelp.com lists or writes about businesses; it is not one");
+    expect(by["3–5 rivals, none a listing, each with demand or seen by the pass"]!.items).not.toContain("yelp.com lists or writes about businesses; it is not one");
     expect(by["the terms are in the site's own language and country"]!.verdict).toBe("review");
     expect(by["knowledge-base buyer questions are real questions, not headings"]!.verdict).toBe("review");
   });
