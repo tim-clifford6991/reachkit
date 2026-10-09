@@ -334,12 +334,15 @@ export async function recheckRivals(a: {
   at: Date;
 }): Promise<{ changed: boolean; added: readonly RivalConclusion[]; dropped: readonly string[] }> {
   const none = { changed: false, added: [], dropped: [] };
-  const [{ readSiteMarket, writeSiteMarket }, { inferRivals }, { settleRivals }, { seenByDomain }] = await Promise.all([
-    import("@/lib/market/infer/stored"),
-    import("@/lib/market/infer/infer"),
-    import("@/lib/market/infer/stability"),
-    import("@/lib/market/infer/presence"),
-  ]);
+  const [{ readSiteMarket, writeSiteMarket }, { inferRivals }, { settleRivals }, { seenByDomain }, { withoutCategoryBrands, withoutCategoryNames }, { ownKeywords }] =
+    await Promise.all([
+      import("@/lib/market/infer/stored"),
+      import("@/lib/market/infer/infer"),
+      import("@/lib/market/infer/stability"),
+      import("@/lib/market/infer/presence"),
+      import("@/lib/market/rivals/category-name"),
+      import("@/lib/market/infer/demand"),
+    ]);
   // A pass its ceiling stopped did not finish reading its market (#1195):
   // its few answers are no measure of who competes in it.
   if (a.report.stoppedReason === "time_ceiling") {
@@ -351,10 +354,18 @@ export async function recheckRivals(a: {
   if (site === null || market === null) return none;
 
   const text = await siteText(a.domain);
+  const locale = await siteLocale(a.siteId);
+  // Issue 1369: a volume an earlier pass read under the category's own
+  // words is no product's, and is not carried into this read.
+  const demand = withoutCategoryBrands(market.demand, market, {
+    own: ownKeywords({ domain: a.domain, siteName: text.siteName }),
+    language: locale.language,
+  });
   // A founder's own rivals stand (D28). Their brand volumes are still read
-  // (D50), since a comparison is derived only for a searched name.
+  // (D50), since a comparison is derived only for a searched name — and
+  // never under the category's words (issue 1369).
   if (site.stored.rivalsOverridden) {
-    const weighed = await weighByDemand({ ...a, siteName: text.siteName, demand: market.demand, rivals: market.rivals });
+    const weighed = await weighByDemand({ ...a, siteName: text.siteName, demand, rivals: withoutCategoryNames(market.rivals, market, locale.language) });
     if (weighed !== null) {
       const volume = new Map(weighed.rivals.map((r) => [r.domain, r.volume]));
       const rivals = market.rivals.map((r) => ({ ...r, volume: volume.get(r.domain) ?? 0 }));
@@ -371,17 +382,19 @@ export async function recheckRivals(a: {
     claims: text.claims,
     report: a.report,
   });
-  const fresh = await inferRivals(a.cost, evidence, market, RIVAL_CANDIDATES, await siteLocale(a.siteId));
+  const fresh = await inferRivals(a.cost, evidence, market, RIVAL_CANDIDATES, locale);
   if (fresh.kind === "unmeasured") {
     log("rival_conclusion_unmeasured", { siteId: a.siteId, reason: fresh.reason });
     return none;
   }
   // Issue 1314: a candidate is a rival only at a domain that is its own.
-  const candidates = await withCheckedDomains({ siteId: a.siteId, domain: a.domain, rivals: fresh.value, seen: evidenceDomains(evidence) });
+  const checked = await withCheckedDomains({ siteId: a.siteId, domain: a.domain, rivals: fresh.value, seen: evidenceDomains(evidence) });
+  // Issue 1369: a candidate whose name is the category's own words is
+  // called by its domain, so no step below reads the category as its brand.
+  const candidates = withoutCategoryNames(checked, market, locale.language);
   // D50: the candidates weighed by how often buyers search their brand.
-  const weighed = await weighByDemand({ ...a, siteName: text.siteName, demand: market.demand, rivals: candidates });
-  const stored =
-    weighed === null ? site.stored : { ...site.stored, current: { ...market, demand: weighed.demand } };
+  const weighed = await weighByDemand({ ...a, siteName: text.siteName, demand, rivals: candidates });
+  const stored = { ...site.stored, current: { ...market, ...(weighed !== null ? { demand: weighed.demand } : demand === undefined ? {} : { demand }) } };
   // Issue 1365: and by what this pass's own first pages and answers show.
   const seen = seenByDomain(evidence, candidates);
   const settled = settleRivals({
@@ -658,7 +671,10 @@ export async function concludeAtSetup(a: {
         : { ...fields.value, category: a.stated.trim(), synonyms: [], categoryReason: "" };
     const rivals = await inferRivals(c, evidence, market, RIVAL_CANDIDATES, locale);
     if (rivals.kind === "unmeasured") return { market, rivals: [], demand: undefined, area };
-    const candidates = await withCheckedDomains({ siteId: a.siteId, domain: a.domain, rivals: rivals.value, seen: evidenceDomains(evidence) });
+    const { withoutCategoryNames } = await import("@/lib/market/rivals/category-name");
+    const checked = await withCheckedDomains({ siteId: a.siteId, domain: a.domain, rivals: rivals.value, seen: evidenceDomains(evidence) });
+    // Issue 1369: none is named by the category's own words.
+    const candidates = withoutCategoryNames(checked, market, locale.language);
     // D50: the rivals setup offers are the ones buyers search for.
     const weighed = await weighByDemand({
       siteId: a.siteId,
