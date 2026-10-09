@@ -81,6 +81,7 @@ import { PublishedPageView } from "./PublishedPageView";
 import { WhatAddsCard, WhatPublishesCard, WrittenFromCard } from "./ReviewCards";
 import { publishedCounts } from "./publishes";
 import { useDebounced } from "./useDebounced";
+import { SHAPE } from "./shape";
 import { NEEDS_YOU_COPY } from "@/lib/publish/record/lines";
 import { PACK_NEED_COPY, wordCount, type ClaimState, type DraftView } from "./model";
 import type { RailCheck } from "./checks";
@@ -784,11 +785,12 @@ export function DraftScreen(p: {
 
       {state === "generating" ? <Rewriting /> : null}
 
-      {/* Board `R12-6-Page` (SPEC §7, 2026-09-24, #1072): the page and the
-          cards under it on the left, the sticky Decide panel on the right
-          from `xl`; one column, the panel under the page, below it. */}
-      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_19rem]">
-        <div className="flex min-w-0 flex-col gap-4">
+      {/* SPEC §7 (2026-10-07, issue 1325; board `R12-6-Page`, #1072): the
+          page, then the Decide panel, then the notes. From `xl` the panel
+          is sticky beside both; below it the panel stands between the
+          article and the notes (`shape.ts`). */}
+      <div className={SHAPE.grid}>
+        <div className={SHAPE.page} data-testid="draft-page">
           {/* The header: the status badges and one meta line, then the
               title. The title is drawn twice on purpose — here as the
               screen's heading, and in the frame as the page publishes it. */}
@@ -841,9 +843,26 @@ export function DraftScreen(p: {
               {copy("draft.unsaved")}
             </p>
           ) : null}
+        </div>
 
+        <DecidePanel
+          view={view}
+          state={state}
+          deciding={deciding}
+          pressed={deciding ? pressed : null}
+          grounded={grounded}
+          claim={claim}
+          recordedChecks={recordedChecks}
+          bodyMd={bodyMd}
+          onEdit={() => setEditing(true)}
+          onCommand={decide}
+        />
+
+        {/* The notes: each one closed line that opens in place. The
+            article above them is never one of these. */}
+        <div className={SHAPE.notes} data-testid="draft-notes">
           {/* What this page is for (issue 867) and how it reads in search
-              results, sharing one card (board `R12-6-Page`). */}
+              results. */}
           <TargetBlock
             target={view.target}
             title={view.title}
@@ -871,19 +890,6 @@ export function DraftScreen(p: {
             <PageRecordBlock record={view.record} timeZone={view.timeZone} />
           )}
         </div>
-
-        <DecidePanel
-          view={view}
-          state={state}
-          deciding={deciding}
-          pressed={deciding ? pressed : null}
-          grounded={grounded}
-          claim={claim}
-          recordedChecks={recordedChecks}
-          bodyMd={bodyMd}
-          onEdit={() => setEditing(true)}
-          onCommand={decide}
-        />
       </div>
     </div>
   );
