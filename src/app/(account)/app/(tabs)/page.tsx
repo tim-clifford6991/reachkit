@@ -1,13 +1,16 @@
 // SPEC §4 (2026-10-07, issue 1319) — the Overview tab, at `/app`.
 //
-// A dashboard, in the order that date's ruling puts it in: the action
-// first — the page in review as one line with *Read it* and *Stop this
-// page* — then D22's four headline numbers, each opening its screen, then
-// this week and needs you. No Discoverability Score and no goal (D22, D23),
-// and the page as a reader will see it is behind *Read it*, not here.
+// A dashboard, in the order that date's ruling puts it in: what autopilot
+// is doing first — and, while a page is in review, that page with *Read or
+// edit* and *Stop this page* — then D22's four headline numbers, each
+// opening its screen, then this week and needs you. No Discoverability
+// Score and no goal (D22, D23), and the page as a reader will see it is one
+// step away, not here.
 //
-// **The head is said once.** While a page waits, the action card carries
-// the screen's `h1`; with nothing in review the head stands alone.
+// **The head states what autopilot is doing** (owner 2026-10-09, issue
+// 1362; `_overview/autopilot.ts`), and it is said once: while a page is in
+// review its card carries the screen's `h1`; otherwise the head stands
+// alone.
 //
 // **Every read is a stored one, and the modules are pure over them.** No
 // module fetches for itself, so the render performs no measurement, no
@@ -34,11 +37,13 @@ import { FirstPageNotice, ReleaseNoticeLine } from "../_shell/OnboardingStatus";
 import { MARKET_TOO_SMALL, readCategoryChoice } from "../_shell/remeasure";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
 import { writtenLine } from "../_shell/written";
+import { formatDate } from "../_shell/format";
 import { copy } from "@/lib/presentation/copy";
+import { readAutopilot } from "../_overview/autopilot";
 import { unmeasured } from "@/lib/measure/measured";
 import { LinkedTiles } from "../_overview/LinkedTiles";
 import { NeedsYouModule } from "../_overview/NeedsYouModule";
-import { ScoreHead } from "../_overview/ScoreHead";
+import { ScoreHead, type HeadNote } from "../_overview/ScoreHead";
 import { WaitingPageCard } from "../_overview/WaitingPageCard";
 import { WeekModule } from "../_overview/WeekModule";
 import { WeekWaiting } from "../_overview/WeekWaiting";
@@ -96,17 +101,40 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
     choice === null ? null : { choice, notice: notice === MARKET_TOO_SMALL ? copy(MARKET_TOO_SMALL) : null };
   const topNotice = broader !== null && notice === MARKET_TOO_SMALL ? null : notice;
 
+  // Issue 1362: the head states what autopilot is doing, and under it what
+  // went live last. Where nothing is planned the head also says why — the
+  // one supply statement, moved up from *This week* rather than said twice.
+  // It stays below where it carries the broader-categories choice.
+  const autopilot = readAutopilot({ shell, today: overview.today, writingOn: overview.writingOn });
+  const supplyInHead = autopilot.state === "nothing_planned" && broader === null && overview.supply !== undefined;
+  const headNotes: HeadNote[] = [];
+  const why =
+    supplyInHead && overview.supply !== undefined
+      ? writtenLine(overview.supply.key, overview.supply.vars)
+      : null;
+  if (why !== null) headNotes.push({ testId: "overview-supply", line: why });
+  const lastLive =
+    overview.lastLive === null
+      ? null
+      : writtenLine("overview.head.last-live", {
+          title: overview.lastLive.title,
+          on: formatDate(overview.lastLive.at, shell.timeZone),
+        });
+  if (lastLive !== null) headNotes.push({ testId: "overview-head-note", line: lastLive });
+
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="overview">
       <FirstPageNotice state={onboarding} />
       <ReleaseNoticeLine noticeKey={topNotice} />
 
       {overview.waitingPage === null ? (
-        <ScoreHead head={overview.head} today={overview.today} timeZone={shell.timeZone} />
+        <ScoreHead line={autopilot.line} notes={headNotes} today={overview.today} timeZone={shell.timeZone} />
       ) : (
         <WaitingPageCard
           page={overview.waitingPage}
-          head={writtenLine(overview.head.key)}
+          head={autopilot.line}
+          notes={headNotes}
+          scheduled={shell.publishing.next !== null}
           timeZone={shell.timeZone}
           now={overview.today}
         />
@@ -134,7 +162,12 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         {onboarding.kind === "running" ? (
           <WeekWaiting />
         ) : (
-          <WeekModule week={overview.week} timeZone={shell.timeZone} supply={overview.supply} broader={broader} />
+          <WeekModule
+            week={overview.week}
+            timeZone={shell.timeZone}
+            supply={supplyInHead ? undefined : overview.supply}
+            broader={broader}
+          />
         )}
         <NeedsYouModule alerts={overview.alerts} overflow={overview.overflow} issuesOverflow={overview.issuesOverflow} />
       </div>

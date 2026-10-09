@@ -61,7 +61,7 @@ export const COLD_START_SHELL_FACTS: ShellFacts = Object.freeze({
   noPublishCauses: Object.freeze({
     reachkit_stopped: false,
     publishing_paused: false,
-    nothing_approved: false,
+    not_written: false,
     nothing_planned: true,
   }),
 });
@@ -81,7 +81,7 @@ export const WARM_SHELL_FACTS: ShellFacts = Object.freeze({
   noPublishCauses: Object.freeze({
     reachkit_stopped: false,
     publishing_paused: false,
-    nothing_approved: false,
+    not_written: false,
     nothing_planned: false,
   }),
 });
@@ -105,7 +105,7 @@ export const STOPPED_SHELL_FACTS: ShellFacts = Object.freeze({
   noPublishCauses: Object.freeze({
     reachkit_stopped: false,
     publishing_paused: true,
-    nothing_approved: false,
+    not_written: false,
     nothing_planned: false,
   }),
 });

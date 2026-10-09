@@ -83,9 +83,12 @@ export const LAWS_COPY = Object.freeze({
     { law: "next-publish", slots: { at: "date" }, fixedBy: "REQ-040 c4" },
   ],
   "next-publish.paused": ["Publishing is off.", { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" }],
-  "next-publish.nothing-approved": [
-    "No page is ready yet.",
-    { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" },
+  // A page is planned and not written yet (owner 2026-10-09, issue 1362).
+  // It replaces the "nothing approved" cause: no customer approves a page.
+  // Drafted; the owner corrects it.
+  "next-publish.being-written": [
+    "The next page is being written.",
+    { law: "next-publish", slots: {}, fixedBy: "issue 1362" },
   ],
   "next-publish.none-planned": [
     "No page planned yet.",
@@ -172,11 +175,13 @@ export const LAWS_COPY = Object.freeze({
   /** SPEC §4 (2026-09-20) — the side panel's card for the page in review:
    *  its title, and when it publishes if the customer does nothing. It asks
    *  for nothing (owner 2026-10-08, issue 1337): the page publishes on its
-   *  own, and the card says so and until when it can be read or stopped. The
+   *  own, and the card says so and until when it can be edited or stopped.
+   *  It is headed as the next page of the daily autopilot, not as something
+   *  waiting to be read (owner 2026-10-09, issue 1362). The
    *  time is the shell's own formatted date-time in the customer's zone
    *  (`format.ts`), never a composed "tomorrow": the shell states the day
    *  it knows rather than a word it would have to work out. */
-  "shell.waiting.head": ["Ready to read", { slots: {}, fixedBy: "issue 1337" }],
+  "shell.waiting.head": ["Next page", { slots: {}, fixedBy: "issue 1362" }],
   "shell.waiting.goes-live": [
     "Goes live on its own {when}. Edit or stop it until then.",
     { slots: { when: "date" }, fixedBy: "issue 1337" },

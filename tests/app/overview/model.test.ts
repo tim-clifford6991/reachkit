@@ -8,7 +8,6 @@ import { describe, expect, it } from "vitest";
 import { measured, measuredZero, unmeasured } from "@/lib/measure/measured";
 import { OVERVIEW_TRAILING_WEEKS } from "@/lib/config/constants";
 import { assembleOverview, type OverviewFacts } from "@/app/(account)/app/_overview/model";
-import { OVERVIEW_HEAD } from "@/app/(account)/app/_overview/head";
 import type { WeeklyPoint } from "@/app/(account)/app/_overview/growth";
 
 const AT = (day: number): Date => new Date(Date.UTC(2026, 7, day));
@@ -131,11 +130,10 @@ describe("DECISIONS 2026-09-03 — the AI-answers tile shows one reading only", 
   });
 });
 
-describe("the head, and the badge only a rising series earns", () => {
-  it("a rising series selects the rising key and emits the badge over the measured weeks", () => {
+describe("the direction, and the weeks it is read over", () => {
+  it("a rising series is rising, over the measured weeks", () => {
     const model = assembleOverview(facts());
-    expect(model.head.key).toBe(OVERVIEW_HEAD.rising);
-    expect(model.head.badgeKey).toBe("overview.head.badge");
+    expect(model.head.direction).toBe("rising");
     expect(model.head.weeksMeasured).toBe(2);
   });
 
@@ -174,16 +172,14 @@ describe("the head, and the badge only a rising series earns", () => {
     expect(model.head.weeksMeasured).toBe(1);
   });
 
-  it("a falling series selects the falling key and emits no badge", () => {
+  it("a falling series is falling", () => {
     const model = assembleOverview(facts({ points: [week(10, 81), week(17, 36)] }));
-    expect(model.head.key).toBe(OVERVIEW_HEAD.falling);
-    expect(model.head.key).not.toBe(OVERVIEW_HEAD.rising);
-    expect(model.head.badgeKey).toBeUndefined();
+    expect(model.head.direction).toBe("falling");
   });
 
-  it("with nothing measured the head is the no-data key and the growth arm is none", () => {
+  it("with nothing measured there is no direction and the growth arm is none", () => {
     const model = assembleOverview(facts({ points: [], aiPresence: [] }));
-    expect(model.head.key).toBe(OVERVIEW_HEAD.no_data);
+    expect(model.head.direction).toBe("no_data");
     expect(model.growth.kind).toBe("none");
   });
 });
@@ -228,13 +224,10 @@ describe("S13 — the week-0 arm (REQ-040 c7)", () => {
     expect(growth.on).toEqual(AT(31));
   });
 
-  it("the head is S13's own line with the neutral week badge, never a direction", () => {
-    // One reading is not a direction. The ordinary arm's badge is a claim
-    // about every measured week and has no business over a single point.
+  it("week 0 is never a direction", () => {
+    // One reading is not a direction.
     const { head } = assembleOverview(weekZeroFacts());
     expect(head.direction).toBe("week_zero");
-    expect(head.key).toBe(OVERVIEW_HEAD.week_zero);
-    expect(head.badgeKey).toBe("overview.head.badge.week-zero");
   });
 
   it("the arm carries the same first-due date the shell's domain block states", () => {
@@ -284,7 +277,6 @@ describe("S13 — the week-0 arm (REQ-040 c7)", () => {
     expect(model.growth.kind).toBe("none");
     expect(model.weekZero).toBeNull();
     expect(model.head.direction).toBe("no_data");
-    expect(model.head.badgeKey).toBeUndefined();
   });
 
   it("a deep reading the pass could not take is not a point", () => {

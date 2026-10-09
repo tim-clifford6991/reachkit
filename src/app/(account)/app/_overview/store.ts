@@ -89,7 +89,7 @@ import {
   weekStartFor,
   type WeekScan,
 } from "@/lib/scan/weekly";
-import type { AnswerEngine, OverviewFacts } from "./model";
+import type { AnswerEngine, LastLive, OverviewFacts } from "./model";
 import { CALENDAR_DAY_ZONE } from "./week";
 import type { WeeklyPoint } from "./growth";
 import type { RivalFact, RivalFacts } from "./rivals";
@@ -235,7 +235,7 @@ async function pagesRanking(siteId: string, week: string, at: Date): Promise<Mea
 async function weekFor(
   site: OverviewSite,
   now: Date
-): Promise<{ searches: readonly string[]; pages: readonly (CopyKey | null)[] }> {
+): Promise<WeekDrafts> {
   const { readWeek } = await import("./week");
   const { dayKeyOf } = await import("../calendar/dates");
   // The strip's days are calendar-day markers at UTC midnight, so they are
@@ -244,7 +244,15 @@ async function weekFor(
   const days = readWeek({ today: now, timeZone: site.timeZone }).days.map((day) =>
     dayKeyOf(day.date, CALENDAR_DAY_ZONE)
   );
-  return weekDrafts(site.siteId, days);
+  return weekDrafts(site.siteId, days, dayKeyOf(now, site.timeZone));
+}
+
+interface WeekDrafts {
+  searches: readonly string[];
+  pages: readonly (CopyKey | null)[];
+  /** Issue 1362: the day the next page that is planned and not written yet
+   *  is planned for, from today on; `null` where none is. */
+  writingOn: string | null;
 }
 
 /**
@@ -280,8 +288,9 @@ function enginesMeasured(report: StoredReport | null): readonly AnswerEngine[] {
  */
 async function weekDrafts(
   siteId: string,
-  week: readonly string[]
-): Promise<{ searches: readonly string[]; pages: readonly (CopyKey | null)[] }> {
+  week: readonly string[],
+  today: string
+): Promise<WeekDrafts> {
   const days = new Set(week);
   const { data, error } = await client()
     .from<{ scheduled_for: string | null; opportunity_id: string | null; state: string }>("drafts")
@@ -289,7 +298,15 @@ async function weekDrafts(
     .eq("site_id", siteId);
   // A read that could not answer says nothing about either: every day then
   // carries the no-page word, which is what the strip can honestly say.
-  if (error !== null || data === null) return { searches: [], pages: [] };
+  if (error !== null || data === null) return { searches: [], pages: [], writingOn: null };
+  // `scheduled_for` is a site-local date in ISO order, so the earliest is
+  // the least string.
+  const writingOn =
+    data
+      .filter((row) => row.state === "planned" || row.state === "generating")
+      .map((row) => row.scheduled_for)
+      .filter((day): day is string => day !== null && day >= today)
+      .sort()[0] ?? null;
   const rows = data
     .filter((row) => row.scheduled_for !== null && days.has(row.scheduled_for))
     .sort((x, y) => String(x.scheduled_for).localeCompare(String(y.scheduled_for)));
@@ -307,13 +324,13 @@ async function weekDrafts(
   const pages = week.map((day) => stageOfDay.get(day) ?? null);
 
   const ids = rows.map((row) => row.opportunity_id).filter((id): id is string => id !== null);
-  if (ids.length === 0) return { searches: [], pages };
+  if (ids.length === 0) return { searches: [], pages, writingOn };
 
   const targets = await client()
     .from<{ id: string; target_query: string | null }>("opportunities")
     .select("id, target_query")
     .in("id", ids);
-  if (targets.error !== null || targets.data === null) return { searches: [], pages };
+  if (targets.error !== null || targets.data === null) return { searches: [], pages, writingOn };
   const queryOf = new Map(targets.data.map((row) => [row.id, row.target_query]));
   const searches: string[] = [];
   for (const id of ids) {
@@ -321,7 +338,38 @@ async function weekDrafts(
     if (query === null || query === undefined || query.trim() === "") continue;
     if (!searches.includes(query)) searches.push(query);
   }
-  return { searches, pages };
+  return { searches, pages, writingOn };
+}
+
+/**
+ * The page that went live last, and when (issue 1362) — the newest
+ * publication still standing, and its draft's own title.
+ *
+ * `null` where nothing has gone live, and where either read could not
+ * answer: the head then says nothing about a last page rather than naming
+ * one it did not read.
+ */
+async function lastLiveOf(siteId: string): Promise<LastLive | null> {
+  const { data, error } = await client()
+    .from<{ draft_id: string; published_at: string | null; unpublished_at: string | null }>("publications")
+    .select("draft_id, published_at, unpublished_at")
+    .eq("site_id", siteId)
+    .not("published_at", "is", null);
+  if (error !== null || data === null) return null;
+  const newest = data
+    .filter((row) => row.unpublished_at === null && row.published_at !== null)
+    .sort((x, y) => String(y.published_at).localeCompare(String(x.published_at)))[0];
+  if (newest === undefined || newest.published_at === null) return null;
+  const at = new Date(newest.published_at);
+  if (Number.isNaN(at.getTime())) return null;
+  const drafts = await client()
+    .from<{ id: string; title: string | null }>("drafts")
+    .select("id, title")
+    .eq("id", newest.draft_id)
+    .limit(1);
+  const title = drafts.data?.[0]?.title;
+  if (drafts.error !== null || title === null || title === undefined || title.trim() === "") return null;
+  return { title, at };
 }
 
 /**
@@ -823,7 +871,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
   const { supplyDepth, supplyState } = await import("@/lib/opportunities");
 
   const deepRead = deepPassReading(site.siteId);
-  const [firstDueOn, published, depth, waiting, series, ranking, deepPass, waitingPage, connect] = await Promise.all([
+  const [firstDueOn, published, depth, waiting, series, ranking, deepPass, waitingPage, connect, lastLive] = await Promise.all([
     nextDueOn({ siteId: site.siteId, now }),
     pagesPublished(site.siteId, now),
     supplyDepth(site.siteId),
@@ -840,6 +888,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     // still waiting for its record. One row read, no vendor call — a
     // screen deciding which item to draw may not spend one.
     connectWaiting(site.siteId, now),
+    lastLiveOf(site.siteId),
   ]);
   // issue 765/issue 784: a zero is either a market used up or one never measured, and
   // only a read that answered may say which — an unreadable one says neither.
@@ -852,6 +901,8 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
   return {
     timeZone: site.timeZone,
     waitingPage,
+    writingOn: week.writingOn,
+    lastLive,
     // §11's stored weeks, projected (#213). Empty is still not a claim:
     // where nothing has been measured `readGrowth` answers its `none` arm
     // from `firstDueOn`, which is a real date.

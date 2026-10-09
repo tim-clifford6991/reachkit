@@ -27,7 +27,7 @@ import type { Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { OVERVIEW_TRAILING_WEEKS } from "@/lib/config/constants";
 import type { GoalKey } from "./goals";
-import { headDirection, OVERVIEW_HEAD, type HeadDirection } from "./head";
+import { headDirection, type HeadDirection } from "./head";
 import { readGrowth, type GrowthModule, type WeeklyPoint } from "./growth";
 import { resolveRivals, type RivalFacts, type RivalGapModule } from "./rivals";
 import { readAlerts, type Alert, type Overflow, type WaitingItem } from "./alerts";
@@ -105,12 +105,18 @@ export interface OverviewModel {
    *  the week strip marks. The facts' own, carried through rather than read
    *  a second time from a clock a renderer reaches for. */
   today: Date;
-  head: { key: CopyKey; direction: HeadDirection; badgeKey?: CopyKey; weeksMeasured: number };
-  /** SPEC §4 (2026-09-20): the page waiting for review, which the Overview
-   *  tab leads with. `null` where nothing is in review — the card is then
-   *  not drawn at all, and the head states the series' own direction
-   *  instead of claiming a page is waiting. */
+  head: { direction: HeadDirection; weeksMeasured: number };
+  /** SPEC §4 (2026-09-20): the page in review, which the Overview tab
+   *  leads with. `null` where nothing is in review — the card is then not
+   *  drawn at all, and the head stands alone. */
   waitingPage: WaitingPage | null;
+  /** Issue 1362: the site-local day the next page that is planned and not
+   *  written yet is planned for, or `null` — what the head names as being
+   *  written. */
+  writingOn: string | null;
+  /** Issue 1362: the page that went live last, and when; `null` where none
+   *  has. */
+  lastLive: LastLive | null;
   growth: GrowthModule;
   /** UI-SPEC S12's first tile (ruling 6a). Not on this screen between
    *  DECISIONS 2026-09-03 and the owner's 2026-09-08 screen set; see
@@ -153,6 +159,13 @@ export interface OverviewModel {
   issuesOverflow?: Overflow;
 }
 
+/** The page that went live last: the customer's own title for it, and the
+ *  moment its publication recorded. */
+export interface LastLive {
+  title: string;
+  at: Date;
+}
+
 /** Everything Overview reads, before it is a model. One shape, so a fixture
  *  and a future query answer the same question. */
 export interface OverviewFacts {
@@ -161,6 +174,12 @@ export interface OverviewFacts {
    *  the same order `readAlerts` ranks them in, so the card and the
    *  needs-you list cannot lead with two different pages. */
   waitingPage?: WaitingPageFacts | null;
+  /** Issue 1362: the day the next unwritten page is planned for, as
+   *  `drafts.scheduled_for` spells it. Absent or `null` where none is. */
+  writingOn?: string | null;
+  /** Issue 1362: the last page to go live. Absent or `null` where none has,
+   *  or where it could not be read. */
+  lastLive?: LastLive | null;
   /** The zone every date this screen states is expressed in — the shell's
    *  own `sites.time_zone` (REQ-073 c1), read once and passed in. */
   timeZone: string;
@@ -238,11 +257,6 @@ export interface OverviewFacts {
  *  `matrix.ts`: "the three counts stay the AI-Overview counts"). */
 const COUNTED_FROM = "ai_overview" satisfies AnswerEngine;
 
-/** SPEC §4 (2026-09-20): what the head says while a page is waiting to be
- *  read. It outranks the four direction lines because it is about something
- *  the customer can act on now, where a direction is about the series. */
-const WAITING_HEAD = "overview.head.waiting" satisfies CopyKey;
-
 export function assembleOverview(facts: OverviewFacts): OverviewModel {
   const growth = readGrowth({
     points: facts.points,
@@ -261,10 +275,8 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
   // The measured week before the latest, or week 0 on the first Monday —
   // the same comparison the score's delta makes (issue 793).
   const previous = measuredPoints.at(-2)?.value ?? (latest === undefined ? undefined : facts.searchesWeekZero);
-  // SPEC §4 (2026-09-20): the page waiting for review, which the Overview
-  // leads with. The head speaks of it where there is one — the customer's
-  // own queue is the first thing the screen is about — and falls back to the
-  // series' own direction where there is not.
+  // SPEC §4 (2026-09-20): the page in review, which the Overview leads
+  // with.
   const waitingPage = facts.waitingPage == null ? null : readWaitingPage(facts.waitingPage);
   // The card and the needs-you list below it never state the same page
   // twice: the item the card is about leaves the list, and what is left is
@@ -290,22 +302,10 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
     searchTrend: facts.points.map((point) =>
       point.value.kind === "unmeasured" ? null : point.value.value
     ),
+    writingOn: facts.writingOn ?? null,
+    lastLive: facts.lastLive ?? null,
     head: {
-      key: waitingPage === null ? OVERVIEW_HEAD[direction] : WAITING_HEAD,
       direction,
-      // §4.5's badge is a claim about every week since the customer
-      // started, so it is emitted on `rising` and nowhere else, and only
-      // over the weeks actually measured (BP-038 decision 4). The week-0
-      // badge is not that claim — it names the week, and S13 draws it
-      // neutral for exactly that reason.
-      ...(waitingPage === null && direction === "rising"
-        ? { badgeKey: "overview.head.badge" satisfies CopyKey }
-        : {}),
-      // The week-0 badge is not a claim about the head line: it names the
-      // week the screen is reading, which is true whatever the head says.
-      ...(direction === "week_zero"
-        ? { badgeKey: "overview.head.badge.week-zero" satisfies CopyKey }
-        : {}),
       weeksMeasured: weeksSinceChange(measuredPoints, facts.changes),
     },
     growth,

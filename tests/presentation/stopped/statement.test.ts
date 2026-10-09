@@ -35,7 +35,7 @@ const BASE: WorkStop = {
   partial: false,
 };
 
-const OTHERWISE_CAUSES: NextPublishCause[] = ["paused", "nothing-approved", "none-planned"];
+const OTHERWISE_CAUSES: NextPublishCause[] = ["paused", "being-written", "none-planned"];
 
 describe("REQ-092 c1 — what the customer reads is that ReachKit did not do the work", () => {
   it("the statement's first line is the stopped-work line, never the exhausted-supply one", () => {
@@ -229,7 +229,7 @@ describe("the module writes no sentence, and does not vary with who is reading",
       // reader; nothing else is admitted.
       const isTag = [
         "paused",
-        "nothing-approved",
+        "being-written",
         "none-planned",
         "unexplained",
         "scheduled",

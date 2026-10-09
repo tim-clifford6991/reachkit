@@ -375,8 +375,10 @@ export const MAIL_COPY = Object.freeze({
   // board draws it — the line above the title, the fact rows beside the
   // number, the two buttons and the note under the second one.
   //
-  // "Your page is ready to read" and the stop note are the owner's own
-  // drafted sentences, used as they were written. The four row labels and
+  // The stop note is the owner's own drafted sentence, used as it was
+  // written. The line above the title names the page as the next one of the
+  // daily autopilot (owner 2026-10-09, issue 1362); it was "Your page is
+  // ready to read", which framed it as waiting on the customer. The four row labels and
   // the three answered-by values are drafted in the registry's voice under
   // the 2026-09-16 ruling (#759), and #933's PR names each one.
   //
@@ -384,7 +386,7 @@ export const MAIL_COPY = Object.freeze({
   // the fact and its right column is the value, already written by the
   // caller that read the stored evidence (`blocks/types.ts` says why the
   // value is the one field that is not a key).
-  "mail.draftReady.ready": ["Your page is ready to read", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  "mail.draftReady.ready": ["Your next page is written", { slots: {}, fixedBy: "issue 1362" }],
   "mail.draftReady.readAction": ["Read the full page", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
   "mail.draftReady.stopNote": [
     "Stop this page works from this mail without signing in, until the page goes live.",

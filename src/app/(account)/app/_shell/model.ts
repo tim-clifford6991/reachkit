@@ -87,8 +87,9 @@ export interface ShellFacts {
   /** §9's hosted blog, where it is live, as an address a browser can open;
    *  `null` otherwise. */
   blog: string | null;
-  /** §9's `becomesPublishable` (#45): the next scheduled publish, or `null`
-   *  with the four causes stated. */
+  /** The moment the next page goes live on its own — a page in review at
+   *  the time its customer was told, or one already past its window — or
+   *  `null` with the four causes stated (issue 1362). */
   next: Date | null;
   noPublishCauses: NoPublishCauses;
   /** BUILD §6.5 / §11's stop, read per account and per day by BP-001's
