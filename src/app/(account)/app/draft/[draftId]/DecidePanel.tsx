@@ -10,8 +10,9 @@
 // `md` the bar says the same thing in one line with the time in it.
 //
 // A daisyUI card in an `<aside>`, the same box the calendar's day panel
-// stands in: beside the page and sticky from `xl`, in flow under it below.
-// Not a drawer, at any width.
+// stands in: beside the page and sticky from `xl`, in flow under it below —
+// under the article and above the notes (2026-10-07, issue 1325), so the
+// decision is never below them. Not a drawer, at any width.
 //
 // **Below `md` the three controls are a bar at the foot of the viewport**
 // (owner's review of #931, 2026-09-21). The page in its frame is ~5,300px
@@ -53,6 +54,7 @@ import { CHECK_COPY_KEY, checkRows, type RailCheck } from "./checks";
 import { CopyOut } from "./CopyOut";
 import type { State } from "../../calendar/stages";
 import type { ClaimState, DraftView } from "./model";
+import { SHAPE } from "./shape";
 
 /** One tick a second, for the countdown. The server has no clock to share
  *  with the browser, so it renders the absolute time alone and the figure
@@ -175,7 +177,7 @@ export function DecidePanel(p: {
 
   return (
     <aside
-      className="card card-border bg-base-100 min-w-0 xl:sticky xl:top-4"
+      className={`card card-border bg-base-100 xl:sticky xl:top-4 ${SHAPE.decide}`}
       // Named, because the shell puts a second `<aside>` on this screen —
       // the side panel — and two complementary landmarks with no names are
       // two landmarks a reader cannot tell apart (`landmark-unique`, #328).

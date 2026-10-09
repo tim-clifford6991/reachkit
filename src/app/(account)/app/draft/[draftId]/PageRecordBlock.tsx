@@ -38,6 +38,8 @@ import {
 import type { PageRecord } from "@/lib/publish/record";
 import { formatDateTime } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
+import { CLOSED } from "../../_overview/present";
+import { NOTE } from "./ReviewCards";
 
 /**
  * How each standing looks. The one thing on this screen that is
@@ -92,75 +94,87 @@ export function PageRecordBlock(p: {
   const verification = verificationLine(record.verification);
   const title = writtenLine("record.title");
 
-  return (
-    <section
-      className="card card-border bg-base-100 min-w-0"
-      data-testid="draft-record"
-    >
-      <div className="card-body min-w-0 gap-3">
-        {title === null ? null : (
-          <h2 className="eyebrow">
-            {title}
-          </h2>
-        )}
-        <Row label={writtenLine("record.label.address")}>
-          {record.address.offered ? (
-            <>
-              <span>{writtenLine(record.address.label)}</span>
-              {/* **The box scrolls; the address is not clipped** (#931's
-                  shot harness found this on the delivered fixture at 390).
-                  `.truncate` is allow-listed for clamped *prose*, and this
-                  is a value: `checks.ts` reads the mono face off the
-                  computed style and fails a cut-off address whatever box it
-                  sits in — "a domain or a query cut in half is a different
-                  value" — and a reviewer needs the whole live address to
-                  check the page is where we say it is. `src/ui/type.css`
-                  names the remedy: the *box* changes (`overflow-x-auto`),
-                  never the value. No `tabIndex` on the wrap, because what
-                  is inside it is a link and already takes focus. */}
-              <span className="min-w-0 max-w-full overflow-x-auto">
-                <a className="link num" href={record.address.url}>
-                  {record.address.url}
-                </a>
-              </span>
-            </>
-          ) : (
-            <span>{writtenLine(record.address.copy)}</span>
-          )}
-        </Row>
-
-        {record.unpublishOutcome === null ? null : (
-          <Row label={writtenLine("record.label.taken-down")}>
-            <span
-              className={`badge h-auto whitespace-normal py-1 text-left ${TONE_BADGE.neutral}`}
-            >
-              {writtenLine(unpublishedLine(record.unpublishOutcome))}
+  const rows = (
+    <>
+      <Row label={writtenLine("record.label.address")}>
+        {record.address.offered ? (
+          <>
+            <span>{writtenLine(record.address.label)}</span>
+            {/* **The box scrolls; the address is not clipped** (#931's
+                shot harness found this on the delivered fixture at 390).
+                `.truncate` is allow-listed for clamped *prose*, and this
+                is a value: `checks.ts` reads the mono face off the
+                computed style and fails a cut-off address whatever box it
+                sits in — "a domain or a query cut in half is a different
+                value" — and a reviewer needs the whole live address to
+                check the page is where we say it is. `src/ui/type.css`
+                names the remedy: the *box* changes (`overflow-x-auto`),
+                never the value. No `tabIndex` on the wrap, because what
+                is inside it is a link and already takes focus. */}
+            <span className="min-w-0 max-w-full overflow-x-auto">
+              <a className="link num" href={record.address.url}>
+                {record.address.url}
+              </a>
             </span>
-          </Row>
+          </>
+        ) : (
+          <span>{writtenLine(record.address.copy)}</span>
         )}
+      </Row>
 
-        <Row label={writtenLine("record.label.checked")}>
-          <span className="flex flex-wrap items-baseline gap-2">
-            <span
-              className={`badge h-auto whitespace-normal py-1 text-left ${TONE_BADGE[VERIFICATION_TONE[verification.kind]]}`}
-            >
-              {writtenLine(verification.copy)}
-            </span>
-            {verification.at === null ? null : (
-              <span className="num text-xs opacity-70">
-                {formatDateTime(verification.at, p.timeZone)}
-              </span>
-            )}
+      {record.unpublishOutcome === null ? null : (
+        <Row label={writtenLine("record.label.taken-down")}>
+          <span
+            className={`badge h-auto whitespace-normal py-1 text-left ${TONE_BADGE.neutral}`}
+          >
+            {writtenLine(unpublishedLine(record.unpublishOutcome))}
           </span>
         </Row>
+      )}
 
-        {/* REQ-060 criterion 4's line, exactly where the record put it and on
-            no other surface. It takes no tone: the customer's site had no SEO
-            plugin to write the title and description into, which is a fact
-            about their site and not a failure of their page — the page went
-            out and is readable. */}
-        {record.seoNote === null ? null : (
-          <p className="text-xs opacity-70">{writtenLine(record.seoNote)}</p>
+      <Row label={writtenLine("record.label.checked")}>
+        <span className="flex flex-wrap items-baseline gap-2">
+          <span
+            className={`badge h-auto whitespace-normal py-1 text-left ${TONE_BADGE[VERIFICATION_TONE[verification.kind]]}`}
+          >
+            {writtenLine(verification.copy)}
+          </span>
+          {verification.at === null ? null : (
+            <span className="num text-xs opacity-70">
+              {formatDateTime(verification.at, p.timeZone)}
+            </span>
+          )}
+        </span>
+      </Row>
+
+      {/* REQ-060 criterion 4's line, exactly where the record put it and on
+          no other surface. It takes no tone: the customer's site had no SEO
+          plugin to write the title and description into, which is a fact
+          about their site and not a failure of their page — the page went
+          out and is readable. */}
+      {record.seoNote === null ? null : (
+        <p className="text-xs opacity-70">{writtenLine(record.seoNote)}</p>
+      )}
+    </>
+  );
+
+  // A note under the page (SPEC §7, 2026-10-07, issue 1325): one closed
+  // line named by its title. With no title written there is nothing to
+  // close it under, so the rows stand open rather than behind a blank line.
+  return (
+    <section className={NOTE.card} data-testid="draft-record">
+      <div className={NOTE.pad}>
+        {title === null ? (
+          <div className={NOTE.inner}>{rows}</div>
+        ) : (
+          <details className={CLOSED.root}>
+            <summary className={CLOSED.head}>
+              <h2 className="eyebrow">{title}</h2>
+            </summary>
+            <div className={CLOSED.body}>
+              <div className={NOTE.inner}>{rows}</div>
+            </div>
+          </details>
         )}
       </div>
     </section>
