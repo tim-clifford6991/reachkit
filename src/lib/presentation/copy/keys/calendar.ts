@@ -114,7 +114,7 @@ export const CALENDAR_COPY = Object.freeze({
   // §4.6's stage filter cards. `all` is a filter, not a stage.
   "calendar.stage.all": ["All", { slots: {}, fixedBy: "BUILD §4.6" }],
   "calendar.stage.live": ["Live", { slots: {}, fixedBy: "REQ-043 c2" }],
-  "calendar.stage.your-review": ["Ready to read", { slots: {}, fixedBy: "REQ-043 c2" }],
+  "calendar.stage.your-review": ["Ready", { slots: {}, fixedBy: "REQ-043 c2" }],
   "calendar.stage.scheduled": ["Scheduled", { slots: {}, fixedBy: "REQ-043 c2" }],
   "calendar.stage.planned": ["Planned", { slots: {}, fixedBy: "REQ-043 c2" }],
   "calendar.stage.needs-you": ["Needs you", { slots: {}, fixedBy: "REQ-043 c2" }],
