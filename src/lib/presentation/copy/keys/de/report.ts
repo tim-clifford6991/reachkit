@@ -64,7 +64,7 @@ export const REPORT_COPY_DE = {
   "scan.rescanning.line": "Wir messen erneut. Dieser Bericht aktualisiert sich, sobald die Messung fertig ist.",
 
   // KI-Antworten
-  "ai-answers.title": "KI-Antworten",
+  "ai-answers.title": "KI-Sichtbarkeit",
   "ai-answers.source": "KI-Antworten von Google · {date}",
   "ai-answers.coverage.cached-only": "Diese KI-Antworten wurden aus einem früheren Scan wiederverwendet.",
   "ai-answers.reused-from": "Wiederverwendet vom {date}",
@@ -156,7 +156,7 @@ export const REPORT_COPY_DE = {
   "method.missing-pages.title": "Die fehlenden Seiten schreiben",
   "method.missing-pages.body": "Jede fehlende Seite beantwortet eine Frage Ihres Marktes, bei der Mitbewerber genannt werden und Sie nicht. Nehmen Sie die Frage, beantworten Sie sie im ersten Absatz klar und belegen Sie die Antwort dann mit Fakten von Ihrer eigenen Website – Zahlen, Daten, Namen, jeweils mit einem Link zur Fundstelle. Veröffentlichen Sie die Seite unter einer einfachen Adresse auf Ihrer eigenen Domain und verlinken Sie sie von einer Seite, die bereits rankt. Eine Seite pro Tag ist ein gutes Tempo; auch eine pro Woche bewegt den Wert. ReachKit schreibt diese Seiten für Abonnenten, aber nichts hiervon setzt ein Abonnement voraus.",
   "method.unquotable-pages.title": "Ihre Seiten zitierbar machen",
-  "method.unquotable-pages.body": "KI-Antworten zitieren Seiten, die eine Frage direkt beantworten. Für jede Ihrer Seiten, die Suchwert hat, sich aber wie ein Prospekt liest: Machen Sie aus den Überschriften die Fragen, die ein Käufer stellen würde, setzen Sie direkt unter jede Überschrift eine klare Antwort in zwei oder drei Sätzen und ergänzen Sie Belege – eine Zahl, ein Datum, eine verlinkte Quelle. Behalten Sie die Adresse der Seite bei; wer an Ort und Stelle überarbeitet, behält die Rankings, die die Seite schon hat.",
+  "method.unquotable-pages.body": "KI-Antworten zitieren Seiten, die eine Frage direkt beantworten. Dafür zu schreiben wird manchmal GEO genannt, Generative Engine Optimization. Für jede Ihrer Seiten, die Suchwert hat, sich aber wie ein Prospekt liest: Machen Sie aus den Überschriften die Fragen, die ein Käufer stellen würde, setzen Sie direkt unter jede Überschrift eine klare Antwort in zwei oder drei Sätzen und ergänzen Sie Belege – eine Zahl, ein Datum, eine verlinkte Quelle. Behalten Sie die Adresse der Seite bei; wer an Ort und Stelle überarbeitet, behält die Rankings, die die Seite schon hat.",
 
   // Die kostenlose Seite
   "free-page.title": "Ihre erste Seite",
@@ -244,15 +244,15 @@ export const REPORT_COPY_DE = {
   "landing.inside.title": "Ein Blick in ReachKit",
   "landing.inside.tab.week": "Ihre Woche",
   "landing.inside.tab.score": "Ihr Score",
-  "landing.inside.tab.answers": "KI-Antworten",
+  "landing.inside.tab.answers": "KI-Sichtbarkeit",
   "landing.inside.tab.page": "Ihre Seite",
   "landing.inside.answers.head": "Was Googles AI Overview jetzt sagt",
   "landing.inside.answers.monday": "Jeden Montag: wie oft die KI Sie nennt, wenn Käufer nach Ihrem Markt fragen, und welche Mitbewerber sie stattdessen nennt.",
   "landing.inside.page.due": "Geht in {in} online, wenn Sie sie nicht stoppen",
   "landing.inside.page.why.label": "Warum diese Seite:",
   "landing.inside.page.why.body": "Menschen in Ihrer Nähe suchen jeden Monat danach, und heute antwortet ihnen ein Mitbewerber.",
-  "landing.feature.ai.title": "In KI-Antworten genannt werden",
-  "landing.feature.ai.body": "Wir stellen Google AI Mode und ChatGPT jede Woche rund 25 Fragen Ihrer Käufer, jede zweimal, und zeigen, wie oft sie Sie nennen und welche Mitbewerber sie stattdessen nennen. Dann schreiben wir die Seite, die Ihnen die Nennung einbringt.",
+  "landing.feature.ai.title": "KI-Sichtbarkeit: von der KI genannt werden",
+  "landing.feature.ai.body": "Wir stellen Google AI Mode und ChatGPT jede Woche rund 25 Fragen Ihrer Käufer, jede zweimal, und zeigen, wie oft sie Sie nennen und welche Mitbewerber sie stattdessen nennen. Dann schreiben wir die Seite, die Ihnen die Nennung einbringt. Manche nennen das GEO, Generative Engine Optimization.",
   "landing.feature.ai.meter": "diese Woche in {named} von {total} Antworten genannt",
   "landing.feature.google.title": "Bei Google ranken",
   "landing.feature.google.body": "Wir finden die Suchanfragen Ihrer Käufer, bei denen Mitbewerber ranken und Sie nicht, und gehen die an, die Sie gewinnen können – Seite für Seite.",
