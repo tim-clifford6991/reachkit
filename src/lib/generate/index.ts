@@ -421,6 +421,8 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
   const confirmed = await confirmedForWriting({ siteId: a.siteId, domain: site.domain });
   // D66: the page is researched and written in the site's own country and language.
   const locale = await siteLocale(a.siteId);
+  // Issue 1390: the voice the customer fixed in Settings, where they did.
+  const writingVoice = (await store.writingVoice?.(a.siteId)) ?? null;
 
   // SPEC §7 (2026-10-04, issue 1248): the page is written for the site's
   // market in force (`sites.market`, D28) — the report's category is the one
@@ -493,6 +495,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
         // business's name.
         byline: confirmed.profile?.knowledge?.byline ?? measuredBrand,
         voice: site.voiceText,
+        writingVoice,
         profile: confirmed.profile,
         facts,
         research,
@@ -521,7 +524,9 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
           report,
           rivals: site.rivals,
           today: new Date(),
-          questions: type === "qa" || type === "listicle",
+          // Issue 1390: every page that is researched reads what buyers
+          // ask beside its target, for its headings.
+          questions: true,
           borrow: { terms: marketSearches(writingFor), held: (research) => questionsHeld(packOf(research)) },
           ...(type === "insights"
             ? { recent: { searches: [category === "" ? (targetSearches(o)[0] ?? "") : category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } }

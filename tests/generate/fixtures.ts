@@ -360,15 +360,20 @@ const NOUNS = "people plan seats limit cost needs work growth team budget terms 
 const TAILS = ["first", "early", "together", "openly", "again"];
 
 /**
- * `count` five-word sentences from `at`, every one opening with `topic` — so
- * no run of five words is shared by two pages on different topics, and the
- * near-duplicate check reads them as the different pages they are.
+ * `count` sentences from `at`, five words each on average and every one
+ * naming `topic` — so no run of five words is shared by two pages on
+ * different topics, and the near-duplicate check reads them as the different
+ * pages they are. They alternate two words and eight, because a page whose
+ * sentences are all one length is stopped by the prose check (issue 1390).
  */
 export function prose(topic: string, at: number, count: number): string {
-  const t = topic.charAt(0).toUpperCase() + topic.slice(1);
+  const verb = (i: number): string => `${VERBS[i % 15]!.charAt(0).toUpperCase()}${VERBS[i % 15]!.slice(1)}`;
   return Array.from({ length: count }, (_, offset) => {
     const i = at + offset;
-    return `${t}: ${VERBS[i % 15]} the ${NOUNS[Math.floor(i / 15) % 15]} ${TAILS[i % 5]}.`;
+    // Every sentence opens on its verb: a page whose sentences all open
+    // with one word is stopped for that too.
+    if (i % 2 === 0) return `${verb(i)} ${topic}.`;
+    return `${verb(i)} the ${NOUNS[Math.floor(i / 15) % 15]} ${TAILS[i % 5]} for ${topic} ${NOUNS[i % 13]} ${TAILS[(i * 3 + 1) % 5]}.`;
   }).join(" ");
 }
 

@@ -792,6 +792,17 @@ export const SETTINGS_COPY = Object.freeze({
    *  `settings.content.voice`, which the owner has already written; this
    *  is the press that stores it, and it is owner-owed. */
   "settings.voice.save": ["Save", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
+  // SPEC §7 (owner, 2026-10-10; issue 1390): who speaks on the customer's
+  // pages. Drafted (issue 759); the pull request lists each for the owner.
+  "settings.voice.writing.label": ["Who speaks on your pages", { slots: {}, fixedBy: "SPEC.md §7 (2026-10-10, issue 1390)" }],
+  "settings.voice.writing.auto": ["Let ReachKit choose for each page", { slots: {}, fixedBy: "SPEC.md §7 (2026-10-10, issue 1390)" }],
+  "settings.voice.writing.ours": ["Your business, as “we”", { slots: {}, fixedBy: "SPEC.md §7 (2026-10-10, issue 1390)" }],
+  "settings.voice.writing.guide": ["A neutral guide, naming your business", { slots: {}, fixedBy: "SPEC.md §7 (2026-10-10, issue 1390)" }],
+  "settings.voice.writing.short": ["Short answers, 600 to 900 words", { slots: {}, fixedBy: "SPEC.md §7 (2026-10-10, issue 1390)" }],
+  "settings.voice.writing.note": [
+    "ReachKit picks the voice that fits your business and each question. Change it here whenever you like; your next page follows it.",
+    { slots: {}, fixedBy: "SPEC.md §7 (2026-10-10, issue 1390)" },
+  ],
   "settings.voice.placeholder": ["Plain and direct. Short sentences. We say “customers”, never “users”.", { slots: {}, fixedBy: "REQ-055" }],
 
   // REQ-075's own promise, and the reason the three switches above it are

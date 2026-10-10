@@ -27,7 +27,7 @@ describe("the page is laid out from its parts", () => {
     const { markdown, missing, sections } = page();
     expect(markdown.startsWith(":::answer\nThe right tool for a small team")).toBe(true);
     expect(answerBoxWords(markdown)).toBeGreaterThanOrEqual(40);
-    expect(markdown).toContain(":::takeaways\n- Seats: count the people first.");
+    expect(markdown).toContain(":::takeaways\n- Count seats.");
     expect(markdown.match(/^## .*\?$/gm)).toEqual(sections.map((section) => `## ${section.heading}`));
     expect(markdown.endsWith("[Count your seats before you choose a plan.](https://example.com/)")).toBe(true);
     expect(missing()).toBeNull();
@@ -125,7 +125,7 @@ describe("required_blocks — the first block a generated page lacks", () => {
   const { markdown, missing } = page();
 
   it.each([
-    ["fact_label", markdown.replace("Seats: read the people", "Seats [F3]: read the people")],
+    ["fact_label", markdown.replace("Read the people", "Read [F3] the people")],
     ["answer_box", markdown.replace(/^:::answer\n.*\n:::\n\n/, "")],
     ["takeaways", markdown.replace(/(:::takeaways\n- [^\n]*\n)- [^\n]*\n- [^\n]*\n/, "$1")],
     ["sections", markdown.replace(/## Seats: can outside guests join without paying\?[\s\S]*?(?=## Seats: what happens after)/, "")],

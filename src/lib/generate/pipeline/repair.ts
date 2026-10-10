@@ -315,9 +315,12 @@ function sentencesFor(
     // Not a sentence: the block the page lacks, by its handle.
     case "required_blocks":
       return failure.detail !== undefined && "block" in failure.detail ? [failure.detail.block] : [];
+    // Each habit by its handle; the pipeline says each in full (`proseNotes`).
+    case "plain_prose":
+      return failure.detail !== undefined && failure.detail.rule === "plain_prose" ? failure.detail.faults.map((fault) => fault.tell) : [];
     // What the title fails, by handle; the pipeline says each in full.
     case "title":
-      return failure.detail !== undefined && "faults" in failure.detail ? failure.detail.faults : [];
+      return failure.detail !== undefined && failure.detail.rule === "title" ? failure.detail.faults : [];
     default:
       return [];
   }

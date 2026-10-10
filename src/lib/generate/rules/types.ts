@@ -12,8 +12,11 @@
 // **What a rule is for** (owner, 2026-10-02, D27): to stop an obvious
 // violation — an invented fact, person or review; a false claim about the
 // business; an advert posing as an answer; unsafe markup — or to hold the
-// page to its structure. Not a style filter, and a rule that stops a good
-// page is a defect in the rule.
+// page to its structure. A rule that stops a good page is a defect in the
+// rule. One rule reads how the page is worded, and no other does:
+// `plain_prose` (owner, 2026-10-10, issue 1390), which counts the habits a
+// reader knows a generated page by and holds each to what people's own
+// pages reach (`./prose.ts`).
 //
 // Nothing in this file computes and nothing in it speaks: it is types plus
 // one frozen list, so a new rule is a compile error at every call
@@ -25,6 +28,7 @@
 // sentence, because a sentence the product speaks is a copy key and a
 // sentence a model wrote is not shown at all.
 import type { RequiredBlock } from "./blocks";
+import type { ProseFault } from "./prose";
 import type { TitleFault } from "./title";
 
 /** The checks, in the order they run. `do_not_claim` is §8's fourth
@@ -64,6 +68,10 @@ export type HardRule =
    *  its length, its search term, one specific, the year's place, no banned
    *  pattern, no other page's title (`./title.ts`). */
   | "title"
+  /** SPEC §7 (owner, 2026-10-10; issue 1390): the page does not read as
+   *  machine-written — its dashes, its repeats, its list labels, its
+   *  sentence lengths and its turns of phrase (`./prose.ts`). */
+  | "plain_prose"
   /** SPEC §7 (issue 1136; D44): no claim that the business serves a case the
    *  knowledge base does not support (`../claims/fit.ts`). */
   | "fit_claim"
@@ -89,6 +97,7 @@ export const HARD_RULES: readonly HardRule[] = Object.freeze([
   "no_demo_text",
   "distinct_headings",
   "title",
+  "plain_prose",
   "fit_claim",
   "do_not_claim",
 ] as const);
@@ -141,7 +150,10 @@ export interface RuleFailure {
     /** The two headings that are too alike, as the page has them. */
     | { rule: "distinct_headings"; headings: [string, string] }
     /** What the title or its description fails — handles, never a sentence. */
-    | { rule: "title"; faults: TitleFault[] };
+    | { rule: "title"; faults: TitleFault[] }
+    /** Each habit the page has too much of: a handle, a count and the
+     *  page's own words. */
+    | { rule: "plain_prose"; faults: ProseFault[] };
 }
 
 /** Every site-scoped input the battery is called with — the **raw stored**
