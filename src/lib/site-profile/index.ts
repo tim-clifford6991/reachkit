@@ -38,7 +38,7 @@ import type { CostContext } from "@/lib/costs";
 import type { Tier } from "@/lib/measure";
 import { crawlSite, type CrawlOutcome } from "./crawl";
 import { derivePurpose } from "./purpose";
-import { brandName, publishedNames } from "./site-name";
+import { brandName, imageAlts, publishedNames } from "./site-name";
 import { deriveVoice } from "./summary";
 import { writeSiteLogo, writeSiteProfile } from "./store";
 import { captureLogo } from "./logo";
@@ -132,7 +132,12 @@ export async function buildSiteProfileWithCrawl(
     // it has read the whole site, not one document — and the published
     // name is what every other pass stores. Either way it is the brand,
     // never a title's tagline (issue 1380).
-    siteName: brandName([read?.siteName, ...published], a.domain),
+    // Where it is the domain's label, it is cased as the site's logo and
+    // titles case it (issue 1384).
+    siteName: brandName([read?.siteName, ...published], a.domain, [
+      ...imageAlts(a.homeHtml ?? ""),
+      ...imageAlts(crawl.homeHtml ?? ""),
+    ]),
     products: read?.products ?? [],
     claims: read?.claims ?? [],
     voice: read?.voice ?? null,
