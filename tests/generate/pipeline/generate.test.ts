@@ -135,9 +135,22 @@ describe("a page a check stops takes one fix call", () => {
     expect(fix.page).toEqual(STOPPED);
   });
 
-  it("a title that is not the search form goes into the fix call, and the row keeps the title and the longer H1 (D51)", async () => {
-    const old = pageParts(CLEAN_MARKDOWN, { title: "Small teams: 7 buyer questions, answered" });
-    const fixed = pageParts(CLEAN_MARKDOWN, { heading: "Which plan fits a small team once it starts to grow?" });
+  it("of three titles the writer proposes, the row keeps the one that passes every rule, and its H1 is that title (issue 1389)", async () => {
+    const passing = pageParts().titles[0]!;
+    answers(pageParts(CLEAN_MARKDOWN, { titles: ["How to pick a plan and other small team questions", passing, "Unlocking project management software for a small team"] }));
+    const outcome = await run();
+    expect(outcome.ok).toBe(true);
+    expect(sites()).toEqual(["generate.write"]);
+    const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
+    expect(row?.title).toBe(passing);
+    const meta = row?.meta as { heading?: string; titles: { title: string; faults: string[] }[] };
+    expect(meta.heading).toBeUndefined();
+    expect(meta.titles.map((each) => each.faults.length === 0)).toEqual([false, true, false]);
+  });
+
+  it("where no proposed title passes, the fix call is told what the least bad one failed", async () => {
+    const old = pageParts(CLEAN_MARKDOWN, { titles: ["Small teams: 7 buyer questions, answered"] });
+    const fixed = pageParts();
     answers(old, fixed);
     const outcome = await run();
     expect(outcome.ok).toBe(true);
@@ -146,8 +159,7 @@ describe("a page a check stops takes one fix call", () => {
     expect(told).toContain("which plan fits a small team");
     expect(told).toContain("questions, answered");
     const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
-    expect(row?.title).toBe(fixed.title);
-    expect(row?.meta).toMatchObject({ heading: "Which plan fits a small team once it starts to grow?" });
+    expect(row?.title).toBe(fixed.titles[0]);
   });
 
   it("a page still failing after it is stopped with `attempt: 2`, and is never passed toward review", async () => {

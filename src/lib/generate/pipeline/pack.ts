@@ -141,6 +141,35 @@ export interface ContextPack {
   missing: PackNeed[];
 }
 
+/** Every statement the pack carries, beside its passages, that a page may
+ *  repeat a figure or a phrase from: the knowledge base's own words, what
+ *  the pass measured on a research page, and the live page of an update. */
+export function packStatements(pack: ContextPack): string[] {
+  const knowledge = pack.profile?.knowledge;
+  const measured = pack.measurements;
+  return [
+    ...(pack.profile === null ? [] : [pack.profile.job ?? "", ...pack.profile.products, ...pack.profile.promises]),
+    ...(knowledge === undefined
+      ? []
+      : [
+          ...knowledge.offerings.flatMap((offering) => [offering.name, ...offering.features, ...offering.prices, ...offering.uses]),
+          ...knowledge.differentiators.map((item) => item.text),
+          ...knowledge.proof.map((item) => item.text),
+          ...knowledge.audience.map((item) => item.text),
+          ...knowledge.problems.map((item) => item.text),
+          ...knowledge.questions.map((item) => item.text),
+        ]),
+    ...(measured === null
+      ? []
+      : [
+          `${measured.score ?? ""} ${measured.questions.length} ${measured.questions.filter((q) => q.answered).length} ` +
+            `${measured.questions.filter((q) => q.namesBusiness).length} ${measured.engines.length} ` +
+            measured.questions.map((q) => `${q.search} ${q.citedSites}`).join(" "),
+        ]),
+    ...(pack.live === null ? [] : [pack.live.markdown]),
+  ].filter((text) => text !== "");
+}
+
 // The English words every pack was read by, and each other supported
 // language's function words beside them (D66): a pack does not say which
 // language a stored title or question is in.

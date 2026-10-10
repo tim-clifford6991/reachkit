@@ -78,6 +78,9 @@ export const EN: LanguagePack = {
     asksStart: "how|what|why|which|who|when|where|can|does|do|is|are|should",
     free: "free",
     banned: TITLE.banned,
+    tropes: ["(?:unleash|elevat|navigat|demystif)(?:e[sd]?|ing|y|ies|ied|ying)?", "why .+ matters?", "in today['’]s"],
+    tropeSamples: ["unleash", "elevate", "navigate", "demystify", "why X matters", "in today's … world"],
+    double: "how to [^:(]*? (?:and|&)",
   },
   stem(token) {
     if (token.length <= 3) return token;

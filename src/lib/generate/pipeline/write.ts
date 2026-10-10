@@ -36,6 +36,7 @@ export interface FaqEntry {
   answer: string;
 }
 
+const TITLES = z.array(z.string());
 const TAKEAWAYS = z.array(z.string());
 const SECTIONS = z.array(z.strictObject({ key: z.string(), heading: z.string(), body: z.string() }));
 const FAQ = z.array(z.strictObject({ question: z.string(), answer: z.string() }));
@@ -47,9 +48,9 @@ const FAQ = z.array(z.strictObject({ question: z.string(), answer: z.string() })
 const listOrText = <T extends z.ZodType>(list: T) => z.union([list, z.string()]);
 
 const ANSWER_SCHEMA = z.strictObject({
-  title: z.string(),
-  /** The page's H1 (D51): the title's longer, conversational form. */
-  heading: z.string(),
+  /** The titles the writer proposes (issue 1389): code picks one, and it is
+   *  the page's `<title>` and its H1. */
+  titles: listOrText(TITLES),
   slug: z.string(),
   description: z.string(),
   answer: z.string(),
@@ -63,8 +64,7 @@ const ANSWER_SCHEMA = z.strictObject({
 
 /** What the writer returns: the page in the template's parts. */
 export interface PageParts {
-  title: string;
-  heading: string;
+  titles: z.infer<typeof TITLES>;
   slug: string;
   description: string;
   answer: string;
@@ -92,18 +92,19 @@ function listOf<T extends z.ZodType>(schema: T, value: unknown): z.infer<T> | nu
  *  came back as text is not that list. */
 function partsOf(answer: Measured<z.infer<typeof ANSWER_SCHEMA>>): Measured<PageParts> {
   if (answer.kind === "unmeasured") return answer;
+  const titles = listOf(TITLES, answer.value.titles);
   const takeaways = listOf(TAKEAWAYS, answer.value.takeaways);
   const sections = listOf(SECTIONS, answer.value.sections);
   const faq = listOf(FAQ, answer.value.faq);
-  if (takeaways === null || sections === null || faq === null) return unmeasured("undeterminable", answer.at);
-  return { ...answer, value: { ...answer.value, takeaways, sections, faq } };
+  if (titles === null || takeaways === null || sections === null || faq === null) return unmeasured("undeterminable", answer.at);
+  return { ...answer, value: { ...answer.value, titles, takeaways, sections, faq } };
 }
 
 /** The page as it is stored and as every check reads it. */
 export interface DraftBody {
   /** The `<title>`: the search form (D51). */
   title: string;
-  /** The H1, where the writer gave a longer form; else the title. */
+  /** The H1: the title (issue 1389). */
   heading: string;
   slug: string;
   description: string;
@@ -183,8 +184,8 @@ function taskFor(a: WriteInputs): string {
     "Write one page for `pack.target.question`, doing what `template.for` says the page is for.",
     "`template.sections` are the page's sections, in order: return each as one entry of `sections` with its `key` exactly as the template spells it, in that order — a section with `repeat` between `min` and `max` times, one after another — each under its own `heading` and doing what its `task` says.",
     a.pack.type === "update"
-      ? "`title` and `heading` are `pack.live.title`."
-      : "`title` is the page's `<title>`, the form a searcher types: it follows one of `template.titles` and holds every rule in `titleRules`. `heading` is the page's H1: the same promise in the longer, conversational form a reader would say aloud, with no year unless `title` has one.",
+      ? "`titles` is one entry: `pack.live.title`."
+      : `\`titles\` is ${TITLE.candidates} different titles for the page, each one you would publish: the page's \`<title>\` and its H1 are the one of them that best holds \`titleRules\`, chosen in code. Each is the form a searcher types, follows one of \`template.titles\` and holds every rule in \`titleRules\`; make them differ in the specific they carry or in how they lead, not in a word.`,
     `\`description\` is the meta description: ${TITLE.description.min} to ${TITLE.description.max} characters, counted — write about 140 — in whole sentences, and its first sentence answers the target.`,
     `${a.pack.type === "update" ? "The page's sections together — the short answer and the takeaways are not counted —" : "The page's body — the short answer, the takeaways and every section together —"} must be between ${a.length.floor} and ${a.length.ceiling} words, counted. Write about ${Math.round((a.length.floor + a.length.ceiling) / 2)} words — about ${Math.round((a.length.floor + a.length.ceiling) / 2 / Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0)))} a section, and no section under ${Math.ceil((a.length.floor * 1.15) / Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0)))}: a page under ${a.length.floor} or over ${a.length.ceiling} is stopped. Give every paragraph something the reader can use — detail, an example, a comparison or a consequence drawn from \`pack\` — and never pad or restate a point to reach the length.`,
     faq === null

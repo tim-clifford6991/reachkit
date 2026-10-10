@@ -143,7 +143,13 @@ export const DE: LanguagePack = {
       "entfesseln",
       "entdecken sie",
       "umfassend",
+      "kompletter leitfaden",
+      "vollständiger leitfaden",
     ],
+    // Drafted (issue 1389): the German counterparts of the English tropes.
+    tropes: ["(?:entfessel|entmystifizier|navigier)\\p{L}*", "warum .+ wichtig(?: ist| sind)?", "in der heutigen", "in zeiten von"],
+    tropeSamples: ["entfesseln", "entmystifizieren", "warum X wichtig ist", "in der heutigen … Welt"],
+    double: "(?:wie|so) [^:(]*? (?:und|&)",
   },
   supports(token, support) {
     if (support.has(token)) return true;

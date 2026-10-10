@@ -54,7 +54,7 @@ import { recordedRulesValue, recordedVerdictValue } from "../record";
 import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
 import { answerBoxWords } from "../rules/blocks";
 import { linksOf, renderOf } from "../rules/text";
-import { titleNotes } from "../rules/title";
+import { pickTitle, titleNotes, type TitleCandidate } from "../rules/title";
 import type { GroundedFact, RuleFailure, SiteRuleInputs } from "../rules/types";
 import { generateStore, type DraftRow } from "../store";
 import { TEMPLATES, type PackNeed } from "../templates";
@@ -63,7 +63,7 @@ import { buildComparisonSet } from "./comparison";
 import { layoutPage, withClosing, type LaidPage } from "./compose";
 import { closeElsewhere } from "./elsewhere";
 import type { SourcedFact } from "./grounding";
-import type { ContextPack } from "./pack";
+import { packStatements, type ContextPack } from "./pack";
 import { fixNotes, repairable, repairMechanical, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
 import { comparisonTable, withTable } from "./table";
@@ -121,39 +121,12 @@ function logRun(detail: Record<string, string | number | boolean | null>): void 
   console.log(JSON.stringify({ event: "draft_generated", ...detail }));
 }
 
+export { packStatements };
+
 /** The target search and every search the row absorbed — what the page is
  *  written for, as the pack and the checks read it. */
 export function targetSearches(opportunity: Pick<Opportunity, "targetQuery" | "absorbedQueries">): string[] {
   return [...(opportunity.targetQuery === null ? [] : [opportunity.targetQuery]), ...opportunity.absorbedQueries];
-}
-
-/** Every statement the pack carries, beside its passages, that a page may
- *  repeat a figure or a phrase from: the knowledge base's own words, what
- *  the pass measured on a research page, and the live page of an update. */
-export function packStatements(pack: ContextPack): string[] {
-  const knowledge = pack.profile?.knowledge;
-  const measured = pack.measurements;
-  return [
-    ...(pack.profile === null ? [] : [pack.profile.job ?? "", ...pack.profile.products, ...pack.profile.promises]),
-    ...(knowledge === undefined
-      ? []
-      : [
-          ...knowledge.offerings.flatMap((offering) => [offering.name, ...offering.features, ...offering.prices, ...offering.uses]),
-          ...knowledge.differentiators.map((item) => item.text),
-          ...knowledge.proof.map((item) => item.text),
-          ...knowledge.audience.map((item) => item.text),
-          ...knowledge.problems.map((item) => item.text),
-          ...knowledge.questions.map((item) => item.text),
-        ]),
-    ...(measured === null
-      ? []
-      : [
-          `${measured.score ?? ""} ${measured.questions.length} ${measured.questions.filter((q) => q.answered).length} ` +
-            `${measured.questions.filter((q) => q.namesBusiness).length} ${measured.engines.length} ` +
-            measured.questions.map((q) => `${q.search} ${q.citedSites}`).join(" "),
-        ]),
-    ...(pack.live === null ? [] : [pack.live.markdown]),
-  ].filter((text) => text !== "");
 }
 
 export interface GenerateInputs {
@@ -192,6 +165,8 @@ export interface GenerateInputs {
 interface Finished {
   laid: LaidPage;
   markdown: string;
+  /** The titles the writer proposed, as code read them (issue 1389). */
+  titles: TitleCandidate[];
 }
 
 export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<GenerateOutcome> {
@@ -314,7 +289,17 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
    *  here and never by the model (issue 1135). A listicle's table is the one
    *  code built, under its at-a-glance section's opening paragraph (D47). */
   const finish = (parts: PageParts): Finished => {
-    const laid = layoutPage(parts, template, tidy);
+    // Issue 1389: the writer proposes its titles and code picks one, by the
+    // rules stage 4 then holds it to.
+    let titles: TitleCandidate[] = [];
+    const laid = layoutPage(parts, template, {
+      ...tidy,
+      pickTitle: (proposed, on) => {
+        const picked = pickTitle(proposed, titleRuleFor(pack, on));
+        titles = picked.candidates;
+        return picked.chosen;
+      },
+    });
     const own = laid.sections.find((section) => ["business", "next_step", "related"].includes(section.key))?.heading;
     const glance = laid.sections.find((section) => template.sections.find((slot) => slot.key === section.key)?.block === "table")?.heading;
     const body = table === null ? laid.body.bodyMarkdown : withTable(laid.body.bodyMarkdown, glance, [table.markdown, table.currencies, table.checked].filter((line) => line !== null).join("\n\n"));
@@ -326,7 +311,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       ),
       cited
     );
-    return { laid, markdown };
+    return { laid, markdown, titles };
   };
 
   const metaOf = (page: Finished, repairs: readonly RepairRecord[], elsewhere: number | null): Record<string, unknown> => {
@@ -335,8 +320,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     return {
       ...baseMeta,
       description: page.laid.body.description,
-      // D51: the H1, kept where it is not the `<title>` the row's own column holds.
-      ...(page.laid.body.heading === page.laid.body.title ? {} : { heading: page.laid.body.heading }),
+      // Issue 1389: each title the writer proposed and what it failed. The
+      // row's own title is the one code picked, and it is the page's H1.
+      ...(page.titles.length === 0 ? {} : { titles: page.titles }),
       // "Three to six questions buyers ask, stored as `drafts.meta.faq`" —
       // beside the page, never in its body.
       faq: page.laid.faq,
@@ -394,7 +380,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
         // D52: the rivals the verdict may name as the better pick.
         ...(table === null ? {} : { rivals: table.options.slice(1) }),
       },
-      titleRule: titleRuleFor(pack, candidate.laid.body.description),
+      titleRule: titleRuleFor(pack, { description: candidate.laid.body.description, sections: candidate.laid.sections }),
       // D61: a Q&A's questions are each their own.
       distinctHeadings: pack.type === "qa",
       heading: candidate.laid.body.heading,
@@ -473,7 +459,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       const title = stopped.outcome.passed ? undefined : stopped.outcome.failed.find((failure) => failure.rule === "title")?.detail;
       if (note.rule === "title" && title !== undefined && "faults" in title) {
         const body = stopped.page.laid.body;
-        return { ...note, sentences: titleNotes(body.title, titleRuleFor(pack, body.description), title.faults) };
+        return { ...note, sentences: titleNotes(body.title, titleRuleFor(pack, { description: body.description, sections: stopped.page.laid.sections }), title.faults) };
       }
       if (note.rule === "distinct_headings") {
         return { ...note, sentences: [`headings: ${note.sentences.map((heading) => `"${heading}"`).join(" and ")} ask almost the same thing; each section must ask a different question of \`pack.questions\`, in different words`] };
