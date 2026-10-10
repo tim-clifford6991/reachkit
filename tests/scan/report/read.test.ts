@@ -68,8 +68,10 @@ describe("the read", () => {
   it("is one indexed read of the domain's current row, and asks for the blob alone", async () => {
     answer = { data: [{ report: asStoredJson() }], error: null };
     await readCurrentReport("example.com");
-    expect(recorded).toHaveLength(1);
-    const [read] = recorded;
+    // The ledger read beside it is issue 1383's (`challenged.test.ts`).
+    const scans = recorded.filter((r) => r.table === "scans");
+    expect(scans).toHaveLength(1);
+    const [read] = scans;
     expect(read?.table).toBe("scans");
     expect(read?.columns).toBe("report");
     expect(read?.filters).toEqual([
