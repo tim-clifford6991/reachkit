@@ -42,6 +42,7 @@
 // here or downstream of here for the site's own facts. `listDestinations`
 // reaches Postgres and resolves DNS for a hosted destination, and neither
 // is a measurement, a vendor call or a model call.
+import type { LinkMap } from "@/lib/known-content/link-map";
 import { cache } from "react";
 import { assembleSettings, type SettingsModel } from "./model";
 import { FIXTURE_SETTINGS_FACTS } from "./fixture";
@@ -66,4 +67,28 @@ export const readSettings = cache(async function readSettings(): Promise<Setting
 
   const { readLiveSettingsFacts } = await import("./store");
   return assembleSettings(await readLiveSettingsFacts(account));
+});
+
+/**
+ * The site link map (SPEC §7, 2026-10-10, issue 1391): which of the
+ * customer's pages their live articles link, and which articles stand
+ * alone. The reserved account reads its fixture's.
+ */
+export const readLinkMap = cache(async function readLinkMap(): Promise<LinkMap> {
+  const account = await requireSetUpAccount();
+  if (isReservedFixtureAccount(account)) {
+    return {
+      articles: 4,
+      receiving: [
+        { url: "https://example.com/pricing", articles: 3 },
+        { url: "https://example.com/features/migration", articles: 2 },
+        { url: "https://example.com/about", articles: 1 },
+      ],
+      alone: [
+        { url: "https://example.com/blog/crm-export-checklist", title: "CRM export checklist: what to ask before you switch", linkedFrom: 0, linksOut: 3 },
+      ],
+    };
+  }
+  const { siteLinkMap } = await import("@/lib/known-content/link-map");
+  return siteLinkMap(account.siteId);
 });

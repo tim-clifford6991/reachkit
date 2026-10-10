@@ -27,10 +27,11 @@
 // a value and carries `.num`, so where it will not fit the box grows taller
 // (`src/ui/type.css` states that rule and why).
 import type React from "react";
-import { FileText, Quote, Search, Sparkles } from "lucide-react";
+import { FileText, Link2, Quote, Search, Sparkles } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { formatDate } from "../../_shell/format";
 import { CLOSED } from "../../_overview/present";
+import { pageLinksEmpty, type LinkGroup, type LinkLive, type PageLink, type PageLinks } from "./links-panel";
 import {
   PACK_NEED_COPY,
   writtenFromIsEmpty,
@@ -491,6 +492,106 @@ export function WhatAddsCard(p: { adds: PageAdds | undefined }): React.JSX.Eleme
                   </a>
                 </div>
               ) : null}
+            </div>
+          </div>
+        </details>
+      </div>
+    </section>
+  );
+}
+
+const LINK_GROUPS: readonly { group: LinkGroup; title: "draft.links.site" | "draft.links.articles" | "draft.links.sources" }[] = [
+  { group: "site", title: "draft.links.site" },
+  { group: "articles", title: "draft.links.articles" },
+  { group: "sources", title: "draft.links.sources" },
+];
+
+const LINK_LIVE: Readonly<Record<LinkLive, { key: "draft.links.live" | "draft.links.unchecked" | "draft.links.pending"; badge: string }>> = {
+  live: { key: "draft.links.live", badge: "badge badge-success" },
+  unchecked: { key: "draft.links.unchecked", badge: "badge badge-ghost" },
+  pending: { key: "draft.links.pending", badge: "badge badge-ghost" },
+};
+
+function linkReason(link: PageLink): string {
+  return link.reason.kind === "topic"
+    ? copy("draft.links.why.topic", { words: link.reason.words })
+    : copy(`draft.links.why.${link.reason.kind}`);
+}
+
+/**
+ * Links on this page (SPEC §7, 2026-10-10, issue 1391).
+ *
+ * Every link the body carries, grouped as the customer thinks of them —
+ * their site, their articles, the sources — each with its words, where it
+ * leads, why it is there and whether it is live. Read off the body in front
+ * of them, so an edit that adds or removes a link changes the list.
+ *
+ * **Absent on a page with no link and nothing removed**, like the cards
+ * above it.
+ */
+export function LinksCard(p: { links: PageLinks }): React.JSX.Element | null {
+  if (pageLinksEmpty(p.links)) return null;
+
+  return (
+    <section className={NOTE.card} data-testid="draft-links">
+      <div className={NOTE.pad}>
+        <details className={CLOSED.root}>
+          <summary className={CLOSED.head}>
+            <h2 className={CARD_HEAD}>
+              <Link2 size={14} strokeWidth={1.75} aria-hidden />
+              {copy("draft.links.title")}
+            </h2>
+          </summary>
+          <div className={CLOSED.body}>
+            <div className={NOTE.inner}>
+              <p className="text-sm text-base-content/70 wrap-anywhere">{copy("draft.links.lead")}</p>
+
+              {LINK_GROUPS.map(({ group, title }) =>
+                p.links[group].length === 0 ? null : (
+                  <div className="flex min-w-0 flex-col gap-1" key={group} data-testid={`draft-links-${group}`}>
+                    <h3 className="text-sm font-medium">{copy(title)}</h3>
+                    <ul className="list bg-base-100 min-w-0 rounded-box">
+                      {p.links[group].map((link) => (
+                        <li className="list-row min-w-0" key={link.url}>
+                          <span className="list-col-grow min-w-0 text-sm wrap-anywhere">{link.text}</span>
+                          <span className="list-col-wrap flex min-w-0 flex-col items-start gap-1">
+                            <span className={VALUE_BOX}>
+                              <a className="link link-hover num text-xs" href={link.url} target="_blank" rel="noreferrer">
+                                {readableAddress(link.url)}
+                              </a>
+                            </span>
+                            <span className="min-w-0 text-xs text-base-content/70 wrap-anywhere">{linkReason(link)}</span>
+                            <span className={`${LINK_LIVE[link.live].badge} h-auto max-w-full py-1 whitespace-normal wrap-anywhere`}>
+                              {copy(LINK_LIVE[link.live].key)}
+                            </span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              )}
+
+              {p.links.removed.length === 0 ? null : (
+                <div className="flex min-w-0 flex-col gap-1" data-testid="draft-links-removed">
+                  <h3 className="text-sm font-medium">{copy("draft.links.removed")}</h3>
+                  <ul className="list bg-base-100 min-w-0 rounded-box">
+                    {p.links.removed.map((link) => (
+                      <li className="list-row min-w-0" key={`${link.url}-${link.text}`}>
+                        <span className="list-col-grow min-w-0 text-sm wrap-anywhere">{link.text}</span>
+                        <span className="list-col-wrap flex min-w-0 flex-col items-start gap-1">
+                          <span className={`num text-xs text-base-content/70 ${VALUE_BOX}`} tabIndex={0}>
+                            {readableAddress(link.url)}
+                          </span>
+                          <span className="min-w-0 text-xs text-base-content/70 wrap-anywhere">
+                            {copy(link.kind === "source" ? "draft.links.removed.source" : "draft.links.removed.site")}
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </details>

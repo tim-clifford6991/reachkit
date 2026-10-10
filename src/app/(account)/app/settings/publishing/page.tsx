@@ -9,7 +9,8 @@
 import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
-import { readSettings } from "../provider";
+import { readLinkMap, readSettings } from "../provider";
+import { LinkMapPanel } from "../panels/LinkMapPanel";
 import { PublishingPanel } from "../panels/PublishingPanel";
 
 /** This tab's own `<title>` (#945, #925). Each sibling names itself
@@ -19,11 +20,14 @@ import { PublishingPanel } from "../panels/PublishingPanel";
 export const metadata: Metadata = { title: copy("meta.app.settings.publishing.title") };
 
 export default async function SettingsPublishingTab(): Promise<React.JSX.Element> {
-  const settings = await readSettings();
+  const [settings, linkMap] = await Promise.all([readSettings(), readLinkMap()]);
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-publishing">
       <PublishingPanel settings={settings} />
+      {/* Which pages the articles link, and which articles stand alone
+          (SPEC §7, 2026-10-10, issue 1391). */}
+      <LinkMapPanel map={linkMap} />
     </div>
   );
 }
