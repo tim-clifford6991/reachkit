@@ -22,8 +22,20 @@
 // which is how a brand that differs from its domain is still read. Where
 // no source holds a name, the domain's own label is it.
 //
-// **The same rule reads a stored name** (`brandName([stored], domain)`), so
-// a row written before this rule shows its brand without a re-scan.
+// **A call to action, a page section or a product category is no name**
+// (issue 1384: hotjar.com was "Sign up for free", deel.com "HRIS"). A source
+// that spells the domain nowhere and is made only of such words is passed
+// over, and the next source is read. A brand unlike its domain ("Alphabet"
+// on abc.xyz) is not made of them and is kept.
+//
+// **The domain's label is written as the site writes it.** Where the name
+// falls back to the label, the casing is the site's own wherever it spells
+// it — a title, a declared name, an image's `alt` — so "HubSpot", never
+// "Hubspot".
+//
+// **The same rule reads a stored name** (`brandName([stored], domain,
+// [the stored home title])`), so a row written before this rule shows its
+// brand without a re-scan.
 //
 // Deterministic and total: any string answers, and a document that names
 // itself nowhere answers `null` rather than a guess.
@@ -43,8 +55,46 @@ const NAME_MAX_CHARS = 40;
 /** The structured-data types whose `name` is the company's or the site's. */
 const NAMED_TYPES = new Set(["Organization", "Corporation", "LocalBusiness", "OnlineBusiness", "WebSite"]);
 
+/** The words a call to action, a page section or a product category is
+ *  made of, in the two languages the product is sold in. A candidate made
+ *  only of these, spelling its domain nowhere, names no company. */
+const GENERIC_WORDS: ReadonlySet<string> = new Set(
+  (
+    // Calls to action.
+    "sign up signup log login in signin register join get started start try free now today here book request " +
+    "demo trial contact us subscribe buy shop download learn more see watch apply order call click create account " +
+    "a an the to for it your my our and or of " +
+    // Page sections.
+    "home homepage welcome pricing prices plans about blog news careers jobs product products services solutions " +
+    "features support help docs documentation resources overview index main page site website official dashboard " +
+    "store faq menu untitled " +
+    // Product categories.
+    "software platform tool tools app apps online service system management business solution suite company " +
+    "agency hris hr crm erp cms saas ats lms pos cdp seo ai api b2b payroll analytics marketing sales ecommerce " +
+    // The same, in German.
+    "startseite willkommen herzlich anmelden einloggen registrieren kostenlos testen jetzt starten loslegen " +
+    "buchen preise über uns kontakt mehr erfahren hier bei und für die der das lösungen produkte leistungen " +
+    "unternehmen karriere aktuelles impressum"
+  ).split(" "),
+);
+
+/** What a title wraps its brand in: "Official Hotjar Site", "Welcome to …". */
+const FRAME_WORDS: ReadonlySet<string> = new Set(["official", "site", "website", "homepage", "home", "page", "welcome", "to"]);
+
 function oneLine(value: string): string {
-  return value.replace(/\s+/g, " ").trim();
+  // A trademark sign is not part of a name: "ClickUp™".
+  return value.replace(/[™®©℠]/gu, "").replace(/\s+/g, " ").trim();
+}
+
+function wordsOf(text: string): string[] {
+  return text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+}
+
+/** Whether a phrase is a call to action, a section or a category: "Sign
+ *  up for free", "Pricing", "HRIS". */
+function generic(phrase: string): boolean {
+  const words = wordsOf(phrase);
+  return words.length > 0 && words.every((word) => GENERIC_WORDS.has(word));
 }
 
 function letters(text: string): string {
@@ -112,11 +162,27 @@ function nameIn(source: string, label: string): string | null {
     if (rank === null) continue;
     if (best === null || rank < best.rank || (rank === best.rank && part.length < best.part.length)) best = { part, rank };
   }
-  if (best !== null) return nameLike(best.part) ? best.part : writtenBrand(best.part, label);
+  if (best !== null) {
+    if (!nameLike(best.part)) return writtenBrand(best.part, label);
+    // "Official Hotjar Site" is "Hotjar".
+    const exact = best.rank === 0 ? null : writtenBrand(best.part, label);
+    const framed = exact !== null && wordsOf(best.part.replace(exact, "")).every((word) => FRAME_WORDS.has(word));
+    return framed ? exact : best.part;
+  }
   // No part spells the domain: a lone name is a brand that differs from
-  // it; a tagline or a page's name is not.
+  // it; a tagline, a page's name, a call to action or a category is not.
   const only = parts.length === 1 ? parts[0] : undefined;
-  return only !== undefined && nameLike(only) ? only : null;
+  return only !== undefined && nameLike(only) && !generic(only) ? only : null;
+}
+
+/** The domain's label as the site itself writes it, capitals and all:
+ *  "HubSpot" of "HubSpot | Software & Tools for your Business". */
+function asWritten(texts: readonly string[], label: string, plain: string | null): string | null {
+  for (const text of texts) {
+    const written = writtenBrand(text, label);
+    if (written !== null && written !== written.toLowerCase() && written !== plain) return written;
+  }
+  return null;
 }
 
 /**
@@ -124,17 +190,30 @@ function nameIn(source: string, label: string): string | null {
  * first that holds a name, else the domain's own label. `null` where there
  * is no name to read at all.
  *
- * Also how a stored name is shown: `brandName([stored], domain)`.
+ * `mentions` are other texts of the site's (page titles, image `alt`s):
+ * never a name themselves, only how the site cases its domain's label
+ * where the name is that label.
+ *
+ * Also how a stored name is shown: `brandName([stored], domain, [title])`.
  */
-export function brandName(sources: readonly (string | null | undefined)[], domain: string): string | null {
-  const written = sources.map((source) => oneLine(source ?? "")).filter((source) => source !== "");
+export function brandName(
+  sources: readonly (string | null | undefined)[],
+  domain: string,
+  mentions: readonly (string | null | undefined)[] = [],
+): string | null {
+  const lines = (texts: readonly (string | null | undefined)[]) =>
+    texts.map((text) => oneLine(text ?? "")).filter((text) => text !== "");
+  const written = lines(sources);
   if (written.length === 0) return null;
   const label = letters(labelOf(domain));
+  const plain = domainBrand(domain);
   for (const source of written) {
     const name = nameIn(source, label);
-    if (name !== null && name !== "") return name;
+    if (name === null || name === "") continue;
+    if (name !== plain) return name;
+    break;
   }
-  return domainBrand(domain);
+  return asWritten([...written, ...lines(mentions)], label, plain) ?? plain;
 }
 
 function schemaNames(node: unknown, found: string[]): void {
@@ -147,6 +226,16 @@ function schemaNames(node: unknown, found: string[]): void {
   const types = Array.isArray(type) ? type : [type];
   if (typeof name === "string" && types.some((t) => typeof t === "string" && NAMED_TYPES.has(t))) found.push(name);
   for (const value of Object.values(rest)) schemaNames(value, found);
+}
+
+/** The `alt` of every image in a home document: where a logo spells the
+ *  brand. Mentions for `brandName`, never names. */
+export function imageAlts(html: string): string[] {
+  if (html.trim() === "") return [];
+  return parse(html, { comment: false })
+    .querySelectorAll("img[alt]")
+    .map((image) => image.getAttribute("alt") ?? "")
+    .filter((alt) => alt.trim() !== "");
 }
 
 /** Every name a home document gives its site, in the order above. */
