@@ -98,6 +98,11 @@ export const REPORT_COPY = Object.freeze({
   // attempted and the report stops there. Owner-owed until 2026-09-11, when
   // the owner approved this sentence (#516).
   "notice.site-unreadable": ["We couldn’t read this site’s home page, so nothing here could be measured. Check the address and scan again.", { slots: {}, fixedBy: "REQ-004 c6" }],
+  // Issue 1379. The site's bot protection answered our reader with a page of
+  // its own, so the site's own pages are unmeasured: never a zero, never
+  // that page's facts. Drafted in this registry’s voice and shipped under
+  // the owner ruling of 2026-09-16 (#759); the owner corrects the wording.
+  "notice.bot-protected": ["This site’s bot protection stopped our reader, so its own pages couldn’t be read and aren’t scored here. That is not a finding about the site.", { slots: {}, fixedBy: "SPEC §2 · issue 1379" }],
   // Issue 898. The site read and its market did not — the profile call or
   // the suggestions did not answer — so there is no question, no answer
   // card and no band. Distinct from `notice.incomplete`, which names

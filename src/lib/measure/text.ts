@@ -24,7 +24,7 @@
 // it, a deep pass run inside the own-document window has no text at all,
 // and a paid site grounds no fact and starts no draft.
 import { dbAdmin } from "@/lib/db";
-import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, isStoredDocument, renderedDocumentOf } from "./own-fetch";
+import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, renderedDocumentOf, siteDocumentOf } from "./own-fetch";
 import { prose } from "./prose";
 
 export interface MeasuredText {
@@ -144,7 +144,7 @@ async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> 
     // text was measured, so none is returned. Any other shape under this
     // source is skipped the same way, never thrown on.
     const rendered = row.source === RENDERED_FETCH_SOURCE;
-    const document = rendered ? renderedDocumentOf(row.payload) : isStoredDocument(row.payload) ? row.payload : null;
+    const document = rendered ? renderedDocumentOf(row.payload) : siteDocumentOf(row.payload);
     if (document === null) continue;
     const read = prose(document.html);
     out.push({

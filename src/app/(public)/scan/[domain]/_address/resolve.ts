@@ -32,6 +32,7 @@
 // frame — REQ-001 c9's "never during server render", which is what keeps
 // a crawler, a prefetch or a refresh from spending money.
 import { FREE_RESCAN_WINDOW_D, MAINTENANCE_TICK_MINUTES } from "@/lib/config/constants";
+import { BOT_PROTECTION } from "@/lib/measure/challenge";
 import { admitFreeScan, type Admission, type NetworkKey } from "@/lib/scan/admission";
 import { isDomainRemoved } from "@/lib/scan/removal";
 import { RUNNING_ROW_BOUND_S } from "@/lib/scan/stuck";
@@ -158,6 +159,11 @@ function noticeFor(a: {
   if (a.refusal !== null) return { kind: "refused", refusal: a.refusal };
   if (a.correctionFailed) return { kind: "correction_failed" };
   if (a.report.stoppedReason === "site_unreadable") return { kind: "site_unreadable" };
+  // Issue 1379: the cause, where bot protection kept the reader off the
+  // site's own pages, above the market and the factors it took with it.
+  if (a.report.onPage.kind === "unmeasured" && a.report.onPage.because === BOT_PROTECTION) {
+    return { kind: "bot_protected" };
+  }
   // Issue 898: the site read and its market did not, so there is no
   // question, no answer card and no band to be incomplete *about*. A
   // report with nothing measured from its market used to fall through to

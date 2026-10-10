@@ -3,11 +3,19 @@
 // and a stored placeholder is never one.
 import "../../generate/env";
 import { describe, expect, it } from "vitest";
-import { CHIPS_MAX, listedCategory, splitCategories } from "@/lib/scan/gallery";
+import { CHIPS_MAX, listedCategory, listedCompany, splitCategories } from "@/lib/scan/gallery";
 
 /** Fifty categories, most first, as production had them: few shared, most single. */
 const MANY = Array.from({ length: 50 }, (_, i) => ({ name: `Category ${String(i).padStart(2, "0")}`, count: i < 12 ? 14 - i : 1 }));
 const names = (list: readonly { name: string }[]) => list.map((c) => c.name);
+
+describe("the gallery's company names (issue 1379)", () => {
+  it("lists a site a challenge page named after its protection under its domain", () => {
+    expect(listedCompany({ company: "Cloudflare", domain: "sage.com" })).toBe("sage.com");
+    expect(listedCompany({ company: "Cloudflare", domain: "cloudflare.com" })).toBe("Cloudflare");
+    expect(listedCompany({ company: "Sage", domain: "sage.com" })).toBe("Sage");
+  });
+});
 
 describe("the gallery's categories", () => {
   it("never lists a stored placeholder, on a card or as the category a link asks for", () => {

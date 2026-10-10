@@ -437,3 +437,48 @@ describe("BUILD §6.4 — the pricing page is found on the home document, never 
     expect(detectPricingUrl(RICH_HTML, HOME)).toBe(detectPricingUrl(RICH_HTML, HOME));
   });
 });
+
+describe("SPEC §2 (issue 1379) — a bot-protection page is never measured as the site", () => {
+  const BLOCK = readFileSync(path.resolve(import.meta.dirname, "fixtures/challenge/cloudflare-block.sage.com.html"), "utf8");
+  const blocked: Readonly<Record<string, FetchOutcome>> = {
+    [HOME]: { ok: true, status: 403, url: HOME, html: BLOCK, bytes: BLOCK.length, readAt: READ_AT, headers: { server: "cloudflare" } },
+  };
+
+  it("leaves the site's own pages unmeasured and still buys its ranked searches", async () => {
+    const { result, ports } = await measure(blocked);
+    expect(result.onPage).toEqual({ kind: "unmeasured", reason: "undeterminable", at: READ_AT, because: "bot_protection" });
+    expect(result.drivers.foundations.kind).toBe("unmeasured");
+    expect(result.drivers.answerability.kind).toBe("unmeasured");
+    expect(result.text.home).toBeNull();
+    expect(result.protection).toBe("Cloudflare");
+    expect(result.homeRefusal).toBeNull();
+    expect(ports.log.ranked).toHaveLength(1);
+    expect(result.drivers.searchPresence.kind).toBe("measured");
+  });
+
+  it("reads the vendor's rendered page as the home page where that is the site", async () => {
+    const asked: string[] = [];
+    const ports: MeasurePorts = {
+      ...fakePorts(blocked),
+      async renderedPage(_c, a) {
+        asked.push(a.url);
+        return measured([{ url: HOME, status: 200, html: RICH_HTML, bytes: RICH_HTML.length, readAt: READ_AT.toISOString() }], READ_AT);
+      },
+    };
+    const result = await measureDomain(fakeCost(), { domain: DOMAIN, tier: "free" }, ports);
+    expect(asked).toEqual([HOME]);
+    expect(result.onPage.kind).toBe("measured");
+    expect(result.text.home).toContain("How does ReachKit measure a site?");
+    expect(result.renderedHome).toBe(RICH_HTML);
+  });
+
+  it("keeps the pages unmeasured where the vendor met the protection too", async () => {
+    const ports: MeasurePorts = {
+      ...fakePorts(blocked),
+      renderedPage: async () => measured([{ url: HOME, status: 200, html: "<title>Just a moment...</title>", bytes: 31, readAt: READ_AT.toISOString() }], READ_AT),
+    };
+    const result = await measureDomain(fakeCost(), { domain: DOMAIN, tier: "free" }, ports);
+    expect(result.onPage.kind).toBe("unmeasured");
+    expect(result.renderedHome).toBeUndefined();
+  });
+});

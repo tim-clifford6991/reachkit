@@ -6,7 +6,8 @@
 #   scripts/smoke.sh [domain]
 #   SMOKE_BASE_URL=https://reachkit.app scripts/smoke.sh example.com
 #
-# It walks the chain a stranger walks — landing → scan → report — against a
+# It walks the chain a stranger walks — landing → scan → report → gallery
+# card — against a
 # live deployment, and exits non-zero on the first step that does not hold,
 # naming it. Nothing else in CI walks that chain: the five required checks
 # prove the code compiles and renders, and a deployment is marked READY on
@@ -262,8 +263,32 @@ grep -qF "$incomplete" "$page" && fail "$step" "the report shows the incomplete 
 unreadable=$(copy_text "notice.site-unreadable")
 [ -n "$unreadable" ] && grep -qF "$unreadable" "$page" && fail "$step" "the report says the site could not be read"
 
+# Issue 1379: a bot-protection page read in the site's place is not a report
+# of the site. Said first, because it is the cause of the missing score.
+protected=$(copy_text "notice.bot-protected")
+[ -n "$protected" ] || fail "$step" "the copy registry binds no notice.bot-protected"
+grep -qF "$protected" "$page" && fail "$step" "the home page read was a bot-protection challenge, not $DOMAIN's own page"
+
 bars=$(grep -o '[0-9]\{1,2\}/10' "$page" | wc -l)
 [ "$bars" -ge 3 ] || fail "$step" "the report's driver strip carries $bars measured values, not three"
 ok "$step" "200 · $score_label · $band_seen · $bars driver values"
+
+# ── 9. company ───────────────────────────────────────────────────────────
+# Issue 1379: sage.com was listed as "Cloudflare", the title of the challenge
+# page read in its place. The gallery card is where a visitor sees the name,
+# so it is read there. The names are the detector's own list.
+step=company
+listing="$WORK/listing.html"
+code=$(curl -sS -o "$listing" -w '%{http_code}' --max-time 30 "$BASE_URL/scans?q=$DOMAIN" 2>"$WORK/listing.err") \
+  || fail "$step" "GET /scans?q=$DOMAIN did not answer ($(tr -d '\n' < "$WORK/listing.err"))"
+[ "$code" = 200 ] || fail "$step" "GET /scans?q=$DOMAIN answered $code"
+grep -qF "/scan/$DOMAIN" "$listing" || fail "$step" "the gallery lists no card for $DOMAIN"
+names=$(sed -n '/^const NOT_A_COMPANY/,/^]);/s/^  "\(.*\)",$/\1/p' "$REPO/src/lib/measure/challenge.ts")
+[ -n "$names" ] || { echo "smoke: src/lib/measure/challenge.ts binds no NOT_A_COMPANY" >&2; exit 2; }
+while IFS= read -r name; do
+  case "$DOMAIN" in "${name%% *}"*) continue ;; esac
+  grep -qiF ">$name<" "$listing" && fail "$step" "$DOMAIN is listed under a bot protection's name ($name)"
+done <<<"$names"
+ok "$step" "listed under its own name"
 
 echo "smoke: PASS · $BASE_URL walked landing → scan → report for $DOMAIN in $(secs "$ENDED_MS")"

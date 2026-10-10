@@ -8,6 +8,7 @@
 // category filter, the order and the page are all the database's, so the
 // page is server-rendered and paged rather than a list shipped whole.
 import { dbAdmin } from "@/lib/db";
+import { isProtectionName } from "@/lib/measure/challenge";
 import { isPlaceholder } from "@/lib/measure/placeholder";
 
 export const GALLERY_SORTS = ["newest", "highest", "lowest", "az"] as const;
@@ -130,10 +131,17 @@ export function splitCategories(
   };
 }
 
+/** The company a row is listed under: a name a bot-protection page gave a
+ *  site (issue 1379: sage.com was listed as "Cloudflare") is read as none,
+ *  and the row falls back to its domain as an unnamed site's does. */
+export function listedCompany(row: { company: string; domain: string }): string {
+  return isProtectionName(row.company, row.domain) ? row.domain : row.company;
+}
+
 function toEntry(row: Row): GalleryEntry {
   return {
     domain: row.domain,
-    company: row.company,
+    company: listedCompany(row),
     score: row.score,
     category: listedCategory(row.category),
     scannedAt: new Date(row.scanned_at),
@@ -237,7 +245,7 @@ export async function readRecent(n: number): Promise<readonly StripEntry[]> {
     throw new Error(`gallery: could not read the recent scans: ${error.message}`);
   return (data ?? []).map((row) => ({
     domain: row.domain,
-    company: row.company,
+    company: listedCompany(row),
     hasLogo: row.has_logo,
   }));
 }

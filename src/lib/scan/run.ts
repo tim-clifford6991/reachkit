@@ -1381,7 +1381,10 @@ async function runStages(a: StageArgs): Promise<void> {
         // module. The crawl re-reads nothing: this address is row one of
         // the inventory and is already in the `fetches` cache.
         homeUrl: `https://${domain}/`,
-        homeHtml: null,
+        // Issue 1379: where bot protection answered the plain read and the
+        // vendor's browser returned the site, that document is the home
+        // page — the crawl's own read of it would be the protection's.
+        homeHtml: measurement.renderedHome ?? null,
         sitemaps: measurement.robots.kind === "unmeasured" ? [] : measurement.robots.value.sitemaps,
         tier: a.tier,
         locale: measurement.locale,

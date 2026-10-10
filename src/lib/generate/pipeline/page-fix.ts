@@ -24,7 +24,7 @@ import { refusalOf, type CostContext, type FetchRefusal } from "@/lib/costs";
 import { safeFetch } from "@/lib/egress/safe-fetch";
 import { visibleText } from "@/lib/measure/parse";
 import {
-  isStoredDocument,
+  siteDocumentOf,
   OWN_FETCH_OPTS,
   OWN_FETCH_SOURCE,
   toStoredDocument,
@@ -76,7 +76,7 @@ async function readPage(c: CostContext, pageUrl: string): Promise<StoredDocument
     },
   });
   if ("skipped" in result) return null;
-  return isStoredDocument(result.payload) ? result.payload : null;
+  return siteDocumentOf(result.payload);
 }
 
 function logRun(detail: Record<string, string | number | boolean | null>): void {

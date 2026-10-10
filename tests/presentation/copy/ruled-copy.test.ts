@@ -221,12 +221,14 @@ describe('REQ-001 c16 — "… then one written line says what happened and a ma
     expect(() => copy("control.retry")).not.toThrow();
   });
 
-  it("the registry holds exactly ten notice.* keys and exactly five control.* keys", () => {
+  it("the registry holds exactly eleven notice.* keys and exactly five control.* keys", () => {
     const allKeys = Object.keys(COPY) as CopyKey[];
     const noticeKeys = allKeys.filter((k) => k.startsWith("notice."));
     const controlKeys = allKeys.filter((k) => k.startsWith("control."));
     expect(noticeKeys.sort()).toEqual(
       [
+        // Issue 1379: bot protection kept the reader off the site's pages.
+        "notice.bot-protected",
         "notice.correction-failed",
         "notice.incomplete",
         // Issue 898: the site read and its market did not.

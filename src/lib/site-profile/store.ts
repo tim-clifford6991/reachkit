@@ -21,6 +21,7 @@
 // stored text is what drafting reads" requires — no new path into a
 // prompt, and the promise stays checkable by reading that type.
 import { dbAdmin } from "@/lib/db";
+import { isProtectionName } from "@/lib/measure/challenge";
 import type { InventoryRow, SiteProfile, VoiceSummary } from "./types";
 import { LOGO_TYPES, type LogoType, type SiteLogo } from "./logo";
 
@@ -109,7 +110,8 @@ export async function readSiteProfile(domain: string): Promise<SiteProfile | nul
   if (row === undefined) return null;
   return {
     domain: row.domain,
-    siteName: row.site_name,
+    // A name a bot-protection page gave the site is no name (issue 1379).
+    siteName: row.site_name !== null && isProtectionName(row.site_name, row.domain) ? null : row.site_name,
     products: stringList(row.products),
     claims: stringList(row.claims),
     voice: voiceOf(row.voice),
