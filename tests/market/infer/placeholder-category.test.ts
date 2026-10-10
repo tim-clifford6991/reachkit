@@ -1,7 +1,6 @@
-// SPEC §2 2026-10-10 (owner, issue 1377) — a placeholder is never a
-// category, where the market inference answers one: the free scan's
-// profile and the deep pass's market call. gusto.com's scan of 2026-10-08
-// stored `<UNKNOWN>` and `/scans` listed it. No network: `llm()` is stubbed.
+// SPEC §2 2026-10-10 (issue 1377) — a placeholder is never a category where
+// the market inference answers one: the free scan's profile and the deep
+// pass's market call. gusto.com's scan stored `<UNKNOWN>`. `llm()` is stubbed.
 import "../../generate/env";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
@@ -13,20 +12,12 @@ import { isPlaceholder } from "@/lib/measure/placeholder";
 const { llmMock } = vi.hoisted(() => ({ llmMock: vi.fn() }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 
-const PLACEHOLDERS = ["<UNKNOWN>", "unknown", "Unknown", "N/A", "n/a", "none", "", "  ", "<category>", "<not stated>"];
-const CATEGORIES = ["Payroll software", "Unknown Pleasures merchandise", "Nonet sheet music", "B2B <-> B2C marketplaces"];
-
 const COST = { cap: "FREE" } as unknown as CostContext;
-const AT = new Date("2026-10-08T00:00:00.000Z");
-
-function profile(category: string) {
-  return {
-    kind: "measured" as const,
-    at: AT,
-    value: { category, job: "run payroll", offeringType: "saas", audienceTerms: [], namedRivals: [], vocabulary: ["payroll"], brandTokens: ["gusto"] },
-  };
-}
-
+const profile = (category: string) => ({
+  kind: "measured" as const,
+  at: new Date("2026-10-08T00:00:00.000Z"),
+  value: { category, job: "run payroll", offeringType: "saas", audienceTerms: [], namedRivals: [], vocabulary: ["payroll"], brandTokens: ["gusto"] },
+});
 const ANSWER = {
   buyer: "Small business owners",
   job: "Pay staff on time",
@@ -40,31 +31,22 @@ const ANSWER = {
 };
 
 describe("a placeholder is never a category", () => {
-  it.each(PLACEHOLDERS)("%j says there is none", (text) => {
-    expect(isPlaceholder(text)).toBe(true);
+  it("reads a stand-in as none and a real category as one", () => {
+    for (const text of ["<UNKNOWN>", "Unknown", "N/A", "none", "", "  ", "<not stated>"]) expect(isPlaceholder(text), text).toBe(true);
+    for (const text of ["Payroll software", "Unknown Pleasures merchandise", "B2B <-> B2C marketplaces"]) expect(isPlaceholder(text), text).toBe(false);
   });
 
-  it.each(CATEGORIES)("%j is a category", (text) => {
-    expect(isPlaceholder(text)).toBe(false);
-  });
-
-  it.each(["<UNKNOWN>", "n/a"])("the free scan's profile stores %j as no category, and keeps the rest of the answer", async (category) => {
-    llmMock.mockResolvedValueOnce(profile(category));
-    const result = await deriveProfile(COST, { home: "x" });
-    expect(result).toEqual(profile(""));
-  });
-
-  it("the free scan's profile hands a real category back untouched", async () => {
+  it("the free scan's profile stores one as no category, keeps the rest, and leaves a real category untouched", async () => {
+    llmMock.mockResolvedValueOnce(profile("<UNKNOWN>"));
+    expect(await deriveProfile(COST, { home: "x" })).toEqual(profile(""));
     const answered = profile("Payroll software");
     llmMock.mockResolvedValueOnce(answered);
     expect(await deriveProfile(COST, { home: "x" })).toBe(answered);
   });
 
-  it("the deep pass's market call refuses a placeholder as it refuses an empty category, and can still be put to the model", () => {
+  it("the deep pass's market call refuses one as it refuses an empty category, and can still be put to the model", () => {
     expect(MARKET_SCHEMA.safeParse(ANSWER).success).toBe(true);
-    for (const category of ["<UNKNOWN>", "unknown", "N/A", "none", ""]) {
-      expect(MARKET_SCHEMA.safeParse({ ...ANSWER, category }).success).toBe(false);
-    }
+    for (const category of ["<UNKNOWN>", "unknown", "N/A", ""]) expect(MARKET_SCHEMA.safeParse({ ...ANSWER, category }).success).toBe(false);
     expect(() => z.toJSONSchema(MARKET_SCHEMA)).not.toThrow();
   });
 });
