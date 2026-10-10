@@ -3,12 +3,16 @@
 // The pages are the ones the pass's crawl already read and ledgered: this
 // fetches nothing. It runs as a step of its own in the onboarding pass and
 // in a pass measured again now (`@/lib/scan/deep/run`), on the pass's money.
+//
+// One exception buys a read (SPEC §6, issue 1374): a site that serves an
+// empty JavaScript shell has its pages drawn by the vendor (`./rendered`).
 import { siteLocale } from "@/lib/locale/site";
 import type { CostContext } from "@/lib/costs";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { readMeasuredText } from "@/lib/measure/text";
 import { readSiteProfile } from "../store";
 import { readKnowledge, type KnowledgePage, type KnowledgeRead } from "./extract";
+import { isEmptyShell, readRenderedPages } from "./rendered";
 import { readStoredKnowledge, writeStoredKnowledge } from "./store";
 
 /** A sitemap or a robots file is ledgered like a page and is not one. */
@@ -56,12 +60,21 @@ export async function buildKnowledge(
   // the pass's crawl has just listed: a pass inside the own-document window
   // ledgers no page of its own (`@/lib/measure/text`), and a page the site
   // has since taken down must not stay in the base.
-  const held = ownPages(await readMeasuredText({ siteId: a.siteId }), a.domain);
+  // The pages as served: whether the site is a shell is asked of them on
+  // every pass, never of an earlier pass's rendered reads.
+  const served = (await readMeasuredText({ siteId: a.siteId })).filter((page) => page.rendered !== true);
+  const held = ownPages(served, a.domain);
   const listed = new Set(
     ((await readSiteProfile(a.domain).catch(() => null))?.inventory ?? []).map((row) => sameAddress(row.url))
   );
   const current = held.filter((page) => listed.has(sameAddress(page.url)));
-  const pages = current.length > 0 ? current : held;
+  let pages = current.length > 0 ? current : held;
+  const shell = isEmptyShell(pages);
+  if (shell) {
+    const rendered = await readRenderedPages(c, { domain: a.domain, pages });
+    console.log(JSON.stringify({ event: "site_knowledge_rendered", domain: a.domain, served: pages.length, rendered: rendered.length }));
+    if (rendered.length > 0) pages = rendered;
+  }
   const previous = await readStoredKnowledge(a.domain);
   const read = await readKnowledge(c, { domain: a.domain, pages, previous, locale: await siteLocale(a.siteId) });
   if (read.knowledge.pages.length > 0) await writeStoredKnowledge(a.domain, read.knowledge);
@@ -76,6 +89,7 @@ export async function buildKnowledge(
         because: "no page of the site was read into the knowledge base",
         held: held.length,
         listed: listed.size,
+        shell,
         asked: read.asked,
         stoppedBy: read.stoppedBy,
       })

@@ -46,6 +46,10 @@ export const PRICE_BOOK = Object.freeze({
    *  20 asks, 8 cents of `CAPS.DEEP_C`'s 150. */
   AI_MODE_LIVE_C: 0.4,
   CHATGPT_SCRAPE_STD_C: 0.12, AI_MODE_STD_C: 0.12,
+  /** One page as a browser draws it (SPEC §6, issue 1374): On-Page instant
+   *  pages with JavaScript on. The vendor charged 0.15 cents a page on the
+   *  cost check of 2026-10-10, and nothing for the read of the HTML it kept. */
+  RENDERED_PAGE_C: 0.15,
   LLM_MENTIONS_ROWS: 100, LLM_MENTIONS_REQUEST_C: 10, LLM_MENTIONS_ROW_C: 0.1,
 } as const);
 
@@ -474,6 +478,11 @@ export const KNOWLEDGE_BASE = Object.freeze({
   ITEM_CHARS: 300,
   ANSWER_CHARS: 600,
   DEMO_PHRASES: 500,
+  /** A site that serves an empty JavaScript shell (SPEC §6, issue 1374): the
+   *  most pages one pass has the vendor draw, and the longest it waits for
+   *  them. Twelve pages are 1.8 cents at `PRICE_BOOK.RENDERED_PAGE_C`. */
+  RENDERED_PAGES: 12,
+  RENDER_MS: 60_000,
 } as const);
 
 /** The most of the customer's own page text one `profile` call may carry,

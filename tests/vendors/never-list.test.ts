@@ -76,6 +76,9 @@ const APPROVED_EXPORTS = [
   // cities, for a business that serves one place.
   "placeLocation",
   "rankedKeywords",
+  // SPEC §6 (2026-10-10, issue 1374): a page as a browser draws it, for a
+  // site that serves an empty JavaScript shell.
+  "renderedPage",
   // SPEC §7, owner D48 (2026-10-04, issue 1259): Google News, for *current
   // insights*.
   "serpNews",

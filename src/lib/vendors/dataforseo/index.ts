@@ -1,10 +1,10 @@
 // BUILD §6.3 — the closed DataForSEO endpoint list, and nothing else (issue #23; WO-023 landed the shape)
 //
-// This file's exported set is exactly the **ten** functions the owner has
+// This file's exported set is exactly the **eleven** functions the owner has
 // approved — no generic `dataforseo(endpoint, params)`, no re-export of
 // `transport.ts` or `envelope.ts`. `tests/vendors/never-list.test.ts`
-// asserts the exported key set is exactly these ten names; adding an
-// eleventh export of any shape fails it by construction.
+// asserts the exported key set is exactly these eleven names; adding a
+// twelfth export of any shape fails it by construction.
 //
 // **The seventh is `llmMentions`** (SPEC §6, 2026-09-22, #1004): DataForSEO
 // LLM Mentions, bought weekly per site inside the Monday pass on the
@@ -29,6 +29,11 @@
 // nothing for it, so it is the one export that takes no `CostContext`.
 // `locations.ts`'s header carries it.
 //
+// **The eleventh is `renderedPage`** (SPEC §6, 2026-10-10, issue 1374): one
+// page of the customer's own site as a browser draws it, bought only for a
+// site that serves an empty JavaScript shell. `rendered.ts`'s header
+// carries it.
+//
 // Everything BUILD §6.4's never-list forbids — SERP depth > 10, search operators, clickstream flags,
 // Labs historical endpoints, a fourth engine, AI Keyword Data — has no
 // function here to call. The never-list's one admitted exception,
@@ -45,3 +50,4 @@ export { serpNews } from "./news";
 export { aiMode, llmScraper } from "./ai";
 export { llmMentions } from "./mentions";
 export { placeLocation } from "./locations";
+export { renderedPage } from "./rendered";

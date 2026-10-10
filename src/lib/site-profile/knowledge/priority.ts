@@ -61,6 +61,12 @@ export function readFirstRank(url: string): number {
   return segments.length === 1 ? row + 1 : READ_FIRST.length + (row + 1) / 10;
 }
 
+/** Whether an address is one of those read last: a legal, account, tag or
+ *  hiring page, or one never read at all. */
+export function isReadLast(url: string): boolean {
+  return readFirstRank(url) >= READ_FIRST.length + 2;
+}
+
 /** Path words of a gallery: a listing of other businesses, and the entries
  *  under it (reachkit.app's `/scans`, and each report at `/scan/<domain>`).
  *  What such a page says is about them, never about the business whose site

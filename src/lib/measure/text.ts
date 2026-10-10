@@ -7,7 +7,9 @@
 // second copy of the text anywhere.
 //
 // **It fetches nothing and stores nothing.** No `safeFetch`, no vendor
-// call, no write. The extractor is `prose.ts`'s `prose`: the document
+// call, no write. A site that serves an empty JavaScript shell has its
+// pages' rendered reads beside the shells (SPEC §6, issue 1374), marked
+// `rendered`. The extractor is `prose.ts`'s `prose`: the document
 // the measurement scored, without its navigation, header, footer, buttons
 // or example widgets (SPEC §5, 2026-09-29, #1130), because what is read
 // back here is what a page quotes as a fact about the business.
@@ -22,7 +24,7 @@
 // it, a deep pass run inside the own-document window has no text at all,
 // and a paid site grounds no fact and starts no draft.
 import { dbAdmin } from "@/lib/db";
-import { OWN_FETCH_SOURCE, isStoredDocument } from "./own-fetch";
+import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, isStoredDocument, renderedDocumentOf } from "./own-fetch";
 import { prose } from "./prose";
 
 export interface MeasuredText {
@@ -37,6 +39,9 @@ export interface MeasuredText {
   menus?: readonly string[];
   /** The questions the page itself asks (`questions.ts`). */
   questions?: readonly string[];
+  /** The text is the page as a browser draws it, not as it is served (SPEC
+   *  §6, issue 1374): the site serves an empty JavaScript shell. */
+  rendered?: true;
 }
 
 // `fetches` is outside the generated `Database` type (the same schema gap
@@ -45,6 +50,7 @@ export interface MeasuredText {
 // generated client.
 interface OwnFetchRow {
   scan_id: string;
+  source: string;
   payload: unknown;
 }
 interface QueryResult<T> {
@@ -93,7 +99,10 @@ export async function readMeasuredText(a: { siteId: string; scanId?: string }): 
   const scanIds = [...new Set([...own.map((row) => row.id), ...(free.data ?? []).map((row) => row.id)])];
 
   const text = await textOfScans(scanIds);
-  if (text.length > 0 || a.scanId === undefined) return text;
+  // A scan whose pages are all an empty shell says as little as one with no
+  // page (issue 1374): the rendered reads are the rows of the pass that
+  // bought them.
+  if (text.some((page) => page.text !== "") || a.scanId === undefined) return text;
 
   // A pass measured again now (issue 837) runs inside the own-document window
   // of the site's earlier pass, so every page it read was served from that
@@ -122,8 +131,8 @@ async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> 
   const client = dbAdmin();
   const rows = await (client as unknown as MinimalClient)
     .from<OwnFetchRow>("fetches")
-    .select("scan_id, payload")
-    .eq("source", OWN_FETCH_SOURCE)
+    .select("scan_id, source, payload")
+    .in("source", [OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE])
     .in("scan_id", scanIds);
   if (rows.error) {
     throw new Error(`text.ts: read from fetches failed: ${rows.error.message}`);
@@ -134,15 +143,18 @@ async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> 
     // A `null` payload is a ledgered failed read (`own-fetch.ts`) — no
     // text was measured, so none is returned. Any other shape under this
     // source is skipped the same way, never thrown on.
-    if (!isStoredDocument(row.payload)) continue;
-    const read = prose(row.payload.html);
+    const rendered = row.source === RENDERED_FETCH_SOURCE;
+    const document = rendered ? renderedDocumentOf(row.payload) : isStoredDocument(row.payload) ? row.payload : null;
+    if (document === null) continue;
+    const read = prose(document.html);
     out.push({
-      url: row.payload.url,
+      url: document.url,
       text: read.text,
-      measuredAt: new Date(row.payload.readAt),
+      measuredAt: new Date(document.readAt),
       examples: read.examples,
       menus: read.menus,
       questions: read.questions,
+      ...(rendered ? { rendered: true as const } : {}),
     });
   }
   return out.sort(compareMeasuredText);

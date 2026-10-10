@@ -1,0 +1,664 @@
+{
+ "date": "2026-10-10",
+ "commit": "e28894b3",
+ "capCents": 45,
+ "spentCents": 20.2561,
+ "refusedAtCap": 0,
+ "notRun": [
+  "zunicafe.com",
+  "austinplumbery.com",
+  "alexander.co.uk",
+  "tattly.com",
+  "savvycal.com",
+  "clearleft.com",
+  "wesbos.com",
+  "pdxsmiledesign.com",
+  "fletcherelectric.co.uk",
+  "streaksapp.com"
+ ],
+ "defects": [],
+ "sites": [
+  {
+   "site": {
+    "domain": "baeckerei-hinkel.de",
+    "kind": "German small business, German-language site (bakery)",
+    "country": "DE",
+    "language": "de",
+    "kinds": [
+     "shop",
+     "hospitality"
+    ],
+    "market": [
+     "bäcker",
+     "backwaren",
+     "brot",
+     "bakery"
+    ],
+    "place": [
+     "düsseldorf",
+     "duesseldorf",
+     "dusseldorf"
+    ],
+    "why": "A Düsseldorf bakery whose site is in German only. Its market, terms, searches, questions and topics have to be German and measured in Germany."
+   },
+   "siteName": "Bäckerei Hinkel",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "Kunden in Düsseldorf, die handwerklich gebackenes Brot und Backwaren kaufen",
+    "job": "Frische Backwaren und Brot vom Bäcker kaufen",
+    "category": "Bäckerei",
+    "synonyms": [
+     "Brotladen",
+     "Backwarengeschäft",
+     "Handwerksbäckerei"
+    ],
+    "differentiators": [
+     "Handwerklich gebackenes Brot aus nur Mehl, Wasser und Salz",
+     "Seit Generationen in Familienhand",
+     "Brotfreunde-Philosophie mit traditioneller Herstellung"
+    ],
+    "notOurMarket": [
+     "Industrielle Backwarenfabrik",
+     "Supermarkt-Backshop",
+     "Konditorei mit Torten und Kuchen",
+     "Online-Versand von Backwaren"
+    ],
+    "categoryReason": "Die Website nennt sich „Bäckerei Hinkel\" und bewirbt handwerklich gebackenes Brot als Kernprodukt, was die Kategorie Bäckerei definiert.",
+    "rivals": [
+     {
+      "domain": "baeckerei-terbuyken.com",
+      "name": "Bäckerei Terbuyken",
+      "basis": "ai_answer",
+      "reason": "Düsseldorfer Handwerksbäckerei, die für ihr Sauerteigbrot empfohlen wird.",
+      "searchNames": [
+       "bäckerei terbuyken",
+       "bäckerei terbuyken düsseldorf"
+      ],
+      "volume": 18100
+     },
+     {
+      "domain": "zeitfuerbrot.com",
+      "name": "Zeit für Brot",
+      "basis": "ai_answer",
+      "reason": "Handwerksbäckerei mit Fokus auf Sauerteigbrot und natürliche Zutaten, in Düsseldorf vertreten.",
+      "searchNames": [
+       "zeit für brot düsseldorf"
+      ],
+      "volume": 2400,
+      "national": true
+     },
+     {
+      "domain": "hercules-baeckerei.de",
+      "name": "Hercules Bäckerei",
+      "basis": "ranks",
+      "reason": "Vollkorn- und Mühlenbäckerei in Düsseldorf, die als eine der besten Bäckereien der Stadt gehandelt wird.",
+      "searchNames": [
+       "hercules bäckerei",
+       "hercules bäckerei düsseldorf"
+      ],
+      "volume": 390
+     },
+     {
+      "domain": "bulle-baeckerei.de",
+      "name": "Bäckerei Bulle",
+      "basis": "ai_answer",
+      "reason": "Handwerksbäckerei in Düsseldorf mit mehreren Filialen, bekannt für Sauerteigbrot und Brötchen – direkte Konkurrenz für Kunden, die handwerkliches Brot suchen.",
+      "searchNames": [
+       "bäckerei bulle",
+       "bäckerei bulle düsseldorf"
+      ],
+      "volume": 260
+     },
+     {
+      "domain": "oehme24.de",
+      "name": "Oehme Brot & Kuchen",
+      "basis": "ranks",
+      "reason": "Düsseldorfer Bäckerei mit eigenem Ladengeschäft, die frische Backwaren und Brot anbietet.",
+      "searchNames": [
+       "oehme brot & kuchen",
+       "oehme brot kuchen düsseldorf"
+      ],
+      "volume": 0
+     }
+    ],
+    "terms": [
+     {
+      "term": "bäckerei düsseldorf",
+      "volume": 3600
+     },
+     {
+      "term": "sauerteigbrot düsseldorf",
+      "volume": 140
+     },
+     {
+      "term": "backwaren düsseldorf",
+      "volume": 10
+     },
+     {
+      "term": "brötchen düsseldorf",
+      "volume": 10
+     },
+     {
+      "term": "frisches brot düsseldorf",
+      "volume": 0
+     },
+     {
+      "term": "handwerksbäckerei düsseldorf",
+      "volume": 0
+     },
+     {
+      "term": "brot kaufen düsseldorf",
+      "volume": 0
+     },
+     {
+      "term": "brotladen düsseldorf",
+      "volume": 0
+     },
+     {
+      "term": "vollkornbrot düsseldorf",
+      "volume": 0
+     },
+     {
+      "term": "frühstücksbrötchen düsseldorf",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "bäckerei düsseldorf",
+    "termsAt": "2026-10-10T00:40:31.849Z",
+    "demand": {
+     "at": "2026-10-10T00:42:59.337Z",
+     "own": 5400,
+     "brands": {
+      "kaffeepott": 880,
+      "ma bon bread": 0,
+      "bäckerei boeck": 0,
+      "bäckerei bulle": 210,
+      "baeckerei-hinkel": 0,
+      "bäckerei hinkel": 5400,
+      "hercules bäckerei": 390,
+      "bäckerei terbuyken": 18100,
+      "oehme brot & kuchen": 0,
+      "dorfbäckerei ackermann": 590,
+      "ma bon bread düsseldorf": 0,
+      "zeit für brot düsseldorf": 2400,
+      "bäckerei boeck düsseldorf": 0,
+      "bäckerei bulle düsseldorf": 260,
+      "kamps bäckerei düsseldorf": 170,
+      "oehme brot kuchen düsseldorf": 0,
+      "hercules bäckerei düsseldorf": 260,
+      "bäckerei terbuyken düsseldorf": 170,
+      "kaffeepott brötchenlieferservice": 0,
+      "dorfbäckerei ackermann düsseldorf": 0,
+      "kaffeepott brötchenlieferservice düsseldorf": 0
+     },
+     "searches": {
+      "kamps alternative": 0,
+      "kaffeepott alternative": 0,
+      "ma bon bread alternative": 0,
+      "zeit für brot alternative": 0,
+      "bäckerei boeck alternative": 0,
+      "bäckerei bulle alternative": 0,
+      "hercules bäckerei alternative": 0,
+      "bäckerei terbuyken alternative": 0,
+      "oehme brot & kuchen alternative": 0,
+      "dorfbäckerei ackermann alternative": 0
+     }
+    },
+    "judged": {
+     "brotzeit düsseldorf": false,
+     "bäcker in düsseldorf": true,
+     "bester bäcker düsseldorf": true,
+     "beste bäckerei düsseldorf": true,
+     "brötchen liefern düsseldorf": true,
+     "brötchen bestellen düsseldorf": true,
+     "bäckerei düsseldorf in der nähe": true
+    },
+    "kind": "shop",
+    "serves": {
+     "name": "Düsseldorf",
+     "region": "Nordrhein-Westfalen"
+    }
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 3,
+    "timeouts": 0
+   },
+   "pageQuestions": 0,
+   "locales": [
+    {
+     "location": "Germany",
+     "language": "de"
+    },
+    {
+     "location": "Dusseldorf,North Rhine-Westphalia,Germany",
+     "language": "de"
+    }
+   ],
+   "stored": {
+    "country": "DE",
+    "language": "de"
+   },
+   "searches": [
+    "bäckerei düsseldorf",
+    "beste bäckerei düsseldorf",
+    "bester bäcker düsseldorf",
+    "sauerteigbrot düsseldorf",
+    "backwaren düsseldorf",
+    "brötchen düsseldorf",
+    "bäckerei düsseldorf in der nähe",
+    "bäcker in düsseldorf",
+    "brötchen bestellen düsseldorf",
+    "brötchen liefern düsseldorf"
+   ],
+   "knowledgePages": 3,
+   "questions": [],
+   "audience": [
+    "Brotfreunde"
+   ],
+   "topics": [
+    {
+     "query": "sauerteigbrot düsseldorf",
+     "status": "open",
+     "type": "expand_page",
+     "fit": 3,
+     "volume": 140,
+     "ready": false
+    },
+    {
+     "query": "beste bäckerei düsseldorf",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 3,
+     "volume": 170,
+     "ready": true
+    },
+    {
+     "query": "bäckerei terbuyken alternative",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "zeit für brot alternative",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "hercules bäckerei alternative",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "bäckerei bulle alternative",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "bäckerei hinkel vs bäckerei terbuyken",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "bäckerei hinkel vs zeit für brot",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "bäckerei hinkel vs hercules bäckerei",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "bäckerei hinkel vs bäckerei bulle",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "bäckerei hinkel vs oehme brot & kuchen",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "wo finde ich brot ohne zusatzstoffe und konservierungsmittel",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 20.2561,
+   "costBySource": {
+    "site-profile": 0.6321,
+    "profile": 0.2598,
+    "market-inference": 0.4212,
+    "market-terms": 0.8469,
+    "dataforseo_labs/google/keyword_overview": 2.41,
+    "market-searches": 0.7029,
+    "question-phrasing": 0.2658,
+    "serp/google/organic": 2.4000000000000004,
+    "serp/google/ai_mode": 1.2000000000000002,
+    "ai_optimization/chat_gpt/llm_scraper": 0.12,
+    "on_page/instant_pages": 0.75,
+    "site-knowledge": 1.3249,
+    "rival-inference": 4.1097,
+    "topic-buyer-searches": 0.2459,
+    "topic-typed": 0.2326,
+    "topic-fit": 3.7458,
+    "opportunity-typing": 0.3833,
+    "topic-same-question": 0.2052
+   },
+   "area": {
+    "place": "Düsseldorf",
+    "location": "Dusseldorf,North Rhine-Westphalia,Germany",
+    "because": "service_page"
+   },
+   "resultDomains": [
+    "www.instagram.com",
+    "www.tripadvisor.de",
+    "www.baeckerei-hinkel.de",
+    "www.marktaktuell.com",
+    "www.dastelefonbuch.de",
+    "www.branchen-duesseldorf.de",
+    "www.tonight.de",
+    "www.gelbeseiten.de",
+    "www.xn--bckerei-dsseldorf-qqb87b.de",
+    "www.google.com",
+    "www.mrduesseldorf.de",
+    "www.reddit.com",
+    "www.nrz.de",
+    "www.facebook.com",
+    "lust-auf-duesseldorf.de",
+    "bulle-baeckerei.de",
+    "threebestrated.de",
+    "www.werkenntdenbesten.de",
+    "oehme24.de",
+    "www.hinkel-shop.de",
+    "www.carlsplatz-markt.de",
+    "www.stadtbaecker.com",
+    "www.dorfbaeckerei-ackermann.de",
+    "rp-online.de",
+    "www.navarrokonditorei.com",
+    "www.lieferando.de",
+    "hercules-baeckerei.de",
+    "www.kaffeepott.info",
+    "baeckerbote-duesseldorf.de",
+    "www.broetchenbursche.de",
+    "kamps-lieferservice.de",
+    "charcuterieduesseldorf.com",
+    "www.duesseldorf.de",
+    "kamps.de",
+    "www.feinschmecker.de",
+    "www.ubereats.com",
+    "www.tripadvisor.at",
+    "branchenbuch.meinestadt.de",
+    "www.lieferzwerge.de",
+    "limeberry.de",
+    "bestellung.bulle-baeckerei.de",
+    "www.kennstdueinen.de",
+    "tripadvisor.de",
+    "baeckerei-hinkel.de",
+    "mabonbread.com",
+    "baeckerei-terbuyken.com",
+    "google.com",
+    "zeitfuerbrot.com",
+    "wolt.com",
+    "reddit.com"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Bäckerei in Düsseldorf: Wo kaufen Sie am liebsten, und warum?"
+    },
+    {
+     "kind": "category",
+     "text": "Sauerteigbrot in Düsseldorf: Welche Adressen werden wirklich empfohlen?"
+    },
+    {
+     "kind": "category",
+     "text": "Backwaren in Düsseldorf: Welche Adressen werden wirklich empfohlen?"
+    },
+    {
+     "kind": "category",
+     "text": "Brötchen in Düsseldorf: Welche Adressen werden wirklich empfohlen?"
+    },
+    {
+     "kind": "category",
+     "text": "Ich kaufe zum ersten Mal. Bäckerei in Düsseldorf: Wo sollte ich anfangen?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wo finde ich ein schönes Geschenk?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wo kaufe ich gut bei kleinem Budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wer liefert schnell?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wer stellt noch selbst und in kleinen Mengen her?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wo finde ich etwas für einen besonderen Anlass?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wo werde ich beim Aussuchen gut beraten?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Welcher unabhängige Laden ist besser als die großen Ketten?"
+    },
+    {
+     "kind": "persona",
+     "text": "Wir sind Kunden. Bäckerei in Düsseldorf: Wo sollten wir kaufen?"
+    },
+    {
+     "kind": "persona",
+     "text": "Bäckerei in Düsseldorf: Was empfehlen Sie für Kunden?"
+    },
+    {
+     "kind": "persona",
+     "text": "Bäckerei in Düsseldorf: Wo kaufen Kunden am liebsten?"
+    },
+    {
+     "kind": "persona",
+     "text": "Ich kaufe für Kunden. Bäckerei in Düsseldorf: Wo werde ich fündig?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Bäckerei in Düsseldorf: Wie schneidet Bäckerei Terbuyken im Vergleich zu Zeit für Brot ab?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Was sind die besten Alternativen zu Bäckerei Terbuyken für Kunden?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Bäckerei in Düsseldorf: Zeit für Brot oder Hercules Bäckerei – wen würden Sie wählen?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Bäckerei in Düsseldorf: Wer bietet das bessere Preis-Leistungs-Verhältnis – Bäckerei Terbuyken, Zeit für Brot oder Hercules Bäckerei?"
+    },
+    {
+     "kind": "problem",
+     "text": "Mein letzter Kauf war eine Enttäuschung. Bäckerei in Düsseldorf: Auf wen ist Verlass?"
+    },
+    {
+     "kind": "problem",
+     "text": "Ich brauche es schnell. Bäckerei in Düsseldorf: Wer hat es rechtzeitig da?"
+    },
+    {
+     "kind": "problem",
+     "text": "Ich kann mich nicht entscheiden. Bäckerei in Düsseldorf: Wer hat die beste Auswahl, und worauf sollte ich achten?"
+    },
+    {
+     "kind": "branded",
+     "text": "Bäckerei in Düsseldorf: Ist Bäckerei Hinkel eine gute Wahl?"
+    },
+    {
+     "kind": "branded",
+     "text": "Bäckerei in Düsseldorf: Ist Bäckerei Hinkel eine gute Alternative zu Bäckerei Terbuyken?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"Bäckerei\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"bäckerei düsseldorf\" 3600/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "review",
+     "detail": "read in Germany / de; the terms' own wording is read by hand",
+     "items": [
+      "bäckerei düsseldorf",
+      "sauerteigbrot düsseldorf",
+      "backwaren düsseldorf",
+      "brötchen düsseldorf",
+      "frisches brot düsseldorf",
+      "handwerksbäckerei düsseldorf",
+      "brot kaufen düsseldorf",
+      "brotladen düsseldorf",
+      "vollkornbrot düsseldorf",
+      "frühstücksbrötchen düsseldorf"
+     ]
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "pass",
+     "detail": "Bäckerei Terbuyken — baeckerei-terbuyken.com, 18100/mo, ai_answer; Zeit für Brot — zeitfuerbrot.com, 2400/mo, ai_answer; Hercules Bäckerei — hercules-baeckerei.de, 390/mo, ranks; Bäckerei Bulle — bulle-baeckerei.de, 260/mo, ai_answer; Oehme Brot & Kuchen — oehme24.de, 0/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "10 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "the site's own pages ask no question, and none is kept",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"Kunden in Düsseldorf, die handwerklich gebackenes Brot und Backwaren kaufen\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 1.32¢; 0 of 3 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "shop; 25 prompts, each naming düsseldorf",
+     "items": []
+    },
+    {
+     "check": "a local business is measured in its own place",
+     "verdict": "pass",
+     "detail": "14 of 14 terms and searches name düsseldorf or duesseldorf or dusseldorf or \"near me\"; read from Dusseldorf,North Rhine-Westphalia,Germany; 5 rivals, every national one shown in this place's results",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "4 searched terms; \"bäckerei düsseldorf\" has 3600"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 13 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 3 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "baeckerei-hinkel.de",
+     "foundations": "measured",
+     "answerability": "zero",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    }
+   ],
+   "seconds": 206,
+   "evidenceLoaded": 140
+  }
+ ]
+}
