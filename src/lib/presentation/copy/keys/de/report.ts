@@ -295,6 +295,8 @@ export const REPORT_COPY_DE = {
   "gallery.search.label": "Nach Unternehmen oder Domain suchen",
   "gallery.filter.label": "Kategorie",
   "gallery.filter.all": "Alle",
+  "gallery.filter.more": "Mehr",
+  "gallery.filter.more.label": "Weitere Kategorien",
   "gallery.showing": "{shown} von {total} Berichten angezeigt",
   "gallery.sort.label": "Sortierung",
   "gallery.sort.newest": "Neueste zuerst",

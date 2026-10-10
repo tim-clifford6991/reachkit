@@ -24,6 +24,7 @@ import type { Language, Locale } from "@/lib/locale/locales";
 import { z } from "zod";
 import type { CostContext } from "@/lib/costs";
 import type { Measured } from "@/lib/measure/measured";
+import { isPlaceholder } from "@/lib/measure/placeholder";
 import { PROFILE_INPUT_MAX_CHARS, PROFILE_LIST_BOUNDS } from "@/lib/config/constants";
 import { llm } from "@/lib/llm";
 
@@ -182,7 +183,8 @@ export function boundPageText(
 /** BP-025 `## Public interface`, verbatim signature. One `llm()` call,
  *  `site: 'profile'`, `tier: 'nano'`; the `CostContext` passed straight
  *  through and the `Measured<Profile>` `llm()` returns handed back
- *  unaltered — no default category, no fallback to the site's own
+ *  unaltered but for a placeholder category, which is emptied (issue
+ *  1377) — no default category, no fallback to the site's own
  *  marketing wording, no retry (`llm()` already retries once on a parse
  *  failure; this function does not retry again). */
 export function deriveProfile(
@@ -201,9 +203,16 @@ export function deriveProfile(
     ...(a.locale === undefined ? {} : { locale: a.locale }),
   }).then((result) => {
     logProfileOutcome(result);
+    if (result.kind === "unmeasured") return result;
+    // A placeholder (`<UNKNOWN>`, "n/a") is no category (issue 1377): it is
+    // stored empty, which every reader already takes as none, and nothing
+    // is put in its place.
+    const value = isPlaceholder(result.value.category) ? { ...result.value, category: "" } : result.value;
     // The profile carries its language where that is not English, so every
     // later reader of a stored report reads its searches the same way.
-    return result.kind === "unmeasured" || language === "en" ? result : { ...result, value: { ...result.value, language } };
+    return value === result.value && language === "en"
+      ? result
+      : { ...result, value: language === "en" ? value : { ...value, language } };
   });
 }
 

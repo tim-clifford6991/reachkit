@@ -598,12 +598,19 @@ const PUBLISHER_MORE_PAGES = [
  * with a logo, one drawn as a letter, one a ceiling cut off, and a company
  * name and a domain long enough to be clamped. Reserved `.example` names,
  * so no report fixture and no account answers for any of them.
+ *
+ * Issue 1377: and the categories as production fills them — ten with two
+ * scans (two over the chips' cap), a tail with one each, and the placeholder
+ * two stored rows carry. All older than the four above.
  */
 const FREE_SCANS: readonly { domain: string; name: string | null; score: number | null; category: string | null; logo: boolean }[] = [
   { domain: "harbourbikes.example", name: "Harbour Bike Repair", score: 47, category: "Local services", logo: true },
   { domain: "northloop-dental-and-orthodontics-practice.example", name: "Northloop Dental & Orthodontics Practice of the Lower East Harbour", score: 58, category: "Health and wellbeing services for families", logo: false },
   { domain: "tallyhq.example", name: "Tally", score: 71, category: "Software", logo: false },
   { domain: "cedar-yoga.example", name: null, score: null, category: null, logo: false },
+  ...Array.from({ length: 2 }, (_, i) => ({ domain: `placeholder-${i}.example`, name: `Placeholder ${i}`, score: 40 + i, category: "<UNKNOWN>", logo: false })),
+  ...Array.from({ length: 20 }, (_, i) => ({ domain: `shared-${i}.example`, name: `Shared ${i}`, score: 30 + i, category: `Shared category ${i % 10}`, logo: false })),
+  ...Array.from({ length: 24 }, (_, i) => ({ domain: `single-${i}.example`, name: `Single ${i}`, score: 50 + i, category: `Category number ${i + 1} of the long tail`, logo: false })),
 ];
 
 /** A 1×1 PNG, so the seeded logo is a picture the browser can draw. */
