@@ -58,6 +58,8 @@ import { OWN_DOCUMENT_MAX_BYTES } from "../../../src/lib/config/constants.ts";
 const DOMAIN = "reachkit.app";
 const HOME = "https://reachkit.app/";
 const READ_AT = new Date("2026-09-05T09:30:00.000Z");
+// The pass starts a day after the stored read it is served (issue 1392).
+const SCAN_AT = new Date("2026-09-06T22:52:00.000Z");
 
 const SOURCE_PATH = path.resolve(import.meta.dirname, "../../../src/lib/measure/index.ts");
 const SOURCE = readFileSync(SOURCE_PATH, "utf8");
@@ -187,7 +189,7 @@ async function measure(
 ): Promise<{ result: DomainMeasurement; cost: ReturnType<typeof fakeCost>; ports: ReturnType<typeof fakePorts> }> {
   const cost = fakeCost(costOpts);
   const ports = fakePorts(documents, portOver);
-  const result = await measureDomain(cost, { domain: DOMAIN, tier: a.tier ?? "free", pages: a.pages }, ports);
+  const result = await measureDomain(cost, { domain: DOMAIN, at: SCAN_AT, tier: a.tier ?? "free", pages: a.pages }, ports);
   return { result, cost, ports };
 }
 
@@ -206,7 +208,7 @@ describe('BP-010 `## Responsibility` — "classify every result as measured, mea
     const { result } = await measure({ [HOME]: failOutcome(HOME, reason) });
     expect(result.onPage).toEqual({ kind: "unmeasured", reason: "undeterminable", at: READ_AT });
     expect(result.drivers.foundations.kind).toBe("unmeasured");
-    expect(result.drivers.answerability).toEqual({ kind: "unmeasured", reason: "undeterminable", at: READ_AT });
+    expect(result.drivers.answerability).toEqual({ kind: "unmeasured", reason: "undeterminable", at: SCAN_AT });
   });
 
   it("a home document read that contained none of what we count is a measured zero", async () => {
@@ -231,7 +233,7 @@ describe('BP-010 `## Responsibility` — "classify every result as measured, mea
 
   it("a robots reader that cannot determine a policy nulls the policy rather than fabricating an open one", async () => {
     const { result } = await measure(FULL_SITE, {}, { robots: { ok: false, reason: "not wired" } });
-    expect(result.robots).toEqual({ kind: "unmeasured", reason: "undeterminable", at: READ_AT });
+    expect(result.robots).toEqual({ kind: "unmeasured", reason: "undeterminable", at: SCAN_AT });
     expect(result.drivers.foundations.kind).toBe("unmeasured");
   });
 
@@ -243,7 +245,7 @@ describe('BP-010 `## Responsibility` — "classify every result as measured, mea
   it("`aiPresence` is always not_attempted here — the twelve SERPs are §6.7's, not this call's", async () => {
     for (const tier of ["free", "deep", "weekly"] as const) {
       const { result } = await measure(FULL_SITE, { tier });
-      expect(result.drivers.aiPresence).toEqual({ kind: "unmeasured", reason: "not_attempted", at: READ_AT });
+      expect(result.drivers.aiPresence).toEqual({ kind: "unmeasured", reason: "not_attempted", at: SCAN_AT });
     }
   });
 });
@@ -255,18 +257,19 @@ describe('BP-010 `## Error & edge behavior` — "Determinism is a test, not an a
     expect(JSON.stringify(second.result)).toBe(JSON.stringify(first.result));
   });
 
-  it("the module reads no clock — every `at` comes from an outcome's `readAt`", async () => {
+  it("the module reads no clock — every figure is dated by the pass, and the home page's facts by their own read (issue 1392)", async () => {
     expect(CODE_ONLY).not.toMatch(/Date\.now\s*\(/);
     expect(CODE_ONLY).not.toMatch(/new Date\s*\(\s*\)/);
 
     const { result } = await measure(FULL_SITE, { tier: "deep", pages: ["https://reachkit.app/docs"] });
-    const everyMeasured: Measured<unknown>[] = [
-      result.onPage,
+    const everyFigure: Measured<unknown>[] = [
       result.robots,
+      result.ownRanked,
       ...Object.values(result.drivers),
       ...(result.pricing === null ? [] : [result.pricing.facts]),
     ];
-    for (const m of everyMeasured) expect(m.at.toISOString()).toBe(READ_AT.toISOString());
+    for (const m of everyFigure) expect(m.at.toISOString()).toBe(SCAN_AT.toISOString());
+    expect(result.onPage.at.toISOString()).toBe(READ_AT.toISOString());
   });
 
   it("every own-document read is ledgered under one source, keyed by its own URL", async () => {
@@ -280,7 +283,7 @@ describe("issue 1170 — a pass is served no read from before its own period", (
   it("the caller's window narrows every own read and the ranked rows, so a stored read cannot date this pass", async () => {
     const cost = fakeCost();
     const ports = fakePorts(FULL_SITE);
-    await measureDomain(cost, { domain: DOMAIN, tier: "weekly", ownWindowDays: 0.25 }, ports);
+    await measureDomain(cost, { domain: DOMAIN, at: SCAN_AT, tier: "weekly", ownWindowDays: 0.25 }, ports);
     const ownReads = cost.calls.filter((call) => call.source === OWN_FETCH_SOURCE);
     expect(ownReads.length).toBeGreaterThan(0);
     expect(ownReads.every((call) => call.freshnessDays === 0.25)).toBe(true);
@@ -289,7 +292,7 @@ describe("issue 1170 — a pass is served no read from before its own period", (
 
   it("never widens the own window, and leaves it alone where the caller names none", async () => {
     const wide = fakeCost();
-    await measureDomain(wide, { domain: DOMAIN, tier: "weekly", ownWindowDays: 90 }, fakePorts(FULL_SITE));
+    await measureDomain(wide, { domain: DOMAIN, at: SCAN_AT, tier: "weekly", ownWindowDays: 90 }, fakePorts(FULL_SITE));
     const { cost, ports } = await measure(FULL_SITE);
     const windows = [...wide.calls, ...cost.calls].filter((call) => call.source === OWN_FETCH_SOURCE);
     expect(new Set(windows.map((call) => call.freshnessDays)).size).toBe(1);
@@ -306,7 +309,7 @@ describe("issue #479 — the own-site read's cap, and a refused home document", 
       seen.push(opts);
       return inner(url, opts);
     };
-    await measureDomain(fakeCost(), { domain: DOMAIN, tier: "free" }, ports);
+    await measureDomain(fakeCost(), { domain: DOMAIN, at: SCAN_AT, tier: "free" }, ports);
     expect(seen).toHaveLength(2);
     for (const opts of seen) expect(opts).toEqual(OWN_FETCH_OPTS);
     expect(OWN_FETCH_OPTS.maxBytes).toBe(OWN_DOCUMENT_MAX_BYTES);
@@ -327,8 +330,8 @@ describe("issue #479 — the own-site read's cap, and a refused home document", 
       expect(ports.log.fetched).toEqual([HOME]);
       expect(ports.log.robots).toEqual([]);
       expect(ports.log.ranked).toEqual([]);
-      expect(result.robots).toEqual({ kind: "unmeasured", reason: "not_attempted", at: READ_AT });
-      expect(result.drivers.searchPresence).toEqual({ kind: "unmeasured", reason: "not_attempted", at: READ_AT });
+      expect(result.robots).toEqual({ kind: "unmeasured", reason: "not_attempted", at: SCAN_AT });
+      expect(result.drivers.searchPresence).toEqual({ kind: "unmeasured", reason: "not_attempted", at: SCAN_AT });
       expect(result.text).toEqual({ home: null, pricing: null });
     }
   );
@@ -395,7 +398,7 @@ describe('BP-010 `## NFR budget` — the spend, the page cap and the ceiling', (
 
   it("a not_attempted driver names its ceiling, and the priced call is not made", async () => {
     const { result, ports } = await measure(FULL_SITE, {}, {}, { capped: true });
-    expect(result.drivers.searchPresence).toEqual({ kind: "unmeasured", reason: "not_attempted", at: READ_AT });
+    expect(result.drivers.searchPresence).toEqual({ kind: "unmeasured", reason: "not_attempted", at: SCAN_AT });
     expect(ports.log.ranked).toEqual([]);
 
     const lines = (logSpy.mock.calls as unknown[][]).map((call) => String(call[0]));
@@ -411,8 +414,8 @@ describe('BP-010 `## NFR budget` — the spend, the page cap and the ceiling', (
     ports.rankedKeywords = async () => {
       throw new Error("rankedKeywords is not yet implemented");
     };
-    const result = await measureDomain(cost, { domain: DOMAIN, tier: "free" }, ports);
-    expect(result.drivers.searchPresence).toEqual({ kind: "unmeasured", reason: "undeterminable", at: READ_AT });
+    const result = await measureDomain(cost, { domain: DOMAIN, at: SCAN_AT, tier: "free" }, ports);
+    expect(result.drivers.searchPresence).toEqual({ kind: "unmeasured", reason: "undeterminable", at: SCAN_AT });
   });
 
   it("zero ranked rows is a measured zero, not a withheld driver", async () => {
@@ -465,7 +468,7 @@ describe("SPEC §2 (issue 1379) — a bot-protection page is never measured as t
         return measured([{ url: HOME, status: 200, html: RICH_HTML, bytes: RICH_HTML.length, readAt: READ_AT.toISOString() }], READ_AT);
       },
     };
-    const result = await measureDomain(fakeCost(), { domain: DOMAIN, tier: "free" }, ports);
+    const result = await measureDomain(fakeCost(), { domain: DOMAIN, at: SCAN_AT, tier: "free" }, ports);
     expect(asked).toEqual([HOME]);
     expect(result.onPage.kind).toBe("measured");
     expect(result.text.home).toContain("How does ReachKit measure a site?");
@@ -477,7 +480,7 @@ describe("SPEC §2 (issue 1379) — a bot-protection page is never measured as t
       ...fakePorts(blocked),
       renderedPage: async () => measured([{ url: HOME, status: 200, html: "<title>Just a moment...</title>", bytes: 31, readAt: READ_AT.toISOString() }], READ_AT),
     };
-    const result = await measureDomain(fakeCost(), { domain: DOMAIN, tier: "free" }, ports);
+    const result = await measureDomain(fakeCost(), { domain: DOMAIN, at: SCAN_AT, tier: "free" }, ports);
     expect(result.onPage.kind).toBe("unmeasured");
     expect(result.renderedHome).toBeUndefined();
   });
