@@ -44,7 +44,7 @@ import { parseStoredMarket } from "@/lib/market/infer/stored";
 import { spokenMarket } from "@/lib/market/infer/terms";
 import { generatePrompts, promptSiteName } from "@/lib/market/prompts/generate";
 import { verdictOf } from "@/lib/market/rivals/verify";
-import { OWN_FETCH_SOURCE } from "@/lib/measure/own-fetch";
+import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE } from "@/lib/measure/own-fetch";
 import { prose } from "@/lib/measure/prose";
 import { runDeepPass, type PassStep } from "@/lib/scan/deep/run";
 import { parseHealth } from "@/lib/scan/health";
@@ -290,7 +290,9 @@ const AI_MODE_SOURCE = "serp/google/ai_mode";
 function questionsOnPages(siteId: string): number | null {
   try {
     const pages = json<string[] | null>(
-      `select coalesce(jsonb_agg(f.payload->>'html'), '[]'::jsonb) from public.fetches f join public.scans c on c.id = f.scan_id where c.site_id = '${siteId}' and f.source = '${OWN_FETCH_SOURCE}' and f.payload ? 'html';`
+      // A page the vendor drew for a site that serves a shell (issue 1374)
+      // is a one-row list, and it asks its questions too.
+      `select coalesce(jsonb_agg(p.html), '[]'::jsonb) from (select case when f.source = '${OWN_FETCH_SOURCE}' then f.payload->>'html' else f.payload->0->>'html' end as html from public.fetches f join public.scans c on c.id = f.scan_id where c.site_id = '${siteId}' and f.source in ('${OWN_FETCH_SOURCE}', '${RENDERED_FETCH_SOURCE}')) p where p.html is not null;`
     );
     return new Set((pages ?? []).flatMap((html) => prose(html).questions.map((question) => question.toLowerCase()))).size;
   } catch {

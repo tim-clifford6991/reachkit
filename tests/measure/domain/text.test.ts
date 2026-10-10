@@ -13,7 +13,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import { dbAdmin } from "@/lib/db";
-import { OWN_FETCH_SOURCE, toStoredDocument } from "../../../src/lib/measure/own-fetch.ts";
+import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, toStoredDocument } from "../../../src/lib/measure/own-fetch.ts";
 import { readMeasuredText } from "../../../src/lib/measure/text.ts";
 
 const SOURCE_PATH = path.resolve(import.meta.dirname, "../../../src/lib/measure/text.ts");
@@ -138,8 +138,8 @@ describe('BP-010 decision 4 — "Nothing new is stored: BP-007\'s `fetches` row 
     // select + eq(site_id), then select + eq(tier) + in(domain)
     expect(log.filter((entry) => entry.table === "scans")).toHaveLength(5);
     expect(log.filter((entry) => entry.table === "fetches").map((entry) => entry.method)).toEqual([
-      "select(scan_id, payload)",
-      "eq(source)",
+      "select(scan_id, source, payload)",
+      "in(source)",
       "in(scan_id)",
     ]);
   });
@@ -251,6 +251,32 @@ describe('BP-010 decision 4 `## Consequences` — "the comparison set reaches ba
       error: { table: "fetches", message: "kaboom" },
     });
     await expect(readMeasuredText({ siteId: SITE })).rejects.toThrow(/read from fetches failed: kaboom/);
+  });
+});
+
+describe("issue 1374 — a site drawn by JavaScript is read back as a browser drew it", () => {
+  const SHELL = '<html><body><div id="root"></div></body></html>';
+
+  it("the rendered read stands beside the empty shell and says it is rendered; a later pass that holds only shells still reads it", async () => {
+    useDb({
+      scans: [
+        { id: "scan-deep", site_id: SITE, domain: "a.example" },
+        { id: "scan-weekly", site_id: SITE, domain: "a.example" },
+      ],
+      fetches: [
+        { scan_id: "scan-deep", source: OWN_FETCH_SOURCE, payload: storedDocument("https://a.example/", SHELL, READ_AT) },
+        { scan_id: "scan-deep", source: RENDERED_FETCH_SOURCE, payload: [storedDocument("https://a.example/", HOME_HTML, LATER)] },
+        { scan_id: "scan-weekly", source: OWN_FETCH_SOURCE, payload: storedDocument("https://a.example/", SHELL, LATER) },
+        // A rendered read that failed is a row with no document.
+        { scan_id: "scan-deep", source: RENDERED_FETCH_SOURCE, payload: { vendorFailure: "timeout", endpoint: RENDERED_FETCH_SOURCE, billed: true } },
+      ],
+    });
+    const all = await readMeasuredText({ siteId: SITE });
+    expect(all.map((page) => [page.text === "", page.rendered ?? false])).toEqual([[true, false], [false, true], [true, false]]);
+    expect(all[1]?.text).toContain("It reads the page & counts what is there.");
+
+    const weekly = await readMeasuredText({ siteId: SITE, scanId: "scan-weekly" });
+    expect(weekly.some((page) => page.rendered === true)).toBe(true);
   });
 });
 

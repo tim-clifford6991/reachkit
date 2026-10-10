@@ -61,6 +61,10 @@ const SERP_DEPTH = 10;
  *  caller can still set none of them. */
 const NO_LOCALE_PATH_PREFIX = "/v3/ai_optimization/llm_mentions";
 
+/** On-Page (SPEC §6, issue 1374) is the second: it reads one address in a
+ *  browser, and an address has no country to be searched from. */
+const NO_LOCALE_PATH_PREFIXES = [NO_LOCALE_PATH_PREFIX, "/v3/on_page/"] as const;
+
 /** The path families that are read from a city (SPEC §6, owner D67 of
  *  2026-10-07, issue 1318): Google's own results, organic and AI Mode,
  *  which the vendor serves from any of the cities on its list. Labs holds
@@ -114,8 +118,8 @@ export interface DataForSeoRequestSpec {
   path: string;
   mode: DataForSeoMode;
   /** The country and language this read is made in (D66): the site's own,
-   *  one row of the closed list. `null` only for the one family that takes
-   *  no locale at all (`NO_LOCALE_PATH_PREFIX`). Required, never defaulted:
+   *  one row of the closed list. `null` only for the families that take
+   *  no locale at all (`NO_LOCALE_PATH_PREFIXES`). Required, never defaulted:
    *  a default would measure somebody's market in the wrong country
    *  without anyone having decided it. */
   locale: Locale | null;
@@ -165,7 +169,7 @@ function authorizationHeader(): string {
 export function buildRequest(spec: DataForSeoRequestSpec): DataForSeoRequest {
   const task: Record<string, unknown> = { ...(spec.fields ?? {}) };
   for (const key of RESERVED_TASK_KEYS) delete task[key];
-  if (!spec.path.startsWith(NO_LOCALE_PATH_PREFIX)) {
+  if (!NO_LOCALE_PATH_PREFIXES.some((prefix) => spec.path.startsWith(prefix))) {
     const locale = spec.locale === null ? null : localeOf(spec.locale.country, spec.locale.language);
     if (locale === null) throw new Error(`dataforseo: ${spec.path} was asked for in a locale that is not on the list`);
     task.location_name = locationName(spec.path, { ...locale, ...(spec.locale?.place === undefined ? {} : { place: spec.locale.place }) });

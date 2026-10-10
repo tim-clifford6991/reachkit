@@ -65,3 +65,14 @@ export function isStoredDocument(payload: unknown): payload is StoredDocument {
     !Number.isNaN(new Date(p.readAt).getTime())
   );
 }
+
+/** The `source` of a page the vendor drew in a browser for us (SPEC §6,
+ *  issue 1374): bought only for a site that serves an empty JavaScript
+ *  shell, and stored as the one-row list every vendor read is. */
+export const RENDERED_FETCH_SOURCE = "on_page/instant_pages";
+
+/** The document of a rendered read's row, or `null` for a failed read. */
+export function renderedDocumentOf(payload: unknown): StoredDocument | null {
+  const first: unknown = Array.isArray(payload) ? payload[0] : null;
+  return isStoredDocument(first) ? first : null;
+}

@@ -147,6 +147,9 @@ export type VendorOutcome =
       /** What the vendor says it charged for this call, in cents — see
        *  `chargedCents`. Absent where the response carried no figure. */
       vendorCents?: number;
+      /** A live call's task (issue 1374): what a second request names to
+       *  read something the vendor kept from the first. */
+      taskId?: string;
     }
   | {
       ok: false;
@@ -306,7 +309,10 @@ export async function callEndpoint(
   if (mode === "live") {
     if (!paths.live) return failure("no_surface", false, "dataforseo: endpoint has no live surface");
     const out = await sendRequest<unknown>({ path: paths.live, mode, locale, fields, ...abort });
-    return out.ok ? withCharge(firstResult(out.payload, false), out.payload) : fromTransport(out);
+    if (!out.ok) return fromTransport(out);
+    const answer = withCharge(firstResult(out.payload, false), out.payload);
+    const taskId = asString(firstTask(out.payload)?.id);
+    return answer.ok && taskId !== undefined ? { ...answer, taskId } : answer;
   }
 
   if (!paths.std) return failure("no_surface", false, "dataforseo: endpoint has no standard-queue surface");

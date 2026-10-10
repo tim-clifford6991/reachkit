@@ -752,7 +752,7 @@ const TRACKING_PARAM_RE = /^(?:utm_.*|gclid|fbclid|msclkid)$/i;
  *  two pages (issue 609) — whether they are is the document's own canonical
  *  to say (`aliasOf`); the tracking parameters go because they never
  *  address a page. */
-function dedupeKey(url: string): string | null {
+export function dedupeKey(url: string): string | null {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -817,6 +817,19 @@ function aliasOf(url: string, html: string, site: string | null): { alias: false
 /** One read page, parsed. Never throws: a document that carries no title
  *  and no `h1` yields empty strings, which is the truth about it. */
 function pageOf(url: string, html: string, site: string | null, fetchMs: number | null): CrawledPage {
+  const links = linksOf(url, html, site);
+  return {
+    url,
+    title: firstText(html, TITLE_RE),
+    h1: firstText(html, H1_RE),
+    text: proseText(html).slice(0, SITE_PROFILE.PAGE_SAMPLE_CHARS),
+    facts: readPageFacts(url, html),
+    links,
+    fetchMs,
+  };
+}
+
+function linksOf(url: string, html: string, site: string | null): string[] {
   const links = new Set<string>();
   for (const href of anchorHrefs(html)) {
     const target = inScopeUrl(href, url, site);
@@ -825,15 +838,13 @@ function pageOf(url: string, html: string, site: string | null, fetchMs: number 
   }
   const own = dedupeKey(url);
   if (own !== null) links.delete(own);
-  return {
-    url,
-    title: firstText(html, TITLE_RE),
-    h1: firstText(html, H1_RE),
-    text: proseText(html).slice(0, SITE_PROFILE.PAGE_SAMPLE_CHARS),
-    facts: readPageFacts(url, html),
-    links: [...links],
-    fetchMs,
-  };
+  return [...links];
+}
+
+/** The pages of `domain` a document links to, as crawl identities, once
+ *  each: what the crawl's own rows carry, for a document it did not read. */
+export function ownLinks(url: string, html: string, domain: string): readonly string[] {
+  return linksOf(url, html, registrableDomain(domain));
 }
 
 function firstText(html: string, re: RegExp): string {
