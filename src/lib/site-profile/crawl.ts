@@ -78,7 +78,7 @@ import { proseText } from "@/lib/measure/prose";
 import { readPageFacts, type PageIssueFacts } from "@/lib/site-issues/facts";
 import { readFirstRank } from "./knowledge/priority";
 import {
-  isStoredDocument,
+  siteDocumentOf,
   OWN_FETCH_OPTS,
   OWN_FETCH_SOURCE,
   toStoredDocument,
@@ -585,7 +585,7 @@ async function ledger(
     run: async () => (prefetched.ok ? toStoredDocument(prefetched) : refusalOf(prefetched)),
   });
   if ("skipped" in result) return null;
-  return isStoredDocument(result.payload) ? result.payload : null;
+  return siteDocumentOf(result.payload);
 }
 
 /** The home document, cache-first. The sibling of `ledger` above, and
@@ -621,8 +621,8 @@ async function readHome(
     },
   });
   if ("skipped" in result) return null;
-  const stored = result.payload;
-  return isStoredDocument(stored) ? { url: stored.url, html: stored.html, fetchMs } : null;
+  const document = siteDocumentOf(result.payload);
+  return document === null ? null : { url: document.url, html: document.html, fetchMs };
 }
 
 /** The site's own sitemaps: what `robots.txt` declared, plus the

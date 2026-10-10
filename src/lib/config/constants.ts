@@ -485,6 +485,11 @@ export const KNOWLEDGE_BASE = Object.freeze({
   RENDER_MS: 60_000,
 } as const);
 
+/** SPEC §2 (issue 1379): how long a pass waits for the vendor's rendered
+ *  read of a home page whose plain read was a bot-protection page. One ask,
+ *  inside `reading_your_site`'s own ten seconds on the free path. */
+export const CHALLENGE_RENDER_MS = 5_000;
+
 /** The most of the customer's own page text one `profile` call may carry,
  *  in characters of the prompt it is serialised into — home first, the
  *  pricing page in what remains, cut at a word boundary

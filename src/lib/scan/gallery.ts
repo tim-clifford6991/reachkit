@@ -8,6 +8,7 @@
 // category filter, the order and the page are all the database's, so the
 // page is server-rendered and paged rather than a list shipped whole.
 import { dbAdmin } from "@/lib/db";
+import { isProtectionName } from "@/lib/measure/challenge";
 import { isPlaceholder } from "@/lib/measure/placeholder";
 import { brandName, domainBrand } from "@/lib/site-profile/site-name";
 
@@ -132,10 +133,13 @@ export function splitCategories(
 }
 
 /** The stored name as a card shows it: the brand, never a page title's
- *  tagline (issue 1380). The view answers the domain where no name is
- *  stored, and the card then shows the domain's own brand. */
-function shownCompany(row: Pick<Row, "domain" | "company">): string {
-  return (row.company === row.domain ? domainBrand(row.domain) : brandName([row.company], row.domain)) ?? row.domain;
+ *  tagline (issue 1380), and never the name a bot-protection page gave the
+ *  site (issue 1379: sage.com was listed as "Cloudflare"). The view answers
+ *  the domain where no name is stored; a card with no name of the site's
+ *  own shows the domain's brand. */
+export function shownCompany(row: { company: string; domain: string }): string {
+  const unnamed = row.company === row.domain || isProtectionName(row.company, row.domain);
+  return (unnamed ? domainBrand(row.domain) : brandName([row.company], row.domain)) ?? row.domain;
 }
 
 function toEntry(row: Row): GalleryEntry {

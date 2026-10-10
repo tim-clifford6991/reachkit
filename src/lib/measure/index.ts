@@ -34,7 +34,7 @@
 import { pagePathAlternation } from "@/lib/locale/language";
 import { readLocale, type Locale, type ResolvedLocale } from "@/lib/locale";
 import { readPlaceSignals, type PlaceSignals } from "@/lib/locale/place";
-import { BATTERY, CACHE_WINDOWS_D, PRICE_BOOK } from "@/lib/config/constants";
+import { BATTERY, CACHE_WINDOWS_D, CHALLENGE_RENDER_MS, PRICE_BOOK } from "@/lib/config/constants";
 import {
   isFetchRefusal,
   refusalOf,
@@ -48,6 +48,7 @@ import { readRobots } from "@/lib/egress/robots";
 import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import { rankedKeywords } from "@/lib/vendors/dataforseo";
 import type { RankedResult, RankedRow } from "@/lib/vendors/dataforseo/types";
+import { BOT_PROTECTION, challengeOf, type ProtectionVendor } from "./challenge";
 import { answerabilityOf, foundationsOf, ownRankedOf, searchPresenceOf } from "./drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "./measured";
 import { OWN_FETCH_OPTS, OWN_FETCH_SOURCE, isStoredDocument, toStoredDocument, type StoredDocument } from "./own-fetch";
@@ -58,6 +59,7 @@ export type { Drivers } from "./score";
 export { aiPresenceOf, answerabilityOf, foundationsOf, ownRankedOf, searchPresenceOf } from "./drivers";
 export { parseOnPage, visibleText, type OnPageFacts } from "./parse";
 export type { Measured, UnmeasuredReason } from "./measured";
+export { BOT_PROTECTION, type ProtectionVendor } from "./challenge";
 
 export type Tier = "free" | "deep" | "weekly";
 
@@ -91,12 +93,20 @@ export interface MeasurePorts {
     c: CostContext,
     a: { domain: string; rows: 50 | 100 | 300; locale: Locale; onFailure?: (failure: VendorFailure) => void }
   ) => Promise<Measured<RankedResult>>;
+  /** The vendor's rendered read (SPEC §6, issue 1374), asked once for a home
+   *  page whose plain read was a bot-protection page (SPEC §2, issue 1379).
+   *  Absent, it is not asked. */
+  renderedPage?: (c: CostContext, a: { url: string; freshnessDays: number }) => Promise<Measured<StoredDocument[]>>;
 }
 
 const DEFAULT_PORTS: MeasurePorts = Object.freeze({
   fetchDocument: safeFetch,
   readRobots,
   rankedKeywords,
+  // Read off the module when it is asked for, so a suite that doubles the
+  // vendor without this function still loads.
+  renderedPage: async (c: CostContext, a: { url: string; freshnessDays: number }) =>
+    (await import("@/lib/vendors/dataforseo")).renderedPage(c, a),
 });
 
 /** `console.log` JSON is this corpus's log channel absent an observability
@@ -124,6 +134,17 @@ interface DocumentRead {
   /** Why the fetcher refused the document, where it did; `null` where it
    *  was read, served from the cache, or never attempted. */
   refusal: FetchRefusalReason | null;
+  /** The bot protection whose page was served in the document's place
+   *  (SPEC §2, issue 1379); `null` where the site's own page was read. */
+  protection: ProtectionVendor | null;
+}
+
+/** A read document as its facts: `zero` when it parsed to nothing (no
+ *  headings, no visible text — REQ-004 c7's "read it; it contained none"). */
+function factsOf(document: StoredDocument, at: Date): Measured<OnPageFacts> {
+  const facts = parseOnPage({ url: document.url, html: document.html });
+  const isEmpty = facts.headings === 0 && facts.visibleChars === 0;
+  return isEmpty ? measuredZero(facts, at) : measured(facts, at);
 }
 
 /** One own-document read, through `recordFetch` at zero cents so the bytes
@@ -158,24 +179,46 @@ async function readDocument(
   });
 
   if ("skipped" in result) {
-    return { url, facts: unmeasured("not_attempted", EPOCH), html: null, at: EPOCH, refusal: null };
+    return { url, facts: unmeasured("not_attempted", EPOCH), html: null, at: EPOCH, refusal: null, protection: null };
   }
   const stored = result.payload;
   if (!isStoredDocument(stored)) {
     const at = stash.failure === null ? EPOCH : stash.failure.readAt;
     const refusal = isFetchRefusal(stored) ? stored.refusal : null;
-    return { url, facts: unmeasured("undeterminable", at), html: null, at, refusal };
+    return { url, facts: unmeasured("undeterminable", at), html: null, at, refusal, protection: null };
   }
   const at = new Date(stored.readAt);
-  const facts = parseOnPage({ url: stored.url, html: stored.html });
-  const isEmpty = facts.headings === 0 && facts.visibleChars === 0;
-  return {
-    url,
-    facts: isEmpty ? measuredZero(facts, at) : measured(facts, at),
-    html: stored.html,
-    at,
-    refusal: null,
-  };
+  // A bot-protection page is not the site's (issue 1379): nothing on it is
+  // a fact of the site, so it is read as a page that could not be read.
+  const protection = challengeOf(stored);
+  if (protection !== null) {
+    return { url, facts: unmeasured("undeterminable", at, BOT_PROTECTION), html: null, at, refusal: null, protection };
+  }
+  return { url, facts: factsOf(stored, at), html: stored.html, at, refusal: null, protection: null };
+}
+
+/** The home page as the vendor's browser draws it, asked once where the
+ *  plain read was a bot-protection page (issue 1379). `null` where the
+ *  vendor met the protection too, did not answer inside
+ *  `CHALLENGE_RENDER_MS`, or the cap is spent. Never throws. */
+async function renderedHome(c: CostContext, ports: MeasurePorts, url: string, windowDays: number): Promise<StoredDocument | null> {
+  const ask = ports.renderedPage;
+  if (ask === undefined || c.capHit()) return null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const read = await Promise.race([
+      ask(c, { url, freshnessDays: windowDays }),
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), CHALLENGE_RENDER_MS);
+      }),
+    ]);
+    const document = read === null || read.kind !== "measured" ? undefined : read.value[0];
+    return document === undefined || challengeOf(document) !== null ? null : document;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** Re-stamps a read's `at` to the scan's one date. The document's own
@@ -274,6 +317,16 @@ export interface DomainMeasurement {
    *  priced call — and the pass ends `site_unreadable` (`src/lib/scan/
    *  run.ts`) rather than `complete`. */
   homeRefusal: FetchRefusalReason | null;
+  /** The bot protection that answered the home page's plain read with a
+   *  page of its own (SPEC §2, issue 1379); absent where the site answered.
+   *  Where the vendor's rendered read then returned the site, `onPage` and
+   *  `text` are that read's and `renderedHome` is its document; where it did
+   *  not, the site's own pages are unmeasured and the vendor reads still
+   *  run. */
+  protection?: ProtectionVendor;
+  /** The home document of the rendered read above, for the site profile:
+   *  the crawl's own read of the home page would be the protection's. */
+  renderedHome?: string;
 }
 
 /** Reads a domain — home document, detected pricing page, up to the tier's
@@ -310,8 +363,19 @@ export async function measureDomain(
     a.ownWindowDays === undefined ? CACHE_WINDOWS_D.own : Math.min(CACHE_WINDOWS_D.own, a.ownWindowDays);
 
   // 1. The home document — its `readAt` is the scan's one date.
-  const home = await readDocument(c, ports, homeUrl, windowDays);
-  const at = home.at;
+  const plain = await readDocument(c, ports, homeUrl, windowDays);
+  const at = plain.at;
+  // 1'. A bot-protection page in its place: the vendor's browser is asked
+  //     once (issue 1379). Its document is dated as the pass is.
+  const drawn = plain.protection === null ? null : await renderedHome(c, ports, homeUrl, windowDays);
+  const home: DocumentRead = drawn === null ? plain : { ...plain, facts: factsOf(drawn, at), html: drawn.html };
+  if (plain.protection !== null) {
+    logDriver("home_bot_protection", { domain: a.domain, protection: plain.protection, rendered: drawn !== null });
+  }
+  const guarded = {
+    ...(plain.protection === null ? {} : { protection: plain.protection }),
+    ...(drawn === null ? {} : { renderedHome: drawn.html }),
+  };
   const onPage = home.facts;
   const read: ResolvedLocale =
     a.locale === undefined ? readLocale({ domain: a.domain, html: home.html }) : { locale: a.locale, fellBack: null };
@@ -338,6 +402,7 @@ export async function measureDomain(
       localeFellBack: read.fellBack,
       stated: readPlaceSignals(home.html),
       homeRefusal: home.refusal,
+      ...guarded,
     };
   }
 
@@ -507,5 +572,6 @@ export async function measureDomain(
     localeFellBack: read.fellBack,
     stated: readPlaceSignals(home.html),
     homeRefusal: null,
+    ...guarded,
   };
 }

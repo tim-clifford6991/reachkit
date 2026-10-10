@@ -50,6 +50,8 @@ function storedReport(over: Partial<{
    *  or the suggestions did not answer, so nothing after that step
    *  exists. */
   marketUnread: boolean;
+  /** Issue 1379: bot protection answered the home page's read. */
+  botProtected: boolean;
 }> = {}): StoredReport {
   const measuredAt = over.measuredAt ?? new Date("2026-09-05T12:00:00.000Z");
   return {
@@ -68,6 +70,9 @@ function storedReport(over: Partial<{
           value: { profile: { category: "product analytics" } },
         },
     correctionState: over.correctionState ?? "none",
+    onPage: over.botProtected
+      ? { kind: "unmeasured", at: measuredAt, reason: "undeterminable", because: "bot_protection" }
+      : { kind: "measured", at: measuredAt, value: {} },
     verdict: { measuredAt, missing: over.missing ?? [] },
   } as unknown as StoredReport;
 }
@@ -363,6 +368,19 @@ describe("issue 898 — a report whose market was never read says so, rather tha
     expect(state.notice).toEqual({ kind: "market_unread" });
     // The visitor still gets the one control that answers it.
     expect(state.control).toEqual({ kind: "rescan", because: "incomplete" });
+  });
+
+  it("names bot protection as the cause where it kept the reader off the site's pages (issue 1379)", async () => {
+    readCurrentReport.mockResolvedValue(
+      storedReport({
+        botProtected: true,
+        marketUnread: true,
+        missing: [{ factor: "foundations", reason: "undeterminable" }],
+      })
+    );
+    const state = await resolve();
+    if (state.kind !== "report") throw new Error("unreachable");
+    expect(state.notice).toEqual({ kind: "bot_protected" });
   });
 
   it("a report whose market was read keeps every notice it had", async () => {

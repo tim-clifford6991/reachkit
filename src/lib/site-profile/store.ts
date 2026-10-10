@@ -21,6 +21,7 @@
 // stored text is what drafting reads" requires — no new path into a
 // prompt, and the promise stays checkable by reading that type.
 import { dbAdmin } from "@/lib/db";
+import { isProtectionName } from "@/lib/measure/challenge";
 import type { InventoryRow, SiteProfile, VoiceSummary } from "./types";
 import { LOGO_TYPES, type LogoType, type SiteLogo } from "./logo";
 import { brandName } from "./site-name";
@@ -111,8 +112,10 @@ export async function readSiteProfile(domain: string): Promise<SiteProfile | nul
   return {
     domain: row.domain,
     // A name stored before issue 1380 may be a whole page title; it is
-    // read as the brand, like a new one.
-    siteName: brandName([row.site_name], row.domain),
+    // read as the brand, like a new one. A name a bot-protection page gave
+    // the site is no name (issue 1379).
+    siteName:
+      row.site_name !== null && isProtectionName(row.site_name, row.domain) ? null : brandName([row.site_name], row.domain),
     products: stringList(row.products),
     claims: stringList(row.claims),
     voice: voiceOf(row.voice),

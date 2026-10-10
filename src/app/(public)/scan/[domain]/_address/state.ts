@@ -61,6 +61,11 @@ export type AddressNotice =
    *  `incomplete`: every factor is missing, and the one true cause is the
    *  line, not a list of the factors it took with it. */
   | { kind: "site_unreadable" }
+  /** The site's bot protection answered the home page's read with a page of
+   *  its own (SPEC §2, issue 1379), so the site's own pages are unmeasured.
+   *  The pass went on to the vendor reads. Outranks `market_unread` and
+   *  `incomplete`: both are consequences of it. */
+  | { kind: "bot_protected" }
   /** The site read, and its **market** did not (issue 898): the profile
    *  call did not answer, or the suggestions did not. Nothing after that
    *  step exists — no questions, no AI answers, no band — so the report is

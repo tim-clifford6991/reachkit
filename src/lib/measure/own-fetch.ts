@@ -16,6 +16,7 @@
 import { OWN_DOCUMENT_MAX_BYTES } from "@/lib/config/constants";
 import type { SafeFetchOpts } from "@/lib/egress/safe-fetch";
 import type { FetchOutcome } from "@/lib/egress/types";
+import { CHALLENGE_HEADERS, challengeOf } from "./challenge";
 
 /** The `source` column value of every own-document row. One string, read
  *  by the writer and the reader; nothing else in the product ledgers under
@@ -38,15 +39,24 @@ export interface StoredDocument {
   bytes: number;
   /** ISO-8601, the `readAt` of the outcome this was projected from. */
   readAt: string;
+  /** The response headers the challenge detector reads (`./challenge`,
+   *  issue 1379). Absent on a row stored before it and on a rendered read. */
+  headers?: Readonly<Record<string, string>>;
 }
 
 export function toStoredDocument(outcome: Extract<FetchOutcome, { ok: true }>): StoredDocument {
+  const headers: Record<string, string> = {};
+  for (const name of CHALLENGE_HEADERS) {
+    const value = outcome.headers[name];
+    if (value !== undefined) headers[name] = value;
+  }
   return {
     url: outcome.url,
     status: outcome.status,
     html: outcome.html,
     bytes: outcome.bytes,
     readAt: outcome.readAt.toISOString(),
+    headers,
   };
 }
 
@@ -66,6 +76,13 @@ export function isStoredDocument(payload: unknown): payload is StoredDocument {
   );
 }
 
+/** A stored row's document where it is the site's own page: `null` for a
+ *  refusal, any other shape, and a bot-protection page served in the site's
+ *  place (SPEC §2, issue 1379), which no reader takes for the site. */
+export function siteDocumentOf(payload: unknown): StoredDocument | null {
+  return isStoredDocument(payload) && challengeOf(payload) === null ? payload : null;
+}
+
 /** The `source` of a page the vendor drew in a browser for us (SPEC §6,
  *  issue 1374): bought only for a site that serves an empty JavaScript
  *  shell, and stored as the one-row list every vendor read is. */
@@ -74,5 +91,5 @@ export const RENDERED_FETCH_SOURCE = "on_page/instant_pages";
 /** The document of a rendered read's row, or `null` for a failed read. */
 export function renderedDocumentOf(payload: unknown): StoredDocument | null {
   const first: unknown = Array.isArray(payload) ? payload[0] : null;
-  return isStoredDocument(first) ? first : null;
+  return siteDocumentOf(first);
 }

@@ -134,6 +134,8 @@ function noticeOf(notice: AddressNotice): { line: string; warn: boolean } {
       return { line: incompleteLine(notice.unmeasured), warn: true };
     case "site_unreadable":
       return { line: copy("notice.site-unreadable"), warn: true };
+    case "bot_protected":
+      return { line: copy("notice.bot-protected"), warn: true };
     // Issue 898: the site read and its market did not.
     case "market_unread":
       return { line: copy("notice.market-unread"), warn: true };
