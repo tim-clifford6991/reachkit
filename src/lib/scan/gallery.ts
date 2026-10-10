@@ -9,6 +9,7 @@
 // page is server-rendered and paged rather than a list shipped whole.
 import { dbAdmin } from "@/lib/db";
 import { isPlaceholder } from "@/lib/measure/placeholder";
+import { brandName, domainBrand } from "@/lib/site-profile/site-name";
 
 export const GALLERY_SORTS = ["newest", "highest", "lowest", "az"] as const;
 export type GallerySort = (typeof GALLERY_SORTS)[number];
@@ -130,10 +131,17 @@ export function splitCategories(
   };
 }
 
+/** The stored name as a card shows it: the brand, never a page title's
+ *  tagline (issue 1380). The view answers the domain where no name is
+ *  stored, and the card then shows the domain's own brand. */
+function shownCompany(row: Pick<Row, "domain" | "company">): string {
+  return (row.company === row.domain ? domainBrand(row.domain) : brandName([row.company], row.domain)) ?? row.domain;
+}
+
 function toEntry(row: Row): GalleryEntry {
   return {
     domain: row.domain,
-    company: row.company,
+    company: shownCompany(row),
     score: row.score,
     category: listedCategory(row.category),
     scannedAt: new Date(row.scanned_at),
@@ -237,7 +245,7 @@ export async function readRecent(n: number): Promise<readonly StripEntry[]> {
     throw new Error(`gallery: could not read the recent scans: ${error.message}`);
   return (data ?? []).map((row) => ({
     domain: row.domain,
-    company: row.company,
+    company: shownCompany(row),
     hasLogo: row.has_logo,
   }));
 }
