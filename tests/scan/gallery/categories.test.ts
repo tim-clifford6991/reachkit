@@ -3,17 +3,17 @@
 // and a stored placeholder is never one.
 import "../../generate/env";
 import { describe, expect, it } from "vitest";
-import { CHIPS_MAX, listedCategory, listedCompany, splitCategories } from "@/lib/scan/gallery";
+import { CHIPS_MAX, listedCategory, shownCompany, splitCategories } from "@/lib/scan/gallery";
 
 /** Fifty categories, most first, as production had them: few shared, most single. */
 const MANY = Array.from({ length: 50 }, (_, i) => ({ name: `Category ${String(i).padStart(2, "0")}`, count: i < 12 ? 14 - i : 1 }));
 const names = (list: readonly { name: string }[]) => list.map((c) => c.name);
 
 describe("the gallery's company names (issue 1379)", () => {
-  it("lists a site a challenge page named after its protection under its domain", () => {
-    expect(listedCompany({ company: "Cloudflare", domain: "sage.com" })).toBe("sage.com");
-    expect(listedCompany({ company: "Cloudflare", domain: "cloudflare.com" })).toBe("Cloudflare");
-    expect(listedCompany({ company: "Sage", domain: "sage.com" })).toBe("Sage");
+  it("lists a site a challenge page named after its protection under its own brand", () => {
+    expect(shownCompany({ company: "Cloudflare", domain: "sage.com" })).toBe("Sage");
+    expect(shownCompany({ company: "Cloudflare", domain: "cloudflare.com" })).toBe("Cloudflare");
+    expect(shownCompany({ company: "Sage", domain: "sage.com" })).toBe("Sage");
   });
 });
 

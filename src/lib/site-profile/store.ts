@@ -24,6 +24,7 @@ import { dbAdmin } from "@/lib/db";
 import { isProtectionName } from "@/lib/measure/challenge";
 import type { InventoryRow, SiteProfile, VoiceSummary } from "./types";
 import { LOGO_TYPES, type LogoType, type SiteLogo } from "./logo";
+import { brandName } from "./site-name";
 
 /** The generated `Database` type carries neither `site_profiles` nor
  *  `sites.voice_edited_at` — the same narrow cast
@@ -110,8 +111,11 @@ export async function readSiteProfile(domain: string): Promise<SiteProfile | nul
   if (row === undefined) return null;
   return {
     domain: row.domain,
-    // A name a bot-protection page gave the site is no name (issue 1379).
-    siteName: row.site_name !== null && isProtectionName(row.site_name, row.domain) ? null : row.site_name,
+    // A name stored before issue 1380 may be a whole page title; it is
+    // read as the brand, like a new one. A name a bot-protection page gave
+    // the site is no name (issue 1379).
+    siteName:
+      row.site_name !== null && isProtectionName(row.site_name, row.domain) ? null : brandName([row.site_name], row.domain),
     products: stringList(row.products),
     claims: stringList(row.claims),
     voice: voiceOf(row.voice),

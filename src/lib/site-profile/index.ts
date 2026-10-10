@@ -38,7 +38,7 @@ import type { CostContext } from "@/lib/costs";
 import type { Tier } from "@/lib/measure";
 import { crawlSite, type CrawlOutcome } from "./crawl";
 import { derivePurpose } from "./purpose";
-import { siteNameFromTitle, siteNameOf } from "./site-name";
+import { brandName, publishedNames } from "./site-name";
 import { deriveVoice } from "./summary";
 import { writeSiteLogo, writeSiteProfile } from "./store";
 import { captureLogo } from "./logo";
@@ -48,7 +48,7 @@ export { readSiteProfile, writeSiteProfile, adoptVoiceText, saveVoiceText, readS
 export { captureLogo, logoCandidates, sniffLogo, type SiteLogo } from "./logo";
 export { deriveVoice, type SiteReading } from "./summary";
 export { derivePurpose } from "./purpose";
-export { siteNameFromTitle, siteNameOf } from "./site-name";
+export { brandName, publishedNames } from "./site-name";
 export { crawlSite, type CrawledPage, type CrawlOutcome } from "./crawl";
 export {
   PAGE_PURPOSES,
@@ -117,10 +117,7 @@ export async function buildSiteProfileWithCrawl(
   // the home document — the caller's, or the one the crawl read, which is
   // how the free pass reads og:site_name (issue 609) — and otherwise the
   // home page's own title, which the crawl always has as row one.
-  const published =
-    siteNameOf(a.homeHtml ?? "") ??
-    siteNameOf(crawl.homeHtml ?? "") ??
-    siteNameFromTitle(crawl.pages[0]?.title ?? "");
+  const published = [...publishedNames(a.homeHtml ?? ""), ...publishedNames(crawl.homeHtml ?? ""), crawl.pages[0]?.title];
 
   // The inference half, on the paid tiers only — see the header.
   const reading =
@@ -133,8 +130,9 @@ export async function buildSiteProfileWithCrawl(
     domain: a.domain,
     // The model's reading of the name wins where it answered with one —
     // it has read the whole site, not one document — and the published
-    // name is what every other pass stores.
-    siteName: read?.siteName ?? published,
+    // name is what every other pass stores. Either way it is the brand,
+    // never a title's tagline (issue 1380).
+    siteName: brandName([read?.siteName, ...published], a.domain),
     products: read?.products ?? [],
     claims: read?.claims ?? [],
     voice: read?.voice ?? null,

@@ -10,6 +10,7 @@
 import { dbAdmin } from "@/lib/db";
 import { isProtectionName } from "@/lib/measure/challenge";
 import { isPlaceholder } from "@/lib/measure/placeholder";
+import { brandName, domainBrand } from "@/lib/site-profile/site-name";
 
 export const GALLERY_SORTS = ["newest", "highest", "lowest", "az"] as const;
 export type GallerySort = (typeof GALLERY_SORTS)[number];
@@ -131,17 +132,20 @@ export function splitCategories(
   };
 }
 
-/** The company a row is listed under: a name a bot-protection page gave a
- *  site (issue 1379: sage.com was listed as "Cloudflare") is read as none,
- *  and the row falls back to its domain as an unnamed site's does. */
-export function listedCompany(row: { company: string; domain: string }): string {
-  return isProtectionName(row.company, row.domain) ? row.domain : row.company;
+/** The stored name as a card shows it: the brand, never a page title's
+ *  tagline (issue 1380), and never the name a bot-protection page gave the
+ *  site (issue 1379: sage.com was listed as "Cloudflare"). The view answers
+ *  the domain where no name is stored; a card with no name of the site's
+ *  own shows the domain's brand. */
+export function shownCompany(row: { company: string; domain: string }): string {
+  const unnamed = row.company === row.domain || isProtectionName(row.company, row.domain);
+  return (unnamed ? domainBrand(row.domain) : brandName([row.company], row.domain)) ?? row.domain;
 }
 
 function toEntry(row: Row): GalleryEntry {
   return {
     domain: row.domain,
-    company: listedCompany(row),
+    company: shownCompany(row),
     score: row.score,
     category: listedCategory(row.category),
     scannedAt: new Date(row.scanned_at),
@@ -245,7 +249,7 @@ export async function readRecent(n: number): Promise<readonly StripEntry[]> {
     throw new Error(`gallery: could not read the recent scans: ${error.message}`);
   return (data ?? []).map((row) => ({
     domain: row.domain,
-    company: listedCompany(row),
+    company: shownCompany(row),
     hasLogo: row.has_logo,
   }));
 }
