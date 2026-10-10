@@ -221,7 +221,7 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "settings.business.written-from.closed": [
-    "Nothing else. We don’t use facts from anywhere but your site.",
+    "Facts about you come only from your site. Facts about the market come from public pages, each linked.",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "settings.business.source.business": [

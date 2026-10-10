@@ -148,7 +148,7 @@ export const PUBLISH_COPY = Object.freeze({
   // Issue 1143 (drafted): a new page that adds too little the web and the
   // site do not already say. Not a step that failed — the page was written.
   "publish.needs-you.adds": [
-    "This page says too little that isn’t already on your site or in the top results, so it wasn’t published. Add a fact about your business, then write it again.",
+    "This page says too little that isn’t already on your site or in the top results, so it wasn’t published. We set it aside and took the next topic.",
     { slots: {}, fixedBy: "issue 1143 (drafted)" },
   ],
   // Issue 1144 (drafted): the page reads too much like one written for
@@ -162,7 +162,7 @@ export const PUBLISH_COPY = Object.freeze({
   // noun phrase per thing the pack lacked — the draft screen lists them
   // under it, and *Written from your business* lists them again in the pack.
   "publish.needs-you.pack": [
-    "We didn’t write this page because we don’t have enough to write it from. Nothing was published. Add what’s missing in Your business, then write it again.",
+    "We didn’t write this page because we don’t have enough to write it from. Nothing was published, and we took the next topic.",
     { slots: {}, fixedBy: "issue 1252 (drafted)" },
   ],
   "publish.needs-you.pack.need.options": [

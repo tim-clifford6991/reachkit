@@ -73,6 +73,31 @@ describe("a pack is held against what its template must hold", () => {
     expect(buildPack(inputs({ research: { ...RESEARCHED, facts: [claimOf("rival.example")] } })).type).toBe("qa");
   });
 
+  it("issue 1393: a sign-in, account, checkout or legal address is never a source, a page or a link", () => {
+    const from = (url: string) => ({ ...claimOf("rival.example"), url, kind: "rival_features" as const });
+    const pack = buildPack(
+      inputs({
+        facts: [...FACTS, { fact: { ...GROUNDED, url: "https://example.com/signin" }, sourceText: GROUNDED.passage }],
+        research: {
+          ...RESEARCHED,
+          facts: [...RESEARCHED.facts, from("https://rival.example/login"), from("https://rival.example/legal/terms"), from("https://rival.example/checkout")],
+        },
+        sitePages: [
+          { title: "Sign in", question: null, url: "https://example.com/account/signin", kind: null, status: "published" },
+          { title: "Pricing", question: null, url: "https://example.com/pricing", kind: null, status: "published" },
+        ],
+        links: [
+          { source: "known", url: "https://example.com/signin", label: "Sign in" },
+          { source: "known", url: "https://example.com/pricing", label: "Pricing" },
+        ],
+      })
+    );
+    const addresses = [...pack.facts, ...pack.claims, ...pack.pages, ...pack.links].map((each) => each.url);
+    expect(addresses.filter((url) => /signin|login|legal|checkout/.test(url ?? ""))).toEqual([]);
+    expect(pack.pages.map((page) => page.title)).toEqual(["Pricing"]);
+    expect(pack.links.map((link) => link.label)).toEqual(["Pricing"]);
+  });
+
   it("D59: a rival's price read 31 days ago is dropped, and one read 30 days ago stands", () => {
     const daysAgo = (days: number) => new Date(AT.getTime() - days * 86_400_000);
     const old = { ...claimOf("other.example"), readAt: daysAgo(31) };

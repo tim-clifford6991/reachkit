@@ -2,10 +2,11 @@
 // src/app/(public)/_landing/InsideReachKit.tsx
 //
 // Boards `R12-1-Landing` / `R12-8-Phone-landing`: beside the title and the
-// one field, the same height as them, a card that turns through four tabs —
-// *Your week · Your score · AI answers · Your page*. It is what Round 11's
-// one-week card (#935) held, split into the four things a customer looks
-// at, over the same example business; the line under it still says in
+// one field, the same height as them, a card that turns through three tabs —
+// *Your week · AI answers · Your page*. It is what Round 11's one-week card
+// (#935) held, split into the things a customer looks at, over the same
+// example business. It draws no score: the app shows no weekly score (SPEC
+// §1, D22), so the preview of it has none (issue 1393); the line under it still says in
 // writing that the business is an example.
 //
 // **Nothing inside a panel is a control.** The tabs are the only buttons;
@@ -14,19 +15,15 @@
 // (SPEC §1, 2026-09-20: "every control on them does something"). The
 // autopilot state is a `badge`, not a `toggle`, for the same reason.
 //
-// **daisyUI classes, the Overview's own Recharts line, no image** (DESIGN
-// rules 1 and 2): `card`, `tabs`, `badge`, `stat`, `alert`; the week is
-// CSS grid; the score's line is `GrowthLine` through `./HeroLine`, which
-// fetches its code only when *Your score* is on screen (#988's budget).
+// **daisyUI classes, no image** (DESIGN rules 1 and 2): `card`, `tabs`,
+// `badge`, `alert`; the week is CSS grid.
 // The deep floating shadow is spent here (`FLOAT`, #1064).
 //
 // **Every figure is `specimen.ts`'s and every sentence is a key.**
 import type React from "react";
 import { Clock, MessageSquare, Send, Zap } from "lucide-react";
-import { HeroLine } from "./HeroLine";
 import { InsideTabs } from "./InsideTabs";
 import { copy } from "@/lib/presentation/copy";
-import { SCORE_BAND_BOUNDS } from "@/lib/config/constants";
 import { FLOAT } from "@/ui/lift";
 import { STAGE_BEACON, TONE_DOT } from "@/app/(account)/app/calendar/stages";
 import { Num } from "../scan/[domain]/_address/measured";
@@ -38,7 +35,6 @@ import {
   SPECIMEN_HERO_DOMAIN,
   SPECIMEN_HERO_DUE,
   SPECIMEN_HERO_SEARCH,
-  SPECIMEN_HERO_WEEKS,
   specimenAutopilotSince,
   specimenHeroWeek,
 } from "./specimen";
@@ -46,11 +42,6 @@ import {
 /** Bound to a name before it reaches JSX: the copy sweep reads a bare JSX
  *  attribute string as product voice, and it is right to. */
 const HERO_TEST_ID = "landing-inside";
-
-/** `/100`: a numeric format, not a sentence. */
-function outOf(max: number): string {
-  return `/${max}`;
-}
 
 /** The answer takes the width it has and wraps; `min-w-0` so a long line
  *  shortens rather than pushing the card wider. */
@@ -142,38 +133,6 @@ function WeekPanel(): React.JSX.Element {
   );
 }
 
-/** *Your score*: the number the week left, and the line it moved along to
- *  the `findable` boundary — the product's own threshold and word. */
-function ScorePanel(): React.JSX.Element {
-  return (
-    <div className="flex min-w-0 flex-col gap-4">
-      <div className="stat p-0">
-        <div className="stat-title">{copy("overview.tile.score.label")}</div>
-        {/* A flex row, so the mono denominator has a box of its own (#935). */}
-        <div className="stat-value flex items-baseline gap-2 text-5xl">
-          <Num figure>{SPECIMEN_HERO.score}</Num>
-          <span className="text-base-content/70 text-base">
-            <Num>{outOf(SPECIMEN_HERO.max)}</Num>
-          </span>
-          <span className="badge badge-success badge-sm self-center">
-            <Num>{copy("overview.delta.up")}</Num>
-            <Num>{SPECIMEN_HERO.delta}</Num>
-          </span>
-        </div>
-      </div>
-      <HeroLine
-        weeks={SPECIMEN_HERO_WEEKS}
-        label={copy("overview.tile.score.label")}
-        target={{
-          value: SCORE_BAND_BOUNDS.findable,
-          label: `${copy("band.score.findable")} · ${SCORE_BAND_BOUNDS.findable}`,
-        }}
-      />
-      <p className="text-base-content/70 text-sm">{copy("landing.hero.week.line")}</p>
-    </div>
-  );
-}
-
 /** *AI answers*: what the engine says to the search now, and whom it cites. */
 function AnswersPanel(): React.JSX.Element {
   return (
@@ -200,7 +159,7 @@ function AnswersPanel(): React.JSX.Element {
   );
 }
 
-/** *Your page*: the page waiting a day for the owner's read. */
+/** *Your page*: the next page, and when it goes live on its own. */
 function PagePanel(): React.JSX.Element {
   return (
     <div className="flex min-w-0 flex-col gap-3">
@@ -235,7 +194,6 @@ export function InsideReachKit(): React.JSX.Element {
           title={copy("landing.inside.title")}
           tabs={[
             { label: copy("landing.inside.tab.week"), panel: <WeekPanel /> },
-            { label: copy("landing.inside.tab.score"), panel: <ScorePanel /> },
             { label: copy("landing.inside.tab.answers"), panel: <AnswersPanel /> },
             { label: copy("landing.inside.tab.page"), panel: <PagePanel /> },
           ]}

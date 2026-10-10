@@ -201,10 +201,9 @@ export const DRAFT_COPY = Object.freeze({
   ],
   "draft.adds.business": ["About your business", { slots: {}, fixedBy: "issue 1143 (drafted)" }],
   "draft.adds.ask": [
-    "This page is held until it says something only you can: a price, how you work, or a result you’ve had. Tell us one, then write the page again.",
+    "We set this page aside. It said too little that isn’t already on your site or in the top results for its search, so it wasn’t published and the next topic took its place.",
     { slots: {}, fixedBy: "issue 1143 (drafted)" },
   ],
-  "draft.adds.ask.action": ["Add it in Your business", { slots: {}, fixedBy: "issue 1143 (drafted)" }],
   "draft.publishes.title": [
     "What gets published",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
