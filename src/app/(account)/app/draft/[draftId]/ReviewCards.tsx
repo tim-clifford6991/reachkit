@@ -549,7 +549,7 @@ export function LinksCard(p: { links: PageLinks }): React.JSX.Element | null {
               {LINK_GROUPS.map(({ group, title }) =>
                 p.links[group].length === 0 ? null : (
                   <div className="flex min-w-0 flex-col gap-1" key={group} data-testid={`draft-links-${group}`}>
-                    <h3 className="text-sm font-medium">{copy(title)}</h3>
+                    <h3 className="eyebrow">{copy(title)}</h3>
                     <ul className="list bg-base-100 min-w-0 rounded-box">
                       {p.links[group].map((link) => (
                         <li className="list-row min-w-0" key={link.url}>
@@ -574,7 +574,7 @@ export function LinksCard(p: { links: PageLinks }): React.JSX.Element | null {
 
               {p.links.removed.length === 0 ? null : (
                 <div className="flex min-w-0 flex-col gap-1" data-testid="draft-links-removed">
-                  <h3 className="text-sm font-medium">{copy("draft.links.removed")}</h3>
+                  <h3 className="eyebrow">{copy("draft.links.removed")}</h3>
                   <ul className="list bg-base-100 min-w-0 rounded-box">
                     {p.links.removed.map((link) => (
                       <li className="list-row min-w-0" key={`${link.url}-${link.text}`}>

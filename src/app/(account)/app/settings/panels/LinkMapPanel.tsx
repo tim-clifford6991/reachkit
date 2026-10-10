@@ -50,7 +50,7 @@ export function LinkMapPanel(p: { map: LinkMap }): React.JSX.Element {
         ) : (
           <>
             <div className="flex min-w-0 flex-col gap-1">
-              <h3 className="text-sm font-medium">{copy("settings.linkmap.receiving")}</h3>
+              <h3 className="eyebrow">{copy("settings.linkmap.receiving")}</h3>
               {p.map.receiving.length === 0 ? (
                 <p className="text-sm text-base-content/70">{copy("settings.linkmap.receiving.none")}</p>
               ) : (
@@ -74,7 +74,7 @@ export function LinkMapPanel(p: { map: LinkMap }): React.JSX.Element {
             </div>
 
             <div className="flex min-w-0 flex-col gap-1">
-              <h3 className="text-sm font-medium">{copy("settings.linkmap.alone")}</h3>
+              <h3 className="eyebrow">{copy("settings.linkmap.alone")}</h3>
               {p.map.alone.length === 0 ? (
                 <p className="text-sm text-base-content/70">{copy("settings.linkmap.alone.none")}</p>
               ) : (
