@@ -1,0 +1,1988 @@
+{
+ "date": "2026-10-10",
+ "commit": "e28894b3",
+ "capCents": 100,
+ "spentCents": 100.866,
+ "refusedAtCap": 10,
+ "notRun": [
+  "zunicafe.com",
+  "austinplumbery.com",
+  "alexander.co.uk",
+  "tattly.com",
+  "savvycal.com",
+  "clearleft.com",
+  "wesbos.com",
+  "streaksapp.com"
+ ],
+ "defects": [
+  {
+   "check": "knowledge-base buyer questions are real questions, not headings",
+   "sites": [
+    {
+     "domain": "baeckerei-hinkel.de",
+     "detail": "the knowledge base was not built: no page of the site was read into it",
+     "items": []
+    }
+   ]
+  }
+ ],
+ "sites": [
+  {
+   "site": {
+    "domain": "baeckerei-hinkel.de",
+    "kind": "German small business, German-language site (bakery)",
+    "country": "DE",
+    "language": "de",
+    "kinds": [
+     "shop",
+     "hospitality"
+    ],
+    "market": [
+     "bäcker",
+     "backwaren",
+     "brot",
+     "bakery"
+    ],
+    "place": [
+     "düsseldorf",
+     "duesseldorf",
+     "dusseldorf"
+    ],
+    "why": "A Düsseldorf bakery whose site is in German only. Its market, terms, searches, questions and topics have to be German and measured in Germany."
+   },
+   "siteName": "Bäckerei Hinkel",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "Kunden in Düsseldorf, die handwerklich gebackenes Brot und Backwaren kaufen",
+    "job": "Frische Backwaren und Brot vom Bäcker kaufen",
+    "category": "Bäckerei",
+    "synonyms": [
+     "Brotladen",
+     "Backwarengeschäft",
+     "Handwerksbäckerei"
+    ],
+    "differentiators": [
+     "Handwerklich gebackenes Brot aus nur Mehl, Wasser und Salz",
+     "Seit Generationen in Familienhand",
+     "Brotfreunde-Philosophie mit traditioneller Herstellung"
+    ],
+    "notOurMarket": [
+     "Industrielle Backwarenfabrik",
+     "Supermarkt-Backshop",
+     "Konditorei mit Torten und Kuchen",
+     "Online-Versand von Backwaren"
+    ],
+    "categoryReason": "Die Website nennt sich „Bäckerei Hinkel\" und bewirbt handwerklich gebackenes Brot als Kernprodukt, was die Kategorie Bäckerei definiert.",
+    "rivals": [
+     {
+      "domain": "baeckerei-buesch.de",
+      "name": "Bäckerei Büsch",
+      "basis": "ranks",
+      "reason": "Regionale Bäckerei in Düsseldorf mit traditionellem Sortiment, taucht in den Top-Ergebnissen auf.",
+      "searchNames": [
+       "bäckerei büsch",
+       "bäckerei büsch düsseldorf"
+      ],
+      "volume": 60500
+     },
+     {
+      "domain": "baeckerei-terbuyken.com",
+      "name": "Bäckerei Terbuyken",
+      "basis": "ai_answer",
+      "reason": "Traditionelle Handwerksbäckerei in Düsseldorf, in KI-Antworten zu Sauerteigbrot in Düsseldorf empfohlen.",
+      "searchNames": [
+       "bäckerei terbuyken",
+       "bäckerei terbuyken düsseldorf"
+      ],
+      "volume": 18100
+     },
+     {
+      "domain": "hercules-baeckerei.de",
+      "name": "Hercules Bäckerei",
+      "basis": "ai_answer",
+      "reason": "Bäckerei in Düsseldorf, in KI-Antworten zu Backwaren in Düsseldorf genannt.",
+      "searchNames": [
+       "hercules bäckerei",
+       "hercules bäckerei düsseldorf"
+      ],
+      "volume": 390
+     },
+     {
+      "domain": "bulle-baeckerei.de",
+      "name": "Bäckerei Bulle",
+      "basis": "ai_answer",
+      "reason": "Handwerksbäckerei in Düsseldorf mit mehreren Filialen, bekannt für Sauerteigbrot und moderne Backkunst – direkter Wettbewerber um dieselben Kunden.",
+      "searchNames": [
+       "bäckerei bulle",
+       "bäckerei bulle düsseldorf"
+      ],
+      "volume": 260
+     },
+     {
+      "domain": "mabonbread.com",
+      "name": "Mabon Bread",
+      "basis": "ai_answer",
+      "reason": "Handwerkliche Bäckerei in Düsseldorf mit Fokus auf Sauerteigbrot, wird von Kennern als Top-Adresse empfohlen.",
+      "searchNames": [
+       "mabon bread",
+       "mabon bread düsseldorf"
+      ],
+      "volume": 140
+     }
+    ],
+    "terms": [
+     {
+      "term": "bäckerei düsseldorf",
+      "volume": 3600
+     },
+     {
+      "term": "bäcker düsseldorf",
+      "volume": 3600
+     },
+     {
+      "term": "sauerteigbrot düsseldorf",
+      "volume": 140
+     },
+     {
+      "term": "backwaren düsseldorf",
+      "volume": 10
+     },
+     {
+      "term": "brötchen düsseldorf",
+      "volume": 10
+     },
+     {
+      "term": "frisches brot düsseldorf",
+      "volume": 0
+     },
+     {
+      "term": "handwerksbäckerei düsseldorf",
+      "volume": 0
+     },
+     {
+      "term": "brot kaufen düsseldorf",
+      "volume": 0
+     },
+     {
+      "term": "brotladen düsseldorf",
+      "volume": 0
+     },
+     {
+      "term": "vollkornbrot düsseldorf",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "bäckerei düsseldorf",
+    "termsAt": "2026-10-10T00:13:27.981Z",
+    "demand": {
+     "at": "2026-10-10T00:15:15.696Z",
+     "own": 5400,
+     "brands": {
+      "backbrüder": 480,
+      "mabon bread": 140,
+      "bäckerei bulle": 210,
+      "baeckerei-hinkel": 0,
+      "bäckerei büsch": 60500,
+      "bäckerei hinkel": 5400,
+      "kamps düsseldorf": 590,
+      "hercules bäckerei": 390,
+      "bäckerei terbuyken": 18100,
+      "simons brotkörbchen": 110,
+      "backbrüder glutenfrei": 50,
+      "bäckerbote düsseldorf": 90,
+      "mabon bread düsseldorf": 50,
+      "bäckerei bulle düsseldorf": 260,
+      "kamps bäckerei düsseldorf": 170,
+      "bäckerei büsch düsseldorf": 320,
+      "hercules bäckerei düsseldorf": 260,
+      "bäckerei terbuyken düsseldorf": 170,
+      "simons brotkörbchen düsseldorf": 10,
+      "backbrüder glutenfrei düsseldorf": 0
+     },
+     "searches": {
+      "kamps alternative": 0,
+      "backbrüder alternative": 0,
+      "mabon bread alternative": 0,
+      "bäckerei bulle alternative": 0,
+      "bäckerei büsch alternative": 0,
+      "hercules bäckerei alternative": 0,
+      "bäckerei terbuyken alternative": 0,
+      "simons brotkörbchen alternative": 0,
+      "bäckerbote düsseldorf alternative": 0
+     }
+    },
+    "judged": {
+     "brotzeit düsseldorf": false,
+     "bester bäcker düsseldorf": true,
+     "beste bäckerei düsseldorf": true,
+     "glutenfrei bäckerei düsseldorf": true,
+     "glutenfreier bäcker düsseldorf": true,
+     "bäcker lieferservice düsseldorf": false,
+     "glutenfreie backwaren düsseldorf": true,
+     "traditionsbäcker in meiner nähe": true,
+     "bäckerei düsseldorf in der nähe": true
+    },
+    "kind": "shop",
+    "serves": {
+     "name": "Düsseldorf",
+     "region": "Nordrhein-Westfalen"
+    }
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 7,
+    "timeouts": 0
+   },
+   "pageQuestions": 0,
+   "locales": [
+    {
+     "location": "Germany",
+     "language": "de"
+    },
+    {
+     "location": "Dusseldorf,North Rhine-Westphalia,Germany",
+     "language": "de"
+    }
+   ],
+   "stored": {
+    "country": "DE",
+    "language": "de"
+   },
+   "searches": [
+    "bäcker düsseldorf",
+    "bäckerei düsseldorf",
+    "beste bäckerei düsseldorf",
+    "bester bäcker düsseldorf",
+    "sauerteigbrot düsseldorf",
+    "backwaren düsseldorf",
+    "brötchen düsseldorf",
+    "bäckerei düsseldorf in der nähe",
+    "glutenfrei bäckerei düsseldorf",
+    "glutenfreier bäcker düsseldorf",
+    "traditionsbäcker in meiner nähe",
+    "glutenfreie backwaren düsseldorf"
+   ],
+   "knowledgePages": 0,
+   "questions": [],
+   "audience": [],
+   "topics": [
+    {
+     "query": "sauerteigbrot düsseldorf",
+     "status": "open",
+     "type": "expand_page",
+     "fit": 3,
+     "volume": 140,
+     "ready": false
+    },
+    {
+     "query": "bester bäcker düsseldorf",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 2,
+     "volume": 170,
+     "ready": false
+    },
+    {
+     "query": "brötchen düsseldorf",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 2,
+     "volume": 10,
+     "ready": false
+    },
+    {
+     "query": "bäckerei düsseldorf in der nähe",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 2,
+     "volume": 320,
+     "ready": false
+    },
+    {
+     "query": "glutenfrei bäckerei düsseldorf",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 1,
+     "volume": 320,
+     "ready": false
+    },
+    {
+     "query": "bäckerei büsch alternative",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": false
+    },
+    {
+     "query": "bäckerei terbuyken alternative",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": false
+    },
+    {
+     "query": "hercules bäckerei alternative",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": false
+    },
+    {
+     "query": "bäckerei bulle alternative",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": false
+    },
+    {
+     "query": "mabon bread alternative",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": false
+    },
+    {
+     "query": "bäckerei hinkel vs hercules bäckerei",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": false
+    },
+    {
+     "query": "bäckerei hinkel vs mabon bread",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": false
+    },
+    {
+     "query": "handwerklich gebackenes brot düsseldorf",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null,
+     "ready": false
+    }
+   ],
+   "cents": 22.574800000000003,
+   "costBySource": {
+    "site-profile": 0.2803,
+    "profile": 0.2713,
+    "market-inference": 0.4212,
+    "market-terms": 0.8394,
+    "dataforseo_labs/google/keyword_overview": 2.39,
+    "dataforseo_labs/google/keyword_suggestions": 1.8,
+    "market-searches": 0.7929,
+    "question-phrasing": 0.3023,
+    "serp/google/ai_mode": 2.8,
+    "serp/google/organic": 2.880000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 0.48,
+    "rival-inference": 4.2006,
+    "topic-buyer-searches": 0.2557,
+    "topic-typed": 0.2425,
+    "topic-fit": 3.6813,
+    "opportunity-typing": 0.6513,
+    "topic-same-question": 0.286
+   },
+   "area": {
+    "place": "Düsseldorf",
+    "location": "Dusseldorf,North Rhine-Westphalia,Germany",
+    "because": "service_page"
+   },
+   "resultDomains": [
+    "www.tripadvisor.de",
+    "www.tonight.de",
+    "www.instagram.com",
+    "www.lieferando.de",
+    "www.branchen-duesseldorf.de",
+    "www.dastelefonbuch.de",
+    "www.baeckerei-hinkel.de",
+    "www.facebook.com",
+    "www.tripadvisor.ch",
+    "kamps.de",
+    "bulle-baeckerei.de",
+    "www.baeckerei-buesch.de",
+    "www.gelbeseiten.de",
+    "www.dasoertliche.de",
+    "www.xn--bckerei-dsseldorf-qqb87b.de",
+    "www.ubereats.com",
+    "www.google.com",
+    "www.marktaktuell.com",
+    "www.feinschmecker.de",
+    "www.werkenntdenbesten.de",
+    "www.regiomanager.de",
+    "www.mrduesseldorf.de",
+    "www.tripadvisor.at",
+    "wanderlog.com",
+    "oehme24.de",
+    "www.hinkel-shop.de",
+    "www.carlsplatz-markt.de",
+    "rp-online.de",
+    "www.stadtbaecker.com",
+    "www.dorfbaeckerei-ackermann.de",
+    "www.navarrokonditorei.com",
+    "www.nrz.de",
+    "hercules-baeckerei.de",
+    "www.brotinstitut.de",
+    "simons-brotkoerbchen.de",
+    "baeckerbote-duesseldorf.de",
+    "backbrueder-glutenfrei.de",
+    "www.xn--ihr-bcker-schren-znb45b.de",
+    "www.isabella-patisserie.de",
+    "www.celiaquita.de",
+    "www.zoeliakie-austausch.de",
+    "glutenfreewhere.com",
+    "thedorf.de",
+    "www.glutenfrei-grenzenlos.de",
+    "www.happycow.net",
+    "gewusst-wo.de",
+    "www.golocal.de",
+    "de-backerei.com",
+    "www.auskunft.de",
+    "ruthis.de",
+    "coolibri.de",
+    "www.mapquest.com",
+    "www.findmeglutenfree.com",
+    "mabonbread.com",
+    "baeckerei-terbuyken.com",
+    "google.com",
+    "tripadvisor.de",
+    "baeckerei-hinkel.de",
+    "zeitfuerbrot.com",
+    "wolt.com",
+    "reddit.com",
+    "mrduesseldorf.de",
+    "visitduesseldorf.de",
+    "de.wikipedia.org",
+    "mapquest.com"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Bäckerei in Düsseldorf: Wo kaufen Sie am liebsten, und warum?"
+    },
+    {
+     "kind": "category",
+     "text": "Bäcker in Düsseldorf: Welche Adressen werden wirklich empfohlen?"
+    },
+    {
+     "kind": "category",
+     "text": "Sauerteigbrot in Düsseldorf: Welche Adressen werden wirklich empfohlen?"
+    },
+    {
+     "kind": "category",
+     "text": "Backwaren in Düsseldorf: Welche Adressen werden wirklich empfohlen?"
+    },
+    {
+     "kind": "category",
+     "text": "Ich kaufe zum ersten Mal. Bäckerei in Düsseldorf: Wo sollte ich anfangen?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wo finde ich ein schönes Geschenk?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wo kaufe ich gut bei kleinem Budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wer liefert schnell?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wer stellt noch selbst und in kleinen Mengen her?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wo finde ich etwas für einen besonderen Anlass?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Wo werde ich beim Aussuchen gut beraten?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Bäckerei in Düsseldorf: Welcher unabhängige Laden ist besser als die großen Ketten?"
+    },
+    {
+     "kind": "persona",
+     "text": "Wir sind Kunden. Bäckerei in Düsseldorf: Wo sollten wir kaufen?"
+    },
+    {
+     "kind": "persona",
+     "text": "Bäckerei in Düsseldorf: Was empfehlen Sie für Kunden?"
+    },
+    {
+     "kind": "persona",
+     "text": "Bäckerei in Düsseldorf: Wo kaufen Kunden am liebsten?"
+    },
+    {
+     "kind": "persona",
+     "text": "Ich kaufe für Kunden. Bäckerei in Düsseldorf: Wo werde ich fündig?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Bäckerei in Düsseldorf: Wie schneidet Bäckerei Büsch im Vergleich zu Bäckerei Terbuyken ab?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Was sind die besten Alternativen zu Bäckerei Büsch für Kunden?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Bäckerei in Düsseldorf: Bäckerei Terbuyken oder Hercules Bäckerei – wen würden Sie wählen?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Bäckerei in Düsseldorf: Wer bietet das bessere Preis-Leistungs-Verhältnis – Bäckerei Büsch, Bäckerei Terbuyken oder Hercules Bäckerei?"
+    },
+    {
+     "kind": "problem",
+     "text": "Mein letzter Kauf war eine Enttäuschung. Bäckerei in Düsseldorf: Auf wen ist Verlass?"
+    },
+    {
+     "kind": "problem",
+     "text": "Ich brauche es schnell. Bäckerei in Düsseldorf: Wer hat es rechtzeitig da?"
+    },
+    {
+     "kind": "problem",
+     "text": "Ich kann mich nicht entscheiden. Bäckerei in Düsseldorf: Wer hat die beste Auswahl, und worauf sollte ich achten?"
+    },
+    {
+     "kind": "branded",
+     "text": "Bäckerei in Düsseldorf: Ist Bäckerei Hinkel eine gute Wahl?"
+    },
+    {
+     "kind": "branded",
+     "text": "Bäckerei in Düsseldorf: Ist Bäckerei Hinkel eine gute Alternative zu Bäckerei Büsch?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"Bäckerei\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"bäckerei düsseldorf\" 3600/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "review",
+     "detail": "read in Germany / de; the terms' own wording is read by hand",
+     "items": [
+      "bäckerei düsseldorf",
+      "bäcker düsseldorf",
+      "sauerteigbrot düsseldorf",
+      "backwaren düsseldorf",
+      "brötchen düsseldorf",
+      "frisches brot düsseldorf",
+      "handwerksbäckerei düsseldorf",
+      "brot kaufen düsseldorf",
+      "brotladen düsseldorf",
+      "vollkornbrot düsseldorf"
+     ]
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "pass",
+     "detail": "Bäckerei Büsch — baeckerei-buesch.de, 60500/mo, ranks; Bäckerei Terbuyken — baeckerei-terbuyken.com, 18100/mo, ai_answer; Hercules Bäckerei — hercules-baeckerei.de, 390/mo, ai_answer; Bäckerei Bulle — bulle-baeckerei.de, 260/mo, ai_answer; Mabon Bread — mabonbread.com, 140/mo, ai_answer",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "review",
+     "detail": "1 of 12 to read by hand",
+     "items": [
+      "traditionsbäcker in meiner nähe — shares no word with the market"
+     ]
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "fail",
+     "detail": "the knowledge base was not built: no page of the site was read into it",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"Kunden in Düsseldorf, die handwerklich gebackenes Brot und Backwaren kaufen\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "13 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 0.00¢; 0 of 7 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "shop; 25 prompts, each naming düsseldorf",
+     "items": []
+    },
+    {
+     "check": "a local business is measured in its own place",
+     "verdict": "pass",
+     "detail": "17 of 17 terms and searches name düsseldorf or duesseldorf or dusseldorf or \"near me\"; read from Dusseldorf,North Rhine-Westphalia,Germany; 5 rivals, every national one shown in this place's results",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "5 searched terms; \"bäckerei düsseldorf\" has 3600"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 19 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": false,
+     "detail": "the knowledge base holds no page of the site"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "baeckerei-hinkel.de",
+     "foundations": "measured",
+     "answerability": "zero",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "site_knowledge_failed",
+     "domain": "baeckerei-hinkel.de",
+     "because": "no page of the site was read into the knowledge base",
+     "held": 1,
+     "listed": 1,
+     "asked": 0,
+     "stoppedBy": "complete"
+    }
+   ],
+   "seconds": 167,
+   "evidenceLoaded": 140
+  },
+  {
+   "site": {
+    "domain": "pdxsmiledesign.com",
+    "kind": "local service (dentist)",
+    "country": "US",
+    "language": "en",
+    "kinds": [
+     "local-service"
+    ],
+    "market": [
+     "dent"
+    ],
+    "place": [
+     "portland"
+    ],
+    "why": "A dental practice in Portland, Oregon. A regulated local service with many treatments on one site: the category has to be the practice, not one treatment, and health directories must not be rivals."
+   },
+   "siteName": "PDX Smile Design",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "people in Portland, Oregon seeking dental care",
+    "job": "get dental treatment and cosmetic smile design",
+    "category": "dental office",
+    "synonyms": [
+     "dentist near me",
+     "dental practice",
+     "dental clinic"
+    ],
+    "differentiators": [
+     "Platinum Invisalign Provider",
+     "digital dentistry with 3D scanners and imaging",
+     "cosmetic treatments including dermalinfusion and microdermal needling",
+     "multiple experienced dentists on staff"
+    ],
+    "notOurMarket": [
+     "orthodontist",
+     "teeth whitening kit",
+     "dental laboratory",
+     "dental insurance"
+    ],
+    "categoryReason": "The headline and site describe a dentist office providing comprehensive dental services including Invisalign, implants, and cosmetic treatments in Portland.",
+    "rivals": [
+     {
+      "domain": "timberdental.com",
+      "name": "Timber Dental",
+      "basis": "ai_answer",
+      "reason": "Multi-location Portland dental group with strong local reputation, competing for general and cosmetic dental patients across the city.",
+      "searchNames": [
+       "timber dental"
+      ],
+      "volume": 3600
+     },
+     {
+      "domain": "blingdental.com",
+      "name": "Bling Dental",
+      "basis": "ai_answer",
+      "reason": "Cosmetic-focused dental practice in Portland's Pearl District with high ratings, competing directly for cosmetic and general dental patients.",
+      "searchNames": [
+       "bling dental"
+      ],
+      "volume": 2400
+     },
+     {
+      "domain": "riverplacedds.com",
+      "name": "RiverPlace Dental",
+      "basis": "ranks",
+      "reason": "Portland dental practice appearing in top search results for dentist queries, serving the same local buyer.",
+      "searchNames": [
+       "riverplace dental"
+      ],
+      "volume": 1600
+     },
+     {
+      "domain": "laurelhurstdentistry.com",
+      "name": "Laurelhurst Dentistry",
+      "basis": "ai_answer",
+      "reason": "Highly rated Portland dental practice consistently recommended by locals for comprehensive dental care.",
+      "searchNames": [
+       "laurelhurst dentistry"
+      ],
+      "volume": 1300
+     },
+     {
+      "domain": "portlanddentalpc.com",
+      "name": "portlanddentalpc.com",
+      "basis": "ranks",
+      "reason": "Full-service dental practice in Portland offering general and cosmetic dentistry, directly competing for the same Portland patients.",
+      "searchNames": [
+       "portlanddentalpc.com"
+      ],
+      "volume": 0
+     }
+    ],
+    "terms": [
+     {
+      "term": "dentist portland",
+      "volume": 2900
+     },
+     {
+      "term": "dentist portland oregon",
+      "volume": 2900
+     },
+     {
+      "term": "dental implants portland oregon",
+      "volume": 480
+     },
+     {
+      "term": "cosmetic dentist portland",
+      "volume": 320
+     },
+     {
+      "term": "dental clinic portland",
+      "volume": 170
+     },
+     {
+      "term": "family dentist portland",
+      "volume": 110
+     },
+     {
+      "term": "teeth cleaning portland oregon",
+      "volume": 70
+     },
+     {
+      "term": "emergency dentist portland",
+      "volume": 0
+     },
+     {
+      "term": "affordable dentist portland oregon",
+      "volume": 0
+     },
+     {
+      "term": "smile makeover portland oregon",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "dentist portland",
+    "termsAt": "2026-10-10T00:16:18.376Z",
+    "demand": {
+     "at": "2026-10-10T00:20:04.315Z",
+     "own": 0,
+     "brands": {
+      "city dental": 0,
+      "bling dental": 2400,
+      "timber dental": 3600,
+      "pdxsmiledesign": 0,
+      "pdx smile design": 0,
+      "centerport dental": 70,
+      "laurelwood dental": 1300,
+      "riverplace dental": 1600,
+      "ne portland dental": 590,
+      "city dental portland": 0,
+      "portlanddentalpc.com": 0,
+      "laurelhurst dentistry": 1300,
+      "belmont family dentistry": 0,
+      "centerport cosmetic & implant dentistry": 0
+     },
+     "searches": {
+      "city dental alternatives": 0,
+      "bling dental alternatives": 0,
+      "timber dental alternatives": 0,
+      "portlanddentalpc alternatives": 0,
+      "centerport dental alternatives": 0,
+      "laurelwood dental alternatives": 0,
+      "riverplace dental alternatives": 0,
+      "ne portland dental alternatives": 0,
+      "laurelhurst dentistry alternatives": 0,
+      "belmont family dentistry alternatives": 0
+     }
+    },
+    "judged": {
+     "portland smile": true,
+     "dentist portland ct": false,
+     "dentist portland tx": false,
+     "best dentist portland": true,
+     "portland smile design": true,
+     "dentist in portland me": false,
+     "dentist in portland mi": false,
+     "dentist in portland tn": false,
+     "portland dental smiles": false,
+     "portland smiles dentist": true,
+     "portland dental implants": true,
+     "best dentist portland oregon": true,
+     "cosmetic dentist in portland oregon": true,
+     "cost of dental implants in portland oregon": true
+    },
+    "kind": "local-service",
+    "serves": {
+     "name": "Portland",
+     "region": "Oregon"
+    }
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 20,
+    "timeouts": 0
+   },
+   "pageQuestions": 13,
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    },
+    {
+     "location": "Portland,Oregon,United States",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "US",
+    "language": "en"
+   },
+   "searches": [
+    "dentist portland",
+    "dentist portland oregon",
+    "dental implants portland oregon",
+    "best dentist portland",
+    "best dentist portland oregon",
+    "cosmetic dentist portland",
+    "dental clinic portland",
+    "family dentist portland",
+    "teeth cleaning portland oregon",
+    "cosmetic dentist in portland oregon",
+    "dentist portland tn",
+    "dentist portland mi"
+   ],
+   "knowledgePages": 12,
+   "questions": [
+    "How Can We Help?",
+    "What are the benefits of dental bridges?",
+    "Why have Dental Crowns?",
+    "What Should You Ask Your Dentist About?",
+    "What to Expect During a Veneers Consultation?"
+   ],
+   "audience": [
+    "patients",
+    "dental patients",
+    "People missing teeth"
+   ],
+   "topics": [
+    {
+     "query": "best dentist portland oregon",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 320,
+     "ready": false
+    },
+    {
+     "query": "cosmetic dentist in portland oregon",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 320,
+     "ready": true
+    },
+    {
+     "query": "dentist near me in portland",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "dentist portland tn",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 0,
+     "volume": 210,
+     "ready": false
+    },
+    {
+     "query": "dentist portland mi",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 0,
+     "volume": 140,
+     "ready": false
+    },
+    {
+     "query": "cosmetic teeth straightening options portland",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "dental implants in portland oregon",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": 480,
+     "ready": true
+    }
+   ],
+   "cents": 41.8601,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 4.8,
+    "site-profile": 0.5385,
+    "profile": 0.3563,
+    "market-inference": 0.5071,
+    "market-terms": 0.6957,
+    "dataforseo_labs/google/keyword_overview": 2.34,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "market-searches": 0.8106,
+    "question-phrasing": 0.2449,
+    "serp/google/ai_mode": 7.600000000000002,
+    "serp/google/organic": 2.880000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 1.4400000000000004,
+    "site-knowledge": 4.521199999999999,
+    "rival-inference": 3.5181,
+    "topic-buyer-searches": 0.2001,
+    "topic-typed": 0.213,
+    "topic-fit": 3.2856,
+    "opportunity-typing": 0.5015,
+    "topic-same-question": 0.2075
+   },
+   "area": {
+    "place": "Portland",
+    "location": "Portland,Oregon,United States",
+    "because": "service_page"
+   },
+   "resultDomains": [
+    "www.deltadental.com",
+    "www.riverplacedds.com",
+    "www.belmont-dentistry.com",
+    "www.laurelwooddental.com",
+    "nepdxdental.com",
+    "www.pdxmonthly.com",
+    "eastportlanddentistry.com",
+    "gentledental.interdent.com",
+    "www.portlanddentalpc.com",
+    "emergencytoothdoctor.com",
+    "portlandor.dental",
+    "www.briosmiles.com",
+    "www.portlandcitydental.com",
+    "www.implant-dentistry-portland.com",
+    "sylvanheightsdental.com",
+    "head-neck.com",
+    "www.yelp.com",
+    "www.powelldental.com",
+    "portlandperioimplantcenter.com",
+    "www.youtube.com",
+    "www.revolutiondentalimplants.com",
+    "www.theimplantcenter.com",
+    "www.centerportdental.com",
+    "sleepdentistry.com",
+    "www.smilesonsandy.com",
+    "kennedydentalpdx.com",
+    "locations.willamettedental.com",
+    "www.zocdoc.com",
+    "laurelhurstdentistry.com",
+    "www.havendentalpdx.com",
+    "www.blingdental.com",
+    "www.reddit.com",
+    "www.lovejoy-dental.com",
+    "hunterdentalcare.com",
+    "www.biancodentistry.com",
+    "92dentistry.com",
+    "www.northportlanddental.com",
+    "trilliumdentalgroup.com",
+    "emergencydental.com",
+    "www.alexanderfamilydentistry.com",
+    "www.mountainsidedentistry.com",
+    "www.endsor.com",
+    "www.practo.com",
+    "healthcenter.multco.us",
+    "multco.us",
+    "portlandfamilydentistry.com",
+    "bethanyfamilydental.com",
+    "portlandchildrensdentistry.com",
+    "fdhealth.com",
+    "beavertonfamilydental.org",
+    "www.timberdental.com",
+    "onqdentistry.com",
+    "coalitionclinics.org",
+    "www.pacificdentalcarepc.com",
+    "barnes-dental.com",
+    "west-end-dental.com",
+    "www.cosmeticdentistoffice.com",
+    "www.facebook.com",
+    "www.portlanddentaldesign.com",
+    "premdent.com",
+    "www.carecredit.com",
+    "www.mainstreetdentaltn.com",
+    "www.tn.gov",
+    "www.uniquedental2008.com",
+    "m.yelp.com",
+    "www.kickliterdental.com",
+    "doctor.webmd.com",
+    "portlanddentistrybydesign.com",
+    "www.bridgestreetsmiles.com",
+    "www.myportlandfamilydental.com",
+    "tfdportland.com",
+    "www.instagram.com",
+    "www.deltadentalor.com",
+    "www.softtouchdental.biz",
+    "google.com",
+    "zocdoc.com",
+    "app.nexhealth.com",
+    "reddit.com",
+    "book.modento.io"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Looking for the best dentist in Portland. Who would you recommend, and why?"
+    },
+    {
+     "kind": "category",
+     "text": "Which dental implants in Portland would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which cosmetic dentist in Portland would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which dental clinic in Portland would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which dentist in Portland would you suggest to someone booking for the first time?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which dentist in Portland can help the same day in an emergency?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which dentist in Portland will give a fixed price before starting?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which dentist in Portland can I book in the evening or at the weekend?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which dentist in Portland can I trust to be properly qualified and insured?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which dentist in Portland should I call for a small job on a tight budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which dentist in Portland will guarantee the work?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which dentist in Portland could take on a new customer this week?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are people. Which dentist in Portland would suit us best?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which dentist in Portland would you recommend for people?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which dentist in Portland do people tend to go back to?"
+    },
+    {
+     "kind": "persona",
+     "text": "I am asking for people. Which dentist in Portland should I point them to?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best dentist in Portland: how does Timber Dental compare with Bling Dental?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Timber Dental for people?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best dentist in Portland: would you choose Bling Dental or RiverPlace Dental?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best dentist in Portland for the money: Timber Dental, Bling Dental or RiverPlace Dental?"
+    },
+    {
+     "kind": "problem",
+     "text": "I need help today. Which dentist in Portland can I count on at short notice?"
+    },
+    {
+     "kind": "problem",
+     "text": "My last experience was poor. Which dentist in Portland would do the job properly?"
+    },
+    {
+     "kind": "problem",
+     "text": "Which dentist in Portland should I call first, and what should I ask before I book?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is PDX Smile Design a good choice for someone looking for the best dentist in Portland?"
+    },
+    {
+     "kind": "branded",
+     "text": "Looking for the best dentist in Portland: is PDX Smile Design a good alternative to Timber Dental?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"dental office\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"dentist portland\" 2900/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "pass",
+     "detail": "Timber Dental — timberdental.com, 3600/mo, ai_answer; Bling Dental — blingdental.com, 2400/mo, ai_answer; RiverPlace Dental — riverplacedds.com, 1600/mo, ranks; Laurelhurst Dentistry — laurelhurstdentistry.com, 1300/mo, ai_answer; portlanddentalpc.com — portlanddentalpc.com, 0/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "5 questions",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"people in Portland, Oregon seeking dental care\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "7 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 4.52¢; 0 of 20 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "local-service; 25 prompts, each naming portland",
+     "items": []
+    },
+    {
+     "check": "a local business is measured in its own place",
+     "verdict": "pass",
+     "detail": "19 of 19 terms and searches name portland or \"near me\"; read from Portland,Oregon,United States; 5 rivals, every national one shown in this place's results",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "7 searched terms; \"dentist portland\" has 2900"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 32 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 12 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "pdxsmiledesign.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0,
+     "fresh": true,
+     "durationMs": 7408,
+     "failure": "task_40101",
+     "billed": false,
+     "reason": "dataforseo: task 40101 Internal SE Server Error."
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 175402,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    }
+   ],
+   "seconds": 284,
+   "evidenceLoaded": 0
+  },
+  {
+   "site": {
+    "domain": "fletcherelectric.co.uk",
+    "kind": "local service (electrician, UK)",
+    "country": "GB",
+    "language": "en",
+    "kinds": [
+     "local-service"
+    ],
+    "market": [
+     "electric"
+    ],
+    "place": [
+     "leeds"
+    ],
+    "why": "A small electrical contractor in north Leeds. A trades firm outside the United States: its searches and their volumes are British, and its rivals are other Leeds electricians."
+   },
+   "siteName": "Fletcher Electric",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "homeowners and businesses in North Leeds needing electrical work",
+    "job": "get electrical work done safely and reliably",
+    "category": "local electrician",
+    "synonyms": [
+     "electrician near me",
+     "domestic electrician",
+     "commercial electrician",
+     "electrical contractor"
+    ],
+    "differentiators": [
+     "specialises in North Leeds area only",
+     "electrical safety testing and EICR certification",
+     "five-star reviews and word-of-mouth reputation",
+     "over a decade of experience with hundreds of satisfied customers",
+     "emphasis on reliability and guaranteed work"
+    ],
+    "notOurMarket": [
+     "electrical supplies shop",
+     "electrical engineering design",
+     "electrical appliance repair",
+     "building regulations consulting",
+     "emergency power restoration"
+    ],
+    "categoryReason": "The headline and all pages describe a local electrician providing domestic and commercial electrical services in North Leeds, with specialities in safety testing and inspections.",
+    "rivals": [
+     {
+      "domain": "gd-electrical.co.uk",
+      "name": "GD Electrical",
+      "basis": "ranks",
+      "reason": "Leeds-based electrician serving homeowners and businesses with a full range of electrical services.",
+      "searchNames": [
+       "gd electrical",
+       "gd electrical leeds"
+      ],
+      "volume": 140
+     },
+     {
+      "domain": "optima-electrical.com",
+      "name": "Optima Electrical",
+      "basis": "ranks",
+      "reason": "Leeds electrician appearing in top results for consumer unit replacement and EICR testing searches.",
+      "searchNames": [
+       "optima electrical",
+       "optima electrical leeds"
+      ],
+      "volume": 140
+     },
+     {
+      "domain": "smartwiredelectrical.co.uk",
+      "name": "SmartWired Electrical",
+      "basis": "ranks",
+      "reason": "Local Leeds electrical contractor offering domestic and commercial electrical services in the same area.",
+      "searchNames": [
+       "smartwired electrical"
+      ],
+      "volume": 0
+     },
+     {
+      "domain": "martindayelectrician.co.uk",
+      "name": "Martin Day Electricians",
+      "basis": "ranks",
+      "reason": "Local Leeds electrician offering domestic and commercial electrical installations and inspections.",
+      "searchNames": [
+       "martin day electricians",
+       "martin day electrician leeds"
+      ],
+      "volume": 10
+     },
+     {
+      "domain": "wyelectrical.co.uk",
+      "name": "WY Electrical",
+      "basis": "ranks",
+      "reason": "Leeds electrician specialising in EICR and electrical installation work for domestic and commercial clients.",
+      "searchNames": [
+       "wy electrical",
+       "wy electrical leeds"
+      ],
+      "volume": 0
+     }
+    ],
+    "terms": [
+     {
+      "term": "electrician Leeds",
+      "volume": 1000
+     },
+     {
+      "term": "electrical contractor Leeds",
+      "volume": 140
+     },
+     {
+      "term": "EICR Leeds",
+      "volume": 70
+     },
+     {
+      "term": "domestic electrician Leeds",
+      "volume": 40
+     },
+     {
+      "term": "commercial electrician Leeds",
+      "volume": 40
+     },
+     {
+      "term": "local electrician Leeds",
+      "volume": 20
+     },
+     {
+      "term": "consumer unit replacement Leeds",
+      "volume": 10
+     },
+     {
+      "term": "electrical installation Leeds",
+      "volume": 10
+     },
+     {
+      "term": "rewiring Leeds",
+      "volume": 0
+     },
+     {
+      "term": "get electrics checked Leeds",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "electrician Leeds",
+    "termsAt": "2026-10-10T00:21:21.495Z",
+    "demand": {
+     "at": "2026-10-10T00:23:37.230Z",
+     "own": 110,
+     "brands": {
+      "gd electrical": 140,
+      "wy electrical": 0,
+      "bro electrical": 90,
+      "fletcherelectric": 0,
+      "fletcher electric": 110,
+      "optima electrical": 140,
+      "gd electrical leeds": 0,
+      "ss electrical leeds": 20,
+      "wy electrical leeds": 0,
+      "bro electrical leeds": 10,
+      "mps electrical leeds": 10,
+      "smartwired electrical": 0,
+      "martin day electricians": 0,
+      "optima electrical leeds": 0,
+      "mps electrical contractors": 0,
+      "martin day electrician leeds": 10
+     },
+     "searches": {
+      "gd electrical alternatives": 0,
+      "wy electrical alternatives": 0,
+      "bro electrical alternatives": 0,
+      "optima electrical alternatives": 0,
+      "ss electrical leeds alternatives": 0,
+      "smartwired electrical alternatives": 0,
+      "martin day electricians alternatives": 0,
+      "mps electrical contractors alternatives": 0
+     }
+    },
+    "judged": {
+     "electrical leeds": true,
+     "eicr report leeds": true,
+     "eicr testing leeds": true,
+     "eicr electrical leeds": true,
+     "electrician near me leeds": true
+    },
+    "kind": "local-service",
+    "serves": {
+     "name": "Leeds",
+     "region": "Yorkshire"
+    }
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 20,
+    "timeouts": 0
+   },
+   "pageQuestions": 8,
+   "locales": [
+    {
+     "location": "United Kingdom",
+     "language": "en"
+    },
+    {
+     "location": "Leeds,West Yorkshire,England,United Kingdom",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "GB",
+    "language": "en"
+   },
+   "searches": [
+    "electrician leeds",
+    "electrical contractor leeds",
+    "eicr leeds",
+    "commercial electrician leeds",
+    "domestic electrician leeds",
+    "local electrician leeds",
+    "consumer unit replacement leeds",
+    "electrical installation leeds",
+    "electrical leeds",
+    "eicr electrical leeds",
+    "eicr report leeds",
+    "eicr testing leeds"
+   ],
+   "knowledgePages": 11,
+   "questions": [
+    "What qualifications does Fletcher Electric have?",
+    "What insurance cover does Fletcher Electric have?",
+    "What does a quote from Fletcher Electric include?",
+    "What does the earth wire do?",
+    "Which Electrical parts require Earthing?",
+    "What is electrical testing?",
+    "How often do I need testing?",
+    "What is an ‘RCD’?",
+    "Which appliances and Electric wiring will be protected?",
+    "Are RCDs reliable?",
+    "05 May What to do in the event of a powercut?",
+    "What is a Consumer Unit?",
+    "Where is a Fuse Box or Consumer Unit usually located?",
+    "What is the purpose of a Fuse Box or Consumer Unit?",
+    "What are the benefits of a new Consumer Unit?"
+   ],
+   "audience": [
+    "domestic customers",
+    "commercial customers",
+    "Domestic customers in North Leeds",
+    "Commercial customers in North Leeds",
+    "domestic properties",
+    "rented domestic properties",
+    "commercial properties",
+    "homeowners"
+   ],
+   "topics": [
+    {
+     "query": "electrician leeds",
+     "status": "open",
+     "type": "expand_page",
+     "fit": null,
+     "volume": 1000,
+     "ready": false
+    },
+    {
+     "query": "eicr leeds",
+     "status": "open",
+     "type": "answer_page",
+     "fit": null,
+     "volume": 70,
+     "ready": false
+    },
+    {
+     "query": "domestic electrician leeds",
+     "status": "open",
+     "type": "answer_page",
+     "fit": null,
+     "volume": 40,
+     "ready": false
+    },
+    {
+     "query": "consumer unit replacement leeds",
+     "status": "open",
+     "type": "answer_page",
+     "fit": null,
+     "volume": 10,
+     "ready": false
+    },
+    {
+     "query": "eicr electrical leeds",
+     "status": "open",
+     "type": "answer_page",
+     "fit": null,
+     "volume": 10,
+     "ready": false
+    },
+    {
+     "query": "eicr testing leeds",
+     "status": "open",
+     "type": "answer_page",
+     "fit": null,
+     "volume": 10,
+     "ready": false
+    }
+   ],
+   "cents": 36.43110000000001,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 4.8,
+    "site-profile": 0.5235,
+    "profile": 0.2636,
+    "market-inference": 0.5554,
+    "market-terms": 0.7032,
+    "dataforseo_labs/google/keyword_overview": 2.34,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "market-searches": 0.5526,
+    "question-phrasing": 0.2517,
+    "serp/google/ai_mode": 7.600000000000002,
+    "serp/google/organic": 2.880000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 1.4400000000000004,
+    "site-knowledge": 3.9407,
+    "rival-inference": 3.3804
+   },
+   "area": {
+    "place": "Leeds",
+    "location": "Leeds,West Yorkshire,England,United Kingdom",
+    "because": "service_page"
+   },
+   "resultDomains": [
+    "niceic.com",
+    "www.checkatrade.com",
+    "www.martindayelectrician.co.uk",
+    "www.fletcherelectric.co.uk",
+    "www.gd-electrical.co.uk",
+    "broelectrical.co.uk",
+    "www.trustatrader.com",
+    "uk.indeed.com",
+    "www.yorkshire-electrician.co.uk",
+    "trustedtraders.which.co.uk",
+    "smartwiredelectrical.co.uk",
+    "lee-electrics.co.uk",
+    "absolutelyelectrical.co.uk",
+    "www.facebook.com",
+    "directory.lincolnshirelive.co.uk",
+    "fixington.com",
+    "selectrixltd.co.uk",
+    "www.mps-electrical.com",
+    "leedselectricalcontractors.co.uk",
+    "www.easyepc.org",
+    "leedselectricalinspections.co.uk",
+    "www.landlord-shop.co.uk",
+    "wyelectrical.co.uk",
+    "voltacompliance.com",
+    "pyramidserv.co.uk",
+    "www.harrisenergyelectrical.co.uk",
+    "www.propcert.co.uk",
+    "www.safetyig.com",
+    "dcelec.co.uk",
+    "www.jpelectricalleeds.co.uk",
+    "uk.linkedin.com",
+    "ebinstallationsltd.co.uk",
+    "www.eliteelectricalcontractors.co.uk",
+    "commercialelectricianinleeds.co.uk",
+    "www.bbelectrical.org",
+    "www.mybuilder.com",
+    "www.yell.com",
+    "jpelectricalleeds.uk",
+    "mps-electrical.com",
+    "www.dhelectricalleeds.co.uk",
+    "www.sselectricalleeds.co.uk",
+    "www.twhelanelectrical.co.uk",
+    "www.instagram.com",
+    "lpsheatingandplumbing.co.uk",
+    "optima-electrical.com",
+    "www.hamuch.com",
+    "tradeplanr.com",
+    "jts-electrical.net",
+    "tradehand.com",
+    "www.smart-ohm.co.uk",
+    "mkdelectricalltd.com",
+    "leedscitycollege.ac.uk",
+    "tradeskills4u.co.uk",
+    "www.lcb.ac.uk",
+    "www.pass.co.uk",
+    "elec.training",
+    "www.accesstraininguk.co.uk",
+    "www.broelectrical.co.uk",
+    "leeds-electrical.co.uk",
+    "www.ghelectricalleeds.co.uk",
+    "www.yesss.co.uk",
+    "hg-es.co.uk",
+    "www.bcselectrics.co.uk",
+    "www.cseelectrical.co.uk",
+    "www.duravault.co.uk",
+    "leedsbradfordelectricians.co.uk",
+    "eicrelectrical.com",
+    "hawkesworth.co.uk",
+    "www.elecsafeservices.co.uk",
+    "www.eicrelectrical.com",
+    "www.sbarker.co.uk",
+    "checkatrade.com",
+    "threebestrated.co.uk",
+    "sselectricalleeds.co.uk",
+    "mybuilder.com",
+    "reddit.com",
+    "google.com",
+    "leeds.bestlocalrated.co.uk"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Looking for the best electrician in Leeds. Who would you recommend, and why?"
+    },
+    {
+     "kind": "category",
+     "text": "Which electrical contractor in Leeds would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which EICR in Leeds would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which domestic electrician in Leeds would locals actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which electrician in Leeds would you suggest to someone booking for the first time?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which electrician in Leeds can help the same day in an emergency?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which electrician in Leeds will give a fixed price before starting?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which electrician in Leeds can I book in the evening or at the weekend?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which electrician in Leeds can I trust to be properly qualified and insured?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which electrician in Leeds should I call for a small job on a tight budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which electrician in Leeds will guarantee the work?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which electrician in Leeds could take on a new customer this week?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are homeowners and businesses in North. Which electrician in Leeds would suit us best?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which electrician in Leeds would you recommend for homeowners and businesses in North?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which electrician in Leeds do homeowners and businesses in North tend to go back to?"
+    },
+    {
+     "kind": "persona",
+     "text": "I am asking for homeowners and businesses in North. Which electrician in Leeds should I point them to?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best electrician in Leeds: how does GD Electrical compare with Optima Electrical?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to GD Electrical for homeowners and businesses in North?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best electrician in Leeds: would you choose Optima Electrical or SmartWired Electrical?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best electrician in Leeds for the money: GD Electrical, Optima Electrical or SmartWired Electrical?"
+    },
+    {
+     "kind": "problem",
+     "text": "I need help today. Which electrician in Leeds can I count on at short notice?"
+    },
+    {
+     "kind": "problem",
+     "text": "My last experience was poor. Which electrician in Leeds would do the job properly?"
+    },
+    {
+     "kind": "problem",
+     "text": "Which electrician in Leeds should I call first, and what should I ask before I book?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is Fletcher Electric a good choice for someone looking for the best electrician in Leeds?"
+    },
+    {
+     "kind": "branded",
+     "text": "Looking for the best electrician in Leeds: is Fletcher Electric a good alternative to GD Electrical?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"local electrician\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"electrician Leeds\" 1000/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United Kingdom / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "pass",
+     "detail": "GD Electrical — gd-electrical.co.uk, 140/mo, ranks; Optima Electrical — optima-electrical.com, 140/mo, ranks; SmartWired Electrical — smartwiredelectrical.co.uk, 0/mo, ranks; Martin Day Electricians — martindayelectrician.co.uk, 10/mo, ranks; WY Electrical — wyelectrical.co.uk, 0/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "15 questions",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"homeowners and businesses in North Leeds needing electrical work\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "6 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 3.94¢; 0 of 20 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "local-service; 25 prompts, each naming leeds",
+     "items": []
+    },
+    {
+     "check": "a local business is measured in its own place",
+     "verdict": "pass",
+     "detail": "20 of 20 terms and searches name leeds or \"near me\"; read from Leeds,West Yorkshire,England,United Kingdom; 5 rivals, every national one shown in this place's results",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "8 searched terms; \"electrician Leeds\" has 1000"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 32 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 11 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "fletcherelectric.co.uk",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "site_profile_voice_outcome",
+     "kind": "unmeasured",
+     "reason": "undeterminable"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0,
+     "fresh": true,
+     "durationMs": 6910,
+     "failure": "task_40101",
+     "billed": false,
+     "reason": "dataforseo: task 40101 Internal SE Server Error."
+    }
+   ],
+   "seconds": 163,
+   "evidenceLoaded": 0
+  }
+ ]
+}
