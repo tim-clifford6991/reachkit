@@ -60,6 +60,7 @@ interface MinimalQuery<T> extends PromiseLike<MinimalResult<T>> {
     column: string,
     options: { ascending: boolean; nullsFirst?: boolean },
   ): MinimalQuery<T>;
+  in(column: string, values: readonly unknown[]): MinimalQuery<T>;
   range(from: number, to: number): MinimalQuery<T>;
   limit(n: number): MinimalQuery<T>;
 }
@@ -137,16 +138,34 @@ export function splitCategories(
  *  tagline (issue 1380), and never the name a bot-protection page gave the
  *  site (issue 1379: sage.com was listed as "Cloudflare"). The view answers
  *  the domain where no name is stored; a card with no name of the site's
- *  own shows the domain's brand. */
-export function shownCompany(row: { company: string; domain: string }): string {
+ *  own shows the domain's brand. A stored call to action or category is no
+ *  name either, and the domain's brand is cased as the site's own home
+ *  title cases it — "HubSpot" (issue 1384). */
+export function shownCompany(row: { company: string; domain: string }, homeTitle?: string): string {
   const unnamed = row.company === row.domain || isProtectionName(row.company, row.domain);
-  return (unnamed ? domainBrand(row.domain) : brandName([row.company], row.domain)) ?? row.domain;
+  return brandName([unnamed ? domainBrand(row.domain) : row.company], row.domain, [homeTitle]) ?? row.domain;
 }
 
-function toEntry(row: Row): GalleryEntry {
+/**
+ * Each listed site's stored home title — row one of the inventory its scan
+ * kept — which says how the site cases its own name. The view does not
+ * carry it. A card is still a card without it, so a failed read is no
+ * titles, never a failed gallery.
+ */
+async function homeTitles(domains: readonly string[]): Promise<ReadonlyMap<string, string>> {
+  if (domains.length === 0) return new Map();
+  const { data, error } = await untyped()
+    .from<{ domain: string; home_title: string | null }>("site_profiles")
+    .select("domain, home_title:inventory->0->>title")
+    .in("domain", domains);
+  if (error) return new Map();
+  return new Map((data ?? []).flatMap((row) => (row.home_title === null ? [] : [[row.domain, row.home_title] as const])));
+}
+
+function toEntry(row: Row, homeTitle?: string): GalleryEntry {
   return {
     domain: row.domain,
-    company: shownCompany(row),
+    company: shownCompany(row, homeTitle),
     score: row.score,
     category: listedCategory(row.category),
     scannedAt: new Date(row.scanned_at),
@@ -216,6 +235,7 @@ export async function readGallery(a: {
       `gallery: could not count the categories: ${chips.error.message}`,
     );
 
+  const titles = await homeTitles((page.data ?? []).map((row) => row.domain));
   const counts = new Map<string, number>();
   for (const row of chips.data ?? []) {
     const category = listedCategory(row.category);
@@ -224,7 +244,7 @@ export async function readGallery(a: {
   }
   // Issue 1383: a card never states a score measured off a bot-protection
   // page. Only a scored card is asked about; an unscored one states none.
-  const entries = (page.data ?? []).map(toEntry);
+  const entries = (page.data ?? []).map((row) => toEntry(row, titles.get(row.domain)));
   const challenged = await challengedHomes(
     entries.filter((entry) => entry.score !== null).map((entry) => ({ domain: entry.domain, at: entry.scannedAt })),
   );
@@ -254,9 +274,10 @@ export async function readRecent(n: number): Promise<readonly StripEntry[]> {
     .limit(n);
   if (error)
     throw new Error(`gallery: could not read the recent scans: ${error.message}`);
+  const titles = await homeTitles((data ?? []).map((row) => row.domain));
   return (data ?? []).map((row) => ({
     domain: row.domain,
-    company: shownCompany(row),
+    company: shownCompany(row, titles.get(row.domain)),
     hasLogo: row.has_logo,
   }));
 }

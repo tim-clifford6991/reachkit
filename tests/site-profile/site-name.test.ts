@@ -1,12 +1,12 @@
-// tests/site-profile/site-name.test.ts — issues #577 and #1380, SPEC.md §2
-// ("the site name", and the line of 2026-10-10).
+// tests/site-profile/site-name.test.ts — issues #577, #1380 and #1384,
+// SPEC.md §2 ("the site name", and the lines of 2026-10-10).
 //
 // The name a card, a report and the setup screen show for a company: its
 // brand, read off what the site publishes and matched to its domain, never
 // the tagline its page title carries. A site that names itself nowhere has
 // no name, because a guessed one would put a word in the customer's mouth.
 import { describe, expect, it } from "vitest";
-import { brandName, publishedNames } from "../../src/lib/site-profile/site-name";
+import { brandName, imageAlts, publishedNames } from "../../src/lib/site-profile/site-name";
 
 const nameOf = (html: string, domain: string) => brandName(publishedNames(html), domain);
 
@@ -47,6 +47,55 @@ describe("the company's name is its brand", () => {
     expect(brandName(["Réservez votre table | Café Lumière"], "cafelumiere.fr")).toBe("Café Lumière");
     expect(brandName(["フリマアプリ｜メルカリ"], "mercari.com")).toBe("Mercari");
     expect(brandName(["Bäckerei Müller - Seit 1920"], "xn--bckerei-mller-bfb28a.de")).toBe("Bäckerei Müller");
+  });
+});
+
+// The titles and names below are the sites' own, as their home pages
+// published them and as production stored them on 2026-10-10.
+describe("a call to action, a section or a category is no name (issue 1384)", () => {
+  const HOTJAR = "Official Hotjar Site – Sign up for free";
+  const DEEL = "Deel | Global Payroll, Compliance, HR Solutions | HRIS";
+  const HUBSPOT = "HubSpot | Software & Tools for your Business - Homepage";
+  const CLICKUP = "ClickUp™ | Maximize productivity • Software, AI, and humans converge";
+
+  it("reads the brand off the title, without its frame or its trademark sign", () => {
+    expect(brandName([HOTJAR], "hotjar.com")).toBe("Hotjar");
+    expect(brandName([DEEL], "deel.com")).toBe("Deel");
+    expect(brandName([HUBSPOT], "hubspot.com")).toBe("HubSpot");
+    expect(brandName([CLICKUP], "clickup.com")).toBe("ClickUp");
+  });
+
+  it("reads a stored call to action or category as no name, and falls back to the domain's", () => {
+    expect(brandName(["Sign up for free"], "hotjar.com")).toBe("Hotjar");
+    expect(brandName(["HRIS"], "deel.com")).toBe("Deel");
+    for (const phrase of ["Log in", "Get started", "Pricing", "Home", "Welcome", "Startseite", "Jetzt kostenlos testen"]) {
+      expect(brandName([phrase], "fletcher-electric.co.uk")).toBe("Fletcher Electric");
+    }
+  });
+
+  it("passes over a declared name that is one, for the next source", () => {
+    const html = '<meta property="og:site_name" content="Sign up for free"><title>Pricing | Example Payments</title>';
+    expect(nameOf(html, "examplepayments.com")).toBe("Example Payments");
+  });
+
+  it("keeps a brand unlike its domain, and a brand its domain spells", () => {
+    expect(nameOf('<meta property="og:site_name" content="Alphabet"><title>Investor relations</title>', "abc.xyz")).toBe("Alphabet");
+    expect(brandName(["Kit"], "convertkit.com")).toBe("Kit");
+    expect(brandName(["Home"], "home.com")).toBe("Home");
+    expect(brandName(["Free"], "free.fr")).toBe("Free");
+  });
+
+  it("cases the domain's label as the site writes it", () => {
+    // What production stored for these two, beside the stored home title.
+    expect(brandName(["Software & Tools for your Business - Homepage"], "hubspot.com", [HUBSPOT])).toBe("HubSpot");
+    expect(brandName(["Maximize productivity • Software, AI, and humans converge"], "clickup.com", [CLICKUP])).toBe("ClickUp");
+    // A name an earlier scan stored as the plain label.
+    expect(brandName(["Hubspot"], "hubspot.com", [HUBSPOT])).toBe("HubSpot");
+    // A logo's alt, where the title does not spell the brand.
+    const html = '<title>Maximize productivity • Software, AI, and humans converge</title><img src="/l.svg" alt="ClickUp logo">';
+    expect(brandName(publishedNames(html), "clickup.com", imageAlts(html))).toBe("ClickUp");
+    // The site writes it nowhere: the label, capitalised.
+    expect(brandName(["Maximize productivity • Software, AI, and humans converge"], "clickup.com", ["all your work at clickup.com"])).toBe("Clickup");
   });
 });
 
