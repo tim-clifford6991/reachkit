@@ -10,7 +10,8 @@
 //      recordFetch`, BP-009/BP-007). This file makes no call of its own
 //      outside `llm()` and opens no `fetch`.
 //   2. **What crosses the boundary** — of the customer's, `input` carries
-//      exactly `{ home, pricing }` as the caller supplied it, bounded
+//      exactly `{ home, pricing }` as the caller supplied it (or `{ search }`,
+//      the site's listing in search, where its pages could not be read), bounded
 //      together to `PROFILE_INPUT_MAX_CHARS` (issue #523, `boundPageText`
 //      below), beside the fixed `PROFILE_TASK` / `PROFILE_FIELDS`
 //      instruction: no keyword,
@@ -132,6 +133,22 @@ export const PROFILE_TASK =
   "Answer with one JSON object and nothing else: no prose, no code fence. It has exactly the fields " +
   "listed under `fields` and no other; each entry says what goes in that field.";
 
+/** SPEC §2 (owner, 2026-10-10, issue 1387): the same seven fields, asked of
+ *  a site whose own pages bot protection kept the reader off. What it is
+ *  given is the site's listing in search (`src/lib/scan/search-footprint.ts`),
+ *  and it is told so, and told to name no category the listing does not
+ *  support: a placeholder there is read as no market, and the pass stops
+ *  rather than guessing. */
+export const PROFILE_SEARCH_TASK =
+  "Describe a business the way a buyer would. Its own pages could not be read, so what follows under `search` " +
+  "is how its site appears in Google: the title and snippet Google shows for each of its pages, and the searches " +
+  "it ranks for. Read from them what the business sells, to whom and where. A search that names only the brand, " +
+  "a login, a job or a help page says nothing of what it sells. `category` is one category as a buyer types it " +
+  "into Google, a single search term: never two joined by \"and\", and never the wording of a page title. " +
+  "Where the listing does not say what the business sells, answer `category` with \"<UNKNOWN>\" and do not guess. " +
+  "Answer with one JSON object and nothing else: no prose, no code fence. It has exactly the fields " +
+  "listed under `fields` and no other; each entry says what goes in that field.";
+
 /** How many characters `text` becomes inside the JSON `llm()` serialises
  *  its input into, quotes excluded. The bound is on this, not on
  *  `text.length`: the cost reservation is estimated from the serialised
@@ -189,15 +206,19 @@ export function boundPageText(
  *  failure; this function does not retry again). */
 export function deriveProfile(
   c: CostContext,
-  a: { home: string; pricing?: string; locale?: Locale }
+  a: ({ home: string; pricing?: string } | { search: string }) & { locale?: Locale }
 ): Promise<Measured<Profile>> {
-  const pages = boundPageText(a, PROFILE_INPUT_MAX_CHARS);
   const language = a.locale?.language ?? "en";
   return llm<Profile>(c, {
     site: "profile",
     // The fixed instruction, then the customer's own two pages and nothing
-    // else of theirs: no keyword, no search term, no selection state.
-    input: { task: PROFILE_TASK, fields: PROFILE_FIELDS, home: pages.home, pricing: pages.pricing },
+    // else of theirs: no keyword, no search term, no selection state. Where
+    // those pages could not be read (issue 1387), the site's listing in
+    // search in their place, under its own instruction and bounded the same.
+    input:
+      "search" in a
+        ? { task: PROFILE_SEARCH_TASK, fields: PROFILE_FIELDS, search: boundPageText({ home: a.search }, PROFILE_INPUT_MAX_CHARS).home }
+        : { task: PROFILE_TASK, fields: PROFILE_FIELDS, ...boundPageText(a, PROFILE_INPUT_MAX_CHARS) },
     schema: PROFILE_SCHEMA,
     tier: "nano",
     ...(a.locale === undefined ? {} : { locale: a.locale }),

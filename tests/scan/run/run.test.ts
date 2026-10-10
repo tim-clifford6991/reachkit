@@ -183,6 +183,10 @@ function storedFor(a: { daysAgo: number; complete: boolean }): StoredReport {
     scanId: "previous-scan",
     complete: a.complete,
     verdict: { measuredAt: new Date(Date.now() - a.daysAgo * 86_400_000) },
+    // What the window reads beside the date (issue 1387): a site that was
+    // read, with its market.
+    onPage: { kind: "measured" },
+    market: { kind: "measured" },
   } as unknown as StoredReport;
 }
 

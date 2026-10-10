@@ -153,6 +153,20 @@ function noticeOf(notice: AddressNotice): { line: string; warn: boolean } {
 }
 
 /**
+ * SPEC §2 (owner, 2026-10-10, issue 1387): where bot protection kept the
+ * reader off the site's own pages and its market was read from its listing
+ * in search, the report says so in one line. Nothing is drawn otherwise.
+ */
+function MarketFromSearchLine(p: { report: StoredReport }): React.JSX.Element | null {
+  if (p.report.marketFrom !== "search" || p.report.market.kind === "unmeasured") return null;
+  return (
+    <p className="col-span-full text-sm text-base-content/70" data-testid="report-market-from-search">
+      {copy("report.market.from-search")}
+    </p>
+  );
+}
+
+/**
  * SPEC §6 (owner D66, issue 1311): where the site said a country or a
  * language ReachKit does not measure yet, the report was measured in the
  * nearest supported country in English, and says so in one line. Nothing is
@@ -357,6 +371,7 @@ export function ReportView(p: {
             control is on the screen that owns the address — and it is on it
             once. */}
         <MeasuredInLine report={report} />
+        <MarketFromSearchLine report={report} />
         <div className="col-span-full">
           {/* SPEC §2's measurement line is in the card, beside the date
               (#1068). */}

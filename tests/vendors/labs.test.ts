@@ -110,6 +110,25 @@ describe("BUILD §6.3 — rankedKeywords parses the vendor's own shape into Rank
     expect(ledgered).toEqual([constants.PRICE_BOOK.RANKED_RIVAL_COST_C]);
   });
 
+  it("carries the title and snippet Google shows only where the listing is asked for, under its own cache key (issue 1387)", async () => {
+    const item = {
+      keyword_data: { keyword: "crm software", keyword_info: { search_volume: 1900 } },
+      ranked_serp_element: { serp_item: { rank_group: 4, url: "https://example.com/crm", title: "Example CRM", description: "A CRM for small teams." } },
+    };
+    stubVendorFetch(() => envelope({ items: [item] }));
+    const asked = { locale: { country: "US", language: "en" }, domain: "example.com", rows: 50 } as const;
+    const plain = fakeCostContext();
+    const listed = fakeCostContext();
+    const without = await labs.rankedKeywords(plain.ctx, asked);
+    const withListing = await labs.rankedKeywords(listed.ctx, { ...asked, listing: true });
+
+    if (without.kind !== "measured" || withListing.kind !== "measured") throw new Error("unreachable");
+    expect(without.value.rows[0]).toEqual({ keyword: "crm software", position: 4, searchVolume: 1900, url: "https://example.com/crm" });
+    expect(withListing.value.rows[0]).toMatchObject({ title: "Example CRM", description: "A CRM for small teams." });
+    expect(listed.calls[0]?.cacheKey).toBe(`${plain.calls[0]?.cacheKey}|listing`);
+    expect(listed.ledgered).toEqual(plain.ledgered);
+  });
+
   it("sends the row count as the vendor's `limit` and the domain as its `target`", async () => {
     const stub = stubVendorFetch(() => envelope({ items: [] }));
     const { ctx } = fakeCostContext();
