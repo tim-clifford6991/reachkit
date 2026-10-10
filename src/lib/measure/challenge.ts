@@ -110,6 +110,21 @@ function refuses(status: number): boolean {
   return status === 202 || status >= 400;
 }
 
+/** No protection's page seen so far was a tenth of this: the largest
+ *  fixture is under 6 kB. */
+const CHALLENGE_MAX_BYTES = 100_000;
+
+/**
+ * Whether a response could be a protection's page, from what a ledger read
+ * can ask without the document's body (issue 1383): a refusing status, a
+ * header that states the mitigation, or a small document. `challengeOf`
+ * decides; this only spares the read of a large page the site served
+ * itself.
+ */
+export function couldBeChallenge(a: { status: number; bytes: number; headers?: Readonly<Record<string, string>> }): boolean {
+  return refuses(a.status) || fromHeaders(a.headers ?? {}) !== null || a.bytes <= CHALLENGE_MAX_BYTES;
+}
+
 /**
  * The protection whose page this response is, or `null` where it is the
  * site's own page (or an error page of the site's own, which the caller

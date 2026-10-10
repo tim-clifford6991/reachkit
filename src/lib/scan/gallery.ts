@@ -11,6 +11,7 @@ import { dbAdmin } from "@/lib/db";
 import { isProtectionName } from "@/lib/measure/challenge";
 import { isPlaceholder } from "@/lib/measure/placeholder";
 import { brandName, domainBrand } from "@/lib/site-profile/site-name";
+import { challengedHomes } from "./challenged";
 
 export const GALLERY_SORTS = ["newest", "highest", "lowest", "az"] as const;
 export type GallerySort = (typeof GALLERY_SORTS)[number];
@@ -221,8 +222,14 @@ export async function readGallery(a: {
     if (category === null) continue;
     counts.set(category, (counts.get(category) ?? 0) + 1);
   }
+  // Issue 1383: a card never states a score measured off a bot-protection
+  // page. Only a scored card is asked about; an unscored one states none.
+  const entries = (page.data ?? []).map(toEntry);
+  const challenged = await challengedHomes(
+    entries.filter((entry) => entry.score !== null).map((entry) => ({ domain: entry.domain, at: entry.scannedAt })),
+  );
   return {
-    entries: (page.data ?? []).map(toEntry),
+    entries: entries.map((entry) => (challenged.has(entry.domain) ? { ...entry, score: null } : entry)),
     total: page.count ?? page.data?.length ?? 0,
     categories: [...counts]
       .map(([name, count]) => ({ name, count }))

@@ -168,6 +168,7 @@ import type { OnPageFacts } from "@/lib/measure/parse";
 import type { GeneratedText } from "@/lib/presentation/generated";
 import type { Verdict } from "@/lib/measure/verdict";
 import type { RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
+import { readPastProtection } from "./challenged";
 import type { CanonicalDomain } from "./domain";
 
 export type Tier = "free" | "deep" | "weekly";
@@ -1020,7 +1021,9 @@ export async function readCurrentReport(domain: string): Promise<StoredReport | 
 
   const row = data?.[0];
   if (!row || row.report === null || row.report === undefined) return null;
-  return readStoredReport(row.report);
+  // Issue 1383: a report measured off a bot-protection page is read as
+  // unmeasured there, by every reader of the current report.
+  return readPastProtection(readStoredReport(row.report));
 }
 
 /** One scan's own stored report, or `null` where the row has none — read
