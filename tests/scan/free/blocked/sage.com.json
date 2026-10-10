@@ -1,0 +1,1727 @@
+{
+ "domain": "sage.com",
+ "recordedOn": "2026-10-10",
+ "vendor": [
+  {
+   "key": "/v3/dataforseo_labs/google/ranked_keywords/live sage.com|50|United States|en #048f5957",
+   "response": {
+    "status_code": 20000,
+    "status_message": "Ok.",
+    "cost": 0.018,
+    "tasks": [
+     {
+      "id": "10102210-1923-0381-0000-c5d764378d66",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "cost": 0.018,
+      "result": [
+       {
+        "target": "sage.com",
+        "location_code": 2840,
+        "language_code": "en",
+        "total_count": 70018,
+        "items_count": 50,
+        "items": [
+         {
+          "keyword_data": {
+           "keyword": "sage",
+           "keyword_info": {
+            "search_volume": 246000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 69
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.sage.com/en-us/",
+            "title": "Sage Business Management Software and Solutions",
+            "description": "From startup to enterprise solutions, Sage has innovative software powered by the latest AI and machine learning to manage your accounting, people, payroll, ...",
+            "etv": 74784
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "cloud-based accounting packages",
+           "keyword_info": {
+            "search_volume": 368000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 42
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 3,
+            "url": "https://www.sage.com/en-us/accounting-software/",
+            "title": "Best Accounting Software for Small Businesses & More - Sage",
+            "description": "Cloud-based accounting software allows you to access your financial information from anywhere, on any device with an internet connection—eliminating",
+            "etv": 59616
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how many hours year",
+           "keyword_info": {
+            "search_volume": 165000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — Full-time employees in the US work an average of 2,067 hours per year, based on BLS data showing an average of 39.75 hours per week. The ... Read more",
+            "etv": 50160
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "cloud accounting package",
+           "keyword_info": {
+            "search_volume": 368000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 33
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 3,
+            "rank_absolute": 5,
+            "url": "https://www.sage.com/en-us/accounting-software/",
+            "title": "Best Accounting Software for Small Businesses & More - Sage",
+            "description": "Sage 50 is ideal for small businesses. It makes it easy to create and track invoices, manage cash flow, accept payments, record transactions, automate admin ... Read more",
+            "etv": 35806.3984375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "cloud accounting software for small business",
+           "keyword_info": {
+            "search_volume": 110000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 51
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.sage.com/en-us/accounting-software/",
+            "title": "Best Accounting Software for Small Businesses & More - Sage",
+            "description": "Sage 50 is ideal for small businesses. It makes it easy to create and track invoices, manage cash flow, accept payments, record transactions, automate admin ... Read more",
+            "etv": 33440
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "accounting package software",
+           "keyword_info": {
+            "search_volume": 90500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 73
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.sage.com/en-us/accounting-software/",
+            "title": "Best Accounting Software for Small Businesses & More - Sage",
+            "description": "Sage 50 is ideal for small businesses. It makes it easy to create and track invoices, manage cash flow, accept payments, record transactions, automate admin ... Read more",
+            "etv": 27512
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "accounting packages software",
+           "keyword_info": {
+            "search_volume": 90500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 65
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.sage.com/en-us/accounting-software/",
+            "title": "Best Accounting Software for Small Businesses & More - Sage",
+            "description": "Sage 50 is ideal for small businesses. It makes it easy to create and track invoices, manage cash flow, accept payments, record transactions, automate admin ... Read more",
+            "etv": 27512
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "accounting software",
+           "keyword_info": {
+            "search_volume": 90500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 55
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.sage.com/en-us/accounting-software/",
+            "title": "Best Accounting Software for Small Businesses & More - Sage",
+            "description": "Sage 50 is ideal for small businesses. It makes it easy to create and track invoices, manage cash flow, accept payments, record transactions, automate admin ... Read more",
+            "etv": 27512
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "software accounting packages",
+           "keyword_info": {
+            "search_volume": 90500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 64
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 4,
+            "url": "https://www.sage.com/en-us/accounting-software/",
+            "title": "Best Accounting Software for Small Businesses & More - Sage",
+            "description": "Sage 50 is ideal for small businesses. It makes it easy to create and track invoices, manage cash flow, accept payments, record transactions, automate admin ... Read more",
+            "etv": 27512
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how many hours a year",
+           "keyword_info": {
+            "search_volume": 165000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 2
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 2,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — Full-time employees in the US work an average of 2,067 hours per year, based on BLS data showing an average of 39.75 hours per week. The ... Read more",
+            "etv": 26730
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how many hours in a calendar year",
+           "keyword_info": {
+            "search_volume": 165000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 13
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 3,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — Full-time employees in the US work an average of 2,067 hours per year, based on BLS data showing an average of 39.75 hours per week. The Bureau ... Read more",
+            "etv": 26730
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "performance improvement plan",
+           "keyword_info": {
+            "search_volume": 1000000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 17
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 7,
+            "rank_absolute": 11,
+            "url": "https://www.sage.com/en-us/blog/performance-improvement-plan/",
+            "title": "How to deliver a Performance Improvement Plan (PIP) with ...",
+            "description": "Aug 21, 2024 — What should a performance improvement plan include? · Clear identification of issues · SMART goals · Defined timeline including dates for check- ... Read more",
+            "etv": 25600
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "bookkeeping cloud software",
+           "keyword_info": {
+            "search_volume": 368000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 42
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 4,
+            "rank_absolute": 6,
+            "url": "https://www.sage.com/en-us/accounting-software/",
+            "title": "Best Accounting Software for Small Businesses & More - Sage",
+            "description": "Sage 50 is ideal for small businesses. It makes it easy to create and track invoices, manage cash flow, accept payments, record transactions, automate admin ... Read more",
+            "etv": 24251.19921875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "cloud accounting software",
+           "keyword_info": {
+            "search_volume": 368000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 47
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 5,
+            "rank_absolute": 7,
+            "url": "https://www.sage.com/en-us/accounting-software/",
+            "title": "Best Accounting Software for Small Businesses & More - Sage",
+            "description": "Sage 50 is ideal for small businesses. It makes it easy to create and track invoices, manage cash flow, accept payments, record transactions, automate admin ... Read more",
+            "etv": 17259.19921875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "cloud-based bookkeeping software",
+           "keyword_info": {
+            "search_volume": 368000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 52
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 5,
+            "rank_absolute": 7,
+            "url": "https://www.sage.com/en-us/accounting-software/",
+            "title": "Best Accounting Software for Small Businesses & More - Sage",
+            "description": "Cloud-based accounting software allows you to access your financial information from anywhere, on any device with an internet connection—eliminating the ... Read more",
+            "etv": 17259.19921875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how many hours in the year",
+           "keyword_info": {
+            "search_volume": 165000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 4
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 3,
+            "rank_absolute": 5,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — A standard full-time employee working 40 hours a week logs 2,080 hours per year, full-time employees average 2,067 hours annually, while part- ...",
+            "etv": 16054.5
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "accounting package",
+           "keyword_info": {
+            "search_volume": 90500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 55
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 5,
+            "url": "https://www.sage.com/en-us/accounting-software/",
+            "title": "Best Accounting Software for Small Businesses & More - Sage",
+            "description": "Sage 50 is ideal for small businesses. It makes it easy to create and track invoices, manage cash flow, accept payments, record transactions, automate admin ... Read more",
+            "etv": 14661
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "purchase orders",
+           "keyword_info": {
+            "search_volume": 550000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 15
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 7,
+            "rank_absolute": 11,
+            "url": "https://www.sage.com/en-us/blog/what-is-a-purchase-order/",
+            "title": "What is a purchase order (PO) and how is it used? - Sage",
+            "description": "A purchase order (PO) is a legally binding document a buyer sends to a supplier to formally request goods or services—specifying what's being ordered, at what ... Read more",
+            "etv": 14080
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how many hours are in the year",
+           "keyword_info": {
+            "search_volume": 165000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 7
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 5,
+            "rank_absolute": 7,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — A standard full-time employee working 40 hours a week logs 2,080 hours per year, full-time employees average 2,067 hours annually, while part- ...",
+            "etv": 7738.5
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how many work hours in a calendar year",
+           "keyword_info": {
+            "search_volume": 40500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 1
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 4,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — Full-time employees in the US work an average of 2,067 hours per year, based on BLS data showing an average of 39.75 hours per week. The Bureau ... Read more",
+            "etv": 6561
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how many working hours in a calendar year",
+           "keyword_info": {
+            "search_volume": 40500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 9
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 4,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — Full-time employees in the US work an average of 2,067 hours per year, based on BLS data showing an average of 39.75 hours per week. The Bureau ... Read more",
+            "etv": 6561
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how many hours are in year",
+           "keyword_info": {
+            "search_volume": 165000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 10
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 6,
+            "rank_absolute": 7,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — 2,080 hours per year, full-time employees average 2,067 hours annually, while part-time employees average around 1,388 hours.",
+            "etv": 5577
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how many.hours in a year",
+           "keyword_info": {
+            "search_volume": 165000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 4
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 6,
+            "rank_absolute": 7,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — Full-time employees in the US work an average of 2,067 hours per year, based on BLS data showing an average of 39.75 hours per week. The ... Read more",
+            "etv": 5577
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "income sheet",
+           "keyword_info": {
+            "search_volume": 49500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 6
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 3,
+            "rank_absolute": 6,
+            "url": "https://www.sage.com/en-us/blog/income-statement-template/",
+            "title": "Income Statement Template (download for Excel) - Sage",
+            "description": "Jul 15, 2024 — The income statement is one of the core financial statements for a business. Download an income statement template with multi-step and ...",
+            "etv": 4816.35009765625
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "what is acv",
+           "keyword_info": {
+            "search_volume": 49500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 43
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 3,
+            "rank_absolute": 5,
+            "url": "https://www.sage.com/en-us/blog/glossary/what-is-annual-contract-value-acv-and-how-to-calculate-it/",
+            "title": "What is annual contract value (ACV), and how to calculate it?",
+            "description": "Annual contract value (ACV ) is a sales metric for the SaaS industry, also known as “ACV bookings,” that typically represents the average annual contract value ... Read more",
+            "etv": 4816.35009765625
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how many hours in a year",
+           "keyword_info": {
+            "search_volume": 165000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 4
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 7,
+            "rank_absolute": 8,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — Full-time employees in the US work an average of 2,067 hours per year, based on BLS data showing an average of 39.75 hours per week. The ... Read more",
+            "etv": 4224
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how many hr are in a year",
+           "keyword_info": {
+            "search_volume": 165000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 7,
+            "rank_absolute": 8,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — 2,080 hours per year, full-time employees average 2,067 hours annually, while part-time employees average around 1,388 hours.",
+            "etv": 4224
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "cloud based accounting platforms",
+           "keyword_info": {
+            "search_volume": 60500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 38
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 4,
+            "rank_absolute": 6,
+            "url": "https://www.sage.com/en-us/accounting-software/",
+            "title": "Best Accounting Software for Small Businesses & More - Sage",
+            "description": "Sage 50 is ideal for small businesses. It makes it easy to create and track invoices, manage cash flow, accept payments, record transactions, automate admin ... Read more",
+            "etv": 3986.949951171875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "general and ledger",
+           "keyword_info": {
+            "search_volume": 12100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 11
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.sage.com/en-us/blog/glossary/what-is-a-general-ledger/",
+            "title": "What is a General Ledger in Accounting? | Sage Advice US",
+            "description": "A general ledger (GL) is the central record of a company's financial transactions and account balances. General ledgers organize transactions into assets, ...",
+            "etv": 3678.39990234375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "tasa interna de retorno",
+           "keyword_info": {
+            "search_volume": 12100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.sage.com/es-es/blog/tasa-interna-de-retorno-tir-que-es-y-como-se-calcula/",
+            "title": "Tasa interna de retorno (TIR): ¿Qué es y cómo se calcula?",
+            "description": "Mar 6, 2026 — La tasa interna de retorno (TIR) es la tasa de descuento que hace que el Valor Actual Neto (VAN) de un proyecto o inversión sea igual a cero. Read more",
+            "etv": 3678.39990234375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "sage intacct",
+           "keyword_info": {
+            "search_volume": 22200
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 46
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 2,
+            "url": "https://www.sage.com/en-us/sage-business-cloud/intacct/",
+            "title": "Sage Intacct: AI-Powered Accounting & Financial ...",
+            "description": "Sage Intacct is the #1 finance AI software trusted by 30000+ finance teams. Close 90% faster, gain real-time visibility, and scale with confidence.",
+            "etv": 3596.39990234375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how many hrs are in a year",
+           "keyword_info": {
+            "search_volume": 165000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 7
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 8,
+            "rank_absolute": 9,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — Full-time employees in the US work an average of 2,067 hours per year, based on BLS data showing an average of 39.75 hours per week. The ... Read more",
+            "etv": 3250.5
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how many hrs in a year",
+           "keyword_info": {
+            "search_volume": 165000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 7
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 8,
+            "rank_absolute": 10,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — Full-time employees in the US work an average of 2,067 hours per year, based on BLS data showing an average of 39.75 hours per week. The ... Read more",
+            "etv": 3250.5
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "payroll software",
+           "keyword_info": {
+            "search_volume": 33100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 41
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 3,
+            "rank_absolute": 5,
+            "url": "https://www.sage.com/en-us/payroll-software/",
+            "title": "Payroll Software Solutions and Systems | Sage US",
+            "description": "Payroll software helps businesses manage their payroll processes by automating payroll taxes calculations, setting up direct deposits, and withholding taxes",
+            "etv": 3220.6298828125
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how do i calculate profit margin",
+           "keyword_info": {
+            "search_volume": 9900
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 23
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.sage.com/en-us/blog/margin-calculator/",
+            "title": "How to Calculate Profit Margin | Sage Advice US",
+            "description": "Jul 30, 2026 — Margin is calculated by subtracting the cost price from the selling price, dividing the result by the selling price, and multiplying by 100. Read more",
+            "etv": 3009.60009765625
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how do you calculate profit margin",
+           "keyword_info": {
+            "search_volume": 9900
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 25
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.sage.com/en-us/blog/margin-calculator/",
+            "title": "How to Calculate Profit Margin | Sage Advice US",
+            "description": "Dec 10, 2024 — Margin is calculated by subtracting the cost price from the selling price, dividing the result by the selling price, and multiplying by 100. Read more",
+            "etv": 3009.60009765625
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how to determine profit margin",
+           "keyword_info": {
+            "search_volume": 9900
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 35
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 3,
+            "url": "https://www.sage.com/en-us/blog/margin-calculator/",
+            "title": "How to Calculate Profit Margin | Sage Advice US",
+            "description": "Dec 10, 2024 — Margin is calculated by subtracting the cost price from the selling price, dividing the result by the selling price, and multiplying by 100. Read more",
+            "etv": 3009.60009765625
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how to figure profit margin",
+           "keyword_info": {
+            "search_volume": 9900
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 21
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.sage.com/en-us/blog/margin-calculator/",
+            "title": "How to Calculate Profit Margin | Sage Advice US",
+            "description": "Dec 10, 2024 — Margin is calculated by subtracting the cost price from the selling price, dividing the result by the selling price, and multiplying by 100. Read more",
+            "etv": 3009.60009765625
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how to find profit margin",
+           "keyword_info": {
+            "search_volume": 9900
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 35
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.sage.com/en-us/blog/margin-calculator/",
+            "title": "How to Calculate Profit Margin | Sage Advice US",
+            "description": "Dec 10, 2024 — Margin is calculated by subtracting the cost price from the selling price, dividing the result by the selling price, and multiplying by 100. Read more",
+            "etv": 3009.60009765625
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "what is time and half",
+           "keyword_info": {
+            "search_volume": 9900
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 14
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 3,
+            "url": "https://www.sage.com/en-us/blog/glossary/what-is-time-and-a-half/",
+            "title": "Time and a Half Definition and how to calculate it - Sage",
+            "description": "Time and a half refers to an increased rate of pay typically reserved for hours worked overtime or those that exceed the 40-hour work week. Read more",
+            "etv": 3009.60009765625
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "what is time in a half",
+           "keyword_info": {
+            "search_volume": 9900
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 8
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 3,
+            "url": "https://www.sage.com/en-us/blog/glossary/what-is-time-and-a-half/",
+            "title": "Time and a Half Definition and how to calculate it - Sage",
+            "description": "Time and a half refers to an increased rate of pay typically reserved for hours worked overtime or those that exceed the 40-hour work week. Read more",
+            "etv": 3009.60009765625
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "what is time in half",
+           "keyword_info": {
+            "search_volume": 9900
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 12
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.sage.com/en-us/blog/glossary/what-is-time-and-a-half/",
+            "title": "Time and a Half Definition and how to calculate it - Sage",
+            "description": "Time and a half refers to an increased rate of pay typically reserved for hours worked overtime or those that exceed the 40-hour work week. Read more",
+            "etv": 3009.60009765625
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "hours work year",
+           "keyword_info": {
+            "search_volume": 18100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 4,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — A standard 40-hour workweek gives you 2,080 work hours per year. If you subtract the 11 federal holidays (assuming each falls on a working day) ... Read more",
+            "etv": 2932.199951171875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "sage intacct login",
+           "keyword_info": {
+            "search_volume": 18100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 17
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 2,
+            "url": "https://www.sage.com/en-us/sage-business-cloud/intacct/",
+            "title": "Sage Intacct: AI-Powered Accounting & Financial ...",
+            "description": "Sage Intacct is the #1 finance AI software trusted by 30000+ finance teams. Close 90% faster, gain real-time visibility, and scale with confidence.",
+            "etv": 2932.199951171875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "work hours in the year",
+           "keyword_info": {
+            "search_volume": 18100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 28
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 4,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — A standard full-time employee working 40 hours a week logs 2,080 hours per year, full-time employees average 2,067 hours annually, while part- ...",
+            "etv": 2932.199951171875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "cloud based accounting software for small business",
+           "keyword_info": {
+            "search_volume": 110000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 51
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 7,
+            "rank_absolute": 10,
+            "url": "https://www.sage.com/en-us/accounting-software/",
+            "title": "Best Accounting Software for Small Businesses & More - Sage",
+            "description": "Sage 50 is ideal for small businesses. It makes it easy to create and track invoices, manage cash flow, accept payments, record transactions, automate admin ... Read more",
+            "etv": 2816
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "margin calculator",
+           "keyword_info": {
+            "search_volume": 110000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 25
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 7,
+            "rank_absolute": 7,
+            "url": "https://www.sage.com/en-us/blog/margin-calculator/",
+            "title": "How to Calculate Profit Margin | Sage Advice US",
+            "description": "Dec 10, 2024 — Margin is calculated by subtracting the cost price from the selling price, dividing the result by the selling price, and multiplying by 100. Read more",
+            "etv": 2816
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "how many working hours in a year",
+           "keyword_info": {
+            "search_volume": 40500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 4,
+            "rank_absolute": 6,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — full-time employees average 2,067 hours annually, while part-time employees average around 1,388 hours.",
+            "etv": 2668.949951171875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "hours year",
+           "keyword_info": {
+            "search_volume": 27100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 9
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 3,
+            "rank_absolute": 4,
+            "url": "https://www.sage.com/en-us/blog/how-many-work-hours-in-a-year/",
+            "title": "How many work hours in a year | Sage Advice US",
+            "description": "Jul 20, 2026 — A standard 40-hour workweek gives you 2,080 work hours per year. If you subtract the 11 federal holidays (assuming each falls on a working day) ... Read more",
+            "etv": 2636.830078125
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "acv meaning",
+           "keyword_info": {
+            "search_volume": 8100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 5
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 3,
+            "url": "https://www.sage.com/en-us/blog/glossary/what-is-annual-contract-value-acv-and-how-to-calculate-it/",
+            "title": "What is annual contract value (ACV), and how to calculate it?",
+            "description": "Annual contract value (ACV ) is a sales metric for the SaaS industry, also known as “ACV bookings,” that typically represents the average annual contract value ...",
+            "etv": 2462.39990234375
+           }
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "key": "/v3/dataforseo_labs/google/keyword_suggestions/live accounting software|50|United States|en #c553b117",
+   "response": {
+    "status_code": 20000,
+    "status_message": "Ok.",
+    "cost": 0.018,
+    "tasks": [
+     {
+      "id": "10102210-1923-0399-0000-565a473f09ae",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "cost": 0.018,
+      "result": [
+       {
+        "seed_keyword": "accounting software",
+        "location_code": 2840,
+        "language_code": "en",
+        "total_count": 10286,
+        "items_count": 50,
+        "items": [
+         {
+          "keyword": "cloud software accounting",
+          "keyword_info": {
+           "search_volume": 368000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 47
+          }
+         },
+         {
+          "keyword": "cloud based accounting software",
+          "keyword_info": {
+           "search_volume": 368000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 38
+          }
+         },
+         {
+          "keyword": "accounting software in the cloud",
+          "keyword_info": {
+           "search_volume": 368000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 47
+          }
+         },
+         {
+          "keyword": "accounting software cloud-based",
+          "keyword_info": {
+           "search_volume": 368000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 47
+          }
+         },
+         {
+          "keyword": "accounting software on cloud",
+          "keyword_info": {
+           "search_volume": 368000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 47
+          }
+         },
+         {
+          "keyword": "accounting software cloud",
+          "keyword_info": {
+           "search_volume": 368000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 47
+          }
+         },
+         {
+          "keyword": "accounting cloud software",
+          "keyword_info": {
+           "search_volume": 368000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 47
+          }
+         },
+         {
+          "keyword": "cloud computing accounting software",
+          "keyword_info": {
+           "search_volume": 368000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 47
+          }
+         },
+         {
+          "keyword": "accounting cloud based software",
+          "keyword_info": {
+           "search_volume": 368000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 47
+          }
+         },
+         {
+          "keyword": "cloud-based accounting software",
+          "keyword_info": {
+           "search_volume": 368000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 47
+          }
+         },
+         {
+          "keyword": "accounting software cloud based",
+          "keyword_info": {
+           "search_volume": 368000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 47
+          }
+         },
+         {
+          "keyword": "cloud accounting software",
+          "keyword_info": {
+           "search_volume": 368000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 47
+          }
+         },
+         {
+          "keyword": "accounting software in cloud",
+          "keyword_info": {
+           "search_volume": 368000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 47
+          }
+         },
+         {
+          "keyword": "small business cloud accounting software",
+          "keyword_info": {
+           "search_volume": 110000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 51
+          }
+         },
+         {
+          "keyword": "quickbook accounting software",
+          "keyword_info": {
+           "search_volume": 110000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 73
+          }
+         },
+         {
+          "keyword": "cloud-based accounting software for small business",
+          "keyword_info": {
+           "search_volume": 110000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 51
+          }
+         },
+         {
+          "keyword": "quickbooks accounting software",
+          "keyword_info": {
+           "search_volume": 110000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 41
+          }
+         },
+         {
+          "keyword": "cloud accounting software for small business",
+          "keyword_info": {
+           "search_volume": 110000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 51
+          }
+         },
+         {
+          "keyword": "cloud based accounting software small business",
+          "keyword_info": {
+           "search_volume": 110000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 51
+          }
+         },
+         {
+          "keyword": "small business accounting cloud software",
+          "keyword_info": {
+           "search_volume": 110000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 51
+          }
+         },
+         {
+          "keyword": "cloud based small business accounting software",
+          "keyword_info": {
+           "search_volume": 110000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 51
+          }
+         },
+         {
+          "keyword": "accounting software cloud small business",
+          "keyword_info": {
+           "search_volume": 110000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 51
+          }
+         },
+         {
+          "keyword": "intuit quickbooks accounting software",
+          "keyword_info": {
+           "search_volume": 110000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 73
+          }
+         },
+         {
+          "keyword": "cloud based accounting software for small business",
+          "keyword_info": {
+           "search_volume": 110000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 51
+          }
+         },
+         {
+          "keyword": "cloud accounting software small business",
+          "keyword_info": {
+           "search_volume": 110000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 51
+          }
+         },
+         {
+          "keyword": "cloud accounting software for small businesses",
+          "keyword_info": {
+           "search_volume": 110000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 51
+          }
+         },
+         {
+          "keyword": "accounting packages software",
+          "keyword_info": {
+           "search_volume": 90500
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 65
+          }
+         },
+         {
+          "keyword": "software of accounting",
+          "keyword_info": {
+           "search_volume": 90500
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 55
+          }
+         },
+         {
+          "keyword": "software accounting packages",
+          "keyword_info": {
+           "search_volume": 90500
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 64
+          }
+         },
+         {
+          "keyword": "software accounting software",
+          "keyword_info": {
+           "search_volume": 90500
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 55
+          }
+         },
+         {
+          "keyword": "accounting and software",
+          "keyword_info": {
+           "search_volume": 90500
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 55
+          }
+         },
+         {
+          "keyword": "software in accounting",
+          "keyword_info": {
+           "search_volume": 90500
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 55
+          }
+         },
+         {
+          "keyword": "software for accounting",
+          "keyword_info": {
+           "search_volume": 90500
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 67
+          }
+         },
+         {
+          "keyword": "accounting package software",
+          "keyword_info": {
+           "search_volume": 90500
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 73
+          }
+         },
+         {
+          "keyword": "accounting computer software",
+          "keyword_info": {
+           "search_volume": 90500
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 55
+          }
+         },
+         {
+          "keyword": "accounting bookkeeping software",
+          "keyword_info": {
+           "search_volume": 90500
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 55
+          }
+         },
+         {
+          "keyword": "accounting and bookkeeping software",
+          "keyword_info": {
+           "search_volume": 90500
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 55
+          }
+         },
+         {
+          "keyword": "accounting software",
+          "keyword_info": {
+           "search_volume": 90500
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 55
+          }
+         },
+         {
+          "keyword": "quicken accounting software",
+          "keyword_info": {
+           "search_volume": 74000
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 38
+          }
+         },
+         {
+          "keyword": "qb online accounting software",
+          "keyword_info": {
+           "search_volume": 27100
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 43
+          }
+         },
+         {
+          "keyword": "accounting and bookkeeping software for small business",
+          "keyword_info": {
+           "search_volume": 22200
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 52
+          }
+         },
+         {
+          "keyword": "accounting small business software",
+          "keyword_info": {
+           "search_volume": 22200
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 52
+          }
+         },
+         {
+          "keyword": "accounting software for small companies",
+          "keyword_info": {
+           "search_volume": 22200
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 52
+          }
+         },
+         {
+          "keyword": "small accounting software for small business",
+          "keyword_info": {
+           "search_volume": 22200
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 52
+          }
+         },
+         {
+          "keyword": "accounting software for small businesses",
+          "keyword_info": {
+           "search_volume": 22200
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 52
+          }
+         },
+         {
+          "keyword": "business accounting software for small businesses",
+          "keyword_info": {
+           "search_volume": 22200
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 52
+          }
+         },
+         {
+          "keyword": "software for small business accounting",
+          "keyword_info": {
+           "search_volume": 22200
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 52
+          }
+         },
+         {
+          "keyword": "accounting for small business software",
+          "keyword_info": {
+           "search_volume": 22200
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 52
+          }
+         },
+         {
+          "keyword": "small.business accounting software",
+          "keyword_info": {
+           "search_volume": 22200
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 52
+          }
+         },
+         {
+          "keyword": "small business software accounting",
+          "keyword_info": {
+           "search_volume": 22200
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 52
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ],
+ "model": [
+  {
+   "key": "ac3fb253804c3b99",
+   "response": {
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01KVT9mwXMgBL9gMJ8g5L7cV",
+      "name": "profile",
+      "input": {
+       "category": "accounting software",
+       "job": "manage accounting, financial records, and payroll processes for a business",
+       "offeringType": "cloud-based software suite",
+       "audienceTerms": [
+        "small businesses",
+        "enterprises",
+        "finance teams"
+       ],
+       "namedRivals": [],
+       "vocabulary": [
+        "cloud-based accounting",
+        "accounting software",
+        "bookkeeping software",
+        "payroll software",
+        "financial management",
+        "accounting package",
+        "accounting platform"
+       ],
+       "brandTokens": [
+        "Sage",
+        "Sage Intacct",
+        "Sage Business Cloud"
+       ]
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "usage": {
+     "input_tokens": 2682,
+     "output_tokens": 223
+    }
+   }
+  },
+  {
+   "key": "de288d9af802c83a",
+   "response": {
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01JBSEQ512kDvbGA6D3hsmU6",
+      "name": "question-phrasing",
+      "input": {
+       "questions": [
+        {
+         "id": "q1",
+         "text": "What cloud-based software can I use for accounting?"
+        },
+        {
+         "id": "q2",
+         "text": "What accounting software is available in the cloud?"
+        },
+        {
+         "id": "q3",
+         "text": "What cloud accounting software is designed for small businesses?"
+        },
+        {
+         "id": "q4",
+         "text": "Where can I find cloud-based accounting software for my small business?"
+        },
+        {
+         "id": "q5",
+         "text": "What software can handle both accounting and bookkeeping?"
+        },
+        {
+         "id": "q6",
+         "text": "Where can I find accounting software?"
+        },
+        {
+         "id": "q7",
+         "text": "What accounting software packages are available?"
+        },
+        {
+         "id": "q8",
+         "text": "What accounting software should I use?"
+        },
+        {
+         "id": "q9",
+         "text": "What accounting and bookkeeping software works well for small businesses?"
+        },
+        {
+         "id": "q10",
+         "text": "What accounting software do small businesses use?"
+        },
+        {
+         "id": "q11",
+         "text": "What accounting software is best for small businesses?"
+        },
+        {
+         "id": "q12",
+         "text": "What small business accounting software should I choose?"
+        }
+       ]
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "usage": {
+     "input_tokens": 1033,
+     "output_tokens": 257
+    }
+   }
+  }
+ ]
+}

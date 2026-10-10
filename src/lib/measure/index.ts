@@ -91,7 +91,7 @@ export interface MeasurePorts {
   readRobots: (origin: string) => Promise<RobotsPolicy | { ok: false; reason: string }>;
   rankedKeywords: (
     c: CostContext,
-    a: { domain: string; rows: 50 | 100 | 300; locale: Locale; onFailure?: (failure: VendorFailure) => void }
+    a: { domain: string; rows: 50 | 100 | 300; locale: Locale; listing?: boolean; onFailure?: (failure: VendorFailure) => void }
   ) => Promise<Measured<RankedResult>>;
   /** The vendor's rendered read (SPEC §6, issue 1374), asked once for a home
    *  page whose plain read was a bot-protection page (SPEC §2, issue 1379).
@@ -499,6 +499,9 @@ export async function measureDomain(
           rows: RANKED_ROWS_BY_TIER[a.tier],
           locale: read.locale,
           ...(a.ownWindowDays === undefined ? {} : { windowDays }),
+          // Issue 1387: a site whose own pages stay unread has its market
+          // read from these rows, so they carry what Google shows for each.
+          ...(plain.protection !== null && drawn === null ? { listing: true } : {}),
           onFailure: (failure) => {
             heard.failure = failure;
           },

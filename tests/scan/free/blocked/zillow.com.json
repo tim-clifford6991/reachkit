@@ -1,0 +1,1731 @@
+{
+ "domain": "zillow.com",
+ "recordedOn": "2026-10-10",
+ "vendor": [
+  {
+   "key": "/v3/dataforseo_labs/google/ranked_keywords/live zillow.com|50|United States|en #c1429af7",
+   "response": {
+    "status_code": 20000,
+    "status_message": "Ok.",
+    "cost": 0.018,
+    "tasks": [
+     {
+      "id": "10102211-1923-0381-0000-5e93ad9b3bd8",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "cost": 0.018,
+      "result": [
+       {
+        "target": "zillow.com",
+        "location_code": 2840,
+        "language_code": "en",
+        "total_count": 3955552,
+        "items_count": 50,
+        "items": [
+         {
+          "keyword_data": {
+           "keyword": "zillow",
+           "keyword_info": {
+            "search_volume": 20400000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 71
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/",
+            "title": "Zillow: Real Estate, Apartments, Mortgages & Home Values",
+            "description": "The leading real estate marketplace. Search millions of for-sale and rental listings, compare Zestimate® home values and connect with local professionals.",
+            "etv": 6201600
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "zillows",
+           "keyword_info": {
+            "search_volume": 20400000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 47
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/",
+            "title": "Zillow: Real Estate, Apartments, Mortgages & Home Values",
+            "description": "The leading real estate marketplace. Search millions of for-sale and rental listings, compare Zestimate® home values and connect with local professionals.",
+            "etv": 6201600
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "apartment",
+           "keyword_info": {
+            "search_volume": 3350000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 42
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/homes/for_rent/condo,apartment_duplex_type/",
+            "title": "Apartments For Rent - 602 Rentals",
+            "description": "Find your next apartment on Zillow. Use our detailed filters to find the perfect place, then get in touch with the property manager.",
+            "etv": 542700
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "apartments near me",
+           "keyword_info": {
+            "search_volume": 2240000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 41
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 5,
+            "url": "https://www.zillow.com/homes/for_rent/condo,apartment_duplex_type/",
+            "title": "Apartments For Rent - 667 Rentals",
+            "description": "Find your next apartment on Zillow. Special offers 667 rentals available ・ +2bd $7,496+3bd $3,696+ ・ 881 E El Camino Real, Mountain View, CA 5 available units",
+            "etv": 362880
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "homes",
+           "keyword_info": {
+            "search_volume": 2240000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 81
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/",
+            "title": "Zillow: Real Estate, Apartments, Mortgages & Home Values",
+            "description": "The leading real estate marketplace. Search millions of for-sale and rental listings, compare Zestimate® home values and connect with local professionals.",
+            "etv": 362880
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "apartments",
+           "keyword_info": {
+            "search_volume": 3350000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 85
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 3,
+            "rank_absolute": 8,
+            "url": "https://www.zillow.com/homes/for_rent/condo,apartment_duplex_type/",
+            "title": "Apartments For Rent - 607 Rentals",
+            "description": "Find your next apartment on Zillow. Use our detailed filters to find the perfect place, then get in touch with the property manager.",
+            "etv": 325955
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "apartment near me",
+           "keyword_info": {
+            "search_volume": 2240000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 50
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 3,
+            "rank_absolute": 4,
+            "url": "https://www.zillow.com/homes/for_rent/condo,apartment_duplex_type/",
+            "title": "Apartments For Rent - 667 Rentals",
+            "description": "Find your next apartment on Zillow. Special offers 667 rentals available ・ +2bd $7,496+3bd ・ 881 E El Camino Real, Mountain View, CA 5 available units",
+            "etv": 217952
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "apartment for rent",
+           "keyword_info": {
+            "search_volume": 550000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 41
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/homes/for_rent/condo,apartment_duplex_type/",
+            "title": "Apartments For Rent - 607 Rentals",
+            "description": "Find your next apartment on Zillow. Use our detailed filters to find the perfect place, then get in touch with the property manager.",
+            "etv": 167200
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "apartment for rent apartments",
+           "keyword_info": {
+            "search_volume": 550000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 62
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/homes/for_rent/condo,apartment_duplex_type/",
+            "title": "Apartments For Rent - 607 Rentals",
+            "description": "Find your next apartment on Zillow. Use our detailed filters to find the perfect place, then get in touch with the property manager.",
+            "etv": 167200
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "apartments for rent",
+           "keyword_info": {
+            "search_volume": 550000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 33
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/homes/for_rent/condo,apartment_duplex_type/",
+            "title": "Apartments For Rent - 668 Rentals",
+            "description": "Find your next apartment on Zillow. Use our detailed filters to find the perfect place, then get in touch with the property manager.",
+            "etv": 167200
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "for sale homes",
+           "keyword_info": {
+            "search_volume": 550000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 64
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/homes/for_sale/",
+            "title": "Real Estate & Homes For Sale",
+            "description": "Zillow has 130 homes for sale. View listing photos, review sales history, and use our detailed real estate filters to find the perfect place.",
+            "etv": 167200
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "for sale houses",
+           "keyword_info": {
+            "search_volume": 550000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 64
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/homes/for_sale/",
+            "title": "Real Estate & Homes For Sale",
+            "description": "Zillow has 124 homes for sale. View listing photos, review sales history, and use our detailed real estate filters to find the perfect place.",
+            "etv": 167200
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "for sale housing",
+           "keyword_info": {
+            "search_volume": 550000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 79
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/homes/for_sale/",
+            "title": "Real Estate & Homes For Sale",
+            "description": "Zillow has 671 homes for sale. View listing photos, review sales history, and use our detailed real estate filters to find the perfect place.",
+            "etv": 167200
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "homes to buy near me",
+           "keyword_info": {
+            "search_volume": 550000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 40
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/san-antonio-tx/",
+            "title": "San Antonio TX Real Estate & Homes For Sale",
+            "description": "Zillow has 13338 homes for sale in San Antonio TX. View listing photos, review sales history, and use our detailed real estate filters to find the perfect ...",
+            "etv": 167200
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "house houses for sale",
+           "keyword_info": {
+            "search_volume": 550000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 100
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/",
+            "title": "Zillow: Real Estate, Apartments, Mortgages & Home Values",
+            "description": "The leading real estate marketplace. Search millions of for-sale and rental listings, compare Zestimate® home values and connect with local professionals.",
+            "etv": 167200
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "houses for sale s",
+           "keyword_info": {
+            "search_volume": 550000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 55
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/san-antonio-tx/",
+            "title": "San Antonio TX Real Estate & Homes For Sale",
+            "description": "Zillow has 13382 homes for sale in San Antonio TX. View listing photos, review sales history, and use our detailed real estate filters to find the perfect ...",
+            "etv": 167200
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "rent a apt",
+           "keyword_info": {
+            "search_volume": 550000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 100
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/los-angeles-ca/apartments/",
+            "title": "Apartments For Rent in Los Angeles CA - 25282 Rentals",
+            "description": "Find your next apartment in Los Angeles CA on Zillow. Use our detailed filters to find the perfect place, then get in touch with the property manager.",
+            "etv": 167200
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "sale house",
+           "keyword_info": {
+            "search_volume": 550000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 40
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/homes/for_sale/",
+            "title": "Real Estate & Homes For Sale",
+            "description": "Zillow has 140 homes for sale. View listing photos, review sales history, and use our detailed real estate filters to find the perfect place.",
+            "etv": 167200
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "apartment on rent near me",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 40
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 4,
+            "url": "https://www.zillow.com/los-angeles-ca/apartments/",
+            "title": "Apartments For Rent in Los Angeles CA - 25670 Rentals",
+            "description": "Find your next apartment in Los Angeles CA on Zillow. Use our detailed filters to find the perfect place, then get in touch with the property manager.",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "apt rentals near me",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 44
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 4,
+            "url": "https://www.zillow.com/chicago-il/apartments/",
+            "title": "Apartments For Rent in Chicago IL - 15469 Rentals",
+            "description": "Find your next apartment in Chicago IL on Zillow. Use our detailed filters to find the perfect place, then get in touch with the property manager.",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "for rent housing",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 66
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/homes/for_rent/",
+            "title": "Rental Listings - 831 Rentals",
+            "description": "This is a list of all of the rental listings. 831 rentals available ・ $2,895/moFees may apply ・ $3,450+/moFees may apply 2 ・ $3,696+ 1 bdFees",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "homes available for rent near me",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 22
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/houston-tx/rent-houses/",
+            "title": "Houses For Rent in Houston TX - 3821 Homes",
+            "description": "Zillow has 3821 single family rental listings in Houston TX. Use our detailed filters to find the perfect place, then get in touch with the landlord.",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "homes for rental near me",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 29
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/homes/for_rent/",
+            "title": "Rental Listings - 772 Rentals",
+            "description": "This is a list of all of the rental listings. 2 bds 2 ba 1,057 sqft $3,702+ Studio Total monthly ・ 2645 California St, Mountain View, CA ・ 1200 Dale Ave, ...",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "homes to rent near me",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 65
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/homes/for_rent/",
+            "title": "Rental Listings - 667 Rentals",
+            "description": "This is a list of all of the rental listings. Search houses for rent ・ $5,975/moFees ・ $3,395+ seek an accommodation, please let us know.",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "house for rent",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 51
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/homes/for_rent/",
+            "title": "Rental Listings - 736 Rentals",
+            "description": "This is a list of all of the rental listings. Search houses for rent. Special offers 736 rentals available. Started $4,244+ 1 bdFees may apply and ...",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "house for rent near me",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 11
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/houston-tx/rent-houses/",
+            "title": "Houses For Rent in Houston TX - 3821 Homes",
+            "description": "Zillow has 3821 single family rental listings in Houston TX. Use our detailed filters to find the perfect place, then get in touch with the landlord.",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "house rental listings near me",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 60
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/homes/for_rent/",
+            "title": "Rental Listings - 667 Rentals",
+            "description": "This is a list of all of the rental listings. Special offers 667 rentals available. Remington Dr, Sunnyvale, CA 94087",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "house rentals near me",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 21
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/homes/for_rent/",
+            "title": "Rental Listings - 667 Rentals",
+            "description": "This is a list of all of the rental listings. Search houses for rent ・ 667 $5,975/moFees may. Mountain View, CA 94043 ・ $3,395+ 1 or seek an accommodation, ...",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "house that are for rent",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 31
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/homes/for_rent/",
+            "title": "Rental Listings - 667 Rentals",
+            "description": "This is a list of all of the rental listings. $5,975/moFees may apply 2 bds $4,252+ 1 bdFees ! New homes are getting added all the time. $3,695+Studio $3,395+1 ...",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "houses and for rent",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 51
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/homes/for_rent/",
+            "title": "Rental Listings - 667 Rentals",
+            "description": "This is a list of all of the rental listings. Search houses for rent. Special offers 667 rentals available. New homes are getting added all the time. Get ...",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "houses for rent",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 29
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/homes/for_rent/",
+            "title": "Rental Listings - 667 Rentals",
+            "description": "This is a list of all of the rental listings. Search houses for rent. Special offers 667 rentals available. New homes are getting added all the time. $3,995+ 1 ...",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "houses for rent near me",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 9
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/homes/for_rent/",
+            "title": "Rental Listings - 667 Rentals",
+            "description": "This is a list of all of the rental listings. Search houses for rent … $5,975/moFees. Mountain View, CA 94043. New homes are getting added all the time. $3,395 ...",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "houses near me for rent",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 34
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/houston-tx/rent-houses/",
+            "title": "Houses For Rent in Houston TX - 3816 Homes",
+            "description": "Zillow has 3816 single family rental listings in Houston TX. Use our detailed filters to find the perfect place, 3,816 rentals available",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "lease house near me",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 21
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/houston-tx/rent-houses/",
+            "title": "Houses For Rent in Houston TX - 3821 Homes",
+            "description": "Zillow has 3821 single family rental listings in Houston TX. Use our detailed filters to find the perfect place, then get in touch with the landlord.",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "rent apartment near me",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 55
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 4,
+            "url": "https://www.zillow.com/homes/for_rent/condo,apartment_duplex_type/",
+            "title": "Apartments For Rent - 607 Rentals",
+            "description": "Find your next apartment on Zillow. Use our detailed filters to find the perfect place, then get in touch with the property manager.",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "rent for a house",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 48
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/rental-manager/price-my-rental/",
+            "title": "Zillow Rent Estimate Calculator | Zillow Rental Manager",
+            "description": "Determine your rent estimate and find out how much rent to charge with the Zillow Rent Zestimate® Calculator for free from Zillow Rental Manager.",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "rent house near me",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 18
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/houston-tx/rent-houses/",
+            "title": "Houses For Rent in Houston TX - 3821 Homes",
+            "description": "Zillow has 3821 single family rental listings in Houston TX. Use our detailed filters to find the perfect place, then get in touch with the landlord.",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "rent houses near me",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 22
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/houston-tx/rent-houses/",
+            "title": "Houses For Rent in Houston TX - 3815 Homes",
+            "description": "Zillow has 3815 single family rental listings in Houston TX. Use our detailed filters to find the perfect place, then get in touch with the landlord.",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "rental homes near me",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 32
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/homes/for_rent/",
+            "title": "Rental Listings - 667 Rentals",
+            "description": "Rental Listings ; $5,975/mo · Avelle, 1170 Spruce St #315, Mountain View, CA 94043 · Avelle, 1170 Spruce St #315, Mountain View, CA 94043 ; $4,252+ 1 bd · Verve | ... Read more",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "rental house near me",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 19
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/san-antonio-tx/rent-houses/",
+            "title": "Houses For Rent in San Antonio TX - 3794 Homes",
+            "description": "Zillow has 3794 single family rental listings in San Antonio TX. Use our detailed filters to find the perfect place, then get in touch with the landlord.",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "rental houses near me",
+           "keyword_info": {
+            "search_volume": 450000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 33
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/houston-tx/rent-houses/",
+            "title": "Houses For Rent in Houston TX - 3821 Homes",
+            "description": "Zillow has 3821 single family rental listings in Houston TX. Use our detailed filters to find the perfect place, then get in touch with the landlord.",
+            "etv": 136800
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "frins",
+           "keyword_info": {
+            "search_volume": 823000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 3,
+            "url": "https://www.zillow.com/profile/Florida%20Keys%20Homes",
+            "title": "Lisa Frins - Real Estate Agent in Islamorada, FL - Reviews",
+            "description": "Lisa Frins is a highly accomplished and experienced real estate professional specializing in the Florida Keys market. Lisa has dedicated 27 years of her career",
+            "etv": 133326
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "mortgage calculator",
+           "keyword_info": {
+            "search_volume": 2740000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 79
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 5,
+            "rank_absolute": 6,
+            "url": "https://www.zillow.com/mortgage-calculator/",
+            "title": "Mortgage Calculator - Free House Payment Estimate",
+            "description": "Use Zillow's home loan calculator to quickly estimate your total mortgage payment including principal and interest, plus estimates for PMI, property taxes, ... Read more",
+            "etv": 128506
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "buy homes zillow",
+           "keyword_info": {
+            "search_volume": 368000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 42
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/homes/for_sale/",
+            "title": "Real Estate & Homes For Sale",
+            "description": "Zillow has 130 homes for sale. View listing photos, review sales history, and use our detailed real estate filters to find the perfect place.",
+            "etv": 111872
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "buy house zillow",
+           "keyword_info": {
+            "search_volume": 368000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 48
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/homes/",
+            "title": "zillow homes",
+            "description": "Learn why",
+            "etv": 111872
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "home for sale",
+           "keyword_info": {
+            "search_volume": 368000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 78
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/homes/for_sale/",
+            "title": "Real Estate & Homes For Sale",
+            "description": "Zillow has 142 homes for sale. View listing photos, review sales history, and use our detailed real estate filters to find the perfect place.",
+            "etv": 111872
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "homes for sale zillow",
+           "keyword_info": {
+            "search_volume": 368000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 61
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/homes/for_sale/",
+            "title": "Real Estate & Homes For Sale",
+            "description": "Zillow has 138 homes for sale. View listing photos, review sales history, and use our detailed real estate filters to find the perfect place.",
+            "etv": 111872
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "houses for sale on zillow",
+           "keyword_info": {
+            "search_volume": 368000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 44
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/homes/for_sale/",
+            "title": "Real Estate & Homes For Sale",
+            "description": "Zillow has 142 homes for sale. View listing photos, review sales history, and use our detailed real estate filters to find the perfect place.",
+            "etv": 111872
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "rental",
+           "keyword_info": {
+            "search_volume": 368000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 72
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.zillow.com/homes/for_rent/",
+            "title": "Rental Listings - 667 Rentals",
+            "description": "This is a list of all of the rental listings. $5,975/moFees may apply 2 bds $4,252+ 1 bdFees … $3,695+Studio $3,395+1bd $3,545/moFees",
+            "etv": 111872
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "zillow buy homes",
+           "keyword_info": {
+            "search_volume": 368000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 40
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.zillow.com/sell/",
+            "title": "Sell Your Home: 4 House Selling Options",
+            "description": "We give you multiple options to sell your home with the flexibility to choose what works best for your unique situation, timeline and goals. Read more",
+            "etv": 111872
+           }
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "key": "/v3/dataforseo_labs/google/keyword_suggestions/live real estate marketplace|50|United States|en #0811dafc",
+   "response": {
+    "status_code": 20000,
+    "status_message": "Ok.",
+    "cost": 0.018,
+    "tasks": [
+     {
+      "id": "10102212-1923-0399-0000-13bf0c4f2d49",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "cost": 0.018,
+      "result": [
+       {
+        "seed_keyword": "real estate marketplace",
+        "location_code": 2840,
+        "language_code": "en",
+        "total_count": 80,
+        "items_count": 50,
+        "items": [
+         {
+          "keyword": "real estate marketplace",
+          "keyword_info": {
+           "search_volume": 14800
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 37
+          }
+         },
+         {
+          "keyword": "online real estate marketplace",
+          "keyword_info": {
+           "search_volume": 3600
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 53
+          }
+         },
+         {
+          "keyword": "real estate online marketplace",
+          "keyword_info": {
+           "search_volume": 3600
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 52
+          }
+         },
+         {
+          "keyword": "commercial real estate marketplace",
+          "keyword_info": {
+           "search_volume": 1300
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 24
+          }
+         },
+         {
+          "keyword": "marketplace commercial real estate",
+          "keyword_info": {
+           "search_volume": 1300
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 35
+          }
+         },
+         {
+          "keyword": "real estate investment marketplace",
+          "keyword_info": {
+           "search_volume": 140
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 73
+          }
+         },
+         {
+          "keyword": "real estate marketplace platform",
+          "keyword_info": {
+           "search_volume": 140
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 37
+          }
+         },
+         {
+          "keyword": "real estate on facebook marketplace",
+          "keyword_info": {
+           "search_volume": 140
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "facebook marketplace real estate",
+          "keyword_info": {
+           "search_volume": 140
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 3
+          }
+         },
+         {
+          "keyword": "online commercial real estate marketplace",
+          "keyword_info": {
+           "search_volume": 110
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 59
+          }
+         },
+         {
+          "keyword": "marketplace real estate",
+          "keyword_info": {
+           "search_volume": 110
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 11
+          }
+         },
+         {
+          "keyword": "real estate marketplace llc",
+          "keyword_info": {
+           "search_volume": 90
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "the real estate marketplace",
+          "keyword_info": {
+           "search_volume": 70
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 59
+          }
+         },
+         {
+          "keyword": "real estate marketplace nw",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 7
+          }
+         },
+         {
+          "keyword": "global real estate marketplace",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 60
+          }
+         },
+         {
+          "keyword": "real estate marketplace nw inc",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 8
+          }
+         },
+         {
+          "keyword": "real estate marketplace northwest",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 21
+          }
+         },
+         {
+          "keyword": "real estate marketplace rentals",
+          "keyword_info": {
+           "search_volume": 40
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 43
+          }
+         },
+         {
+          "keyword": "facebook marketplace for real estate",
+          "keyword_info": {
+           "search_volume": 30
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 4
+          }
+         },
+         {
+          "keyword": "digital real estate marketplace",
+          "keyword_info": {
+           "search_volume": 30
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "real estate marketplace app",
+          "keyword_info": {
+           "search_volume": 30
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 66
+          }
+         },
+         {
+          "keyword": "real estate marketplace deer park wa",
+          "keyword_info": {
+           "search_volume": 20
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "tokenized real estate marketplace",
+          "keyword_info": {
+           "search_volume": 20
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 11
+          }
+         },
+         {
+          "keyword": "marketplace real estate group",
+          "keyword_info": {
+           "search_volume": 20
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "facebook marketplace real estate listings",
+          "keyword_info": {
+           "search_volume": 20
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "facebook marketplace real estate for sale",
+          "keyword_info": {
+           "search_volume": 20
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 23
+          }
+         },
+         {
+          "keyword": "real estate marketplace deer park",
+          "keyword_info": {
+           "search_volume": 20
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 47
+          }
+         },
+         {
+          "keyword": "ce marketplace real estate",
+          "keyword_info": {
+           "search_volume": 20
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "nft real estate marketplace development",
+          "keyword_info": {
+           "search_volume": 20
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 1
+          }
+         },
+         {
+          "keyword": "nft marketplace for real estate",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 7
+          }
+         },
+         {
+          "keyword": "the real estate marketplace is a an marketplace",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 4
+          }
+         },
+         {
+          "keyword": "real estate nft marketplace development",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "real estate token marketplace",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 11
+          }
+         },
+         {
+          "keyword": "real estate marketplace lending",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "real estate marketplace louisville ky",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "facebook marketplace for real estate agents",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "appreciate real estate marketplace",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "marketplace pro real estate",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "the marketplace real estate",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 37
+          }
+         },
+         {
+          "keyword": "real estate marketplace spartanburg sc",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "how to use facebook marketplace for real estate",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "white label real estate marketplace",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "cbc marketplace real estate agents",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 49
+          }
+         },
+         {
+          "keyword": "the global real estate marketplace",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 60
+          }
+         },
+         {
+          "keyword": "facebook real estate marketplace",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 23
+          }
+         },
+         {
+          "keyword": "virtual real estate marketplace",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "real estate marketplace template",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "marketplace real estate academy",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "real estate facebook marketplace",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 23
+          }
+         },
+         {
+          "keyword": "real estate marketplace deer park washington",
+          "keyword_info": {
+           "search_volume": 10
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ],
+ "model": [
+  {
+   "key": "0a23f13518ee9935",
+   "response": {
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01RUGmppxXSTo3FLQgH4GTkC",
+      "name": "profile",
+      "input": {
+       "category": "real estate marketplace",
+       "job": "find, compare, and connect with properties and professionals for buying, selling, or renting homes",
+       "offeringType": "online marketplace and search platform",
+       "audienceTerms": [
+        "home buyers",
+        "renters",
+        "property sellers",
+        "real estate investors"
+       ],
+       "namedRivals": [],
+       "vocabulary": [
+        "homes for sale",
+        "apartments for rent",
+        "rental listings",
+        "house for rent",
+        "home values",
+        "Zestimate",
+        "mortgage calculator",
+        "real estate filters",
+        "listing photos",
+        "sales history"
+       ],
+       "brandTokens": [
+        "Zillow",
+        "Zestimate",
+        "Zillow Rental Manager"
+       ]
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "usage": {
+     "input_tokens": 2486,
+     "output_tokens": 250
+    }
+   }
+  },
+  {
+   "key": "021ace4c96ff8da2",
+   "response": {
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01EaJp351SDucoa9foyoDL7B",
+      "name": "question-phrasing",
+      "input": {
+       "questions": [
+        {
+         "id": "q1",
+         "text": "What is an apartment?"
+        },
+        {
+         "id": "q2",
+         "text": "Where can I find a real estate marketplace platform?"
+        },
+        {
+         "id": "q3",
+         "text": "How can I calculate my mortgage?"
+        },
+        {
+         "id": "q4",
+         "text": "What apartments are available near me?"
+        },
+        {
+         "id": "q5",
+         "text": "Where can I find homes?"
+        },
+        {
+         "id": "q6",
+         "text": "How do I find an apartment for rent?"
+        },
+        {
+         "id": "q7",
+         "text": "Where can I search for apartments for rent?"
+        },
+        {
+         "id": "q8",
+         "text": "What homes are for sale?"
+        },
+        {
+         "id": "q9",
+         "text": "What houses are for sale?"
+        },
+        {
+         "id": "q10",
+         "text": "What apartments for rent are near me?"
+        },
+        {
+         "id": "q11",
+         "text": "What homes are available for rental near me?"
+        },
+        {
+         "id": "q12",
+         "text": "What homes can I rent near me?"
+        }
+       ]
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "usage": {
+     "input_tokens": 1012,
+     "output_tokens": 232
+    }
+   }
+  }
+ ]
+}

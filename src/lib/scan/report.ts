@@ -554,6 +554,12 @@ export interface StoredReport {
    *  marks itself a local one (SPEC §6, owner D67, issue 1318): what setup
    *  fills its question with. Absent where the page states none. */
   statedPlace?: { name: string; region?: string };
+  /** SPEC §2 (owner, 2026-10-10, issue 1387): `search` where the market, and
+   *  so the questions and the AI answers, were read from how the site
+   *  appears in search because bot protection kept the reader off its own
+   *  pages. The report says so in one line. Absent where the market was
+   *  read from the site's pages, which every report before it was. */
+  marketFrom?: "search";
 }
 
 export interface ReportLocale extends Locale {

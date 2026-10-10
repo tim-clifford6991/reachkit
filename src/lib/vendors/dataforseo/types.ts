@@ -16,6 +16,12 @@ export interface RankedRow {
   /** The vendor's keyword difficulty, 0–100, where it gave one (issue 858).
    *  Absent on a row cached before it was read. */
   difficulty?: number | null;
+  /** The title and the snippet Google shows for the page that ranks (SPEC
+   *  §2, issue 1387): what a site's market is read from where bot protection
+   *  kept the reader off its own pages. Only on rows bought with `listing`,
+   *  and only where the vendor gave one. */
+  title?: string;
+  description?: string;
 }
 
 /** `keywordOverview` — one keyword the vendor holds data for, as it spells

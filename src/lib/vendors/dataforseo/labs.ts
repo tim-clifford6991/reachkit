@@ -58,7 +58,7 @@ function rankedFreshnessDays(rows: RankedRows): number {
  * total. A response with no `total_count` reports `null`, and the reader
  * chooses what to do about not knowing.
  */
-function parseRanked(result: unknown): { rows: RankedRow[]; total: number | null } | undefined {
+function parseRanked(result: unknown, listing = false): { rows: RankedRow[]; total: number | null } | undefined {
   if (!isRecord(result)) return undefined;
   const total = asNumber(result.total_count) ?? null;
   if (result.items === null || result.items === undefined) return { rows: [], total };
@@ -83,9 +83,18 @@ function parseRanked(result: unknown): { rows: RankedRow[]; total: number | null
       // Only where the vendor gave one (issue 858): the stored own and rival
       // rows keep their shape otherwise.
       ...(difficultyOf(kd) === null ? {} : { difficulty: difficultyOf(kd) }),
+      ...(listing ? listingOf(serp) : {}),
     });
   }
   return { rows, total };
+}
+
+/** The title and snippet of the ranking page as Google shows them (issue
+ *  1387), each only where the vendor gave one. */
+function listingOf(serp: Record<string, unknown> | undefined): Pick<RankedRow, "title" | "description"> {
+  const title = serp ? asString(serp.title)?.trim() : undefined;
+  const description = serp ? asString(serp.description)?.trim() : undefined;
+  return { ...(title ? { title } : {}), ...(description ? { description } : {}) };
 }
 
 /** `keyword_properties.keyword_difficulty` on a keyword record (issue 858):
@@ -161,11 +170,17 @@ export async function rankedKeywords(
     /** Issue 1170: a narrower window than the row count's own, for a pass
      *  that may not be served a read from before its week. Never wider. */
     windowDays?: number;
+    /** Issue 1387: each row also carries the title and snippet Google shows
+     *  for the page that ranks. The same call at the same price. It is part
+     *  of the cache key, so rows stored without them are never served to a
+     *  pass that reads the site's market from them. */
+    listing?: boolean;
     /** The stage that asked, told why the call failed where it did (issue
      *  #504) — so its own reason is the vendor's, never a ledger error. */
     onFailure?: OnVendorFailure;
   }
 ): Promise<Measured<RankedResult>> {
+  const listing = a.listing === true;
   return ledgeredWithTotal<RankedRow>(c, {
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),
     source: "dataforseo_labs/google/ranked_keywords",
@@ -175,7 +190,7 @@ export async function rankedKeywords(
     // `{ rows, total }` would report a cached rival as having no rows.
     // `|etv`: rows bought before #1161 were the vendor's unordered first
     // rows, and are never served as a domain's top keywords.
-    cacheKey: `${a.domain}|${a.rows}|${localeCacheKey(a.locale)}|p${VENDOR.rankedPayloadVersion}|etv`,
+    cacheKey: `${a.domain}|${a.rows}|${localeCacheKey(a.locale)}|p${VENDOR.rankedPayloadVersion}|etv${listing ? "|listing" : ""}`,
     freshnessDays:
       a.windowDays === undefined
         ? rankedFreshnessDays(a.rows)
@@ -192,7 +207,7 @@ export async function rankedKeywords(
         // (docs.dataforseo.com, ranked_keywords/live: `order_by`).
         order_by: ["ranked_serp_element.serp_item.etv,desc"],
       }),
-    parse: parseRanked,
+    parse: (result) => parseRanked(result, listing),
   });
 }
 

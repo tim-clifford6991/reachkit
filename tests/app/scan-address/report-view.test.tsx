@@ -88,6 +88,13 @@ describe("SPEC §6, D66 (issue 1311) — the report says where it was measured",
   });
 });
 
+describe("SPEC §2 (issue 1387) — a market read from the site's listing in search says so", () => {
+  it("in one line, and only on such a report", () => {
+    expect(render(FIXTURE_REPORT)).not.toContain("report.market.from-search");
+    expect(count(render({ ...FIXTURE_REPORT, marketFrom: "search" }), "report.market.from-search")).toBe(1);
+  });
+});
+
 describe("REQ-004 c1 — the verdict strip names the score, its band, the domain and the date", () => {
   const html = render(FIXTURE_REPORT);
 

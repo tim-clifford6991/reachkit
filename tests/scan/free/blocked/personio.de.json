@@ -1,0 +1,1729 @@
+{
+ "domain": "personio.de",
+ "recordedOn": "2026-10-10",
+ "vendor": [
+  {
+   "key": "/v3/dataforseo_labs/google/ranked_keywords/live personio.de|50|Germany|de #976a7b15",
+   "response": {
+    "status_code": 20000,
+    "status_message": "Ok.",
+    "cost": 0.018,
+    "tasks": [
+     {
+      "id": "10102210-1923-0381-0000-a214c0bc5a64",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "cost": 0.018,
+      "result": [
+       {
+        "target": "personio.de",
+        "location_code": 2276,
+        "language_code": "de",
+        "total_count": 41569,
+        "items_count": 50,
+        "items": [
+         {
+          "keyword_data": {
+           "keyword": "gen z",
+           "keyword_info": {
+            "search_volume": 201000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 19
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 4,
+            "url": "https://www.personio.de/hr-lexikon/generation-z/",
+            "title": "Was ist Generation Z? Definition, Merkmale, Erwartungen",
+            "description": "Typisch für die Generation Z ist die Verschmelzung zwischen analog-realer und virtuell-digitaler Welt. Eine klare Trennung wie noch bei der Generation Y gibt es ...",
+            "etv": 32562
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "personio",
+           "keyword_info": {
+            "search_volume": 90500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 41
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.personio.de/",
+            "title": "Personio: HR und Lohnbuchhaltung endlich vereint",
+            "description": "Effiziente Software für HR Management und Recruiting - individuell anpassbar. Verwalten Sie Urlaub, Gehälter und Bewerber in nur einem Tool. Jetzt testen!",
+            "etv": 27512
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "human resources hr",
+           "keyword_info": {
+            "search_volume": 60500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 12
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.personio.de/hr-lexikon/human-resources/",
+            "title": "Human Resources: Definition, Strategien & Aufgaben von HR",
+            "description": "Der HR-Bereich verantwortet alle Personalprozesse, die Entwicklung und Umsetzung der HR-Strategie und die Personalentwicklung. Er trägt durch effiziente ...",
+            "etv": 18392
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "personio log in",
+           "keyword_info": {
+            "search_volume": 60500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 25
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.personio.de/login/",
+            "title": "Login",
+            "description": "Login für Mitarbeitende. ihr-unternehmen .app.personio.com. Einloggen. Neu bei Personio? Demo buchen. Unternehmen. Über Jobs Personio Foundation Presse.",
+            "etv": 18392
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "personio login",
+           "keyword_info": {
+            "search_volume": 60500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 41
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 1,
+            "url": "https://www.personio.de/login/",
+            "title": "Login",
+            "description": "Login für Mitarbeitende. ihr-unternehmen .app.personio.com. Einloggen. Neu bei Personio? Demo buchen. Unternehmen. Über Jobs Personio Foundation Presse.",
+            "etv": 18392
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "generation millennials",
+           "keyword_info": {
+            "search_volume": 90500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 11
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 4,
+            "url": "https://www.personio.de/hr-lexikon/generation-y/",
+            "title": "Generation Y: Die Millennials, ihre Merkmale & Erwartungen",
+            "description": "Generation Y steht für die zwischen 1981 und 1995 geborenen Jahrgänge, die alternative Sichtweisen, Prioritäten und Lebensentwürfe auf den Arbeitsmarkt ...",
+            "etv": 14661
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "mindestlohn 2026",
+           "keyword_info": {
+            "search_volume": 673000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 35
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 8,
+            "rank_absolute": 11,
+            "url": "https://www.personio.de/hr-lexikon/mindestlohn-deutschland/",
+            "title": "Mindestlohn 2026 Deutschland: Infos, Tipps, Minijob-Grenze",
+            "description": "Der gesetzliche Mindestlohn 2026 liegt bei 13,90 Euro brutto pro Stunde – 78 Cent mehr als 2025 (12,82 Euro). Die Anhebung basiert auf dem Beschluss der ...",
+            "etv": 13258.099609375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "gen x generation",
+           "keyword_info": {
+            "search_volume": 60500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 7
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 5,
+            "url": "https://www.personio.de/hr-lexikon/generation-x/",
+            "title": "Was ist Generation X? Definition, Merkmale, Erwartungen",
+            "description": "Zur Generation X gehören Menschen, die etwa zwischen 1965 und 1980 geboren wurden. Die Gen X kam in den Genuss des Wohlstands als Folge des Wirtschaftswunders, ...",
+            "etv": 9801
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "gen-x generation",
+           "keyword_info": {
+            "search_volume": 60500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 5
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 4,
+            "url": "https://www.personio.de/hr-lexikon/generation-x/",
+            "title": "Was ist Generation X? Definition, Merkmale, Erwartungen",
+            "description": "Zur Generation X gehören Menschen, die etwa zwischen 1965 und 1980 geboren wurden. Die Gen X kam in den Genuss des Wohlstands als Folge des Wirtschaftswunders, ...",
+            "etv": 9801
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "wew",
+           "keyword_info": {
+            "search_volume": 368000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 7,
+            "rank_absolute": 10,
+            "url": "https://wew.jobs.personio.de/?language=de",
+            "title": "Jobs bei WEW GmbH",
+            "description": "WEW GmbH. Auf der Suche nach einer neuen Herausforderung? Offene Stellen. Festanstellung - 1 Position. 1. Initiativbewerbung. Dortmund. Vollzeit. Festanstellung.",
+            "etv": 9420.7998046875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "millennials",
+           "keyword_info": {
+            "search_volume": 90500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 12
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 3,
+            "rank_absolute": 5,
+            "url": "https://www.personio.de/hr-lexikon/generation-y/",
+            "title": "Generation Y: Die Millennials, ihre Merkmale & Erwartungen",
+            "description": "Generation Y steht für die zwischen 1981 und 1995 geborenen Jahrgänge, die alternative Sichtweisen, Prioritäten und Lebensentwürfe auf den Arbeitsmarkt ...",
+            "etv": 8805.650390625
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "feedbacks",
+           "keyword_info": {
+            "search_volume": 27100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 16
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 3,
+            "url": "https://www.personio.de/hr-lexikon/feedback/",
+            "title": "Feedback geben: 13 Regeln, Methoden & Beispiele",
+            "description": "Gutes Feedback geben: Die 13 wichtigsten Regeln · 1. Eigene Motivation überprüfen · 2. Gut vorbereiten · 3. Nur in einem persönlichen Gespräch · 4. Richtige ...",
+            "etv": 8238.400390625
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "kündigungsfrist beim arbeitgeber",
+           "keyword_info": {
+            "search_volume": 49500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 13
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 4,
+            "url": "https://www.personio.de/hr-lexikon/kuendigungsfrist-und-ihre-grenzen/",
+            "title": "Gesetzliche Kündigungsfrist: Was gilt für Arbeitnehmer?",
+            "description": "Bei Kündigung durch Arbeitnehmer:innen beträgt die Mindestkündigungsfrist vier Wochen zum 15. oder zum Ende eines Kalendermonats – bzw. zwei Wochen während der ...",
+            "etv": 8019
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "mindestlohnerhöhung 2026",
+           "keyword_info": {
+            "search_volume": 673000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 33
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 10,
+            "rank_absolute": 13,
+            "url": "https://www.personio.de/hr-lexikon/mindestlohn-deutschland/",
+            "title": "Mindestlohn 2026 Deutschland: Infos, Tipps, Minijob-Grenze",
+            "description": "Der gesetzliche Mindestlohn 2026 liegt bei 13,90 Euro brutto pro Stunde – 78 Cent mehr als 2025 (12,82 Euro). Die Anhebung basiert auf dem Beschluss der ...",
+            "etv": 7604.89990234375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "generation z",
+           "keyword_info": {
+            "search_volume": 201000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 22
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 6,
+            "rank_absolute": 8,
+            "url": "https://www.personio.de/hr-lexikon/generation-z/",
+            "title": "Was ist Generation Z? Definition, Merkmale, Erwartungen",
+            "description": "Typisch für die Generation Z ist die Verschmelzung zwischen analog-realer und virtuell-digitaler Welt. Eine klare Trennung wie noch bei der Generation Y gibt es ...",
+            "etv": 6793.7998046875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "recruiting",
+           "keyword_info": {
+            "search_volume": 22200
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 10
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.personio.de/hr-lexikon/recruiting/",
+            "title": "Recruiting: Definition, Prozess und Instrumente",
+            "description": "Erfahren Sie, was Recruiting ist & wie Recruiting funktioniert ✓ Kandidatensuche ✓ Bewerberauswahl ✓ Onboarding » Tipps für HR-Profis & Recruiter.",
+            "etv": 6748.7998046875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "millennials generation y",
+           "keyword_info": {
+            "search_volume": 90500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 4
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 4,
+            "rank_absolute": 7,
+            "url": "https://www.personio.de/hr-lexikon/generation-y/",
+            "title": "Generation Y: Die Millennials, ihre Merkmale & Erwartungen",
+            "description": "Generation Y steht für die zwischen 1981 und 1995 geborenen Jahrgänge, die alternative Sichtweisen, Prioritäten und Lebensentwürfe auf den Arbeitsmarkt ...",
+            "etv": 5963.9501953125
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "generation y",
+           "keyword_info": {
+            "search_volume": 33100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 1
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 4,
+            "url": "https://www.personio.de/hr-lexikon/generation-y/",
+            "title": "Generation Y: Die Millennials, ihre Merkmale & Erwartungen",
+            "description": "Generation Y steht für die zwischen 1981 und 1995 geborenen Jahrgänge, die alternative Sichtweisen, Prioritäten und Lebensentwürfe auf den Arbeitsmarkt ...",
+            "etv": 5362.2001953125
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "arbeitszeit rechner",
+           "keyword_info": {
+            "search_volume": 165000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 7,
+            "rank_absolute": 7,
+            "url": "https://www.personio.de/hr-lexikon/arbeitszeitrechner/",
+            "title": "Arbeitszeitrechner: tägliche Arbeitszeit online berechnen",
+            "description": "Arbeitszeiterfassung leicht gemacht – mit unserem Online-Arbeitszeitrechner. ✓ Arbeitsbeginn und Ende ✓ abzüglich Pausen » Jetzt Zeit berechnen!",
+            "etv": 4224
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "arbeitszeiten rechner",
+           "keyword_info": {
+            "search_volume": 165000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 7,
+            "rank_absolute": 7,
+            "url": "https://www.personio.de/hr-lexikon/arbeitszeitrechner/",
+            "title": "Arbeitszeitrechner: tägliche Arbeitszeit online berechnen",
+            "description": "Arbeitszeiterfassung leicht gemacht – mit unserem Online-Arbeitszeitrechner. ✓ Arbeitsbeginn und Ende ✓ abzüglich Pausen » Jetzt Zeit berechnen!",
+            "etv": 4224
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "highest potential",
+           "keyword_info": {
+            "search_volume": 110000
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 2
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 6,
+            "rank_absolute": 8,
+            "url": "https://www.personio.de/hr-lexikon/high-potentials/",
+            "title": "High Potentials – so findet und fördert man sie",
+            "description": "Als High Potentials werden jene Top-Talente bezeichnet, die über ausgezeichnete fachliche Fähigkeiten sowie über besondere persönliche Eigenschaften und ...",
+            "etv": 3718
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "intrinsische motivation",
+           "keyword_info": {
+            "search_volume": 12100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 16
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.personio.de/hr-lexikon/intrinsische-motivation/",
+            "title": "Was ist intrinsische Motivation? Beispiele & 5 smarte Tipps",
+            "description": "Intrinsische Motivation ist der innere Antrieb, der Menschen bewegt, eine Aufgabenstellung zu erfüllen. Die intrinsische Motivation ist selbstbestimmt und muss ...",
+            "etv": 3678.39990234375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "abwesenheiten",
+           "keyword_info": {
+            "search_volume": 9900
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 7
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 3,
+            "url": "https://www.personio.de/hr-lexikon/abwesenheitsmanagement/",
+            "title": "Abwesenheitsmanagement: Definition, Arten, Software",
+            "description": "Zu den planbaren Abwesenheiten zählen u.a. Sabbatical, Bildungsurlaub, Elternzeit. Zu den Ad-hoc-Abwesenheiten zählt Abwesenheit durch Krankheit.",
+            "etv": 3009.60009765625
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "intrinsische",
+           "keyword_info": {
+            "search_volume": 18100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 1
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 5,
+            "url": "https://www.personio.de/hr-lexikon/intrinsische-motivation/",
+            "title": "Was ist intrinsische Motivation? Beispiele & 5 smarte Tipps",
+            "description": "Intrinsische Motivation ist der innere Antrieb, der Menschen bewegt, eine Aufgabenstellung zu erfüllen. Die intrinsische Motivation ist selbstbestimmt und muss ...",
+            "etv": 2932.199951171875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "todesfall sonderurlaub",
+           "keyword_info": {
+            "search_volume": 18100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 4,
+            "url": "https://www.personio.de/hr-lexikon/sonderurlaub-todesfall/",
+            "title": "Sonderurlaub im Todesfall: Anspruch, Dauer & Gesetz",
+            "description": "Grundsätzlich gibt es keine verbindlichen Regelungen für Sonderurlaub anlässlich eines Todesfalls. Bundesbeamt:innen, Angestellte im öffentlichen Dienst und in ...",
+            "etv": 2932.199951171875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "feedback",
+           "keyword_info": {
+            "search_volume": 27100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 19
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 3,
+            "rank_absolute": 5,
+            "url": "https://www.personio.de/hr-lexikon/feedback/",
+            "title": "Feedback geben: Methoden, Regeln & Beispiele",
+            "description": "Gutes Feedback geben: Die 13 wichtigsten Regeln · 1. Eigene Motivation überprüfen · 2. Gut vorbereiten · 3. Nur in einem persönlichen Gespräch · 4. Richtige ...",
+            "etv": 2636.830078125
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "führungsstile",
+           "keyword_info": {
+            "search_volume": 8100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 4,
+            "url": "https://www.personio.de/hr-lexikon/fuehrungsstile/",
+            "title": "Welche Führungsstile gibt es? Eine umfassende Übersicht",
+            "description": "Von autoritär bis demokratisch: die Facetten der Führungsstile entdecken und wie sie die Teamdynamik beeinflussen können. ✓ Praktische Tipps » Mehr!",
+            "etv": 2462.39990234375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "equipme",
+           "keyword_info": {
+            "search_volume": 22200
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 3,
+            "rank_absolute": 3,
+            "url": "https://www.marketplace.personio.de/integrations/equipme/",
+            "title": "equipme - Personio Integrations",
+            "description": "equipme bietet Unternehmen die einfachste Möglichkeit, IT-Geräte, Peripheriegeräte und Apps sowie Home-Office-Möbel und Bürobedarf für ihre Mitarbeiter zu ...",
+            "etv": 2160.06005859375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "soft skills",
+           "keyword_info": {
+            "search_volume": 6600
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 10
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.personio.de/hr-lexikon/soft-skills/",
+            "title": "Soft Skills: Definition, Beispiele und Training",
+            "description": "Die wichtigsten Soft Skills · Kommunikationsfähigkeit · Teamfähigkeit · Performance Management wirksam aufsetzen · Charisma · Diversitätskompetenz.",
+            "etv": 2006.4000244140625
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "minijobber urlaubsanspruch",
+           "keyword_info": {
+            "search_volume": 12100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 4,
+            "url": "https://www.personio.de/hr-lexikon/urlaubsanspruch-minijob/",
+            "title": "Urlaubsanspruch Minijob: Rechte, Berechnung & Beispiele",
+            "description": "Wie viel Urlaubsanspruch besteht bei einem Minijob? Der jährliche Urlaubsanspruch liegt bei einer 6-Tage-Arbeitswoche bei 24 Tagen. Auf Basis dieser ...",
+            "etv": 1960.199951171875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "jaeg",
+           "keyword_info": {
+            "search_volume": 40500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 5,
+            "rank_absolute": 7,
+            "url": "https://support.personio.de/hc/de/articles/23185351907869-Versicherungspflicht-und-Jahresarbeitsentgeltgrenze-pr%C3%BCfen",
+            "title": "Versicherungspflicht und Jahresarbeitsentgeltgrenze prüfen",
+            "description": "30.01.2026 — Im folgenden Artikel erklären wir Ihnen, was es mit der Jahresarbeitsentgeltgrenze (JAEG) auf sich hat und warum sie zum Jahreswechsel ...",
+            "etv": 1899.449951171875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "kündigung arbeitsverhältnis",
+           "keyword_info": {
+            "search_volume": 27100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 4
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 4,
+            "rank_absolute": 6,
+            "url": "https://www.personio.de/hr-lexikon/kuendigungsfrist-und-ihre-grenzen/",
+            "title": "Gesetzliche Kündigungsfrist: Was gilt für Arbeitnehmer?",
+            "description": "Bei Kündigung durch Arbeitnehmer:innen beträgt die Mindestkündigungsfrist vier Wochen zum 15. oder zum Ende eines Kalendermonats – bzw. zwei Wochen während der ...",
+            "etv": 1785.8900146484375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "smart ziel",
+           "keyword_info": {
+            "search_volume": 27100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 27
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 4,
+            "rank_absolute": 7,
+            "url": "https://www.personio.de/hr-lexikon/smart-ziele/",
+            "title": "SMART-Ziele: Leitfaden für eine effektive Zielsetzung",
+            "description": "Die Abkürzung SMART steht für fünf Kriterien, nach denen Ziele definiert werden können: spezifisch, messbar, attraktiv, realistisch und terminiert. Die ...",
+            "etv": 1785.8900146484375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "abwesenheitsnotiz outlook",
+           "keyword_info": {
+            "search_volume": 18100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 3,
+            "rank_absolute": 6,
+            "url": "https://www.personio.de/hr-lexikon/abwesenheitsnotiz-vorlage/",
+            "title": "Abwesenheitsnotiz: Beispiele, Formulierungen, Fehler",
+            "description": "Eine Abwesenheitsnotiz ist eine vorformulierte und automatisiert verschickte Antwort auf eingehende Mails. Sie kommt immer dann zum Einsatz, wenn Mitarbeitende ...",
+            "etv": 1761.1300048828125
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "employee self service",
+           "keyword_info": {
+            "search_volume": 18100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 3
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 3,
+            "rank_absolute": 3,
+            "url": "https://www.personio.de/hr-lexikon/employee-self-service/",
+            "title": "Employee Self Service (ESS): Bedeutung und Umsetzung",
+            "description": "Im Employee Self Service (ESS) bearbeiten Mitarbeitende ihre Personaldaten, Arbeitszeiten oder Abwesenheiten einfach selbst, statt mit ihren Änderungswünschen ...",
+            "etv": 1761.1300048828125
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "kündigungsfrist für arbeitgeber",
+           "keyword_info": {
+            "search_volume": 49500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 12
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 6,
+            "rank_absolute": 8,
+            "url": "https://www.personio.de/hr-lexikon/kuendigungsfrist-und-ihre-grenzen/",
+            "title": "Gesetzliche Kündigungsfrist: Was gilt für Arbeitnehmer?",
+            "description": "Bei Kündigung durch Arbeitnehmer:innen beträgt die Mindestkündigungsfrist vier Wochen zum 15. oder zum Ende eines Kalendermonats – bzw. zwei Wochen während der ...",
+            "etv": 1673.0999755859375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "entgelt abrechnung",
+           "keyword_info": {
+            "search_volume": 5400
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 3,
+            "url": "https://www.personio.de/hr-lexikon/entgeltabrechnung/",
+            "title": "Entgeltabrechnung: Definition, Berechnung, Beispiel",
+            "description": "Kurz gesagt: Die Entgeltabrechnung erläutert für die Beschäftigten den Weg vom Brutto zum Netto. Also vom Bruttogehalt bis zum tatsächlichen Auszahlungsbetrag ...",
+            "etv": 1641.5999755859375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "sonderurlaub umzug",
+           "keyword_info": {
+            "search_volume": 9900
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 4,
+            "url": "https://www.personio.de/hr-lexikon/sonderurlaub-umzug/",
+            "title": "Sonderurlaub beim Umzug: Anspruch, Dauer & Gesetz",
+            "description": "Von Rechts wegen besteht kein grundsätzlicher Anspruch auf Sonderurlaubstage für einen Umzug. Es ist in den meisten Fällen davon auszugehen, dass ein Umzug ...",
+            "etv": 1603.800048828125
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "urlaubsplanung",
+           "keyword_info": {
+            "search_volume": 4400
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.personio.de/hr-lexikon/urlaubsplanung/",
+            "title": "Urlaubsplanung: Vorgaben, Rechte und Tipps für Teams",
+            "description": "Eine Urlaubsplanung dient dazu, die urlaubsbedingten An- und Abwesenheiten der Mitarbeitenden im Unternehmen zu organisieren und die Urlaubstage zu erfassen.",
+            "etv": 1337.5999755859375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "woche pro jahr",
+           "keyword_info": {
+            "search_volume": 4400
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.personio.de/hr-lexikon/arbeitsstunden-und-arbeitswochen-pro-jahr/",
+            "title": "Arbeitsstunden & Arbeitswochen pro Jahr einfach berechnen",
+            "description": "Während ein Jahr stets aus (gerundet) 52 Kalenderwochen besteht, kann die Anzahl der Arbeitstage bzw. Arbeitswochen pro Jahr variieren. Maßgeblich hierfür ist ...",
+            "etv": 1337.5999755859375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "wochen pro jahr",
+           "keyword_info": {
+            "search_volume": 4400
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 7
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 1,
+            "rank_absolute": 2,
+            "url": "https://www.personio.de/hr-lexikon/arbeitsstunden-und-arbeitswochen-pro-jahr/",
+            "title": "Arbeitsstunden & Arbeitswochen pro Jahr einfach berechnen",
+            "description": "Während ein Jahr stets aus (gerundet) 52 Kalenderwochen besteht, kann die Anzahl der Arbeitstage bzw. Arbeitswochen pro Jahr variieren. Maßgeblich hierfür ist ...",
+            "etv": 1337.5999755859375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "matrix organisation",
+           "keyword_info": {
+            "search_volume": 8100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 3,
+            "url": "https://www.personio.de/hr-lexikon/matrixorganisation/",
+            "title": "Matrixorganisation: Definition, Vor- und Nachteile, Beispiel",
+            "description": "Eine Matrixorganisation zeichnet sich durch die Kombination von zwei Einliniensystemen aus. Das daraus entstehende Mehrliniensystem ist im Organigramm durch die ...",
+            "etv": 1312.199951171875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "matrix organisationsstruktur",
+           "keyword_info": {
+            "search_volume": 8100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 4,
+            "url": "https://www.personio.de/hr-lexikon/matrixorganisation/",
+            "title": "Matrixorganisation: Definition, Vor- und Nachteile, Beispiel",
+            "description": "Eine Matrixorganisation zeichnet sich durch die Kombination von zwei Einliniensystemen aus. Das daraus entstehende Mehrliniensystem ist im Organigramm durch die ...",
+            "etv": 1312.199951171875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "payroll",
+           "keyword_info": {
+            "search_volume": 8100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 5,
+            "url": "https://www.personio.de/hr-lexikon/payroll/",
+            "title": "Payroll: Diese Aufgaben gehören zur Entgeltabrechnung",
+            "description": "27.07.2026 — Payroll-Software ist eine Lohnabrechnungssoftware, die die Berechnung und Dokumentation von Löhnen und Gehältern automatisiert: Sie verarbeitet ...",
+            "etv": 1312.199951171875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "sonderurlaub",
+           "keyword_info": {
+            "search_volume": 8100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 1
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 4,
+            "url": "https://www.personio.de/hr-lexikon/sonderurlaub/",
+            "title": "Sonderurlaub: Wann Mitarbeitende Anspruch haben",
+            "description": "Sonderurlaub wird in der Regel gewährt, wenn der Umzug aus betrieblichen Gründen erfolgt, d. h. wenn Mitarbeiter:innen für den Arbeitgeber umziehen. Bei einem ...",
+            "etv": 1312.199951171875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "sonderurlaub hochzeit",
+           "keyword_info": {
+            "search_volume": 8100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 2,
+            "rank_absolute": 4,
+            "url": "https://www.personio.de/hr-lexikon/sonderurlaub-hochzeit/",
+            "title": "Sonderurlaub bei Hochzeit: Anspruch, Dauer & Gesetz",
+            "description": "Grundsätzlich können die persönlichen Gründe als Voraussetzung für eine bezahlte Freistellung nach § 616 BGB durch Familienzugehörigkeit motiviert sein. Damit ...",
+            "etv": 1312.199951171875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "krankmeldung",
+           "keyword_info": {
+            "search_volume": 27100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 20
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 5,
+            "rank_absolute": 6,
+            "url": "https://www.personio.de/hr-lexikon/krankmeldung/",
+            "title": "Krankmeldung & Arbeitsunfähigkeitsbescheinigung",
+            "description": "Alles über Krankmeldungen und eAU: ✓ Wann und wie korrekt krankmelden? ✓ Erfahren Sie die aktuellen Regeln und Pflichten 2024 » Jetzt nachlesen!",
+            "etv": 1270.989990234375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "samstagen",
+           "keyword_info": {
+            "search_volume": 27100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 0
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 5,
+            "rank_absolute": 7,
+            "url": "https://www.personio.de/hr-lexikon/samstagsarbeit/",
+            "title": "Samstagsarbeit in Deutschland: Rechte & Pflichten 2025",
+            "description": "Vor dem Gesetz gilt der Samstag als normaler Werktag, sofern kein Feiertag vorliegt. · Für die Arbeit an Samstagen können tarif- oder arbeitsvertragliche Regeln ...",
+            "etv": 1270.989990234375
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "arbeitnehmer kündigung frist",
+           "keyword_info": {
+            "search_volume": 49500
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 14
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 7,
+            "rank_absolute": 9,
+            "url": "https://www.personio.de/hr-lexikon/kuendigungsfrist-und-ihre-grenzen/",
+            "title": "Gesetzliche Kündigungsfrist: Was gilt für Arbeitnehmer?",
+            "description": "Bei Kündigung durch Arbeitnehmer:innen beträgt die Mindestkündigungsfrist vier Wochen zum 15. oder zum Ende eines Kalendermonats – bzw. zwei Wochen während der ...",
+            "etv": 1267.199951171875
+           }
+          }
+         },
+         {
+          "keyword_data": {
+           "keyword": "intrinsisch",
+           "keyword_info": {
+            "search_volume": 18100
+           },
+           "keyword_properties": {
+            "keyword_difficulty": 5
+           }
+          },
+          "ranked_serp_element": {
+           "serp_item": {
+            "type": "organic",
+            "rank_group": 4,
+            "rank_absolute": 7,
+            "url": "https://www.personio.de/hr-lexikon/intrinsische-motivation/",
+            "title": "Was ist intrinsische Motivation? Beispiele & 5 smarte Tipps",
+            "description": "Intrinsische Motivation ist der innere Antrieb, der Menschen bewegt, eine Aufgabenstellung zu erfüllen. Die intrinsische Motivation ist selbstbestimmt und muss ...",
+            "etv": 1192.7900390625
+           }
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "key": "/v3/dataforseo_labs/google/keyword_suggestions/live HR-Software|50|Germany|de #b2fc7584",
+   "response": {
+    "status_code": 20000,
+    "status_message": "Ok.",
+    "cost": 0.018,
+    "tasks": [
+     {
+      "id": "10102211-1923-0399-0000-1f1dbf2dc19a",
+      "status_code": 20000,
+      "status_message": "Ok.",
+      "cost": 0.018,
+      "result": [
+       {
+        "seed_keyword": "hr-software",
+        "location_code": 2276,
+        "language_code": "de",
+        "total_count": 665,
+        "items_count": 50,
+        "items": [
+         {
+          "keyword": "software hr",
+          "keyword_info": {
+           "search_volume": 1300
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 25
+          }
+         },
+         {
+          "keyword": "hr-software",
+          "keyword_info": {
+           "search_volume": 1300
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 25
+          }
+         },
+         {
+          "keyword": "hr in software",
+          "keyword_info": {
+           "search_volume": 1300
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 25
+          }
+         },
+         {
+          "keyword": "hr manager software",
+          "keyword_info": {
+           "search_volume": 1300
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 25
+          }
+         },
+         {
+          "keyword": "software for hr management",
+          "keyword_info": {
+           "search_volume": 1300
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 25
+          }
+         },
+         {
+          "keyword": "software voor hr",
+          "keyword_info": {
+           "search_volume": 1300
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 25
+          }
+         },
+         {
+          "keyword": "hr software",
+          "keyword_info": {
+           "search_volume": 1300
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 25
+          }
+         },
+         {
+          "keyword": "software for hr",
+          "keyword_info": {
+           "search_volume": 1300
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 25
+          }
+         },
+         {
+          "keyword": "hr software software",
+          "keyword_info": {
+           "search_volume": 1300
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 25
+          }
+         },
+         {
+          "keyword": "hr-software vergleich",
+          "keyword_info": {
+           "search_volume": 170
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 6
+          }
+         },
+         {
+          "keyword": "hr software vergleich",
+          "keyword_info": {
+           "search_volume": 170
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 6
+          }
+         },
+         {
+          "keyword": "hrworks login kundenlogin zur online hr-software",
+          "keyword_info": {
+           "search_volume": 140
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 23
+          }
+         },
+         {
+          "keyword": "hr information system software",
+          "keyword_info": {
+           "search_volume": 110
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 18
+          }
+         },
+         {
+          "keyword": "hr management software",
+          "keyword_info": {
+           "search_volume": 110
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 18
+          }
+         },
+         {
+          "keyword": "hr-software-anbieter",
+          "keyword_info": {
+           "search_volume": 110
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 12
+          }
+         },
+         {
+          "keyword": "hr software anbieter",
+          "keyword_info": {
+           "search_volume": 110
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 7
+          }
+         },
+         {
+          "keyword": "anbieter hr software",
+          "keyword_info": {
+           "search_volume": 110
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 12
+          }
+         },
+         {
+          "keyword": "hr-software anbieter",
+          "keyword_info": {
+           "search_volume": 110
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 12
+          }
+         },
+         {
+          "keyword": "hr system software",
+          "keyword_info": {
+           "search_volume": 110
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 18
+          }
+         },
+         {
+          "keyword": "hr management system software",
+          "keyword_info": {
+           "search_volume": 110
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 18
+          }
+         },
+         {
+          "keyword": "hr sap software",
+          "keyword_info": {
+           "search_volume": 70
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "sap software hr",
+          "keyword_info": {
+           "search_volume": 70
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "hr software sap",
+          "keyword_info": {
+           "search_volume": 70
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "sap software for hr",
+          "keyword_info": {
+           "search_volume": 70
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "sap hr software",
+          "keyword_info": {
+           "search_volume": 70
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "hr-software sap",
+          "keyword_info": {
+           "search_volume": 70
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "sap hr-software",
+          "keyword_info": {
+           "search_volume": 70
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "hr-software deutschland",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 53
+          }
+         },
+         {
+          "keyword": "hr software deutschland",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 53
+          }
+         },
+         {
+          "keyword": "hr software open source",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 56
+          }
+         },
+         {
+          "keyword": "hr software germany",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 53
+          }
+         },
+         {
+          "keyword": "hr management software small business",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "beste hr-software",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "hr software small business",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 13
+          }
+         },
+         {
+          "keyword": "small business hr software",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 13
+          }
+         },
+         {
+          "keyword": "open source hr software",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 56
+          }
+         },
+         {
+          "keyword": "hr management software open source",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 56
+          }
+         },
+         {
+          "keyword": "beste hr software",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "hr management open source software",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 56
+          }
+         },
+         {
+          "keyword": "hr open source software",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 56
+          }
+         },
+         {
+          "keyword": "tda-hr-software-entwicklungs gmbh",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "hr software for small business",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "tda hr software entwicklungs gmbh",
+          "keyword_info": {
+           "search_volume": 50
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "best hr software",
+          "keyword_info": {
+           "search_volume": 40
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "hr recruiting software",
+          "keyword_info": {
+           "search_volume": 40
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 11
+          }
+         },
+         {
+          "keyword": "hr-software kmu",
+          "keyword_info": {
+           "search_volume": 40
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         },
+         {
+          "keyword": "best hr-software",
+          "keyword_info": {
+           "search_volume": 40
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 0
+          }
+         },
+         {
+          "keyword": "hr software recruiting",
+          "keyword_info": {
+           "search_volume": 40
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 11
+          }
+         },
+         {
+          "keyword": "personio hr software",
+          "keyword_info": {
+           "search_volume": 40
+          },
+          "keyword_properties": {
+           "keyword_difficulty": 54
+          }
+         },
+         {
+          "keyword": "hr help desk software",
+          "keyword_info": {
+           "search_volume": 40
+          },
+          "keyword_properties": {
+           "keyword_difficulty": null
+          }
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ],
+ "model": [
+  {
+   "key": "07bec44d8c784437",
+   "response": {
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01A4UiY8a6SoWLkc9qck6Msj",
+      "name": "profile",
+      "input": {
+       "category": "HR-Software",
+       "job": "Personalprozesse, Lohnbuchhaltung und Recruiting verwalten",
+       "offeringType": "Cloud-basierte HR- und Lohnbuchhaltungssoftware",
+       "audienceTerms": [
+        "Kleine und mittlere Unternehmen",
+        "Personalabteilungen",
+        "Recruiter",
+        "HR-Manager"
+       ],
+       "namedRivals": [],
+       "vocabulary": [
+        "HR-Management",
+        "Lohnbuchhaltung",
+        "Recruiting",
+        "Urlaubsverwaltung",
+        "Arbeitszeiterfassung",
+        "Abwesenheitsmanagement",
+        "Employee Self Service",
+        "Entgeltabrechnung",
+        "Personalentwicklung",
+        "Onboarding"
+       ],
+       "brandTokens": [
+        "Personio"
+       ]
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "usage": {
+     "input_tokens": 4084,
+     "output_tokens": 293
+    }
+   }
+  },
+  {
+   "key": "07b59198754eb710",
+   "response": {
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01XwjvicC1PMydcZJ2Gdn3dS",
+      "name": "question-phrasing",
+      "input": {
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Wie funktioniert HR in der Softwareentwicklung?"
+        },
+        {
+         "id": "q2",
+         "text": "Welche Software hilft mir als HR-Manager bei meiner Arbeit?"
+        },
+        {
+         "id": "q3",
+         "text": "Welche HR-Software ist für mein Unternehmen geeignet?"
+        },
+        {
+         "id": "q4",
+         "text": "Welche HR-Softwarelösungen gibt es im Vergleich?"
+        },
+        {
+         "id": "q5",
+         "text": "Welche Anbieter von HR-Software gibt es?"
+        },
+        {
+         "id": "q6",
+         "text": "Womit kann ich Personalmanagement digital unterstützen?"
+        },
+        {
+         "id": "q7",
+         "text": "Wie berechne ich Arbeitszeiten korrekt?"
+        },
+        {
+         "id": "q8",
+         "text": "Welche HR-Software ist die beste für mein Unternehmen?"
+        },
+        {
+         "id": "q9",
+         "text": "Wie führe ich ein effektives Recruiting durch?"
+        },
+        {
+         "id": "q10",
+         "text": "Wie können Mitarbeiter ihre Daten selbst verwalten?"
+        },
+        {
+         "id": "q11",
+         "text": "Wie verwalte ich Abwesenheiten meiner Mitarbeiter?"
+        },
+        {
+         "id": "q12",
+         "text": "Wie funktioniert die Entgeltabrechnung in meinem Unternehmen?"
+        }
+       ]
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "usage": {
+     "input_tokens": 1094,
+     "output_tokens": 346
+    }
+   }
+  }
+ ]
+}

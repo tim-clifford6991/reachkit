@@ -93,7 +93,7 @@ import { freePageOf } from "@/lib/opportunities/free-page";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/locale/locales";
 import { localSearch, statedPlace as statedPlaceOf } from "@/lib/locale/place";
 import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
-import { aiPresenceOf, measureDomain, type DomainMeasurement } from "@/lib/measure";
+import { aiPresenceOf, BOT_PROTECTION, measureDomain, type DomainMeasurement } from "@/lib/measure";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { InputOutcome, ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
@@ -123,6 +123,7 @@ import { parseDomain, type CanonicalDomain } from "./domain";
 import { marketTooSmall, stoppedOnCeiling } from "./market-floor";
 import { pageQuestionCandidates, pageQuestionMisses } from "./page-questions";
 import { RETRY_STAGE, readSpentCents, registerRetryRunner, type RetryPart } from "./retry";
+import { searchFootprintOf, type ThinFootprint } from "./search-footprint";
 import {
   PROMPT_ENGINES,
   readCurrentReport,
@@ -425,6 +426,13 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
 interface Sections {
   measurement: DomainMeasurement | null;
   profile: Measured<Profile>;
+  /** SPEC §2 (issue 1387): `search` where the profile was read from the
+   *  site's listing in search because bot protection kept the reader off
+   *  its own pages; `null` where it was read from those pages, or not read. */
+  marketFrom: "search" | null;
+  /** Why that listing named no market, where it did not: the pass then
+   *  guesses none, and the report keeps the reason. */
+  marketThin: ThinFootprint | null;
   marketRows: Measured<readonly SuggestionRow[]>;
   selected: SelectedSearch[];
   questions: Measured<Question[]>;
@@ -543,6 +551,7 @@ function resumeMarket(sections: Sections, report: StoredReport): void {
     market.kind === "unmeasured"
       ? unmeasured(market.reason, market.at)
       : { kind: market.kind, value: market.value.suggestions, at: market.at };
+  sections.marketFrom = report.marketFrom ?? null;
   sections.questions = report.questions;
   sections.selected =
     report.questions.kind === "unmeasured" ? [] : report.questions.value.map((question) => question.search);
@@ -572,6 +581,8 @@ function freshSections(at: Date): Sections {
   return {
     measurement: null,
     profile: unmeasured("not_attempted", at),
+    marketFrom: null,
+    marketThin: null,
     marketRows: unmeasured("not_attempted", at),
     selected: [],
     sealed: false,
@@ -954,7 +965,12 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   // 2. §6.4's seven-day window — the free path's, per `servesStoredReport`.
   if (a.correctionOf === undefined && a.retryOf === undefined && parameters.servesStoredReport) {
     const stored = await readCurrentReport(domain);
-    if (stored !== null && stored.complete && wholeDaysBetween(stored.verdict.measuredAt, startedAt) < FREE_RESCAN_WINDOW_D) {
+    if (
+      stored !== null &&
+      stored.complete &&
+      !awaitsMarketFromSearch(stored) &&
+      wholeDaysBetween(stored.verdict.measuredAt, startedAt) < FREE_RESCAN_WINDOW_D
+    ) {
       if (parameters.adoptsClaim) await closeWithoutSpending(scanId);
       logPass({
         scanId: stored.scanId,
@@ -1779,6 +1795,58 @@ async function previousSizes(domain: CanonicalDomain): Promise<readonly RivalSiz
   return stored.rivalSizes.value;
 }
 
+/**
+ * What the profile call reads (§6.7 step 1): the site's own home and pricing
+ * text, or `null` where there is none to read.
+ *
+ * **A site its bot protection kept the reader off** (SPEC §2, owner
+ * 2026-10-10, issue 1387) has no text of its own, and only then is its
+ * listing in search read in its place: the ranked rows stage one already
+ * bought, with the title and snippet Google shows for each page. A listing
+ * too thin to name a market from is not read, and the reason is kept.
+ */
+function marketReadingOf(
+  a: StageArgs,
+  measurement: DomainMeasurement
+): { home: string; pricing?: string } | { search: string } | null {
+  if (measurement.text.home !== null) {
+    return {
+      home: measurement.text.home,
+      ...(measurement.text.pricing === null ? {} : { pricing: measurement.text.pricing }),
+    };
+  }
+  if (measurement.protection === undefined) return null;
+  const footprint = searchFootprintOf({ domain: a.domain, rows: measurement.ownRankedRows });
+  if (footprint.kind === "thin") {
+    a.sections.marketThin = footprint.because;
+    logMarketFromSearch({ read: false, because: footprint.because, searches: footprint.searches, descriptive: footprint.descriptive });
+    return null;
+  }
+  logMarketFromSearch({ read: true, searches: footprint.searches, descriptive: footprint.descriptive, pages: footprint.pages });
+  return { search: footprint.text };
+}
+
+/** Counts only: never a search, a title or a snippet. */
+function logMarketFromSearch(fields: { read: boolean; because?: ThinFootprint; searches?: number; descriptive?: number; pages?: number }): void {
+  console.log(JSON.stringify({ event: "market_from_search", ...fields }));
+}
+
+/**
+ * Whether a stored report is one this build would measure further (issue
+ * 1387): bot protection kept the reader off the site, and the pass that
+ * stored it never tried to read a market from search. Such a report is not
+ * served inside the re-scan window. One whose listing was read and found
+ * too thin carries that reason, and is served as any other.
+ */
+function awaitsMarketFromSearch(report: StoredReport): boolean {
+  return (
+    report.onPage.kind === "unmeasured" &&
+    report.onPage.because === BOT_PROTECTION &&
+    report.market.kind === "unmeasured" &&
+    report.market.because === undefined
+  );
+}
+
 /** §6.7 steps 1–4: profile → measured market → the twelve → their wording.
  *  Each step's failure stops the chain at that step and leaves everything
  *  after it on the arm it was initialised with; nothing downstream is
@@ -1786,16 +1854,23 @@ async function previousSizes(domain: CanonicalDomain): Promise<readonly RivalSiz
 async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void> {
   const { bounds, cost, sections } = a;
   const measurement = sections.measurement;
-  if (measurement === null || measurement.text.home === null) return;
+  if (measurement === null) return;
+  const reading = marketReadingOf(a, measurement);
+  if (reading === null) return;
 
-  const profile = await attempt("reading_your_market", () =>
-    deriveProfile(cost, {
-      locale: localeOfPass(a),
-      home: measurement.text.home as string,
-      ...(measurement.text.pricing === null ? {} : { pricing: measurement.text.pricing }),
-    })
-  );
+  const profile = await attempt("reading_your_market", () => deriveProfile(cost, { locale: localeOfPass(a), ...reading }));
   if (failed(profile) || abandoned()) return;
+  if ("search" in reading) {
+    // The model was told to name no category the listing does not support
+    // (issue 1387). Where it named none, there is no market, and none is
+    // guessed: the pass goes on as it did before the listing was read.
+    if (profile.kind !== "unmeasured" && profile.value.category === "") {
+      sections.marketThin = "market_not_named";
+      logMarketFromSearch({ read: false, because: "market_not_named" });
+      return;
+    }
+    if (profile.kind !== "unmeasured") sections.marketFrom = "search";
+  }
   sections.profile = profile;
   if (profile.kind === "unmeasured") return;
 
@@ -3008,7 +3083,9 @@ function composeReport(a: {
 
   const market: Measured<MarketSet> =
     s.profile.kind === "unmeasured"
-      ? unmeasured(s.profile.reason, measuredAt)
+      ? // Issue 1387: where the site's listing in search named no market,
+        // the record says which way it fell short.
+        unmeasured(s.profile.reason, measuredAt, s.marketThin ?? undefined)
       : s.marketRows.kind === "unmeasured"
         ? unmeasured(s.marketRows.reason, measuredAt)
         : {
@@ -3070,6 +3147,7 @@ function composeReport(a: {
     freePage: freePageOf(assembled) ?? carried?.freePage ?? null,
     ...(measuredIn === null ? {} : { locale: measuredIn }),
     ...(statedPlace === null ? {} : { statedPlace }),
+    ...(s.marketFrom === null || market.kind === "unmeasured" ? {} : { marketFrom: s.marketFrom }),
   };
 
   // #770: a market read and found too small buys no SERP, so AI presence

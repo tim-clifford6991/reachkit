@@ -490,6 +490,20 @@ export const KNOWLEDGE_BASE = Object.freeze({
  *  inside `reading_your_site`'s own ten seconds on the free path. */
 export const CHALLENGE_RENDER_MS = 5_000;
 
+/** SPEC §2 (issue 1387): what a site's listing in search must hold before
+ *  its market is read from it, where bot protection kept the reader off its
+ *  own pages. Fewer ranked searches than `minSearches`, or fewer than
+ *  `minDescriptive` that say anything beyond the brand's own name, is too
+ *  thin to name a market, and the pass does not guess. `maxPages` and
+ *  `snippetChars` bound what one profile call is sent. Drafted defaults. */
+export const SEARCH_FOOTPRINT = Object.freeze({
+  minSearches: 10,
+  minDescriptive: 5,
+  maxPages: 25,
+  maxSearches: 100,
+  snippetChars: 320,
+} as const);
+
 /** The most of the customer's own page text one `profile` call may carry,
  *  in characters of the prompt it is serialised into — home first, the
  *  pricing page in what remains, cut at a word boundary
