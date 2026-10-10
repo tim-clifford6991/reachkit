@@ -598,12 +598,36 @@ const PUBLISHER_MORE_PAGES = [
  * with a logo, one drawn as a letter, one a ceiling cut off, and a company
  * name and a domain long enough to be clamped. Reserved `.example` names,
  * so no report fixture and no account answers for any of them.
+ *
+ * Issue 1377: and enough categories that the toolbar is measured as
+ * production fills it — more shared ones than there are chips, a long tail
+ * of categories with one scan each, and the placeholder two stored rows
+ * carry. These are older than the four above, so the newest cards and the
+ * landing's strip are the four they were.
  */
+/** Ten categories with two scans each: two more than the toolbar has
+ *  chips for (`CHIPS_MAX`, `src/lib/scan/gallery.ts`). */
+const SHARED_CATEGORIES: readonly string[] = [
+  "Payroll software",
+  "Project management software",
+  "Family dental care",
+  "Residential plumbing",
+  "Specialty coffee roasters",
+  "Temporary tattoos",
+  "Accounting for freelancers",
+  "Independent bookshops",
+  "Yoga studios",
+  "Commercial cleaning",
+];
 const FREE_SCANS: readonly { domain: string; name: string | null; score: number | null; category: string | null; logo: boolean }[] = [
   { domain: "harbourbikes.example", name: "Harbour Bike Repair", score: 47, category: "Local services", logo: true },
   { domain: "northloop-dental-and-orthodontics-practice.example", name: "Northloop Dental & Orthodontics Practice of the Lower East Harbour", score: 58, category: "Health and wellbeing services for families", logo: false },
   { domain: "tallyhq.example", name: "Tally", score: 71, category: "Software", logo: false },
   { domain: "cedar-yoga.example", name: null, score: null, category: null, logo: false },
+  { domain: "placeholder-one.example", name: "Placeholder One", score: 40, category: "<UNKNOWN>", logo: false },
+  { domain: "placeholder-two.example", name: "Placeholder Two", score: 41, category: "<UNKNOWN>", logo: false },
+  ...Array.from({ length: 20 }, (_, i) => ({ domain: `shared-${i}.example`, name: `Shared ${i}`, score: 30 + i, category: SHARED_CATEGORIES[i % 10] ?? null, logo: false })),
+  ...Array.from({ length: 24 }, (_, i) => ({ domain: `single-${i}.example`, name: `Single ${i}`, score: 50 + i, category: `Category number ${i + 1} of the long tail`, logo: false })),
 ];
 
 /** A 1×1 PNG, so the seeded logo is a picture the browser can draw. */

@@ -778,6 +778,10 @@ export const REPORT_COPY = Object.freeze({
   "gallery.search.label": ["Search by company or domain", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
   "gallery.filter.label": ["Category", { slots: {}, fixedBy: "issue 1069 · drafted" }],
   "gallery.filter.all": ["All", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
+  // The categories that are not pills (issue 1377): the button's word, and
+  // its name to a screen reader.
+  "gallery.filter.more": ["More", { slots: {}, fixedBy: "issue 1377 · drafted" }],
+  "gallery.filter.more.label": ["More categories", { slots: {}, fixedBy: "issue 1377 · drafted" }],
   "gallery.showing": ["Showing {shown} of {total} reports", { slots: { shown: "text", total: "text" }, fixedBy: "issue 1069 · R12-3" }],
   "gallery.sort.label": ["Sort", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
   "gallery.sort.newest": ["Newest first", { slots: {}, fixedBy: "issue 1069 · R12-3" }],

@@ -8,6 +8,7 @@
 // category filter, the order and the page are all the database's, so the
 // page is server-rendered and paged rather than a list shipped whole.
 import { dbAdmin } from "@/lib/db";
+import { isPlaceholder } from "@/lib/measure/placeholder";
 
 export const GALLERY_SORTS = ["newest", "highest", "lowest", "az"] as const;
 export type GallerySort = (typeof GALLERY_SORTS)[number];
@@ -27,8 +28,9 @@ export interface GalleryPage {
   entries: readonly GalleryEntry[];
   /** How many scans match the search and the category. */
   total: number;
-  /** Every category among the scans the search matches, most first — the
-   *  chips and their counts; `all` is the search's own total. */
+  /** Every category among the scans the search matches, most first, with
+   *  its count (`splitCategories` decides which are chips); `all` is the
+   *  search's own total. */
   categories: readonly { name: string; count: number }[];
   all: number;
 }
@@ -85,12 +87,55 @@ export function searchTerm(raw: string | undefined): string {
     .slice(0, 80);
 }
 
+/** A stored category as the gallery may show it: a placeholder the
+ *  inference once stored (`<UNKNOWN>`, issue 1377) is no category — on a
+ *  card, as a chip, or as the `?cat=` a link asks for. */
+export function listedCategory(raw: string | null | undefined): string | null {
+  const category = (raw ?? "").trim();
+  return isPlaceholder(category) ? null : category;
+}
+
+/** At most this many category chips beside *All*, on every width. */
+export const CHIPS_MAX = 8;
+/** A category is a chip from this many scans. */
+const CHIP_FROM = 2;
+
+/**
+ * The categories as the toolbar holds them (issue 1377): the chips are the
+ * ones with at least two scans, most first, at most `CHIPS_MAX` — so the
+ * toolbar's size never follows the number of categories — and every other
+ * one is under *More*, A to Z. The category being shown is always the
+ * first chip, wherever it would have stood and even where the search
+ * leaves it no scan, so the filter in force is on screen on a phone, whose
+ * row shows two or three chips, and can be left.
+ */
+export function splitCategories(
+  categories: GalleryPage["categories"],
+  current: string | null,
+): { chips: GalleryPage["categories"]; more: GalleryPage["categories"] } {
+  const most = categories.filter((c) => c.count >= CHIP_FROM).slice(0, CHIPS_MAX);
+  const chips =
+    current === null
+      ? most
+      : [
+          categories.find((c) => c.name === current) ?? { name: current, count: 0 },
+          ...most.filter((c) => c.name !== current),
+        ];
+  const shown = new Set(chips.map((c) => c.name));
+  return {
+    chips,
+    more: categories
+      .filter((c) => !shown.has(c.name))
+      .sort((x, y) => x.name.localeCompare(y.name)),
+  };
+}
+
 function toEntry(row: Row): GalleryEntry {
   return {
     domain: row.domain,
     company: row.company,
     score: row.score,
-    category: row.category,
+    category: listedCategory(row.category),
     scannedAt: new Date(row.scanned_at),
     hasLogo: row.has_logo,
   };
@@ -160,8 +205,9 @@ export async function readGallery(a: {
 
   const counts = new Map<string, number>();
   for (const row of chips.data ?? []) {
-    if (row.category === null) continue;
-    counts.set(row.category, (counts.get(row.category) ?? 0) + 1);
+    const category = listedCategory(row.category);
+    if (category === null) continue;
+    counts.set(category, (counts.get(category) ?? 0) + 1);
   }
   return {
     entries: (page.data ?? []).map(toEntry),

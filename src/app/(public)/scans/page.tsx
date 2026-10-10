@@ -5,7 +5,15 @@
 // header with *Your site next?* beside it → a sticky toolbar (search by
 // company or domain, the count, sort, and the category pills with their
 // counts) → the cards, four across at `xl` and a list on a phone → *Show
-// more reports* → the removal line.
+// more reports* → the removal line. Below `lg` *Your site next?* comes
+// after the cards and is one button to the landing's field, as the phone
+// board has it.
+//
+// **The toolbar is two rows on every width, however many categories there
+// are** (SPEC §2 2026-10-10, issue 1377): the pills are one row that
+// scrolls sideways and holds a bounded set (`splitCategories`), and every
+// other category is under *More*. It is sticky, so a toolbar that grew
+// with the categories covered every card on a phone.
 //
 // **Server-rendered and paged, with no client state.** Every control is a
 // link or a GET form over this page's own address — `q`, `cat`, `sort`,
@@ -30,8 +38,10 @@ import { BAND_TONE } from "@/ui/bands";
 import { BADGE } from "@/app/(account)/app/_overview/badges";
 import {
   GALLERY_SORTS,
+  listedCategory,
   readGallery,
   searchTerm,
+  splitCategories,
   type GalleryEntry,
   type GallerySort,
 } from "@/lib/scan/gallery";
@@ -86,11 +96,11 @@ function one(value: string | string[] | undefined): string | undefined {
 
 function viewOf(p: Params): View {
   const sort = GALLERY_SORTS.find((s) => s === one(p.sort)) ?? "newest";
-  const cat = one(p.cat)?.trim().slice(0, 120);
+  const cat = listedCategory(one(p.cat)?.slice(0, 120));
   const shown = Number.parseInt(one(p.shown) ?? "", 10);
   return {
     q: searchTerm(one(p.q)),
-    cat: cat === undefined || cat === "" ? null : cat,
+    cat,
     sort,
     shown: Number.isFinite(shown)
       ? Math.min(Math.max(shown, PAGE), MOST)
@@ -252,6 +262,41 @@ function SortMenu(p: { view: View }): React.JSX.Element {
   );
 }
 
+/** Every category that is not a pill, A to Z — links, like the pills, so
+ *  it works without JavaScript. It sits beside the pills' row, never in
+ *  it: a box that scrolls sideways would cut the open menu off. */
+function MoreMenu(p: {
+  view: View;
+  categories: readonly { name: string; count: number }[];
+}): React.JSX.Element {
+  return (
+    <details className="dropdown dropdown-end mr-1 flex-none">
+      <summary
+        className="btn btn-ghost btn-sm gap-1 rounded-full font-medium"
+        aria-label={copy("gallery.filter.more.label")}
+      >
+        {copy("gallery.filter.more")}
+        <ChevronDown size={16} strokeWidth={1.75} aria-hidden />
+      </summary>
+      <ul className="menu dropdown-content bg-base-100 rounded-box z-30 mt-1 max-h-80 w-64 flex-nowrap overflow-y-auto p-2 shadow-(--shadow-card)">
+        {p.categories.map((category) => (
+          <li key={category.name}>
+            <Link
+              href={href(p.view, { cat: category.name, shown: PAGE })}
+              className="justify-between gap-3"
+            >
+              <span className="min-w-0 break-words">{category.name}</span>
+              <span className="num text-base-content/70 flex-none text-xs">
+                {category.count}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 export default async function ScansPage(props: {
   searchParams: Promise<Params>;
 }): Promise<React.JSX.Element> {
@@ -263,13 +308,14 @@ export default async function ScansPage(props: {
     shown: view.shown,
   });
   const shown = gallery.entries.length;
+  const { chips, more } = splitCategories(gallery.categories, view.cat);
   const pills: readonly {
     name: string | null;
     label: string;
     count: number;
   }[] = [
     { name: null, label: copy("gallery.filter.all"), count: gallery.all },
-    ...gallery.categories.map((c) => ({
+    ...chips.map((c) => ({
       name: c.name,
       label: c.name,
       count: c.count,
@@ -303,7 +349,9 @@ export default async function ScansPage(props: {
               {copy("gallery.subline")}
             </p>
           </div>
-          <div className="card bg-base-100 order-last shadow-(--shadow-card) lg:order-none">
+          {/* From `lg`, beside the heading. Below it the phone board's own
+              *Your site next?* follows the cards, so a phone opens on them. */}
+          <div className="card bg-base-100 hidden shadow-(--shadow-card) lg:flex">
             <div className="card-body gap-3 p-5">
               <h2 className="text-base font-semibold">
                 {copy("gallery.next.heading")}
@@ -316,8 +364,11 @@ export default async function ScansPage(props: {
           </div>
         </section>
 
-        <div className="bg-base-100 border-base-300 sticky top-16 z-20 border-y backdrop-blur-md">
-          <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3">
+        <div
+          data-testid="gallery-toolbar"
+          className="bg-base-100 border-base-300 sticky top-16 z-20 border-y backdrop-blur-md"
+        >
+          <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-2 sm:gap-3 sm:py-3">
             <div className="flex items-center gap-3">
               <form
                 action="/scans"
@@ -359,16 +410,22 @@ export default async function ScansPage(props: {
               </p>
               <SortMenu view={view} />
             </div>
-            <nav aria-label={copy("gallery.filter.label")}>
-              <ul className="flex flex-wrap gap-1">
+            <nav
+              aria-label={copy("gallery.filter.label")}
+              className="-m-1 flex items-center gap-1"
+            >
+              {/* One row that scrolls sideways and never wraps. Its padding
+                  keeps a pill's focus ring inside the scrolling box, and
+                  the `nav` gives the same four pixels back. */}
+              <ul className="flex min-w-0 flex-1 gap-1 overflow-x-auto p-1">
                 {pills.map((pill) => {
                   const current = pill.name === view.cat;
                   return (
-                    <li key={pill.name ?? ""}>
+                    <li key={pill.name ?? ""} className="flex-none">
                       <Link
                         href={href(view, { cat: pill.name, shown: PAGE })}
                         aria-current={current ? "true" : undefined}
-                        className={`btn btn-sm rounded-full font-medium ${current ? "border-base-content bg-base-content text-base-100" : "btn-ghost"}`}
+                        className={`btn btn-sm rounded-full font-medium whitespace-nowrap ${current ? "border-base-content bg-base-content text-base-100" : "btn-ghost"}`}
                       >
                         {pill.label}
                         <span
@@ -381,6 +438,9 @@ export default async function ScansPage(props: {
                   );
                 })}
               </ul>
+              {more.length === 0 ? null : (
+                <MoreMenu view={view} categories={more} />
+              )}
             </nav>
           </div>
         </div>
@@ -406,7 +466,10 @@ export default async function ScansPage(props: {
                 </Link>
               </div>
             ) : (
-              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+              <ul
+                data-testid="gallery-cards"
+                className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4"
+              >
                 {gallery.entries.map((entry) => (
                   <Card key={entry.domain} entry={entry} />
                 ))}
@@ -421,6 +484,18 @@ export default async function ScansPage(props: {
                 {copy("gallery.more")}
               </Link>
             ) : null}
+            {/* Board `R12-9-Phone-gallery`: the heading and one button to
+                the landing's field — soft, so the screen keeps one solid. */}
+            <div className="card bg-base-100 shadow-(--shadow-card) lg:hidden">
+              <div className="card-body items-center gap-3 p-5 text-center">
+                <h2 className="text-base font-semibold">
+                  {copy("gallery.next.heading")}
+                </h2>
+                <Link href="/" className="btn btn-soft btn-primary">
+                  {copy("landing.start.cta")}
+                </Link>
+              </div>
+            </div>
             <p className="text-base-content/70 text-center text-sm">
               {copy("gallery.removal", { address: copy("removal.address") })}
             </p>

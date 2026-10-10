@@ -25,6 +25,7 @@ import type { RivalCandidate } from "@/lib/market/rivals/derive";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { Measured } from "@/lib/measure/measured";
+import { isPlaceholder } from "@/lib/measure/placeholder";
 import { fromStored } from "@/lib/presentation/generated";
 import type { MarketSerp } from "@/lib/market/views";
 import type { PageQuestionCandidate } from "@/lib/market/questions/tracked";
@@ -66,12 +67,13 @@ export function trainingOptOutOf(
 
 /** The market category the profile inferred, shown beside the score. A
  *  market that was not measured, and a profile whose category came back
- *  empty, both read the same way — `null`, "the scan never reached one" —
- *  because neither is a category and neither may be guessed into one. */
+ *  empty or as a placeholder (`<UNKNOWN>`, issue 1377), all read the same
+ *  way — `null`, "the scan never reached one" — because none is a category
+ *  and none may be guessed into one. */
 export function categoryOf(market: Measured<MarketSet>): string | null {
   if (market.kind === "unmeasured") return null;
   const category = market.value.profile.category.trim();
-  return category === "" ? null : category;
+  return isPlaceholder(category) ? null : category;
 }
 
 /**

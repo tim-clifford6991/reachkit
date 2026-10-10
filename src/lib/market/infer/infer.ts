@@ -17,6 +17,7 @@ import { z } from "zod";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
+import { isPlaceholder } from "@/lib/measure/placeholder";
 import { isOwnDomain, isPlatformDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { localSearch, placeOf } from "@/lib/locale/place";
 import { servingEvidence } from "@/lib/locale/serving";
@@ -35,7 +36,9 @@ function bounded(min: number, max: number) {
 export const MARKET_SCHEMA = z.strictObject({
   buyer: z.string().min(1),
   job: z.string().min(1),
-  category: z.string().min(1),
+  // A placeholder (`<UNKNOWN>`, "n/a") is refused as an empty one is
+  // (issue 1377): an answer with no category concludes no market.
+  category: z.string().min(1).refine((category) => !isPlaceholder(category)),
   synonyms: bounded(2, 4),
   differentiators: bounded(1, 5),
   notOurMarket: bounded(1, 6),
