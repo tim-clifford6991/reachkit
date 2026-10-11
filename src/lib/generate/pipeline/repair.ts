@@ -26,8 +26,10 @@ import {
   untraceableIn,
   type BriefRuleInputs,
 } from "../rules/brief";
+import { PAGE_BLOCKS } from "@/lib/config/constants";
 import { answerBoxOf } from "../rules/blocks";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "../rules/people";
+import { sentenceKey } from "../rules/prose";
 import { factPageKeys, unsourcedRivalFigure } from "../rules/rivals";
 import {
   blocksOf,
@@ -49,6 +51,9 @@ export const MECHANICAL_RULES: readonly HardRule[] = Object.freeze([
   // Issue 1135: a rival's figure left without its page is linked to the
   // fact's page that states it. Nothing is dropped.
   "rival_source",
+  // Issue 1390: a sentence said a third time is dropped. The rest of what
+  // the prose check counts takes a writer, and goes to the fix call.
+  "plain_prose",
   "first_block_answers",
 ] as const);
 
@@ -230,6 +235,28 @@ function repairFirstBlock(markdown: string): string {
   ]);
 }
 
+/** The page without a sentence's third saying and every one after it: the
+ *  tagline cap (`PAGE_BLOCKS.taglineRepeats`), held in code. A heading, a
+ *  table row and a pull quote are not sentences of the writer's. */
+function dropRepeats(markdown: string): string {
+  const said = new Map<string, number>();
+  const edits: Edit[] = [];
+  for (const block of sourceBlocksOf(markdown)) {
+    if (block.quoted || /^[ \t]*#{1,6}[ \t]+/.test(block.raw) || block.raw.trimStart().startsWith("|")) continue;
+    const marker = MARKER_RE.exec(block.raw)?.[0] ?? "";
+    const pieces = splitSentences(block.raw.slice(marker.length));
+    const kept = pieces.filter((piece) => {
+      const key = sentenceKey(wordsOf(piece));
+      if (key === null) return true;
+      const count = (said.get(key) ?? 0) + 1;
+      said.set(key, count);
+      return count <= PAGE_BLOCKS.taglineRepeats;
+    });
+    if (kept.length !== pieces.length) edits.push({ from: block.from, to: block.to, text: kept.length === 0 ? "" : marker + kept.join(" ") });
+  }
+  return applyEdits(markdown, edits);
+}
+
 /** The repairable rules among a battery's failures, in repair order. */
 export function repairable(failed: readonly RuleFailure[]): HardRule[] {
   const rules = new Set(failed.map((failure) => failure.rule));
@@ -250,6 +277,8 @@ export function repairMechanical(markdown: string, rules: readonly HardRule[], i
       out = repairNumerals(out, inputs);
     } else if (rule === "rival_source") {
       out = repairRivalFigures(out, inputs);
+    } else if (rule === "plain_prose") {
+      out = dropRepeats(out);
     } else {
       out = repairFirstBlock(out);
     }

@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "type": "how_to",
+  "builtAt": "2026-10-11T00:04:04.003Z",
+  "target": {
+    "question": "build a daily habit",
+    "searches": [
+      "build a daily habit"
+    ]
+  },
+  "business": {
+    "name": "Streaks",
+    "domain": "streaksapp.com",
+    "category": "habit tracking app",
+    "byline": "Streaks",
+    "voice": null,
+    "market": {
+      "from": "report",
+      "category": "habit tracking app"
+    },
+    "rivals": []
+  },
+  "profile": null,
+  "neverClaim": [],
+  "facts": [
+    {
+      "passage": "Available in: English, Arabic, Danish, Dutch, Finnish, French, German, Greek, Indonesian, Italian, Japanese, Korean, Malay, Norwegian Bokmål, Portuguese, Russian, Simplified Chinese, Spanish, Swedish, Thai, Traditional Chinese, Turkish, Vietnamese.",
+      "url": "https://streaksapp.com/",
+      "readAt": "2026-10-11T00:04:03.382Z"
+    },
+    {
+      "passage": "Walk 5,000 steps Measure your heart rate Record your blood pressure Run for 5 miles Plus many more!",
+      "url": "https://streaksapp.com/",
+      "readAt": "2026-10-11T00:04:03.382Z"
+    }
+  ],
+  "claims": [],
+  "products": [],
+  "pages": [],
+  "links": [
+    {
+      "url": "https://streaksapp.com/",
+      "label": "Streaks",
+      "purpose": "product"
+    }
+  ],
+  "questions": [
+    "How many habits should you track at once?",
+    "What happens when you miss a day?"
+  ],
+  "voice": {
+    "voice": "ours",
+    "person": "we",
+    "chosen": "automatic"
+  },
+  "measurements": null,
+  "live": null,
+  "adds": {
+    "claims": [],
+    "short": false
+  },
+  "missing": []
+}

@@ -21,8 +21,10 @@
 //
 // **What is not the writer's is not counted.** A heading, a table, a pull
 // quote and the sources list are structure or somebody else's words; a
-// business fact stated word for word keeps its own punctuation; and the
-// target search may be said as often as the page needs.
+// business fact stated word for word keeps its own punctuation and turns of
+// phrase; and the target search may be said as often as the page needs. A
+// fact said over and over is still said over and over: the repeats are
+// counted with the fact's words in.
 //
 // Deterministic, no I/O. A fault carries a handle, a count and the page's
 // own words — never a sentence composed here.
@@ -91,6 +93,13 @@ export interface ProseScore {
 const collapse = (text: string): string => text.replace(/\s+/g, " ").trim();
 const wordsOf = (text: string): string[] => text.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) ?? [];
 const fold = (text: string): string => wordsOf(text.toLowerCase().replace(/[’]/g, "'")).join(" ");
+
+/** A sentence as it is compared with another: its words, lower-cased. `null`
+ *  for one too short to be heard as a repeat. */
+export function sentenceKey(sentence: string): string | null {
+  const key = fold(sentence);
+  return key.split(" ").length < PROSE.repeatedSentence.minWords ? null : key;
+}
 const perThousand = (count: number, words: number): number => (words === 0 ? 0 : Math.round((count / words) * 10000) / 10);
 
 const HEADING_RE = /^[ \t]*#{1,6}[ \t]+/;
@@ -103,7 +112,10 @@ const DASH_RE = /—|\s–\s|\s--\s/g;
 const SCAFFOLD_RE = /(?:[—–]|\s-|[.;!?])\s+(\p{L}[\p{L} ]{1,24}?)\s?:\s/gu;
 
 interface Piece {
+  /** The words without a passage stated word for word. */
   text: string;
+  /** The words as the reader meets them, passages included. */
+  full: string;
   /** The list this item is in; `null` for a paragraph. */
   list: number | null;
 }
@@ -120,10 +132,11 @@ function piecesOf(markdown: string, passages: readonly string[]): Piece[] {
     if (!item && inList) list++;
     inList = item;
     if (block.quoted || HEADING_RE.test(block.raw) || block.raw.trimStart().startsWith("|")) continue;
-    let text = collapse(renderOf(block.raw));
+    const full = collapse(renderOf(block.raw));
+    let text = full;
     for (const passage of held) text = text.split(passage).join(" ");
     text = collapse(text);
-    if (text !== "") out.push({ text, list: item ? list : null });
+    if (full !== "") out.push({ text, full, list: item ? list : null });
   }
   return out;
 }
@@ -132,11 +145,11 @@ function piecesOf(markdown: string, passages: readonly string[]): Piece[] {
  *  list. What `./prose-lint.ts` is handed, so both halves of the check read
  *  the same words. */
 export function proseText(markdown: string, passages: readonly string[] = []): string {
-  const pieces = piecesOf(markdown, passages);
-  return pieces
-    .map((piece, index) => {
+  return piecesOf(markdown, passages)
+    .filter((piece) => piece.text !== "")
+    .map((piece, index, kept) => {
       const item = piece.list !== null;
-      const joined = item && pieces[index - 1]?.list === piece.list ? "\n" : "\n\n";
+      const joined = item && kept[index - 1]?.list === piece.list ? "\n" : "\n\n";
       return `${index === 0 ? "" : joined}${item ? "- " : ""}${piece.text}`;
     })
     .join("");
@@ -182,14 +195,14 @@ function repeatedRuns(sentences: readonly string[], subjects: readonly string[])
 /** The page's counts. */
 export function proseScore(markdown: string, a: ProseRuleInputs): ProseScore {
   const pieces = piecesOf(markdown, a.passages ?? []);
-  const text = pieces.map((piece) => piece.text).join("\n");
+  const text = pieces.map((piece) => piece.text).filter(Boolean).join("\n");
   const words = wordsOf(text).length;
   const dashes = (text.match(DASH_RE) ?? []).length;
 
   const paragraphs = pieces.filter((piece) => piece.list === null);
-  const sentenceTexts = pieces.flatMap((piece) => splitSentences(piece.text).map(collapse)).filter((sentence) => sentence !== "");
+  const sentenceTexts = pieces.flatMap((piece) => splitSentences(piece.full).map(collapse)).filter((sentence) => sentence !== "");
   const lengths = paragraphs
-    .flatMap((piece) => splitSentences(piece.text))
+    .flatMap((piece) => splitSentences(piece.full))
     .map((sentence) => wordsOf(sentence).length)
     .filter((length) => length > 0);
   const mean = lengths.reduce((sum, length) => sum + length, 0) / Math.max(1, lengths.length);
@@ -199,8 +212,8 @@ export function proseScore(markdown: string, a: ProseRuleInputs): ProseScore {
   const said = new Map<string, number>();
   const asWritten = new Map<string, string>();
   for (const sentence of sentenceTexts) {
-    const key = fold(sentence);
-    if (key.split(" ").length < PROSE.repeatedSentence.minWords) continue;
+    const key = sentenceKey(sentence);
+    if (key === null) continue;
     said.set(key, (said.get(key) ?? 0) + 1);
     if (!asWritten.has(key)) asWritten.set(key, sentence);
   }
@@ -212,7 +225,7 @@ export function proseScore(markdown: string, a: ProseRuleInputs): ProseScore {
 
   const labels = new Map<string, number>();
   const lists = new Map<number, Piece[]>();
-  for (const piece of pieces) if (piece.list !== null) lists.set(piece.list, [...(lists.get(piece.list) ?? []), piece]);
+  for (const piece of pieces) if (piece.list !== null && piece.text !== "") lists.set(piece.list, [...(lists.get(piece.list) ?? []), piece]);
   for (const items of lists.values()) {
     const inList = new Map<string, number>();
     for (const item of items) {

@@ -289,7 +289,9 @@ async function judgeStored(options: WriteOptions, ledger: ReturnType<typeof proo
       if (again.kind !== "unmeasured") page = await checked(again.value, pack);
     }
     writeFileSync(path.join(outDir, `reachkit.app-${type}.md`), `# ${page.title}\n\n${page.markdown}\n`);
-    const old = readFileSync(path.join(from, `${type}.md`), "utf8");
+    // The stored file prints the page's buyer questions under a rule; the
+    // page is what stands above it, as the new one is.
+    const old = readFileSync(path.join(from, `${type}.md`), "utf8").split(/\n---\n/)[0]!;
     const judgedPage = (id: string, title: string, body: string) => ({ id, search: pack.target.searches[0] ?? pack.target.question, title, body, resultClaims: pack.claims.map((claim) => claim.passage).slice(0, 12) });
     let verdict: PairVerdict | null = null;
     try {

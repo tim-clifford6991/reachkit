@@ -13,7 +13,7 @@ The thresholds: more than 7 joining dashes per 1,000 words (and 4 or more); a se
 | pages people wrote, dated before 2023 | 7 | 0 of 7 |
 | pages people published, undated | 12 | 1 of 12 |
 | stored pages, written before the check | 23 | 14 of 23 |
-| pages written since | 0 | 0 of 0 |
+| pages written since | 9 | 2 of 9 |
 
 Lowest · median · nine in ten · highest:
 
@@ -32,6 +32,14 @@ Lowest · median · nine in ten · highest:
 | most a sentence is said | 0 · 2 · 4 · 5 |
 | most a run of words is said | 0 · 0 · 3 · 6 |
 | tell phrases | 0 · 0 · 3 · 4 |
+
+| count | pages written since |
+|---|---|
+| dashes per 1,000 words | 0 · 0 · 0.9 · 0.9 |
+| sentence spread | 0.3 · 0.44 · 0.6 · 0.6 |
+| most a sentence is said | 0 · 0 · 0 · 0 |
+| most a run of words is said | 0 · 0 · 6 · 6 |
+| tell phrases | 0 · 1 · 2 · 2 |
 
 ## Pages people wrote
 
@@ -86,3 +94,17 @@ Not read (no cached copy, or under 150 words of prose): https://pdxsmiledesign.c
 | stored draft 10-c9eaf64f | 323 | 2 | 6.2 | – | 5 | 0 | 0 | 0 | repeated_sentence |
 | stored draft 11-4fa9e7cf | 479 | 3 | 6.3 | 0.58 | 3 | 3 | 0 | 0 | repeated_sentence, repeated_phrase |
 | stored draft 12-d28e1ac9 | 401 | 4 | 10 | 0.42 | 4 | 0 | 0 | 0 | dashes, repeated_sentence |
+
+## Pages written since
+
+| page | words | dashes | per 1,000 | sentence spread | sentence said | phrase said | list label | tell phrases | check |
+|---|---|---|---|---|---|---|---|---|---|
+| alexander.co.uk | 824 | 0 | 0 | 0.43 | 0 | 0 | 0 | 2 | passes |
+| baeckerei-hinkel.de | 641 | 0 | 0 | 0.44 | 0 | 6 | 0 | 0 | repeated_phrase |
+| clearleft.com | 947 | 0 | 0 | 0.3 | 0 | 3 | 0 | 1 | repeated_phrase |
+| reachkit.app-documentation | 609 | 0 | 0 | 0.48 | 0 | 0 | 0 | 2 | passes |
+| reachkit.app-how_to | 1145 | 1 | 0.9 | 0.54 | 0 | 0 | 0 | 0 | passes |
+| savvycal.com | 1036 | 0 | 0 | 0.43 | 0 | 0 | 0 | 2 | passes |
+| streaksapp.com | 899 | 0 | 0 | 0.31 | 0 | 0 | 0 | 1 | passes |
+| wesbos.com | 1191 | 0 | 0 | 0.46 | 0 | 0 | 0 | 0 | passes |
+| zunicafe.com | 547 | 0 | 0 | 0.6 | 0 | 0 | 0 | 0 | passes |

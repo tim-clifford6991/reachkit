@@ -4,6 +4,7 @@ import "../env";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { repairMechanical } from "../../../src/lib/generate/pipeline/repair";
 import { runHardRules } from "../../../src/lib/generate/rules";
 import { checkProse, proseFaults, proseNotes, proseScore, type ProseFault } from "../../../src/lib/generate/rules/prose";
 import { emptyComparison, fakeCost, siteInputs } from "../fixtures";
@@ -54,6 +55,17 @@ describe("plain_prose", () => {
     const topic = Array.from({ length: 6 }, (_, at) => `Step ${at + 1} shows how to rank in ai overview for one more question a buyer brings.`).join("\n\n");
     expect(tells(faultsOf(topic))).toContain("repeated_phrase");
     expect(faultsOf(topic, { subjects: ["how to rank in ai overview"] }).map((fault) => fault.found[0] ?? "")).not.toContain("how to rank in ai overview");
+  });
+
+  it("a fact said over and over is still a repeat, and code drops a sentence's third saying without writing a word", () => {
+    const tagline = "A free scan shows where AI answers send buyers to your rivals instead of you.";
+    const page = `${PLAIN}\n\n${tagline} Start there.\n\n${tagline}\n\nThen read the score. ${tagline}\n\n${tagline}`;
+    // The site's own tagline is a pack passage; said four times it is stopped all the same.
+    expect(tells(faultsOf(page, { passages: [tagline] }))).toEqual(["repeated_sentence"]);
+    const repaired = repairMechanical(page, ["plain_prose"], { brief: { facts: [], queries: [] }, sources: [] });
+    expect(repaired.split(tagline).length - 1).toBe(2);
+    expect(repaired).toContain("Then read the score.");
+    expect(faultsOf(repaired, { passages: [tagline] })).toEqual([]);
   });
 
   it("counts a German page's dashes and repeats, and reads no English phrase list on it", () => {
