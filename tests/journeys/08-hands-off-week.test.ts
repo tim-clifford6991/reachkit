@@ -271,9 +271,10 @@ const TOPICS = [
 function pageFor(query: string) {
   const index = Math.max(0, TOPICS.findIndex(([topic]) => query.includes(topic)));
   const [topic, advice] = TOPICS[index] ?? TOPICS[0];
-  const title = `Which ${topic} fit a growing company?`;
+  const title = `${topic.charAt(0).toUpperCase()}${topic.slice(1)}: 25 seats on a flat fee`;
+  const question = `Which ${topic} fit a growing company?`;
   const markdown = [
-    `## ${title}`,
+    `## ${question}`,
     "",
     advice,
     "",
@@ -282,6 +283,7 @@ function pageFor(query: string) {
   ].join("\n");
   return {
     title,
+    question,
     slug: topic.replace(/\s+/g, "-"),
     description: `Choosing ${topic} for a small team: what to settle first, what each plan costs for the seats you need, and when to look again.`,
     bodyMarkdown: markdown,

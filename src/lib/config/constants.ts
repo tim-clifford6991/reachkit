@@ -1800,8 +1800,18 @@ export const PAGE_BLOCKS = Object.freeze({
  *  "the search term" (drafted). */
 export const TITLE = Object.freeze({
   chars: { min: 30, max: 65 },
-  /** The search term starts within this many words of the title. */
-  headWords: 5,
+  /** The length a title is written for, and preferred among those proposed. */
+  aim: { min: 50, max: 60 },
+  /** The search's wording starts within this many characters of the title. */
+  headChars: 30,
+  /** How many titles the writer proposes; code picks one. */
+  candidates: 3,
+  /** How many rivals and places the writer is told count as a specific. */
+  namesTold: 8,
+  /** How many of the pack's figures the writer is shown. */
+  figuresTold: 12,
+  /** The least token overlap at which an H1 is its title's near twin. */
+  headingMin: 0.8,
   /** How many of a search term's leading words the title must carry. */
   termWords: 3,
   /** Token overlap with a title the site has published or planned. */
@@ -1814,12 +1824,13 @@ export const TITLE = Object.freeze({
     "questions, answered",
     "buyer questions",
     "ultimate guide",
+    "complete guide",
     "everything you need to know",
     "unlock",
     "comprehensive",
   ],
-  engines: ["chatgpt", "perplexity", "claude", "gemini", "copilot", "google", "ai overviews", "ai mode"],
-} as const);                                                   // §7 · D51 · issue 1266
+  engines: ["chatgpt", "perplexity", "claude", "gemini", "copilot", "google", "ai overview", "ai overviews", "ai mode"],
+} as const);                                                   // §7 · D51 · issues 1266, 1389
 
 
 

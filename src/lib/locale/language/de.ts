@@ -130,6 +130,7 @@ export const DE: LanguagePack = {
     ),
     asksStart: "wie|was|warum|wieso|weshalb|welche[rsnm]?|wer|wann|wo|kann|können|ist|sind|lohnt|sollte|braucht|brauche",
     free: "kostenlos|kostenfrei|gratis",
+    serial: "folge|episode|ep|ausgabe|heft|band|bd|kapitel|staffel|teil",
     // Drafted (issue 759): the German counterparts of D51's banned patterns.
     banned: [
       "fragen, beantwortet",
@@ -143,7 +144,13 @@ export const DE: LanguagePack = {
       "entfesseln",
       "entdecken sie",
       "umfassend",
+      "kompletter leitfaden",
+      "vollständiger leitfaden",
     ],
+    // Drafted (issue 1389): the German counterparts of the English tropes.
+    tropes: ["(?:entfessel|entmystifizier|navigier)\\p{L}*", "warum .+ wichtig(?: ist| sind)?", "in der heutigen", "in zeiten von"],
+    tropeSamples: ["entfesseln", "entmystifizieren", "warum X wichtig ist", "in der heutigen … Welt"],
+    double: "(?:wie|so) [^:(]*? (?:und|&)",
   },
   supports(token, support) {
     if (support.has(token)) return true;

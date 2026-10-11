@@ -384,10 +384,11 @@ export function pageParts(first: string = CLEAN_MARKDOWN, over: Partial<PagePart
   const asks = ["who needs a login on day one?", "when does the monthly bill change?", "can outside guests join without paying?", "what happens after somebody leaves the company?", "do admins count toward the plan limit?"];
   const heading = (index: number): string => `${t}: ${asks[index - 1]}`;
   return {
-    // A title D51's check passes for `opportunity()`'s search and for the
-    // pack's own, and a description inside its 120–155 characters.
-    title: "Which project management software plan fits a small team?",
-    heading: "Which tool should a small team pick?",
+    // A title the check passes for `opportunity()`'s search and for the
+    // pack's own — a statement that leads with either and carries the
+    // grounded fact's number — and a description inside its 120–155
+    // characters.
+    titles: ["Project management software plan that fits a small team of 25"],
     slug: "which-tool-small-team",
     description:
       "A small team picks project management software by seat count: count who needs a login, then compare what each plan costs for that many seats.",
@@ -411,20 +412,21 @@ export function pageParts(first: string = CLEAN_MARKDOWN, over: Partial<PagePart
 
 /** A journey's page from the one body those suites hold, on its own topic. */
 export function partsFromPage(
-  page: { title: string; slug: string; description: string; bodyMarkdown: string },
+  page: { title: string; question?: string; slug: string; description: string; bodyMarkdown: string },
   topic: string
 ): PageParts {
   const parts = pageParts(page.bodyMarkdown, {}, topic);
   return {
     ...parts,
-    title: page.title,
-    heading: page.title,
+    titles: [page.title],
     slug: page.slug,
     description: page.description,
     // Ten five-word sentences: 50 words, inside the box's 40–60.
     answer: prose(topic, 200, 10),
     // The body opens on the page's own question, which is its first section's.
-    sections: parts.sections.map((section, index) => (index === 0 ? { ...section, heading: page.title } : section)),
+    // A title is a statement where its search is one (issue 1389), so such
+    // a page names its question beside it.
+    sections: parts.sections.map((section, index) => (index === 0 ? { ...section, heading: page.question ?? page.title } : section)),
     closing: prose(topic, 210, 1),
   };
 }
