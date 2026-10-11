@@ -37,7 +37,7 @@
 import { listHash } from "./claims/hash";
 import type { ClaimVerdict } from "./claims/check";
 import type { BatteryOutcome } from "./rules";
-import { HARD_RULES, type HardRule, type RuleFailure } from "./rules/types";
+import { HARD_RULES, NO_CHECKS, SWITCHED_RULES, type HardRule, type RecordedChecks, type RuleFailure } from "./rules/types";
 
 // ── Hard rule 4: the claim check's verdict ──────────────────────────────
 
@@ -107,13 +107,6 @@ export function checkedAgainstNothing(verdict: ClaimVerdict): boolean {
 
 // ── Hard rules 1–3, 5–7: the battery's own record ───────────────────────
 
-/** The rules `runHardRules` decides on every run. `do_not_claim` is
- *  the other one and is recorded in `drafts.claim_check` instead — it is the
- *  one rule that is re-run after generation. */
-export const RECORDED_RULES: readonly HardRule[] = Object.freeze(
-  HARD_RULES.filter((rule) => rule !== "do_not_claim")
-);
-
 /**
  * What the pipeline stores in `drafts.rule_failures`: the failures the last
  * battery found, in `HARD_RULES` order.
@@ -144,17 +137,51 @@ export function readRecordedRules(payload: unknown): RuleFailure[] | null {
   return out;
 }
 
+// ── Which rules a run asked, and which it put right (issue 1394) ────────
+
+/** `drafts.meta.checks`: the rules the last battery asked of the page, and
+ *  the ones the run failed first and then cleared. */
+export interface RecordedRun {
+  asked: HardRule[];
+  fixed: HardRule[];
+}
+
+const rulesIn = (value: unknown): HardRule[] =>
+  Array.isArray(value) ? HARD_RULES.filter((rule) => value.includes(rule)) : [];
+
+/** What the pipeline and an edit's re-check store in `drafts.meta.checks`.
+ *  `broken` is every rule the run failed at any point; the ones the page no
+ *  longer fails are the ones it fixed. */
+export function recordedRunValue(outcome: BatteryOutcome, broken: Iterable<HardRule> = []): RecordedRun {
+  const failing = new Set(outcome.passed ? [] : outcome.failed.map((failure) => failure.rule));
+  return { asked: rulesIn(outcome.asked), fixed: rulesIn([...broken]).filter((rule) => !failing.has(rule)) };
+}
+
+/** `drafts.meta.checks`, read back, or `null` on a row written before it
+ *  was recorded. */
+export function readRecordedRun(meta: unknown): RecordedRun | null {
+  const value = (meta as { checks?: { asked?: unknown; fixed?: unknown } | null } | null)?.checks;
+  if (value === null || typeof value !== "object" || !Array.isArray(value.asked)) return null;
+  return { asked: rulesIn(value.asked), fixed: rulesIn(value.fixed) };
+}
+
 /**
- * The rules a recorded battery passed, in `HARD_RULES` order.
+ * The last battery, rule by rule.
  *
- * Empty where nothing was recorded — a draft written before the record
- * existed, or one no battery has run — which is the arm the Checks list
- * draws no row for. That is the screen declining to speak for a run it has
- * no result from, not a failure and not a pass.
+ * A pass is a rule the run asked and did not fail. On a row written before
+ * `meta.checks`, only the rules no caller can switch off are known to have
+ * been asked, so only those can pass.
  */
-export function recordedRulesPassed(payload: unknown): readonly HardRule[] {
-  const failures = readRecordedRules(payload);
-  if (failures === null) return [];
-  const failed = new Set(failures.map((failure) => failure.rule));
-  return RECORDED_RULES.filter((rule) => !failed.has(rule));
+export function recordedChecks(ruleFailures: unknown, run: RecordedRun | null): RecordedChecks {
+  const failures = readRecordedRules(ruleFailures);
+  if (failures === null) return NO_CHECKS;
+  const failed = rulesIn(failures.map((failure) => failure.rule));
+  const asked = run === null ? HARD_RULES.filter((rule) => !SWITCHED_RULES.includes(rule)) : run.asked;
+  const passed = asked.filter((rule) => !failed.includes(rule));
+  return {
+    passed,
+    failed,
+    skipped: run === null ? null : HARD_RULES.filter((rule) => !run.asked.includes(rule) && !failed.includes(rule)),
+    fixed: run === null ? 0 : run.fixed.filter((rule) => passed.includes(rule)).length,
+  };
 }

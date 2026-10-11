@@ -14,7 +14,7 @@
 // `store_unavailable` rather than rejecting, so the screen has one shape to
 // read.
 import type { ClaimState } from "./model";
-import type { RailCheck } from "./checks";
+import type { RecordedChecks } from "@/lib/generate/rules/types";
 import { saveDraft } from "./save-actions";
 
 /** The one text write this screen can ask for. Every field is whole, never
@@ -46,7 +46,7 @@ export type SaveResult =
       ok: true;
       savedAt: Date;
       claim: ClaimState;
-      recordedChecks: readonly RailCheck[];
+      recordedChecks: RecordedChecks;
       rulesFailed: boolean;
       /** The save took a stopped page into review (#1180). */
       entered: boolean;
