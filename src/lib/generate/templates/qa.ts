@@ -4,7 +4,8 @@ import type { Template } from "./types";
 export const qa: Template = {
   type: "qa",
   for: "Answer directly the questions buyers ask on one topic.",
-  titles: ["The buyer's question as typed"],
+  // Issue 1389: the question where the search is one, else its answer.
+  titles: ["{The buyer's question as typed} {its answer's number, price or place from pack}", "{the search as typed}: {the answer's number, price or place from pack}"],
   sections: [
     {
       key: "question",

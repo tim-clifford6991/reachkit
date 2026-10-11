@@ -1316,6 +1316,7 @@ async function runStages(a: StageArgs): Promise<void> {
     attempt("reading_your_site", () =>
       measureDomain(cost, {
         domain,
+        at: a.startedAt,
         tier: a.tier,
         ...(a.locale === undefined ? {} : { locale: a.locale }),
         ...(a.sinceDays === undefined ? {} : { ownWindowDays: a.sinceDays }),
@@ -3035,9 +3036,9 @@ function composeReport(a: {
   const carried = a.carried ?? null;
   const carriedSiteIssues = carried === null ? null : carried.siteIssues;
 
-  // One date: the home document's own read, or — where the pass never got
-  // that far — the moment it started. Every `Measured` under the verdict
-  // carries it, which `verdictOf` asserts.
+  // One date: the moment the pass started (issue 1392), which the
+  // measurement was handed and every `Measured` under the verdict carries;
+  // `verdictOf` asserts it. A stored read of the home page does not date it.
   const measuredAt = m === null ? a.startedAt : m.drivers.foundations.at;
 
   const onPage: Measured<OnPageFacts> = m === null ? unmeasured("not_attempted", measuredAt) : m.onPage;

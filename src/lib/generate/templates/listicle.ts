@@ -7,9 +7,9 @@ export const listicle: Template = {
   // D51: a listicle, a comparison of named products, or an alternatives page.
   titles: [
     "{N} best {term} for {audience} ({year})",
-    "{A} vs {B} ({year}): {criteria or who it fits}",
+    "{A} vs {B} ({year}): {the price or number from pack that separates them}",
     // D50: where the search names two rivals, this business is the third.
-    "{A} vs {B} vs {this business} ({year}): {criteria}",
+    "{A} vs {B} vs {this business} ({year}): {the price or number from pack that separates them}",
     "{N} {rival} alternatives for {audience} ({year})",
   ],
   titleNever: "Never name this business as \"#1\" or \"best\".",

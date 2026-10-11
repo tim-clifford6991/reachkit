@@ -105,10 +105,7 @@ export const REPORT_COPY = Object.freeze({
   "notice.bot-protected": ["This site’s bot protection stopped our reader, so its own pages couldn’t be read and aren’t scored here. That is not a finding about the site.", { slots: {}, fixedBy: "SPEC §2 · issue 1379" }],
   // SPEC §2 (owner, 2026-10-10, issue 1387): where the market was read from
   // the site's listing in search. Drafted (#759).
-  "report.market.from-search": [
-    "The market here was inferred from how this site appears in Google search, because its own pages couldn’t be read. The questions and the AI answers are measured for that market.",
-    { slots: {}, fixedBy: "SPEC §2 · issue 1387" },
-  ],
+  "report.market.from-search": ["The market here was inferred from how this site appears in Google search, because its own pages couldn’t be read. The questions and the AI answers are measured for that market.", { slots: {}, fixedBy: "SPEC §2 · issue 1387" }],
   // Issue 898. The site read and its market did not — the profile call or
   // the suggestions did not answer — so there is no question, no answer
   // card and no band. Distinct from `notice.incomplete`, which names
@@ -392,7 +389,7 @@ export const REPORT_COPY = Object.freeze({
   "problem.missing-pages.doer": ["ReachKit writes", { slots: {}, fixedBy: "REQ-009 c5" }],
   "problem.missing-pages.none-needed": ["Nothing to fix", { slots: {}, fixedBy: "REQ-009 c3" }],
   "problem.unquotable-pages.title": ["Unquotable pages", { slots: {}, fixedBy: "REQ-009 c1" }],
-  "problem.unquotable-pages.doer": ["ReachKit rewrites", { slots: {}, fixedBy: "REQ-009 c5" }],
+  "problem.unquotable-pages.doer": ["ReachKit rewrites on WordPress", { slots: {}, fixedBy: "REQ-009 c5" }],
   "problem.unquotable-pages.none-needed": ["Nothing to fix", { slots: {}, fixedBy: "REQ-009 c3" }],
   // The one control any fix carries (REQ-009 c2), on the paste arm only.
   "problem.paste.label": ["Copy the lines", { slots: {}, fixedBy: "REQ-009 c2" }],
@@ -413,7 +410,7 @@ export const REPORT_COPY = Object.freeze({
   // owner-owed.
   "check.doer.free-fix": ["Free fix · 10 min", { slots: {}, fixedBy: "SPEC §9" }],
   "check.doer.reachkit-writes": ["ReachKit writes", { slots: {}, fixedBy: "SPEC §9" }],
-  "check.doer.reachkit-rewrites": ["ReachKit rewrites", { slots: {}, fixedBy: "SPEC §9" }],
+  "check.doer.reachkit-rewrites": ["ReachKit rewrites on WordPress", { slots: {}, fixedBy: "SPEC §9" }],
   "check.none-needed": ["Nothing to fix", { slots: {}, fixedBy: "SPEC §9" }],
   "check.not-run": [
     "This check couldn’t run this time — that isn’t the same as nothing to fix.",
@@ -502,20 +499,12 @@ export const REPORT_COPY = Object.freeze({
   //
   // L7–L10 were the demo video block. Issue 1396 replaced the frame with
   // *What happens every day* (`landing.day.*` in `chrome.ts`).
-  "landing.subline": ["A free scan shows where AI answers and Google search send buyers to your rivals instead of you. Then ReachKit writes one page a day to change that.", { slots: {}, fixedBy: "issue 266 · L1" }],
+  "landing.subline": ["A free scan shows where AI answers and Google search send buyers to your rivals instead of you. Then ReachKit publishes a page every day, new or updated, to change that.", { slots: {}, fixedBy: "issue 266 · L1" }],
   "landing.hero.specimen.label": ["Live example", { slots: {}, fixedBy: "issue 266 · L5" }],
   "landing.hero.specimen.caption": ["The figures are an example on example.com. They measure no site.", { slots: {}, fixedBy: "issue 266 · L6" }],
   "landing.why.eyebrow": ["Why you should care", { slots: {}, fixedBy: "issue 266 · L11" }],
   "landing.why.heading": ["Your competitors are being found.", { slots: {}, fixedBy: "issue 266 · L12" }],
   "landing.why.body": ["Buyers now ask ChatGPT and Google’s AI what to use, and the answer names a handful of companies. If yours isn’t one of them, that buyer never meets you — and nothing on your side tells you it happened.", { slots: {}, fixedBy: "issue 266 · L13" }],
-  "landing.does.eyebrow": ["What it does", { slots: {}, fixedBy: "issue 266 · L14" }],
-  "landing.does.heading": ["One page a day closes the gap.", { slots: {}, fixedBy: "issue 266 · L15" }],
-  "landing.does.item-1.title": ["Finds the gap", { slots: {}, fixedBy: "issue 266 · L16" }],
-  "landing.does.item-1.line": ["Your market’s 12 biggest searches, and who AI names when buyers ask for a product like yours.", { slots: {}, fixedBy: "issue 266 · L17" }],
-  "landing.does.item-2.title": ["Writes the page", { slots: {}, fixedBy: "issue 266 · L18" }],
-  "landing.does.item-2.line": ["One a day, answering a question buyers ask, built on your own site.", { slots: {}, fixedBy: "issue 266 · L19" }],
-  "landing.does.item-3.title": ["Publishes on your schedule", { slots: {}, fixedBy: "issue 266 · L20" }],
-  "landing.does.item-3.line": ["It waits 24 hours for your veto, then goes live. Cancel any time.", { slots: {}, fixedBy: "issue 266 · L21" }],
   "landing.start.eyebrow": ["What to do next", { slots: {}, fixedBy: "issue 266 · L22" }],
   "landing.start.heading": ["Start with the scan.", { slots: {}, fixedBy: "issue 266 · L23" }],
   "landing.start.body": ["Free, under a minute. Then five minutes, once — and ReachKit does the rest.", { slots: {}, fixedBy: "issue 266 · L24" }],
@@ -551,8 +540,6 @@ export const REPORT_COPY = Object.freeze({
   /** Section 01's own line, under the live AI-answers matrix. Approved
    *  (11a) — it is the sentence that makes the matrix an argument. */
   "landing.why.matrix.line": ["Every filled row is a rival being recommended. The empty one is you.", { slots: {}, fixedBy: "approved set S1 · 11a" }],
-  /** Section 02's body line beneath its heading. */
-  "landing.does.body": ["ReachKit finds the questions your market asks that name rivals and not you, writes a page that answers each one from facts on your own site, and publishes it on your schedule. Every page waits a day for you to read it — or stop it — before it goes live. Every Monday you see what moved.", { slots: {}, fixedBy: "approved set S1" }],
   /** Section 02's This-week card: the head badge, and the panel under the
    *  week strip. The page's own title is data this specimen has none of, so
    *  it is the owner's (approved 2026-09-10, #459); the line is approved
@@ -578,7 +565,7 @@ export const REPORT_COPY = Object.freeze({
   // brief (DECISIONS 2026-09-10) rules that out — a page goes live when one
   // is ready, at most one a day. Approved 2026-09-11 (#516).
   "landing.step.3.title": ["Pages go live on your domain", { slots: {}, fixedBy: "approved set S1 · 11a" }],
-  "landing.step.3.body": ["One a day. You get 24 hours to stop each one, and every Monday you see what moved.", { slots: {}, fixedBy: "approved set S1" }],
+  "landing.step.3.body": ["A page every day, new or updated. Each goes live on its own unless you stop it, and every Monday you see what moved.", { slots: {}, fixedBy: "approved set S1" }],
   /** Under the closing CTA. Approved (11a). The pricing card carries the
    *  same sentence through `offer.cancel-line`, which is still empty and is
    *  #369's to fill — one key per screen, neither borrowed. */
@@ -623,11 +610,6 @@ export const REPORT_COPY = Object.freeze({
   "landing.hero.page.3": ["How often should a commuter bike be serviced?", { slots: {}, fixedBy: "issue 935 · drafted" }],
   "landing.hero.page.4": ["Bike fitting: what it fixes and what it costs", { slots: {}, fixedBy: "issue 935 · drafted" }],
   "landing.hero.page.5": ["E-bike service: what is different", { slots: {}, fixedBy: "issue 935 · drafted" }],
-  /** Between the week and the line: what makes the two one argument. */
-  "landing.hero.week.line": [
-    "The same week, every week. The number moves because the pages do.",
-    { slots: {}, fixedBy: "issue 935 · drafted" },
-  ],
   /** The AI answer the week earned. `{you}` is the example business's own
    *  name, so the card can draw it as the reader's own and the sentence
    *  still reads whole without the drawing. */
@@ -651,10 +633,10 @@ export const REPORT_COPY = Object.freeze({
      Boards `R12-1-Landing`, `R12-8-Phone-landing`, `R12-10-Dark-landing`
      (SPEC §1, 2026-09-24). Where the board writes the sentence, it is the
      board's; `drafted` marks a line the board draws and this issue wrote. */
-  /** The hero preview's name and its four tabs. */
+  /** The hero preview's name and its three tabs. The app shows no weekly
+   *  score (SPEC §1, D22), so the preview draws none (issue 1393). */
   "landing.inside.title": ["Inside ReachKit", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.inside.tab.week": ["Your week", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.inside.tab.score": ["Your score", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.inside.tab.answers": ["AI Visibility", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.inside.tab.page": ["Your page", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   /** *AI answers*: the line over the answer, and the one under it. */
@@ -691,17 +673,17 @@ export const REPORT_COPY = Object.freeze({
   ],
   "landing.feature.fix.title": ["Fix what holds you back", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.fix.body": [
-    "Blocked AI readers, missing titles, no sitemap, slow pages. The report shows each one; the ten-minute fixes are free, and the rest ReachKit writes.",
+    "Blocked AI readers, missing titles, no sitemap, slow pages. The report shows each one, free. Where your site runs on WordPress, ReachKit rewrites missing titles and descriptions for you.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
   "landing.feature.fix.readers": ["AI readers unblocked", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.fix.titles": ["Missing titles rewritten", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.fix.sitemap": ["Sitemap in place", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.fix.free": ["Free fix · 10 min", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.feature.fix.ours": ["ReachKit rewrites", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.feature.daily.title": ["Content, one page a day", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.fix.ours": ["ReachKit, on WordPress", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.daily.title": ["Content, a page every day", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.daily.body": [
-    "Written from facts on your own site, in your voice, and published on your domain. Every page waits a day for you to read it — or stop it — before it goes live.",
+    "Written from facts on your own site, in your voice, and published on your domain. Some days it is a new page, other days an update to one already live. Each goes live on its own, and you can edit or stop it before it does.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
   /** *What to do next*: the time each step takes. */

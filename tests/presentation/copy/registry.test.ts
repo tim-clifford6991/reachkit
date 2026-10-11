@@ -269,7 +269,7 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
 
   it("price and offer — slotted, {value}", () => {
     expect(copy("offer.cadence.page", { value: "every week" })).toBe(
-      "One new page written for your site every week"
+      "A page for your site every week, new or updated"
     );
     expect(copy("offer.cadence.measure", { value: "every week" })).toBe(
       "Your findability re-measured every week"
@@ -278,7 +278,7 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
       "What moved, in your inbox every week"
     );
     expect(copy("offer.veto.window", { value: "24 hours" })).toBe(
-      "Every page waits 24 hours for you to stop it before it goes live — and you can cancel any time, yourself"
+      "Every page goes live on its own after 24 hours. You can edit or stop it before then, and cancel any time, yourself"
     );
   });
 

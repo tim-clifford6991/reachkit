@@ -33,8 +33,19 @@ const READ_FIRST: readonly (readonly string[])[] = [
   ["changelog", "releases", "release-notes", "whats-new", "updates"],
 ];
 
+/** Path words of a page that belongs to a visitor's session and not to the
+ *  business: signing in or up, an account, a basket, a checkout. What such a
+ *  page says is the form on it. A site's own words for them in German,
+ *  French and Spanish are beside the English ones. */
+const ACCOUNT = [
+  "login", "log-in", "signin", "sign-in", "signup", "sign-up", "register", "logout", "signout", "sign-out",
+  "account", "my-account", "auth", "password", "reset-password", "forgot-password", "wp-login", "wp-admin",
+  "cart", "basket", "checkout",
+  "anmelden", "registrieren", "konto", "warenkorb", "kasse", "connexion", "panier", "iniciar-sesion", "carrito",
+];
+
 /** Addresses that say nothing about what the business sells. */
-const READ_LAST = ["legal", "privacy", "terms", "cookies", "imprint", "impressum", "login", "signin", "sign-in", "signup", "sign-up", "account", "cart", "checkout", "tag", "tags", "category", "author", "page", "careers", "jobs", "now-hiring", "karriere", "stellenangebote"];
+const READ_LAST = ["legal", "privacy", "terms", "cookies", "imprint", "impressum", ...ACCOUNT, "tag", "tags", "category", "author", "page", "careers", "jobs", "now-hiring", "karriere", "stellenangebote"];
 
 /** Lower is read sooner. The home page is first of all; then each named
  *  section's own page; then the pages under a named section; a page no row
@@ -76,18 +87,33 @@ const GALLERY = ["scans", "gallery", "galleries", "showcase", "directory", "list
  *  be the page of a product that scans. */
 const GALLERY_ENTRY = ["scan"];
 
-/** Whether an address is never read for facts about the business: a gallery
- *  page, with or without a sort or filter on its address. */
-export function isNeverRead(url: string): boolean {
+function segmentsOf(url: string): string[] | null {
   try {
-    const segments = new URL(url).pathname
+    return new URL(url).pathname
       .toLowerCase()
       .split("/")
+      .map((segment) => segment.replace(/\.(?:html?|php|aspx?)$/, ""))
       .filter((segment) => segment !== "");
-    return segments.some(
-      (segment, i) => GALLERY.includes(segment) || (GALLERY_ENTRY.includes(segment) && i < segments.length - 1)
-    );
   } catch {
-    return false;
+    return null;
   }
+}
+
+/** Whether an address is a sign-in, account, basket or checkout page, on
+ *  any site. Such a page is never grounding for a page and never one of its
+ *  sources (SPEC §7, 2026-10-10, issue 1393): a published page cited
+ *  `/signin` as where a fact was read. */
+export function isAccountPage(url: string): boolean {
+  return (segmentsOf(url) ?? []).some((segment) => ACCOUNT.includes(segment));
+}
+
+/** Whether an address is never read for facts about the business: a gallery
+ *  page, with or without a sort or filter on its address, or an account
+ *  page. */
+export function isNeverRead(url: string): boolean {
+  const segments = segmentsOf(url) ?? [];
+  return (
+    isAccountPage(url) ||
+    segments.some((segment, i) => GALLERY.includes(segment) || (GALLERY_ENTRY.includes(segment) && i < segments.length - 1))
+  );
 }

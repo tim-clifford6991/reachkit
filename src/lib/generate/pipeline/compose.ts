@@ -41,6 +41,9 @@ export interface TidyInputs {
   /** An update's live page and the current year (D51): the page keeps the
    *  live title, and its year moves only where the body changed. */
   live?: { title: string; markdown: string; year: number };
+  /** Which of the titles the writer proposed is the page's (issue 1389),
+   *  told the page they are for. Absent, it is the first. */
+  pickTitle?: (proposed: readonly string[], on: { description: string; sections: readonly LaidSection[] }) => string;
 }
 
 const collapse = (text: string): string => text.replace(/\s+/g, " ").trim();
@@ -371,6 +374,9 @@ function liveTitle(live: NonNullable<TidyInputs["live"]>, bodies: readonly strin
 export interface LaidSection {
   key: string;
   heading: string;
+  /** How many numbered items it lists, where it lists two or more: a count
+   *  the page's title may state (issue 1389, "in 5 steps"). */
+  items?: number;
 }
 
 export interface LaidPage {
@@ -418,14 +424,24 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
   const lead = [answerBox(parts.answer), `:::takeaways\n${takeaways.map((item) => `- ${item}`).join("\n")}\n:::`];
   const text = sections.map((section) => `## ${section.heading}${section.body === "" ? "" : `\n\n${section.body}`}`);
   const cleaned = (text: string): string => recased(sentenceCase(tidyText(collapse(text)), proper), cased);
-  const title = a.live === undefined ? cleaned(parts.title) : liveTitle(a.live, sections.map((section) => tidy(section.body, a)));
+  const description = fitDescription(tidyText(collapse(parts.description)));
+  const laid = sections.map(({ key, heading, body }) => {
+    const items = body.split("\n").filter((line) => /^\d+[.)]\s/.test(line)).length;
+    return { key, heading, ...(items > 1 ? { items } : {}) };
+  });
+  const proposed = parts.titles.map(cleaned).filter((each) => each !== "");
+  const title =
+    a.live === undefined
+      ? (a.pickTitle?.(proposed, { description, sections: laid }) ?? proposed[0] ?? "")
+      : liveTitle(a.live, sections.map((section) => tidy(section.body, a)));
   return {
     body: {
       title,
-      // The H1 (D51): the writer's longer form, or the title where it gave none.
-      heading: a.live !== undefined || collapse(parts.heading) === "" ? title : cleaned(parts.heading),
+      // The H1 is the title (issue 1389): a page says one thing to a searcher
+      // and to a reader.
+      heading: title,
       slug: parts.slug,
-      description: fitDescription(tidyText(collapse(parts.description))),
+      description,
       bodyMarkdown: `${lead.join("\n\n")}\n\n${tidy(text.join("\n\n"), a)}`,
     },
     closing: tidyText(oneLine(parts.closing)),
@@ -438,7 +454,7 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
             .map((section) => ({ question: section.heading, answer: openingOf(section.body) }))
             .filter((entry) => entry.answer !== "")
         : faqOf(parts.faq),
-    sections: sections.map(({ key, heading }) => ({ key, heading })),
+    sections: laid,
     updated: tidyText(oneLine(parts.updated)),
   };
 }

@@ -253,7 +253,7 @@ describe("a 3 MB home page: the prompt is bounded, the measurement is not (issue
   });
 
   it("the measurement reads the whole document — its facts are the whole document's, the heading at the very end included", async () => {
-    const m = await measureDomain(fakeCost(), { domain: DOMAIN, tier: "free" }, PORTS);
+    const m = await measureDomain(fakeCost(), { domain: DOMAIN, at: READ_AT, tier: "free" }, PORTS);
     expect(m.onPage.kind).toBe("measured");
     if (m.onPage.kind !== "measured") return;
     expect(m.onPage.value).toEqual(parseOnPage({ url: HOME, html: BIG_HOME }));
@@ -263,7 +263,7 @@ describe("a 3 MB home page: the prompt is bounded, the measurement is not (issue
   });
 
   it("the profile prompt built from it carries home plus pricing text of at most the pin, home first, cut at a word", async () => {
-    const m = await measureDomain(fakeCost(), { domain: DOMAIN, tier: "free" }, PORTS);
+    const m = await measureDomain(fakeCost(), { domain: DOMAIN, at: READ_AT, tier: "free" }, PORTS);
     const home = m.text.home!;
     llmMock.mockResolvedValueOnce({ kind: "unmeasured", reason: "undeterminable", at: READ_AT });
 

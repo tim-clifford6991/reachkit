@@ -33,15 +33,6 @@ async function renderPage(): Promise<string> {
   return renderToStaticMarkup(React.createElement(LandingPage, { searchParams: {} }));
 }
 
-const HERO_SOURCE = readFileSync(
-  path.resolve(import.meta.dirname, "../../../src/app/(public)/_landing/InsideReachKit.tsx"),
-  "utf8"
-);
-const LINE_SOURCE = readFileSync(
-  path.resolve(import.meta.dirname, "../../../src/app/(public)/_landing/HeroLine.tsx"),
-  "utf8"
-);
-
 /** The preview card alone, bounded by the eight steps that follow it. */
 function heroCard(markup: string): string {
   const from = markup.indexOf('data-testid="landing-inside"');
@@ -70,12 +61,11 @@ describe("SPEC §1 2026-09-24 — the landing in its approved order (#1067)", ()
 });
 
 describe("Inside ReachKit — the hero preview (SPEC §1 2026-09-24)", () => {
-  it("names its four tabs, in the board's order", async () => {
+  it("names its three tabs, and none of them is a score (SPEC §1, D22)", async () => {
     const card = heroCard(await renderPage());
     const tabs = [...card.matchAll(/role="tab"[^>]*>([^<]+)</g)].map((m) => m[1]);
     expect(tabs).toEqual([
       "landing.inside.tab.week",
-      "landing.inside.tab.score",
       "landing.inside.tab.answers",
       "landing.inside.tab.page",
     ]);
@@ -84,7 +74,7 @@ describe("Inside ReachKit — the hero preview (SPEC §1 2026-09-24)", () => {
   it("the tabs are its only controls: no toggle, no field, no Read it or Stop", async () => {
     const card = heroCard(await renderPage());
     const buttons = [...card.matchAll(/<button\b[^>]*>/g)].map((m) => m[0]);
-    expect(buttons).toHaveLength(4);
+    expect(buttons).toHaveLength(3);
     for (const b of buttons) expect(b).toMatch(/role="tab"/);
     expect(card).not.toContain("toggle");
     expect(card).not.toContain("<input");
@@ -98,19 +88,7 @@ describe("Inside ReachKit — the hero preview (SPEC §1 2026-09-24)", () => {
     expect(card.match(/calendar\.stage\.live/g)).toHaveLength(5);
   });
 
-  it("Your score: 47/100 and the Recharts line held open until it is shown", async () => {
-    const card = heroCard(await renderPage());
-    for (const figure of ["47", "/100", "25"]) expect(card).toContain(figure);
-    // #988: the line's box is a skeleton in the server render; the chart's
-    // code is fetched once *Your score* is on screen (`HeroLine.tsx`).
-    expect(card).toMatch(/<span class="[^"]*\bskeleton\b[^"]*"/);
-    expect(card).not.toContain("<img");
-    expect(HERO_SOURCE).toMatch(/<HeroLine\s+weeks=\{SPECIMEN_HERO_WEEKS\}/);
-    expect(HERO_SOURCE).toContain("SCORE_BAND_BOUNDS.findable");
-    expect(LINE_SOURCE).toContain('import("@/ui/charts/GrowthLine")');
-  });
-
-  it("AI answers names the example business; Your page waits for the owner's read", async () => {
+  it("AI answers names the example business; Your page says when it goes live", async () => {
     const card = heroCard(await renderPage());
     expect(card).toContain("landing.inside.answers.head");
     expect(card).toMatch(/<strong class="[^"]*text-primary[^"]*">Harbour Bike Repair<\/strong>/);

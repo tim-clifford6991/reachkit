@@ -114,8 +114,19 @@ export interface LanguagePack {
     asksStart: string;
     /** The words that say something costs nothing: an alternation. */
     free: string;
+    /** The words that number an episode, an issue or a volume: an
+     *  alternation. A number after one is no detail of the business. */
+    serial: string;
     /** Phrases a title never uses, lower case. */
     banned: readonly string[];
+    /** Filler verbs and stock phrases a title never uses, each an
+     *  alternation matched on whole words (issue 1389). */
+    tropes: readonly string[];
+    /** A few of them spelled out, for the fix call. */
+    tropeSamples: readonly string[];
+    /** A how-to that promises two things at once ("How to X and Y"): an
+     *  alternation matched from the title's start. */
+    double: string;
   };
 
   // ── Searches the product writes itself ──────────────────────────────────

@@ -33,10 +33,10 @@ export const OFFER_COPY = Object.freeze({
   "price.amount": ["€49", { slots: {}, fixedBy: "REQ-022 c1" }],
   "price.vat_included": ["VAT included", { slots: {}, fixedBy: "REQ-022 c1" }],
   "price.interval": ["per month, VAT included", { slots: {}, fixedBy: "REQ-022 c1" }],
-  "offer.cadence.page": ["One new page written for your site {value}", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
+  "offer.cadence.page": ["A page for your site {value}, new or updated", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
   "offer.cadence.measure": ["Your findability re-measured {value}", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
   "offer.cadence.movement": ["What moved, in your inbox {value}", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
-  "offer.veto.window": ["Every page waits {value} for you to stop it before it goes live — and you can cancel any time, yourself", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
+  "offer.veto.window": ["Every page goes live on its own after {value}. You can edit or stop it before then, and cancel any time, yourself", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
   // 2026-09-05, issue #13: value moved from "" to `TODO(copy)` per
   // `CLAUDE.md`'s standing rule. `BUILD.md` §4.1 module 6 requires the
   // pricing card to carry "Cancel in one click"; left empty, `copy()`
@@ -51,7 +51,7 @@ export const OFFER_COPY = Object.freeze({
   "offer.cancel_self_service": ["Cancel in one click, yourself.", { slots: {}, fixedBy: "REQ-021 c2" }],
   // Issue 1068, board R12-2: the price close's heading on the report.
   // Drafted; the owner corrects the wording.
-  "offer.close.heading": ["Close the gap, one page a day.", { slots: {}, fixedBy: "issue 1068" }],
+  "offer.close.heading": ["Close the gap, a page every day.", { slots: {}, fixedBy: "issue 1068" }],
   "offer.start": ["Start ReachKit", { slots: {}, fixedBy: "REQ-021 c4" }],
   /** The **control's** own label, and the one the approved set draws on it:
    *  "Start ReachKit €49" (11a). `offer.start` stays exactly as the owner
@@ -82,7 +82,7 @@ export const OFFER_COPY = Object.freeze({
   // set draws it, so the window is written down once, in
   // `src/lib/config/constants.ts`, and never twice.
   "offer.pricing.page": [
-    "1 page a day, written and published for you",
+    "A page every day, new or updated, published for you",
     { slots: {}, fixedBy: "S4 · REQ-021 c2" },
   ],
   "offer.pricing.measure": [
@@ -105,7 +105,7 @@ export const OFFER_COPY = Object.freeze({
   // in `settings.*` because it is the same public product fact the price
   // surfaces state, not a sentence about one customer's account —
   // REQ-097's own non-goal draws that line.
-  "plan.single": ["One page a day", { slots: {}, fixedBy: "REQ-022 c1" }],
+  "plan.single": ["A page every day", { slots: {}, fixedBy: "REQ-022 c1" }],
 
   // 2026-09-13, issue #624: what the offer says when the vendor refuses to
   // open checkout. Owner-owed — the approved set draws no refused state on
