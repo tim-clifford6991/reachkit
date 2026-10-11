@@ -1,0 +1,2206 @@
+{
+ "date": "2026-10-11",
+ "commit": "08c5a0df",
+ "capCents": 90,
+ "spentCents": 90.3955,
+ "refusedAtCap": 10,
+ "notRun": [
+  "zunicafe.com",
+  "austinplumbery.com",
+  "baeckerei-hinkel.de",
+  "alexander.co.uk",
+  "wesbos.com",
+  "pdxsmiledesign.com",
+  "fletcherelectric.co.uk",
+  "streaksapp.com"
+ ],
+ "defects": [],
+ "sites": [
+  {
+   "site": {
+    "domain": "tattly.com",
+    "kind": "e-commerce shop",
+    "country": "US",
+    "language": "en",
+    "kinds": [
+     "shop"
+    ],
+    "market": [
+     "tattoo"
+    ],
+    "why": "A shop that sells one kind of product (temporary tattoos) from its own site. Its market is a product category, its rivals are other shops, and marketplaces (Amazon, Etsy) are not rivals."
+   },
+   "siteName": "Tattly",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "consumers who want temporary tattoos",
+    "job": "apply temporary tattoos for decoration or self-expression",
+    "category": "temporary tattoos",
+    "synonyms": [
+     "fake tattoos",
+     "stick-on tattoos",
+     "transfer tattoos"
+    ],
+    "differentiators": [
+     "designs by independent artists",
+     "high-quality temporary tattoo products",
+     "online shop with curated collections"
+    ],
+    "notOurMarket": [
+     "permanent tattoo services",
+     "tattoo supplies for artists",
+     "body art instruction",
+     "costume accessories"
+    ],
+    "categoryReason": "Tattly is an online shop selling temporary tattoo products to consumers, as evidenced by its Shopify storefront structure with collections, products, and e-commerce functionality.",
+    "rivals": [
+     {
+      "domain": "inkbox.com",
+      "name": "Inkbox",
+      "basis": "ai_answer",
+      "reason": "Sells curated and custom semi-permanent temporary tattoos direct-to-consumer online, directly competing for the same adult buyer seeking design-forward body art.",
+      "searchNames": [
+       "inkbox"
+      ],
+      "volume": 33100,
+      "national": true
+     },
+     {
+      "domain": "temporalis.tattoo",
+      "name": "Temporalis",
+      "basis": "ranks",
+      "reason": "Sells realistic temporary tattoos lasting 1–2 weeks direct-to-consumer, ranking in top tens for realistic temporary tattoo searches.",
+      "searchNames": [
+       "temporalis",
+       "temporalis tattoo"
+      ],
+      "volume": 12100,
+      "national": true
+     },
+     {
+      "domain": "easytatt.com",
+      "name": "EasyTatt",
+      "basis": "ranks",
+      "reason": "Sells long-lasting temporary tattoos online to consumers, appearing across multiple search terms and AI answers as a top recommended brand.",
+      "searchNames": [
+       "easytatt"
+      ],
+      "volume": 720,
+      "national": true
+     },
+     {
+      "domain": "momentaryink.com",
+      "name": "Momentary Ink",
+      "basis": "ai_answer",
+      "reason": "Sells realistic custom temporary tattoos online with a try-before-you-ink positioning, named by AI answers as a top pick for adult consumers.",
+      "searchNames": [
+       "momentary ink"
+      ],
+      "volume": 480,
+      "national": true
+     },
+     {
+      "domain": "tattooednow.com",
+      "name": "Tattooed Now",
+      "basis": "ranks",
+      "reason": "Sells realistic fake temporary tattoos online to consumers, ranking in top tens for transfer and realistic tattoo searches.",
+      "searchNames": [
+       "tattooed now"
+      ],
+      "volume": 210,
+      "national": true
+     }
+    ],
+    "terms": [
+     {
+      "term": "temporary tattoos",
+      "volume": 60500
+     },
+     {
+      "term": "custom temporary tattoos",
+      "volume": 22200
+     },
+     {
+      "term": "fake tattoos",
+      "volume": 18100
+     },
+     {
+      "term": "semi permanent tattoos",
+      "volume": 12100
+     },
+     {
+      "term": "temporary tattoos for adults",
+      "volume": 1900
+     },
+     {
+      "term": "temporary tattoo sleeves",
+      "volume": 1900
+     },
+     {
+      "term": "realistic temporary tattoos",
+      "volume": 1600
+     },
+     {
+      "term": "transfer tattoos",
+      "volume": 590
+     },
+     {
+      "term": "stick on tattoos",
+      "volume": 590
+     },
+     {
+      "term": "temporary tattoos for kids",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "temporary tattoos",
+    "termsAt": "2026-10-11T00:18:39.750Z",
+    "demand": {
+     "at": "2026-10-11T00:22:17.267Z",
+     "own": 1000,
+     "brands": {
+      "ezinks": 0,
+      "inkbox": 33100,
+      "tattly": 1000,
+      "tatteco": 90,
+      "easytatt": 720,
+      "ink bond": 480,
+      "temporalis": 12100,
+      "tattooed now": 210,
+      "momentary ink": 480,
+      "artwear tattoo": 20,
+      "ink bond tattoo": 170,
+      "temporalis tattoo": 140,
+      "temporarytattoos.com": 140
+     },
+     "searches": {
+      "ezinks alternatives": 0,
+      "inkbox alternatives": 390,
+      "tatteco alternatives": 0,
+      "easytatt alternatives": 0,
+      "ink bond alternatives": 0,
+      "temporalis alternatives": 0,
+      "tattooed now alternatives": 0,
+      "momentary ink alternatives": 0,
+      "artwear tattoo alternatives": 0,
+      "temporarytattoos alternatives": 0
+     }
+    },
+    "judged": {
+     "fake custom tattoos": true,
+     "fake sleeve tattoos": true,
+     "fake tattoos near me": false,
+     "fake realistic tattoos": true,
+     "temporary tattoos near me": false,
+     "best semi permanent tattoos": true,
+     "best custom temporary tattoos": true,
+     "custom semi permanent tattoos": true,
+     "semi permanent sleeve tattoos": true,
+     "semi permanent tattoos near me": false,
+     "custom temporary sleeve tattoos": true,
+     "what are semi permanent tattoos": true,
+     "custom temporary tattoos near me": false,
+     "semi permanent temporary tattoos": true,
+     "custom temporary tattoos for adults": true
+    },
+    "kind": "shop",
+    "serves": null
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 4,
+    "timeouts": 0
+   },
+   "pageQuestions": 0,
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "US",
+    "language": "en"
+   },
+   "searches": [
+    "temporary tattoos",
+    "custom temporary tattoos",
+    "fake tattoos",
+    "semi permanent tattoos",
+    "temporary tattoo sleeves",
+    "temporary tattoos for adults",
+    "realistic temporary tattoos",
+    "stick on tattoos",
+    "transfer tattoos",
+    "best custom temporary tattoos",
+    "best semi permanent tattoos",
+    "fake sleeve tattoos"
+   ],
+   "knowledgePages": 2,
+   "questions": [],
+   "audience": [],
+   "topics": [
+    {
+     "query": "temporary tattoos for adults",
+     "status": "open",
+     "type": "answerable_page",
+     "fit": 2,
+     "volume": 1900,
+     "ready": false
+    },
+    {
+     "query": "realistic temporary tattoos",
+     "status": "open",
+     "type": "expand_page",
+     "fit": 2,
+     "volume": 1600,
+     "ready": false
+    },
+    {
+     "query": "transfer tattoos",
+     "status": "open",
+     "type": "answerable_page",
+     "fit": 2,
+     "volume": 590,
+     "ready": false
+    },
+    {
+     "query": "best custom temporary tattoos",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 210,
+     "ready": false
+    },
+    {
+     "query": "fake sleeve tattoos",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 5400,
+     "ready": true
+    },
+    {
+     "query": "stick on tattoos",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 2,
+     "volume": 590,
+     "ready": false
+    },
+    {
+     "query": "inkbox alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 390,
+     "ready": true
+    },
+    {
+     "query": "temporalis alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "easytatt alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "momentary ink alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "tattooed now alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "temporary tattoo designs from independent artists",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 14.960000000000003,
+   "costBySource": {
+    "site-profile": 0.2829,
+    "profile": 0.2283,
+    "market-inference": 0.3811,
+    "market-terms": 0.6555,
+    "dataforseo_labs/google/keyword_overview": 2.33,
+    "market-searches": 0.7572,
+    "question-phrasing": 0.2527,
+    "serp/google/ai_mode": 1.6,
+    "serp/google/organic": 0.48,
+    "ai_optimization/chat_gpt/llm_scraper": 0.12,
+    "site-knowledge": 0.5952,
+    "rival-inference": 3.5121,
+    "topic-buyer-searches": 0.1941,
+    "topic-typed": 0.2103,
+    "topic-fit": 2.5674,
+    "opportunity-typing": 0.6232,
+    "topic-same-question": 0.17
+   },
+   "area": {
+    "place": null,
+    "location": null
+   },
+   "resultDomains": [
+    "easytatt.com",
+    "24hourwristbands.com",
+    "stickerplanet.com",
+    "tattly.com",
+    "www.walmart.com",
+    "www.tatteco.com",
+    "www.amazon.com",
+    "www.bigdotofhappiness.com",
+    "www.ink-bond.com",
+    "tattapic.com",
+    "californiatattoos.com",
+    "www.tattooednow.com",
+    "www.4allpromos.com",
+    "www.imprintnow.com",
+    "inkbox.com",
+    "ezink.co",
+    "www.youtube.com",
+    "www.temporarytattoos.com",
+    "www.target.com",
+    "www.pinterest.com",
+    "www.ebay.com",
+    "www.temporalis.tattoo",
+    "www.fashionbeans.com",
+    "artweartattoo.co.uk",
+    "duckystreet.com",
+    "www.stickermule.com",
+    "artweartattoo.com",
+    "ephemeral.tattoo",
+    "www.stickeryou.com",
+    "zugmonster.com",
+    "abeautifulmess.com",
+    "tinsleytransfers.com",
+    "www.4imprint.com",
+    "www.reddit.com",
+    "imprint.com",
+    "www.saveyourink.com",
+    "www.customlanyard.net",
+    "www.facebook.com",
+    "steezyink.com",
+    "ink-today.com",
+    "www.brattats.com",
+    "google.com",
+    "reddit.com",
+    "fashionbeans.com",
+    "faketattoos.com",
+    "temporalis.tattoo"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Looking for the best temporary tattoos. Where would you shop, and why?"
+    },
+    {
+     "kind": "category",
+     "text": "Where do people actually recommend for the best custom temporary tattoos?"
+    },
+    {
+     "kind": "category",
+     "text": "Where do people actually recommend for the best fake tattoos?"
+    },
+    {
+     "kind": "category",
+     "text": "Where do people actually recommend for the best semi permanent tattoos?"
+    },
+    {
+     "kind": "category",
+     "text": "I am buying for the first time. Where should I look for the best temporary tattoos?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Where can I find the best temporary tattoos as a gift?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Where can I find the best temporary tattoos on a small budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Where can I get the best temporary tattoos delivered quickly?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Who makes the best temporary tattoos by hand or in small batches?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Where can I find the best temporary tattoos for a special occasion?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Who sells the best temporary tattoos and will help me choose?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Where can I buy the best temporary tattoos from an independent shop rather than a big chain?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are consumers. Where should we look for the best temporary tattoos?"
+    },
+    {
+     "kind": "persona",
+     "text": "Who sells the best temporary tattoos for consumers?"
+    },
+    {
+     "kind": "persona",
+     "text": "Where do consumers tend to buy the best temporary tattoos?"
+    },
+    {
+     "kind": "persona",
+     "text": "I am buying for consumers. Where would I find the best temporary tattoos?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best temporary tattoos: how does Inkbox compare with Temporalis?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Inkbox for consumers?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best temporary tattoos: would you choose Temporalis or EasyTatt?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best temporary tattoos for the money: Inkbox, Temporalis or EasyTatt?"
+    },
+    {
+     "kind": "problem",
+     "text": "My last purchase was a let-down. Who can I rely on for the best temporary tattoos?"
+    },
+    {
+     "kind": "problem",
+     "text": "I need it quickly. Who can get me the best temporary tattoos in time?"
+    },
+    {
+     "kind": "problem",
+     "text": "I cannot decide what to buy. Who offers the best temporary tattoos, and what should I look for?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is Tattly a good choice for someone looking for the best temporary tattoos?"
+    },
+    {
+     "kind": "branded",
+     "text": "Looking for the best temporary tattoos: is Tattly a good alternative to Inkbox?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"temporary tattoos\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"temporary tattoos\" 60500/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "pass",
+     "detail": "Inkbox — inkbox.com, 33100/mo, ai_answer; Temporalis — temporalis.tattoo, 12100/mo, ranks; EasyTatt — easytatt.com, 720/mo, ranks; Momentary Ink — momentaryink.com, 480/mo, ai_answer; Tattooed Now — tattooednow.com, 210/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "the site's own pages ask no question, and none is kept",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"consumers who want temporary tattoos\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 0.60¢; 0 of 4 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "shop; 25 prompts",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "9 searched terms; \"temporary tattoos\" has 60500"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 6 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 2 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "tattly.com",
+     "foundations": "measured",
+     "answerability": "zero",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 194556,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    }
+   ],
+   "seconds": 272,
+   "evidenceLoaded": 77
+  },
+  {
+   "site": {
+    "domain": "savvycal.com",
+    "kind": "B2B SaaS, not ReachKit's market (scheduling)",
+    "country": "US",
+    "language": "en",
+    "kinds": [
+     "software"
+    ],
+    "market": [
+     "schedul",
+     "calendar",
+     "booking",
+     "meeting"
+    ],
+    "why": "A small scheduling product. The kind of site the passes were built on, in a market that is not ReachKit's: it shows whether a result is general or fitted to one site."
+   },
+   "siteName": "SavvyCal",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "teams and businesses that need to schedule meetings and appointments",
+    "job": "find a time to meet with colleagues, clients, or candidates",
+    "category": "meeting scheduling software",
+    "synonyms": [
+     "appointment scheduling software",
+     "calendar scheduling tool",
+     "meeting booking software"
+    ],
+    "differentiators": [
+     "calendar overlay week view to spot ideal times at a glance",
+     "high-fidelity scheduling interface replacing click-a-day then click-a-time",
+     "team scheduling with round robin pooling and collective availability",
+     "custom branding for scheduling links",
+     "optimized availability controls to keep calendar sane"
+    ],
+    "notOurMarket": [
+     "calendar management software",
+     "time tracking software",
+     "project management tools",
+     "email collaboration platforms",
+     "video conferencing software"
+    ],
+    "categoryReason": "The headline states it is scheduling software for finding a time to meet, and the site's pages confirm it sells meeting scheduling links, team scheduling, and booking automation across sales, recruiting, marketing, and customer success use cases.",
+    "rivals": [
+     {
+      "domain": "calendly.com",
+      "name": "Calendly",
+      "basis": "ranks",
+      "reason": "The dominant meeting scheduling link tool for teams and businesses, directly competing on booking links, team scheduling, and calendar integrations.",
+      "searchNames": [
+       "calendly"
+      ],
+      "volume": 368000,
+      "national": true
+     },
+     {
+      "domain": "acuityscheduling.com",
+      "name": "Acuity Scheduling",
+      "basis": "ai_answer",
+      "reason": "Appointment scheduling software with client intake forms and team booking, named by AI answers as a top tool for businesses.",
+      "searchNames": [
+       "acuity scheduling"
+      ],
+      "volume": 90500,
+      "national": true
+     },
+     {
+      "domain": "setmore.com",
+      "name": "Setmore",
+      "basis": "ranks",
+      "reason": "Free online appointment scheduling software for teams and businesses, appearing in top-ten results and cited in AI answers.",
+      "searchNames": [
+       "setmore"
+      ],
+      "volume": 12100,
+      "national": true
+     },
+     {
+      "domain": "appointy.com",
+      "name": "Appointy",
+      "basis": "ranks",
+      "reason": "Online appointment scheduling software for businesses, appearing in top-ten results and cited in AI answers.",
+      "searchNames": [
+       "appointy"
+      ],
+      "volume": 3600,
+      "national": true
+     },
+     {
+      "domain": "youcanbook.me",
+      "name": "YouCanBook.me",
+      "basis": "ranks",
+      "reason": "Booking page and meeting scheduling tool for teams and businesses, appearing prominently in top-ten search results for scheduling software.",
+      "searchNames": [
+       "youcanbook.me"
+      ],
+      "volume": 0,
+      "national": true
+     }
+    ],
+    "terms": [
+     {
+      "term": "meeting scheduler",
+      "volume": 4400
+     },
+     {
+      "term": "online appointment booking software",
+      "volume": 4400
+     },
+     {
+      "term": "appointment scheduling software",
+      "volume": 2400
+     },
+     {
+      "term": "automated scheduling software",
+      "volume": 880
+     },
+     {
+      "term": "calendar scheduling software",
+      "volume": 480
+     },
+     {
+      "term": "meeting scheduling software",
+      "volume": 390
+     },
+     {
+      "term": "interview scheduling software",
+      "volume": 260
+     },
+     {
+      "term": "find a time to meet",
+      "volume": 110
+     },
+     {
+      "term": "book a meeting link",
+      "volume": 10
+     },
+     {
+      "term": "schedule meetings automatically",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "meeting scheduler",
+    "termsAt": "2026-10-11T00:23:14.848Z",
+    "demand": {
+     "at": "2026-10-11T00:27:10.861Z",
+     "own": 880,
+     "brands": {
+      "zencal": 110,
+      "cal.com": 0,
+      "schedly": 260,
+      "setmore": 12100,
+      "appointy": 3600,
+      "calendly": 368000,
+      "savvycal": 880,
+      "koalendar": 2400,
+      "youcanbook.me": 0,
+      "acuity scheduling": 90500,
+      "doodle scheduling": 2400
+     },
+     "searches": {
+      "doodle alternatives": 720,
+      "zencal alternatives": 0,
+      "cal.com alternatives": 30,
+      "schedly alternatives": 0,
+      "setmore alternatives": 20,
+      "appointy alternatives": 10,
+      "calendly alternatives": 880,
+      "koalendar alternatives": 10,
+      "youcanbook alternatives": 0,
+      "acuity scheduling alternatives": 50
+     }
+    },
+    "judged": {
+     "meeting scheduler app": true,
+     "meeting scheduler tool": true,
+     "meeting time scheduler": true,
+     "meeting scheduler online": true,
+     "meeting scheduler software": true,
+     "meeting scheduler template": false,
+     "meeting scheduler application": true,
+     "best appointment scheduling software": true,
+     "appointment scheduling online software": true,
+     "appointment scheduling calendar software": true,
+     "best online appointment scheduling software": true,
+     "appointment scheduling software for business": true,
+     "what is the best appointment scheduling software": true,
+     "appointment scheduling software for small business": true,
+     "best appointment scheduling software for small business": true
+    },
+    "kind": "software",
+    "serves": null
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 11,
+    "timeouts": 0
+   },
+   "pageQuestions": 53,
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "US",
+    "language": "en"
+   },
+   "searches": [
+    "appointment scheduling online software",
+    "meeting scheduler",
+    "online appointment booking software",
+    "appointment scheduling software",
+    "meeting scheduler tool",
+    "automated scheduling software",
+    "meeting scheduler app",
+    "appointment scheduling calendar software",
+    "calendar scheduling software",
+    "meeting scheduler software",
+    "meeting scheduling software",
+    "interview scheduling software"
+   ],
+   "knowledgePages": 11,
+   "questions": [
+    "How can we help?",
+    "Scheduling a meeting?",
+    "Do you offer a free trial?",
+    "How does company billing work?",
+    "Are there ways to save?",
+    "What happens if I cancel?",
+    "What’s in the box?",
+    "Can candidates overlay their calendar to find mutual availability?",
+    "Can interviews be double-booked?",
+    "Can reschedules be made with one click?",
+    "Can I create personalized links?",
+    "Can I check for conflicts across all my calendars?",
+    "Can I embed the scheduling link directly on my website?",
+    "Does SavvyCal integrate with Zoom and Google Meet?"
+   ],
+   "audience": [
+    "software developers",
+    "individuals",
+    "small teams",
+    "recruiting teams",
+    "Sales",
+    "Marketing",
+    "Recruiting",
+    "Customer Success",
+    "Podcasting",
+    "Consulting",
+    "partners",
+    "colleagues"
+   ],
+   "topics": [
+    {
+     "query": "appointment scheduling online software",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 5400,
+     "ready": true
+    },
+    {
+     "query": "meeting scheduler app",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 590,
+     "ready": true
+    },
+    {
+     "query": "interview scheduling software",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 3,
+     "volume": 260,
+     "ready": false
+    },
+    {
+     "query": "calendly alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 880,
+     "ready": false
+    },
+    {
+     "query": "acuity scheduling alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 50,
+     "ready": true
+    },
+    {
+     "query": "savvycal vs calendly",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": false
+    },
+    {
+     "query": "savvycal vs acuity scheduling",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "savvycal vs setmore",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "savvycal vs appointy",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "savvycal vs youcanbook",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 34.7959,
+   "costBySource": {
+    "site-profile": 0.4817,
+    "profile": 0.3427,
+    "market-inference": 0.5814,
+    "market-terms": 0.6471,
+    "dataforseo_labs/google/keyword_overview": 2.31,
+    "dataforseo_labs/google/keyword_suggestions": 3.6,
+    "market-searches": 0.8235,
+    "question-phrasing": 0.2251,
+    "serp/google/ai_mode": 4.3999999999999995,
+    "serp/google/organic": 1.68,
+    "ai_optimization/chat_gpt/llm_scraper": 0.72,
+    "site-knowledge": 10.229800000000001,
+    "rival-inference": 3.375,
+    "topic-buyer-searches": 0.1932,
+    "topic-typed": 0.1815,
+    "topic-fit": 3.2964,
+    "opportunity-typing": 1.4716000000000002,
+    "topic-same-question": 0.2369
+   },
+   "area": {
+    "place": null,
+    "location": null
+   },
+   "resultDomains": [
+    "www.appointy.com",
+    "www.emailtooltester.com",
+    "calendly.com",
+    "zapier.com",
+    "squareup.com",
+    "workspace.google.com",
+    "www.setmore.com",
+    "lunacal.ai",
+    "www.youtube.com",
+    "www.cometly.com",
+    "www.calendar.com",
+    "timeful.app",
+    "www.nutshell.com",
+    "koalendar.com",
+    "blog.hubspot.com",
+    "calendar.app.google",
+    "www.surveymonkey.com",
+    "schedly.io",
+    "arraytics.com",
+    "www.reddit.com",
+    "youcanbook.me",
+    "www.zoho.com",
+    "www.uschamber.com",
+    "wpamelia.com",
+    "www.skylinesocial.com",
+    "salesdorado.com",
+    "www.jotform.com",
+    "www.workyard.com",
+    "blog.supersaas.com",
+    "viasocket.com",
+    "meetingpulse.net",
+    "rallly.co",
+    "www.usemotion.com",
+    "thedigitalprojectmanager.com",
+    "peoplemanagingpeople.com",
+    "www.workday.com",
+    "www.chilipiper.com",
+    "www.guideflow.com",
+    "www.recruiterslineup.com",
+    "calendesk.com",
+    "reclaim.ai",
+    "dayschedule.com",
+    "www.bigcontacts.com",
+    "www.revenuehero.io",
+    "www.onecal.io",
+    "zencal.io",
+    "cal.com",
+    "doodle.com",
+    "www.zoom.com",
+    "www.when2meet.com",
+    "candidate.fyi",
+    "www.selectsoftwarereviews.com",
+    "goodtime.io",
+    "www.paradox.ai",
+    "saascompared.io",
+    "youtube.com",
+    "pumble.com",
+    "yello.co",
+    "metaview.ai",
+    "hirevue.com",
+    "cal.id",
+    "modernloop.com",
+    "gartner.com",
+    "skej.com"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "What are the best meeting scheduler tools right now, and what is each one good at?"
+    },
+    {
+     "kind": "category",
+     "text": "Which online appointment booking platforms do people actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "Which appointment scheduling platforms do people actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "Which automated scheduling platforms do people actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "I am new to meeting scheduler. Which products should I look at first?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which meeting scheduler tools work on a small budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which online appointment booking tools can I use without hiring an agency?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which appointment scheduling tools suit a team of one?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which automated scheduling tools can I set up in a single day?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which meeting scheduler tools need no engineering team?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which online appointment booking tools work for a brand new website?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which appointment scheduling tools have a free trial?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are teams and businesses. Which meeting scheduler tool fits us best?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which meeting scheduler software is built for teams and businesses?"
+    },
+    {
+     "kind": "persona",
+     "text": "What do teams and businesses actually use for meeting scheduler?"
+    },
+    {
+     "kind": "persona",
+     "text": "I work with teams and businesses. Which meeting scheduler product should I recommend to them?"
+    },
+    {
+     "kind": "comparison",
+     "text": "How does Calendly compare with Acuity Scheduling for meeting scheduler?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Calendly for teams and businesses?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Acuity Scheduling or Setmore: which is the better choice for meeting scheduler?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Which is better value for meeting scheduler: Calendly, Acuity Scheduling or Setmore?"
+    },
+    {
+     "kind": "problem",
+     "text": "I am getting nowhere with meeting scheduler. Which tools can fix that?"
+    },
+    {
+     "kind": "problem",
+     "text": "Nothing I have tried for meeting scheduler is working. What software should I try next?"
+    },
+    {
+     "kind": "problem",
+     "text": "What is the fastest way to get results from meeting scheduler, and which products do it for me?"
+    },
+    {
+     "kind": "branded",
+     "text": "What is SavvyCal, and is it any good for meeting scheduler?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is SavvyCal a good alternative to Calendly for meeting scheduler?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"meeting scheduling software\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"meeting scheduler\" 4400/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "pass",
+     "detail": "Calendly — calendly.com, 368000/mo, ranks; Acuity Scheduling — acuityscheduling.com, 90500/mo, ai_answer; Setmore — setmore.com, 12100/mo, ranks; Appointy — appointy.com, 3600/mo, ranks; YouCanBook.me — youcanbook.me, 0/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "14 questions",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"teams and businesses that need to schedule meetings and appointments\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "10 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 10.23¢; 0 of 11 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "software; 25 prompts",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "9 searched terms; \"meeting scheduler\" has 4400"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 18 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 11 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "savvycal.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 177129,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 177133,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 177134,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 177140,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 177143,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 177143,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    }
+   ],
+   "seconds": 322,
+   "evidenceLoaded": 82
+  },
+  {
+   "site": {
+    "domain": "clearleft.com",
+    "kind": "agency or consultancy (design, UK)",
+    "country": "GB",
+    "language": "en",
+    "kinds": [
+     "professional-services"
+    ],
+    "market": [
+     "design",
+     "ux"
+    ],
+    "why": "A design consultancy in Brighton. It sells time and expertise, not a product: its rivals are other studios, and the agency directories (Clutch) are not rivals."
+   },
+   "siteName": "Clearleft",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "ambitious organisations seeking to establish design as a strategic capability",
+    "job": "transform their digital products and services through strategic design and user research",
+    "category": "design strategy and transformation consulting",
+    "synonyms": [
+     "UX design agency",
+     "digital design consultancy",
+     "design transformation services",
+     "strategic design partner"
+    ],
+    "differentiators": [
+     "human-centred design research methodology",
+     "design systems and systematic design approach",
+     "embedded team partnership model",
+     "internal service design expertise",
+     "skills training and capability building"
+    ],
+    "notOurMarket": [
+     "web development",
+     "graphic design",
+     "marketing agencies",
+     "software development",
+     "brand identity design"
+    ],
+    "categoryReason": "The headline and all pages emphasise strategic design partnership, design transformation, and user research as the core outcome organisations hire them for, not the methods or tools used.",
+    "rivals": [
+     {
+      "domain": "ideo.com",
+      "name": "IDEO",
+      "basis": "ai_answer",
+      "reason": "The defining human-centred design thinking consultancy, recommended to ambitious organisations for strategic design and research transformation.",
+      "searchNames": [
+       "ideo",
+       "ideo design consultancy",
+       "ideo design"
+      ],
+      "volume": 2400,
+      "national": true
+     },
+     {
+      "domain": "koos.agency",
+      "name": "Koos",
+      "basis": "ranks",
+      "reason": "Service design and user research agency appearing in top-ten results for strategic design consultancy and user experience research agency searches.",
+      "searchNames": [
+       "koos",
+       "koos service design agency",
+       "koos service"
+      ],
+      "volume": 260,
+      "national": true
+     },
+     {
+      "domain": "work.co",
+      "name": "Work & Co",
+      "basis": "ai_answer",
+      "reason": "Top-tier digital product design agency consistently recommended for enterprise-scale UX transformation and complex system design.",
+      "searchNames": [
+       "work & co",
+       "work and co design agency"
+      ],
+      "volume": 170,
+      "national": true
+     },
+     {
+      "domain": "makeitclear.com",
+      "name": "Make it Clear",
+      "basis": "ranks",
+      "reason": "London-based UX and design strategy consultancy appearing in top-ten results for UX consultancy searches, targeting similar ambitious clients.",
+      "searchNames": [
+       "make it clear",
+       "make it clear design agency",
+       "make it clear design"
+      ],
+      "volume": 110,
+      "national": true
+     },
+     {
+      "domain": "interface-design.co.uk",
+      "name": "Creative Navy",
+      "basis": "ranks",
+      "reason": "UK UX and strategic design consultancy appearing consistently across top-ten results for UX design agency and digital design consultancy searches.",
+      "searchNames": [
+       "creative navy",
+       "creative navy ux consultancy",
+       "creative navy ux"
+      ],
+      "volume": 50,
+      "national": true
+     }
+    ],
+    "terms": [
+     {
+      "term": "UX design agency",
+      "volume": 720
+     },
+     {
+      "term": "user experience consultancy",
+      "volume": 140
+     },
+     {
+      "term": "user research agency",
+      "volume": 70
+     },
+     {
+      "term": "UX consultancy",
+      "volume": 30
+     },
+     {
+      "term": "strategic design consultancy",
+      "volume": 30
+     },
+     {
+      "term": "digital design consultancy",
+      "volume": 10
+     },
+     {
+      "term": "design thinking consultancy",
+      "volume": 10
+     },
+     {
+      "term": "design transformation consulting",
+      "volume": 0
+     },
+     {
+      "term": "UX strategy consulting",
+      "volume": 0
+     },
+     {
+      "term": "improve our digital product experience",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "UX design agency",
+    "termsAt": "2026-10-11T00:28:41.418Z",
+    "demand": {
+     "at": "2026-10-11T00:32:34.703Z",
+     "own": 170,
+     "brands": {
+      "ideo": 2400,
+      "koos": 260,
+      "manyone": 90,
+      "tenet ux": 0,
+      "clearleft": 170,
+      "work & co": 170,
+      "cyber-duck": 0,
+      "ideo design": 140,
+      "foolproof ux": 10,
+      "koos service": 0,
+      "creative navy": 50,
+      "cyber-duck ux": 0,
+      "make it clear": 110,
+      "manyone design": 10,
+      "tenet ux agency": 0,
+      "creative navy ux": 0,
+      "foolproof ux agency": 0,
+      "cyber-duck ux agency": 0,
+      "make it clear design": 0,
+      "ideo design consultancy": 0,
+      "work and co design agency": 0,
+      "koos service design agency": 0,
+      "manyone design consultancy": 0,
+      "make it clear design agency": 0,
+      "creative navy ux consultancy": 0
+     },
+     "searches": {
+      "ideo alternatives": 0,
+      "koos alternatives": 0,
+      "tenet alternatives": 0,
+      "manyone alternatives": 0,
+      "foolproof alternatives": 0,
+      "work & co alternatives": 0,
+      "cyber-duck alternatives": 0,
+      "creative navy alternatives": 0,
+      "make it clear alternatives": 0
+     }
+    },
+    "judged": {
+     "ux service": true,
+     "top ux design agency": true,
+     "ux web design agency": true,
+     "best ux design agency": true,
+     "ux design consultancy": true,
+     "digital design service": true,
+     "service design examples": false,
+     "ux research consultancy": true,
+     "user experience research agency": true,
+     "user experience design consultancy": true
+    },
+    "kind": "professional-services",
+    "serves": null
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 20,
+    "timeouts": 0
+   },
+   "pageQuestions": 3,
+   "locales": [
+    {
+     "location": "United Kingdom",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "GB",
+    "language": "en"
+   },
+   "searches": [
+    "ux design agency",
+    "user experience consultancy",
+    "user research agency",
+    "best ux design agency",
+    "strategic design consultancy",
+    "top ux design agency",
+    "ux consultancy",
+    "design thinking consultancy",
+    "digital design consultancy",
+    "ux service",
+    "digital design service",
+    "user experience research agency"
+   ],
+   "knowledgePages": 15,
+   "questions": [
+    "What is internal service design?",
+    "What is the European Accessibility Act and how does it apply to websites?",
+    "Why and what causes delight or frustration in your digital products?",
+    "What usability issues exist with your features and functionality?",
+    "What content causes engagement or confusion?",
+    "Who should attend this course?",
+    "What will I learn from this workshop?",
+    "What topics will be covered?",
+    "What you'll learn?",
+    "What we'll cover?",
+    "What will my team learn by the end of the day?",
+    "Who should attend this training?",
+    "Can the training be delivered in-person or online?"
+   ],
+   "audience": [
+    "designers",
+    "researchers",
+    "anyone involved in the UX design process",
+    "product managers",
+    "anyone with an interest in improving user understanding",
+    "front-end developers"
+   ],
+   "topics": [
+    {
+     "query": "ux service",
+     "status": "open",
+     "type": "answerable_page",
+     "fit": 2,
+     "volume": 260,
+     "ready": false
+    },
+    {
+     "query": "best ux design agency",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 40,
+     "ready": true
+    },
+    {
+     "query": "user experience research agency",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 50,
+     "ready": true
+    },
+    {
+     "query": "ux design agency",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 3,
+     "volume": 720,
+     "ready": false
+    },
+    {
+     "query": "user experience consultancy",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 3,
+     "volume": 140,
+     "ready": false
+    },
+    {
+     "query": "user research agency",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 3,
+     "volume": 70,
+     "ready": false
+    },
+    {
+     "query": "strategic design consultancy",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 3,
+     "volume": 30,
+     "ready": false
+    },
+    {
+     "query": "ux consultancy",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 3,
+     "volume": 30,
+     "ready": false
+    },
+    {
+     "query": "digital design consultancy",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 3,
+     "volume": 10,
+     "ready": false
+    },
+    {
+     "query": "ideo alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "koos alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "work & co alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "make it clear alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 40.6396,
+   "costBySource": {
+    "site-profile": 0.4629,
+    "profile": 0.2807,
+    "market-inference": 0.5436,
+    "market-terms": 0.6672,
+    "dataforseo_labs/google/keyword_overview": 2.4400000000000004,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "market-searches": 0.6885,
+    "question-phrasing": 0.2349,
+    "serp/google/ai_mode": 7.600000000000002,
+    "serp/google/organic": 2.880000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 1.4400000000000004,
+    "site-knowledge": 9.1195,
+    "rival-inference": 3.4182,
+    "topic-buyer-searches": 0.1981,
+    "topic-typed": 0.1867,
+    "topic-fit": 3.2793
+   },
+   "area": {
+    "place": null,
+    "location": null
+   },
+   "resultDomains": [
+    "clutch.co",
+    "ineedsocial.co.uk",
+    "www.majorplayers.co.uk",
+    "burstdgtl.com",
+    "timemachine.uxstudioteam.com",
+    "www.consortia.com",
+    "www.uxconnections.com",
+    "luminarybrands.co.uk",
+    "makeagency.co.uk",
+    "ux-design.agency",
+    "www.ground.co.uk",
+    "interface-design.co.uk",
+    "tomstarley.co.uk",
+    "www.thedesignership.com",
+    "uk.linkedin.com",
+    "reloadux.com",
+    "triare.medium.com",
+    "uservision.co.uk",
+    "www.uxstudioteam.com",
+    "www.banani.co",
+    "www.applytosupply.digitalmarketplace.service.gov.uk",
+    "fuselabcreative.com",
+    "madebyunfold.co",
+    "www.uxagencies.com",
+    "www.akendi.com",
+    "www.manchesterdigital.com",
+    "zeeframes.com",
+    "superbcompanies.com",
+    "dribbble.com",
+    "www.shoreditchdesign.com",
+    "uiuxagencyrankings.com",
+    "linkupst.com",
+    "makeitclear.com",
+    "www.reddit.com",
+    "wearedpp.com",
+    "manyone.com",
+    "www.strategicdesign.uk",
+    "www.linkedin.com",
+    "www.thefountaininstitute.com",
+    "koos.agency",
+    "weetbe.com",
+    "www.elselondon.com",
+    "consultantsindesign.co.uk",
+    "www.syedqasimabbasabidi.com",
+    "www.topleftdesign.com",
+    "uxconsultancy.com",
+    "find-and-update.company-information.service.gov.uk",
+    "www.simpleclick.co.uk",
+    "uk.indeed.com",
+    "www.thisisgain.com",
+    "www.theuxagency.co.uk",
+    "www.cmce.org.uk",
+    "www.designmonks.co",
+    "www.jellyfish.com",
+    "uxdesign.cc",
+    "www.konrad.com",
+    "taqwah.agency",
+    "www.facebook.com",
+    "en.wikipedia.org",
+    "revenuebase.ai",
+    "www.optimisticfutures.co.uk",
+    "www.designthinkersacademy.com",
+    "www.lightshadows.uk",
+    "www.dexigner.com",
+    "www.goodfirms.co",
+    "digitaldesignonline.co.uk",
+    "creativemules.com",
+    "nautilusmarketing.co.uk",
+    "www.manypixels.co",
+    "themanifest.com",
+    "www.servicedesign.digital",
+    "ux4sight.com",
+    "www.halo-lab.com",
+    "attentioninsight.com",
+    "assets.applytosupply.digitalmarketplace.service.gov.uk",
+    "www.behance.net",
+    "kopiustech.com",
+    "www.pinterest.com",
+    "imlondon.co.uk",
+    "www.coursera.org",
+    "clearleft.com",
+    "agencies.semrush.com",
+    "servicelist.io",
+    "sensationsolutions.com",
+    "www.digitaldesigns.live",
+    "remcad.uk",
+    "www.dr-digitaldesign.com",
+    "lollypop.design",
+    "www.eficode.com",
+    "lab.co.uk",
+    "ux247.com",
+    "www.affinityagency.co.uk",
+    "www.experienceux.co.uk",
+    "orbix.studio",
+    "agency.uxplanet.org",
+    "designrush.com",
+    "reddit.com",
+    "fireart.studio",
+    "moonb.io"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Looking for the best UX design agency. Which firms would you recommend, and why?"
+    },
+    {
+     "kind": "category",
+     "text": "Which user experience consultancy would clients actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which user research agency would clients actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which UX consultancy would clients actually recommend?"
+    },
+    {
+     "kind": "category",
+     "text": "Which UX design agency would you suggest to someone hiring for the first time?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which UX design agency would take on a small business as a client?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which UX design agency will quote a fixed fee up front?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which UX design agency would you trust with a complicated case?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which UX design agency can start within a week or two?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which UX design agency will give me one named person to deal with?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which UX design agency would suit a first project on a modest budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which UX design agency can show results for businesses like mine?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are ambitious organisations. Which UX design agency would suit us best?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which UX design agency would you recommend for ambitious organisations?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which UX design agency do ambitious organisations tend to hire?"
+    },
+    {
+     "kind": "persona",
+     "text": "I advise ambitious organisations. Which UX design agency should I point them to?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best UX design agency: how does IDEO compare with Koos?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to IDEO for ambitious organisations?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best UX design agency: would you choose Koos or Work & Co?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best UX design agency for the money: IDEO, Koos or Work & Co?"
+    },
+    {
+     "kind": "problem",
+     "text": "We are unhappy with our current firm. Which UX design agency should we talk to instead?"
+    },
+    {
+     "kind": "problem",
+     "text": "We have a deadline coming. Which UX design agency can take us on at short notice?"
+    },
+    {
+     "kind": "problem",
+     "text": "Which UX design agency should I speak to first, and what should I ask before I sign?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is Clearleft a good choice for someone looking for the best UX design agency?"
+    },
+    {
+     "kind": "branded",
+     "text": "Looking for the best UX design agency: is Clearleft a good alternative to IDEO?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"design strategy and transformation consulting\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"UX design agency\" 720/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United Kingdom / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "pass",
+     "detail": "IDEO — ideo.com, 2400/mo, ai_answer; Koos — koos.agency, 260/mo, ranks; Work & Co — work.co, 170/mo, ai_answer; Make it Clear — makeitclear.com, 110/mo, ranks; Creative Navy — interface-design.co.uk, 50/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "13 questions",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"ambitious organisations seeking to establish design as a strategic capability\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "13 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 9.12¢; 0 of 20 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "professional-services; 25 prompts",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "7 searched terms; \"UX design agency\" has 720"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 32 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 15 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "clearleft.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "serp/google/ai_mode",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0,
+     "fresh": true,
+     "durationMs": 15020,
+     "failure": "task_40101",
+     "billed": false,
+     "reason": "dataforseo: task 40101 Internal SE Server Error."
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 178778,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 178779,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 178792,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 178792,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 178794,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 178796,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 178795,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 178796,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 178797,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 178797,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 178804,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 178813,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    }
+   ],
+   "seconds": 285,
+   "evidenceLoaded": 64
+  }
+ ]
+}
