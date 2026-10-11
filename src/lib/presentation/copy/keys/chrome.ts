@@ -282,11 +282,10 @@ export const CHROME_COPY = Object.freeze({
   "how.checks.fix": ["A page that fails gets one rewrite. If it fails again it is held, and nothing is published.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
 
   "how.links.title": ["Links", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "how.links.live": ["Each page links to up to {product} of your own pages that fit its topic, such as pricing or a product page, and to up to {cluster} earlier pages on the same subject.", { slots: { product: "text", cluster: "text" }, fixedBy: "issue 1396 · drafted" }],
-  "how.links.coming": ["Coming", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "how.links.coming.deep": ["Links to the exact section of a page.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "how.links.coming.check": ["A check that every link still works.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "how.links.coming.back": ["Links from your earlier pages to the new one.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
+  "how.links.live": ["Each page carries {min} to {max} links into your own site, chosen by what the page is about, and links to up to {cluster} earlier pages on the same subject.", { slots: { min: "text", max: "text", cluster: "text" }, fixedBy: "issue 1396 · drafted" }],
+  "how.links.text": ["The words of a link say what you find at the other end.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
+  "how.links.check": ["When a page goes out, every link on it is asked once. A link to a page of yours that is gone is taken out, and a source that is gone takes its claim with it.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
+  "how.links.back": ["When a new page goes live, up to {back} of your earlier pages are updated with one sentence that links to it.", { slots: { back: "text" }, fixedBy: "issue 1396 · drafted" }],
 
   "how.control.title": ["Your control", { slots: {}, fixedBy: "issue 1396 · drafted" }],
   "how.control.window": ["A page goes live on its own {hours} hours after it is written. You can set that window anywhere from {min} to {max} days.", { slots: { hours: "text", min: "text", max: "text" }, fixedBy: "issue 1396 · drafted" }],

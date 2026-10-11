@@ -9,7 +9,7 @@
 // **No figure is typed.** Every number is a slot filled from `_how/facts.ts`,
 // which reads the constants the product runs on; the two examples are read
 // from stored rows (`_how/examples.ts`) and are not drawn where none is
-// stored. What is not built yet is under *Coming*, and nowhere else.
+// stored. The page states only what the product does today.
 //
 // The legal pages' shape: a contents list beside the reading measure, one
 // card a section. A Server Component with no client code of its own.
@@ -38,6 +38,8 @@ const BODY = "card-body gap-3";
 const LIST = "list-disc ps-6";
 const NEW_TAB = { target: "_blank", rel: "noopener" } as const;
 const PAGE_TEST_ID = "how-it-works";
+/** The one sentence that names the model the pages are written with. */
+const DISCLOSURE_TEST_ID = "how-disclosure";
 
 type Line = readonly [CopyKey, Record<string, string | number>?];
 
@@ -176,18 +178,15 @@ function Checks(): React.JSX.Element {
   );
 }
 
-/** What is live, then what is not yet (issue 1391), marked as such. */
+/** The four things `src/lib/generate/links/` and `publish/links/` do. */
 function Links(): React.JSX.Element {
   return (
     <Card id={LINKS.id} title={LINKS.title}>
-      <p>{copy("how.links.live", { product: F.productLinks, cluster: F.clusterLinks })}</p>
-      <p>
-        <span className="badge badge-soft badge-primary badge-sm">{copy("how.links.coming")}</span>
-      </p>
+      <p>{copy("how.links.live", { min: F.siteLinksMin, max: F.siteLinksMax, cluster: F.clusterLinks })}</p>
       <ul className={LIST}>
-        <li>{copy("how.links.coming.deep")}</li>
-        <li>{copy("how.links.coming.check")}</li>
-        <li>{copy("how.links.coming.back")}</li>
+        <li>{copy("how.links.text")}</li>
+        <li>{copy("how.links.check")}</li>
+        <li>{copy("how.links.back", { back: F.backLinks })}</li>
       </ul>
     </Card>
   );
@@ -245,7 +244,7 @@ export default async function HowItWorksPage(): Promise<React.JSX.Element> {
           </span>
           <h1>{copy("how.title")}</h1>
           <p className="text-lg">{copy("how.lead")}</p>
-          <p>{copy("how.disclosure")}</p>
+          <p data-testid={DISCLOSURE_TEST_ID}>{copy("how.disclosure")}</p>
 
           <div className="mt-3 flex flex-col gap-4">
             <Prose section={MEASURE} />

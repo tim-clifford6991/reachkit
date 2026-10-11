@@ -9,7 +9,7 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 
-import { BATTERY, PACE, TRACKED_PROMPTS, VETO } from "@/lib/config/constants";
+import { BATTERY, CROSS_LINKS, PACE, TRACKED_PROMPTS, VETO } from "@/lib/config/constants";
 import { HARD_RULES } from "@/lib/generate/rules/types";
 import { COPY, copy, type CopyKey } from "@/lib/presentation/copy";
 import type { LiveExamples } from "@/app/(public)/_how/examples";
@@ -83,10 +83,11 @@ describe("what the page says about itself", () => {
     expect(page).not.toMatch(/\b(opus|sonnet|haiku|gpt-|prompt)\b/i);
   });
 
-  it("marks what is not built yet as coming", async () => {
+  it("states the links a page carries in the constants' own figures", async () => {
     const html = await render(HowItWorksPage, NOTHING);
-    const links = html.slice(html.indexOf('id="links"'), html.indexOf('id="control"'));
-    expect(links.indexOf(copy("how.links.coming"))).toBeLessThan(links.indexOf(copy("how.links.coming.deep")));
+    const links = text(html.slice(html.indexOf('id="links"'), html.indexOf('id="control"')));
+    expect(links).toContain(`${CROSS_LINKS.SITE_MIN} to ${CROSS_LINKS.SITE_MAX} links`);
+    expect(links).toContain(`up to ${CROSS_LINKS.BACK_PAGES_MAX} of your earlier pages`);
   });
 });
 

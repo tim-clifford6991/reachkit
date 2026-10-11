@@ -32,7 +32,6 @@ import type React from "react";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { ScanForm } from "./_landing/ScanForm";
@@ -153,7 +152,6 @@ export default function LandingPage(props: {
             <p className="mt-6 text-center">
               <Link href="/how-it-works" className="btn btn-soft btn-primary">
                 {copy("landing.day.more")}
-                <ArrowRight size={16} strokeWidth={1.75} aria-hidden />
               </Link>
             </p>
           </div>
