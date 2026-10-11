@@ -497,19 +497,11 @@ export const REPORT_COPY = Object.freeze({
   // verbatim, the one string on this page approved before the rest. The
   // keys here carry the owner's approved sentences (2026-09-10, #459).
   //
-  // L7–L10 (the demo video block) are declared and **not rendered**: the
-  // video is *absent* until an asset exists, and tokens.md §9.4 decides
-  // that the absent block does not render at all — no placeholder, no
-  // "coming soon", no empty frame. They are here so the block has its
-  // sentences the day the asset lands, and `tests/app/landing/` asserts the
-  // section is not in the document until then.
+  // L7–L10 were the demo video block. Issue 1396 replaced the frame with
+  // *What happens every day* (`landing.day.*` in `chrome.ts`).
   "landing.subline": ["A free scan shows where AI answers and Google search send buyers to your rivals instead of you. Then ReachKit publishes a page every day, new or updated, to change that.", { slots: {}, fixedBy: "issue 266 · L1" }],
   "landing.hero.specimen.label": ["Live example", { slots: {}, fixedBy: "issue 266 · L5" }],
   "landing.hero.specimen.caption": ["The figures are an example on example.com. They measure no site.", { slots: {}, fixedBy: "issue 266 · L6" }],
-  "landing.video.eyebrow": ["See it work", { slots: {}, fixedBy: "issue 266 · L7" }],
-  "landing.video.heading": ["From scan to published page in one sitting.", { slots: {}, fixedBy: "issue 266 · L8" }],
-  "landing.video.blocked": ["The video can’t play here. Everything it shows is on this page — read on, or start your scan.", { slots: {}, fixedBy: "issue 266 · L9" }],
-  "landing.video.open": ["Play the demo", { slots: {}, fixedBy: "issue 266 · L10" }],
   "landing.why.eyebrow": ["Why you should care", { slots: {}, fixedBy: "issue 266 · L11" }],
   "landing.why.heading": ["Your competitors are being found.", { slots: {}, fixedBy: "issue 266 · L12" }],
   "landing.why.body": ["Buyers now ask ChatGPT and Google’s AI what to use, and the answer names a handful of companies. If yours isn’t one of them, that buyer never meets you — and nothing on your side tells you it happened.", { slots: {}, fixedBy: "issue 266 · L13" }],
@@ -544,14 +536,6 @@ export const REPORT_COPY = Object.freeze({
    *  badge reads "every week since you started"; the set's miniature shows
    *  the short form, and it is the miniature that renders here. */
   "landing.shot.badge": ["every week", { slots: {}, fixedBy: "approved set S1 · 11a" }],
-
-  /** The video block (ruling 4c): "renders a 16:9 frame with a play control
-   *  and one written line before the asset exists". Both strings are
-   *  bracketed in the set and are the owner's approved sentences
-   *  (2026-09-10, #459); the block renders regardless,
-   *  which is what 4c changed about REQ-099 c6. */
-  "landing.video.line": ["Demo video coming soon. Everything above it is the live product.", { slots: {}, fixedBy: "approved set S1 · 4c" }],
-  "landing.video.caption": ["The scan, the report, and one page going live — the whole loop, as a customer sees it.", { slots: {}, fixedBy: "approved set S1 · 4c" }],
 
   /** Section 01's own line, under the live AI-answers matrix. Approved
    *  (11a) — it is the sentence that makes the matrix an argument. */

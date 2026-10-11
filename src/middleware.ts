@@ -257,6 +257,11 @@ export const PUBLIC_PATHS: readonly string[] = [
   "/privacy",
   "/terms",
   "/imprint",
+  // Issue 1396: how the product works and who builds it. Each reads only
+  // what is already public: a listed report's domain and the newest live
+  // page of ReachKit's own site.
+  "/how-it-works",
+  "/about",
   // Issue #326: the web app manifest. It is a Next metadata route rather
   // than a file of ours (`src/app/manifest.ts`), and Next will serve a
   // manifest only from the top level of `app/` — so unlike the icons and
