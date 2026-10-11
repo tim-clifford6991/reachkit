@@ -214,6 +214,7 @@ describe("explainChoice reads back what was stored, and recomputes nothing", () 
       type: created.type,
       family: created.family,
       fitBand: created.fitBand,
+      businessFit: created.businessFit ?? null,
       acceptance: created.acceptance,
       evidence: created.evidence,
     });

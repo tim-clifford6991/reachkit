@@ -1225,4 +1225,152 @@ export const OVERVIEW_COPY = Object.freeze({
     "Your week is planned as soon as the measurement finishes.",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" },
   ],
+
+  // ── SPEC §4 (2026-10-10, issue 1395): what ReachKit did this week, and
+  // the process. Every number is a slot filled from a stored row or a pin.
+  // Drafted; the owner corrects the wording.
+  "overview.done.label": [
+    "What ReachKit did this week",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.measured": [
+    "Measured {searches} searches in Google and {questions} AI questions ({engines}, each asked {runs} times) · {at}",
+    { slots: { searches: "text", questions: "text", engines: "text", runs: "text", at: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.measured.searches": [
+    "Measured {searches} searches in Google · {at}",
+    { slots: { searches: "text", at: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.measured.none": [
+    "Searches and AI questions: not measured this week",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.measured.note": [
+    "Once a week ReachKit looks up the searches your buyers make and puts their questions to the AI engines. Search and AI Visibility hold every result.",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.rivals": [
+    "Rivals tracked: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.rivals.none": [
+    "Rivals: not measured this week",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.rivals.note": [
+    "These are the competitors your numbers are compared with each week. Rivals shows where each one stands.",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.wrote": [
+    "Pages written: {pages} · {fresh} new, {updated} updated",
+    { slots: { pages: "text", fresh: "text", updated: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.wrote.passed": [
+    "all passed {checks} checks",
+    { slots: { checks: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.wrote.held": [
+    "{held} held by a check",
+    { slots: { held: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.wrote.none": [
+    "No page written yet this week",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.wrote.note": [
+    "Each page is written from facts read on your site and from public pages, then put through {checks} checks before you see it. Plan lists every page.",
+    { slots: { checks: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.published": [
+    "Pages published: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.published.next": [
+    "the next goes live {when}",
+    { slots: { when: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.published.none": [
+    "No page published yet this week",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.published.note": [
+    "A page goes live on its own at your publish time. Until then it can be stopped from its card or from Plan.",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.done.set-aside": [
+    "Topics set aside: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.title": [
+    "How ReachKit works on your site",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.step.read": [
+    "Read your site",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.step.measure": [
+    "Measure your market",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.step.rivals": [
+    "Find your rivals",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.step.pick": [
+    "Pick a topic",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.step.write": [
+    "Write from your facts",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.step.checks": [
+    "Check the page",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.step.publish": [
+    "Publish",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.step.remeasure": [
+    "Measure again",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.figure.pages": [
+    "Pages read: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.figure.searches": [
+    "Searches: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.figure.questions": [
+    "AI questions: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.figure.rivals": [
+    "Rivals tracked: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.figure.ready": [
+    "Topics ready: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.figure.checks": [
+    "Checks: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.figure.publish": [
+    "Daily at {time}",
+    { slots: { time: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.figure.remeasure": [
+    "Next on {on}",
+    { slots: { on: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "overview.process.pending": [
+    "not measured yet",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
 }) satisfies CopyPartition;
