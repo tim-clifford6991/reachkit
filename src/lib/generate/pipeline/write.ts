@@ -16,7 +16,7 @@
 // the response is ever logged. The ceiling is read before each call; a call
 // the page cannot afford is `not_attempted`, never a rule that failed.
 import { z } from "zod";
-import { PAGE_BLOCKS, TITLE } from "@/lib/config/constants";
+import { PAGE_BLOCKS, TITLE, VOICE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import type { Tier } from "@/lib/llm/tiers";
@@ -24,7 +24,9 @@ import { unmeasured, type Measured } from "@/lib/measure/measured";
 import type { PageType } from "@/lib/opportunities/types";
 import { REGISTER_FLOOR } from "../rules/figures";
 import { HONESTY_INSTRUCTION } from "../rules/honest";
+import { AVOID_LIST } from "../rules/prose-english";
 import { languageRules, titleFormulas, type Template } from "../templates";
+import { voiceRules } from "../voice/register";
 import type { ContextPack } from "./pack";
 import type { FixNote } from "./repair";
 import { comparisonTable } from "./table";
@@ -136,6 +138,13 @@ const HOUSE_RULES = [
   "`pack.pages` are the pages this site has published or planned: write nothing that repeats one of them, and where one answers something this page raises, send the reader to it.",
   "Print no label, index or id for a fact — link text is the source's name. Write no sentence of legal, removal or refund terms, no caption of a demo or example, and no menu or navigation text.",
   "Say a promise or tagline of the business at most twice on the whole page. Write titles and headings in sentence case.",
+  // Issue 1390: how the page reads. Stage 4 counts each of these (`../rules/prose.ts`).
+  "Write plain statements: say what a thing is or does (\"X is Y\", \"X does Y\"), and never define it by what it is not. Mix sentence lengths: a sentence of a few words beside a longer one, and never three sentences of one shape in a row.",
+  "Join two clauses with a full stop, a comma or \"and\", never a dash: at most two dashes on the whole page. Say no sentence, and no run of four words or more, over twice on the page. Each item of a list is its own sentence, with no label repeated down the list.",
+  "State one opinion of the business's own, once: its judgement on a fact of its own in `pack` (that a number is low, which step it would take first, what it would not bother with), in the paragraph that states that fact and in plain words, without labelling it an opinion. It is never a claim about what most people, businesses or sites do or get wrong: `pack` holds no such fact.",
+  "Do not sum the page up at its end, and do not announce what a section is about to say: the last section ends on its last fact or instruction.",
+  "Write none of the habits listed in `avoid`, nor their like in the page's language.",
+  `Where \`pack.claims\` or \`pack.facts\` hold a statistic or a sentence worth quoting, use ${VOICE.evidence.min} to ${VOICE.evidence.max} of them on the page, each with who measured or said it and its link. Use only the ones \`pack\` holds, as it states them; where it holds fewer, use fewer, and never invent a figure, a quotation or a name.`,
   `Write no number of ${REGISTER_FLOOR} or more that \`pack\` or the target search do not contain; a year is not a number for this rule.`,
   `\`answer\` is the page's short answer: one paragraph of ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} words that answers the target plainly — write 45 to 55, in two or three sentences, and count them: outside ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} the page is stopped.`,
   `\`takeaways\`: ${PAGE_BLOCKS.takeaways.min} to ${PAGE_BLOCKS.takeaways.max} key takeaways, one sentence each. \`closing\`: one line that points the reader to the one action this page's reader should take, linking the page in \`pack.links\` where they take it.`,
@@ -148,6 +157,11 @@ const WRITTEN_TABLE_RULE =
  *  (`./table.ts`), and the writer writes around it. */
 const BUILT_TABLE_RULE =
   "`table` is this page's comparison table, built from `pack` and placed in the at-a-glance section as it is: it is the table `honesty` and `template.blocks` ask for. Write no table anywhere on the page, and say nothing of an option that `table` or `pack` does not carry. Where an option's row leaves a criterion out, `pack` holds no fact for it: never guess the value, and never write that it is missing.";
+
+/** SPEC §7 (owner, 2026-10-10; issue 1390): a section is headed by the
+ *  question buyers were seen to ask, where the pack holds one it answers. */
+const ASKED_HEADINGS_RULE =
+  "`pack.questions` are questions buyers were seen to ask about this topic. Where one is what a section answers, use it as that section's `heading`, in the buyer's words, tidied into a sentence; use each at most once. A section none of them fits keeps a heading in the reader's own words, and no two sections ask the same thing.";
 
 export interface WriteInputs {
   template: Template;
@@ -212,7 +226,16 @@ function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<s
     pack: a.pack,
     titleRules: titleBrief(a.pack),
     ...(table === null ? {} : { table: table.markdown }),
-    rules: [...HOUSE_RULES, table === null ? WRITTEN_TABLE_RULE : BUILT_TABLE_RULE, ...languageRules(a.pack.locale?.language ?? "en")],
+    // Issue 1390: the habits stage 4 counts, so the page is asked not to
+    // write what it would be stopped for.
+    avoid: AVOID_LIST,
+    rules: [
+      ...HOUSE_RULES,
+      ...(a.pack.voice === undefined ? [] : voiceRules(a.pack.voice)),
+      ...(a.pack.type === "qa" || a.pack.type === "update" || a.pack.questions.length === 0 ? [] : [ASKED_HEADINGS_RULE]),
+      table === null ? WRITTEN_TABLE_RULE : BUILT_TABLE_RULE,
+      ...languageRules(a.pack.locale?.language ?? "en"),
+    ],
     ...extra,
   };
 }

@@ -53,12 +53,14 @@ import { urlKey } from "../links/select";
 import { recordedRulesValue, recordedVerdictValue } from "../record";
 import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
 import { answerBoxWords } from "../rules/blocks";
+import { proseNotes } from "../rules/prose";
 import { linksOf, renderOf } from "../rules/text";
 import { pickTitle, specificOnly, titleNotes, type TitleCandidate } from "../rules/title";
 import { HARD_RULES, type GroundedFact, type RuleFailure, type SiteRuleInputs } from "../rules/types";
 import { generateStore, type DraftRow } from "../store";
 import { TEMPLATES, type PackNeed } from "../templates";
 import { profileItemsUsed } from "../voice/profile-block";
+import { voiceLength } from "../voice/register";
 import { buildComparisonSet } from "./comparison";
 import { layoutPage, withClosing, type LaidPage } from "./compose";
 import { closeElsewhere } from "./elsewhere";
@@ -238,7 +240,8 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   }
 
   const liveWords = pack.live === null ? null : sectionWords(pack.live.markdown);
-  const length = lengthRangeFor(template, liveWords);
+  // Issue 1390: a short answer is held to its own length, not its type's.
+  const length = voiceLength(pack.voice) ?? lengthRangeFor(template, liveWords);
   // D47: a comparison written as a Q&A for want of two rivals compares
   // nobody, so it is told to answer, not to compare.
   const becameQa = pack.type === "qa" && contentTypeOf(a.opportunity) === "listicle";
@@ -391,6 +394,14 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       distinctHeadings: pack.type === "qa",
       heading: candidate.laid.body.heading,
       ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }),
+      // Issue 1390: how the page reads. A passage stated word for word is
+      // not the writer's, and the page's own subject may be said as often
+      // as it needs.
+      prose: {
+        language: pack.locale?.language ?? "en",
+        passages: [...pack.facts.map((fact) => fact.passage), ...pack.claims.map((claim) => claim.passage)],
+        subjects: [...searches, ...names.filter((name) => name !== ""), ...pack.claims.map((claim) => claim.title), ...pack.links.map((link) => link.label)],
+      },
     });
 
   /** One page through stage 4: the checks, the repairs code can make (#1178)
@@ -464,12 +475,16 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
         return { ...note, sentences: ["verdict: the which-to-choose section must name at least one option of `table` other than this business and say the case where it is the better pick"] };
       }
       const title = stopped.outcome.passed ? undefined : stopped.outcome.failed.find((failure) => failure.rule === "title")?.detail;
-      if (note.rule === "title" && title !== undefined && "faults" in title) {
+      if (note.rule === "title" && title !== undefined && title.rule === "title") {
         const body = stopped.page.laid.body;
         return { ...note, sentences: titleNotes(body.title, titleRuleFor(pack, { description: body.description, sections: stopped.page.laid.sections }), title.faults) };
       }
       if (note.rule === "distinct_headings") {
         return { ...note, sentences: [`headings: ${note.sentences.map((heading) => `"${heading}"`).join(" and ")} ask almost the same thing; each section must ask a different question of \`pack.questions\`, in different words`] };
+      }
+      const prose = stopped.outcome.passed ? undefined : stopped.outcome.failed.find((failure) => failure.rule === "plain_prose")?.detail;
+      if (note.rule === "plain_prose" && prose !== undefined && prose.rule === "plain_prose") {
+        return { ...note, sentences: proseNotes(prose.faults) };
       }
       if (note.rule === "first_block_answers") {
         const box = PAGE_BLOCKS.answerWords;

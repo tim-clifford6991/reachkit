@@ -38,6 +38,7 @@ import { alikeHeadings } from "../rules/headings";
 import { TEMPLATES, type PackNeed, type PackRequirement } from "../templates";
 import type { WritingMarket } from "../voice/market";
 import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
+import { chooseVoice, type PageVoice, type WritingVoice } from "../voice/register";
 import type { SourcedFact } from "./grounding";
 import type { BuyersAsk, JudgedResult, MarketFact, MarketResearch, QuestionsHeld, ResearchedProduct } from "./research";
 import { comparisonTable } from "./table";
@@ -136,9 +137,15 @@ export interface ContextPack {
   pages: SitePage[];
   /** The site's own pages this page links. */
   links: { url: string; label: string; purpose: string | null }[];
-  /** A Q&A's questions: what buyers were seen to ask about the target, each
-   *  with a fact in this pack that answers it (issue 1263; D61). */
+  /** What buyers were seen to ask about the target, each with a fact in
+   *  this pack that answers it (issue 1263; D61). A Q&A's sections are
+   *  these; every other new page heads a section with one where it is what
+   *  the section answers (issue 1390). Empty on an update, which keeps its
+   *  live headings. */
   questions: string[];
+  /** The voice the page is written in (issue 1390). Absent on a pack built
+   *  before it, which was written as the house rules alone said. */
+  voice?: PageVoice;
   measurements: PackMeasurements | null;
   live: PackLivePage | null;
   adds: AddsRecord;
@@ -526,6 +533,9 @@ export interface PackInputs {
   /** The site's country and language (D66). Absent is the United States in
    *  English. */
   locale?: Locale;
+  /** The voice the customer fixed in Settings (`sites.writing_voice`);
+   *  `null` or absent, it is chosen for the page (issue 1390). */
+  writingVoice?: WritingVoice | null;
 }
 
 /** Whether a claim is a rival's price read too long ago to state (D59):
@@ -599,7 +609,7 @@ export function buildPack(a: PackInputs): ContextPack {
     pages: a.sitePages.filter((page) => typeof page.url !== "string" || !neverASource(page.url)).slice(0, PACK.pages),
     links: a.links.filter((link) => !neverASource(link.url)).map((link) => ({ url: link.url, label: link.label, purpose: link.source === "site" ? link.purpose : null })),
     questions:
-      a.type === "qa"
+      a.type !== "update"
         ? buyerQuestions({
             report: a.report,
             asked: a.research.asked,
@@ -612,6 +622,14 @@ export function buildPack(a: PackInputs): ContextPack {
             language: a.locale?.language ?? "en",
           })
         : [],
+    voice: chooseVoice({
+      setting: a.writingVoice ?? null,
+      voiceText: a.voice,
+      category: a.category,
+      question,
+      type: a.type,
+      language: a.locale?.language ?? "en",
+    }),
     measurements: a.type === "research" ? measurementsOf(a.report) : null,
     live: a.live ?? null,
     adds: packAdds({ facts, claims, topResults: a.research.topResults ?? [], newPage: newPage && a.type !== "update" }),

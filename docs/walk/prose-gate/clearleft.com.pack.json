@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "type": "documentation",
+  "builtAt": "2026-10-11T00:01:22.201Z",
+  "locale": {
+    "country": "GB",
+    "language": "en"
+  },
+  "target": {
+    "question": "design transformation consulting",
+    "searches": [
+      "design transformation consulting"
+    ]
+  },
+  "business": {
+    "name": "Clearleft",
+    "domain": "clearleft.com",
+    "category": "design transformation consulting",
+    "byline": "Clearleft",
+    "voice": null,
+    "market": {
+      "from": "site",
+      "category": "design transformation consulting",
+      "buyer": "ambitious teams and organizations seeking to transform their digital products and services",
+      "job": "transform their digital products, services and organizational practices through strategic design",
+      "rivals": [],
+      "notOurMarket": [
+        "web development",
+        "graphic design",
+        "marketing agencies",
+        "management consulting",
+        "software development"
+      ]
+    },
+    "rivals": []
+  },
+  "profile": null,
+  "neverClaim": [],
+  "facts": [
+    {
+      "passage": "When we’re not going remote during a pandemic, or working alongside you in your office, you’ll typically find us in our studio by the sea in Brighton, England.",
+      "url": "https://clearleft.com/about",
+      "readAt": "2026-10-11T00:01:21.640Z"
+    },
+    {
+      "passage": "We co-designed the space ourselves to help us live and breathe our values and get the most out of an open, collaborative and creative environment as possible.",
+      "url": "https://clearleft.com/about",
+      "readAt": "2026-10-11T00:01:21.640Z"
+    },
+    {
+      "passage": "> Working with a large financial institution to run our fourth research study into the usability of their investment app.",
+      "url": "https://clearleft.com/about",
+      "readAt": "2026-10-11T00:01:21.640Z"
+    },
+    {
+      "passage": "> Working with an international not for profit on nailing down their value proposition.",
+      "url": "https://clearleft.com/about",
+      "readAt": "2026-10-11T00:01:21.640Z"
+    },
+    {
+      "passage": "Over the last 20 years we’ve been helping organisations of all shapes, sizes and sectors reach their digital potential – from renowned institutions to global brands, such as the BBC, Natural History Museum, Virgin, Pearson, Tesco, J.P.",
+      "url": "https://clearleft.com/about",
+      "readAt": "2026-10-11T00:01:21.641Z"
+    },
+    {
+      "passage": "User research and human insight Truly transformational products and services start with a deep understanding of the people who use them and their needs.",
+      "url": "https://clearleft.com/what-we-do",
+      "readAt": "2026-10-11T00:01:22.200Z"
+    },
+    {
+      "passage": "User research and human insight Internal service design Behind every great customer experience is a great employee experience.",
+      "url": "https://clearleft.com/what-we-do",
+      "readAt": "2026-10-11T00:01:22.200Z"
+    },
+    {
+      "passage": "Internal service design Product design and design systems Make elegant digital products and services that exceed your customers’ expectations.",
+      "url": "https://clearleft.com/what-we-do",
+      "readAt": "2026-10-11T00:01:22.200Z"
+    },
+    {
+      "passage": "Product design and design systems Training and workshops We can give you and your team new skills and help you set the direction of your design transformation.",
+      "url": "https://clearleft.com/what-we-do",
+      "readAt": "2026-10-11T00:01:22.200Z"
+    },
+    {
+      "passage": "Expert UX review Get a fresh perspective to rapidly identify product improvements.",
+      "url": "https://clearleft.com/what-we-do",
+      "readAt": "2026-10-11T00:01:22.200Z"
+    },
+    {
+      "passage": "Expert UX review Rapid usability testing Make informed design decisions with insights and evidence from observing your users.",
+      "url": "https://clearleft.com/what-we-do",
+      "readAt": "2026-10-11T00:01:22.200Z"
+    },
+    {
+      "passage": "How do you turn the world’s most prestigious and longest-running wildlife photography competition into a compelling digital destination?",
+      "url": "https://clearleft.com/what-we-do",
+      "readAt": "2026-10-11T00:01:22.200Z"
+    }
+  ],
+  "claims": [],
+  "products": [],
+  "pages": [],
+  "links": [
+    {
+      "url": "https://clearleft.com/",
+      "label": "Clearleft",
+      "purpose": "product"
+    }
+  ],
+  "questions": [
+    "What does a design consultancy do?",
+    "How long does a design transformation take?"
+  ],
+  "voice": {
+    "voice": "ours",
+    "person": "we",
+    "chosen": "automatic"
+  },
+  "measurements": null,
+  "live": null,
+  "adds": {
+    "claims": [],
+    "short": false
+  },
+  "missing": []
+}

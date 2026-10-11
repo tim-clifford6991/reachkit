@@ -30,11 +30,11 @@ import { useState, useTransition } from "react";
 import { PenLine, X } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
-import { saveVoiceAction } from "../change-actions";
+import { saveVoiceAction, saveWritingVoiceAction } from "../change-actions";
 import { say } from "@/app/_toast/say";
 import { addClaimAction, removeClaimAction } from "../panel-actions";
 import { CLAIM_FIELD } from "../panel-state";
-import { VOICE_FIELD } from "../voice-state";
+import { VOICE_FIELD, WRITING_VOICE_AUTO, WRITING_VOICE_FIELD, WRITING_VOICE_OPTIONS } from "../voice-state";
 import { SAVED_BADGE_CLASS, useSetting } from "./useSetting";
 import type { SettingsModel } from "../model";
 
@@ -54,6 +54,23 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
     startSavingVoice(async () => {
       try {
         await saveVoiceAction(form);
+        say(copy("settings.answer.saved"), "ok");
+      } catch {
+        say(copy("settings.answer.refused"), "bad");
+      }
+    });
+  }
+  // SPEC §7 (owner, 2026-10-10; issue 1390): who speaks on their pages.
+  // Saved as it is chosen: one select, no second press.
+  const [writing, setWriting] = useState<string>(p.settings.voice.writing ?? WRITING_VOICE_AUTO);
+  const [savingWriting, startSavingWriting] = useTransition();
+  function chooseWriting(value: string): void {
+    setWriting(value);
+    const form = new FormData();
+    form.set(WRITING_VOICE_FIELD, value);
+    startSavingWriting(async () => {
+      try {
+        await saveWritingVoiceAction(form);
         say(copy("settings.answer.saved"), "ok");
       } catch {
         say(copy("settings.answer.refused"), "bad");
@@ -113,6 +130,25 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
             </button>
           </span>
         </form>
+
+        <label className="border-base-300 flex min-w-0 flex-col gap-1 border-t pt-4" data-testid="setting-writing_voice">
+          <span className="text-sm text-base-content/70">{copy("settings.voice.writing.label")}</span>
+          <select
+            className="select w-full"
+            name={WRITING_VOICE_FIELD}
+            value={writing}
+            disabled={savingWriting}
+            onChange={(e) => chooseWriting(e.target.value)}
+          >
+            <option value={WRITING_VOICE_AUTO}>{copy("settings.voice.writing.auto")}</option>
+            {WRITING_VOICE_OPTIONS.map((option) => (
+              <option key={option.voice} value={option.voice}>
+                {copy(option.key)}
+              </option>
+            ))}
+          </select>
+          <span className="text-xs text-base-content/70 wrap-anywhere">{copy("settings.voice.writing.note")}</span>
+        </label>
 
         <div className="border-base-300 flex min-w-0 flex-col gap-3 border-t pt-4" data-testid="setting-do_not_claim">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-base-content/70">

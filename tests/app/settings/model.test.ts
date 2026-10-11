@@ -72,6 +72,7 @@ describe("REQ-070 c1 — the model carries a value for each settable key and not
     publishing_enabled: () => model.publishing.enabled,
     destinations: () => model.destinations,
     voice_text: () => model.voice.text,
+    writing_voice: () => model.voice.writing,
     do_not_claim: () => model.doNotClaim,
     notifications: () => model.notifications,
     name: () => model.account.name,
