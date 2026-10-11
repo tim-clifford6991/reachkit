@@ -561,6 +561,10 @@ export const DRAFT_COPY = Object.freeze({
     "No menu or sample text from your site",
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
+  "draft.checks.rule.plain-prose": [
+    "Reads like a person wrote it: no stock phrases, few dashes, varied sentences",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1390 · drafted" },
+  ],
   "draft.checks.rule.near-duplicate": [
     "Not a repeat of a page you have ({percent}% at most)",
     { slots: { percent: "text" }, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },

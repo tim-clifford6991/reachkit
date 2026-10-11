@@ -110,6 +110,7 @@ export const SWITCHED_RULES: readonly HardRule[] = Object.freeze([
   "no_demo_text",
   "distinct_headings",
   "title",
+  "plain_prose",
   "fit_claim",
   "do_not_claim",
 ] as const);

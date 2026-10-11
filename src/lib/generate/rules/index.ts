@@ -70,6 +70,7 @@ export function rulesAsked(a: DeterministicInputs, verdicts: { fit: FitVerdict; 
     fit_claim: verdicts.fitAsked && verdicts.fit.state !== "unrun",
     do_not_claim: a.site.doNotClaim.length > 0,
     title: a.titleRule != null && a.titleRule.type !== "update",
+    plain_prose: a.prose != null,
   };
   return HARD_RULES.filter((rule) => !SWITCHED_RULES.includes(rule) || on[rule] === true);
 }

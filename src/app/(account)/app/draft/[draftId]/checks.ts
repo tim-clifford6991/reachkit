@@ -60,6 +60,7 @@ export const CHECKS: Readonly<Record<HardRule, { group: CheckGroup; key: CopyKey
   required_blocks: { group: "structure", key: "draft.checks.rule.required-blocks" },
   distinct_headings: { group: "structure", key: "draft.checks.rule.distinct-headings" },
   no_demo_text: { group: "structure", key: "draft.checks.rule.no-demo-text" },
+  plain_prose: { group: "structure", key: "draft.checks.rule.plain-prose" },
 });
 
 export type CheckStatus = "passed" | "skipped" | "failed" | "pending";
