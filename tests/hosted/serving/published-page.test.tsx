@@ -80,6 +80,7 @@ function livePage(over: Record<string, unknown> = {}): unknown {
     bodyMd: `Teams pick a tool on one question: whether ${PASSAGE}.\n\n## What to look for\n\nTime to the first flow.`,
     description: "What teams look for in an onboarding tool.",
     faq: [],
+    made: null,
     grounded: {
       passage: PASSAGE,
       url: "https://example.org/onboarding-tools-compared",
@@ -304,6 +305,32 @@ describe("S19 — the customer is the publisher, and the page says so", () => {
       expect(COPY[key]).not.toBe("");
       expect(COPY[key]).not.toContain("TODO(copy)");
     }
+  });
+});
+
+describe("issue 1397 — the page says how it was made", () => {
+  const SOURCED = `A body.\n\n## What to look for\n\nTime to the first flow.\n\n## Sources\n\n- [A study](https://study.example/a), read 1 Oct 2026`;
+
+  it("under the byline, inside the article, with the row's two numbers and a link to the page's own sources", async () => {
+    state.page = livePage({ made: { facts: 6, rules: 19 }, bodyMd: SOURCED });
+    const html = await render();
+    const article = html.slice(html.indexOf("<article"), html.indexOf("</article>"));
+    expect(article).toContain("Written with AI from 6 facts on example.com, checked against 19 rules before publishing.");
+    expect(article).toMatch(/<a href="#sources"[^>]*>Sources are listed below\.<\/a>/);
+    expect(article).toContain('id="sources"');
+    // The data block is untouched by it: still one parseable `BlogPosting`.
+    const blocks = [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1]!) as Record<string, unknown>);
+    expect(blocks.filter((block) => block["@type"] === "BlogPosting")).toHaveLength(1);
+  });
+
+  it("a body with no sources list offers no link to one, and a row with no numbers prints no note", async () => {
+    state.page = livePage({ made: { facts: 1, rules: 19 } });
+    const single = await render();
+    expect(single).toContain("Written with AI from one fact on example.com");
+    expect(single).not.toContain("Sources are listed below");
+
+    state.page = livePage({ made: null });
+    expect(await render()).not.toContain("Written with AI");
   });
 });
 

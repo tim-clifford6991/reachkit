@@ -254,6 +254,7 @@ interface DraftPageRow {
   body_md: string | null;
   attribution?: string | null;
   meta: Record<string, unknown> | null;
+  sites?: { domain: string | null } | null;
   opportunities?: {
     family?: string | null;
     type?: string | null;
@@ -287,6 +288,20 @@ function slugOfUrl(url: string): string | null {
   return segments.length === 0 ? null : (segments[segments.length - 1] ?? null);
 }
 
+/** The site a page is written for, as the note on how it was made needs it
+ *  (issue 1397): its domain and its language. A site whose language cannot
+ *  be read is left out, and the page then carries no note. */
+async function siteOf(row: DraftPageRow): Promise<Pick<RenderedPage, "site">> {
+  const domain = row.sites?.domain ?? null;
+  if (domain === null || domain.trim() === "") return {};
+  try {
+    const { siteLocale } = await import("@/lib/locale/site");
+    return { site: { domain, language: (await siteLocale(row.site_id)).language } };
+  } catch {
+    return {};
+  }
+}
+
 /** What the adapter is handed. The *rendering* — the one clean typographic
  *  template, the canonical, the `FAQPage` schema — is the hosted edge's
  *  (#49); this assembles the page's own facts and nothing more, and writes
@@ -300,7 +315,7 @@ function slugOfUrl(url: string): string | null {
 async function renderedPage(draftId: string): Promise<RenderedPage | null> {
   const { data, error } = await publishDb()
     .from<DraftPageRow>("drafts")
-    .select("site_id, title, body_md, attribution, meta, opportunities(family, type, proposed_slug, target_ref)")
+    .select("site_id, title, body_md, attribution, meta, sites(domain), opportunities(family, type, proposed_slug, target_ref)")
     .eq("id", draftId)
     .single();
   if (error !== null || data === null) return null;
@@ -311,6 +326,7 @@ async function renderedPage(draftId: string): Promise<RenderedPage | null> {
     bodyMd: data.body_md ?? "",
     meta: data.meta ?? {},
     byline: data.attribution ?? null,
+    ...(await siteOf(data)),
   };
 
   // SPEC §9 (#690): a `fix_page` updates the page it names, and only that

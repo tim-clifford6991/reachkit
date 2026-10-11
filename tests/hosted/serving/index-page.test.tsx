@@ -48,6 +48,7 @@ function page(slug: string, title: string, body: string, publishedAt: string): u
     bodyMd: body,
     description: null,
     faq: [],
+    made: null,
     grounded: null,
     publisher: { name: "example.com", category: null, timeZone: null },
     publishedAt: new Date(publishedAt),

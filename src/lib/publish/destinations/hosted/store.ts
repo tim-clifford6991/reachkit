@@ -18,6 +18,7 @@
 // The archived plans are WO-229 (the host resolution this feeds) and
 // WO-230/WO-231 (the page and the sitemap).
 import { readRecordedFact, type RecordedFact } from "@/lib/generate/fact";
+import { madeCounts, type MadeCounts } from "../../render/made-counts";
 import { publishDb } from "../../db";
 import { liveUrlOnHost } from "./address";
 import { hostFor } from "./label";
@@ -137,6 +138,10 @@ export interface HostedPage {
   faq: readonly FaqEntry[];
   /** What the page is grounded in, or `null` where nothing was recorded. */
   grounded: HostedGrounding | null;
+  /** SPEC §7 (2026-10-11, issue 1397): the two numbers of the note that
+   *  says how the page was made, or `null` for a row that records no fact
+   *  read from the site. */
+  made: MadeCounts | null;
   /** Whose page it is — the header, the eyebrow, the byline and the
    *  footer are drawn from this and from nothing else. */
   publisher: HostedPublisher;
@@ -291,6 +296,7 @@ function toPage(row: PublicationRow, host: string): HostedPage | null {
     description: readDescription(draft.meta),
     faq: readFaq(draft.meta),
     grounded: readRecordedFact(draft.grounded_fact),
+    made: madeCounts(draft.meta, domain),
     publisher: {
       name: domain,
       category: emptyToNull(row.sites?.category ?? null),

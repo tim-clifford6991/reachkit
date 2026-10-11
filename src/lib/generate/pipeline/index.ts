@@ -55,7 +55,7 @@ import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
 import { answerBoxWords } from "../rules/blocks";
 import { linksOf, renderOf } from "../rules/text";
 import { titleNotes } from "../rules/title";
-import type { GroundedFact, RuleFailure, SiteRuleInputs } from "../rules/types";
+import { HARD_RULES, type GroundedFact, type RuleFailure, type SiteRuleInputs } from "../rules/types";
 import { generateStore, type DraftRow } from "../store";
 import { TEMPLATES, type PackNeed } from "../templates";
 import { profileItemsUsed } from "../voice/profile-block";
@@ -351,6 +351,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       })),
       // Issue 1135: the market facts the page was handed.
       marketFacts: pack.claims.map((claim) => ({ passage: claim.passage, url: claim.url, title: claim.title, readAt: claim.readAt })),
+      // Issue 1397: how many rules stage 4 holds this page to, as the list
+      // stood when it was written. The published page states the number.
+      rulesChecked: HARD_RULES.length,
       length: { words: bodyWords(page.markdown), floor: length?.floor ?? null, ceiling: length?.ceiling ?? null },
       ...(repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...repairs] }),
       // A number and nothing else: which page it was is not recorded.

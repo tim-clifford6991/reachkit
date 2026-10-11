@@ -75,6 +75,7 @@ function pageWith(over: Record<string, unknown>): unknown {
     bodyMd: "An ordinary paragraph.",
     description: "What teams look for in an onboarding tool.",
     faq: [],
+    made: null,
     grounded: null,
     publisher: { name: "example.com", category: "user onboarding software", timeZone: "UTC" },
     publishedAt: new Date("2026-09-04T11:00:00.000Z"),

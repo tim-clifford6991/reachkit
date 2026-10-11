@@ -16,6 +16,7 @@
 // The archived plan is WO-206.
 import type { Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
+import type { Language } from "@/lib/locale/locales";
 
 // ── The ten states ──────────────────────────────────────────────────────
 
@@ -343,6 +344,11 @@ export interface RenderedPage {
   /** SPEC §7 (2026-09-29): the page's byline as generation recorded it
    *  (`drafts.attribution`). Absent or `null` for a page with none. */
   byline?: string | null;
+  /** SPEC §7 (2026-10-11, issue 1397): the site the page is written for —
+   *  its domain, and the language its fixed lines are said in (D66). A
+   *  destination with no template of ours prints the note on how the page
+   *  was made from these. Absent, it prints none. */
+  site?: { domain: string; language: Language };
   /** The existing page this delivery updates — §7's third asset kind — as
    *  the URL the opportunity recorded. Absent on a new post or page. An
    *  adapter that sees it changes that address and never mints a second. */

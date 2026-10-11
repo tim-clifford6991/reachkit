@@ -458,6 +458,21 @@ export const PUBLISH_COPY = Object.freeze({
   "hosted.toc": ["On this page", { slots: {}, fixedBy: "issue 1140" }],
   "hosted.readingTime": ["{minutes} min read", { slots: { minutes: "text" }, fixedBy: "issue 1140" }],
   "hosted.about": ["About {publisher}", { slots: { publisher: "text" }, fixedBy: "issue 1140" }],
+  // SPEC §7 (2026-10-11, issue 1397): how the page was made, under its
+  // byline. Both numbers are read off the page's own row and neither is
+  // typed here; `.one` is the same line for a page with a single fact.
+  // `.sources` follows it, as a link, where the body ends with its sources
+  // list. None names ReachKit. Drafted under #759's ruling; the owner
+  // corrects the wording.
+  "hosted.made": [
+    "Written with AI from {facts} facts on {site}, checked against {rules} rules before publishing.",
+    { slots: { facts: "text", site: "text", rules: "text" }, fixedBy: "issue 1397" },
+  ],
+  "hosted.made.one": [
+    "Written with AI from one fact on {site}, checked against {rules} rules before publishing.",
+    { slots: { site: "text", rules: "text" }, fixedBy: "issue 1397" },
+  ],
+  "hosted.made.sources": ["Sources are listed below.", { slots: {}, fixedBy: "issue 1397" }],
   // The breadcrumb's name as a landmark; its three parts are the
   // customer's name, `hosted.index.heading` and the page's own title.
   "hosted.breadcrumb": ["Breadcrumb", { slots: {}, fixedBy: "issue 1140" }],

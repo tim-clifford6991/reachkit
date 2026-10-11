@@ -80,6 +80,9 @@ import {
 } from "./client";
 import { NOT_PUBLISHED, reasonFor, succeeded } from "./errors";
 import { bylineHtml } from "../../render/byline";
+import { madeHtml } from "../../render/made";
+import type { Say } from "../../render/markdown";
+import { copyIn } from "@/lib/presentation/copy/translated";
 import { renderMarkdownHtml } from "../../render/markdown";
 import { bodyWithMarker, carriesMarker, markerToken } from "./marks";
 import { detectSeoPlugins, seoMetaFor, seoWrittenIn, type SeoPlugin } from "./seo";
@@ -185,10 +188,15 @@ function descriptionOf(page: RenderedPage): string {
  * issue 1137), then the body through the one renderer. A WordPress post has
  * no template of ours to print the line, so it is the content's first
  * paragraph; a page with no recorded name carries none. The dates are in
- * UTC: the adapter holds the site's address, not its zone.
+ * UTC: the adapter holds the site's address, not its zone. After the byline,
+ * the note on how the page was made (SPEC §7, 2026-10-11, issue 1397), in
+ * the site's language; a page handed no site carries none.
  */
 function contentOf(page: RenderedPage, dates: { published: Date; updated: Date | null }): string {
-  return bylineHtml({ byline: page.byline ?? null, ...dates, timeZone: null }) + renderMarkdownHtml(page.bodyMd);
+  const site = page.site;
+  const say: Say | undefined = site === undefined ? undefined : (key, vars) => copyIn(site.language, key, vars);
+  const made = site === undefined ? "" : madeHtml({ meta: page.meta, domain: site.domain, bodyMd: page.bodyMd, ...(say === undefined ? {} : { say }) });
+  return bylineHtml({ byline: page.byline ?? null, ...dates, timeZone: null }) + made + renderMarkdownHtml(page.bodyMd);
 }
 
 function deliveredAtOf(post: unknown): Date {
