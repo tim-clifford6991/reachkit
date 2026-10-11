@@ -36,7 +36,9 @@
 #
 # Exit status is the finding:
 #
-#   0  the chain walked: a scored, complete report from the landing.
+#   0  the chain walked: a scored, complete report from the landing, or the
+#      complete report of a bot-protected site whose market was read from
+#      search (issue 1387), which has no score.
 #   1  a step did not hold. The step is named on stderr, first failure only.
 #   2  the run could not be made at all (bad usage, unreachable deployment).
 #
@@ -238,22 +240,37 @@ ok "$step" "$(secs "$ENDED_MS") ≤ ${REPORT_CEILING_S}s"
 # The permanent public address, read the way a stranger reads it: a score
 # under its own label, one of the four band words, the three driver bars
 # carrying a value rather than a dash, and no incomplete notice.
+#
+# One report holds without a score (SPEC §2, issue 1387): a site whose bot
+# protection kept the reader off its own pages, with its market read from
+# its listing in search. That report says both in its own lines, and the
+# questions and the AI answers were measured, so it is the product working.
 step=report
 page="$WORK/report.html"
 code=$(curl -sS -o "$page" -w '%{http_code}' --max-time 30 "$BASE_URL/scan/$DOMAIN" 2>"$WORK/report.err") \
   || fail "$step" "GET /scan/$DOMAIN did not answer ($(tr -d '\n' < "$WORK/report.err"))"
 [ "$code" = 200 ] || fail "$step" "GET /scan/$DOMAIN answered $code"
 
+protected=$(copy_text "notice.bot-protected")
+[ -n "$protected" ] || fail "$step" "the copy registry binds no notice.bot-protected"
+from_search=$(copy_text "report.market.from-search")
+[ -n "$from_search" ] || fail "$step" "the copy registry binds no report.market.from-search"
+blocked=""
+if grep -qF "$from_search" "$page"; then
+  grep -qF "$protected" "$page" || fail "$step" "the report reads its market from search and does not say bot protection kept the reader off $DOMAIN"
+  blocked=1
+fi
+
 score_label=$(copy_text "verdict.score.label")
 [ -n "$score_label" ] || fail "$step" "the copy registry binds no verdict.score.label"
-grep -qF "$score_label" "$page" || fail "$step" "the report carries no score"
+[ -n "$blocked" ] || grep -qF "$score_label" "$page" || fail "$step" "the report carries no score"
 
 band_seen=""
 for key in band.score.invisible band.score.hard-to-find band.score.findable band.score.dominant; do
   word=$(copy_text "$key")
   [ -n "$word" ] && grep -qF ">$word<" "$page" && band_seen="$word"
 done
-[ -n "$band_seen" ] || fail "$step" "the report carries no band word"
+[ -n "$blocked" ] || [ -n "$band_seen" ] || fail "$step" "the report carries no band word"
 
 incomplete=$(copy_text "notice.incomplete")
 incomplete=${incomplete%% —*}
@@ -263,15 +280,17 @@ grep -qF "$incomplete" "$page" && fail "$step" "the report shows the incomplete 
 unreadable=$(copy_text "notice.site-unreadable")
 [ -n "$unreadable" ] && grep -qF "$unreadable" "$page" && fail "$step" "the report says the site could not be read"
 
-# Issue 1379: a bot-protection page read in the site's place is not a report
-# of the site. Said first, because it is the cause of the missing score.
-protected=$(copy_text "notice.bot-protected")
-[ -n "$protected" ] || fail "$step" "the copy registry binds no notice.bot-protected"
-grep -qF "$protected" "$page" && fail "$step" "the home page read was a bot-protection challenge, not $DOMAIN's own page"
+if [ -n "$blocked" ]; then
+  ok "$step" "200 · bot protection kept the reader off $DOMAIN's own pages · market read from its listing in search · no score"
+else
+  # Issue 1379: a bot-protection page read in the site's place is not a report
+  # of the site. Said first, because it is the cause of the missing score.
+  grep -qF "$protected" "$page" && fail "$step" "the home page read was a bot-protection challenge, not $DOMAIN's own page, and no market was read from search"
 
-bars=$(grep -o '[0-9]\{1,2\}/10' "$page" | wc -l)
-[ "$bars" -ge 3 ] || fail "$step" "the report's driver strip carries $bars measured values, not three"
-ok "$step" "200 · $score_label · $band_seen · $bars driver values"
+  bars=$(grep -o '[0-9]\{1,2\}/10' "$page" | wc -l)
+  [ "$bars" -ge 3 ] || fail "$step" "the report's driver strip carries $bars measured values, not three"
+  ok "$step" "200 · $score_label · $band_seen · $bars driver values"
+fi
 
 # ── 9. company ───────────────────────────────────────────────────────────
 # Issue 1379: sage.com was listed as "Cloudflare", the title of the challenge

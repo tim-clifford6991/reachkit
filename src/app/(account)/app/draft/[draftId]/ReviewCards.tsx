@@ -183,6 +183,7 @@ export function WrittenFromCard(p: {
 }): React.JSX.Element | null {
   if (writtenFromIsEmpty(p.writtenFrom)) return null;
   const { facts, profileItems, pack } = p.writtenFrom;
+  const claims = pack?.claims ?? [];
 
   return (
     <section className={NOTE.card} data-testid="draft-written-from">
@@ -196,10 +197,17 @@ export function WrittenFromCard(p: {
           </summary>
           <div className={CLOSED.body}>
             <div className={NOTE.inner}>
+              {/* The note opens with its counts (issue 1395): the facts read
+                  on the site, and the public pages the market's were read
+                  from. Both are counted off this page's own record. */}
+              <p className="text-sm font-medium wrap-anywhere" data-testid="written-from-counts">
+                {copy("draft.written-from.counts", { site: facts.length, market: marketSources(claims) })}
+              </p>
               <p className="text-sm text-base-content/70 wrap-anywhere">
                 {copy("draft.written-from.lead")}
               </p>
 
+              {facts.length === 0 ? null : <h3 className="eyebrow">{copy("draft.written-from.site")}</h3>}
               {facts.length === 0 ? null : (
                 <ul
                   className="list bg-base-100 min-w-0 rounded-box"
@@ -278,7 +286,9 @@ export function WrittenFromCard(p: {
           </div>
         )}
 
-        {pack === undefined ? null : <PackFold pack={pack} timeZone={p.timeZone} />}
+        {claims.length === 0 ? null : <MarketFacts claims={claims} timeZone={p.timeZone} />}
+
+        {pack === undefined ? null : <PackFold pack={pack} />}
             </div>
           </div>
         </details>
@@ -313,6 +323,52 @@ function readDay(readAt: string, timeZone: string): string | null {
 }
 
 const PACK_GROUP = "flex min-w-0 flex-col gap-1";
+
+/** How many different public pages the market facts were read from — the
+ *  count the note opens with (issue 1395). */
+export function marketSources(claims: PackView["claims"]): number {
+  return new Set(claims.map((claim) => claim.url)).size;
+}
+
+/**
+ * From market research (SPEC §4, 2026-10-10; issue 1395): what the page says
+ * about the market, each passage with the public page it was read off and
+ * how long ago. It stood inside the fold below until the two sources were
+ * listed apart.
+ */
+function MarketFacts(p: { claims: PackView["claims"]; timeZone: string }): React.JSX.Element {
+  return (
+    <div className="flex min-w-0 flex-col gap-2 border-t border-base-300 pt-3" data-testid="written-from-market">
+      <h3 className="eyebrow">{copy("draft.written-from.market")}</h3>
+      <ul className={`${PACK_LIST} text-sm`}>
+        {p.claims.map((claim, at) => {
+          const day = readDay(claim.readAt, p.timeZone);
+          return (
+            <li className="flex min-w-0 flex-col" key={`${String(at)}-${claim.url}`}>
+              <span className="min-w-0 wrap-anywhere">{claim.passage}</span>
+              <span className="min-w-0 text-xs text-base-content/70 wrap-anywhere">
+                <a className="link link-hover" href={claim.url} target="_blank" rel="noreferrer">
+                  {pageName(claim)}
+                </a>
+                {claim.ageDays !== undefined ? (
+                  <>
+                    {PACK_SEPARATOR}
+                    {ageLine(claim.ageDays)}
+                  </>
+                ) : day === null ? null : (
+                  <>
+                    {PACK_SEPARATOR}
+                    {copy("draft.written-from.pack.claims.read", { at: day })}
+                  </>
+                )}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
 const PACK_LIST = "flex min-w-0 list-none flex-col gap-2 p-0";
 
 /**
@@ -323,15 +379,15 @@ const PACK_LIST = "flex min-w-0 list-none flex-col gap-2 p-0";
  * One daisyUI `collapse` on a `details`, closed until it is asked for: the
  * card above it is what most reviews need, and the pack is the long form
  * for the founder who wants to see everything the writer was handed. It
- * holds what the lists above do not — the question, the public pages'
- * claims, the site's own pages, the never-claim list and what was missing —
- * and repeats none of the business facts.
+ * holds what the lists above do not — the question, the site's own pages,
+ * the never-claim list and what was missing — and repeats neither the
+ * business facts nor the market's (issue 1395 lists those above it).
  *
  * Text only, and every line folds: a passage and a title are prose, so
  * nothing in here is a value box or a scroller.
  */
-function PackFold(p: { pack: PackView; timeZone: string }): React.JSX.Element {
-  const { question, claims, pages, pagesMore, neverClaim, missing } = p.pack;
+function PackFold(p: { pack: PackView }): React.JSX.Element {
+  const { question, pages, pagesMore, neverClaim, missing } = p.pack;
   return (
     <details
       className="collapse collapse-arrow border-base-300 min-w-0 border"
@@ -345,38 +401,6 @@ function PackFold(p: { pack: PackView; timeZone: string }): React.JSX.Element {
           <div className={PACK_GROUP}>
             <h3 className="eyebrow">{copy("draft.written-from.pack.question")}</h3>
             <p className="min-w-0 wrap-anywhere">{question}</p>
-          </div>
-        )}
-
-        {claims.length === 0 ? null : (
-          <div className={PACK_GROUP} data-testid="written-from-pack-claims">
-            <h3 className="eyebrow">{copy("draft.written-from.pack.claims")}</h3>
-            <ul className={PACK_LIST}>
-              {claims.map((claim, at) => {
-                const day = readDay(claim.readAt, p.timeZone);
-                return (
-                  <li className="flex min-w-0 flex-col" key={`${String(at)}-${claim.url}`}>
-                    <span className="min-w-0 wrap-anywhere">{claim.passage}</span>
-                    <span className="min-w-0 text-xs text-base-content/70 wrap-anywhere">
-                      <a className="link link-hover" href={claim.url} target="_blank" rel="noreferrer">
-                        {pageName(claim)}
-                      </a>
-                      {claim.ageDays !== undefined ? (
-                        <>
-                          {PACK_SEPARATOR}
-                          {ageLine(claim.ageDays)}
-                        </>
-                      ) : day === null ? null : (
-                        <>
-                          {PACK_SEPARATOR}
-                          {copy("draft.written-from.pack.claims.read", { at: day })}
-                        </>
-                      )}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
           </div>
         )}
 
@@ -435,8 +459,8 @@ function PackFold(p: { pack: PackView; timeZone: string }): React.JSX.Element {
  * its search nor the customer's own pages say — each one a sentence the
  * reader can find on the page beside it, with a mark on the ones that are
  * facts about the business. A new page with fewer than three, or with none
- * about the business, is held; the one line under the list then asks the
- * founder for the fact that is missing and says where to give it.
+ * about the business, is set aside and the day takes the next topic; the
+ * one line under the list says so and asks for nothing (issue 1393).
  *
  * **Absent on a page written before the list was made**, like the card
  * above it: no list is not a page that adds nothing.
@@ -448,9 +472,8 @@ export function WhatAddsCard(p: { adds: PageAdds | undefined }): React.JSX.Eleme
   return (
     <section className={NOTE.card} data-testid="draft-adds">
       <div className={NOTE.pad}>
-        {/* Open where it asks for a fact: that sentence is what the founder
-            has to do, and a held page must not hide it (SPEC §7,
-            2026-10-07). */}
+        {/* Open where the page was set aside: that sentence is why there is
+            no page, and it must not be hidden (SPEC §7, 2026-10-07). */}
         <details className={CLOSED.root} open={ask}>
           <summary className={CLOSED.head}>
             <h2 className={CARD_HEAD}>
@@ -482,15 +505,9 @@ export function WhatAddsCard(p: { adds: PageAdds | undefined }): React.JSX.Eleme
               )}
 
               {ask ? (
-                <div
-                  className="flex min-w-0 flex-col items-start gap-1 border-t border-base-300 pt-3 text-sm"
-                  data-testid="draft-adds-ask"
-                >
-                  <p className="min-w-0 wrap-anywhere">{copy("draft.adds.ask")}</p>
-                  <a className="link" href="/app/settings">
-                    {copy("draft.adds.ask.action")}
-                  </a>
-                </div>
+                <p className="min-w-0 border-t border-base-300 pt-3 text-sm wrap-anywhere" data-testid="draft-adds-ask">
+                  {copy("draft.adds.ask")}
+                </p>
               ) : null}
             </div>
           </div>

@@ -259,6 +259,8 @@ describe("a site its bot protection kept the reader off (SPEC §2, issue 1387)",
       // The on-page facts stay unmeasured: no score, no band.
       expect(report.complete).toBe(true);
       expect(report.onPage).toMatchObject({ kind: "unmeasured", because: "bot_protection" });
+      // Issue 1392: the report wears its scan's date, not the home read's.
+      expect(new Date(report.verdict.measuredAt).getTime()).toBeGreaterThan(READ_AT.getTime());
       expect(report.verdict.factors.foundations.kind).toBe("unmeasured");
       expect(report.verdict.factors.answerability.kind).toBe("unmeasured");
       expect(report.verdict.scoreAndBand.kind).toBe("unmeasured");
@@ -359,6 +361,7 @@ describe("a site its bot protection kept the reader off (SPEC §2, issue 1387)",
     expect(profileInputs()[0]).not.toContain('"search"');
     expect(ledger.find((row) => row.source.endsWith("ranked_keywords"))?.cacheKey).not.toContain("listing");
     expect(report.onPage.kind).not.toBe("unmeasured");
+    expect(new Date(report.verdict.measuredAt).getTime()).toBeGreaterThan(READ_AT.getTime());
     expect(report.market.kind).not.toBe("unmeasured");
     expect(report.marketFrom).toBeUndefined();
   }, PASS_TIMEOUT_MS);

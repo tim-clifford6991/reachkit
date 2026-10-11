@@ -153,10 +153,6 @@ export const DRAFT_COPY = Object.freeze({
     "The question it answers",
     { slots: {}, fixedBy: "issue 1252 (drafted)" },
   ],
-  "draft.written-from.pack.claims": [
-    "Read from public pages",
-    { slots: {}, fixedBy: "issue 1252 (drafted)" },
-  ],
   "draft.written-from.pack.claims.read": [
     "read {at}",
     { slots: { at: "text" }, fixedBy: "issue 1252 (drafted)" },
@@ -201,10 +197,9 @@ export const DRAFT_COPY = Object.freeze({
   ],
   "draft.adds.business": ["About your business", { slots: {}, fixedBy: "issue 1143 (drafted)" }],
   "draft.adds.ask": [
-    "This page is held until it says something only you can: a price, how you work, or a result you’ve had. Tell us one, then write the page again.",
+    "We set this page aside. It said too little that isn’t already on your site or in the top results for its search, so it wasn’t published and the next topic took its place.",
     { slots: {}, fixedBy: "issue 1143 (drafted)" },
   ],
-  "draft.adds.ask.action": ["Add it in Your business", { slots: {}, fixedBy: "issue 1143 (drafted)" }],
   // Links on this page (SPEC §7, 2026-10-10, issue 1391).
   "draft.links.title": ["Links on this page", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "draft.links.lead": ["Every link this page carries: its words, where it leads, why it was chosen, and whether the address answered.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
@@ -764,5 +759,56 @@ export const DRAFT_COPY = Object.freeze({
   "fact.report.method": [
     "ReachKit's measurement of {domain} on {date} read Google's top ten results and the answers of {engines}; it does not measure Perplexity.",
     { slots: { domain: "text", date: "date", engines: "text" }, fixedBy: "SPEC §7 (2026-10-03) · issue 1163 · drafted" },
+  ],
+
+  // ── SPEC §4 (2026-10-10, issue 1395): why this topic, the topics set
+  // aside, and the two sources a page is written from. Drafted.
+  "draft.why.title": [
+    "Why this topic",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.why.fit.answer": [
+    "Fit: what you sell is the answer to this search",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.why.fit.helps": [
+    "Fit: what you sell helps with this search",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.why.rival": [
+    "Answered today by {rival}",
+    { slots: { rival: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.set-aside.title": [
+    "Topics set aside",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.set-aside.covered": [
+    "Already covered by your site: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.set-aside.too-hard": [
+    "Too hard for a site your size, for now: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.set-aside.low-fit": [
+    "A poor fit for your business: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.set-aside.resting": [
+    "Resting after a stopped page: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.written-from.counts": [
+    "Facts from your site: {site} · Market sources: {market}",
+    { slots: { site: "text", market: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.written-from.site": [
+    "From your site",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.written-from.market": [
+    "From market research",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
 }) satisfies CopyPartition;

@@ -105,6 +105,23 @@ describe("a stored report measured off a bot-protection page (issue 1383)", () =
     expect(report?.verdict.scoreAndBand.kind).toBe("measured");
   });
 
+  it("judges the read the report was measured from, not an older one its scan's date falls after (issue 1392)", async () => {
+    // The report is dated by its scan, a moment before the home page was
+    // read; a protection's page read a week earlier is not its home.
+    const scanAt = new Date(AT.getTime() - 2_000).toISOString();
+    const stored = JSON.parse(JSON.stringify(tables.scans[0]!.report).replaceAll(AT.toISOString(), scanAt)) as { onPage: { at: string } };
+    stored.onPage.at = AT.toISOString();
+    tables.scans = [{ report: stored }];
+    const weekBefore = new Date(AT.getTime() - 7 * 86_400_000).toISOString();
+    tables.fetches = [
+      { ...plainRead(BLOCK_PAGE, 403), id: "old", payload: { ...document(BLOCK_PAGE, 403), readAt: weekBefore } },
+      plainRead(SITE_PAGE, 200),
+    ];
+    const report = await readCurrentReport(DOMAIN);
+    expect(report?.complete).toBe(true);
+    expect(report?.verdict.scoreAndBand.kind).toBe("measured");
+  });
+
   it("names the gallery's challenged domains, and none whose home was read after the card's scan", async () => {
     tables.fetches = [plainRead(BLOCK_PAGE, 403)];
     expect([...(await challengedHomes([{ domain: DOMAIN, at: new Date(AT.getTime() + 60_000) }]))]).toEqual([DOMAIN]);

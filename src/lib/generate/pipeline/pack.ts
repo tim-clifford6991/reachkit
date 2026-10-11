@@ -31,6 +31,8 @@ import type { ContentType } from "@/lib/opportunities/content-type";
 import type { SitePage } from "@/lib/opportunities/site-pages";
 import type { Opportunity } from "@/lib/opportunities/types";
 import type { StoredReport } from "@/lib/scan/report";
+import { isAccountPage } from "@/lib/site-profile/knowledge/priority";
+import { derivePurpose } from "@/lib/site-profile/purpose";
 import type { LinkTarget } from "../links/select";
 import { alikeHeadings } from "../rules/headings";
 import { TEMPLATES, type PackNeed, type PackRequirement } from "../templates";
@@ -142,6 +144,35 @@ export interface ContextPack {
   adds: AddsRecord;
   /** What the template's *pack must hold* line asks that this pack lacks. */
   missing: PackNeed[];
+}
+
+/** Every statement the pack carries, beside its passages, that a page may
+ *  repeat a figure or a phrase from: the knowledge base's own words, what
+ *  the pass measured on a research page, and the live page of an update. */
+export function packStatements(pack: ContextPack): string[] {
+  const knowledge = pack.profile?.knowledge;
+  const measured = pack.measurements;
+  return [
+    ...(pack.profile === null ? [] : [pack.profile.job ?? "", ...pack.profile.products, ...pack.profile.promises]),
+    ...(knowledge === undefined
+      ? []
+      : [
+          ...knowledge.offerings.flatMap((offering) => [offering.name, ...offering.features, ...offering.prices, ...offering.uses]),
+          ...knowledge.differentiators.map((item) => item.text),
+          ...knowledge.proof.map((item) => item.text),
+          ...knowledge.audience.map((item) => item.text),
+          ...knowledge.problems.map((item) => item.text),
+          ...knowledge.questions.map((item) => item.text),
+        ]),
+    ...(measured === null
+      ? []
+      : [
+          `${measured.score ?? ""} ${measured.questions.length} ${measured.questions.filter((q) => q.answered).length} ` +
+            `${measured.questions.filter((q) => q.namesBusiness).length} ${measured.engines.length} ` +
+            measured.questions.map((q) => `${q.search} ${q.citedSites}`).join(" "),
+        ]),
+    ...(pack.live === null ? [] : [pack.live.markdown]),
+  ].filter((text) => text !== "");
 }
 
 // The English words every pack was read by, and each other supported
@@ -506,10 +537,19 @@ export function staleRivalPrice(claim: Pick<PackClaim, "kind" | "readAt">, now: 
   return !Number.isNaN(read) && now.getTime() - read > RIVAL_PRICE_MAX_AGE_D * 86_400_000;
 }
 
+/** Whether an address may never be a page's grounding or one of its
+ *  sources, on any site: a sign-in, account, basket, checkout or legal page
+ *  (SPEC §7, 2026-10-10, issue 1393). The read of the customer's own pages
+ *  leaves them out already (`./grounding.ts`); this holds the same line for
+ *  everything else the pack carries an address for. */
+export function neverASource(url: string): boolean {
+  return isAccountPage(url) || derivePurpose({ url, title: "", h1: "" }) === "legal";
+}
+
 export function buildPack(a: PackInputs): ContextPack {
   const searches = [...(a.opportunity.targetQuery === null ? [] : [a.opportunity.targetQuery]), ...a.opportunity.absorbedQueries];
   const question = searches[0] ?? a.opportunity.title ?? a.opportunity.targetRef;
-  const facts: PackFact[] = a.facts.slice(0, PACK.facts).map((sourced) => ({
+  const facts: PackFact[] = a.facts.filter((sourced) => !neverASource(sourced.fact.url)).slice(0, PACK.facts).map((sourced) => ({
     passage: sourced.fact.passage,
     url: sourced.fact.url,
     readAt: sourced.fact.readAt.toISOString(),
@@ -518,7 +558,9 @@ export function buildPack(a: PackInputs): ContextPack {
   // SPEC §7 (owner D59, issue 1287): a rival's price read more than 30
   // days ago is not handed to the writer. A product left with no claim of
   // its own is no longer one the page may name.
-  const current = a.research.facts.filter((fact) => !staleRivalPrice({ kind: fact.kind, readAt: fact.readAt.toISOString() }, a.now));
+  const current = a.research.facts.filter(
+    (fact) => !neverASource(fact.url) && !staleRivalPrice({ kind: fact.kind, readAt: fact.readAt.toISOString() }, a.now)
+  );
   const products = a.research.products
     .map((product) => ({ ...product, pages: product.pages.filter((url) => current.some((fact) => fact.product === product.domain && fact.url === url)) }))
     .filter((product) => product.pages.length > 0);
@@ -554,8 +596,8 @@ export function buildPack(a: PackInputs): ContextPack {
     claims,
     products,
     ...(a.research.news === undefined ? {} : { news: a.research.news }),
-    pages: a.sitePages.slice(0, PACK.pages),
-    links: a.links.map((link) => ({ url: link.url, label: link.label, purpose: link.source === "site" ? link.purpose : null })),
+    pages: a.sitePages.filter((page) => typeof page.url !== "string" || !neverASource(page.url)).slice(0, PACK.pages),
+    links: a.links.filter((link) => !neverASource(link.url)).map((link) => ({ url: link.url, label: link.label, purpose: link.source === "site" ? link.purpose : null })),
     questions:
       a.type === "qa"
         ? buyerQuestions({

@@ -34,14 +34,70 @@ import { copy } from "@/lib/presentation/copy";
 import { TargetRows } from "../../calendar/TargetRows";
 import { targetFactsOf } from "../../calendar/target";
 import type { DraftTarget, Publisher } from "./model";
+import { setAsideRows, type SetAside } from "../../_overview/done";
 import { CLOSED } from "../../_overview/present";
 import { NOTE, SearchResult } from "./ReviewCards";
+
+const FIT_COPY = Object.freeze({
+  answer: "draft.why.fit.answer",
+  helps: "draft.why.fit.helps",
+} as const);
+
+const WHY_GROUP = "flex min-w-0 flex-col gap-1 border-t border-base-300 pt-3 text-sm";
+
+/**
+ * Why this topic, and the topics set aside (SPEC §4, 2026-10-10; issue
+ * 1395) — one level down, inside the note the target's rows already open
+ * in. The fit is a category in words and never the stored number; demand is
+ * the searches-a-month row above, so it is not said twice. A fact the pass
+ * did not store draws no line, and a group with no line draws no heading.
+ */
+function WhyThisTopic(p: {
+  target: Extract<DraftTarget, { kind: "target" }>;
+  setAside: SetAside | undefined;
+}): React.JSX.Element | null {
+  const why = p.target.why;
+  const lines: string[] = [];
+  if (why?.fit != null) lines.push(copy(FIT_COPY[why.fit]));
+  if (why?.rival != null) lines.push(copy("draft.why.rival", { rival: why.rival }));
+  const rows = p.setAside === undefined ? [] : setAsideRows(p.setAside);
+  if (lines.length === 0 && rows.length === 0) return null;
+  return (
+    <>
+      {lines.length === 0 ? null : (
+        <div className={WHY_GROUP} data-testid="draft-why">
+          <h3 className="eyebrow">{copy("draft.why.title")}</h3>
+          {lines.map((line) => (
+            <p key={line} className="min-w-0 wrap-anywhere">
+              {line}
+            </p>
+          ))}
+        </div>
+      )}
+      {rows.length === 0 ? null : (
+        <div className={WHY_GROUP} data-testid="draft-set-aside">
+          <h3 className="eyebrow">{copy("draft.set-aside.title")}</h3>
+          <ul className="flex min-w-0 list-none flex-col gap-1 p-0">
+            {rows.map((row) => (
+              <li key={row.key} className="min-w-0 wrap-anywhere">
+                {copy(row.key, { n: row.n })}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  );
+}
 
 /** The block, in each of the three states a draft's target can be in. A Fix
  *  page and an unreadable opportunity each say what is true of them; neither
  *  is drawn as an empty list. */
 export function TargetBlock(p: {
   target: DraftTarget;
+  /** The topics on file that fill no day (issue 1395), where they could
+   *  be counted. */
+  setAside?: SetAside | undefined;
   /** The search result's three facts, off the buffer the founder edits. */
   title: string;
   description: string;
@@ -60,7 +116,10 @@ export function TargetBlock(p: {
             </summary>
             <div className={CLOSED.body}>
               {p.target.kind === "target" ? (
-                <TargetRows facts={targetFactsOf(p.target.target)} />
+                <>
+                  <TargetRows facts={targetFactsOf(p.target.target)} />
+                  <WhyThisTopic target={p.target} setAside={p.setAside} />
+                </>
               ) : (
                 <p className="text-sm text-base-content/70">
                   {copy(p.target.kind === "fix" ? "draft.target.fix" : "draft.target.unknown")}

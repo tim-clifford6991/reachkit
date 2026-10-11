@@ -23,6 +23,7 @@ import type { RecordedFact } from "@/lib/generate/fact";
 import type { PackNeed } from "@/lib/generate/templates/types";
 import type { PageRecord } from "@/lib/publish/record";
 import type { PageTarget } from "../../_shell/page-target";
+import type { SetAside } from "../../_overview/done";
 import type { PageType } from "@/lib/opportunities/types";
 import type { RailCheck } from "./checks";
 import type { PublishingMode } from "../../_shell/model";
@@ -91,8 +92,21 @@ export interface DoNothing {
  * search, volume or band is owed for it — while `unknown` is a row whose
  * opportunity could not be read at all. Neither is a block of blanks.
  */
+/**
+ * Why this topic was picked (SPEC §4, 2026-10-10; issue 1395): what the
+ * pass stored on the row beyond the target's own numbers. The business fit
+ * is a category in words — the stored 0–3 is never printed — and a topic
+ * below `helps` is never written, so it has no word here. `rival` is the
+ * site the pass recorded as answering the search today; `null` where it
+ * recorded none, which is not a claim that nobody does.
+ */
+export interface TargetWhy {
+  readonly fit: "answer" | "helps" | null;
+  readonly rival: string | null;
+}
+
 export type DraftTarget =
-  | { kind: "target"; target: PageTarget }
+  | { kind: "target"; target: PageTarget; why?: TargetWhy }
   | { kind: "fix" }
   | { kind: "unknown" };
 
@@ -327,6 +341,9 @@ export interface DraftView {
   /** What this page is optimising for (issue 867) — the opportunity's own
    *  stored evidence, projected once for this screen and the day panel. */
   target: DraftTarget;
+  /** The site's topics on file that fill no day, by the stored reason
+   *  (issue 1395). Absent where the count could not be read. */
+  setAside?: SetAside;
   /** The site-local zone every date this view states is expressed in. */
   timeZone: string;
   /** What this page was written from (#931). */
@@ -431,6 +448,9 @@ export interface DraftFacts {
   /** The opportunity this draft was written from, as this screen states it
    *  (issue 867). `unknown` where the row could not be read. */
   target: DraftTarget;
+  /** The site's topics on file that fill no day, by the stored reason
+   *  (issue 1395). Absent where the count could not be read. */
+  setAside?: SetAside;
   timeZone: string;
   /** What the editor's live rule pass reads (issue 932). `NO_RULE_FACTS`
    *  where nothing could be read. */
@@ -509,6 +529,7 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     knownCheck: facts.knownCheck,
     rulesFailed: facts.rulesFailed,
     target: facts.target,
+    ...(facts.setAside === undefined ? {} : { setAside: facts.setAside }),
     timeZone: facts.timeZone,
     writtenFrom: facts.writtenFrom,
     ...(facts.adds === undefined ? {} : { adds: facts.adds }),

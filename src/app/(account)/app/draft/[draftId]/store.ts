@@ -63,6 +63,7 @@ import { RAIL_CHECKS, type RailCheck } from "./checks";
 import { askedAs, doneWhen } from "../../calendar/store";
 import type { Choice } from "@/lib/opportunities/derive/explain";
 import { pageTargetOf } from "../../_shell/page-target";
+import type { SetAside } from "../../_overview/done";
 import {
   NO_RULE_FACTS,
   PACK_PAGES_SHOWN,
@@ -359,6 +360,14 @@ async function targetQueryOf(opportunityId: string | null): Promise<string> {
   return choice.evidence.query;
 }
 
+/** The topics set aside (issue 1395), read the way Overview reads them.
+ *  Nothing where the count could not be read: the note then lists none. */
+async function setAsideAt(siteId: string): Promise<{ setAside?: SetAside }> {
+  const { readSetAsideFor } = await import("../../_overview/done-provider");
+  const setAside = await readSetAsideFor(siteId).catch(() => undefined);
+  return setAside === undefined ? {} : { setAside };
+}
+
 async function targetOf(opportunityId: string | null): Promise<DraftTarget> {
   if (opportunityId === null) return { kind: "unknown" };
   const choice = await readChoice(opportunityId);
@@ -372,7 +381,16 @@ async function targetOf(opportunityId: string | null): Promise<DraftTarget> {
     // value carries the date the pass could not read it on.
     at: choice.evidence.family === "fix" ? new Date(0) : choice.evidence.volume.at,
   });
-  return target === null ? { kind: "fix" } : { kind: "target", target };
+  if (target === null) return { kind: "fix" };
+  const evidence = choice.evidence;
+  return {
+    kind: "target",
+    target,
+    why: {
+      fit: choice.businessFit === 3 ? "answer" : choice.businessFit === 2 ? "helps" : null,
+      rival: evidence.family === "write" || evidence.family === "earn" ? evidence.rival.domain : null,
+    },
+  };
 }
 
 /**
@@ -569,6 +587,7 @@ export async function readDraftRow(a: {
     // page record: asking first would answer about a page the caller may
     // not see.
     target: await targetOf(row.opportunity_id),
+    ...(await setAsideAt(a.site.siteId)),
     // #928, and after the same ownership proof: what the site already has,
     // and the closest of it to this page.
     knownCheck: await knownCheckFor({
