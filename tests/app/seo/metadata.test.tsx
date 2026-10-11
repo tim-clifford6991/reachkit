@@ -79,6 +79,8 @@ const OWNER: Readonly<Record<string, { module: string; generated?: true }>> = {
   "/": { module: "@/app/(public)/page" },
   "/pricing": { module: "@/app/(public)/pricing/page" },
   "/scans": { module: "@/app/(public)/scans/page" },
+  "/how-it-works": { module: "@/app/(public)/how-it-works/page" },
+  "/about": { module: "@/app/(public)/about/page" },
   "/privacy": { module: "@/app/(public)/privacy/page" },
   "/terms": { module: "@/app/(public)/terms/page" },
   "/imprint": { module: "@/app/(public)/imprint/page" },
@@ -167,6 +169,8 @@ describe("the canonical address is the address, and never a pattern", () => {
     "/": "/",
     "/pricing": "/pricing",
     "/scans": "/scans",
+    "/how-it-works": "/how-it-works",
+    "/about": "/about",
     "/privacy": "/privacy",
     "/terms": "/terms",
     "/imprint": "/imprint",
@@ -255,10 +259,11 @@ describe("every sentence in a public <head> is a key, and the owner is told whic
 
   it("all of them carry the owner's approved sentence, none the marker", () => {
     // Rule 5.5: stated and counted. No approved artifact writes a document
-    // title, so ruling 11a filled none of these; the owner approved every
-    // one on 2026-09-10 (#459).
+    // title, so ruling 11a filled none of these; the owner approved the
+    // first twenty on 2026-09-10 (#459), and the four of `/how-it-works`
+    // and `/about` are drafted (issue 1396).
     const keys = PUBLIC_ROUTE_SEO_ROWS.flatMap((row) => [row.title, row.description]);
-    expect(keys).toHaveLength(20);
+    expect(keys).toHaveLength(24);
     for (const key of keys) {
       expect(AWAITING_COPY, key).not.toContain(key);
       expect(COPY[key], key).not.toBe("");

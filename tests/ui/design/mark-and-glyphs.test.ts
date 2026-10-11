@@ -50,13 +50,15 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     // feature cards' glyphs — bot, search, shield, file — and the fix
     // list's check; the steps carry numbers, not glyphs, so `Users` and
     // `Calendar` went with the old step cards.
+    //
+    // Issue #1396 replaced the "Demo video coming soon" frame with the
+    // eight steps, which carry numbers, so `Play` went with the frame.
     expect(iconsImported()).toEqual([
       "Bot",
       "Check",
       "Clock",
       "FileText",
       "MessageSquare",
-      "Play",
       "Search",
       "Send",
       "ShieldCheck",
