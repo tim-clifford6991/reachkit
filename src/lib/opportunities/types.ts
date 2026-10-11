@@ -114,7 +114,14 @@ export type Shortfall =
   /** SPEC §7 (2026-09-29, *Pace*; issue 1139): one of ReachKit's own live
    *  pages is due a refresh. `since` is the day its current version went
    *  live, which is what the cause was measured against. */
-  | { kind: "due"; cause: RefreshCause; since: Measured<Date> }
+  | {
+      kind: "due";
+      cause: RefreshCause;
+      since: Measured<Date>;
+      /** SPEC §7 (2026-10-10, issue 1391): the newer live page this refresh
+       *  links to. Present where `cause` is `link`, and only there. */
+      link?: { url: string; title: string };
+    }
   /** SPEC §7 (D53, issue 1268): one of ReachKit's own live pages is rewritten
    *  for a new search, at its own address. The row's `targetQuery` is the new
    *  search, and the page is written as that search's own type, not as a
@@ -122,9 +129,10 @@ export type Shortfall =
   | { kind: "retarget" };
 
 /** Why a live page of ours is due: its version is 90 days old, the Monday
- *  verdict found it in a worse place, a pool holds a fact newer than it, or
- *  eight weekly verdicts found it neither ranking nor cited (D60, issue 1288). */
-export type RefreshCause = "aged" | "lost_position" | "newer_fact" | "unmet";
+ *  verdict found it in a worse place, a pool holds a fact newer than it,
+ *  eight weekly verdicts found it neither ranking nor cited (D60, issue 1288),
+ *  or a newer related page went live that it does not link (issue 1391). */
+export type RefreshCause = "aged" | "lost_position" | "newer_fact" | "unmet" | "link";
 
 /** §7's Fix trigger — "any access gate fails" — as the closed set of gates
  *  the measurement engine can actually report. A sixth barrier is a change

@@ -574,23 +574,37 @@ export const SITE_LOGO = Object.freeze({
   MIN_ICON_PX: 96,
 } as const);
 
-/** SPEC §7 Rules (2026-09-12): "Every asset links to real inventory pages
- *  (pricing, about, features, product) and to earlier assets in its
- *  cluster." (`src/lib/generate/links/`)
+/** SPEC §7 Rules (2026-09-12; rewritten 2026-10-10, issue 1391): every
+ *  asset links to the customer's own pages and to earlier assets in its
+ *  cluster. (`src/lib/generate/links/`)
  *
- *  `PRODUCT_PAGES_MAX` bounds the one purpose a site can hold dozens of:
- *  pricing, about and features are one page each, and a site with forty
- *  integration pages would otherwise hand the page forty links. The
- *  product pages linked are the ones whose own headings share words with
- *  the page's query, most-shared first.
+ *  `SITE_MIN`–`SITE_MAX` — a page carries three to six links into the
+ *  customer's own site. Up to `SITE_MAX` pages are offered to the writer,
+ *  ranked by how much they share with the page's topic across the whole
+ *  crawled inventory; a page the writer linked fewer than `SITE_MIN` of
+ *  has the best of the rest listed until it holds that many.
  *
  *  `CLUSTER_PAGES_MAX` bounds the same list for the cluster's earlier
  *  pages, newest first. At one page a day a cluster rarely reaches it; the
  *  bound is there so a long-lived cluster does not turn every new page
- *  into an index of the old ones. */
+ *  into an index of the old ones.
+ *
+ *  `BACK_PAGES_MAX` — links in both directions: when a page goes live, at
+ *  most this many of the site's older live pages are planned an update
+ *  that links to it (`opportunities/refresh.ts`).
+ *
+ *  The live check at publish: each address is asked once, `HEAD` then
+ *  `GET`, for at most `CHECK_TIMEOUT_MS`, `CHECK_CONCURRENCY` at a time, and
+ *  the whole check for at most `CHECK_BUDGET_MS` — it must fit beside the
+ *  delivery inside the job's invocation. */
 export const CROSS_LINKS = Object.freeze({
-  PRODUCT_PAGES_MAX: 2,
+  SITE_MIN: 3,
+  SITE_MAX: 6,
   CLUSTER_PAGES_MAX: 5,
+  BACK_PAGES_MAX: 2,
+  CHECK_TIMEOUT_MS: 5_000,
+  CHECK_CONCURRENCY: 6,
+  CHECK_BUDGET_MS: 12_000,
 } as const);
 
 /**

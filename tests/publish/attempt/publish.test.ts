@@ -528,3 +528,37 @@ describe("the credential reaches the adapter in plaintext, and only for the one 
     expect(result.ok).toBe(true);
   });
 });
+
+describe("SPEC §7 (2026-10-10, issue 1391) — every link is asked before the page goes out", () => {
+  it("delivers the body without its gone link, and stores that body and what was found", async () => {
+    seed({ body_md: "See [our plans](https://example.com/pricing) and [the old guide](https://example.com/old)." });
+    db.rows("sites")[0]!.domain = "example.com";
+    let delivered = "";
+    const adapter = stubAdapter(
+      { ok: true, madeLive: true, liveUrl: "https://c.example/a" },
+      {
+        deliver: async (page) => {
+          delivered = page.bodyMd;
+          return { ok: true, madeLive: true, liveUrl: "https://c.example/a" };
+        },
+      }
+    );
+    const result = await publish({
+      draftId: "d1",
+      destination: "hosted",
+      by: SYSTEM,
+      at: AT,
+      deps: openDeps(),
+      adapterFor: () => adapter,
+      askAddress: async (url) => ({ status: url.endsWith("/old") ? 404 : 200 }),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(delivered).toBe("See [our plans](https://example.com/pricing) and the old guide.");
+    const row = db.rows("drafts")[0]!;
+    expect(row.body_md).toBe(delivered);
+    expect((row.meta as { linkCheck: { removed: { url: string }[] } }).linkCheck.removed).toEqual([
+      { url: "https://example.com/old", kind: "site", text: "the old guide" },
+    ]);
+  });
+});

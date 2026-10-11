@@ -473,15 +473,12 @@ describe("§7 (2026-09-12) — the page links into the customer's own site and t
     queueAttempt(CLEAN_MARKDOWN);
 
     const html = await publishedHtml();
-    for (const url of [
-      "https://example.com/pricing",
-      "https://example.com/about",
-      "https://example.com/features",
-      "https://example.com/products/boards",
-      FIRST.liveUrl,
-    ]) {
-      expect(html).toContain(`href="${url}"`);
-    }
+    expect(html).toContain(`href="${FIRST.liveUrl}"`);
+    // Issue 1391: three of the site's own pages at the least, the page a
+    // reader acts on among them, and never the home page.
+    const own = INVENTORY.filter((row) => html.includes(`href="${row.url}"`));
+    expect(own.length).toBeGreaterThanOrEqual(3);
+    expect(own.some((row) => row.purpose === "product")).toBe(true);
     expect(html).not.toContain('href="https://example.com/"');
   });
 

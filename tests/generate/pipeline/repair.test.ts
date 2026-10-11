@@ -22,7 +22,8 @@ describe("repairMechanical", () => {
   it("links a figure to the customer's page that states it, and drops one no page states", () => {
     const markdown = `${OPENING}\n\n## What decides it\n\nAcme serves 1,200 teams. It once won 47 awards. Seats matter most.`;
     const repaired = repairMechanical(markdown, ["traceable_numerals"], { brief: BRIEF, sources: SOURCES });
-    expect(repaired).toContain("[1,200](https://acme.test/pricing) teams");
+    // Issue 1391: the link takes in the words the figure counts.
+    expect(repaired).toContain("[1,200 teams](https://acme.test/pricing).");
     expect(repaired).not.toContain("47 awards");
     expect(repaired).toContain("Seats matter most.");
     expect(checkTraceableNumerals({ markdown: repaired, brief: BRIEF })).toBeNull();
