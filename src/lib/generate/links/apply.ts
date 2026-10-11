@@ -1,29 +1,41 @@
 // SPEC §7 Rules ("No link known to go nowhere", "one serialiser for
-// screen, copy-as-HTML and copy-as-Markdown", 2026-09-12).
+// screen, copy-as-HTML and copy-as-Markdown", 2026-09-12; *Descriptive link
+// text*, 2026-10-10, issue 1391).
 //
 // Holds a finished body to the link list `select.ts` chose. The model is
 // told the list; this is what makes it true of the page whatever the model
 // did with it.
 //
-// **Two passes over the body's own Markdown, and nothing else.**
+// **Three passes over the body's own Markdown, and nothing else.**
 //
-//   1. Every link into the customer's own site — an absolute address on
+//   1. Every link's text is held to `text.ts`. A bare figure takes in the
+//      words it counts. A link into the customer's site whose text says
+//      nothing of the page — "here", an address, or the page's slogan
+//      reworded — is unwrapped: the sentence stands and the link does not.
+//      A link elsewhere with such text is named by its host.
+//   2. Every link into the customer's own site — an absolute address on
 //      their domain, or a site-relative `/path` — that is not a chosen
 //      target and not the grounded source is unwrapped to its label. A
 //      path the model guessed is exactly the dead link the rule forbids. A
 //      chosen target written relatively is rewritten absolute: the hosted
 //      destination serves from a subdomain, where `/pricing` is not theirs.
-//   2. Every chosen target the body still does not link is appended, one
-//      list item each, labelled with the page's own heading.
+//   3. The writer links a page where a sentence speaks to it, so most
+//      chosen pages are linked in the text. Where the body links fewer of
+//      the site's own pages than `CROSS_LINKS.SITE_MIN`, the best of the
+//      rest are listed until it holds that many, each under the page's own
+//      name; an earlier page of the cluster the body did not reach is
+//      listed too.
 //
-// Links to anywhere else — a rival's page a figure is sourced from — pass
-// untouched: those are the hard rules' business.
+// Links to anywhere else — a rival's page a figure is sourced from — keep
+// their address: those are the hard rules' business.
 //
 // The result is Markdown, written in the grammar the one renderer
 // (`src/lib/publish/render/markdown.ts`) parses. It is stored as the
 // draft's body, so the screen, copy-as-HTML, copy-as-Markdown and every
 // destination read the same links from the same string.
+import { CROSS_LINKS } from "@/lib/config/constants";
 import { onSite, urlKey, type LinkTarget } from "./select";
+import { isSlogan, linkTextProblem, resembles, widenNumberLinks } from "./text";
 
 /** The renderer's inline grammar, code spans first so a link written
  *  inside backticks stays code. */
@@ -51,10 +63,10 @@ export function applyLinks(
     appendUnder?: string;
   }
 ): string {
-  const chosen = new Map<string, string>();
+  const chosen = new Map<string, LinkTarget>();
   for (const target of a.targets) {
     const key = urlKey(target.url);
-    if (key !== null && !chosen.has(key)) chosen.set(key, target.url);
+    if (key !== null && !chosen.has(key)) chosen.set(key, target);
   }
   const grounded = urlKey(a.groundedUrl);
   const sources = new Set((a.factUrls ?? []).map(urlKey));
@@ -67,24 +79,41 @@ export function applyLinks(
       return line;
     }
     if (inFence) return line;
-    return line.replace(CODE_OR_LINK_RE, (token: string, code: string | undefined, label: string, href: string) => {
+    return widenNumberLinks(line).replace(CODE_OR_LINK_RE, (token: string, code: string | undefined, label: string, href: string) => {
       if (code !== undefined) return token;
       const absolute = href.startsWith("/") && !href.startsWith("//") ? `https://${a.domain}${href}` : href;
-      if (!onSite(absolute, a.domain)) return token;
+      const problem = linkTextProblem(label);
+      if (!onSite(absolute, a.domain)) {
+        // A figure alone in a table cell stands; a source with no words is
+        // named by where it is.
+        const host = problem === null || problem === "number" ? null : hostOf(absolute);
+        return host === null ? token : `[${host}](${href})`;
+      }
       const key = urlKey(absolute);
       const target = key === null ? undefined : chosen.get(key);
       if (key !== null && target !== undefined) {
+        if (problem !== null || rewordsSlogan(label, target)) return problem === "empty" ? "" : label;
         linked.add(key);
-        return `[${label}](${safeHref(target)})`;
+        return `[${label}](${safeHref(target.url)})`;
       }
-      if (key !== null && (key === grounded || sources.has(key))) return token;
+      if (key !== null && (key === grounded || sources.has(key))) return problem === "empty" ? "" : token;
       return label;
     });
   });
 
+  // The site's own pages the body reached, and how many more it is owed.
+  const reached = a.targets.filter((target) => {
+    const key = urlKey(target.url);
+    return target.source === "site" && key !== null && linked.has(key);
+  }).length;
+  let owed = Math.max(0, CROSS_LINKS.SITE_MIN - reached);
   const missing = a.targets.filter((target) => {
     const key = urlKey(target.url);
     if (key === null || linked.has(key)) return false;
+    if (target.source === "site") {
+      if (owed === 0) return false;
+      owed--;
+    }
     linked.add(key);
     return true;
   });
@@ -102,6 +131,22 @@ export function applyLinks(
   }
   const body = lines.join("\n").replace(/\s+$/, "");
   return `${body}\n\n${list.join("\n")}\n`;
+}
+
+/** True where a link's words are the target page's slogan, or that slogan
+ *  reworded: "one plan — one page a day" for a pricing page titled "One
+ *  plan. One page a day.". */
+function rewordsSlogan(label: string, target: LinkTarget): boolean {
+  if (target.source !== "site") return false;
+  return (target.said ?? []).some((said) => isSlogan(said) && resembles(label, said));
+}
+
+function hostOf(url: string): string | null {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
 }
 
 /** A label the inline grammar reads back as one link: no brackets, no
