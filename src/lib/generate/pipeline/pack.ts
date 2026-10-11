@@ -78,6 +78,9 @@ export interface PackLivePage {
   markdown: string;
   /** Why it is refreshed (issue 1139), as the row records it. */
   why: string | null;
+  /** Issue 1391: the newer live page this refresh adds one sentence linking
+   *  to. Present on a refresh planned for that, and only there. */
+  linkTo?: { url: string; title: string };
 }
 
 /** One fact the pack holds that the top results do not state (D12). */
@@ -454,7 +457,10 @@ function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">,
       if (pack.live === null) return false;
       const live = fold(pack.live.markdown);
       const fresh = [...pack.facts, ...pack.claims].filter((fact) => !live.includes(fold(fact.passage)));
-      return fresh.length >= requirement.min;
+      // Issue 1391: a newer page of the site the live one does not link is
+      // what is new to say on a refresh planned to link it.
+      const newer = pack.live.linkTo !== undefined && !pack.live.markdown.includes(pack.live.linkTo.url) ? 1 : 0;
+      return fresh.length + newer >= requirement.min;
     }
   }
 }
