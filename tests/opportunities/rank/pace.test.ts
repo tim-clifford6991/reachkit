@@ -8,6 +8,7 @@ import { orderRanked } from "../../../src/lib/opportunities/rank/open";
 import {
   refreshCandidates,
   refreshCauseOf,
+  linkBackCandidates,
   type OwnLivePage,
   type RefreshPools,
 } from "../../../src/lib/opportunities/refresh";
@@ -134,5 +135,43 @@ describe("which live pages of ours are due a refresh", () => {
       acceptance: { form: "top20", query: "crm pricing for small teams" },
     });
     expect(refreshCandidates([livePage({ age: 10 })], NO_POOLS, AT)).toEqual([]);
+  });
+});
+
+describe("links in both directions (issue 1391): a page going live is linked from its nearest older pages", () => {
+  const page = (slug: string, title: string, age: number, over: Partial<OwnLivePage> = {}): OwnLivePage =>
+    livePage({ age, url: `https://blog.example.com/${slug}`, title, row: row(slug, "keyword_page", title.toLowerCase()), ...over });
+  const fresh = page("crm-import", "How to import contacts into a CRM", 0);
+  const older = [
+    page("crm-pricing", "CRM pricing for small teams", 60),
+    page("import-csv", "How to import a CSV of contacts", 45),
+    page("email-tips", "Email subject lines that get opened", 90),
+    page("crm-export", "How to export contacts from a CRM", 40),
+  ];
+  const targets = (pages: OwnLivePage[]): (string | null)[] =>
+    linkBackCandidates(pages, fresh.url, AT).map((candidate) => candidate.targetRef);
+
+  it("plans a refresh of the two nearest, each carrying the new page to link", () => {
+    const planned = linkBackCandidates([...older, fresh], fresh.url, AT);
+    expect(planned.map((candidate) => candidate.targetRef).sort()).toEqual([
+      "https://blog.example.com/crm-export",
+      "https://blog.example.com/import-csv",
+    ]);
+    expect(planned[0]).toMatchObject({
+      type: "refresh_page",
+      evidence: { shortfall: { kind: "due", cause: "link", link: { url: fresh.url, title: "How to import contacts into a CRM" } } },
+    });
+  });
+
+  it("never touches a page the customer edited or stopped, one that already links it, or one inside §6's floor", () => {
+    const [pricing, csv, , exported] = older as [OwnLivePage, OwnLivePage, OwnLivePage, OwnLivePage];
+    expect(targets([{ ...pricing, stopped: true }, { ...csv, edited: true }, exported, fresh])).toEqual([exported.url]);
+    expect(targets([{ ...csv, markdown: `See [the import guide](${fresh.url}).` }, fresh])).toEqual([]);
+    expect(targets([page("import-csv", "How to import a CSV of contacts", 5), fresh])).toEqual([]);
+  });
+
+  it("a refresh going live is not news: nothing is planned for it", () => {
+    const refreshed = { ...fresh, row: row("crm-import", "refresh_page", "how to import contacts into a crm", "due") };
+    expect(linkBackCandidates([...older, refreshed], fresh.url, AT)).toEqual([]);
   });
 });
