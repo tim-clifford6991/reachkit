@@ -30,7 +30,9 @@ import { sitePassages, type SourcedFact } from "@/lib/generate/pipeline/groundin
 import { buildPack } from "@/lib/generate/pipeline/pack";
 import { NO_RESEARCH } from "@/lib/generate/pipeline/research";
 import { completeTables } from "@/lib/generate/pipeline/sources";
+import { titleRuleFor } from "@/lib/generate/pipeline/title";
 import { writePage } from "@/lib/generate/pipeline/write";
+import { pickTitle } from "@/lib/generate/rules/title";
 import { runHardRules } from "@/lib/generate/rules";
 import { renderOf } from "@/lib/generate/rules/text";
 import { TEMPLATES } from "@/lib/generate/templates";
@@ -160,6 +162,7 @@ export const writeLeadPage: DraftWriter = async (a) => {
         promises: [],
         queries: targetSearches(opportunity),
         names: [businessName ?? "", report.domain.split(".")[0] ?? "", ...rivals],
+        pickTitle: (proposed, on) => pickTitle(proposed, titleRuleFor(pack, on)).chosen,
       });
       const markdown = withClosing(completeTables(laid.body.bodyMarkdown), laid.closing, `https://${report.domain}/`);
 

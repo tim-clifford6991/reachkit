@@ -15,18 +15,18 @@ export const DE_TEMPLATES: TemplateWords = {
     listicle: {
       titles: [
         "Die {N} besten {term} für {audience} ({year})",
-        "{A} vs. {B} ({year}): {Kriterien oder für wen es passt}",
+        "{A} vs. {B} ({year}): {der Preis oder die Zahl aus pack, die sie trennt}",
         // D50: where the search names two rivals, this business is the third.
-        "{A} vs. {B} vs. {dieses Unternehmen} ({year}): {Kriterien}",
+        "{A} vs. {B} vs. {dieses Unternehmen} ({year}): {der Preis oder die Zahl aus pack, die sie trennt}",
         "{N} Alternativen zu {rival} für {audience} ({year})",
       ],
       titleNever: 'Never name this business as "Nr. 1", "Nummer 1" or "beste", "bester", "bestes".',
     },
-    how_to: { titles: ["So gelingt {outcome in the buyer's words}", "{outcome in the buyer's words}: Schritt für Schritt erklärt"] },
-    documentation: { titles: ["Was ist {term}? {plain qualifier}"] },
+    how_to: { titles: ["So gelingt {outcome in the buyer's words} ({ein Ergebnis, eine Zahl oder ein Preis aus pack})", "{the search as typed}: {ein Ergebnis, eine Zahl oder ein Preis aus pack}"] },
+    documentation: { titles: ["{Term}: {was es ist, mit einer Zahl, einem Preis oder einem Ort aus pack}", "Was ist {term}? {die Antwort, mit einer Zahl, einem Preis oder einem Ort aus pack}"] },
     research: { titles: ["{finding with its number}: {scope} ({year})"] },
-    qa: { titles: ["The buyer's question as typed, in German"] },
-    insights: { titles: ["{platform} {change} ({Monat Jahr}): Was das für {audience} bedeutet"] },
+    qa: { titles: ["{The buyer's question as typed, in German} {its answer's number, price or place from pack}", "{the search as typed}: {the answer's number, price or place from pack}"] },
+    insights: { titles: ["{platform} {change} ({Monat Jahr}): {die Zahl, der Preis oder das Produkt, das sich geändert hat}"] },
     update: { titles: ["The live page's own title."] },
   },
   rules: [

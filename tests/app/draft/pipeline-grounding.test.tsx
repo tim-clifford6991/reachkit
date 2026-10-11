@@ -119,7 +119,10 @@ const BODY_MD = [
   "teams notice last and feel most.",
 ].join("\n");
 
-const PAGE = pageParts(BODY_MD);
+// This pack's one fact states no number, so the title's specific is the
+// place the business serves (issue 1389).
+const PAGE = pageParts(BODY_MD, { titles: ["Project management software plan that fits a small team in Leeds"] });
+const SERVES = { ...pack().business, market: { area: { place: { name: "Leeds" } } } };
 
 /** The customer's passage as the day's run hands it to the pipeline. */
 const FACT = { url: "https://example.com/pricing", readAt: AT, passage: PASSAGE };
@@ -151,7 +154,7 @@ async function runPipeline(site = siteInputs()): Promise<GenerateOutcome> {
     opportunity: opportunity(),
     scheduledFor: "2026-09-07",
     site,
-    pack: pack({ facts: [{ passage: PASSAGE, url: FACT.url, readAt: AT.toISOString() }], neverClaim: site.doNotClaim }),
+    pack: pack({ business: SERVES, facts: [{ passage: PASSAGE, url: FACT.url, readAt: AT.toISOString() }], neverClaim: site.doNotClaim }),
     facts: [{ fact: FACT, sourceText: SOURCE_TEXT }],
     links: [],
   });

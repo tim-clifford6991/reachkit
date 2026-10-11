@@ -18,7 +18,10 @@ const rule = (over: Partial<TitleRuleInputs> = {}): TitleRuleInputs => ({
   type: "listicle",
   terms: ["bäckerei düsseldorf"],
   rivals: ["Terbuyken", "Kamps"],
-  audience: ["Familien in Düsseldorf"],
+  follow: [],
+  asks: false,
+  places: ["Düsseldorf"],
+  holds: "5 Bäckereien. Die Lieferung ins Büro ist kostenlos.",
   year: 2026,
   titles: [],
   description: DESCRIPTION,
@@ -57,6 +60,11 @@ describe("German templates", () => {
         business: { market: null, rivals: [] },
         products: [],
         pages: [],
+        facts: [],
+        claims: [],
+        questions: [],
+        measurements: null,
+        live: null,
         profile: null,
         ...(locale === undefined ? {} : { locale }),
       }) as unknown as ContextPack;
@@ -70,8 +78,8 @@ describe("German templates", () => {
 describe("the title check on a German page (D51, in German)", () => {
   it("passes German titles that follow the formulas", () => {
     expect(titleFaults("Die 5 besten Bäckereien in Düsseldorf für Familien (2026)", rule({ terms: ["bäckereien düsseldorf"] }))).toEqual([]);
-    expect(titleFaults("Terbuyken vs. Kamps (2026): Sortiment und Preise", rule({ terms: ["terbuyken vs kamps"] }))).toEqual([]);
-    expect(titleFaults("Was kostet eine Hochzeitstorte in Düsseldorf?", rule({ type: "qa", terms: ["hochzeitstorte kosten"], description: DESCRIPTION }))).not.toContain("specific");
+    expect(titleFaults("Terbuyken vs. Kamps (2026): 5 Brote im Preisvergleich", rule({ terms: ["terbuyken vs kamps"] }))).toEqual([]);
+    expect(titleFaults("Was kostet eine Hochzeitstorte in Düsseldorf?", rule({ type: "qa", terms: ["was kostet eine hochzeitstorte"], asks: true }))).toEqual([]);
   });
 
   it("reads a German plural as its singular when it looks for the search term", () => {
@@ -84,11 +92,12 @@ describe("the title check on a German page (D51, in German)", () => {
     expect(titleFaults("Bäckerei Düsseldorf: die Bäckerei für Familien am Rhein", rule({ type: "qa" }))).toContain("banned");
   });
 
-  it("counts a German question, a price or a word for free as the title's one specific", () => {
-    const bare = rule({ type: "qa", rivals: [], audience: [] });
-    expect(titleFaults("Bäckerei Düsseldorf am Sonntag geöffnet", bare)).toContain("specific");
-    expect(titleFaults("Welche Bäckerei in Düsseldorf hat sonntags geöffnet", bare)).not.toContain("specific");
-    expect(titleFaults("Bäckerei Düsseldorf: Lieferung kostenlos ins Büro", bare)).not.toContain("specific");
+  it("counts the place or a word for free the pack holds as the specific, and a German question as a question", () => {
+    const bare = rule({ type: "qa", rivals: [], places: [], terms: ["bäckerei rheinland"] });
+    expect(titleFaults("Bäckerei im Rheinland am Sonntag geöffnet", bare)).toContain("specific");
+    expect(titleFaults("Welche Bäckerei im Rheinland hat sonntags geöffnet", bare)).toContain("question");
+    expect(titleFaults("Bäckerei im Rheinland: Lieferung kostenlos ins Büro", bare)).not.toContain("specific");
+    expect(titleFaults("Bäckerei im Rheinland und warum Brot wichtig ist", bare)).toContain("banned");
   });
 
   it("keeps the English list for an English page", () => {

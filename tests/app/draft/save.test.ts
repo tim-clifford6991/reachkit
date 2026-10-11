@@ -193,7 +193,7 @@ describe("#789 — what a save refuses", () => {
     signedInAs(LIVE_ACCOUNT);
     const result = await draftStore.save({ draftId, title: "Hijack", bodyMd: "x", description: "" });
     expect(result).toEqual({ ok: false, refused: "not_editable" });
-    expect(row(draftId).title).toBe(pageParts().title);
+    expect(row(draftId).title).toBe(pageParts().titles[0]);
   });
 
   it("a draft that has left review is refused", async () => {
