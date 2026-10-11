@@ -69,7 +69,10 @@ export interface Options {
 }
 
 type Row = Record<string, unknown>;
-type FetchRow = Row & { scan_id: string; source: string; cache_key: string; cost_cents: number | string; created_at: string; payload?: unknown };
+type FetchRow = Row & { scan_id: string; source: string; cache_key: string; cost_cents: number | string; billed_cents?: number | string | null; created_at: string; payload?: unknown };
+
+/** The vendor's own charge on a ledgered row (issue 1408), where it has one. */
+const billedOf = (row: Pick<FetchRow, "billed_cents">): number | undefined => (row.billed_cents === null || row.billed_cents === undefined ? undefined : Number(row.billed_cents));
 
 /** The scan the stored evidence is loaded under: no site's own, so it is
  *  found by the cache and never counted as a run's spend. */
@@ -267,7 +270,7 @@ async function runSite(o: Options, site: PanelSite, watch: Watch, quiet: (lines:
   }
 
   const bought = boughtSince(startedAt);
-  for (const row of bought) appendSpend({ script: "panel", source: row.source, cents: Number(row.cost_cents) });
+  for (const row of bought) appendSpend({ script: "panel", source: row.source, cents: Number(row.cost_cents), billed: billedOf(row) });
   keepEvidence(o.root, site.domain, loadedRows, bought);
   return collect({ site, bought, locales: [...locales.values()], lines, seconds: Math.round((Date.now() - started) / 1000), evidenceLoaded });
 }

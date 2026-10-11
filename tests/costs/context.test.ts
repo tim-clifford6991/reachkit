@@ -79,6 +79,11 @@ const FETCHES_DURATION_MIGRATION = path.join(
   // assertions are about the schema the product actually runs on.
   "supabase/migrations/20260918090000_fetches_duration_ms.sql"
 );
+const FETCHES_BILLED_MIGRATION = path.join(
+  REPO_ROOT,
+  // Issue 1408: `billed_cents`, the vendor's own charge.
+  "supabase/migrations/20261011120000_fetches_billed_cents.sql"
+);
 
 // Issue 885: the per-site half of the daily ceiling. `readSiteDaySpendCents`
 // asks this one function, and every claim the per-site cap makes rests on
@@ -104,6 +109,7 @@ function resetAndApplySchema(): void {
   psql(["-v", "ON_ERROR_STOP=1", "-f", SCANS_MONEY_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", DRAFTS_MONEY_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_DURATION_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_BILLED_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_SITE_SPEND_MIGRATION]);
   psql(["-c", "NOTIFY pgrst, 'reload schema';"]);
   execFileSync("sleep", ["0.3"]); // PostgREST's schema-cache reload is async.
