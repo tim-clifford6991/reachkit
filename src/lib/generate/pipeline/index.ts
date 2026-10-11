@@ -354,6 +354,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       })),
       // Issue 1135: the market facts the page was handed.
       marketFacts: pack.claims.map((claim) => ({ passage: claim.passage, url: claim.url, title: claim.title, readAt: claim.readAt })),
+      // Issue 1391: the pages code chose for this page to link, each with
+      // why — what the draft screen's *Links on this page* reads.
+      links: a.links.map((link) => ({ url: link.url, label: link.label, source: link.source, why: link.why ?? null })),
       length: { words: bodyWords(page.markdown), floor: length?.floor ?? null, ceiling: length?.ceiling ?? null },
       ...(repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...repairs] }),
       // A number and nothing else: which page it was is not recorded.

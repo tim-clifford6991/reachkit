@@ -44,6 +44,7 @@
 // `writtenAt` is not among them: it is `drafts.created_at`, a column the
 // baseline declares `not null`, so the day the page was written is read
 // from the row rather than from what generation remembered to write down.
+import type { LinkRecord } from "./links-panel";
 import { now as clock } from "@/lib/config/now";
 import { dbAdmin } from "@/lib/db";
 import { readRecordedFact } from "@/lib/generate/fact";
@@ -194,6 +195,40 @@ function addsAt(meta: Record<string, unknown> | null, state: string): { adds?: P
     return typeof each?.claim === "string" ? [{ claim: each.claim, business: each.business === true }] : [];
   });
   return { adds: { claims, ask: value.short === true && state === "needs_attention" } };
+}
+
+/** Which pages code chose to link and what the check at publish found
+ *  (`meta.links`, `meta.linkCheck`; issue 1391), read as defensively as
+ *  every other key here. A page written before either was recorded reads as
+ *  nothing chosen and no check made. */
+function linkRecordAt(meta: Record<string, unknown> | null): LinkRecord {
+  const chosen = (Array.isArray(meta?.links) ? (meta.links as unknown[]) : []).flatMap((entry) => {
+    const link = entry as { url?: unknown; source?: unknown; why?: unknown } | null;
+    if (typeof link?.url !== "string" || typeof link.source !== "string") return [];
+    const why = typeof link.why === "object" && link.why !== null ? (link.why as { kind?: unknown; words?: unknown }) : null;
+    return [{ url: link.url, source: link.source, why }];
+  });
+  const factUrls = (Array.isArray(meta?.factsUsed) ? (meta.factsUsed as unknown[]) : []).flatMap((entry) => {
+    const url = (entry as { url?: unknown } | null)?.url;
+    return typeof url === "string" ? [url] : [];
+  });
+  const raw = meta?.linkCheck as { links?: unknown; removed?: unknown } | null | undefined;
+  const check =
+    raw === null || raw === undefined || !Array.isArray(raw.links)
+      ? null
+      : {
+          links: (raw.links as unknown[]).flatMap((entry) => {
+            const link = entry as { url?: unknown; status?: unknown } | null;
+            return typeof link?.url === "string" && typeof link.status === "string" ? [{ url: link.url, status: link.status }] : [];
+          }),
+          removed: (Array.isArray(raw.removed) ? (raw.removed as unknown[]) : []).flatMap((entry) => {
+            const link = entry as { url?: unknown; text?: unknown; kind?: unknown } | null;
+            return typeof link?.url === "string" && typeof link.text === "string"
+              ? [{ url: link.url, text: link.text, kind: link.kind === "source" ? ("source" as const) : ("site" as const) }]
+              : [];
+          }),
+        };
+  return { chosen, factUrls, check };
 }
 
 function stringAt(meta: Record<string, unknown> | null, key: string): string | null {
@@ -499,6 +534,7 @@ export async function readDraftRow(a: {
       ...(pack === undefined ? {} : { pack }),
     },
     ...addsAt(row.meta, row.state),
+    linkRecord: linkRecordAt(row.meta),
     ...packShortAt(row, pack),
     domain: a.site.domain,
     state: row.state as State,

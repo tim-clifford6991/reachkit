@@ -839,6 +839,19 @@ export const SETTINGS_COPY = Object.freeze({
   // The head and the note are the owner's own drafted sentences; the three
   // source labels and the two count lines are drafted in the registry's
   // voice under the 2026-09-16 ruling (#759), and the PR names each one.
+  // The site link map (SPEC §7, 2026-10-10, issue 1391).
+  "settings.linkmap.head": ["Links between your articles and your site", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.none": ["No article is live yet. Once one is, this shows which of your pages it links.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.receiving": ["Your pages that articles link to", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.receiving.none": ["No live article links a page of your site yet.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.alone": ["Articles that stand alone", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.alone.none": ["Every live article links to your site and is linked from another article.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.alone.in": ["No other article links to it yet.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.alone.out": ["It links to no page of yours.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.alone.both": ["No other article links to it, and it links to no page of yours.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.receiving.one": ["Linked from 1 article", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.note": ["We choose and check these links. When a new article goes live, the closest older ones are updated to link it.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.receiving.count": ["Linked from {count} articles", { slots: { count: "text" }, fixedBy: "issue 1391 (drafted)" }],
   "settings.known.head": [
     "Content we already know about",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
