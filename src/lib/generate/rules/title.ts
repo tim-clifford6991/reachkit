@@ -26,7 +26,11 @@
 //     the pack says it; an engine's name; on a comparison, a rival the pack
 //     names; the place the business serves. A name the search itself
 //     carries is the search and no detail added to it. Asking a question is
-//     not one, and neither is who the page is for.
+//     not one, and neither is who the page is for. A number that only counts
+//     an episode, an issue, a volume or a chapter ("ep. 16") is not one.
+//     The picker and the fix call try for it, and it does not stop a page:
+//     where it is all the title still lacks after the fix call, the title
+//     goes on (owner's autopilot rule, 2026-10-08; ruling 2026-10-11).
 //   * **A question** is a title that opens as one ("How to", "What is") or
 //     carries a question mark. It stands only where the search is one.
 //   * **A bare tail** is a title that ends on the year with no bracket.
@@ -74,6 +78,9 @@ export interface TitleRuleInputs {
   /** The page's language (SPEC §6, owner D66): the filler words, the banned
    *  phrases and how a question opens are that language's. Absent is English. */
   language?: Language;
+  /** Set once the page has had its fix call: a title that lacks only its
+   *  specific then goes on (ruling 2026-10-11). */
+  settled?: boolean;
 }
 
 const YEAR_RE = /\b(?:19|20)\d\d\b/g;
@@ -133,10 +140,17 @@ export function addedNames(a: Pick<TitleRuleInputs, "terms" | "rivals" | "places
   return among.filter((name) => !a.terms.some((term) => names(term, name)));
 }
 
+/** A text without the numbers that only count an episode, an issue, a
+ *  volume or a chapter: such a number says nothing of the business. */
+export function withoutSerials(text: string, language: Language = "en"): string {
+  return text.replace(new RegExp(`(?<![\\p{L}\\p{N}])(?:${languagePack(language).title.serial})\\.?\\s*#?\\d+`, "giu"), " ");
+}
+
 function hasSpecific(title: string, a: TitleRuleInputs): boolean {
-  const held = new Set(numeralsOf(a.holds).map((numeral) => numeral.normalised));
-  if (numeralsOf(title.replace(YEAR_RE, "")).some((numeral) => held.has(numeral.normalised))) return true;
-  const free = wordsPattern(languagePack(languageOf(a)).title.free, false);
+  const language = languageOf(a);
+  const held = new Set(numeralsOf(withoutSerials(a.holds, language)).map((numeral) => numeral.normalised));
+  if (numeralsOf(withoutSerials(title, language).replace(YEAR_RE, "")).some((numeral) => held.has(numeral.normalised))) return true;
+  const free = wordsPattern(languagePack(language).title.free, false);
   if (free.test(title) && free.test(a.holds)) return true;
   return addedNames(a, [...TITLE.engines, ...a.rivals, ...a.places]).some((name) => names(title, name));
 }
@@ -212,9 +226,14 @@ export function titleFaults(title: string, a: TitleRuleInputs, heading: string =
   ];
 }
 
+/** Whether a title lacks its specific and nothing else. */
+export const specificOnly = (faults: readonly TitleFault[]): boolean => faults.length === 1 && faults[0] === "specific";
+
 export function checkTitle(a: { title: string; heading?: string; rule: TitleRuleInputs | null }): RuleFailure | null {
   if (a.rule === null || a.rule.type === "update") return null;
-  const faults = titleFaults(a.title, a.rule, a.heading);
+  const all = titleFaults(a.title, a.rule, a.heading);
+  // The specific is tried for and never stops a page on its own.
+  const faults = a.rule.settled === true && specificOnly(all) ? [] : all;
   return faults.length === 0 ? null : { rule: "title", detail: { rule: "title", faults } };
 }
 
@@ -227,6 +246,8 @@ export interface TitleCandidate {
    *  of the nearest search's words it carries, plus the mean share of each
    *  follow-up question's. */
   closeness: number;
+  /** On the title that went on without its specific, after the fix call. */
+  specific_unmet?: true;
 }
 
 /** The share of a text's subject words the title carries. */
@@ -239,8 +260,10 @@ function carried(title: ReadonlySet<string>, text: string, language: Language): 
  * The writer proposes, code picks (issue 1389). Of the titles proposed, the
  * one that fails no rule and sits closest to the search and its follow-up
  * questions; among equals, one inside the aimed length, then a statement,
- * then the writer's own order. Where none passes, the one that fails fewest:
- * stage 4 then stops the page on it and the one fix call is told why.
+ * then the writer's own order. Where none passes, the one that fails fewest
+ * of the rules that stop a page, then fewest in all — so a title that lacks
+ * only its specific is kept before one that fails any other rule. Stage 4
+ * then stops the page on it and the one fix call is told why.
  */
 export function pickTitle(proposed: readonly string[], a: TitleRuleInputs): { chosen: string; candidates: TitleCandidate[] } {
   const language = languageOf(a);
@@ -254,8 +277,10 @@ export function pickTitle(proposed: readonly string[], a: TitleRuleInputs): { ch
     return { title, faults: wordingFaults(title, a), closeness: Math.round(closeness * 100) / 100 };
   });
   const aimed = (title: string): number => ([...title].length >= TITLE.aim.min && [...title].length <= TITLE.aim.max ? 0 : 1);
+  const stopping = (each: TitleCandidate): number => each.faults.filter((fault) => fault !== "specific").length;
   const ranked = [...candidates].sort(
     (left, right) =>
+      stopping(left) - stopping(right) ||
       left.faults.length - right.faults.length ||
       right.closeness - left.closeness ||
       aimed(left.title) - aimed(right.title) ||

@@ -54,7 +54,7 @@ import { recordedRulesValue, recordedVerdictValue } from "../record";
 import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
 import { answerBoxWords } from "../rules/blocks";
 import { linksOf, renderOf } from "../rules/text";
-import { pickTitle, titleNotes, type TitleCandidate } from "../rules/title";
+import { pickTitle, specificOnly, titleNotes, type TitleCandidate } from "../rules/title";
 import type { GroundedFact, RuleFailure, SiteRuleInputs } from "../rules/types";
 import { generateStore, type DraftRow } from "../store";
 import { TEMPLATES, type PackNeed } from "../templates";
@@ -354,7 +354,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     queries: searches,
     marketFacts: pack.claims.map((claim) => ({ url: claim.url, passage: claim.passage })),
   };
-  const battery = (candidate: Finished, markdown: string, fit?: BatteryOutcome["fit"]): Promise<BatteryOutcome> =>
+  const battery = (candidate: Finished, markdown: string, fit?: BatteryOutcome["fit"], settled = false): Promise<BatteryOutcome> =>
     runHardRules(c, {
       ...(fit === undefined ? {} : { fit }),
       markdown,
@@ -380,7 +380,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
         // D52: the rivals the verdict may name as the better pick.
         ...(table === null ? {} : { rivals: table.options.slice(1) }),
       },
-      titleRule: titleRuleFor(pack, { description: candidate.laid.body.description, sections: candidate.laid.sections }),
+      titleRule: { ...titleRuleFor(pack, { description: candidate.laid.body.description, sections: candidate.laid.sections }), settled },
       // D61: a Q&A's questions are each their own.
       distinctHeadings: pack.type === "qa",
       heading: candidate.laid.body.heading,
@@ -389,10 +389,11 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
 
   /** One page through stage 4: the checks, the repairs code can make (#1178)
    *  kept only where the page then passes, and the pages written for other
-   *  sites (D13) where the rules passed. */
-  const check = async (candidate: Finished) => {
+   *  sites (D13) where the rules passed. `settled` is the page after its fix
+   *  call, whose title no longer stops it for want of a specific. */
+  const check = async (candidate: Finished, settled = false) => {
     let markdown = candidate.markdown;
-    let outcome = await battery(candidate, markdown);
+    let outcome = await battery(candidate, markdown, undefined, settled);
     const repairs: RepairRecord[] = [];
     const tried = outcome.passed || outcome.fit.state === "unrun" ? [] : repairable(outcome.failed);
     if (tried.length > 0) {
@@ -407,7 +408,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
         }),
         cited
       );
-      const again = repaired === markdown ? null : await battery(candidate, repaired, outcome.fit);
+      const again = repaired === markdown ? null : await battery(candidate, repaired, outcome.fit, settled);
       const still = new Set(again === null || again.passed ? [] : again.failed.map((failure) => failure.rule));
       for (const rule of tried) repairs.push({ rule, cleared: again !== null && !still.has(rule) });
       console.log(JSON.stringify({ event: "draft_repaired", siteId: a.siteId, draftId, repairs }));
@@ -472,6 +473,13 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     });
   };
 
+  /** The page failed one thing: its title lacks a specific. */
+  const lacksSpecificOnly = (outcome: BatteryOutcome): boolean => {
+    if (outcome.passed || outcome.failed.length !== 1) return false;
+    const detail = outcome.failed[0]?.detail;
+    return detail !== undefined && "faults" in detail && detail.rule === "title" && specificOnly(detail.faults);
+  };
+
   const attemptsBefore = existing?.hard_rule_attempts ?? 0;
   let checked = await check(page);
   let repairs = checked.repairs;
@@ -495,20 +503,34 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     if (again === null || again.kind === "unmeasured") {
       logRun({ siteId: a.siteId, draftId, step: "fix", outcome: again === null ? "not_started" : "step_failed" });
       if (checked.outcome.passed) return { ok: false, reason: "step_failed", draftId, step: "elsewhere" };
-      return {
-        ok: false,
-        reason: "rules",
-        draftId,
-        failed: checked.outcome.failed,
-        attempt: attemptsBefore + 1,
-        recovery: "rest",
-        fix: notes,
-      };
+      if (!lacksSpecificOnly(checked.outcome)) {
+        return {
+          ok: false,
+          reason: "rules",
+          draftId,
+          failed: checked.outcome.failed,
+          attempt: attemptsBefore + 1,
+          recovery: "rest",
+          fix: notes,
+        };
+      }
+    } else {
+      fixed = true;
+      page = finish(again.value);
+      checked = await check(page);
+      repairs = [...repairs, ...checked.repairs];
     }
-    fixed = true;
-    page = finish(again.value);
-    checked = await check(page);
+  }
+
+  // Ruling 2026-10-11, under the owner's autopilot rule (2026-10-08): a page
+  // is never lost for a specific its pack cannot supply. The picker and the
+  // fix call tried for one; the title that lacks only that goes on, marked.
+  if (lacksSpecificOnly(checked.outcome)) {
+    const title = checked.page.laid.body.title;
+    const titles = checked.page.titles.map((each) => (each.title === title ? { ...each, specific_unmet: true as const } : each));
+    checked = await check({ ...checked.page, titles }, true);
     repairs = [...repairs, ...checked.repairs];
+    logRun({ siteId: a.siteId, draftId, step: "title", outcome: "specific_unmet" });
   }
 
   const failedNow = !checked.outcome.passed;

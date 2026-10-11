@@ -66,6 +66,24 @@ describe("the title check (D51, issue 1389)", () => {
     expect(titleFaults("AI visibility tools for Leeds firms compared", rule({ places: ["Leeds"] }))).not.toContain("specific");
   });
 
+  it("does not take the number of an episode, an issue or a volume for a specific", () => {
+    const podcast = rule({ holds: "Podcast ep. 16 is out. Issue #12 of the newsletter. 16 engines tracked." });
+    expect(titleFaults("AI visibility tools: what podcast ep. 16 covers", podcast)).toContain("specific");
+    expect(titleFaults("AI visibility tools: 12 lessons from our launch", podcast)).toContain("specific");
+    expect(titleFaults("AI visibility tools that track 16 engines at once", podcast)).not.toContain("specific");
+    const folge = rule({ language: "de", holds: "Folge 16 ist da." });
+    expect(titleFaults("AI visibility tool: 16 Punkte im Vergleich", folge)).toContain("specific");
+  });
+
+  it("lets a title that lacks only its specific go on once the page has had its fix call", () => {
+    const title = "AI visibility tools for founders on a budget";
+    expect(checkTitle({ title, rule: rule() })).toMatchObject({ detail: { faults: ["specific"] } });
+    expect(checkTitle({ title, rule: rule({ settled: true }) })).toBeNull();
+    expect(checkTitle({ title: "What is an AI visibility tool for founders?", rule: rule({ settled: true }) })).toMatchObject({
+      detail: { faults: ["specific", "question"] },
+    });
+  });
+
   it("is a question only where the search is one", () => {
     expect(titleFaults("What is an AI visibility tool? 7 compared", rule())).toContain("question");
     expect(titleFaults("What is an AI visibility tool? 7 compared", rule({ terms: ["what is an ai visibility tool"], asks: true }))).not.toContain("question");
@@ -159,5 +177,11 @@ describe("the writer proposes, code picks (issue 1389)", () => {
     const none = pickTitle(["Unlocking Peec AI alternatives: the ultimate guide", "Peec AI alternatives: a closer look at each one"], alternatives);
     expect(none.chosen).toBe("Peec AI alternatives: a closer look at each one");
     expect(titleFaults(none.chosen, alternatives)).toEqual(["specific"]);
+  });
+
+  it("keeps a title that lacks only its specific before one that fails a rule that stops a page", () => {
+    const picked = pickTitle(["Peec AI alternatives: 5", "Peec AI alternatives: a closer look at each one"], alternatives);
+    expect(picked.candidates.map((each) => each.faults)).toEqual([["length"], ["specific"]]);
+    expect(picked.chosen).toBe("Peec AI alternatives: a closer look at each one");
   });
 });

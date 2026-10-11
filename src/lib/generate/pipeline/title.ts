@@ -8,7 +8,7 @@
 import { languagePack } from "@/lib/locale/language";
 import { TITLE } from "@/lib/config/constants";
 import { brandOf } from "@/lib/market/questions/select";
-import { addedNames, asksQuestion, type TitleRuleInputs } from "../rules/title";
+import { addedNames, asksQuestion, withoutSerials, type TitleRuleInputs } from "../rules/title";
 import { packStatements, type ContextPack } from "./pack";
 
 /** The market as the pack carries it (`sites.market`), read defensively:
@@ -64,9 +64,13 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
 }
 
 /** The figures the pack states, each with the words around it, so the
- *  writer is shown the specifics a title may carry. A year is not one. */
+ *  writer is shown the specifics a title may carry. A year is not one, and
+ *  neither is the number of an episode or an issue. */
 function figuresOf(pack: ContextPack): string[] {
-  const said = [...pack.facts.map((fact) => fact.passage), ...pack.claims.map((claim) => claim.passage), ...packStatements(pack)].join("\n");
+  const said = withoutSerials(
+    [...pack.facts.map((fact) => fact.passage), ...pack.claims.map((claim) => claim.passage), ...packStatements(pack)].join("\n"),
+    pack.locale?.language ?? "en"
+  );
   const seen = new Set<string>();
   const out: string[] = [];
   for (const match of said.matchAll(/(?:[^\s\d]+ ){0,2}[$€£]?\d[\d.,]*\S*(?: [^\s\d]+){0,3}/gu)) {
@@ -95,7 +99,7 @@ export function titleBrief(pack: ContextPack): Record<string, unknown> {
     rules: [
       `${TITLE.chars.min} to ${TITLE.chars.max} characters, counted, spaces included: write ${TITLE.aim.min} to ${TITLE.aim.max}, which is eight to ten words. A title of ${TITLE.chars.max + 1} or more is thrown away, so make the first of the titles the shortest that holds these rules: the search's own words, then one detail of at most five words, and nothing else.`,
       `One of \`searches\`${rule.follow.length === 0 ? "" : " or of `pack.questions`"}, in the searcher's own words, starts within its first ${TITLE.headChars} characters.`,
-      "It carries one specific that `pack` holds: a number, a price or a measured result in the digits `pack` states it in (`figures` lists some), or a count of this page's own options, questions or numbered steps; one of `names`, where it lists any; or an AI engine's name the search does not already carry. A year is not a number, and a question, an award, an adjective or who the page is for is not a specific.",
+      "It carries one specific that `pack` holds: a number, a price or a measured result in the digits `pack` states it in (`figures` lists some), or a count of this page's own options, questions or numbered steps; one of `names`, where it lists any; or an AI engine's name the search does not already carry. A year is not a number, neither is the number of an episode, an issue or a volume, and a question, an award, an adjective or who the page is for is not a specific.",
       rule.asks
         ? "The search is a question, so it may be that question; a statement that answers it is as good."
         : "It is a statement that answers the search, never a question: the search is not one.",

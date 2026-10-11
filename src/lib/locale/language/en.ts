@@ -77,6 +77,7 @@ export const EN: LanguagePack = {
     ),
     asksStart: "how|what|why|which|who|when|where|can|does|do|is|are|should",
     free: "free",
+    serial: "episode|ep|issue|volume|vol|chapter|season|part",
     banned: TITLE.banned,
     tropes: ["(?:unleash|elevat|navigat|demystif)(?:e[sd]?|ing|y|ies|ied|ying)?", "why .+ matters?", "in today['’]s"],
     tropeSamples: ["unleash", "elevate", "navigate", "demystify", "why X matters", "in today's … world"],

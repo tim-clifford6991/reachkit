@@ -114,6 +114,9 @@ export interface LanguagePack {
     asksStart: string;
     /** The words that say something costs nothing: an alternation. */
     free: string;
+    /** The words that number an episode, an issue or a volume: an
+     *  alternation. A number after one is no detail of the business. */
+    serial: string;
     /** Phrases a title never uses, lower case. */
     banned: readonly string[];
     /** Filler verbs and stock phrases a title never uses, each an
