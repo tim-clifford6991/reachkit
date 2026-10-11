@@ -19,6 +19,7 @@ export { alreadyCovered, closestKnown, pageScore, type PlannedTopic } from "./ma
 export { KNOWN_SOURCES, type KnownMatch, type KnownPage, type KnownSource } from "./types";
 export { inventoryPages, type KnownRefresh } from "./refresh";
 export { knownLinkTargets, publishedGuideLinks } from "./links";
+export { EMPTY_LINK_MAP, linkMapOf, siteLinkMap, type LinkMap } from "./link-map";
 
 /** The site's whole index. */
 export async function knownContentFor(siteId: string): Promise<KnownPage[]> {

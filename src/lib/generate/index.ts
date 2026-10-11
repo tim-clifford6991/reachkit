@@ -393,7 +393,22 @@ async function livePageOf(
   const markdown = ours?.markdown ?? facts.find((sourced) => urlKey(sourced.fact.url) === key)?.sourceText ?? "";
   if (markdown.trim() === "") return null;
   const evidence = opportunity.evidence as { shortfall?: { kind?: unknown } } | undefined;
-  return { url, title, markdown, why: typeof evidence?.shortfall?.kind === "string" ? evidence.shortfall.kind : null };
+  const linkTo = linkBackOf(opportunity);
+  return {
+    url,
+    title,
+    markdown,
+    why: typeof evidence?.shortfall?.kind === "string" ? evidence.shortfall.kind : null,
+    ...(linkTo === null ? {} : { linkTo }),
+  };
+}
+
+/** SPEC §7 (2026-10-10, issue 1391): the newer live page a refresh planned
+ *  for `link` adds a link to, as its row records it. */
+function linkBackOf(opportunity: Opportunity): { url: string; title: string } | null {
+  const shortfall = (opportunity.evidence as { shortfall?: { cause?: unknown; link?: { url?: unknown; title?: unknown } } } | undefined)?.shortfall;
+  const link = shortfall?.cause === "link" ? shortfall.link : undefined;
+  return typeof link?.url === "string" && typeof link.title === "string" ? { url: link.url, title: link.title } : null;
 }
 
 async function writePage(a: PageInput & { attempts: number; startedAt?: number }, cost: CostContext): Promise<DayPageOutcome> {
@@ -441,9 +456,12 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
   const known = await store.knownPages(a.siteId);
   const linksFor = (o: Opportunity): LinkTarget[] => {
     const selfUrl = o.family === "improve" ? o.targetRef : null;
-    const chosen = [
+    // Issue 1391: a refresh planned to link a newer page links it first.
+    const newer = linkBackOf(o);
+    const chosen: LinkTarget[] = [
       ...siteLinkTargets({ domain: site.domain, inventory, query: o.targetQuery ?? "", selfUrl }),
-      ...clusterLinkTargets(earlier),
+      ...(newer === null ? [] : [{ source: "known" as const, url: newer.url, label: newer.title, why: { kind: "newer" as const } }]),
+      ...clusterLinkTargets(earlier).filter((target) => newer === null || urlKey(target.url) !== urlKey(newer.url)),
     ];
     return [
       ...chosen,

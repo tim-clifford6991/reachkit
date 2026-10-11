@@ -313,6 +313,40 @@ export async function readOurPages(siteId: string): Promise<KnownPage[]> {
   return pages;
 }
 
+/**
+ * Every live page ReachKit wrote for this site, as it is served: its
+ * address now, its title and its body. One page per address — an update is
+ * a later publication at the same one, and the newest is the page (issue
+ * 781). What the site link map reads (issue 1391).
+ */
+export async function readOurLiveBodies(siteId: string): Promise<{ url: string; title: string; markdown: string }[]> {
+  const live = await untyped()
+    .from<{
+      live_url: string | null;
+      destination: string | null;
+      published_at: string | null;
+      drafts: { title: string | null; body_md: string | null } | { title: string | null; body_md: string | null }[] | null;
+    }>("publications")
+    .select("live_url, destination, published_at, drafts(title, body_md)")
+    .eq("site_id", siteId)
+    .not("published_at", "is", null)
+    .not("live_url", "is", null)
+    .is("unpublished_at", null)
+    .order("published_at", { ascending: false });
+  if (live.error) throw new Error(`known content: reading live pages for ${siteId}: ${live.error.message}`);
+
+  const { hostedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
+  const addressNow = await hostedAddressesNow(siteId);
+  const pages = new Map<string, { url: string; title: string; markdown: string }>();
+  for (const row of live.data ?? []) {
+    const draft = Array.isArray(row.drafts) ? row.drafts[0] : row.drafts;
+    if (row.live_url === null || draft === null || draft === undefined) continue;
+    const url = addressNow({ destination: row.destination, liveUrl: row.live_url });
+    if (!pages.has(url)) pages.set(url, { url, title: (draft.title ?? "").trim(), markdown: draft.body_md ?? "" });
+  }
+  return [...pages.values()];
+}
+
 /** The site's own domain — the address the crawl's reading is keyed by, and
  *  the one host a link candidate may be on. `null` for a site id that names
  *  no row, which is a caller with nothing to refresh rather than an error. */

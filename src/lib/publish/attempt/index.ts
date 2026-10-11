@@ -48,6 +48,7 @@ import type {
   FailureReason,
   RenderedPage,
 } from "../types";
+import { checkPageLinks, type AskAddress } from "../links/live";
 import { claim, type HeldBy } from "./claim";
 
 export type { FailureReason } from "../types";
@@ -90,6 +91,9 @@ export interface PublishArgs {
    *  without a destination, and so #49 and #54 supply their adapters by
    *  registering them rather than by editing this file. */
   adapterFor?: (kind: DestinationKind) => DestinationAdapter | null;
+  /** How the live check asks an address (`../links/live.ts`). Injected so a
+   *  suite answers for the network; the engine passes none. */
+  askAddress?: AskAddress;
 }
 
 export async function publish(a: PublishArgs): Promise<PublishResult> {
@@ -131,10 +135,13 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
     return failWith(a, claimed.publicationId, claimed.attemptNo, "no_destination", at);
   }
 
-  const page = await renderedPage(a.draftId);
-  if (page === null) {
+  const rendered = await renderedPage(a.draftId);
+  if (rendered === null) {
     return failWith(a, claimed.publicationId, claimed.attemptNo, "destination_rejected", at);
   }
+  // SPEC §7 (2026-10-10, issue 1391): every link is asked once before the
+  // page goes out, and the page that goes out links none that is gone.
+  const page = await withLiveLinks(rendered, a.draftId, at, a.askAddress);
 
   // Everything above this line has committed. Each byte the adapter sends
   // is bounded by the egress seam it goes through (BUILD §6.4: 8 s default,
@@ -202,6 +209,50 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
     ...(liveUrl === null ? {} : { liveUrl }),
     alreadyPublished: false,
   };
+}
+
+/**
+ * The page as it goes out: its links asked, the gone ones taken out, and
+ * what was found written on the row (`drafts.meta.linkCheck`) beside the
+ * body that was delivered — the hosted page is served from that row, and
+ * the draft screen reads each link's status from it.
+ *
+ * Never a reason a page does not publish: a check that could not run, or a
+ * write that failed, delivers the page as it was written.
+ */
+async function withLiveLinks(page: RenderedPage, draftId: string, at: Date, ask?: AskAddress): Promise<RenderedPage> {
+  if (page.metadataOnly !== undefined || page.bodyMd.trim() === "") return page;
+  try {
+    const draft = await publishDb().from<{ site_id: string }>("drafts").select("site_id").eq("id", draftId).single();
+    const siteId = draft.data?.site_id;
+    if (typeof siteId !== "string") return page;
+    const site = await publishDb().from<{ domain: string }>("sites").select("domain").eq("id", siteId).single();
+    const domain = site.data?.domain;
+    if (typeof domain !== "string" || domain === "") return page;
+
+    const checked = await checkPageLinks({ markdown: page.bodyMd, domain, at, ...(ask === undefined ? {} : { ask }) });
+    if (checked.record.links.length === 0) return page;
+    const meta = { ...page.meta, linkCheck: checked.record };
+    const changed = checked.markdown !== page.bodyMd;
+    const written = await publishDb()
+      .from<{ id: string }>("drafts")
+      .update({ meta, ...(changed ? { body_md: checked.markdown } : {}) })
+      .eq("id", draftId);
+    if (checked.record.removed.length > 0) {
+      console.log(
+        JSON.stringify({
+          event: "publish_links_removed",
+          draftId,
+          removed: checked.record.removed.map((link) => ({ url: link.url, kind: link.kind })),
+        })
+      );
+    }
+    // The body delivered is the body stored: where the row could not be
+    // written, the page goes out as the row has it.
+    return written.error === null ? { ...page, bodyMd: checked.markdown, meta } : page;
+  } catch {
+    return page;
+  }
 }
 
 /** One outcome write and one edge, for every way a delivery did not land.
