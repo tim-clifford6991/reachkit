@@ -153,10 +153,6 @@ export const DRAFT_COPY = Object.freeze({
     "The question it answers",
     { slots: {}, fixedBy: "issue 1252 (drafted)" },
   ],
-  "draft.written-from.pack.claims": [
-    "Read from public pages",
-    { slots: {}, fixedBy: "issue 1252 (drafted)" },
-  ],
   "draft.written-from.pack.claims.read": [
     "read {at}",
     { slots: { at: "text" }, fixedBy: "issue 1252 (drafted)" },
@@ -743,5 +739,56 @@ export const DRAFT_COPY = Object.freeze({
   "fact.report.method": [
     "ReachKit's measurement of {domain} on {date} read Google's top ten results and the answers of {engines}; it does not measure Perplexity.",
     { slots: { domain: "text", date: "date", engines: "text" }, fixedBy: "SPEC §7 (2026-10-03) · issue 1163 · drafted" },
+  ],
+
+  // ── SPEC §4 (2026-10-10, issue 1395): why this topic, the topics set
+  // aside, and the two sources a page is written from. Drafted.
+  "draft.why.title": [
+    "Why this topic",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.why.fit.answer": [
+    "Fit: what you sell is the answer to this search",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.why.fit.helps": [
+    "Fit: what you sell helps with this search",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.why.rival": [
+    "Answered today by {rival}",
+    { slots: { rival: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.set-aside.title": [
+    "Topics set aside",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.set-aside.covered": [
+    "Already covered by your site: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.set-aside.too-hard": [
+    "Too hard for a site your size, for now: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.set-aside.low-fit": [
+    "A poor fit for your business: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.set-aside.resting": [
+    "Resting after a stopped page: {n}",
+    { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.written-from.counts": [
+    "Facts from your site: {site} · Market sources: {market}",
+    { slots: { site: "text", market: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.written-from.site": [
+    "From your site",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
+  ],
+  "draft.written-from.market": [
+    "From market research",
+    { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
 }) satisfies CopyPartition;

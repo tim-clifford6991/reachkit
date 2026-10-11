@@ -864,6 +864,7 @@ export function DraftScreen(p: {
               results. */}
           <TargetBlock
             target={view.target}
+            setAside={view.setAside}
             title={view.title}
             description={view.description}
             publisher={view.publisher}
