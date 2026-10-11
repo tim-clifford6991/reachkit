@@ -114,7 +114,15 @@ export async function deliverApproved(a: {
     // page live and never on a re-entry that found it already published.
     // The subject is the site, hashed inside the seam.
     if (!result.alreadyPublished) {
-      await capture("draft_published", { subject: (await siteOf(a.draftId)) ?? a.draftId });
+      const siteId = await siteOf(a.draftId);
+      await capture("draft_published", { subject: siteId ?? a.draftId });
+      // SPEC §7 (2026-10-10, issue 1391), links in both directions: the
+      // nearest older live pages are planned an update that links this one.
+      // It plans rows and writes no page; it never fails the delivery.
+      if (siteId !== null && result.liveUrl !== undefined) {
+        const { planLinkBacks } = await import("@/lib/opportunities");
+        await planLinkBacks({ siteId, url: result.liveUrl, at });
+      }
     }
     return {
       kind: "delivered",

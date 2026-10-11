@@ -26,9 +26,18 @@
 // a new version at the same address (issue 781), which is what sets the
 // page's updated date (issue 1137).
 //
+// **Links in both directions** (SPEC §7, 2026-10-10, issue 1391). A fourth
+// cause, planned when a page goes live and not on Monday: `link` — a newer
+// page of the site is live that this one is near and does not link. The
+// one or two nearest older pages are each planned this same refresh, whose
+// writer adds one sentence linking the new page. A page the customer edited,
+// or whose refresh they stopped, is theirs and is never among them. The
+// floor stands for this cause as for the others.
+//
 // Nothing is bought and no model is asked. The partial unique index keeps
 // one open or queued refresh a page.
-import { EFFORT_BY_TYPE, INTENT_UNMET_WEEKS, PACE, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
+import { CROSS_LINKS, EFFORT_BY_TYPE, INTENT_UNMET_WEEKS, PACE, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
+import { linkWords, sameWord } from "@/lib/generate/links/text";
 import { measured } from "@/lib/measure/measured";
 import type { Candidate } from "./derive/candidate";
 import { persist } from "./derive/persist";
@@ -61,6 +70,14 @@ export interface OwnLivePage {
   unmet?: boolean;
   facts: readonly RecordedPassage[];
   marketFacts: readonly RecordedPassage[];
+  /** Issue 1391, what a link back is chosen from: the page's title, its
+   *  body as it is live, whether the customer edited this version, and
+   *  whether they stopped a refresh of this page. Absent reads as an
+   *  untitled, empty, untouched page. */
+  title?: string;
+  markdown?: string;
+  edited?: boolean;
+  stopped?: boolean;
 }
 
 export interface RefreshPools {
@@ -114,6 +131,94 @@ export function refreshCauseOf(page: OwnLivePage, pools: RefreshPools, at: Date)
   return age >= PACE.REFRESH_AGE_DAYS * DAY_MS ? "aged" : null;
 }
 
+/** The address as two addresses are compared: host without `www.`, no
+ *  trailing slash, case folded. */
+function addressKey(url: string): string {
+  return url.trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, "").replace(/[#?].*$/, "").replace(/\/+$/, "");
+}
+
+/**
+ * Links in both directions (issue 1391): the older live pages that gain a
+ * link to the page at `freshUrl`, nearest first, at most
+ * `CROSS_LINKS.BACK_PAGES_MAX`. Pure.
+ *
+ * Nearest is read off the site's own pages: the words two pages' titles and
+ * searches share, each weighed by how few of the site's pages carry it — so
+ * "best" and "how", which half the titles hold, count for little, and the
+ * subject the two have in common counts for most. A page of the same
+ * cluster comes first. A page that shares no word of four letters or more
+ * is not near at all.
+ */
+export function linkBackCandidates(pages: readonly OwnLivePage[], freshUrl: string, at: Date): Candidate[] {
+  const fresh = pages.find((page) => addressKey(page.url) === addressKey(freshUrl));
+  // A page going live for the first time: a refresh of an old page is not news
+  // its neighbours owe a link to.
+  if (fresh === undefined || (fresh.row.family !== "write" && fresh.row.family !== "earn")) return [];
+  const freshTitle = (fresh.title ?? "").trim() || (fresh.row.targetQuery ?? "");
+  if (freshTitle === "") return [];
+  const wordsOf = (page: OwnLivePage): string[] => [...new Set(linkWords(`${page.title ?? ""} ${page.row.targetQuery ?? ""}`))];
+  const held = new Map(pages.map((page) => [page, wordsOf(page)]));
+  const carriers = (word: string): number =>
+    pages.filter((page) => (held.get(page) ?? []).some((other) => sameWord(other, word))).length;
+  const wanted = wordsOf(fresh)
+    .filter((word) => word.length >= 4)
+    .map((word) => ({ word, weight: Math.log((pages.length + 1) / Math.max(1, carriers(word))) }));
+  const near = (page: OwnLivePage): number => {
+    const shared = wanted.filter((want) => (held.get(page) ?? []).some((word) => sameWord(word, want.word)));
+    if (shared.length === 0) return 0;
+    const cluster = fresh.row.clusterKey !== null && fresh.row.clusterKey !== undefined && fresh.row.clusterKey === page.row.clusterKey;
+    return shared.reduce((sum, want) => sum + want.weight, 0) + (cluster ? 1_000 : 0);
+  };
+
+  return pages
+    .filter(
+      (page) =>
+        page !== fresh &&
+        page.row.targetQuery !== null &&
+        page.publishedAt.getTime() < fresh.publishedAt.getTime() &&
+        at.getTime() - page.publishedAt.getTime() >= REFRESH_MIN_AGE_DAYS * DAY_MS &&
+        page.edited !== true &&
+        page.stopped !== true &&
+        !(page.markdown ?? "").toLowerCase().includes(addressKey(fresh.url))
+    )
+    .map((page) => ({ page, score: near(page) }))
+    .filter((each) => each.score > 0)
+    .sort((x, y) => y.score - x.score || y.page.publishedAt.getTime() - x.page.publishedAt.getTime())
+    .slice(0, CROSS_LINKS.BACK_PAGES_MAX)
+    .map(({ page }) => refreshOf(page, "link", at, { url: fresh.url, title: freshTitle }));
+}
+
+/** The refresh of one page, for one cause. */
+function refreshOf(page: OwnLivePage, cause: RefreshCause, at: Date, link?: { url: string; title: string }): Candidate {
+  const { row } = page;
+  const query = row.targetQuery ?? "";
+  const evidence: Evidence = {
+    family: "improve",
+    query,
+    volume: row.volume ?? measured(0, at),
+    pageUrl: page.url,
+    shortfall: { kind: "due", cause, since: measured(page.publishedAt, at), ...(link === undefined ? {} : { link }) },
+    ...("target" in row.evidence && row.evidence.target !== undefined ? { target: row.evidence.target } : {}),
+  };
+  return {
+    siteId: row.siteId,
+    scanId: row.scanId,
+    type: "refresh_page",
+    family: FAMILY_OF.refresh_page,
+    targetQuery: query,
+    targetRef: page.url,
+    // The page exists and has its own title.
+    title: null,
+    volume: row.volume,
+    evidence,
+    acceptance: row.acceptance,
+    fitBand: row.fitBand,
+    businessFit: row.businessFit ?? null,
+    source: row.source ?? null,
+    effort: EFFORT_BY_TYPE.refresh_page,
+  };
+}
+
 /** The refresh of each page that is due. Pure. */
 export function refreshCandidates(pages: readonly OwnLivePage[], pools: RefreshPools, at: Date): Candidate[] {
   return pages.flatMap((page): Candidate[] => {
@@ -131,33 +236,7 @@ export function refreshCandidates(pages: readonly OwnLivePage[], pools: RefreshP
       const target = closestPrompt(row.targetQuery, open);
       if (target !== null) return [retargetCandidate(page, { target: target.text, volume: target.volume, at })];
     }
-    const evidence: Evidence = {
-      family: "improve",
-      query: row.targetQuery,
-      volume: row.volume ?? measured(0, at),
-      pageUrl: page.url,
-      shortfall: { kind: "due", cause, since: measured(page.publishedAt, at) },
-      ...("target" in row.evidence && row.evidence.target !== undefined ? { target: row.evidence.target } : {}),
-    };
-    return [
-      {
-        siteId: row.siteId,
-        scanId: row.scanId,
-        type: "refresh_page",
-        family: FAMILY_OF.refresh_page,
-        targetQuery: row.targetQuery,
-        targetRef: page.url,
-        // The page exists and has its own title.
-        title: null,
-        volume: row.volume,
-        evidence,
-        acceptance: row.acceptance,
-        fitBand: row.fitBand,
-        businessFit: row.businessFit ?? null,
-        source: row.source ?? null,
-        effort: EFFORT_BY_TYPE.refresh_page,
-      },
-    ];
+    return [refreshOf(page, cause, at)];
   });
 }
 
@@ -167,7 +246,12 @@ interface PublicationRow {
   id: string;
   live_url: string | null;
   published_at: string | null;
-  drafts: { meta: Record<string, unknown> | null; opportunities: OpportunityRow | null } | null;
+  drafts: {
+    title?: string | null;
+    body_md?: string | null;
+    meta: Record<string, unknown> | null;
+    opportunities: OpportunityRow | null;
+  } | null;
 }
 
 function passagesOf(value: unknown): (RecordedPassage & { readAt: Date | null })[] {
@@ -185,7 +269,7 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
   const client = untyped();
   const live = await client
     .from<PublicationRow>("publications")
-    .select(`id, live_url, published_at, drafts(meta, opportunities(${COLUMNS}))`)
+    .select(`id, live_url, published_at, drafts(title, body_md, meta, opportunities(${COLUMNS}))`)
     .eq("site_id", siteId)
     .not("published_at", "is", null)
     .not("live_url", "is", null)
@@ -232,6 +316,10 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
       unmet: unmetAfter(judged.get(publication.id)),
       facts: passagesOf(meta.facts),
       marketFacts: passagesOf(meta.marketFacts),
+      title: (publication.drafts?.title ?? "").trim(),
+      markdown: publication.drafts?.body_md ?? "",
+      // `generate/edit.ts` stamps the first save a customer makes.
+      edited: typeof meta.first_edited_at === "string",
     });
   }
   return [...pages.values()].filter((page) => ours.has(page.url));
@@ -292,6 +380,47 @@ export async function planRefreshes(a: { siteId: string; at: Date }): Promise<nu
     return created.length;
   } catch (error) {
     console.error(JSON.stringify({ event: "refresh_plan_failed", siteId: a.siteId, message: String(error) }));
+    return 0;
+  }
+}
+
+/** The addresses whose refresh the customer stopped: a stopped draft
+ *  dismisses its row (SPEC §7, 2026-09-15). */
+async function stoppedRefreshes(siteId: string): Promise<Set<string>> {
+  const { data, error } = await untyped()
+    .from<{ target_ref: string | null }>("opportunities")
+    .select("target_ref")
+    .eq("site_id", siteId)
+    .eq("type", "refresh_page")
+    .eq("status", "dismissed");
+  if (error) throw new Error(`refresh: reading stopped refreshes for ${siteId}: ${error.message}`);
+  return new Set((data ?? []).flatMap((row) => (row.target_ref === null ? [] : [addressKey(row.target_ref)])));
+}
+
+/**
+ * Links in both directions (SPEC §7, 2026-10-10, issue 1391): when the page
+ * at `url` goes live, the one or two nearest older live pages are each
+ * planned a refresh that links to it. Returns how many rows it added. It
+ * never throws: a page that went live is live whether or not its neighbours
+ * could be read.
+ */
+export async function planLinkBacks(a: { siteId: string; url: string; at: Date }): Promise<number> {
+  try {
+    const store = opportunityStore();
+    if (store.refreshInputs === undefined) return 0;
+    const { pages } = await store.refreshInputs(a.siteId);
+    if (pages.length < 2) return 0;
+    const stopped = await stoppedRefreshes(a.siteId);
+    const candidates = linkBackCandidates(
+      pages.map((page) => ({ ...page, stopped: stopped.has(addressKey(page.url)) })),
+      a.url,
+      a.at
+    );
+    if (candidates.length === 0) return 0;
+    const { created } = await persist({ candidates });
+    return created.length;
+  } catch (error) {
+    console.error(JSON.stringify({ event: "link_back_plan_failed", siteId: a.siteId, message: String(error) }));
     return 0;
   }
 }
