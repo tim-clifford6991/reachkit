@@ -40,6 +40,7 @@ import { AUTOSAVE_DEBOUNCE_MS, PREVIEW_DEBOUNCE_MS } from "@/lib/config/constant
  *  number, named here so the one test that has to wait it out says why. */
 const CODEMIRROR_TYPING_LATCH_MS = 200;
 import { copy } from "@/lib/presentation/copy";
+import { HARD_RULES, NO_CHECKS } from "@/lib/generate/rules/types";
 import { renderMarkdownHtml } from "@/lib/publish/render/markdown";
 import { DraftScreen } from "@/app/(account)/app/draft/[draftId]/DraftScreen";
 import { assembleDraft } from "@/app/(account)/app/draft/[draftId]/model";
@@ -265,8 +266,9 @@ describe("REQ-045 c3 and c11 — the claim outcome, in every case", () => {
     expect(root.querySelector('[data-testid="draft-claim-failed"]')).toBeNull();
     expect(root.querySelector('[data-testid="draft-claim-entry"]')).toBeNull();
     // The checks list names it as running, and draws no pass for it.
-    expect(textOf(root, "draft-check-pending")).toBe(copy("draft.claim.outstanding"));
-    expect(root.querySelector('[data-testid="draft-check-do_not_claim"]')).toBeNull();
+    const row = root.querySelector('[data-testid="draft-check-do_not_claim"]');
+    expect(row?.getAttribute("data-status")).toBe("pending");
+    expect(row?.textContent).toContain(copy("draft.claim.outstanding"));
   });
 });
 
@@ -507,25 +509,32 @@ describe("S16 — the Decide rail", () => {
     }
   });
 
-  it("the four checks are drawn, each as its own sentence", () => {
-    const rows = markup().querySelectorAll('[data-testid^="draft-check-"]');
-    expect([...rows].map((row) => row.getAttribute("data-testid"))).toEqual([
-      "draft-check-grounding",
-      "draft-check-do_not_claim",
-      "draft-check-near_duplicate",
-      "draft-check-no_invented_people",
-    ]);
+  it("the headline counts the passes out of every rule, and says one was fixed", () => {
+    const root = markup();
+    const skipped = root.querySelectorAll('[data-testid^="draft-check-"][data-status="skipped"]').length;
+    expect(skipped).toBe(3);
+    expect(textOf(root, "draft-checks-headline")).toBe(
+      copy("draft.checks.headline", { passed: HARD_RULES.length - skipped, total: HARD_RULES.length })
+    );
+    expect(textOf(root, "draft-checks-fixed")).toBe(copy("draft.checks.count.fixed", { n: 1 }));
+  });
+
+  it("every rule is a row in the one note, and the note is closed", () => {
+    const note = markup().querySelector('details[data-testid="draft-checks"]');
+    expect(note?.hasAttribute("open")).toBe(false);
+    expect(note?.querySelectorAll('[data-testid^="draft-check-"]').length).toBe(HARD_RULES.length);
   });
 
   it("a page past review offers no control block at all, and still lists what was checked", () => {
     const root = markup({ ...VIEW, state: "published" });
     expect(root.querySelector('[data-testid="draft-actions"]')).toBeNull();
-    expect(root.querySelectorAll('[data-testid^="draft-check-"]').length).toBe(4);
+    expect(root.querySelectorAll('[data-testid^="draft-check-"]').length).toBe(HARD_RULES.length);
   });
 
-  it("a draft with no recorded battery lists only the two the view decides itself", () => {
-    const root = markup({ ...VIEW, recordedChecks: [] });
+  it("a draft with no recorded battery lists only the two the view decides itself, and states no count", () => {
+    const root = markup({ ...VIEW, recordedChecks: NO_CHECKS });
     expect(root.querySelectorAll('[data-testid^="draft-check-"]').length).toBe(2);
+    expect(textOf(root, "draft-checks-headline")).toBe(copy("draft.checks.title"));
   });
 });
 
@@ -764,7 +773,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
       ok: true,
       savedAt: new Date(0),
       claim: { state: "outstanding" },
-      recordedChecks: [],
+      recordedChecks: NO_CHECKS,
       rulesFailed: false,
     });
     mount();
@@ -786,7 +795,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
       ok: true,
       savedAt: new Date(0),
       claim: { state: "outstanding" },
-      recordedChecks: [],
+      recordedChecks: NO_CHECKS,
       rulesFailed: false,
     });
     say.mockClear();
@@ -838,7 +847,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
       ok: true,
       savedAt: new Date(0),
       claim: { state: "passed", at: new Date(0) },
-      recordedChecks: [],
+      recordedChecks: NO_CHECKS,
       rulesFailed: true,
     });
     mount();
@@ -1062,7 +1071,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
       ok: true,
       savedAt: new Date(Date.UTC(2026, 8, 15, 17, 6, 0)),
       claim: { state: "outstanding" },
-      recordedChecks: [],
+      recordedChecks: NO_CHECKS,
       rulesFailed: false,
     });
     mount();

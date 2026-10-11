@@ -86,6 +86,8 @@ import { setGenerateStore } from "@/lib/generate/store";
 import { readDraftRow } from "@/app/(account)/app/draft/[draftId]/store";
 import { assembleDraft } from "@/app/(account)/app/draft/[draftId]/model";
 import { DraftScreen } from "@/app/(account)/app/draft/[draftId]/DraftScreen";
+import { HARD_RULES, NO_CHECKS } from "@/lib/generate/rules/types";
+import { copy } from "@/lib/presentation/copy";
 
 const SITE = { siteId: SITE_ID, timeZone: "America/New_York", mode: "autopilot" as const, domain: "example.com" };
 
@@ -341,20 +343,27 @@ describe("§8's battery — the record the pipeline wrote is the record the draf
     expect(root.querySelector('[data-testid="draft-claim-entry"]')?.textContent).toBe(IN_THE_BODY);
   });
 
-  it("the Checks list draws the two recorded rules from the battery's record", async () => {
+  it("the Checks list draws every rule from the battery's record, and a rule the run was not asked is no pass", async () => {
     const { draftId } = await generatedDraftRow(siteInputs({ doNotClaim: [FORBIDDEN] }));
-    expect((await readDraftRow({ draftId, site: SITE }))?.recordedChecks).toEqual([
-      "grounding",
-      "near_duplicate",
-      "no_invented_people",
-    ]);
+    const recorded = (await readDraftRow({ draftId, site: SITE }))?.recordedChecks;
+    expect(recorded?.failed).toEqual([]);
+    expect(recorded?.passed).toEqual(expect.arrayContaining(["grounding", "near_duplicate", "no_invented_people"]));
+    // An answer page is not a market comparison: the rule about one was
+    // never asked of it.
+    expect(recorded?.skipped).toContain("honest_row");
+    expect(recorded?.passed).not.toContain("honest_row");
     const root = await screenFor(draftId);
-    for (const rule of ["grounding", "do_not_claim", "near_duplicate", "no_invented_people"]) {
-      expect(root.querySelector(`[data-testid="draft-check-${rule}"]`)).not.toBeNull();
-    }
+    expect(root.querySelectorAll('[data-testid^="draft-check-"]').length).toBe(HARD_RULES.length);
+    expect(root.querySelector('[data-testid="draft-check-honest_row"]')?.getAttribute("data-status")).toBe("skipped");
+    expect(root.querySelector('[data-testid="draft-checks-headline"]')?.textContent).toBe(
+      copy("draft.checks.headline", {
+        passed: root.querySelectorAll('[data-status="passed"]').length,
+        total: HARD_RULES.length,
+      })
+    );
   });
 
-  it("a rule the battery failed draws no row — the record is per rule, not one bit for the battery", async () => {
+  it("a rule the battery failed is drawn as not passed — the record is per rule, not one bit for the battery", async () => {
     // The near-duplicate gate stops this page, so §8 never queues it and
     // the customer never reads it in review. The row is put in front of the
     // read anyway, because what is under test is the reader: a recorded
@@ -369,13 +378,12 @@ describe("§8's battery — the record the pipeline wrote is the record the draf
     const row = seedFromStore(draftId!);
     expect(row.rule_failures).toMatchObject([{ rule: "near_duplicate" }]);
 
-    expect((await readDraftRow({ draftId: draftId!, site: SITE }))?.recordedChecks).toEqual([
-      "grounding",
-      "no_invented_people",
-    ]);
+    const recorded = (await readDraftRow({ draftId: draftId!, site: SITE }))?.recordedChecks;
+    expect(recorded?.failed).toEqual(["near_duplicate"]);
+    expect(recorded?.passed).toContain("no_invented_people");
     const root = await screenFor(draftId!);
-    expect(root.querySelector('[data-testid="draft-check-near_duplicate"]')).toBeNull();
-    expect(root.querySelector('[data-testid="draft-check-no_invented_people"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="draft-check-near_duplicate"]')?.getAttribute("data-status")).toBe("failed");
+    expect(root.querySelector('[data-testid="draft-check-no_invented_people"]')?.getAttribute("data-status")).toBe("passed");
   });
 
   it("the fixture-only keys are gone: a row carrying the old `meta` shape states nothing", async () => {
@@ -397,7 +405,7 @@ describe("§8's battery — the record the pipeline wrote is the record the draf
     const facts = await readDraftRow({ draftId, site: SITE });
     expect(facts?.claim).toEqual({ state: "outstanding" });
     // No battery is recorded, so nothing was passed — the honest empty.
-    expect(facts?.recordedChecks).toEqual([]);
+    expect(facts?.recordedChecks).toEqual(NO_CHECKS);
     const root = await screenFor(draftId);
     expect(root.querySelector('[data-testid="draft-claim-outstanding"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="draft-check-near_duplicate"]')).toBeNull();

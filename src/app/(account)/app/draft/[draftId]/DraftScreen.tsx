@@ -86,7 +86,7 @@ import { useDebounced } from "./useDebounced";
 import { SHAPE } from "./shape";
 import { NEEDS_YOU_COPY } from "@/lib/publish/record/lines";
 import { PACK_NEED_COPY, wordCount, type ClaimState, type DraftView } from "./model";
-import type { RailCheck } from "./checks";
+import { NO_CHECKS, type RecordedChecks } from "@/lib/generate/rules/types";
 
 /** The three fields the founder edits (#789), as one value: the buffer, the
  *  text the store last confirmed, and the text the last check ran on are
@@ -105,7 +105,7 @@ function sameText(a: DraftText, b: DraftText): boolean {
 interface Checked {
   text: DraftText;
   claim: ClaimState;
-  recordedChecks: readonly RailCheck[];
+  recordedChecks: RecordedChecks;
   rulesFailed: boolean;
 }
 
@@ -289,7 +289,7 @@ export function DraftScreen(p: {
   // against — and the re-check a save reports is that outcome from then on.
   const current = sameText(text, checked.text);
   const claim = current ? checked.claim : claimAfterSave();
-  const recordedChecks = current ? checked.recordedChecks : [];
+  const recordedChecks = current ? checked.recordedChecks : NO_CHECKS;
   /** Issue 1252: the page was not written because its context pack was
    *  short. The cause's own sentence — the one the Plan and Overview state
    *  for this page — and, under it, what was missing. Gone once the page

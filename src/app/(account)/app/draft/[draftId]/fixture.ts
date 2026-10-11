@@ -29,7 +29,11 @@ import type { PageRecord } from "@/lib/publish/record";
 // database at all (`provider.ts` says why).
 import { SEO_COPY } from "@/lib/publish/record/lines";
 import { FIXTURE_SHELL_FACTS } from "../../_shell/fixture";
+import { HARD_RULES, type HardRule } from "@/lib/generate/rules/types";
 import type { DraftFacts, RuleFacts, WrittenFrom } from "./model";
+
+/** The rules the fixture page's run was not asked. */
+const FIXTURE_SKIPPED: readonly HardRule[] = ["honest_row", "no_demo_text", "fit_claim"];
 
 // The zone and the publishing mode are the *site's*, not this screen's, so
 // they are read from the one fixture that already declares them rather
@@ -302,11 +306,16 @@ const UNEDITED: DraftFacts = {
   autoApprovesAt: AUTO_APPROVES_AT,
   lastSavedAt: null,
   record: NOT_DELIVERED,
-  // §8's battery as it ran on this page: the two rules the rail cannot
-  // compute for itself, recorded as passes. They are recorded rather than
-  // deduced for the reason `checks.ts` states — and this is the fixture
-  // account's own run, not a stand-in for a draft that has none.
-  recordedChecks: ["near_duplicate", "no_invented_people"],
+  // The battery as it ran on this page, an answer page: the three rules it
+  // was not asked are a comparison's two and the demo-text check, and one
+  // rule was failed first and then cleared. This is the fixture account's
+  // own run, not a stand-in for a draft that has none.
+  recordedChecks: {
+    passed: HARD_RULES.filter((rule) => !FIXTURE_SKIPPED.includes(rule) && rule !== "do_not_claim"),
+    failed: [],
+    skipped: FIXTURE_SKIPPED,
+    fixed: 1,
+  },
   // #928: the reserved account's site already has four pages, and the
   // closest to this one is its own CRM comparison — linked from this page,
   // as the sentence the rail draws says.

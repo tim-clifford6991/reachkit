@@ -19,7 +19,8 @@
 //
 //   groundedFact      §8's recorded fact and its source — `grounded_fact`
 //   claim             the claim check's last verdict — `claim_check`
-//   recordedChecks    which §8 hard rules passed — `rule_failures`
+//   recordedChecks    the last battery, rule by rule — `rule_failures`
+//                     and `meta.checks`
 //   bodyMdGenerated   the body as generated, before the customer's edits
 //   firstEditedAt     the first save that changed the text (#17)
 //   lastSavedAt       the last save the customer made
@@ -52,14 +53,14 @@ import { readPack } from "@/lib/generate/pipeline/pack";
 import {
   checkedAgainstNothing,
   readRecordedRules,
+  readRecordedRun,
   readRecordedVerdict,
-  recordedRulesPassed,
+  recordedChecks,
 } from "@/lib/generate/record";
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
 import { pageRecordFor } from "@/lib/publish/record";
 import { needsYouOf } from "@/lib/publish/record/needs-you";
-import { RAIL_CHECKS, type RailCheck } from "./checks";
 import { askedAs, doneWhen } from "../../calendar/store";
 import type { Choice } from "@/lib/opportunities/derive/explain";
 import { pageTargetOf } from "../../_shell/page-target";
@@ -300,22 +301,6 @@ export function claimStateOf(claimCheck: unknown): ClaimState {
   return checkedAgainstNothing(verdict)
     ? { state: "nothing_to_check" }
     : { state: "passed", at: verdict.at };
-}
-
-/**
- * The §8 rules the last battery passed, filtered to the four S16 names.
- *
- * The record is `drafts.rule_failures` — the failure list the pipeline
- * writes on every run — read through `record.ts`, which answers with the
- * rules a recorded run did **not** fail. A rule outside the four is dropped
- * rather than rendered: the rail speaks only for rules it can name, and an
- * unknown handle has no sentence. A row no battery has recorded anything
- * for answers the empty list, which is the arm `checks.ts` draws no row
- * for — the screen declining to speak for a run it has no result from.
- */
-export function recordedChecksOf(ruleFailures: unknown): readonly RailCheck[] {
-  const passed = recordedRulesPassed(ruleFailures);
-  return RAIL_CHECKS.filter((rule) => passed.includes(rule));
 }
 
 /** Whether the last battery recorded a rule this text breaks (#789). A row
@@ -563,7 +548,7 @@ export async function readDraftRow(a: {
     // is the one read behind every surface that states a page's standing;
     // nothing here re-derives liveness from a column.
     record: await pageRecordFor(a.draftId),
-    recordedChecks: recordedChecksOf(row.rule_failures),
+    recordedChecks: recordedChecks(row.rule_failures, readRecordedRun(row.meta)),
     rulesFailed: rulesFailedOf(row.rule_failures),
     // Read after the row above proved this account owns the draft, like the
     // page record: asking first would answer about a page the caller may

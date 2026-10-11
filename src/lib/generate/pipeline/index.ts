@@ -50,12 +50,12 @@ import { bodyWords, lengthRangeFor, sectionWords } from "../length";
 import { applyLinks } from "../links/apply";
 import type { LinkTarget } from "../links/select";
 import { urlKey } from "../links/select";
-import { recordedRulesValue, recordedVerdictValue } from "../record";
+import { recordedRulesValue, recordedRunValue, recordedVerdictValue } from "../record";
 import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
 import { answerBoxWords } from "../rules/blocks";
 import { linksOf, renderOf } from "../rules/text";
 import { titleNotes } from "../rules/title";
-import type { GroundedFact, RuleFailure, SiteRuleInputs } from "../rules/types";
+import type { GroundedFact, HardRule, RuleFailure, SiteRuleInputs } from "../rules/types";
 import { generateStore, type DraftRow } from "../store";
 import { TEMPLATES, type PackNeed } from "../templates";
 import { profileItemsUsed } from "../voice/profile-block";
@@ -329,7 +329,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     return { laid, markdown };
   };
 
-  const metaOf = (page: Finished, repairs: readonly RepairRecord[], elsewhere: number | null): Record<string, unknown> => {
+  const metaOf = (page: Finished, repairs: readonly RepairRecord[], elsewhere: number | null, outcome?: BatteryOutcome): Record<string, unknown> => {
     const linked = new Set(linksOf(page.markdown).map(urlKey));
     const used = pack.facts.filter((fact) => linked.has(urlKey(fact.url)) || page.markdown.includes(fact.passage));
     return {
@@ -356,11 +356,16 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       links: a.links.map((link) => ({ url: link.url, label: link.label, source: link.source, why: link.why ?? null })),
       length: { words: bodyWords(page.markdown), floor: length?.floor ?? null, ceiling: length?.ceiling ?? null },
       ...(repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...repairs] }),
+      // Issue 1394: the rules this run asked of the page and the ones it
+      // failed first and then cleared, for the draft screen's Checks list.
+      ...(outcome === undefined ? {} : { checks: recordedRunValue(outcome, broken) }),
       // A number and nothing else: which page it was is not recorded.
       ...(elsewhere === null ? {} : { elsewhere: { similarity: elsewhere } }),
     };
   };
 
+  /** Every rule a check of this run failed, before any repair or fix. */
+  const broken = new Set<HardRule>();
   let page = finish(written.value);
   const draftId = await writeRow({ title: page.laid.body.title, body_md: page.markdown, meta: metaOf(page, [], null) });
 
@@ -410,6 +415,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   const check = async (candidate: Finished) => {
     let markdown = candidate.markdown;
     let outcome = await battery(candidate, markdown);
+    if (!outcome.passed) for (const failure of outcome.failed) broken.add(failure.rule);
     const repairs: RepairRecord[] = [];
     const tried = outcome.passed || outcome.fit.state === "unrun" ? [] : repairable(outcome.failed);
     if (tried.length > 0) {
@@ -446,7 +452,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     await store.patchDraft(draftId, {
       title: checked.page.laid.body.title,
       body_md: checked.page.markdown,
-      meta: metaOf(checked.page, repairs, checked.close?.similarity ?? null),
+      meta: metaOf(checked.page, repairs, checked.close?.similarity ?? null, checked.outcome),
       claim_check: recordedVerdictValue(checked.outcome.claim),
       // Written on every run — the empty array on a run that found nothing,
       // because "the checks ran and passed" and "no check has touched this

@@ -24,7 +24,7 @@ import type { PackNeed } from "@/lib/generate/templates/types";
 import type { PageRecord } from "@/lib/publish/record";
 import type { PageTarget } from "../../_shell/page-target";
 import type { PageType } from "@/lib/opportunities/types";
-import type { RailCheck } from "./checks";
+import type { RecordedChecks } from "@/lib/generate/rules/types";
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
 import { factPresentIn } from "./grounded";
@@ -310,11 +310,11 @@ export interface DraftView {
    * draft — a shape, not a placeholder, and the block is simply absent.
    */
   record: PageRecord | null;
-  /** S16's Checks list: the §8 rules generation recorded a pass for. Empty
-   *  where it recorded none — the rail then draws no row for them, rather
-   *  than deducing a pass from the fact that the draft reached review
-   *  (`checks.ts` states the argument). */
-  recordedChecks: readonly RailCheck[];
+  /** The Checks list: the last battery, rule by rule. Empty where none is
+   *  recorded — the rail then draws no row for them, rather than deducing
+   *  a pass from the fact that the draft reached review (`checks.ts`
+   *  states the argument). */
+  recordedChecks: RecordedChecks;
   /** SPEC §7 (2026-09-20, #928): what this page was held against — how many
    *  pages the site already has, and the closest of them to this page's
    *  topic. `null` for a site whose index holds nothing, and then the rail
@@ -420,7 +420,7 @@ export interface DraftFacts {
   record: PageRecord | null;
   /** §8's battery, as generation recorded it. Empty is the honest answer
    *  for a draft it recorded nothing for. */
-  recordedChecks: readonly RailCheck[];
+  recordedChecks: RecordedChecks;
   /** SPEC §7 (2026-09-20, #928): what this page was held against — how many
    *  pages the site already has, and the closest of them to this page's
    *  topic. `null` for a site whose index holds nothing, and then the rail
