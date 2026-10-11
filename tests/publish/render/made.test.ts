@@ -47,7 +47,7 @@ describe("the note in a post's content", () => {
   });
 
   it("a page with a single fact says so in the singular", () => {
-    expect(madeHtml({ meta: { factsUsed: ON_SITE.slice(0, 1) }, domain: "cafe.example", bodyMd: "" })).toContain("from one fact on cafe.example");
+    expect(madeHtml({ meta: { factsUsed: ON_SITE.slice(0, 1), rulesChecked: 19 }, domain: "cafe.example", bodyMd: "" })).toContain("from one fact on cafe.example");
   });
 
   it("a German site reads it in German", () => {
