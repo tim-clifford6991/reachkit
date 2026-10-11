@@ -70,6 +70,8 @@ export function WeekModule(p: {
   /** Issue 837 · #1070: the broader categories a market too small is
    *  offered, and the notice that says so when the supply line does not. */
   broader?: { choice: CategoryChoiceModel; notice: string | null } | null;
+  /** Issue 1395: what ReachKit did this week, drawn under the days. */
+  done?: React.ReactNode;
 }): React.JSX.Element {
   const title = copy("overview.week.title");
   const supplyLine = p.supply === undefined ? null : writtenLine(p.supply.key, p.supply.vars);
@@ -157,6 +159,7 @@ export function WeekModule(p: {
             {aimLine}
           </p>
         )}
+        {p.done}
         {broader === null ? (
           supplyLine === null ? null : (
             <p className="text-xs text-base-content/70" data-testid="overview-supply">

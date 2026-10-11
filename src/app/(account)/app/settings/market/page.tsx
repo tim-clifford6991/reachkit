@@ -16,6 +16,8 @@ import { copy } from "@/lib/presentation/copy";
 import { readSettings } from "../provider";
 import { MarketPanel } from "../panels/MarketPanel";
 import { CompetitorsPanel } from "../panels/CompetitorsPanel";
+import { readDone } from "../../_overview/done-provider";
+import { ProcessTimeline } from "../../_shell/ProcessTimeline";
 
 /** This tab's own `<title>` (#945, #925). Each sibling names itself
  *  inside Settings — `account-title.test.ts` forbids two screens
@@ -24,7 +26,7 @@ import { CompetitorsPanel } from "../panels/CompetitorsPanel";
 export const metadata: Metadata = { title: copy("meta.app.settings.market.title") };
 
 export default async function SettingsMarketTab(): Promise<React.JSX.Element> {
-  const settings = await readSettings();
+  const [settings, done] = await Promise.all([readSettings(), readDone()]);
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="settings-tab-panel-market">
@@ -35,6 +37,9 @@ export default async function SettingsMarketTab(): Promise<React.JSX.Element> {
         timeZone={settings.publishing.timeZone}
       />
       <CompetitorsPanel competitors={settings.competitors} concluded={settings.concluded} />
+      {/* SPEC §4 (2026-10-10, issue 1395): the process, kept here after
+          setup — each step with this site's own figure. */}
+      <ProcessTimeline facts={done} timeZone={settings.publishing.timeZone} />
     </div>
   );
 }
