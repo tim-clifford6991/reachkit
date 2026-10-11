@@ -1,0 +1,91 @@
+{
+ "version": "0.1.20260917",
+ "status_code": 20000,
+ "status_message": "Ok.",
+ "time": "5.0104 sec.",
+ "cost": 0.002,
+ "tasks_count": 1,
+ "tasks_error": 0,
+ "tasks": [
+  {
+   "id": "10110843-1923-0139-0000-54b238a3de77",
+   "status_code": 20000,
+   "status_message": "Ok.",
+   "time": "4.8528 sec.",
+   "cost": 0.002,
+   "result_count": 1,
+   "path": [
+    "v3",
+    "serp",
+    "google",
+    "organic",
+    "live",
+    "advanced"
+   ],
+   "data": {
+    "api": "serp",
+    "function": "live",
+    "se": "google",
+    "se_type": "organic",
+    "keyword": "ai search visibility tool",
+    "load_async_ai_overview": false,
+    "location_name": "United States",
+    "language_code": "en",
+    "depth": 10,
+    "device": "desktop",
+    "os": "windows"
+   },
+   "result": [
+    {
+     "keyword": "ai search visibility tool",
+     "type": "organic",
+     "se_domain": "google.com",
+     "location_code": 2840,
+     "language_code": "en",
+     "check_url": "https://www.google.com/search?q=ai%20search%20visibility%20tool&hl=en&gl=US&ie=UTF-8&uule=w+CAIQIFISCQs2MuSEtepUEUK33kOSuTsc",
+     "datetime": "2026-10-11 08:43:24 +00:00",
+     "spell": null,
+     "refinement_chips": null,
+     "item_types": [
+      "ai_overview",
+      "organic",
+      "paid",
+      "related_searches"
+     ],
+     "se_results_count": 131,
+     "pages_count": 1,
+     "items_count": 3,
+     "items": [
+      {
+       "type": "organic",
+       "rank_group": 1,
+       "rank_absolute": 2,
+       "domain": "aiclicks.io",
+       "title": "AI Search Visibility Tracking & Optimization Tool",
+       "url": "https://aiclicks.io/",
+       "description": "AIclicks tracks your AI visibility, identifies the sources driving citations, and gets your brand mentioned by AI. Automate with Agents. Audit Your Brand."
+      },
+      {
+       "type": "organic",
+       "rank_group": 2,
+       "rank_absolute": 3,
+       "domain": "seranking.com",
+       "title": "AI Visibility Tracker that fits your delivery map",
+       "url": "https://seranking.com/ai-visibility-tracker.html",
+       "description": "Use the AI Visibility Tool to track brand mentions and links in AI answers. See how you stack up against competitors and grow your AI search visibility."
+      },
+      {
+       "type": "organic",
+       "rank_group": 3,
+       "rank_absolute": 4,
+       "domain": "www.data-mania.com",
+       "title": "AI Search Visibility Tools: 6 Months of Real Testing",
+       "url": "https://www.data-mania.com/blog/ai-search-visibility-tool/",
+       "description": "AIrefs – the AI search visibility tool that shows you the entire competitive landscape."
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

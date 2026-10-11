@@ -127,6 +127,25 @@ export const CAPS = Object.freeze({
  *  warning cannot drift away from the ceiling it warns about. */
 export const SPEND_ALERT_AT = Object.freeze({ warn: 0.8, ceiling: 1 } as const);
 
+/**
+ * US dollars for one euro (issue 1408, owner 2026-10-11).
+ *
+ * Every figure the product records is a US cent, the currency both vendors
+ * bill in. The one euro figure is the testing budget's two euros a day
+ * (`docs/PROCESS.md`, *Testing budget*), and `npm run costs` converts it
+ * with this rate to judge the day.
+ *
+ * `rate` is the European Central Bank's euro foreign exchange reference
+ * rate for `asOf`: https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml.
+ * It is a pin, not a feed. Set it again when the dollar has moved by more
+ * than a few per cent, with the new date.
+ */
+export const USD_PER_EUR = Object.freeze({
+  rate: 1.1206,
+  asOf: "2026-10-09",
+  source: "ECB euro foreign exchange reference rate",
+} as const);
+
 /** Per-token model prices, cents per million tokens. `haiku` is BP-005
  *  `## Public interface`, transcribed verbatim (rule 1.2 — data, not a
  *  chosen parameter): `haiku: { inCentsPerM: 100; outCentsPerM: 500 }`.
@@ -155,7 +174,10 @@ export const INFERENCE_PRICE_BOOK = Object.freeze({
   sonnet: Object.freeze({ inCentsPerM: 300, outCentsPerM: 1500 } as const),
   /** `claude-sonnet-5`'s list price per million tokens, in cents — the tier
    *  a customer's page and its critic are written on (SPEC §7, 2026-09-29,
-   *  *Length and the writer*; issue 1138). */
+   *  *Length and the writer*; issue 1138). Checked on 2026-10-11 (issue
+   *  1408) against https://platform.claude.com/docs/en/about-claude/pricing:
+   *  2 US dollars in and 10 out per million tokens, which that page says is now the
+   *  standard price and not an introductory one. */
   writer: Object.freeze({ inCentsPerM: 200, outCentsPerM: 1000 } as const),
 } as const);
 

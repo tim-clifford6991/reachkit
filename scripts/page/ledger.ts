@@ -121,6 +121,7 @@ export function proofLedger(runCapCents: number, alreadySpentCents: number, scri
         freshnessDays: number;
         costCents: number;
         settleCents?: (payload: P) => number;
+        billedCents?: () => number | undefined;
         run: () => Promise<P>;
       }): Promise<
         // `storedAt` is the moment a served row was bought, and the product's
@@ -164,7 +165,7 @@ export function proofLedger(runCapCents: number, alreadySpentCents: number, scri
 
           ledgeredCents += settled;
           settledCents += settled;
-          appendSpend({ script, source: call.source, cents: settled });
+          appendSpend({ script, source: call.source, cents: settled, billed: call.billedCents?.() });
           rows.push({
             draft,
             source: call.source,

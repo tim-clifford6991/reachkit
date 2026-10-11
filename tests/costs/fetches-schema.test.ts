@@ -57,6 +57,11 @@ const FETCHES_DURATION_MIGRATION = path.join(
   // assertions are about the schema the product actually runs on.
   "supabase/migrations/20260918090000_fetches_duration_ms.sql"
 );
+const FETCHES_BILLED_MIGRATION = path.join(
+  REPO_ROOT,
+  // Issue 1408: `billed_cents`, the vendor's own charge.
+  "supabase/migrations/20261011120000_fetches_billed_cents.sql"
+);
 
 /** One tuple-only row per line, `|`-separated columns. */
 /** Runs `sql` and returns whether it raised (never throws itself). */
@@ -80,6 +85,7 @@ function resetAndApplySchema(): void {
   psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_MONEY_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_DURATION_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_BILLED_MIGRATION]);
   psql(["-c", "NOTIFY pgrst, 'reload schema';"]);
   execFileSync("sleep", ["0.3"]); // PostgREST's schema-cache reload is async.
 }
@@ -160,8 +166,17 @@ describe(
           // one column added since, and the owner's next abort value is
           // chosen from it.
           "duration_ms",
+          // Issue 1408: what the vendor billed, beside our own estimate.
+          "billed_cents",
         ].sort()
       );
+    });
+
+    it("`billed_cents` is nullable, so every older row and every call with no charge on its response stays valid (issue 1408)", () => {
+      const rows = psqlRows(
+        `select data_type, is_nullable from information_schema.columns where table_schema = 'public' and table_name = 'fetches' and column_name = 'billed_cents';`
+      );
+      expect(rows).toEqual([["numeric", "YES"]]);
     });
 
     it("`reserved_cents` is present and not null — a missing column fails this test", () => {

@@ -768,7 +768,8 @@ actually spent writes one row to **`fetches`**. That table is the source of trut
 | `source` | the vendor endpoint or model id, free text |
 | `cache_key`, `policy_version` | what was bought, and under which generation of the derivation |
 | `reserved_cents` | what the cap was checked against |
-| `cost_cents` | what it settled at |
+| `cost_cents` | what it settled at, from our own price list |
+| `billed_cents` | what the vendor says it charged for the call, read from its response (#1408). Null where the response carried no charge: a model call, an own-page read, a timeout, and every row before 2026-10-11 |
 | `created_at` | when |
 
 RLS is on with no policy — default-deny — so it is reachable only through `dbAdmin()`. **No cost
@@ -857,18 +858,116 @@ appends a line to **`/root/ops/reachkit/spend.jsonl`** instead (SPEC §6, D57, #
 
 ```json
 {"at":"2026-10-06T09:14:02.118Z","issue":"1286","script":"page","source":"llm:writer","cents":4.21}
+{"at":"2026-10-11T08:43:24.949Z","issue":"1408","script":"pass","source":"serp/google/organic","cents":0.2,"billed":0.2}
 ```
 
-`issue` is the number of an `issue-<N>` branch, else the branch's name. A call that settled at
+`issue` is the number of an `issue-<N>` branch, else the branch's name. `cents` is the price
+book's figure. `billed` is the vendor's own charge for that call (#1408), and is absent where the
+response carried none, which is every model call. A call that settled at nothing and was billed
 nothing writes no line. The scripts that write it are `npm run page`, `npm run pass -- --live`, `npm run panel`, `scripts/market-inference.mjs`,
 `npm run eval:content`, `scripts/d19-cost.mjs` and `scripts/llm-mentions-pilot.mjs`; they all go
 through `appendSpend()` in `scripts/spend-log.mjs`, and **a new script that calls a vendor or a
-model calls it too**. `RK_SPEND_LOG=<file>` writes to another file.
+model calls it too**. `RK_SPEND_LOG=<file>` writes to another file. The file is not in the
+repository and is not rotated: to recreate it, nothing is needed — the first paid call creates it.
 
-`npm run costs` prints today's and the last 7 days' spend from that log, by issue, against D34's €2
-a day (`docs/PROCESS.md`, *Testing budget*). It warns past €1.50 and says stop at €2. A day is a UTC
-day. The file is not in the repository and is not rotated: to recreate it, nothing is needed — the
-first paid call creates it.
+### What the vendors billed
+
+Every cent above is our own estimate. The audit of 2026-10-11 found the price list 1.7 times
+DataForSEO's bill for that day, and $56 of the account's lifetime spend in no record (#1408).
+Three things now hold the estimate against the bill.
+
+**Each call.** A DataForSEO response states its own charge (`tasks[0].cost`, US dollars).
+`fetches.billed_cents` and the spend log's `billed` keep it in cents beside the estimate. The
+caps and the reservations still read the estimate: it is the figure known before the call.
+A line `{"event":"vendor_cost_mismatch",…}` is logged when the two differ.
+
+**Each hour.** `rk-vendor-snapshot.timer` runs `scripts/vendor-snapshot.mjs` from the main
+checkout on the hour. It appends one line to **`/root/ops/reachkit/vendor-snapshots.jsonl`**
+and logs to `/root/ops/reachkit/log/vendor-snapshot.log`:
+
+```json
+{"at":"2026-10-11T09:00:03.412Z","dataforseo":{"balanceCents":3113.1168,"depositedCents":10100,"dayCents":49.028,"day":"2026-10-11","timezone":"Europe/Berlin"}}
+```
+
+It reads `GET https://api.dataforseo.com/v3/appendix/user_data`, which the vendor does not
+charge for: the balance, everything deposited, and the vendor's total for its own day (the
+account's timezone, Europe/Berlin). It takes the keys from `/root/projects/reachkitv3/.env.local`
+and prints no credential. When that file holds `ANTHROPIC_ADMIN_KEY`, the line also carries
+`"anthropic":{"days":{"2026-10-11":96.2,…}}`: the organisation's cost report
+(`GET /v1/organizations/cost_report`) for today and the seven days before, in cents. That report
+covers everything billed to the organisation, not only ReachKit's key. An admin key is made in
+the Claude Console under Settings, Admin keys; the key the product calls the model with cannot
+read the report. Without it nothing fails.
+
+To recreate the timer, as root, write these two units, then run
+`systemctl daemon-reload && systemctl enable --now rk-vendor-snapshot.timer`:
+
+```ini
+# /etc/systemd/system/rk-vendor-snapshot.service
+[Unit]
+Description=ReachKit ops - what the vendors billed, read every hour (issue 1408)
+After=network-online.target
+Wants=network-online.target
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/ops/reachkit
+Environment=HOME=/root
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/node /root/projects/reachkitv3/scripts/vendor-snapshot.mjs
+StandardOutput=append:/root/ops/reachkit/log/vendor-snapshot.log
+StandardError=append:/root/ops/reachkit/log/vendor-snapshot.log
+
+# /etc/systemd/system/rk-vendor-snapshot.timer
+[Unit]
+Description=ReachKit ops - hourly vendor billing snapshot (issue 1408)
+[Timer]
+OnCalendar=hourly
+Persistent=true
+AccuracySec=1min
+[Install]
+WantedBy=timers.target
+```
+
+Remove it with `systemctl disable --now rk-vendor-snapshot.timer` and delete the two files. The
+snapshot file is not rotated; a line is about 200 bytes.
+
+**Each day: `npm run costs`.** For today and each of the last 7 days (UTC days) it prints
+**billed** beside **recorded**, for DataForSEO and for AI:
+
+- *Billed*, DataForSEO: the balance at the reading on the day's first hour, less the balance at
+  the next day's, with any deposit added back. For today it runs to a reading the command takes
+  itself, so the figure is current. Where no reading stands at the day's opening, it is the
+  vendor's own day total, and the line says so; that day is Berlin's, two hours off UTC.
+- *Billed*, AI: Anthropic's cost report for the day. Without an admin key it prints
+  `AI spend: estimated from tokens; no admin key`.
+- *Recorded*: the spend log plus production's `fetches`.
+
+It warns when billed and recorded differ by more than 10% or by more than 10¢. It then judges
+the day against D34's €2 (`docs/PROCESS.md`, *Testing budget*), on billed spend where it is
+known and recorded spend where it is not, warns past €1.50 and says stop at €2. Everything is in
+US cents; €2 is converted with `USD_PER_EUR` in `src/lib/config/constants.ts`, the ECB reference
+rate with its date. Change the rate there when the dollar has moved a few per cent.
+
+**Production's side needs a database key the box does not have.** `npm run costs` reads
+`fetches` when `.env.local` holds a real `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. The
+box's are placeholders, so it prints `Production ledger: not read` and recorded is test spend
+only. Until the owner puts a key there, run this in the Supabase SQL editor or through the
+connector, save the JSON array it returns, and pass it as `npm run costs -- --ledger <file>`:
+
+```sql
+select coalesce(jsonb_agg(d), '[]'::jsonb) from (
+  select (created_at at time zone 'utc')::date as day, source,
+         sum(cost_cents) as cost_cents, sum(billed_cents) as billed_cents
+    from fetches
+   where created_at >= date_trunc('day', now() at time zone 'utc') - interval '7 days'
+     and (cost_cents > 0 or billed_cents > 0)
+   group by 1, 2
+) d;
+```
+
+Other flags: `--stored` takes no fresh reading, and `--log`, `--snapshots` and `--env-file`
+name other files.
 
 ---
 

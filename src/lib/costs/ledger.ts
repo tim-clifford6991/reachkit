@@ -59,12 +59,17 @@ export interface FetchesRow {
    *  recorded, which is a row that was not timed rather than one that took
    *  no time. */
   duration_ms: number | null;
+  /** Issue 1408: what the vendor says it charged for this call, in cents,
+   *  read from its response. `null` where the response carried no charge —
+   *  a model call, an own-page read, a row from before the column. Never an
+   *  estimate: that is `cost_cents`. */
+  billed_cents: number | null;
   created_at: string;
 }
 
 interface QueryResult<T> {
   data: T[] | null;
-  error: { message: string } | null;
+  error: { message: string; code?: string } | null;
 }
 
 interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
@@ -100,20 +105,35 @@ export async function writeFetchRow(row: {
   payload: unknown;
   /** Issue 877: the elapsed milliseconds of the call this row records. */
   durationMs?: number;
+  /** Issue 1408: the vendor's own charge, where its response carried one. */
+  billedCents?: number;
 }): Promise<void> {
-  const { error } = await untypedFetches(dbAdmin())
-    .from<FetchesRow>("fetches")
-    .insert({
-      scan_id: row.scanId,
-      source: row.source,
-      cache_key: row.cacheKey,
-      policy_version: row.policyVersion,
-      reserved_cents: row.reservedCents,
-      cost_cents: row.costCents,
-      payload: row.payload,
-      ...(row.durationMs === undefined ? {} : { duration_ms: Math.round(row.durationMs) }),
-    });
+  const base = {
+    scan_id: row.scanId,
+    source: row.source,
+    cache_key: row.cacheKey,
+    policy_version: row.policyVersion,
+    reserved_cents: row.reservedCents,
+    cost_cents: row.costCents,
+    payload: row.payload,
+    ...(row.durationMs === undefined ? {} : { duration_ms: Math.round(row.durationMs) }),
+  };
+  const insert = (values: object) => untypedFetches(dbAdmin()).from<FetchesRow>("fetches").insert(values);
+  let { error } = await (row.billedCents === undefined ? insert(base) : insert({ ...base, billed_cents: row.billedCents }));
+  if (error && row.billedCents !== undefined && lacksBilledColumn(error)) {
+    // The deploy is ahead of the migration (issue 1408): the row is the
+    // ledger and the cache, so it is written without the vendor's figure
+    // rather than lost with it.
+    console.warn(JSON.stringify({ event: "billed_cents_column_missing", source: row.source, billedCents: row.billedCents }));
+    ({ error } = await insert(base));
+  }
   if (error) {
     throw new Error(`ledger.ts: insert into fetches failed: ${error.message}`);
   }
+}
+
+/** PostgREST's answer for a column its schema cache does not hold
+ *  (`PGRST204`), or Postgres's own (`42703`). */
+function lacksBilledColumn(error: { message: string; code?: string }): boolean {
+  return (error.code === "PGRST204" || error.code === "42703" || error.code === undefined) && error.message.includes("billed_cents");
 }
