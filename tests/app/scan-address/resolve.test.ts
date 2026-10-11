@@ -383,6 +383,15 @@ describe("issue 898 — a report whose market was never read says so, rather tha
     expect(state.notice).toEqual({ kind: "bot_protected" });
   });
 
+  it("bot protection is said above a refusal in force, which a visitor who asked for no scan is shown too (issue 1392)", async () => {
+    admitFreeScan.mockResolvedValue({ refuse: "domain_daily", retryAfterSeconds: 3600 });
+    readCurrentReport.mockResolvedValue(storedReport({ botProtected: true, complete: false }));
+    const state = await resolve();
+    if (state.kind !== "report") throw new Error("unreachable");
+    expect(state.notice).toEqual({ kind: "bot_protected" });
+    expect(state.control).toEqual({ kind: "none" });
+  });
+
   it("a report whose market was read keeps every notice it had", async () => {
     readCurrentReport.mockResolvedValue(
       storedReport({ complete: false, missing: [{ factor: "presence", reason: "undeterminable" }] })

@@ -44,6 +44,7 @@
 // `writtenAt` is not among them: it is `drafts.created_at`, a column the
 // baseline declares `not null`, so the day the page was written is read
 // from the row rather than from what generation remembered to write down.
+import type { LinkRecord } from "./links-panel";
 import { now as clock } from "@/lib/config/now";
 import { dbAdmin } from "@/lib/db";
 import { readRecordedFact } from "@/lib/generate/fact";
@@ -62,6 +63,7 @@ import { RAIL_CHECKS, type RailCheck } from "./checks";
 import { askedAs, doneWhen } from "../../calendar/store";
 import type { Choice } from "@/lib/opportunities/derive/explain";
 import { pageTargetOf } from "../../_shell/page-target";
+import type { SetAside } from "../../_overview/done";
 import {
   NO_RULE_FACTS,
   PACK_PAGES_SHOWN,
@@ -196,6 +198,40 @@ function addsAt(meta: Record<string, unknown> | null, state: string): { adds?: P
   return { adds: { claims, ask: value.short === true && state === "needs_attention" } };
 }
 
+/** Which pages code chose to link and what the check at publish found
+ *  (`meta.links`, `meta.linkCheck`; issue 1391), read as defensively as
+ *  every other key here. A page written before either was recorded reads as
+ *  nothing chosen and no check made. */
+function linkRecordAt(meta: Record<string, unknown> | null): LinkRecord {
+  const chosen = (Array.isArray(meta?.links) ? (meta.links as unknown[]) : []).flatMap((entry) => {
+    const link = entry as { url?: unknown; source?: unknown; why?: unknown } | null;
+    if (typeof link?.url !== "string" || typeof link.source !== "string") return [];
+    const why = typeof link.why === "object" && link.why !== null ? (link.why as { kind?: unknown; words?: unknown }) : null;
+    return [{ url: link.url, source: link.source, why }];
+  });
+  const factUrls = (Array.isArray(meta?.factsUsed) ? (meta.factsUsed as unknown[]) : []).flatMap((entry) => {
+    const url = (entry as { url?: unknown } | null)?.url;
+    return typeof url === "string" ? [url] : [];
+  });
+  const raw = meta?.linkCheck as { links?: unknown; removed?: unknown } | null | undefined;
+  const check =
+    raw === null || raw === undefined || !Array.isArray(raw.links)
+      ? null
+      : {
+          links: (raw.links as unknown[]).flatMap((entry) => {
+            const link = entry as { url?: unknown; status?: unknown } | null;
+            return typeof link?.url === "string" && typeof link.status === "string" ? [{ url: link.url, status: link.status }] : [];
+          }),
+          removed: (Array.isArray(raw.removed) ? (raw.removed as unknown[]) : []).flatMap((entry) => {
+            const link = entry as { url?: unknown; text?: unknown; kind?: unknown } | null;
+            return typeof link?.url === "string" && typeof link.text === "string"
+              ? [{ url: link.url, text: link.text, kind: link.kind === "source" ? ("source" as const) : ("site" as const) }]
+              : [];
+          }),
+        };
+  return { chosen, factUrls, check };
+}
+
 function stringAt(meta: Record<string, unknown> | null, key: string): string | null {
   const value = meta?.[key];
   return typeof value === "string" && value.trim() !== "" ? value : null;
@@ -324,6 +360,14 @@ async function targetQueryOf(opportunityId: string | null): Promise<string> {
   return choice.evidence.query;
 }
 
+/** The topics set aside (issue 1395), read the way Overview reads them.
+ *  Nothing where the count could not be read: the note then lists none. */
+async function setAsideAt(siteId: string): Promise<{ setAside?: SetAside }> {
+  const { readSetAsideFor } = await import("../../_overview/done-provider");
+  const setAside = await readSetAsideFor(siteId).catch(() => undefined);
+  return setAside === undefined ? {} : { setAside };
+}
+
 async function targetOf(opportunityId: string | null): Promise<DraftTarget> {
   if (opportunityId === null) return { kind: "unknown" };
   const choice = await readChoice(opportunityId);
@@ -337,7 +381,16 @@ async function targetOf(opportunityId: string | null): Promise<DraftTarget> {
     // value carries the date the pass could not read it on.
     at: choice.evidence.family === "fix" ? new Date(0) : choice.evidence.volume.at,
   });
-  return target === null ? { kind: "fix" } : { kind: "target", target };
+  if (target === null) return { kind: "fix" };
+  const evidence = choice.evidence;
+  return {
+    kind: "target",
+    target,
+    why: {
+      fit: choice.businessFit === 3 ? "answer" : choice.businessFit === 2 ? "helps" : null,
+      rival: evidence.family === "write" || evidence.family === "earn" ? evidence.rival.domain : null,
+    },
+  };
 }
 
 /**
@@ -499,6 +552,7 @@ export async function readDraftRow(a: {
       ...(pack === undefined ? {} : { pack }),
     },
     ...addsAt(row.meta, row.state),
+    linkRecord: linkRecordAt(row.meta),
     ...packShortAt(row, pack),
     domain: a.site.domain,
     state: row.state as State,
@@ -533,6 +587,7 @@ export async function readDraftRow(a: {
     // page record: asking first would answer about a page the caller may
     // not see.
     target: await targetOf(row.opportunity_id),
+    ...(await setAsideAt(a.site.siteId)),
     // #928, and after the same ownership proof: what the site already has,
     // and the closest of it to this page.
     knownCheck: await knownCheckFor({

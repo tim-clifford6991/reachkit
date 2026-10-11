@@ -4,7 +4,8 @@ import type { Template } from "./types";
 export const documentation: Template = {
   type: "documentation",
   for: "Be the reference page on one feature or concept this business's knowledge base covers.",
-  titles: ["What is {term}? {plain qualifier}"],
+  // Issue 1389: a statement that answers; the question only where the search is one.
+  titles: ["{Term}: {what it is, with one number, price or place from pack}", "What is {term}? {the answer, with one number, price or place from pack}"],
   sections: [
     { key: "what_it_is", task: "Say what it is." },
     { key: "how_it_works", task: "Say how it works." },

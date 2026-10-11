@@ -179,8 +179,9 @@ const STATUS_TONE: Readonly<Record<Severity, string>> = Object.freeze({
 /** SPEC §9's eight checks, one row each. A check that was not run, or ran
  *  and could not measure, has a grey dot and its why-line for a screen
  *  reader: no figure, no severity, no dash, and never "Nothing to fix". The
- *  who-does-it badge is the ruling's and is always shown. A check with lines
- *  to paste opens them under its row. */
+ *  who-does-it badge is the ruling's and is always shown; where the row is
+ *  too narrow for the name and the badge, the badge takes the next line. A
+ *  check with lines to paste opens them under its row. */
 function CheckRow(p: { card: CheckCard }): React.JSX.Element {
   const { card } = p;
   const title = copy(card.title);
@@ -209,7 +210,7 @@ function CheckRow(p: { card: CheckCard }): React.JSX.Element {
       <span className={`status status-lg shrink-0 ${tone}`}>
         {said === undefined ? null : <span className="sr-only">{said}</span>}
       </span>
-      <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 text-sm font-medium">
+      <span className="flex flex-1 flex-wrap items-baseline gap-x-2 text-sm font-medium">
         <span>{title}</span>
         {measured === null ? null : (
           <span className="text-base-content/70">
@@ -217,14 +218,14 @@ function CheckRow(p: { card: CheckCard }): React.JSX.Element {
           </span>
         )}
       </span>
-      <span className="badge badge-soft badge-primary badge-sm shrink-0">{copy(card.doer)}</span>
+      <span className="badge badge-soft badge-primary badge-sm ml-auto shrink-0">{copy(card.doer)}</span>
     </>
   );
   return (
     <li className="border-base-200 border-b py-3 last:border-b-0 md:[&:nth-last-child(2):nth-child(odd)]:border-b-0" data-check={card.check}>
       {fix.kind === "paste" ? (
         <details>
-          <summary className="flex cursor-pointer list-none items-center gap-3 [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 [&::-webkit-details-marker]:hidden">
             {row}
           </summary>
           <div className="mt-3 flex flex-col gap-2">
@@ -232,7 +233,7 @@ function CheckRow(p: { card: CheckCard }): React.JSX.Element {
           </div>
         </details>
       ) : (
-        <div className="flex items-center gap-3">{row}</div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">{row}</div>
       )}
     </li>
   );

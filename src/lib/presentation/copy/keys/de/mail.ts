@@ -42,7 +42,7 @@ export const MAIL_COPY_DE = {
   "mail.nurture.subject.1": "Die übrigen Seiten, die wir gefunden haben",
   "mail.nurture.subject.2": "Was sich ändert, sobald die Seiten online sind",
   "mail.nurture.subject.3": "Ein letzter Hinweis zu Ihrem Bericht",
-  "mail.nurture.body.1": "Sie haben Seite 1 für {domain}. ReachKit schreibt die übrigen – eine Seite pro Tag, für Sie veröffentlicht, und jede Seite wartet 24 Stunden, damit Sie sie stoppen können, bevor sie online geht. €49 im Monat, jederzeit kündbar.",
+  "mail.nurture.body.1": "Sie haben Seite 1 für {domain}. Ab hier übernimmt ReachKit: jeden Tag eine Seite, neu oder aktualisiert, für Sie veröffentlicht. Jede geht von selbst online, sofern Sie sie nicht vorher stoppen. €49 im Monat, jederzeit kündbar.",
   "mail.nurture.body.2": "Jede Seite, die ReachKit für {domain} schreibt, zielt auf eine Suchanfrage, die Ihre Mitbewerber bereits beantworten. Jeden Montag misst ReachKit Ihren gesamten Markt neu und sagt Ihnen, was sich bewegt hat – nur was gemessen wurde, nie eine Schätzung.",
   "mail.nurture.body.3": "Das ist die letzte Folge-E-Mail zu {domain}. Ihr Bericht und Ihre erste Seite gehören weiterhin Ihnen. Wenn Sie die übrigen Seiten geschrieben und veröffentlicht haben möchten: ReachKit kostet €49 im Monat und ist jederzeit kündbar.",
 
@@ -205,7 +205,7 @@ export const MAIL_COPY_DE = {
   "mail.cancellation.subject": "Ihr Abonnement ist gekündigt",
   "mail.cancellation.line": "Sie behalten den vollen Zugang bis {accessEndsOn}, und es wird nichts weiter abgebucht.",
   "mail.winback.subject": "Machen Sie dort weiter, wo Sie aufgehört haben",
-  "mail.winback.line": "ReachKit kann wieder Seiten für Ihre Website schreiben und veröffentlichen: eine pro Tag, und jede geht von selbst online, sofern Sie sie nicht vorher stoppen. €49 im Monat, jederzeit kündbar.",
+  "mail.winback.line": "ReachKit kann wieder Seiten für Ihre Website schreiben und veröffentlichen: jeden Tag eine Seite, neu oder aktualisiert, und jede geht von selbst online, sofern Sie sie nicht vorher stoppen. €49 im Monat, jederzeit kündbar.",
   "mail.winback.action": "ReachKit fortsetzen",
   "mail.reason.winback": "Einmal verschickt, 30 Tage nach Ihrer Kündigung. Danach folgt keine weitere E-Mail.",
 } as const satisfies CopyTranslation;

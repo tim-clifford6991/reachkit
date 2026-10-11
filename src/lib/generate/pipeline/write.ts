@@ -38,6 +38,7 @@ export interface FaqEntry {
   answer: string;
 }
 
+const TITLES = z.array(z.string());
 const TAKEAWAYS = z.array(z.string());
 const SECTIONS = z.array(z.strictObject({ key: z.string(), heading: z.string(), body: z.string() }));
 const FAQ = z.array(z.strictObject({ question: z.string(), answer: z.string() }));
@@ -49,9 +50,9 @@ const FAQ = z.array(z.strictObject({ question: z.string(), answer: z.string() })
 const listOrText = <T extends z.ZodType>(list: T) => z.union([list, z.string()]);
 
 const ANSWER_SCHEMA = z.strictObject({
-  title: z.string(),
-  /** The page's H1 (D51): the title's longer, conversational form. */
-  heading: z.string(),
+  /** The titles the writer proposes (issue 1389): code picks one, and it is
+   *  the page's `<title>` and its H1. */
+  titles: listOrText(TITLES),
   slug: z.string(),
   description: z.string(),
   answer: z.string(),
@@ -65,8 +66,7 @@ const ANSWER_SCHEMA = z.strictObject({
 
 /** What the writer returns: the page in the template's parts. */
 export interface PageParts {
-  title: string;
-  heading: string;
+  titles: z.infer<typeof TITLES>;
   slug: string;
   description: string;
   answer: string;
@@ -94,18 +94,19 @@ function listOf<T extends z.ZodType>(schema: T, value: unknown): z.infer<T> | nu
  *  came back as text is not that list. */
 function partsOf(answer: Measured<z.infer<typeof ANSWER_SCHEMA>>): Measured<PageParts> {
   if (answer.kind === "unmeasured") return answer;
+  const titles = listOf(TITLES, answer.value.titles);
   const takeaways = listOf(TAKEAWAYS, answer.value.takeaways);
   const sections = listOf(SECTIONS, answer.value.sections);
   const faq = listOf(FAQ, answer.value.faq);
-  if (takeaways === null || sections === null || faq === null) return unmeasured("undeterminable", answer.at);
-  return { ...answer, value: { ...answer.value, takeaways, sections, faq } };
+  if (titles === null || takeaways === null || sections === null || faq === null) return unmeasured("undeterminable", answer.at);
+  return { ...answer, value: { ...answer.value, titles, takeaways, sections, faq } };
 }
 
 /** The page as it is stored and as every check reads it. */
 export interface DraftBody {
   /** The `<title>`: the search form (D51). */
   title: string;
-  /** The H1, where the writer gave a longer form; else the title. */
+  /** The H1: the title (issue 1389). */
   heading: string;
   slug: string;
   description: string;
@@ -132,7 +133,8 @@ const HOUSE_RULES = [
   "Write for a human reader only: never address an assistant, a crawler or a ranking system.",
   "A section's `body` is Markdown without its heading: paragraphs, flat lists, links, emphasis, GFM tables and one-paragraph blockquotes; a sub-point may be an H3 (###), never deeper. No raw HTML, no images, no comments.",
   "Each section's `heading` is the question a reader asks, in the reader's words, in sentence case, ending in a question mark. Open its `body` with a paragraph of two or three sentences that answers the heading on its own, before any list or table.",
-  "Link each page in `pack.links` once, with its url exactly as given, where the text speaks to it; link no other page on the business's domain except a fact's own source.",
+  "Link a page in `pack.links` once, with its url exactly as given, inside the sentence that speaks to what that page holds; link at least three of them, and no other page on the business's domain except a fact's own source.",
+  "A link's text is words of the sentence that name what the reader finds at the other end — the page's `label` or a plain description of it. Never a bare number, never an address, never \"here\", \"click here\" or \"read more\", and never the page's slogan.",
   "`pack.pages` are the pages this site has published or planned: write nothing that repeats one of them, and where one answers something this page raises, send the reader to it.",
   "Print no label, index or id for a fact — link text is the source's name. Write no sentence of legal, removal or refund terms, no caption of a demo or example, and no menu or navigation text.",
   "Say a promise or tagline of the business at most twice on the whole page. Write titles and headings in sentence case.",
@@ -197,15 +199,17 @@ function taskFor(a: WriteInputs): string {
     "Write one page for `pack.target.question`, doing what `template.for` says the page is for.",
     "`template.sections` are the page's sections, in order: return each as one entry of `sections` with its `key` exactly as the template spells it, in that order — a section with `repeat` between `min` and `max` times, one after another — each under its own `heading` and doing what its `task` says.",
     a.pack.type === "update"
-      ? "`title` and `heading` are `pack.live.title`."
-      : "`title` is the page's `<title>`, the form a searcher types: it follows one of `template.titles` and holds every rule in `titleRules`. `heading` is the page's H1: the same promise in the longer, conversational form a reader would say aloud, with no year unless `title` has one.",
+      ? "`titles` is one entry: `pack.live.title`."
+      : `\`titles\` is ${TITLE.candidates} different titles for the page, each one you would publish: the page's \`<title>\` and its H1 are the one of them that best holds \`titleRules\`, chosen in code. Each is the form a searcher types, follows one of \`template.titles\` and holds every rule in \`titleRules\`; make them differ in the specific they carry or in how they lead, not in a word.`,
     `\`description\` is the meta description: ${TITLE.description.min} to ${TITLE.description.max} characters, counted — write about 140 — in whole sentences, and its first sentence answers the target.`,
     `${a.pack.type === "update" ? "The page's sections together — the short answer and the takeaways are not counted —" : "The page's body — the short answer, the takeaways and every section together —"} must be between ${a.length.floor} and ${a.length.ceiling} words, counted. Write about ${Math.round((a.length.floor + a.length.ceiling) / 2)} words — about ${Math.round((a.length.floor + a.length.ceiling) / 2 / Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0)))} a section, and no section under ${Math.ceil((a.length.floor * 1.15) / Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0)))}: a page under ${a.length.floor} or over ${a.length.ceiling} is stopped. Give every paragraph something the reader can use — detail, an example, a comparison or a consequence drawn from \`pack\` — and never pad or restate a point to reach the length.`,
     faq === null
       ? "`faq` is empty: this page's own questions are its buyer questions."
       : `\`faq\`: ${faq.min} to ${faq.max} questions buyers ask about the target that the headings do not already ask, each answered in two or three sentences under the same \`rules\`; they are stored with the page, not printed in it.`,
     a.pack.type === "update"
-      ? "`pack.live` is the page as it is live. Return every section of it under its own heading; rewrite only a section a fact in `pack` changes, and say in `updated`, in one sentence, what changed."
+      ? a.pack.live?.linkTo !== undefined
+        ? "`pack.live` is the page as it is live. Return every section of it under its own heading, as it stands. Add exactly one sentence, in the section that speaks most to it, that links `pack.live.linkTo.url` with link text naming what that newer page covers (`pack.live.linkTo.title`); the sentence states no figure and no fact that is not in `pack`. Change nothing else, and say in `updated`, in one sentence, that a link to the newer page was added."
+        : "`pack.live` is the page as it is live. Return every section of it under its own heading; rewrite only a section a fact in `pack` changes, and say in `updated`, in one sentence, what changed."
       : "`updated` is empty.",
     "`rules` hold throughout, and `honesty` says how this business appears on the page.",
   ].join(" ");

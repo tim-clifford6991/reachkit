@@ -61,7 +61,7 @@ const at = (value: unknown) => ({ kind: "measured", value, at: NOW });
 
 /** The one write call's answer. */
 function queuePage(markdown: string): void {
-  llmMock.mockResolvedValueOnce(at(pageParts(markdown, { title: "Picking a tool", slug: "picking-a-tool", description: "How." })));
+  llmMock.mockResolvedValueOnce(at(pageParts(markdown, { titles: ["Picking a tool"], slug: "picking-a-tool", description: "How." })));
 }
 
 let state: MemoryState;

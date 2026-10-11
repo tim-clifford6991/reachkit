@@ -172,7 +172,7 @@ export function runDeterministicRules(
     no_placeholder_cell: checkPlaceholderCell({ markdown: a.markdown }),
     no_demo_text: checkDemoText({ markdown: a.markdown, phrases: a.demoPhrases }),
     distinct_headings: checkDistinctHeadings({ markdown: a.markdown, apply: a.distinctHeadings === true }),
-    title: checkTitle({ title: a.title, rule: a.titleRule ?? null }),
+    title: checkTitle({ title: a.title, ...(a.heading === undefined ? {} : { heading: a.heading }), rule: a.titleRule ?? null }),
     plain_prose: checkProse({ markdown: a.markdown, prose: a.prose ?? null }),
   };
 }

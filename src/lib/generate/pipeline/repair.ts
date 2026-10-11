@@ -17,6 +17,7 @@
 // Deterministic, no I/O. The rules' own text model (`../rules/text.ts`) is
 // the only notion of a block and a sentence used here, so a repair and the
 // check that reads it cannot disagree about where a sentence ends.
+import { widenNumberLinks } from "../links/text";
 import { ANSWER_FIRST_BLOCK_CHARS } from "@/lib/config/constants";
 import {
   INVENTED_PROVENANCE_RES,
@@ -168,7 +169,9 @@ function repairNumerals(markdown: string, inputs: RepairInputs): string {
       if (url === null) return null;
       out = out.replace(numeralRe(figure.raw), `[${figure.raw}](${url})`);
     }
-    return out;
+    // Issue 1391: a link's text is never a bare figure — it takes in the
+    // words the figure counts.
+    return widenNumberLinks(out);
   });
 }
 

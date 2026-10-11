@@ -66,15 +66,15 @@ Where the jobs run is `docs/RUNBOOK.md` §1. There is no fifth merge gate.
 
 Tests prove customer-observable behaviour. Until a paying user, tests are at most one third of a product PR. A test that transcribes a markdown row is deleted.
 
-1. **Stored evidence first.** A question is answered from stored rows and stored vendor responses where they can answer it. A live run happens once, as proof after the merge.
+1. **Stored evidence first, fixtures by default.** A question is answered from stored rows and stored vendor responses (`fetches` payloads, `scripts/panel/evidence/`, `npm run panel -- --recheck`) where they can answer it. Tests and proofs use recorded responses unless the question cannot be answered without a new call. A live run happens once, as proof after the merge.
 2. **One dogfood site.** Live tests run on `reachkit.app`, plus at most one control site.
-3. **Every live test has a cap.** The issue states it (default 50¢), and the pull request reports the actual spend.
-4. **€2 a day across all live testing**, checked against the `fetches` ledger (`docs/RUNBOOK.md` §8). An agent that would exceed it stops and asks the owner first. Paid calls made by a script on the box are in `/root/ops/reachkit/spend.jsonl`. `npm run costs` prints them and warns at €1.50. Run it before a live test.
+3. **A live vendor call needs the master session's approval first.** An engineer asks on its issue, naming the calls, the sites and the cap, and waits for the master session's comment before any paid DataForSEO or model call. The cap defaults to 20¢ per issue. The pull request reports the spend.
+4. **€2 a day across all live testing, judged on what the vendors billed.** Spend is recorded in USD cents and the cap is converted at the rate in `constants.ts`. `npm run costs` shows billed beside recorded and judges the cap on billed spend where it is known, recorded spend where it is not (`docs/RUNBOOK.md` §8). Paid calls made by a script on the box are in `/root/ops/reachkit/spend.jsonl`. It warns at €1.50. Run it before a live test. An agent that would exceed the cap stops and asks the owner first.
 5. **At most three implementation agents at once.** No new issue is started while a proof is pending.
 6. **One smoke test per deploy batch.**
 7. **The Monday weekly pass is the default live proof.**
 
-Every change to market understanding, the knowledge base, rivals, terms, measured searches or topics passes `npm run panel` before the owner is asked to measure. A pass on reachkit.app alone is not proof. The panel is `docs/walk/panel/sites.json`. Its cap is 100¢ a run unless the issue states another. `npm run panel -- --recheck --date <date>` judges a stored run again for 0¢ (`docs/RUNBOOK.md` §4).
+Every change to market understanding, the knowledge base, rivals, terms, measured searches or topics passes `npm run panel` before the owner is asked to measure. A pass on reachkit.app alone is not proof. The panel is `docs/walk/panel/sites.json`. It runs only when a change touches how markets, rivals, terms, measured searches or topics are read, on at most five sites a run, after a 0¢ `--recheck` of the stored run could not answer the question. Its cap is 100¢ a run unless the issue states another. `npm run panel -- --recheck --date <date>` judges a stored run again for 0¢ (`docs/RUNBOOK.md` §4).
 
 The full matrix is a tool, not a job: `npm run test:layout:full` with `RK_LAYOUT_FULL=1`, on the box, against `scripts/db-substrate/up.sh --run`, when a width the gate does not reach needs an answer. Read the answer the same day.
 
@@ -142,3 +142,5 @@ Dated rulings. They explain Current. They are not instructions to carry out.
 2026-10-08  **Engineers run only the tests their change touches** (owner). CI runs the full `typecheck · lint · unit` suite on the box. An engineer does not run the whole `vitest run --project node --project ui` locally. Stated in Current. This frees the box's two heavy cores for the gates.
 
 2026-10-08  **The hygiene check keeps the documents and the box on Current** (owner). Stated in Current. It is part of `audit`, not a fifth gate. The timer is `docs/RUNBOOK.md`.
+
+2026-10-11  **Test spend is judged on what the vendors billed** (owner, #1408). An audit found the price book overstated DataForSEO by about 1.7× on the day, and about $56 of lifetime DataForSEO spend in no record. Fixtures are the default, a live vendor call needs the master session's approval with a cap (default 20¢), the panel runs only for a change to how markets are read on at most five sites, and the €2 cap is judged on billed spend recorded in USD. Stated in Current.

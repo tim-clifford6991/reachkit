@@ -202,7 +202,7 @@ describe("required_blocks — the first block a generated page lacks", () => {
 describe("the title, the H1 and the description are laid out in code (D51)", () => {
   it("an update keeps its live title, and its year moves only where a section changed", () => {
     const live = { title: "7 best seat planners for small teams (2025)", markdown: "", year: 2026 };
-    const parts = pageParts(CLEAN_MARKDOWN, { title: "A new title the writer preferred", heading: "Another heading" });
+    const parts = pageParts(CLEAN_MARKDOWN, { titles: ["A new title the writer preferred"] });
     const changed = layoutPage(parts, TEMPLATES.qa, { ...TIDY, live });
     expect(changed.body.title).toBe("7 best seat planners for small teams (2026)");
     expect(changed.body.heading).toBe(changed.body.title);

@@ -13,21 +13,21 @@ export const OFFER_COPY_DE = {
   "price.interval": "pro Monat, inkl. MwSt.",
 
   // Das Angebot auf dem Bericht
-  "offer.cadence.page": "Für Ihre Website wird {value} eine neue Seite geschrieben",
+  "offer.cadence.page": "Für Ihre Website {value} eine Seite, neu oder aktualisiert",
   "offer.cadence.measure": "Ihre Auffindbarkeit wird {value} neu gemessen",
   "offer.cadence.movement": "Was sich bewegt hat, {value} in Ihrem Postfach",
-  "offer.veto.window": "Jede Seite wartet {value}, damit Sie sie stoppen können, bevor sie online geht – und Sie können jederzeit selbst kündigen",
+  "offer.veto.window": "Jede Seite geht nach {value} von selbst online. Bis dahin können Sie sie bearbeiten oder stoppen – und jederzeit selbst kündigen",
   "offer.cancel_self_service": "Mit einem Klick kündigen, selbst.",
-  "offer.close.heading": "Schließen Sie die Lücke – eine Seite pro Tag.",
+  "offer.close.heading": "Schließen Sie die Lücke – jeden Tag eine Seite.",
   "offer.start": "ReachKit starten",
   "offer.start.priced": "ReachKit starten €49",
 
   // Das Angebot auf der Preisseite
-  "offer.pricing.page": "1 Seite pro Tag, für Sie geschrieben und veröffentlicht",
+  "offer.pricing.page": "Jeden Tag eine Seite, neu oder aktualisiert, für Sie veröffentlicht",
   "offer.pricing.measure": "Wöchentliche Neumessung Ihres gesamten Marktes",
   "offer.pricing.movement": "Wöchentliche E-Mail dazu, was sich bewegt hat",
   "offer.pricing.veto": "{hours} Stunden, um jede Seite zu stoppen, bevor sie online geht",
-  "plan.single": "Eine Seite pro Tag",
+  "plan.single": "Jeden Tag eine Seite",
   "offer.checkout.refused": "Der Bezahlvorgang konnte nicht gestartet werden. Versuchen Sie es gleich noch einmal.",
 
   // Die Werte der vier Zeilen oben

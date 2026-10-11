@@ -18,11 +18,14 @@
 // extra pages `pages?` may carry. No formula, parser or driver differs by
 // tier — the free and paid readings of the same bytes are identical.
 //
-// **No clock.** Every `Measured.at` this file produces is one date — the
-// `readAt` of the home document's own outcome — so the same bytes measured
-// twice serialise byte-identically, and every value under one verdict
-// shares one `at` (`verdict.ts` asserts exactly that). The only
-// `new Date(…)` calls here revive an ISO string a stored outcome carried.
+// **No clock.** Every figure this file computes carries one date, the
+// caller's `at`: the moment the pass started (issue 1392). It was the home
+// document's `readAt`, so a pass served a stored read wore the day of that
+// read, not its own. The same bytes measured twice under one `at` still
+// serialise byte-identically, and every value under one verdict shares one
+// `at` (`verdict.ts` asserts exactly that). The home page's own facts keep
+// the date the page was read. The only `new Date(…)` calls here revive an
+// ISO string a stored outcome carried.
 //
 // **`aiPresence` is `not_attempted` here, by design.** BUILD §5's AIPresence
 // is a rate over the twelve questions' SERPs, and the twelve are derived
@@ -221,7 +224,7 @@ async function renderedHome(c: CostContext, ports: MeasurePorts, url: string, wi
   }
 }
 
-/** Re-stamps a read's `at` to the scan's one date. The document's own
+/** Re-stamps a read's `at` to the pass's one date. The document's own
  *  `readAt` survives in the `fetches` row; the verdict carries one date. */
 function stampedAt<T>(m: Measured<T>, at: Date): Measured<T> {
   return m.kind === "unmeasured" ? { kind: "unmeasured", reason: m.reason, at } : { kind: m.kind, value: m.value, at };
@@ -342,6 +345,9 @@ export async function measureDomain(
   c: CostContext,
   a: {
     domain: string;
+    /** The date of the pass, which every figure it computes carries: the
+     *  moment it started (issue 1392), never the age of a stored read. */
+    at: Date;
     tier: Tier;
     /** The site's stored country and language (D66): the founder's answer
      *  at setup, which wins over anything read. Absent on a free scan and
@@ -350,8 +356,8 @@ export async function measureDomain(
     locale?: Locale;
     pages?: readonly string[];
     /** SPEC §6 (issue 1170): how old a stored read may be and still be this
-     *  pass's own. The home document's `readAt` dates every factor, so a
-     *  weekly pass served last week's read wore last week's date. Narrows
+     *  pass's own, so a weekly pass is served no read from the week before.
+     *  Narrows
      *  the own window for the documents and the ranked rows; never widens
      *  it. Absent, the window is `CACHE_WINDOWS_D.own` as before. */
     ownWindowDays?: number;
@@ -362,13 +368,14 @@ export async function measureDomain(
   const windowDays =
     a.ownWindowDays === undefined ? CACHE_WINDOWS_D.own : Math.min(CACHE_WINDOWS_D.own, a.ownWindowDays);
 
-  // 1. The home document — its `readAt` is the scan's one date.
+  const at = a.at;
+  // 1. The home document. Its facts keep its own `readAt`, which is how
+  //    `src/lib/scan/challenged.ts` finds the read a report was measured from.
   const plain = await readDocument(c, ports, homeUrl, windowDays);
-  const at = plain.at;
   // 1'. A bot-protection page in its place: the vendor's browser is asked
-  //     once (issue 1379). Its document is dated as the pass is.
+  //     once (issue 1379). Its document is dated as the plain read is.
   const drawn = plain.protection === null ? null : await renderedHome(c, ports, homeUrl, windowDays);
-  const home: DocumentRead = drawn === null ? plain : { ...plain, facts: factsOf(drawn, at), html: drawn.html };
+  const home: DocumentRead = drawn === null ? plain : { ...plain, facts: factsOf(drawn, plain.at), html: drawn.html };
   if (plain.protection !== null) {
     logDriver("home_bot_protection", { domain: a.domain, protection: plain.protection, rendered: drawn !== null });
   }

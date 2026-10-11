@@ -13,7 +13,7 @@
 // which is the point: the explanation is why this page was chosen *then*,
 // not what the market looks like now.
 import { opportunityStore, readOpportunity } from "../store";
-import type { Acceptance, Evidence, Family, OpportunityType, Winnability } from "../types";
+import type { Acceptance, BusinessFit, Evidence, Family, OpportunityType, Winnability } from "../types";
 
 export interface Choice {
   opportunityId: string;
@@ -21,6 +21,9 @@ export interface Choice {
   family: Family;
   /** Null only for `unblock`. */
   fitBand: Winnability | null;
+  /** SPEC §0 business fit, as the pass judged it; absent or `null` where
+   *  no pass has (issue 1395). */
+  businessFit?: BusinessFit | null;
   acceptance: Acceptance;
   evidence: Evidence;
 }
@@ -37,6 +40,7 @@ export async function explainChoice(opportunityId: string): Promise<Choice | nul
     type: opportunity.type,
     family: opportunity.family,
     fitBand: opportunity.fitBand,
+    businessFit: opportunity.businessFit ?? null,
     acceptance: opportunity.acceptance,
     evidence: opportunity.evidence,
   };
