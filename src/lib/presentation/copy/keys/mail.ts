@@ -116,7 +116,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.nurture.subject.1": ["The rest of the pages we found", { slots: {}, fixedBy: "REQ-010 c9" }],
   "mail.nurture.subject.2": ["What changes once the pages ship", { slots: {}, fixedBy: "REQ-010 c9" }],
   "mail.nurture.subject.3": ["One last note about your report", { slots: {}, fixedBy: "REQ-010 c9" }],
-  "mail.nurture.body.1": ["You have page 1 for {domain}. ReachKit writes the rest — one page a day, published for you, and every page waits 24 hours for you to stop it before it goes live. €49 a month, cancel any time.", { slots: { domain: "text" }, fixedBy: "REQ-010 c9" }],
+  "mail.nurture.body.1": ["You have page 1 for {domain}. ReachKit takes it from here: a page every day, new or updated, published for you. Each goes live on its own unless you stop it first. €49 a month, cancel any time.", { slots: { domain: "text" }, fixedBy: "REQ-010 c9" }],
   "mail.nurture.body.2": ["Every page ReachKit writes for {domain} targets one search your rivals already answer. Each Monday it re-measures your whole market and tells you what moved — only what was measured, never a guess.", { slots: { domain: "text" }, fixedBy: "REQ-010 c9" }],
   "mail.nurture.body.3": ["This is the last follow-up about {domain}. Your report and your first page stay yours. When you want the rest written and published, ReachKit starts at €49 a month, cancel any time.", { slots: { domain: "text" }, fixedBy: "REQ-010 c9" }],
 
@@ -818,7 +818,7 @@ export const MAIL_COPY = Object.freeze({
   ],
   "mail.winback.subject": ["Pick up where you left off", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
   "mail.winback.line": [
-    "ReachKit can start writing and publishing pages for your site again: one a day, each going live on its own unless you stop it first. €49 a month, cancel any time.",
+    "ReachKit can start writing and publishing pages for your site again: a page every day, new or updated, each going live on its own unless you stop it first. €49 a month, cancel any time.",
     { slots: {}, fixedBy: "SPEC §8 · issue 569" },
   ],
   "mail.winback.action": ["Resume ReachKit", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],

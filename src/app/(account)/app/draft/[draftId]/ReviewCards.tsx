@@ -435,8 +435,8 @@ function PackFold(p: { pack: PackView; timeZone: string }): React.JSX.Element {
  * its search nor the customer's own pages say — each one a sentence the
  * reader can find on the page beside it, with a mark on the ones that are
  * facts about the business. A new page with fewer than three, or with none
- * about the business, is held; the one line under the list then asks the
- * founder for the fact that is missing and says where to give it.
+ * about the business, is set aside and the day takes the next topic; the
+ * one line under the list says so and asks for nothing (issue 1393).
  *
  * **Absent on a page written before the list was made**, like the card
  * above it: no list is not a page that adds nothing.
@@ -448,9 +448,8 @@ export function WhatAddsCard(p: { adds: PageAdds | undefined }): React.JSX.Eleme
   return (
     <section className={NOTE.card} data-testid="draft-adds">
       <div className={NOTE.pad}>
-        {/* Open where it asks for a fact: that sentence is what the founder
-            has to do, and a held page must not hide it (SPEC §7,
-            2026-10-07). */}
+        {/* Open where the page was set aside: that sentence is why there is
+            no page, and it must not be hidden (SPEC §7, 2026-10-07). */}
         <details className={CLOSED.root} open={ask}>
           <summary className={CLOSED.head}>
             <h2 className={CARD_HEAD}>
@@ -482,15 +481,9 @@ export function WhatAddsCard(p: { adds: PageAdds | undefined }): React.JSX.Eleme
               )}
 
               {ask ? (
-                <div
-                  className="flex min-w-0 flex-col items-start gap-1 border-t border-base-300 pt-3 text-sm"
-                  data-testid="draft-adds-ask"
-                >
-                  <p className="min-w-0 wrap-anywhere">{copy("draft.adds.ask")}</p>
-                  <a className="link" href="/app/settings">
-                    {copy("draft.adds.ask.action")}
-                  </a>
-                </div>
+                <p className="min-w-0 border-t border-base-300 pt-3 text-sm wrap-anywhere" data-testid="draft-adds-ask">
+                  {copy("draft.adds.ask")}
+                </p>
               ) : null}
             </div>
           </div>

@@ -33,7 +33,6 @@ export interface WeekDay {
 
 /** Seven, by type: a week with a day dropped has no call shape. */
 export type SevenDays = readonly [WeekDay, WeekDay, WeekDay, WeekDay, WeekDay, WeekDay, WeekDay];
-import type { GrowthWeek } from "@/ui/charts";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 
 /* The S1 hero's own two — a six-week growth series and three tiles — went
@@ -125,37 +124,14 @@ export function specimenWeek(): SevenDays {
  *  slot, and the card's last line says in writing that it is an example. */
 export const SPECIMEN_HERO_BUSINESS = "Harbour Bike Repair";
 
-/** The card's head: the score as the week left it, out of one hundred,
- *  and what it rose by. */
+/** The week's own figures. */
 export const SPECIMEN_HERO = Object.freeze({
-  score: 47,
-  /** The score is out of one hundred, as `SPECIMEN_SIGNIN` says. */
-  max: 100,
-  delta: 25,
   /** Monday's two counts. */
   searches: 400,
   questions: 12,
   /** The hour a page is live, as the day cells show it. */
   liveAt: "07:00",
 });
-
-/** The line under the week: eleven measured weeks climbing from 22 to the
- *  card's own 47, so the last reading and the head's number are the same
- *  fact drawn twice. A `const` for the reason above it — a series that
- *  varied per call would make the layout sweep non-deterministic. */
-export const SPECIMEN_HERO_WEEKS: readonly [GrowthWeek, ...GrowthWeek[]] = [
-  { name: "1", value: 22 },
-  { name: "2", value: 23 },
-  { name: "3", value: 25 },
-  { name: "4", value: 26 },
-  { name: "5", value: 28 },
-  { name: "6", value: 31 },
-  { name: "7", value: 34 },
-  { name: "8", value: 37 },
-  { name: "9", value: 41 },
-  { name: "10", value: 44 },
-  { name: "11", value: SPECIMEN_HERO.score },
-];
 
 /** BUILD §6.3a / DECISIONS 2026-08-28: US-English only, one location
  *  constant. The two formatters below turn the fixed dates into the words

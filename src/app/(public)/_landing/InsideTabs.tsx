@@ -1,5 +1,5 @@
 "use client";
-// SPEC §1 2026-09-24 (#1067) — the *Inside ReachKit* preview's four tabs.
+// SPEC §1 2026-09-24 (#1067) — the *Inside ReachKit* preview's tabs.
 // src/app/(public)/_landing/InsideTabs.tsx
 //
 // The panels are server-rendered and arrive as props; this leaf only picks
@@ -13,14 +13,9 @@
 // Every panel sits in the same grid cell, so the card is as tall as its
 // tallest panel and does not jump as it turns; the ones not shown are
 // `invisible`, which also takes them out of the accessibility tree.
-// `PanelShown` tells a panel's own client leaf (`HeroLine`) whether it is
-// on screen, so the score's chart code is fetched only once that tab is.
 
 import type React from "react";
-import { createContext, useEffect, useId, useState, useSyncExternalStore } from "react";
-
-/** Whether the panel this leaf sits in is the one on screen. */
-export const PanelShown = createContext(true);
+import { useEffect, useId, useState, useSyncExternalStore } from "react";
 
 const ROTATE_MS = 5_000;
 const REDUCED = "(prefers-reduced-motion: reduce)";
@@ -110,7 +105,7 @@ export function InsideTabs(p: {
             aria-labelledby={`${id}-tab-${index}`}
             className={`min-w-0 ${index === active ? "" : "invisible"}`}
           >
-            <PanelShown.Provider value={index === active}>{tab.panel}</PanelShown.Provider>
+            {tab.panel}
           </div>
         ))}
       </div>
