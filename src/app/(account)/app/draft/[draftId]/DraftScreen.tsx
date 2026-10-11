@@ -79,7 +79,8 @@ import { TargetBlock } from "./TargetBlock";
 import { TargetNumbers } from "./TargetNumbers";
 import { factPresentIn } from "./grounded";
 import { PublishedPageView } from "./PublishedPageView";
-import { WhatAddsCard, WhatPublishesCard, WrittenFromCard } from "./ReviewCards";
+import { LinksCard, WhatAddsCard, WhatPublishesCard, WrittenFromCard } from "./ReviewCards";
+import { NO_LINK_RECORD, linksOnPage } from "./links-panel";
 import { publishedCounts } from "./publishes";
 import { useDebounced } from "./useDebounced";
 import { SHAPE } from "./shape";
@@ -877,6 +878,9 @@ export function DraftScreen(p: {
           {/* What the page says that the web and the site do not (SPEC §7,
               D12, issue 1143). */}
           <WhatAddsCard adds={view.adds} />
+          {/* Every link on the page, why it is there and whether it is
+              live (SPEC §7, 2026-10-10, issue 1391). */}
+          <LinksCard links={linksOnPage(bodyMd, { domain: view.domain, record: view.linkRecord ?? NO_LINK_RECORD })} />
           <WhatPublishesCard
             publisher={view.publisher}
             title={view.title}

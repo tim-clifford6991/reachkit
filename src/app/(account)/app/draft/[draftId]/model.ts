@@ -17,6 +17,7 @@
 // returned in full: REQ-045 criterion 1 is "every word that would publish
 // … with nothing withheld or summarised", and there is no code path here
 // that shortens a body, so none can be introduced by accident.
+import type { LinkRecord } from "./links-panel";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { RecordedFact } from "@/lib/generate/fact";
 import type { PackNeed } from "@/lib/generate/templates/types";
@@ -349,6 +350,9 @@ export interface DraftView {
   writtenFrom: WrittenFrom;
   /** What this page adds (issue 1143). */
   adds?: PageAdds;
+  /** Which pages code chose to link and what the check at publish found
+   *  (issue 1391). Absent reads as nothing recorded. */
+  linkRecord?: LinkRecord;
   /** The page rests unwritten because its pack was short (issue 1252). */
   packShort?: PackShort;
   /** The customer's own frame: the name and the address the page publishes
@@ -410,6 +414,8 @@ export interface DraftFacts {
   writtenFrom: WrittenFrom;
   /** What the page adds, as generation listed it (issue 1143). */
   adds?: PageAdds;
+  /** `meta.links` and `meta.linkCheck` (issue 1391). */
+  linkRecord?: LinkRecord;
   /** Set where the page rests in `needs_attention` because its context
    *  pack was short of what its template asks (issue 1252). */
   packShort?: PackShort;
@@ -527,6 +533,7 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     timeZone: facts.timeZone,
     writtenFrom: facts.writtenFrom,
     ...(facts.adds === undefined ? {} : { adds: facts.adds }),
+    ...(facts.linkRecord === undefined ? {} : { linkRecord: facts.linkRecord }),
     ...(facts.packShort === undefined ? {} : { packShort: facts.packShort }),
     publisher: publisherOf(facts),
     ruleFacts: facts.ruleFacts,
