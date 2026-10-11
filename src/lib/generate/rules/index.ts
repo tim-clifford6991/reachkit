@@ -65,9 +65,9 @@ export function rulesAsked(a: DeterministicInputs, verdicts: { fit: FitVerdict; 
     required_blocks: a.blocks != null,
     no_demo_text: (a.demoPhrases ?? []).length > 0,
     distinct_headings: a.distinctHeadings === true,
-    title: a.titleRule != null && a.titleRule.type !== "update",
     fit_claim: verdicts.fitAsked && verdicts.fit.state !== "unrun",
     do_not_claim: a.site.doNotClaim.length > 0,
+    title: a.titleRule != null && a.titleRule.type !== "update",
   };
   return HARD_RULES.filter((rule) => !SWITCHED_RULES.includes(rule) || on[rule] === true);
 }
