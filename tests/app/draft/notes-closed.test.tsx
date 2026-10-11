@@ -106,12 +106,13 @@ describe("a page with a link on it", () => {
   });
 });
 
-describe("a note that asks the founder for a fact", () => {
-  it("is open, because that sentence is the action", () => {
+describe("a note on a page that was set aside", () => {
+  it("is open, says what happened, and offers nothing to do (issue 1393)", () => {
     const base = viewOf(FIXTURE_DRAFT_ID);
     const asking: DraftView = { ...base, adds: { claims: [], ask: true } };
     const screen = dom(<DraftScreen view={asking} generatedLabel="label" />);
     expect(one(screen, "draft-adds").querySelector("details")?.hasAttribute("open")).toBe(true);
     expect(one(screen, "draft-adds-ask").textContent).not.toBe("");
+    expect(one(screen, "draft-adds").querySelector("a, button")).toBeNull();
   });
 });

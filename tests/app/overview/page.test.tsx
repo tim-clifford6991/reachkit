@@ -153,6 +153,15 @@ describe("REQ-041 c1 — Overview is the screen a signed-in customer lands on", 
   });
 });
 
+describe("SPEC §4 (2026-10-10, issue 1395) — what ReachKit did this week", () => {
+  it("stands inside This week, under the days", async () => {
+    const html = await markup();
+    const done = html.indexOf('data-testid="overview-done"');
+    expect(done).toBeGreaterThan(html.indexOf('data-testid="overview-week-day"'));
+    expect(done).toBeLessThan(html.indexOf('data-testid="overview-needs-you"'));
+  });
+});
+
 describe("REQ-093 c1 — the screen invents no sentence", () => {
   it("no registry key leaks into the markup as its own text", async () => {
     const html = await markup();

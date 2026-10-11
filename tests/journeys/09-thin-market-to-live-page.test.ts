@@ -453,9 +453,12 @@ const modelTasks: string[] = [];
  *  grounded passage word for word, linked to where it was read. */
 function pageFor(asked: { opportunity?: { targetQuery?: string | null }; grounded?: { url: string; passage: string } }) {
   const query = asked.opportunity?.targetQuery ?? "bookkeeping for therapists";
-  const title = `Which ${query}?`;
+  // A statement that leads with the search and carries the grounded
+  // passage's own number (issue 1389).
+  const title = `${query.charAt(0).toUpperCase()}${query.slice(1)}: 3 bank accounts, one fee`;
+  const question = `Which ${query}?`;
   const bodyMarkdown = [
-    `## ${title}`,
+    `## ${question}`,
     "",
     "Start with how session payments reach your bank. A practice that sees clients weekly needs each deposit " +
       "matched to a category the day it lands, not at the end of the quarter when receipts are lost.",
@@ -464,6 +467,7 @@ function pageFor(asked: { opportunity?: { targetQuery?: string | null }; grounde
   ].join("\n");
   return {
     title,
+    question,
     slug: query.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
     description: `Choosing ${query}: match each deposit to a category the day it lands, and keep every receipt where you can find it again.`,
     bodyMarkdown,

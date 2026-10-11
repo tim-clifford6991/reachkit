@@ -32,6 +32,7 @@ import { readShell } from "../_shell/provider";
 import { readOverview } from "../_overview/provider";
 import { readPrompts } from "../_overview/prompts-provider";
 import { readBlogReads } from "../_overview/blog-reads-provider";
+import { readDone } from "../_overview/done-provider";
 import { overviewNotice, readOnboarding, readReleaseNotice } from "../_shell/onboarding";
 import { FirstPageNotice, ReleaseNoticeLine } from "../_shell/OnboardingStatus";
 import { MARKET_TOO_SMALL, readCategoryChoice } from "../_shell/remeasure";
@@ -47,6 +48,8 @@ import { ScoreHead, type HeadNote } from "../_overview/ScoreHead";
 import { WaitingPageCard } from "../_overview/WaitingPageCard";
 import { WeekModule } from "../_overview/WeekModule";
 import { WeekWaiting } from "../_overview/WeekWaiting";
+import { DoneThisWeek } from "../_overview/DoneThisWeek";
+import { ProcessTimeline } from "../_shell/ProcessTimeline";
 
 /** /app's own `<title>` (#945). Without it this screen announced
  *  nothing at all — the `(account)` layout's fallback is the floor, not
@@ -58,7 +61,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   // the shell's own request-cached provider rather than restated here: two
   // readers of a customer's time zone is how two parts of one screen come to
   // state two different days.
-  const [shell, overview, onboarding, prompts, top20, blogReads] = await Promise.all([
+  const [shell, overview, onboarding, prompts, top20, blogReads, done] = await Promise.all([
     readShell(),
     readOverview(),
     readOnboarding(),
@@ -74,6 +77,8 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
       .then((model) => model.tiles.firstTwoPages)
       .catch(() => null),
     readBlogReads(),
+    // Issue 1395: what ReachKit did this week, from stored rows.
+    readDone(),
   ]);
   // issue 784: the founder's reason when the pass released them short — what the
   // shell's panel is not already saying.
@@ -170,10 +175,16 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
             timeZone={shell.timeZone}
             supply={supplyInHead ? undefined : overview.supply}
             broader={broader}
+            done={<DoneThisWeek facts={{ ...done, nextLiveAt: shell.publishing.next }} timeZone={shell.timeZone} />}
           />
         )}
         <NeedsYouModule alerts={overview.alerts} overflow={overview.overflow} issuesOverflow={overview.issuesOverflow} />
       </div>
+
+      {/* While the first pass runs there is no week to report, so the
+          screen says what the pass is working through instead (SPEC §4,
+          2026-10-10; issue 1395). A figure not read yet says so. */}
+      {onboarding.kind === "running" ? <ProcessTimeline facts={done} timeZone={shell.timeZone} /> : null}
     </div>
   );
 }

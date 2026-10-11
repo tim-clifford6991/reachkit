@@ -144,7 +144,12 @@ function controlFor(a: {
 
 /** At most one line beside the report, in the order the most specific true
  *  thing comes first. A refusal in force is what just happened to *this*
- *  visitor and outranks the report's own history.
+ *  visitor and outranks the report's own history, with one exception
+ *  (issue 1392): a report whose site's pages were kept from the reader by
+ *  bot protection says that first. The refusal is read on every visit, so
+ *  it is shown to a visitor who asked for no scan, and it explains none of
+ *  what the report in front of them is missing; the protection line does.
+ *  The control a refusal suppresses stays suppressed either way.
  *
  *  An incomplete report either names every driver it could not measure or
  *  shows no notice at all (#541) — there is no third state in which the
@@ -156,14 +161,14 @@ function noticeFor(a: {
   refusal: AddressRefusal | null;
   correctionFailed: boolean;
 }): AddressNotice | null {
-  if (a.refusal !== null) return { kind: "refused", refusal: a.refusal };
-  if (a.correctionFailed) return { kind: "correction_failed" };
-  if (a.report.stoppedReason === "site_unreadable") return { kind: "site_unreadable" };
   // Issue 1379: the cause, where bot protection kept the reader off the
   // site's own pages, above the market and the factors it took with it.
   if (a.report.onPage.kind === "unmeasured" && a.report.onPage.because === BOT_PROTECTION) {
     return { kind: "bot_protected" };
   }
+  if (a.refusal !== null) return { kind: "refused", refusal: a.refusal };
+  if (a.correctionFailed) return { kind: "correction_failed" };
+  if (a.report.stoppedReason === "site_unreadable") return { kind: "site_unreadable" };
   // Issue 898: the site read and its market did not, so there is no
   // question, no answer card and no band to be incomplete *about*. A
   // report with nothing measured from its market used to fall through to

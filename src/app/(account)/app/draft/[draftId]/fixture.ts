@@ -342,7 +342,12 @@ const UNEDITED: DraftFacts = {
       ],
       doneWhen: "Ranked in the top 20 for the target search within 3 weeks",
     },
+    // Why this topic (issue 1395): the fit the pass judged, and the rival
+    // it recorded as answering the search today.
+    why: { fit: "answer", rival: "northwind.example" },
   },
+  // The topics set aside, as Overview's own fixture counts them.
+  setAside: { covered: 3, tooHard: 4, lowFit: 0, resting: 0 },
   timeZone: FIXTURE_TIME_ZONE,
   writtenFrom: FIXTURE_WRITTEN_FROM,
   // What the page adds (issue 1143): two sentences of the fixture's body

@@ -13,8 +13,10 @@
 //
 // **Decided from the ledger, never from a list of domains.** The home
 // document is the newest `fetches` row of the home address read at or
-// before the report's date (a scan served from the cache ledgers no row of
-// its own, so the row is found by its address, not by the scan's id).
+// before the date the report's home-page facts carry (a scan served from
+// the cache ledgers no row of its own, so the row is found by its address,
+// not by the scan's id). That date is the read's own; the report's date is
+// its scan's (issue 1392), which a read made during the scan comes after.
 //
 // **Two reads, and the second is rare.** The first asks for no document
 // body, only what `couldBeChallenge` reads; the body is fetched for the few
@@ -90,8 +92,8 @@ async function rowsOf<T>(query: MinimalQueryBuilder<T>): Promise<T[]> {
  * The domains among `asked` whose home document, as read at or before
  * `at`, was a bot-protection page that no rendered read replaced.
  *
- * `at` is the report's own date for a stored report (the home document's
- * `readAt` is that date), and the scan's finish for a gallery card.
+ * `at` is the date of a stored report's home-page facts (the home
+ * document's `readAt`), and the scan's finish for a gallery card.
  */
 export async function challengedHomes(asked: readonly { domain: string; at: Date }[]): Promise<ReadonlySet<string>> {
   const challenged = new Set<string>();
@@ -207,6 +209,6 @@ export function unreadByProtection(report: StoredReport): StoredReport {
  *  of it where its home document was a protection's page. */
 export async function readPastProtection(report: StoredReport): Promise<StoredReport> {
   if (report.onPage.kind === "unmeasured") return report;
-  const challenged = await challengedHomes([{ domain: report.domain, at: report.verdict.measuredAt }]);
+  const challenged = await challengedHomes([{ domain: report.domain, at: report.onPage.at }]);
   return challenged.has(report.domain) ? unreadByProtection(report) : report;
 }
