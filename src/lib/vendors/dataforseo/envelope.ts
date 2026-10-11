@@ -238,6 +238,10 @@ const CENTS_PER_USD = 100;
  * response the vendor charged on. `ledgered` compares it with what the
  * price book settled: the price book had Google AI Mode's standard queue at
  * half its charge for as long as nothing read this field.
+ *
+ * It is also what the row stores as `billed_cents` (issue 1408), so a day's
+ * recorded spend can be held against the vendor's balance. A response with
+ * no `cost` answers `undefined`, and the row stores null.
  */
 function chargedCents(payload: unknown): number | undefined {
   const usd = asNumber(firstTask(payload)?.cost);
@@ -459,6 +463,7 @@ export async function ledgered<T>(
     freshnessDays: call.freshnessDays,
     costCents: call.costCents,
     ...(settle ? { settleCents: (p: T[] | VendorFailure) => settle(isVendorFailure(p) ? null : p) } : {}),
+    billedCents: () => vendorCents,
     run: async () => {
       const out = await call.fetch();
       vendorCents = out.vendorCents;
@@ -575,6 +580,7 @@ export async function ledgeredWithTotal<T>(
             settle(isVendorFailure(p) ? null : Array.isArray(p) ? [] : p.rows),
         }
       : {}),
+    billedCents: () => vendorCents,
     run: async (): Promise<Payload> => {
       const out = await call.fetch();
       vendorCents = out.vendorCents;

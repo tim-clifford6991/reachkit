@@ -128,6 +128,12 @@ export interface CostContext {
      *  flagged `serpOrganic`. Omitting it is the ordinary case and
      *  behaves exactly as before this argument existed. */
     settleCents?: (payload: P) => number;
+    /** What the vendor says it charged for this call, in cents (issue
+     *  1408), asked once `run` has answered. Stored beside the settled
+     *  figure as `fetches.billed_cents` and read by nothing that decides
+     *  whether to call. `undefined` where the response carried no charge,
+     *  which is stored as null and never as a guess. */
+    billedCents?: () => number | undefined;
     run: () => Promise<P>;
   }): Promise<
     { payload: P; fresh: boolean; costCents: number; storedAt: Date | null } | { skipped: "cap" }
@@ -266,6 +272,7 @@ export async function withCostContext<T>(
       freshnessDays: number;
       costCents: number;
       settleCents?: (payload: P) => number;
+      billedCents?: () => number | undefined;
       run: () => Promise<P>;
     }): Promise<
       { payload: P; fresh: boolean; costCents: number; storedAt: Date | null } | { skipped: "cap" }
@@ -364,6 +371,7 @@ export async function withCostContext<T>(
           }
         }
 
+        const billedCents = call.billedCents?.();
         await writeFetchRow({
           scanId: ctx.scanId,
           source: call.source,
@@ -373,6 +381,7 @@ export async function withCostContext<T>(
           costCents: settledCents,
           payload,
           durationMs: Date.now() - startedMs,
+          ...(billedCents === undefined ? {} : { billedCents }),
         });
         ledgeredCents += settledCents;
         // The day's total moves by what was actually ledgered, and `add`

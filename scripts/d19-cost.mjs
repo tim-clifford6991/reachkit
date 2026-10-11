@@ -232,7 +232,7 @@ async function post(key, engine, prompt) {
     if (task?.status_code === 20100 && typeof task.id === "string") call.id = task.id;
     else Object.assign(call, { done: true, error: `task_post ${task?.status_code ?? json?.status_code} ${task?.status_message ?? json?.status_message ?? ""}`.trim() });
     state.calls[key] = call;
-    appendSpend({ script: "d19-cost", source: `dataforseo:${engine}`, cents: call.costC });
+    appendSpend({ script: "d19-cost", source: `dataforseo:${engine}`, cents: call.costC, billed: typeof json?.cost === "number" ? call.costC : undefined });
   } catch (error) {
     // Nothing is stored: whether the vendor accepted it is unknown, and the
     // reservation's worst case is counted against the run by `unknownC`.
