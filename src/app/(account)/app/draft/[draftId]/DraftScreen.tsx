@@ -861,6 +861,10 @@ export function DraftScreen(p: {
         {/* The notes: each one closed line that opens in place. The
             article above them is never one of these. */}
         <div className={SHAPE.notes} data-testid="draft-notes">
+          {/* Every link on the page, why it is there and whether it is
+              live (SPEC §7, 2026-10-10, issue 1391). First of the notes, so
+              it sits under the checks the panel above ends on (issue 1394). */}
+          <LinksCard links={linksOnPage(bodyMd, { domain: view.domain, record: view.linkRecord ?? NO_LINK_RECORD })} />
           {/* What this page is for (issue 867) and how it reads in search
               results. */}
           <TargetBlock
@@ -877,9 +881,6 @@ export function DraftScreen(p: {
           {/* What the page says that the web and the site do not (SPEC §7,
               D12, issue 1143). */}
           <WhatAddsCard adds={view.adds} />
-          {/* Every link on the page, why it is there and whether it is
-              live (SPEC §7, 2026-10-10, issue 1391). */}
-          <LinksCard links={linksOnPage(bodyMd, { domain: view.domain, record: view.linkRecord ?? NO_LINK_RECORD })} />
           <WhatPublishesCard
             publisher={view.publisher}
             title={view.title}
