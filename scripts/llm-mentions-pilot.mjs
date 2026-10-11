@@ -125,7 +125,7 @@ async function search(auth, targets, tag) {
   const cost = typeof json.cost === "number" ? json.cost : WORST_CASE_PER_REQUEST;
   ledger.spent += cost;
   // The vendor reports dollars; the spend log is in cents.
-  appendSpend({ script: "llm-mentions-pilot", source: "dataforseo:llm_mentions", cents: cost * 100 });
+  appendSpend({ script: "llm-mentions-pilot", source: "dataforseo:llm_mentions", cents: cost * 100, billed: typeof json.cost === "number" ? cost * 100 : undefined });
   ledger.requests += 1;
   if (json.status_code !== 20000) {
     // The credential itself must never reach a log, and DataForSEO's error

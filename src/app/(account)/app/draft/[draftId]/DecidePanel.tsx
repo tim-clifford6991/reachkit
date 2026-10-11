@@ -28,7 +28,7 @@
 // twice, in two wordings for two widths, because the phone has no countdown.
 //
 // **The checks stay below the page** on a phone, in this card, where the
-// owner's review asked for them: a four-row list in a fixed bar would cover
+// owner's review asked for them: a list of rules in a fixed bar would cover
 // the page it is about.
 //
 // **Nothing here decides which controls exist.** `draftActionsFor` projects
@@ -45,12 +45,13 @@
 
 import type React from "react";
 import { useSyncExternalStore } from "react";
-import { Check, Info, LoaderCircle, Pencil, CircleStop, RotateCcw } from "lucide-react";
+import { Check, Info, LoaderCircle, Minus, Pencil, CircleStop, RotateCcw, X } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { formatDateTime } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
 import { draftActionsFor, type DraftCommand } from "./actions";
-import { CHECK_COPY_KEY, checkRows, type RailCheck } from "./checks";
+import { CHECK_GROUPS, checkList, type CheckRow, type CheckStatus } from "./checks";
+import type { RecordedChecks } from "@/lib/generate/rules/types";
 import { CopyOut } from "./CopyOut";
 import type { State } from "../../calendar/stages";
 import type { ClaimState, DraftView } from "./model";
@@ -110,11 +111,47 @@ function Countdown(p: { at: Date; timeZone: string }): React.JSX.Element {
   );
 }
 
-/** A check that passed: a tick in a small green ring, and its sentence. */
-const TICK = "grid size-5 shrink-0 place-items-center rounded-full bg-success/15 text-success";
-/** The one check still running: the same ring in the quiet ink. The glyph
- *  holds still — the calm layer's one loop is the review dot's pulse. */
-const PENDING = "grid size-5 shrink-0 place-items-center rounded-full bg-base-200 text-base-content/70";
+/** A row's mark: a small ring and a glyph. Green for a pass; the quiet ink
+ *  for a rule the page was not asked, one it failed and the one still
+ *  running — the words beside the mark say which. The glyph holds still:
+ *  the calm layer's one loop is the review dot's pulse. */
+const RING = "grid size-5 shrink-0 place-items-center rounded-full";
+const QUIET = `${RING} bg-base-200 text-base-content/70`;
+const MARK: Readonly<Record<CheckStatus, { ring: string; Icon: typeof Check }>> = {
+  passed: { ring: `${RING} bg-success/15 text-success`, Icon: Check },
+  skipped: { ring: QUIET, Icon: Minus },
+  failed: { ring: QUIET, Icon: X },
+  pending: { ring: QUIET, Icon: LoaderCircle },
+};
+
+/** What a row that is not a pass says under its sentence. */
+function statusLine(status: CheckStatus): string | null {
+  if (status === "skipped") return copy("draft.checks.status.skipped");
+  if (status === "failed") return copy("draft.checks.status.failed");
+  return status === "pending" ? copy("draft.claim.outstanding") : null;
+}
+
+function CheckItem(p: { row: CheckRow }): React.JSX.Element {
+  const { ring, Icon } = MARK[p.row.status];
+  const status = statusLine(p.row.status);
+  return (
+    <li
+      className="flex items-start gap-2.5"
+      data-testid={`draft-check-${p.row.rule}`}
+      data-status={p.row.status}
+    >
+      <span className={ring} aria-hidden>
+        <Icon size={12} strokeWidth={2.5} />
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className={p.row.status === "passed" ? undefined : "text-base-content/70"}>
+          {copy(p.row.key, p.row.vars)}
+        </span>
+        {status === null ? null : <span className="text-xs text-base-content/70">{status}</span>}
+      </span>
+    </li>
+  );
+}
 
 export function DecidePanel(p: {
   view: DraftView;
@@ -136,9 +173,9 @@ export function DecidePanel(p: {
   /** The claim state as it now stands, which after an edit is not the
    *  stored one (REQ-045 c9). */
   claim: ClaimState;
-  /** The rules the last check recorded a pass for, on the text as it now
-   *  stands — empty while an edit has not been re-checked (#789). */
-  recordedChecks: readonly RailCheck[];
+  /** The last check, rule by rule, on the text as it now stands — empty
+   *  while an edit has not been re-checked (#789). */
+  recordedChecks: RecordedChecks;
   /** The body as it now stands, for the copy-out buttons. */
   bodyMd: string;
   onEdit: () => void;
@@ -146,9 +183,8 @@ export function DecidePanel(p: {
 }): React.JSX.Element {
   const { view } = p;
   const actions = draftActionsFor({ state: p.state, enteredReview: view.enteredReview });
-  const rows = checkRows({
+  const { rows, counts } = checkList({
     grounded: p.grounded,
-    groundedUrl: view.grounded.url,
     claim: p.claim,
     recorded: p.recordedChecks,
     known: view.knownCheck,
@@ -277,39 +313,62 @@ export function DecidePanel(p: {
 
         <div className="divider my-0 max-md:hidden" />
 
-        <h2 className="eyebrow">{copy("draft.checks.title")}</h2>
-        {/* A row is drawn for a pass (`checks.ts`), and for the one check
-            that can still be running — the claim check after an edit — as
-            that, never as a pass. Rows rise in one after another, the
-            screen-enter timing, as a list of things that finished. */}
-        <ul className="flex flex-col gap-2.5 text-sm" data-testid="draft-checks">
-          {rows.map((row, i) => (
-            <li
-              className="flex items-start gap-2.5 motion-safe:animate-rise"
-              style={{ animationDelay: `${String(i * 60)}ms` }}
-              key={row.rule}
-              data-testid={`draft-check-${row.rule}`}
+        {/* SPEC §7 (2026-10-10, issue 1394): two levels. The headline and
+            its counts are the glance; every rule is in the one closed note
+            under it. The count is stated only where the run recorded which
+            rules it asked (`checks.ts`). */}
+        <div className="flex min-w-0 flex-col gap-1">
+          <h2 className="eyebrow" data-testid="draft-checks-headline">
+            {counts === null
+              ? copy("draft.checks.title")
+              : copy("draft.checks.headline", { passed: counts.passed, total: counts.total })}
+          </h2>
+          {counts === null || counts.fixed + counts.skipped + counts.failed === 0 ? null : (
+            <p
+              className="flex flex-wrap gap-x-3 text-xs text-base-content/70"
+              data-testid="draft-checks-counts"
             >
-              <span className={TICK} aria-hidden>
-                <Check size={12} strokeWidth={2.5} />
-              </span>
-              <span className="min-w-0">
-                {copy(row.key ?? CHECK_COPY_KEY[row.rule], row.vars)}
-              </span>
-            </li>
-          ))}
-          {p.claim.state === "outstanding" ? (
-            <li
-              className="flex items-start gap-2.5 text-base-content/70"
-              data-testid="draft-check-pending"
-            >
-              <span className={PENDING} aria-hidden>
-                <LoaderCircle size={12} strokeWidth={2.5} />
-              </span>
-              <span className="min-w-0">{copy("draft.claim.outstanding")}</span>
-            </li>
-          ) : null}
-        </ul>
+              {counts.fixed === 0 ? null : (
+                <span data-testid="draft-checks-fixed">
+                  {copy("draft.checks.count.fixed", { n: counts.fixed })}
+                </span>
+              )}
+              {counts.skipped === 0 ? null : (
+                <span>{copy("draft.checks.count.skipped", { n: counts.skipped })}</span>
+              )}
+              {counts.failed === 0 ? null : (
+                <span>{copy("draft.checks.count.failed", { n: counts.failed })}</span>
+              )}
+            </p>
+          )}
+        </div>
+        {rows.length === 0 ? null : (
+          <details className="collapse collapse-arrow bg-base-200" data-testid="draft-checks">
+            <summary className="collapse-title text-sm font-medium">
+              {copy("draft.checks.note.title")}
+            </summary>
+            <div className="collapse-content flex min-w-0 flex-col gap-4 text-sm">
+              {counts === null ? null : (
+                <p className="text-xs text-base-content/70">
+                  {copy("draft.checks.note.lead", { total: counts.total })}
+                </p>
+              )}
+              {CHECK_GROUPS.map(({ group, title }) => {
+                const inGroup = rows.filter((row) => row.group === group);
+                return inGroup.length === 0 ? null : (
+                  <section className="flex min-w-0 flex-col gap-2" key={group}>
+                    <h3 className="text-xs font-semibold">{copy(title)}</h3>
+                    <ul className="flex flex-col gap-2.5">
+                      {inGroup.map((row) => (
+                        <CheckItem row={row} key={row.rule} />
+                      ))}
+                    </ul>
+                  </section>
+                );
+              })}
+            </div>
+          </details>
+        )}
 
         {panelLine === null ? null : (
           <>

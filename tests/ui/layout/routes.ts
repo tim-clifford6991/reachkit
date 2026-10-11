@@ -94,6 +94,17 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
   "/terms": "S5",
   /** REFERENCE: S5 — Legal (§S5) */
   "/imprint": "S5",
+  /**
+   * REFERENCE: S5 — Legal, the nearest approved screen (issue 1396).
+   *
+   * `/how-it-works` and `/about` are newer than the approved set. They are
+   * paired with S5 because they are the same kind of screen: a title, then
+   * a document at the reading measure, with the same contents list beside
+   * `/how-it-works`.
+   */
+  "/how-it-works": "S5",
+  /** REFERENCE: S5 — Legal, the nearest approved screen (issue 1396) */
+  "/about": "S5",
   /** REFERENCE: S6 — Veto page (§S6; REQ-057, REQ-075) */
   "/veto/layout-sweep-fixture": "S6",
   /** REFERENCE: S7 — Opt-out (§S7; REQ-010 c11) */

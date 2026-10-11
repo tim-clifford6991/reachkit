@@ -44,8 +44,14 @@ export function Footer(): React.JSX.Element {
           <Link href="/" className="link link-hover">
             {copy("chrome.cta.scan")}
           </Link>
+          <Link href="/how-it-works" className="link link-hover">
+            {copy("chrome.nav.works")}
+          </Link>
           <Link href="/pricing" className="link link-hover">
             {copy("chrome.nav.pricing")}
+          </Link>
+          <Link href="/about" className="link link-hover">
+            {copy("chrome.nav.about")}
           </Link>
           <Link href="/signin" className="link link-hover">
             {copy("chrome.nav.signin")}

@@ -98,7 +98,7 @@ export function legalBodyHtml(md: string): string {
  *  phone, and a column beside it from `lg`. The `<nav>` and its links are
  *  written once — the two shapes are which wrapper is displayed, never two
  *  lists that could come to name different sections. */
-function OnThisPage(p: { headings: readonly LegalHeading[] }): React.JSX.Element | null {
+export function OnThisPage(p: { headings: readonly Pick<LegalHeading, "id" | "text">[] }): React.JSX.Element | null {
   const headings = p.headings;
   // A body with no headings of its own gets no list and no room kept for
   // one — an imprint that is four lines of address has no sections, and a

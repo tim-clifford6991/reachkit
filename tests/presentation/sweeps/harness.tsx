@@ -59,6 +59,10 @@ interface HarnessRow {
 export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze({
   "(public)/page.tsx": { props: () => ({ searchParams: {}, async: false }), shell: false, async: false },
   "(public)/pricing/page.tsx": { props: () => ({}), shell: false, async: false },
+  // #1396: both read stored rows for their examples and founder line, and
+  // draw neither when the read answers nothing, which is what a sweep sees.
+  "(public)/how-it-works/page.tsx": { props: () => ({}), shell: false, async: true },
+  "(public)/about/page.tsx": { props: () => ({}), shell: false, async: true },
   // #1069: the free-scans gallery. The sweeps stand its reader in with an
   // empty listing — the database is not theirs to reach.
   "(public)/scans/page.tsx": { props: () => ({ searchParams: Promise.resolve({}) }), shell: false, async: true },

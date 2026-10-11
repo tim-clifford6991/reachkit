@@ -198,8 +198,10 @@ describe(
       // sign-in, a price or a checkout is what c1 and c10 refuse, and the
       // three assertions above already name those by their words.
       const hrefs = [...markup.matchAll(/<a\b[^>]*href="([^"]*)"/gi)].map((m) => m[1]);
+      // Issue 1396: *What happens every day* links to `/how-it-works`,
+      // which explains the product and asks for nothing.
       for (const href of hrefs) {
-        expect(href, `${href} leaves the page before the visitor has submitted`).toMatch(/^#/);
+        expect(href, `${href} leaves the page before the visitor has submitted`).toMatch(/^(#|\/how-it-works$)/);
       }
 
       // Source assertion: page.tsx imports no session, auth or account

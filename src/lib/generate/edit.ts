@@ -38,8 +38,11 @@ import { allowedFacts, readAllFacts } from "./pipeline/grounding";
 import { targetSearches } from "./pipeline";
 import {
   readRecordedRules,
+  readRecordedRun,
   readRecordedVerdict,
   recordedRulesValue,
+  recordedRunValue,
+  type RecordedRun,
   recordedVerdictValue,
 } from "./record";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
@@ -70,6 +73,9 @@ export type DraftEditOutcome =
       claim: ClaimVerdict | null;
       /** The battery's failures on the saved text; `null` where it did not run. */
       failed: readonly RuleFailure[] | null;
+      /** What that battery asked of the text (`meta.checks`); `null` where
+       *  it did not run or the row records none. */
+      run: RecordedRun | null;
       /** Whether the saved text may publish — every rule and the claim check passed. */
       passed: boolean;
       /** The page's state when the text was saved. */
@@ -152,6 +158,8 @@ export async function saveDraftEdit(a: DraftEdit): Promise<DraftEditOutcome> {
   // D51: the H1 was written beside the title it had. A founder's own title
   // is the page's heading too.
   if (a.title !== before.title) delete nextMeta.heading;
+  // The last run's record spoke for other words (issue 1394).
+  delete nextMeta.checks;
   if (fix !== null) {
     nextMeta.fix = {
       ...fix,
@@ -174,13 +182,14 @@ export async function saveDraftEdit(a: DraftEdit): Promise<DraftEditOutcome> {
     return null;
   });
   if (checked === null) {
-    return { ok: true, savedAt: at, state, claim: null, failed: null, passed: false };
+    return { ok: true, savedAt: at, state, claim: null, failed: null, run: null, passed: false };
   }
 
   const passed = checked.failed.length === 0 && checked.claim.state === "passed";
   await store.patchDraft(a.draftId, {
     claim_check: recordedVerdictValue(checked.claim),
     rule_failures: checked.failed,
+    ...(checked.run === null ? {} : { meta: { ...nextMeta, checks: checked.run } }),
     hard_rules_passed: passed,
     cost_cents: Number(row.cost_cents) + checked.spentCents,
   });
@@ -191,7 +200,7 @@ export async function saveDraftEdit(a: DraftEdit): Promise<DraftEditOutcome> {
     failed: checked.failed.map((failure) => failure.rule).join(","),
     passed,
   });
-  return { ok: true, savedAt: at, state, claim: checked.claim, failed: checked.failed, passed };
+  return { ok: true, savedAt: at, state, claim: checked.claim, failed: checked.failed, run: checked.run, passed };
 }
 
 /** Whether the page ever entered review — the fact §9's
@@ -201,11 +210,11 @@ function enteredReview(row: DraftRow): boolean {
 }
 
 /** An unchanged save answers with what the row already records. */
-function recorded(row: DraftRow): { claim: ClaimVerdict | null; failed: readonly RuleFailure[] | null; passed: boolean } {
+function recorded(row: DraftRow): { claim: ClaimVerdict | null; failed: readonly RuleFailure[] | null; run: RecordedRun | null; passed: boolean } {
   const claim = readRecordedVerdict(row.claim_check);
   const failed = readRecordedRules(row.rule_failures);
   const passed = claim !== null && claim.state === "passed" && failed !== null && failed.length === 0;
-  return { claim, failed, passed };
+  return { claim, failed, run: readRecordedRun(row.meta), passed };
 }
 
 async function recheck(
@@ -213,7 +222,7 @@ async function recheck(
   a: DraftEdit,
   meta: Meta,
   isFix: boolean
-): Promise<{ claim: ClaimVerdict; failed: RuleFailure[]; spentCents: number } | null> {
+): Promise<{ claim: ClaimVerdict; failed: RuleFailure[]; run: RecordedRun | null; spentCents: number } | null> {
   const store = generateStore();
   const site = await store.siteFacts(a.siteId);
   const report = await store.latestReport(a.siteId);
@@ -231,7 +240,7 @@ async function recheck(
       });
       const failed: RuleFailure[] =
         claim.state === "failed" ? [{ rule: "do_not_claim", detail: { rule: "do_not_claim", matchedEntry: claim.matchedEntry } }] : [];
-      return { claim, failed, spentCents: cost.spentCents() };
+      return { claim, failed, run: null, spentCents: cost.spentCents() };
     }
 
     const { opportunityById } = await import("@/lib/opportunities");
@@ -286,6 +295,6 @@ async function recheck(
       },
       factPages: facts.map((sourced) => sourced.fact.url),
     });
-    return { claim: outcome.claim, failed: recordedRulesValue(outcome), spentCents: cost.spentCents() };
+    return { claim: outcome.claim, failed: recordedRulesValue(outcome), run: recordedRunValue(outcome), spentCents: cost.spentCents() };
   });
 }

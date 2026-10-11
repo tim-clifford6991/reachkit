@@ -68,6 +68,20 @@ export const PUBLIC_ROUTE_SEO = Object.freeze({
     description: "meta.scans.description",
     indexable: true,
   },
+  // SPEC §1 2026-10-10 (issue 1396): how the product works and who builds
+  // it, both written to be found.
+  how: {
+    route: "/how-it-works",
+    title: "meta.how.title",
+    description: "meta.how.description",
+    indexable: true,
+  },
+  about: {
+    route: "/about",
+    title: "meta.about.title",
+    description: "meta.about.description",
+    indexable: true,
+  },
   privacy: {
     route: "/privacy",
     title: "meta.privacy.title",

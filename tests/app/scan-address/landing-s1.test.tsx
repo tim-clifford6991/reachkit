@@ -4,7 +4,7 @@
 // `landing.test.tsx` beside this file holds REQ-001's own criteria (one
 // field, one submit, no gate, the no-JavaScript path). This file holds the
 // order and what each section carries: the hero and its *Inside ReachKit*
-// preview, the video frame, the four features, the three steps and the
+// preview, the eight steps, the four features, the three steps and the
 // closing band. That the preview turns every 5s is proved in jsdom by
 // `tests/ui/landing-inside-tabs.test.tsx`.
 //
@@ -17,6 +17,8 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
+import { BATTERY, TRACKED_PROMPTS, VETO } from "@/lib/config/constants";
+import { HARD_RULES } from "@/lib/generate/rules/types";
 
 vi.mock("@/lib/presentation/copy", () => ({
   copy: (key: string, vars?: Record<string, string>) =>
@@ -31,22 +33,22 @@ async function renderPage(): Promise<string> {
   return renderToStaticMarkup(React.createElement(LandingPage, { searchParams: {} }));
 }
 
-/** The preview card alone, bounded by the video block that follows it. */
+/** The preview card alone, bounded by the eight steps that follow it. */
 function heroCard(markup: string): string {
   const from = markup.indexOf('data-testid="landing-inside"');
-  const to = markup.indexOf('data-testid="landing-video"');
+  const to = markup.indexOf('data-testid="landing-day"');
   expect(from).toBeGreaterThan(-1);
   expect(to).toBeGreaterThan(from);
   return markup.slice(from, to);
 }
 
 describe("SPEC §1 2026-09-24 — the landing in its approved order (#1067)", () => {
-  it("hero → See it work → Why you should care → What to do next → the closing band", async () => {
+  it("hero → What happens every day → Why you should care → What to do next → the closing band", async () => {
     const markup = await renderPage();
     const order = [
       'id="landing-field"',
       'data-testid="landing-inside"',
-      'data-testid="landing-video"',
+      'data-testid="landing-day"',
       'id="why"',
       "landing.feature.ai.title",
       'id="how"',
@@ -104,24 +106,23 @@ describe("Inside ReachKit — the hero preview (SPEC §1 2026-09-24)", () => {
   });
 });
 
-describe("See it work — a frame, a play mark and one written line (#734)", () => {
-  it("the block renders before any asset exists, its title in the window bar", async () => {
+describe("What happens every day — eight steps, their figures from the constants (issue 1396)", () => {
+  it("draws eight steps in order and links to /how-it-works", async () => {
     const markup = await renderPage();
-    const at = markup.indexOf('data-testid="landing-video"');
-    expect(at).toBeGreaterThan(-1);
+    const at = markup.indexOf('data-testid="landing-day"');
     const block = markup.slice(at, markup.indexOf("</section>", at));
-    expect(block).toContain("landing.video.eyebrow");
-    expect(block).toContain("landing.video.heading");
-    expect(block).toContain("landing.video.line");
-    expect(markup).toContain("landing.video.caption");
+    const titles = [...block.matchAll(/landing\.day\.(\d)\.title/g)].map((m) => m[1]);
+    expect(titles).toEqual(["1", "2", "3", "4", "5", "6", "7", "8"]);
+    expect(block).toContain('href="/how-it-works"');
   });
 
-  it("the play mark is drawn, not offered — it starts nothing yet", async () => {
+  it("each figure is the constant's: change the constant and the step says the new number", async () => {
     const markup = await renderPage();
-    const at = markup.indexOf('data-testid="landing-video"');
-    const block = markup.slice(at, markup.indexOf("</section>", at));
-    expect(block).not.toContain("<button");
-    expect(block).toMatch(/<span[^>]*aria-hidden="true"[^>]*><svg/);
+    const prompts = Object.values(TRACKED_PROMPTS.SPLIT).reduce((sum, n) => sum + n, 0);
+    expect(markup).toContain(`landing.day.2.line:${BATTERY.QUESTIONS},${prompts}`);
+    expect(markup).toContain(`landing.day.3.line:${BATTERY.COMPETITORS_MAX}`);
+    expect(markup).toContain(`landing.day.6.line:${HARD_RULES.length}`);
+    expect(markup).toContain(`landing.day.7.line:${VETO.defaultHours}`);
   });
 });
 

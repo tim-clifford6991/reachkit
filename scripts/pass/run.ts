@@ -96,6 +96,8 @@ type FetchRow = {
   reserved_cents: number;
   created_at: string;
   duration_ms: number | null;
+  /** Issue 1408: the vendor's own charge. Absent on a row kept before it. */
+  billed_cents?: number | string | null;
   payload: unknown;
 };
 
@@ -639,7 +641,7 @@ export async function main(o: Options): Promise<number> {
   for (const [ok, line] of checks) say(`  ${ok ? "✓" : "✗"} ${line}`);
 
   if (paid.length > 0) {
-    for (const row of now) appendSpend({ script: "pass", source: row.source, cents: Number(row.cost_cents) });
+    for (const row of now) appendSpend({ script: "pass", source: row.source, cents: Number(row.cost_cents), billed: row.billed_cents === null || row.billed_cents === undefined ? undefined : Number(row.billed_cents) });
     const kept = [...bought, ...now.filter((row) => Number(row.cost_cents) > 0).map((row) => ({ ...without(row, "id"), scan_id: `issue-box:${short(scan.id)}` }) as FetchRow)];
     writeFileSync(boughtFile, `${JSON.stringify(kept, null, 1)}\n`);
     say(`\nBought now: ${cents(now.reduce((sum, row) => sum + Number(row.cost_cents), 0))} in ${now.length} calls, kept in ${path.relative(o.root, boughtFile)} and written to the spend log.`);
