@@ -112,7 +112,7 @@ describe("issue #479 — a refusal is a row, never a null payload", () => {
       const result = await inContext(async (c) =>
         measureDomain(
           c,
-          { domain: "cal.com", tier: "free" },
+          { domain: "cal.com", at: new Date("2026-09-05T09:30:00.000Z"), tier: "free" },
           {
             fetchDocument: async () => refused(reason),
             readRobots: robots,

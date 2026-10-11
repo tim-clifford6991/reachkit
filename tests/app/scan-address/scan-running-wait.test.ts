@@ -116,6 +116,7 @@ describe("#510 — the in-flight refusal's wait is the platform bound plus the s
       stoppedReason: "complete",
       fromIncompleteRescan: false,
       market: { kind: "measured", at: measuredAt, value: { profile: { category: "product analytics" } } },
+      onPage: { kind: "measured", at: measuredAt, value: {} },
       correctionState: "none",
       verdict: { measuredAt, missing: [] },
     } as unknown as StoredReport);
