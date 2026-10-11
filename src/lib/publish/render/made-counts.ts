@@ -3,9 +3,8 @@
 // are `./made.ts`'s.
 //
 // Kept apart from them because the hosted store reads these and the
-// middleware reaches the hosted store: this file imports no copy and no
-// renderer, so neither joins that graph.
-import { HARD_RULES } from "@/lib/generate/rules/types";
+// middleware reaches the hosted store: this file imports nothing, so no
+// copy and no renderer joins that graph.
 
 export interface MadeCounts {
   /** Facts the page states or links that were read from the site itself. */
@@ -28,9 +27,10 @@ function onSite(url: unknown, domain: string): boolean {
 
 /**
  * The note's two numbers, read off `drafts.meta`, or `null` where the row
- * records no fact from the site. A row written before the rule count was
- * stored was held to the list as it stands, and a published page passed it:
- * the publishing engine admits no other.
+ * records no fact from the site or no count of the rules it was held to. A
+ * row written before that count was stored has none, and the page says
+ * nothing rather than a number nobody stored; it gains the note when it is
+ * next written.
  */
 export function madeCounts(meta: Readonly<Record<string, unknown>> | null, domain: string): MadeCounts | null {
   const used = meta?.factsUsed;
@@ -40,6 +40,6 @@ export function madeCounts(meta: Readonly<Record<string, unknown>> | null, domai
   ).length;
   if (facts === 0) return null;
   const stored = meta?.rulesChecked;
-  const rules = typeof stored === "number" && Number.isInteger(stored) && stored > 1 ? stored : HARD_RULES.length;
-  return { facts, rules };
+  if (typeof stored !== "number" || !Number.isInteger(stored) || stored < 2) return null;
+  return { facts, rules: stored };
 }

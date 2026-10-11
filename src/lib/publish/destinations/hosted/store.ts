@@ -140,7 +140,7 @@ export interface HostedPage {
   grounded: HostedGrounding | null;
   /** SPEC §7 (2026-10-11, issue 1397): the two numbers of the note that
    *  says how the page was made, or `null` for a row that records no fact
-   *  read from the site. */
+   *  read from the site or no count of its rules. */
   made: MadeCounts | null;
   /** Whose page it is — the header, the eyebrow, the byline and the
    *  footer are drawn from this and from nothing else. */

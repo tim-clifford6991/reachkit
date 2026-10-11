@@ -2,7 +2,6 @@
 // two numbers are the draft row's, and a row that cannot give them gives
 // no note.
 import { describe, expect, it } from "vitest";
-import { HARD_RULES } from "@/lib/generate/rules/types";
 import { copyIn } from "@/lib/presentation/copy/translated";
 import { madeCounts, madeHtml } from "@/lib/publish/render/made";
 
@@ -21,8 +20,10 @@ describe("the numbers are the row's own", () => {
     expect(madeCounts(meta, "cafe.example")).toEqual({ facts: 3, rules: 17 });
   });
 
-  it("a row written before the rule count was stored is held to the list as it stands", () => {
-    expect(madeCounts({ factsUsed: ON_SITE }, "cafe.example")).toEqual({ facts: 3, rules: HARD_RULES.length });
+  it("a row written before the rule count was stored gives no note, not today's count", () => {
+    expect(madeCounts({ factsUsed: ON_SITE }, "cafe.example")).toBeNull();
+    expect(madeCounts({ factsUsed: ON_SITE, rulesChecked: "19" }, "cafe.example")).toBeNull();
+    expect(madeHtml({ meta: { factsUsed: ON_SITE }, domain: "cafe.example", bodyMd: "A body." })).toBe("");
   });
 
   it("a row with no fact from the site gives no note", () => {

@@ -6,8 +6,8 @@
 // facts it states or links that were read from the site itself
 // (`drafts.meta.factsUsed`), and the rules it was held to
 // (`drafts.meta.rulesChecked`). A page whose row records no fact read from
-// its own site prints no note rather than a number nobody counted. The
-// numbers are read by `./made-counts.ts`.
+// its own site, or no count of its rules, prints no note rather than a
+// number nobody counted. The numbers are read by `./made-counts.ts`.
 //
 // The hosted page draws the line under its byline. A WordPress post has no
 // template of ours, so the line is a paragraph of the content this product
