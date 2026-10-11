@@ -28,25 +28,9 @@ import { COPY, type CopyKey } from "../../../src/lib/presentation/copy/index.ts"
 /** The words the machine keeps and the customer never reads. */
 const INTERNAL = /\b(veto|vetoed|vetoes|calendar|calendars)\b/i;
 
-/**
- * The one value the sweep lets through, and why.
- *
- * `landing.does.item-3.line` is an **approved landing sentence**, and SPEC
- * §1 of the same 2026-09-20 ruling says in as many words that the approved
- * landing sentences are unchanged. Nothing renders it today — the landing
- * draws the section's eyebrow, heading and body and none of its three
- * items — so no customer reads the word through it; #935 redraws that
- * screen, and the owner's correction of this sentence belongs with it
- * (named in #914's PR body).
- *
- * A second entry here would be a second owner ruling, not a convenience.
- */
-const OWNER_HELD: readonly CopyKey[] = ["landing.does.item-3.line"];
-
 describe("SPEC §7 · §4 (2026-09-20) — the customer never reads the machine's word", () => {
   it("no value in the registry says “veto” or “calendar”", () => {
     const offenders = (Object.entries(COPY) as [CopyKey, string][])
-      .filter(([key]) => !OWNER_HELD.includes(key))
       .filter(([, value]) => INTERNAL.test(value))
       .map(([key, value]) => `${key} = ${JSON.stringify(value)}`);
     expect(offenders).toEqual([]);
@@ -57,10 +41,5 @@ describe("SPEC §7 · §4 (2026-09-20) — the customer never reads the machine'
     // the point is that spelling it in a key is allowed and normal.
     const keysWithInternalWord = (Object.keys(COPY) as CopyKey[]).filter((key) => INTERNAL.test(key));
     expect(keysWithInternalWord.length).toBeGreaterThan(0);
-  });
-
-  it("the held sentence is held, not rendered — it still says the internal word", () => {
-    // If the owner corrects it, this fails and the exception above goes.
-    for (const key of OWNER_HELD) expect(INTERNAL.test(COPY[key])).toBe(true);
   });
 });

@@ -8,7 +8,7 @@
 // have said who buys from them, that outranks what a page was read to say.
 import { KNOWLEDGE_BASE } from "@/lib/config/constants";
 import { isBuyerQuestion, isSpecificAudience } from "./clean";
-import { readFirstRank } from "./priority";
+import { isNeverRead, readFirstRank } from "./priority";
 import {
   KNOWLEDGE_LISTS,
   type Differentiator,
@@ -61,8 +61,10 @@ function union(a: readonly string[], b: readonly string[]): string[] {
 
 export function knowledgeBase(a: { stored: StoredKnowledge; answers: FounderAnswers }): KnowledgeBase {
   // The pages in read-first order, so a list's first items are the pricing
-  // and features pages' and not a changelog entry's.
+  // and features pages' and not a changelog entry's. A reading stored off a
+  // gallery or an account page before those were left unread is not used.
   const pages = a.stored.pages
+    .filter((page) => !isNeverRead(page.url))
     .map((page, i) => ({ page, i, rank: readFirstRank(page.url) }))
     .sort((x, y) => x.rank - y.rank || x.i - y.i)
     .map((entry) => entry.page);

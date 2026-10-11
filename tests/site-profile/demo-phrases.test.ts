@@ -113,6 +113,11 @@ describe("a gallery of other businesses is never read as this one", () => {
     { url: "https://reachkit.app/pricing", text: "ReachKit is €49 a month, VAT included, with a page written every day. ".repeat(3) },
     // A product that scans is not a gallery.
     { url: "https://scanner.example.org/scan", text: "Scan a receipt with your phone and it is filed in under ten seconds. ".repeat(3) },
+    // Issue 1393: a published page cited `/signin` as a source. An account
+    // page is no site's grounding, in its own language either.
+    { url: "https://reachkit.app/signin", text: "Enter your email and we send you a link that signs you in for 30 days. ".repeat(3) },
+    { url: "https://cafe.example.de/konto/anmelden", text: "Melden Sie sich an, um Ihre 3 letzten Bestellungen zu sehen. ".repeat(3) },
+    { url: "https://shop.example.org/cart/checkout", text: "Your order ships in 2 days once the payment has cleared. ".repeat(3) },
   ];
 
   it("offers the knowledge read none of them", () => {

@@ -201,10 +201,9 @@ export const DRAFT_COPY = Object.freeze({
   ],
   "draft.adds.business": ["About your business", { slots: {}, fixedBy: "issue 1143 (drafted)" }],
   "draft.adds.ask": [
-    "This page is held until it says something only you can: a price, how you work, or a result you’ve had. Tell us one, then write the page again.",
+    "We set this page aside. It said too little that isn’t already on your site or in the top results for its search, so it wasn’t published and the next topic took its place.",
     { slots: {}, fixedBy: "issue 1143 (drafted)" },
   ],
-  "draft.adds.ask.action": ["Add it in Your business", { slots: {}, fixedBy: "issue 1143 (drafted)" }],
   // Links on this page (SPEC §7, 2026-10-10, issue 1391).
   "draft.links.title": ["Links on this page", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "draft.links.lead": ["Every link this page carries: its words, where it leads, why it was chosen, and whether the address answered.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
