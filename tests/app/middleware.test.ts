@@ -162,6 +162,9 @@ describe(
         "/privacy": "/privacy",
         "/terms": "/terms",
         "/imprint": "/imprint",
+        // Issue 1396 — how the product works and who builds it.
+        "/how-it-works": "/how-it-works",
+        "/about": "/about",
         // Issue #326: the web app manifest, a Next metadata route at the
         // one address the convention allows.
         "/manifest.webmanifest": "/manifest.webmanifest",

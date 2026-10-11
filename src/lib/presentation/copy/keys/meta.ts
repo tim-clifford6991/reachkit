@@ -87,6 +87,12 @@ export const META_COPY = Object.freeze({
    *  #1058). Drafted for the owner (#1069). */
   "meta.scans.title": ["Free scans — every ReachKit report, in the open", { slots: {}, fixedBy: "issue 1069 · drafted" }],
   "meta.scans.description": ["Every free ReachKit scan, listed: how each business shows up in Google search and AI answers, its Discoverability Score, and a permanent link to its report.", { slots: {}, fixedBy: "issue 1069 · drafted" }],
+  // Issue 1396: the two pages that say how the product works and who
+  // builds it. Drafted; named in that pull request.
+  "meta.how.title": ["How it works — ReachKit", { slots: {}, fixedBy: "issue 1396 · drafted" }],
+  "meta.how.description": ["What ReachKit measures in Google and in AI answers, how a page for your site is chosen and written, the checks it passes before it goes live, and what you control.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
+  "meta.about.title": ["About — ReachKit", { slots: {}, fixedBy: "issue 1396 · drafted" }],
+  "meta.about.description": ["Who builds ReachKit and why, and the rules it keeps about what it publishes.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
   "meta.report.title": ["{domain} · Discoverability Score · ReachKit", { slots: { domain: "text" }, fixedBy: "issue 326" }],
   "meta.report.description": ["How findable {domain} is in Google and in AI answers, against its market’s biggest searches — and the pages that would change it. Permanent link.", { slots: { domain: "text" }, fixedBy: "issue 326 · issue 1309" }],
   "meta.veto.title": ["Stop this page — ReachKit", { slots: {}, fixedBy: "issue 326" }],
