@@ -255,6 +255,36 @@ describe("crawlSite", () => {
     expect(ports.fetched).toContain(HOME);
   });
 
+  it("leaves out a page whose row could not be written, says so, and keeps the rest of the site (issue 1414)", async () => {
+    const links = `<a href="/pricing">Pricing</a><a href="/tile">Tile</a><a href="/about">About</a>`;
+    const ports = fakePorts({
+      [HOME]: ok(HOME, page("Example Payments", links)),
+      "https://example.com/pricing": ok("https://example.com/pricing", page("Pricing")),
+      "https://example.com/tile": ok("https://example.com/tile", page("Tile")),
+      "https://example.com/about": ok("https://example.com/about", page("About us")),
+    });
+    // The ledger refuses two rows, whatever the cause: a page's, and the
+    // home document's own.
+    const cost = fakeCost();
+    const record = cost.recordFetch.bind(cost);
+    cost.recordFetch = (async (call: Parameters<typeof record>[0]) => {
+      const result = await record(call);
+      if (call.cacheKey === HOME || call.cacheKey.endsWith("/tile")) throw new Error("ledger.ts: insert into fetches failed: connection reset");
+      return result;
+    }) as typeof cost.recordFetch;
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    const out = await crawlSite(cost, { domain: DOMAIN, homeUrl: HOME, homeHtml: null, sitemaps: [] }, ports);
+
+    expect(out.pages.map((p) => p.url)).toEqual([HOME, "https://example.com/pricing", "https://example.com/about"]);
+    const said = log.mock.calls.map((call) => JSON.parse(String(call[0])) as { event: string; url: string; because: string });
+    expect(said.filter((line) => line.event === "site_page_not_stored")).toEqual([
+      { event: "site_page_not_stored", url: HOME, because: "ledger.ts: insert into fetches failed: connection reset" },
+      { event: "site_page_not_stored", url: "https://example.com/tile", because: "ledger.ts: insert into fetches failed: connection reset" },
+    ]);
+    log.mockRestore();
+  });
+
   it("returns no pages, and does not throw, when the home document cannot be read", async () => {
     const out = await crawlSite(
       fakeCost(),

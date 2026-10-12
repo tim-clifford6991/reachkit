@@ -392,7 +392,7 @@ export async function collect(a: { site: PanelSite; bought: readonly FetchRow[];
           ).map((prompt) => ({ kind: prompt.kind, text: prompt.text })),
   };
   const health = (parseHealth(stored.scan?.health)?.checks ?? []).map((check) => ({ check: check.check, pass: check.pass, detail: check.detail }));
-  const telling = /unmeasured|failed|undeterminable|skipped|threw|too_small|refus/;
+  const telling = /unmeasured|failed|undeterminable|skipped|threw|too_small|refus|not_stored/;
   return {
     result,
     checks: checkSite(result),
