@@ -169,6 +169,18 @@ describe("safeFetch · never throws", () => {
   });
 });
 
+describe("safeFetch · a NUL in a document (issue 1414)", () => {
+  it("hands back the document without it: Postgres stores no text that holds one", async () => {
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue({ address: "93.184.216.34", family: 4 });
+    installTransport([okResponse('<script>m={i:"__root__\u0000"}</script><p>Tile\u0000 Buddy</p>')]);
+
+    const outcome = await safeFetch("https://tile.example.com/");
+
+    expect(outcome).toMatchObject({ ok: true, html: '<script>m={i:"__root__"}</script><p>Tile Buddy</p>' });
+  });
+});
+
 describe("safeFetch · size cap (BP-006 NFR: 2 MB, `too_large` not a truncated parse)", () => {
   it("returns too_large for a response over the cap and carries no html", async () => {
     const { safeFetch } = await import("../../src/lib/egress/safe-fetch");

@@ -8,7 +8,8 @@ import { applyEnvFixture } from "../mail/env-fixture";
 
 applyEnvFixture();
 
-const { textMock, renderMock, robotsMock, readMock, writeMock } = vi.hoisted(() => ({
+const { textMock, renderMock, robotsMock, readMock, writeMock, profileMock } = vi.hoisted(() => ({
+  profileMock: vi.fn(),
   textMock: vi.fn(),
   renderMock: vi.fn(),
   robotsMock: vi.fn(),
@@ -20,7 +21,7 @@ vi.mock("@/lib/measure/text", () => ({ readMeasuredText: textMock }));
 vi.mock("@/lib/vendors/dataforseo", () => ({ renderedPage: renderMock }));
 vi.mock("@/lib/egress/robots", async (original) => ({ ...(await original<object>()), readRobots: robotsMock }));
 vi.mock("@/lib/locale/site", () => ({ siteLocale: async () => ({ country: "DE", language: "de" }) }));
-vi.mock("../../src/lib/site-profile/store", () => ({ readSiteProfile: async () => ({ inventory: [] }) }));
+vi.mock("../../src/lib/site-profile/store", () => ({ readSiteProfile: profileMock }));
 vi.mock("../../src/lib/site-profile/knowledge/store", () => ({ readStoredKnowledge: async () => null, writeStoredKnowledge: writeMock }));
 vi.mock("../../src/lib/site-profile/knowledge/extract", () => ({ readKnowledge: readMock }));
 
@@ -43,7 +44,8 @@ const asked = (): string[] => renderMock.mock.calls.map((call) => (call[1] as { 
 const readPages = (): { url: string; text: string }[] => (readMock.mock.calls[0]?.[1] as { pages: { url: string; text: string }[] }).pages;
 
 beforeEach(() => {
-  for (const mock of [textMock, renderMock, robotsMock, readMock, writeMock]) mock.mockReset();
+  for (const mock of [textMock, renderMock, robotsMock, readMock, writeMock, profileMock]) mock.mockReset();
+  profileMock.mockResolvedValue({ inventory: [] });
   vi.spyOn(console, "log").mockImplementation(() => {});
   readMock.mockResolvedValue({ knowledge: { pages: [{}] }, asked: 1, stoppedBy: "complete" });
   robotsMock.mockResolvedValue({ ok: true, origin: `https://${DOMAIN}`, readAt: AT, ...parseRobotsTxt("User-agent: *\nDisallow: /private/") });
@@ -94,5 +96,22 @@ describe("a site that serves its text", () => {
     await buildKnowledge(cost, { siteId: "site-1", domain: DOMAIN });
     expect(renderMock).not.toHaveBeenCalled();
     expect(readPages().map((page) => page.url)).toEqual([HOME, `https://${DOMAIN}/login`]);
+  });
+});
+
+describe("a pass that stored no site profile (issue 1414, wesbos.com)", () => {
+  it("buys no read of a base it has no row to keep in, and says so", async () => {
+    profileMock.mockResolvedValue(null);
+    textMock.mockResolvedValue([{ url: HOME, text: SAID, measuredAt: AT }]);
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    const read = await buildKnowledge(cost, { siteId: "site-1", domain: DOMAIN });
+
+    expect(readMock).not.toHaveBeenCalled();
+    expect(writeMock).not.toHaveBeenCalled();
+    expect(read).toMatchObject({ asked: 0, knowledge: { pages: [] } });
+    expect(log.mock.calls.map((call) => JSON.parse(String(call[0])) as { event: string; held: number })).toContainEqual(
+      expect.objectContaining({ event: "site_knowledge_failed", held: 1 })
+    );
   });
 });
