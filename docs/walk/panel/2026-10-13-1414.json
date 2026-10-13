@@ -1,0 +1,806 @@
+{
+ "date": "2026-10-13",
+ "commit": "ddbb520f",
+ "capCents": 45,
+ "spentCents": 15.9999,
+ "refusedAtCap": 0,
+ "notRun": [
+  "zunicafe.com",
+  "austinplumbery.com",
+  "baeckerei-hinkel.de",
+  "alexander.co.uk",
+  "tattly.com",
+  "savvycal.com",
+  "clearleft.com",
+  "wesbos.com",
+  "pdxsmiledesign.com",
+  "fletcherelectric.co.uk"
+ ],
+ "defects": [
+  {
+   "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+   "sites": [
+    {
+     "domain": "streaksapp.com",
+     "detail": "Atoms — jamesclear.com, 110000/mo, ranks; Habi — habi.app, 1900/mo, ranks; Habitify — habitify.me, 1300/mo, ranks; Loop Habit Tracker — loophabits.org, 1000/mo, ranks; HabitNow — google.com, 720/mo, ai_answer",
+     "items": [
+      "google.com lists or writes about businesses; it is not one"
+     ]
+    }
+   ]
+  }
+ ],
+ "sites": [
+  {
+   "site": {
+    "domain": "streaksapp.com",
+    "kind": "app business (consumer iOS app)",
+    "country": "US",
+    "language": "en",
+    "kinds": [
+     "software"
+    ],
+    "market": [
+     "habit",
+     "to-do",
+     "todo"
+    ],
+    "why": "A habit-tracking app sold through the App Store, with a one-page site. Very little text, a consumer buyer, and rivals that are other apps."
+   },
+   "siteName": "STREAKS",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "people who want to build daily habits",
+    "job": "form and maintain good habits through daily task completion",
+    "category": "habit tracking app",
+    "synonyms": [
+     "habit formation app",
+     "daily habit tracker",
+     "streak tracker app"
+    ],
+    "differentiators": [
+     "streak counter that extends each day a task is completed",
+     "up to 24 customizable tasks per user",
+     "integrates with iOS Health app",
+     "Apple Design Award winner"
+    ],
+    "notOurMarket": [
+     "to-do list apps",
+     "productivity software",
+     "fitness tracking apps",
+     "goal-setting platforms"
+    ],
+    "categoryReason": "The site's headline and pages emphasize habit formation through daily task streaks, not general task management or productivity.",
+    "rivals": [
+     {
+      "domain": "jamesclear.com",
+      "name": "Atoms",
+      "basis": "ranks",
+      "reason": "Official Atomic Habits companion app for daily habit tracking, directly targeting people who want to build and maintain good habits.",
+      "searchNames": [
+       "atoms habit app",
+       "atoms habit"
+      ],
+      "volume": 110000,
+      "national": true
+     },
+     {
+      "domain": "habi.app",
+      "name": "Habi",
+      "basis": "ranks",
+      "reason": "Free online daily habit and streak tracker targeting the same habit-building audience with a simple goal-tracking interface.",
+      "searchNames": [
+       "habi",
+       "habi app"
+      ],
+      "volume": 1900,
+      "national": true
+     },
+     {
+      "domain": "habitify.me",
+      "name": "Habitify",
+      "basis": "ranks",
+      "reason": "Cross-platform habit tracker (iOS, Android, Web) focused on daily habit logging and streaks, directly competing for the same habit-building user.",
+      "searchNames": [
+       "habitify"
+      ],
+      "volume": 1300,
+      "national": true
+     },
+     {
+      "domain": "loophabits.org",
+      "name": "Loop Habit Tracker",
+      "basis": "ranks",
+      "reason": "Free open-source Android habit tracker with streak counters and detailed charts, a direct alternative for daily habit formation.",
+      "searchNames": [
+       "loop habit tracker"
+      ],
+      "volume": 1000,
+      "national": true
+     },
+     {
+      "domain": "google.com",
+      "name": "HabitNow",
+      "basis": "ai_answer",
+      "reason": "Android habit tracker with daily routines, reminders, and statistics, competing directly as a Streaks equivalent for Android users.",
+      "searchNames": [
+       "habitnow"
+      ],
+      "volume": 720,
+      "national": true
+     }
+    ],
+    "terms": [
+     {
+      "term": "habit tracker",
+      "volume": 18100
+     },
+     {
+      "term": "habit tracker app",
+      "volume": 6600
+     },
+     {
+      "term": "habit tracking app",
+      "volume": 4400
+     },
+     {
+      "term": "daily habit tracker",
+      "volume": 1000
+     },
+     {
+      "term": "best habit tracker",
+      "volume": 320
+     },
+     {
+      "term": "habit formation app",
+      "volume": 140
+     },
+     {
+      "term": "habit builder app",
+      "volume": 90
+     },
+     {
+      "term": "streak tracker app",
+      "volume": 70
+     },
+     {
+      "term": "track daily habits",
+      "volume": 10
+     },
+     {
+      "term": "build daily habits",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "habit tracker",
+    "termsAt": "2026-10-13T01:47:48.454Z",
+    "demand": {
+     "at": "2026-10-13T01:51:27.951Z",
+     "own": 40500,
+     "brands": {
+      "habi": 1900,
+      "streaks": 40500,
+      "habi app": 40,
+      "habitify": 1300,
+      "habitnow": 720,
+      "lifestack": 590,
+      "streaksapp": 0,
+      "atoms habit": 110000,
+      "easy habits": 20,
+      "atoms habit app": 20,
+      "easy habits app": 0,
+      "lifestack habit": 0,
+      "productive habit": 170,
+      "singularity habit": 0,
+      "loop habit tracker": 1000,
+      "productive habit app": 10,
+      "singularity habit app": 0
+     },
+     "searches": {
+      "habi alternatives": 0,
+      "atoms alternatives": 0,
+      "habitify alternatives": 10,
+      "habitnow alternatives": 0,
+      "lifestack alternatives": 0,
+      "productive alternatives": 480,
+      "easy habits alternatives": 0,
+      "singularity alternatives": 0,
+      "loop habit tracker alternatives": 0
+     }
+    },
+    "judged": {
+     "best habit tracker app": true,
+     "habit tracker template": false,
+     "habit tracking app ios": true,
+     "daily habit tracker app": true,
+     "best daily habit tracker": true,
+     "habit tracker app review": true,
+     "best app for habit tracking": true,
+     "best habit tracking app ios": true,
+     "best daily habit tracker app": true,
+     "daily habit tracker template": false,
+     "what is a daily habit tracker": false,
+     "best habit and goal tracking app": false,
+     "best app for daily habit tracking": true,
+     "what is the best habit tracker app": true
+    },
+    "kind": "software",
+    "serves": null
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 3,
+    "timeouts": 0
+   },
+   "pageQuestions": 0,
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "US",
+    "language": "en"
+   },
+   "searches": [
+    "habit tracker",
+    "habit tracker app",
+    "habit tracking app",
+    "best app for habit tracking",
+    "best habit tracker app",
+    "daily habit tracker",
+    "best habit tracker",
+    "daily habit tracker app",
+    "habit formation app",
+    "habit builder app",
+    "habit tracker app review",
+    "habit tracker templates"
+   ],
+   "knowledgePages": 1,
+   "questions": [],
+   "audience": [],
+   "topics": [
+    {
+     "query": "best app for habit tracking",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 1900,
+     "ready": false
+    },
+    {
+     "query": "daily habit tracker app",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 170,
+     "ready": false
+    },
+    {
+     "query": "habit tracker app review",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 50,
+     "ready": false
+    },
+    {
+     "query": "habit tracker templates",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 1,
+     "volume": 2400,
+     "ready": false
+    },
+    {
+     "query": "atoms alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "habi alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "habitify alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 10,
+     "ready": true
+    },
+    {
+     "query": "loop habit tracker alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "habitnow alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "streaks vs atoms",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "streaks vs habi",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "streaks vs habitify",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "streaks vs loop habit tracker",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "streaks vs habitnow",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 15.999900000000004,
+   "costBySource": {
+    "site-profile": 0.3375,
+    "profile": 0.2725,
+    "market-inference": 0.3738,
+    "market-terms": 0.6384,
+    "dataforseo_labs/google/keyword_overview": 2.3600000000000003,
+    "market-searches": 0.8055,
+    "question-phrasing": 0.2218,
+    "serp/google/ai_mode": 1.2000000000000002,
+    "serp/google/organic": 0.24,
+    "ai_optimization/chat_gpt/llm_scraper": 1.4400000000000004,
+    "site-knowledge": 0.3574,
+    "rival-inference": 3.3237,
+    "topic-buyer-searches": 0.1963,
+    "topic-typed": 0.2004,
+    "topic-fit": 2.7612,
+    "opportunity-typing": 0.9891,
+    "topic-same-question": 0.2823
+   },
+   "area": {
+    "place": null,
+    "location": null
+   },
+   "resultDomains": [
+    "play.google.com",
+    "www.yopandtom.com",
+    "www.reddit.com",
+    "methods.remarkable.com",
+    "habitbox.app",
+    "www.teachable.com",
+    "www.pinterest.com",
+    "templatelab.com",
+    "loophabits.org",
+    "blog.alexanderfyoung.com",
+    "www.drginacleo.com",
+    "www.knack.com",
+    "techpoint.africa",
+    "routinebase.com",
+    "chromewebstore.google.com",
+    "habi.app",
+    "theliven.com",
+    "zapier.com",
+    "singularity-app.com",
+    "clockify.me",
+    "habitify.me",
+    "www.youtube.com",
+    "www.etsy.com",
+    "productiveapp.io",
+    "fhynix.com",
+    "toggl.com",
+    "www.womanandhome.com",
+    "apps.microsoft.com",
+    "habitkit.app",
+    "habitshareapp.com",
+    "atoms.jamesclear.com",
+    "wayoflifeapp.com",
+    "habitica.com",
+    "apps.apple.com",
+    "medium.com",
+    "thesweetsetup.com",
+    "www.lambertslately.com",
+    "www.magnific.com",
+    "passionplanner.com",
+    "dk.pinterest.com",
+    "reddit.com",
+    "easyhabits.io",
+    "jotform.com",
+    "google.com",
+    "youtube.com"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "What are the best habit tracker tools right now, and what is each one good at?"
+    },
+    {
+     "kind": "category",
+     "text": "Which habit tracking platforms do people actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "Which daily habit tracker platforms do people actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "Which best habit tracker platforms do people actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "I am new to habit tracker. Which products should I look at first?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which habit tracker tools work on a small budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which habit tracking tools can I use without hiring an agency?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which daily habit tracker tools suit a team of one?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which best habit tracker tools can I set up in a single day?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which habit tracker tools need no engineering team?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which habit tracking tools work for a brand new website?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which daily habit tracker tools have a free trial?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are people. Which habit tracker tool fits us best?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which habit tracker software is built for people?"
+    },
+    {
+     "kind": "persona",
+     "text": "What do people actually use for habit tracker?"
+    },
+    {
+     "kind": "persona",
+     "text": "I work with people. Which habit tracker product should I recommend to them?"
+    },
+    {
+     "kind": "comparison",
+     "text": "How does Atoms compare with Habi for habit tracker?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Atoms for people?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Habi or Habitify: which is the better choice for habit tracker?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Which is better value for habit tracker: Atoms, Habi or Habitify?"
+    },
+    {
+     "kind": "problem",
+     "text": "I am getting nowhere with habit tracker. Which tools can fix that?"
+    },
+    {
+     "kind": "problem",
+     "text": "Nothing I have tried for habit tracker is working. What software should I try next?"
+    },
+    {
+     "kind": "problem",
+     "text": "What is the fastest way to get results from habit tracker, and which products do it for me?"
+    },
+    {
+     "kind": "branded",
+     "text": "What is STREAKS, and is it any good for habit tracker?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is STREAKS a good alternative to Atoms for habit tracker?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"habit tracking app\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"habit tracker\" 18100/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "fail",
+     "detail": "Atoms — jamesclear.com, 110000/mo, ranks; Habi — habi.app, 1900/mo, ranks; Habitify — habitify.me, 1300/mo, ranks; Loop Habit Tracker — loophabits.org, 1000/mo, ranks; HabitNow — google.com, 720/mo, ai_answer",
+     "items": [
+      "google.com lists or writes about businesses; it is not one"
+     ]
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "the site's own pages ask no question, and none is kept",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"people who want to build daily habits\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "14 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 0.36¢; 0 of 3 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "software; 25 prompts",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "9 searched terms; \"habit tracker\" has 18100"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 4 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 1 page"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "streaksapp.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 193787,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 193801,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 193805,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 193810,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 193810,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 193812,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 193816,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 193815,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 193814,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 193815,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 193818,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 193817,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    }
+   ],
+   "seconds": 276,
+   "evidenceLoaded": 51
+  }
+ ]
+}
