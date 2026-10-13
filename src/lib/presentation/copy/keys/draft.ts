@@ -411,7 +411,7 @@ export const DRAFT_COPY = Object.freeze({
 
   // S16's right-hand rail: the two labels above its two blocks. The
   // controls under "Decide" are `draft.action.*` above; the rows under
-  // "Checks" are the four below.
+  // "Checks" are `draft.checks.*` below.
   "draft.decide.title": [
     "This page",
     { slots: {}, fixedBy: "REQ-045 c4 · S16 (11a)" },
@@ -439,24 +439,135 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §7 2026-09-24" },
   ],
 
-  // The four §8 hard rules S16 names, each as the sentence the set writes
-  // for a rule that passed. A rule whose outcome this product has not
-  // recorded draws no row at all (`checks.ts`), so none of these ever
-  // stands for a check that did not run.
-  "draft.checks.grounded": [
-    "grounded — {facts} fact, {sources} source",
-    {
-      slots: { facts: "text", sources: "text" },
-      fixedBy: "REQ-045 c2 · S16 (11a)",
-    },
+  // SPEC §7 (2026-10-10, issue 1394): the Checks list. The headline is the
+  // glance; the closed note under it holds every hard rule in plain words,
+  // in three groups. Every number is a slot — the total is the length of
+  // the rule list and the ceiling is `NEAR_DUPLICATE_MAX`.
+  "draft.checks.headline": [
+    "Checks — {passed} of {total} passed",
+    { slots: { passed: "text", total: "text" }, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
-  "draft.checks.do-not-claim": [
-    "no claim from your do-not-claim list",
-    { slots: {}, fixedBy: "REQ-045 c3 · S16 (11a)" },
+  "draft.checks.count.fixed": [
+    "{n} fixed automatically",
+    { slots: { n: "text" }, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
-  "draft.checks.near-duplicate": [
-    "near-duplicate gate passed",
-    { slots: {}, fixedBy: "BUILD §8 · S16 (11a)" },
+  "draft.checks.count.skipped": [
+    "{n} not needed for this page",
+    { slots: { n: "text" }, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.count.failed": [
+    "{n} not passed",
+    { slots: { n: "text" }, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.note.title": [
+    "How we decided",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.note.lead": [
+    "Each page is read against {total} rules before it can go live. A rule that does not fit this kind of page is left out and is not counted as passed.",
+    { slots: { total: "text" }, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.group.facts": [
+    "Facts",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.group.honesty": [
+    "Honesty",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.group.structure": [
+    "Structure",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.status.skipped": [
+    "Not needed for this page",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.status.failed": [
+    "Not passed",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.grounding": [
+    "States a fact read from your own site",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.traceable-numerals": [
+    "Every number traces to a source",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.rival-source": [
+    "Every figure about a rival links to its source",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.no-invented-test": [
+    "No invented tests",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.no-invented-provenance": [
+    "No invented case studies",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.no-placeholder-cell": [
+    "No empty cell in a table",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.no-invented-people": [
+    "No invented people",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.no-unsourced-testimonial": [
+    "No review or quote without a source",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.do-not-claim": [
+    "Nothing on your never-claim list",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.fit-claim": [
+    "No claim that your business does something it does not",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.honest-row": [
+    "Your business is in the comparison and does not rank itself first",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.no-hidden-text": [
+    "No hidden text",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.no-machine-address": [
+    "No instructions aimed at AI",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  // A title's specific detail is tried for and never stops a page (SPEC §7,
+  // 2026-10-11), so this row names only what the rule does stop a page on.
+  "draft.checks.rule.title": [
+    "Title fits its length and the heading matches it",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.first-block-answers": [
+    "The opening answers the question",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.required-blocks": [
+    "Every section this kind of page needs is there",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.distinct-headings": [
+    "Each heading asks a different question",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.no-demo-text": [
+    "No menu or sample text from your site",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
+  ],
+  "draft.checks.rule.plain-prose": [
+    "Reads like a person wrote it: no stock phrases, few dashes, varied sentences",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1390 · drafted" },
+  ],
+  "draft.checks.rule.near-duplicate": [
+    "Not a repeat of a page you have ({percent}% at most)",
+    { slots: { percent: "text" }, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
   // SPEC §7 (2026-09-20, #928) — "The page's checks say it is not a repeat
   // and name the closest existing page." The owner's own drafted sentence,
@@ -471,10 +582,6 @@ export const DRAFT_COPY = Object.freeze({
   "draft.checks.not-a-repeat.unlinked": [
     "Not a repeat — checked against {n} pages you already have. The closest is “{title}”.",
     { slots: { n: "text", title: "text" }, fixedBy: "SPEC §7 2026-09-20" },
-  ],
-  "draft.checks.no-invented-author": [
-    "no invented author",
-    { slots: {}, fixedBy: "BUILD §8 · S16 (11a)" },
   ],
 
   // S17, the edit arm. The back link, the two state badges the read view's

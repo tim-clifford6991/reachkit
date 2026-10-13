@@ -102,6 +102,35 @@ export const HARD_RULES: readonly HardRule[] = Object.freeze([
   "do_not_claim",
 ] as const);
 
+/** The rules a caller switches on, each by an input it hands over or leaves
+ *  out (`rulesAsked`, `./index.ts`). Every other rule reads every page. */
+export const SWITCHED_RULES: readonly HardRule[] = Object.freeze([
+  "honest_row",
+  "required_blocks",
+  "no_demo_text",
+  "distinct_headings",
+  "title",
+  "plain_prose",
+  "fit_claim",
+  "do_not_claim",
+] as const);
+
+/** The last battery as the draft screen's Checks list reads it
+ *  (`../record.ts` builds it), each list in `HARD_RULES` order. */
+export interface RecordedChecks {
+  /** Asked of this page, and not failed. */
+  passed: readonly HardRule[];
+  failed: readonly HardRule[];
+  /** Not asked of this page. `null` where the run did not record what it
+   *  asked, and then nothing is said about a switched rule. */
+  skipped: readonly HardRule[] | null;
+  /** How many of `passed` the run failed first and then cleared. */
+  fixed: number;
+}
+
+/** Nothing recorded: a row no battery has touched, or text not yet re-checked. */
+export const NO_CHECKS: RecordedChecks = Object.freeze({ passed: [], failed: [], skipped: null, fixed: 0 });
+
 /** The two rules with a module of their own in `../claims/`: the never-claim
  *  list, a literal match since D45, and the fit check, the one rule a model
  *  decides and only on a listicle or comparison (D44). Every other rule is a

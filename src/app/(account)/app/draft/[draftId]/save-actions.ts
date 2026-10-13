@@ -55,13 +55,13 @@ export async function saveDraft(body: SaveBody): Promise<SaveResult> {
     }
   }
 
-  const { claimStateOf, recordedChecksOf } = await import("./store");
-  const { recordedVerdictValue } = await import("@/lib/generate/record");
+  const { claimStateOf } = await import("./store");
+  const { recordedChecks, recordedVerdictValue } = await import("@/lib/generate/record");
   return {
     ok: true,
     savedAt: outcome.savedAt,
     claim: claimStateOf(outcome.claim === null ? null : recordedVerdictValue(outcome.claim)),
-    recordedChecks: recordedChecksOf(outcome.failed),
+    recordedChecks: recordedChecks(outcome.failed, outcome.run),
     rulesFailed: outcome.failed !== null && outcome.failed.length > 0,
     entered,
   };

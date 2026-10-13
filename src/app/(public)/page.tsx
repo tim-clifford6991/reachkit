@@ -12,15 +12,14 @@
 //      ReachKit* preview at the same height (`InsideReachKit.tsx`);
 //   2. the *Recently scanned* logo strip (`RecentlyScanned.tsx`, #1069),
 //      streamed behind a quiet skeleton so the hero never waits on its read;
-//   3. *See it work*, the 2026-09-22 frame (#734), its title in the window
-//      bar, placed so its middle sits near the fold of a 1920×1080 screen;
+//   3. *What happens every day* (2026-10-10, issue 1396), the eight steps
+//      where the empty *See it work* frame stood, linked to `/how-it-works`;
 //   4. *Why you should care* — four features (`Features.tsx`);
 //   5. *What to do next* — three step cards with their times;
 //   6. the closing band, whose one button returns to the field.
 //
 // One solid button per section (DESIGN, the calm layer, #1063): the hero's
-// Scan and the closing band's button. The video's play disc is a `<span>`,
-// so it is not a control.
+// Scan and the closing band's button. The eight steps' link is soft.
 //
 // The bands run the viewport's width (#1107): *Why you should care* is a
 // full-bleed `base-100` band, not an inset box, and each band keeps its
@@ -32,15 +31,16 @@
 import type React from "react";
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { Play } from "lucide-react";
+import Link from "next/link";
 import { Surface } from "@/ui/layout";
-import { copy } from "@/lib/presentation/copy";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { ScanForm } from "./_landing/ScanForm";
 import { scanFormWords } from "./_landing/scan-form-words";
 import { InsideReachKit } from "./_landing/InsideReachKit";
 import { Features } from "./_landing/Features";
 import { RecentlyScanned, RecentlyScannedSkeleton } from "./_landing/RecentlyScanned";
 import { FieldCta, FIELD_SECTION_ID, HOW_SECTION_ID, WHY_SECTION_ID } from "./_landing/FieldCta";
+import { HOW_FACTS } from "./_how/facts";
 import { PUBLIC_ROUTE_SEO } from "./_seo/routes";
 import { staticMetadata } from "./_seo/metadata";
 
@@ -57,7 +57,20 @@ const STEPS = [
 ] as const;
 
 /** Bound to a name: the copy sweep reads a bare JSX attribute string as voice. */
-const VIDEO_TEST_ID = "landing-video";
+const DAY_TEST_ID = "landing-day";
+
+/** *What happens every day*: the eight steps, in order. A figure is a slot
+ *  filled from the constants, never typed (issue 1396). */
+const DAY_STEPS: readonly { title: CopyKey; line: CopyKey; vars?: Record<string, number> }[] = [
+  { title: "landing.day.1.title", line: "landing.day.1.line" },
+  { title: "landing.day.2.title", line: "landing.day.2.line", vars: { searches: HOW_FACTS.searches, prompts: HOW_FACTS.prompts } },
+  { title: "landing.day.3.title", line: "landing.day.3.line", vars: { rivals: HOW_FACTS.rivals } },
+  { title: "landing.day.4.title", line: "landing.day.4.line" },
+  { title: "landing.day.5.title", line: "landing.day.5.line" },
+  { title: "landing.day.6.title", line: "landing.day.6.line", vars: { checks: HOW_FACTS.checks } },
+  { title: "landing.day.7.title", line: "landing.day.7.line", vars: { hours: HOW_FACTS.windowHours } },
+  { title: "landing.day.8.title", line: "landing.day.8.line" },
+];
 
 /** The surface is `declared`, so it pads nothing: every band's content
  *  takes the footer's own measure and gutter (#1107). */
@@ -80,7 +93,7 @@ export default function LandingPage(props: {
       arms={{
         compact: {
           kind: "declared",
-          note: "full-width bands: hero, video, the white Why band, steps, closing card; each capped at max-w-6xl",
+          note: "full-width bands: hero, the eight steps, the white Why band, steps, closing card; each capped at max-w-6xl",
         },
         medium: { kind: "same-as-below" },
         wide: { kind: "same-as-below" },
@@ -112,33 +125,35 @@ export default function LandingPage(props: {
           </Suspense>
         </div>
 
-        {/* ══ SEE IT WORK ══ The 2026-09-22 frame, empty until the owner
-            supplies the video (#734). Its title sits in the window bar so
-            the frame starts higher and its middle lands near the fold. */}
+        {/* ══ WHAT HAPPENS EVERY DAY ══ Where the empty video frame stood
+            (SPEC §1 2026-10-10, issue 1396): the eight steps, each figure
+            read from the constants the product runs on (`_how/facts.ts`),
+            and one link to the page that says the rest. */}
         <section className="pt-4 pb-16 lg:pt-8">
-          {/* Marked as a demo (issue 1163): the frame's lines caption a
-              video, and are never read as facts about the business. */}
-          <div className={INNER} data-demo>
-            <div
-              data-testid={VIDEO_TEST_ID}
-              className="card card-border bg-base-100 mx-auto w-full max-w-3xl overflow-hidden"
-            >
-              <div className="border-base-300 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 border-b px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-base-content/70">
-                  {copy("landing.video.eyebrow")}
-                </p>
-                <h2 className="text-sm">{copy("landing.video.heading")}</h2>
-              </div>
-              <div className="relative grid aspect-video w-full place-items-center bg-base-200">
-                <span className="grid size-16 place-items-center rounded-full bg-primary text-primary-content" aria-hidden>
-                  <Play size={24} strokeWidth={1.75} />
-                </span>
-                <span className="absolute bottom-4 px-4 text-center font-mono text-xs text-base-content/70">
-                  {copy("landing.video.line")}
-                </span>
-              </div>
+          <div className={INNER} data-testid={DAY_TEST_ID}>
+            <div className="mx-auto max-w-2xl text-left lg:text-center">
+              <p className={`${LABEL} lg:justify-center`}>{copy("landing.day.eyebrow")}</p>
+              <h2 className={HEADING}>{copy("landing.day.heading")}</h2>
+              <p className={BODY}>{copy("landing.day.body")}</p>
             </div>
-            <p className="mt-3 text-center text-sm text-base-content/70">{copy("landing.video.caption")}</p>
+            <ol className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {DAY_STEPS.map((step, i) => (
+                <li key={step.title} className="card card-border bg-base-100 min-w-0">
+                  <div className="card-body gap-2">
+                    <span className="bg-primary/10 text-primary grid size-7 shrink-0 place-items-center rounded-full text-sm font-semibold">
+                      {i + 1}
+                    </span>
+                    <h3 className="card-title">{copy(step.title)}</h3>
+                    <p className="text-sm text-base-content/70">{copy(step.line, step.vars)}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-6 text-center">
+              <Link href="/how-it-works" className="btn btn-soft btn-primary">
+                {copy("landing.day.more")}
+              </Link>
+            </p>
           </div>
         </section>
 

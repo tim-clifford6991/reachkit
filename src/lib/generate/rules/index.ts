@@ -43,7 +43,7 @@ import { checkProse, proseText, type ProseRuleInputs } from "./prose";
 import { checkRivalSource } from "./rivals";
 import { renderOf, withoutReferenceLists } from "./text";
 import { checkTitle, type TitleRuleInputs } from "./title";
-import { HARD_RULES } from "./types";
+import { HARD_RULES, SWITCHED_RULES } from "./types";
 import type { ComparisonSet, GroundedFact, HardRule, ModelRule, RuleFailure, SiteRuleInputs } from "./types";
 import type { PageType } from "@/lib/opportunities/types";
 
@@ -51,8 +51,29 @@ import type { PageType } from "@/lib/opportunities/types";
  *  for the same reason: `unrun` is neither a pass nor a failure, and the
  *  caller holds the page on it. */
 export type BatteryOutcome =
-  | { passed: true; claim: ClaimVerdict; fit: FitVerdict }
-  | { passed: false; failed: RuleFailure[]; claim: ClaimVerdict; fit: FitVerdict };
+  | { passed: true; asked: HardRule[]; claim: ClaimVerdict; fit: FitVerdict }
+  | { passed: false; asked: HardRule[]; failed: RuleFailure[]; claim: ClaimVerdict; fit: FitVerdict };
+
+/**
+ * The rules this run asked of the page, in `HARD_RULES` order (issue 1394).
+ *
+ * A switched rule left off returns no failure, and that is not a pass: the
+ * draft screen draws a pass only for a rule named here. Each condition is
+ * the input its own check asks nothing without.
+ */
+export function rulesAsked(a: DeterministicInputs, verdicts: { fit: FitVerdict; fitAsked: boolean }): HardRule[] {
+  const on: Record<string, boolean> = {
+    honest_row: a.pageType === "market_comparison",
+    required_blocks: a.blocks != null,
+    no_demo_text: (a.demoPhrases ?? []).length > 0,
+    distinct_headings: a.distinctHeadings === true,
+    fit_claim: verdicts.fitAsked && verdicts.fit.state !== "unrun",
+    do_not_claim: a.site.doNotClaim.length > 0,
+    title: a.titleRule != null && a.titleRule.type !== "update",
+    plain_prose: a.prose != null,
+  };
+  return HARD_RULES.filter((rule) => !SWITCHED_RULES.includes(rule) || on[rule] === true);
+}
 
 /** Whether the battery both ran in full and found nothing: the one answer
  *  that lets a page move toward review. */
@@ -248,5 +269,6 @@ export async function runHardRules(
   }
 
   logBattery({ failed, claimState: claim.state, fitState: fit.state });
-  return failed.length === 0 ? { passed: true, claim, fit } : { passed: false, failed, claim, fit };
+  const asked = rulesAsked(a, { fit, fitAsked: a.knowledge !== undefined });
+  return failed.length === 0 ? { passed: true, asked, claim, fit } : { passed: false, asked, failed, claim, fit };
 }

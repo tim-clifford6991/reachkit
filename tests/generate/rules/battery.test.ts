@@ -57,6 +57,19 @@ describe("a draft that clears every rule passes", () => {
   });
 });
 
+describe("the outcome names the rules it asked (issue 1394)", () => {
+  it("a rule its caller left switched off is not among them, and so is never read as a pass", async () => {
+    const outcome = await run(CLEAN_MARKDOWN);
+    // An answer page handed no blocks, no title rule, no demo phrases, no
+    // knowledge base and an empty never-claim list.
+    for (const rule of ["honest_row", "required_blocks", "title", "no_demo_text", "distinct_headings", "fit_claim", "do_not_claim"]) {
+      expect(outcome.asked, rule).not.toContain(rule);
+    }
+    expect(outcome.asked).toEqual(expect.arrayContaining(["grounding", "near_duplicate", "traceable_numerals"]));
+    expect((await run(CLEAN_MARKDOWN, { doNotClaim: ["the cheapest on the market"] })).asked).toContain("do_not_claim");
+  });
+});
+
 describe("every rule runs, and the list carries all of them in `HARD_RULES` order", () => {
   it("a draft failing three rules reports all three, in order", async () => {
     const markdown = [

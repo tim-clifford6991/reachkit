@@ -257,12 +257,22 @@ describe("REQ-092 c8 — no internal cause, anywhere the statement renders", () 
     // is a disclosure the owner wrote, not a cause of a stop, so the
     // document card is taken out before matching, and everything else on
     // those screens is still swept like every other route.
-    const LEGAL_ROUTES = new Set(["/privacy", "/terms", "/imprint"]);
+    //
+    // `/how-it-works` has the same kind of exemption, one sentence wide
+    // (owner, #1396): it says once which AI model writes the pages. Only
+    // that sentence is taken out; the rest of the page is swept.
+    const DISCLOSED: Readonly<Record<string, string>> = {
+      "/privacy": "legal-document",
+      "/terms": "legal-document",
+      "/imprint": "legal-document",
+      "/how-it-works": "how-disclosure",
+    };
     const swept = (r: (typeof stopped)[number]): ParentNode => {
-      if (!LEGAL_ROUTES.has(r.route.url)) return r.doc.body;
+      const testId = DISCLOSED[r.route.url];
+      if (testId === undefined) return r.doc.body;
       const body = r.doc.body.cloneNode(true) as HTMLElement;
-      const documents = body.querySelectorAll("[data-testid='legal-document']");
-      expect(documents, `${r.route.url} renders its legal document`).toHaveLength(1);
+      const documents = body.querySelectorAll(`[data-testid='${testId}']`);
+      expect(documents, `${r.route.url} renders its disclosure`).toHaveLength(1);
       documents.forEach((el) => el.remove());
       return body;
     };
