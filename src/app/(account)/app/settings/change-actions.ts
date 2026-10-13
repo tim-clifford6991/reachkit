@@ -52,7 +52,7 @@ import { redirect } from "next/navigation";
 import { SIGNIN_PATH } from "@/lib/account/identity/addresses";
 import type { RivalSet } from "@/lib/market/setup/rivals";
 import { DESTINATION_HREF } from "../_shell/destinations";
-import { VOICE_FIELD } from "./voice-state";
+import { VOICE_FIELD, WRITING_VOICE_FIELD } from "./voice-state";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { RemeasureStart } from "@/lib/scan/deep/remeasure";
 import { formatDateTime } from "../_shell/format";
@@ -206,6 +206,17 @@ export async function remeasureNowAction(): Promise<MarketRemeasureState> {
 export async function saveVoiceAction(form: FormData): Promise<void> {
   const { saveVoiceText } = await import("@/lib/site-profile");
   await saveVoiceText({ siteId: await siteId(), text: typed(form, VOICE_FIELD) });
+  revalidatePath(DESTINATION_HREF.settings);
+}
+
+/** SPEC §7 (owner, 2026-10-10; issue 1390): the voice the customer fixes for
+ *  their pages. Any value that is not one of the three hands the choice
+ *  back to ReachKit. */
+export async function saveWritingVoiceAction(form: FormData): Promise<void> {
+  const { saveWritingVoice } = await import("@/lib/site-profile");
+  const { isWritingVoice } = await import("@/lib/generate/voice/register");
+  const chosen = typed(form, WRITING_VOICE_FIELD);
+  await saveWritingVoice({ siteId: await siteId(), voice: isWritingVoice(chosen) ? chosen : null });
   revalidatePath(DESTINATION_HREF.settings);
 }
 

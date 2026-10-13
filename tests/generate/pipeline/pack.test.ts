@@ -194,6 +194,16 @@ describe("a Q&A's questions are on the current market, each with a fact that ans
     expect(pack.missing).toContain("buyer_questions");
   });
 
+  it("every new page's pack holds what buyers ask, for its headings, with its voice; an update keeps its live headings (issue 1390)", () => {
+    const people = asked(["Do small teams need project boards?", "Which project management software has an offline mode for field crews?"]);
+    const read = { report: reportWith([]), research: { facts: [], products: [], asked: people } };
+    const howTo = qa({ ...read, type: "how_to" });
+    expect(howTo.questions).toEqual(["Do small teams need project boards?"]);
+    expect(howTo.voice).toEqual({ voice: "ours", person: "we", chosen: "automatic" });
+    expect(qa({ ...read, type: "how_to", writingVoice: "guide" }).voice).toMatchObject({ voice: "guide", chosen: "customer" });
+    expect(qa({ ...read, type: "update" }).questions).toEqual([]);
+  });
+
   it("questions come from People also ask, related searches with a volume and measured questions; a tracked prompt is never one (D61)", () => {
     const stored = reportWith(
       [["Which task boards suit a small team?", "task boards for small teams"]],

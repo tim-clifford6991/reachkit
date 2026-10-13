@@ -1,0 +1,46 @@
+{
+  "at": "2026-10-11T00:16:48.679Z",
+  "judgeCents": 7.75,
+  "verdicts": [
+    {
+      "type": "how_to",
+      "voice": {
+        "voice": "ours",
+        "person": "we",
+        "chosen": "automatic"
+      },
+      "asWritten": [
+        "tell_phrases 3"
+      ],
+      "afterFix": [],
+      "pick": null,
+      "winRate": {
+        "stored": 0.5,
+        "new": 0.5
+      },
+      "why": [
+        "Page X is the stronger published piece: its steps are more logically connected and explained, and it avoids the awkward \"What to use?\" section that undermines Page Y's structure. Page Y adds a bit more concrete data, but X's superior editorial clarity and intent fit make it the better page to publish.",
+        "Page X sticks closer to the stated facts without inventing details like a specific \"Monday\" send day, and is slightly more concise and polished while covering the same ground. Page Y's minor fabrication and redundant recapping tip the balance toward X as the safer, more trustworthy page to publish."
+      ]
+    },
+    {
+      "type": "documentation",
+      "voice": {
+        "voice": "short",
+        "person": "we",
+        "chosen": "automatic"
+      },
+      "asWritten": [],
+      "afterFix": [],
+      "pick": null,
+      "winRate": {
+        "stored": 0.4444444444444444,
+        "new": 0.5555555555555556
+      },
+      "why": [
+        "X is more faithful to the business facts, avoiding Y's fabricated score-band categorization that risks misleading readers about how scores and pricing relate. X also edges ahead editorially and by pointing to further relevant content, making it the stronger page to publish.",
+        "Page X is equally thorough but more accurate, more tightly focused on the query, and free of the dangling sentence and misdirected links that mar Page Y. Page X is the version an editor could publish as-is."
+      ]
+    }
+  ]
+}

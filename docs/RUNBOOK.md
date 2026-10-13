@@ -522,6 +522,19 @@ It rebuilds this worktree's local database (`scripts/db-substrate/`), so do not 
 `vitest --project db` or the layout sweep in the same worktree. `RK_PASS_VERBOSE=1` prints the
 pass's own log lines.
 
+### Measuring how pages read
+
+`npm run eval:content -- --prose` scores stored pages, and pages people wrote on the panel's sites,
+with the prose check (SPEC §7, issue 1390) and rewrites `docs/walk/prose-gate.md`. It spends
+nothing; `--cached` reads no page again. The thresholds are `PROSE` in
+`src/lib/config/constants.ts`: change one, run this, and read how many of people's pages it stops.
+
+`npm run eval:content -- --prose --write [--sites a,b] [--cap-cents 75]` writes one page for each
+site of `scripts/eval-content/prose/proof-sites.json` through the write call, the prose check and
+its fix call, and keeps them under `docs/walk/prose-gate/`. `--prose --judge` writes reachkit.app's
+how-to, Q&A and documentation again from their stored packs and has them read blind against the
+stored pages. Both spend on the writer tier and are in the spend log.
+
 ### Testing one page
 
 `npm run page -- --site <domain> --type <type> [--topic "<q>"]` writes one page through the

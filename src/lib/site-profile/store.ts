@@ -221,6 +221,13 @@ export async function saveVoiceText(a: { siteId: string; text: string }): Promis
   if (error) throw new Error(`site profile: could not save the voice for ${a.siteId}: ${error.message}`);
 }
 
+/** The voice the customer fixed for their pages in Settings (SPEC §7, issue
+ *  1390): `null` hands the choice back to ReachKit. */
+export async function saveWritingVoice(a: { siteId: string; voice: "ours" | "guide" | "short" | null }): Promise<void> {
+  const { error } = await untyped().from<{ id: string }>("sites").update({ writing_voice: a.voice }).eq("id", a.siteId);
+  if (error) throw new Error(`site profile: could not save the writing voice for ${a.siteId}: ${error.message}`);
+}
+
 /**
  * The logo a pass read (#1069), written beside the profile it belongs to.
  * Only a pass that found one writes: a read that timed out says nothing

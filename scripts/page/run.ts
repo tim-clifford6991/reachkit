@@ -335,7 +335,9 @@ export async function main(opts: Options): Promise<number> {
             report,
             rivals,
             today: new Date(),
-            questions: type === "qa" || type === "listicle",
+            // Issue 1390: every page that is researched reads what buyers
+          // ask beside its target, for its headings.
+          questions: true,
             borrow: { terms: marketSearches(writingFor), held: (found) => questionsHeld(packOf(found)) },
             ...(type === "insights" ? { recent: { searches: [category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } } : {}),
           });

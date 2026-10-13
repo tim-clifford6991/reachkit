@@ -44,7 +44,7 @@ import { writeSiteLogo, writeSiteProfile } from "./store";
 import { captureLogo } from "./logo";
 import type { InventoryRow, SiteProfile } from "./types";
 
-export { readSiteProfile, writeSiteProfile, adoptVoiceText, saveVoiceText, readSiteLogo } from "./store";
+export { readSiteProfile, writeSiteProfile, adoptVoiceText, saveVoiceText, saveWritingVoice, readSiteLogo } from "./store";
 export { captureLogo, logoCandidates, sniffLogo, type SiteLogo } from "./logo";
 export { deriveVoice, type SiteReading } from "./summary";
 export { derivePurpose } from "./purpose";

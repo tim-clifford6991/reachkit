@@ -16,6 +16,14 @@
 //                                                 # evidence (free); --run judges the pairs
 //   npm run eval:content -- --rules [--baseline]  # issue 1187: each hard rule's false
 //                                                 # positives on stored text; no model, 0¢
+//   npm run eval:content -- --prose [--cached]    # issue 1390: the prose check's counts on
+//                                                 # stored pages and on pages people wrote;
+//                                                 # --cached reads no page again. 0¢
+//   npm run eval:content -- --prose --write [--sites a,b] [--cap-cents 75]
+//                                                 # one page a proof site through the write
+//                                                 # call, the prose check and its fix call
+//   npm run eval:content -- --prose --judge       # reachkit.app's stored pages against
+//                                                 # pages written now from the same packs
 //
 // The runs that wrote pages through the retired pipeline — the set's own
 // run, `--ab`, `--round2` and `--repair` — went with it (D41, D43: "Round
@@ -72,7 +80,7 @@ function assertCredential() {
 }
 
 async function main() {
-  if (snapshotOf === null) {
+  if (snapshotOf === null && !argv.includes("--prose")) {
     if (!loadEnvFile(envFile) && process.env.SUPABASE_URL === undefined) {
       throw new Error(`No env file at ${envFile} and no bindings in this shell. Pass --env-file <path>, or export them.`);
     }
@@ -111,6 +119,21 @@ async function main() {
         capCents: Number(flag("--cap-cents", "50")),
       });
     }
+    if (argv.includes("--prose") && (argv.includes("--write") || argv.includes("--judge"))) {
+      if (!loadEnvFile(envFile)) throw new Error(`No env file at ${envFile}. Pass --env-file <path to a .env.local that carries the model key>.`);
+      assertCredential();
+      const write = await server.ssrLoadModule("/scripts/eval-content/prose-write.ts");
+      return await write.main({
+        root: ROOT,
+        sites: (flag("--sites", "") ?? "").split(",").filter(Boolean),
+        capCents: Number(flag("--cap-cents", "75")),
+        judge: argv.includes("--judge"),
+      });
+    }
+    if (argv.includes("--prose")) {
+      const prose = await server.ssrLoadModule("/scripts/eval-content/prose.ts");
+      return await prose.main({ root: ROOT, tablePath: path.resolve(ROOT, "docs/walk/prose-gate.md"), fetch: !argv.includes("--cached") });
+    }
     if (argv.includes("--rules")) {
       const rules = await server.ssrLoadModule("/scripts/eval-content/rules.ts");
       return await rules.main({
@@ -119,7 +142,7 @@ async function main() {
         baseline: argv.includes("--baseline"),
       });
     }
-    throw new Error("Pass --rules, --ab --regrade, or --snapshot <domain> --from <export.json>. A page is tested with `npm run page`.");
+    throw new Error("Pass --rules, --prose, --ab --regrade, or --snapshot <domain> --from <export.json>. A page is tested with `npm run page`.");
   } finally {
     await server.close();
   }

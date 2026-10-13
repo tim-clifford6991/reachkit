@@ -1,0 +1,1258 @@
+{
+ "date": "2026-10-12",
+ "commit": "35742f3c",
+ "capCents": 100,
+ "spentCents": 64.3025,
+ "refusedAtCap": 0,
+ "notRun": [
+  "zunicafe.com",
+  "austinplumbery.com",
+  "baeckerei-hinkel.de",
+  "alexander.co.uk",
+  "tattly.com",
+  "savvycal.com",
+  "clearleft.com",
+  "pdxsmiledesign.com",
+  "fletcherelectric.co.uk"
+ ],
+ "defects": [
+  {
+   "check": "knowledge-base buyer questions are real questions, not headings",
+   "sites": [
+    {
+     "domain": "wesbos.com",
+     "detail": "the knowledge base was not built: no page of the site was read into it",
+     "items": []
+    },
+    {
+     "domain": "streaksapp.com",
+     "detail": "the site's own pages ask 5 questions and the knowledge base holds none",
+     "items": []
+    }
+   ]
+  },
+  {
+   "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+   "sites": [
+    {
+     "domain": "wesbos.com",
+     "detail": "no rivals were concluded",
+     "items": [
+      "0 rivals, not 3–5"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "the audience is specific",
+   "sites": [
+    {
+     "domain": "wesbos.com",
+     "detail": "no buyer was concluded",
+     "items": []
+    }
+   ]
+  },
+  {
+   "check": "the category is specific, and is the business's own",
+   "sites": [
+    {
+     "domain": "wesbos.com",
+     "detail": "no category was concluded",
+     "items": []
+    }
+   ]
+  },
+  {
+   "check": "the search term has volume",
+   "sites": [
+    {
+     "domain": "wesbos.com",
+     "detail": "no market was concluded",
+     "items": []
+    }
+   ]
+  },
+  {
+   "check": "the tracked prompts fit the kind of business",
+   "sites": [
+    {
+     "domain": "wesbos.com",
+     "detail": "no kind; 2 of its 0 prompts or facts do not fit",
+     "items": [
+      "no kind of business was recorded",
+      "the market yields no prompt"
+     ]
+    }
+   ]
+  }
+ ],
+ "sites": [
+  {
+   "site": {
+    "domain": "wesbos.com",
+    "kind": "creator and course business",
+    "country": "US",
+    "language": "en",
+    "kinds": [
+     "creator"
+    ],
+    "market": [
+     "course",
+     "javascript",
+     "web development",
+     "coding",
+     "programming"
+    ],
+    "why": "One person selling web-development courses under his own name. The brand is a person, the site is mostly a blog, and course marketplaces (Udemy) are not rivals."
+   },
+   "siteName": null,
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": null,
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 10,
+    "timeouts": 0
+   },
+   "pageQuestions": 0,
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "US",
+    "language": "en"
+   },
+   "searches": [
+    "best online courses for programming",
+    "javascript is what",
+    "web developer developer",
+    "css what is",
+    "javascript for",
+    "online courses programming",
+    "web developer near me",
+    "free online courses for programming",
+    "online web programming courses",
+    "good online programming courses"
+   ],
+   "knowledgePages": 0,
+   "questions": [],
+   "audience": [],
+   "topics": [
+    {
+     "query": "javascript for",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 1,
+     "volume": 8100,
+     "ready": false
+    },
+    {
+     "query": "online courses programming",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 5400,
+     "ready": true
+    },
+    {
+     "query": "javascript is what",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 1,
+     "volume": 14800,
+     "ready": false
+    },
+    {
+     "query": "web developer developer",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 1,
+     "volume": 12100,
+     "ready": false
+    }
+   ],
+   "cents": 26.415700000000005,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 4.8,
+    "profile": 0.2605,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "question-phrasing": 0.1981,
+    "serp/google/ai_mode": 3.9999999999999996,
+    "serp/google/organic": 2.4000000000000004,
+    "ai_optimization/chat_gpt/llm_scraper": 1.2000000000000002,
+    "site-knowledge": 2.8106,
+    "topic-fit": 2.7675,
+    "opportunity-typing": 0.6173000000000001,
+    "topic-same-question": 0.1617
+   },
+   "area": null,
+   "resultDomains": [
+    "pll.harvard.edu",
+    "www.reddit.com",
+    "www.coursera.org",
+    "www.pcmag.com",
+    "www.boot.dev",
+    "www.freecodecamp.org",
+    "www.codecademy.com",
+    "www.bestcolleges.com",
+    "skillcrush.com",
+    "www.quora.com",
+    "www.igmguru.com",
+    "flatironschool.com",
+    "www.geeksforgeeks.org",
+    "www.ebsco.com",
+    "www.aiu.edu",
+    "www.wearedevelopers.com",
+    "www.indeed.com",
+    "en.wikipedia.org",
+    "www.w3schools.com",
+    "www.youtube.com",
+    "www.ziprecruiter.com",
+    "developer.mozilla.org",
+    "umbraco.com",
+    "medium.com",
+    "stackoverflow.com",
+    "dev.to",
+    "blog.stackademic.com",
+    "www.datacamp.com",
+    "www.mygreatlearning.com",
+    "developers.google.com",
+    "www.springboard.com",
+    "www.codechef.com",
+    "www.codeplatoon.org",
+    "www.builtinaustin.com",
+    "forefrontweb.com",
+    "www.yelp.com",
+    "devoxsoftware.com",
+    "allseattlewebdesign.com",
+    "www.builtinsf.com",
+    "thriveagency.com",
+    "olidenson.com",
+    "nextwaveconcepts.com",
+    "orangecountywebdesignexperts.com",
+    "alison.com",
+    "ocw.mit.edu",
+    "www.edx.org",
+    "www.codepath.org",
+    "www.simplilearn.com",
+    "stemlink.online",
+    "www.eduonix.com",
+    "coder-coder.com",
+    "www.classcentral.com",
+    "freeacademy.ai"
+   ],
+   "prompts": [],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "fail",
+     "detail": "no category was concluded",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "fail",
+     "detail": "no market was concluded",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "fail",
+     "detail": "no rivals were concluded",
+     "items": [
+      "0 rivals, not 3–5"
+     ]
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "10 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "fail",
+     "detail": "the knowledge base was not built: no page of the site was read into it",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "fail",
+     "detail": "no buyer was concluded",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "4 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 2.81¢; 0 of 10 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "fail",
+     "detail": "no kind; 2 of its 0 prompts or facts do not fit",
+     "items": [
+      "no kind of business was recorded",
+      "the market yields no prompt"
+     ]
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "no brand volume was read"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": false,
+     "detail": "the market has no searched term with volume"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 20 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": false,
+     "detail": "the knowledge base holds no page of the site"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "wesbos.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "site_profile_undeterminable",
+     "because": "ledger.ts: insert into fetches failed: unsupported Unicode escape sequence"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 202533,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 202547,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 202544,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 202626,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 202628,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 202634,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 202639,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 202650,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 202652,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 202668,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    }
+   ],
+   "seconds": 251,
+   "evidenceLoaded": 0
+  },
+  {
+   "site": {
+    "domain": "streaksapp.com",
+    "kind": "app business (consumer iOS app)",
+    "country": "US",
+    "language": "en",
+    "kinds": [
+     "software"
+    ],
+    "market": [
+     "habit",
+     "to-do",
+     "todo"
+    ],
+    "why": "A habit-tracking app sold through the App Store, with a one-page site. Very little text, a consumer buyer, and rivals that are other apps."
+   },
+   "siteName": "STREAKS",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "people who want to build daily habits",
+    "job": "form and maintain good habits through daily task completion",
+    "category": "habit tracking app",
+    "synonyms": [
+     "habit formation app",
+     "daily habit tracker",
+     "habit building software"
+    ],
+    "differentiators": [
+     "streak counter that extends with daily task completion",
+     "up to 24 customizable tasks per user",
+     "iOS Health app integration",
+     "Apple Design Award winner"
+    ],
+    "notOurMarket": [
+     "to-do list apps",
+     "productivity software",
+     "fitness tracking apps",
+     "wellness coaching"
+    ],
+    "categoryReason": "The site's headline and pages state it is a to-do list that helps form good habits, with the core mechanism being daily streak extension for completed tasks.",
+    "rivals": [
+     {
+      "domain": "everyday.app",
+      "name": "Everyday",
+      "basis": "ranks",
+      "reason": "Habit tracker app focused on helping users form good habits through daily check-ins and streak tracking.",
+      "searchNames": [
+       "everyday",
+       "everyday habit tracker",
+       "everyday habit"
+      ],
+      "volume": 90500,
+      "national": true
+     },
+     {
+      "domain": "habitica.com",
+      "name": "Habitica",
+      "basis": "ai_answer",
+      "reason": "Gamified habit tracker that turns daily habits into an RPG game, named in AI answers as a top habit-building tool.",
+      "searchNames": [
+       "habitica"
+      ],
+      "volume": 12100,
+      "national": true
+     },
+     {
+      "domain": "habi.app",
+      "name": "Habi",
+      "basis": "ranks",
+      "reason": "Free online daily habit tracker with streak and goal tracking, competing directly for users who want to build daily habits.",
+      "searchNames": [
+       "habi",
+       "habi app"
+      ],
+      "volume": 1900,
+      "national": true
+     },
+     {
+      "domain": "habitify.me",
+      "name": "Habitify",
+      "basis": "ai_answer",
+      "reason": "Cross-platform habit tracker (iOS, Android, Web) with daily habit logging, streaks, and analytics that directly competes for the same habit-building audience.",
+      "searchNames": [
+       "habitify"
+      ],
+      "volume": 1300,
+      "national": true
+     },
+     {
+      "domain": "loophabits.org",
+      "name": "Loop Habit Tracker",
+      "basis": "ranks",
+      "reason": "Free open-source Android habit tracker with streak counters and detailed charts, a direct alternative for daily habit formation.",
+      "searchNames": [
+       "loop habit tracker"
+      ],
+      "volume": 1000,
+      "national": true
+     }
+    ],
+    "terms": [
+     {
+      "term": "habit tracker",
+      "volume": 18100
+     },
+     {
+      "term": "habit tracker app",
+      "volume": 6600
+     },
+     {
+      "term": "habit tracking app",
+      "volume": 4400
+     },
+     {
+      "term": "daily habit tracker",
+      "volume": 1000
+     },
+     {
+      "term": "habit building app",
+      "volume": 590
+     },
+     {
+      "term": "best habit tracker",
+      "volume": 320
+     },
+     {
+      "term": "habit formation app",
+      "volume": 140
+     },
+     {
+      "term": "track daily habits",
+      "volume": 10
+     },
+     {
+      "term": "habit streak tracker",
+      "volume": 0
+     },
+     {
+      "term": "build daily habits app",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "habit tracker",
+    "termsAt": "2026-10-12T00:23:53.095Z",
+    "demand": {
+     "at": "2026-10-12T00:27:33.348Z",
+     "own": 40500,
+     "brands": {
+      "habi": 1900,
+      "streaks": 40500,
+      "everyday": 90500,
+      "habi app": 40,
+      "habitica": 12100,
+      "habitify": 1300,
+      "lifestack": 590,
+      "streaksapp": 0,
+      "everyday habit": 140,
+      "habitdaily.app": 0,
+      "lifestack habit": 0,
+      "productive habit": 170,
+      "loop habit tracker": 1000,
+      "everyday habit tracker": 140,
+      "lifestack habit tracker": 0,
+      "productive habit tracker": 320
+     },
+     "searches": {
+      "habi alternatives": 0,
+      "everyday alternatives": 0,
+      "habitica alternatives": 110,
+      "habitify alternatives": 10,
+      "lifestack alternatives": 0,
+      "habitdaily alternatives": 0,
+      "productive alternatives": 480,
+      "loop habit tracker alternatives": 0
+     }
+    },
+    "judged": {
+     "best habit tracker app": true,
+     "habit tracker template": false,
+     "daily habit tracker app": true,
+     "best daily habit tracker": true,
+     "habit tracker app review": true,
+     "best app for habit tracking": true,
+     "best daily habit tracker app": true,
+     "daily habit tracker template": false,
+     "what is a daily habit tracker": true,
+     "best habit and goal tracking app": true,
+     "best app for daily habit tracking": true,
+     "what is the best habit tracker app": true
+    },
+    "kind": "software",
+    "serves": null
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 20,
+    "timeouts": 0
+   },
+   "pageQuestions": 5,
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "US",
+    "language": "en"
+   },
+   "searches": [
+    "habit tracker",
+    "habit tracker app",
+    "habit tracking app",
+    "best app for habit tracking",
+    "best habit tracker app",
+    "daily habit tracker",
+    "habit building app",
+    "best habit tracker",
+    "daily habit tracker app",
+    "habit formation app",
+    "habit tracker app review",
+    "habit tracker templates"
+   ],
+   "knowledgePages": 1,
+   "questions": [],
+   "audience": [],
+   "topics": [
+    {
+     "query": "best app for habit tracking",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 1900,
+     "ready": false
+    },
+    {
+     "query": "daily habit tracker app",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 170,
+     "ready": false
+    },
+    {
+     "query": "habit tracker app review",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 50,
+     "ready": false
+    },
+    {
+     "query": "habit tracker templates",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 1,
+     "volume": 2400,
+     "ready": false
+    },
+    {
+     "query": "everyday alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "habitica alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 110,
+     "ready": true
+    },
+    {
+     "query": "habi alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "habitify alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 10,
+     "ready": true
+    },
+    {
+     "query": "loop habit tracker alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "streaks vs everyday",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "streaks vs habitica",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "streaks vs habi",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "streaks vs habitify",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "streaks vs loop habit tracker",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 37.88680000000001,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 4.8,
+    "site-profile": 0.3285,
+    "profile": 0.269,
+    "market-inference": 0.3762,
+    "market-terms": 0.6393,
+    "dataforseo_labs/google/keyword_overview": 2.34,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "market-searches": 0.7449,
+    "question-phrasing": 0.2193,
+    "serp/google/ai_mode": 8.000000000000002,
+    "serp/google/organic": 2.880000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 1.4400000000000004,
+    "site-knowledge": 0.3574,
+    "rival-inference": 3.3744,
+    "topic-buyer-searches": 0.1816,
+    "topic-typed": 0.2124,
+    "topic-fit": 3.2691,
+    "opportunity-typing": 0.9885999999999999,
+    "topic-same-question": 0.2661
+   },
+   "area": {
+    "place": null,
+    "location": null
+   },
+   "resultDomains": [
+    "play.google.com",
+    "www.yopandtom.com",
+    "www.reddit.com",
+    "methods.remarkable.com",
+    "habitbox.app",
+    "www.teachable.com",
+    "www.pinterest.com",
+    "templatelab.com",
+    "loophabits.org",
+    "blog.alexanderfyoung.com",
+    "www.drginacleo.com",
+    "www.knack.com",
+    "techpoint.africa",
+    "routinebase.com",
+    "chromewebstore.google.com",
+    "habi.app",
+    "theliven.com",
+    "zapier.com",
+    "singularity-app.com",
+    "clockify.me",
+    "habitify.me",
+    "www.youtube.com",
+    "www.etsy.com",
+    "everyday.app",
+    "habitdaily.app",
+    "productiveapp.io",
+    "fhynix.com",
+    "toggl.com",
+    "www.womanandhome.com",
+    "apps.microsoft.com",
+    "habitkit.app",
+    "habitshareapp.com",
+    "atoms.jamesclear.com",
+    "wayoflifeapp.com",
+    "habitica.com",
+    "medium.com",
+    "apps.apple.com",
+    "thesweetsetup.com",
+    "www.lambertslately.com",
+    "www.magnific.com",
+    "passionplanner.com",
+    "dk.pinterest.com",
+    "easyhabits.io",
+    "google.com",
+    "jotform.com",
+    "youtube.com",
+    "reddit.com",
+    "lifestack.ai"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "What are the best habit tracker tools right now, and what is each one good at?"
+    },
+    {
+     "kind": "category",
+     "text": "Which habit tracking platforms do people actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "Which daily habit tracker platforms do people actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "Which habit building platforms do people actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "I am new to habit tracker. Which products should I look at first?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which habit tracker tools work on a small budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which habit tracking tools can I use without hiring an agency?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which daily habit tracker tools suit a team of one?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which habit building tools can I set up in a single day?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which habit tracker tools need no engineering team?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which habit tracking tools work for a brand new website?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which daily habit tracker tools have a free trial?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are people. Which habit tracker tool fits us best?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which habit tracker software is built for people?"
+    },
+    {
+     "kind": "persona",
+     "text": "What do people actually use for habit tracker?"
+    },
+    {
+     "kind": "persona",
+     "text": "I work with people. Which habit tracker product should I recommend to them?"
+    },
+    {
+     "kind": "comparison",
+     "text": "How does Everyday compare with Habitica for habit tracker?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Everyday for people?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Habitica or Habi: which is the better choice for habit tracker?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Which is better value for habit tracker: Everyday, Habitica or Habi?"
+    },
+    {
+     "kind": "problem",
+     "text": "I am getting nowhere with habit tracker. Which tools can fix that?"
+    },
+    {
+     "kind": "problem",
+     "text": "Nothing I have tried for habit tracker is working. What software should I try next?"
+    },
+    {
+     "kind": "problem",
+     "text": "What is the fastest way to get results from habit tracker, and which products do it for me?"
+    },
+    {
+     "kind": "branded",
+     "text": "What is STREAKS, and is it any good for habit tracker?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is STREAKS a good alternative to Everyday for habit tracker?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"habit tracking app\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"habit tracker\" 18100/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "pass",
+     "detail": "Everyday — everyday.app, 90500/mo, ranks; Habitica — habitica.com, 12100/mo, ai_answer; Habi — habi.app, 1900/mo, ranks; Habitify — habitify.me, 1300/mo, ai_answer; Loop Habit Tracker — loophabits.org, 1000/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "fail",
+     "detail": "the site's own pages ask 5 questions and the knowledge base holds none",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"people who want to build daily habits\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "14 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 0.36¢; 0 of 20 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "software; 25 prompts",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "8 searched terms; \"habit tracker\" has 18100"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 32 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 1 page"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "streaksapp.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 191895,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 191899,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 191899,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 191899,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 191899,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 191904,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 191905,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 191905,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 191906,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 191906,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 191923,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    },
+    {
+     "event": "vendor_call",
+     "source": "ai_optimization/chat_gpt/llm_scraper",
+     "outcome": "failed",
+     "rows": 0,
+     "costCents": 0.12,
+     "fresh": true,
+     "durationMs": 192227,
+     "failure": "deadline",
+     "billed": true,
+     "reason": "dataforseo: standard-queue task not ready by the pinned deadline"
+    }
+   ],
+   "seconds": 282,
+   "evidenceLoaded": 0
+  }
+ ]
+}

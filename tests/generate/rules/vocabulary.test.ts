@@ -44,6 +44,7 @@ describe("BUILD §8 — the hard rules are a closed, ordered list", () => {
       no_demo_text: true,
       distinct_headings: true,
       title: true,
+      plain_prose: true,
       fit_claim: true,
       do_not_claim: true,
     };
