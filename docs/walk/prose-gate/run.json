@@ -1,0 +1,152 @@
+[
+  {
+    "site": "zunicafe.com",
+    "kind": "café or restaurant",
+    "type": "qa",
+    "target": "Does zuni café take reservations?",
+    "voice": {
+      "voice": "short",
+      "person": "we",
+      "chosen": "automatic"
+    },
+    "facts": 26,
+    "questions": 6,
+    "words": 605,
+    "asWritten": [],
+    "fixCall": false,
+    "afterFix": null,
+    "outcome": "passes",
+    "cents": 2.89,
+    "at": "2026-10-11T00:00:35.099Z"
+  },
+  {
+    "site": "clearleft.com",
+    "kind": "agency",
+    "type": "documentation",
+    "target": "design transformation consulting",
+    "voice": {
+      "voice": "ours",
+      "person": "we",
+      "chosen": "automatic"
+    },
+    "facts": 12,
+    "questions": 2,
+    "words": 1058,
+    "asWritten": [
+      "repeated_phrase 3",
+      "tell_phrases 3"
+    ],
+    "fixCall": true,
+    "afterFix": [
+      "repeated_phrase 3"
+    ],
+    "outcome": "held",
+    "cents": 8.99,
+    "at": "2026-10-11T00:02:17.561Z"
+  },
+  {
+    "site": "streaksapp.com",
+    "kind": "consumer app",
+    "type": "how_to",
+    "target": "build a daily habit",
+    "voice": {
+      "voice": "ours",
+      "person": "we",
+      "chosen": "automatic"
+    },
+    "facts": 2,
+    "questions": 2,
+    "words": 964,
+    "asWritten": [],
+    "fixCall": false,
+    "afterFix": null,
+    "outcome": "passes",
+    "cents": 3.65,
+    "at": "2026-10-11T00:04:34.368Z"
+  },
+  {
+    "site": "alexander.co.uk",
+    "kind": "accountancy (regulated)",
+    "type": "documentation",
+    "target": "self assessment tax return deadline",
+    "voice": {
+      "voice": "guide",
+      "person": "third",
+      "chosen": "automatic"
+    },
+    "facts": 30,
+    "questions": 2,
+    "words": 953,
+    "asWritten": [],
+    "fixCall": false,
+    "afterFix": null,
+    "outcome": "passes",
+    "cents": 4.34,
+    "at": "2026-10-11T00:05:05.601Z"
+  },
+  {
+    "site": "baeckerei-hinkel.de",
+    "kind": "German bakery",
+    "type": "documentation",
+    "target": "sauerteigbrot düsseldorf",
+    "voice": {
+      "voice": "ours",
+      "person": "we",
+      "chosen": "automatic"
+    },
+    "facts": 3,
+    "questions": 2,
+    "words": 709,
+    "asWritten": [
+      "repeated_phrase 3",
+      "even_sentences 32"
+    ],
+    "fixCall": true,
+    "afterFix": [
+      "repeated_phrase 6"
+    ],
+    "outcome": "held",
+    "cents": 10.71,
+    "at": "2026-10-11T00:06:09.387Z"
+  },
+  {
+    "site": "savvycal.com",
+    "kind": "SaaS tool",
+    "type": "how_to",
+    "target": "schedule meetings across time zones",
+    "voice": {
+      "voice": "ours",
+      "person": "we",
+      "chosen": "automatic"
+    },
+    "facts": 30,
+    "questions": 3,
+    "words": 1099,
+    "asWritten": [],
+    "fixCall": false,
+    "afterFix": null,
+    "outcome": "passes",
+    "cents": 4.41,
+    "at": "2026-10-11T00:07:25.912Z"
+  },
+  {
+    "site": "wesbos.com",
+    "kind": "creator",
+    "type": "how_to",
+    "target": "learn javascript",
+    "voice": {
+      "voice": "ours",
+      "person": "we",
+      "chosen": "automatic"
+    },
+    "facts": 30,
+    "questions": 2,
+    "words": 1245,
+    "asWritten": [],
+    "fixCall": false,
+    "afterFix": null,
+    "outcome": "passes",
+    "cents": 4.93,
+    "at": "2026-10-11T00:08:07.841Z"
+  }
+]

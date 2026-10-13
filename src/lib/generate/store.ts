@@ -22,6 +22,7 @@ import type { KnownPage } from "@/lib/known-content/types";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { readStoredCheck } from "@/lib/publish/verify/stored";
 import { parseStoredMarket } from "@/lib/market/infer/stored";
+import { isWritingVoice, type WritingVoice } from "./voice/register";
 import { parsePromptSet } from "@/lib/market/prompts/set";
 import type { StoredMarket } from "@/lib/market/infer/types";
 import { readSiteProfile } from "@/lib/site-profile/store";
@@ -126,6 +127,10 @@ export interface StoredPage {
 
 export interface GenerateStore {
   siteFacts(siteId: string): Promise<SiteFacts | null>;
+  /** `sites.writing_voice` (issue 1390): the voice the customer fixed in
+   *  Settings, or `null` where they left it to be chosen. A store that
+   *  holds none leaves this out. */
+  writingVoice?(siteId: string): Promise<WritingVoice | null>;
   /** The freshest stored report for the site — the scan a day's page is
    *  generated from (§8: "from the freshest scan"). `null` where the site
    *  has none, which stops generation rather than guessing one. */
@@ -274,6 +279,18 @@ function pageOf(row: DraftRow): StoredPage {
 
 export function supabaseGenerateStore(): GenerateStore {
   return {
+    // Read apart from `siteFacts`, and a failed read is "not chosen": a
+    // deploy runs before its migration is applied (`docs/PROCESS.md`), and a
+    // column that is not there yet must not stop a page.
+    async writingVoice(siteId) {
+      const result = await untyped().from<{ writing_voice: unknown }>("sites").select("writing_voice").eq("id", siteId).limit(1);
+      if (result.error) {
+        console.warn(JSON.stringify({ event: "writing_voice_unread", siteId, error: result.error.message.slice(0, 200) }));
+        return null;
+      }
+      const voice = (result.data ?? [])[0]?.writing_voice;
+      return isWritingVoice(voice) ? voice : null;
+    },
     async siteFacts(siteId) {
       const result = await untyped()
         .from<{

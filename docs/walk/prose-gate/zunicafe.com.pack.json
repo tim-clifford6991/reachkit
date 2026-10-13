@@ -1,0 +1,196 @@
+{
+  "version": 1,
+  "type": "qa",
+  "builtAt": "2026-10-11T00:00:15.935Z",
+  "target": {
+    "question": "Does zuni café take reservations?",
+    "searches": [
+      "does zuni café take reservations"
+    ]
+  },
+  "business": {
+    "name": "Zuni Café",
+    "domain": "zunicafe.com",
+    "category": "restaurant",
+    "byline": "Zuni Café",
+    "voice": null,
+    "market": {
+      "from": "site",
+      "category": "restaurant",
+      "buyer": "diners in San Francisco",
+      "job": "eat a meal at a restaurant",
+      "rivals": [],
+      "notOurMarket": [
+        "cannabis edibles",
+        "cookbooks",
+        "catering services",
+        "meal delivery"
+      ]
+    },
+    "rivals": []
+  },
+  "profile": null,
+  "neverClaim": [],
+  "facts": [
+    {
+      "passage": "For more than a year, our chef, Gilbert Pilgram, had been encouraging the team at Rose Los Angeles to turn Zuni’s signature margarita into a Delight.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.027Z"
+    },
+    {
+      "passage": "Rose Los Angeles Delights are cannabis edibles crafted with chef-developed recipes, sun-grown flower rosin, and seasonal fruit from California family farms.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.028Z"
+    },
+    {
+      "passage": "The timing finally lined up while Rose LA was working with Pure Beauty on a collaboration featuring their Lady Pink Pre-Rolls.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.028Z"
+    },
+    {
+      "passage": "What started as a conversation between friends quickly became a three-way project.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.028Z"
+    },
+    {
+      "passage": "We sourced citrus from Stepladder Creamery, including calamansi, Eureka lemons, Bearss limes, and Rangpur limes.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.028Z"
+    },
+    {
+      "passage": "Rather than choosing just one, the Rose team built the gummy around all of them.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.028Z"
+    },
+    {
+      "passage": "The result is bright, layered, and citrus-driven, finished with Maldon sea salt and fresh zest in homage to the original cocktail.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.028Z"
+    },
+    {
+      "passage": "The Zuni Margarita Delight is only available through Rose Los Angeles while supplies last.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.028Z"
+    },
+    {
+      "passage": "To make a reservation, please call us at 415-552-2522 Tuesday, Wednesday, Thursday 2:00 pm – 9:30 pm and Friday, Saturday, Sunday 10:30 am – 9:30 pm or you can make a reservation online here.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.028Z"
+    },
+    {
+      "passage": "For parties of seven or more please call us for information.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.028Z"
+    },
+    {
+      "passage": "We take reservations up to 60-days in advance.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.028Z"
+    },
+    {
+      "passage": "Zuni Café opened in San Francisco, California on February 15, 1979.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.028Z"
+    },
+    {
+      "passage": "Zuni Café won the James Beard Foundation Award for ‘Outstanding Restaurant’ in 2003 and ‘Outstanding Service’ in 2018.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.028Z"
+    },
+    {
+      "passage": "Our daily changing menus are inspired by seasonal organic ingredients and incorporate traditional French and Italian cuisine.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.028Z"
+    },
+    {
+      "passage": "Nearly all of the produce, meat, and fish is farmed or harvested in a sustainable manner.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.028Z"
+    },
+    {
+      "passage": "Please note that these are sample menus and may not reflect what is currently available at Zuni Café.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.028Z"
+    },
+    {
+      "passage": "We are located at 1658 Market Street, on the north side, between Franklin and Gough Streets.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.028Z"
+    },
+    {
+      "passage": "We are within walking distance of the San Francisco Jazz Center, Opera House, Davies Symphony Hall, The Orpheum Theater, and San Francisco City Hall.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.029Z"
+    },
+    {
+      "passage": "The closest BART station is Civic Center and the closest underground MUNI station is Van Ness.",
+      "url": "https://zunicafe.com/",
+      "readAt": "2026-10-11T00:00:15.029Z"
+    },
+    {
+      "passage": "The Zuni Café Cookbook is available at Zuni Café or you may download our order form.",
+      "url": "https://zunicafe.com/cookbook/",
+      "readAt": "2026-10-11T00:00:15.349Z"
+    },
+    {
+      "passage": "Gift certificates are available at Zuni Café or you may download our order form.",
+      "url": "https://zunicafe.com/gift-certificates/",
+      "readAt": "2026-10-11T00:00:15.657Z"
+    },
+    {
+      "passage": "Gift certificates may be purchased in any dollar value.",
+      "url": "https://zunicafe.com/gift-certificates/",
+      "readAt": "2026-10-11T00:00:15.657Z"
+    },
+    {
+      "passage": "If you are interested in working at Zuni Café, please download our employment application.",
+      "url": "https://zunicafe.com/careers/",
+      "readAt": "2026-10-11T00:00:15.934Z"
+    },
+    {
+      "passage": "You may mail to us or drop it by Tuesday – Sunday between 2 and 5pm.",
+      "url": "https://zunicafe.com/careers/",
+      "readAt": "2026-10-11T00:00:15.934Z"
+    },
+    {
+      "passage": "You may also email it to jobs@zunicafe.com.",
+      "url": "https://zunicafe.com/careers/",
+      "readAt": "2026-10-11T00:00:15.934Z"
+    },
+    {
+      "passage": "We are currently searching for full-time cooks.",
+      "url": "https://zunicafe.com/careers/",
+      "readAt": "2026-10-11T00:00:15.934Z"
+    }
+  ],
+  "claims": [],
+  "products": [],
+  "pages": [],
+  "links": [
+    {
+      "url": "https://zunicafe.com/",
+      "label": "Zuni Café",
+      "purpose": "product"
+    }
+  ],
+  "questions": [
+    "Does Zuni Café take reservations?",
+    "What is Zuni Café known for?",
+    "Where is Zuni Café?",
+    "When is Zuni Café open?",
+    "Can you buy the Zuni Café cookbook?",
+    "Does Zuni Café sell gift certificates?"
+  ],
+  "voice": {
+    "voice": "short",
+    "person": "we",
+    "chosen": "automatic"
+  },
+  "measurements": null,
+  "live": null,
+  "adds": {
+    "claims": [],
+    "short": false
+  },
+  "missing": []
+}

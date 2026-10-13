@@ -1,8 +1,9 @@
 // BUILD §8 · SPEC §7 (D41 stage 4) — the stage-4 checks.
 //
 // §8's rules are "enforced in code, not prompts", and this is the one place
-// they are all run: the five checks of D41 and the guards D27 names, every
-// one a deterministic pass over finished text that costs nothing. The
+// they are all run: the five checks of D41, the guards D27 names and the
+// prose check of issue 1390, every one a deterministic pass over finished
+// text that costs nothing. The
 // never-claim list is matched by its own words (D45). One rule is a model's:
 // the fit check, kept by D44 for a listicle or comparison only (about 0.5¢).
 //
@@ -38,6 +39,7 @@ import { checkHiddenText } from "./hidden";
 import { checkMachineAddress } from "./machine";
 import { checkNearDuplicate } from "./nearduplicate";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "./people";
+import { checkProse, proseText, type ProseRuleInputs } from "./prose";
 import { checkRivalSource } from "./rivals";
 import { renderOf, withoutReferenceLists } from "./text";
 import { checkTitle, type TitleRuleInputs } from "./title";
@@ -68,6 +70,7 @@ export function rulesAsked(a: DeterministicInputs, verdicts: { fit: FitVerdict; 
     fit_claim: verdicts.fitAsked && verdicts.fit.state !== "unrun",
     do_not_claim: a.site.doNotClaim.length > 0,
     title: a.titleRule != null && a.titleRule.type !== "update",
+    plain_prose: a.prose != null,
   };
   return HARD_RULES.filter((rule) => !SWITCHED_RULES.includes(rule) || on[rule] === true);
 }
@@ -132,6 +135,10 @@ export interface DeterministicInputs {
   /** The page's H1 where it is not its title. The honest row and the
    *  never-claim list read it beside the title. */
   heading?: string;
+  /** What the page's wording is held to (issue 1390). Passed only for a
+   *  page this product generated; absent, `plain_prose` asks nothing — a
+   *  founder's own words are theirs. */
+  prose?: ProseRuleInputs;
 }
 
 /**
@@ -187,6 +194,7 @@ export function runDeterministicRules(
     no_demo_text: checkDemoText({ markdown: a.markdown, phrases: a.demoPhrases }),
     distinct_headings: checkDistinctHeadings({ markdown: a.markdown, apply: a.distinctHeadings === true }),
     title: checkTitle({ title: a.title, ...(a.heading === undefined ? {} : { heading: a.heading }), rule: a.titleRule ?? null }),
+    plain_prose: checkProse({ markdown: a.markdown, prose: a.prose ?? null }),
   };
 }
 
@@ -214,7 +222,14 @@ export async function runHardRules(
     market?: unknown;
   }
 ): Promise<BatteryOutcome> {
-  const a = { ...withoutSources(given), knowledge: given.knowledge };
+  const read = withoutSources(given);
+  // Issue 1390: an English page is also read by `slopless`. Loaded here and
+  // nowhere at import, so no browser bundle carries a linter.
+  const prose =
+    read.prose === undefined || read.prose.language !== "en" || read.prose.flagged !== undefined
+      ? read.prose
+      : { ...read.prose, flagged: await (await import("./prose-lint")).lintProse(proseText(read.markdown, read.prose.passages)) };
+  const a = { ...read, ...(prose === undefined ? {} : { prose }), knowledge: given.knowledge };
   // Assembled in `HARD_RULES` order below rather than in whatever order the
   // calls happen to be written in.
   const deterministic = runDeterministicRules(a);

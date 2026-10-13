@@ -1815,6 +1815,46 @@ export const PAGE_BLOCKS = Object.freeze({
   taglineRepeats: 2,
 } as const);                                                   // §7 · issue 1137
 
+/** SPEC §7 (owner, 2026-10-10, issue 1390) — what the prose check holds a
+ *  generated page to (`src/lib/generate/rules/prose.ts`). Each threshold is
+ *  set above what the pages people wrote reach and below what the stored
+ *  pages did (`docs/walk/prose-gate.md`, `npm run eval:content -- --prose`):
+ *  drafted from that measurement, the owner corrects them. */
+export const PROSE = Object.freeze({
+  /** Joining dashes: more than `perThousand` a thousand words, and at least
+   *  `least` — a short page with one aside is not stopped. People's pages
+   *  reached 6.4; the stored pages' middle was 8.5. */
+  dashes: { perThousand: 7, least: 4 },
+  /** A sentence of this many words or more is one a reader hears said
+   *  again. It may be said `PAGE_BLOCKS.taglineRepeats` times. */
+  repeatedSentence: { minWords: 4 },
+  /** A run of `longWords` words said `longTimes` times — a tagline, one over
+   *  its cap — or of `shortWords` said `shortTimes` times. People's pages
+   *  said a run of four words four times and one of six three times. */
+  repeatedPhrase: { shortWords: 4, shortTimes: 6, longWords: 7, longTimes: 3 },
+  /** The items of one list that turn on the same label ("— result:"). */
+  listScaffold: { minItems: 3 },
+  /** Sentence lengths' standard deviation over their mean, under `least`,
+   *  on a page of `minSentences` sentences or more. People's pages went as
+   *  low as 0.31, so this stops only a page of sentences all one length. */
+  evenSentences: { least: 0.3, minSentences: 20 },
+  /** Tell phrases (`prose-english.ts`): one construction used `samePattern`
+   *  times, or `most` of any kind together. People's pages reached two of a
+   *  construction and six together; one undated agency article of 2026 has
+   *  three reframes and is stopped. */
+  tellPhrases: { samePattern: 3, most: 7 },
+} as const);                                                   // §7 · issue 1390
+
+/** SPEC §7 (owner, 2026-10-10, issue 1390) — the page's voice
+ *  (`src/lib/generate/voice/register.ts`). The short answer's length is the
+ *  owner's; a simple question's longest is drafted. */
+export const VOICE = Object.freeze({
+  short: { words: { floor: 600, ceiling: 900 }, questionWords: 10 },
+  /** Named statistics or quotations a page aims to carry, each from the
+   *  pack with its source. */
+  evidence: { min: 2, max: 4 },
+} as const);                                                   // §7 · issue 1390
+
 /** SPEC §7 (owner, D51; issue 1266) — what the stage-4 `title` check holds a
  *  page's `<title>` and its meta description to. The numbers, the year's
  *  types and the banned patterns are the ruling's; the engine names and the

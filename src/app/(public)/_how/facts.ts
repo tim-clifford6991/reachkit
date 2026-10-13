@@ -51,6 +51,7 @@ export const CHECK_LINE_OF: Readonly<Record<HardRule, CheckLine>> = {
   required_blocks: "shape",
   distinct_headings: "shape",
   title: "shape",
+  plain_prose: "shape",
   near_duplicate: "repeat",
 };
 

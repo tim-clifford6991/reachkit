@@ -17,7 +17,7 @@ import { describe, expect, it } from "vitest";
 import { ACTIONS, SETTABLE } from "@/app/(account)/app/settings/settable";
 import * as constants from "@/lib/config/constants";
 
-describe("REQ-070 c1 — SETTABLE is the thirteen keys, closed", () => {
+describe("REQ-070 c1 — SETTABLE is closed", () => {
   it("is exactly criterion 1's list, in the order WO-178 declares it", () => {
     expect([...SETTABLE]).toEqual([
       "category",
@@ -29,6 +29,7 @@ describe("REQ-070 c1 — SETTABLE is the thirteen keys, closed", () => {
       "publishing_enabled",
       "destinations",
       "voice_text",
+      "writing_voice",
       "do_not_claim",
       "notifications",
       "name",
@@ -36,9 +37,8 @@ describe("REQ-070 c1 — SETTABLE is the thirteen keys, closed", () => {
     ]);
   });
 
-  it("holds thirteen keys and no duplicate", () => {
-    expect(SETTABLE).toHaveLength(13);
-    expect(new Set(SETTABLE).size).toBe(13);
+  it("holds no duplicate", () => {
+    expect(new Set(SETTABLE).size).toBe(SETTABLE.length);
   });
 });
 

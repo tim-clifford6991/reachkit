@@ -1,0 +1,47 @@
+{
+  "about": "The sites `npm run eval:content -- --prose --write` writes one page for (SPEC §7, issue 1390): the customer panel's kinds (docs/walk/panel/sites.json). `pages` are read by a plain GET for the pack's business facts. `type`, `target` and `questions` are chosen here so the harness needs no search: a real page's come from its ranked topics and from what buyers were seen to ask. A site with a stored panel run takes its name and market from it.",
+  "sites": [
+    {
+      "domain": "zunicafe.com", "kind": "café or restaurant", "language": "en", "country": "US", "type": "qa",
+      "pages": ["https://zunicafe.com/", "https://zunicafe.com/cookbook/", "https://zunicafe.com/gift-certificates/", "https://zunicafe.com/careers/"],
+      "target": "does zuni café take reservations",
+      "questions": ["Does Zuni Café take reservations?", "What is Zuni Café known for?", "Where is Zuni Café?", "When is Zuni Café open?", "Can you buy the Zuni Café cookbook?", "Does Zuni Café sell gift certificates?"]
+    },
+    {
+      "domain": "savvycal.com", "kind": "SaaS tool", "language": "en", "country": "US", "type": "how_to",
+      "pages": ["https://savvycal.com/", "https://savvycal.com/pricing", "https://savvycal.com/features"],
+      "target": "schedule meetings across time zones",
+      "questions": ["How do you schedule a meeting across time zones?", "How do you share your availability without back-and-forth emails?", "Can the person booking see their own calendar?"]
+    },
+    {
+      "domain": "clearleft.com", "kind": "agency", "language": "en", "country": "GB", "type": "documentation",
+      "pages": ["https://clearleft.com/", "https://clearleft.com/about", "https://clearleft.com/what-we-do"],
+      "target": "design transformation consulting",
+      "questions": ["What does a design consultancy do?", "How long does a design transformation take?"]
+    },
+    {
+      "domain": "wesbos.com", "kind": "creator", "language": "en", "country": "US", "type": "how_to", "name": "Wes Bos", "category": "web development courses",
+      "pages": ["https://wesbos.com/", "https://wesbos.com/courses", "https://wesbos.com/about", "https://wesbos.com/javascript"],
+      "target": "learn javascript",
+      "questions": ["How long does it take to learn JavaScript?", "Should you learn JavaScript before React?"]
+    },
+    {
+      "domain": "streaksapp.com", "kind": "consumer app", "language": "en", "country": "US", "type": "how_to", "name": "Streaks", "category": "habit tracking app",
+      "pages": ["https://streaksapp.com/", "https://streaksapp.com/help/"],
+      "target": "build a daily habit",
+      "questions": ["How many habits should you track at once?", "What happens when you miss a day?"]
+    },
+    {
+      "domain": "alexander.co.uk", "kind": "accountancy (regulated)", "language": "en", "country": "GB", "type": "documentation",
+      "pages": ["https://alexander.co.uk/", "https://alexander.co.uk/news/31-january-self-assessment-deadline-is-approaching/", "https://alexander.co.uk/about-us/"],
+      "target": "self assessment tax return deadline",
+      "questions": ["When is the self assessment deadline?", "What happens if you miss the self assessment deadline?"]
+    },
+    {
+      "domain": "baeckerei-hinkel.de", "kind": "German bakery", "language": "de", "country": "DE", "type": "documentation",
+      "pages": ["https://www.baeckerei-hinkel.de/"],
+      "target": "sauerteigbrot düsseldorf",
+      "questions": ["Wo gibt es Sauerteigbrot in Düsseldorf?", "Woraus besteht handwerklich gebackenes Brot?"]
+    }
+  ]
+}

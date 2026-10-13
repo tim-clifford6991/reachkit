@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "type": "documentation",
+  "builtAt": "2026-10-11T00:05:06.277Z",
+  "locale": {
+    "country": "DE",
+    "language": "de"
+  },
+  "target": {
+    "question": "sauerteigbrot düsseldorf",
+    "searches": [
+      "sauerteigbrot düsseldorf"
+    ]
+  },
+  "business": {
+    "name": "Bäckerei Hinkel",
+    "domain": "baeckerei-hinkel.de",
+    "category": "Bäckerei",
+    "byline": "Bäckerei Hinkel",
+    "voice": null,
+    "market": {
+      "from": "site",
+      "category": "Bäckerei",
+      "buyer": "Kunden in Düsseldorf, die handwerklich gebackenes Brot und Backwaren kaufen",
+      "job": "Frische Backwaren und Brot vom Bäcker kaufen",
+      "rivals": [],
+      "notOurMarket": [
+        "Industrielle Backwarenfabrik",
+        "Supermarkt-Backshop",
+        "Konditorei mit Torten und Kuchen",
+        "Online-Versand von Backwaren"
+      ]
+    },
+    "rivals": []
+  },
+  "profile": null,
+  "neverClaim": [],
+  "facts": [
+    {
+      "passage": "Handwerklich gebackenes Brot aus nur Mehl, Wasser und Salz",
+      "url": "https://baeckerei-hinkel.de/",
+      "readAt": "2026-10-11T00:05:06.277Z"
+    },
+    {
+      "passage": "Seit Generationen in Familienhand",
+      "url": "https://baeckerei-hinkel.de/",
+      "readAt": "2026-10-11T00:05:06.277Z"
+    },
+    {
+      "passage": "Brotfreunde-Philosophie mit traditioneller Herstellung",
+      "url": "https://baeckerei-hinkel.de/",
+      "readAt": "2026-10-11T00:05:06.277Z"
+    }
+  ],
+  "claims": [],
+  "products": [],
+  "pages": [],
+  "links": [
+    {
+      "url": "https://baeckerei-hinkel.de/",
+      "label": "Bäckerei Hinkel",
+      "purpose": "product"
+    }
+  ],
+  "questions": [
+    "Wo gibt es Sauerteigbrot in Düsseldorf?",
+    "Woraus besteht handwerklich gebackenes Brot?"
+  ],
+  "voice": {
+    "voice": "ours",
+    "person": "we",
+    "chosen": "automatic"
+  },
+  "measurements": null,
+  "live": null,
+  "adds": {
+    "claims": [],
+    "short": false
+  },
+  "missing": []
+}

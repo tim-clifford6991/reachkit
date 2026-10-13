@@ -24,6 +24,7 @@
 // would hide the very state [the] validator exists to prevent from ever being
 // stored", so this module validates nothing and the screen renders what is
 // there.
+import type { WritingVoice } from "@/lib/generate/voice/register";
 import type { CopyKey } from "@/lib/presentation/copy";
 // Imported by file and not through `@/lib/market/changes`'s barrel: the
 // barrel re-exports `declared.ts`, which reaches `@/lib/db` and parses
@@ -178,7 +179,9 @@ export interface SettingsModel {
   domain: string;
   publishing: PublishingSettings;
   destinations: readonly SettingsDestination[];
-  voice: { text: string };
+  /** `writing` is the voice the customer fixed for their pages (issue
+   *  1390); `null` leaves it to ReachKit. */
+  voice: { text: string; writing: WritingVoice | null };
   doNotClaim: readonly string[];
   notifications: readonly NotificationRow[];
   account: AccountCardView;
@@ -256,6 +259,8 @@ export interface SettingsFacts {
   timeZone: string;
   publishingEnabled: boolean;
   voiceText: string;
+  /** `sites.writing_voice` (issue 1390). Absent reads as not chosen. */
+  writingVoice?: WritingVoice | null;
   doNotClaim: readonly string[];
   /** `destinations` (§10), health included — read as a state (#48). */
   destinations: readonly DestinationView[];
@@ -382,7 +387,7 @@ export function assembleSettings(facts: SettingsFacts): SettingsModel {
       enabled: facts.publishingEnabled,
     },
     destinations: facts.destinations.map((view) => ({ ...view, dns: dnsFor(view, facts.cnameTarget) })),
-    voice: { text: facts.voiceText },
+    voice: { text: facts.voiceText, writing: facts.writingVoice ?? null },
     doNotClaim: facts.doNotClaim,
     notifications: notificationRows(facts.notifyPrefs),
     account: {

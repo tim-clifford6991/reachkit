@@ -1,0 +1,28 @@
+{
+  "about": "Pages people wrote, on the customer panel's own sites (docs/walk/panel/sites.json): what the prose check's thresholds are set against (SPEC §7, issue 1390). `year` is when the page was last changed, where its site says; a page from before 2023 was written before a model could have, and a page with no date may not have been. The text is read live and cached under .review/prose; only the counts are committed (docs/walk/prose-gate.md).",
+  "pages": [
+    { "site": "austinplumbery.com", "year": 2018, "url": "https://www.austinplumbery.com/blog/2018/2/14/5-signs-of-a-water-leak" },
+    { "site": "austinplumbery.com", "year": 2018, "url": "https://www.austinplumbery.com/blog/2018/2/14/how-to-prevent-frozen-pipes" },
+    { "site": "fletcherelectric.co.uk", "year": 2018, "url": "https://www.fletcherelectric.co.uk/electrical-earthing-explained/" },
+    { "site": "fletcherelectric.co.uk", "year": 2018, "url": "https://www.fletcherelectric.co.uk/rcd-protection/" },
+    { "site": "fletcherelectric.co.uk", "year": 2018, "url": "https://www.fletcherelectric.co.uk/what-to-do-in-the-event-of-a-powercut/" },
+    { "site": "fletcherelectric.co.uk", "year": 2018, "url": "https://www.fletcherelectric.co.uk/your-fuse-box-consumer-unit/" },
+    { "site": "fletcherelectric.co.uk", "year": 2018, "url": "https://www.fletcherelectric.co.uk/part-p-electrical-work-and-building-regulations/" },
+    { "site": "pdxsmiledesign.com", "year": 2022, "url": "https://pdxsmiledesign.com/the-future-of-dentistry-is-digital-and-for-the-patients-of-pdx-smile-design-the-future-is-here-today/" },
+    { "site": "pdxsmiledesign.com", "year": 2022, "url": "https://pdxsmiledesign.com/why-invisalign-is-clearly-the-right-choice-compared-to-diy-mail-in-aligners-for-straightening-teeth/" },
+    { "site": "pdxsmiledesign.com", "year": 2022, "url": "https://pdxsmiledesign.com/why-are-dental-implants-so-expensive-dental-implant-placement-basic-as-a-step-by-step-process/" },
+    { "site": "savvycal.com", "year": null, "url": "https://savvycal.com/articles/asynchronous-communication" },
+    { "site": "savvycal.com", "year": null, "url": "https://savvycal.com/articles/automate-sales-meeting-scheduling" },
+    { "site": "savvycal.com", "year": null, "url": "https://savvycal.com/articles/best-calendar-apps" },
+    { "site": "wesbos.com", "year": null, "url": "https://wesbos.com/hacking-smart-photo-frames" },
+    { "site": "wesbos.com", "year": null, "url": "https://wesbos.com/new-wesbos-website" },
+    { "site": "wesbos.com", "year": null, "url": "https://wesbos.com/parity-purchasing-power" },
+    { "site": "wesbos.com", "year": null, "url": "https://wesbos.com/transfer-usd-out-of-paypal-without-fees" },
+    { "site": "clearleft.com", "year": null, "url": "https://clearleft.com/thinking/design-effectiveness-in-2026" },
+    { "site": "clearleft.com", "year": null, "url": "https://clearleft.com/thinking/how-ai-is-redefining-the-way-we-find-content" },
+    { "site": "clearleft.com", "year": null, "url": "https://clearleft.com/thinking/how-ai-helped-us-make-sense-of-hundreds-of-components" },
+    { "site": "alexander.co.uk", "year": null, "url": "https://alexander.co.uk/news/31-january-self-assessment-deadline-is-approaching/" },
+    { "site": "alexander.co.uk", "year": null, "url": "https://alexander.co.uk/news/ai-in-accounting/" },
+    { "site": "zunicafe.com", "year": null, "url": "https://zunicafe.com/cookbook/" }
+  ]
+}

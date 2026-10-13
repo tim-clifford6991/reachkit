@@ -35,6 +35,9 @@ export const SETTABLE = [
   "publishing_enabled",
   "destinations",
   "voice_text",
+  // SPEC §7 (owner, 2026-10-10; issue 1390): who speaks on their pages. A
+  // constraint on content under their name, like the voice beside it.
+  "writing_voice",
   "do_not_claim",
   "notifications",
   "name",
