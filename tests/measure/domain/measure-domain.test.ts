@@ -40,7 +40,7 @@ vi.hoisted(() => {
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { BATTERY, PRICE_BOOK } from "@/lib/config/constants";
+import { BATTERY, CACHE_WINDOWS_D, PRICE_BOOK } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import type { RankedResult } from "@/lib/vendors/dataforseo/types";
@@ -483,5 +483,68 @@ describe("SPEC §2 (issue 1379) — a bot-protection page is never measured as t
     const result = await measureDomain(fakeCost(), { domain: DOMAIN, at: SCAN_AT, tier: "free" }, ports);
     expect(result.onPage.kind).toBe("unmeasured");
     expect(result.renderedHome).toBeUndefined();
+  });
+});
+
+describe("SPEC §2 (issue 1427) — an error or rate-limit answer is never read as the home page", () => {
+  const limited = (retryAfter?: string): FetchOutcome => ({
+    ok: true,
+    status: 429,
+    url: HOME,
+    html: "local_rate_limited",
+    bytes: 18,
+    readAt: READ_AT,
+    headers: retryAfter === undefined ? {} : { "retry-after": retryAfter },
+  });
+
+  /** The home page answers each read with the next of `answers`. */
+  function answering(...answers: FetchOutcome[]): ReturnType<typeof fakePorts> {
+    const ports = fakePorts(FULL_SITE);
+    const read = ports.fetchDocument;
+    let home = 0;
+    return {
+      ...ports,
+      async fetchDocument(url: string) {
+        if (url !== HOME) return read(url);
+        ports.log.fetched.push(url);
+        return answers[Math.min(home++, answers.length - 1)] as FetchOutcome;
+      },
+    };
+  }
+
+  it("asks the home page once more, past the stored answer, and reads the site where it then answers", async () => {
+    const cost = fakeCost();
+    const ports = answering(limited("0"), okOutcome(HOME, RICH_HTML));
+    const result = await measureDomain(cost, { domain: DOMAIN, at: SCAN_AT, tier: "free" }, ports);
+    expect(ports.log.fetched.filter((url) => url === HOME)).toHaveLength(2);
+    expect(cost.calls.filter((call) => call.cacheKey === HOME).map((call) => call.freshnessDays)).toEqual([CACHE_WINDOWS_D.own, 0]);
+    expect(result.onPage.kind).toBe("measured");
+    expect(result.text.home).toContain("How does ReachKit measure a site?");
+    expect(result.homeRefusal).toBeNull();
+  });
+
+  it("leaves the site unread where the second answer is no document either, so nothing is inferred from it", async () => {
+    const ports = answering(limited("0"));
+    const result = await measureDomain(fakeCost(), { domain: DOMAIN, at: SCAN_AT, tier: "free" }, ports);
+    expect(ports.log.fetched).toEqual([HOME, HOME]);
+    expect(result.homeRefusal).toBe("status");
+    expect(result.text.home).toBeNull();
+    expect(result.onPage).toEqual({ kind: "unmeasured", reason: "undeterminable", at: READ_AT });
+    expect(ports.log.ranked).toHaveLength(0);
+  });
+
+  it("does not wait past its limit for a server that asks to be left a minute", async () => {
+    const ports = answering(limited("60"), okOutcome(HOME, RICH_HTML));
+    const result = await measureDomain(fakeCost(), { domain: DOMAIN, at: SCAN_AT, tier: "free" }, ports);
+    expect(ports.log.fetched).toEqual([HOME]);
+    expect(result.homeRefusal).toBe("status");
+  });
+
+  it("reads a site's own 403 shell as no home page (canva.com, 2026-10-06)", async () => {
+    const shell = "<!DOCTYPE html><html lang=\"en\"><head><title>Canva</title></head><body><div id=\"root\"></div></body></html>";
+    const ports = answering({ ok: true, status: 403, url: HOME, html: shell, bytes: shell.length, readAt: READ_AT, headers: { "retry-after": "0" } });
+    const result = await measureDomain(fakeCost(), { domain: DOMAIN, at: SCAN_AT, tier: "free" }, ports);
+    expect(result.homeRefusal).toBe("status");
+    expect(result.text.home).toBeNull();
   });
 });

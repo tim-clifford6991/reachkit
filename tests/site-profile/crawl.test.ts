@@ -676,3 +676,32 @@ describe("the site's own rules and the crawl's hard bounds (issue 610)", () => {
     expect(signals.every((s) => s.aborted)).toBe(true);
   });
 });
+
+// Issue 1427: the site profile is read off the home document. An answer in
+// its place is no home, so the crawl has no row one and no profile is built.
+describe("crawlSite — an error or rate-limit answer is no home page", () => {
+  const answer = (status: number, html: string, headers: Record<string, string> = {}): FetchOutcome => ({
+    ok: true,
+    status,
+    url: HOME,
+    html,
+    bytes: html.length,
+    readAt: READ_AT,
+    headers,
+  });
+
+  it.each([
+    ["a stored 429 page", answer(429, "<html><head><title>429 Too Many Requests</title></head><body><h1>429 Too Many Requests</h1></body></html>")],
+    ["a bare `local_rate_limited` body", answer(429, "local_rate_limited")],
+    ["a protection's challenge", answer(403, "<html><head><title>Just a moment...</title></head><body></body></html>", { "cf-mitigated": "challenge" })],
+  ])("reads no page and no home from %s", async (_what, home) => {
+    const out = await crawlSite(fakeCost(), { domain: DOMAIN, homeUrl: HOME, homeHtml: null, sitemaps: [] }, fakePorts({ [HOME]: home }));
+    expect(out.pages).toEqual([]);
+    expect(out.homeHtml).toBeNull();
+  });
+
+  it("still reads the site's own home page", async () => {
+    const out = await crawlSite(fakeCost(), { domain: DOMAIN, homeUrl: HOME, homeHtml: null, sitemaps: [] }, fakePorts({ [HOME]: ok(HOME, page("Tattly")) }));
+    expect(out.pages.map((p) => p.title)).toEqual(["Tattly"]);
+  });
+});

@@ -37,7 +37,7 @@
 import { pagePathAlternation } from "@/lib/locale/language";
 import { readLocale, type Locale, type ResolvedLocale } from "@/lib/locale";
 import { readPlaceSignals, type PlaceSignals } from "@/lib/locale/place";
-import { BATTERY, CACHE_WINDOWS_D, CHALLENGE_RENDER_MS, PRICE_BOOK } from "@/lib/config/constants";
+import { BATTERY, CACHE_WINDOWS_D, CHALLENGE_RENDER_MS, HOME_RETRY, PRICE_BOOK } from "@/lib/config/constants";
 import {
   isFetchRefusal,
   refusalOf,
@@ -51,7 +51,7 @@ import { readRobots } from "@/lib/egress/robots";
 import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import { rankedKeywords } from "@/lib/vendors/dataforseo";
 import type { RankedResult, RankedRow } from "@/lib/vendors/dataforseo/types";
-import { BOT_PROTECTION, challengeOf, type ProtectionVendor } from "./challenge";
+import { BOT_PROTECTION, challengeOf, notTheSiteOf, type ProtectionVendor } from "./challenge";
 import { answerabilityOf, foundationsOf, ownRankedOf, searchPresenceOf } from "./drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "./measured";
 import { OWN_FETCH_OPTS, OWN_FETCH_SOURCE, isStoredDocument, toStoredDocument, type StoredDocument } from "./own-fetch";
@@ -140,6 +140,10 @@ interface DocumentRead {
   /** The bot protection whose page was served in the document's place
    *  (SPEC §2, issue 1379); `null` where the site's own page was read. */
   protection: ProtectionVendor | null;
+  /** An error or rate-limit answer in the document's place (issue 1427):
+   *  its status, how long the server asked to be left, and whether this
+   *  pass read it or the cache served it. `null` otherwise. */
+  error: { status: number; retryAfterMs: number | null; fresh: boolean } | null;
 }
 
 /** A read document as its facts: `zero` when it parsed to nothing (no
@@ -182,22 +186,55 @@ async function readDocument(
   });
 
   if ("skipped" in result) {
-    return { url, facts: unmeasured("not_attempted", EPOCH), html: null, at: EPOCH, refusal: null, protection: null };
+    return { url, facts: unmeasured("not_attempted", EPOCH), html: null, at: EPOCH, refusal: null, protection: null, error: null };
   }
   const stored = result.payload;
   if (!isStoredDocument(stored)) {
     const at = stash.failure === null ? EPOCH : stash.failure.readAt;
     const refusal = isFetchRefusal(stored) ? stored.refusal : null;
-    return { url, facts: unmeasured("undeterminable", at), html: null, at, refusal, protection: null };
+    return { url, facts: unmeasured("undeterminable", at), html: null, at, refusal, protection: null, error: null };
   }
   const at = new Date(stored.readAt);
   // A bot-protection page is not the site's (issue 1379): nothing on it is
   // a fact of the site, so it is read as a page that could not be read.
   const protection = challengeOf(stored);
   if (protection !== null) {
-    return { url, facts: unmeasured("undeterminable", at, BOT_PROTECTION), html: null, at, refusal: null, protection };
+    return { url, facts: unmeasured("undeterminable", at, BOT_PROTECTION), html: null, at, refusal: null, protection, error: null };
   }
-  return { url, facts: factsOf(stored, at), html: stored.html, at, refusal: null, protection: null };
+  return { url, facts: factsOf(stored, at), html: stored.html, at, refusal: null, protection: null, error: errorOf(stored, result.fresh) };
+}
+
+/** The error answer `notTheSiteOf` reads in a document's place, if any. */
+function errorOf(stored: StoredDocument, fresh: boolean): DocumentRead["error"] {
+  const not = notTheSiteOf(stored);
+  return not === null || not.kind !== "error" ? null : { status: not.status, retryAfterMs: not.retryAfterMs, fresh };
+}
+
+/**
+ * The home page asked once more where it answered with an error or a rate
+ * limit (SPEC §2, issue 1427): such an answer is no home document, and
+ * nothing is read off it. The second read waits what the server asked
+ * (`Retry-After`) where this pass met the answer itself, and none where
+ * the cache served it; a server that asks for longer than
+ * `HOME_RETRY.MAX_WAIT_MS` is not asked again inside this pass. An answer
+ * that is still no document is a refused home: the site is unread and the
+ * pass says so (issue 479), so no profile, market or brand is inferred
+ * from it.
+ */
+async function readHomeAgain(c: CostContext, ports: MeasurePorts, first: DocumentRead): Promise<DocumentRead> {
+  const error = first.error;
+  if (error === null) return first;
+  const waitMs = error.fresh ? (error.retryAfterMs ?? HOME_RETRY.WAIT_MS) : 0;
+  let again: DocumentRead | null = null;
+  if (waitMs <= HOME_RETRY.MAX_WAIT_MS) {
+    if (waitMs > 0) await new Promise<void>((resolve) => setTimeout(resolve, waitMs));
+    // A window of none: the answer just stored is not served back.
+    again = await readDocument(c, ports, first.url, 0);
+    if (again.error === null && !(again.facts.kind === "unmeasured" && again.facts.reason === "not_attempted")) return again;
+  }
+  const last = again?.error ?? error;
+  logDriver("home_not_a_document", { status: last.status, retried: again !== null });
+  return { ...first, facts: unmeasured("undeterminable", first.at), html: null, refusal: "status", error: last };
 }
 
 /** The home page as the vendor's browser draws it, asked once where the
@@ -371,7 +408,8 @@ export async function measureDomain(
   const at = a.at;
   // 1. The home document. Its facts keep its own `readAt`, which is how
   //    `src/lib/scan/challenged.ts` finds the read a report was measured from.
-  const plain = await readDocument(c, ports, homeUrl, windowDays);
+  //    An error or rate-limit answer is asked once more (issue 1427).
+  const plain = await readHomeAgain(c, ports, await readDocument(c, ports, homeUrl, windowDays));
   // 1'. A bot-protection page in its place: the vendor's browser is asked
   //     once (issue 1379). Its document is dated as the plain read is.
   const drawn = plain.protection === null ? null : await renderedHome(c, ports, homeUrl, windowDays);
