@@ -78,6 +78,16 @@ export interface Row {
   result: Rescored;
 }
 
+/** The lists the export rebuilds, each still a list where it was read: an
+ *  export that lost one (issue 1431) is named here, not met deep in
+ *  `cardsOf`. */
+function valuesKept(report: RescoreReport): void {
+  for (const name of ["questions", "rivalSizes"] as const) {
+    const m = report[name];
+    if (m.kind !== "unmeasured" && !Array.isArray(m.value)) throw new Error(`${name} is ${m.kind} but the export carries no list`);
+  }
+}
+
 /** Each exported scan read and scored again; a report this build cannot read
  *  is listed, never guessed at. */
 export function rescoreExport(doc: Export): { rows: Row[]; unreadable: { id: string; because: string }[] } {
@@ -89,6 +99,7 @@ export function rescoreExport(doc: Export): { rows: Row[]; unreadable: { id: str
       // The export is the report's own members, narrowed: the reader lifts
       // an older version of them exactly as it lifts the whole report.
       report = readStoredReport(scan.report) as unknown as RescoreReport;
+      valuesKept(report);
     } catch (error) {
       unreadable.push({ id: scan.id, because: error instanceof Error ? error.message : String(error) });
       continue;
