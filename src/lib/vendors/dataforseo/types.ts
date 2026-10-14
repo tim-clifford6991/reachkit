@@ -282,3 +282,7 @@ export const AI_ANSWER_SOURCES = Object.freeze({
   ai_mode: "serp/google/ai_mode",
   chatgpt: "ai_optimization/chat_gpt/llm_scraper",
 } as const);
+
+/** How much of an AI answer's text is kept (issue 1420): enough to read whom
+ *  it names, never the whole page of a long answer on every stored SERP. */
+export const AI_OVERVIEW_TEXT_MAX_CHARS = 4000;

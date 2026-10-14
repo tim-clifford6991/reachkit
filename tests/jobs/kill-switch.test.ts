@@ -105,6 +105,12 @@ function engineDouble(): Record<string, unknown> {
     refreshDestinationHealth: ran,
     marketDigestsDue: none,
     sendMarketDigest: ran,
+    // The re-score (issue 1433) buys nothing, so it is outside the scope.
+    claimRescore: async () => {
+      engineCalls.count += 1;
+      return { id: "run-1", mode: "dry" };
+    },
+    answerRescore: ran,
   };
 }
 
@@ -173,7 +179,7 @@ describe('BUILD §11 bounds — "kill switch env var stops scan+generate+publish
     }
   );
 
-  it.each(["publish/verify", "weekly/refresh", "lead/nurture", "account/maintenance"] as const)(
+  it.each(["publish/verify", "weekly/refresh", "lead/nurture", "account/maintenance", "scan/rescore"] as const)(
     "%s still runs with the switch engaged",
     async (id) => {
       const { outcome, engineCalls: calls } = await invoke(id, true);

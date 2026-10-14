@@ -52,6 +52,8 @@ const LIVE_SCHEMA_TESTS = [
   // Issue #1069: `free_scan_listing` — what the gallery and the landing's
   // strip may show (never a removed or refused site) — and the logo checks.
   "tests/scan/gallery/listing.test.ts",
+  // Issue 1433: `rescore_runs`, `report_md5` and the guarded `rescore_scan`.
+  "tests/scan/report/rescore-schema.test.ts",
 ];
 
 export default defineConfig({

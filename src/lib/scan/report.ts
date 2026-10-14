@@ -563,7 +563,7 @@ export interface StoredReport {
    *  pages. The report says so in one line. Absent where the market was
    *  read from the site's pages, which every report before it was. */
   marketFrom?: "search";
-  /** Where `npm run rescore` rewrote this report with the current code (owner,
+  /** Where the re-score (`scan/rescore`) rewrote this report with the current code (owner,
    *  2026-10-14, issue 1426): when, at which commit, and the report and the
    *  `scans` columns (score, status, drivers) as they were first stored, so
    *  the rewrite can be undone. No surface reads them. */

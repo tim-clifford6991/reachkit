@@ -54,7 +54,7 @@ import {
   type OnVendorFailure,
 } from "./envelope";
 import { placeCacheKey, type DataForSeoMode } from "./transport";
-import { scopeKey, type CacheScope, type SerpAiOverview, type SerpOrganicRow, type SerpResult } from "./types";
+import { AI_OVERVIEW_TEXT_MAX_CHARS, scopeKey, type CacheScope, type SerpAiOverview, type SerpOrganicRow, type SerpResult } from "./types";
 
 const ORGANIC = "/v3/serp/google/organic";
 const PATHS: EndpointPaths = {
@@ -83,10 +83,6 @@ function settledCents(base: number, mode: DataForSeoMode, rows: readonly SerpRes
   const overview = rows?.[0]?.aiOverview;
   return overview?.present && overview.asynchronousAiOverview ? surcharged : base;
 }
-
-/** How much of an AI Overview's answer is kept (issue 1420): enough to read
- *  whom it names, never the whole page of a long answer on every stored SERP. */
-export const AI_OVERVIEW_TEXT_MAX_CHARS = 4000;
 
 function parseAiOverview(item: Record<string, unknown>): SerpAiOverview {
   const seen = new Set<string>(referenceDomains(item.references));

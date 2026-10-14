@@ -401,6 +401,31 @@ export async function sendMarketDigest(weekStart: string): Promise<EngineResult>
   return (await send(weekStart, new Date())) ? { done: true } : { degraded: "market-digest-not-sent" };
 }
 
+// ── The re-score — issue 1433, built.
+//
+// The master session asks for one with a `rescore_runs` row; the tick claims
+// it and `src/lib/scan/rescore-run.ts` answers it on the same row. Imported
+// at the call: the module reaches `@/lib/db`.
+
+import type { RescoreRequest } from "@/lib/scan/rescore-run";
+export type { RescoreRequest };
+
+/** The oldest re-score asked for and not yet started, now marked started. */
+export async function claimRescore(now: Date): Promise<RescoreRequest | null> {
+  const { claimRequest } = await import("@/lib/scan/rescore-run");
+  return claimRequest(now);
+}
+
+/** Answers it with the deployed code: `rescoredBy` is the deployed commit. */
+export async function answerRescore(a: {
+  readonly request: RescoreRequest;
+  readonly now: Date;
+}): Promise<EngineResult> {
+  const { answerRequest } = await import("@/lib/scan/rescore-run");
+  await answerRequest(a.request, { version: (process.env.VERCEL_GIT_COMMIT_SHA ?? "unknown").slice(0, 7), at: a.now });
+  return { done: true };
+}
+
 // ── Generation — BUILD §8 (issue #44)
 // Built. `src/lib/generate/` owns the pipeline, the hard rules and the
 // recovery decision; the wrapper below passes the job's own `publishDate`

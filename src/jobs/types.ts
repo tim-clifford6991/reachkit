@@ -1,9 +1,9 @@
 // src/jobs/types.ts — BUILD §11, ARCHITECTURE `src/jobs/**`
 //
-// The job-id union, closed at exactly eight members, and the
+// The job-id union, closed at exactly nine members, and the
 // platform-neutral shapes the registry is built from. Adding an id is a
 // change to this file and to `tests/jobs/registry.test.ts`, which asserts
-// the set — a ninth id cannot arrive by accident.
+// the set — a tenth id cannot arrive by accident.
 //
 // `BUILD.md` §11's table names six jobs. `account/maintenance` is the
 // seventh: the clock-triggered obligations no read path can serve (a
@@ -19,10 +19,13 @@
 // site's own due hour, and `account/maintenance` is deliberately outside
 // the kill switch, which a job that publishes may not be.
 //
+// `scan/rescore` is the ninth (issue 1433): the re-score of every stored
+// scan runs where the data is, asked for with a `rescore_runs` row.
+//
 // Nothing here names the job platform. `client.ts` is the one file that
 // does, so replacing the platform is that file plus one route.
 
-/** Exactly eight, with their triggers. */
+/** Exactly nine, with their triggers. */
 export type JobId =
   | "scan/run" // on demand; tier is a parameter (free | deep | weekly)
   | "draft/generate" // hourly tick, due a veto window before the site's own publish time
@@ -31,9 +34,10 @@ export type JobId =
   | "publish/retry" // hourly tick; the retries and the veto windows whose moment has come round
   | "weekly/refresh" // hourly tick, due per site-local Monday (ADR-060)
   | "lead/nurture" // event plus delay: 24h / 72h / 168h
-  | "account/maintenance"; // every MAINTENANCE_TICK_MINUTES; five due-work queries
+  | "account/maintenance" // every MAINTENANCE_TICK_MINUTES; five due-work queries
+  | "scan/rescore"; // every 15 minutes; answers a re-score the master session asked for (issue 1433)
 
-/** The same eight as a value, so the registry's closure is assertable. The
+/** The same nine as a value, so the registry's closure is assertable. The
  *  `satisfies` pins it to the union: a member missing here or an id not in
  *  the union is a type error, not a test failure discovered later. */
 export const JOB_IDS = Object.freeze([
@@ -45,6 +49,7 @@ export const JOB_IDS = Object.freeze([
   "weekly/refresh",
   "lead/nurture",
   "account/maintenance",
+  "scan/rescore",
 ] as const) satisfies readonly JobId[];
 
 /** The event names the product sends. One per event-triggered job; the

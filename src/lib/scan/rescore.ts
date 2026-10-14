@@ -15,9 +15,9 @@
 // home page *and* the pages beyond it, and a report keeps only the home
 // page's facts, so its stored value stands on every scan.
 //
-// `scripts/rescore/run.ts` reads the export, prints the before and after,
-// and writes the change as statements that keep the original report under
-// `report.previous`.
+// `src/lib/scan/rescore-run.ts` reads the stored rows in production (the
+// `scan/rescore` job, issue 1433), writes the before and after, and on apply
+// writes the change, keeping the original report under `report.previous`.
 import { aiPresenceOf, classifyReferences, foundationsOf, searchPresenceOf } from "@/lib/measure/drivers";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";

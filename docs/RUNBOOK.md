@@ -247,9 +247,10 @@ not in it is unreachable over HTTP. `src/jobs/client.ts` is the only file that n
 | `weekly/refresh` | cron `0 * * * *` | weekly scan per active site, gated on that site's local Monday. Steps: `due`, then per site `measure-…`, up to three `late-answers-…` (free reads of queued answers, #1160) and `tell-…` | (stopped inside the run, not by the runner) |
 | `lead/nurture` | cron `0 * * * *` | advances sequences over `next_touch_at` | |
 | `account/maintenance` | cron `*/15 * * * *` | five due-work queries: a payment awaiting sign-in, a payment with no account, a hosting-end notice, a hosting stop, an account due for purge | |
+| `scan/rescore` | cron `*/15 * * * *` | answers the oldest `rescore_runs` request: every stored scan and rival set scored again, dry or applied (issue 1433, "Re-scoring every stored scan" below). Steps: `claim`, then `answer-<id>`; `skipped` / `no-subject` when nothing is asked | |
 
 Only four ids are sendable events (`src/jobs/types.ts`, `JobEvent`): `scan/run`,
-`publish/execute`, `publish/verify`, `lead/nurture`. The four clock-triggered jobs have no event.
+`publish/execute`, `publish/verify`, `lead/nurture`. The five clock-triggered jobs have no event.
 
 ### Running one by hand
 
@@ -261,7 +262,7 @@ events: `scan/run` when a setup completes (`src/app/(account)/setup/_setup/store
 
 So the way to run one by hand is **the Inngest dashboard**, on the `reachkit` app:
 
-- **A cron job** (`draft/generate`, `publish/retry`, `weekly/refresh`, `account/maintenance`):
+- **A cron job** (`draft/generate`, `publish/retry`, `weekly/refresh`, `account/maintenance`, `scan/rescore`):
   find the function and use *Invoke*. A tick takes no data. Each of these is due-gated, so an
   out-of-hours invocation is expected to return `skipped` with reason `not-due` or `no-subject` —
   that is the job working, not failing.
@@ -525,35 +526,36 @@ pass's own log lines.
 ### Re-scoring every stored scan
 
 After **every deploy that changes scoring, rivals or markets**, the master session re-scores the
-stored scans (owner, 2026-10-14, issue 1426; SPEC §2): a dry run, then `--apply`. It costs 0¢: it
-reads only what passes stored, asks no model, and refuses the network before it reads a scan.
+stored scans (owner, 2026-10-14, issue 1426; SPEC §2): a dry run, then an apply. It costs 0¢. It
+runs in production as the `scan/rescore` job (issue 1433), with the deployed code, reading the rows
+themselves. It asks no model, and the network is refused while each scan is scored. Nothing is
+exported, and no change is typed back through the connector.
 
-1. **Export**, read-only, through the Supabase connector: `scripts/rescore/export.sql` with
-   `:WHERE` set to `true` (or `s.domain in ('a.com', 'b.com')` for a few). Fetch it in checked
-   chunks as its footer shows, and put it together with
-   `node scripts/pass/assemble.mjs <dir> --out <export.json> --chunk <n>`. Production was about
-   2 MB on 2026-10-14: take it in batches by `s.created_at` and 40,000-character chunks, and pass
-   the batches together (`--from a.json,b.json`). A scan stored while a batch is fetched changes
-   its checksum: fetch the manifest again.
-2. **Dry run**: `npm run rescore -- --from <export.json>`. One row per scan — score, band, the three
-   factors, the limiting factor, the rivals and the status, before → after — then the totals, what
-   could not be fully recomputed and why, the site rival sets that move, and the site profiles read
-   off a protection's page.
-3. **Apply**: `npm run rescore -- --from <export.json> --apply` also writes
-   `.review/rescore/apply.sql` (`--out` to change it). Run it through the connector. Each statement
-   rewrites only the members that moved, keeps the original report under `report.previous` and the
-   original `score`, `status` and `drivers` under `report.previousColumns`, stamps `rescoredAt` and
-   `rescoredBy` (the commit), and is guarded by the report's checksum: a scan that changed since the
-   export is left alone. A moved site rival set keeps its old rivals under `market.rescored`.
-4. **Check**: export again and dry-run. *Scans that change* reads 0.
+1. **Ask for a dry run** through the Supabase connector:
+   `insert into rescore_runs (mode) values ('dry') returning id;`. The job ticks every 15 minutes,
+   claims the oldest request not yet started, and answers it on the same row.
+2. **Read the summary**: `select finished_at, rescored_by, scans_read, scans_changed, sites_moved,
+   error, summary from rescore_runs where id = '<id>';`. `finished_at` is null while it runs.
+   `rescored_by` is the deployed commit. `summary` is a markdown table with one row per scan:
+   score, band, the three factors, the limiting factor, the rivals and the status, before → after.
+   Then come the totals, what could not be fully recomputed and why, the site rival sets that move,
+   and the site profiles read off a protection's page. If `error` is set, the run failed. Read the
+   message and ask again.
+3. **Ask for the apply**: `insert into rescore_runs (mode) values ('apply') returning id;`, then
+   read it the same way. Each scan that moves is written by `rescore_scan`. The function rewrites
+   only the members that moved. It keeps the original report under `report.previous` and the
+   original `score`, `status` and `drivers` under `report.previousColumns`, and stamps
+   `rescoredAt` and `rescoredBy`. It is guarded by the report's checksum as the job read it:
+   `scans_left` counts the scans written after the read and left alone. Ask again for those. A moved
+   site rival set keeps its old rivals under `market.rescored`.
+4. **Check**: ask for another dry run. `scans_changed` reads 0.
 
 What it cannot recompute it leaves as stored and lists: Answerability on every scan (a report keeps
 the home page's facts, not the pages beyond it), search presence where a report of version 8 or
 before kept its ranked count without the rows, a home read no longer in `fetches`, a brand an AI
 Overview named only in its text where the report kept no text (every scan before issue 1420), and
 whether an AI Mode or ChatGPT answer named the site where its text is not in `fetches` under that
-scan (issue 1420). A profile
-read off a protection's page needs a model call and is only listed. Week-on-week movement and the
+scan (issue 1420). A profile read off a protection's page needs a model call and is only listed. Week-on-week movement and the
 Overview are read from each week's report, so they follow; a Monday mail already sent is not sent
 again.
 
