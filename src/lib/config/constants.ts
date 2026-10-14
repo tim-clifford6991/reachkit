@@ -1181,6 +1181,15 @@ export const SELECTION = Object.freeze({                    // BP-025 · REQ-006
   maxMarketTerms: 6,
 } as const);
 
+/** SPEC §2 (2026-10-14, issue 1419): the fewest Google results whose AI
+ *  Overview was read that AI presence is a rate over. Fewer is unmeasured,
+ *  so one or two results never set the score. Four is
+ *  `SELECTION.freeLadderMinQuestions`, the questions the free ladder buys
+ *  towards: of the 31 free scans stored from 2026-10-08 to 2026-10-14, none
+ *  scored on fewer than four, and five would have unscored deel.com (four
+ *  asked, four read). Not in `SCORING`, which BP-005 pins to three members. */
+export const AI_PRESENCE_MIN_READS = 4 as const;
+
 /** SPEC §6 *Topics by business fit* (2026-09-29, 2026-10-03; issue 1134).
  *  `gate`: below it a target is `low_fit` and never supply. `writeAt`: the
  *  fit at which a search is a write target whatever its volume. `topShare`:

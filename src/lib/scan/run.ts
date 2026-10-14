@@ -93,7 +93,7 @@ import { freePageOf } from "@/lib/opportunities/free-page";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/locale/locales";
 import { localSearch, statedPlace as statedPlaceOf } from "@/lib/locale/place";
 import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
-import { aiPresenceOf, BOT_PROTECTION, measureDomain, type DomainMeasurement } from "@/lib/measure";
+import { aiPresenceOf, BOT_PROTECTION, measureDomain, TOO_FEW_READ, type DomainMeasurement } from "@/lib/measure";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { InputOutcome, ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
@@ -1285,8 +1285,26 @@ function localeOfPass(a: Pick<StageArgs, "sections" | "locale">): Locale {
  * `done: true`"), its sections keep the `not_attempted` arm they were
  * initialised with, and the pass goes on to the next stage and keeps
  * buying. The pass's own ceilings are unchanged and still end it.
+ *
+ * **The site's crawl may run beside the market** (issue 1419), and the pass
+ * waits for it before it ends, so the report is composed with its site
+ * issues in it.
  */
 async function runStages(a: StageArgs): Promise<void> {
+  const crawl: SiteCrawl = { reading: Promise.resolve() };
+  try {
+    await stagesOf(a, crawl);
+  } finally {
+    await crawl.reading;
+  }
+}
+
+/** The crawl of the customer's own site, while it runs (issue 1419). */
+interface SiteCrawl {
+  reading: Promise<void>;
+}
+
+async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
   const { scanId, bounds, cost, domain, sections, retry } = a;
 
   /** Entry, recorded on the scan's own log and reported to the optional
@@ -1386,7 +1404,14 @@ async function runStages(a: StageArgs): Promise<void> {
   // a pass whose ranked-keywords call failed at the vendor would otherwise
   // report a second, unrelated undeterminable stage. Its own event says
   // what actually happened, and the pass continues either way.
-  if (bounds.stopNow() === null) {
+  //
+  // **Beside the market, where the market does not read it** (issue 1419).
+  // A free pass reads its market from the home document alone, and waiting
+  // for up to 100 pages first cost its Google reads a median of 8.7 s of the
+  // queue (the stored free scans of 2026-10-08 to 2026-10-14): the one
+  // read stripe.com asked gave up at the deadline. A pass that concludes
+  // its market reads the crawled pages for it, so it still waits here.
+  const readTheSite = async (): Promise<void> => {
     try {
       const { buildSiteProfileWithCrawl } = await import("@/lib/site-profile");
       const { readingOf } = await import("@/lib/site-issues");
@@ -1408,7 +1433,7 @@ async function runStages(a: StageArgs): Promise<void> {
       });
       // SPEC §9: the technical-issue checks run over exactly this crawl —
       // the one run, nothing fetched beyond its set (2026-09-12).
-      if (!bounds.abandoned()) {
+      if (!bounds.abandoned() && !sections.sealed) {
         sections.siteCrawl = readingOf(crawl);
         sections.pagesRead = crawl.pages.map((page) => ({
           url: page.url,
@@ -1425,7 +1450,9 @@ async function runStages(a: StageArgs): Promise<void> {
         })
       );
     }
-  }
+  };
+  if (bounds.stopNow() === null) crawl.reading = readTheSite();
+  if (a.concludesMarket === true) await crawl.reading;
 
   // Reports the access rules stage one already read: it buys nothing and
   // waits for nothing, so it has nothing to spend its budget on.
@@ -1541,11 +1568,12 @@ async function runStages(a: StageArgs): Promise<void> {
   // section at all. Only the purchase in the stage (`sizeSerpRivals`) is
   // what the ceiling stops.
   if (bounds.stopNow() !== null) {
+    await crawl.reading;
     score(a);
     return;
   }
   await enter("scoring");
-  await sizeSerpRivals(a);
+  await Promise.all([sizeSerpRivals(a), crawl.reading]);
   if (bounds.abandoned()) return;
   score(a);
   await exitStage(scanId, "scoring");
@@ -3157,8 +3185,16 @@ function composeReport(a: {
   // degrade the pass. A search-presence read that failed still does.
   // Never for a pass a ceiling stopped (issue 855): it did not finish.
   const tooSmall = marketTooSmall(s.questions) && !stoppedOnCeiling(a.stoppedReason);
+  // Issue 1419: the same for a market that yields fewer questions than AI
+  // presence is a rate over, where every one of them was read. A read the
+  // vendor or the clock lost still degrades the pass.
+  const tooFewToRate =
+    drivers.aiPresence.kind === "unmeasured" &&
+    drivers.aiPresence.because === TOO_FEW_READ &&
+    s.serps.every((serp) => serp.kind !== "unmeasured" && serp.value.aiOverview.unread !== true) &&
+    !stoppedOnCeiling(a.stoppedReason);
   const missingFactors = verdict.missing.filter(
-    (f) => !(tooSmall && f.factor === "presence" && drivers.searchPresence.kind !== "unmeasured")
+    (f) => !((tooSmall || tooFewToRate) && f.factor === "presence" && drivers.searchPresence.kind !== "unmeasured")
   );
 
   // Issue 865: **the twelve are a battery, not a section.** One question

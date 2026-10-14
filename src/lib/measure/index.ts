@@ -59,7 +59,7 @@ import { parseOnPage, visibleText, type OnPageFacts } from "./parse";
 import type { Drivers } from "./score";
 
 export type { Drivers } from "./score";
-export { aiPresenceOf, answerabilityOf, foundationsOf, ownRankedOf, searchPresenceOf } from "./drivers";
+export { aiPresenceOf, answerabilityOf, foundationsOf, ownRankedOf, searchPresenceOf, TOO_FEW_READ } from "./drivers";
 export { parseOnPage, visibleText, type OnPageFacts } from "./parse";
 export type { Measured, UnmeasuredReason } from "./measured";
 export { BOT_PROTECTION, type ProtectionVendor } from "./challenge";
