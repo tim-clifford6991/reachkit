@@ -14,7 +14,15 @@
 // list is `AI_READER_AGENTS`. Nothing here is customer-visible.
 import { AI_PRESENCE_MIN_READS, AI_READER_AGENTS, SCORING } from "@/lib/config/constants";
 import type { RobotsPolicy } from "@/lib/egress/types";
-import type { RankedResult, SerpResult } from "@/lib/vendors/dataforseo/types";
+import type { RankedResult, RankedRow, SerpAiOverview } from "@/lib/vendors/dataforseo/types";
+
+/** What §5's reach and share read of a `ranked_keywords` answer: the total
+ *  and each row's position — all a stored report keeps enough of to
+ *  re-score (issue 1426). */
+export interface RankedPositions {
+  readonly rows: readonly Pick<RankedRow, "position">[];
+  readonly total: number | null;
+}
 import { measured, measuredZero, unmeasured, worseReason, type Measured, type UnmeasuredReason } from "./measured";
 import { asciiLowerCase, type OnPageFacts } from "./parse";
 
@@ -208,7 +216,7 @@ const TOP10_LAST_POSITION = 10;
  *  means the vendor reported none, and the fallback is the row count — the
  *  capped figure, so the fallback never reads a domain as bigger than it
  *  was measured. A total of 0 is the total, not an absence. */
-function rankedCountOf(result: RankedResult): number {
+function rankedCountOf(result: RankedPositions): number {
   return result.total ?? result.rows.length;
 }
 
@@ -258,7 +266,7 @@ export function ownRankedOf(a: { ranked: Measured<RankedResult>; at: Date }): Me
  *  rows and no total is a legal result and a measured 0 (BUILD §6.3: "0
  *  rows is a legal result") — the `zero` arm, never `unmeasured`. An
  *  `unmeasured` answer is `unmeasured` with the reason it carried. */
-export function searchPresenceOf(a: { ranked: Measured<RankedResult>; at: Date }): Measured<number> {
+export function searchPresenceOf(a: { ranked: Measured<RankedPositions>; at: Date }): Measured<number> {
   if (a.ranked.kind === "unmeasured") return unmeasured(a.ranked.reason, a.at);
   const rows = a.ranked.value.rows;
   const ranked = rankedCountOf(a.ranked.value);
@@ -347,6 +355,9 @@ export function classifyReferences(references: readonly string[], ownDomain: str
   return { cited, mentioned };
 }
 
+/** What AIPresence reads of one SERP: its AI Overview's references. */
+type AiOverviewRead = { aiOverview: Pick<SerpAiOverview, "present" | "unread" | "referenceDomains"> };
+
 /** BUILD §5's AIPresence. The rates are over the SERPs whose AI-overview
  *  item was *measured* — never over the SERPs asked for, because a SERP we
  *  could not read is not a SERP that named nobody. Every SERP `unmeasured`
@@ -363,11 +374,11 @@ export function classifyReferences(references: readonly string[], ownDomain: str
  *  deadline cut off says why — and `undeterminable` where every SERP asked
  *  was read; `because` says the sample was too small. */
 export function aiPresenceOf(a: {
-  serps: readonly Measured<SerpResult>[];
+  serps: readonly Measured<AiOverviewRead>[];
   ownDomain: string;
   at: Date;
 }): Measured<number> {
-  const read: SerpResult[] = [];
+  const read: AiOverviewRead[] = [];
   for (const serp of a.serps) {
     if (serp.kind !== "unmeasured" && serp.value.aiOverview.unread !== true) read.push(serp.value);
   }

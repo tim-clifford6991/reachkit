@@ -56,7 +56,7 @@ import { captureInBackground } from "@/lib/analytics";
 import type { CapName, CostContext } from "@/lib/costs";
 import { dbAdmin } from "@/lib/db";
 import type { RobotsPolicy } from "@/lib/egress/types";
-import { checkCoherence, type CoherenceVerdict } from "@/lib/market/coherence/check";
+import type { CoherenceVerdict } from "@/lib/market/coherence/check";
 import { nextCorrectionState, type CorrectionState } from "@/lib/market/coherence/state";
 import { EVIDENCE_BOUNDS } from "@/lib/market/infer/evidence";
 import { searchedName, spokenMarket } from "@/lib/market/infer/terms";
@@ -65,7 +65,7 @@ import { buyerPrompts } from "@/lib/market/questions/buyer-prompts";
 import { readPromptAnswer } from "@/lib/market/prompts/answer";
 import { generatePrompts, promptSiteName } from "@/lib/market/prompts/generate";
 import { nextPromptSet, settlePrechecks, type TrackedPrompt } from "@/lib/market/prompts/set";
-import { buildAiAnswersCard, type BatteryAnswers } from "@/lib/market/questions/matrix";
+import type { BatteryAnswers } from "@/lib/market/questions/matrix";
 import {
   trackedQuestions,
   type PageQuestionCandidate,
@@ -83,10 +83,9 @@ import { selectTwelve, type SelectedSearch } from "@/lib/market/questions/select
 import { isShort, poolFrom, seedLadder, selectWidened, type PoolRow } from "@/lib/market/questions/widen";
 import { marketSeeds, measuredMarketOf, unjudged } from "@/lib/market/questions/measured";
 import { serpDomainsToSize } from "@/lib/market/rivals/candidates";
-import { deriveRivals, type RivalCandidate } from "@/lib/market/rivals/derive";
-import { buildPresenceCard, type PresenceCard } from "@/lib/market/rivals/presence";
+import type { RivalCandidate } from "@/lib/market/rivals/derive";
+import type { PresenceCard } from "@/lib/market/rivals/presence";
 import { sizeRivals, type RivalSize } from "@/lib/market/rivals/size";
-import type { RivalSizeBand } from "@/lib/market/rivals/band";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
 import { freePageOf } from "@/lib/opportunities/free-page";
@@ -95,7 +94,7 @@ import { localSearch, statedPlace as statedPlaceOf } from "@/lib/locale/place";
 import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
 import { aiPresenceOf, BOT_PROTECTION, measureDomain, TOO_FEW_READ, type DomainMeasurement } from "@/lib/measure";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
-import type { InputOutcome, ScanInput } from "@/lib/measure/partition";
+import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
 import type { Drivers } from "@/lib/measure/score";
 import { verdictOf, type Verdict } from "@/lib/measure/verdict";
@@ -117,6 +116,7 @@ import {
   withStageBudget,
   type StageOutcome,
 } from "./budgets";
+import { cardsOf } from "./cards";
 import { withScanBounds, withStoredPassSpend, type Bounds } from "./ceilings";
 import { advanceCorrectionState, readCorrectionFacts, registerCorrectionRunner } from "./correction";
 import { parseDomain, type CanonicalDomain } from "./domain";
@@ -2948,37 +2948,22 @@ function rescore(a: StageArgs): void {
 function score(a: Pick<StageArgs, "domain" | "sections" | "parameters" | "correction">): void {
   const { domain, sections } = a;
   const serps = sections.serps as readonly Measured<MarketSerp>[];
-  const readSerps: MarketSerp[] = [];
-  for (const serp of serps) if (serp.kind !== "unmeasured") readSerps.push(serp.value);
-
-  // The bands this pass already holds (issue 858): a far domain is never
-  // one of the report's rivals, and the nearest lead.
-  const sizes = new Map<string, RivalSizeBand>();
-  if (sections.rivalSizes.kind !== "unmeasured") {
-    for (const size of sections.rivalSizes.value) if (size.state === "sized") sizes.set(size.domain, size.band);
-  }
-  const derivation = deriveRivals({ serps: readSerps, ownDomain: domain, sizes });
-  sections.rivals = measured(derivation.rivals, sections.questions.at);
-  sections.sources = derivation.sources;
-
-  sections.presence = buildPresenceCard({
+  const cards = cardsOf({
     serps,
-    selected: sections.selected,
-    ownDomain: domain,
-    rivals: derivation.rivals,
-  });
-
-  const card = buildAiAnswersCard({
     questions: sections.questions.kind === "unmeasured" ? [] : sections.questions.value,
-    serps,
+    selected: sections.selected,
     battery: sections.battery,
+    rivalSizes: sections.rivalSizes,
     ownDomain: domain,
     coverage: a.parameters.asyncAiOverview && !a.correction ? "async_included" : "cached_only",
   });
+  sections.rivals = measured(cards.rivals, sections.questions.at);
+  sections.sources = cards.sources;
+  sections.presence = cards.presence;
   sections.aiAnswers = answersSectionOf({
-    card,
+    card: cards.card,
     questions: sections.questions,
-    rivals: derivation.rivals,
+    rivals: cards.rivals,
     ownDomain: domain,
     measuredAt: sections.questions.at,
   });
@@ -2998,7 +2983,7 @@ function score(a: Pick<StageArgs, "domain" | "sections" | "parameters" | "correc
     measuredAt: sections.questions.at,
   });
 
-  sections.coherence = checkCoherence({ serps: readSerps, measuredCount: readSerps.length });
+  sections.coherence = cards.coherence;
 }
 
 // ── Composition ─────────────────────────────────────────────────────────
@@ -3009,11 +2994,6 @@ function score(a: Pick<StageArgs, "domain" | "sections" | "parameters" | "correc
  *  customer's site that nobody has made. */
 function UNMEASURED_SUPPLY(at: Date): SupplySection {
   return { missingPages: unmeasured("not_attempted", at), unquotablePages: unmeasured("not_attempted", at) };
-}
-
-function outcomeOf(m: Measured<unknown>): InputOutcome {
-  if (m.kind === "unmeasured") return { read: false, because: m.reason };
-  return { read: true, empty: m.kind === "zero" };
 }
 
 /** A read that found nothing to read: a home document that links to no
@@ -3226,16 +3206,6 @@ function composeReport(a: {
 /** Issue 898 — the two §6.7 steps that can leave a pass with no market at
  *  all, under the `ScanInput` names the verdict already reads them under. */
 type MarketUnread = Extract<ScanInput, "business_profile" | "market_suggestions"> | null;
-
-/** The twelve SERPs as the one input the verdict reads them as: measured
- *  where any of them was, and carrying the reason where none was. */
-function foldSerps(serps: readonly Measured<SerpResult>[], at: Date): Measured<null> {
-  for (const serp of serps) {
-    if (serp.kind !== "unmeasured") return measured(null, at);
-  }
-  const first = serps[0];
-  return unmeasured(first !== undefined && first.kind === "unmeasured" ? first.reason : "not_attempted", at);
-}
 
 /** One line per re-asked question (issue 865), carrying the failure that
  *  bought the second ask and what it came back as — never the query. */

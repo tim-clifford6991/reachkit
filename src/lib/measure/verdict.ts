@@ -90,8 +90,12 @@ export function verdictOf(a: {
   drivers: Drivers;
   inputs: Readonly<Record<ScanInput, InputOutcome>>;
   robots: Measured<RobotsPolicy>;
+  /** A stored report's Presence, where its two sub-measures were not both
+   *  kept and the stored factor stands (the re-score, issue 1426). */
+  presence?: Measured<number>;
 }): Verdict {
-  const factors: ScoreFactors = factorsOf(a.drivers);
+  const drivenFactors = factorsOf(a.drivers);
+  const factors: ScoreFactors = a.presence === undefined ? drivenFactors : { ...drivenFactors, presence: a.presence };
   const scoreAndBand = computeScore(factors);
   const limiting = limitingFactorOf(factors);
 
