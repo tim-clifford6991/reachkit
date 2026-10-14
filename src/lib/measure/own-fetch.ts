@@ -16,7 +16,7 @@
 import { OWN_DOCUMENT_MAX_BYTES } from "@/lib/config/constants";
 import type { SafeFetchOpts } from "@/lib/egress/safe-fetch";
 import type { FetchOutcome } from "@/lib/egress/types";
-import { CHALLENGE_HEADERS, challengeOf } from "./challenge";
+import { CHALLENGE_HEADERS, notTheSiteOf } from "./challenge";
 
 /** The `source` column value of every own-document row. One string, read
  *  by the writer and the reader; nothing else in the product ledgers under
@@ -77,10 +77,11 @@ export function isStoredDocument(payload: unknown): payload is StoredDocument {
 }
 
 /** A stored row's document where it is the site's own page: `null` for a
- *  refusal, any other shape, and a bot-protection page served in the site's
- *  place (SPEC §2, issue 1379), which no reader takes for the site. */
+ *  refusal, any other shape, a bot-protection page served in the site's
+ *  place (SPEC §2, issue 1379), and an error or rate-limit answer (issue
+ *  1427), none of which a reader takes for the site. */
 export function siteDocumentOf(payload: unknown): StoredDocument | null {
-  return isStoredDocument(payload) && challengeOf(payload) === null ? payload : null;
+  return isStoredDocument(payload) && notTheSiteOf(payload) === null ? payload : null;
 }
 
 /** The `source` of a page the vendor drew in a browser for us (SPEC §6,

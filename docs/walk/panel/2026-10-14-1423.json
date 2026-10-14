@@ -1,0 +1,1263 @@
+{
+ "date": "2026-10-14",
+ "commit": "986e7c5a",
+ "capCents": 60,
+ "spentCents": 44.6698,
+ "refusedAtCap": 0,
+ "notRun": [
+  "zunicafe.com",
+  "austinplumbery.com",
+  "baeckerei-hinkel.de",
+  "alexander.co.uk",
+  "clearleft.com",
+  "wesbos.com",
+  "pdxsmiledesign.com",
+  "fletcherelectric.co.uk",
+  "streaksapp.com"
+ ],
+ "defects": [],
+ "sites": [
+  {
+   "site": {
+    "domain": "tattly.com",
+    "kind": "e-commerce shop",
+    "country": "US",
+    "language": "en",
+    "kinds": [
+     "shop"
+    ],
+    "market": [
+     "tattoo"
+    ],
+    "why": "A shop that sells one kind of product (temporary tattoos) from its own site. Its market is a product category, its rivals are other shops, and marketplaces (Amazon, Etsy) are not rivals."
+   },
+   "siteName": "Tattly",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "consumers who want temporary tattoos",
+    "job": "apply temporary tattoos for self-expression or decoration",
+    "category": "temporary tattoos",
+    "synonyms": [
+     "temporary tattoos",
+     "fake tattoos",
+     "stick-on tattoos",
+     "transfer tattoos"
+    ],
+    "differentiators": [
+     "online store specializing in temporary tattoo designs",
+     "curated collection of temporary tattoo products",
+     "direct-to-consumer e-commerce model"
+    ],
+    "notOurMarket": [
+     "permanent tattoos",
+     "tattoo supplies",
+     "body art services",
+     "costume accessories"
+    ],
+    "categoryReason": "Tattly is an online shop selling temporary tattoos as physical products, as evidenced by its e-commerce platform and product collections.",
+    "rivals": [
+     {
+      "domain": "inkbox.com",
+      "name": "Inkbox",
+      "basis": "ai_answer",
+      "reason": "Sells semi-permanent and traditional temporary tattoos direct-to-consumer online, the most-cited brand across AI answers in this market.",
+      "searchNames": [
+       "inkbox"
+      ],
+      "volume": 33100,
+      "national": true
+     },
+     {
+      "domain": "inkedbydani.com",
+      "name": "Inked by Dani",
+      "basis": "ai_answer",
+      "reason": "Design-forward temporary tattoo brand sold direct-to-consumer online, named alongside Tattly in AI answers for stylish stick-on tattoos.",
+      "searchNames": [
+       "inked by dani"
+      ],
+      "volume": 880,
+      "national": true
+     },
+     {
+      "domain": "easytatt.com",
+      "name": "EasyTatt",
+      "basis": "ranks",
+      "reason": "Online retailer specializing in long-lasting, high-quality temporary tattoos sold direct to consumers.",
+      "searchNames": [
+       "easytatt"
+      ],
+      "volume": 720,
+      "national": true
+     },
+     {
+      "domain": "ink-bond.com",
+      "name": "Ink Bond",
+      "basis": "ranks",
+      "reason": "Sells custom temporary tattoos direct to consumers online, appearing in top-ten results for custom tattoo searches.",
+      "searchNames": [
+       "ink bond",
+       "ink bond temporary tattoos",
+       "ink bond temporary"
+      ],
+      "volume": 480,
+      "national": true
+     },
+     {
+      "domain": "tattooednow.com",
+      "name": "Tattooed Now",
+      "basis": "ranks",
+      "reason": "Sells realistic fake temporary tattoos direct-to-consumer online, appearing prominently in top-ten results.",
+      "searchNames": [
+       "tattooed now",
+       "tattooed now temporary tattoos",
+       "tattooed now temporary"
+      ],
+      "volume": 210,
+      "national": true
+     }
+    ],
+    "terms": [
+     {
+      "term": "temporary tattoos",
+      "volume": 60500
+     },
+     {
+      "term": "custom temporary tattoos",
+      "volume": 22200
+     },
+     {
+      "term": "fake tattoos",
+      "volume": 18100
+     },
+     {
+      "term": "semi permanent tattoos",
+      "volume": 12100,
+      "polluted": true
+     },
+     {
+      "term": "temporary tattoos for adults",
+      "volume": 1900
+     },
+     {
+      "term": "temporary tattoo sleeves",
+      "volume": 1900
+     },
+     {
+      "term": "realistic temporary tattoos",
+      "volume": 1600
+     },
+     {
+      "term": "waterproof temporary tattoos",
+      "volume": 720
+     },
+     {
+      "term": "stick on tattoos",
+      "volume": 590
+     },
+     {
+      "term": "transfer tattoos",
+      "volume": 590
+     }
+    ],
+    "searchTerm": "temporary tattoos",
+    "termsAt": "2026-10-14T11:35:58.074Z",
+    "demand": {
+     "at": "2026-10-14T11:38:56.986Z",
+     "own": 1000,
+     "brands": {
+      "ezinks": 0,
+      "inkbox": 33100,
+      "tattly": 1000,
+      "tatteco": 90,
+      "easytatt": 720,
+      "ink bond": 480,
+      "tattooed now": 210,
+      "inked by dani": 880,
+      "momentary ink": 480,
+      "artwear tattoo": 20,
+      "ink bond temporary": 0,
+      "temporarytattoos.com": 140,
+      "tattooed now temporary": 0,
+      "ink bond temporary tattoos": 0,
+      "tattooed now temporary tattoos": 0
+     },
+     "searches": {
+      "ezinks alternatives": 0,
+      "inkbox alternatives": 390,
+      "tatteco alternatives": 0,
+      "easytatt alternatives": 0,
+      "ink bond alternatives": 0,
+      "tattooed now alternatives": 0,
+      "inked by dani alternatives": 0,
+      "momentary ink alternatives": 0,
+      "artwear tattoo alternatives": 0,
+      "temporarytattoos alternatives": 0
+     }
+    },
+    "judged": {
+     "adult tattoos": false,
+     "custom tattoos": false,
+     "best fake tattoos": true,
+     "tattoo alternative": true,
+     "fake custom tattoos": true,
+     "fake sleeve tattoos": true,
+     "fake tattoos near me": false,
+     "best temporary tattoo": true,
+     "fake tattoo temporary": true,
+     "fake realistic tattoos": true,
+     "fake tattoos for adults": true,
+     "online temporary tattoo": true,
+     "best custom temporary tattoos": true,
+     "best temporary tattoos for adults": true,
+     "custom temporary tattoos for adults": true
+    },
+    "kind": "shop",
+    "serves": null
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 6,
+    "timeouts": 0
+   },
+   "pageQuestions": 0,
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "US",
+    "language": "en"
+   },
+   "searches": [
+    "temporary tattoos",
+    "custom temporary tattoos",
+    "fake tattoos",
+    "temporary tattoo sleeves",
+    "temporary tattoos for adults",
+    "realistic temporary tattoos",
+    "waterproof temporary tattoos",
+    "stick on tattoos",
+    "transfer tattoos",
+    "best custom temporary tattoos",
+    "best temporary tattoos for adults",
+    "temporary tattoos near me"
+   ],
+   "knowledgePages": 1,
+   "questions": [],
+   "audience": [],
+   "topics": [
+    {
+     "query": "temporary tattoos for adults",
+     "status": "open",
+     "type": "answerable_page",
+     "fit": 2,
+     "volume": 1900,
+     "ready": false
+    },
+    {
+     "query": "realistic temporary tattoos",
+     "status": "open",
+     "type": "expand_page",
+     "fit": 2,
+     "volume": 1600,
+     "ready": false
+    },
+    {
+     "query": "transfer tattoos",
+     "status": "open",
+     "type": "answerable_page",
+     "fit": 2,
+     "volume": 590,
+     "ready": false
+    },
+    {
+     "query": "best custom temporary tattoos",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 3,
+     "volume": 210,
+     "ready": false
+    },
+    {
+     "query": "waterproof temporary tattoos",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 2,
+     "volume": 720,
+     "ready": false
+    },
+    {
+     "query": "temporary tattoos near me",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 1,
+     "volume": 6600,
+     "ready": false
+    },
+    {
+     "query": "inkbox alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 390,
+     "ready": true
+    },
+    {
+     "query": "inked by dani alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "easytatt alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "ink bond alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "tattooed now alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 18.908500000000004,
+   "costBySource": {
+    "site-profile": 0.2548,
+    "profile": 0.2223,
+    "market-inference": 0.3627,
+    "market-terms": 0.6573,
+    "dataforseo_labs/google/keyword_overview": 2.35,
+    "dataforseo_labs/google/keyword_suggestions": 1.8,
+    "market-searches": 0.8238,
+    "question-phrasing": 0.2366,
+    "serp/google/ai_mode": 2.4,
+    "serp/google/organic": 0.72,
+    "ai_optimization/chat_gpt/llm_scraper": 1.3200000000000003,
+    "site-knowledge": 0.3589,
+    "rival-inference": 3.462,
+    "topic-buyer-searches": 0.1922,
+    "topic-typed": 0.2239,
+    "topic-fit": 2.7429,
+    "opportunity-typing": 0.6276,
+    "topic-same-question": 0.1535
+   },
+   "area": {
+    "place": null,
+    "location": null
+   },
+   "resultDomains": [
+    "easytatt.com",
+    "24hourwristbands.com",
+    "stickerplanet.com",
+    "tattly.com",
+    "www.walmart.com",
+    "www.tatteco.com",
+    "www.amazon.com",
+    "www.bigdotofhappiness.com",
+    "www.ink-bond.com",
+    "tattapic.com",
+    "californiatattoos.com",
+    "www.tattooednow.com",
+    "www.4allpromos.com",
+    "www.imprintnow.com",
+    "inkbox.com",
+    "ezink.co",
+    "www.youtube.com",
+    "www.temporarytattoos.com",
+    "www.target.com",
+    "artweartattoo.co.uk",
+    "www.ebay.com",
+    "duckystreet.com",
+    "www.stickermule.com",
+    "artweartattoo.com",
+    "ephemeral.tattoo",
+    "www.etsy.com",
+    "wrapables.com",
+    "www.stickeryou.com",
+    "zugmonster.com",
+    "abeautifulmess.com",
+    "tinsleytransfers.com",
+    "www.4imprint.com",
+    "www.reddit.com",
+    "imprint.com",
+    "www.saveyourink.com",
+    "www.customlanyard.net",
+    "www.facebook.com",
+    "ink-today.com",
+    "www.yelp.com",
+    "booksy.com",
+    "fun-town-usa-temporary-tattoos.ueniweb.com",
+    "www.tatbar.com",
+    "www.miamihenna.com",
+    "faketattoos.com",
+    "reddit.com",
+    "temporalis.tattoo",
+    "google.com"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Looking for the best temporary tattoos. Where would you shop, and why?"
+    },
+    {
+     "kind": "category",
+     "text": "Where do people actually recommend for the best custom temporary tattoos?"
+    },
+    {
+     "kind": "category",
+     "text": "Where do people actually recommend for the best fake tattoos?"
+    },
+    {
+     "kind": "category",
+     "text": "Where do people actually recommend for the best temporary tattoos for adults?"
+    },
+    {
+     "kind": "category",
+     "text": "I am buying for the first time. Where should I look for the best temporary tattoos?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Where can I find the best temporary tattoos as a gift?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Where can I find the best temporary tattoos on a small budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Where can I get the best temporary tattoos delivered quickly?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Who makes the best temporary tattoos by hand or in small batches?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Where can I find the best temporary tattoos for a special occasion?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Who sells the best temporary tattoos and will help me choose?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Where can I buy the best temporary tattoos from an independent shop rather than a big chain?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are consumers. Where should we look for the best temporary tattoos?"
+    },
+    {
+     "kind": "persona",
+     "text": "Who sells the best temporary tattoos for consumers?"
+    },
+    {
+     "kind": "persona",
+     "text": "Where do consumers tend to buy the best temporary tattoos?"
+    },
+    {
+     "kind": "persona",
+     "text": "I am buying for consumers. Where would I find the best temporary tattoos?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best temporary tattoos: how does Inkbox compare with Inked by Dani?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Inkbox for consumers?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best temporary tattoos: would you choose Inked by Dani or EasyTatt?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best temporary tattoos for the money: Inkbox, Inked by Dani or EasyTatt?"
+    },
+    {
+     "kind": "problem",
+     "text": "My last purchase was a let-down. Who can I rely on for the best temporary tattoos?"
+    },
+    {
+     "kind": "problem",
+     "text": "I need it quickly. Who can get me the best temporary tattoos in time?"
+    },
+    {
+     "kind": "problem",
+     "text": "I cannot decide what to buy. Who offers the best temporary tattoos, and what should I look for?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is Tattly a good choice for someone looking for the best temporary tattoos?"
+    },
+    {
+     "kind": "branded",
+     "text": "Looking for the best temporary tattoos: is Tattly a good alternative to Inkbox?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"temporary tattoos\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"temporary tattoos\" 60500/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "pass",
+     "detail": "Inkbox — inkbox.com, 33100/mo, ai_answer; Inked by Dani — inkedbydani.com, 880/mo, ai_answer; EasyTatt — easytatt.com, 720/mo, ranks; Ink Bond — ink-bond.com, 480/mo, ranks; Tattooed Now — tattooednow.com, 210/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "the site's own pages ask no question, and none is kept",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"consumers who want temporary tattoos\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "11 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 0.36¢; 0 of 6 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "shop; 25 prompts",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "9 searched terms; \"temporary tattoos\" has 60500"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 9 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 1 page"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "tattly.com",
+     "foundations": "measured",
+     "answerability": "zero",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    }
+   ],
+   "seconds": 230,
+   "evidenceLoaded": 84
+  },
+  {
+   "site": {
+    "domain": "savvycal.com",
+    "kind": "B2B SaaS, not ReachKit's market (scheduling)",
+    "country": "US",
+    "language": "en",
+    "kinds": [
+     "software"
+    ],
+    "market": [
+     "schedul",
+     "calendar",
+     "booking",
+     "meeting"
+    ],
+    "why": "A small scheduling product. The kind of site the passes were built on, in a market that is not ReachKit's: it shows whether a result is general or fitted to one site."
+   },
+   "siteName": "SavvyCal",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "teams and businesses that need to schedule meetings with multiple people",
+    "job": "find a time to meet with colleagues, clients, or candidates",
+    "category": "meeting scheduling software",
+    "synonyms": [
+     "appointment scheduling software",
+     "calendar scheduling tool",
+     "meeting scheduler"
+    ],
+    "differentiators": [
+     "calendar overlay week view showing all participants' availability at once",
+     "team scheduling with round-robin pooling and collective availability",
+     "custom branding for scheduling links",
+     "high-fidelity interface replacing click-a-day-then-click-a-time workflow"
+    ],
+    "notOurMarket": [
+     "calendar management software",
+     "time zone conversion tools",
+     "meeting poll software",
+     "email scheduling tools"
+    ],
+    "categoryReason": "The headline and all pages consistently position SavvyCal as scheduling software for finding meeting times, with solutions for sales, recruiting, marketing, and customer success teams.",
+    "rivals": [
+     {
+      "domain": "calendly.com",
+      "name": "Calendly",
+      "basis": "ai_answer",
+      "reason": "The dominant meeting scheduling link tool for teams and businesses, directly competing on round-robin, collective scheduling, and branded booking pages.",
+      "searchNames": [
+       "calendly"
+      ],
+      "volume": 368000,
+      "national": true
+     },
+     {
+      "domain": "acuityscheduling.com",
+      "name": "Acuity Scheduling",
+      "basis": "ai_answer",
+      "reason": "Business appointment scheduling software with intake forms, team scheduling, and custom branding used by consultants and service businesses.",
+      "searchNames": [
+       "acuity scheduling"
+      ],
+      "volume": 90500,
+      "national": true
+     },
+     {
+      "domain": "koalendar.com",
+      "name": "Koalendar",
+      "basis": "ranks",
+      "reason": "Online meeting scheduling tool with booking pages and calendar sync, competing directly in the same scheduling-link category.",
+      "searchNames": [
+       "koalendar"
+      ],
+      "volume": 2400,
+      "national": true
+     },
+     {
+      "domain": "lunacal.ai",
+      "name": "LunaCal",
+      "basis": "ranks",
+      "reason": "AI-powered meeting scheduling tool with calendar integration and booking pages, competing directly with SavvyCal for business users.",
+      "searchNames": [
+       "lunacal"
+      ],
+      "volume": 390,
+      "national": true
+     },
+     {
+      "domain": "youcanbook.me",
+      "name": "YouCanBook.me",
+      "basis": "ranks",
+      "reason": "Scheduling link tool for teams and businesses with calendar integration, custom branding, and automated reminders, competing directly with SavvyCal.",
+      "searchNames": [
+       "youcanbook.me"
+      ],
+      "volume": 0,
+      "national": true
+     }
+    ],
+    "terms": [
+     {
+      "term": "online scheduling tool",
+      "volume": 6600
+     },
+     {
+      "term": "meeting scheduler",
+      "volume": 4400
+     },
+     {
+      "term": "appointment scheduling software",
+      "volume": 2400
+     },
+     {
+      "term": "appointment booking software",
+      "volume": 1000
+     },
+     {
+      "term": "calendar scheduling software",
+      "volume": 480
+     },
+     {
+      "term": "meeting scheduling software",
+      "volume": 390
+     },
+     {
+      "term": "schedule a meeting online",
+      "volume": 390
+     },
+     {
+      "term": "automated meeting scheduler",
+      "volume": 50
+     },
+     {
+      "term": "availability scheduling tool",
+      "volume": 20
+     },
+     {
+      "term": "book meetings automatically",
+      "volume": 0
+     }
+    ],
+    "searchTerm": "online scheduling tool",
+    "termsAt": "2026-10-14T11:39:49.799Z",
+    "demand": {
+     "at": "2026-10-14T11:41:39.614Z",
+     "own": 880,
+     "brands": {
+      "zencal": 110,
+      "cal.com": 0,
+      "lunacal": 390,
+      "schedly": 260,
+      "appointy": 3600,
+      "calendly": 368000,
+      "savvycal": 880,
+      "koalendar": 2400,
+      "youcanbook.me": 0,
+      "acuity scheduling": 90500
+     },
+     "searches": {
+      "zencal alternatives": 0,
+      "cal.com alternatives": 30,
+      "lunacal alternatives": 0,
+      "schedly alternatives": 0,
+      "appointy alternatives": 10,
+      "calendly alternatives": 880,
+      "koalendar alternatives": 10,
+      "youcanbook alternatives": 0,
+      "acuity scheduling alternatives": 50
+     }
+    },
+    "judged": {
+     "meeting scheduler app": true,
+     "meeting scheduler tool": true,
+     "meeting scheduler software": true,
+     "best online scheduling tool": true,
+     "meeting scheduling tool online": true,
+     "online calendar scheduling tool": true,
+     "online appointment scheduling tool": true,
+     "online appointment booking software": true,
+     "best appointment scheduling software": true,
+     "sales appointment scheduling software": true,
+     "appointment scheduling online software": true,
+     "what is appointment scheduling software": true,
+     "appointment scheduling calendar software": true,
+     "best online appointment scheduling software": true,
+     "what is the best appointment scheduling software": true
+    },
+    "kind": "software",
+    "serves": null
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 2,
+    "timeouts": 0
+   },
+   "pageQuestions": 53,
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "US",
+    "language": "en"
+   },
+   "searches": [
+    "online scheduling tool",
+    "appointment scheduling online software",
+    "meeting scheduler",
+    "online appointment booking software",
+    "appointment scheduling software",
+    "meeting scheduler tool",
+    "appointment booking software",
+    "meeting scheduler app",
+    "appointment scheduling calendar software",
+    "calendar scheduling software",
+    "meeting scheduler software",
+    "meeting scheduling software"
+   ],
+   "knowledgePages": 11,
+   "questions": [
+    "How can we help?",
+    "Scheduling a meeting?",
+    "Do you offer a free trial?",
+    "How does company billing work?",
+    "Are there ways to save?",
+    "What happens if I cancel?",
+    "What’s in the box?",
+    "Can candidates overlay their calendar to find mutual availability?",
+    "Can interviews be double-booked?",
+    "Can reschedules be made with one click?",
+    "Can I create personalized links?",
+    "Can I check for conflicts across all my calendars?",
+    "Can I embed the scheduling link directly on my website?",
+    "Does SavvyCal integrate with Zoom and Google Meet?",
+    "How does SavvyCal help with podcast guest scheduling?",
+    "Can guests see my calendar availability?",
+    "What integrations does SavvyCal support?",
+    "Can I embed scheduling links on my website?"
+   ],
+   "audience": [
+    "software developers",
+    "individuals",
+    "small teams",
+    "recruiting teams",
+    "Sales",
+    "Marketing",
+    "Recruiting",
+    "Customer Success",
+    "Podcasting",
+    "Consulting",
+    "podcasters"
+   ],
+   "topics": [
+    {
+     "query": "appointment scheduling online software",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 5400,
+     "ready": true
+    },
+    {
+     "query": "meeting scheduler tool",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 2,
+     "volume": 1300,
+     "ready": true
+    },
+    {
+     "query": "calendly alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 880,
+     "ready": false
+    },
+    {
+     "query": "acuity scheduling alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 50,
+     "ready": true
+    },
+    {
+     "query": "koalendar alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": 10,
+     "ready": true
+    },
+    {
+     "query": "lunacal alternatives",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "savvycal vs calendly",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": false
+    },
+    {
+     "query": "savvycal vs acuity scheduling",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "savvycal vs koalendar",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "savvycal vs lunacal",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "savvycal vs youcanbook",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 25.7613,
+   "costBySource": {
+    "site-profile": 0.5087,
+    "profile": 0.3417,
+    "market-inference": 0.5702,
+    "market-terms": 0.6414,
+    "dataforseo_labs/google/keyword_overview": 2.29,
+    "market-searches": 0.8199,
+    "question-phrasing": 0.2211,
+    "serp/google/ai_mode": 0.8,
+    "ai_optimization/chat_gpt/llm_scraper": 1.08,
+    "site-knowledge": 10.241200000000001,
+    "rival-inference": 3.4368,
+    "topic-buyer-searches": 0.1952,
+    "topic-typed": 0.1712,
+    "topic-fit": 2.7741,
+    "opportunity-typing": 1.4709000000000003,
+    "topic-same-question": 0.1989
+   },
+   "area": {
+    "place": null,
+    "location": null
+   },
+   "resultDomains": [
+    "youcanbook.me",
+    "www.recruiterslineup.com",
+    "scheduly.com",
+    "schedly.io",
+    "hrdailyadvisor.hci.org",
+    "microposter.so",
+    "www.joinglyph.com",
+    "calendly.com",
+    "www.appointy.com",
+    "www.emailtooltester.com",
+    "zapier.com",
+    "squareup.com",
+    "workspace.google.com",
+    "www.setmore.com",
+    "lunacal.ai",
+    "www.youtube.com",
+    "www.cometly.com",
+    "www.calendar.com",
+    "timeful.app",
+    "www.nutshell.com",
+    "koalendar.com",
+    "blog.hubspot.com",
+    "calendar.app.google",
+    "www.surveymonkey.com",
+    "arraytics.com",
+    "www.reddit.com",
+    "www.zoho.com",
+    "www.uschamber.com",
+    "wpamelia.com",
+    "www.skylinesocial.com",
+    "salesdorado.com",
+    "www.jotform.com",
+    "www.workyard.com",
+    "blog.supersaas.com",
+    "viasocket.com",
+    "meetingpulse.net",
+    "rallly.co",
+    "www.usemotion.com",
+    "www.gomarketbox.com",
+    "www.poper.ai",
+    "calendesk.com",
+    "reclaim.ai",
+    "dayschedule.com",
+    "www.bigcontacts.com",
+    "www.revenuehero.io",
+    "www.onecal.io",
+    "zencal.io",
+    "cal.com",
+    "doodle.com",
+    "www.zoom.com",
+    "peoplemanagingpeople.com",
+    "www.when2meet.com",
+    "saascompared.io",
+    "youtube.com",
+    "knock-ai.com",
+    "pumble.com",
+    "morsoftware.com",
+    "boldly.com"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "What are the best online scheduling tools right now, and what is each one good at?"
+    },
+    {
+     "kind": "category",
+     "text": "Which meeting scheduler platforms do people actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "Which appointment scheduling platforms do people actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "Which appointment booking platforms do people actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "I am new to online scheduling. Which products should I look at first?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which online scheduling tools work on a small budget?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which meeting scheduler tools can I use without hiring an agency?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which appointment scheduling tools suit a team of one?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which appointment booking tools can I set up in a single day?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which online scheduling tools need no engineering team?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which meeting scheduler tools work for a brand new website?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which appointment scheduling tools have a free trial?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are teams and businesses. Which online scheduling tool fits us best?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which online scheduling software is built for teams and businesses?"
+    },
+    {
+     "kind": "persona",
+     "text": "What do teams and businesses actually use for online scheduling?"
+    },
+    {
+     "kind": "persona",
+     "text": "I work with teams and businesses. Which online scheduling product should I recommend to them?"
+    },
+    {
+     "kind": "comparison",
+     "text": "How does Calendly compare with Acuity Scheduling for online scheduling?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Calendly for teams and businesses?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Acuity Scheduling or Koalendar: which is the better choice for online scheduling?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Which is better value for online scheduling: Calendly, Acuity Scheduling or Koalendar?"
+    },
+    {
+     "kind": "problem",
+     "text": "I am getting nowhere with online scheduling. Which tools can fix that?"
+    },
+    {
+     "kind": "problem",
+     "text": "Nothing I have tried for online scheduling is working. What software should I try next?"
+    },
+    {
+     "kind": "problem",
+     "text": "What is the fastest way to get results from online scheduling, and which products do it for me?"
+    },
+    {
+     "kind": "branded",
+     "text": "What is SavvyCal, and is it any good for online scheduling?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is SavvyCal a good alternative to Calendly for online scheduling?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"meeting scheduling software\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"online scheduling tool\" 6600/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "pass",
+     "detail": "Calendly — calendly.com, 368000/mo, ai_answer; Acuity Scheduling — acuityscheduling.com, 90500/mo, ai_answer; Koalendar — koalendar.com, 2400/mo, ranks; LunaCal — lunacal.ai, 390/mo, ranks; YouCanBook.me — youcanbook.me, 0/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "18 questions",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"teams and businesses that need to schedule meetings with multiple people\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "11 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 10.24¢; 0 of 2 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "software; 25 prompts",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "9 searched terms; \"online scheduling tool\" has 6600"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 2 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 11 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "savvycal.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    }
+   ],
+   "seconds": 189,
+   "evidenceLoaded": 107
+  }
+ ]
+}
