@@ -185,7 +185,7 @@ export function holdersOf(
     for (const row of [...(serp.value.localPack ?? []).map((local) => ({ ...local, position: 0 })), ...serp.value.organic]) {
       if (row.position > FIRST_PAGE) continue;
       const domain = registrableDomain(row.domain);
-      if (domain === null || here.has(domain) || isPlatformDomain(domain)) continue;
+      if (domain === null || here.has(domain) || isPlatformDomain(row.domain)) continue;
       if (tracked.some((mine) => isTheirs(mine, [domain]))) continue;
       here.set(domain, row.position);
     }

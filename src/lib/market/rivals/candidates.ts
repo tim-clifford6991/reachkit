@@ -71,7 +71,7 @@ export function serpRivalCandidates(a: {
       const domain = registrableDomain(row.domain);
       if (domain === null) continue;
       if (isOwnDomain(domain, a.ownDomain)) continue;
-      if (isPlatformDomain(domain)) continue;
+      if (isPlatformDomain(row.domain)) continue;
 
       const seenHere = here.includes(domain);
       if (!seenHere) here.push(domain);

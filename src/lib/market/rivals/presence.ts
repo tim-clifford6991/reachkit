@@ -91,7 +91,7 @@ function topHolderOf(serp: MarketSerp): string | null {
   const first = serp.organic.find((row) => row.position === 1);
   if (first === undefined) return null;
   const domain = registrableDomain(first.domain);
-  if (domain === null || isPlatformDomain(domain)) return null;
+  if (domain === null || isPlatformDomain(first.domain)) return null;
   return domain;
 }
 

@@ -20,7 +20,7 @@
 // all `./domains`' — one implementation in the product, not two.
 import { BATTERY, RIVAL_SCORE } from "@/lib/config/constants";
 import type { MarketSerp } from "../views";
-import { isOwnDomain, isPlatformDomain, registrableDomain } from "./domains";
+import { isArticleUrl, isOwnDomain, isPlatformDomain, registrableDomain } from "./domains";
 
 /** `band.ts`'s `RivalSizeBand`, spelled out: the free card's modules name no
  *  sizing module, not even for a type (§6.4, `size.test.ts`). */
@@ -116,7 +116,7 @@ export function deriveRivals(a: {
     const domain = registrableDomain(host);
     if (domain === null) return null;
     if (isOwnDomain(domain, a.ownDomain)) return null;
-    if (isPlatformDomain(domain)) {
+    if (isPlatformDomain(host)) {
       if (!seenSources.has(domain)) {
         seenSources.add(domain);
         sources.push(domain);
@@ -131,14 +131,25 @@ export function deriveRivals(a: {
     for (const row of serp.organic) {
       const domain = classify(row.domain);
       if (domain === null || countedTop10.has(domain)) continue;
+      // Issue 1417: a domain that holds a place with an article about
+      // others — a "best tools" list — is their publisher there, not their
+      // rival.
+      if (row.url !== undefined && isArticleUrl(row.url)) continue;
       countedTop10.add(domain);
       tally(domain).top10Appearances += 1;
     }
 
     const countedCitations = new Set<string>();
+    // A domain the overview cites only for articles is cited as a
+    // publisher, not recommended as a product (issue 1417).
+    const urls = serp.aiOverview.referenceUrls ?? [];
+    const onlyArticles = (domain: string): boolean => {
+      const own = urls.filter((url) => registrableDomain(url) === domain);
+      return own.length > 0 && own.every(isArticleUrl);
+    };
     for (const host of serp.aiOverview.referenceDomains) {
       const domain = classify(host);
-      if (domain === null || countedCitations.has(domain)) continue;
+      if (domain === null || countedCitations.has(domain) || onlyArticles(domain)) continue;
       countedCitations.add(domain);
       tally(domain).aiCitations += 1;
     }

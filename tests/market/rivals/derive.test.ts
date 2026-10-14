@@ -96,6 +96,34 @@ describe('BUILD §6.6 — "strip the customer\'s own domain … partition agains
     expect(sources).toEqual(["reddit.com", "quora.com"]);
   });
 
+  it("a store page is a listing: the app it lists is not a rival under the store's domain (issue 1417)", () => {
+    const { rivals } = deriveRivals({
+      serps: [serp({ organic: ["play.google.com", "apps.apple.com", "rival.com"] })],
+      ownDomain: "customer.com",
+    });
+    expect(rivals.map((r) => r.domain)).toEqual(["rival.com"]);
+  });
+
+  it("a domain cited or ranking only for an article about others is their publisher, not a rival (issue 1417)", () => {
+    const { rivals } = deriveRivals({
+      serps: [
+        {
+          organic: [
+            { position: 1, domain: "zapier.com", url: "https://zapier.com/blog/best-ai-visibility-tool/" },
+            { position: 2, domain: "otterly.ai", url: "https://otterly.ai/" },
+          ],
+          aiOverview: {
+            present: true,
+            referenceDomains: ["hubspot.com", "otterly.ai"],
+            referenceUrls: ["https://www.hubspot.com/products/marketing/aeo-guide", "https://otterly.ai/pricing"],
+          },
+        },
+      ],
+      ownDomain: "customer.com",
+    });
+    expect(rivals.map((r) => r.domain)).toEqual(["otterly.ai"]);
+  });
+
   it("deriveRivals/sources-are-de-duplicated-in-first-seen-order", () => {
     const { sources } = deriveRivals({
       serps: [

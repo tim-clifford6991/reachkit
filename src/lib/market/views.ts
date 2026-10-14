@@ -44,6 +44,8 @@ export interface MarketSerpOrganic {
 export interface MarketOrganicRow {
   position: number;
   domain: string;
+  /** The address it holds the place with, where the read carried it. */
+  url?: string;
 }
 
 /** The AI Overview of one SERP as the market leaves read it: whether
