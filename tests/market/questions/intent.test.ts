@@ -49,6 +49,21 @@ describe("classifyIntent — the four shapes BUILD §6.7 names, plus the own-bra
     expect(classifyIntent("acmecorp onboarding software", PROFILE)).not.toBe("own_brand");
   });
 
+  it("a product name that is only the category's words does not drop the market (stripe.com's stored profile, issue 1423)", () => {
+    const stripe: Profile = {
+      ...PROFILE,
+      category: "payment processing platform",
+      offeringType: "saas",
+      vocabulary: ["payment gateway", "billing and subscriptions"],
+      brandTokens: ["Stripe", "Payments", "Terminal", "Connect", "Billing", "Radar"],
+    };
+    expect(classifyIntent("payment gateway", stripe)).toBe("informational");
+    expect(classifyIntent("payment processing platform", stripe)).toBe("solution");
+    expect(classifyIntent("subscription billing software", stripe)).toBe("solution");
+    expect(classifyIntent("stripe payments", stripe)).toBe("own_brand");
+    expect(classifyIntent("stripe radar", stripe)).toBe("own_brand");
+  });
+
   it("own-brand outranks the shape: a decision-shaped search naming the customer is still dropped", () => {
     expect(classifyIntent("best acme alternatives", PROFILE)).toBe("own_brand");
   });

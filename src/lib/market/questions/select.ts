@@ -31,6 +31,7 @@ import { neverMeasured, type MeasuredMarket } from "./measured";
 import type { Profile } from "./profile";
 import type { SuggestionRow } from "./market-set";
 import { malformedSearch } from "./well-formed";
+import { isCategoryName } from "@/lib/market/rivals/category-name";
 
 /** A row selection reads: a suggestion, or a ranked keyword pooled beside
  *  them (SPEC §6 thin markets, #778). `rivals` names the tracked rivals that
@@ -142,12 +143,34 @@ function namesAnyOf(keyword: string, phrases: readonly string[], language: Langu
 // ── The four predicates ────────────────────────────────────────────────────
 
 /**
+ * The profile's brand tokens that name the business (SPEC §6, 2026-10-14,
+ * issue 1423). A product name made only of the market's own words — its
+ * category, its vocabulary, its offering type — is also the category's word
+ * ("Payments", "Billing" for a payment processing platform), and dropping
+ * every search that says it drops the market. The same test issue 1369
+ * applies to a rival's name; a token with one word of its own ("Radar",
+ * "Marketing Hub") still names the business.
+ *
+ * The first token is the business's own name (the mail and the writer read
+ * it so) and always stands, and a vocabulary phrase that says it
+ * ("reachkit autopilot") is not a word of the market.
+ */
+export function ownBrandTokens(p: Profile): readonly string[] {
+  const [name, ...products] = p.brandTokens;
+  if (name === undefined) return [];
+  const language = p.language ?? "en";
+  const vocabulary = p.vocabulary.filter((phrase) => !namesAnyOf(phrase, [name], language));
+  const market = { category: p.category, synonyms: [...vocabulary, p.offeringType] };
+  return [name, ...products.filter((token) => !isCategoryName(token, market, language))];
+}
+
+/**
  * Total: every keyword lands in exactly one arm. `own_brand` first — a search
  * carrying the customer's own name measures nothing about discovery and is
  * dropped before its shape is ever read (BUILD §6.7 step 3).
  */
 export function classifyIntent(keyword: string, p: Profile): Intent | "own_brand" {
-  if (namesAnyOf(keyword, p.brandTokens, p.language)) return "own_brand";
+  if (namesAnyOf(keyword, ownBrandTokens(p), p.language)) return "own_brand";
   const text = normalise(keyword);
   for (const [intent, patterns] of INTENT_PATTERNS) {
     if (patterns.some((pattern) => pattern.test(text))) return intent;

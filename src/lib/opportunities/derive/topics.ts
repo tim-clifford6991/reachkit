@@ -26,7 +26,7 @@ import type { Language } from "@/lib/locale/locales";
 import { EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
 import { comparisonsOf, ownSearched, searched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
-import { brandOf, classifyIntent } from "@/lib/market/questions/select";
+import { brandOf, classifyIntent, ownBrandTokens } from "@/lib/market/questions/select";
 import { malformedSearch } from "@/lib/market/questions/well-formed";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
@@ -262,8 +262,7 @@ export function brandsOf(a: {
   report: StoredReport;
   market: MarketConclusion | null;
 }): { own: string[]; rivals: string[] } {
-  const own =
-    a.report.market.kind === "unmeasured" ? [] : [...a.report.market.value.profile.brandTokens];
+  const own = a.report.market.kind === "unmeasured" ? [] : [...ownBrandTokens(a.report.market.value.profile)];
   own.push(brandOf(a.report.domain));
   const rivals: string[] = [];
   for (const rival of a.market?.rivals ?? []) rivals.push(rival.name, brandOf(rival.domain));
