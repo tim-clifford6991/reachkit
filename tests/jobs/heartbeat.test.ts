@@ -116,6 +116,7 @@ describe("#799 — each run records its job's last run and outcome", () => {
       { jobId: "weekly/refresh", intervalMinutes: 60 },
       { jobId: "lead/nurture", intervalMinutes: 60 },
       { jobId: "account/maintenance", intervalMinutes: 15 },
+      { jobId: "scan/rescore", intervalMinutes: 15 },
     ]);
     heartbeat.setHeartbeatStore(null);
   });

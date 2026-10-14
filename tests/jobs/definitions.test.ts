@@ -81,6 +81,9 @@ function engineDouble(): Record<string, unknown> {
     refreshDestinationHealth: record("refreshDestinationHealth", done),
     marketDigestsDue: record("marketDigestsDue", []),
     sendMarketDigest: record("sendMarketDigest", done),
+    // The re-score the master session asks for (issue 1433).
+    claimRescore: record("claimRescore", null),
+    answerRescore: record("answerRescore", done),
   };
 }
 
@@ -129,6 +132,7 @@ describe("each job is a trigger, a bounded loop and one call into the engine", (
     ["weekly/refresh", "cron"],
     ["lead/nurture", "cron"],
     ["account/maintenance", "cron"],
+    ["scan/rescore", "cron"],
   ] as const)("%s is triggered by a %s", async (id, kind) => {
     expect((await definition(id)).trigger.kind).toBe(kind);
   });
@@ -459,6 +463,36 @@ describe("account/maintenance — its due-work queries and hand-offs, no domain 
   });
 });
 
+describe("scan/rescore — a request the master session wrote, answered by the deployed code (issue 1433)", () => {
+  it("ticks every 15 minutes, and a tick with nothing asked is a recorded skip", async () => {
+    const job = await definition("scan/rescore");
+    expect(job.trigger).toEqual({ kind: "cron", cron: "*/15 * * * *" });
+    await expect(job.run({ data: {}, now: EVENING_UTC })).resolves.toEqual({ outcome: "skipped", subjectId: null, reason: "no-subject" });
+    expect(calls.map((c) => c.fn)).toEqual(["claimRescore"]);
+  });
+
+  it("answers the request it claimed, under the tick's clock, as two steps", async () => {
+    const request = { id: "run-1", mode: "apply" };
+    results.set("claimRescore", request);
+    const steps: string[] = [];
+    const job = await definition("scan/rescore");
+    const outcome = await job.run({
+      data: {},
+      now: EVENING_UTC,
+      step: async (name, body) => {
+        steps.push(name);
+        return body();
+      },
+    });
+    expect(outcome).toEqual({ outcome: "ran", subjectId: "run-1" });
+    expect(steps).toEqual(["claim", "answer-run-1"]);
+    expect(calls).toEqual([
+      { fn: "claimRescore", arg: EVENING_UTC },
+      { fn: "answerRescore", arg: { request, now: EVENING_UTC } },
+    ]);
+  });
+});
+
 describe("the fan-out is bounded and never starves the rest of the tick", () => {
   it("runs at most JOB_FAN_OUT_CONCURRENCY subjects at once, and every subject runs", async () => {
     const { fanOut } = await import("@/jobs/fan-out");
@@ -649,7 +683,9 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
       id !== "draft/generate" &&
       id !== "publish/execute" &&
       id !== "publish/retry" &&
-      id !== "scan/run"
+      id !== "scan/run" &&
+      // Issue 1433: built, and it reaches the database (`tests/scan/report/rescore.test.ts`).
+      id !== "scan/rescore"
   );
 
   it("every engine behind the seven is either built or an explicit refusal — none is a stub any more", () => {

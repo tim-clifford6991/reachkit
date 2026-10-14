@@ -4,8 +4,7 @@
 //   node scripts/pass/assemble.mjs <dir> <scanId>
 //   node scripts/pass/assemble.mjs <dir> --out <file> [--chunk <characters>]
 //
-// The second form puts any other export back together the same way —
-// `scripts/rescore/export.sql`'s, for `npm run rescore` (issue 1426) — at a
+// The second form puts any other export back together the same way, at a
 // chunk size the export was fetched in (10,000 by default).
 //
 // `scripts/pass/export.sql` builds one JSON document for a scan. The
