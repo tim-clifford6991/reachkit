@@ -6,7 +6,10 @@
 // the same two ways. Never a position and never sentiment: neither has a
 // member here.
 //
-// Pure: no I/O.
+// Pure: no I/O. *Named* is `namesSite`, the one rule the score's AI
+// presence also reads (issue 1420).
+import { namesSite, says } from "@/lib/measure/drivers";
+
 export interface PromptAnswerReading {
   named: boolean;
   linked: boolean;
@@ -24,17 +27,6 @@ function bare(host: string): string {
 
 function within(host: string, domain: string): boolean {
   return host === domain || host.endsWith(`.${domain}`);
-}
-
-function escape(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-/** The phrase as a whole word, case-insensitive. */
-function says(text: string, phrase: string): boolean {
-  const wanted = phrase.trim();
-  if (wanted.length < 3) return false;
-  return new RegExp(`(?<![\\p{L}\\p{N}])${escape(wanted)}(?![\\p{L}\\p{N}])`, "iu").test(text);
 }
 
 /** An address without its tracking parameters and fragment, so one page
@@ -68,8 +60,7 @@ export function readPromptAnswer(a: {
     if (page !== null && within(bare(new URL(page).hostname), own)) ownUrls.add(page);
   }
   const linked = ownUrls.size > 0 || cited.some((host) => within(host, own));
-  const brand = own.split(".")[0] ?? own;
-  const named = says(a.text, a.siteName) || says(a.text, own) || (brand.length >= 4 && says(a.text, brand));
+  const named = namesSite(a.text, a.siteName, own);
 
   const rivals: string[] = [];
   for (const rival of a.rivals) {

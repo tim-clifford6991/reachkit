@@ -92,7 +92,7 @@ import { freePageOf } from "@/lib/opportunities/free-page";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/locale/locales";
 import { localSearch, statedPlace as statedPlaceOf } from "@/lib/locale/place";
 import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
-import { aiPresenceOf, BOT_PROTECTION, measureDomain, TOO_FEW_READ, type DomainMeasurement } from "@/lib/measure";
+import { aiPresenceOf, BOT_PROTECTION, classifyReferences, measureDomain, TOO_FEW_READ, type DomainMeasurement } from "@/lib/measure";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
@@ -455,6 +455,10 @@ interface Sections {
   pageRetired: RetiredPageQuestion[];
   /** The composed section, rebuilt by `score` beside the AI-answers card. */
   pageQuestions: PageQuestionsSection | null;
+  /** The site's name as an AI answer is read for it (issue 1420,
+   *  `promptSiteName`), from the profile this pass built; `null` until it is
+   *  built, and then the domain's label is read instead. */
+  siteName: string | null;
   rivals: Measured<RivalCandidate[]>;
   /** §6.6's sizing, at the two tiers whose parameters say so. Two halves,
    *  in this order: the rivals the customer chose, sized by
@@ -594,6 +598,7 @@ function freshSections(at: Date): Sections {
     pageBattery: [],
     pageRetired: [],
     pageQuestions: null,
+    siteName: null,
     rivals: unmeasured("not_attempted", at),
     rivalSizes: unmeasured("not_attempted", at),
     rivalRows: null,
@@ -1415,7 +1420,7 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
     try {
       const { buildSiteProfileWithCrawl } = await import("@/lib/site-profile");
       const { readingOf } = await import("@/lib/site-issues");
-      const { crawl } = await buildSiteProfileWithCrawl(cost, {
+      const { profile, crawl } = await buildSiteProfileWithCrawl(cost, {
         domain,
         // `CanonicalDomain` is the branded string itself, and the home
         // address the measurement read is `https://<domain>/` — the same
@@ -1434,6 +1439,7 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
       // SPEC §9: the technical-issue checks run over exactly this crawl —
       // the one run, nothing fetched beyond its set (2026-09-12).
       if (!bounds.abandoned() && !sections.sealed) {
+        if (profile !== null) sections.siteName = promptSiteName(profile.siteName, domain);
         sections.siteCrawl = readingOf(crawl);
         sections.pagesRead = crawl.pages.map((page) => ({
           url: page.url,
@@ -2428,8 +2434,6 @@ async function askTheMarketPrompts(a: StageArgs): Promise<void> {
   if (!parameters.battery || parameters.marketPrompts === 0 || sections.market === null) return;
   // D49: asked in the words buyers search, for the buyer the founder named.
   const prompts = buyerPrompts(spokenMarket(sections.market, sections.founderBuyer), parameters.marketPrompts, localeOfPass(a).language, localeOfPass(a).place);
-  const own = a.domain.toLowerCase().replace(/^www\./, "");
-  const brand = own.split(".")[0] ?? own;
   await Promise.all(
     prompts.map(async (prompt) => {
       if (bounds.stopNow() !== null) return;
@@ -2446,10 +2450,12 @@ async function askTheMarketPrompts(a: StageArgs): Promise<void> {
       if (sections.sealed || failed(got) || got.kind === "unmeasured" || !got.value.answered) return;
       const cited = got.value.citedDomains.map((d) => d.toLowerCase().replace(/^www\./, ""));
       const text = got.value.text;
+      // Issue 1420: the score's own reading of linked and named.
+      const reading = classifyReferences(got.value.citedDomains, a.domain, { urls: got.value.citedUrls ?? [], text, siteName: sections.siteName });
       sections.marketPrompts.push({
         prompt,
         citedDomains: cited,
-        namesSite: cited.includes(own) || (brand.length >= 4 && text.toLowerCase().includes(brand)),
+        namesSite: reading.cited || reading.mentioned,
         excerpt: text.slice(0, EVIDENCE_BOUNDS.excerptChars),
       });
     })
@@ -2955,6 +2961,7 @@ function score(a: Pick<StageArgs, "domain" | "sections" | "parameters" | "correc
     battery: sections.battery,
     rivalSizes: sections.rivalSizes,
     ownDomain: domain,
+    siteName: sections.siteName,
     coverage: a.parameters.asyncAiOverview && !a.correction ? "async_included" : "cached_only",
   });
   sections.rivals = measured(cards.rivals, sections.questions.at);
@@ -2980,6 +2987,7 @@ function score(a: Pick<StageArgs, "domain" | "sections" | "parameters" | "correc
     retired: sections.pageRetired,
     selected: sections.questions.kind === "unmeasured" ? 0 : sections.questions.value.length,
     ownDomain: domain,
+    siteName: sections.siteName,
     measuredAt: sections.questions.at,
   });
 
@@ -3060,7 +3068,7 @@ function composeReport(a: {
           searchPresence: unmeasured("not_attempted", measuredAt),
           aiPresence: unmeasured("not_attempted", measuredAt),
         }
-      : { ...m.drivers, aiPresence: aiPresenceOf({ serps: s.serps, ownDomain: a.domain, at: measuredAt }) };
+      : { ...m.drivers, aiPresence: aiPresenceOf({ serps: s.serps, ownDomain: a.domain, siteName: s.siteName, at: measuredAt }) };
 
   const inputs: Readonly<Record<ScanInput, InputOutcome>> = {
     home_document: outcomeOf(onPage),

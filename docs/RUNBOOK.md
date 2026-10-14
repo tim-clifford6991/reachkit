@@ -549,7 +549,10 @@ reads only what passes stored, asks no model, and refuses the network before it 
 
 What it cannot recompute it leaves as stored and lists: Answerability on every scan (a report keeps
 the home page's facts, not the pages beyond it), search presence where a report of version 8 or
-before kept its ranked count without the rows, and a home read no longer in `fetches`. A profile
+before kept its ranked count without the rows, a home read no longer in `fetches`, a brand an AI
+Overview named only in its text where the report kept no text (every scan before issue 1420), and
+whether an AI Mode or ChatGPT answer named the site where its text is not in `fetches` under that
+scan (issue 1420). A profile
 read off a protection's page needs a model call and is only listed. Week-on-week movement and the
 Overview are read from each week's report, so they follow; a Monday mail already sent is not sent
 again.

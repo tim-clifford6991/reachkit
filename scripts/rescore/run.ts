@@ -21,7 +21,17 @@ import type { Measured } from "@/lib/measure/measured";
 import type { Drivers, ScoreFactorName } from "@/lib/measure/score";
 import type { RivalConclusion } from "@/lib/market/infer/types";
 import { readStoredReport } from "@/lib/scan/report";
-import { rehomeSite, rescoreScan, type RehomedSite, type Rescored, type RescoredMembers, type RescoreReport, type RescoreScan } from "@/lib/scan/rescore";
+import { promptSiteName } from "@/lib/market/prompts/generate";
+import {
+  rehomeSite,
+  rescoreScan,
+  type RehomedSite,
+  type Rescored,
+  type RescoredMembers,
+  type RescoreReport,
+  type RescoreScan,
+  type StoredAnswer,
+} from "@/lib/scan/rescore";
 import type { ScanStatus } from "@/lib/scan/store";
 
 export interface Options {
@@ -44,6 +54,8 @@ interface ExportedScan {
   report: unknown;
   home: { created_at: string; payload: unknown } | null;
   rendered: readonly { created_at: string; payload: unknown }[];
+  /** Absent in an export taken before issue 1420. */
+  answers?: readonly StoredAnswer[];
 }
 
 interface ExportedSite {
@@ -83,6 +95,7 @@ export interface Row {
 export function rescoreExport(doc: Export): { rows: Row[]; unreadable: { id: string; because: string }[] } {
   const rows: Row[] = [];
   const unreadable: { id: string; because: string }[] = [];
+  const names = new Map(doc.profiles.map((profile) => [profile.domain, profile.siteName] as const));
   for (const scan of doc.scans) {
     let report: RescoreReport;
     try {
@@ -101,6 +114,8 @@ export function rescoreExport(doc: Export): { rows: Row[]; unreadable: { id: str
       report,
       home: scan.home,
       rendered: scan.rendered,
+      siteName: names.has(report.domain) ? promptSiteName(names.get(report.domain) ?? null, report.domain) : null,
+      answers: scan.answers ?? [],
     };
     rows.push({ scan, report, result: rescoreScan(input) });
   }

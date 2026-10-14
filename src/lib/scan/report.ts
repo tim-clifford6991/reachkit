@@ -201,6 +201,10 @@ export type AnswerCell =
        *  cell stored before this member, and the two battery engines. An
        *  absent list is not an empty one and decides nothing. */
       ownUrls?: readonly string[];
+      /** The answer names the site (issue 1420): `classifyReferences`'
+       *  mention, read from its text or a cited address on another site.
+       *  Absent where it does not, and on every cell stored before. */
+      named?: true;
     }
   | { kind: "no_answer" }
   | {

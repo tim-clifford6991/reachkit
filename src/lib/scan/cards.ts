@@ -32,6 +32,8 @@ export function cardsOf(a: {
   /** `RivalSize` as far as a band goes: a stored sizing, or its slim export. */
   rivalSizes: Measured<readonly { domain: string; state: string; band?: RivalSizeBand }[]>;
   ownDomain: string;
+  /** The site's name, as `namesSite` reads it; `null` where none is known. */
+  siteName?: string | null;
   coverage: AiAnswersCard["coverage"];
 }): Cards {
   const readSerps: MarketSerp[] = [];
@@ -59,6 +61,7 @@ export function cardsOf(a: {
       serps: a.serps,
       ...(a.battery === undefined ? {} : { battery: a.battery }),
       ownDomain: a.ownDomain,
+      siteName: a.siteName ?? null,
       coverage: a.coverage,
     }),
     coherence: checkCoherence({ serps: readSerps, measuredCount: readSerps.length }),

@@ -322,26 +322,65 @@ function tokensOf(reference: string): readonly string[] {
     .filter((token) => token.length > 0);
 }
 
+function escapeForRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** The phrase as a whole word or phrase, case-insensitive: never inside a
+ *  longer word, which is the guard `tokensOf` gives a reference ("app" is
+ *  not named by "apple"). Shorter than three characters names nothing.
+ *  Exported for the tracked prompts' rivals (`readPromptAnswer`). */
+export function says(text: string, phrase: string): boolean {
+  const wanted = phrase.trim();
+  if (wanted.length < 3) return false;
+  return new RegExp(`(?<![\\p{L}\\p{N}])${escapeForRegExp(wanted)}(?![\\p{L}\\p{N}])`, "iu").test(text);
+}
+
+/** The text names the site (issue 1420; SPEC §6, D19): its name, else its
+ *  domain's first label, or its domain, as a whole word or phrase. `siteName`
+ *  is the name a branded prompt asks about (`promptSiteName`), `null` where
+ *  none is known. One rule for every AI answer the product reads: an AI
+ *  Overview's text and cited addresses, AI Mode's and ChatGPT's answers, and
+ *  the tracked prompts. */
+export function namesSite(text: string, siteName: string | null, ownDomain: string): boolean {
+  const own = hostOf(ownDomain);
+  const label = own.split(".")[0] ?? own;
+  return says(text, siteName ?? label) || says(text, own) || (label.length >= 4 && says(text, label));
+}
+
+/** What an answer said beside its reference hosts, where it was kept: the
+ *  addresses it cited and its text. */
+export interface AnswerSaid {
+  urls?: readonly string[];
+  text?: string;
+  siteName?: string | null;
+}
+
 /** BUILD §6.3: "Brand mentions/citations = string match over references."
- *  Two disjoint readings of one reference list, so the two weighted rates
- *  measure two different things: a *citation* is a reference whose host is
- *  the customer's domain or a subdomain of it — the answer points at the
- *  site; a *mention* is a reference somewhere else that carries the
- *  customer's brand token whole — the domain's first label ("reachkit"
- *  from "reachkit.app") — so the answer names the brand through a third
- *  party (a marketplace listing, a profile page, a review). One reference
- *  is only ever one of the two: the `else` is what keeps the two rates
- *  measuring different things rather than double-counting the same row.
+ *  A *citation* is a reference whose host is the customer's domain or a
+ *  subdomain of it — the answer points at the site. A *mention* is the
+ *  answer naming the brand anywhere else (issue 1420): a reference host
+ *  that carries the brand token whole, a cited address on another site
+ *  whose path names it (`g2.com/products/rippling`), or the answer's own
+ *  text naming it (`namesSite`). Before issue 1420 only the first counted,
+ *  so a brand an answer recommended through review sites was never named.
+ *  The two can both hold for one answer; a reference host is only ever one
+ *  of the two.
  *
  *  **Exported for the AI answers tab** (SPEC §6, 2026-09-20, #918), which
  *  draws *named* and *linked* as two marks and has to split them the way
  *  the score already splits them. One implementation, so a cell on that
- *  screen and the citation rate inside `aiPresenceOf` can never come to
- *  disagree about what being named means. It is pure and takes no clock,
- *  so the screen reads stored references with it and measures nothing. */
-export function classifyReferences(references: readonly string[], ownDomain: string): { cited: boolean; mentioned: boolean } {
+ *  screen and the rates inside `aiPresenceOf` can never come to disagree
+ *  about what being named means. It is pure and takes no clock, so the
+ *  screen reads stored references with it and measures nothing. */
+export function classifyReferences(
+  references: readonly string[],
+  ownDomain: string,
+  said: AnswerSaid = {}
+): { cited: boolean; mentioned: boolean } {
   const own = hostOf(ownDomain);
   const brandToken = own.split(".")[0] ?? own;
+  const siteName = said.siteName ?? null;
   let cited = false;
   let mentioned = false;
   for (const reference of references) {
@@ -352,11 +391,20 @@ export function classifyReferences(references: readonly string[], ownDomain: str
       mentioned = true;
     }
   }
+  for (const url of said.urls ?? []) {
+    const host = hostOf(url);
+    if (host === own || host.endsWith(`.${own}`)) cited = true;
+    else if (namesSite(url, siteName, own)) mentioned = true;
+  }
+  if (said.text !== undefined && namesSite(said.text, siteName, own)) mentioned = true;
   return { cited, mentioned };
 }
 
-/** What AIPresence reads of one SERP: its AI Overview's references. */
-type AiOverviewRead = { aiOverview: Pick<SerpAiOverview, "present" | "unread" | "referenceDomains"> };
+/** What AIPresence reads of one SERP: its AI Overview's references, and its
+ *  addresses and text where they were kept. */
+type AiOverviewRead = {
+  aiOverview: Pick<SerpAiOverview, "present" | "unread" | "referenceDomains" | "referenceUrls" | "text">;
+};
 
 /** BUILD §5's AIPresence. The rates are over the SERPs whose AI-overview
  *  item was *measured* — never over the SERPs asked for, because a SERP we
@@ -376,6 +424,8 @@ type AiOverviewRead = { aiOverview: Pick<SerpAiOverview, "present" | "unread" | 
 export function aiPresenceOf(a: {
   serps: readonly Measured<AiOverviewRead>[];
   ownDomain: string;
+  /** The site's name, as `namesSite` reads it; `null` where none is known. */
+  siteName?: string | null;
   at: Date;
 }): Measured<number> {
   const read: AiOverviewRead[] = [];
@@ -393,7 +443,12 @@ export function aiPresenceOf(a: {
   let citations = 0;
   for (const serp of read) {
     if (!serp.aiOverview.present) continue;
-    const { cited, mentioned } = classifyReferences(serp.aiOverview.referenceDomains, a.ownDomain);
+    const { referenceDomains, referenceUrls, text } = serp.aiOverview;
+    const { cited, mentioned } = classifyReferences(referenceDomains, a.ownDomain, {
+      ...(referenceUrls === undefined ? {} : { urls: referenceUrls }),
+      ...(text === undefined ? {} : { text }),
+      siteName: a.siteName ?? null,
+    });
     if (mentioned) mentions++;
     if (cited) citations++;
   }

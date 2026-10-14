@@ -202,13 +202,15 @@ export function pageQuestionsSectionOf(a: {
    *  `tracked` is the whole set and not this half of it. */
   selected: number;
   ownDomain: string;
+  /** The site's name, as `namesSite` reads it; `null` where none is known. */
+  siteName?: string | null;
   measuredAt: Date;
 }): PageQuestionsSection | null {
   if (a.asked.length === 0 && a.retired.length === 0) return null;
 
   const ownDomain = registrableDomain(a.ownDomain) ?? a.ownDomain;
   const rows = a.asked.map((candidate, index): PageQuestionRow => {
-    const cell = overviewCellFor(a.serps[index], ownDomain);
+    const cell = overviewCellFor(a.serps[index], ownDomain, a.siteName ?? null);
     return {
       publicationId: candidate.publicationId,
       liveUrl: candidate.liveUrl,
@@ -222,6 +224,7 @@ export function pageQuestionsSectionOf(a: {
         overview: cell,
         ...(a.battery[index] === undefined ? {} : { battery: a.battery[index] as BatteryAnswers }),
         ownDomain,
+        siteName: a.siteName ?? null,
       }),
     };
   });

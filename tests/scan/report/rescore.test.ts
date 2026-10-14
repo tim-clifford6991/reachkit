@@ -3,7 +3,7 @@
 // refuses every call, so a step that tried one would throw here.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { rehomeSite } from "../../../src/lib/scan/rescore";
+import { KEPT_NO_OVERVIEW_TEXT, rehomeSite } from "../../../src/lib/scan/rescore";
 import type { RivalConclusion } from "../../../src/lib/market/infer/types";
 import { rescoreExport, scanStatement, type Row } from "../../../scripts/rescore/run";
 
@@ -114,5 +114,28 @@ describe("zapier.com's scan of 6 October (issue 1419): AI presence set by the on
     expect(row.result.after.verdict.scoreAndBand.kind).toBe("unmeasured");
     expect(row.result.score).toBeNull();
     expect(row.result.status).toBe("degraded");
+  });
+});
+
+describe("issue 1420: a mention is read again from whatever answer text was stored", () => {
+  const doc = exported("zapier.com");
+  const scan = doc.scans.find((s) => s.score !== null)!;
+
+  it("lists a scan whose AI Overviews were stored without their text", () => {
+    const row = rescoreExport({ ...doc, scans: [scan] }).rows[0]!;
+    expect(row.result.kept).toContain(KEPT_NO_OVERVIEW_TEXT);
+  });
+
+  it("marks an AI Mode answer named where its stored text names the site, and writes only that cell", () => {
+    const report = structuredClone(scan.report) as { aiAnswers: { rows: { question: { search: string }; engines: unknown[] }[] } };
+    const first = report.aiAnswers.rows[0]!;
+    first.engines = [...first.engines, { engine: "ai_mode", cell: { kind: "answered", citedDomains: ["g2.com"], namesCustomer: false } }];
+    const answers = [
+      { source: "serp/google/ai_mode", key: `${first.question.search}|United States|en|site:x`, text: "Zapier and Make are the usual picks.", citedUrls: [] },
+    ];
+    const row = rescoreExport({ ...doc, scans: [{ ...scan, report, answers }] }).rows[0]!;
+    const cell = row.result.after.aiAnswers!.rows[0]!.engines[1]!.cell;
+    expect(cell).toEqual({ kind: "answered", citedDomains: ["g2.com"], namesCustomer: false, named: true });
+    expect(row.result.changes.map((c) => c.path.join("."))).toContain("aiAnswers.rows.0.engines.1.cell");
   });
 });

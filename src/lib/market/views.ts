@@ -57,6 +57,8 @@ export interface MarketAiOverview {
   referenceDomains: readonly string[];
   /** The addresses it cited, where the response carried them (issue 1147). */
   referenceUrls?: readonly string[];
+  /** Its answer's text, where it was kept (issue 1420). */
+  text?: string;
   /** The overview's sources were not loaded by this read (issue 1357), so
    *  nothing is known about whom it names. Every leaf here reads it as not
    *  measured. */
@@ -77,6 +79,10 @@ export interface MarketAiOverview {
 export interface MarketAiAnswer {
   answered: boolean;
   citedDomains: readonly string[];
+  /** What it cited and said, where they were read (issue 1420): what a
+   *  brand named without a link is read from. */
+  citedUrls?: readonly string[];
+  text?: string;
 }
 
 /** A bought SERP, as the rival derivation and the two cards read it. */

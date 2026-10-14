@@ -4,7 +4,8 @@
 --
 -- It carries each stored scan's report narrowed to what the re-score reads
 -- (`RescoreReport` in `src/lib/scan/rescore.ts`), the `scans` columns it
--- rewrites, the home read its on-page facts came from, each site's stored
+-- rewrites, the home read its on-page facts came from, the AI Mode and
+-- ChatGPT answers a site's current scan bought, each site's stored
 -- rival set, and each site profile's name. Nothing it leaves out is needed,
 -- and nothing is re-bought.
 --
@@ -120,7 +121,8 @@ scan_rows as (
                         'present', e->'value'->'aiOverview'->'present',
                         'unread', e->'value'->'aiOverview'->'unread',
                         'referenceDomains', e->'value'->'aiOverview'->'referenceDomains',
-                        'referenceUrls', e->'value'->'aiOverview'->'referenceUrls'))) end)) order by i), '[]'::jsonb)
+                        'referenceUrls', e->'value'->'aiOverview'->'referenceUrls',
+                        'text', e->'value'->'aiOverview'->'text'))) end)) order by i), '[]'::jsonb)
                   from jsonb_array_elements(coalesce(s.report->'serps', '[]'::jsonb)) with ordinality x(e, i)),
         'rivalSizes', jsonb_strip_nulls(jsonb_build_object('kind', s.report->'rivalSizes'->'kind', 'reason', s.report->'rivalSizes'->'reason', 'at', s.report->'rivalSizes'->'at',
                     'value', (select jsonb_agg(jsonb_strip_nulls(jsonb_build_object('domain', z->'domain', 'state', z->'state', 'band', z->'band')))
@@ -146,7 +148,17 @@ scan_rows as (
                  and h.read_at::timestamptz <= (s.report->'onPage'->>'at')::timestamptz
                order by h.read_at::timestamptz desc limit 1),
       'rendered', (select coalesce(jsonb_agg(jsonb_build_object('created_at', g.created_at, 'payload', jsonb_build_array(g.doc))), '[]'::jsonb)
-                   from slim g where g.source = 'on_page/instant_pages' and g.cache_key = 'https://' || s.domain || '/')
+                   from slim g where g.source = 'on_page/instant_pages' and g.cache_key = 'https://' || s.domain || '/'),
+      -- The AI Mode and ChatGPT answers this scan bought (issue 1420): whether
+      -- an engine cell names the site is read again from their text, cut as
+      -- `AI_OVERVIEW_TEXT_MAX_CHARS` cuts an AI Overview's. Only a site's
+      -- current scan carries its engine cells, so only it carries these.
+      'answers', (select coalesce(jsonb_agg(jsonb_build_object('source', f.source, 'key', f.cache_key,
+                    'text', left(f.payload->0->>'text', 4000), 'citedUrls', f.payload->0->'citedUrls') order by f.created_at), '[]'::jsonb)
+                  from fetches f
+                  where s.site_id is not null and s.is_current and f.scan_id = s.id
+                    and f.source in ('serp/google/ai_mode', 'ai_optimization/chat_gpt/llm_scraper')
+                    and jsonb_typeof(f.payload) = 'array')
     ) as j
   from picked s
 ),
