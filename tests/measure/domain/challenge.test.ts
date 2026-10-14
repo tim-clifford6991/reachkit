@@ -1,8 +1,9 @@
 // SPEC §2 (issue 1379) — a bot-protection page is told from the site's own.
 //
 // The pages are real: what each site answered the `reachkit-measure` reader
-// on 2026-10-10, with the reader's address replaced. The long ones are cut
-// to the part the detector reads.
+// on 2026-10-10 (gusto.com and freshworks.com: their stored `fetches` rows),
+// with the reader's address replaced. The long ones are cut to the part the
+// detector reads.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -23,6 +24,10 @@ describe("challengeOf", () => {
       "cloudflare-managed.glassdoor.com.html",
       "Cloudflare",
     ],
+    // Issue 1418: stored before issue 1379, so no headers were kept. Both
+    // were scored 0, Invisible, off the page's `noindex`.
+    ["Cloudflare's managed challenge, stored without headers (gusto.com, 2026-10-08)", 403, {}, "cloudflare-challenge.gusto.com.html", "Cloudflare"],
+    ["Cloudflare's managed challenge, stored without headers (freshworks.com, 2026-10-09)", 403, {}, "cloudflare-challenge.freshworks.com.html", "Cloudflare"],
   ] as const)("reads %s as the protection's page", (_what, status, headers, file, vendor) => {
     expect(challengeOf({ status, headers, html: page(file) })).toBe(vendor);
   });
