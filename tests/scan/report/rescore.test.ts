@@ -2,23 +2,10 @@
 // current code from what was stored, with no network: `tests/setup.ts`
 // refuses every call, so a step that tried one would throw here.
 import { readFileSync } from "node:fs";
-import { describe, expect, it, vi } from "vitest";
-import { unmeasured } from "../../../src/lib/measure/measured";
+import { describe, expect, it } from "vitest";
 import { rehomeSite } from "../../../src/lib/scan/rescore";
 import type { RivalConclusion } from "../../../src/lib/market/infer/types";
 import { rescoreExport, scanStatement, type Row } from "../../../scripts/rescore/run";
-
-// #1419's rule, before it is on main: a stored scan whose AI Overviews were
-// too few to be a rate. Off unless a test turns it on.
-const rule = vi.hoisted(() => ({ tooFewReads: false }));
-vi.mock("../../../src/lib/measure/drivers", async (actual) => {
-  const real = await actual<typeof import("../../../src/lib/measure/drivers")>();
-  return {
-    ...real,
-    aiPresenceOf: (a: Parameters<typeof real.aiPresenceOf>[0]) =>
-      rule.tooFewReads ? unmeasured("undeterminable", a.at) : real.aiPresenceOf(a),
-  };
-});
 
 const read = (path: string): unknown => JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
 
@@ -116,23 +103,16 @@ describe("gusto.com's scan of 8 October (issue 1418): measured off Cloudflare's 
 
 describe("zapier.com's scan of 6 October (issue 1419): AI presence set by the one Google result read", () => {
   const doc = exported("zapier.com");
+  const row = rescoreExport(doc).rows.find((r) => r.scan.score !== null)!;
 
-  it("keeps its 27 under the rule on main, and changes nothing", () => {
-    const row = rescoreExport(doc).rows.find((r) => r.scan.score !== null)!;
+  it("stored 27, hard to find", () => {
     expect(row.scan.score).toBe(27);
-    expect(row.result.score).toBe(row.scan.score);
   });
 
-  it("under a rule that reads too few AI Overviews as no rate, shows no number, as a new scan would", () => {
-    rule.tooFewReads = true;
-    try {
-      const row = rescoreExport(doc).rows.find((r) => r.scan.score !== null)!;
-      expect(row.result.after.verdict.factors.presence.kind).toBe("unmeasured");
-      expect(row.result.after.verdict.scoreAndBand.kind).toBe("unmeasured");
-      expect(row.result.score).toBeNull();
-      expect(row.result.status).toBe("degraded");
-    } finally {
-      rule.tooFewReads = false;
-    }
+  it("now shows what a new scan would: AI presence is no rate over one read result, so no number", () => {
+    expect(row.result.after.verdict.factors.presence.kind).toBe("unmeasured");
+    expect(row.result.after.verdict.scoreAndBand.kind).toBe("unmeasured");
+    expect(row.result.score).toBeNull();
+    expect(row.result.status).toBe("degraded");
   });
 });
