@@ -73,6 +73,7 @@ function livePage(faq: { question: string; answer: string }[]): unknown {
     bodyMd: "One paragraph.\n\n## A heading\n\nAnother paragraph.",
     description: "Which onboarding tools small teams pick, and why.",
     faq,
+    made: null,
     grounded: {
       passage: "One paragraph.",
       url: "https://example.org/source",

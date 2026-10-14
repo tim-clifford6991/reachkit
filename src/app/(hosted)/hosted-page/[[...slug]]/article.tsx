@@ -40,6 +40,7 @@ import { Surface } from "@/ui/layout";
 import { resolveHost } from "../../resolve-host";
 import { AboutCard, HostedFooter, HostedHeader, INDEX_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
 import { bylineLine } from "@/lib/publish/render/byline";
+import { isSourcesHeading, madeLine } from "@/lib/publish/render/made";
 import { writeDate } from "./present";
 import { articleMetadata, blogPostingSchema, breadcrumbSchema, jsonLd } from "./seo";
 
@@ -253,6 +254,13 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
   const body = toHtml(blocks, HOSTED_BODY_CLASSES);
   const contents = contentsOf(headings);
   const sourceLine = sourceLineFor(page);
+  // SPEC §7 (2026-10-11, issue 1397): how the page was made, and the way to
+  // its own sources list where the body ends with one.
+  const sources = headings.find((heading) => isSourcesHeading(heading.text, copy));
+  const madeText = page.made === null ? null : madeLine({ counts: page.made, site: business.domain, say: copy });
+  // The space before the link is text, so the two sentences are two to a
+  // reader that takes the page's words without its styles.
+  const made = madeText === null || sources === undefined ? madeText : `${madeText} `;
   // Related guides: the site's own live pages on this host, minted by
   // `guidesBlock` (SPEC §7, 2026-09-20: "chosen in code, never by the
   // model") and drawn by the one serialiser, as cards.
@@ -317,6 +325,16 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
               {copy("hosted.readingTime", { minutes: String(readingMinutes(page.bodyMd)) })}
             </span>
           </p>
+          {made === null ? null : (
+            <p className="text-base-content/70 mt-2 text-sm wrap-anywhere">
+              {made}
+              {sources === undefined ? null : (
+                <a href={`#${sources.id}`} className="link">
+                  {copy("hosted.made.sources")}
+                </a>
+              )}
+            </p>
+          )}
 
           <hr className="border-base-300 my-6" />
 

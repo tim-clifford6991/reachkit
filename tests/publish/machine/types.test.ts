@@ -189,8 +189,10 @@ describe("the leaf imports nothing from src/lib/publish", () => {
   // the leaf: `health/` builds one and `index.ts` returns one, so
   // declaring it in either would put a cycle back where ADR-092 took one
   // out. Neither module imports anything from here, so neither adds one.
-  it("its imports are Measured<T> and CopyKey, and nothing else", () => {
-    expect(specifiers).toEqual(["@/lib/measure/measured", "@/lib/presentation/copy"]);
+  // `Language` joined with issue 1397: a page is handed the language its
+  // fixed lines are said in. `locale/locales.ts` imports nothing at all.
+  it("its imports are Measured<T>, CopyKey and Language, and nothing else", () => {
+    expect(specifiers).toEqual(["@/lib/measure/measured", "@/lib/presentation/copy", "@/lib/locale/locales"]);
   });
 
   it("no specifier resolves inside src/lib/publish — the leaf property, kept by test", () => {

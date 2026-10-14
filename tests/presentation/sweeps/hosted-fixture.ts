@@ -54,6 +54,8 @@ export const HOSTED_SWEEP_PAGE: HostedPage = Object.freeze({
     url: "https://example.org/onboarding-tools-compared",
     readAt: new Date("2026-08-28T00:00:00.000Z"),
   }),
+  // Issue 1397: the note under the byline, with its two numbers.
+  made: Object.freeze({ facts: 6, rules: 19 }),
   // The publisher S19 draws: a name, a category eyebrow and the zone the
   // byline's date is written in. A stated zone rather than `null`, because
   // that is the arm the customer's own page is served in.
