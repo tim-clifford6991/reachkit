@@ -151,7 +151,6 @@
 // never as a spinner.
 import { measuredLocale, type Locale } from "@/lib/locale/locales";
 import { AI_READER_AGENTS } from "@/lib/config/constants";
-import { dbAdmin } from "@/lib/db";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { SiteIssuesSection } from "@/lib/site-issues/types";
 import type { CoherenceVerdict } from "@/lib/market/coherence/check";
@@ -560,6 +559,14 @@ export interface StoredReport {
    *  pages. The report says so in one line. Absent where the market was
    *  read from the site's pages, which every report before it was. */
   marketFrom?: "search";
+  /** Where `npm run rescore` rewrote this report with the current code (owner,
+   *  2026-10-14, issue 1426): when, at which commit, and the report and the
+   *  `scans` columns (score, status, drivers) as they were first stored, so
+   *  the rewrite can be undone. No surface reads them. */
+  rescoredAt?: Date;
+  rescoredBy?: string;
+  previous?: unknown;
+  previousColumns?: unknown;
 }
 
 export interface ReportLocale extends Locale {
@@ -999,7 +1006,10 @@ interface MinimalClient {
   from<T>(table: string): MinimalQueryBuilder<T>;
 }
 
-function untyped(client: ReturnType<typeof dbAdmin>): MinimalClient {
+// The database is imported where a read asks for it (issue 1426), so
+// `readStoredReport` loads without the database's bindings: the re-score
+// reads an export on a box that has none.
+function untyped(client: unknown): MinimalClient {
   return client as unknown as MinimalClient;
 }
 
@@ -1017,6 +1027,7 @@ interface CurrentReportRow {
  * there is one report and everyone sees all of it.
  */
 export async function readCurrentReport(domain: string): Promise<StoredReport | null> {
+  const { dbAdmin } = await import("@/lib/db");
   const { data, error } = await untyped(dbAdmin())
     .from<CurrentReportRow>("scans")
     .select("report")
@@ -1037,6 +1048,7 @@ export async function readCurrentReport(domain: string): Promise<StoredReport | 
  *  Not the domain's current report: a later pass for the same domain
  *  would otherwise hand this one a report it did not measure. */
 export async function readScanReport(scanId: string): Promise<StoredReport | null> {
+  const { dbAdmin } = await import("@/lib/db");
   const { data, error } = await untyped(dbAdmin())
     .from<CurrentReportRow>("scans")
     .select("report")

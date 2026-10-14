@@ -106,7 +106,7 @@ function storedQuestionOf(question: Question, n: number): StoredQuestion {
  *  not, so the row's "cited on n of m" count is a filter over the row
  *  itself and never a second measurement. `namesCustomer` is the
  *  customer's fact and stays `false` on every rival row. */
-function rivalCellsOf(cells: readonly AnswerCell[], rivalDomain: string): readonly AnswerCell[] {
+export function rivalCellsOf(cells: readonly AnswerCell[], rivalDomain: string): readonly AnswerCell[] {
   const rival = registrableDomain(rivalDomain);
   return cells.map((cell): AnswerCell => {
     if (cell.kind !== "answered") return cell;

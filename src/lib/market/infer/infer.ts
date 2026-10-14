@@ -18,12 +18,13 @@ import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { isPlaceholder } from "@/lib/measure/placeholder";
-import { isListingAddress, isOwnDomain, isPlatformDomain, nameLetters, registrableDomain } from "@/lib/market/rivals/domains";
+import { isListingAddress, isOwnDomain, isPlatformDomain } from "@/lib/market/rivals/domains";
 import { localSearch, placeOf } from "@/lib/locale/place";
 import { servingEvidence } from "@/lib/locale/serving";
 import { BUSINESS_KINDS, BUSINESS_KIND_NAMES, type BusinessKind } from "@/lib/market/kinds";
 import { nameNeedsQualifier } from "./demand";
 import { boundEvidence, evidenceDomains, type MarketEvidence } from "./evidence";
+import { rivalHome } from "./rival-home";
 import { RIVALS_MAX, type MarketConclusion, type RivalBasis, type RivalConclusion } from "./types";
 
 function bounded(min: number, max: number) {
@@ -164,7 +165,7 @@ export function concludeRivals(
     // kept at its own site where this pass read one, and is dropped where
     // it did not — never stored under the listing's domain.
     const listed = isPlatformDomain(candidate.domain) || isListingAddress(candidate.domain);
-    const domain = listed ? ownSiteOf(candidate.name, evidence) : registrableDomain(candidate.domain);
+    const domain = rivalHome(candidate, evidence);
     if (listed) console.log(JSON.stringify({ event: "rival_on_a_listing", name: candidate.name, listing: candidate.domain, kept: domain }));
     if (domain === null || taken.has(domain)) continue;
     if (isOwnDomain(domain, evidence.domain) || isPlatformDomain(domain)) continue;
@@ -204,35 +205,6 @@ export function concludeRivals(
     });
   }
   return rivals;
-}
-
-/**
- * A product's own site, where what this pass read gives one (issue 1417):
- * the address an answer links its name to, else a domain the answers cite
- * or the top tens hold whose name is its name. The one given most often,
- * the first given on a tie; never a listing, a platform or the site itself.
- * `null` where nothing read gives one.
- */
-export function ownSiteOf(name: string, evidence: MarketEvidence): string | null {
-  const wanted = nameLetters(name);
-  if (wanted.length < 3) return null;
-  const tally = new Map<string, number>();
-  const count = (hostOrUrl: string): void => {
-    const domain = registrableDomain(hostOrUrl);
-    if (domain === null || isPlatformDomain(hostOrUrl) || isListingAddress(hostOrUrl) || isOwnDomain(domain, evidence.domain)) return;
-    tally.set(domain, (tally.get(domain) ?? 0) + 1);
-  };
-  for (const answer of evidence.answers) {
-    for (const [, text, url] of (answer.excerpt ?? "").matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)) {
-      if (text !== undefined && url !== undefined && nameLetters(text) === wanted) count(url);
-    }
-  }
-  if (tally.size === 0) {
-    for (const domain of evidenceDomains(evidence)) if (nameLetters(domain.split(".")[0] ?? "") === wanted) count(domain);
-  }
-  let best: string | null = null;
-  for (const [domain, times] of tally) if (best === null || times > (tally.get(best) ?? 0)) best = domain;
-  return best;
 }
 
 /** The market from one checked answer, every string trimmed. */

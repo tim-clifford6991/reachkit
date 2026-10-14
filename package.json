@@ -25,6 +25,7 @@
     "panel": "node scripts/panel.mjs",
     "costs": "node scripts/costs.mjs",
     "retarget": "node scripts/retarget.mjs",
+    "rescore": "node scripts/rescore.mjs",
     "eval:content": "node scripts/eval-content.mjs"
   },
   "dependencies": {
