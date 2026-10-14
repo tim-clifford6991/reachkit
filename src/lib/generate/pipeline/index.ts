@@ -56,7 +56,7 @@ import { answerBoxWords } from "../rules/blocks";
 import { proseNotes } from "../rules/prose";
 import { linksOf, renderOf } from "../rules/text";
 import { pickTitle, specificOnly, titleNotes, type TitleCandidate } from "../rules/title";
-import type { GroundedFact, HardRule, RuleFailure, SiteRuleInputs } from "../rules/types";
+import { HARD_RULES, type GroundedFact, type HardRule, type RuleFailure, type SiteRuleInputs } from "../rules/types";
 import { generateStore, type DraftRow } from "../store";
 import { TEMPLATES, type PackNeed } from "../templates";
 import { profileItemsUsed } from "../voice/profile-block";
@@ -340,6 +340,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       })),
       // Issue 1135: the market facts the page was handed.
       marketFacts: pack.claims.map((claim) => ({ passage: claim.passage, url: claim.url, title: claim.title, readAt: claim.readAt })),
+      // Issue 1397: how many rules stage 4 holds this page to, as the list
+      // stood when it was written. The published page states the number.
+      rulesChecked: HARD_RULES.length,
       // Issue 1391: the pages code chose for this page to link, each with
       // why — what the draft screen's *Links on this page* reads.
       links: a.links.map((link) => ({ url: link.url, label: link.label, source: link.source, why: link.why ?? null })),

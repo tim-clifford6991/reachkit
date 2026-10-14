@@ -448,6 +448,15 @@ describe("issue #158 — the body leaves as HTML, at one point, through the one 
     expect(created.content.startsWith("<p>published 3 Oct 2026 · by Ada &lt;Lovelace&gt; · Founder</p>\n<h1>")).toBe(true);
   });
 
+  it("a page handed its site carries the note on how it was made, after the byline (issue 1397)", async () => {
+    const meta = { factsUsed: [{ passage: "Fired at cone 6", url: "https://kilns.example/firing" }, { passage: "Ships in a week", url: "https://kilns.example/shipping" }], rulesChecked: 19 };
+    await WORDPRESS_ADAPTER.deliver({ ...PAGE, meta, byline: "Ada", site: { domain: "kilns.example", language: "en" } }, CFG, "draft-1");
+    const created = postWrites()[0]!.body as { content: string };
+    expect(created.content).toMatch(
+      /^<p>published [^<]+ · by Ada<\/p>\n<p>Written with AI from 2 facts on kilns\.example, checked against 19 rules before publishing\.<\/p>\n<h1>/
+    );
+  });
+
   it("**no raw HTML reaches the customer's site**: markup in a body is escaped, never passed through", async () => {
     const nasty = {
       ...PAGE,
