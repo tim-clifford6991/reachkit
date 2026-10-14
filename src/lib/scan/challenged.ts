@@ -29,7 +29,6 @@
 //
 // Under-report, never over-report: a read the ledger cannot answer leaves
 // the report as it is stored.
-import { dbAdmin } from "@/lib/db";
 import { BOT_PROTECTION, challengeOf, couldBeChallenge } from "@/lib/measure/challenge";
 import { unmeasured } from "@/lib/measure/measured";
 import { isStoredDocument, OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, renderedDocumentOf } from "@/lib/measure/own-fetch";
@@ -66,8 +65,10 @@ interface MinimalClient {
 }
 
 /** `fetches` is outside the generated `Database` type — the same narrow
- *  cast `src/lib/measure/text.ts` carries. */
-function untyped(): MinimalClient {
+ *  cast `src/lib/measure/text.ts` carries. Imported when a read asks for it
+ *  (issue 1426): the pure halves below load without the database. */
+async function untyped(): Promise<MinimalClient> {
+  const { dbAdmin } = await import("@/lib/db");
   return dbAdmin() as unknown as MinimalClient;
 }
 
@@ -99,8 +100,9 @@ export async function challengedHomes(asked: readonly { domain: string; at: Date
   const challenged = new Set<string>();
   if (asked.length === 0) return challenged;
   try {
+    const db = await untyped();
     const light = await rowsOf(
-      untyped()
+      db
         .from<LightRow>("fetches")
         .select(
           "id, cache_key, created_at, status:payload->status, bytes:payload->bytes, headers:payload->headers, readAt:payload->>readAt"
@@ -130,7 +132,7 @@ export async function challengedHomes(asked: readonly { domain: string; at: Date
     if (candidates.size === 0) return challenged;
 
     const documents = await rowsOf(
-      untyped().from<PayloadRow>("fetches").select("id, cache_key, created_at, payload").in("id", [...candidates.keys()])
+      db.from<PayloadRow>("fetches").select("id, cache_key, created_at, payload").in("id", [...candidates.keys()])
     );
     const protectedHomes = new Map<string, { domain: string; ledgeredAt: number }>();
     for (const row of documents) {
@@ -141,20 +143,14 @@ export async function challengedHomes(asked: readonly { domain: string; at: Date
     if (protectedHomes.size === 0) return challenged;
 
     const rendered = await rowsOf(
-      untyped()
+      db
         .from<PayloadRow>("fetches")
         .select("id, cache_key, created_at, payload")
         .eq("source", RENDERED_FETCH_SOURCE)
         .in("cache_key", [...protectedHomes.keys()])
     );
     for (const [url, home] of protectedHomes) {
-      const drawn = rendered.some(
-        (row) =>
-          row.cache_key === url &&
-          new Date(row.created_at).getTime() >= home.ledgeredAt &&
-          renderedDocumentOf(row.payload) !== null
-      );
-      if (!drawn) challenged.add(home.domain);
+      if (!drawnSince(rendered.filter((row) => row.cache_key === url), home.ledgeredAt)) challenged.add(home.domain);
     }
     return challenged;
   } catch (error: unknown) {
@@ -168,6 +164,30 @@ export async function challengedHomes(asked: readonly { domain: string; at: Date
   }
 }
 
+/** Whether a rendered read of the home page, ledgered at or after the plain
+ *  read, drew the site itself: then the site was measured, not its
+ *  protection. */
+function drawnSince(rendered: readonly { created_at: string; payload: unknown }[], ledgeredAt: number): boolean {
+  return rendered.some((row) => new Date(row.created_at).getTime() >= ledgeredAt && renderedDocumentOf(row.payload) !== null);
+}
+
+/**
+ * `challengedHomes`' answer for one stored home read, from rows already in
+ * hand (issue 1426): the re-score reads them from an export, not the
+ * database. True where the read was a protection's page and no rendered read
+ * since drew the site.
+ */
+export function readAsProtection(a: {
+  home: { created_at: string; payload: unknown } | null;
+  rendered: readonly { created_at: string; payload: unknown }[];
+}): boolean {
+  if (a.home === null || !isStoredDocument(a.home.payload)) return false;
+  const doc = a.home.payload;
+  if (!couldBeChallenge({ status: doc.status, bytes: doc.bytes, headers: headersOf(doc.headers) })) return false;
+  if (challengeOf(doc) === null) return false;
+  return !drawnSince(a.rendered, new Date(a.home.created_at).getTime());
+}
+
 /**
  * A stored report as the pass would store it where bot protection kept the
  * reader off the site: Foundations and Answerability unmeasured, so no
@@ -175,7 +195,9 @@ export async function challengedHomes(asked: readonly { domain: string; at: Date
  * which is what lets a new scan measure again inside the re-scan window
  * and offers the visitor that scan.
  */
-export function unreadByProtection(report: StoredReport): StoredReport {
+export function unreadByProtection<R extends Pick<StoredReport, "verdict" | "robots" | "blockedAgents" | "onPage" | "complete" | "siteIssues">>(
+  report: R
+): R {
   const at = report.verdict.measuredAt;
   const factors: ScoreFactors = {
     ...report.verdict.factors,

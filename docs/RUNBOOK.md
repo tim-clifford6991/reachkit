@@ -522,6 +522,44 @@ It rebuilds this worktree's local database (`scripts/db-substrate/`), so do not 
 `vitest --project db` or the layout sweep in the same worktree. `RK_PASS_VERBOSE=1` prints the
 pass's own log lines.
 
+### Re-scoring every stored scan
+
+After **every deploy that changes scoring, rivals or markets**, the master session re-scores the
+stored scans (owner, 2026-10-14, issue 1426; SPEC §2): a dry run, then `--apply`. It costs 0¢: it
+reads only what passes stored, asks no model, and refuses the network before it reads a scan.
+
+1. **Export**, read-only, through the Supabase connector: `scripts/rescore/export.sql` with
+   `:WHERE` set to `true` (or `s.domain in ('a.com', 'b.com')` for a few). Fetch it in checked
+   chunks as its footer shows, and put it together with
+   `node scripts/pass/assemble.mjs <dir> --out <export.json> --chunk <n>`. The whole of production
+   was about 1 MB on 2026-10-14.
+2. **Dry run**: `npm run rescore -- --from <export.json>`. One row per scan — score, band, the three
+   factors, the limiting factor, the rivals and the status, before → after — then the totals, what
+   could not be fully recomputed and why, the site rival sets that move, and the site profiles read
+   off a protection's page.
+3. **Apply**: `npm run rescore -- --from <export.json> --apply` also writes
+   `.review/rescore/apply.sql` (`--out` to change it). Run it through the connector. Each statement
+   rewrites only the members that moved, keeps the original report under `report.previous` and the
+   original `score`, `status` and `drivers` under `report.previousColumns`, stamps `rescoredAt` and
+   `rescoredBy` (the commit), and is guarded by the report's checksum: a scan that changed since the
+   export is left alone. A moved site rival set keeps its old rivals under `market.rescored`.
+4. **Check**: export again and dry-run. *Scans that change* reads 0.
+
+What it cannot recompute it leaves as stored and lists: Answerability on every scan (a report keeps
+the home page's facts, not the pages beyond it), search presence where a report of version 8 or
+before kept its ranked count without the rows, and a home read no longer in `fetches`. A profile
+read off a protection's page needs a model call and is only listed. Week-on-week movement and the
+Overview are read from each week's report, so they follow; a Monday mail already sent is not sent
+again.
+
+To undo one scan:
+
+```sql
+update scans set report = report->'previous', score = (report->'previousColumns'->>'score')::int,
+       status = report->'previousColumns'->>'status', drivers = report->'previousColumns'->'drivers'
+ where id = '<scan id>' and report ? 'previous';
+```
+
 ### Measuring how pages read
 
 `npm run eval:content -- --prose` scores stored pages, and pages people wrote on the panel's sites,

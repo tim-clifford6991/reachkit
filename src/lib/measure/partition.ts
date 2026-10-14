@@ -97,3 +97,19 @@ export function sectionOutcome(
   }
   return { present: false, reason: reason ?? "not_attempted" };
 }
+
+/** An input's outcome, read off the measurement it produced. */
+export function outcomeOf(m: Measured<unknown>): InputOutcome {
+  if (m.kind === "unmeasured") return { read: false, because: m.reason };
+  return { read: true, empty: m.kind === "zero" };
+}
+
+/** The twelve SERPs as the one input the verdict reads them as: measured
+ *  where any of them was, and carrying the reason where none was. */
+export function foldSerps(serps: readonly Measured<unknown>[], at: Date): Measured<null> {
+  for (const serp of serps) {
+    if (serp.kind !== "unmeasured") return measured(null, at);
+  }
+  const first = serps[0];
+  return unmeasured(first !== undefined && first.kind === "unmeasured" ? first.reason : "not_attempted", at);
+}

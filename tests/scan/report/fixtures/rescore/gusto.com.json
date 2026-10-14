@@ -1,0 +1,912 @@
+{
+ "scans": [
+  {
+   "id": "ee251330-fd5a-442c-a349-f6c97a40cd8c",
+   "md5": "bd159dd930e7838a498ffb4fd3d51ff8",
+   "home": {
+    "payload": {
+     "url": "https://gusto.com/",
+     "html": "<title>Just a moment...</title> cf_chl_opt",
+     "bytes": 5591,
+     "readAt": "2026-10-08T13:52:02.178Z",
+     "status": 403
+    },
+    "created_at": "2026-10-08T13:52:02.242483+00:00"
+   },
+   "score": 0,
+   "report": {
+    "tier": "free",
+    "serps": [
+     {
+      "at": "2026-10-08T13:52:10.009Z",
+      "kind": "measured",
+      "value": {
+       "organic": [
+        {
+         "domain": "en.wikipedia.org",
+         "position": 1
+        },
+        {
+         "domain": "www.imdb.com",
+         "position": 2
+        },
+        {
+         "domain": "www.netflix.com",
+         "position": 3
+        },
+        {
+         "domain": "www.merriam-webster.com",
+         "position": 4
+        },
+        {
+         "domain": "www.imdb.com",
+         "position": 5
+        },
+        {
+         "domain": "www.rottentomatoes.com",
+         "position": 6
+        },
+        {
+         "domain": "www.amazon.com",
+         "position": 7
+        },
+        {
+         "domain": "tv.apple.com",
+         "position": 8
+        },
+        {
+         "domain": "www.facebook.com",
+         "position": 9
+        }
+       ],
+       "aiOverview": {
+        "present": false,
+        "referenceDomains": []
+       }
+      }
+     }
+    ],
+    "domain": "gusto.com",
+    "market": {
+     "at": "2026-10-08T13:52:02.178Z",
+     "kind": "measured",
+     "value": {
+      "profile": {
+       "category": "<UNKNOWN>"
+      }
+     }
+    },
+    "onPage": {
+     "at": "2026-10-08T13:52:02.178Z",
+     "kind": "measured",
+     "value": {
+      "url": "https://gusto.com/",
+      "dates": 0,
+      "noindex": true,
+      "headings": 0,
+      "numerals": 0,
+      "schemaTypes": [],
+      "visibleChars": 58,
+      "outboundCitations": 0,
+      "openGraphProperties": [],
+      "directAnswerHeadings": 0,
+      "questionShapedHeadings": 0,
+      "noindexAppliesToEveryReader": true
+     }
+    },
+    "rivals": {
+     "at": "2026-10-08T13:52:09.043Z",
+     "kind": "measured",
+     "value": [
+      {
+       "score": 1,
+       "domain": "amazon.com",
+       "aiCitations": 0,
+       "top10Appearances": 1
+      },
+      {
+       "score": 1,
+       "domain": "apple.com",
+       "aiCitations": 0,
+       "top10Appearances": 1
+      },
+      {
+       "score": 1,
+       "domain": "facebook.com",
+       "aiCitations": 0,
+       "top10Appearances": 1
+      },
+      {
+       "score": 1,
+       "domain": "imdb.com",
+       "aiCitations": 0,
+       "top10Appearances": 1
+      },
+      {
+       "score": 1,
+       "domain": "merriam-webster.com",
+       "aiCitations": 0,
+       "top10Appearances": 1
+      }
+     ]
+    },
+    "robots": {
+     "at": "2026-10-08T13:52:02.178Z",
+     "kind": "zero",
+     "value": {
+      "ok": true,
+      "rules": {},
+      "absent": true,
+      "origin": "https://gusto.com",
+      "readAt": "2026-10-08T13:52:02.184Z",
+      "sitemaps": [],
+      "disallowsAll": false,
+      "disallowedAgents": {},
+      "crawlDelaySeconds": {}
+     }
+    },
+    "sources": [
+     "wikipedia.org"
+    ],
+    "verdict": {
+     "domain": "gusto.com",
+     "factors": {
+      "presence": {
+       "at": "2026-10-08T13:52:02.178Z",
+       "kind": "measured",
+       "value": 10
+      },
+      "foundations": {
+       "at": "2026-10-08T13:52:02.178Z",
+       "kind": "zero",
+       "value": 0
+      },
+      "answerability": {
+       "at": "2026-10-08T13:52:02.178Z",
+       "kind": "zero",
+       "value": 1
+      }
+     },
+     "missing": [],
+     "limiting": {
+      "kind": "factor",
+      "factor": "foundations"
+     },
+     "measuredAt": "2026-10-08T13:52:02.178Z",
+     "scoreAndBand": {
+      "at": "2026-10-08T13:52:02.178Z",
+      "kind": "measured",
+      "value": {
+       "band": "invisible",
+       "score": 0
+      }
+     },
+     "blockedReaders": {
+      "at": "2026-10-08T13:52:02.178Z",
+      "kind": "zero",
+      "value": 0
+     },
+     "unmeasuredElsewhere": []
+    },
+    "version": 13,
+    "complete": true,
+    "presence": {
+     "you": {
+      "domain": "gusto.com",
+      "top10Count": 0
+     },
+     "rivals": [
+      {
+       "domain": "amazon.com",
+       "top10Count": 1
+      },
+      {
+       "domain": "apple.com",
+       "top10Count": 1
+      },
+      {
+       "domain": "facebook.com",
+       "top10Count": 1
+      },
+      {
+       "domain": "imdb.com",
+       "top10Count": 1
+      },
+      {
+       "domain": "merriam-webster.com",
+       "top10Count": 1
+      }
+     ],
+     "framing": "shown",
+     "absentFrom": [
+      {
+       "volume": 90500,
+       "keyword": "unknown",
+       "topHolder": null
+      }
+     ],
+     "measuredSearches": 1
+    },
+    "aiAnswers": {
+     "rows": [
+      {
+       "cell": {
+        "kind": "no_answer"
+       },
+       "engines": [
+        {
+         "cell": {
+          "kind": "no_answer"
+         },
+         "engine": "ai_overview"
+        },
+        {
+         "cell": {
+          "kind": "unmeasured",
+          "reason": "not_attempted"
+         },
+         "engine": "ai_mode"
+        },
+        {
+         "cell": {
+          "kind": "unmeasured",
+          "reason": "not_attempted"
+         },
+         "engine": "chatgpt"
+        }
+       ],
+       "question": {
+        "search": "unknown"
+       }
+      }
+     ],
+     "rivals": [
+      {
+       "cells": [
+        {
+         "kind": "no_answer"
+        }
+       ],
+       "domain": "amazon.com"
+      },
+      {
+       "cells": [
+        {
+         "kind": "no_answer"
+        }
+       ],
+       "domain": "apple.com"
+      },
+      {
+       "cells": [
+        {
+         "kind": "no_answer"
+        }
+       ],
+       "domain": "facebook.com"
+      },
+      {
+       "cells": [
+        {
+         "kind": "no_answer"
+        }
+       ],
+       "domain": "imdb.com"
+      },
+      {
+       "cells": [
+        {
+         "kind": "no_answer"
+        }
+       ],
+       "domain": "merriam-webster.com"
+      }
+     ],
+     "coverage": "async_included",
+     "reusedFrom": null,
+     "answeredSearches": 0,
+     "measuredSearches": 1,
+     "customerCitations": 0
+    },
+    "coherence": {
+     "verdict": "unjudgeable",
+     "measuredCount": 1
+    },
+    "ownRanked": {
+     "at": "2026-10-08T13:52:02.178Z",
+     "kind": "measured",
+     "value": 90993
+    },
+    "questions": {
+     "at": "2026-10-08T13:52:09.043Z",
+     "kind": "measured",
+     "value": [
+      {
+       "id": "q1",
+       "text": "",
+       "search": {
+        "volume": 90500,
+        "keyword": "unknown"
+       },
+       "phrasing": "model"
+      }
+     ]
+    },
+    "rivalSizes": {
+     "at": "2026-10-08T13:52:01.851Z",
+     "kind": "unmeasured",
+     "reason": "not_attempted"
+    },
+    "siteIssues": {},
+    "blockedAgents": [],
+    "marketPrompts": null,
+    "ownRankedRows": [
+     {
+      "position": 1
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 4
+     },
+     {
+      "position": 6
+     },
+     {
+      "position": 6
+     },
+     {
+      "position": 6
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 4
+     },
+     {
+      "position": 4
+     },
+     {
+      "position": 3
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 4
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 2
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 11
+     },
+     {
+      "position": 6
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 4
+     },
+     {
+      "position": 3
+     },
+     {
+      "position": 6
+     },
+     {
+      "position": 6
+     },
+     {
+      "position": 6
+     }
+    ],
+    "stoppedReason": "complete",
+    "measuredCategory": null
+   },
+   "status": "done",
+   "drivers": {
+    "aiPresence": {
+     "at": "2026-10-08T13:52:02.178Z",
+     "kind": "zero",
+     "value": 1
+    },
+    "foundations": {
+     "at": "2026-10-08T13:52:02.178Z",
+     "kind": "zero",
+     "value": 0
+    },
+    "answerability": {
+     "at": "2026-10-08T13:52:02.178Z",
+     "kind": "zero",
+     "value": 1
+    },
+    "searchPresence": {
+     "at": "2026-10-08T13:52:02.178Z",
+     "kind": "measured",
+     "value": 100
+    }
+   },
+   "rendered": [],
+   "createdAt": "2026-10-08T13:52:01.654331+00:00",
+   "rescoredAt": null
+  }
+ ],
+ "sites": [
+  {
+   "id": "0bbcc532-e420-447c-9e81-f05ccbda27ff",
+   "domain": "reachkit.app",
+   "rivals": [
+    {
+     "name": "Profound",
+     "basis": "ai_answer",
+     "domain": "tryprofound.com",
+     "reason": "Tracks brand visibility and citations across ChatGPT, Perplexity, Gemini, and Google AI Overviews, competing directly on AI discovery monitoring.",
+     "volume": 6600,
+     "searchNames": [
+      "profound ai"
+     ]
+    },
+    {
+     "name": "Peec AI",
+     "basis": "ai_answer",
+     "domain": "peec.ai",
+     "reason": "Tracks how often and in what context a brand appears in AI engines like ChatGPT, competing on AI visibility monitoring for founders and marketers.",
+     "volume": 2400,
+     "searchNames": [
+      "peec ai"
+     ]
+    },
+    {
+     "name": "Otterly",
+     "basis": "ai_answer",
+     "domain": "otterly.ai",
+     "reason": "Monitors brand visibility and citations across AI search and answer engines, targeting the same GEO/AEO tracking job.",
+     "volume": 720,
+     "searchNames": [
+      "otterly ai"
+     ]
+    },
+    {
+     "name": "Omniscient",
+     "basis": "same_job",
+     "domain": "beomniscient.com",
+     "reason": "GEO platform that tracks brand citations and recommendations inside AI ecosystems and helps optimize content to win them.",
+     "volume": 590,
+     "searchNames": [
+      "omniscient digital"
+     ]
+    },
+    {
+     "name": "Brandi",
+     "basis": "same_job",
+     "domain": "mybrandi.ai",
+     "reason": "AI visibility platform for generative engine optimization that tracks brand mentions and citations across LLMs.",
+     "volume": 260,
+     "searchNames": [
+      "brandi ai"
+     ]
+    }
+   ],
+   "scanId": "91fafec1-70ba-445b-8776-cfd515dcd99b",
+   "overridden": false,
+   "competitors": [
+    "tryprofound.com",
+    "peec.ai",
+    "otterly.ai",
+    "beomniscient.com",
+    "mybrandi.ai"
+   ]
+  }
+ ],
+ "profiles": [
+  {
+   "domain": "15five.com",
+   "siteName": "15Five"
+  },
+  {
+   "domain": "airtable.com",
+   "siteName": "Airtable"
+  },
+  {
+   "domain": "allbirds.com",
+   "siteName": "Allbirds"
+  },
+  {
+   "domain": "allrecipes.com",
+   "siteName": "Allrecipes"
+  },
+  {
+   "domain": "asana.com",
+   "siteName": "Asana"
+  },
+  {
+   "domain": "atlassian.com",
+   "siteName": "Atlassian"
+  },
+  {
+   "domain": "bamboohr.com",
+   "siteName": "BambooHR"
+  },
+  {
+   "domain": "basecamp.com",
+   "siteName": "Basecamp"
+  },
+  {
+   "domain": "beehiiv.com",
+   "siteName": "Newsletter Platform: Create Newsletters and Websites - beehiiv"
+  },
+  {
+   "domain": "bench.co",
+   "siteName": "Bench"
+  },
+  {
+   "domain": "buffer.com",
+   "siteName": "Buffer: All-you-need social media toolkit for small businesses"
+  },
+  {
+   "domain": "buttondown.com",
+   "siteName": "Buttondown"
+  },
+  {
+   "domain": "cal.com",
+   "siteName": "Scheduling Software for Online Bookings"
+  },
+  {
+   "domain": "calendly.com",
+   "siteName": "Calendly.com"
+  },
+  {
+   "domain": "canva.com",
+   "siteName": "Canva"
+  },
+  {
+   "domain": "clickup.com",
+   "siteName": "Maximize productivity • Software, AI, and humans converge"
+  },
+  {
+   "domain": "convertkit.com",
+   "siteName": "Kit"
+  },
+  {
+   "domain": "deel.com",
+   "siteName": "HRIS"
+  },
+  {
+   "domain": "drift.com",
+   "siteName": "Salesloft"
+  },
+  {
+   "domain": "dropbox.com",
+   "siteName": "Dropbox"
+  },
+  {
+   "domain": "example.com",
+   "siteName": "Example Domain"
+  },
+  {
+   "domain": "fathom.video",
+   "siteName": "Fathom AI Notetaker - Never Take Notes Again"
+  },
+  {
+   "domain": "fathomanalytics.com",
+   "siteName": "Fathom Analytics"
+  },
+  {
+   "domain": "figma.com",
+   "siteName": "Figma"
+  },
+  {
+   "domain": "freshbooks.com",
+   "siteName": "FreshBooks"
+  },
+  {
+   "domain": "freshdesk.com",
+   "siteName": "Freshworks"
+  },
+  {
+   "domain": "freshworks.com",
+   "siteName": "Just a moment..."
+  },
+  {
+   "domain": "front.com",
+   "siteName": "Front"
+  },
+  {
+   "domain": "ghost.org",
+   "siteName": "Ghost - The Professional Publishing Platform"
+  },
+  {
+   "domain": "grammarly.com",
+   "siteName": "Grammarly: Free AI Writing Assistance"
+  },
+  {
+   "domain": "gusto.com",
+   "siteName": "Just a moment..."
+  },
+  {
+   "domain": "helpscout.com",
+   "siteName": "Help Scout"
+  },
+  {
+   "domain": "hotjar.com",
+   "siteName": "Sign up for free"
+  },
+  {
+   "domain": "hubspot.com",
+   "siteName": "Software & Tools for your Business - Homepage"
+  },
+  {
+   "domain": "intercom.com",
+   "siteName": "A complete system for human and AI customer service"
+  },
+  {
+   "domain": "later.com",
+   "siteName": "Later: Influencer Marketing and Social Media Management"
+  },
+  {
+   "domain": "lattice.com",
+   "siteName": "Lattice"
+  },
+  {
+   "domain": "lemonsqueezy.com",
+   "siteName": "Payments, tax & subscriptions for software companies • Lemon Squeezy"
+  },
+  {
+   "domain": "linear.app",
+   "siteName": "The system for product development"
+  },
+  {
+   "domain": "loom.com",
+   "siteName": "Loom"
+  },
+  {
+   "domain": "mailchimp.com",
+   "siteName": "Mailchimp"
+  },
+  {
+   "domain": "mailerlite.com",
+   "siteName": "Create Email Marketing Your Audience Will Love - MailerLite"
+  },
+  {
+   "domain": "miro.com",
+   "siteName": "Miro"
+  },
+  {
+   "domain": "monday.com",
+   "siteName": "monday.com"
+  },
+  {
+   "domain": "notion.com",
+   "siteName": "Notion"
+  },
+  {
+   "domain": "notion.so",
+   "siteName": "Notion"
+  },
+  {
+   "domain": "paddle.com",
+   "siteName": "Paddle - Subscriptions, Payments & Tax Compliance for SaaS & Mobile Apps"
+  },
+  {
+   "domain": "pilot.com",
+   "siteName": "Pilot: Bookkeeping & Accounting Services for Startups & Small Businesses"
+  },
+  {
+   "domain": "pipedrive.com",
+   "siteName": "Pipedrive"
+  },
+  {
+   "domain": "pirsch.io",
+   "siteName": "Pirsch Analytics"
+  },
+  {
+   "domain": "plausible.io",
+   "siteName": "Plausible Analytics"
+  },
+  {
+   "domain": "podia.com",
+   "siteName": "Podia"
+  },
+  {
+   "domain": "reachkit.app",
+   "siteName": "ReachKit"
+  },
+  {
+   "domain": "remote.com",
+   "siteName": "Remote"
+  },
+  {
+   "domain": "rippling.com",
+   "siteName": "Rippling"
+  },
+  {
+   "domain": "sage.com",
+   "siteName": "Cloudflare"
+  },
+  {
+   "domain": "smartsheet.com",
+   "siteName": "Smartsheet"
+  },
+  {
+   "domain": "squarespace.com",
+   "siteName": "Squarespace"
+  },
+  {
+   "domain": "stripe.com",
+   "siteName": "Stripe"
+  },
+  {
+   "domain": "substack.com",
+   "siteName": "Substack"
+  },
+  {
+   "domain": "surveymonkey.com",
+   "siteName": "SurveyMonkey"
+  },
+  {
+   "domain": "tally.so",
+   "siteName": "Tally Forms"
+  },
+  {
+   "domain": "teachable.com",
+   "siteName": "Build & Sell Online Courses, Coaching, Memberships & More"
+  },
+  {
+   "domain": "teamwork.com",
+   "siteName": "Teamwork.com"
+  },
+  {
+   "domain": "thinkific.com",
+   "siteName": "Thinkific"
+  },
+  {
+   "domain": "tldraw.com",
+   "siteName": "tldraw"
+  },
+  {
+   "domain": "todoist.com",
+   "siteName": "A To-Do List to Organize Your Work & Life"
+  },
+  {
+   "domain": "trello.com",
+   "siteName": "Capture, organize, and tackle your to-dos from anywhere"
+  },
+  {
+   "domain": "typeform.com",
+   "siteName": "Typeform"
+  },
+  {
+   "domain": "vercel.com",
+   "siteName": "Vercel"
+  },
+  {
+   "domain": "wave.com",
+   "siteName": "Wave"
+  },
+  {
+   "domain": "webflow.com",
+   "siteName": "Webflow: The agentic web platform for modern businesses"
+  },
+  {
+   "domain": "wix.com",
+   "siteName": "wix.com"
+  },
+  {
+   "domain": "wpbeginner.com",
+   "siteName": "WPBeginner"
+  },
+  {
+   "domain": "wrike.com",
+   "siteName": "Wrike"
+  },
+  {
+   "domain": "xero.com",
+   "siteName": "Xero"
+  },
+  {
+   "domain": "zapier.com",
+   "siteName": "Zapier: Automate AI Workflows, Agents, and Apps"
+  },
+  {
+   "domain": "zendesk.com",
+   "siteName": "Zendesk"
+  },
+  {
+   "domain": "zoho.com",
+   "siteName": "Zoho"
+  }
+ ],
+ "exportedAt": "2026-10-14T11:43:17.475753+00:00"
+}

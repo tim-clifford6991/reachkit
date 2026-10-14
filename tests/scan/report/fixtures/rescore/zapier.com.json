@@ -1,0 +1,1379 @@
+{
+ "scans": [
+  {
+   "id": "5e262e3c-a28e-4404-837e-64550b3b797c",
+   "md5": "07bff86d84654d894928ed0e66cb3167",
+   "home": {
+    "payload": {
+     "url": "https://zapier.com/",
+     "html": "<title>Zapier: Automate AI Workflows, Agents, and Apps</title>",
+     "bytes": 404884,
+     "readAt": "2026-10-06T03:43:51.829Z",
+     "status": 200
+    },
+    "created_at": "2026-10-06T03:43:52.184055+00:00"
+   },
+   "score": 27,
+   "report": {
+    "tier": "free",
+    "serps": [
+     {
+      "at": "2026-10-06T03:44:12.321Z",
+      "kind": "unmeasured",
+      "reason": "undeterminable",
+      "because": "timeout"
+     },
+     {
+      "at": "2026-10-06T03:44:12.321Z",
+      "kind": "unmeasured",
+      "reason": "undeterminable",
+      "because": "timeout"
+     },
+     {
+      "at": "2026-10-06T03:44:12.321Z",
+      "kind": "unmeasured",
+      "reason": "undeterminable",
+      "because": "timeout"
+     },
+     {
+      "at": "2026-10-06T03:44:12.321Z",
+      "kind": "measured",
+      "value": {
+       "organic": [
+        {
+         "domain": "www.kuse.ai",
+         "position": 1
+        },
+        {
+         "domain": "zapier.com",
+         "position": 2
+        },
+        {
+         "domain": "zapier.com",
+         "position": 3
+        },
+        {
+         "domain": "www.nocobase.com",
+         "position": 4
+        },
+        {
+         "domain": "www.knolli.ai",
+         "position": 5
+        },
+        {
+         "domain": "www.startingpoint.ai",
+         "position": 6
+        },
+        {
+         "domain": "www.toolvetting.com",
+         "position": 7
+        },
+        {
+         "domain": "www.noxus.ai",
+         "position": 8
+        }
+       ],
+       "aiOverview": {
+        "present": true,
+        "referenceUrls": [
+         "https://www.youtube.com/watch?v=CqXthNuXmNA",
+         "https://www.youtube.com/watch?v=xSP7vUzAwMI&t=21"
+        ],
+        "referenceDomains": [
+         "www.youtube.com"
+        ]
+       }
+      }
+     }
+    ],
+    "domain": "zapier.com",
+    "market": {
+     "at": "2026-10-06T03:43:51.829Z",
+     "kind": "measured",
+     "value": {
+      "profile": {
+       "category": "workflow automation platform"
+      }
+     }
+    },
+    "onPage": {
+     "at": "2026-10-06T03:43:51.829Z",
+     "kind": "measured",
+     "value": {
+      "url": "https://zapier.com/",
+      "dates": 0,
+      "noindex": false,
+      "headings": 27,
+      "numerals": 35,
+      "schemaTypes": [
+       "organization",
+       "imageobject",
+       "postaladdress",
+       "person",
+       "person",
+       "person",
+       "website",
+       "webpage",
+       "imageobject",
+       "softwareapplication",
+       "creativework",
+       "softwareapplication",
+       "creativework",
+       "softwareapplication"
+      ],
+      "visibleChars": 11911,
+      "outboundCitations": 12,
+      "openGraphProperties": [
+       "og:title",
+       "og:description",
+       "og:image"
+      ],
+      "directAnswerHeadings": 0,
+      "questionShapedHeadings": 0,
+      "noindexAppliesToEveryReader": false
+     }
+    },
+    "rivals": {
+     "at": "2026-10-06T03:44:10.827Z",
+     "kind": "measured",
+     "value": [
+      {
+       "score": 1,
+       "domain": "knolli.ai",
+       "aiCitations": 0,
+       "top10Appearances": 1
+      },
+      {
+       "score": 1,
+       "domain": "kuse.ai",
+       "aiCitations": 0,
+       "top10Appearances": 1
+      },
+      {
+       "score": 1,
+       "domain": "nocobase.com",
+       "aiCitations": 0,
+       "top10Appearances": 1
+      },
+      {
+       "score": 1,
+       "domain": "noxus.ai",
+       "aiCitations": 0,
+       "top10Appearances": 1
+      },
+      {
+       "score": 1,
+       "domain": "startingpoint.ai",
+       "aiCitations": 0,
+       "top10Appearances": 1
+      }
+     ]
+    },
+    "robots": {
+     "at": "2026-10-06T03:43:51.829Z",
+     "kind": "measured",
+     "value": {
+      "ok": true,
+      "rules": {
+       "*": [
+        {
+         "allow": true,
+         "pattern": "/"
+        },
+        {
+         "allow": true,
+         "pattern": "/shared/"
+        },
+        {
+         "allow": true,
+         "pattern": "/app/login"
+        },
+        {
+         "allow": false,
+         "pattern": "/shared/*?wtime"
+        },
+        {
+         "allow": false,
+         "pattern": "/engine/hydrate/"
+        },
+        {
+         "allow": false,
+         "pattern": "/hooks/"
+        },
+        {
+         "allow": false,
+         "pattern": "/goto/"
+        },
+        {
+         "allow": false,
+         "pattern": "/developer/invite/"
+        },
+        {
+         "allow": false,
+         "pattern": "/developer/public-invite/"
+        },
+        {
+         "allow": false,
+         "pattern": "/editor/robots.txt"
+        },
+        {
+         "allow": false,
+         "pattern": "/app/"
+        },
+        {
+         "allow": false,
+         "pattern": "/engine/"
+        },
+        {
+         "allow": false,
+         "pattern": "/google-sso/"
+        },
+        {
+         "allow": false,
+         "pattern": "/home"
+        },
+        {
+         "allow": false,
+         "pattern": "/help-v1/"
+        },
+        {
+         "allow": false,
+         "pattern": "/help/search/"
+        },
+        {
+         "allow": false,
+         "pattern": "/apps/*/landing/"
+        },
+        {
+         "allow": false,
+         "pattern": "/apps/*/integrations/*/landing/"
+        },
+        {
+         "allow": false,
+         "pattern": "/apps/*/roles/*/"
+        },
+        {
+         "allow": false,
+         "pattern": "/app-directory/"
+        },
+        {
+         "allow": false,
+         "pattern": "/api/"
+        },
+        {
+         "allow": false,
+         "pattern": "/new-homepage/"
+        },
+        {
+         "allow": false,
+         "pattern": "/webintent/"
+        },
+        {
+         "allow": false,
+         "pattern": "/zapbook/"
+        },
+        {
+         "allow": false,
+         "pattern": "/sso/"
+        },
+        {
+         "allow": false,
+         "pattern": "*/iframe/*"
+        },
+        {
+         "allow": false,
+         "pattern": "/*?"
+        }
+       ],
+       "gptbot": [
+        {
+         "allow": true,
+         "pattern": "/"
+        }
+       ],
+       "claudebot": [
+        {
+         "allow": true,
+         "pattern": "/"
+        }
+       ],
+       "baiduspider": [
+        {
+         "allow": false,
+         "pattern": "/api/"
+        },
+        {
+         "allow": false,
+         "pattern": "/engine/"
+        },
+        {
+         "allow": false,
+         "pattern": "/app/"
+        }
+       ],
+       "claude-user": [
+        {
+         "allow": true,
+         "pattern": "/"
+        }
+       ],
+       "chatgpt-user": [
+        {
+         "allow": true,
+         "pattern": "/"
+        }
+       ],
+       "duckassistbot": [
+        {
+         "allow": true,
+         "pattern": "/"
+        }
+       ],
+       "oai-searchbot": [
+        {
+         "allow": true,
+         "pattern": "/"
+        }
+       ],
+       "perplexitybot": [
+        {
+         "allow": true,
+         "pattern": "/"
+        }
+       ],
+       "google-extended": [
+        {
+         "allow": true,
+         "pattern": "/"
+        }
+       ],
+       "claude-searchbot": [
+        {
+         "allow": true,
+         "pattern": "/"
+        }
+       ],
+       "facebookexternalhit": [
+        {
+         "allow": true,
+         "pattern": "/engine/hydrate/"
+        }
+       ]
+      },
+      "absent": false,
+      "origin": "https://zapier.com",
+      "readAt": "2026-10-06T03:43:51.833Z",
+      "sitemaps": [
+       "https://zapier.com/uag6x9zaeydnbfy75xsggcsb37h8cgzf-two-service-sitemap.xml",
+       "https://zapier.com/uag6x9zaeydnbfy75xsggcsb37h8cgzf-one-service-sitemap.xml",
+       "https://zapier.com/sitemaps/zap-templates/LZB2XiWzbJFggRYdnRGwcoAgEkTnHHEh",
+       "https://zapier.com/blog/sitemap.xml",
+       "https://zapier.com/uag6x9zaeydnbfy75xsggcsb37h8cgzf-sitemap.xml",
+       "https://zapier.com/uag6x9zaeydnbfy75xsggcsb37h8cgzf-static-sitemap.xml",
+       "https://zapier.com/agents/sitemap.xml",
+       "https://zapier.com/automation/sitemap.xml",
+       "https://zapier.com/marketing/sitemap.xml",
+       "https://zapier.com/sitemaps/templates/Xf3Lk9YbRzQnmgP2eCJtA5Wxv0NdMu6T",
+       "https://zapier.com/automations/sitemap-automations.xml"
+      ],
+      "disallowsAll": false,
+      "disallowedAgents": {
+       "*": false,
+       "GPTBot": false,
+       "ClaudeBot": false,
+       "baiduspider": false,
+       "claude-user": false,
+       "chatgpt-user": false,
+       "OAI-SearchBot": false,
+       "PerplexityBot": false,
+       "duckassistbot": false,
+       "Google-Extended": false,
+       "Claude-SearchBot": false,
+       "facebookexternalhit": false
+      },
+      "crawlDelaySeconds": {}
+     }
+    },
+    "sources": [
+     "youtube.com"
+    ],
+    "verdict": {
+     "domain": "zapier.com",
+     "factors": {
+      "presence": {
+       "at": "2026-10-06T03:43:51.829Z",
+       "kind": "measured",
+       "value": 10
+      },
+      "foundations": {
+       "at": "2026-10-06T03:43:51.829Z",
+       "kind": "measured",
+       "value": 100
+      },
+      "answerability": {
+       "at": "2026-10-06T03:43:51.829Z",
+       "kind": "measured",
+       "value": 20.543433689506923
+      }
+     },
+     "missing": [],
+     "limiting": {
+      "kind": "factor",
+      "factor": "presence"
+     },
+     "measuredAt": "2026-10-06T03:43:51.829Z",
+     "scoreAndBand": {
+      "at": "2026-10-06T03:43:51.829Z",
+      "kind": "measured",
+      "value": {
+       "band": "hard-to-find",
+       "score": 27
+      }
+     },
+     "blockedReaders": {
+      "at": "2026-10-06T03:43:51.829Z",
+      "kind": "zero",
+      "value": 0
+     },
+     "unmeasuredElsewhere": []
+    },
+    "version": 13,
+    "complete": true,
+    "presence": {
+     "you": {
+      "domain": "zapier.com",
+      "top10Count": 1
+     },
+     "rivals": [
+      {
+       "domain": "knolli.ai",
+       "top10Count": 1
+      },
+      {
+       "domain": "kuse.ai",
+       "top10Count": 1
+      },
+      {
+       "domain": "nocobase.com",
+       "top10Count": 1
+      },
+      {
+       "domain": "noxus.ai",
+       "top10Count": 1
+      },
+      {
+       "domain": "startingpoint.ai",
+       "top10Count": 1
+      }
+     ],
+     "framing": "shown",
+     "absentFrom": [],
+     "measuredSearches": 1
+    },
+    "aiAnswers": {
+     "rows": [
+      {
+       "cell": {
+        "kind": "unmeasured",
+        "reason": "undeterminable",
+        "because": "timeout"
+       },
+       "engines": [
+        {
+         "cell": {
+          "kind": "unmeasured",
+          "reason": "undeterminable",
+          "because": "timeout"
+         },
+         "engine": "ai_overview"
+        },
+        {
+         "cell": {
+          "kind": "unmeasured",
+          "reason": "not_attempted"
+         },
+         "engine": "ai_mode"
+        },
+        {
+         "cell": {
+          "kind": "unmeasured",
+          "reason": "not_attempted"
+         },
+         "engine": "chatgpt"
+        }
+       ],
+       "question": {
+        "search": "workflow automation platform"
+       }
+      },
+      {
+       "cell": {
+        "kind": "unmeasured",
+        "reason": "undeterminable",
+        "because": "timeout"
+       },
+       "engines": [
+        {
+         "cell": {
+          "kind": "unmeasured",
+          "reason": "undeterminable",
+          "because": "timeout"
+         },
+         "engine": "ai_overview"
+        },
+        {
+         "cell": {
+          "kind": "unmeasured",
+          "reason": "not_attempted"
+         },
+         "engine": "ai_mode"
+        },
+        {
+         "cell": {
+          "kind": "unmeasured",
+          "reason": "not_attempted"
+         },
+         "engine": "chatgpt"
+        }
+       ],
+       "question": {
+        "search": "ai workflow automation platform"
+       }
+      },
+      {
+       "cell": {
+        "kind": "unmeasured",
+        "reason": "undeterminable",
+        "because": "timeout"
+       },
+       "engines": [
+        {
+         "cell": {
+          "kind": "unmeasured",
+          "reason": "undeterminable",
+          "because": "timeout"
+         },
+         "engine": "ai_overview"
+        },
+        {
+         "cell": {
+          "kind": "unmeasured",
+          "reason": "not_attempted"
+         },
+         "engine": "ai_mode"
+        },
+        {
+         "cell": {
+          "kind": "unmeasured",
+          "reason": "not_attempted"
+         },
+         "engine": "chatgpt"
+        }
+       ],
+       "question": {
+        "search": "no code workflow automation platform"
+       }
+      },
+      {
+       "cell": {
+        "kind": "answered",
+        "ownUrls": [],
+        "citedDomains": [
+         "youtube.com"
+        ],
+        "namesCustomer": false
+       },
+       "engines": [
+        {
+         "cell": {
+          "kind": "answered",
+          "ownUrls": [],
+          "citedDomains": [
+           "youtube.com"
+          ],
+          "namesCustomer": false
+         },
+         "engine": "ai_overview"
+        },
+        {
+         "cell": {
+          "kind": "unmeasured",
+          "reason": "not_attempted"
+         },
+         "engine": "ai_mode"
+        },
+        {
+         "cell": {
+          "kind": "unmeasured",
+          "reason": "not_attempted"
+         },
+         "engine": "chatgpt"
+        }
+       ],
+       "question": {
+        "search": "best workflow automation platform"
+       }
+      }
+     ],
+     "rivals": [
+      {
+       "cells": [
+        {
+         "kind": "unmeasured",
+         "reason": "undeterminable",
+         "because": "timeout"
+        },
+        {
+         "kind": "unmeasured",
+         "reason": "undeterminable",
+         "because": "timeout"
+        },
+        {
+         "kind": "unmeasured",
+         "reason": "undeterminable",
+         "because": "timeout"
+        },
+        {
+         "kind": "answered",
+         "citedDomains": [],
+         "namesCustomer": false
+        }
+       ],
+       "domain": "knolli.ai"
+      },
+      {
+       "cells": [
+        {
+         "kind": "unmeasured",
+         "reason": "undeterminable",
+         "because": "timeout"
+        },
+        {
+         "kind": "unmeasured",
+         "reason": "undeterminable",
+         "because": "timeout"
+        },
+        {
+         "kind": "unmeasured",
+         "reason": "undeterminable",
+         "because": "timeout"
+        },
+        {
+         "kind": "answered",
+         "citedDomains": [],
+         "namesCustomer": false
+        }
+       ],
+       "domain": "kuse.ai"
+      },
+      {
+       "cells": [
+        {
+         "kind": "unmeasured",
+         "reason": "undeterminable",
+         "because": "timeout"
+        },
+        {
+         "kind": "unmeasured",
+         "reason": "undeterminable",
+         "because": "timeout"
+        },
+        {
+         "kind": "unmeasured",
+         "reason": "undeterminable",
+         "because": "timeout"
+        },
+        {
+         "kind": "answered",
+         "citedDomains": [],
+         "namesCustomer": false
+        }
+       ],
+       "domain": "nocobase.com"
+      },
+      {
+       "cells": [
+        {
+         "kind": "unmeasured",
+         "reason": "undeterminable",
+         "because": "timeout"
+        },
+        {
+         "kind": "unmeasured",
+         "reason": "undeterminable",
+         "because": "timeout"
+        },
+        {
+         "kind": "unmeasured",
+         "reason": "undeterminable",
+         "because": "timeout"
+        },
+        {
+         "kind": "answered",
+         "citedDomains": [],
+         "namesCustomer": false
+        }
+       ],
+       "domain": "noxus.ai"
+      },
+      {
+       "cells": [
+        {
+         "kind": "unmeasured",
+         "reason": "undeterminable",
+         "because": "timeout"
+        },
+        {
+         "kind": "unmeasured",
+         "reason": "undeterminable",
+         "because": "timeout"
+        },
+        {
+         "kind": "unmeasured",
+         "reason": "undeterminable",
+         "because": "timeout"
+        },
+        {
+         "kind": "answered",
+         "citedDomains": [],
+         "namesCustomer": false
+        }
+       ],
+       "domain": "startingpoint.ai"
+      }
+     ],
+     "coverage": "async_included",
+     "reusedFrom": null,
+     "answeredSearches": 1,
+     "measuredSearches": 1,
+     "customerCitations": 0
+    },
+    "coherence": {
+     "verdict": "unjudgeable",
+     "measuredCount": 1
+    },
+    "ownRanked": {
+     "at": "2026-10-06T03:43:51.829Z",
+     "kind": "measured",
+     "value": 196973
+    },
+    "questions": {
+     "at": "2026-10-06T03:44:10.827Z",
+     "kind": "measured",
+     "value": [
+      {
+       "id": "q1",
+       "text": "",
+       "search": {
+        "volume": 2400,
+        "keyword": "workflow automation platform"
+       },
+       "phrasing": "model"
+      },
+      {
+       "id": "q2",
+       "text": "",
+       "search": {
+        "volume": 320,
+        "keyword": "ai workflow automation platform"
+       },
+       "phrasing": "model"
+      },
+      {
+       "id": "q3",
+       "text": "",
+       "search": {
+        "volume": 260,
+        "keyword": "no code workflow automation platform"
+       },
+       "phrasing": "model"
+      },
+      {
+       "id": "q4",
+       "text": "",
+       "search": {
+        "volume": 20,
+        "keyword": "best workflow automation platform"
+       },
+       "phrasing": "model"
+      }
+     ]
+    },
+    "rivalSizes": {
+     "at": "2026-10-06T03:43:51.559Z",
+     "kind": "unmeasured",
+     "reason": "not_attempted"
+    },
+    "siteIssues": {},
+    "blockedAgents": [],
+    "marketPrompts": null,
+    "ownRankedRows": [
+     {
+      "position": 13
+     },
+     {
+      "position": 10
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 11
+     },
+     {
+      "position": 2
+     },
+     {
+      "position": 2
+     },
+     {
+      "position": 7
+     },
+     {
+      "position": 3
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 8
+     },
+     {
+      "position": 4
+     },
+     {
+      "position": 3
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 4
+     },
+     {
+      "position": 8
+     },
+     {
+      "position": 9
+     },
+     {
+      "position": 2
+     },
+     {
+      "position": 8
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 7
+     },
+     {
+      "position": 11
+     },
+     {
+      "position": 8
+     },
+     {
+      "position": 14
+     },
+     {
+      "position": 9
+     },
+     {
+      "position": 2
+     },
+     {
+      "position": 2
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 5
+     },
+     {
+      "position": 12
+     },
+     {
+      "position": 6
+     },
+     {
+      "position": 6
+     },
+     {
+      "position": 2
+     },
+     {
+      "position": 17
+     },
+     {
+      "position": 15
+     },
+     {
+      "position": 15
+     },
+     {
+      "position": 12
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 9
+     },
+     {
+      "position": 11
+     },
+     {
+      "position": 18
+     },
+     {
+      "position": 3
+     },
+     {
+      "position": 1
+     },
+     {
+      "position": 2
+     },
+     {
+      "position": 17
+     },
+     {
+      "position": 7
+     },
+     {
+      "position": 7
+     },
+     {
+      "position": 7
+     },
+     {
+      "position": 15
+     },
+     {
+      "position": 10
+     },
+     {
+      "position": 8
+     }
+    ],
+    "stoppedReason": "complete",
+    "measuredCategory": null
+   },
+   "status": "done",
+   "drivers": {
+    "aiPresence": {
+     "at": "2026-10-06T03:43:51.829Z",
+     "kind": "zero",
+     "value": 1
+    },
+    "foundations": {
+     "at": "2026-10-06T03:43:51.829Z",
+     "kind": "measured",
+     "value": 100
+    },
+    "answerability": {
+     "at": "2026-10-06T03:43:51.829Z",
+     "kind": "measured",
+     "value": 20.543433689506923
+    },
+    "searchPresence": {
+     "at": "2026-10-06T03:43:51.829Z",
+     "kind": "measured",
+     "value": 100
+    }
+   },
+   "rendered": [],
+   "createdAt": "2026-10-06T03:43:51.426749+00:00",
+   "rescoredAt": null
+  }
+ ],
+ "sites": [
+  {
+   "id": "0bbcc532-e420-447c-9e81-f05ccbda27ff",
+   "domain": "reachkit.app",
+   "rivals": [
+    {
+     "name": "Profound",
+     "basis": "ai_answer",
+     "domain": "tryprofound.com",
+     "reason": "Tracks brand visibility and citations across ChatGPT, Perplexity, Gemini, and Google AI Overviews, competing directly on AI discovery monitoring.",
+     "volume": 6600,
+     "searchNames": [
+      "profound ai"
+     ]
+    },
+    {
+     "name": "Peec AI",
+     "basis": "ai_answer",
+     "domain": "peec.ai",
+     "reason": "Tracks how often and in what context a brand appears in AI engines like ChatGPT, competing on AI visibility monitoring for founders and marketers.",
+     "volume": 2400,
+     "searchNames": [
+      "peec ai"
+     ]
+    },
+    {
+     "name": "Otterly",
+     "basis": "ai_answer",
+     "domain": "otterly.ai",
+     "reason": "Monitors brand visibility and citations across AI search and answer engines, targeting the same GEO/AEO tracking job.",
+     "volume": 720,
+     "searchNames": [
+      "otterly ai"
+     ]
+    },
+    {
+     "name": "Omniscient",
+     "basis": "same_job",
+     "domain": "beomniscient.com",
+     "reason": "GEO platform that tracks brand citations and recommendations inside AI ecosystems and helps optimize content to win them.",
+     "volume": 590,
+     "searchNames": [
+      "omniscient digital"
+     ]
+    },
+    {
+     "name": "Brandi",
+     "basis": "same_job",
+     "domain": "mybrandi.ai",
+     "reason": "AI visibility platform for generative engine optimization that tracks brand mentions and citations across LLMs.",
+     "volume": 260,
+     "searchNames": [
+      "brandi ai"
+     ]
+    }
+   ],
+   "scanId": "91fafec1-70ba-445b-8776-cfd515dcd99b",
+   "overridden": false,
+   "competitors": [
+    "tryprofound.com",
+    "peec.ai",
+    "otterly.ai",
+    "beomniscient.com",
+    "mybrandi.ai"
+   ]
+  }
+ ],
+ "profiles": [
+  {
+   "domain": "15five.com",
+   "siteName": "15Five"
+  },
+  {
+   "domain": "airtable.com",
+   "siteName": "Airtable"
+  },
+  {
+   "domain": "allbirds.com",
+   "siteName": "Allbirds"
+  },
+  {
+   "domain": "allrecipes.com",
+   "siteName": "Allrecipes"
+  },
+  {
+   "domain": "asana.com",
+   "siteName": "Asana"
+  },
+  {
+   "domain": "atlassian.com",
+   "siteName": "Atlassian"
+  },
+  {
+   "domain": "bamboohr.com",
+   "siteName": "BambooHR"
+  },
+  {
+   "domain": "basecamp.com",
+   "siteName": "Basecamp"
+  },
+  {
+   "domain": "beehiiv.com",
+   "siteName": "Newsletter Platform: Create Newsletters and Websites - beehiiv"
+  },
+  {
+   "domain": "bench.co",
+   "siteName": "Bench"
+  },
+  {
+   "domain": "buffer.com",
+   "siteName": "Buffer: All-you-need social media toolkit for small businesses"
+  },
+  {
+   "domain": "buttondown.com",
+   "siteName": "Buttondown"
+  },
+  {
+   "domain": "cal.com",
+   "siteName": "Scheduling Software for Online Bookings"
+  },
+  {
+   "domain": "calendly.com",
+   "siteName": "Calendly.com"
+  },
+  {
+   "domain": "canva.com",
+   "siteName": "Canva"
+  },
+  {
+   "domain": "clickup.com",
+   "siteName": "Maximize productivity • Software, AI, and humans converge"
+  },
+  {
+   "domain": "convertkit.com",
+   "siteName": "Kit"
+  },
+  {
+   "domain": "deel.com",
+   "siteName": "HRIS"
+  },
+  {
+   "domain": "drift.com",
+   "siteName": "Salesloft"
+  },
+  {
+   "domain": "dropbox.com",
+   "siteName": "Dropbox"
+  },
+  {
+   "domain": "example.com",
+   "siteName": "Example Domain"
+  },
+  {
+   "domain": "fathom.video",
+   "siteName": "Fathom AI Notetaker - Never Take Notes Again"
+  },
+  {
+   "domain": "fathomanalytics.com",
+   "siteName": "Fathom Analytics"
+  },
+  {
+   "domain": "figma.com",
+   "siteName": "Figma"
+  },
+  {
+   "domain": "freshbooks.com",
+   "siteName": "FreshBooks"
+  },
+  {
+   "domain": "freshdesk.com",
+   "siteName": "Freshworks"
+  },
+  {
+   "domain": "freshworks.com",
+   "siteName": "Just a moment..."
+  },
+  {
+   "domain": "front.com",
+   "siteName": "Front"
+  },
+  {
+   "domain": "ghost.org",
+   "siteName": "Ghost - The Professional Publishing Platform"
+  },
+  {
+   "domain": "grammarly.com",
+   "siteName": "Grammarly: Free AI Writing Assistance"
+  },
+  {
+   "domain": "gusto.com",
+   "siteName": "Just a moment..."
+  },
+  {
+   "domain": "helpscout.com",
+   "siteName": "Help Scout"
+  },
+  {
+   "domain": "hotjar.com",
+   "siteName": "Sign up for free"
+  },
+  {
+   "domain": "hubspot.com",
+   "siteName": "Software & Tools for your Business - Homepage"
+  },
+  {
+   "domain": "intercom.com",
+   "siteName": "A complete system for human and AI customer service"
+  },
+  {
+   "domain": "later.com",
+   "siteName": "Later: Influencer Marketing and Social Media Management"
+  },
+  {
+   "domain": "lattice.com",
+   "siteName": "Lattice"
+  },
+  {
+   "domain": "lemonsqueezy.com",
+   "siteName": "Payments, tax & subscriptions for software companies • Lemon Squeezy"
+  },
+  {
+   "domain": "linear.app",
+   "siteName": "The system for product development"
+  },
+  {
+   "domain": "loom.com",
+   "siteName": "Loom"
+  },
+  {
+   "domain": "mailchimp.com",
+   "siteName": "Mailchimp"
+  },
+  {
+   "domain": "mailerlite.com",
+   "siteName": "Create Email Marketing Your Audience Will Love - MailerLite"
+  },
+  {
+   "domain": "miro.com",
+   "siteName": "Miro"
+  },
+  {
+   "domain": "monday.com",
+   "siteName": "monday.com"
+  },
+  {
+   "domain": "notion.com",
+   "siteName": "Notion"
+  },
+  {
+   "domain": "notion.so",
+   "siteName": "Notion"
+  },
+  {
+   "domain": "paddle.com",
+   "siteName": "Paddle - Subscriptions, Payments & Tax Compliance for SaaS & Mobile Apps"
+  },
+  {
+   "domain": "pilot.com",
+   "siteName": "Pilot: Bookkeeping & Accounting Services for Startups & Small Businesses"
+  },
+  {
+   "domain": "pipedrive.com",
+   "siteName": "Pipedrive"
+  },
+  {
+   "domain": "pirsch.io",
+   "siteName": "Pirsch Analytics"
+  },
+  {
+   "domain": "plausible.io",
+   "siteName": "Plausible Analytics"
+  },
+  {
+   "domain": "podia.com",
+   "siteName": "Podia"
+  },
+  {
+   "domain": "reachkit.app",
+   "siteName": "ReachKit"
+  },
+  {
+   "domain": "remote.com",
+   "siteName": "Remote"
+  },
+  {
+   "domain": "rippling.com",
+   "siteName": "Rippling"
+  },
+  {
+   "domain": "sage.com",
+   "siteName": "Cloudflare"
+  },
+  {
+   "domain": "smartsheet.com",
+   "siteName": "Smartsheet"
+  },
+  {
+   "domain": "squarespace.com",
+   "siteName": "Squarespace"
+  },
+  {
+   "domain": "stripe.com",
+   "siteName": "Stripe"
+  },
+  {
+   "domain": "substack.com",
+   "siteName": "Substack"
+  },
+  {
+   "domain": "surveymonkey.com",
+   "siteName": "SurveyMonkey"
+  },
+  {
+   "domain": "tally.so",
+   "siteName": "Tally Forms"
+  },
+  {
+   "domain": "teachable.com",
+   "siteName": "Build & Sell Online Courses, Coaching, Memberships & More"
+  },
+  {
+   "domain": "teamwork.com",
+   "siteName": "Teamwork.com"
+  },
+  {
+   "domain": "thinkific.com",
+   "siteName": "Thinkific"
+  },
+  {
+   "domain": "tldraw.com",
+   "siteName": "tldraw"
+  },
+  {
+   "domain": "todoist.com",
+   "siteName": "A To-Do List to Organize Your Work & Life"
+  },
+  {
+   "domain": "trello.com",
+   "siteName": "Capture, organize, and tackle your to-dos from anywhere"
+  },
+  {
+   "domain": "typeform.com",
+   "siteName": "Typeform"
+  },
+  {
+   "domain": "vercel.com",
+   "siteName": "Vercel"
+  },
+  {
+   "domain": "wave.com",
+   "siteName": "Wave"
+  },
+  {
+   "domain": "webflow.com",
+   "siteName": "Webflow: The agentic web platform for modern businesses"
+  },
+  {
+   "domain": "wix.com",
+   "siteName": "wix.com"
+  },
+  {
+   "domain": "wpbeginner.com",
+   "siteName": "WPBeginner"
+  },
+  {
+   "domain": "wrike.com",
+   "siteName": "Wrike"
+  },
+  {
+   "domain": "xero.com",
+   "siteName": "Xero"
+  },
+  {
+   "domain": "zapier.com",
+   "siteName": "Zapier: Automate AI Workflows, Agents, and Apps"
+  },
+  {
+   "domain": "zendesk.com",
+   "siteName": "Zendesk"
+  },
+  {
+   "domain": "zoho.com",
+   "siteName": "Zoho"
+  }
+ ],
+ "exportedAt": "2026-10-14T11:45:19.10956+00:00"
+}

@@ -40,37 +40,15 @@
 //
 // Guarded on `Range` existing, because the `node` project has no DOM at all
 // until a file asks for one with `@vitest-environment jsdom`.
-import dns from "node:dns";
-import http from "node:http";
-import https from "node:https";
 import { vi } from "vitest";
+import { refuseNetwork } from "../src/lib/egress/offline";
 import { registerSiteLocaleStore } from "../src/lib/locale/site";
 
 vi.mock("next/font/local", () => ({
   default: () => ({ className: "", style: {}, variable: "" }),
 }));
 
-function refuse(via: string): never {
-  throw new Error(
-    `tests/setup.ts: a test attempted a real network call via ${via}. ` +
-      "No test in this corpus may reach a vendor — mock the call explicitly."
-  );
-}
-
-globalThis.fetch = (() => refuse("fetch()")) as unknown as typeof fetch;
-
-// Issue 760: the NS lookup beside the CNAME record is real DNS traffic. A
-// suite that renders the record and does not double the resolver reads the
-// lookup as failed — the static line — rather than asking the internet.
-dns.promises.resolveNs = (() => refuse("dns.promises.resolveNs()")) as unknown as typeof dns.promises.resolveNs;
-
-for (const [mod, name] of [
-  [http, "http"],
-  [https, "https"],
-] as const) {
-  mod.request = (() => refuse(`${name}.request()`)) as unknown as typeof mod.request;
-  mod.get = (() => refuse(`${name}.get()`)) as unknown as typeof mod.get;
-}
+refuseNetwork("tests/setup.ts", "No test in this corpus may reach a vendor — mock the call explicitly.");
 
 if (typeof Range !== "undefined") {
   const zeroRect = (): DOMRect =>

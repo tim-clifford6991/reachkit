@@ -2,6 +2,11 @@
 // scripts/pass/assemble.mjs — a pass's export, put back together and checked.
 //
 //   node scripts/pass/assemble.mjs <dir> <scanId>
+//   node scripts/pass/assemble.mjs <dir> --out <file> [--chunk <characters>]
+//
+// The second form puts any other export back together the same way —
+// `scripts/rescore/export.sql`'s, for `npm run rescore` (issue 1426) — at a
+// chunk size the export was fetched in (10,000 by default).
 //
 // `scripts/pass/export.sql` builds one JSON document for a scan. The
 // connector returns it to a session, not to a file, so it is fetched in
@@ -24,8 +29,14 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const [dir, scanId] = process.argv.slice(2);
-if (dir === undefined || scanId === undefined) {
-  console.error("Usage: node scripts/pass/assemble.mjs <dir> <scanId>");
+const option = (name) => {
+  const at = process.argv.indexOf(name);
+  return at === -1 ? undefined : process.argv[at + 1];
+};
+const outFile = option("--out");
+const CHUNK = Number(option("--chunk") ?? 10_000);
+if (dir === undefined || (scanId === undefined && outFile === undefined)) {
+  console.error("Usage: node scripts/pass/assemble.mjs <dir> <scanId> | <dir> --out <file> [--chunk <characters>]");
   process.exit(2);
 }
 const md5 = (text) => createHash("md5").update(text, "utf8").digest("hex");
@@ -37,7 +48,7 @@ const sums = new Map(
     .filter((parts) => parts.length === 2)
     .map(([i, sum]) => [Number(i), sum])
 );
-const chunks = Math.ceil(manifest.len / 10_000);
+const chunks = Math.ceil(manifest.len / CHUNK);
 const bad = [];
 let whole = "";
 for (let i = 0; i < chunks; i += 1) {
@@ -58,6 +69,6 @@ if ([...whole].length !== manifest.len || md5(whole) !== manifest.md5) {
   console.error("Every chunk matches its own checksum but the whole document does not: the rows changed between fetches. Fetch the manifest and the chunks again.");
   process.exit(1);
 }
-const out = path.join(path.dirname(new URL(import.meta.url).pathname), "snapshot", `${scanId.slice(0, 8)}.json`);
+const out = outFile ?? path.join(path.dirname(new URL(import.meta.url).pathname), "snapshot", `${scanId.slice(0, 8)}.json`);
 writeFileSync(out, `${JSON.stringify(JSON.parse(whole), null, 1)}\n`);
 console.log(`${out}: ${manifest.len} characters, checksum ${manifest.md5}`);
