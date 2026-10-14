@@ -1,0 +1,46 @@
+{
+  "source": "scans.report->'serps' of stored free scans, each AI Overview reduced to its presence and reference domains (issue 1419)",
+  "scans": [
+    {
+      "domain": "zapier.com",
+      "date": "2026-10-06",
+      "serps": [
+        { "kind": "unmeasured", "reason": "undeterminable", "because": "timeout" },
+        { "kind": "unmeasured", "reason": "undeterminable", "because": "timeout" },
+        { "kind": "unmeasured", "reason": "undeterminable", "because": "timeout" },
+        { "kind": "measured", "present": true, "referenceDomains": ["www.youtube.com"] }
+      ]
+    },
+    {
+      "domain": "mailchimp.com",
+      "date": "2026-10-07",
+      "serps": [
+        { "kind": "unmeasured", "reason": "undeterminable", "because": "timeout" },
+        { "kind": "measured", "present": true, "referenceDomains": ["mailchimp.com", "zapier.com", "www.youtube.com", "www.klaviyo.com", "www.gartner.com", "ventureharbour.com"] },
+        { "kind": "unmeasured", "reason": "undeterminable", "because": "timeout" },
+        { "kind": "measured", "present": true, "referenceDomains": ["ventureharbour.com", "www.youtube.com", "www.gartner.com"] },
+        { "kind": "unmeasured", "reason": "undeterminable", "because": "timeout" },
+        { "kind": "unmeasured", "reason": "undeterminable", "because": "timeout" },
+        { "kind": "unmeasured", "reason": "undeterminable", "because": "timeout" },
+        { "kind": "unmeasured", "reason": "undeterminable", "because": "timeout" },
+        { "kind": "unmeasured", "reason": "not_attempted" },
+        { "kind": "unmeasured", "reason": "not_attempted" }
+      ]
+    },
+    {
+      "domain": "stripe.com",
+      "date": "2026-10-13",
+      "serps": [{ "kind": "unmeasured", "reason": "undeterminable", "because": "deadline" }]
+    },
+    {
+      "domain": "deel.com",
+      "date": "2026-10-10",
+      "serps": [
+        { "kind": "measured", "present": true, "referenceDomains": ["www.deel.com", "www.forbes.com", "www.adp.com", "www.youtube.com", "www.groupmgmt.com", "www.uschamber.com", "www.peointernational.org"] },
+        { "kind": "measured", "present": true, "referenceDomains": ["www.paychex.com", "www.youtube.com", "www.remotoworkforce.com", "www.rippling.com", "www.california-labor-law-attorney.com", "www.ziprecruiter.com", "www.huffpost.com", "www.indeed.com"] },
+        { "kind": "measured", "present": true, "referenceDomains": ["en.wikipedia.org", "www.paylocity.com", "www.safeguardglobal.com", "www.workday.com", "www.payoneer.com", "www.youtube.com"] },
+        { "kind": "measured", "present": true, "referenceDomains": ["www.reddit.com", "4dev.com", "www.oysterhr.com", "www.hr.com", "remote.com", "willory.com", "www.beyondbordershr.com", "www.flexhire.com", "www.wellness360.co"] }
+      ]
+    }
+  ]
+}

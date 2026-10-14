@@ -12,7 +12,7 @@
 // they transcribe. The two that are pins — the direct-answer window and
 // the answerability floor — are read from `SCORING`; the closed reader
 // list is `AI_READER_AGENTS`. Nothing here is customer-visible.
-import { AI_READER_AGENTS, SCORING } from "@/lib/config/constants";
+import { AI_PRESENCE_MIN_READS, AI_READER_AGENTS, SCORING } from "@/lib/config/constants";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { RankedResult, SerpResult } from "@/lib/vendors/dataforseo/types";
 import { measured, measuredZero, unmeasured, worseReason, type Measured, type UnmeasuredReason } from "./measured";
@@ -277,6 +277,9 @@ const AI_MENTION_WEIGHT = 0.4;
 const AI_CITATION_WEIGHT = 0.6;
 const AI_PRESENCE_FLOOR = 1;
 
+/** The `because` of an AI presence read from too few results (issue 1419). */
+export const TOO_FEW_READ = "too_few_read";
+
 /** A reference as DataForSEO returns it — a bare host, a host with a path,
  *  or a full URL — to its ASCII-lowercased host with any port and any
  *  leading `www.` removed. Never throws; a reference no `URL` can parse
@@ -351,7 +354,14 @@ export function classifyReferences(references: readonly string[], ownDomain: str
  *  at all is `undeterminable`. A measured set naming the customer nowhere
  *  is the `zero` arm, carrying the formula's floor of 1. A SERP whose AI
  *  Overview's sources were not loaded (`unread`, issue 1357) is not one of
- *  the measured: it is in neither rate. */
+ *  the measured: it is in neither rate.
+ *
+ *  **Fewer than `AI_PRESENCE_MIN_READS` read is no rate** (issue
+ *  1419). One read that cited only YouTube made zapier.com's AI presence 1,
+ *  and through ∛ and √ that one result moved the whole score. Such a set is
+ *  `unmeasured` with the fold of the unread SERPs' reasons — a read the
+ *  deadline cut off says why — and `undeterminable` where every SERP asked
+ *  was read; `because` says the sample was too small. */
 export function aiPresenceOf(a: {
   serps: readonly Measured<SerpResult>[];
   ownDomain: string;
@@ -363,6 +373,9 @@ export function aiPresenceOf(a: {
   }
   if (read.length === 0) {
     return unmeasured(unmeasuredReasonOf(a.serps) ?? "undeterminable", a.at);
+  }
+  if (read.length < AI_PRESENCE_MIN_READS) {
+    return unmeasured(unmeasuredReasonOf(a.serps) ?? "undeterminable", a.at, TOO_FEW_READ);
   }
 
   let mentions = 0;
