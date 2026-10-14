@@ -12,7 +12,7 @@
 // they transcribe. The two that are pins — the direct-answer window and
 // the answerability floor — are read from `SCORING`; the closed reader
 // list is `AI_READER_AGENTS`. Nothing here is customer-visible.
-import { AI_READER_AGENTS, SCORING } from "@/lib/config/constants";
+import { AI_PRESENCE_MIN_READS, AI_READER_AGENTS, SCORING } from "@/lib/config/constants";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { RankedResult, SerpResult } from "@/lib/vendors/dataforseo/types";
 import { measured, measuredZero, unmeasured, worseReason, type Measured, type UnmeasuredReason } from "./measured";
@@ -356,7 +356,7 @@ export function classifyReferences(references: readonly string[], ownDomain: str
  *  Overview's sources were not loaded (`unread`, issue 1357) is not one of
  *  the measured: it is in neither rate.
  *
- *  **Fewer than `SCORING.aiPresenceMinReads` read is no rate** (issue
+ *  **Fewer than `AI_PRESENCE_MIN_READS` read is no rate** (issue
  *  1419). One read that cited only YouTube made zapier.com's AI presence 1,
  *  and through ∛ and √ that one result moved the whole score. Such a set is
  *  `unmeasured` with the fold of the unread SERPs' reasons — a read the
@@ -374,7 +374,7 @@ export function aiPresenceOf(a: {
   if (read.length === 0) {
     return unmeasured(unmeasuredReasonOf(a.serps) ?? "undeterminable", a.at);
   }
-  if (read.length < SCORING.aiPresenceMinReads) {
+  if (read.length < AI_PRESENCE_MIN_READS) {
     return unmeasured(unmeasuredReasonOf(a.serps) ?? "undeterminable", a.at, TOO_FEW_READ);
   }
 

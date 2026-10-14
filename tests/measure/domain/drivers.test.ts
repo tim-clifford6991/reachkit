@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { SCORING } from "@/lib/config/constants";
+import { AI_PRESENCE_MIN_READS, SCORING } from "@/lib/config/constants";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { RankedResult, RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
 import {
@@ -384,7 +384,7 @@ describe('BUILD §5: "SearchPresence = min(100, 25 × log10(ranked + 1)) × (0.5
 describe('BUILD §5: "AIPresence = max(1, (0.4 × mentionRate + 0.6 × citationRate) × 100)"', () => {
   /** The fewest reads AI presence is a rate over (issue 1419), each the same SERP. */
   const enough = (references: readonly string[]): Measured<SerpResult>[] =>
-    Array.from({ length: SCORING.aiPresenceMinReads }, () => measured(serp(references), AT));
+    Array.from({ length: AI_PRESENCE_MIN_READS }, () => measured(serp(references), AT));
 
   it("AIPresence weights citations above mentions", () => {
     const mentionsOnly = aiPresenceOf({ serps: enough(["g2.com/reachkit"]), ownDomain: OWN, at: AT });
@@ -472,7 +472,7 @@ describe("issue 1357 — an AI Overview whose sources were not loaded is not an 
   const unread: SerpResult = { organic: [], aiOverview: { present: true, asynchronousAiOverview: true, referenceDomains: [], unread: true } };
 
   it("is in neither rate: the site cited on every SERP that was read scores as cited on all of them", () => {
-    const cited = Array.from({ length: SCORING.aiPresenceMinReads }, () => measured(serp(["reachkit.app"]), AT));
+    const cited = Array.from({ length: AI_PRESENCE_MIN_READS }, () => measured(serp(["reachkit.app"]), AT));
     const alone = aiPresenceOf({ serps: cited, ownDomain: OWN, at: AT });
     const beside = aiPresenceOf({ serps: [...cited, measured(unread, AT), measured(unread, AT)], ownDomain: OWN, at: AT });
     expect(valueOf(beside)).toBe(valueOf(alone));
@@ -521,7 +521,7 @@ describe("issue 1419 — AI presence is a rate over at least four read results",
   });
 
   it("three reads with every question asked read is undeterminable, never a not_attempted", () => {
-    const three = Array.from({ length: SCORING.aiPresenceMinReads - 1 }, () => measured(serp(["reachkit.app"]), AT));
+    const three = Array.from({ length: AI_PRESENCE_MIN_READS - 1 }, () => measured(serp(["reachkit.app"]), AT));
     expect(aiPresenceOf({ serps: three, ownDomain: OWN, at: AT })).toEqual({
       kind: "unmeasured",
       reason: "undeterminable",
@@ -533,7 +533,7 @@ describe("issue 1419 — AI presence is a rate over at least four read results",
   it("only reads count towards the four: an overview whose sources were not loaded does not", () => {
     const unread: SerpResult = { organic: [], aiOverview: { present: true, asynchronousAiOverview: true, referenceDomains: [], unread: true } };
     const serps = [
-      ...Array.from({ length: SCORING.aiPresenceMinReads - 1 }, () => measured(serp(["reachkit.app"]), AT)),
+      ...Array.from({ length: AI_PRESENCE_MIN_READS - 1 }, () => measured(serp(["reachkit.app"]), AT)),
       measured(unread, AT),
     ];
     expect(aiPresenceOf({ serps, ownDomain: OWN, at: AT }).kind).toBe("unmeasured");

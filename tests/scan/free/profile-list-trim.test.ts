@@ -20,7 +20,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type DbQuery } from "../run/harness";
 import { asQueue, pollTheQueueAtOnce } from "../../vendors/harness";
-import { PROFILE_LIST_BOUNDS, SCORING } from "../../../src/lib/config/constants";
+import { AI_PRESENCE_MIN_READS, PROFILE_LIST_BOUNDS } from "../../../src/lib/config/constants";
 import { toolUseMessage } from "../../llm/fixtures";
 import type { FetchOutcome, RobotsPolicy } from "../../../src/lib/egress/types";
 
@@ -285,7 +285,7 @@ describe("figma's own answer: an over-full list no longer empties the report (is
     // This market yields three questions, and AI presence is a rate over at
     // least four read results (issue 1419), so presence is the one factor
     // without a value; the profile the market came from is not the reason.
-    expect(report.questions.value?.length).toBeLessThan(SCORING.aiPresenceMinReads);
+    expect(report.questions.value?.length).toBeLessThan(AI_PRESENCE_MIN_READS);
     expect(report.verdict.missing.map((m) => m.factor)).toEqual(["presence"]);
 
     // Trimmed to the cap, in the model's own order.
