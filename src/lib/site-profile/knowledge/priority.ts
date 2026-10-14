@@ -4,6 +4,7 @@
 // One ranking, read twice: by the crawl, to choose which of the addresses it
 // found to spend its hundred pages and twelve seconds on, and by the
 // knowledge read, to choose which of the pages it holds to ask about first.
+import { derivePurpose } from "../purpose";
 
 /** Path words, best first. A page takes the rank of the first row one of
  *  its path segments names.
@@ -116,4 +117,10 @@ export function isNeverRead(url: string): boolean {
     isAccountPage(url) ||
     segments.some((segment, i) => GALLERY.includes(segment) || (GALLERY_ENTRY.includes(segment) && i < segments.length - 1))
   );
+}
+
+/** Whether a page is read for facts at all: a legal page never is (§5,
+ *  2026-10-03), nor a gallery or account page (2026-10-04). */
+export function isReadForFacts(url: string): boolean {
+  return derivePurpose({ url, title: "", h1: "" }) !== "legal" && !isNeverRead(url);
 }

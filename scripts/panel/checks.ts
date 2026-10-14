@@ -13,6 +13,8 @@
 import { KNOWLEDGE_BASE } from "@/lib/config/constants";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { malformedSearch, type Malformed } from "@/lib/market/questions/well-formed";
+import { prose } from "@/lib/measure/prose";
+import { isReadForFacts } from "@/lib/site-profile/knowledge/priority";
 
 export interface PanelSite {
   domain: string;
@@ -436,6 +438,36 @@ export function isRealQuestion(text: string): boolean {
   const trimmed = text.trim();
   if (words(trimmed).length + (trimmed.match(/\b(a|an|the|of|for|to|in|on|at|by|with|or)\b/giu)?.length ?? 0) < 3) return false;
   return trimmed.endsWith("?") || ASKS_RE.test(trimmed);
+}
+
+/**
+ * The questions asked by the pages the knowledge base reads, once each
+ * (issue 1414): the five streaksapp.com asked were the headings of its
+ * privacy policy, and a legal page is never read for facts (SPEC §5,
+ * 2026-10-03). An address that was not stored counts.
+ */
+export function countPageQuestions(pages: readonly { url: string | null; html: string }[]): number {
+  return new Set(
+    pages
+      .filter((page) => page.url === null || isReadForFacts(page.url))
+      .flatMap((page) => prose(page.html).questions.map((question) => question.toLowerCase()))
+  ).size;
+}
+
+/**
+ * What the pass's own log said was not measured or failed, each kind once
+ * with its count (issue 1414): wesbos.com's result held no category, no
+ * rival and no page, and the reason was in the stored events only.
+ */
+export function saidOf(events: readonly Record<string, unknown>[]): string[] {
+  const counts = new Map<string, number>();
+  for (const line of events) {
+    const why = [line.because, line.reason, line.failure].find((value) => typeof value === "string");
+    if (why === undefined) continue;
+    const said = `${String(line.event)}${typeof line.source === "string" ? ` ${line.source}` : ""}: ${String(why)}`;
+    counts.set(said, (counts.get(said) ?? 0) + 1);
+  }
+  return [...counts].map(([said, times]) => (times === 1 ? said : `${said} (${times} times)`));
 }
 
 export function checkQuestions(r: SiteResult): CheckResult {

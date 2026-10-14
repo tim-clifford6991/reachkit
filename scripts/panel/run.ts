@@ -45,13 +45,12 @@ import { spokenMarket } from "@/lib/market/infer/terms";
 import { generatePrompts, promptSiteName } from "@/lib/market/prompts/generate";
 import { verdictOf } from "@/lib/market/rivals/verify";
 import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE } from "@/lib/measure/own-fetch";
-import { prose } from "@/lib/measure/prose";
 import { runDeepPass, type PassStep } from "@/lib/scan/deep/run";
 import { parseHealth } from "@/lib/scan/health";
 import { readStoredReport } from "@/lib/scan/report";
 import { storedKnowledgeOf } from "@/lib/site-profile/knowledge/store";
 import { appendSpend } from "../spend-log.mjs";
-import { checkSite, defectsByKind, type CheckResult, type PanelSite, type SiteResult, type VendorLocale } from "./checks";
+import { checkSite, countPageQuestions, defectsByKind, saidOf, type CheckResult, type PanelSite, type SiteResult, type VendorLocale } from "./checks";
 
 export interface Options {
   root: string;
@@ -289,15 +288,19 @@ const AI_MODE_SOURCE = "serp/google/ai_mode";
  * How many questions the site's own pages ask (their FAQ schema, their FAQ
  * sections, their headings), read from the pages the pass ledgered. `null`
  * where they could not be read.
+ *
+ * Only the pages the knowledge base reads count (issue 1414): the five
+ * questions streaksapp.com asked were the headings of its privacy policy,
+ * and a legal page is never read for facts (SPEC §5, 2026-10-03).
  */
 function questionsOnPages(siteId: string): number | null {
   try {
-    const pages = json<string[] | null>(
+    const pages = json<{ url: string | null; html: string }[] | null>(
       // A page the vendor drew for a site that serves a shell (issue 1374)
       // is a one-row list, and it asks its questions too.
-      `select coalesce(jsonb_agg(p.html), '[]'::jsonb) from (select case when f.source = '${OWN_FETCH_SOURCE}' then f.payload->>'html' else f.payload->0->>'html' end as html from public.fetches f join public.scans c on c.id = f.scan_id where c.site_id = '${siteId}' and f.source in ('${OWN_FETCH_SOURCE}', '${RENDERED_FETCH_SOURCE}')) p where p.html is not null;`
+      `select coalesce(jsonb_agg(jsonb_build_object('url', p.url, 'html', p.html)), '[]'::jsonb) from (select case when f.source = '${OWN_FETCH_SOURCE}' then f.payload->>'html' else f.payload->0->>'html' end as html, case when f.source = '${OWN_FETCH_SOURCE}' then f.payload->>'url' else f.payload->0->>'url' end as url from public.fetches f join public.scans c on c.id = f.scan_id where c.site_id = '${siteId}' and f.source in ('${OWN_FETCH_SOURCE}', '${RENDERED_FETCH_SOURCE}')) p where p.html is not null;`
     );
-    return new Set((pages ?? []).flatMap((html) => prose(html).questions.map((question) => question.toLowerCase()))).size;
+    return countPageQuestions(pages ?? []);
   } catch {
     return null;
   }
@@ -389,12 +392,17 @@ export async function collect(a: { site: PanelSite; bought: readonly FetchRow[];
           ).map((prompt) => ({ kind: prompt.kind, text: prompt.text })),
   };
   const health = (parseHealth(stored.scan?.health)?.checks ?? []).map((check) => ({ check: check.check, pass: check.pass, detail: check.detail }));
-  const telling = /unmeasured|failed|undeterminable|skipped|threw|too_small|refus/;
+  const telling = /unmeasured|failed|undeterminable|skipped|threw|too_small|refus|not_stored/;
   return {
     result,
     checks: checkSite(result),
     health,
-    events: a.lines.filter((line) => typeof line.event === "string" && telling.test(JSON.stringify(line))).slice(0, 40),
+    // The pass's own lines ahead of its vendor calls' (issue 1414), so forty
+    // reads that timed out never crowd out the one line that says why.
+    events: a.lines
+      .filter((line) => typeof line.event === "string" && telling.test(JSON.stringify(line)))
+      .sort((x, y) => Number(x.event === "vendor_call") - Number(y.event === "vendor_call"))
+      .slice(0, 40),
     seconds: a.seconds,
     evidenceLoaded: a.evidenceLoaded,
   };
@@ -471,6 +479,8 @@ function markdown(a: { o: Options; runs: readonly SiteRun[]; notRun: readonly Pa
     const open = result.topics.filter((topic) => topic.status === "open");
     out.push(`- **Topics (${open.length} open of ${result.topics.length}):** ${open.map((topic) => `${topic.query} (${topic.type}, ${topic.volume ?? "no volume"}${topic.fit === null ? "" : `, fit ${topic.fit}`}${topic.ready === false ? ", held back" : ""})`).join("; ") || "none"}`);
     out.push(`- **Cost:** ${cents(result.cents)} in ${run.seconds}s — ${Object.entries(result.costBySource).sort((x, y) => y[1] - x[1]).map(([source, paid]) => `${source} ${cents(paid)}`).join(", ") || "nothing bought"}${run.evidenceLoaded === 0 ? "" : `; ${run.evidenceLoaded} stored vendor reads loaded`}`);
+    const said = saidOf(run.events);
+    if (said.length > 0) out.push(`- **The pass said:** ${said.join("; ")}`);
     out.push("", "| Check | Result | Detail |", "|---|---|---|");
     for (const check of run.checks) out.push(`| ${check.check} | ${MARK[check.verdict]} | ${check.detail.replace(/\|/g, "/")} |`);
     if (run.health.length > 0) out.push("", `The pass's own health checks (D58): ${run.health.map((check) => `${check.pass ? "pass" : "FAIL"} ${check.check}`).join(", ")}.`);

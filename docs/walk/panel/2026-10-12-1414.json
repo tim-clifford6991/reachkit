@@ -1,0 +1,651 @@
+{
+ "date": "2026-10-12",
+ "commit": "fd71aeed",
+ "capCents": 60,
+ "spentCents": 40.5903,
+ "refusedAtCap": 0,
+ "notRun": [
+  "zunicafe.com",
+  "austinplumbery.com",
+  "baeckerei-hinkel.de",
+  "alexander.co.uk",
+  "tattly.com",
+  "savvycal.com",
+  "clearleft.com",
+  "pdxsmiledesign.com",
+  "fletcherelectric.co.uk",
+  "streaksapp.com"
+ ],
+ "defects": [],
+ "sites": [
+  {
+   "site": {
+    "domain": "wesbos.com",
+    "kind": "creator and course business",
+    "country": "US",
+    "language": "en",
+    "kinds": [
+     "creator"
+    ],
+    "market": [
+     "course",
+     "javascript",
+     "web development",
+     "coding",
+     "programming"
+    ],
+    "why": "One person selling web-development courses under his own name. The brand is a person, the site is mostly a blog, and course marketplaces (Udemy) are not rivals."
+   },
+   "siteName": "Wes Bos",
+   "status": "done",
+   "stoppedReason": "complete",
+   "market": {
+    "buyer": "web developers and people learning web development",
+    "job": "learn web development and JavaScript",
+    "category": "web development courses",
+    "synonyms": [
+     "online coding courses",
+     "JavaScript tutorials",
+     "web dev training"
+    ],
+    "differentiators": [
+     "free and premium courses",
+     "twice-weekly Syntax podcast",
+     "hot tips collection",
+     "open-source course notes",
+     "full-stack JavaScript focus"
+    ],
+    "notOurMarket": [
+     "web development agencies",
+     "coding bootcamps",
+     "software development tools",
+     "web hosting services"
+    ],
+    "categoryReason": "The headline and all pages state Wes Bos creates free and premium courses to help people become web developers, with a podcast and teaching materials as the core products.",
+    "rivals": [
+     {
+      "domain": "codecademy.com",
+      "name": "Codecademy",
+      "basis": "ranks",
+      "reason": "Subscription-based interactive platform offering JavaScript and web development courses to beginners and self-taught developers.",
+      "searchNames": [
+       "codecademy"
+      ],
+      "volume": 74000,
+      "national": true
+     },
+     {
+      "domain": "freecodecamp.org",
+      "name": "freeCodeCamp",
+      "basis": "ranks",
+      "reason": "Free, project-based web development and JavaScript curriculum with certifications, widely recommended as a direct alternative to paid courses.",
+      "searchNames": [
+       "freecodecamp"
+      ],
+      "volume": 49500,
+      "national": true
+     },
+     {
+      "domain": "theodinproject.com",
+      "name": "The Odin Project",
+      "basis": "ai_answer",
+      "reason": "Free, open-source, full-stack web development curriculum consistently recommended by learners as the top self-taught alternative to paid courses like Wes Bos.",
+      "searchNames": [
+       "the odin project"
+      ],
+      "volume": 9900,
+      "national": true
+     },
+     {
+      "domain": "boot.dev",
+      "name": "Boot.dev",
+      "basis": "ranks",
+      "reason": "Paid interactive platform for learning back-end and full-stack web development, targeting self-taught developers seeking structured courses.",
+      "searchNames": [
+       "boot.dev"
+      ],
+      "volume": 8100,
+      "national": true
+     },
+     {
+      "domain": "scrimba.com",
+      "name": "Scrimba",
+      "basis": "ranks",
+      "reason": "Interactive coding course platform offering free and paid JavaScript and front-end web development courses, competing directly for the same self-taught developer audience.",
+      "searchNames": [
+       "scrimba"
+      ],
+      "volume": 5400,
+      "national": true
+     }
+    ],
+    "terms": [
+     {
+      "term": "JavaScript tutorial",
+      "volume": 135000
+     },
+     {
+      "term": "online web development course",
+      "volume": 27100
+     },
+     {
+      "term": "web development course",
+      "volume": 5400
+     },
+     {
+      "term": "front end development course",
+      "volume": 590
+     },
+     {
+      "term": "learn web development",
+      "volume": 480
+     },
+     {
+      "term": "coding course for beginners",
+      "volume": 480
+     },
+     {
+      "term": "full stack web development course",
+      "volume": 390
+     },
+     {
+      "term": "HTML and CSS course",
+      "volume": 170
+     },
+     {
+      "term": "learn JavaScript online",
+      "volume": 170
+     },
+     {
+      "term": "web design course for beginners",
+      "volume": 40
+     }
+    ],
+    "searchTerm": "JavaScript tutorial",
+    "termsAt": "2026-10-12T00:57:10.772Z",
+    "demand": {
+     "at": "2026-10-12T01:00:47.143Z",
+     "own": 320,
+     "brands": {
+      "wesbos": 320,
+      "scrimba": 5400,
+      "wes bos": 320,
+      "boot.dev": 8100,
+      "codecademy": 74000,
+      "freecodecamp": 49500,
+      "javascript.info": 0,
+      "the odin project": 9900,
+      "learnjavascript.online": 0,
+      "learn javascript online": 170,
+      "the modern javascript tutorial": 30
+     },
+     "searches": {
+      "boot alternatives": 0,
+      "scrimba alternatives": 10,
+      "codecademy alternatives": 110,
+      "freecodecamp alternatives": 20,
+      "the odin project alternatives": 10,
+      "learn javascript online alternatives": 0,
+      "the modern javascript tutorial alternatives": 0
+     }
+    },
+    "judged": {
+     "javascript modern tutorial": true,
+     "javascript online tutorial": true,
+     "css html javascript tutorial": true,
+     "free course on web development": true,
+     "web development course near me": false,
+     "best course for web development": true,
+     "front end web development course": true,
+     "free front end development course": true,
+     "web design and development course": true,
+     "front end development course online": true,
+     "free front end web development course": true,
+     "best online course for web development": true,
+     "free online course for web development": true,
+     "front end web development online course": true
+    },
+    "kind": "creator",
+    "serves": null
+   },
+   "deadRivals": [],
+   "wrongRivals": [],
+   "aiMode": {
+    "reads": 20,
+    "timeouts": 0
+   },
+   "pageQuestions": 4,
+   "locales": [
+    {
+     "location": "United States",
+     "language": "en"
+    }
+   ],
+   "stored": {
+    "country": "US",
+    "language": "en"
+   },
+   "searches": [
+    "javascript tutorial",
+    "online web development course",
+    "web development course",
+    "front end development course",
+    "coding course for beginners",
+    "learn web development",
+    "full stack web development course",
+    "best course for web development",
+    "html and css course",
+    "learn javascript online",
+    "best online course for web development",
+    "web design course for beginners"
+   ],
+   "knowledgePages": 18,
+   "questions": [
+    "How do you Detect the country?",
+    "How do you calculate the discount?",
+    "What about sales?"
+   ],
+   "audience": [
+    "web developer",
+    "developers in countries where their purchasing power isn't as strong as the US, Canada and Parts of Europe"
+   ],
+   "topics": [
+    {
+     "query": "best course for web development",
+     "status": "open",
+     "type": "listed_page",
+     "fit": 2,
+     "volume": 170,
+     "ready": false
+    },
+    {
+     "query": "front end development course",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 2,
+     "volume": 590,
+     "ready": false
+    },
+    {
+     "query": "coding course for beginners",
+     "status": "open",
+     "type": "answer_page",
+     "fit": 2,
+     "volume": 480,
+     "ready": false
+    },
+    {
+     "query": "full stack web development course pricing",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "html and css course",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 2,
+     "volume": 170,
+     "ready": false
+    },
+    {
+     "query": "wes bos vs codecademy",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "wes bos vs freecodecamp",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "wes bos vs the odin project",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "wes bos vs boot",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "wes bos vs scrimba",
+     "status": "open",
+     "type": "comparison_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "javascript tutorial pricing",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "online web development course pricing",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    },
+    {
+     "query": "front end development course pricing",
+     "status": "open",
+     "type": "keyword_page",
+     "fit": 3,
+     "volume": null,
+     "ready": true
+    }
+   ],
+   "cents": 40.590300000000006,
+   "costBySource": {
+    "site-profile": 0.4572,
+    "profile": 0.249,
+    "market-inference": 0.5288,
+    "market-terms": 0.6516,
+    "dataforseo_labs/google/keyword_overview": 2.2800000000000002,
+    "dataforseo_labs/google/keyword_suggestions": 7.2,
+    "market-searches": 0.8136,
+    "question-phrasing": 0.2583,
+    "serp/google/ai_mode": 8.000000000000002,
+    "serp/google/organic": 2.880000000000001,
+    "ai_optimization/chat_gpt/llm_scraper": 1.4400000000000004,
+    "site-knowledge": 7.616099999999999,
+    "rival-inference": 3.39,
+    "topic-buyer-searches": 0.207,
+    "topic-typed": 0.2347,
+    "topic-fit": 3.045,
+    "opportunity-typing": 1.1223,
+    "topic-same-question": 0.2167
+   },
+   "area": {
+    "place": null,
+    "location": null
+   },
+   "resultDomains": [
+    "www.w3schools.com",
+    "javascript.info",
+    "www.geeksforgeeks.org",
+    "developer.mozilla.org",
+    "www.javascripttutorial.net",
+    "www.codecademy.com",
+    "scrimba.com",
+    "www.youtube.com",
+    "www.udemy.com",
+    "www.coursera.org",
+    "www.reddit.com",
+    "pll.harvard.edu",
+    "www.linkedin.com",
+    "bootcamp.wse.jhu.edu",
+    "alison.com",
+    "mimo.org",
+    "www.freecodecamp.org",
+    "www.skillshare.com",
+    "www.graduateschool.edu",
+    "www.boot.dev",
+    "coursehorse.com",
+    "master.dev",
+    "www.nyiad.edu",
+    "digitalworkshopcenter.com",
+    "www.codechef.com",
+    "www.bestcolleges.com",
+    "www.futurelearn.com",
+    "www.springboard.com",
+    "daily.dev",
+    "web.dev",
+    "www.upskillist.com",
+    "www.makeuseof.com",
+    "zerotomastery.io",
+    "forum.freecodecamp.org",
+    "www.hyperiondev.com",
+    "www.computerscience.org",
+    "www.edx.org",
+    "www.almabetter.com",
+    "www.justinmind.com",
+    "stemlink.online",
+    "www.simplilearn.com",
+    "www.classcentral.com",
+    "www.codedex.io",
+    "learnjavascript.online",
+    "coddy.tech",
+    "www.learn-js.org",
+    "campus.w3schools.com",
+    "www.quora.com",
+    "webflow.com",
+    "certifiedprofessional.adobe.com",
+    "www.mooc-list.com",
+    "reddit.com",
+    "youtube.com",
+    "classcentral.com",
+    "udemy.com",
+    "mentorcruise.com"
+   ],
+   "prompts": [
+    {
+     "kind": "category",
+     "text": "Looking for the best JavaScript tutorial. Which would you recommend, and why?"
+    },
+    {
+     "kind": "category",
+     "text": "Which online web development course would learners actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "Which web development course would learners actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "Which front end development course would learners actually recommend this year?"
+    },
+    {
+     "kind": "category",
+     "text": "I am a complete beginner. Which JavaScript tutorial should I start with?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which JavaScript tutorial can I follow in the evenings alongside a full-time job?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which JavaScript tutorial would suit a complete beginner?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which JavaScript tutorial will get me to a real project quickly?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which JavaScript tutorial can I buy once, without a subscription?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which JavaScript tutorial would still be up to date this year?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which JavaScript tutorial should I take to get better at my job?"
+    },
+    {
+     "kind": "use-case",
+     "text": "Which JavaScript tutorial could I try for free before paying?"
+    },
+    {
+     "kind": "persona",
+     "text": "We are web developers and people learning web development. Which JavaScript tutorial would suit us best?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which JavaScript tutorial would you recommend for web developers and people learning web development?"
+    },
+    {
+     "kind": "persona",
+     "text": "Which JavaScript tutorial do web developers and people learning web development tend to rate highly?"
+    },
+    {
+     "kind": "persona",
+     "text": "I mentor web developers and people learning web development. Which JavaScript tutorial should I point them to?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best JavaScript tutorial: how does Codecademy compare with freeCodeCamp?"
+    },
+    {
+     "kind": "comparison",
+     "text": "What are the best alternatives to Codecademy for web developers and people learning web development?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best JavaScript tutorial: would you choose freeCodeCamp or The Odin Project?"
+    },
+    {
+     "kind": "comparison",
+     "text": "Looking for the best JavaScript tutorial for the money: Codecademy, freeCodeCamp or The Odin Project?"
+    },
+    {
+     "kind": "problem",
+     "text": "I keep starting and never finishing. Which JavaScript tutorial would keep me going?"
+    },
+    {
+     "kind": "problem",
+     "text": "Free tutorials have left me stuck. Which JavaScript tutorial would get me past that?"
+    },
+    {
+     "kind": "problem",
+     "text": "Which JavaScript tutorial should I take first, and what should I know before I pay?"
+    },
+    {
+     "kind": "branded",
+     "text": "Is Wes Bos a good choice for someone looking for the best JavaScript tutorial?"
+    },
+    {
+     "kind": "branded",
+     "text": "Looking for the best JavaScript tutorial: is Wes Bos a good alternative to Codecademy?"
+    }
+   ],
+   "checks": [
+    {
+     "check": "the category is specific, and is the business's own",
+     "verdict": "pass",
+     "detail": "\"web development courses\"",
+     "items": []
+    },
+    {
+     "check": "the search term has volume",
+     "verdict": "pass",
+     "detail": "\"JavaScript tutorial\" 135000/mo",
+     "items": []
+    },
+    {
+     "check": "the terms are in the site's own language and country",
+     "verdict": "pass",
+     "detail": "read in United States / en",
+     "items": []
+    },
+    {
+     "check": "3–5 rivals, none a listing, each with demand or seen by the pass",
+     "verdict": "pass",
+     "detail": "Codecademy — codecademy.com, 74000/mo, ranks; freeCodeCamp — freecodecamp.org, 49500/mo, ranks; The Odin Project — theodinproject.com, 9900/mo, ai_answer; Boot.dev — boot.dev, 8100/mo, ranks; Scrimba — scrimba.com, 5400/mo, ranks",
+     "items": []
+    },
+    {
+     "check": "no measured search is off-market, a rival's brand or navigational",
+     "verdict": "pass",
+     "detail": "12 read",
+     "items": []
+    },
+    {
+     "check": "knowledge-base buyer questions are real questions, not headings",
+     "verdict": "pass",
+     "detail": "3 questions",
+     "items": []
+    },
+    {
+     "check": "the audience is specific",
+     "verdict": "pass",
+     "detail": "\"web developers and people learning web development\"",
+     "items": []
+    },
+    {
+     "check": "topics are all on-market",
+     "verdict": "pass",
+     "detail": "13 read",
+     "items": []
+    },
+    {
+     "check": "the pass pays for answers: the knowledge base is bounded, AI Mode reads come back",
+     "verdict": "pass",
+     "detail": "knowledge base 7.62¢; 0 of 20 AI Mode reads timed out",
+     "items": []
+    },
+    {
+     "check": "the tracked prompts fit the kind of business",
+     "verdict": "pass",
+     "detail": "creator; 25 prompts",
+     "items": []
+    }
+   ],
+   "health": [
+    {
+     "check": "brand_volume",
+     "pass": true,
+     "detail": "5 rivals read under their own keywords"
+    },
+    {
+     "check": "prompt_rivals",
+     "pass": true,
+     "detail": "no tracked prompts"
+    },
+    {
+     "check": "market_terms",
+     "pass": true,
+     "detail": "10 searched terms; \"JavaScript tutorial\" has 135000"
+    },
+    {
+     "check": "mention_rate",
+     "pass": true,
+     "detail": "this pass asked no prompts"
+    },
+    {
+     "check": "serp_timeouts",
+     "pass": true,
+     "detail": "0 of 32 SERP reads timed out"
+    },
+    {
+     "check": "knowledge_base",
+     "pass": true,
+     "detail": "the knowledge base holds 18 pages"
+    }
+   ],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "wesbos.com",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    }
+   ],
+   "seconds": 292,
+   "evidenceLoaded": 35
+  }
+ ]
+}

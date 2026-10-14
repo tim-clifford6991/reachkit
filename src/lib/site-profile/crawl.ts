@@ -568,24 +568,39 @@ function isHttpError(outcome: FetchOutcome): boolean {
  *  A failure is ledgered as `refusalOf`'s row, which is the shape
  *  `costs/cache.ts` refuses to serve back: this key is the measurement
  *  pass's own, and a crawl-time refusal must not negative-cache it for the
- *  window (BUILD §6.4 — no negative cache). */
+ *  window (BUILD §6.4 — no negative cache).
+ *
+ *  A row the ledger could not write is that page's loss and no other's
+ *  (owner, 2026-10-12, issue 1414): the page is left out and said, and the
+ *  crawl keeps the rest. */
 async function ledger(
   c: CostContext,
   url: string,
   prefetched: FetchOutcome
 ): Promise<StoredDocument | null> {
-  const result = await c.recordFetch<StoredDocument | FetchRefusal>({
-    source: OWN_FETCH_SOURCE,
-    cacheKey: url,
-    freshnessDays: CACHE_WINDOWS_D.own,
-    costCents: 0,
-    // The document is already in hand: `run` hands the ledger what phase
-    // one fetched. It is called only on a cache miss, which is the
-    // ordinary case for a crawl (see the header).
-    run: async () => (prefetched.ok ? toStoredDocument(prefetched) : refusalOf(prefetched)),
-  });
-  if ("skipped" in result) return null;
-  return siteDocumentOf(result.payload);
+  try {
+    const result = await c.recordFetch<StoredDocument | FetchRefusal>({
+      source: OWN_FETCH_SOURCE,
+      cacheKey: url,
+      freshnessDays: CACHE_WINDOWS_D.own,
+      costCents: 0,
+      // The document is already in hand: `run` hands the ledger what phase
+      // one fetched. It is called only on a cache miss, which is the
+      // ordinary case for a crawl (see the header).
+      run: async () => (prefetched.ok ? toStoredDocument(prefetched) : refusalOf(prefetched)),
+    });
+    if ("skipped" in result) return null;
+    return siteDocumentOf(result.payload);
+  } catch (error) {
+    notStored(url, error);
+    return null;
+  }
+}
+
+function notStored(url: string, error: unknown): void {
+  console.log(
+    JSON.stringify({ event: "site_page_not_stored", url, because: error instanceof Error ? error.message : String(error) })
+  );
 }
 
 /** The home document, cache-first. The sibling of `ledger` above, and
@@ -601,27 +616,38 @@ async function readHome(
   reader: BoundedReader
 ): Promise<{ url: string; html: string; fetchMs: number | null } | null> {
   let fetchMs: number | null = null;
-  const result = await c.recordFetch<StoredDocument | FetchRefusal>({
-    source: OWN_FETCH_SOURCE,
-    cacheKey: homeUrl,
-    freshnessDays: CACHE_WINDOWS_D.own,
-    costCents: 0,
-    run: async () => {
-      const read = await reader.read(homeUrl);
-      fetchMs = read.fetchMs;
-      // A read the deadline ended is not a fact about the home page; the
-      // refusal row is still the one shape the cache never serves back.
-      const outcome: FetchOutcome =
-        read.outcome === "aborted"
-          ? { ok: false, reason: "timeout", url: homeUrl, readAt: new Date() }
-          : read.outcome;
-      // A refusal here is the measurement pass's home key: `refusalOf`'s
-      // row is the shape the cache never serves back (BUILD §6.4).
-      return outcome.ok ? toStoredDocument(outcome) : refusalOf(outcome);
-    },
-  });
-  if ("skipped" in result) return null;
-  const document = siteDocumentOf(result.payload);
+  let read: StoredDocument | FetchRefusal | null = null;
+  let payload: StoredDocument | FetchRefusal | null;
+  try {
+    const result = await c.recordFetch<StoredDocument | FetchRefusal>({
+      source: OWN_FETCH_SOURCE,
+      cacheKey: homeUrl,
+      freshnessDays: CACHE_WINDOWS_D.own,
+      costCents: 0,
+      run: async () => {
+        const home = await reader.read(homeUrl);
+        fetchMs = home.fetchMs;
+        // A read the deadline ended is not a fact about the home page; the
+        // refusal row is still the one shape the cache never serves back.
+        const outcome: FetchOutcome =
+          home.outcome === "aborted"
+            ? { ok: false, reason: "timeout", url: homeUrl, readAt: new Date() }
+            : home.outcome;
+        // A refusal here is the measurement pass's home key: `refusalOf`'s
+        // row is the shape the cache never serves back (BUILD §6.4).
+        return (read = outcome.ok ? toStoredDocument(outcome) : refusalOf(outcome));
+      },
+    });
+    if ("skipped" in result) return null;
+    payload = result.payload;
+  } catch (error) {
+    // Its row could not be written (issue 1414). The home document is the
+    // whole of a site's discovery, so the one in hand is still read: the
+    // rest of the site does not depend on this page saving.
+    notStored(homeUrl, error);
+    payload = read;
+  }
+  const document = siteDocumentOf(payload);
   return document === null ? null : { url: document.url, html: document.html, fetchMs };
 }
 

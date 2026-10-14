@@ -115,7 +115,7 @@ export async function writeFetchRow(row: {
     policy_version: row.policyVersion,
     reserved_cents: row.reservedCents,
     cost_cents: row.costCents,
-    payload: row.payload,
+    payload: storable(row.payload),
     ...(row.durationMs === undefined ? {} : { duration_ms: Math.round(row.durationMs) }),
   };
   const insert = (values: object) => untypedFetches(dbAdmin()).from<FetchesRow>("fetches").insert(values);
@@ -130,6 +130,16 @@ export async function writeFetchRow(row: {
   if (error) {
     throw new Error(`ledger.ts: insert into fetches failed: ${error.message}`);
   }
+}
+
+/** The payload as `jsonb` can hold it (issue 1414): Postgres refuses a
+ *  string with a NUL in it ("unsupported Unicode escape sequence"), whoever
+ *  sent it — a page, a vendor or a model — and the row is the ledger, so
+ *  the character goes and the row is written. */
+function storable(payload: unknown): unknown {
+  const json = JSON.stringify(payload);
+  if (json === undefined || !json.includes("\\u0000")) return payload;
+  return JSON.parse(json, (_key, value: unknown) => (typeof value === "string" ? value.replaceAll("\u0000", "") : value));
 }
 
 /** PostgREST's answer for a column its schema cache does not hold

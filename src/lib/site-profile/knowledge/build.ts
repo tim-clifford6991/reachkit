@@ -14,6 +14,7 @@ import { readSiteProfile } from "../store";
 import { readKnowledge, type KnowledgePage, type KnowledgeRead } from "./extract";
 import { isEmptyShell, readRenderedPages } from "./rendered";
 import { readStoredKnowledge, writeStoredKnowledge } from "./store";
+import { NO_KNOWLEDGE } from "./types";
 
 /** A sitemap or a robots file is ledgered like a page and is not one. */
 const NOT_A_PAGE_RE = /\.(?:xml|txt|json)$/i;
@@ -64,9 +65,24 @@ export async function buildKnowledge(
   // every pass, never of an earlier pass's rendered reads.
   const served = (await readMeasuredText({ siteId: a.siteId })).filter((page) => page.rendered !== true);
   const held = ownPages(served, a.domain);
-  const listed = new Set(
-    ((await readSiteProfile(a.domain).catch(() => null))?.inventory ?? []).map((row) => sameAddress(row.url))
-  );
+  const profile = await readSiteProfile(a.domain).catch(() => undefined);
+  // The base is kept in the profile's row (issue 1414). Where the pass
+  // stored no profile there is nowhere to keep it: on wesbos.com the read
+  // was bought, written to no row, and nothing said so. It is said, and
+  // nothing is bought.
+  if (profile === null) {
+    console.log(
+      JSON.stringify({
+        event: "site_knowledge_failed",
+        domain: a.domain,
+        because: "the pass stored no site profile, so the knowledge base has no row to be kept in",
+        held: held.length,
+        asked: 0,
+      })
+    );
+    return { knowledge: NO_KNOWLEDGE, asked: 0, reused: 0, stoppedBy: "complete" };
+  }
+  const listed = new Set((profile?.inventory ?? []).map((row) => sameAddress(row.url)));
   const current = held.filter((page) => listed.has(sameAddress(page.url)));
   let pages = current.length > 0 ? current : held;
   const shell = isEmptyShell(pages);

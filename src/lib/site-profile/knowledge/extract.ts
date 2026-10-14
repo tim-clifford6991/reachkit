@@ -25,9 +25,8 @@ import { z } from "zod";
 import { INFERENCE_MAX_OUTPUT_TOKENS, KNOWLEDGE_BASE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
-import { derivePurpose } from "../purpose";
 import { isBuyerQuestion, isSpecificAudience } from "./clean";
-import { isNeverRead, readFirstRank } from "./priority";
+import { isReadForFacts, readFirstRank } from "./priority";
 import type { PageReading, StoredKnowledge, StoredPage } from "./types";
 
 export const KNOWLEDGE_CALL_SITE = "site-knowledge" as const;
@@ -114,9 +113,7 @@ export function readablePages(
   all: readonly KnowledgePage[],
   demoPhrases: readonly string[] = demoPhrasesOf(all)
 ): readonly KnowledgePage[] {
-  const pages = all.filter(
-    (page) => derivePurpose({ url: page.url, title: "", h1: "" }) !== "legal" && !isNeverRead(page.url)
-  );
+  const pages = all.filter((page) => isReadForFacts(page.url));
   const demo = new Set(demoPhrases);
   const repeated = (line: string): boolean => {
     const count = onPages.get(line) ?? 0;

@@ -6,7 +6,7 @@
 // well, and a German bakery it read as an American software company — so
 // nothing is bought.
 import { describe, expect, it } from "vitest";
-import { checkSite, defectsByKind, isRealQuestion, type CheckResult, type SiteResult } from "../../scripts/panel/checks";
+import { checkSite, countPageQuestions, defectsByKind, isRealQuestion, saidOf, type CheckResult, type SiteResult } from "../../scripts/panel/checks";
 
 const plumber: SiteResult = {
   site: { domain: "northside-plumbing.example", kind: "local service (plumber)", country: "US", language: "en", market: ["plumb"], why: "fixture" },
@@ -171,6 +171,28 @@ describe("npm run panel — a pass held to what the business is", () => {
     expect(check(0)).toMatchObject({ verdict: "pass", detail: "the site's own pages ask no question, and none is kept" });
     expect(check(5).verdict).toBe("fail");
     expect(check(null).verdict).toBe("review");
+  });
+
+  it("counts the questions of the pages the base reads, never a privacy policy's headings (issue 1414, streaksapp.com)", () => {
+    const policy = "<body><main><h2>What information does the app obtain and how is it used?</h2><p>We collect nothing.</p><h2>What are my opt-out rights?</h2><p>Delete the app.</p></main></body>";
+    const faq = "<body><main><h2>Does the app work on a watch?</h2><p>It does.</p></main></body>";
+    expect(countPageQuestions([{ url: "https://habits.example/privacy.html", html: policy }])).toBe(0);
+    expect(countPageQuestions([{ url: "https://habits.example/privacy.html", html: policy }, { url: "https://habits.example/faq", html: faq }])).toBe(1);
+  });
+
+  it("says what the pass's own log gave as the reason, each once with its count (issue 1414, wesbos.com)", () => {
+    const timeout = { event: "vendor_call", source: "ai_optimization/chat_gpt/llm_scraper", outcome: "failed", failure: "deadline", reason: "task not ready by the deadline" };
+    expect(
+      saidOf([
+        { event: "drivers_measured", aiPresence: "unmeasured" },
+        { event: "site_profile_undeterminable", because: "ledger.ts: insert into fetches failed: unsupported Unicode escape sequence" },
+        timeout,
+        timeout,
+      ])
+    ).toEqual([
+      "site_profile_undeterminable: ledger.ts: insert into fetches failed: unsupported Unicode escape sequence",
+      "vendor_call ai_optimization/chat_gpt/llm_scraper: task not ready by the deadline (2 times)",
+    ]);
   });
 
   it("sends what it cannot judge to a person: a listing's own rivals, a non-English wording, an unread base", () => {

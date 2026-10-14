@@ -457,7 +457,10 @@ export async function safeFetch(url: string, opts?: SafeFetchOpts): Promise<Fetc
     }
 
     // result.kind === "final"
-    const html = result.body.toString("utf8");
+    // A NUL is no character of a document (issue 1414): a browser drops it,
+    // and Postgres stores no text that holds one, so one such page of
+    // wesbos.com cost the pass its whole site profile.
+    const html = result.body.toString("utf8").replaceAll("\u0000", "");
     // Node lowercases header names and joins a repeated header itself; an
     // array-valued header (`set-cookie`) is joined here rather than
     // dropped, so the map is total over what the server actually sent.
