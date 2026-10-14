@@ -47,6 +47,8 @@ export const CHALLENGE_HEADERS = Object.freeze([
   "x-datadome",
   "x-sucuri-block",
   "x-iinfo",
+  // Issue 1427: when a refusing server asks to be asked again.
+  "retry-after",
 ] as const);
 
 export interface ChallengeInput {
@@ -147,6 +149,65 @@ export function challengeOf(a: ChallengeInput): ProtectionVendor | null {
   if (visibleText(a.html).length >= SPARSE_CHARS) return null;
   for (const [re, vendor] of SPARSE_BODIES) if (re.test(a.html)) return vendor;
   return null;
+}
+
+/**
+ * SPEC §2 (issue 1427) — what a read answered in place of the site's page.
+ *
+ * A protection's page (above) is one kind. The other is an answer that is
+ * no document at all: an error status (a 429 rate limit, a 403 block, a
+ * 404, a 503), or a 2xx whose body is empty, a bare string in place of a
+ * page (`local_rate_limited`), or a rate-limit message. tattly.com's
+ * profile was read off exactly that string on 2026-10-14 and named a
+ * "residential proxy service" whose brand was `local_rate_limited`.
+ *
+ * The one detector for the score and the profile both: `challengeOf` is
+ * asked first, so a protection's page keeps its vendor and its rendered
+ * read.
+ */
+export type NotTheSite =
+  | { kind: "protection"; vendor: ProtectionVendor }
+  | {
+      kind: "error";
+      status: number;
+      /** How long the server asked to be left, where it said (`Retry-After`). */
+      retryAfterMs: number | null;
+    };
+
+const RATE_LIMIT_RE = /rate[\s_-]?limit|too many requests/i;
+const MARKUP_RE = /<[a-z!]/i;
+
+/** A body that is no page: nothing, a bare string, or a short page whose
+ *  words are a rate limit's. A page of the site's own has markup, and one
+ *  that mentions a rate limit in passing has more to say than that. A large
+ *  page is never one: figma.com's, zendesk.com's and tally.so's own home
+ *  pages carry "rate limit" in their scripts' strings. */
+function noDocument(html: string): boolean {
+  const body = html.trim();
+  if (body === "") return true;
+  if (!MARKUP_RE.test(body)) return body.length < SPARSE_CHARS;
+  if (body.length > CHALLENGE_MAX_BYTES) return false;
+  const text = visibleText(body);
+  return text.length < SPARSE_CHARS && RATE_LIMIT_RE.test(text);
+}
+
+/** `Retry-After` as milliseconds: seconds, or an HTTP date. */
+function retryAfterOf(headers: Readonly<Record<string, string>>, readAt: number): number | null {
+  const value = (headers["retry-after"] ?? "").trim();
+  if (value === "") return null;
+  if (/^\d+$/.test(value)) return Number(value) * 1000;
+  const date = Date.parse(value);
+  return Number.isNaN(date) ? null : Math.max(0, date - readAt);
+}
+
+/** What this response is in place of the site's page, or `null` where it is
+ *  the site's page. `readAt` dates a `Retry-After` given as a date. */
+export function notTheSiteOf(a: ChallengeInput & { readAt?: string }): NotTheSite | null {
+  const vendor = challengeOf(a);
+  if (vendor !== null) return { kind: "protection", vendor };
+  if (a.status < 400 && !noDocument(a.html)) return null;
+  const readAt = a.readAt === undefined ? Number.NaN : new Date(a.readAt).getTime();
+  return { kind: "error", status: a.status, retryAfterMs: retryAfterOf(a.headers ?? {}, Number.isNaN(readAt) ? Date.now() : readAt) };
 }
 
 /** What a challenge page's title leaves as a "site name" once the page half
