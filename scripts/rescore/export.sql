@@ -17,6 +17,10 @@
 -- there is added to the two lists below. `exportedAt` is the newest scan's
 -- time, so the document is the same in every chunk's call.
 --
+-- A Measured's value that is a list stays a list when it is empty: `jsonb_agg`
+-- over no rows is null, which `jsonb_strip_nulls` would drop (issue 1431), so
+-- each is coalesced to `[]`; one the report never stored stays absent.
+--
 -- `:WHERE` narrows the scans (`true` for all of them, `s.domain in (…)` for
 -- a few). The document is `doc.j`; `scripts/pass/assemble.mjs` says how it is
 -- fetched in checked chunks, and is given `--out <file>`.
@@ -105,9 +109,10 @@ scan_rows as (
                     'value', case when s.report->'market'->'value' is null then null
                              else jsonb_build_object('profile', jsonb_build_object('category', s.report->'market'->'value'->'profile'->'category')) end)),
         'questions', jsonb_strip_nulls(jsonb_build_object('kind', s.report->'questions'->'kind', 'reason', s.report->'questions'->'reason', 'at', s.report->'questions'->'at',
-                    'value', (select jsonb_agg(jsonb_build_object('id', q->'id', 'text', '', 'phrasing', q->'phrasing',
-                                'search', jsonb_build_object('keyword', q->'search'->'keyword', 'volume', q->'search'->'volume')) order by i)
-                              from jsonb_array_elements(s.report->'questions'->'value') with ordinality x(q, i)))),
+                    'value', case when jsonb_typeof(s.report->'questions'->'value') = 'array' then
+                              (select coalesce(jsonb_agg(jsonb_build_object('id', q->'id', 'text', '', 'phrasing', q->'phrasing',
+                                'search', jsonb_build_object('keyword', q->'search'->'keyword', 'volume', q->'search'->'volume')) order by i), '[]'::jsonb)
+                               from jsonb_array_elements(s.report->'questions'->'value') with ordinality x(q, i)) end)),
         'serps', (select coalesce(jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
                     'kind', e->'kind', 'reason', e->'reason', 'because', e->'because', 'at', e->'at',
                     'value', case when e->'value' is null then null else jsonb_build_object(
@@ -123,8 +128,9 @@ scan_rows as (
                         'referenceUrls', e->'value'->'aiOverview'->'referenceUrls'))) end)) order by i), '[]'::jsonb)
                   from jsonb_array_elements(coalesce(s.report->'serps', '[]'::jsonb)) with ordinality x(e, i)),
         'rivalSizes', jsonb_strip_nulls(jsonb_build_object('kind', s.report->'rivalSizes'->'kind', 'reason', s.report->'rivalSizes'->'reason', 'at', s.report->'rivalSizes'->'at',
-                    'value', (select jsonb_agg(jsonb_strip_nulls(jsonb_build_object('domain', z->'domain', 'state', z->'state', 'band', z->'band')))
-                              from jsonb_array_elements(s.report->'rivalSizes'->'value') z))),
+                    'value', case when jsonb_typeof(s.report->'rivalSizes'->'value') = 'array' then
+                              (select coalesce(jsonb_agg(jsonb_strip_nulls(jsonb_build_object('domain', z->'domain', 'state', z->'state', 'band', z->'band'))), '[]'::jsonb)
+                               from jsonb_array_elements(s.report->'rivalSizes'->'value') z) end)),
         'aiAnswers', case when jsonb_typeof(s.report->'aiAnswers') <> 'object' then 'null'::jsonb else jsonb_build_object(
           'measuredSearches', s.report->'aiAnswers'->'measuredSearches',
           'answeredSearches', s.report->'aiAnswers'->'answeredSearches',

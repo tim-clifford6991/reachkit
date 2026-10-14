@@ -116,3 +116,28 @@ describe("zapier.com's scan of 6 October (issue 1419): AI presence set by the on
     expect(row.result.status).toBe("degraded");
   });
 });
+
+describe("a report from before 2 October whose questions and rival sizes were zero (issue 1431)", () => {
+  const doc = exported("gusto.com");
+  const scan = doc.scans[0]!;
+  const zeroed = (value?: unknown[]): Export => {
+    const report = structuredClone(scan.report) as Record<string, Record<string, unknown>>;
+    const at = report.questions!.at;
+    report.questions = value === undefined ? { kind: "zero", at } : { kind: "zero", value, at };
+    report.rivalSizes = value === undefined ? { kind: "zero", at } : { kind: "zero", value, at };
+    return { ...doc, scans: [{ ...scan, report }] };
+  };
+
+  it("is scored again over its empty lists", () => {
+    const { rows, unreadable } = rescoreExport(zeroed([]));
+    expect(unreadable).toEqual([]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.result.after.aiAnswers?.measuredSearches).toBe(0);
+  });
+
+  it("is named, not crashed on, where the export lost a list", () => {
+    const { rows, unreadable } = rescoreExport(zeroed());
+    expect(rows).toEqual([]);
+    expect(unreadable).toEqual([{ id: scan.id, because: "questions is zero but the export carries no list" }]);
+  });
+});
