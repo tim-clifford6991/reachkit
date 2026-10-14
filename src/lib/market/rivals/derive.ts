@@ -131,10 +131,6 @@ export function deriveRivals(a: {
     for (const row of serp.organic) {
       const domain = classify(row.domain);
       if (domain === null || countedTop10.has(domain)) continue;
-      // Issue 1417: a domain that holds a place with an article about
-      // others — a "best tools" list — is their publisher there, not their
-      // rival.
-      if (row.url !== undefined && isArticleUrl(row.url)) continue;
       countedTop10.add(domain);
       tally(domain).top10Appearances += 1;
     }

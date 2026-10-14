@@ -18,7 +18,7 @@ import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { isPlaceholder } from "@/lib/measure/placeholder";
-import { isOwnDomain, isPlatformDomain, nameLetters, registrableDomain } from "@/lib/market/rivals/domains";
+import { isListingAddress, isOwnDomain, isPlatformDomain, nameLetters, registrableDomain } from "@/lib/market/rivals/domains";
 import { localSearch, placeOf } from "@/lib/locale/place";
 import { servingEvidence } from "@/lib/locale/serving";
 import { BUSINESS_KINDS, BUSINESS_KIND_NAMES, type BusinessKind } from "@/lib/market/kinds";
@@ -163,7 +163,7 @@ export function concludeRivals(
     // Issue 1417: a product known by its store page or directory entry is
     // kept at its own site where this pass read one, and is dropped where
     // it did not — never stored under the listing's domain.
-    const listed = isPlatformDomain(candidate.domain);
+    const listed = isPlatformDomain(candidate.domain) || isListingAddress(candidate.domain);
     const domain = listed ? ownSiteOf(candidate.name, evidence) : registrableDomain(candidate.domain);
     if (listed) console.log(JSON.stringify({ event: "rival_on_a_listing", name: candidate.name, listing: candidate.domain, kept: domain }));
     if (domain === null || taken.has(domain)) continue;
@@ -219,7 +219,7 @@ export function ownSiteOf(name: string, evidence: MarketEvidence): string | null
   const tally = new Map<string, number>();
   const count = (hostOrUrl: string): void => {
     const domain = registrableDomain(hostOrUrl);
-    if (domain === null || isPlatformDomain(hostOrUrl) || isOwnDomain(domain, evidence.domain)) return;
+    if (domain === null || isPlatformDomain(hostOrUrl) || isListingAddress(hostOrUrl) || isOwnDomain(domain, evidence.domain)) return;
     tally.set(domain, (tally.get(domain) ?? 0) + 1);
   };
   for (const answer of evidence.answers) {

@@ -88,4 +88,17 @@ describe("concludeRivals", () => {
     const rivals = concludeRivals({ candidates: [product("apps.apple.com", { name: "Loopy" }), product("habi.app")] }, HABITS);
     expect(rivals.map((r) => r.domain)).toEqual(["habi.app"]);
   });
+
+  it("keeps a marketplace that is a rival, and drops one business's page on it (master review of #1421)", () => {
+    const courses = concludeRivals(
+      { candidates: [product("udemy.com", { name: "Udemy" }), product("https://www.udemy.com/course/modern-javascript/", { name: "Modern JavaScript" })] },
+      { ...EVIDENCE, domain: "wesbos.com" }
+    );
+    expect(courses.map((r) => r.domain)).toEqual(["udemy.com"]);
+    const newsletters = concludeRivals(
+      { candidates: [product("substack.com", { name: "Substack" }), product("lenny.substack.com", { name: "Lenny's Newsletter" })] },
+      { ...EVIDENCE, domain: "beehiiv.com" }
+    );
+    expect(newsletters.map((r) => r.domain)).toEqual(["substack.com"]);
+  });
 });
