@@ -20,7 +20,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type DbQuery } from "../run/harness";
 import { asQueue, pollTheQueueAtOnce } from "../../vendors/harness";
-import { PROFILE_LIST_BOUNDS } from "../../../src/lib/config/constants";
+import { PROFILE_LIST_BOUNDS, SCORING } from "../../../src/lib/config/constants";
 import { toolUseMessage } from "../../llm/fixtures";
 import type { FetchOutcome, RobotsPolicy } from "../../../src/lib/egress/types";
 
@@ -266,7 +266,7 @@ describe("figma's own answer: an over-full list no longer empties the report (is
     expect(OVER_FULL_PROFILE.brandTokens.length).toBe(PROFILE_LIST_BOUNDS.brandTokens.max + 1);
   });
 
-  it("the profile is kept and trimmed, the market is bought, and the report has questions, a score and a band", async () => {
+  it("the profile is kept and trimmed, the market is bought, and the report has questions and every factor the market feeds", async () => {
     const stored = await scan();
 
     // The market read happened at all, which is what the empty report hung
@@ -276,13 +276,17 @@ describe("figma's own answer: an over-full list no longer empties the report (is
     const report = stored.p_report as {
       questions: { kind: string; value?: unknown[] };
       market: { kind: string; value?: { profile: { brandTokens: string[] } } };
-      verdict: { scoreAndBand: { kind: string; value?: { score: number; band: string } } };
+      verdict: { missing: { factor: string }[] };
+      serps: { kind: string }[];
     };
     expect(report.questions.kind).not.toBe("unmeasured");
     expect(report.questions.value?.length ?? 0).toBeGreaterThan(0);
-    expect(stored.p_score).not.toBeNull();
-    expect(report.verdict.scoreAndBand.kind).not.toBe("unmeasured");
-    expect(report.verdict.scoreAndBand.value?.band).toBeTruthy();
+    expect(report.serps.every((serp) => serp.kind !== "unmeasured")).toBe(true);
+    // This market yields three questions, and AI presence is a rate over at
+    // least four read results (issue 1419), so presence is the one factor
+    // without a value; the profile the market came from is not the reason.
+    expect(report.questions.value?.length).toBeLessThan(SCORING.aiPresenceMinReads);
+    expect(report.verdict.missing.map((m) => m.factor)).toEqual(["presence"]);
 
     // Trimmed to the cap, in the model's own order.
     expect(report.market.value?.profile.brandTokens).toEqual(

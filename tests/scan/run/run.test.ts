@@ -350,6 +350,31 @@ describe("the six stages", () => {
   });
 });
 
+describe("issue 1419 — the free pass reads its market while its site is crawled", () => {
+  it("asks for the market and its Google reads before the crawl ends, and stores the report only after it", async () => {
+    let crawled: () => void = () => undefined;
+    buildSiteProfileWithCrawl.mockImplementationOnce(async () => {
+      await new Promise<void>((resolve) => {
+        crawled = resolve;
+      });
+      return {
+        profile: null,
+        crawl: { pages: [], discovered: 0, stoppedBy: "complete", fetched: [], broken: [], sitemap: "absent" },
+      };
+    });
+
+    const pass = runScan({ domain: DOMAIN, tier: "free" });
+    await vi.waitFor(() => expect(serpOrganic).toHaveBeenCalledTimes(TWELVE.length));
+    expect(deriveProfile).toHaveBeenCalledTimes(1);
+    expect(storeCurrentReport).not.toHaveBeenCalled();
+
+    crawled();
+    await expect(pass).resolves.toEqual({ scanId: CLAIMED_ID, status: "done" });
+    // The crawl's own ending, so its site issues are in the report.
+    expect(storedReport().siteIssues?.stoppedBy).toBe("complete");
+  });
+});
+
 describe("a stage that spends its own budget (issue #539)", () => {
   it("a stage one that ran out of budget ends the pass bounded — never `complete`, never unreadable", async () => {
     vi.useFakeTimers();
@@ -424,10 +449,10 @@ describe("a pass its own deadline cut off (issue 607)", () => {
       // wait for: loaded here, the timeline below is the pass's own.
       await import("@/lib/site-profile");
       await import("@/lib/site-issues");
-      // The crawl is outside every stage budget, so it is what carries the
-      // pass towards its own ceiling: the twelve start with less of the
-      // pass left than their own stage budget, and the pass's deadline —
-      // not the stage's — is what cuts them off.
+      // The crawl is outside every stage budget, and the pass waits for it
+      // before it scores (issue 1419), so it is what carries the pass to its
+      // own ceiling: the pass's deadline — not the stage's — is what cuts
+      // the held twelve off.
       const crawlMs = (TIMING.reportCeilingS - STAGE_BUDGETS.asking_the_twelve.seconds / 2) * 1000;
       buildSiteProfileWithCrawl.mockImplementationOnce(async () => {
         await new Promise((resolve) => setTimeout(resolve, crawlMs));

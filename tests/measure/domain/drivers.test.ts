@@ -20,9 +20,12 @@ import {
   foundationsOf,
   ownRankedOf,
   searchPresenceOf,
+  TOO_FEW_READ,
 } from "../../../src/lib/measure/drivers.ts";
 import { measured, measuredZero, unmeasured, type Measured } from "../../../src/lib/measure/measured.ts";
 import type { OnPageFacts } from "../../../src/lib/measure/parse.ts";
+import { computeScore, factorsOf } from "../../../src/lib/measure/score.ts";
+import stored from "./fixtures/ai-presence-free-scans.json";
 
 const AT = new Date("2026-09-05T00:00:00.000Z");
 const OWN = "reachkit.app";
@@ -379,17 +382,21 @@ describe('BUILD §5: "SearchPresence = min(100, 25 × log10(ranked + 1)) × (0.5
 });
 
 describe('BUILD §5: "AIPresence = max(1, (0.4 × mentionRate + 0.6 × citationRate) × 100)"', () => {
+  /** The fewest reads AI presence is a rate over (issue 1419), each the same SERP. */
+  const enough = (references: readonly string[]): Measured<SerpResult>[] =>
+    Array.from({ length: SCORING.aiPresenceMinReads }, () => measured(serp(references), AT));
+
   it("AIPresence weights citations above mentions", () => {
-    const mentionsOnly = aiPresenceOf({ serps: [measured(serp(["g2.com/reachkit"]), AT)], ownDomain: OWN, at: AT });
+    const mentionsOnly = aiPresenceOf({ serps: enough(["g2.com/reachkit"]), ownDomain: OWN, at: AT });
     expect(valueOf(mentionsOnly)).toBeCloseTo(40, 10);
 
-    const citationsOnly = aiPresenceOf({ serps: [measured(serp(["reachkit.app"]), AT)], ownDomain: OWN, at: AT });
+    const citationsOnly = aiPresenceOf({ serps: enough(["reachkit.app"]), ownDomain: OWN, at: AT });
     expect(valueOf(citationsOnly)).toBeCloseTo(60, 10);
   });
 
   it("a measured set that names the customer nowhere is a zero carrying the floor of 1, not a 0", () => {
     const m = aiPresenceOf({
-      serps: [measured(serp(["example.com", "other.example"]), AT), measured(serp([], false), AT)],
+      serps: [...enough(["example.com", "other.example"]), measured(serp([], false), AT)],
       ownDomain: OWN,
       at: AT,
     });
@@ -410,22 +417,22 @@ describe('BUILD §5: "AIPresence = max(1, (0.4 × mentionRate + 0.6 × citationR
   });
 
   it("a reference that carries a path still resolves to its host — the customer's own path is a citation, not a mention", () => {
-    const m = aiPresenceOf({ serps: [measured(serp(["reachkit.app/pricing"]), AT)], ownDomain: OWN, at: AT });
+    const m = aiPresenceOf({ serps: enough(["reachkit.app/pricing"]), ownDomain: OWN, at: AT });
     expect(valueOf(m)).toBeCloseTo(60, 10);
   });
 
   it("a subdomain of the customer's own domain is a citation; a third-party host carrying the brand token is a mention", () => {
-    const subdomain = aiPresenceOf({ serps: [measured(serp(["docs.reachkit.app"]), AT)], ownDomain: OWN, at: AT });
+    const subdomain = aiPresenceOf({ serps: enough(["docs.reachkit.app"]), ownDomain: OWN, at: AT });
     expect(valueOf(subdomain)).toBeCloseTo(60, 10);
 
-    const thirdParty = aiPresenceOf({ serps: [measured(serp(["reachkit.medium.com"]), AT)], ownDomain: OWN, at: AT });
+    const thirdParty = aiPresenceOf({ serps: enough(["reachkit.medium.com"]), ownDomain: OWN, at: AT });
     expect(valueOf(thirdParty)).toBeCloseTo(40, 10);
   });
 
   it("the brand token matches whole tokens only — a longer word that merely contains it is not a mention", () => {
     // Brand token "app" from "app.com": "apple.com" contains it as a
     // substring and is not a mention of it.
-    const m = aiPresenceOf({ serps: [measured(serp(["apple.com"]), AT)], ownDomain: "app.com", at: AT });
+    const m = aiPresenceOf({ serps: enough(["apple.com"]), ownDomain: "app.com", at: AT });
     expect(m.kind).toBe("zero");
     expect(valueOf(m)).toBe(1);
   });
@@ -464,14 +471,71 @@ describe("BP-010 `## Module / boundary` — the driver arithmetic is pure", () =
 describe("issue 1357 — an AI Overview whose sources were not loaded is not an answer naming nobody", () => {
   const unread: SerpResult = { organic: [], aiOverview: { present: true, asynchronousAiOverview: true, referenceDomains: [], unread: true } };
 
-  it("is in neither rate: the site cited on the one SERP that was read scores as cited on all of them", () => {
-    const cited = measured(serp(["reachkit.app"]), AT);
-    const alone = aiPresenceOf({ serps: [cited], ownDomain: OWN, at: AT });
-    const beside = aiPresenceOf({ serps: [cited, measured(unread, AT), measured(unread, AT)], ownDomain: OWN, at: AT });
+  it("is in neither rate: the site cited on every SERP that was read scores as cited on all of them", () => {
+    const cited = Array.from({ length: SCORING.aiPresenceMinReads }, () => measured(serp(["reachkit.app"]), AT));
+    const alone = aiPresenceOf({ serps: cited, ownDomain: OWN, at: AT });
+    const beside = aiPresenceOf({ serps: [...cited, measured(unread, AT), measured(unread, AT)], ownDomain: OWN, at: AT });
     expect(valueOf(beside)).toBe(valueOf(alone));
   });
 
   it("a pass that read no overview's sources has no AI presence, not the floor", () => {
     expect(aiPresenceOf({ serps: [measured(unread, AT)], ownDomain: OWN, at: AT }).kind).toBe("unmeasured");
+  });
+});
+
+describe("issue 1419 — AI presence is a rate over at least four read results", () => {
+  type StoredSerp = { kind: string; reason?: string; because?: string; present?: boolean; referenceDomains?: string[] };
+  const serpsOf = (domain: string): Measured<SerpResult>[] => {
+    const scan = stored.scans.find((s) => s.domain === domain);
+    if (scan === undefined) throw new Error(`no stored scan for ${domain}`);
+    return (scan.serps as StoredSerp[]).map((cell) =>
+      cell.kind === "unmeasured"
+        ? unmeasured<SerpResult>(cell.reason === "not_attempted" ? "not_attempted" : "undeterminable", AT, cell.because)
+        : measured(serp(cell.referenceDomains ?? [], cell.present ?? false), AT)
+    );
+  };
+  const aiOf = (domain: string): Measured<number> => aiPresenceOf({ serps: serpsOf(domain), ownDomain: domain, at: AT });
+
+  it("zapier.com's one read, which cited only YouTube, is no rate and so no score", () => {
+    const ai = aiOf("zapier.com");
+    expect(ai).toEqual({ kind: "unmeasured", reason: "undeterminable", at: AT, because: TOO_FEW_READ });
+    const score = computeScore(
+      factorsOf({ foundations: measured(80, AT), answerability: measured(60, AT), searchPresence: measured(70, AT), aiPresence: ai })
+    );
+    expect(score.kind).toBe("unmeasured");
+  });
+
+  it("mailchimp.com's two reads of ten are no rate either; the deadline's and the ceiling's reasons fold", () => {
+    expect(aiOf("mailchimp.com")).toEqual({ kind: "unmeasured", reason: "undeterminable", at: AT, because: TOO_FEW_READ });
+  });
+
+  it("stripe.com's single question, unread at the deadline, stays unmeasured with the deadline's reason", () => {
+    expect(aiOf("stripe.com")).toEqual({ kind: "unmeasured", reason: "undeterminable", at: AT });
+  });
+
+  it("deel.com's four of four read is a rate", () => {
+    const ai = aiOf("deel.com");
+    expect(ai.kind).toBe("measured");
+    // One citation (www.deel.com) over four reads.
+    expect(valueOf(ai)).toBeCloseTo(0.6 * (1 / 4) * 100, 10);
+  });
+
+  it("three reads with every question asked read is undeterminable, never a not_attempted", () => {
+    const three = Array.from({ length: SCORING.aiPresenceMinReads - 1 }, () => measured(serp(["reachkit.app"]), AT));
+    expect(aiPresenceOf({ serps: three, ownDomain: OWN, at: AT })).toEqual({
+      kind: "unmeasured",
+      reason: "undeterminable",
+      at: AT,
+      because: TOO_FEW_READ,
+    });
+  });
+
+  it("only reads count towards the four: an overview whose sources were not loaded does not", () => {
+    const unread: SerpResult = { organic: [], aiOverview: { present: true, asynchronousAiOverview: true, referenceDomains: [], unread: true } };
+    const serps = [
+      ...Array.from({ length: SCORING.aiPresenceMinReads - 1 }, () => measured(serp(["reachkit.app"]), AT)),
+      measured(unread, AT),
+    ];
+    expect(aiPresenceOf({ serps, ownDomain: OWN, at: AT }).kind).toBe("unmeasured");
   });
 });
