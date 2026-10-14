@@ -9,6 +9,7 @@
 // every word here is one the pass already read.
 import { REMEASURE } from "@/lib/config/constants";
 import type { Profile } from "./profile";
+import { ownBrandTokens } from "./select";
 import { headTermOf } from "./widen";
 
 function words(text: string): string[] {
@@ -38,7 +39,7 @@ function headTails(category: string): string[] {
  */
 export function broaderCategories(a: { category: string | null; profile: Profile | null }): string[] {
   const measured = a.category ?? a.profile?.category ?? "";
-  const brand = new Set((a.profile?.brandTokens ?? []).flatMap(words));
+  const brand = new Set((a.profile === null ? [] : ownBrandTokens(a.profile)).flatMap(words));
   const held = new Set([words(measured).join(" ")]);
   const out: string[] = [];
 

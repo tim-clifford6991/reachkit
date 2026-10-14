@@ -19,7 +19,7 @@
 // here.
 import { PRICE_WORDS } from "@/lib/locale/language";
 import { SAME_TOPIC_SHARED_ADDRESSES } from "@/lib/config/constants";
-import { GENERIC_TOKENS, stemKey } from "@/lib/market/questions/select";
+import { GENERIC_TOKENS, ownBrandTokens, stemKey } from "@/lib/market/questions/select";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import type { StoredReport } from "@/lib/scan/report";
 import type { Candidate } from "./derive/candidate";
@@ -110,10 +110,10 @@ export function nearRepeatsOf(
 }
 
 /** The brand tokens a cluster key drops: the customer's own (the profile's
- *  `brandTokens`) and each measured rival's name — its registrable domain's
+ *  `brandTokens` that name it, `ownBrandTokens`) and each measured rival's name — its registrable domain's
  *  first label, the tokenisation the Write deriver already uses. */
 export function brandTokensOf(report: StoredReport): readonly string[] {
-  const own = report.market.kind === "unmeasured" ? [] : report.market.value.profile.brandTokens;
+  const own = report.market.kind === "unmeasured" ? [] : ownBrandTokens(report.market.value.profile);
   const rivals =
     report.rivals.kind === "unmeasured"
       ? []
