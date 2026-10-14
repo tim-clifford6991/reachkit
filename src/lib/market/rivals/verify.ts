@@ -28,7 +28,7 @@
 import { parse } from "node-html-parser";
 import type { FetchOutcome } from "@/lib/egress/types";
 import type { RivalConclusion } from "@/lib/market/infer/types";
-import { isOwnDomain, isPlatformDomain, registrableDomain } from "./domains";
+import { isOwnDomain, isPlatformDomain, nameLetters, registrableDomain } from "./domains";
 
 /** How long one home page may take, and the whole check. A pass's rival
  *  step has minutes; setup's has seconds. */
@@ -37,18 +37,6 @@ const CHECK_MS = 10_000;
 /** A page that says less than this many letters says too little to judge:
  *  a shell a script fills in, or a bot check. */
 const PAGE_MIN_LETTERS = 200;
-
-/** Words that join the parts of a name and are written either way: "A & B",
- *  "A and B". */
-const JOINERS = new Set(["and", "und", "et", "y", "e", "en"]);
-
-/** A name as letters only, accents folded, joining words left out: what a
- *  page and a domain both spell. */
-export function nameLetters(text: string): string {
-  return (text.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/ß/g, "ss").match(/[\p{L}\p{N}]+/gu) ?? [])
-    .filter((word) => !JOINERS.has(word))
-    .join("");
-}
 
 function labelOf(domain: string): string {
   return nameLetters(domain.replace(/^www\./, "").split(".")[0] ?? "");

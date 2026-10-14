@@ -26,7 +26,8 @@
 //
 // The vendors and the model are called live, up to `--cap-cents` for the
 // whole run. A site is started only while the cap still holds what a site
-// has cost so far (`FIRST_SITE_CENTS` before one has run); a site the cap
+// has cost so far (before one has run, that site's own last stored run, else
+// `FIRST_SITE_CENTS`); a site the cap
 // does not reach is listed as not run. Past the cap every paid request is
 // refused. Each paid call is written to the box's spend log (D57).
 //
@@ -76,8 +77,22 @@ const billedOf = (row: Pick<FetchRow, "billed_cents">): number | undefined => (r
 /** The scan the stored evidence is loaded under: no site's own, so it is
  *  found by the cache and never counted as a run's spend. */
 const EVIDENCE_SCAN = "00000000-0000-4000-8000-0000000e71de";
-/** What a site is assumed to cost before one has run, in cents. */
+/** What a site is assumed to cost before one has run, in cents, where the
+ *  panel holds no earlier run of it. */
 const FIRST_SITE_CENTS = 30;
+
+/** What the panel's latest stored run of a site cost, in cents; `null`
+ *  where no stored run holds it. A site that has run before loads its
+ *  stored reads, so its own last cost is the better guess (#1421). */
+function lastCostOf(dir: string, domain: string): number | null {
+  const files = readdirSync(dir).filter((name) => /^\d{4}-\d{2}-\d{2}(-\d+)?\.json$/.test(name)).sort().reverse();
+  for (const name of files) {
+    const stored = JSON.parse(readFileSync(path.join(dir, name), "utf8")) as { sites?: { site?: { domain?: string }; cents?: number }[] };
+    const held = (stored.sites ?? []).find((entry) => entry.site?.domain === domain && typeof entry.cents === "number" && entry.cents > 0);
+    if (held?.cents !== undefined) return held.cents;
+  }
+  return null;
+}
 /** The hosts a paid call goes to. */
 const VENDOR_HOSTS = new Set(["api.dataforseo.com", "api.anthropic.com"]);
 /** The search vendor's reads are kept between runs; the model's are not —
@@ -637,7 +652,7 @@ export async function main(o: Options): Promise<number> {
   const notRun: PanelSite[] = [];
   for (const site of sites) {
     const sofar = spent();
-    const need = runs.length === 0 ? FIRST_SITE_CENTS : runs.reduce((sum, run) => sum + run.result.cents, 0) / runs.length;
+    const need = runs.length === 0 ? (lastCostOf(dir, site.domain) ?? FIRST_SITE_CENTS) : runs.reduce((sum, run) => sum + run.result.cents, 0) / runs.length;
     if (o.capCents - sofar < need) {
       notRun.push(site);
       say(`\n${site.domain} — not run: ${cents(o.capCents - sofar)} is left of the cap and a site has cost ${cents(need)}.`);

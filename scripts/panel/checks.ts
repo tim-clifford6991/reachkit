@@ -12,6 +12,7 @@
 // fixtures.
 import { KNOWLEDGE_BASE } from "@/lib/config/constants";
 import type { MarketConclusion } from "@/lib/market/infer/types";
+import { isListingHost } from "@/lib/market/rivals/domains";
 import { malformedSearch, type Malformed } from "@/lib/market/questions/well-formed";
 import { prose } from "@/lib/measure/prose";
 import { isReadForFacts } from "@/lib/site-profile/knowledge/priority";
@@ -241,37 +242,7 @@ export function checkLocale(r: SiteResult): CheckResult {
 
 // ── 3. The rivals ──────────────────────────────────────────────────────────
 
-/**
- * Sites that list, sell or write about other businesses and are never a
- * business's rival (SPEC §0 Rival, D24) — unless the site is one itself. A
- * closed list of the ones a top ten or an AI answer most often holds, in
- * the panel's countries. A listing not on it is not caught here: every
- * rival is printed for a person to read.
- */
-const LISTINGS = new Set(
-  (
-    "yelp.com yelp.co.uk tripadvisor.com tripadvisor.co.uk tripadvisor.de google.com facebook.com instagram.com linkedin.com " +
-    "youtube.com tiktok.com x.com twitter.com pinterest.com reddit.com quora.com wikipedia.org medium.com substack.com " +
-    "amazon.com amazon.co.uk amazon.de ebay.com ebay.co.uk ebay.de etsy.com walmart.com otto.de zalando.de idealo.de " +
-    "g2.com capterra.com getapp.com softwareadvice.com trustpilot.com trustradius.com producthunt.com clutch.co sortlist.com " +
-    "goodfirms.co designrush.com upwork.com fiverr.com angi.com angieslist.com homeadvisor.com thumbtack.com houzz.com " +
-    "bbb.org yellowpages.com nextdoor.com checkatrade.com trustatrader.com mybuilder.com ratedpeople.com bark.com yell.com " +
-    "freeindex.co.uk which.co.uk gelbeseiten.de dasoertliche.de 11880.com golocal.de kennstdueinen.de jameda.de doctolib.de " +
-    "myhammer.de check24.de zocdoc.com healthgrades.com webmd.com treatwell.co.uk treatwell.de fresha.com booksy.com " +
-    "opentable.com opentable.co.uk thefork.com resy.com doordash.com ubereats.com grubhub.com deliveroo.co.uk lieferando.de " +
-    "booking.com expedia.com airbnb.com eater.com timeout.com infatuation.com michelin.com udemy.com coursera.org " +
-    "skillshare.com apps.apple.com play.google.com forbes.com nytimes.com theguardian.com techcrunch.com nerdwallet.com " +
-    "legal500.com chambers.com lawsociety.org.uk icaew.com unbiased.co.uk"
-  ).split(" ")
-);
-
 const bare = (domain: string): string => domain.toLowerCase().replace(/^www\./, "");
-
-export function isListing(domain: string): boolean {
-  const host = bare(domain);
-  for (const listing of LISTINGS) if (host === listing || host.endsWith(`.${listing}`)) return true;
-  return false;
-}
 
 export function checkRivals(r: SiteResult): CheckResult {
   const check = "3–5 rivals, none a listing, each with demand or seen by the pass";
@@ -280,7 +251,9 @@ export function checkRivals(r: SiteResult): CheckResult {
   if (rivals.length < 3 || rivals.length > 5) items.push(`${rivals.length} rivals, not 3–5`);
   for (const rival of rivals) {
     if (bare(rival.domain) === bare(r.site.domain)) items.push(`${rival.domain} is the site itself`);
-    else if (r.site.listsOthers !== true && isListing(rival.domain)) items.push(`${rival.domain} lists or writes about businesses; it is not one`);
+    // The product's own list of listings (issue 1417); one not on it is
+    // read by a person, as every rival is.
+    else if (r.site.listsOthers !== true && isListingHost(rival.domain)) items.push(`${rival.domain} lists or writes about businesses; it is not one`);
     if (r.deadRivals.includes(rival.domain)) items.push(`${rival.domain} does not resolve: no such site`);
     if (r.wrongRivals?.includes(rival.domain) === true) items.push(`${rival.domain} is not ${rival.name}'s site: its home page never names it`);
     // A rival the pass's own top tens hold is one whatever its brand's
