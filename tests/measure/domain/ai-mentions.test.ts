@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { AI_PRESENCE_MIN_READS } from "@/lib/config/constants";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
-import { aiPresenceOf, classifyReferences } from "../../../src/lib/measure/drivers.ts";
+import { aiPresenceOf, classifyReferences, isOrdinaryName } from "../../../src/lib/measure/drivers.ts";
 import { measured } from "../../../src/lib/measure/measured.ts";
 import { parseSerp } from "../../../src/lib/vendors/dataforseo/serp.ts";
 
@@ -42,7 +42,7 @@ describe("issue 1420 — what an AI answer names", () => {
   });
 
   it("the site's own name counts where the profile knows it; a cited review page whose path names the brand counts", () => {
-    expect(classifyReferences([], "acme-hr.com", { text: "Try Acme Payroll or Gusto.", siteName: "Acme Payroll" }).mentioned).toBe(true);
+    expect(classifyReferences([], "tattly-hr.com", { text: "Try Tattly Payroll or Gusto.", siteName: "Tattly Payroll" }).mentioned).toBe(true);
     expect(classifyReferences(["g2.com"], "rippling.com", { urls: ["https://www.g2.com/products/rippling/reviews"] })).toEqual({
       cited: false,
       mentioned: true,
@@ -70,5 +70,56 @@ describe("issue 1420 — the AI Overview's text is kept from the SERP already bo
     const serps = Array.from({ length: AI_PRESENCE_MIN_READS }, () => measured<SerpResult>(serp!, AT));
     const m = aiPresenceOf({ serps, ownDomain: "rippling.com", at: AT });
     expect(m.kind === "unmeasured" ? null : m.value).toBeCloseTo(40, 10);
+  });
+});
+
+describe("issue 1420 review — a brand that is an ordinary word is named only as a name", () => {
+  // Every stored AI Mode and ChatGPT answer in production whose text holds
+  // one of these words (a read-only export of `fetches`, 2026-10-14). None
+  // of these brands' own sites has a stored answer, so these are answers
+  // about other markets; read by hand, only the Notion one names the brand.
+  type Row = { brand: string; id: string; text: string; citedUrls: string[] };
+  const rows = JSON.parse(readFileSync(new URL("./fixtures/common-word-brands.json", import.meta.url), "utf8")) as Row[];
+  const domain: Record<string, string> = { make: "make.com", close: "close.com", notion: "notion.so", sage: "sage.com", loom: "loom.com", box: "box.com", front: "front.com", wave: "wave.com" };
+  const named = new Set(["notion:b21fe5fc"]);
+
+  it.each(rows.map((row) => [`${row.brand} ${row.id.slice(0, 8)}`, row] as const))("%s", (_, row) => {
+    const { mentioned } = classifyReferences([], domain[row.brand]!, { text: row.text, urls: row.citedUrls, siteName: null });
+    expect(mentioned).toBe(named.has(`${row.brand}:${row.id.slice(0, 8)}`));
+  });
+
+  it("the words are ordinary and the distinctive names are not", () => {
+    expect(["Make", "Front", "Linear", "Sage", "Help Scout", "Monday", "Plausible"].every(isOrdinaryName)).toBe(true);
+    expect(["Tattly", "Zapier", "SavvyCal", "Bäckerei Hinkel", "Pipedrive"].some(isOrdinaryName)).toBe(false);
+  });
+
+  const make = (text: string, urls: string[] = []) => classifyReferences([], "make.com", { text, urls, siteName: null }).mentioned;
+
+  it("“make” as a verb names nobody; Make as a name does", () => {
+    expect(make("You can make a workflow that sends a form to Slack. Make sure it runs daily.")).toBe(false);
+    expect(make("- **Make** (formerly Integromat): visual scenarios with branching.")).toBe(true);
+    expect(make("Zapier and Make are the usual picks for small teams.")).toBe(true);
+    expect(make("Try Make for free, or read the docs at make.com.")).toBe(true);
+    expect(make("## Tools to Make Your Site Faster")).toBe(false);
+    expect(make("Make and n8n both self-host. Make (formerly Integromat) is cheaper.")).toBe(true);
+    expect(make("Close the gaps first. Make sure every page loads.")).toBe(false);
+  });
+
+  it("a less common word keeps a sentence's first word, never its lowercase", () => {
+    const rippling = (text: string) => classifyReferences([], "rippling.com", { text, siteName: null }).mentioned;
+    expect(rippling("Rippling and ADP lead the category.")).toBe(true);
+    expect(rippling("The rippling effect of payroll errors is real.")).toBe(false);
+  });
+
+  it("a cited address names the brand only where a path segment is its slug", () => {
+    expect(make("", ["https://zapier.com/blog/how-to-make-a-form"])).toBe(false);
+    expect(make("", ["https://www.g2.com/reviews/make"])).toBe(true);
+  });
+
+  it("a weekday's capital is no sign of the name; its domain and its markup are", () => {
+    const monday = (text: string) => classifyReferences([], "monday.com", { text, siteName: null }).mentioned;
+    expect(monday("Reports go out on Monday mornings.")).toBe(false);
+    expect(monday("Asana and Monday.com both offer boards.")).toBe(true);
+    expect(monday("1. **Monday** – boards for every team")).toBe(true);
   });
 });
