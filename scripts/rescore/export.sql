@@ -36,8 +36,8 @@ docs as (
   -- those keep any of their HTML below.
   select x.*, case when x.candidate then x.doc->>'html' end as html
   from (
-    select y.*, (y.status = 202 or y.status >= 400 or (y.doc->>'bytes')::int <= 100000
-                 or y.doc->'headers' ?| array['cf-mitigated', 'x-vercel-mitigated', 'x-amzn-waf-action', 'x-sucuri-block']) as candidate
+    select y.*, coalesce(y.status = 202 or y.status >= 400 or (y.doc->>'bytes')::int <= 100000
+                 or y.doc->'headers' ?| array['cf-mitigated', 'x-vercel-mitigated', 'x-amzn-waf-action', 'x-sucuri-block'], false) as candidate
     from (
       select l.id, l.source, l.cache_key, l.created_at,
              case when l.source = 'egress.safeFetch' then l.payload else l.payload->0 end as doc,
@@ -87,7 +87,9 @@ scan_rows as (
         'verdict', s.report->'verdict',
         'blockedAgents', s.report->'blockedAgents',
         'onPage', s.report->'onPage',
-        'robots', s.report->'robots',
+        -- What Foundations, the verdict and the checks read of the rules: who
+        -- is disallowed. The rule lists and sitemaps are most of a report.
+        'robots', jsonb_set(s.report->'robots' #- '{value,rules}' #- '{value,crawlDelaySeconds}', '{value,sitemaps}', '[]'::jsonb, false),
         'ownRanked', s.report->'ownRanked',
         'ownRankedRows', (select coalesce(jsonb_agg(jsonb_build_object('position', r->'position')), '[]'::jsonb)
                           from jsonb_array_elements(coalesce(s.report->'ownRankedRows', '[]'::jsonb)) r),
@@ -130,7 +132,11 @@ scan_rows as (
           'reusedFrom', s.report->'aiAnswers'->'reusedFrom',
           'coverage', s.report->'aiAnswers'->'coverage',
           'rivals', s.report->'aiAnswers'->'rivals',
-          'rows', (select coalesce(jsonb_agg(jsonb_build_object('question', jsonb_build_object('search', w->'question'->'search'), 'cell', w->'cell', 'engines', w->'engines') order by i), '[]'::jsonb)
+          'rows', (select coalesce(jsonb_agg(jsonb_build_object('question', jsonb_build_object('search', w->'question'->'search'), 'cell', w->'cell',
+                     -- The battery's two engines are bought answers the re-score keeps;
+                     -- only a site's current scan carries them, as its rivals' evidence.
+                     'engines', case when s.site_id is not null and s.is_current then w->'engines'
+                                else (select coalesce(jsonb_agg(g order by k), '[]'::jsonb) from jsonb_array_elements(w->'engines') with ordinality v(g, k) where g->>'engine' = 'ai_overview') end) order by i), '[]'::jsonb)
                    from jsonb_array_elements(s.report->'aiAnswers'->'rows') with ordinality x(w, i))) end
       ),
       'home', (select jsonb_build_object('created_at', h.created_at, 'payload', h.doc)

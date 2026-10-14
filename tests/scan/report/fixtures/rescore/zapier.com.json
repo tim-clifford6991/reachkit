@@ -6,7 +6,7 @@
    "home": {
     "payload": {
      "url": "https://zapier.com/",
-     "html": "<title>Zapier: Automate AI Workflows, Agents, and Apps</title>",
+     "html": "",
      "bytes": 404884,
      "readAt": "2026-10-06T03:43:51.829Z",
      "status": 200
@@ -174,208 +174,10 @@
      "kind": "measured",
      "value": {
       "ok": true,
-      "rules": {
-       "*": [
-        {
-         "allow": true,
-         "pattern": "/"
-        },
-        {
-         "allow": true,
-         "pattern": "/shared/"
-        },
-        {
-         "allow": true,
-         "pattern": "/app/login"
-        },
-        {
-         "allow": false,
-         "pattern": "/shared/*?wtime"
-        },
-        {
-         "allow": false,
-         "pattern": "/engine/hydrate/"
-        },
-        {
-         "allow": false,
-         "pattern": "/hooks/"
-        },
-        {
-         "allow": false,
-         "pattern": "/goto/"
-        },
-        {
-         "allow": false,
-         "pattern": "/developer/invite/"
-        },
-        {
-         "allow": false,
-         "pattern": "/developer/public-invite/"
-        },
-        {
-         "allow": false,
-         "pattern": "/editor/robots.txt"
-        },
-        {
-         "allow": false,
-         "pattern": "/app/"
-        },
-        {
-         "allow": false,
-         "pattern": "/engine/"
-        },
-        {
-         "allow": false,
-         "pattern": "/google-sso/"
-        },
-        {
-         "allow": false,
-         "pattern": "/home"
-        },
-        {
-         "allow": false,
-         "pattern": "/help-v1/"
-        },
-        {
-         "allow": false,
-         "pattern": "/help/search/"
-        },
-        {
-         "allow": false,
-         "pattern": "/apps/*/landing/"
-        },
-        {
-         "allow": false,
-         "pattern": "/apps/*/integrations/*/landing/"
-        },
-        {
-         "allow": false,
-         "pattern": "/apps/*/roles/*/"
-        },
-        {
-         "allow": false,
-         "pattern": "/app-directory/"
-        },
-        {
-         "allow": false,
-         "pattern": "/api/"
-        },
-        {
-         "allow": false,
-         "pattern": "/new-homepage/"
-        },
-        {
-         "allow": false,
-         "pattern": "/webintent/"
-        },
-        {
-         "allow": false,
-         "pattern": "/zapbook/"
-        },
-        {
-         "allow": false,
-         "pattern": "/sso/"
-        },
-        {
-         "allow": false,
-         "pattern": "*/iframe/*"
-        },
-        {
-         "allow": false,
-         "pattern": "/*?"
-        }
-       ],
-       "gptbot": [
-        {
-         "allow": true,
-         "pattern": "/"
-        }
-       ],
-       "claudebot": [
-        {
-         "allow": true,
-         "pattern": "/"
-        }
-       ],
-       "baiduspider": [
-        {
-         "allow": false,
-         "pattern": "/api/"
-        },
-        {
-         "allow": false,
-         "pattern": "/engine/"
-        },
-        {
-         "allow": false,
-         "pattern": "/app/"
-        }
-       ],
-       "claude-user": [
-        {
-         "allow": true,
-         "pattern": "/"
-        }
-       ],
-       "chatgpt-user": [
-        {
-         "allow": true,
-         "pattern": "/"
-        }
-       ],
-       "duckassistbot": [
-        {
-         "allow": true,
-         "pattern": "/"
-        }
-       ],
-       "oai-searchbot": [
-        {
-         "allow": true,
-         "pattern": "/"
-        }
-       ],
-       "perplexitybot": [
-        {
-         "allow": true,
-         "pattern": "/"
-        }
-       ],
-       "google-extended": [
-        {
-         "allow": true,
-         "pattern": "/"
-        }
-       ],
-       "claude-searchbot": [
-        {
-         "allow": true,
-         "pattern": "/"
-        }
-       ],
-       "facebookexternalhit": [
-        {
-         "allow": true,
-         "pattern": "/engine/hydrate/"
-        }
-       ]
-      },
       "absent": false,
       "origin": "https://zapier.com",
       "readAt": "2026-10-06T03:43:51.833Z",
-      "sitemaps": [
-       "https://zapier.com/uag6x9zaeydnbfy75xsggcsb37h8cgzf-two-service-sitemap.xml",
-       "https://zapier.com/uag6x9zaeydnbfy75xsggcsb37h8cgzf-one-service-sitemap.xml",
-       "https://zapier.com/sitemaps/zap-templates/LZB2XiWzbJFggRYdnRGwcoAgEkTnHHEh",
-       "https://zapier.com/blog/sitemap.xml",
-       "https://zapier.com/uag6x9zaeydnbfy75xsggcsb37h8cgzf-sitemap.xml",
-       "https://zapier.com/uag6x9zaeydnbfy75xsggcsb37h8cgzf-static-sitemap.xml",
-       "https://zapier.com/agents/sitemap.xml",
-       "https://zapier.com/automation/sitemap.xml",
-       "https://zapier.com/marketing/sitemap.xml",
-       "https://zapier.com/sitemaps/templates/Xf3Lk9YbRzQnmgP2eCJtA5Wxv0NdMu6T",
-       "https://zapier.com/automations/sitemap-automations.xml"
-      ],
+      "sitemaps": [],
       "disallowsAll": false,
       "disallowedAgents": {
        "*": false,
@@ -390,8 +192,7 @@
        "Google-Extended": false,
        "Claude-SearchBot": false,
        "facebookexternalhit": false
-      },
-      "crawlDelaySeconds": {}
+      }
      }
     },
     "sources": [
@@ -486,20 +287,6 @@
           "because": "timeout"
          },
          "engine": "ai_overview"
-        },
-        {
-         "cell": {
-          "kind": "unmeasured",
-          "reason": "not_attempted"
-         },
-         "engine": "ai_mode"
-        },
-        {
-         "cell": {
-          "kind": "unmeasured",
-          "reason": "not_attempted"
-         },
-         "engine": "chatgpt"
         }
        ],
        "question": {
@@ -520,20 +307,6 @@
           "because": "timeout"
          },
          "engine": "ai_overview"
-        },
-        {
-         "cell": {
-          "kind": "unmeasured",
-          "reason": "not_attempted"
-         },
-         "engine": "ai_mode"
-        },
-        {
-         "cell": {
-          "kind": "unmeasured",
-          "reason": "not_attempted"
-         },
-         "engine": "chatgpt"
         }
        ],
        "question": {
@@ -554,20 +327,6 @@
           "because": "timeout"
          },
          "engine": "ai_overview"
-        },
-        {
-         "cell": {
-          "kind": "unmeasured",
-          "reason": "not_attempted"
-         },
-         "engine": "ai_mode"
-        },
-        {
-         "cell": {
-          "kind": "unmeasured",
-          "reason": "not_attempted"
-         },
-         "engine": "chatgpt"
         }
        ],
        "question": {
@@ -594,20 +353,6 @@
           "namesCustomer": false
          },
          "engine": "ai_overview"
-        },
-        {
-         "cell": {
-          "kind": "unmeasured",
-          "reason": "not_attempted"
-         },
-         "engine": "ai_mode"
-        },
-        {
-         "cell": {
-          "kind": "unmeasured",
-          "reason": "not_attempted"
-         },
-         "engine": "chatgpt"
         }
        ],
        "question": {
@@ -1375,5 +1120,5 @@
    "siteName": "Zoho"
   }
  ],
- "exportedAt": "2026-10-14T11:45:19.10956+00:00"
+ "exportedAt": "2026-10-06T03:43:51.426749+00:00"
 }

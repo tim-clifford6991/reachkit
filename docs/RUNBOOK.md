@@ -531,8 +531,10 @@ reads only what passes stored, asks no model, and refuses the network before it 
 1. **Export**, read-only, through the Supabase connector: `scripts/rescore/export.sql` with
    `:WHERE` set to `true` (or `s.domain in ('a.com', 'b.com')` for a few). Fetch it in checked
    chunks as its footer shows, and put it together with
-   `node scripts/pass/assemble.mjs <dir> --out <export.json> --chunk <n>`. The whole of production
-   was about 1 MB on 2026-10-14.
+   `node scripts/pass/assemble.mjs <dir> --out <export.json> --chunk <n>`. Production was about
+   2 MB on 2026-10-14: take it in batches by `s.created_at` and 40,000-character chunks, and pass
+   the batches together (`--from a.json,b.json`). A scan stored while a batch is fetched changes
+   its checksum: fetch the manifest again.
 2. **Dry run**: `npm run rescore -- --from <export.json>`. One row per scan — score, band, the three
    factors, the limiting factor, the rivals and the status, before → after — then the totals, what
    could not be fully recomputed and why, the site rival sets that move, and the site profiles read
