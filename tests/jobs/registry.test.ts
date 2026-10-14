@@ -1,9 +1,9 @@
 // tests/jobs/registry.test.ts — BUILD §11
 //
 // The registry's four structural promises:
-//   1. `serve()` exposes exactly GET, POST and PUT, over exactly the eight
+//   1. `serve()` exposes exactly GET, POST and PUT, over exactly the nine
 //      definitions in `jobs` — an unregistered job is unreachable.
-//   2. The `JobId` union is closed at eight; a ninth fails here.
+//   2. The `JobId` union is closed at nine; a tenth fails here.
 //   3. The platform is named in exactly one file under `src/jobs/`, and
 //      under `src/lib/` in exactly one: `src/lib/config/env.ts`, whose two
 //      rows are the platform's bindings (issue #315). So the reversal is
@@ -38,8 +38,8 @@ function filesUnder(dir: string): string[] {
   return out;
 }
 
-describe("the eight job ids", () => {
-  it("is exactly the eight: BUILD §11's six, the maintenance tick, and §9's retry sweep", () => {
+describe("the nine job ids", () => {
+  it("is exactly the nine: BUILD §11's six, the maintenance tick, §9's retry sweep, and the re-score (issue 1433)", () => {
     expect([...JOB_IDS]).toEqual([
       "scan/run",
       "draft/generate",
@@ -49,6 +49,7 @@ describe("the eight job ids", () => {
       "weekly/refresh",
       "lead/nurture",
       "account/maintenance",
+      "scan/rescore",
     ]);
   });
 
@@ -57,7 +58,7 @@ describe("the eight job ids", () => {
   });
 });
 
-describe("the registry is closed over those eight", () => {
+describe("the registry is closed over those nine", () => {
   it("`jobs` holds exactly one definition per id, in JOB_IDS order", async () => {
     const { jobs } = await import("@/jobs");
     expect(jobs.map((j) => j.id)).toEqual([...JOB_IDS]);
@@ -71,7 +72,7 @@ describe("the registry is closed over those eight", () => {
     }
   });
 
-  it("serve() exposes exactly GET, POST and PUT, over exactly the registered eight", async () => {
+  it("serve() exposes exactly GET, POST and PUT, over exactly the registered nine", async () => {
     const served: unknown[][] = [];
     vi.resetModules();
     vi.doMock("inngest/next", () => ({

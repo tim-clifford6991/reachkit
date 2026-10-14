@@ -179,6 +179,8 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
     // answers tab, exactly as that tab already reads the stored weekly
     // reports. They carry no `anon`/`authenticated` **grant** either, so a
     // session is refused at the grant, before RLS is consulted at all.
+    // `rescore_runs` (issue 1433) is the master session's re-score request
+    // and the job's answer to it.
     expect(policyLess).toEqual([
       "domain_blocks",
       "email_suppressions",
@@ -186,6 +188,7 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
       "job_runs",
       "llm_mention_reads",
       "llm_mentions",
+      "rescore_runs",
     ]);
   });
 
