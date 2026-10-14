@@ -137,7 +137,19 @@ function reportOf(stored: unknown): RescoreReport {
   if (stored === null || typeof stored !== "object") return readStoredReport(stored) as unknown as RescoreReport;
   const report = { ...(stored as Record<string, unknown>) };
   for (const key of ["previous", "previousColumns", "rescoredAt", "rescoredBy"]) delete report[key];
-  return readStoredReport(report) as unknown as RescoreReport;
+  const read = readStoredReport(report) as unknown as RescoreReport;
+  valuesKept(read);
+  return read;
+}
+
+/** The lists the re-score reads, each still a list where it was measured: a
+ *  report that lost one (issue 1431) is named here, not met deep in
+ *  `cardsOf`. */
+function valuesKept(report: RescoreReport): void {
+  for (const name of ["questions", "rivalSizes"] as const) {
+    const m = report[name];
+    if (m.kind !== "unmeasured" && !Array.isArray(m.value)) throw new Error(`${name} is ${m.kind} but the stored report carries no list`);
+  }
 }
 
 function readAt(read: StoredRead): number {

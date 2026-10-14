@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { offline } from "../../../src/lib/egress/offline";
 import { rehomeSite } from "../../../src/lib/scan/rescore";
 import {
+  rescoreRow,
   rescoreStored,
   type RescoreStore,
   type ScanWrite,
@@ -246,5 +247,29 @@ describe("streaksapp.com's rivals of 13 October (issue 1417), read again from wh
     const write = db.sitesWritten[0]!;
     expect((write.market.rescored as { previous: { rivals: unknown } }).previous.rivals).toEqual(stored);
     expect(write.competitors).not.toContain("google.com");
+  });
+});
+
+describe("a report whose questions and rival sizes were zero, read whole (issue 1431)", () => {
+  const scan = fixture("gusto.com");
+  const zeroed = (value?: unknown[]): FixtureScan => {
+    const report = structuredClone(scan.report) as Record<string, Record<string, unknown>>;
+    const at = report.questions!.at;
+    report.questions = value === undefined ? { kind: "zero", at } : { kind: "zero", value, at };
+    report.rivalSizes = value === undefined ? { kind: "zero", at } : { kind: "zero", value, at };
+    return { ...scan, report };
+  };
+  const rowOf = (s: FixtureScan): StoredScanRow => ({ ...s, domain: "gusto.com", md5: md5(s.report), siteId: null, isCurrent: false });
+
+  it("is scored again over its empty lists", () => {
+    const row = rescoreRow(rowOf(zeroed([])), []);
+    expect("result" in row && row.result.after.aiAnswers?.measuredSearches).toBe(0);
+  });
+
+  it("is named, not crashed on, where the stored report lost a list", async () => {
+    expect(rescoreRow(rowOf(zeroed()), [])).toEqual({ id: scan.id, because: "questions is zero but the stored report carries no list" });
+    const answer = await rescoreStored(storeOf([zeroed()]).store, dry);
+    expect(answer.summary).toContain("not readable by this build: 1");
+    expect(answer.summary).toContain("ee251330: not readable by this build — questions is zero but the stored report carries no list");
   });
 });
