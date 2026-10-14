@@ -512,6 +512,16 @@ export const KNOWLEDGE_BASE = Object.freeze({
  *  inside `reading_your_site`'s own ten seconds on the free path. */
 export const CHALLENGE_RENDER_MS = 5_000;
 
+/** SPEC §2 (issue 1427): the one second read of a home page that answered
+ *  with an error or a rate limit. It waits what the server's `Retry-After`
+ *  asks, or `WAIT_MS` where it asks nothing, and is not made where the
+ *  server asks for more than `MAX_WAIT_MS`: the wait is spent inside
+ *  `reading_your_site`'s own ten seconds on the free path. */
+export const HOME_RETRY = Object.freeze({
+  WAIT_MS: 1_000,
+  MAX_WAIT_MS: 3_000,
+} as const);
+
 /** SPEC §2 (issue 1387): what a site's listing in search must hold before
  *  its market is read from it, where bot protection kept the reader off its
  *  own pages. Fewer ranked searches than `minSearches`, or fewer than

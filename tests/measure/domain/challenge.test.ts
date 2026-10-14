@@ -7,7 +7,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { challengeOf, isProtectionName } from "@/lib/measure/challenge";
+import { challengeOf, isProtectionName, notTheSiteOf } from "@/lib/measure/challenge";
 
 const page = (name: string): string => readFileSync(join(__dirname, "fixtures/challenge", name), "utf8");
 
@@ -49,6 +49,52 @@ describe("challengeOf", () => {
     const html = "<html><head><title>Page not found | Example</title></head><body><h1>Not found</h1></body></html>";
     expect(challengeOf({ status: 404, html })).toBeNull();
     expect(challengeOf({ status: 503, html: "<title>Down for maintenance</title>" })).toBeNull();
+  });
+});
+
+// Issue 1427: tattly.com's home read answered a 429 with the bare string
+// `local_rate_limited`, and its profile was read off it.
+describe("notTheSiteOf", () => {
+  const NGINX_429 =
+    "<html>\r\n<head><title>429 Too Many Requests</title></head>\r\n<body>\r\n<center><h1>429 Too Many Requests</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>";
+
+  it("reads a stored 429 page as an error answer, with the wait the server asked", () => {
+    expect(notTheSiteOf({ status: 429, headers: { "retry-after": "2" }, html: NGINX_429 })).toEqual({
+      kind: "error",
+      status: 429,
+      retryAfterMs: 2000,
+    });
+  });
+
+  it("reads a bare `local_rate_limited` body as an error answer, whatever its status", () => {
+    expect(notTheSiteOf({ status: 429, html: "local_rate_limited" })).toMatchObject({ kind: "error", status: 429 });
+    expect(notTheSiteOf({ status: 200, html: "local_rate_limited" })).toMatchObject({ kind: "error", status: 200 });
+    expect(notTheSiteOf({ status: 200, html: "  " })).toMatchObject({ kind: "error" });
+  });
+
+  it("reads a short rate-limit page served with a 200 as an error answer", () => {
+    const html = "<html><body><h1>Too Many Requests</h1><p>Please slow down.</p></body></html>";
+    expect(notTheSiteOf({ status: 200, html })).toMatchObject({ kind: "error", status: 200, retryAfterMs: null });
+  });
+
+  it("dates a `Retry-After` given as a date from the read", () => {
+    const answer = notTheSiteOf({
+      status: 503,
+      headers: { "retry-after": "Wed, 14 Oct 2026 10:00:03 GMT" },
+      html: "<title>Service Unavailable</title>",
+      readAt: "2026-10-14T10:00:00.000Z",
+    });
+    expect(answer).toEqual({ kind: "error", status: 503, retryAfterMs: 3000 });
+  });
+
+  it("keeps a protection's page the protection's", () => {
+    expect(notTheSiteOf({ status: 403, html: page("cloudflare-block.sage.com.html") })).toEqual({ kind: "protection", vendor: "Cloudflare" });
+  });
+
+  it("reads the site's own page as the site, a large one that names a rate limit in its scripts too", () => {
+    expect(notTheSiteOf({ status: 200, headers: { server: "cloudflare" }, html: page("site.crunchbase.com.html") })).toBeNull();
+    const app = `<html><body><h1>Design together</h1><script>${'{"modal_error_rate_limit_exceeded":"Signup attempt rate limit exceeded"}'.repeat(2000)}</script></body></html>`;
+    expect(notTheSiteOf({ status: 200, html: app })).toBeNull();
   });
 });
 
