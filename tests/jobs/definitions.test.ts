@@ -84,6 +84,8 @@ function engineDouble(): Record<string, unknown> {
     // The re-score the master session asks for (issue 1433).
     claimRescore: record("claimRescore", null),
     answerRescore: record("answerRescore", done),
+    // The free scan's unread searches (issue 1440).
+    finishReads: record("finishReads", { finished: true, asked: 3, read: 3, written: true }),
   };
 }
 
@@ -133,6 +135,7 @@ describe("each job is a trigger, a bounded loop and one call into the engine", (
     ["lead/nurture", "cron"],
     ["account/maintenance", "cron"],
     ["scan/rescore", "cron"],
+    ["scan/finish-reads", "event"],
   ] as const)("%s is triggered by a %s", async (id, kind) => {
     expect((await definition(id)).trigger.kind).toBe(kind);
   });
@@ -493,6 +496,48 @@ describe("scan/rescore — a request the master session wrote, answered by the d
   });
 });
 
+describe("scan/finish-reads — a free scan's unread searches, read once in the background (issue 1440)", () => {
+  it("is keyed by the scan, so a second send for it is dropped", async () => {
+    const job = await definition("scan/finish-reads");
+    expect(job.trigger).toEqual({ kind: "event", event: "scan/finish-reads" });
+    expect(job.idempotencyKey).toEqual(["scanId"]);
+  });
+
+  it("finishes the scan it was sent for as one step", async () => {
+    const steps: string[] = [];
+    const job = await definition("scan/finish-reads");
+    const outcome = await job.run({
+      data: { scanId: "scan-1" },
+      now: EVENING_UTC,
+      step: async (name, body) => {
+        steps.push(name);
+        return body();
+      },
+    });
+    expect(outcome).toEqual({ outcome: "ran", subjectId: "scan-1" });
+    expect(steps).toEqual(["finish"]);
+    expect(calls).toEqual([{ fn: "finishReads", arg: { scanId: "scan-1", now: EVENING_UTC } }]);
+  });
+
+  it("a search that failed again is a degraded run; a report with nothing to finish is a recorded skip", async () => {
+    const job = await definition("scan/finish-reads");
+    results.set("finishReads", { finished: true, asked: 3, read: 2, written: true });
+    await expect(job.run({ data: { scanId: "scan-1" }, now: EVENING_UTC })).resolves.toEqual({ outcome: "degraded", subjectId: "scan-1", step: "finish-reads" });
+    results.set("finishReads", { finished: false, because: "nothing_to_finish" });
+    await expect(job.run({ data: { scanId: "scan-1" }, now: EVENING_UTC })).resolves.toEqual({ outcome: "skipped", subjectId: "scan-1", reason: "no-subject" });
+  });
+
+  it("the send names the event and the scan, and nothing else", async () => {
+    const sent: unknown[] = [];
+    vi.doMock("@/jobs/engine", () => engineDouble());
+    vi.doMock("@/jobs/client", () => ({ sendJobEvent: async (...a: unknown[]) => void sent.push(a) }));
+    const { sendFinishReads } = await import("@/jobs/scan-finish-reads");
+    await sendFinishReads("scan-1");
+    expect(sent).toEqual([["scan/finish-reads", { scanId: "scan-1" }]]);
+    vi.doUnmock("@/jobs/client");
+  });
+});
+
 describe("the fan-out is bounded and never starves the rest of the tick", () => {
   it("runs at most JOB_FAN_OUT_CONCURRENCY subjects at once, and every subject runs", async () => {
     const { fanOut } = await import("@/jobs/fan-out");
@@ -685,7 +730,9 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
       id !== "publish/retry" &&
       id !== "scan/run" &&
       // Issue 1433: built, and it reaches the database (`tests/scan/report/rescore.test.ts`).
-      id !== "scan/rescore"
+      id !== "scan/rescore" &&
+      // Issue 1440: built (`tests/scan/finish-reads.test.ts`).
+      id !== "scan/finish-reads"
   );
 
   it("every engine behind the seven is either built or an explicit refusal — none is a stub any more", () => {

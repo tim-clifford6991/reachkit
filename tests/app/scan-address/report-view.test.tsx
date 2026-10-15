@@ -27,6 +27,9 @@ vi.mock("@/lib/presentation/copy", () => ({
     vars === undefined ? key : `${key}(${Object.values(vars).join("|")})`,
 }));
 
+// The "still reading" line's leaf asks the router to refresh (issue 1440).
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
+
 import { ReportView } from "@/app/(public)/scan/[domain]/_address/report-view";
 import ReportLoading from "@/app/(public)/scan/[domain]/loading";
 import { RemovalAddressLine, RemovedView } from "@/app/(public)/scan/[domain]/_address/removal";
@@ -92,6 +95,18 @@ describe("SPEC §2 (issue 1387) — a market read from the site's listing in sea
   it("in one line, and only on such a report", () => {
     expect(render(FIXTURE_REPORT)).not.toContain("report.market.from-search");
     expect(count(render({ ...FIXTURE_REPORT, marketFrom: "search" }), "report.market.from-search")).toBe(1);
+  });
+});
+
+describe("SPEC §2 (issue 1440) — while the unread searches are read, the report says so briefly", () => {
+  it("names how many, in one line, and only while the job's window is open", () => {
+    const since = new Date();
+    expect(count(render({ ...FIXTURE_REPORT, finishingReads: { searches: 3, since } }), "report.finishing-reads(3)")).toBe(1);
+    expect(render({ ...FIXTURE_REPORT, finishingReads: { searches: 1, since } })).toContain("report.finishing-reads.one(1)");
+    expect(render(FIXTURE_REPORT)).not.toContain("report.finishing-reads");
+    expect(render({ ...FIXTURE_REPORT, finishingReads: null })).not.toContain("report.finishing-reads");
+    const lapsed = new Date(Date.now() - 60 * 60 * 1000);
+    expect(render({ ...FIXTURE_REPORT, finishingReads: { searches: 3, since: lapsed } })).not.toContain("report.finishing-reads");
   });
 });
 

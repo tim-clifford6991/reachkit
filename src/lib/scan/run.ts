@@ -148,6 +148,7 @@ import { checkSite, type CrawlReading } from "@/lib/site-issues/checks";
 import { emitEnding, enterStage, exitStage } from "./stages";
 import type { StageName } from "./stages";
 import { assembleReport, storeCurrentReport, type ScanStatus } from "./store";
+import { finishingOf } from "./finish-reads";
 
 // ── Tier as a parameter ─────────────────────────────────────────────────
 
@@ -335,6 +336,11 @@ interface TierParameters {
    *  `TRACKED_PROMPTS.ENGINES` × `TRACKED_PROMPTS.RUNS`? The weekly pass,
    *  and it alone: the measure is a weekly rate. */
   trackedPrompts: boolean;
+  /** SPEC §2 (owner, 2026-10-15, issue 1440): does a pass that stored a
+   *  report with searches it chose and did not read send `scan/finish-reads`,
+   *  to read them in the background inside the same cap? The free path, and
+   *  it alone: its 50 s is what leaves them unread. */
+  finishesReads: boolean;
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -364,6 +370,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     marketPrompts: 0,
     batteryOnTheTwelve: false,
     trackedPrompts: false,
+    finishesReads: true,
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -391,6 +398,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     marketPrompts: BATTERY.MARKET_PROMPTS,
     batteryOnTheTwelve: true,
     trackedPrompts: false,
+    finishesReads: false,
   }),
   weekly: Object.freeze({
     cap: "WEEKLY",
@@ -418,6 +426,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     marketPrompts: 0,
     batteryOnTheTwelve: false,
     trackedPrompts: true,
+    finishesReads: false,
   }),
 } as const);
 
@@ -1104,6 +1113,10 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   // running. The `finally` is the other half of the promise: a store that
   // raises must still end the stream, or the visitor waits on a pass that
   // is over.
+  // Issue 1440: searches this pass chose and did not read are read in the
+  // background, inside the same cap, and the report says so meanwhile.
+  const finishing = parameters.finishesReads ? finishingOf(composed.report, spend.cents, new Date()) : null;
+  if (finishing !== null) composed.report.finishingReads = finishing;
   let stored: { scanId: string; status: ScanStatus };
   try {
     stored = await storeCurrentReport({
@@ -1172,7 +1185,11 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
             : "pass_ended",
   });
 
-  // 8. #770: a paid pass (one with a site) that found too little market
+  // 8. Issue 1440: the searches this pass left unread are finished in the
+  //    background. Sent after the report is stored, since the job reads it.
+  if (finishing !== null && stored.status !== "failed") await sendFinishingReads(scanId);
+
+  // 9. #770: a paid pass (one with a site) that found too little market
   //    tells the owner at once where its parameters say `immediate`; a
   //    `digest` pass waits for the owner's Monday digest (issue 796). Imported
   //    at the call, as `src/jobs/run.ts` does; `reportIncident` never throws.
@@ -1181,6 +1198,25 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     await reportIncident({ occasion: "market-too-small", scanId, tier: a.tier });
   }
   return stored;
+}
+
+/** Sends `scan/finish-reads` for a stored report that says it is still
+ *  reading (issue 1440). Imported at the call, as `src/jobs/run.ts` is. A
+ *  send that fails is logged: the report's line then lapses after its
+ *  window and the report stands as stored. */
+async function sendFinishingReads(scanId: string): Promise<void> {
+  try {
+    const { sendFinishReads } = await import("@/jobs/scan-finish-reads");
+    await sendFinishReads(scanId);
+  } catch (error) {
+    console.log(
+      JSON.stringify({
+        event: "finish_reads_not_sent",
+        scanId,
+        because: error instanceof Error ? error.message : String(error),
+      })
+    );
+  }
 }
 
 /**

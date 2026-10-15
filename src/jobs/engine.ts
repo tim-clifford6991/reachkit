@@ -426,6 +426,20 @@ export async function answerRescore(a: {
   return { done: true };
 }
 
+// ── The free scan's unread searches — issue 1440, built.
+//
+// A free pass that stored a report with searches it did not read sends
+// `scan/finish-reads`; `src/lib/scan/finish-reads.ts` reads them once and
+// rewrites the report. Imported at the call: the module reaches `@/lib/db`.
+
+import type { FinishResult } from "@/lib/scan/finish-reads";
+export type { FinishResult };
+
+export async function finishReads(a: { readonly scanId: string; readonly now: Date }): Promise<FinishResult> {
+  const { finishReads: finish } = await import("@/lib/scan/finish-reads");
+  return finish({ scanId: a.scanId, now: a.now, version: (process.env.VERCEL_GIT_COMMIT_SHA ?? "unknown").slice(0, 7) });
+}
+
 // ── Generation — BUILD §8 (issue #44)
 // Built. `src/lib/generate/` owns the pipeline, the hard rules and the
 // recovery decision; the wrapper below passes the job's own `publishDate`

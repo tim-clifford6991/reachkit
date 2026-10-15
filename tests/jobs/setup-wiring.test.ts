@@ -139,11 +139,11 @@ beforeEach(() => {
 
 describe("§11 — the registry stays closed; setup adds no job of its own", () => {
   it("the ids are unchanged by anything in this file", () => {
-    // Nine since issue 1433 added the re-score. The number is what
+    // Ten since issue 1440 added the unread searches. The number is what
     // makes an id arriving by accident fail here; what this suite is about
     // is that *setup* adds none.
     expect(jobs.map((j) => j.id)).toEqual([...JOB_IDS]);
-    expect(JOB_IDS).toHaveLength(9);
+    expect(JOB_IDS).toHaveLength(10);
   });
 });
 

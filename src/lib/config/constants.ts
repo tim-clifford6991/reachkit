@@ -992,6 +992,12 @@ export const TIMING = Object.freeze({
    *  keeps to score, compose and store the report inside its ceiling. A
    *  read still queued then is that search's unmeasured cell. */
   freePassAskReserveS: 5,
+  /** How long a free report says it is still reading the searches its pass
+   *  left unread (SPEC §2, issue 1440; drafted default, the owner may
+   *  correct it). The `scan/finish-reads` job is delivered in seconds and
+   *  reads inside `paidPassCeilingS`; a line past this window would be a
+   *  promise nothing is keeping, so it goes and the report stands. */
+  finishReadsNoticeS: 600,
   /** How long before `platformCeilingS` a free pass still running in its
    *  request marks its own row `failed` (issue 798). Past the design
    *  ceiling a pass is only storing its partial report; one still going

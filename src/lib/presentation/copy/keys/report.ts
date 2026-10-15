@@ -105,6 +105,11 @@ export const REPORT_COPY = Object.freeze({
   "notice.bot-protected": ["This site’s bot protection stopped our reader, so its own pages couldn’t be read and aren’t scored here. That is not a finding about the site.", { slots: {}, fixedBy: "SPEC §2 · issue 1379" }],
   // SPEC §2 (owner, 2026-10-10, issue 1387): where the market was read from
   // the site's listing in search. Drafted (#759).
+  // SPEC §2 (owner, 2026-10-15, issue 1440): the searches a free scan left
+  // unread are being read in the background. Short on purpose (the issue's
+  // own words). Drafted (#759).
+  "report.finishing-reads": ["Still reading {count} searches…", { slots: { count: "text" }, fixedBy: "SPEC §2 · issue 1440" }],
+  "report.finishing-reads.one": ["Still reading {count} search…", { slots: { count: "text" }, fixedBy: "SPEC §2 · issue 1440" }],
   "report.market.from-search": ["The market here was inferred from how this site appears in Google search, because its own pages couldn’t be read. The questions and the AI answers are measured for that market.", { slots: {}, fixedBy: "SPEC §2 · issue 1387" }],
   // Issue 898. The site read and its market did not — the profile call or
   // the suggestions did not answer — so there is no question, no answer

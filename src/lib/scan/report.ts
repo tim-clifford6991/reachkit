@@ -150,7 +150,7 @@
 // with one written line (REQ-004 c10/c11), never as an empty card and
 // never as a spinner.
 import { measuredLocale, type Locale } from "@/lib/locale/locales";
-import { AI_READER_AGENTS } from "@/lib/config/constants";
+import { AI_READER_AGENTS, TIMING } from "@/lib/config/constants";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { SiteIssuesSection } from "@/lib/site-issues/types";
 import type { CoherenceVerdict } from "@/lib/market/coherence/check";
@@ -563,6 +563,12 @@ export interface StoredReport {
    *  pages. The report says so in one line. Absent where the market was
    *  read from the site's pages, which every report before it was. */
   marketFrom?: "search";
+  /** SPEC §2 (owner, 2026-10-15, issue 1440): a free pass stored this
+   *  report with searches it chose and did not read, and the
+   *  `scan/finish-reads` job is reading them in the background. How many,
+   *  and since when. The job's own write sets it to `null`; absent on every
+   *  report with nothing left to read. */
+  finishingReads?: { searches: number; since: Date } | null;
   /** Where the re-score (`scan/rescore`) rewrote this report with the current code (owner,
    *  2026-10-14, issue 1426): when, at which commit, and the report and the
    *  `scans` columns (score, status, drivers) as they were first stored, so
@@ -578,6 +584,17 @@ export interface ReportLocale extends Locale {
 }
 
 /** The locale a stored report was measured in. */
+/** How many searches the report says it is still reading at `now` (SPEC §2,
+ *  issue 1440), or `null` where it says nothing: no marker, or one older than
+ *  the line's window — a job that never ran is not a promise kept for ever. */
+export function stillReading(report: Pick<StoredReport, "finishingReads">, now: Date): number | null {
+  const marker = report.finishingReads;
+  if (marker === undefined || marker === null) return null;
+  const since = new Date(marker.since).getTime();
+  if (!(now.getTime() - since < TIMING.finishReadsNoticeS * 1000)) return null;
+  return marker.searches;
+}
+
 export const localeOfReport: (report: Pick<StoredReport, "locale">) => Locale = measuredLocale;
 
 /** The two engines a tracked prompt is asked on (D19, #1162). */

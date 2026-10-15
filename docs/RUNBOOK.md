@@ -234,7 +234,7 @@ PR, an issue, or a message to an agent — **agents never see these values.**
 
 ## 4. The jobs
 
-Eight, closed. The registry is `src/jobs/index.ts` and it is a frozen array — a definition that is
+Ten, closed. The registry is `src/jobs/index.ts` and it is a frozen array — a definition that is
 not in it is unreachable over HTTP. `src/jobs/client.ts` is the only file that names the platform.
 
 | Job | Trigger | Does | In the kill switch |
@@ -248,17 +248,19 @@ not in it is unreachable over HTTP. `src/jobs/client.ts` is the only file that n
 | `lead/nurture` | cron `0 * * * *` | advances sequences over `next_touch_at` | |
 | `account/maintenance` | cron `*/15 * * * *` | five due-work queries: a payment awaiting sign-in, a payment with no account, a hosting-end notice, a hosting stop, an account due for purge | |
 | `scan/rescore` | cron `*/15 * * * *` | answers the oldest `rescore_runs` request: every stored scan and rival set scored again, dry or applied (issue 1433, "Re-scoring every stored scan" below). Steps: `claim`, then `answer-<id>`; `skipped` / `no-subject` when nothing is asked | |
+| `scan/finish-reads` | event `scan/finish-reads` | sent by a free pass that stored a report with searches it chose and did not read (issue 1440): reads only those, once, inside the free cap the pass already spent from, and rewrites the report through `rescore_scan`. Step: `finish`; `degraded` where a search failed again, `skipped` / `no-subject` where the report has nothing left to finish. Log line `finish_reads` | ● |
 
-Only four ids are sendable events (`src/jobs/types.ts`, `JobEvent`): `scan/run`,
-`publish/execute`, `publish/verify`, `lead/nurture`. The five clock-triggered jobs have no event.
+Five ids are sendable events (`src/jobs/types.ts`, `JobEvent`): `scan/run`,
+`publish/execute`, `publish/verify`, `lead/nurture`, `scan/finish-reads`. The five clock-triggered jobs have no event.
 
 ### Running one by hand
 
 **There is no endpoint, no script and no npm task that triggers a job.** `/api/jobs` accepts
 `GET`, `POST` and `PUT`, but a `POST` is signature-verified by the SDK against
 `INNGEST_SIGNING_KEY`, so it cannot be called by hand. The product itself sends exactly two
-events: `scan/run` when a setup completes (`src/app/(account)/setup/_setup/store.ts`) and
-`publish/verify` after a publication (`src/jobs/engine.ts`).
+events: `scan/run` when a setup completes (`src/app/(account)/setup/_setup/store.ts`),
+`publish/verify` after a publication (`src/jobs/engine.ts`), and `scan/finish-reads` after a free
+pass that left searches unread (`src/lib/scan/run.ts`).
 
 So the way to run one by hand is **the Inngest dashboard**, on the `reachkit` app:
 
@@ -268,7 +270,8 @@ So the way to run one by hand is **the Inngest dashboard**, on the `reachkit` ap
   that is the job working, not failing.
 - **An event job**: send the event with its payload, or *Replay* a past run. The payload keys are
   the job's `idempotencyKey` in `src/jobs/*.ts` — `scan/run` takes `scanId`, `publish/execute`
-  takes `draftId` and `destinationId`, `publish/verify` takes `publicationId`. A delivery is
+  takes `draftId` and `destinationId`, `publish/verify` takes `publicationId`, `scan/finish-reads`
+  takes `scanId`. A delivery is
   deduplicated on those keys, so re-sending the same one is a no-op rather than a second run.
 - **`publish/verify` sleeps 24 hours** before its body, by design. Invoking it is not a way to
   check a page now.
@@ -671,7 +674,7 @@ United States. A pass reads it once for a site that serves one place and keeps t
 `KILL_SWITCH=true` stops the paid work. The scope is closed and named:
 `KILL_SWITCH_SCOPE` in `src/jobs/kill-switch.ts`.
 
-**Stopped:** `scan/run` · `draft/generate` · `publish/execute` · `publish/retry`. The guard runs
+**Stopped:** `scan/run` · `scan/finish-reads` · `draft/generate` · `publish/execute` · `publish/retry`. The guard runs
 before the body — before the first vendor call and before the first write — so a stopped job
 spends nothing and changes nothing.
 
