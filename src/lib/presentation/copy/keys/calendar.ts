@@ -266,7 +266,7 @@ export const CALENDAR_COPY = Object.freeze({
   // Issue 857 (owner, 2026-09-17): the plan reaches only the day before the
   // next weekly pass. The one quiet marker on the first date after it —
   // the owner's own words. Drafted under issue 759's ruling.
-  "calendar.horizon.marker": ["Planned after Monday’s scan", { slots: {}, fixedBy: "issue 857" }],
+  "calendar.horizon.marker": ["Planned a week ahead, closer to the day", { slots: {}, fixedBy: "issue 1455 (drafted)" }],
 
   // REQ-043 criterion 4's remaining causes, and criterion 10's one
   // provenance line. Each is a written sentence no artifact states, so the
@@ -428,7 +428,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.empty.unexplained": ["No page is planned for this date yet.", { slots: {}, fixedBy: "issue 1321" }],
   // Issue 857's quiet marker, in the room a card has for it. The full line
   // (`calendar.horizon.marker`) is the panel's.
-  "calendar.horizon.short": ["Planned Mon", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.horizon.short": ["Planned later", { slots: {}, fixedBy: "issue 1455 (drafted)" }],
 
   // The card's whole label, for a reader who never sees it. Three shapes,
   // because a card has three: a page, a date that says why it has none, and

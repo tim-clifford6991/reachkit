@@ -108,7 +108,9 @@ describe("two weeks of pages hold the mix", () => {
 describe("self-promoting pages are capped (D52, issue 1267)", () => {
   const scored = supply();
   const byId = new Map(scored.map((entry) => [entry.opportunity.id, entry.opportunity]));
-  const kindsOf = (ranked: { opportunityId: string }[]) => ranked.map((entry) => contentTypeOf(byId.get(entry.opportunityId)!)!);
+  // A page counts as the type it is written as (issue 1455).
+  const kindsOf = (ranked: { opportunityId: string; writeAs?: ContentType }[]) =>
+    ranked.map((entry) => entry.writeAs ?? contentTypeOf(byId.get(entry.opportunityId)!)!);
 
   it("no seven days running hold a second comparison, though comparisons score first", () => {
     const kinds = kindsOf(orderRanked(scored, { mix: { from: 100, recent: [] } }));
@@ -127,10 +129,19 @@ describe("self-promoting pages are capped (D52, issue 1267)", () => {
     expect(orderRanked(newPages, { mix: { from: 104, recent: [{ day: 97, kind: "listicle" }] } })[0]?.opportunityId).toBe("o0");
   });
 
-  it("a supply of comparisons alone fills one day and leaves the next empty", () => {
+  it("a supply of comparisons alone fills every day: one comparison a week, the rest answered as Q&As (issue 1455)", () => {
+    // reachkit.app on 14 October: every ready topic a comparison, and
+    // yesterday's page one. The day used to be empty.
     const only = scored.filter((entry) => contentTypeOf(entry.opportunity) === "listicle");
-    expect(orderRanked(only, { mix: { from: 100, recent: [] } }).map((entry) => entry.opportunityId)).toEqual(["o0"]);
-    expect(orderRanked(only, { mix: { from: 100, recent: [{ day: 99, kind: "listicle" }] } })).toEqual([]);
+    const ranked = orderRanked(only, { mix: { from: 100, recent: [{ day: 99, kind: "listicle" }] } });
+    expect(ranked).toHaveLength(only.length);
+    expect(ranked[0]).toMatchObject({ opportunityId: "o0", writeAs: "qa" });
+    // The cap still holds: no seven days running publish two comparisons.
+    const written = ranked.map((entry) => (entry.writeAs === undefined ? "listicle" : entry.writeAs));
+    for (let start = 0; start < written.length; start++) {
+      const week = ["listicle", ...written].slice(start, start + CONTENT_MIX.WINDOW_DAYS);
+      expect(week.filter((kind) => kind === "listicle").length, `from day ${start}`).toBeLessThanOrEqual(1);
+    }
   });
 });
 
@@ -150,6 +161,13 @@ describe("the days before are read from the site's own drafted pages", () => {
     expect(mix.recent).toEqual([{ day: mix.from - 1, kind: "listicle" }]);
     const ranked = orderRanked(supply(), { mix });
     expect(ranked[0]?.opportunityId).toBe("o6");
+  });
+
+  it("a page counts as the type it was written as: a comparison answered as a Q&A uses no comparison's week (issue 1455)", () => {
+    const page = { ...drafted("2026-10-03", "published", "comparison_page", "acme vs globex"), writtenAs: "qa" };
+    const mix = mixOf([page], AT);
+    expect(mix.recent).toEqual([{ day: mix.from - 1, kind: "qa" }]);
+    expect(orderRanked(supply(), { mix })[0]?.opportunityId).toBe("o0");
   });
 
   it("after a gap the first day planned is today, and nothing is the day before it", () => {

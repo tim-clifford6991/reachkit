@@ -55,7 +55,12 @@ vi.mock("@/lib/costs", () => ({
   withCostContext: async (_ctx: unknown, run: (c: unknown) => Promise<unknown>) =>
     run({ capHit: () => false, spentCents: () => 0, degraded: () => false }),
 }));
-vi.mock("@/lib/publish/daily", () => ({ sitesForDailyTick: sitesForDailyTickMock }));
+vi.mock("@/lib/publish/daily", () => ({
+  sitesForDailyTick: sitesForDailyTickMock,
+  // Issue 1455's day record and publish-time check, tested where they live.
+  recordDraftDay: async () => {},
+  alertMissingDrafts: async () => 0,
+}));
 vi.mock("@/lib/publish/destinations/health", () => ({ sendBreakageMail: async () => ({ sent: false }) }));
 vi.mock("@/lib/mail/draft-ready", () => ({ sendDraftReadyMail: draftReadyMock }));
 // §7's ranking and readiness are tested where they live; the day's pick is

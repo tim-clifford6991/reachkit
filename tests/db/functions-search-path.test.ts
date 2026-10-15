@@ -180,9 +180,11 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
     // reports. They carry no `anon`/`authenticated` **grant** either, so a
     // session is refused at the grant, before RLS is consulted at all.
     // `rescore_runs` (issue 1433) is the master session's re-score request
-    // and the job's answer to it.
+    // and the job's answer to it. `draft_days` (issue 1455) is the draft
+    // tick's per-site record of each day, written and read only by that job.
     expect(policyLess).toEqual([
       "domain_blocks",
+      "draft_days",
       "email_suppressions",
       "fetches",
       "job_runs",

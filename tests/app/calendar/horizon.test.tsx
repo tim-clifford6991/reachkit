@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
-// tests/app/calendar/horizon.test.tsx — SPEC §7, issue 857
+// tests/app/calendar/horizon.test.tsx — SPEC §7, issue 857, issue 1455
 //
-// The calendar plans only until the next weekly pass. Through the real
+// The calendar plans the next seven days, today among them, and no further. Through the real
 // calendar page: `CalendarPage` → `readMonth` → `readCalendarFacts` → the
 // real `supplyDepth` and `supplyMeasured` over a stood-in opportunity store
 // in a thin market. Only the reads this suite is not about (§9's pages,
@@ -100,11 +100,11 @@ describe("issue 857 — a thin market on a Wednesday", () => {
     expect(root.querySelectorAll('[data-testid="cell-empty-line"]')).toHaveLength(0);
   });
 
-  it("the plan is Wednesday through Sunday; past days and the days after carry no line", async () => {
+  it("the plan is Wednesday through the next Tuesday; past days and the days after carry no line", async () => {
     const { model, cell } = await open(WEDNESDAY);
     const plan = model.cells.filter((c) => c.inMonth && c.when === "plan").map((c) => c.day);
-    expect(plan).toEqual(["2026-09-16", "2026-09-17", "2026-09-18", "2026-09-19", "2026-09-20"]);
-    expect(model.horizonEnd).toBe("2026-09-20");
+    expect(plan).toEqual(["2026-09-16", "2026-09-17", "2026-09-18", "2026-09-19", "2026-09-20", "2026-09-21", "2026-09-22"]);
+    expect(model.horizonEnd).toBe("2026-09-22");
     for (const c of model.cells.filter((x) => x.inMonth && x.when !== "plan")) {
       expect(c.empty, c.day).toBeNull();
       if (c.horizonMarker) continue;
@@ -112,12 +112,12 @@ describe("issue 857 — a thin market on a Wednesday", () => {
     }
   });
 
-  it("one quiet marker, on the Monday the next pass decides", async () => {
+  it("one quiet marker, on the first date past the seven days", async () => {
     const { markers, cell } = await open(WEDNESDAY);
-    expect(markers).toEqual(["2026-09-21"]);
+    expect(markers).toEqual(["2026-09-23"]);
     // Issue 930: the card has room for two words and the panel carries the
     // sentence they stand for. Both are the registry's.
-    expect(cell("2026-09-21")?.textContent).toContain(COPY["calendar.horizon.short"]);
+    expect(cell("2026-09-23")?.textContent).toContain(COPY["calendar.horizon.short"]);
   });
 
   it("a month wholly after the horizon is blank but for the marker on its first date", async () => {
@@ -143,15 +143,15 @@ describe("issue 857 — Monday, before and after the weekly pass", () => {
   }
 });
 
-describe("issue 857 — the horizon's edge is the site's own Monday", () => {
+describe("issue 857 — the horizon is counted from the site's own today", () => {
   // 20:00 UTC on 2026-09-20: Sunday 21:00 in London, Monday 08:00 in Auckland.
   const AT_EDGE = new Date(Date.UTC(2026, 8, 20, 20, 0, 0));
 
-  it("Europe/London: still Sunday, so the plan is Sunday alone", async () => {
+  it("Europe/London: still Sunday, so the plan runs to Saturday — never one day (issue 1455)", async () => {
     const { model, markers } = await open({ at: AT_EDGE, timeZone: "Europe/London", month: "2026-09" });
     expect(model.today).toBe("2026-09-20");
-    expect(model.horizonEnd).toBe("2026-09-20");
-    expect(markers).toEqual(["2026-09-21"]);
+    expect(model.horizonEnd).toBe("2026-09-26");
+    expect(markers).toEqual(["2026-09-27"]);
   });
 
   it("Pacific/Auckland: already Monday, so the plan runs to the next Sunday", async () => {

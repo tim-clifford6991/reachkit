@@ -126,8 +126,8 @@ function accountLine(a: {
 }): string | null {
   const empty = a.cell.empty;
   // Issue 857's horizon, in full. The card has room for two words
-  // ("Planned Mon"); this is the sentence they stand for, and it is the
-  // whole account of a date the next weekly pass has not decided yet.
+  // ("Planned later"); this is the sentence they stand for, and it is the
+  // whole account of a date past the seven days the plan reaches (issue 1455).
   if (empty === null) return a.cell.horizonMarker ? writtenLine("calendar.horizon.marker") : null;
   // Issue 857: a supply cause is the calendar's one supply statement, at
   // its top, and is never repeated here.

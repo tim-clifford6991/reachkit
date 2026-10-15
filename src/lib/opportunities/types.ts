@@ -428,6 +428,10 @@ export interface Opportunity {
    *  again. Absent or past: it is not resting. */
   restUntil?: Date | null;
   createdAt: Date;
+  /** SPEC §7 (issue 1455): the type the day's page is written as where it
+   *  is not the row's own — a comparison over D52's cap is written as a
+   *  Q&A of its buyer question. Set by the ranking, never stored. */
+  writeAs?: "qa";
 }
 
 /** Why a candidate did not become an opportunity. Three counters, and the
@@ -457,6 +461,8 @@ export function addRejections(a: RejectionCount, b: RejectionCount): RejectionCo
 export interface Ranked {
   opportunityId: string;
   score: number;
+  /** Where the day writes the topic as another type (issue 1455). */
+  writeAs?: "qa";
 }
 
 /** Whether a rested topic is still inside its rest at `now` (SPEC §7, D26). */
