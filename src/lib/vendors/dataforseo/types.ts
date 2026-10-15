@@ -96,6 +96,11 @@ export interface SerpAiOverview {
    *  1147). Absent on a response stored before it was read, which says
    *  nothing about what that answer cited. */
   referenceUrls?: readonly string[];
+  /** The answer's own text, cut at `AI_OVERVIEW_TEXT_MAX_CHARS` (issue
+   *  1420): what a brand named without a link is read from. Absent on a
+   *  response stored before it was kept, which says nothing about whom that
+   *  answer named. */
+  text?: string;
   /** Google showed an AI Overview whose content loads after the page, and
    *  this read did not buy that load (issue 1357): whom it names is not
    *  known. Never an answer that names nobody. Absent where the sources
@@ -269,3 +274,15 @@ export interface MentionsResult {
   readonly rows: readonly MentionRow[];
   readonly total: number | null;
 }
+
+/** The ledger `source` of each engine a tracked prompt is asked on. Here,
+ *  beside the shapes, so a reader of stored rows (the re-score, issue 1420)
+ *  names them without loading the vendor seam. */
+export const AI_ANSWER_SOURCES = Object.freeze({
+  ai_mode: "serp/google/ai_mode",
+  chatgpt: "ai_optimization/chat_gpt/llm_scraper",
+} as const);
+
+/** How much of an AI answer's text is kept (issue 1420): enough to read whom
+ *  it names, never the whole page of a long answer on every stored SERP. */
+export const AI_OVERVIEW_TEXT_MAX_CHARS = 4000;

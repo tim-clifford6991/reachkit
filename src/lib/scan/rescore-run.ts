@@ -20,8 +20,19 @@ import { isProtectionName } from "@/lib/measure/challenge";
 import type { Measured } from "@/lib/measure/measured";
 import type { Drivers, ScoreFactorName } from "@/lib/measure/score";
 import type { RivalConclusion } from "@/lib/market/infer/types";
+import { promptSiteName } from "@/lib/market/prompts/generate";
+import { AI_ANSWER_SOURCES, AI_OVERVIEW_TEXT_MAX_CHARS } from "@/lib/vendors/dataforseo/types";
 import { readStoredReport } from "./report";
-import { rehomeSite, rescoreScan, type RehomedSite, type ReportChange, type Rescored, type RescoredMembers, type RescoreReport } from "./rescore";
+import {
+  rehomeSite,
+  rescoreScan,
+  type RehomedSite,
+  type ReportChange,
+  type Rescored,
+  type RescoredMembers,
+  type RescoreReport,
+  type StoredAnswer,
+} from "./rescore";
 import type { ScanStatus } from "./store";
 
 /** A `scans` row as stored, with its report's checksum. */
@@ -76,6 +87,10 @@ export interface RescoreStore {
   homeReads(domain: string): Promise<readonly StoredRead[]>;
   sites(): Promise<readonly StoredSiteRow[]>;
   profiles(): Promise<readonly { domain: string; siteName: string | null }[]>;
+  /** The AI Mode and ChatGPT answers a scan bought, as `fetches` keeps them
+   *  under it (issue 1420). Asked only for a site's current scan, the one
+   *  whose report carries those engines' cells. */
+  answers(scanId: string): Promise<readonly StoredAnswer[]>;
   /** False where the report's checksum is no longer `md5`: nothing written. */
   writeScan(write: ScanWrite): Promise<boolean>;
   writeSite(write: SiteWrite): Promise<void>;
@@ -172,7 +187,11 @@ function homeOf(report: RescoreReport, reads: readonly StoredRead[]): { created_
 
 /** One stored scan scored again; a report this build cannot read is listed,
  *  never guessed at. */
-export function rescoreRow(scan: StoredScanRow, reads: readonly StoredRead[]): Row | { id: string; because: string } {
+export function rescoreRow(
+  scan: StoredScanRow,
+  reads: readonly StoredRead[],
+  said: { siteName: string | null; answers: readonly StoredAnswer[] } = { siteName: null, answers: [] }
+): Row | { id: string; because: string } {
   let report: RescoreReport;
   try {
     report = reportOf(scan.report);
@@ -187,6 +206,8 @@ export function rescoreRow(scan: StoredScanRow, reads: readonly StoredRead[]): R
     report,
     home: homeOf(report, reads),
     rendered: reads.filter((r) => r.source === "on_page/instant_pages").map((r) => ({ created_at: r.created_at, payload: r.payload })),
+    siteName: said.siteName,
+    answers: said.answers,
   });
   return { scan, report, result };
 }
@@ -386,6 +407,9 @@ function summaryOf(a: {
  *  that moves written back. */
 export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Promise<RescoreAnswer> {
   const scans = await store.scans();
+  const profiles = await store.profiles();
+  // The name an AI answer is read for (issue 1420), as the pass reads it.
+  const names = new Map(profiles.map((p) => [p.domain, promptSiteName(p.siteName, p.domain)] as const));
   const rows: Row[] = [];
   const unreadable: { id: string; because: string }[] = [];
   const byDomain = new Map<string, StoredScanRow[]>();
@@ -394,7 +418,9 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
     // A domain's home reads are held only while its own scans are scored.
     const reads = await store.homeReads(domain);
     for (const scan of ofDomain) {
-      const row = quietly(() => rescoreRow(scan, reads));
+      const answers = scan.siteId !== null && scan.isCurrent ? await store.answers(scan.id) : [];
+      const said = { siteName: names.get(domain) ?? null, answers };
+      const row = quietly(() => rescoreRow(scan, reads, said));
       if ("result" in row) rows.push(row);
       else unreadable.push(row);
     }
@@ -402,7 +428,6 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
   rows.sort((a, b) => a.scan.createdAt.localeCompare(b.scan.createdAt) || a.scan.id.localeCompare(b.scan.id));
 
   const sites = await store.sites();
-  const profiles = await store.profiles();
   const movedSites = quietly(() => rehome(sites, rows));
 
   let written: { scans: number; left: string[] } | null = null;
@@ -575,6 +600,24 @@ export function databaseRescore(): RescoreQueue & RescoreStore {
     async profiles() {
       const rows = checked(await (await client()).from<{ domain: string; site_name: string | null }>("site_profiles").select("domain, site_name"));
       return (rows ?? []).map((p) => ({ domain: p.domain, siteName: p.site_name }));
+    },
+    async answers(scanId) {
+      const rows = checked(
+        await (await client())
+          .from<{ source: string; cache_key: string; payload: unknown }>("fetches")
+          .select("source, cache_key, payload")
+          .eq("scan_id", scanId)
+          .in("source", Object.values(AI_ANSWER_SOURCES))
+      );
+      return (rows ?? []).map((r) => {
+        const answer = (Array.isArray(r.payload) ? r.payload[0] : null) as { text?: unknown; citedUrls?: unknown } | null;
+        return {
+          source: r.source,
+          key: r.cache_key,
+          text: typeof answer?.text === "string" ? answer.text.slice(0, AI_OVERVIEW_TEXT_MAX_CHARS) : null,
+          citedUrls: Array.isArray(answer?.citedUrls) ? (answer.citedUrls as string[]) : null,
+        };
+      });
     },
     async writeScan(w) {
       const ok = checked(

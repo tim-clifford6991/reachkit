@@ -54,7 +54,7 @@ import {
   type OnVendorFailure,
 } from "./envelope";
 import { placeCacheKey, type DataForSeoMode } from "./transport";
-import { scopeKey, type CacheScope, type SerpAiOverview, type SerpOrganicRow, type SerpResult } from "./types";
+import { AI_OVERVIEW_TEXT_MAX_CHARS, scopeKey, type CacheScope, type SerpAiOverview, type SerpOrganicRow, type SerpResult } from "./types";
 
 const ORGANIC = "/v3/serp/google/organic";
 const PATHS: EndpointPaths = {
@@ -87,16 +87,23 @@ function settledCents(base: number, mode: DataForSeoMode, rows: readonly SerpRes
 function parseAiOverview(item: Record<string, unknown>): SerpAiOverview {
   const seen = new Set<string>(referenceDomains(item.references));
   const urls = new Set<string>(referenceUrls(item.references));
+  const blocks: string[] = [];
   for (const element of asArray(item.items)) {
     if (!isRecord(element)) continue;
     for (const domain of referenceDomains(element.references)) seen.add(domain);
     for (const url of referenceUrls(element.references)) urls.add(url);
+    const block = asString(element.markdown) ?? [asString(element.title), asString(element.text)].filter(Boolean).join("\n");
+    if (block) blocks.push(block);
   }
+  // The answer's text, from the response already bought: the item's own
+  // markdown, else its elements' text blocks.
+  const text = (asString(item.markdown) ?? asString(item.text) ?? blocks.join("\n\n")).trim();
   return {
     present: true,
     asynchronousAiOverview: item.asynchronous_ai_overview === true,
     referenceDomains: [...seen],
     referenceUrls: [...urls],
+    ...(text === "" ? {} : { text: text.slice(0, AI_OVERVIEW_TEXT_MAX_CHARS) }),
   };
 }
 

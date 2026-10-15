@@ -247,7 +247,7 @@ function weekOf(section: PageQuestionsSection): { asked: string[]; mentioned: st
     const named = answered.some((cell) => {
       if (cell.kind !== "answered") return false;
       const { cited, mentioned: named } = classifyReferences(cell.citedDomains, section.ownDomain);
-      return cited || named;
+      return cited || named || cell.named === true;
     });
     if (named) mentioned.push(row.publicationId);
   }

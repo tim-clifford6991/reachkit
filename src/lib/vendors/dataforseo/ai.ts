@@ -44,7 +44,7 @@ import {
   type OnVendorFailure,
 } from "./envelope";
 import { localeCacheKey, placeCacheKey, type DataForSeoMode } from "./transport";
-import { scopeKey, type AiAnswer, type CacheScope } from "./types";
+import { AI_ANSWER_SOURCES, scopeKey, type AiAnswer, type CacheScope } from "./types";
 
 const NO_ANSWER: AiAnswer = { answered: false, text: "", citedDomains: [] };
 
@@ -99,11 +99,7 @@ export function parseLlmScraper(result: unknown): AiAnswer[] | undefined {
   return [];
 }
 
-/** The ledger `source` of each engine a tracked prompt is asked on. */
-export const AI_ANSWER_SOURCES = Object.freeze({
-  ai_mode: "serp/google/ai_mode",
-  chatgpt: "ai_optimization/chat_gpt/llm_scraper",
-} as const);
+export { AI_ANSWER_SOURCES };
 
 /** What reading a paid, queued ask again came to (#1160): the rows the
  *  first call would have stored (none for the engine's own no-answer), a

@@ -52,12 +52,22 @@
 // `MarketAiAnswer`, `../views`' subset of the vendor's own shape, rather
 // than as the vendor type. Domain normalisation and the own-domain test
 // are `../rivals/domains`' — one implementation in the product, not two.
+import { classifyReferences } from "@/lib/measure/drivers";
 import type { Measured } from "@/lib/measure/measured";
 import { isOwnDomain, registrableDomain } from "../rivals/domains";
 import type { MarketAiAnswer, MarketSerp, QuestionView } from "../views";
 
 export type AnswerCell =
-  | { kind: "answered"; citedDomains: readonly string[]; namesCustomer: boolean }
+  | {
+      kind: "answered";
+      citedDomains: readonly string[];
+      namesCustomer: boolean;
+      /** The answer names the site, as `classifyReferences` reads a mention
+       *  (issue 1420): its text or a cited address on another site names
+       *  the brand. Absent where it does not, and on every cell stored
+       *  before this member. */
+      named?: true;
+    }
   | { kind: "no_answer" }
   | {
       kind: "unmeasured";
@@ -180,7 +190,7 @@ function unmeasuredCell(m: { reason: "undeterminable" | "not_attempted"; because
  *  a page question's column and a tracked question's column can never come
  *  to mean two different things — the same reason `engineColumns` below is
  *  exported. */
-export function overviewCellFor(measured: Measured<MarketSerp> | undefined, ownDomain: string): AnswerCell {
+export function overviewCellFor(measured: Measured<MarketSerp> | undefined, ownDomain: string, siteName: string | null = null): AnswerCell {
   if (measured === undefined) return { kind: "unmeasured", reason: "not_attempted" };
   // Issue 869: the reason the measurement heard travels with the cell.
   if (measured.kind === "unmeasured") return unmeasuredCell(measured);
@@ -191,14 +201,30 @@ export function overviewCellFor(measured: Measured<MarketSerp> | undefined, ownD
     return { kind: "unmeasured", reason: "undeterminable", because: "ai_overview_not_loaded" };
   }
 
-  const citedDomains = citedDomainsOf(measured.value.aiOverview.referenceDomains);
-  const urls = measured.value.aiOverview.referenceUrls;
+  const overview = measured.value.aiOverview;
+  const citedDomains = citedDomainsOf(overview.referenceDomains);
+  const urls = overview.referenceUrls;
   return {
     kind: "answered",
     citedDomains,
     namesCustomer: citedDomains.some((domain) => isOwnDomain(domain, ownDomain)),
     ...(urls === undefined ? {} : { ownUrls: ownUrlsOf(urls, ownDomain) }),
+    ...namedOf(overview.referenceDomains, ownDomain, { urls, text: overview.text, siteName }),
   };
+}
+
+/** `named` on an answered cell: `classifyReferences`' mention, the score's. */
+function namedOf(
+  references: readonly string[],
+  ownDomain: string,
+  said: { urls: readonly string[] | undefined; text: string | undefined; siteName: string | null }
+): { named?: true } {
+  const { mentioned } = classifyReferences(references, ownDomain, {
+    ...(said.urls === undefined ? {} : { urls: said.urls }),
+    ...(said.text === undefined ? {} : { text: said.text }),
+    siteName: said.siteName,
+  });
+  return mentioned ? { named: true } : {};
 }
 
 /** The cited addresses that are the site's own (issue 1147), as given. */
@@ -226,7 +252,7 @@ function ownUrlsOf(urls: readonly string[], ownDomain: string): string[] {
  *  - otherwise `answered`, with the domains it cited and whether the
  *    customer is among them.
  */
-function cellForAnswer(answer: Measured<MarketAiAnswer> | undefined, ownDomain: string): AnswerCell {
+function cellForAnswer(answer: Measured<MarketAiAnswer> | undefined, ownDomain: string, siteName: string | null): AnswerCell {
   if (answer === undefined) return { kind: "unmeasured", reason: "not_attempted" };
   if (answer.kind === "unmeasured") return unmeasuredCell(answer);
   if (!answer.value.answered) return { kind: "no_answer" };
@@ -236,6 +262,7 @@ function cellForAnswer(answer: Measured<MarketAiAnswer> | undefined, ownDomain: 
     kind: "answered",
     citedDomains,
     namesCustomer: citedDomains.some((domain) => isOwnDomain(domain, ownDomain)),
+    ...namedOf(answer.value.citedDomains, ownDomain, { urls: answer.value.citedUrls, text: answer.value.text, siteName }),
   };
 }
 
@@ -259,11 +286,13 @@ export function engineColumns(a: {
   overview: AnswerCell;
   battery?: BatteryAnswers;
   ownDomain: string;
+  siteName?: string | null;
 }): readonly EngineCell[] {
+  const siteName = a.siteName ?? null;
   return [
     { engine: "ai_overview", cell: a.overview },
-    { engine: "ai_mode", cell: cellForAnswer(a.battery?.aiMode, a.ownDomain) },
-    { engine: "chatgpt", cell: cellForAnswer(a.battery?.chatgpt, a.ownDomain) },
+    { engine: "ai_mode", cell: cellForAnswer(a.battery?.aiMode, a.ownDomain, siteName) },
+    { engine: "chatgpt", cell: cellForAnswer(a.battery?.chatgpt, a.ownDomain, siteName) },
   ];
 }
 
@@ -297,10 +326,13 @@ export function buildAiAnswersCard(a: {
    *  every index they do not cover: `not_attempted`. */
   battery?: readonly BatteryAnswers[];
   ownDomain: string;
+  /** The site's name, as `namesSite` reads it; `null` where none is known. */
+  siteName?: string | null;
   coverage: AiAnswersCard["coverage"];
 }): AiAnswersCard {
+  const siteName = a.siteName ?? null;
   const rows: AnswerRow[] = a.questions.map((question, i) => {
-    const cell = overviewCellFor(a.serps[i], a.ownDomain);
+    const cell = overviewCellFor(a.serps[i], a.ownDomain, siteName);
     const bought = a.battery?.[i];
     return {
       questionId: question.id,
@@ -312,6 +344,7 @@ export function buildAiAnswersCard(a: {
         overview: cell,
         ...(bought === undefined ? {} : { battery: bought }),
         ownDomain: a.ownDomain,
+        siteName,
       }),
     };
   });

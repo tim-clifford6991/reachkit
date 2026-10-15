@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { offline } from "../../../src/lib/egress/offline";
-import { rehomeSite } from "../../../src/lib/scan/rescore";
+import { KEPT_NO_OVERVIEW_TEXT, rehomeSite } from "../../../src/lib/scan/rescore";
 import {
   rescoreRow,
   rescoreStored,
@@ -58,6 +58,7 @@ function storeOf(scans: readonly FixtureScan[], sites: StoredSiteRow[] = []) {
     homeReads: async (domain) => reads.get(domain) ?? [],
     sites: async () => sites,
     profiles: async () => [],
+    answers: async () => [],
     async writeScan(w) {
       const row = rows.get(w.id)!;
       if (row.md5 !== w.md5) return false;
@@ -271,5 +272,39 @@ describe("a report whose questions and rival sizes were zero, read whole (issue 
     const answer = await rescoreStored(storeOf([zeroed()]).store, dry);
     expect(answer.summary).toContain("not readable by this build: 1");
     expect(answer.summary).toContain("ee251330: not readable by this build — questions is zero but the stored report carries no list");
+  });
+});
+
+describe("issue 1420: a mention is read again from whatever answer text was stored", () => {
+  const scan = fixture("zapier.com");
+
+  it("lists a scan whose AI Overviews were stored without their text", () => {
+    const db = storeOf([scan]);
+    const row = rescoreRow([...db.rows.values()][0]!, []);
+    expect("result" in row && row.result.kept).toContain(KEPT_NO_OVERVIEW_TEXT);
+  });
+
+  it("the job marks a current scan's AI Mode answer named where its stored text names the site, and moves only that cell", async () => {
+    const report = structuredClone(scan.report) as { aiAnswers: { rows: { question: { search: string }; engines: unknown[] }[] } };
+    const first = report.aiAnswers.rows[0]!;
+    first.engines = [...first.engines, { engine: "ai_mode", cell: { kind: "answered", citedDomains: ["g2.com"], namesCustomer: false } }];
+    const db = storeOf([{ ...scan, report: report as unknown as Record<string, unknown> }]);
+    const row = [...db.rows.values()][0]!;
+    db.rows.set(row.id, { ...row, siteId: "site", isCurrent: true });
+    const stored = { source: "serp/google/ai_mode", key: `${first.question.search}|United States|en|site:x`, text: "Zapier and Make are the usual picks.", citedUrls: [] };
+    const asked: string[] = [];
+    const store: RescoreStore = { ...db.store, answers: async (id) => (asked.push(id), [stored]) };
+
+    const answer = await rescoreStored(store, dry);
+    expect(asked).toEqual([row.id]);
+    expect(answer.summary).toContain("aiAnswers.rows.0.engines.1.cell");
+
+    const again = rescoreRow({ ...row, siteId: "site", isCurrent: true }, [], { siteName: null, answers: [stored] });
+    expect("result" in again && again.result.after.aiAnswers!.rows[0]!.engines[1]!.cell).toEqual({
+      kind: "answered",
+      citedDomains: ["g2.com"],
+      namesCustomer: false,
+      named: true,
+    });
   });
 });

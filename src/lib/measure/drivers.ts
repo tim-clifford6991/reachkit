@@ -24,6 +24,7 @@ export interface RankedPositions {
   readonly total: number | null;
 }
 import { measured, measuredZero, unmeasured, worseReason, type Measured, type UnmeasuredReason } from "./measured";
+import ORDINARY_WORDS from "./ordinary-words.json";
 import { asciiLowerCase, type OnPageFacts } from "./parse";
 
 /** The top of every 0–100 scale in BUILD §5 — the range each driver is
@@ -322,26 +323,184 @@ function tokensOf(reference: string): readonly string[] {
     .filter((token) => token.length > 0);
 }
 
+function escapeForRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** The phrase as a whole word or phrase, case-insensitive: never inside a
+ *  longer word, which is the guard `tokensOf` gives a reference ("app" is
+ *  not named by "apple"). Shorter than three characters names nothing.
+ *  Exported for the tracked prompts' rivals (`readPromptAnswer`). */
+export function says(text: string, phrase: string): boolean {
+  const wanted = phrase.trim();
+  if (wanted.length < 3) return false;
+  return new RegExp(`(?<![\\p{L}\\p{N}])${escapeForRegExp(wanted)}(?![\\p{L}\\p{N}])`, "iu").test(text);
+}
+
+/** The text names the site (issue 1420; SPEC §6, D19): its name, else its
+ *  domain's first label, or its domain, as a whole word or phrase. `siteName`
+ *  is the name a branded prompt asks about (`promptSiteName`), `null` where
+ *  none is known. One rule for every AI answer the product reads: an AI
+ *  Overview's text and cited addresses, AI Mode's and ChatGPT's answers, and
+ *  the tracked prompts. */
+export function namesSite(text: string, siteName: string | null, ownDomain: string): boolean {
+  const own = hostOf(ownDomain);
+  const label = own.split(".")[0] ?? own;
+  if (says(text, own)) return true;
+  const names = [siteName ?? label, ...(label.length >= 4 ? [label] : [])];
+  return names.some((name) => {
+    const ordinary = ordinaryOf(name);
+    return ordinary === null ? says(text, name) : namedAsName(text, casedName(name), ordinary);
+  });
+}
+
+/** English's common words (SCOWL; the notice is `ordinary-words.COPYRIGHT`):
+ *  sizes 10 and 20, the commonest (make, front, linear, notion), and size 35
+ *  beside them (sage, loom, slack, rippling). A brand that is one of them is
+ *  named in a text only where the text uses it as a name (issue 1420): "you
+ *  can make a workflow" names nobody. */
+const COMMON = new Set<string>(ORDINARY_WORDS.common);
+const LESS_COMMON = new Set<string>(ORDINARY_WORDS.less);
+
+/** Days and months: ordinary words English always capitalises, so a capital
+ *  is no sign of a name ("on Monday mornings"). */
+const CALENDAR = new Set([
+  "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+  "january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december",
+]);
+
+function wordsOf(phrase: string): string[] {
+  return asciiLowerCase(phrase)
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((word) => word.length > 0);
+}
+
+/** How ordinary a name is: `common` where a word of it is one of the
+ *  commonest words or a calendar name, `less` where every word is at least a
+ *  common one, `null` for a name that is no ordinary word ("Tattly"). */
+function ordinaryOf(name: string): "common" | "less" | null {
+  const words = wordsOf(name);
+  if (words.length === 0 || !words.every((word) => COMMON.has(word) || LESS_COMMON.has(word) || CALENDAR.has(word))) return null;
+  return words.some((word) => COMMON.has(word) || CALENDAR.has(word)) ? "common" : "less";
+}
+
+/** The name is made of ordinary English words. */
+export function isOrdinaryName(name: string): boolean {
+  return ordinaryOf(name) !== null;
+}
+
+/** The name as a name is written: the profile's own casing where it has a
+ *  capital, else with one. */
+function casedName(name: string): string {
+  const trimmed = name.trim();
+  return /\p{Lu}/u.test(trimmed) ? trimmed : trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
+/** Markup and quotes that may stand before a word without ending a
+ *  sentence's run of words. */
+const LEADING_MARKS = /[\s*_[\]()>"'“”‘’`]+$/u;
+
+/** An ordinary-word name used as a name: marked up as one (bold, a link's
+ *  label, a heading, a list item's lead), or written in its own case apart
+ *  from other capitalised words. A title's capital and a longer name it is
+ *  part of are not evidence, nor is a calendar name's capital, and for the
+ *  commonest words neither is a sentence's, clause's or table cell's first
+ *  word ("Make sure") unless a list of names or a gloss follows it; a less
+ *  common one keeps it ("Rippling and ADP lead"). */
+function namedAsName(text: string, name: string, ordinary: "common" | "less"): boolean {
+  const n = escapeForRegExp(name);
+  const marked = [
+    new RegExp(`(\\*\\*|__)\\s*${n}\\s*\\1`, "iu"),
+    new RegExp(`\\[\\s*${n}\\s*\\]\\(`, "iu"),
+    new RegExp(`^\\s{0,3}#{1,6}\\s*(?:\\d+[.)]\\s*)?${n}\\s*#*\\s*$`, "imu"),
+    new RegExp(`^\\s*(?:[-*+•]|\\d+[.)])\\s+(?:\\*\\*|__)?${n}(?:\\*\\*|__)?(?=\\s*(?:[:–—(-]|$))`, "mu"),
+  ];
+  if (marked.some((pattern) => pattern.test(text))) return true;
+  if (wordsOf(name).every((word) => CALENDAR.has(word))) return false;
+  const exact = new RegExp(`(?<![\\p{L}\\p{N}])${n}(?![\\p{L}\\p{N}])`, "gu");
+  for (const match of text.matchAll(exact)) {
+    const before = text.slice(0, match.index).split("\n").pop() ?? "";
+    const after = text.slice(match.index + match[0].length).split("\n")[0] ?? "";
+    // A heading's words are capitalised as a title.
+    if (/^\s{0,3}#/u.test(before)) continue;
+    // A sentence's first word counts for the commonest words only where it
+    // opens a list of names or a gloss: "Plausible and Matomo", "Make (formerly
+    // Integromat)" — never "Make sure".
+    if (ordinary === "common" && opensASentence(before) && !/^[*_]*\s*(?:\(|(?:,|&|and|or|vs\.?|versus)\s+[*_]*\p{Lu})/u.test(after)) continue;
+    // Part of a longer name or a title: "First Page Sage", "to Make Your Site";
+    // a sentence's own first word before it is neither ("Try Make").
+    const previous = /(\p{Lu}[\p{L}\p{N}]*)[*_]*\s+[*_]*$/u.exec(before);
+    if (previous !== null && !opensASentence(before.slice(0, previous.index))) continue;
+    if (/^[*_]*\s+[*_]*\p{Lu}/u.test(after)) continue;
+    return true;
+  }
+  return false;
+}
+
+/** What stands before a word on its line leaves it a sentence's first word:
+ *  nothing, a list marker, or the end of a sentence, a clause a capital may
+ *  open ("Note: Make sure") or a table cell. */
+function opensASentence(before: string): boolean {
+  const run = before.replace(LEADING_MARKS, "");
+  return run === "" || /^\s*(?:[-*+•]|\d+[.)])$/u.test(run) || /[.!?:|]$/u.test(run);
+}
+
+/** A cited address names the site where one of its path's segments is the
+ *  site's slug — `/products/rippling`, `/reviews/make`, `/make` — never where
+ *  the slug is only inside a segment (`/how-to-make-a-form`). */
+function pathNamesSite(url: string, siteName: string | null, own: string): boolean {
+  const label = own.split(".")[0] ?? own;
+  const slugs = new Set([label, ...(siteName === null ? [] : [wordsOf(siteName).join("-")])].filter((slug) => slug.length > 0));
+  let path: string;
+  try {
+    path = new URL(url.includes("://") ? url : `https://${url}`).pathname;
+  } catch {
+    return false;
+  }
+  return path.split("/").some((segment) => {
+    let decoded = segment;
+    try {
+      decoded = decodeURIComponent(segment);
+    } catch {
+      // A malformed escape is read as written.
+    }
+    return slugs.has(asciiLowerCase(decoded));
+  });
+}
+
+/** What an answer said beside its reference hosts, where it was kept: the
+ *  addresses it cited and its text. */
+export interface AnswerSaid {
+  urls?: readonly string[];
+  text?: string;
+  siteName?: string | null;
+}
+
 /** BUILD §6.3: "Brand mentions/citations = string match over references."
- *  Two disjoint readings of one reference list, so the two weighted rates
- *  measure two different things: a *citation* is a reference whose host is
- *  the customer's domain or a subdomain of it — the answer points at the
- *  site; a *mention* is a reference somewhere else that carries the
- *  customer's brand token whole — the domain's first label ("reachkit"
- *  from "reachkit.app") — so the answer names the brand through a third
- *  party (a marketplace listing, a profile page, a review). One reference
- *  is only ever one of the two: the `else` is what keeps the two rates
- *  measuring different things rather than double-counting the same row.
+ *  A *citation* is a reference whose host is the customer's domain or a
+ *  subdomain of it — the answer points at the site. A *mention* is the
+ *  answer naming the brand anywhere else (issue 1420): a reference host
+ *  that carries the brand token whole, a cited address on another site
+ *  whose path names it (`g2.com/products/rippling`), or the answer's own
+ *  text naming it (`namesSite`). Before issue 1420 only the first counted,
+ *  so a brand an answer recommended through review sites was never named.
+ *  The two can both hold for one answer; a reference host is only ever one
+ *  of the two.
  *
  *  **Exported for the AI answers tab** (SPEC §6, 2026-09-20, #918), which
  *  draws *named* and *linked* as two marks and has to split them the way
  *  the score already splits them. One implementation, so a cell on that
- *  screen and the citation rate inside `aiPresenceOf` can never come to
- *  disagree about what being named means. It is pure and takes no clock,
- *  so the screen reads stored references with it and measures nothing. */
-export function classifyReferences(references: readonly string[], ownDomain: string): { cited: boolean; mentioned: boolean } {
+ *  screen and the rates inside `aiPresenceOf` can never come to disagree
+ *  about what being named means. It is pure and takes no clock, so the
+ *  screen reads stored references with it and measures nothing. */
+export function classifyReferences(
+  references: readonly string[],
+  ownDomain: string,
+  said: AnswerSaid = {}
+): { cited: boolean; mentioned: boolean } {
   const own = hostOf(ownDomain);
   const brandToken = own.split(".")[0] ?? own;
+  const siteName = said.siteName ?? null;
   let cited = false;
   let mentioned = false;
   for (const reference of references) {
@@ -352,11 +511,20 @@ export function classifyReferences(references: readonly string[], ownDomain: str
       mentioned = true;
     }
   }
+  for (const url of said.urls ?? []) {
+    const host = hostOf(url);
+    if (host === own || host.endsWith(`.${own}`)) cited = true;
+    else if (pathNamesSite(url, siteName, own)) mentioned = true;
+  }
+  if (said.text !== undefined && namesSite(said.text, siteName, own)) mentioned = true;
   return { cited, mentioned };
 }
 
-/** What AIPresence reads of one SERP: its AI Overview's references. */
-type AiOverviewRead = { aiOverview: Pick<SerpAiOverview, "present" | "unread" | "referenceDomains"> };
+/** What AIPresence reads of one SERP: its AI Overview's references, and its
+ *  addresses and text where they were kept. */
+type AiOverviewRead = {
+  aiOverview: Pick<SerpAiOverview, "present" | "unread" | "referenceDomains" | "referenceUrls" | "text">;
+};
 
 /** BUILD §5's AIPresence. The rates are over the SERPs whose AI-overview
  *  item was *measured* — never over the SERPs asked for, because a SERP we
@@ -376,6 +544,8 @@ type AiOverviewRead = { aiOverview: Pick<SerpAiOverview, "present" | "unread" | 
 export function aiPresenceOf(a: {
   serps: readonly Measured<AiOverviewRead>[];
   ownDomain: string;
+  /** The site's name, as `namesSite` reads it; `null` where none is known. */
+  siteName?: string | null;
   at: Date;
 }): Measured<number> {
   const read: AiOverviewRead[] = [];
@@ -393,7 +563,12 @@ export function aiPresenceOf(a: {
   let citations = 0;
   for (const serp of read) {
     if (!serp.aiOverview.present) continue;
-    const { cited, mentioned } = classifyReferences(serp.aiOverview.referenceDomains, a.ownDomain);
+    const { referenceDomains, referenceUrls, text } = serp.aiOverview;
+    const { cited, mentioned } = classifyReferences(referenceDomains, a.ownDomain, {
+      ...(referenceUrls === undefined ? {} : { urls: referenceUrls }),
+      ...(text === undefined ? {} : { text }),
+      siteName: a.siteName ?? null,
+    });
     if (mentioned) mentions++;
     if (cited) citations++;
   }

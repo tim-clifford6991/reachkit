@@ -65,16 +65,17 @@ export interface AnswersSite {
  * An answered cell is split by `classifyReferences` — the score's function,
  * not a second one. *Linked* is a reference whose host is the site's own;
  * *named* is a reference somewhere else carrying the site's brand token
- * whole. The two are disjoint there and stay disjoint here, with `linked`
- * winning where an answer did both: a link is the stronger fact and the
- * tile beneath already counts the two apart.
+ * whole, or the cell's `named`, which the pass set with the same function
+ * from the answer's text and cited addresses (issue 1420). `linked` wins
+ * where an answer did both: a link is the stronger fact and the tile
+ * beneath already counts the two apart.
  */
 export function markOf(cell: AnswerCell, ownDomain: string): AnswerMark {
   if (cell.kind === "unmeasured") return "not_measured";
   if (cell.kind === "no_answer") return "no_answer";
   const { cited, mentioned } = classifyReferences(cell.citedDomains, ownDomain);
   if (cited) return "links_to_you";
-  if (mentioned) return "names_you";
+  if (mentioned || cell.named === true) return "names_you";
   return "names_others";
 }
 

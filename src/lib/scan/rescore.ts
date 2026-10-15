@@ -18,7 +18,7 @@
 // `src/lib/scan/rescore-run.ts` reads the stored rows in production (the
 // `scan/rescore` job, issue 1433), writes the before and after, and on apply
 // writes the change, keeping the original report under `report.previous`.
-import { aiPresenceOf, foundationsOf, searchPresenceOf } from "@/lib/measure/drivers";
+import { aiPresenceOf, classifyReferences, foundationsOf, searchPresenceOf } from "@/lib/measure/drivers";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
@@ -32,7 +32,7 @@ import type { RivalCandidate } from "@/lib/market/rivals/derive";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import type { PresenceCard } from "@/lib/market/rivals/presence";
 import type { MarketSerp, QuestionView } from "@/lib/market/views";
-import type { RankedRow } from "@/lib/vendors/dataforseo/types";
+import { AI_ANSWER_SOURCES, type RankedRow } from "@/lib/vendors/dataforseo/types";
 import { cardsOf } from "./cards";
 import { readAsProtection, unreadByProtection } from "./challenged";
 import { marketEvidence, type EvidenceReport } from "./market-evidence";
@@ -95,6 +95,21 @@ export interface RescoreScan {
    *  the rendered reads of that page; `null` where it is no longer stored. */
   home: { created_at: string; payload: unknown } | null;
   rendered: readonly { created_at: string; payload: unknown }[];
+  /** The site's name as an AI answer is read for it (`promptSiteName` over
+   *  the stored profile), `null` where no profile is stored (issue 1420). */
+  siteName: string | null;
+  /** The AI Mode and ChatGPT answers this scan bought, as `fetches` keeps
+   *  them: the ledger source, the cache key (the search first) and what the
+   *  answer said (issue 1420). Empty where none is stored under this scan. */
+  answers: readonly StoredAnswer[];
+}
+
+/** One bought AI Mode or ChatGPT answer, as `fetches` keeps it. */
+export interface StoredAnswer {
+  source: string;
+  key: string;
+  text: string | null;
+  citedUrls: readonly string[] | null;
 }
 
 /** The members a re-score may rewrite, as the scan would now store them. */
@@ -160,7 +175,11 @@ function searchPresenceFrom(r: RescoreReport, at: Date): Measured<number> | null
 
 /** The cards over the stored SERPs, where the pass that stored them got as
  *  far as counting them; otherwise the stored members stand. */
-function cardsAfter(r: RescoreReport): Pick<RescoredMembers, "rivals" | "sources" | "presence" | "coherence" | "aiAnswers"> {
+function cardsAfter(
+  r: RescoreReport,
+  scan: Pick<RescoreScan, "siteName" | "answers">,
+  kept: string[]
+): Pick<RescoredMembers, "rivals" | "sources" | "presence" | "coherence" | "aiAnswers"> {
   if (r.presence === null || r.questions.kind === "unmeasured") {
     return { rivals: r.rivals, sources: r.sources, presence: r.presence, coherence: r.coherence, aiAnswers: r.aiAnswers };
   }
@@ -169,6 +188,7 @@ function cardsAfter(r: RescoreReport): Pick<RescoredMembers, "rivals" | "sources
     questions: r.questions.value,
     rivalSizes: r.rivalSizes,
     ownDomain: r.domain,
+    siteName: scan.siteName,
     coverage: r.aiAnswers?.coverage ?? "async_included",
   });
   const cells = cards.card.rows.map((row) => row.cell);
@@ -183,13 +203,16 @@ function cardsAfter(r: RescoreReport): Pick<RescoredMembers, "rivals" | "sources
           reusedFrom: cards.card.reusedFrom,
           rivals: cards.rivals.map((rival) => ({ domain: rival.domain, cells: rivalCellsOf(cells, rival.domain) })),
           // The AI Overview column is the SERP's; the two battery engines
-          // were bought answers and are kept as they were read.
+          // were bought answers, kept as they were read except whether they
+          // name the site, read again from their stored text (issue 1420).
           rows: r.aiAnswers.rows.map((row, i) => {
             const cell = cells[i] ?? row.cell;
             return {
               ...row,
               cell,
-              engines: row.engines.map((engine) => (engine.engine === "ai_overview" ? { ...engine, cell } : engine)),
+              engines: row.engines.map((engine) =>
+                engine.engine === "ai_overview" ? { ...engine, cell } : { ...engine, cell: engineCellAfter(engine, row.question.search, r.domain, scan, kept) }
+              ),
             };
           }),
         };
@@ -200,6 +223,38 @@ function cardsAfter(r: RescoreReport): Pick<RescoredMembers, "rivals" | "sources
     coherence: cards.coherence,
     aiAnswers,
   };
+}
+
+/** What `kept` says of a scan whose AI Overviews were stored without their
+ *  text, and of a battery answer whose text is no longer stored. */
+export const KEPT_NO_OVERVIEW_TEXT = "AI presence: its AI Overviews were stored without their text, so a brand they name only in words is not counted";
+export const KEPT_NO_ANSWER_TEXT = "AI answers: an AI Mode or ChatGPT answer's text is not stored under this scan, so whether it names the site stands as read";
+
+/** A battery engine's answered cell, its `named` read again from the text
+ *  `fetches` kept under this scan for that search; as stored where none is. */
+function engineCellAfter(
+  engine: EngineCell,
+  search: string,
+  ownDomain: string,
+  scan: Pick<RescoreScan, "siteName" | "answers">,
+  kept: string[]
+): AnswerCell {
+  const cell = engine.cell;
+  if (cell.kind !== "answered" || engine.engine === "ai_overview") return cell;
+  const source = AI_ANSWER_SOURCES[engine.engine];
+  const stored = scan.answers.find((answer) => answer.source === source && answer.text !== null && answer.key.split("|")[0] === search);
+  if (stored === undefined || stored.text === null) {
+    if (!kept.includes(KEPT_NO_ANSWER_TEXT)) kept.push(KEPT_NO_ANSWER_TEXT);
+    return cell;
+  }
+  const { mentioned } = classifyReferences(cell.citedDomains, ownDomain, {
+    urls: stored.citedUrls ?? [],
+    text: stored.text,
+    siteName: scan.siteName,
+  });
+  const rest: AnswerCell = { ...cell };
+  delete rest.named;
+  return mentioned ? { ...rest, named: true } : rest;
 }
 
 /** A stored scan scored again by the current code, from what it stored. */
@@ -223,7 +278,11 @@ export function rescoreScan(scan: RescoreScan): Rescored {
 
   const searchPresence = searchPresenceFrom(r, at);
   if (searchPresence === null) kept.push("search presence: the report kept its ranked count but not the rows");
-  const aiPresence = aiPresenceOf({ serps: r.serps, ownDomain: r.domain, at });
+  const aiPresence = aiPresenceOf({ serps: r.serps, ownDomain: r.domain, siteName: scan.siteName, at });
+  const textless = r.serps.some(
+    (serp) => serp.kind !== "unmeasured" && serp.value.aiOverview.present && serp.value.aiOverview.unread !== true && serp.value.aiOverview.text === undefined
+  );
+  if (textless) kept.push(KEPT_NO_OVERVIEW_TEXT);
 
   const drivers: Drivers = {
     foundations,
@@ -253,7 +312,7 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   };
   const verdict = verdictOf({ domain: r.verdict.domain, measuredAt: at, drivers, inputs, robots, ...(presence === undefined ? {} : { presence }) });
 
-  let after: RescoredMembers = { ...membersOf(r), verdict, ...cardsAfter(r) };
+  let after: RescoredMembers = { ...membersOf(r), verdict, ...cardsAfter(r, scan, kept) };
 
   // A home read that was a protection's page is no reading of the site
   // (issue 1383): the report says what a new scan of it would say.
