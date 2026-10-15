@@ -64,6 +64,9 @@ export interface MarketSet {
    *  step, so a category corrected at setup re-derives over the same pool.
    *  Absent on a report stored before #778. */
   pool?: readonly PoolRow[];
+  /** Issue 1450: present where the suggestions purchase did not answer and
+   *  the questions were chosen from `pool` alone — why it did not. */
+  suggestionsUnread?: UnmeasuredReason;
 }
 
 /**
