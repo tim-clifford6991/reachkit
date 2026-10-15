@@ -35,7 +35,6 @@
 // `scripts/panel/evidence/<domain>.json` and loaded by the next run, so a
 // later run buys only what the code under test asks differently, and the
 // model's own calls (D34: stored evidence first).
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import dns from "node:dns";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -50,6 +49,7 @@ import { runDeepPass, type PassStep } from "@/lib/scan/deep/run";
 import { parseHealth } from "@/lib/scan/health";
 import { readStoredReport } from "@/lib/scan/report";
 import { storedKnowledgeOf } from "@/lib/site-profile/knowledge/store";
+import { commitOf, psql, rebuild, waitForSchema } from "../local-run.mjs";
 import { appendSpend } from "../spend-log.mjs";
 import { checkSite, countPageQuestions, defectsByKind, saidOf, type CheckResult, type PanelSite, type SiteResult, type VendorLocale } from "./checks";
 
@@ -113,39 +113,7 @@ const ownerIdOf = (domain: string): string => named(`reachkit/panel/owner/${doma
 
 // ── The local database ─────────────────────────────────────────────────────
 
-function psql(sql: string): string {
-  const url = process.env.DATABASE_URL;
-  if (url === undefined || !/@(127\.0\.0\.1|localhost)[:/]/.test(url)) {
-    throw new Error("scripts/panel/run.ts: DATABASE_URL does not name the local database; nothing was run.");
-  }
-  return execFileSync("psql", [url, "-q", "-v", "ON_ERROR_STOP=1", "-At", "-f", "-"], {
-    input: sql,
-    encoding: "utf8",
-    maxBuffer: 256 * 1024 * 1024,
-    env: { ...process.env, PGOPTIONS: "-c client_min_messages=warning" },
-  });
-}
-
 const json = <T>(sql: string): T => JSON.parse(psql(sql).trim() || "null") as T;
-
-function rebuild(root: string): void {
-  psql("drop schema public cascade; create schema public; grant usage on schema public to anon, authenticated, service_role;");
-  const dir = path.join(root, "supabase/migrations");
-  for (const file of readdirSync(dir).filter((name) => name.endsWith(".sql")).sort()) psql(readFileSync(path.join(dir, file), "utf8"));
-  psql("notify pgrst, 'reload schema';");
-}
-
-async function waitForSchema(): Promise<void> {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-  const url = `${process.env.SUPABASE_URL}/rest/v1/scans?select=health&limit=1`;
-  const deadline = Date.now() + 30_000;
-  for (;;) {
-    const ok = await fetch(url, { headers: { apikey: key, Authorization: `Bearer ${key}` } }).then((r) => r.ok, () => false);
-    if (ok) return;
-    if (Date.now() > deadline) throw new Error("The local database never served the migrated schema.");
-    await new Promise((resolve) => setTimeout(resolve, 200));
-  }
-}
 
 // ── Stored evidence ────────────────────────────────────────────────────────
 
@@ -640,12 +608,7 @@ export async function main(o: Options): Promise<number> {
     };
   };
 
-  let commit = "unknown";
-  try {
-    commit = execFileSync("git", ["rev-parse", "--short", "HEAD"], { cwd: o.root, encoding: "utf8" }).trim();
-  } catch {
-    // Not a checkout.
-  }
+  const commit = commitOf(o.root);
   say(`Customer panel: ${sites.length} sites, live, up to ${cents(o.capCents)}. Nothing is written to production.`);
   if (carried.runs.length > 0) say(`Continuing ${o.date}: ${carried.runs.length} sites are kept as they ran, and their ${cents(carried.spent)} counts against the cap.`);
   const runs: SiteRun[] = [...carried.runs];

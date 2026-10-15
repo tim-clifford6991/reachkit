@@ -14,6 +14,7 @@ Where it quotes GO-LIVE or RUNBOOK and they disagree, those pages are right and 
 | `docs/walk/content-eval.md` | whoever changes generation (#1127) | the retired pipeline's last table (the run went with it, SPEC §7 D41); a page is tested with `npm run page`; not part of the walk |
 | `docs/walk/d19-cost.md` | the owner, ruling on issue 1162 | rewritten by `node scripts/d19-cost.mjs --run`; not part of the walk |
 | `docs/walk/panel/` | whoever changes market understanding, the knowledge base, rivals, terms, searches or topics (#1304) | `sites.json` is the customer panel; `<date>.json` and `<date>.md` are written by `npm run panel`; not part of the walk |
+| `docs/walk/free/` | whoever changes the free scan's score, questions or rivals (#1438) | `<date>.json` and `<date>.md` are written by `npm run free-scan`, `<date>.recheck.md` by its `--recheck`; not part of the walk |
 
 ## Readiness — what must be true before the walk starts
 
