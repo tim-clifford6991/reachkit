@@ -393,3 +393,88 @@ describe("a site its bot protection kept the reader off (SPEC §2, issue 1387)",
     expect(labsRequests.some((request) => request.url.includes("ranked_keywords"))).toBe(true);
   }, PASS_TIMEOUT_MS);
 });
+
+describe("a site that ranks, whose market a vendor or the model did not answer for (issue 1450)", () => {
+  const SAGE_PROFILE = {
+    category: "accounting software",
+    job: "keep a small business's books",
+    offeringType: "saas",
+    audienceTerms: ["small business", "accountants"],
+    namedRivals: [],
+    vocabulary: ["accounting", "payroll", "invoicing"],
+    brandTokens: ["sage"],
+  };
+  const failedTask = { tasks: [{ id: "task-double", status_code: 50000, status_message: "Internal Error.", result: null }] };
+
+  it("chooses the questions from its ranked searches where the suggestions did not answer", async () => {
+    served = READABLE;
+    recording = loadRecording("sage.com");
+    scripted = (input) => echoPhrasing(input) ?? (input.includes('"home"') ? SAGE_PROFILE : undefined);
+    labsDouble = (url) => (url.includes("keyword_suggestions") ? failedTask : undefined);
+    const { report, spentCents } = await scan("sage.com");
+
+    // The ladder still tried its further seeds; none answered.
+    expect(suggestionsBought()).toBeGreaterThan(1);
+    if (report.market.kind === "unmeasured" || report.questions.kind === "unmeasured") throw new Error("no market was read");
+    expect(report.market.value.suggestions).toEqual([]);
+    expect(report.market.value.suggestionsUnread).toBe("undeterminable");
+    expect(report.market.value.pool?.length).toBeGreaterThan(0);
+    const pooled = new Set(report.market.value.pool?.map((row) => row.keyword));
+    expect(report.questions.value.length).toBeGreaterThan(0);
+    for (const question of report.questions.value) expect(pooled.has(question.search.keyword)).toBe(true);
+    expect(report.aiAnswers?.measuredSearches).toBe(report.questions.value.length);
+    // The pool's market is a market read: Presence is scored, with its range (issue 1439).
+    expect(report.verdict.factors.presence.kind).not.toBe("unmeasured");
+    expect(report.verdict.scoreAndBand.kind).toBe("measured");
+    expect(report.verdict.estimate).toBeDefined();
+    expect(spentCents).toBeLessThanOrEqual(CAPS.FREE_C);
+  }, PASS_TIMEOUT_MS);
+
+  it("reads its listing in search where the model gave no profile of its pages", async () => {
+    served = READABLE;
+    recording = loadRecording("sage.com");
+    scripted = (input) => {
+      if (input.includes('"home"')) throw Object.assign(new Error("invalid_request_error"), { status: 400 });
+      return echoPhrasing(input) ?? (input.includes('"search"') ? SAGE_PROFILE : undefined);
+    };
+    const { report } = await scan("sage.com");
+
+    expect(profileInputs()).toHaveLength(2);
+    expect(profileInputs()[1]).toContain('"search"');
+    expect(report.onPage.kind).not.toBe("unmeasured");
+    expect(report.marketFrom).toBe("search");
+    if (report.market.kind === "unmeasured" || report.questions.kind === "unmeasured") throw new Error("no market was read");
+    expect(report.market.value.profile.category).toBe("accounting software");
+    expect(report.questions.value.length).toBeGreaterThan(0);
+    expect(report.verdict.scoreAndBand.kind).toBe("measured");
+  }, PASS_TIMEOUT_MS);
+
+  it("measures again over a stored report whose market was not read, where the site ranks, at most once a day", async () => {
+    served = READABLE;
+    recording = loadRecording("sage.com");
+    scripted = (input) => echoPhrasing(input) ?? (input.includes('"home"') ? SAGE_PROFILE : undefined);
+    const first = await scan("sage.com");
+    const stored = JSON.parse(JSON.stringify(first.report)) as StoredReport;
+    const unreadAt = (hoursAgo: number): StoredReport => {
+      const at = new Date(Date.now() - hoursAgo * 3_600_000).toISOString();
+      return { ...stored, verdict: { ...stored.verdict, measuredAt: at }, market: { kind: "unmeasured", reason: "undeterminable", at } } as unknown as StoredReport;
+    };
+    const startAgain = (report: StoredReport): void => {
+      db.rpcCalls.length = 0;
+      db.queries.length = 0;
+      labsRequests.length = 0;
+      current = { report };
+    };
+
+    // A site that ranks for nothing has no market to read: served as it is.
+    startAgain({ ...unreadAt(25), ownRankedRows: [] });
+    expect((await scan("sage.com")).measured).toBe(false);
+
+    // A failed pass less than a day old is served: one extra pass a day at most.
+    startAgain(unreadAt(23));
+    expect((await scan("sage.com")).measured).toBe(false);
+
+    startAgain(unreadAt(25));
+    expect((await scan("sage.com")).measured).toBe(true);
+  }, PASS_TIMEOUT_MS);
+});

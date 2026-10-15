@@ -325,3 +325,13 @@ describe("Constitution §1 (decision-rights table, \"Customer-visible strings\" 
     }
   });
 });
+
+describe("issue 1450 (master review on #1451) — the profile-ladder line is short and claims nothing the pass did not do", () => {
+  it("names the listing, no dash, at most twelve words, and never says the pages could not be read", () => {
+    const line = copy("report.market.from-listing");
+    expect(line).toMatch(/Google listing/);
+    expect(line).not.toMatch(/[—–]/);
+    expect(line.split(/\s+/).length).toBeLessThanOrEqual(12);
+    expect(line).not.toMatch(/couldn’t be read|could not be read/);
+  });
+});

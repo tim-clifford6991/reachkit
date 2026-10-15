@@ -110,6 +110,10 @@ export const REPORT_COPY = Object.freeze({
   // own words). Drafted (#759).
   "report.finishing-reads": ["Still reading {count} searches…", { slots: { count: "text" }, fixedBy: "SPEC §2 · issue 1440" }],
   "report.finishing-reads.one": ["Still reading {count} search…", { slots: { count: "text" }, fixedBy: "SPEC §2 · issue 1440" }],
+  // SPEC §2 (issue 1450): the site's pages were read and the model gave no
+  // profile of them, so the market was read from its listing. Short on
+  // purpose (master review on #1451). Drafted (#759).
+  "report.market.from-listing": ["Market read from the site’s Google listing.", { slots: {}, fixedBy: "SPEC §2 · issue 1450" }],
   "report.market.from-search": ["The market here was inferred from how this site appears in Google search, because its own pages couldn’t be read. The questions and the AI answers are measured for that market.", { slots: {}, fixedBy: "SPEC §2 · issue 1387" }],
   // Issue 898. The site read and its market did not — the profile call or
   // the suggestions did not answer — so there is no question, no answer

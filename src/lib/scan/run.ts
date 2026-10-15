@@ -43,6 +43,7 @@ import {
   BATTERY,
   CACHE_WINDOWS_D,
   FREE_RESCAN_WINDOW_D,
+  MARKET_REMEASURE_H,
   PAGE_QUESTION_RETIRE_WEEKS,
   PRICE_BOOK,
   SELECTION,
@@ -983,7 +984,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     if (
       stored !== null &&
       stored.complete &&
-      !awaitsMarketFromSearch(stored) &&
+      !awaitsMarketFromSearch(stored, startedAt) &&
       wholeDaysBetween(stored.verdict.measuredAt, startedAt) < FREE_RESCAN_WINDOW_D
     ) {
       if (parameters.adoptsClaim) await closeWithoutSpending(scanId);
@@ -1888,6 +1889,12 @@ function marketReadingOf(
     };
   }
   if (measurement.protection === undefined) return null;
+  return listingReadingOf(a, measurement);
+}
+
+/** The site's listing in search as the profile call's reading, or `null`
+ *  where it is too thin to name a market from (and why is kept). */
+function listingReadingOf(a: StageArgs, measurement: DomainMeasurement): { search: string } | null {
   const footprint = searchFootprintOf({ domain: a.domain, rows: measurement.ownRankedRows });
   if (footprint.kind === "thin") {
     a.sections.marketThin = footprint.because;
@@ -1898,6 +1905,14 @@ function marketReadingOf(
   return { search: footprint.text };
 }
 
+/** Issue 1450: whether the stage still has the time for a second profile
+ *  call — at least half its own seconds left. A first call that failed
+ *  fast (a refused request) leaves it; one that ran out its budget does
+ *  not, so the free pass's inference arithmetic is not stretched. */
+function roomForAnotherProfile(bounds: Bounds): boolean {
+  return bounds.stopNow() === null && bounds.remainingMs() >= (STAGE_BUDGETS.reading_your_market.seconds * 1000) / 2;
+}
+
 /** Counts only: never a search, a title or a snippet. */
 function logMarketFromSearch(fields: { read: boolean; because?: ThinFootprint; searches?: number; descriptive?: number; pages?: number }): void {
   console.log(JSON.stringify({ event: "market_from_search", ...fields }));
@@ -1906,17 +1921,20 @@ function logMarketFromSearch(fields: { read: boolean; because?: ThinFootprint; s
 /**
  * Whether a stored report is one this build would measure further (issue
  * 1387): bot protection kept the reader off the site, and the pass that
- * stored it never tried to read a market from search. Such a report is not
- * served inside the re-scan window. One whose listing was read and found
- * too thin carries that reason, and is served as any other.
+ * stored it never tried to read a market from search; or (issue 1450) the
+ * site ranks, its market was not read, and that pass is a day old. Such a
+ * report is not served inside the re-scan window. One whose listing was read and found too thin
+ * carries that reason, and is served as any other.
  */
-function awaitsMarketFromSearch(report: StoredReport): boolean {
-  return (
-    report.onPage.kind === "unmeasured" &&
-    report.onPage.because === BOT_PROTECTION &&
-    report.market.kind === "unmeasured" &&
-    report.market.because === undefined
-  );
+function awaitsMarketFromSearch(report: StoredReport, now: Date): boolean {
+  if (report.market.kind !== "unmeasured" || report.market.because !== undefined) return false;
+  if (report.onPage.kind === "unmeasured" && report.onPage.because === BOT_PROTECTION) return true;
+  // Issue 1450: a site that ranks, whose market a vendor or the model did
+  // not answer for. This build reads one from its ranked rows instead —
+  // but a pass that failed so is measured again at most once a day, so a
+  // site that keeps failing costs at most one extra free pass a day.
+  const ageMs = now.getTime() - new Date(report.verdict.measuredAt).getTime();
+  return report.market.reason === "undeterminable" && report.ownRankedRows.length > 0 && ageMs >= MARKET_REMEASURE_H * 3_600_000;
 }
 
 /** §6.7 steps 1–4: profile → measured market → the twelve → their wording.
@@ -1927,11 +1945,26 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   const { bounds, cost, sections } = a;
   const measurement = sections.measurement;
   if (measurement === null) return;
-  const reading = marketReadingOf(a, measurement);
-  if (reading === null) return;
+  const pages = marketReadingOf(a, measurement);
+  if (pages === null) return;
+  let reading = pages;
 
-  const profile = await attempt("reading_your_market", () => deriveProfile(cost, { locale: localeOfPass(a), ...reading }));
-  if (failed(profile) || abandoned()) return;
+  let profile = await attempt("reading_your_market", () => deriveProfile(cost, { locale: localeOfPass(a), ...pages }));
+  if (abandoned()) return;
+  // Issue 1450: the site's pages were read and the model gave no profile of
+  // them (trello.com's call came back `http_400`). A site that ranks has a
+  // listing in search, and that is read in their place, as for a site its
+  // bot protection kept the reader off — but only where the pass still has
+  // the time for this call and the phrasing after it.
+  if ((failed(profile) || profile.kind === "unmeasured") && "home" in reading && roomForAnotherProfile(bounds)) {
+    const listing = listingReadingOf(a, measurement);
+    if (listing !== null) {
+      reading = listing;
+      profile = await attempt("reading_your_market", () => deriveProfile(cost, { locale: localeOfPass(a), ...listing }));
+      if (abandoned()) return;
+    }
+  }
+  if (failed(profile)) return;
   if ("search" in reading) {
     // The model was told to name no category the listing does not support
     // (issue 1387). Where it named none, there is no market, and none is
@@ -2012,9 +2045,18 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   const market = await attempt("reading_your_market", () =>
     deriveMarketSet(cost, { seeds: seeds.slice(0, 1 + upfront), ownRanked, locale: localeOfPass(a) })
   );
-  if (failed(market) || abandoned()) return;
-  sections.marketRows = market;
-  if (market.kind === "unmeasured") return;
+  if (abandoned()) return;
+  // Issue 1450: suggestions that did not come back (hiverhq.com's timed
+  // out) are not the end of the market. The site's own ranked rows, and
+  // any rival's the pass reads below, are the pool selection already
+  // widens into, and the ladder's further seeds are still bought while the
+  // pass is short. Where none of them answered either, the questions are
+  // chosen from the pool alone and the record keeps that the suggestions
+  // were not read.
+  const suggestionsRead = !failed(market) && market.kind !== "unmeasured";
+  sections.marketRows = failed(market) ? unmeasured("undeterminable", a.startedAt) : market;
+  if (!suggestionsRead && poolOf(sections).length === 0) return;
+  const bought: readonly SuggestionRow[] = suggestionsRead ? market.value : [];
 
   // The market's other names are its words too (#1195): a search in them is
   // about this market, not off it. And the market in force says which of
@@ -2062,7 +2104,7 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
     return phrase(a, abandoned);
   };
 
-  sections.selected = selectTwelve({ profile: profile.value, market: [...market.value], ownRanked, ...category() });
+  sections.selected = selectTwelve({ profile: profile.value, market: [...bought], ownRanked, ...category() });
   if (!isShort(sections.selected)) return judgeThenPhrase();
 
   // Short. Widen in SPEC §6's order, stopping as soon as twelve survive:
@@ -3107,6 +3149,19 @@ function composeReport(a: {
         }
       : { ...m.drivers, aiPresence: aiPresenceOf({ serps: s.serps, ownDomain: a.domain, siteName: s.siteName, at: measuredAt }) };
 
+  const market: Measured<MarketSet> =
+    s.profile.kind === "unmeasured"
+      ? // Issue 1387: where the site's listing in search named no market,
+        // the record says which way it fell short.
+        unmeasured(s.profile.reason, measuredAt, s.marketThin ?? undefined)
+      : s.marketRows.kind === "unmeasured"
+        ? marketFromPool(s, measuredAt)
+        : {
+            kind: s.marketRows.kind,
+            value: marketSetOf({ profile: s.profile.value, suggestions: s.marketRows.value, pool: poolOf(s) }),
+            at: measuredAt,
+          };
+
   const inputs: Readonly<Record<ScanInput, InputOutcome>> = {
     home_document: outcomeOf(onPage),
     pricing_document:
@@ -3117,7 +3172,9 @@ function composeReport(a: {
           : outcomeOf(m.pricing.facts),
     access_rules: outcomeOf(robots),
     business_profile: outcomeOf(s.profile),
-    market_suggestions: outcomeOf(s.marketRows),
+    // Issue 1450: a market chosen from the ranked pool, where the
+    // suggestions did not answer, is a market read.
+    market_suggestions: outcomeOf(s.marketRows.kind === "unmeasured" && market.kind !== "unmeasured" ? market : s.marketRows),
     own_ranked_rows: outcomeOf(drivers.searchPresence),
     question_serps: outcomeOf(foldSerps(s.serps, measuredAt)),
   };
@@ -3143,19 +3200,6 @@ function composeReport(a: {
       : s.marketRows.kind === "unmeasured"
         ? "market_suggestions"
         : null;
-
-  const market: Measured<MarketSet> =
-    s.profile.kind === "unmeasured"
-      ? // Issue 1387: where the site's listing in search named no market,
-        // the record says which way it fell short.
-        unmeasured(s.profile.reason, measuredAt, s.marketThin ?? undefined)
-      : s.marketRows.kind === "unmeasured"
-        ? unmeasured(s.marketRows.reason, measuredAt)
-        : {
-            kind: s.marketRows.kind,
-            value: marketSetOf({ profile: s.profile.value, suggestions: s.marketRows.value, pool: poolOf(s) }),
-            at: measuredAt,
-          };
 
   const assembled = assembleReport({
     scanId: a.scanId,
@@ -3248,6 +3292,20 @@ function composeReport(a: {
     noQuestionMeasured;
 
   return { report, drivers, sectionMissing, marketTooSmall: tooSmall, marketUnread };
+}
+
+/**
+ * Issue 1450: the market where the suggestions were not read. Where the
+ * questions were chosen from the ranked pool in their place, the market is
+ * that pool, and it says the suggestions were not read; with nothing chosen
+ * it is unmeasured, as before.
+ */
+function marketFromPool(s: Sections, at: Date): Measured<MarketSet> {
+  const rows = s.marketRows;
+  if (s.profile.kind === "unmeasured" || rows.kind !== "unmeasured") throw new Error("marketFromPool: a profile and unread suggestions only");
+  const pool = poolOf(s);
+  if (pool.length === 0 || s.selected.length === 0) return unmeasured(rows.reason, at);
+  return measured({ ...marketSetOf({ profile: s.profile.value, suggestions: [], pool }), suggestionsUnread: rows.reason }, at);
 }
 
 /** Issue 898 — the two §6.7 steps that can leave a pass with no market at
