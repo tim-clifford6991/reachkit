@@ -104,7 +104,8 @@ describe("issue #479 — a refusal is a row, never a null payload", () => {
     expect(fetchInserts()[0]).toMatchObject({ reserved_cents: 1.8, cost_cents: 0 });
   });
 
-  it.each(REASONS)(
+  // A `timeout` is a slow site, read on from its listing (issue 1449).
+  it.each(REASONS.filter((reason) => reason !== "timeout"))(
     "the own-site read itself (`measureDomain`) ledgers a `%s` home refusal as that row, not a null",
     async (reason) => {
       const ranked = vi.fn();

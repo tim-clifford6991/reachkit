@@ -240,6 +240,37 @@ export function passesRelevanceGuard(
   return supported > 0;
 }
 
+/**
+ * Whether a search names what a business measured in its town offers (issue
+ * 1449). A local buyer searches for the service or the place to go — "water
+ * heater repair", "coffee shop", "french restaurant" — so the search's head,
+ * the last word of what it asks for before any "for", "in" or "near" and
+ * past the words that say where or when, is a word of the business's
+ * category, offering, job or confirmed market, or a word that names a
+ * provider or a service in any trade. "seasonal ingredients" for a
+ * restaurant, or "hmrc online accounts" for an accountant, names neither.
+ * `subject` is the search without its town.
+ */
+export function namesOffering(subject: string, p: Profile, marketWords?: string): boolean {
+  const language = p.language ?? "en";
+  const pack = languagePack(language);
+  const object: string[] = [];
+  for (const word of normalise(subject).split(" ")) {
+    if (word === "") continue;
+    if (object.length > 0 && pack.offering.before.has(word)) break;
+    const token = pack.stem(word);
+    if (pack.stopWords.has(word) || pack.genericTokens.has(token) || pack.offering.local.has(word)) continue;
+    object.push(token);
+  }
+  const head = object.at(-1);
+  if (head === undefined) return false;
+  const offering = new Set<string>();
+  for (const source of [marketWords ?? "", p.category, p.offeringType, p.job, ...pack.offering.providers]) {
+    for (const token of contentTokens(source, language)) offering.add(token);
+  }
+  return pack.supports(head, offering);
+}
+
 function supportSet(p: Profile, category?: string, rivals: readonly string[] = []): ReadonlySet<string> {
   const tokens = new Set<string>();
   const sources = [
@@ -389,6 +420,9 @@ export function selectTwelve(a: {
     const place = a.measured?.place ?? a.place;
     const subject = place === undefined ? row.keyword : withoutPlace(row.keyword, place);
     if (!passesRelevanceGuard(subject, profile, marketWords, rivals)) continue;
+    // Issue 1449: a business measured in its town is searched for by what
+    // it offers.
+    if (place !== undefined && !namesOffering(subject, profile, marketWords)) continue;
     const longTail = coldStart && contentTokens(row.keyword, profile.language).length >= SELECTION.longTailWords;
     survivors.push({
       keyword: row.keyword,

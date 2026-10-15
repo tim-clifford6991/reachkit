@@ -100,6 +100,19 @@ export interface LanguagePack {
   priceFiller: ReadonlySet<string>;
   /** Price words, which all name the one price topic. */
   priceWords: ReadonlySet<string>;
+  /** How the head of a search is read, for a business measured in its town
+   *  (issue 1449): what the buyer is looking for, the last word before any
+   *  of `before`, past any word of `local`. */
+  offering: {
+    /** The words a search's object ends before: "coffee shop *near* the
+     *  station", "cafés *for* brunch". */
+    before: ReadonlySet<string>;
+    /** Words that say where or when, never what: "city centre", "open now". */
+    local: ReadonlySet<string>;
+    /** Words that name a provider or a service in any trade: what a local
+     *  buyer looks for besides the business's own category. */
+    providers: readonly string[];
+  };
   /** A word without its plural or its case ending. */
   stem(token: string): string;
   /** Whether a word of a search is one of the words the business is known

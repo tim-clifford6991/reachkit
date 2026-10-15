@@ -54,7 +54,7 @@ import { RescanControl } from "./rescan";
 import { startReportCheckout } from "./checkout";
 import { StillReading } from "./still-reading";
 import { TIMING } from "@/lib/config/constants";
-import { BOT_PROTECTION } from "@/lib/measure/challenge";
+import { BOT_PROTECTION, HOME_TIMEOUT } from "@/lib/measure/challenge";
 // #103: the category has one home — the market the profile inferred.
 // `categoryOf` is the one derivation of it, and the screen reads it here
 // rather than from a second member the blob used to carry.
@@ -160,7 +160,9 @@ function noticeOf(notice: AddressNotice): { line: string; warn: boolean } {
  */
 function MarketFromSearchLine(p: { report: StoredReport }): React.JSX.Element | null {
   if (p.report.marketFrom !== "search" || p.report.market.kind === "unmeasured") return null;
-  const blocked = p.report.onPage.kind === "unmeasured" && p.report.onPage.because === BOT_PROTECTION;
+  // Issue 1449: a home page that did not answer in time is a page that
+  // couldn't be read, as one behind bot protection is.
+  const blocked = p.report.onPage.kind === "unmeasured" && (p.report.onPage.because === BOT_PROTECTION || p.report.onPage.because === HOME_TIMEOUT);
   return (
     <p className="col-span-full text-sm text-base-content/70" data-testid="report-market-from-search">
       {copy(blocked ? "report.market.from-search" : "report.market.from-listing")}
