@@ -28,7 +28,6 @@ vi.mock("@/lib/opportunities", () => ({
 
 const { LIVE_ACCOUNT, resetAccount, signedInAs } = await import("../account-door");
 const { readOverview } = await import("@/app/(account)/app/_overview/provider");
-const { TileRow } = await import("@/app/(account)/app/_overview/TileRow");
 const { RivalModule } = await import("@/app/(account)/app/_overview/RivalModule");
 const { copy } = await import("@/lib/presentation/copy");
 const { formatDate } = await import("@/app/(account)/app/_shell/format");
@@ -130,28 +129,6 @@ describe("before the first Monday, the deep pass is the starting measurement", (
     expect(model.rivals.own).toMatchObject({ kind: "measured", value: 4 });
     expect(model.rivals.rivals[0]?.ranked).toMatchObject({ kind: "measured", value: 90 });
     expect(model.rivals.rivals[0]?.series).toEqual([90]);
-  });
-
-  it("the tiles show the numbers named as the starting measurement, not a first-due dash", async () => {
-    db.seed("scans", [DEEP]);
-    const model = await readOverview();
-    const markup = renderToStaticMarkup(
-      <TileRow
-        score={model.score}
-        aiAnswers={model.aiAnswers}
-        pagesPublished={model.pagesPublished}
-        timeZone={ZONE}
-        weekZero={model.weekZero}
-      />
-    );
-    const starting = copy("overview.tile.starting", {
-      on: formatDate(new Date(DEEP_AT), ZONE),
-      due: formatDate(model.weekZero!.firstDueOn, ZONE),
-    });
-    expect(markup).toContain(">31<");
-    expect(markup).toContain(">1/12<");
-    expect(markup.split(starting).length - 1).toBe(2);
-    expect(markup).not.toContain("TODO(copy)");
   });
 
   it("the rival card draws the deep pass's rows and says where they came from", async () => {

@@ -34,8 +34,6 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
 
 import { measured, measuredZero, unmeasured } from "@/lib/measure/measured";
 import { assembleOverview, type OverviewFacts } from "@/app/(account)/app/_overview/model";
-import { GrowthModule } from "@/app/(account)/app/_overview/GrowthModule";
-import { TileRow } from "@/app/(account)/app/_overview/TileRow";
 import { RivalModule } from "@/app/(account)/app/_overview/RivalModule";
 import { NeedsYouModule } from "@/app/(account)/app/_overview/NeedsYouModule";
 import { WeekModule } from "@/app/(account)/app/_overview/WeekModule";
@@ -129,165 +127,6 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
 const html = (el: React.ReactElement): string => renderToStaticMarkup(el);
 const count = (source: string, needle: string): number => source.split(needle).length - 1;
 
-describe("the growth chart", () => {
-  it("runs one line to the last measured week, with no vertex over the week that was not measured", () => {
-    const model = assembleOverview(facts());
-    const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
-    // The drawing is Recharts' and paints on the client (#550; its line is
-    // read in tests/ui/recharts-charts.test.tsx). The server writes every
-    // week's reading: four weeks, the unmeasured one stating why.
-    expect(count(markup, "<li>")).toBe(4);
-    expect(markup).toContain("place.overview.weekly-presence.week");
-  });
-
-  it("labels the endpoint only — no numeral under any weekly point (#386)", () => {
-    const model = assembleOverview(facts());
-    const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
-    // No em dash stands in for the unmeasured week; every week states its
-    // name and its reading, the last measured one included.
-    expect(markup).not.toContain("—");
-    expect(markup).toMatch(/<li>[^<]*· 81<\/li>/);
-    // …and the start value is the card's left-hand footnote, as S12 draws
-    // it, not a numeral on the plot.
-    expect(markup).toContain("overview.growth.footnote.start(0)");
-  });
-
-  it("with nothing measured it renders no chart and one line with the first-due date", () => {
-    const model = assembleOverview(facts({ points: [], aiPresence: [] }));
-    const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
-    // The card head's chip carries a glyph since #353, and a glyph is an
-    // `<svg>`. What this asserts is the absence of the *chart*, which the
-    // inventory's charts all label as an image role — not the absence of
-    // every vector on the card.
-    expect(markup).not.toContain("<figure");
-    // …and no source chip either: nothing was measured, so there is no date
-    // a reading came from to name.
-    expect(markup).not.toContain('data-testid="overview-growth-source"');
-    expect(markup).toContain("place.overview.weekly-presence.chart");
-    expect(markup).toContain("Sep 7, 2026");
-  });
-});
-
-describe("three tiles, and no fourth", () => {
-  const model = assembleOverview(facts());
-  const markup = html(
-    <TileRow
-      score={model.score}
-      aiAnswers={model.aiAnswers}
-      pagesPublished={model.pagesPublished}
-      timeZone={ZONE}
-    />
-  );
-
-  it("renders exactly three stat tiles", () => {
-    expect(count(markup, 'class="stats"')).toBe(3);
-  });
-
-  it("leads with the Discoverability Score, its delta and its band (ruling 6a)", () => {
-    // The set's `62 ▲ 8` beside the band word. Between DECISIONS
-    // 2026-09-03 and the owner's 2026-09-08 screen set this tile did not
-    // exist; ruling 6a names "Overview tile" and brought it back.
-    expect(markup).toContain('data-testid="overview-tile-score"');
-    expect(markup).toContain("overview.tile.score.label");
-    expect(markup).toContain(">62<");
-    expect(markup).toContain("overview.delta.up");
-    expect(markup).toContain(">8<");
-    expect(markup).toContain("band.score.hard-to-find");
-  });
-
-  // The row is the last child of `.stat`, which is the only child of
-  // `.stats`, and everything inside the row is a `span` — so the three
-  // consecutive `</div>`s are the row's own end and nothing else's. Slicing
-  // to `</section>` would swallow the lines *under* the row, which is
-  // exactly what these tests have to tell apart.
-  const rowOf = (testId: string): string => {
-    const tile = markup.slice(markup.indexOf(`data-testid="${testId}"`));
-    const row = tile.slice(tile.indexOf('data-carry="beside"'));
-    return row.slice(0, row.indexOf("</div></div></div>"));
-  };
-
-  it("draws the AI window as a CSS grid of weeks, the shortfall to the goal as dashed goal dots (issue 730)", () => {
-    const tile = markup.slice(markup.indexOf('data-testid="overview-tile-ai-answers"'), markup.indexOf('data-testid="overview-tile-pages"'));
-    const grid = tile.slice(tile.indexOf('role="table"'));
-    expect(grid).not.toContain("<svg");
-    const states = [...grid.matchAll(/data-cell="([a-z-]+)"/g)].map((m) => m[1]);
-    const cited = states.filter((st) => st === "cited").length;
-    // `2/12 goal: 6`: two cited weeks. The shortfall is drawn over weeks the
-    // customer was measured and not cited — never over an unmeasured week.
-    expect(cited).toBe(2);
-    const uncited = states.filter((st) => st === "goal" || st === "not-cited").length;
-    expect(states.filter((st) => st === "goal")).toHaveLength(Math.min(6 - cited, uncited));
-    expect(states.filter((st) => st === "goal").length).toBeGreaterThan(0);
-    expect(count(grid, 'role="columnheader"')).toBe(states.length);
-  });
-
-  it("draws each tile's carried value and badge beside the figure, on one row (#521)", () => {
-    // The set's `62 ▲8 Hard to find` and `2/12 goal: 6`: one row per tile.
-    expect(count(markup, 'data-carry="beside"')).toBe(3);
-    const score = rowOf("overview-tile-score");
-    expect(score).toContain(">62<");
-    expect(score).toContain("overview.delta.up");
-    expect(score).toContain("band.score.hard-to-find");
-    expect(rowOf("overview-tile-ai-answers")).toContain("overview.goal(6)");
-    expect(rowOf("overview-tile-pages")).toContain("overview.tile.pages.ranking(6)");
-  });
-
-  it("the pages row is the set's two chips in the set's order, and no goal chip (#536)", () => {
-    // The set's S12 pages tile (L711) draws `17` beside `6 already ranking`
-    // and nothing else on the row: no `goal: 30`, no delta chip. A third
-    // chip is what set the row's min-content width and stacked all of them
-    // under the figure — the defect in CI's S12 render.
-    const pages = rowOf("overview-tile-pages");
-    expect(pages).not.toContain("overview.goal(");
-    expect(pages).not.toContain("overview.delta.");
-    // The figure first, its standing second — the set's order.
-    expect(pages.indexOf(">11<")).toBeLessThan(pages.indexOf("overview.tile.pages.ranking(6)"));
-    // And the whole screen states no pages goal anywhere: the tile was the
-    // only surface that drew it.
-    expect(markup).not.toContain("overview.goal(30)");
-  });
-
-  it("keeps the goal's sentence under the row, never inside it (#521)", () => {
-    expect(rowOf("overview-tile-ai-answers")).not.toContain("overview.tile.ai-answers.means");
-    expect(markup).toContain("overview.tile.ai-answers.means");
-    // The pages tile carries no goal, so it states no goal sentence either.
-    expect(markup).not.toContain("overview.tile.pages.means");
-  });
-
-  it("the searches reading has no tile — the growth card is its home now", () => {
-    expect(markup).not.toContain("overview.tile.searches.label");
-  });
-
-  it("names the pages already ranking and what the rest are waiting on", () => {
-    expect(markup).toContain("overview.tile.pages.ranking(6)");
-    expect(markup).toContain("overview.tile.pages.too-early(3)");
-  });
-
-  it("the pages headline carries its standing, which is neither a delta nor a goal (#536)", () => {
-    // §4.5 item 3 lists the tile's contents and no goal is among them; the
-    // standing beside the figure is a measured value, so the figure is not
-    // bare. `GOALS.pages_published` stays pinned at 30 — nothing draws it.
-    expect(markup).toContain("overview.tile.pages.ranking(6)");
-    expect(markup).not.toContain("overview.goal(30)");
-  });
-
-  it("the AI tile carries its goal and its one window reading, and no movement", () => {
-    expect(markup).toContain("overview.goal(6)");
-    expect(markup).toContain("overview.tile.ai-answers.window");
-    expect(markup).not.toContain("overview.delta.down");
-  });
-
-  it("no headline renders bare: every stat carries a description", () => {
-    // Matched on the class *token* rather than the whole attribute: the
-    // component carries a second class on this element since #211
-    // (`whitespace-normal`, so a written reason wraps inside its tile), and
-    // this test is about every tile having a description — not about how
-    // many classes the design system puts on it.
-    expect(count(markup, "stat-desc")).toBe(3);
-    expect(markup).not.toMatch(/class="stat-desc[^"]*"><\/div>/);
-  });
-});
-
 describe("how far ahead each rival is", () => {
   it("the ratio arm renders the figure, the was badge and the shrinking line", () => {
     const model = assembleOverview(facts());
@@ -373,47 +212,6 @@ describe("how far ahead each rival is", () => {
     expect(markup).toContain("overview.rivals.leaders(zapier.com, ahrefs.com)");
     expect(markup).not.toContain("overview.rivals.spark.label");
     expect(markup).not.toContain("far beyond your reach");
-  });
-});
-
-describe("issue 867 — the AI-answers tile says which engines it speaks for", () => {
-  const tileOf = (over: Partial<OverviewFacts> = {}): string => {
-    const model = assembleOverview(facts(over));
-    const markup = html(
-      <TileRow
-        score={model.score}
-        aiAnswers={model.aiAnswers}
-        pagesPublished={model.pagesPublished}
-        timeZone={ZONE}
-      />
-    );
-    return markup.slice(
-      markup.indexOf('data-testid="overview-tile-ai-answers"'),
-      markup.indexOf('data-testid="overview-tile-pages"')
-    );
-  };
-
-  it("names the engine the number is counted from, and the engines measured beside it, under the tile's own number", () => {
-    const tile = tileOf();
-    // §6.2: the count is Google's AI Overview alone.
-    expect(tile).toContain("overview.tile.ai-answers.counted-from(ai-answers.engine.ai-overview)");
-    expect(tile).toContain(
-      "overview.tile.ai-answers.also-measured(ai-answers.engine.ai-mode and ai-answers.engine.chatgpt)"
-    );
-    // Under the number, not above it.
-    expect(tile.indexOf("overview.tile.ai-answers.label")).toBeLessThan(
-      tile.indexOf("overview.tile.ai-answers.counted-from")
-    );
-  });
-
-  it("a pass that asked no other engine names none — never an engine nobody asked", () => {
-    const tile = tileOf({ aiEngines: ["ai_overview"] });
-    expect(tile).toContain("overview.tile.ai-answers.counted-from(ai-answers.engine.ai-overview)");
-    expect(tile).not.toContain("overview.tile.ai-answers.also-measured");
-  });
-
-  it("and no fourth tile is added for any of it", () => {
-    expect(count(tileOf(), 'class="stat')).toBeGreaterThan(0);
   });
 });
 
@@ -591,46 +389,6 @@ describe("S13 — the week-0 arm, drawn", () => {
       },
     })
   );
-
-  it("the chart card names the pass its one reading came from", () => {
-    const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
-    expect(markup).toContain('data-testid="overview-growth-source"');
-    expect(markup).toContain("overview.growth.source.deep-pass");
-    // One reading, charted: the lone week is the chart's one written
-    // reading (its dot is drawn on the client, #550).
-    expect(markup).toContain("<figure");
-    expect(count(markup, "<li>")).toBe(1);
-  });
-
-  it("its footnotes are S13's pair, and the goal sentence is not among them", () => {
-    const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
-    expect(markup).toContain("overview.growth.footnote.starting(12)");
-    expect(markup).toContain("overview.growth.footnote.first-monday");
-    expect(markup).not.toContain("overview.growth.footnote.goal");
-    expect(markup).not.toContain("overview.growth.footnote.start(");
-  });
-
-  it("each tile states when its own reading arrives, in place of a number", () => {
-    const markup = html(
-      <TileRow
-        score={model.score}
-        aiAnswers={model.aiAnswers}
-        pagesPublished={model.pagesPublished}
-        timeZone={ZONE}
-        weekZero={model.weekZero}
-      />
-    );
-    expect(markup).toContain("overview.tile.score.first-due");
-    expect(markup).toContain("overview.tile.ai-answers.first-pass");
-    expect(markup).toContain("overview.tile.pages.first-review");
-    // No band beside a dash: a band is a reading of a score.
-    expect(markup).not.toContain("band.score.");
-    // …and no ranking badge, because no count was taken.
-    expect(markup).not.toContain("overview.tile.pages.ranking");
-    // S13 draws that tile's figure alone (set L726): no standing to carry,
-    // and no goal chip in its place (#536).
-    expect(markup).not.toContain("overview.goal(30)");
-  });
 
   it("with no sizes from the deep pass, the rivals card states when sizing arrives rather than drawing empty rows", () => {
     const markup = html(

@@ -1,9 +1,9 @@
 // BUILD §4.1 module 1 — the report's header card (SPEC §2)
 //
-// The domain, when it was measured, the category and its correction; the
-// score under its own name, its band word, one written line naming the
-// factor holding it down; and the three driver mini-bars `n/10`, which live
-// here and on no other card (SPEC §2).
+// The domain, when it was measured, the market and its correction; the
+// score under its own name, its band word, the biggest gap as a short title
+// and one line; and the four mini-bars `n/10` — Readiness, Content, Google
+// and AI (issue 1444) — which live here and on no other card (SPEC §2).
 //
 // daisyUI in the route (DESIGN rule 1): `card`, `radial-progress`, `badge`,
 // `progress`, `btn`. The value is spoken in tenths and the bar is drawn from
@@ -18,18 +18,20 @@ import { BAND_TONE } from "@/ui/bands";
 import type { Tone } from "@/ui/types";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { LIMITING_LINES, SCORE_BANDS } from "@/lib/presentation/bands";
-import type { Verdict } from "@/lib/measure/verdict";
+import { shownLimitingOf, type ShownFactor, type Verdict } from "@/lib/measure/verdict";
 import type { Measured } from "@/lib/measure/measured";
-import type { ScoreEstimate, ScoreFactorName } from "@/lib/measure/score";
+import type { ScoreEstimate } from "@/lib/measure/score";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import { CategoryCorrection } from "./correction";
 import { dash, Num, unmeasuredLineFor } from "./measured";
 
-/** The factor's own name, for the `{what}` slot of the two unmeasured
- *  lines and for its own bar's label. */
-const FACTOR_NAMES: Readonly<Record<ScoreFactorName, CopyKey>> = Object.freeze({
+/** A bar's own name, for the `{what}` slot of the two unmeasured lines and
+ *  for its own label. */
+const FACTOR_NAMES: Readonly<Record<ShownFactor, CopyKey>> = Object.freeze({
   foundations: "verdict.factor.foundations",
   answerability: "verdict.factor.answerability",
+  google: "verdict.factor.google",
+  ai: "verdict.factor.ai",
   presence: "verdict.factor.presence",
 });
 
@@ -40,8 +42,17 @@ const ESTIMATE_LINES: Readonly<Record<ScoreEstimate["confidence"], CopyKey>> = O
 });
 
 /** `score.ts`'s own tie-break order: their own page today, their own
- *  wording next, the market's answer last. */
-const FACTOR_ORDER: readonly ScoreFactorName[] = ["foundations", "answerability", "presence"];
+ *  wording next, the market's answer last — Presence as its two halves
+ *  where they were kept (issue 1444). */
+function barsOf(verdict: Verdict): readonly { factor: ShownFactor; value: Measured<number> }[] {
+  const own = [
+    { factor: "foundations", value: verdict.factors.foundations },
+    { factor: "answerability", value: verdict.factors.answerability },
+  ] as const;
+  return verdict.halves === undefined
+    ? [...own, { factor: "presence", value: verdict.factors.presence }]
+    : [...own, { factor: "google", value: verdict.halves.google }, { factor: "ai", value: verdict.halves.ai }];
+}
 
 /** The factors are 0–100; the header speaks in tenths. */
 const TENTHS = 10;
@@ -81,7 +92,7 @@ function ratioOfTen(tenths: number): string {
  *  under its label"). The name is the bar's accessible name as well. The
  *  factor holding the score down draws in `error`, beside its name and value
  *  and never instead of them. */
-function DriverBar(p: { factor: ScoreFactorName; value: Measured<number>; limiting: boolean }): React.JSX.Element {
+function DriverBar(p: { factor: ShownFactor; value: Measured<number>; limiting: boolean }): React.JSX.Element {
   const name = copy(FACTOR_NAMES[p.factor]);
   const tenths = p.value.kind === "unmeasured" ? null : Math.round(p.value.value / TENTHS);
   return (
@@ -148,7 +159,8 @@ export function VerdictStrip(p: {
 }): React.JSX.Element {
   const { verdict } = p;
   const scoreAndBand = verdict.scoreAndBand;
-  const limiting = verdict.limiting.kind === "factor" ? verdict.limiting.factor : null;
+  const limiting = shownLimitingOf(verdict);
+  const bars = barsOf(verdict);
 
   return (
     <section className="card bg-base-100 shadow-(--shadow-card)">
@@ -178,12 +190,17 @@ export function VerdictStrip(p: {
             </div>
           </div>
 
-          {limiting === null ? null : <p className="max-w-2xl text-lg">{copy(LIMITING_LINES[limiting])}</p>}
+          {limiting === null ? null : (
+            <div className="flex max-w-2xl flex-col gap-1">
+              <p className="text-lg font-semibold">{copy(LIMITING_LINES[limiting].title)}</p>
+              <p>{copy(LIMITING_LINES[limiting].line)}</p>
+            </div>
+          )}
           <MissingFactors verdict={verdict} />
 
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-            {FACTOR_ORDER.map((factor) => (
-              <DriverBar key={factor} factor={factor} value={verdict.factors[factor]} limiting={factor === limiting} />
+          <div className={`grid grid-cols-1 gap-5 ${bars.length === 4 ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
+            {bars.map((bar) => (
+              <DriverBar key={bar.factor} factor={bar.factor} value={bar.value} limiting={bar.factor === limiting} />
             ))}
           </div>
         </div>

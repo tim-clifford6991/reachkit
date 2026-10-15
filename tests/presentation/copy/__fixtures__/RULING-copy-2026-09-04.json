@@ -1,28 +1,27 @@
 {
-  "ruling": "Owner copy ruling, 2026-09-04, sheet 2. Approved as drafted. Enter byte-exact.",
+  "ruling": "Owner copy ruling, 2026-09-04, sheet 2, as superseded by the owner's naming ruling of 2026-10-15 (issue 1444). Enter byte-exact.",
   "conventions": {
     "apostrophe": "U+2019 RIGHT SINGLE QUOTATION MARK",
     "dash": "U+2014 EM DASH",
     "slots": "{name} in the string; declare each in the entry's slots map as text|date|measured"
   },
   "strings": {
-    "verdict.limiting.foundations": "What holds your score down most: the foundations — how your site is built and how easily it can be read.",
-    "verdict.limiting.answerability": "What holds your score down most: answerability — how well your pages answer the questions buyers actually ask.",
-    "verdict.limiting.presence": "What holds your score down most: presence — how often you appear where buyers look, in Google and in AI answers.",
-    "unmeasured.undeterminable": "{what} couldn’t be measured — nothing came back that could be read.",
-    "unmeasured.not-attempted": "{what} wasn’t measured — the scan stopped early, before it got there.",
+    "verdict.limiting.foundations": "Biggest gap: Readiness",
+    "verdict.limiting.answerability": "Biggest gap: Content",
+    "verdict.limiting.presence": "Biggest gap: Google and AI",
+    "unmeasured.undeterminable": "{what} couldn’t be measured: nothing came back that could be read.",
+    "unmeasured.not-attempted": "{what} wasn’t measured: the scan stopped early, before it got there.",
     "removal.address": "remove@reachkit.app",
     "removal.line.on-report": "Own this site and want this report taken down? Write to {address}.",
     "removal.line.removed": "This report was removed at the site owner’s request. To make {domain} scannable again, write to {address}.",
-    "notice.incomplete": "This report is incomplete — {what} wasn’t measured.",
+    "notice.incomplete": "This report is incomplete: {what} wasn’t measured.",
     "notice.measurement-failed": "The last measurement didn’t finish, so nothing new was stored.",
-    "notice.correction-failed": "The correction didn’t finish — this is the report from before it.",
-    "notice.refused.network-limit": "That’s five scans from your network in the last hour — you can scan again in {wait}.",
+    "notice.correction-failed": "The correction didn’t finish. This is the report from before it.",
+    "notice.refused.network-limit": "That’s five scans from your network this hour. You can scan again in {wait}.",
     "notice.refused.scan-running": "A scan is already running from your network. It finishes in about {wait}, then this one can start.",
-    "control.rescan-age": "Measure again",
-    "control.rescan-incomplete": "Measure what’s missing",
+    "control.rescan-age": "Scan again",
+    "control.rescan-incomplete": "Scan what’s missing",
     "control.retry": "Try again",
-    "control.correction-retry": "Try the correction again",
     "copy-link.label": "Copy link"
   }
 }

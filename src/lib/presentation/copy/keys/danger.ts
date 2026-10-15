@@ -42,7 +42,7 @@ export const DANGER_COPY = Object.freeze({
   // customer reading nothing there is the worst place in the product for
   // this family to have kept its exception.
   "danger.unpublish-all.consequence": ["Takes every page down at every destination and switches publishing off. Your account, your drafts and your plan stay, and you can switch publishing on again later. Your pages are exported to you first.", { slots: {}, fixedBy: "REQ-079 c1" }],
-  "danger.delete-account.consequence": ["Takes every page down, ends the plan at once with no further charge, and closes the account for good — it does not survive this. Your pages are exported to you first.", { slots: {}, fixedBy: "REQ-079 c1" }],
+  "danger.delete-account.consequence": ["Takes every page down, ends the plan at once with no further charge, and closes the account for good. Your pages are exported to you first.", { slots: {}, fixedBy: "REQ-079 c1" }],
 
   // Issue #52 — the three lines the danger zone's own outcomes are told in.
   // The words are the owner's: REQ-079 states what each must convey and no

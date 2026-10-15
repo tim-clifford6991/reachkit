@@ -128,13 +128,15 @@ describe(
         // strip draws the three driver bars with their values, so the
         // verdict keeps what `factorsOf` always computed. Nothing else
         // moved, and no member here can hide anything. `estimate` joined
-        // them with issue 1439: how sure the score is.
+        // them with issue 1439: how sure the score is; `halves` with issue
+        // 1444: Presence shown as its two bars, Google and AI.
         new Set([
           "domain",
           "measuredAt",
           "scoreAndBand",
           "estimate",
           "factors",
+          "halves",
           "limiting",
           "missing",
           "unmeasuredElsewhere",

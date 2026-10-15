@@ -479,24 +479,25 @@ export function AiAnswersCard(p: {
             <Num phrase>{copy("ai-answers.reused-from", { date: formatReusedOn(section.reusedFrom) })}</Num>
           </p>
         )}
-        {/* The card leads with its answer, not with its metric — and the
-            answer is its heading, one sentence (#1068). */}
-        <h2 className="text-lg font-semibold">
-          {/* Issue 1439: "AI doesn't answer" is only said over enough reads,
-              the rule AI presence keeps. */}
-          {section.answeredSearches === 0 && section.measuredSearches >= SCORE_ESTIMATE.noneMinReads
-            ? copy("ai-answers.finding.unanswered")
-            : section.customerCitations === 0
-              ? copy("ai-answers.finding.none", {
-                  answered: String(section.answeredSearches),
-                  measured: String(section.measuredSearches),
-                })
-              : copy("ai-answers.finding", {
-                  answered: String(section.answeredSearches),
-                  measured: String(section.measuredSearches),
-                  named: String(section.customerCitations),
+        {/* The card leads with its answer, not with its metric (#1068): the
+            figure, and one short line under it saying what it counts
+            (issue 1444). Issue 1439: "AI doesn't answer" is only said over
+            enough reads, the rule AI presence keeps. */}
+        {section.answeredSearches === 0 && section.measuredSearches >= SCORE_ESTIMATE.noneMinReads ? (
+          <h2 className="text-lg font-semibold">{copy("ai-answers.finding.unanswered")}</h2>
+        ) : (
+          <h2 className="flex flex-col gap-1">
+            <span className="text-3xl">
+              <Num figure>
+                {copy("report.figure.of", {
+                  count: String(section.customerCitations),
+                  total: String(section.answeredSearches),
                 })}
-        </h2>
+              </Num>
+            </span>
+            <span className="text-base font-normal">{copy("ai-answers.finding")}</span>
+          </h2>
+        )}
 
         {/* The matrix scrolls rather than shrinking its labels. The
             customer's own row is labelled `n/m`; no sentence repeats it.

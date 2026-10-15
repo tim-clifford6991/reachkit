@@ -30,8 +30,6 @@ import type { CopyKey } from "../../../src/lib/presentation/copy";
 const KEYS_INTRODUCED = [
   "mail.firstPage.subject",
   "mail.firstPage.target_search",
-  "mail.firstPage.volume_label",
-  "mail.firstPage.volume_note",
   "mail.firstPage.first_of_n",
   "mail.firstPageUnavailable.subject",
   "mail.firstPageUnavailable.no-page-to-write",
@@ -81,7 +79,7 @@ describe("every new sentence is a registry key, and every one of them is the own
     }
   });
 
-  it("the sixteen the owner wrote are filled (issue #458) — none is owed, none is the marker", () => {
+  it("the fourteen the owner wrote are filled (issue #458) — none is owed, none is the marker", () => {
     // Filled on the owner's 2026-09-10 approval. Asserted against the
     // registry rather than retyped, so this suite invents no copy of its own.
     for (const key of MAIL_KEYS) {
@@ -90,7 +88,7 @@ describe("every new sentence is a registry key, and every one of them is the own
       expect(OWNER_OWED, key).not.toContain(key);
       expect(AWAITING_COPY, key).not.toContain(key);
     }
-    expect(MAIL_KEYS).toHaveLength(16);
+    expect(MAIL_KEYS).toHaveLength(14);
   });
 
   it("the three the approved set wrote are filled, and are the set's own words", () => {

@@ -125,7 +125,7 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "settings.business.lead": [
-    "Learned from your site. Change anything — your next page is written from what’s here.",
+    "Learned from your site. Change anything; your next page is written from what’s here.",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   // The group heads. #926 proposes the first four; the last two name
@@ -310,17 +310,17 @@ export const SETTINGS_COPY = Object.freeze({
   // "Notifications", and both cards keep those titles.
   "settings.tabs.label": ["Settings sections", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "settings.tab.business": ["Your business", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "settings.tab.market": ["Market and rivals", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "settings.tab.market": ["Market and competitors", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "settings.tab.voice": ["Your voice", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "settings.tab.mail": ["Mail", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
   "settings.market.title": ["Your site & market", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.market.category": ["market category", { slots: {}, fixedBy: "REQ-070 c1" }],
+  "settings.market.category": ["market", { slots: {}, fixedBy: "REQ-070 c1" }],
   "settings.market.domain": ["domain", { slots: {}, fixedBy: "BUILD §10 (`sites.domain`), §4.4" }],
   // §4.7, including its lower-case opening. Issue 837 (owner ruling
   // 2026-09-17): a category change measures again right away.
   "settings.market.effect": [
-    "changing your domain rebuilds the search set and the 12 questions next Monday; changing your category measures your market again right away",
+    "changing your domain rebuilds your searches next Monday; changing your market scans it again right away",
     { slots: {}, fixedBy: "BUILD §4.7" },
   ],
   // REQ-071's two dated statements about the market (issue #204). Both take
@@ -334,7 +334,7 @@ export const SETTINGS_COPY = Object.freeze({
   // Issue 837 (owner ruling 2026-09-17): a saved category measures the
   // market again right away. Drafted under issue 759's ruling.
   "settings.market.remeasuring": [
-    "Saved. We’re measuring your market again now with this category.",
+    "Saved. We’re scanning your market again now.",
     { slots: {}, fixedBy: "issue 837" },
   ],
   // Issue 866 (owner decision 2026-09-17): a category is measured again at
@@ -343,19 +343,19 @@ export const SETTINGS_COPY = Object.freeze({
   // press, in place of REQ-071 c1's dated line, which stays the domain's),
   // what an unchanged save did, and a saved category no pass has adopted yet.
   "settings.market.category.starts-now": [
-    "Saving a different category measures your market again right away — one full measurement, a few minutes of work, and one of the small number of measurements allowed each day.",
+    "Saving a different market scans it again right away. It uses one of the few scans allowed each day.",
     { slots: {}, fixedBy: "issue 866" },
   ],
   "settings.market.category.unchanged": [
-    "Saved. That’s the category we’re already measuring, so nothing was measured again.",
+    "Saved. That’s the market we already measure, so nothing was scanned again.",
     { slots: {}, fixedBy: "issue 866" },
   ],
   "settings.market.category.cleared": [
-    "Saved. With no category of your own we go back to the market we read from your site, and nothing was measured again.",
+    "Saved. With no market of your own we go back to the one read from your site, and nothing was scanned again.",
     { slots: {}, fixedBy: "issue 866" },
   ],
   "settings.market.category.not-measured-yet": [
-    "Your category is saved and hasn’t been measured yet. Measure again now, or the weekly measurement on {date} picks it up.",
+    "Your market is saved and hasn’t been scanned yet. Scan again now, or the weekly scan on {date} picks it up.",
     { slots: { date: "date" }, fixedBy: "issue 866" },
   ],
   // The standalone control (issue 866, fault 3): the only plain way to start
@@ -363,17 +363,17 @@ export const SETTINGS_COPY = Object.freeze({
   // reads the same two sentences the thin-market choice is refused with
   // (`setup.remeasure.refused.*`), because the bound and the remedy are the
   // same one.
-  "settings.market.remeasure.action": ["Measure again now", { slots: {}, fixedBy: "issue 866" }],
+  "settings.market.remeasure.action": ["Scan again now", { slots: {}, fixedBy: "issue 866" }],
   "settings.market.remeasure.effect": [
-    "Measures your market again now: a fresh measurement rebuilds your search set and the 12 questions, and your pages follow from it. It uses one of the small number of measurements allowed each day.",
+    "Scans your market again now. It rebuilds your searches, and your pages follow. It uses one of the few scans allowed each day.",
     { slots: {}, fixedBy: "issue 866" },
   ],
   "settings.market.remeasure.started": [
-    "We’re measuring your market again now. Your pages follow as soon as it finishes.",
+    "We’re scanning your market again now. Your pages follow as soon as it finishes.",
     { slots: {}, fixedBy: "issue 866" },
   ],
   "settings.market.effectiveOn": [
-    "Saved. Takes effect with the re-measure on {date}.",
+    "Saved. Takes effect with the scan on {date}.",
     { slots: { date: "date" }, fixedBy: "REQ-071 c6" },
   ],
   // The word each change kind is named by. One key per kind, because
@@ -400,11 +400,11 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
   ],
   "settings.competitors.concluded": [
-    "ReachKit found these rivals in your market and re-checks them every week. Remove or add any if you like.",
+    "ReachKit found these competitors in your market and re-checks them every week. Remove or add any if you like.",
     { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
   ],
   "settings.competitors.overridden": [
-    "These are the rivals you set. ReachKit keeps your list as it is.",
+    "These are the competitors you set. ReachKit keeps your list as it is.",
     { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
   ],
   "settings.competitors.title": ["Competitors", { slots: {}, fixedBy: "BUILD §4.7" }],
@@ -417,10 +417,6 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: { taken: "text", max: "text" }, fixedBy: "REQ-071 c16" },
   ],
   "settings.competitors.add": ["add", { slots: {}, fixedBy: 'BUILD §4.7 ("chips ×5, add/remove")' }],
-  "settings.competitors.remove": [
-    "remove",
-    { slots: {}, fixedBy: 'BUILD §4.7 ("chips ×5, add/remove")' },
-  ],
   // The add field's own name (issue #270). It had been labelled with the
   // card's heading key, so the card read "Competitors … Competitors" — a
   // heading and the field beneath it saying the same word, which names
@@ -432,11 +428,11 @@ export const SETTINGS_COPY = Object.freeze({
   // It replaces `settings.market.domain` as the placeholder, which was that
   // card's word borrowed — a rival's domain is not this site's, and one key
   // read by two cards is a sentence the owner cannot reword for one of them.
-  "settings.competitors.add-label": ["Add a rival", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.competitors.add-label": ["Add a competitor", { slots: {}, fixedBy: "BUILD §4.7" }],
   // REQ-071 c16. An empty rival set is a state the product designed (§2.5),
   // not a blank: the line takes no slot, because there is no date and no
   // change to name — only that comparison begins when a rival is added.
-  "settings.competitors.none-yet": ["No rivals yet — comparison begins when you add one. Everything else runs as before.", { slots: {}, fixedBy: "REQ-071 c16" }],
+  "settings.competitors.none-yet": ["No competitors yet. Comparison begins when you add one.", { slots: {}, fixedBy: "REQ-071 c16" }],
   // `addRival`'s own five refusals, one sentence each (issue #231). The
   // rules are `setup/rivals.ts`'s — REQ-071 c4 says they are the same rules
   // — but the sentences are this screen's: `setup.competitors.refused.*`
@@ -444,11 +440,11 @@ export const SETTINGS_COPY = Object.freeze({
   // would put setup's voice on Settings. The map over them is total, so a
   // sixth refusal in the engine is a compile error rather than a refusal
   // that says nothing.
-  "settings.competitors.refused.not-a-domain": ["Enter a rival’s domain, like rival.com.", { slots: {}, fixedBy: "REQ-071 c4" }],
+  "settings.competitors.refused.not-a-domain": ["Enter a competitor’s domain, like competitor.com.", { slots: {}, fixedBy: "REQ-071 c4" }],
   "settings.competitors.refused.does-not-resolve": ["That domain doesn’t resolve, so it can’t be added. Check the spelling.", { slots: {}, fixedBy: "REQ-071 c4" }],
-  "settings.competitors.refused.own-domain": ["That’s your own domain. Rivals are other sites.", { slots: {}, fixedBy: "REQ-071 c4" }],
-  "settings.competitors.refused.already-present": ["That domain is already one of your rivals.", { slots: {}, fixedBy: "REQ-071 c4" }],
-  "settings.competitors.refused.set-full": ["Your set is full. Remove a rival before adding another.", { slots: {}, fixedBy: "REQ-071 c4" }],
+  "settings.competitors.refused.own-domain": ["That’s your own domain. Competitors are other sites.", { slots: {}, fixedBy: "REQ-071 c4" }],
+  "settings.competitors.refused.already-present": ["That domain is already one of your competitors.", { slots: {}, fixedBy: "REQ-071 c4" }],
+  "settings.competitors.refused.set-full": ["Your list is full. Remove a competitor before adding another.", { slots: {}, fixedBy: "REQ-071 c4" }],
 
   // ── Publishing ─────────────────────────────────────────────────────────
   "settings.publishing.title": ["Publishing", { slots: {}, fixedBy: "BUILD §4.7" }],
@@ -515,7 +511,7 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "settings.publishing.pair.autopilotZero": [
-    "With no time to stop a page, a draft you don’t touch publishes at your next publish time — there is no interval in which to stop it.",
+    "With no time to stop a page, a draft you don’t touch publishes at your next publish time.",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
 
@@ -616,14 +612,14 @@ export const SETTINGS_COPY = Object.freeze({
   // line only, under the public DNS answer, and says what that answer
   // confirmed: `not-configured` where the record points here,
   // `not-configured.unconfirmed` where it does not, or could not be read.
-  "settings.destination.check.not-configured": ["Your record is in place. The last step — ReachKit confirming the secure connection — isn’t switched on yet. That’s on our side; there’s nothing more for you to do.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issues 840, 856)" }],
-  "settings.destination.check.not-configured.unconfirmed": ["The last step — ReachKit confirming the secure connection — isn’t switched on yet. That’s on our side. Once your record points at the right place, there’s nothing more for you to do.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "settings.destination.check.not-configured": ["Your record is in place. The last step, ReachKit confirming the secure connection, is on our side. There’s nothing more for you to do.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issues 840, 856)" }],
+  "settings.destination.check.not-configured.unconfirmed": ["The last step, ReachKit confirming the secure connection, is on our side. Once your record points at the right place, there’s nothing more for you to do.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
   // The press's first step (issue 856): what public DNS says about the
   // record, before any vendor is asked. `{target}` is where the record
   // points instead — a host name, or an address where a proxy answers.
   "settings.destination.check.dns.points-here": ["Record found, pointing at the right place.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
   "settings.destination.check.dns.points-elsewhere": ["Record found, pointing elsewhere: {target}. Change it to the target shown above.", { slots: { target: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
-  "settings.destination.check.dns.not-yet": ["No record yet — DNS changes can take a few minutes. Check again shortly.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "settings.destination.check.dns.not-yet": ["No record yet. DNS changes can take a few minutes. Check again shortly.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
   "settings.destination.check.dns.unknown": ["We couldn’t look up your record in public DNS just now.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
   /** `seconds` is how long until the press may ask again, as a whole
    *  number, counting down on screen. The registry does not pluralise, so
@@ -655,12 +651,8 @@ export const SETTINGS_COPY = Object.freeze({
   // saying nothing the figure had not.
   "settings.billing.active": ["active", { slots: {}, fixedBy: "REQ-076 c3" }],
   "settings.billing.cancelled": ["cancelled", { slots: {}, fixedBy: "REQ-076 c3" }],
-  "settings.billing.plan": ["plan", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.billing.next-invoice": ["next invoice", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.billing.card": ["card", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.billing.invoices": ["invoices", { slots: {}, fixedBy: 'BUILD §4.7 ("invoices link")' }],
-  "settings.billing.update-card": ["Update card", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.billing.cancel": ["Cancel plan", { slots: {}, fixedBy: "BUILD §4.7" }],
   // 2026-09-21, issue #925 — the three controls that all opened the same
   // Stripe surface are one control. REQ-097 c1 always said there was one
   // destination ("the only thing ReachKit offers for it is a control to that
@@ -738,10 +730,10 @@ export const SETTINGS_COPY = Object.freeze({
   // start the change just now" are three different facts about what
   // happened, and a customer who is told the second when the third is true
   // will retype an address that was never the problem.
-  "settings.account.invoices-elsewhere": ["Invoices and receipts go to the address in your billing portal, and change there — not here.", { slots: {}, fixedBy: "REQ-077 c1" }],
+  "settings.account.invoices-elsewhere": ["Invoices and receipts go to the address in your billing portal, and change there, not here.", { slots: {}, fixedBy: "REQ-077 c1" }],
   "settings.account.email-in-use": ["That address already belongs to a ReachKit account.", { slots: {}, fixedBy: "REQ-077 c2" }],
   "settings.account.email-invalid": ["That isn’t an address we can send to.", { slots: {}, fixedBy: "REQ-077 c2" }],
-  "settings.account.email-change-unavailable": ["The change couldn’t start just now. Nothing has changed — try again in a moment.", { slots: {}, fixedBy: "REQ-077 c2" }],
+  "settings.account.email-change-unavailable": ["The change couldn’t start just now. Nothing has changed. Try again in a moment.", { slots: {}, fixedBy: "REQ-077 c2" }],
 
   // 2026-09-07, issue #134 — the four the pending-change state needs, now
   // that something renders it. Two of them are *labels on controls* — a
@@ -822,17 +814,9 @@ export const SETTINGS_COPY = Object.freeze({
   // the reason — the four `ExportFailure` arms are an operator's fact, and
   // naming which one failed tells the customer nothing they can act on. The
   // sentence is the owner's; the key and the single-line shape are not.
-  "export.failed": ["The export couldn’t be produced just now. Nothing partial was sent — try again in a moment.", { slots: {}, fixedBy: "REQ-078 c5" }],
+  "export.failed": ["The export couldn’t be produced just now. Nothing partial was sent. Try again in a moment.", { slots: {}, fixedBy: "REQ-078 c5" }],
   "settings.content.voice": ["Brand voice", { slots: {}, fixedBy: "BUILD §8 rule 7" }],
-  "settings.content.do-not-claim": ["Do-not-claim list", { slots: {}, fixedBy: "BUILD §8 rule 4" }],
 
-  // ── An action that has no wiring yet ───────────────────────────────────
-  // The seven actions call their declared interfaces
-  // (`actions.ts`); on this build every one of those interfaces answers "not
-  // wired yet, and here is the issue that wires it". That answer is a state
-  // the customer is entitled to be told about in writing — and the sentence
-  // telling them is the owner's, never a composed placeholder.
-  "settings.action.not-yet": ["This isn’t available yet.", { slots: {}, fixedBy: "BUILD §4.7" }],
 
   // ── SPEC §7 (2026-09-20, #928): "Content we already know about" (R4-11).
   //
@@ -840,7 +824,7 @@ export const SETTINGS_COPY = Object.freeze({
   // source labels and the two count lines are drafted in the registry's
   // voice under the 2026-09-16 ruling (#759), and the PR names each one.
   // The site link map (SPEC §7, 2026-10-10, issue 1391).
-  "settings.linkmap.head": ["Links between your articles and your site", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "settings.linkmap.head": ["How your articles link your site", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "settings.linkmap.none": ["No article is live yet. Once one is, this shows which of your pages it links.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "settings.linkmap.receiving": ["Your pages that articles link to", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "settings.linkmap.receiving.none": ["No live article links a page of your site yet.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
