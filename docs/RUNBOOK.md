@@ -26,6 +26,12 @@ the check is red and comment on it when it is still red. The timer runs
 template, the units, and `/root/ops/reachkit` are included. The shell file only finds
 the script. The log is `/root/ops/reachkit/log/hygiene.log`. A green run changes nothing.
 
+2026-10-15  **The box folders are checked by hand** (owner, #1463). `node scripts/box.mjs`
+reports worktrees and leftovers. `node scripts/box.mjs --clean` removes only an empty
+directory on its list, a loadgen folder that holds a Next cache, and a closed-sessions
+spreadsheet. It leaves every worktree, including a dirty one. It is not on the timer
+and it is not a gate.
+
 Dev (`dev.reachkit.app`) deploys from `main` via `rk-deployer`. If it has not moved after a
 merge, run `bash /root/ops/reachkit/bin/deploy-dev-once.sh`. Production is batched (at most
 every two hours) and receives every merge, the same as dev (no freeze, owner 2026-09-17, #844).

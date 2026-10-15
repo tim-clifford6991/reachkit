@@ -12,7 +12,8 @@ Ship the paying path. Prefer a library over new code. Follow **Current** in `doc
 - Never write a test that transcribes a document.
 - Never guess an owner decision — `blocked-on-owner` and ask; record the answer as a dated SPEC line.
 - Never add a merge gate beyond the four in `docs/PROCESS.md`. Coherence and the UI strategy checks live inside `audit` and `no overflow · axe`. One issue uses one worktree, removed when its pull request merges.
-- Follow **Coherence** in `docs/PROCESS.md` before an issue is Ready and on every pull request. Fill Surfaces, Invariants or Conditions, and Overlaps. An example of a parent listed there is a comment on that parent, not a new issue. The owner's look at `dev.reachkit.app` is taste. It is not the check for a condition or a screen the gates already cover.
+- Follow **Coherence** in `docs/PROCESS.md`. Owner feedback is classified before a worktree exists: an example of a parent is a comment on that parent, a word or a screen extends the strategy check, and a new condition is an issue with Surfaces, Invariants and Overlaps filled. The session that classifies does not also implement. Fill Conditions, Overlaps and Surfaces on the pull request. The owner's look at `dev.reachkit.app` is taste. It is not the check for a condition or a screen the gates already cover.
+- The `seo-audit` skill does not open ReachKit issues. A finding it would file is classified under Coherence first. Vendor skills (daisyUI, Stripe, Supabase, Resend, Vercel) do not add a product rule.
 - Never copy a rule into a memory file or into `/root/ops` that these pages do not already state.
 - Never keep something only because a test, gate, ruling or approved file protects it; where a library does the job, delete the custom version and its test (owner 2026-09-25, `docs/PROCESS.md`, #1105).
 

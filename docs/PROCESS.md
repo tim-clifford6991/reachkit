@@ -64,6 +64,8 @@ Where the jobs run is `docs/RUNBOOK.md` §1. There is no fifth merge gate.
 
 A change is finished when its conditions are checks and every screen it touches still matches the product strategy. Both readings sit inside the four gates. This is not a fifth gate, and it is not a standing agent.
 
+**Feedback.** The session that hears the owner classifies it before a worktree exists. An example of a parent below is a comment on that parent. A word, a label, or a screen is the strategy in `docs/DESIGN.md`, and the change extends `tests/ui/design/strategy.test.ts` or the layout gate. A new condition is an issue whose Surfaces, Invariants and Overlaps are filled. An engineer starts only after that classification is on the issue. The session that classifies does not also implement.
+
 **Before Ready.** The issue states the surfaces it touches (`scan`, `content`, `app`, `public`), the invariant that must stay true, and the overlaps: the `docs/SPEC.md` sections and open issues it was read against, and what was left alone. A slice of a parent is a sub-issue. An issue with any of those three empty is not Ready. An example of a parent below is a comment on that parent, not a new issue.
 
 **On the pull request.** The body has `Conditions`, `Overlaps` and `Surfaces`. `audit` reads that body on a pull request and fails a missing or empty section. A section that is still only the template's note is empty. `none` is a real answer when the change cannot break a condition or cannot touch a surface. Each condition names the check that fails when it breaks. `audit` reads the registry below and fails when a named check file is missing, or when a new row is `pending`.
@@ -80,6 +82,8 @@ A change is finished when its conditions are checks and every screen it touches 
 | #1458 | public | The public offer matches the product, and a ranked URL does not 404 | tests/presentation/copy/public-claims.test.ts |
 
 `pending` is allowed only on `#1454`, `#1127` and `#1457`, the three parents whose check is not written yet. A later condition names a file. `#1455` is the silence inside `#1127`, not a fifth parent.
+
+The box is checked by hand with `node scripts/box.mjs` (`npm run box`). It reports a dirty worktree, a worktree with no open pull request, a worktree ahead of or behind its remote, and a leftover that is not a worktree. `--clean` removes only an empty directory on its list, a loadgen folder that holds a Next cache, and a closed-sessions spreadsheet. It never removes a worktree and it never edits `main`. It is not a gate and it does not run on the timer.
 
 `scripts/hygiene.mjs` runs inside `audit`. It fails when an authority page is missing, when Current and the workflows disagree on the four gates, when a second process page appears, or when a name in that script's list is back in the tree. The nightly run of the audit workflow, and `rk-hygiene.timer` at 05:30 UTC, open one issue titled `[hygiene]` when the check is red, or comment on the open one. The check does not edit the tree. An engineer starts from that issue, one worktree, then the tab closes. It is not a fifth gate.
 
