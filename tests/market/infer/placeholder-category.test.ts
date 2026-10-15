@@ -41,7 +41,8 @@ describe("a placeholder is never a category", () => {
     expect(await deriveProfile(COST, { home: "x" })).toEqual(profile(""));
     const answered = profile("Payroll software");
     llmMock.mockResolvedValueOnce(answered);
-    expect(await deriveProfile(COST, { home: "x" })).toBe(answered);
+    // Issue 1454: a real category stands, and is the profile's one line.
+    expect(await deriveProfile(COST, { home: "x" })).toMatchObject({ kind: "measured", value: { category: "Payroll software" } });
   });
 
   it("the deep pass's market call refuses one as it refuses an empty category, and can still be put to the model", () => {

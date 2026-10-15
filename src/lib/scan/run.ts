@@ -82,6 +82,7 @@ import { phraseQuestions, type Question } from "@/lib/market/questions/phrase";
 import { deriveProfile, type Profile } from "@/lib/market/questions/profile";
 import { selectTwelve, type SelectedSearch } from "@/lib/market/questions/select";
 import { isShort, poolFrom, seedLadder, selectWidened, type PoolRow } from "@/lib/market/questions/widen";
+import { offeringSeeds, offeringsOf, spreadAcrossOfferings } from "@/lib/market/questions/offerings";
 import { marketSeeds, measuredMarketOf, unjudged } from "@/lib/market/questions/measured";
 import { serpDomainsToSize } from "@/lib/market/rivals/candidates";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
@@ -2086,6 +2087,11 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   }
   sections.profile = profile;
   if (profile.kind === "unmeasured") return;
+  // Issue 1454: on a paying site the customer's corrections to who buys
+  // and what the business does are what its searches are chosen by. The
+  // report keeps the profile as read.
+  const selecting = a.siteId !== undefined && a.concludesMarket === true ? await withFounderEdits(a.siteId, profile.value) : profile.value;
+  if (abandoned()) return;
 
   // SPEC §6 (owner D28, #1185): the market is ReachKit's to keep current.
   // Re-checked here, before anything is bought for it, so this pass seeds
@@ -2133,7 +2139,7 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   // the profile call read off the page's own words, once the vendor's list
   // holds it.
   if (a.parameters.measuresStatedPlace && a.concludesMarket !== true && sections.measurement !== null && localeOfPass(a).place === undefined) {
-    const fromPage = await townFromPage(profile.value.town, sections.measurement);
+    const fromPage = await townFromPage(selecting.town, sections.measurement);
     if (abandoned()) return;
     if (fromPage !== null) inPlace(sections, fromPage);
   }
@@ -2147,9 +2153,14 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   const searched = marketSeeds(sections.market, place);
   // D67: a local business's market is bought for its place, so every seed
   // is the service plus the place.
-  const ladder = seedLadder(profile.value, measuredUnder, synonyms, searched);
+  const ladder = seedLadder(selecting, measuredUnder, synonyms, searched);
   const seeds = place === undefined ? ladder : [...new Set(ladder.map((seed) => localSearch(seed, place)))];
-  const withFirst = (searched.length > 0 ? searched : synonyms).map((seed) => (place === undefined ? seed : localSearch(seed, place)));
+  // Issue 1454: the other lines the business sells are bought with the
+  // first while the purse holds each of them and the questions after.
+  const lines = offeringSeeds(selecting).filter((_, i) =>
+    affordsSeed({ remainingCents: bounds.remainingCents() - (i + 1) * PRICE_BOOK.SUGGESTIONS_COST_C, selected: BATTERY.QUESTIONS })
+  );
+  const withFirst = (searched.length > 0 ? searched : [...lines, ...synonyms]).map((seed) => (place === undefined ? seed : localSearch(seed, place)));
   const boughtWithFirst = (seed: string): boolean => withFirst.some((x) => x.trim().toLowerCase() === seed.toLowerCase());
   const leading = seeds.slice(1).findIndex((seed) => !boughtWithFirst(seed));
   const upfront = Math.min(leading === -1 ? seeds.length - 1 : leading, a.parameters.extraSeeds);
@@ -2187,17 +2198,26 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
     // measures; the town is no part of what the business sells.
     ...(place === undefined ? {} : { place }),
   });
+  // Issue 1454: a business that sells several lines has its searches
+  // spread across them by their weight, chosen from twice as many.
+  const offerings = offeringsOf(selecting);
+  const spread = (pick: (limit: number) => SelectedSearch[], limit: number = BATTERY.QUESTIONS): SelectedSearch[] =>
+    offerings.length < 2 ? pick(limit) : spreadAcrossOfferings(pick(limit * 2), offerings, limit, selecting.language);
   const widen = (floors?: readonly number[], limit?: number): SelectedSearch[] => {
     const rows = sections.marketRows;
-    return selectWidened({
-      profile: profile.value,
-      suggestions: rows.kind === "unmeasured" ? [] : rows.value,
-      pool: poolOf(sections),
-      ownRanked,
-      ...category(),
-      ...(floors === undefined ? {} : { floors }),
-      ...(limit === undefined ? {} : { limit }),
-    });
+    return spread(
+      (wanted) =>
+        selectWidened({
+          profile: selecting,
+          suggestions: rows.kind === "unmeasured" ? [] : rows.value,
+          pool: poolOf(sections),
+          ownRanked,
+          ...category(),
+          ...(floors === undefined ? {} : { floors }),
+          limit: wanted,
+        }),
+      limit
+    );
   };
   // D65: before a search is worded and asked, the ones the market holds no
   // judgement for are judged — the twelve and their runners-up in one call —
@@ -2224,7 +2244,7 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
     return phrase(a, abandoned);
   };
 
-  sections.selected = selectTwelve({ profile: profile.value, market: [...bought], ownRanked, ...category() });
+  sections.selected = spread((limit) => selectTwelve({ profile: selecting, market: [...bought], ownRanked, ...category(), limit }));
   if (!isShort(sections.selected)) return judgeThenPhrase();
 
   // Short. Widen in SPEC §6's order, stopping as soon as twelve survive:
@@ -2257,6 +2277,20 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
 
   if (isShort(sections.selected)) sections.selected = widen();
   return judgeThenPhrase();
+}
+
+/** The profile with the customer's own corrections applied (issue 1454);
+ *  the profile as read where their edits cannot be read. */
+async function withFounderEdits(siteId: string, profile: Profile): Promise<Profile> {
+  try {
+    const [{ readBusinessEdits }, { profileWithEdits }] = await Promise.all([
+      import("@/lib/site-profile/business/edits"),
+      import("@/lib/business/understanding"),
+    ]);
+    return profileWithEdits(profile, await readBusinessEdits(siteId));
+  } catch {
+    return profile;
+  }
 }
 
 /** §6.7 step 4: the selected searches, worded — as many of them as the
