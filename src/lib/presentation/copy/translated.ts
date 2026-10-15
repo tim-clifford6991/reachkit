@@ -1,25 +1,22 @@
-// src/lib/presentation/copy/translated.ts — a sentence in the reader's
-// language (SPEC §6, owner D66 of 2026-10-07, issue 1311).
+// src/lib/presentation/copy/translated.ts — a sentence in the language of
+// the customer's own site (SPEC §6, owner D66 of 2026-10-07, issue 1311;
+// narrowed by the owner on 2026-10-15, issue 1443).
 //
-// D66 lifts the registry's "never an i18n catalogue" for one scope: the
-// report and the mail of a customer whose site is measured in German are
-// shown in German. English stays the registry (`./registry.ts`): its keys,
-// its slots and its laws are the one definition. A language other than
-// English is an overlay of sentences on those same keys (`./keys/<language>/`),
-// and a key the overlay does not hold is shown in English — a missing
-// translation never takes a screen down.
+// ReachKit's own screens and mail are English, whatever a site is measured
+// in. What is printed on the customer's own site — a written page, its
+// facts, the hosted blog and the WordPress post — is the customer's content
+// and is in the site's language. English stays the registry
+// (`./registry.ts`): its keys, its slots and its laws are the one
+// definition. A language other than English is an overlay of sentences on
+// those same keys (`./keys/<language>/`), and a key the overlay does not
+// hold is shown in English — a missing translation never takes a page down.
 //
 // Server-side only by use: the overlays are not in `./index.ts`, so a
 // client bundle that imports `copy` does not carry them.
 import type { Language } from "@/lib/locale/locales";
 import { copy } from "./copy.ts";
 import { COPY_META, type CopyKey, type CopyMeta } from "./registry.ts";
-import { BANDS_COPY_DE } from "./keys/de/bands.ts";
-import { LAWS_COPY_DE } from "./keys/de/laws.ts";
-import { MAIL_COPY_DE } from "./keys/de/mail.ts";
-import { OFFER_COPY_DE } from "./keys/de/offer.ts";
 import { PAGE_COPY_DE } from "./keys/de/page.ts";
-import { REPORT_COPY_DE } from "./keys/de/report.ts";
 
 /** One language's sentences, on the registry's own keys. */
 export type CopyTranslation = Readonly<Partial<Record<CopyKey, string>>>;
@@ -28,11 +25,6 @@ export type CopyTranslation = Readonly<Partial<Record<CopyKey, string>>>;
  *  of partitions and one row here. */
 export const TRANSLATIONS: Readonly<Partial<Record<Language, Readonly<Record<string, CopyTranslation>>>>> = Object.freeze({
   de: Object.freeze({
-    report: REPORT_COPY_DE,
-    mail: MAIL_COPY_DE,
-    laws: LAWS_COPY_DE,
-    bands: BANDS_COPY_DE,
-    offer: OFFER_COPY_DE,
     page: PAGE_COPY_DE,
   }),
 });

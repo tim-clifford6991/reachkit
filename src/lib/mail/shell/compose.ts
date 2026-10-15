@@ -37,10 +37,7 @@
 // `measurement` is required for `'weekly'` and rejected for every other
 // kind — a type error, not a runtime check.
 import { createElement, type ReactNode } from "react";
-import { COPY, TODO_COPY_MARKER } from "@/lib/presentation/copy";
-import type { Language } from "@/lib/locale/locales";
-import { copy, inMailLanguage } from "../language";
-import type { CopyKey } from "@/lib/presentation/copy";
+import { COPY, TODO_COPY_MARKER, copy, type CopyKey } from "@/lib/presentation/copy";
 import { blockNodes } from "../blocks/nodes";
 import { renderBlocksText } from "../blocks/text";
 import { isMeasuredEmpty, omittedIndexes } from "../blocks/omit";
@@ -83,9 +80,6 @@ interface ComposeCommon {
   subject: CopyKey;
   subjectVars?: CopyVars;
   blocks: readonly MailBlock[];
-  /** The language the mail is read in (SPEC §6, owner D66): the site's own.
-   *  Absent is English. */
-  language?: Language;
   /**
    * UI-SPEC S20's footer line: why this mail arrived. One key per kind,
    * supplied by the template, because the reason is a fact about the
@@ -200,8 +194,7 @@ export interface ComposedMailParts extends Omit<ComposedMail, "html"> {
 /** The seam's one composer, up to the markup. Every mail the product sends
  *  is built here, wearing the one frame, carrying both bodies. */
 export function composeMailParts(m: ComposeInput): ComposedMailParts {
-  // D66: every sentence of the mail is resolved in its reader's language.
-  return inMailLanguage(m.language, () => partsOf(m));
+  return partsOf(m);
 }
 
 function partsOf(m: ComposeInput): ComposedMailParts {

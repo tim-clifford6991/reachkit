@@ -20,8 +20,7 @@
 // `badge`, `input`, `btn`; lucide for the head glyph at stroke 1.75.
 import type React from "react";
 import { FileText } from "lucide-react";
-import type { CopyKey } from "@/lib/presentation/copy";
-import { copy } from "@/lib/presentation/copy/reader";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { renderGenerated } from "@/lib/presentation/generated";
 import type { FreePageSection } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";

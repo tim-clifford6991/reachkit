@@ -36,7 +36,6 @@
 // for the reason the `published` mail's does: the leaf decides and stops,
 // and putting the send inside it would make the publishing subsystem
 // import the mail seam for one occasion.
-import { siteLocale } from "@/lib/locale/site";
 import { dbAdmin } from "@/lib/db";
 import { env } from "@/lib/config/env";
 import { MAIL_PAGE_LINES } from "@/lib/config/constants";
@@ -182,7 +181,6 @@ export async function sendDraftReadyMail(a: {
 
   const result = await sendEmail({
     kind: "draft-ready",
-    language: (await siteLocale(draft.siteId)).language,
     to: account.email,
     userId: account.userId,
     subject: mail.subject,

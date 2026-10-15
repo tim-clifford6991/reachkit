@@ -62,7 +62,7 @@ import Link from "next/link";
 import { CircleSlash } from "lucide-react";
 import { QuietPage } from "@/app/_quiet/QuietCard";
 import { REPORT_REMOVED_STATUS } from "@/lib/config/constants";
-import { copy } from "@/lib/presentation/copy/reader";
+import { copy } from "@/lib/presentation/copy";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 
 /** The one call site of `removal.address` in the product. Never composed
