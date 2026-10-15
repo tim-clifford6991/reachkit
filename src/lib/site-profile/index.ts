@@ -84,6 +84,18 @@ interface ProfileArgs {
   locale?: Locale;
 }
 
+/** The crawled pages minus the ones ReachKit wrote, or `null` where which
+ *  are ours could not be read. */
+async function customerPages<P extends { url: string }>(domain: string, pages: readonly P[]): Promise<P[] | null> {
+  try {
+    const { readOurPages, withoutOurPages } = await import("@/lib/known-content/ours");
+    return withoutOurPages(pages, await readOurPages({ domain }));
+  } catch (error) {
+    console.log(JSON.stringify({ event: "site_voice_unread", domain, because: String(error) }));
+    return null;
+  }
+}
+
 /**
  * `buildSiteProfile`, handing back the crawl it read as well — SPEC §9's
  * technical-issue checks run over exactly that set (2026-09-12), so the
@@ -119,11 +131,20 @@ export async function buildSiteProfileWithCrawl(
   // home page's own title, which the crawl always has as row one.
   const published = [...publishedNames(a.homeHtml ?? ""), ...publishedNames(crawl.homeHtml ?? ""), crawl.pages[0]?.title];
 
-  // The inference half, on the paid tiers only — see the header.
+  // The inference half, on the paid tiers only — see the header. It is read
+  // off the customer's own pages: the claims, products and voice are never
+  // read off a page ReachKit wrote (SPEC §5, 2026-10-15, issue 1456). Where
+  // our pages cannot be told apart it reads nothing, and the stored reading
+  // stands (`writeSiteProfile`).
+  const tier = a.tier;
   const reading =
-    a.tier === "free"
+    tier === "free"
       ? null
-      : await deriveVoice(c, { domain: a.domain, pages: crawl.pages, tier: a.tier, ...(a.locale === undefined ? {} : { locale: a.locale }) });
+      : await customerPages(a.domain, crawl.pages).then((pages) =>
+          pages === null || pages.length === 0
+            ? null
+            : deriveVoice(c, { domain: a.domain, pages, tier, ...(a.locale === undefined ? {} : { locale: a.locale }) })
+        );
   const read = reading === null || reading.kind === "unmeasured" ? null : reading.value;
 
   const profile: SiteProfile = {

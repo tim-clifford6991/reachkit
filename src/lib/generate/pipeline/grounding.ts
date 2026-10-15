@@ -227,7 +227,7 @@ export interface FactRead {
  */
 export async function readAllFacts(a: FactRead): Promise<SourcedFact[]> {
   const [measured, report] = await Promise.all([
-    readMeasuredText({ siteId: a.siteId, scanId: a.scanId }),
+    readMeasuredText({ siteId: a.siteId, scanId: a.scanId, customerOnly: true }),
     readReportPage(a.siteId),
   ]);
   const own = sitePassages(aboutTheQuestionFirst(measured, a.target));

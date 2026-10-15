@@ -59,6 +59,7 @@ The current look of every screen, drawn on board [`Calm`](design/boards/R12-0-Ca
 - No element is wider than its container and no text is clipped by its card at 390, 768 and 1280 pixels, in light and dark. CI renders every route at those widths and fails on either; `@axe-core/playwright` runs in the same pass.
 - A bar gets its own full-width line under its label, never the space left beside one.
 - A label that can grow (a title, a domain, a search) is clamped to one or two lines with an ellipsis; a number is never clamped, so the box changes instead.
+- 2026-10-15  **A URL wraps** (owner, issue 1456). A page address — a link or a line that shows one — is `font-mono break-all` in a `min-w-0` box: it keeps the mono face and breaks anywhere, never `.num` (which cannot break) and never a sideways scroller. Found on Settings at 390: a long link scrolled the whole page. The reserved account's Settings fixtures carry an address longer than a phone is wide, so the gate measures one.
 - A step indicator is daisyUI `steps` with one-word labels.
 
 ## Names

@@ -48,7 +48,7 @@ function Source(p: { source: KnowledgeSource }): React.JSX.Element {
   return p.source.kind === "founder" ? (
     <span className="badge badge-ghost badge-sm shrink-0">{copy("settings.knowledge.from-you")}</span>
   ) : (
-    <a className="link link-hover num min-w-0 text-xs" href={p.source.url} target="_blank" rel="noreferrer">
+    <a className="link link-hover min-w-0 font-mono break-all text-xs" href={p.source.url} target="_blank" rel="noreferrer">
       {shortAddress(p.source.url)}
     </a>
   );

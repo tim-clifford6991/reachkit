@@ -78,14 +78,17 @@ export const readLinkMap = cache(async function readLinkMap(): Promise<LinkMap> 
   const account = await requireSetUpAccount();
   if (isReservedFixtureAccount(account)) {
     return {
-      articles: 4,
+      articles: 5,
       receiving: [
         { url: "https://example.com/pricing", articles: 3 },
         { url: "https://example.com/features/migration", articles: 2 },
         { url: "https://example.com/about", articles: 1 },
+        // Longer than a phone is wide, with nowhere to break (issue 1456).
+        { url: "https://example.com/journal/2026/10/0f8c2a7e5b9d4c1aa3e6f0b2d8c4e1a9b7f3d5c2e8a0b4f6d1c3e5a7b9d2f4e6", articles: 1 },
       ],
       alone: [
         { url: "https://example.com/blog/crm-export-checklist", title: "CRM export checklist: what to ask before you switch", linkedFrom: 0, linksOut: 3 },
+        { url: "https://example.com/blog/7c1e9a3f5d2b8e4a6c0f1d3b5e7a9c2e4f6a8b0d1c3e5f7a9b2d4c6e8f0a1b3c5", title: "", linkedFrom: 1, linksOut: 2 },
       ],
     };
   }

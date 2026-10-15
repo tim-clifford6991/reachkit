@@ -70,7 +70,8 @@ pre .num {
 }
 
 /* Domains, dates, searches and code: the mono face, tabular, never broken
- * mid-token. */
+ * mid-token. A URL is not one of these: it is `font-mono break-all` and
+ * wraps (docs/DESIGN.md, 2026-10-15, issue 1456). */
 .num {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;

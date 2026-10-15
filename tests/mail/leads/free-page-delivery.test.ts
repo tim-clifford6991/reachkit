@@ -117,7 +117,7 @@ describe("an address on the report's card becomes a written, mailed first page a
     expect(opened).toEqual([{ scanId: SCAN_ID, cap: "FREE", policyVersion: 1, rollUp: "none" }]);
     // One call, on the lead page's own call site.
     expect(llmMock.mock.calls.map((call) => call[1].site)).toEqual(["generate.write_free"]);
-    expect(readDomainTextMock).toHaveBeenCalledWith("example.com");
+    expect(readDomainTextMock).toHaveBeenCalledWith("example.com", { customerOnly: true });
 
     expect(sendCalls.map((mail) => mail.kind)).toEqual(["first-page"]);
     expect(JSON.stringify(sendCalls[0]!.blocks)).toContain("Teams on the starter plan get 25 seats");

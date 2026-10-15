@@ -25,6 +25,19 @@ vi.mock("../../src/lib/site-profile/store", () => ({
   saveVoiceText: vi.fn(),
 }));
 
+/** The pages ReachKit wrote on the domain (issue 1456); the rule is its own. */
+const ours = { url: null as string | null };
+vi.mock("@/lib/known-content/ours", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/known-content/ours")>();
+  return {
+    ...actual,
+    readOurPages: async () =>
+      ours.url === null
+        ? actual.NO_PAGES_OF_OURS
+        : { addresses: new Set([actual.addressKey(ours.url) ?? ""]), hosts: new Set<string>() },
+  };
+});
+
 const { buildSiteProfile } = await import("../../src/lib/site-profile");
 
 const AT = new Date("2026-09-12T09:00:00.000Z");
@@ -75,6 +88,21 @@ beforeEach(() => {
   voiceMock.mockReset();
   writeMock.mockReset();
   vi.spyOn(console, "log").mockImplementation(() => {});
+  ours.url = null;
+});
+
+describe("issue 1456 — the claims, products and voice are read off the customer's own pages", () => {
+  it("never shows the reading a page ReachKit wrote, and still lists that page in the inventory", async () => {
+    ours.url = `https://${DOMAIN}/blog/one`;
+    crawlMock.mockResolvedValueOnce(crawled(["/pricing", "/blog/one"]));
+    voiceMock.mockResolvedValueOnce({ kind: "measured", at: AT, value: { siteName: null, products: [], claims: [], voice: VOICE } });
+
+    const profile = await buildSiteProfile({} as never, PAID);
+
+    const read = voiceMock.mock.calls[0]?.[1] as { pages: { url: string }[] };
+    expect(read.pages.map((page) => page.url)).toEqual([`https://${DOMAIN}/pricing`]);
+    expect(profile?.inventory).toHaveLength(2);
+  });
 });
 
 describe("the profile records what was read", () => {

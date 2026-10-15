@@ -471,10 +471,10 @@ export function DraftScreen(p: {
         data-testid="draft-grounded"
       >
         {view.grounded.url === "" ? null : (
-          <span className="min-w-0 max-w-full overflow-x-auto">
+          <span className="min-w-0 max-w-full">
             <a
               href={view.grounded.url}
-              className="link num"
+              className="link font-mono break-all"
               data-testid="draft-grounded-url"
             >
               {view.grounded.url}
