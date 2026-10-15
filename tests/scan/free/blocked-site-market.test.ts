@@ -423,6 +423,10 @@ describe("a site that ranks, whose market a vendor or the model did not answer f
     expect(report.questions.value.length).toBeGreaterThan(0);
     for (const question of report.questions.value) expect(pooled.has(question.search.keyword)).toBe(true);
     expect(report.aiAnswers?.measuredSearches).toBe(report.questions.value.length);
+    // The pool's market is a market read: Presence is scored, with its range (issue 1439).
+    expect(report.verdict.factors.presence.kind).not.toBe("unmeasured");
+    expect(report.verdict.scoreAndBand.kind).toBe("measured");
+    expect(report.verdict.estimate).toBeDefined();
     expect(spentCents).toBeLessThanOrEqual(CAPS.FREE_C);
   }, PASS_TIMEOUT_MS);
 
