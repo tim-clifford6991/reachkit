@@ -37,7 +37,7 @@
 import { pagePathAlternation } from "@/lib/locale/language";
 import { readLocale, type Locale, type ResolvedLocale } from "@/lib/locale";
 import { readPlaceSignals, type PlaceSignals } from "@/lib/locale/place";
-import { BATTERY, CACHE_WINDOWS_D, CHALLENGE_RENDER_MS, HOME_RETRY, PRICE_BOOK } from "@/lib/config/constants";
+import { BATTERY, CACHE_WINDOWS_D, CHALLENGE_RENDER_MS, HOME_RETRY, PRICE_BOOK, SLOW_HOME } from "@/lib/config/constants";
 import {
   isFetchRefusal,
   refusalOf,
@@ -51,7 +51,7 @@ import { readRobots } from "@/lib/egress/robots";
 import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import { rankedKeywords } from "@/lib/vendors/dataforseo";
 import type { RankedResult, RankedRow } from "@/lib/vendors/dataforseo/types";
-import { BOT_PROTECTION, challengeOf, notTheSiteOf, type ProtectionVendor } from "./challenge";
+import { BOT_PROTECTION, challengeOf, HOME_TIMEOUT, notTheSiteOf, type ProtectionVendor } from "./challenge";
 import { answerabilityOf, foundationsOf, ownRankedOf, searchPresenceOf } from "./drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "./measured";
 import { OWN_FETCH_OPTS, OWN_FETCH_SOURCE, isStoredDocument, toStoredDocument, type StoredDocument } from "./own-fetch";
@@ -63,14 +63,15 @@ export { NO_AI_ANSWERS } from "./score";
 export { aiPresenceOf, aiSampleOf, answerabilityOf, classifyReferences, foundationsOf, localPackSearches, ownRankedOf, searchPresenceOf, type AiSample } from "./drivers";
 export { parseOnPage, visibleText, type OnPageFacts } from "./parse";
 export type { Measured, UnmeasuredReason } from "./measured";
-export { BOT_PROTECTION, type ProtectionVendor } from "./challenge";
+export { BOT_PROTECTION, HOME_TIMEOUT, type ProtectionVendor } from "./challenge";
 
 export type Tier = "free" | "deep" | "weekly";
 
-/** The one place `tier` is read: two parameter tables. Free buys the free
- *  row count and measures the home and the detected pricing page only;
- *  the paid tiers buy the paid row count and may carry up to the battery's
- *  page cap in `pages?`. */
+/** The one place `tier` is read: three parameter tables. Free buys the free
+ *  row count, measures the home and the detected pricing page only, and
+ *  gives up on a slow home page sooner (issue 1449); the paid tiers buy the
+ *  paid row count, may carry up to the battery's page cap in `pages?`, and
+ *  wait the fetcher's own time for the home page. */
 const RANKED_ROWS_BY_TIER: Readonly<Record<Tier, 50 | 100 | 300>> = Object.freeze({
   free: PRICE_BOOK.RANKED_FREE_ROWS,
   deep: PRICE_BOOK.RANKED_PAID_ROWS,
@@ -80,6 +81,11 @@ const EXTRA_PAGES_BY_TIER: Readonly<Record<Tier, number>> = Object.freeze({
   free: 0,
   deep: BATTERY.MEASURED_PAGES_MAX,
   weekly: BATTERY.MEASURED_PAGES_MAX,
+});
+const HOME_READ_MS_BY_TIER: Readonly<Record<Tier, number | undefined>> = Object.freeze({
+  free: SLOW_HOME.FREE_READ_MS,
+  deep: undefined,
+  weekly: undefined,
 });
 
 /** The three seams this file crosses, as a port record so a test can
@@ -165,7 +171,8 @@ async function readDocument(
   c: CostContext,
   ports: MeasurePorts,
   url: string,
-  windowDays: number = CACHE_WINDOWS_D.own
+  windowDays: number = CACHE_WINDOWS_D.own,
+  timeoutMs?: number
 ): Promise<DocumentRead> {
   // The failed outcome is kept beside the ledgered refusal so its `readAt`
   // can date the `unmeasured` arm — the row stores the refusal, not a date.
@@ -176,7 +183,7 @@ async function readDocument(
     freshnessDays: windowDays,
     costCents: 0,
     run: async () => {
-      const outcome = await ports.fetchDocument(url, OWN_FETCH_OPTS);
+      const outcome = await ports.fetchDocument(url, timeoutMs === undefined ? OWN_FETCH_OPTS : { ...OWN_FETCH_OPTS, timeoutMs });
       if (outcome.ok) return toStoredDocument(outcome);
       stash.failure = outcome;
       // A refusal is a row, never a `null` — `fetches.payload` is `not
@@ -242,7 +249,13 @@ async function readHomeAgain(c: CostContext, ports: MeasurePorts, first: Documen
  *  plain read was a bot-protection page (issue 1379). `null` where the
  *  vendor met the protection too, did not answer inside
  *  `CHALLENGE_RENDER_MS`, or the cap is spent. Never throws. */
-async function renderedHome(c: CostContext, ports: MeasurePorts, url: string, windowDays: number): Promise<StoredDocument | null> {
+async function renderedHome(
+  c: CostContext,
+  ports: MeasurePorts,
+  url: string,
+  windowDays: number,
+  waitMs: number = CHALLENGE_RENDER_MS
+): Promise<StoredDocument | null> {
   const ask = ports.renderedPage;
   if (ask === undefined || c.capHit()) return null;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -250,7 +263,7 @@ async function renderedHome(c: CostContext, ports: MeasurePorts, url: string, wi
     const read = await Promise.race([
       ask(c, { url, freshnessDays: windowDays }),
       new Promise<null>((resolve) => {
-        timer = setTimeout(() => resolve(null), CHALLENGE_RENDER_MS);
+        timer = setTimeout(() => resolve(null), waitMs);
       }),
     ]);
     const document = read === null || read.kind !== "measured" ? undefined : read.value[0];
@@ -368,6 +381,10 @@ export interface DomainMeasurement {
   /** The home document of the rendered read above, for the site profile:
    *  the crawl's own read of the home page would be the protection's. */
   renderedHome?: string;
+  /** The home page did not answer in time, and the rendered read did not
+   *  return it (issue 1449): the site's own pages are unmeasured, the
+   *  vendor reads still run, and its market is read from its listing. */
+  homeTimedOut?: true;
 }
 
 /** Reads a domain — home document, detected pricing page, up to the tier's
@@ -410,19 +427,32 @@ export async function measureDomain(
   // 1. The home document. Its facts keep its own `readAt`, which is how
   //    `src/lib/scan/challenged.ts` finds the read a report was measured from.
   //    An error or rate-limit answer is asked once more (issue 1427).
-  const plain = await readHomeAgain(c, ports, await readDocument(c, ports, homeUrl, windowDays));
+  //    A free pass gives up on it sooner, so a slow site's rendered read and
+  //    its listing still fit the stage (issue 1449).
+  const plain = await readHomeAgain(c, ports, await readDocument(c, ports, homeUrl, windowDays, HOME_READ_MS_BY_TIER[a.tier]));
   // 1'. A bot-protection page in its place: the vendor's browser is asked
   //     once (issue 1379). Its document is dated as the plain read is.
   const drawn = plain.protection === null ? null : await renderedHome(c, ports, homeUrl, windowDays);
-  const home: DocumentRead = drawn === null ? plain : { ...plain, facts: factsOf(drawn, plain.at), html: drawn.html };
+  // 1''. A home page that did not answer in time is the site unread as a
+  //     protected one is, not a refused one (issue 1449): the vendor's
+  //     browser is asked once, beside the reads below, and where it does not
+  //     return the page either, the market is read from the site's listing.
+  const slow = plain.refusal === "timeout";
+  const drawing = slow ? renderedHome(c, ports, homeUrl, windowDays, SLOW_HOME.RENDER_MS) : Promise.resolve(null);
+  let home: DocumentRead =
+    drawn !== null
+      ? { ...plain, facts: factsOf(drawn, plain.at), html: drawn.html }
+      : slow
+        ? { ...plain, facts: unmeasured("undeterminable", plain.at, HOME_TIMEOUT), refusal: null }
+        : plain;
   if (plain.protection !== null) {
     logDriver("home_bot_protection", { domain: a.domain, protection: plain.protection, rendered: drawn !== null });
   }
-  const guarded = {
+  let guarded: { protection?: ProtectionVendor; renderedHome?: string; homeTimedOut?: true } = {
     ...(plain.protection === null ? {} : { protection: plain.protection }),
     ...(drawn === null ? {} : { renderedHome: drawn.html }),
   };
-  const onPage = home.facts;
+  let onPage = home.facts;
   const read: ResolvedLocale =
     a.locale === undefined ? readLocale({ domain: a.domain, html: home.html }) : { locale: a.locale, fellBack: null };
 
@@ -547,7 +577,7 @@ export async function measureDomain(
           ...(a.ownWindowDays === undefined ? {} : { windowDays }),
           // Issue 1387: a site whose own pages stay unread has its market
           // read from these rows, so they carry what Google shows for each.
-          ...(plain.protection !== null && drawn === null ? { listing: true } : {}),
+          ...((plain.protection !== null && drawn === null) || slow ? { listing: true } : {}),
           onFailure: (failure) => {
             heard.failure = failure;
           },
@@ -582,6 +612,17 @@ export async function measureDomain(
       }
     })(),
   ]);
+
+  if (slow) {
+    const late = await drawing;
+    logDriver("home_timeout", { domain: a.domain, rendered: late !== null });
+    if (late === null) guarded = { ...guarded, homeTimedOut: true };
+    else {
+      home = { ...home, facts: factsOf(late, plain.at), html: late.html };
+      onPage = home.facts;
+      guarded = { ...guarded, renderedHome: late.html };
+    }
+  }
 
   const pricingHtml = pricingRead === null ? null : pricingRead.html;
   const pricing =

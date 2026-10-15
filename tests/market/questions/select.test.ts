@@ -439,3 +439,45 @@ describe("selectTwelve — a free scan with a town (issue 1441)", () => {
     for (const keyword of local) expect(market.map((row) => row.keyword)).toContain(keyword);
   });
 });
+
+describe("selectTwelve — a business measured in its town is searched for by what it offers (issue 1449)", () => {
+  // zunicafe.com's and flintplumb.com's own profiles, as the free scans of
+  // 2026-10-15 read them, and searches their markets held.
+  const restaurant: Profile = {
+    category: "fine dining restaurant San Francisco",
+    job: "provide a memorable dining experience with seasonal, locally-sourced cuisine",
+    offeringType: "full-service restaurant",
+    audienceTerms: ["fine dining enthusiasts"],
+    namedRivals: [],
+    vocabulary: ["seasonal ingredients", "French cuisine", "wine list", "oysters"],
+    brandTokens: ["Zuni Café"],
+  };
+  const plumber: Profile = {
+    category: "plumbers",
+    job: "fix plumbing problems and install plumbing systems",
+    offeringType: "local plumbing services",
+    audienceTerms: ["residential homeowners"],
+    namedRivals: [],
+    vocabulary: ["water heater repair", "drain cleaning", "slab leaks"],
+    brandTokens: ["Flint Plumbing"],
+  };
+  const pick = (profile: Profile, keywords: string[], place?: { name: string }) =>
+    selectTwelve({ profile, ownRanked: 600, market: keywords.map((keyword) => ({ keyword, volume: 500 })), ...(place === undefined ? {} : { place }) }).map(
+      (s) => s.keyword
+    );
+
+  it("drops a search about what the business uses, keeps one for what it is", () => {
+    const sf = { name: "San Francisco" };
+    const kept = pick(restaurant, ["seasonal ingredients", "what are seasonal ingredients", "french restaurant in san francisco", "wine list"], sf);
+    expect(kept).toEqual(["french restaurant in san francisco"]);
+  });
+
+  it("keeps a trade's services, whatever the category says", () => {
+    const kept = pick(plumber, ["water heater repair austin", "drain cleaning austin", "slab leaks austin"], { name: "Austin" });
+    expect(kept.sort()).toEqual(["drain cleaning austin", "water heater repair austin"]);
+  });
+
+  it("a site measured in no town is selected as before", () => {
+    expect(pick(restaurant, ["seasonal ingredients"])).toEqual(["seasonal ingredients"]);
+  });
+});

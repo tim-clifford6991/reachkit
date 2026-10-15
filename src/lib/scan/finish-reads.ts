@@ -192,6 +192,7 @@ export async function finishReads(
       questions: twelve,
       rivalSizes: report.rivalSizes,
       ownDomain: report.domain,
+      local: report.locale?.place !== undefined,
       siteName: promptSiteName(await store.siteName(report.domain), report.domain),
       coverage: "async_included",
     });

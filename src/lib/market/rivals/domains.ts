@@ -161,8 +161,11 @@ export function isPlatformDomain(host: string): boolean {
 
 /** A path that is an article about others: a blog post, a guide, a review,
  *  a "best" or "top ten" list, a comparison or a list of alternatives. */
-const ARTICLE_SECTION = /^(blogs?|articles?|news|guides?|resources?|resource-hub|learn|insights|magazine|posts?|reviews?|best|top)$/;
-const ARTICLE_WORD = /(^|[-_])(best|top-?\d+|alternatives?|vs|versus|reviews?|compared|comparison|guide)($|[-_.])/;
+const ARTICLE_SECTION = /^(blogs?|articles?|news|guides?|resources?|resource-hub|learn|insights|magazine|posts?|reviews?|best|top|recipes?)$/;
+const ARTICLE_WORD = /(^|[-_])(best|top-?\d+|alternatives?|vs|versus|reviews?|compared|comparison|guides?|recipes?)($|[-_.])/;
+/** A title that is a numbered list of others: "10 Best Cafés in Leeds",
+ *  "Top 5 plumbers". A business's own "Best Plumber in Austin" is not one. */
+const LIST_TITLE = /(^|\s)(top\s*\d+|\d+\s+(best|top|great|favourite|favorite))\b/i;
 
 /** Whether an address is an article page (issue 1417): a domain cited for
  *  one is cited as a publisher of a list, not recommended as a product.
@@ -176,6 +179,27 @@ export function isArticleUrl(url: string): boolean {
   }
   const segments = path.split("/").filter(Boolean);
   return segments.some((segment) => ARTICLE_SECTION.test(segment) || ARTICLE_WORD.test(segment));
+}
+
+/** Whether a top-ten row is an article about others (issue 1449): its
+ *  address is an article page, or its title a numbered list. A row whose
+ *  read carried neither is not known to be one. */
+export function isArticleRow(row: { url?: string; title?: string }): boolean {
+  return (row.url !== undefined && isArticleUrl(row.url)) || (row.title !== undefined && LIST_TITLE.test(row.title));
+}
+
+/** Whether a domain is a university's or a school's, by the ending its
+ *  country gives them (`.edu`, `.ac.uk`, `.edu.au`): it teaches, and is no
+ *  business's rival (issue 1449). */
+export function isAcademicDomain(hostOrUrl: string): boolean {
+  const domain = registrableDomain(hostOrUrl);
+  return domain !== null && /(?:\.edu|\.(?:ac|edu)\.[a-z]{2})$/.test(domain);
+}
+
+/** Whether a domain is one of `MARKETPLACE_HOSTS`, or under one. */
+export function isMarketplaceHost(hostOrUrl: string): boolean {
+  const parsed = parseDomain(hostOrUrl);
+  return parsed.ok && under(parsed.domain, MARKETPLACE_HOSTS) !== null;
 }
 
 /** True when `host` and `ownDomain` reduce to the same eTLD+1. That single

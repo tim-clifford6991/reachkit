@@ -32,6 +32,9 @@ export function cardsOf(a: {
   /** `RivalSize` as far as a band goes: a stored sizing, or its slim export. */
   rivalSizes: Measured<readonly { domain: string; state: string; band?: RivalSizeBand }[]>;
   ownDomain: string;
+  /** The pass measured a local business in its town (D67): its local pack
+   *  leads its rivals (issue 1449). */
+  local?: boolean;
   /** The site's name, as `namesSite` reads it; `null` where none is known. */
   siteName?: string | null;
   coverage: AiAnswersCard["coverage"];
@@ -45,7 +48,7 @@ export function cardsOf(a: {
   if (a.rivalSizes.kind !== "unmeasured") {
     for (const size of a.rivalSizes.value) if (size.state === "sized" && size.band !== undefined) sizes.set(size.domain, size.band);
   }
-  const derivation = deriveRivals({ serps: readSerps, ownDomain: a.ownDomain, sizes });
+  const derivation = deriveRivals({ serps: readSerps, ownDomain: a.ownDomain, sizes, local: a.local === true });
 
   return {
     rivals: derivation.rivals,

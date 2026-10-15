@@ -25,6 +25,12 @@ import { visibleText } from "./parse";
  *  report reads it to say why the site's own pages are unmeasured. */
 export const BOT_PROTECTION = "bot_protection";
 
+/** The `because` of an on-page read whose home page did not answer in time,
+ *  and whose rendered read did not return it either (issue 1449): the site's
+ *  own pages are unmeasured, as behind a protection, and its market is read
+ *  from its listing in search. */
+export const HOME_TIMEOUT = "home_timeout";
+
 export type ProtectionVendor =
   | "Cloudflare"
   | "Akamai"
