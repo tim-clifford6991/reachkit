@@ -1,9 +1,9 @@
 // tests/jobs/registry.test.ts — BUILD §11
 //
 // The registry's four structural promises:
-//   1. `serve()` exposes exactly GET, POST and PUT, over exactly the nine
+//   1. `serve()` exposes exactly GET, POST and PUT, over exactly the ten
 //      definitions in `jobs` — an unregistered job is unreachable.
-//   2. The `JobId` union is closed at nine; a tenth fails here.
+//   2. The `JobId` union is closed at ten; an eleventh fails here.
 //   3. The platform is named in exactly one file under `src/jobs/`, and
 //      under `src/lib/` in exactly one: `src/lib/config/env.ts`, whose two
 //      rows are the platform's bindings (issue #315). So the reversal is
@@ -38,8 +38,8 @@ function filesUnder(dir: string): string[] {
   return out;
 }
 
-describe("the nine job ids", () => {
-  it("is exactly the nine: BUILD §11's six, the maintenance tick, §9's retry sweep, and the re-score (issue 1433)", () => {
+describe("the ten job ids", () => {
+  it("is exactly the ten: BUILD §11's six, the maintenance tick, §9's retry sweep, the re-score (issue 1433) and the unread searches (issue 1440)", () => {
     expect([...JOB_IDS]).toEqual([
       "scan/run",
       "draft/generate",
@@ -50,6 +50,7 @@ describe("the nine job ids", () => {
       "lead/nurture",
       "account/maintenance",
       "scan/rescore",
+      "scan/finish-reads",
     ]);
   });
 
@@ -58,7 +59,7 @@ describe("the nine job ids", () => {
   });
 });
 
-describe("the registry is closed over those nine", () => {
+describe("the registry is closed over those ten", () => {
   it("`jobs` holds exactly one definition per id, in JOB_IDS order", async () => {
     const { jobs } = await import("@/jobs");
     expect(jobs.map((j) => j.id)).toEqual([...JOB_IDS]);
@@ -72,7 +73,7 @@ describe("the registry is closed over those nine", () => {
     }
   });
 
-  it("serve() exposes exactly GET, POST and PUT, over exactly the registered nine", async () => {
+  it("serve() exposes exactly GET, POST and PUT, over exactly the registered ten", async () => {
     const served: unknown[][] = [];
     vi.resetModules();
     vi.doMock("inngest/next", () => ({

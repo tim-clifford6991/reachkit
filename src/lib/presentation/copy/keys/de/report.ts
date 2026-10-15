@@ -68,6 +68,8 @@ export const REPORT_COPY_DE = {
   "ai-answers.source": "KI-Antworten von Google · {date}",
   "ai-answers.coverage.cached-only": "Diese KI-Antworten wurden aus einem früheren Scan wiederverwendet.",
   "ai-answers.reused-from": "Wiederverwendet vom {date}",
+  "report.finishing-reads": "{count} Suchen werden noch gelesen…",
+  "report.finishing-reads.one": "{count} Suche wird noch gelesen…",
   "retry-part.running": "Dieser Teil wird erneut gemessen. Dieser Bericht aktualisiert sich, sobald die Messung fertig ist.",
   "retry-part.refused.no-budget": "Dieser Scan hat sein Budget aufgebraucht, deshalb kann dieser Teil hier nicht erneut gemessen werden. Messen Sie stattdessen die ganze Website erneut.",
   "retry-part.refused.already-measured": "Dieser Teil wurde bereits gemessen. Laden Sie den Bericht neu, um ihn zu sehen.",

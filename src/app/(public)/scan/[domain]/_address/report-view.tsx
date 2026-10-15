@@ -32,7 +32,7 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import { copy, readerLanguage } from "@/lib/presentation/copy/reader";
 import type { ScoreFactorName } from "@/lib/measure/score";
 import { measuredLocale } from "@/lib/locale/locales";
-import type { StoredReport } from "@/lib/scan/report";
+import { stillReading, type StoredReport } from "@/lib/scan/report";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import { AiAnswersAbsent, AiAnswersCard } from "../_modules/ai-answers";
@@ -53,6 +53,8 @@ import { refusalLine } from "./refusal";
 import { VerdictStrip } from "./verdict";
 import { RescanControl } from "./rescan";
 import { startReportCheckout } from "./checkout";
+import { StillReading } from "./still-reading";
+import { TIMING } from "@/lib/config/constants";
 // #103: the category has one home — the market the profile inferred.
 // `categoryOf` is the one derivation of it, and the screen reads it here
 // rather than from a second member the blob used to carry.
@@ -164,6 +166,20 @@ function MarketFromSearchLine(p: { report: StoredReport }): React.JSX.Element | 
       {copy("report.market.from-search")}
     </p>
   );
+}
+
+/**
+ * SPEC §2 (owner, 2026-10-15, issue 1440): while the searches a free scan
+ * left unread are read in the background, the report says how many, briefly,
+ * and refreshes itself when they are done. Nothing is drawn otherwise.
+ */
+function FinishingReadsLine(p: { report: StoredReport }): React.JSX.Element | null {
+  const searches = stillReading(p.report, new Date());
+  if (searches === null || p.report.finishingReads == null) return null;
+  const count = String(searches);
+  const line = copy(searches === 1 ? "report.finishing-reads.one" : "report.finishing-reads", { count });
+  const untilMs = new Date(p.report.finishingReads.since).getTime() + TIMING.finishReadsNoticeS * 1000;
+  return <StillReading line={line} untilMs={untilMs} />;
 }
 
 /**
@@ -372,6 +388,7 @@ export function ReportView(p: {
             once. */}
         <MeasuredInLine report={report} />
         <MarketFromSearchLine report={report} />
+        <FinishingReadsLine report={report} />
         <div className="col-span-full">
           {/* SPEC §2's measurement line is in the card, beside the date
               (#1068). */}

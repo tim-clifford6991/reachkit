@@ -1,6 +1,6 @@
 // src/jobs/types.ts — BUILD §11, ARCHITECTURE `src/jobs/**`
 //
-// The job-id union, closed at exactly nine members, and the
+// The job-id union, closed at exactly ten members, and the
 // platform-neutral shapes the registry is built from. Adding an id is a
 // change to this file and to `tests/jobs/registry.test.ts`, which asserts
 // the set — a tenth id cannot arrive by accident.
@@ -22,10 +22,14 @@
 // `scan/rescore` is the ninth (issue 1433): the re-score of every stored
 // scan runs where the data is, asked for with a `rescore_runs` row.
 //
+// `scan/finish-reads` is the tenth (issue 1440): a free pass that stored a
+// report with searches it chose and did not read sends it, and it reads
+// them once in the background, inside the same 12¢.
+//
 // Nothing here names the job platform. `client.ts` is the one file that
 // does, so replacing the platform is that file plus one route.
 
-/** Exactly nine, with their triggers. */
+/** Exactly ten, with their triggers. */
 export type JobId =
   | "scan/run" // on demand; tier is a parameter (free | deep | weekly)
   | "draft/generate" // hourly tick, due a veto window before the site's own publish time
@@ -35,9 +39,10 @@ export type JobId =
   | "weekly/refresh" // hourly tick, due per site-local Monday (ADR-060)
   | "lead/nurture" // event plus delay: 24h / 72h / 168h
   | "account/maintenance" // every MAINTENANCE_TICK_MINUTES; five due-work queries
-  | "scan/rescore"; // every 15 minutes; answers a re-score the master session asked for (issue 1433)
+  | "scan/rescore" // every 15 minutes; answers a re-score the master session asked for (issue 1433)
+  | "scan/finish-reads"; // sent by a free pass that left searches unread (issue 1440)
 
-/** The same nine as a value, so the registry's closure is assertable. The
+/** The same ten as a value, so the registry's closure is assertable. The
  *  `satisfies` pins it to the union: a member missing here or an id not in
  *  the union is a type error, not a test failure discovered later. */
 export const JOB_IDS = Object.freeze([
@@ -50,13 +55,14 @@ export const JOB_IDS = Object.freeze([
   "lead/nurture",
   "account/maintenance",
   "scan/rescore",
+  "scan/finish-reads",
 ] as const) satisfies readonly JobId[];
 
 /** The event names the product sends. One per event-triggered job; the
- *  four clock-triggered jobs have none. */
+ *  clock-triggered jobs have none. */
 export type JobEvent = Extract<
   JobId,
-  "scan/run" | "publish/execute" | "publish/verify" | "lead/nurture"
+  "scan/run" | "publish/execute" | "publish/verify" | "lead/nurture" | "scan/finish-reads"
 >;
 
 /** A trigger, stated without the platform's vocabulary.

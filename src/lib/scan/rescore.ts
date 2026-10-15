@@ -350,7 +350,7 @@ function canonical(value: unknown): string {
   });
 }
 
-function same(a: unknown, b: unknown): boolean {
+export function same(a: unknown, b: unknown): boolean {
   return canonical(a) === canonical(b);
 }
 

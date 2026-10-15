@@ -19,6 +19,8 @@ import type { JobId } from "./types";
  *  that failed go out. */
 export const KILL_SWITCH_SCOPE = Object.freeze([
   "scan/run",
+  // Issue 1440: it buys the searches a free scan left unread.
+  "scan/finish-reads",
   "draft/generate",
   "publish/execute",
   "publish/retry",

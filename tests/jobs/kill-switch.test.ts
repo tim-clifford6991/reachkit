@@ -111,6 +111,11 @@ function engineDouble(): Record<string, unknown> {
       return { id: "run-1", mode: "dry" };
     },
     answerRescore: ran,
+    // Issue 1440: it buys SERPs, so it is inside the scope.
+    finishReads: async () => {
+      engineCalls.count += 1;
+      return { finished: true, asked: 1, read: 1, written: true };
+    },
   };
 }
 
@@ -120,6 +125,7 @@ const PAYLOADS: Readonly<Record<string, Readonly<Record<string, unknown>>>> = {
   "scan/run": { scanId: "scan-1", domain: "example.com", tier: "free" },
   "publish/execute": { draftId: "draft-1", destinationId: "dest-1" },
   "publish/verify": { publicationId: "pub-1" },
+  "scan/finish-reads": { scanId: "scan-1" },
 };
 
 async function invoke(id: JobId, killSwitch: boolean) {
@@ -164,13 +170,14 @@ describe('BUILD §11 bounds — "kill switch env var stops scan+generate+publish
     // while letting one that failed go out.
     expect([...KILL_SWITCH_SCOPE]).toEqual([
       "scan/run",
+      "scan/finish-reads",
       "draft/generate",
       "publish/execute",
       "publish/retry",
     ]);
   });
 
-  it.each(["scan/run", "draft/generate", "publish/execute", "publish/retry"] as const)(
+  it.each(["scan/run", "scan/finish-reads", "draft/generate", "publish/execute", "publish/retry"] as const)(
     "%s is stopped before any spend and before any write",
     async (id) => {
       const { outcome, engineCalls: calls } = await invoke(id, true);
@@ -188,7 +195,7 @@ describe('BUILD §11 bounds — "kill switch env var stops scan+generate+publish
     }
   );
 
-  it.each(["scan/run", "draft/generate", "publish/execute"] as const)(
+  it.each(["scan/run", "scan/finish-reads", "draft/generate", "publish/execute"] as const)(
     "%s runs normally with the switch off",
     async (id) => {
       const { outcome, engineCalls: calls } = await invoke(id, false);
