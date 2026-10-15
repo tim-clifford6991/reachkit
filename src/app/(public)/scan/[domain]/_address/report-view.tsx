@@ -54,6 +54,7 @@ import { RescanControl } from "./rescan";
 import { startReportCheckout } from "./checkout";
 import { StillReading } from "./still-reading";
 import { TIMING } from "@/lib/config/constants";
+import { BOT_PROTECTION } from "@/lib/measure/challenge";
 // #103: the category has one home — the market the profile inferred.
 // `categoryOf` is the one derivation of it, and the screen reads it here
 // rather than from a second member the blob used to carry.
@@ -153,13 +154,16 @@ function noticeOf(notice: AddressNotice): { line: string; warn: boolean } {
 /**
  * SPEC §2 (owner, 2026-10-10, issue 1387): where bot protection kept the
  * reader off the site's own pages and its market was read from its listing
- * in search, the report says so in one line. Nothing is drawn otherwise.
+ * in search, the report says so in one line. Where the pages were read and
+ * only their profile did not come back (issue 1450), the line says just
+ * where the market was read from. Nothing is drawn otherwise.
  */
 function MarketFromSearchLine(p: { report: StoredReport }): React.JSX.Element | null {
   if (p.report.marketFrom !== "search" || p.report.market.kind === "unmeasured") return null;
+  const blocked = p.report.onPage.kind === "unmeasured" && p.report.onPage.because === BOT_PROTECTION;
   return (
     <p className="col-span-full text-sm text-base-content/70" data-testid="report-market-from-search">
-      {copy("report.market.from-search")}
+      {copy(blocked ? "report.market.from-search" : "report.market.from-listing")}
     </p>
   );
 }

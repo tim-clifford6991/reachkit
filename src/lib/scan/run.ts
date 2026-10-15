@@ -43,6 +43,7 @@ import {
   BATTERY,
   CACHE_WINDOWS_D,
   FREE_RESCAN_WINDOW_D,
+  MARKET_REMEASURE_H,
   PAGE_QUESTION_RETIRE_WEEKS,
   PRICE_BOOK,
   SELECTION,
@@ -983,7 +984,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     if (
       stored !== null &&
       stored.complete &&
-      !awaitsMarketFromSearch(stored) &&
+      !awaitsMarketFromSearch(stored, startedAt) &&
       wholeDaysBetween(stored.verdict.measuredAt, startedAt) < FREE_RESCAN_WINDOW_D
     ) {
       if (parameters.adoptsClaim) await closeWithoutSpending(scanId);
@@ -1921,16 +1922,19 @@ function logMarketFromSearch(fields: { read: boolean; because?: ThinFootprint; s
  * Whether a stored report is one this build would measure further (issue
  * 1387): bot protection kept the reader off the site, and the pass that
  * stored it never tried to read a market from search; or (issue 1450) the
- * site ranks and its market was not read. Such a report is not served
- * inside the re-scan window. One whose listing was read and found too thin
+ * site ranks, its market was not read, and that pass is a day old. Such a
+ * report is not served inside the re-scan window. One whose listing was read and found too thin
  * carries that reason, and is served as any other.
  */
-function awaitsMarketFromSearch(report: StoredReport): boolean {
+function awaitsMarketFromSearch(report: StoredReport, now: Date): boolean {
   if (report.market.kind !== "unmeasured" || report.market.because !== undefined) return false;
   if (report.onPage.kind === "unmeasured" && report.onPage.because === BOT_PROTECTION) return true;
   // Issue 1450: a site that ranks, whose market a vendor or the model did
-  // not answer for. This build reads one from its ranked rows instead.
-  return report.market.reason === "undeterminable" && report.ownRankedRows.length > 0;
+  // not answer for. This build reads one from its ranked rows instead —
+  // but a pass that failed so is measured again at most once a day, so a
+  // site that keeps failing costs at most one extra free pass a day.
+  const ageMs = now.getTime() - new Date(report.verdict.measuredAt).getTime();
+  return report.market.reason === "undeterminable" && report.ownRankedRows.length > 0 && ageMs >= MARKET_REMEASURE_H * 3_600_000;
 }
 
 /** §6.7 steps 1–4: profile → measured market → the twelve → their wording.

@@ -445,13 +445,16 @@ describe("a site that ranks, whose market a vendor or the model did not answer f
     expect(report.verdict.scoreAndBand.kind).toBe("measured");
   }, PASS_TIMEOUT_MS);
 
-  it("measures again over a stored report whose market was not read, where the site ranks", async () => {
+  it("measures again over a stored report whose market was not read, where the site ranks, at most once a day", async () => {
     served = READABLE;
     recording = loadRecording("sage.com");
     scripted = (input) => echoPhrasing(input) ?? (input.includes('"home"') ? SAGE_PROFILE : undefined);
     const first = await scan("sage.com");
     const stored = JSON.parse(JSON.stringify(first.report)) as StoredReport;
-    const unread = { ...stored, market: { kind: "unmeasured", reason: "undeterminable", at: stored.market.at } } as StoredReport;
+    const unreadAt = (hoursAgo: number): StoredReport => {
+      const at = new Date(Date.now() - hoursAgo * 3_600_000).toISOString();
+      return { ...stored, verdict: { ...stored.verdict, measuredAt: at }, market: { kind: "unmeasured", reason: "undeterminable", at } } as unknown as StoredReport;
+    };
     const startAgain = (report: StoredReport): void => {
       db.rpcCalls.length = 0;
       db.queries.length = 0;
@@ -460,10 +463,14 @@ describe("a site that ranks, whose market a vendor or the model did not answer f
     };
 
     // A site that ranks for nothing has no market to read: served as it is.
-    startAgain({ ...unread, ownRankedRows: [] });
+    startAgain({ ...unreadAt(25), ownRankedRows: [] });
     expect((await scan("sage.com")).measured).toBe(false);
 
-    startAgain(unread);
+    // A failed pass less than a day old is served: one extra pass a day at most.
+    startAgain(unreadAt(23));
+    expect((await scan("sage.com")).measured).toBe(false);
+
+    startAgain(unreadAt(25));
     expect((await scan("sage.com")).measured).toBe(true);
   }, PASS_TIMEOUT_MS);
 });

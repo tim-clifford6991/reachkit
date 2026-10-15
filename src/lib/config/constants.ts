@@ -1350,6 +1350,7 @@ export const BLOG_READS_RETENTION_W = 4 as const;            // issue 921
 // The free path's own bounds
 export const FREE_RESCAN_WINDOW_D = 7 as const;              // BP-023 · BUILD §6.4
 export const FAILURE_COOLDOWN_H = 24 as const;               // BP-023 · BUILD §6.4
+export const MARKET_REMEASURE_H = 24 as const;               // issue 1450: an unread market on a ranked site, measured again at most this often
 export const HOURLY_WINDOW_H = 1 as const;                   // BP-023 · BUILD §11 bounds
 export const DAILY_WINDOW_H = 24 as const;                   // BP-023 · BUILD §11 bounds
 export const DEEP_HEARTBEAT_S = 15 as const;                 // BP-036 d5 · REQ-029 c1 (half of 30)

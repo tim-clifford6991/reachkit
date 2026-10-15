@@ -93,8 +93,16 @@ describe("SPEC §6, D66 (issue 1311) — the report says where it was measured",
 
 describe("SPEC §2 (issue 1387) — a market read from the site's listing in search says so", () => {
   it("in one line, and only on such a report", () => {
-    expect(render(FIXTURE_REPORT)).not.toContain("report.market.from-search");
-    expect(count(render({ ...FIXTURE_REPORT, marketFrom: "search" }), "report.market.from-search")).toBe(1);
+    const blocked = { ...FIXTURE_REPORT, onPage: { kind: "unmeasured", reason: "undeterminable", because: "bot_protection", at: FIXTURE_REPORT.onPage.at } } as StoredReport;
+    expect(render(FIXTURE_REPORT)).not.toContain("report.market.from-");
+    expect(count(render({ ...blocked, marketFrom: "search" }), "report.market.from-search")).toBe(1);
+    expect(render({ ...blocked, marketFrom: "search" })).not.toContain("report.market.from-listing");
+  });
+
+  it("where the pages were read and only their profile failed (issue 1450), says only where the market came from", () => {
+    const html = render({ ...FIXTURE_REPORT, marketFrom: "search" });
+    expect(count(html, "report.market.from-listing")).toBe(1);
+    expect(html).not.toContain("report.market.from-search");
   });
 });
 
