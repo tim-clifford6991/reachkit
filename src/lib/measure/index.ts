@@ -183,7 +183,10 @@ async function readDocument(
     freshnessDays: windowDays,
     costCents: 0,
     run: async () => {
-      const outcome = await ports.fetchDocument(url, timeoutMs === undefined ? OWN_FETCH_OPTS : { ...OWN_FETCH_OPTS, timeoutMs });
+      // A caller's own time bounds the whole read: the fetcher's robots
+      // check before the page waits on the signal, not on `timeoutMs`.
+      const opts = timeoutMs === undefined ? OWN_FETCH_OPTS : { ...OWN_FETCH_OPTS, timeoutMs, signal: AbortSignal.timeout(timeoutMs) };
+      const outcome = await ports.fetchDocument(url, opts);
       if (outcome.ok) return toStoredDocument(outcome);
       stash.failure = outcome;
       // A refusal is a row, never a `null` — `fetches.payload` is `not
