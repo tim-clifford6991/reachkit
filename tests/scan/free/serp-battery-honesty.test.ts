@@ -367,7 +367,7 @@ describe("issue 1352 — a Google read that never came back is not an absence", 
     return { report: storedCall().report, tookMs };
   }
 
-  it("every read timing out leaves the score unmeasured and says so: no zero, no absence, and the scan ends inside its ceiling", async () => {
+  it("every read timing out counts nothing against the site: the score is search alone, a rough estimate over what AI could say (issue 1439)", async () => {
     const { report, tookMs } = await scanToItsCeiling(neverReady(KEYWORDS));
 
     expect(tookMs).toBeLessThanOrEqual(50_000);
@@ -376,11 +376,12 @@ describe("issue 1352 — a Google read that never came back is not an absence", 
     for (const cell of report.serps) {
       expect(cell).toMatchObject({ kind: "unmeasured", reason: "undeterminable", because: "deadline" });
     }
-    // No score is made out of searches nobody read, and the report names
-    // the factor that has no value.
-    expect(report.verdict.scoreAndBand.kind).toBe("unmeasured");
-    expect(report.verdict.factors.presence.kind).toBe("unmeasured");
-    expect(report.verdict.missing.map((m) => m.factor)).toEqual(["presence"]);
+    // The site's pages were read, so there is a score (issue 1439). AI
+    // presence is not read as a zero: Presence is search presence alone, and
+    // the range spans everything the unread AI answers could have said.
+    expect(report.verdict.scoreAndBand.kind).toBe("measured");
+    expect(report.verdict.missing).toEqual([]);
+    expect(report.verdict.estimate?.confidence).toBe("rough");
     // Nothing is counted against the site.
     expect(report.presence?.absentFrom ?? []).toEqual([]);
     expect(report.aiAnswers?.measuredSearches ?? 0).toBe(0);

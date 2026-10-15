@@ -13,10 +13,13 @@ import type { Measured, UnmeasuredReason } from "./measured";
 import { FEEDS, type InputOutcome, type ScanInput } from "./partition";
 import {
   computeScore,
+  estimateOf,
   factorsOf,
+  presenceRangeOf,
   limitingFactorOf,
   type Drivers,
   type LimitingFactor,
+  type ScoreEstimate,
   type ScoreFactorName,
   type ScoreFactors,
 } from "./score";
@@ -26,6 +29,11 @@ export interface Verdict {
   domain: CanonicalDomain;
   measuredAt: Date; // one date; every figure under it is this scan's
   scoreAndBand: Measured<{ score: number; band: BandHandle }>;
+  /** How sure the score is (owner, issue 1439): the scores Presence's range
+   *  allows and the word for how wide that is. Absent where there is no
+   *  score, and on a report scored before issue 1439 that the re-score has
+   *  not reached. */
+  estimate?: ScoreEstimate;
   /** The three factors the score is composed of.
    *
    *  **They reach exactly one surface, and the owner named it**: ruling 1b
@@ -93,10 +101,20 @@ export function verdictOf(a: {
   /** A stored report's Presence, where its two sub-measures were not both
    *  kept and the stored factor stands (the re-score, issue 1426). */
   presence?: Measured<number>;
+  /** Where AI presence could lie given the answers behind it
+   *  (`aiPresenceRangeOf`); absent, its value alone. */
+  aiRange?: { low: number; high: number } | null;
 }): Verdict {
   const drivenFactors = factorsOf(a.drivers);
   const factors: ScoreFactors = a.presence === undefined ? drivenFactors : { ...drivenFactors, presence: a.presence };
   const scoreAndBand = computeScore(factors);
+  const presenceRange =
+    a.presence === undefined
+      ? presenceRangeOf(a.drivers, a.aiRange)
+      : a.presence.kind === "unmeasured"
+        ? null
+        : { low: a.presence.value, high: a.presence.value };
+  const estimate = presenceRange === null ? null : estimateOf(factors, presenceRange);
   const limiting = limitingFactorOf(factors);
 
   const missing: { factor: ScoreFactorName; reason: UnmeasuredReason }[] = [];
@@ -123,6 +141,7 @@ export function verdictOf(a: {
     domain: a.domain,
     measuredAt: a.measuredAt,
     scoreAndBand,
+    ...(estimate === null ? {} : { estimate }),
     factors,
     limiting,
     missing,

@@ -120,12 +120,14 @@ describe("gusto.com's scan of 8 October (issue 1418): measured off Cloudflare's 
   });
 });
 
-describe("zapier.com's scan of 6 October (issue 1419): AI presence set by the one Google result read", () => {
-  it("stored 27; now no number, as a new scan would show", async () => {
+describe("zapier.com's scan of 6 October: AI presence read from the one Google result read", () => {
+  it("stored 27; now a rough estimate with its range (issue 1439), as a new scan would show", async () => {
     const db = storeOf([fixture("zapier.com")]);
     const answer = await rescoreStored(db.store, apply);
-    expect(answer.summary).toContain("**27 → —**");
-    expect(db.written[0]).toMatchObject({ score: null, status: "degraded" });
+    expect(answer.summary).toContain("**27 → 47 (47–57, rough)**");
+    expect(db.written[0]).toMatchObject({ score: 47 });
+    const verdict = db.written[0]!.changes.find((c) => c.path.join(".") === "verdict")!.value as { estimate?: unknown };
+    expect(verdict.estimate).toEqual({ low: 47, high: 57, confidence: "rough" });
   });
 });
 

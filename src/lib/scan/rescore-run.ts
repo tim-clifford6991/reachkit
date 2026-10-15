@@ -267,7 +267,9 @@ const FACTORS: readonly ScoreFactorName[] = ["foundations", "answerability", "pr
 
 function scoreText(m: RescoredMembers): string {
   const s = m.verdict.scoreAndBand;
-  return s.kind === "unmeasured" ? "—" : String(s.value.score);
+  if (s.kind === "unmeasured") return "—";
+  const e = m.verdict.estimate;
+  return e === undefined ? String(s.value.score) : `${s.value.score} (${e.low}–${e.high}, ${e.confidence})`;
 }
 
 function bandText(m: RescoredMembers): string {

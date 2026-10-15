@@ -6,7 +6,6 @@
 import "../../generate/env";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { AI_PRESENCE_MIN_READS } from "@/lib/config/constants";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { aiPresenceOf, classifyReferences, isOrdinaryName } from "../../../src/lib/measure/drivers.ts";
 import { measured } from "../../../src/lib/measure/measured.ts";
@@ -67,7 +66,7 @@ describe("issue 1420 — the AI Overview's text is kept from the SERP already bo
 
   it("an overview that names the brand and links only to review sites is a mention: 0.4 of the scale", () => {
     const [serp] = parseSerp({ items: [item("Rippling and ADP lead the category.")] })!;
-    const serps = Array.from({ length: AI_PRESENCE_MIN_READS }, () => measured<SerpResult>(serp!, AT));
+    const serps = Array.from({ length: 4 }, () => measured<SerpResult>(serp!, AT));
     const m = aiPresenceOf({ serps, ownDomain: "rippling.com", at: AT });
     expect(m.kind === "unmeasured" ? null : m.value).toBeCloseTo(40, 10);
   });

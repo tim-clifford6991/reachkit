@@ -135,6 +135,18 @@ describe("REQ-004 c1 — the verdict strip names the score, its band, the domain
   it("names the category beside the score", () => {
     expect(html).toContain("product analytics");
   });
+
+  it("says how sure the score is beside it, with its range (issue 1439)", () => {
+    expect(html).toContain("verdict.estimate.close(58|66)");
+    expect(render(FIXTURE_COLD_START_REPORT)).toContain("verdict.estimate.rough(8|21)");
+  });
+
+  it("draws no range where there is no score, nor on a report scored before it", () => {
+    expect(render(FIXTURE_DEGRADED_REPORT)).not.toContain("verdict.estimate");
+    const older = { ...FIXTURE_REPORT.verdict };
+    delete older.estimate;
+    expect(render({ ...FIXTURE_REPORT, verdict: older })).not.toContain("verdict.estimate");
+  });
 });
 
 describe("ruling 1b (2026-09-08) — the driver bars are back, on the header strip and nowhere else", () => {

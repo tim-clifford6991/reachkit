@@ -92,7 +92,8 @@ import { freePageOf } from "@/lib/opportunities/free-page";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/locale/locales";
 import { localSearch, statedPlace as statedPlaceOf } from "@/lib/locale/place";
 import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
-import { aiPresenceOf, BOT_PROTECTION, classifyReferences, measureDomain, TOO_FEW_READ, type DomainMeasurement } from "@/lib/measure";
+import { aiPresenceOf, aiSampleOf, BOT_PROTECTION, classifyReferences, measureDomain, type DomainMeasurement } from "@/lib/measure";
+import { aiPresenceRangeOf } from "@/lib/measure/drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
@@ -3121,7 +3122,8 @@ function composeReport(a: {
     question_serps: outcomeOf(foldSerps(s.serps, measuredAt)),
   };
 
-  const verdict: Verdict = verdictOf({ domain: a.domain, measuredAt, drivers, inputs, robots });
+  const aiRange = aiPresenceRangeOf(aiSampleOf({ serps: s.serps, ownDomain: a.domain, siteName: s.siteName }));
+  const verdict: Verdict = verdictOf({ domain: a.domain, measuredAt, drivers, inputs, robots, aiRange });
 
   // Issue 898: which step left the pass with no market — the profile call
   // that did not answer, or the suggestions that did not. It is the same
@@ -3205,21 +3207,13 @@ function composeReport(a: {
 
   // #770: a market read and found too small buys no SERP, so AI presence
   // has nothing to be read from. That is the market's answer and not a
-  // missing section: presence missing for that reason alone does not
-  // degrade the pass. A search-presence read that failed still does.
-  // Never for a pass a ceiling stopped (issue 855): it did not finish.
+  // missing section. Never for a pass a ceiling stopped (issue 855): it did
+  // not finish. Since issue 1439 Presence is never missing — what was not
+  // read widens the score's range instead — so a pass whose own ranked read
+  // failed is named missing here, as it was before.
   const tooSmall = marketTooSmall(s.questions) && !stoppedOnCeiling(a.stoppedReason);
-  // Issue 1419: the same for a market that yields fewer questions than AI
-  // presence is a rate over, where every one of them was read. A read the
-  // vendor or the clock lost still degrades the pass.
-  const tooFewToRate =
-    drivers.aiPresence.kind === "unmeasured" &&
-    drivers.aiPresence.because === TOO_FEW_READ &&
-    s.serps.every((serp) => serp.kind !== "unmeasured" && serp.value.aiOverview.unread !== true) &&
-    !stoppedOnCeiling(a.stoppedReason);
-  const missingFactors = verdict.missing.filter(
-    (f) => !((tooSmall || tooFewToRate) && f.factor === "presence" && drivers.searchPresence.kind !== "unmeasured")
-  );
+  const missingFactors = verdict.missing;
+  const searchUnread = drivers.searchPresence.kind === "unmeasured";
 
   // Issue 865: **the twelve are a battery, not a section.** One question
   // whose SERP the vendor dropped used to mark the whole pass `degraded` —
@@ -3240,6 +3234,7 @@ function composeReport(a: {
     report.aiAnswers === null ||
     report.presence === null ||
     missingFactors.length > 0 ||
+    searchUnread ||
     market.kind === "unmeasured" ||
     s.questions.kind === "unmeasured" ||
     noQuestionMeasured;

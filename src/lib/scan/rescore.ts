@@ -18,7 +18,7 @@
 // `src/lib/scan/rescore-run.ts` reads the stored rows in production (the
 // `scan/rescore` job, issue 1433), writes the before and after, and on apply
 // writes the change, keeping the original report under `report.previous`.
-import { aiPresenceOf, classifyReferences, foundationsOf, searchPresenceOf } from "@/lib/measure/drivers";
+import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, foundationsOf, searchPresenceOf } from "@/lib/measure/drivers";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
@@ -310,7 +310,16 @@ export function rescoreScan(scan: RescoreScan): Rescored {
     own_ranked_rows: outcomeOf(drivers.searchPresence),
     question_serps: outcomeOf(foldSerps(r.serps, at)),
   };
-  const verdict = verdictOf({ domain: r.verdict.domain, measuredAt: at, drivers, inputs, robots, ...(presence === undefined ? {} : { presence }) });
+  const aiRange = aiPresenceRangeOf(aiSampleOf({ serps: r.serps, ownDomain: r.domain, siteName: scan.siteName }));
+  const verdict = verdictOf({
+    domain: r.verdict.domain,
+    measuredAt: at,
+    drivers,
+    inputs,
+    robots,
+    aiRange,
+    ...(presence === undefined ? {} : { presence }),
+  });
 
   let after: RescoredMembers = { ...membersOf(r), verdict, ...cardsAfter(r, scan, kept) };
 

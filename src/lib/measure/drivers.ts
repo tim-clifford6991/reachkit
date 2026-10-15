@@ -12,7 +12,7 @@
 // they transcribe. The two that are pins — the direct-answer window and
 // the answerability floor — are read from `SCORING`; the closed reader
 // list is `AI_READER_AGENTS`. Nothing here is customer-visible.
-import { AI_PRESENCE_MIN_READS, AI_READER_AGENTS, SCORING } from "@/lib/config/constants";
+import { AI_READER_AGENTS, SCORE_ESTIMATE, SCORING } from "@/lib/config/constants";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { RankedResult, RankedRow, SerpAiOverview } from "@/lib/vendors/dataforseo/types";
 
@@ -26,6 +26,7 @@ export interface RankedPositions {
 import { measured, measuredZero, unmeasured, worseReason, type Measured, type UnmeasuredReason } from "./measured";
 import ORDINARY_WORDS from "./ordinary-words.json";
 import { asciiLowerCase, type OnPageFacts } from "./parse";
+import { NO_AI_ANSWERS } from "./score";
 
 /** The top of every 0–100 scale in BUILD §5 — the range each driver is
  *  already expressed in, not a separate pin (same reading as `score.ts`'s
@@ -286,9 +287,6 @@ const AI_MENTION_WEIGHT = 0.4;
 const AI_CITATION_WEIGHT = 0.6;
 const AI_PRESENCE_FLOOR = 1;
 
-/** The `because` of an AI presence read from too few results (issue 1419). */
-export const TOO_FEW_READ = "too_few_read";
-
 /** A reference as DataForSEO returns it — a bare host, a host with a path,
  *  or a full URL — to its ASCII-lowercased host with any port and any
  *  leading `www.` removed. Never throws; a reference no `URL` can parse
@@ -526,21 +524,65 @@ type AiOverviewRead = {
   aiOverview: Pick<SerpAiOverview, "present" | "unread" | "referenceDomains" | "referenceUrls" | "text">;
 };
 
-/** BUILD §5's AIPresence. The rates are over the SERPs whose AI-overview
- *  item was *measured* — never over the SERPs asked for, because a SERP we
- *  could not read is not a SERP that named nobody. Every SERP `unmeasured`
- *  yields `unmeasured` with the fold of their reasons; no SERPs handed in
- *  at all is `undeterminable`. A measured set naming the customer nowhere
- *  is the `zero` arm, carrying the formula's floor of 1. A SERP whose AI
- *  Overview's sources were not loaded (`unread`, issue 1357) is not one of
- *  the measured: it is in neither rate.
+/** What AI presence is read from (issue 1439): how many Google results were
+ *  read, how many of them showed an AI answer, and in how many of those the
+ *  answer named or linked the site. */
+export interface AiSample {
+  read: number;
+  answered: number;
+  mentioned: number;
+  cited: number;
+}
+
+/** The counts AI presence and its range are read from. A SERP we could not
+ *  read is not one that named nobody, and a SERP whose AI Overview's sources
+ *  were not loaded (`unread`, issue 1357) is not read either: both are in no
+ *  count. */
+export function aiSampleOf(a: {
+  serps: readonly Measured<AiOverviewRead>[];
+  ownDomain: string;
+  /** The site's name, as `namesSite` reads it; `null` where none is known. */
+  siteName?: string | null;
+}): AiSample {
+  const sample: AiSample = { read: 0, answered: 0, mentioned: 0, cited: 0 };
+  for (const serp of a.serps) {
+    if (serp.kind === "unmeasured" || serp.value.aiOverview.unread === true) continue;
+    sample.read++;
+    if (!serp.value.aiOverview.present) continue;
+    sample.answered++;
+    const { referenceDomains, referenceUrls, text } = serp.value.aiOverview;
+    const { cited, mentioned } = classifyReferences(referenceDomains, a.ownDomain, {
+      ...(referenceUrls === undefined ? {} : { urls: referenceUrls }),
+      ...(text === undefined ? {} : { text }),
+      siteName: a.siteName ?? null,
+    });
+    if (mentioned) sample.mentioned++;
+    if (cited) sample.cited++;
+  }
+  return sample;
+}
+
+/** §5's weighting of the two rates, over 0–100 and floored. */
+function aiPresenceValue(mentionRate: number, citationRate: number): number {
+  return Math.max(AI_PRESENCE_FLOOR, (AI_MENTION_WEIGHT * mentionRate + AI_CITATION_WEIGHT * citationRate) * SCALE);
+}
+
+/** BUILD §5's AIPresence, judged on the AI answers that exist (owner, issue
+ *  1439). The rates are over the read SERPs that **showed** an AI answer: a
+ *  search Google answers without one is no answer that left the site out,
+ *  so it is in neither rate. How often AI answers appear is the AI-answers
+ *  card's context line, never a penalty here.
  *
- *  **Fewer than `AI_PRESENCE_MIN_READS` read is no rate** (issue
- *  1419). One read that cited only YouTube made zapier.com's AI presence 1,
- *  and through ∛ and √ that one result moved the whole score. Such a set is
- *  `unmeasured` with the fold of the unread SERPs' reasons — a read the
- *  deadline cut off says why — and `undeterminable` where every SERP asked
- *  was read; `because` says the sample was too small. */
+ *  - No SERP read: `unmeasured` with the fold of their reasons
+ *    (`undeterminable` where none was handed in).
+ *  - SERPs read and none showed an AI answer: `unmeasured`, `undeterminable`,
+ *    `because` `NO_AI_ANSWERS`. There is nothing to judge, so Presence is
+ *    search presence alone (`presenceOf`).
+ *  - Otherwise the rate, however few answers back it: how sure it is, is
+ *    the score's range (`aiPresenceRangeOf`), never a refusal to score.
+ *
+ *  A rate naming the customer nowhere is the `zero` arm, carrying the
+ *  formula's floor of 1. */
 export function aiPresenceOf(a: {
   serps: readonly Measured<AiOverviewRead>[];
   ownDomain: string;
@@ -548,33 +590,34 @@ export function aiPresenceOf(a: {
   siteName?: string | null;
   at: Date;
 }): Measured<number> {
-  const read: AiOverviewRead[] = [];
-  for (const serp of a.serps) {
-    if (serp.kind !== "unmeasured" && serp.value.aiOverview.unread !== true) read.push(serp.value);
-  }
-  if (read.length === 0) {
-    return unmeasured(unmeasuredReasonOf(a.serps) ?? "undeterminable", a.at);
-  }
-  if (read.length < AI_PRESENCE_MIN_READS) {
-    return unmeasured(unmeasuredReasonOf(a.serps) ?? "undeterminable", a.at, TOO_FEW_READ);
-  }
+  const sample = aiSampleOf(a);
+  if (sample.read === 0) return unmeasured(unmeasuredReasonOf(a.serps) ?? "undeterminable", a.at);
+  if (sample.answered === 0) return unmeasured("undeterminable", a.at, NO_AI_ANSWERS);
+  const raw = aiPresenceValue(sample.mentioned / sample.answered, sample.cited / sample.answered);
+  return sample.mentioned === 0 && sample.cited === 0 ? measuredZero(raw, a.at) : measured(raw, a.at);
+}
 
-  let mentions = 0;
-  let citations = 0;
-  for (const serp of read) {
-    if (!serp.aiOverview.present) continue;
-    const { referenceDomains, referenceUrls, text } = serp.aiOverview;
-    const { cited, mentioned } = classifyReferences(referenceDomains, a.ownDomain, {
-      ...(referenceUrls === undefined ? {} : { urls: referenceUrls }),
-      ...(text === undefined ? {} : { text }),
-      siteName: a.siteName ?? null,
-    });
-    if (mentioned) mentions++;
-    if (cited) citations++;
-  }
-  const mentionRate = mentions / read.length;
-  const citationRate = citations / read.length;
-  const raw = (AI_MENTION_WEIGHT * mentionRate + AI_CITATION_WEIGHT * citationRate) * SCALE;
-  const floored = Math.max(AI_PRESENCE_FLOOR, raw);
-  return raw === 0 ? measuredZero(floored, a.at) : measured(floored, a.at);
+/** The Wilson score interval of `hits` in `n`, at `SCORE_ESTIMATE.z`: a
+ *  range that is wide over few answers and narrows as they grow, and never
+ *  leaves 0–1, even at 0 or n hits. Over no answers it is the whole of 0–1. */
+export function wilsonOf(hits: number, n: number): { low: number; high: number } {
+  if (n === 0) return { low: 0, high: 1 };
+  const z = SCORE_ESTIMATE.z;
+  const p = hits / n;
+  const z2 = z * z;
+  const centre = p + z2 / (2 * n);
+  const spread = z * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n));
+  const denominator = 1 + z2 / n;
+  return { low: Math.max(0, (centre - spread) / denominator), high: Math.min(1, (centre + spread) / denominator) };
+}
+
+/** Where AI presence could lie given the answers behind it (issue 1439):
+ *  each rate's Wilson interval, carried through §5's weighting. `null` where
+ *  AI answered none of the searches read — there is no AI term to range
+ *  over. Over no read at all it is the whole scale. */
+export function aiPresenceRangeOf(sample: AiSample): { low: number; high: number } | null {
+  if (sample.read > 0 && sample.answered === 0) return null;
+  const mention = wilsonOf(sample.mentioned, sample.answered);
+  const citation = wilsonOf(sample.cited, sample.answered);
+  return { low: aiPresenceValue(mention.low, citation.low), high: aiPresenceValue(mention.high, citation.high) };
 }

@@ -481,16 +481,20 @@ export function AiAnswersCard(p: {
         {/* The card leads with its answer, not with its metric — and the
             answer is its heading, one sentence (#1068). */}
         <h2 className="text-lg font-semibold">
-          {section.customerCitations === 0
-            ? copy("ai-answers.finding.none", {
-                answered: String(section.answeredSearches),
+          {section.answeredSearches === 0 && section.measuredSearches > 0
+            ? copy("ai-answers.finding.unanswered", {
                 measured: String(section.measuredSearches),
               })
-            : copy("ai-answers.finding", {
-                answered: String(section.answeredSearches),
-                measured: String(section.measuredSearches),
-                named: String(section.customerCitations),
-              })}
+            : section.customerCitations === 0
+              ? copy("ai-answers.finding.none", {
+                  answered: String(section.answeredSearches),
+                  measured: String(section.measuredSearches),
+                })
+              : copy("ai-answers.finding", {
+                  answered: String(section.answeredSearches),
+                  measured: String(section.measuredSearches),
+                  named: String(section.customerCitations),
+                })}
         </h2>
 
         {/* The matrix scrolls rather than shrinking its labels. The

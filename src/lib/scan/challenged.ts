@@ -209,12 +209,15 @@ export function unreadByProtection<R extends Pick<StoredReport, "verdict" | "rob
     const m = factors[factor];
     if (m.kind === "unmeasured") missing.push({ factor, reason: m.reason });
   }
+  // No score, so no range (issue 1439).
+  const verdict = { ...report.verdict };
+  delete verdict.estimate;
   return {
     ...report,
     complete: false,
     onPage: unmeasured("undeterminable", at, BOT_PROTECTION),
     verdict: {
-      ...report.verdict,
+      ...verdict,
       factors,
       scoreAndBand: computeScore(factors),
       limiting: limitingFactorOf(factors),

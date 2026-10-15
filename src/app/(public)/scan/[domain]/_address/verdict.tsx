@@ -20,7 +20,7 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { LIMITING_LINES, SCORE_BANDS } from "@/lib/presentation/bands";
 import type { Verdict } from "@/lib/measure/verdict";
 import type { Measured } from "@/lib/measure/measured";
-import type { ScoreFactorName } from "@/lib/measure/score";
+import type { ScoreEstimate, ScoreFactorName } from "@/lib/measure/score";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import { CategoryCorrection } from "./correction";
 import { dash, Num, unmeasuredLineFor } from "./measured";
@@ -31,6 +31,12 @@ const FACTOR_NAMES: Readonly<Record<ScoreFactorName, CopyKey>> = Object.freeze({
   foundations: "verdict.factor.foundations",
   answerability: "verdict.factor.answerability",
   presence: "verdict.factor.presence",
+});
+
+/** How sure the score is, in words (issue 1439). */
+const ESTIMATE_LINES: Readonly<Record<ScoreEstimate["confidence"], CopyKey>> = Object.freeze({
+  rough: "verdict.estimate.rough",
+  close: "verdict.estimate.close",
 });
 
 /** `score.ts`'s own tie-break order: their own page today, their own
@@ -195,6 +201,18 @@ export function VerdictStrip(p: {
               <span className={`badge ${BADGE_TONE[BAND_TONE[scoreAndBand.value.band]]}`}>
                 {copy(SCORE_BANDS[scoreAndBand.value.band])}
               </span>
+              {/* Issue 1439: how sure the score is, briefly, beside it. A
+                  report scored before it carries no range and draws none. */}
+              {verdict.estimate === undefined ? null : (
+                <p className="text-base-content/70 text-sm" data-testid="verdict-estimate">
+                  <Num phrase>
+                    {copy(ESTIMATE_LINES[verdict.estimate.confidence], {
+                      low: String(verdict.estimate.low),
+                      high: String(verdict.estimate.high),
+                    })}
+                  </Num>
+                </p>
+              )}
             </>
           )}
           <p className="text-base-content/70 text-xs">{copy("verdict.score.label")}</p>

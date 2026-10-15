@@ -7,7 +7,7 @@
 // line naming the factor holding it down.
 import { combine, mapMeasured, type Measured } from "./measured";
 import { bandOf, type BandHandle } from "./bands";
-import { SCORING } from "@/lib/config/constants";
+import { SCORE_ESTIMATE, SCORING } from "@/lib/config/constants";
 
 /** BP-010's own four measured quantities (`src/lib/measure/index.ts`,
  *  BP-010's file — `measureDomain` and this type's canonical home).
@@ -49,14 +49,66 @@ function floorAt(m: Measured<number>, floor: number): Measured<number> {
   return mapMeasured(m, (value) => Math.max(floor, value));
 }
 
-/** `Presence = max(1, √(SearchPresence × AIPresence))` (`BUILD.md` §5). The
- *  floor is applied inside the combining function, so it can only ever
- *  apply to a value that exists — `combine` never calls `f` when either
- *  sub-measure is `unmeasured`. */
+/** The `because` of an AI presence where AI answered none of the searches
+ *  read (issue 1439): Presence is then search presence alone. Here and not
+ *  in `drivers.ts`, so reading it does not load the drivers' word list. */
+export const NO_AI_ANSWERS = "no_ai_answers";
+
+/** How Presence reads one of its two halves (issue 1439): a value to weigh,
+ *  `absent` where there is nothing to judge (AI answered none of the
+ *  searches read), or `unknown` where it was not read. */
+type Half = { kind: "value"; value: number; zero: boolean } | { kind: "absent" } | { kind: "unknown" };
+
+function halfOf(m: Measured<number>): Half {
+  if (m.kind !== "unmeasured") return { kind: "value", value: m.value, zero: m.kind === "zero" };
+  return m.because === NO_AI_ANSWERS ? { kind: "absent" } : { kind: "unknown" };
+}
+
+/** `Presence = max(1, 0.5 × SearchPresence + 0.5 × AIPresence)` (owner, issue
+ *  1439; the weights are `SCORE_ESTIMATE`'s). A weighted mean, so one zero
+ *  no longer collapses it: under `√(SP × AP)` a site that does not rank yet
+ *  had Presence 1 and a score of at most 22, whatever its pages and AI
+ *  answers. A site nobody finds anywhere still has Presence 1.
+ *
+ *  Only what exists is weighed. Where AI answered none of the searches read,
+ *  or a half was not read, Presence is the other half alone, and the range
+ *  (`presenceRangeOf`) says where the unread half could put it. Where
+ *  neither half was read it is the middle of the scale, and the range is
+ *  the whole of it. Never `unmeasured`: a score is withheld only where the
+ *  site's own pages were not read. */
 export function presenceOf(d: Pick<Drivers, "searchPresence" | "aiPresence">): Measured<number> {
-  return combine([d.searchPresence, d.aiPresence] as const, ([sp, ap]) =>
-    Math.max(PRESENCE_FLOOR, Math.sqrt(sp * ap))
-  );
+  const at = d.searchPresence.at;
+  const halves = [
+    { half: halfOf(d.searchPresence), weight: SCORE_ESTIMATE.searchWeight },
+    { half: halfOf(d.aiPresence), weight: SCORE_ESTIMATE.aiWeight },
+  ];
+  const weighed = halves.flatMap(({ half, weight }) => (half.kind === "value" ? [{ ...half, weight }] : []));
+  if (weighed.length < 1) {
+    const range = presenceRangeOf(d);
+    return { kind: "measured", value: (range.low + range.high) / 2, at };
+  }
+  const total = weighed.reduce((sum, h) => sum + h.weight, 0);
+  const value = Math.max(PRESENCE_FLOOR, weighed.reduce((sum, h) => sum + (h.weight / total) * h.value, 0));
+  return { kind: weighed.every((h) => h.zero) ? "zero" : "measured", value, at };
+}
+
+/** Where Presence could lie (issue 1439): a half that was read is its value,
+ *  AI presence its Wilson range where the answers behind it are known
+ *  (`aiRange`), and a half not read the whole of its scale. Where AI
+ *  answered none of the searches read there is no AI term. */
+export function presenceRangeOf(
+  d: Pick<Drivers, "searchPresence" | "aiPresence">,
+  aiRange?: { low: number; high: number } | null
+): { low: number; high: number } {
+  const search = halfOf(d.searchPresence);
+  const ai = halfOf(d.aiPresence);
+  const sp = search.kind === "value" ? { low: search.value, high: search.value } : { low: 0, high: SCALE_CEILING };
+  if (ai.kind === "absent") return { low: Math.max(PRESENCE_FLOOR, sp.low), high: Math.max(PRESENCE_FLOOR, sp.high) };
+  const ap =
+    ai.kind === "unknown" ? { low: PRESENCE_FLOOR, high: SCALE_CEILING } : (aiRange ?? { low: ai.value, high: ai.value });
+  const mean = (s: number, a: number): number =>
+    Math.max(PRESENCE_FLOOR, SCORE_ESTIMATE.searchWeight * s + SCORE_ESTIMATE.aiWeight * a);
+  return { low: mean(sp.low, ap.low), high: mean(sp.high, ap.high) };
 }
 
 /** Four measured quantities to the three shown, score-composing factors
@@ -81,6 +133,27 @@ export function computeScore(f: ScoreFactors): Measured<{ score: number; band: B
     const score = Math.round(Math.cbrt(foundations * answerability * presence));
     return { score, band: bandOf(score) };
   });
+}
+
+/** How sure a score is (owner, issue 1439): the scores its Presence range
+ *  allows, and the word for how wide that is. */
+export interface ScoreEstimate {
+  low: number;
+  high: number;
+  confidence: "rough" | "close";
+}
+
+/** The score at each end of Presence's range, with Foundations and
+ *  Answerability as read: they are read off the site's own pages and carry
+ *  no sampling range. `null` where there is no score. */
+export function estimateOf(f: ScoreFactors, presence: { low: number; high: number }): ScoreEstimate | null {
+  const score = computeScore(f);
+  const { foundations, answerability } = f;
+  if (score.kind === "unmeasured" || foundations.kind === "unmeasured" || answerability.kind === "unmeasured") return null;
+  const at = (p: number): number => Math.round(Math.cbrt(foundations.value * answerability.value * p));
+  const low = Math.min(score.value.score, at(presence.low));
+  const high = Math.max(score.value.score, at(presence.high));
+  return { low, high, confidence: high - low > SCORE_ESTIMATE.roughWidth ? "rough" : "close" };
 }
 
 /** Which factor holds the score down — the one thing about the

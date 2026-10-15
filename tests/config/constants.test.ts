@@ -332,13 +332,6 @@ describe("SPEC §6 `KEYWORD_PAGE_MIN_VOLUME` — the residual keyword gate's flo
   });
 });
 
-describe("SPEC §2 `AI_PRESENCE_MIN_READS` (issue 1419) — the fewest read results AI presence is a rate over", () => {
-  it("is the free ladder's four questions", () => {
-    expect(constants.AI_PRESENCE_MIN_READS).toBe(constants.SELECTION.freeLadderMinQuestions);
-    expect(constants.AI_PRESENCE_MIN_READS).toBe(4);
-  });
-});
-
 describe("SPEC §6 `FORMAT_PAGE_ALLOWED` — the four formats a format page may fire for", () => {
   it("is exactly the four, and none of the four §6 says never qualify", () => {
     expect([...constants.FORMAT_PAGE_ALLOWED]).toEqual([

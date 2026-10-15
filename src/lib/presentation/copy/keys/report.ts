@@ -176,6 +176,10 @@ export const REPORT_COPY = Object.freeze({
   // figure is out of. Drafted; the owner corrects the wording.
   "report.eyebrow": ["Your free report", { slots: {}, fixedBy: "issue 1068" }],
   "verdict.score.of": ["of 100", { slots: {}, fixedBy: "issue 1068" }],
+  // Issue 1439: how sure the score is, beside it — the scores its range
+  // allows. Drafted; the owner corrects the wording.
+  "verdict.estimate.rough": ["rough estimate ({low}–{high})", { slots: { low: "text", high: "text" }, fixedBy: "issue 1439" }],
+  "verdict.estimate.close": ["close estimate ({low}–{high})", { slots: { low: "text", high: "text" }, fixedBy: "issue 1439" }],
   // REQ-094 c1's correction control, as S2 draws it. #786 gives it its
   // destination: an inline field that posts the corrected market to
   // `POST /api/report/{domain}/correct` and follows the rerun's stages.
@@ -292,6 +296,9 @@ export const REPORT_COPY = Object.freeze({
   // Issue 1068: the card's heading states its finding in one sentence —
   // where AI answers appear, and how often they name the customer.
   "ai-answers.finding": ["AI answers appear on {answered} of your {measured} biggest searches — and name you on {named}.", { slots: { answered: "text", measured: "text", named: "text" }, fixedBy: "issue 1068" }],
+  // Issue 1439: AI answered none of the searches read, so AI presence is not
+  // judged and the score counts search alone. Drafted.
+  "ai-answers.finding.unanswered": ["AI answers appear on none of your {measured} biggest searches yet, so your score counts Google search alone.", { slots: { measured: "text" }, fixedBy: "issue 1439" }],
   "ai-answers.finding.none": ["AI answers appear on {answered} of your {measured} biggest searches — and name you on none.", { slots: { answered: "text", measured: "text" }, fixedBy: "issue 1068" }],
   "ai-answers.customer-citations": ["You’re named in {cited} of the {answered} AI answers that appeared.", { slots: { cited: "text", answered: "text" }, fixedBy: "REQ-006 c1" }],
   "ai-answers.legend": ["Filled: named in that answer · Empty: not named · Muted: no AI answer appeared", { slots: {}, fixedBy: "REQ-006 c1" }],
