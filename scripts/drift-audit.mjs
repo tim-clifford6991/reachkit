@@ -117,7 +117,9 @@ add("rulings", "OK", "docs/SPEC.md", `${markers.length} dated ruling marker(s), 
 // Owner 2026-10-15, #1463. The registry lives in docs/PROCESS.md Coherence.
 // A named check file must exist. `pending` is allowed only on the three
 // parents whose check is not written yet. A pull request body is read only
-// when --require-pr-body is set, from the PR_BODY environment variable.
+// when --require-pr-body is set, from the PR_BODY environment variable. A
+// heading is followed by a blank line in a real body, so a section runs
+// until the next heading or the end of the whole body.
 const PENDING_OK = new Set(["1454", "1127", "1457"]);
 const REQUIRED_PARENTS = ["1454", "1127", "1457", "1458"];
 
@@ -131,7 +133,7 @@ function coherenceSection(doc) {
 
 function sectionBody(text, heading) {
   const normalised = text.replace(/\r\n/g, "\n");
-  const re = new RegExp(`^## ${heading}\\n([\\s\\S]*?)(?=^## |$)`, "m");
+  const re = new RegExp(`(?:^|\\n)## ${heading}\\n([\\s\\S]*?)(?=\\n## |$)`);
   const found = normalised.match(re);
   if (!found) return null;
   return found[1].replace(/<!--[\s\S]*?-->/g, "").trim();
@@ -203,8 +205,8 @@ if (process.argv.includes("--require-pr-body")) {
   } else {
     for (const heading of ["Conditions", "Overlaps", "Surfaces"]) {
       const filled = sectionBody(body, heading);
-      if (filled == null) add("coherence", "MISSING", `## ${heading}`, "the pull request body has no such section", true);
-      else if (!filled) add("coherence", "MISSING", `## ${heading}`, "the section is empty or still only the template note", true);
+      if (filled == null) add("coherence", "MISSING", `## ${heading}`, `no such section in a body of ${body.length} characters`, true);
+      else if (!filled) add("coherence", "MISSING", `## ${heading}`, `empty, or still only the template note, in a body of ${body.length} characters`, true);
       else add("coherence", "OK", `## ${heading}`, "filled");
     }
   }
