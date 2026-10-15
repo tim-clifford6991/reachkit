@@ -23,6 +23,7 @@
     "page": "node scripts/page.mjs",
     "pass": "node scripts/pass.mjs",
     "panel": "node scripts/panel.mjs",
+    "free-scan": "node scripts/free-scan.mjs",
     "costs": "node scripts/costs.mjs",
     "retarget": "node scripts/retarget.mjs",
     "eval:content": "node scripts/eval-content.mjs"

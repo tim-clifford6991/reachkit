@@ -666,6 +666,27 @@ site's prompts name its place.
 United States. A pass reads it once for a site that serves one place and keeps the city's name on
 `sites.market.area`; clear `located` there to have the next pass read it again.
 
+### Free scans off production
+
+`npm run free-scan -- --env-file ../../reachkitv3/.env.local --sites a.com,b.com` runs the free
+scan a stranger starts from the landing page on the named sites (#1438), on the same local database
+and with the same two keys as the panel (`scripts/local-run.mjs`): the slot is claimed as
+`POST /api/scan` claims it, one network per site, and the product's own
+`runScan({ domain, tier: "free" })` runs under its 50 s ceiling and 12¢ cap, raced against the
+route's request budget. Nothing is written to production.
+
+Per site it writes the score, the four drivers or why each is unmeasured, the locale and stated
+place, each question (its search, whether the results were read, where the site ranks, the AI
+Overview and whether it names or cites the site, the local pack), the rivals, the cost and the time
+to `docs/walk/free/<date>.json` and `<date>.md`. A second run on a date adds to that date's files.
+
+| Flag | Does |
+|---|---|
+| `--cap-cents <n>` | The whole run's ceiling. Default 100. A site is started only while 12¢ is left; past the cap every paid request is refused. |
+| `--recheck` | Buys nothing and starts no database: scores that date's stored scans again with the current code through the production re-score's path (`rescoreRow`), and writes `<date>.recheck.md`, the before and after. |
+| `--date YYYY-MM-DD` | The run's result files. Default today. |
+| `--keep` | Leaves the local database up. |
+
 ## 5. The kill switch
 
 `KILL_SWITCH=true` stops the paid work. The scope is closed and named:
@@ -922,7 +943,7 @@ appends a line to **`/root/ops/reachkit/spend.jsonl`** instead (SPEC §6, D57, #
 `issue` is the number of an `issue-<N>` branch, else the branch's name. `cents` is the price
 book's figure. `billed` is the vendor's own charge for that call (#1408), and is absent where the
 response carried none, which is every model call. A call that settled at nothing and was billed
-nothing writes no line. The scripts that write it are `npm run page`, `npm run pass -- --live`, `npm run panel`, `scripts/market-inference.mjs`,
+nothing writes no line. The scripts that write it are `npm run page`, `npm run pass -- --live`, `npm run panel`, `npm run free-scan`, `scripts/market-inference.mjs`,
 `npm run eval:content`, `scripts/d19-cost.mjs` and `scripts/llm-mentions-pilot.mjs`; they all go
 through `appendSpend()` in `scripts/spend-log.mjs`, and **a new script that calls a vendor or a
 model calls it too**. `RK_SPEND_LOG=<file>` writes to another file. The file is not in the
