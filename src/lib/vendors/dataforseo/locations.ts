@@ -104,17 +104,28 @@ export function matchLocation(list: readonly ListedLocation[], place: Place): st
   return null;
 }
 
+/** Answers already read, by country and place: the list does not change
+ *  between two scans an instance serves, and the free pass asks it while a
+ *  person waits (issue 1441). */
+const ANSWERED = new Map<string, { location: string | null }>();
+
 /**
  * The vendor's name for `place` in `country`: `{ location }` where its
  * list holds the place, `{ location: null }` where the list was read and
  * does not, and `null` where the list could not be read — the caller then
- * asks again on a later pass.
+ * asks again on a later pass. `timeoutMs` is shorter for a pass a person is
+ * waiting on.
  */
-export async function placeLocation(a: { place: Place; country: Country }): Promise<{ location: string | null } | null> {
+export async function placeLocation(a: { place: Place; country: Country; timeoutMs?: number }): Promise<{ location: string | null } | null> {
   if (!Object.prototype.hasOwnProperty.call(COUNTRIES, a.country)) return null;
-  const got = await sendGet<unknown>(`/v3/serp/google/locations/${a.country.toLowerCase()}`, LIST_TIMEOUT_MS);
+  const key = `${a.country}|${folded(a.place.name)}|${folded(a.place.region ?? "")}`;
+  const held = ANSWERED.get(key);
+  if (held !== undefined) return held;
+  const got = await sendGet<unknown>(`/v3/serp/google/locations/${a.country.toLowerCase()}`, a.timeoutMs ?? LIST_TIMEOUT_MS);
   if (!got.ok) return null;
   const list = listed(got.payload);
   if (list.length === 0) return null;
-  return { location: matchLocation(list, a.place) };
+  const answer = { location: matchLocation(list, a.place) };
+  ANSWERED.set(key, answer);
+  return answer;
 }

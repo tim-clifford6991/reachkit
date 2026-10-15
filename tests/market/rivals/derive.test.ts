@@ -281,3 +281,13 @@ describe("issue 1357 — an AI Overview whose sources were not loaded", () => {
     expect(unread).toEqual(none);
   });
 });
+
+describe("D67, owner ruling 2026-10-15 (issue 1441) — the local pack counts as the top ten", () => {
+  it("a business in a search's local pack is a rival found on that search, once however it also ranks", () => {
+    const local: MarketSerp = { ...serp({ organic: ["directory-rival.com", "pack-and-organic.com"] }), localPack: [{ domain: "pack-only.co.uk" }, { domain: "pack-and-organic.com" }, { domain: "customer.com" }] };
+    const { rivals } = deriveRivals({ serps: [local, serp({ organic: ["pack-only.co.uk"] })], ownDomain: "customer.com" });
+    expect(rivals.find((r) => r.domain === "pack-only.co.uk")?.top10Appearances).toBe(2);
+    expect(rivals.find((r) => r.domain === "pack-and-organic.com")?.top10Appearances).toBe(1);
+    expect(rivals.some((r) => r.domain === "customer.com")).toBe(false);
+  });
+});

@@ -1,8 +1,8 @@
 {
  "date": "2026-10-15",
- "commit": "877872c0",
- "capCents": 100,
- "spentCents": 44.6729,
+ "commit": "4cc4624a",
+ "capCents": 130,
+ "spentCents": 58.8995,
  "notRun": [],
  "sites": [
   {
@@ -24073,6 +24073,4576 @@
      }
     ],
     "siteName": "Austin Plumbery",
+    "answers": []
+   }
+  },
+  {
+   "domain": "alexander.co.uk",
+   "status": "done",
+   "stoppedReason": "complete",
+   "score": 56,
+   "band": "findable",
+   "limiting": "{\"kind\":\"factor\",\"factor\":\"answerability\"}",
+   "drivers": {
+    "foundations": "100",
+    "answerability": "31.2",
+    "searchPresence": "78.2",
+    "aiPresence": "40"
+   },
+   "missing": [],
+   "locale": "GB / en",
+   "statedPlace": "Manchester, Greater Manchester",
+   "category": "accountants and tax advisors",
+   "marketFrom": null,
+   "questionsBecause": null,
+   "questions": [
+    {
+     "n": 1,
+     "text": "What should I do if I've made errors on my HMRC returns?",
+     "search": "hmrc errors",
+     "volume": 480,
+     "read": "read",
+     "ownPosition": 4,
+     "aiAnswer": "AI Overview present, neither names nor cites it",
+     "localPack": 0
+    },
+    {
+     "n": 2,
+     "text": "How do I access my HMRC online accounts?",
+     "search": "hmrc online accounts",
+     "volume": 6600,
+     "read": "read",
+     "ownPosition": null,
+     "aiAnswer": "AI Overview present, neither names nor cites it",
+     "localPack": 0
+    },
+    {
+     "n": 3,
+     "text": "What taxes do I need to pay as an entrepreneur?",
+     "search": "entrepreneur tax",
+     "volume": 260,
+     "read": "read",
+     "ownPosition": null,
+     "aiAnswer": "AI Overview present, cites the site, names the site",
+     "localPack": 0
+    },
+    {
+     "n": 4,
+     "text": "Where can I find a property tax advisor near me in Manchester?",
+     "search": "property tax advisor near me",
+     "volume": 110,
+     "read": "read",
+     "ownPosition": 1,
+     "aiAnswer": "no AI Overview",
+     "localPack": 4
+    },
+    {
+     "n": 5,
+     "text": "Which accountants in Manchester specialise in inheritance tax?",
+     "search": "inheritance tax accountants",
+     "volume": 90,
+     "read": "read",
+     "ownPosition": 1,
+     "aiAnswer": "AI Overview present, cites the site, names the site",
+     "localPack": 3
+    }
+   ],
+   "rivals": [
+    "chadwickandco.co.uk (2 top-ten, 1 AI)",
+    "geraldedelman.com (1 top-ten, 1 AI)",
+    "keoghssolicitors.co.uk (1 top-ten, 1 AI)",
+    "pkf-francisclark.co.uk (1 top-ten, 1 AI)",
+    "humboldtfinancial.co.uk (0 top-ten, 1 AI)"
+   ],
+   "rivalsBecause": null,
+   "localPack": true,
+   "cents": 5.3724,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 1.8,
+    "profile": 0.4032,
+    "dataforseo_labs/google/keyword_suggestions": 1.8,
+    "question-phrasing": 0.1692,
+    "serp/google/organic": 1.2
+   },
+   "seconds": 28,
+   "budgetEnded": false,
+   "refused": [],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "alexander.co.uk",
+     "foundations": "measured",
+     "answerability": "measured",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    }
+   ],
+   "stored": {
+    "scan": {
+     "id": "c9d00dd3-18ca-4bb2-bc8c-42e292fd5609",
+     "domain": "alexander.co.uk",
+     "createdAt": "2026-10-15T12:46:38.204861+00:00",
+     "status": "done",
+     "score": 56,
+     "drivers": {
+      "aiPresence": {
+       "at": "2026-10-15T12:46:38.947Z",
+       "kind": "measured",
+       "value": 40
+      },
+      "foundations": {
+       "at": "2026-10-15T12:46:38.947Z",
+       "kind": "measured",
+       "value": 100
+      },
+      "answerability": {
+       "at": "2026-10-15T12:46:38.947Z",
+       "kind": "measured",
+       "value": 31.155446901432814
+      },
+      "searchPresence": {
+       "at": "2026-10-15T12:46:38.947Z",
+       "kind": "measured",
+       "value": 78.16140283579512
+      }
+     },
+     "md5": "de080bec15c8e7f8dcfe11cb03abaad4",
+     "report": {
+      "tier": "free",
+      "serps": [
+       {
+        "at": "2026-10-15T12:46:45.699Z",
+        "kind": "measured",
+        "value": {
+         "organic": [
+          {
+           "url": "https://www.gov.uk/tax-codes/how-to-update-your-tax-code",
+           "title": "If you think your tax code is wrong",
+           "domain": "www.gov.uk",
+           "position": 1
+          },
+          {
+           "url": "https://www.theaccountancy.co.uk/understanding-accountancy-terms-faqs/who-pays-the-bill-if-hmrc-make-a-mistake-105572.html",
+           "title": "Who Pays the Bill if HMRC Make a Mistake?",
+           "domain": "www.theaccountancy.co.uk",
+           "position": 2
+          },
+          {
+           "url": "https://www.litrg.org.uk/tax-nic/how-tax-collected/pay-you-earn-paye/paye-hmrc-errors",
+           "title": "PAYE: HMRC errors",
+           "domain": "www.litrg.org.uk",
+           "position": 3
+          },
+          {
+           "url": "https://alexander.co.uk/news/hmrc-errors/",
+           "title": "HMRC Errors and Tax Mistakes - Alexander & Co.",
+           "domain": "alexander.co.uk",
+           "position": 4
+          },
+          {
+           "url": "https://assets.publishing.service.gov.uk/media/5a7debd8e5274a2e87dae625/employer-errors-deduction-paye.pdf",
+           "title": "Employer errors in deduction of PAYE tax",
+           "domain": "assets.publishing.service.gov.uk",
+           "position": 5
+          },
+          {
+           "url": "https://www.icaew.com/technical/tax/working-in-tax/pcrt/2019/helpsheet-c-1-dealing-with-errors",
+           "title": "Helpsheet C 1: Dealing with errors",
+           "domain": "www.icaew.com",
+           "position": 6
+          },
+          {
+           "url": "https://www.gov.uk/government/publications/modernising-the-correction-of-errors",
+           "title": "Modernising the correction of errors",
+           "domain": "www.gov.uk",
+           "position": 7
+          },
+          {
+           "url": "https://www.taxassist.co.uk/resources/articles/what-are-the-penalties-for-tax-return-mistakes-and-errors",
+           "title": "What are the penalties for tax return mistakes and errors",
+           "domain": "www.taxassist.co.uk",
+           "position": 8
+          },
+          {
+           "url": "https://www.taxjournal.com/articles/the-new-duty-to-correct-tax-return-errors-",
+           "title": "The new duty to correct tax return errors",
+           "domain": "www.taxjournal.com",
+           "position": 9
+          }
+         ],
+         "aiOverview": {
+          "text": "You can check your eligibility and claim missing Home Responsibilities Protection (HRP) via the [Home Responsibilities Protection GOV.UK Page](https://www.gov.uk/government/publications/home-responsibilities-protection-correction-of-national-insurance-records-and-state-pension-entitlement) or review other disputed records through the [HMRC Did Not Act Guidance](https://www.gov.uk/hmrc-did-not-act).[[1]](https://www.gov.uk/hmrc-did-not-act)[[2]](https://www.gov.uk/government/publications/home-responsibilities-protection-and-state-pension-entitlement/home-responsibilities-protection-correction-of-national-insurance-records-and-state-pension-entitlement)\n\n### Major Recent HMRC Errors and Schemes\n\n- **Home Responsibilities Protection (HRP) & State Pension Error:** \n\t- **Who is affected:** Over 200,000 individuals (mostly women in their 60s and 70s) who claimed Child Benefit before May 2000 without providing a National Insurance number.\n\t- **What happened:** Missing HRP credits left gaps in National Insurance records between 1978 and 2010, resulting in underpaid State Pensions (averaging around £8,377 in back payments).\n\t- **What to do:** Check State Pension forecasts and National Insurance records on GOV.UK or apply using [Form CF411](https://www.gov.uk/government/publications/home-responsibilities-protection-communication-resources).[[1]](https://www.gov.uk/government/publications/home-responsibilities-protection-and-state-pension-entitlement/home-responsibilities-protection-correction-of-national-insurance-records-and-state-pension-entitlement)[[2]](https://www.facebook.com/bbcmorninglive/posts/-could-you-be-owed-extra-state-pensionfinance-expert-iona-bain-explains-why-some/1679733214163734/)[[3]](https://www.edp24.co.uk/news/national/uk-today/26407765.parents-urged-check-hmrc-8-377-state-pension-error/)[[4]](https://www.moneysavingexpert.com/pensions/home-responsibilities-protection/)[[5]](https://www.gov.uk/government/publications/home-responsibilities-protection-communication-resources/information-to-help-answer-common-questions)\n- **Child Benefit Fraud Crackdown Error:** \n\t- **Who is affected:** 17,048 parents wrongly targeted in an automated anti-fraud review that suspended child benefits.\n\t- **What happened:** HMRC relied on flawed Home Office travel data (misreading Dublin airport returns), admitting a 71% error rate.\n\t- **What to do:** HMRC has acknowledged the mistake, apologized, reinstated PAYE checks, and is actively reviewing or reversing impacted accounts.[[1]](https://www.bbc.co.uk/news/articles/cvg5nd4e20vo)[[2]](https://www.theguardian.com/society/2026/jan/13/hmrc-wrongly-targeted-child-benefit-crackdown)\n- **Low Earner Pension Tax Relief Top-Ups:** \n\t- **Who is affected:** Around 1 million low earners (roughly 75% women) earning near or below £12,570 under Net Pay Arrangement pension schemes.\n\t- **What happened:** A structural scheme discrepancy meant low earners missed out on proper tax relief.\n\t- **What to do:** HMRC is dispatching direct notification letters for automatic or claimable rebates (averaging around £70).[[1]](https://www.walesonline.co.uk/news/cost-of-living/hmrc-confirms-12570-error-september-34646677)\n\nAre you checking an **HRP/State Pension shortfall** , a **Child Benefit suspension** , or a **general tax code error** ? Let me know so I can give you the exact steps or contact numbers to resolve it.",
+          "present": true,
+          "referenceUrls": [
+           "https://www.gov.uk/hmrc-did-not-act",
+           "https://www.gov.uk/government/publications/home-responsibilities-protection-and-state-pension-entitlement/home-responsibilities-protection-correction-of-national-insurance-records-and-state-pension-entitlement",
+           "https://www.facebook.com/bbcmorninglive/posts/-could-you-be-owed-extra-state-pensionfinance-expert-iona-bain-explains-why-some/1679733214163734/",
+           "https://www.edp24.co.uk/news/national/uk-today/26407765.parents-urged-check-hmrc-8-377-state-pension-error/",
+           "https://www.moneysavingexpert.com/pensions/home-responsibilities-protection/",
+           "https://www.gov.uk/government/publications/home-responsibilities-protection-communication-resources/information-to-help-answer-common-questions",
+           "https://www.bbc.co.uk/news/articles/cvg5nd4e20vo",
+           "https://www.theguardian.com/society/2026/jan/13/hmrc-wrongly-targeted-child-benefit-crackdown",
+           "https://www.walesonline.co.uk/news/cost-of-living/hmrc-confirms-12570-error-september-34646677"
+          ],
+          "referenceDomains": [
+           "www.gov.uk",
+           "www.facebook.com",
+           "www.edp24.co.uk",
+           "www.moneysavingexpert.com",
+           "www.bbc.co.uk",
+           "www.theguardian.com",
+           "www.walesonline.co.uk"
+          ],
+          "asynchronousAiOverview": false
+         },
+         "peopleAlsoAsk": [
+          "Are HMRC having problems?",
+          "Why does HMRC make so many mistakes?",
+          "What are the current issues with HMRC's tax system?",
+          "What can I do if HMRC makes a mistake?"
+         ],
+         "relatedSearches": [
+          "HMRC errors and mistakes guidance",
+          "HMRC tax code contact number",
+          "How to change tax code online HMRC",
+          "HMRC update tax code",
+          "HMRC tax code wrong",
+          "Call HMRC to change tax code",
+          "How to change tax code on HMRC app",
+          "HMRC emergency tax refund"
+         ]
+        }
+       },
+       {
+        "at": "2026-10-15T12:46:45.699Z",
+        "kind": "measured",
+        "value": {
+         "organic": [
+          {
+           "url": "https://community.hmrc.gov.uk/customerforums/mtd/b2b2459d-0d99-ee11-a81c-6045bd0bdee0",
+           "title": "https://community.hmrc.gov.uk/customerforums/mtd/b...",
+           "domain": "community.hmrc.gov.uk",
+           "position": 1
+          },
+          {
+           "url": "https://www.orchardsaccountants.co.uk/news/hmrc-moves-to-gov-uk-one-login-for-new-users",
+           "title": "HMRC Moves to GOV.UK One Login for New Users",
+           "domain": "www.orchardsaccountants.co.uk",
+           "position": 2
+          },
+          {
+           "url": "https://account.gov.uk/?link=manage-account",
+           "title": "https://account.gov.uk/?link=manage-account",
+           "domain": "account.gov.uk",
+           "position": 3
+          },
+          {
+           "url": "https://www.youtube.com/watch?v=SzovuDshCzA",
+           "title": "How to Register with Government Gateway in the UK? (2018-19)",
+           "domain": "www.youtube.com",
+           "position": 4
+          },
+          {
+           "url": "https://www.gov.uk/search?q=consumer+account",
+           "title": "https://www.gov.uk/search?q=consumer+account",
+           "domain": "www.gov.uk",
+           "position": 5
+          },
+          {
+           "url": "https://www.maskay.com/en/united-kingdom/instituciones-publicas_hmrc-online-services",
+           "title": "HMRC online services: Sign in to HMRC - Maskay",
+           "domain": "www.maskay.com",
+           "position": 6
+          },
+          {
+           "url": "https://taxzap.com/uk/gov.uk/log-in-register-hmrc-online-services",
+           "title": "TaxZap",
+           "domain": "taxzap.com",
+           "position": 7
+          },
+          {
+           "url": "https://osucnshtamng.online/tjupnrpxxaivomsbdaxpvhvgswga",
+           "title": "Sign in hm revenue tax account online",
+           "domain": "osucnshtamng.online",
+           "position": 8
+          }
+         ],
+         "aiOverview": {
+          "text": "You can sign in to or set up your HM Revenue and Customs (HMRC) account via the [HMRC Online Services Portal](https://www.gov.uk/log-in-register-hmrc-online-services).[[1]](https://www.gov.uk/log-in-register-hmrc-online-services)\n\n### Sign-In Methods\n\n- **Government Gateway:** Uses a 12-character user ID and password.[[1]](https://www.gov.uk/log-in-register-hmrc-online-services)\n- **GOV.UK One Login:** Uses an email address and password (gradually rolling out to replace Government Gateway for some services).[[1]](https://www.gov.uk/using-your-gov-uk-one-login)[[2]](https://acemoneytransfer.com/blog/hmrc-online-services-login)\n- **New Users:** Select \"Create new sign in details\" on the login page.[[1]](https://www.gov.uk/log-in-register-hmrc-online-services)\n\n\n\n---\n\n### Types of HMRC Accounts\n\n- **Personal Tax Account:** Use the [Personal Tax Account Service](https://www.gov.uk/personal-tax-account) to check your Income Tax code, view Self Assessment, check State Pension forecasts, find your National Insurance or UTR number, and track forms.[[1]](https://www.gov.uk/personal-tax-account)\n- **Business Tax Account:** Use the [Business Tax Account Guidance](https://www.gov.uk/government/publications/use-hmrcs-business-tax-account/use-hmrcs-business-tax-account) to manage Corporation Tax, PAYE for employers, VAT, and other business taxes in one place.[[1]](https://www.gov.uk/government/publications/use-hmrcs-business-tax-account/use-hmrcs-business-tax-account)\n- **Self Assessment:** File or manage returns through the [Self Assessment Online Service](https://www.gov.uk/log-in-file-self-assessment-tax-return).[[1]](https://www.gov.uk/log-in-file-self-assessment-tax-return)\n\n\n\n---\n\n### Common Issues and Help\n\n- **Locked Out:** If you enter the wrong details too many times, your account locks for 2 hours automatically (helpdesk advisors cannot unlock it manually).[[1]](https://www.gov.uk/log-in-register-hmrc-online-services/problems-signing-in)\n- **Forgotten Details:** You can recover a lost user ID or reset your password directly on the sign-in screen.[[1]](https://www.gov.uk/log-in-register-hmrc-online-services/problems-signing-in)\n- **Separate Logins Needed:** Excise, import/export services, childcare accounts, and Capital Gains Tax on UK property require separate sign-in credentials.[[1]](https://www.gov.uk/log-in-register-hmrc-online-services)\n\nAre you trying to access a **personal tax account**, **Self Assessment** , or a **business tax account** ? Let me know so I can guide you through the right steps.",
+          "present": true,
+          "referenceUrls": [
+           "https://www.gov.uk/log-in-register-hmrc-online-services",
+           "https://www.gov.uk/using-your-gov-uk-one-login",
+           "https://acemoneytransfer.com/blog/hmrc-online-services-login",
+           "https://www.gov.uk/personal-tax-account",
+           "https://www.gov.uk/government/publications/use-hmrcs-business-tax-account/use-hmrcs-business-tax-account",
+           "https://www.gov.uk/log-in-file-self-assessment-tax-return",
+           "https://www.gov.uk/log-in-register-hmrc-online-services/problems-signing-in"
+          ],
+          "referenceDomains": [
+           "www.gov.uk",
+           "acemoneytransfer.com"
+          ],
+          "asynchronousAiOverview": false
+         },
+         "peopleAlsoAsk": [
+          "How to create a new HMRC account?",
+          "Does HMRC automatically refund overpaid tax?",
+          "What is the HMRC warning for anyone with over 3500 savings in their bank account?",
+          "Can HMRC access my bank accounts?"
+         ],
+         "relatedSearches": [
+          "Hmrc online accounts tax return",
+          "Hmrc online accounts login",
+          "HMRC Gateway login",
+          "Personal tax Account login",
+          "HMRC personal tax account",
+          "HMRC contact number",
+          "You cannot access your personal tax account with this Government Gateway user ID",
+          "Gov UK One Login"
+         ]
+        }
+       },
+       {
+        "at": "2026-10-15T12:46:45.699Z",
+        "kind": "measured",
+        "value": {
+         "organic": [
+          {
+           "url": "https://www.gov.uk/government/publications/entrepreneurs-relief-hs275-self-assessment-helpsheet/hs275-business-asset-disposal-relief-2024",
+           "title": "HS275 Business Asset Disposal Relief (2024)",
+           "domain": "www.gov.uk",
+           "position": 1
+          },
+          {
+           "url": "https://www.gov.uk/government/publications/entrepreneurs-relief-hs275-self-assessment-helpsheet/hs275-business-asset-disposal-relief-2023",
+           "title": "HS275 Business Asset Disposal Relief (2023)",
+           "domain": "www.gov.uk",
+           "position": 2
+          },
+          {
+           "url": "https://www.crunch.co.uk/knowledge/article/what-is-entrepreneurs-relief",
+           "title": "What is Business Asset Disposal Relief? Selling ...",
+           "domain": "www.crunch.co.uk",
+           "position": 3
+          },
+          {
+           "url": "https://www.forthcapital.com/articles/if-entrepreneurs-relief-is-scrapped-in-next-weeks-budget-what-will-this-mean-for-uk-business-owners",
+           "title": "Scrapping Entrepreneurs' Relief: Key Impact on UK ...",
+           "domain": "www.forthcapital.com",
+           "position": 4
+          },
+          {
+           "url": "https://www.gov.uk/capital-gains-tax-businesses",
+           "title": "Capital Gains Tax for business: What you pay it on",
+           "domain": "www.gov.uk",
+           "position": 5
+          },
+          {
+           "url": "https://www.icaew.com/technical/tax/business-tax/business-asset-disposal-relief",
+           "title": "Business Asset Disposal Relief (Entrepreneurs' Relief) | Tax",
+           "domain": "www.icaew.com",
+           "position": 6
+          },
+          {
+           "url": "https://uk.practicallaw.thomsonreuters.com/1-561-9227?transitionType=Default&contextData=(sc.Default)",
+           "title": "Capital Gains Tax: Entrepreneurs' relief: cessation of business",
+           "domain": "uk.practicallaw.thomsonreuters.com",
+           "position": 7
+          },
+          {
+           "url": "https://www.everfairtax.co.uk/expertise-entrepreneurs/",
+           "title": "Tax Guide for Entrepreneurs | UK & US Tax",
+           "domain": "www.everfairtax.co.uk",
+           "position": 8
+          },
+          {
+           "url": "https://www.frostgroup.co.uk/members-voluntary-liquidation/mvl-entrepreneurs-relief",
+           "title": "MVL - Business Asset Disposal Relief (formerly Entrepreneurs ...",
+           "domain": "www.frostgroup.co.uk",
+           "position": 9
+          }
+         ],
+         "aiOverview": {
+          "text": "Entrepreneurs' tax in the UK now officially refers to **Business Asset Disposal Relief (BADR)** . This scheme lowers the **Capital Gains Tax (CGT)** rate when you sell, close, or dispose of all or part of your business.[[1]](https://alexander.co.uk/tax/entrepreneurs-tax/)[[2]](https://www.lexisnexis.com/en-gb/legal/glossary/entrepreneurs-relief-)[[3]](https://sleek.com/uk/resources/entrepreneurs-tax-relief-uk/)\n\n### Key Tax Rates (BADR)\n\n- **On or before 5 April 2025:** 10%[[1]](https://www.gov.uk/business-asset-disposal-relief)\n- **6 April 2025 to 5 April 2026:** 14%[[1]](https://www.gov.uk/business-asset-disposal-relief)\n- **From 6 April 2026 onward:** 18% (compared to the standard higher CGT rate of 24%)[[1]](https://www.gov.uk/business-asset-disposal-relief)[[2]](https://sleek.com/uk/resources/entrepreneurs-tax-relief-uk/)\n\n### Core Rules and Limits\n\n- **Lifetime Limit:** You can claim the reduced rate on up to a **£1 million lifetime limit** of qualifying gains. Any gains above this threshold face standard CGT rates.[[1]](https://sleek.com/uk/resources/entrepreneurs-tax-relief-uk/)[[2]](https://alexander.co.uk/tax/entrepreneurs-tax/)\n- **Qualifying Period:** You generally must meet all eligibility conditions for at least **2 years** leading up to the sale or the date the business stops trading.[[1]](https://www.gov.uk/business-asset-disposal-relief)[[2]](https://www.paystream.co.uk/helphub/limited-company/business-administration/what-is-business-asset-disposal-relief/)\n- **Who Can Claim:** \n\t- Sole traders or business partners selling all or part of a business.\n\t- Employees or office holders selling shares in a \"personal company\" where you own at least 5% of shares, voting rights, and profit/asset entitlements.\n\t- The relief is personal to individuals and trustees; limited companies cannot claim it on their own asset sales.[[1]](https://www.ipse.co.uk/advice/what-is-entrepreneurs-relief-and-when-you-should-claim-it)[[2]](https://www.warekay.co.uk/news/financial-advice/the-tax-you-pay-when-you-sell-a-business-entrepreneur-relief-tax/)[[3]](https://www.gov.uk/business-asset-disposal-relief)[[4]](https://sleek.com/uk/resources/entrepreneurs-tax-relief-uk/)\n\nYou can review the full legal guidelines and check eligibility via the [GOV.UK Business Asset Disposal Relief Guide](https://www.gov.uk/business-asset-disposal-relief).[[1]](https://www.gov.uk/business-asset-disposal-relief)If you'd like, share:\n\n- **What type of business you run** (sole trader, partnership, or limited company)\n- **Whether you are planning to sell or close down** \n\nI can help outline the specific 2-year rules and deadlines that apply to your situation.",
+          "present": true,
+          "referenceUrls": [
+           "https://alexander.co.uk/tax/entrepreneurs-tax/",
+           "https://www.lexisnexis.com/en-gb/legal/glossary/entrepreneurs-relief-",
+           "https://sleek.com/uk/resources/entrepreneurs-tax-relief-uk/",
+           "https://www.gov.uk/business-asset-disposal-relief",
+           "https://www.paystream.co.uk/helphub/limited-company/business-administration/what-is-business-asset-disposal-relief/",
+           "https://www.ipse.co.uk/advice/what-is-entrepreneurs-relief-and-when-you-should-claim-it",
+           "https://www.warekay.co.uk/news/financial-advice/the-tax-you-pay-when-you-sell-a-business-entrepreneur-relief-tax/"
+          ],
+          "referenceDomains": [
+           "alexander.co.uk",
+           "www.lexisnexis.com",
+           "sleek.com",
+           "www.gov.uk",
+           "www.paystream.co.uk",
+           "www.ipse.co.uk",
+           "www.warekay.co.uk"
+          ],
+          "asynchronousAiOverview": false
+         },
+         "peopleAlsoAsk": [
+          "What is entrepreneur relief?",
+          "What is a simple trick for avoiding capital gains tax?",
+          "What is the 3 year rule for capital gains tax?",
+          "Who pays 25% Corporation Tax?"
+         ],
+         "relatedSearches": [
+          "Entrepreneur tax calculator",
+          "Entrepreneur tax on property",
+          "Entrepreneur tax 2022",
+          "Entrepreneur tax relief limit",
+          "Business Asset disposal Relief",
+          "Entrepreneurs' Relief",
+          "Will business Asset Disposal Relief be scrapped",
+          "Business Asset Disposal Relief rates"
+         ]
+        }
+       },
+       {
+        "at": "2026-10-15T12:46:45.699Z",
+        "kind": "measured",
+        "value": {
+         "organic": [
+          {
+           "url": "https://alexander.co.uk/tax/property-tax/",
+           "title": "Property Tax Advice & Accountancy | Alexander & Co",
+           "domain": "alexander.co.uk",
+           "position": 1
+          },
+          {
+           "url": "https://www.dnsassociates.co.uk/property-tax-accountants-in-manchester",
+           "title": "Property tax accountants advisor in manchester",
+           "domain": "www.dnsassociates.co.uk",
+           "position": 2
+          },
+          {
+           "url": "https://www.jackross.com/benefits-of-seeking-tax-advice-and-accountant-in-manchester/",
+           "title": "Tax Advisor & Accountant in Manchester",
+           "domain": "www.jackross.com",
+           "position": 3
+          },
+          {
+           "url": "https://www.mccaccountants.co.uk/property-accountants/",
+           "title": "Property Accountants Manchester, Salford",
+           "domain": "www.mccaccountants.co.uk",
+           "position": 4
+          },
+          {
+           "url": "https://www.williamsoncroft.co.uk/tax-services/",
+           "title": "Tax Accountants | Manchester & Liverpool Tax Advisors",
+           "domain": "www.williamsoncroft.co.uk",
+           "position": 5
+          },
+          {
+           "url": "https://www.johnkerraccountants.co.uk/services/tax-solutions/partnership-tax",
+           "title": "Property Tax - Liverpool",
+           "domain": "www.johnkerraccountants.co.uk",
+           "position": 6
+          },
+          {
+           "url": "https://www.dnstax.co.uk/tax-advisors-in-manchester",
+           "title": "Award-winning tax advisors in Manchester",
+           "domain": "www.dnstax.co.uk",
+           "position": 7
+          },
+          {
+           "url": "https://www.chadwickandco.co.uk/accounting-services/personal-accounting-services/tax-planning/",
+           "title": "Tax Planning Specialists | Expert Tax Advice",
+           "domain": "www.chadwickandco.co.uk",
+           "position": 8
+          },
+          {
+           "url": "https://leonandcompany.co.uk/property-tax-accountant/",
+           "title": "Property Tax Accountant Leeds & UK | Landlord Tax Advice",
+           "domain": "leonandcompany.co.uk",
+           "position": 9
+          }
+         ],
+         "localPack": [
+          {
+           "title": "Alexander & Co",
+           "domain": "alexander.co.uk"
+          },
+          {
+           "title": "Legend Financial and Tax Advisers",
+           "domain": "www.legendfinancial.co.uk"
+          },
+          {
+           "title": "Accounts and Legal",
+           "domain": "www.accountsandlegal.co.uk"
+          },
+          {
+           "title": "Irwin Mitchell Solicitors        My Ad Centre",
+           "domain": "google.com"
+          }
+         ],
+         "aiOverview": {
+          "present": false,
+          "referenceDomains": [],
+          "asynchronousAiOverview": false
+         },
+         "peopleAlsoAsk": [
+          "How much does a tax advisor charge?",
+          "What does a property tax advisor do?",
+          "What is the difference between a tax advisor and a tax consultant?",
+          "How to get tax advice for free?"
+         ],
+         "relatedSearches": [
+          "property tax advisor near stockport",
+          "Property tax advisor near me free consultation",
+          "Free property tax advisor near me",
+          "Private property tax advisor near me",
+          "Best property tax advisor near me",
+          "Tax advisor Manchester",
+          "Personal tax advisors near me",
+          "Tax advisor manchester jobs"
+         ]
+        }
+       },
+       {
+        "at": "2026-10-15T12:46:45.700Z",
+        "kind": "measured",
+        "value": {
+         "organic": [
+          {
+           "url": "https://alexander.co.uk/tax/inheritance-tax/",
+           "title": "Inheritance Tax Advice & Planning - Alexander & Co.",
+           "domain": "alexander.co.uk",
+           "position": 1
+          },
+          {
+           "url": "https://www.chadwickandco.co.uk/accounting-services/personal-accounting-services/estate-planning/",
+           "title": "Estate planning - Inheritance Tax Experts",
+           "domain": "www.chadwickandco.co.uk",
+           "position": 2
+          },
+          {
+           "url": "https://keoghssolicitors.co.uk/services/inheritance-tax/",
+           "title": "Altrincham & Stockport Inheritance Tax Services",
+           "domain": "keoghssolicitors.co.uk",
+           "position": 3
+          },
+          {
+           "url": "https://www.ross-brooke.co.uk/what-we-do/iht-inheritance-tax-specialist-accountants/",
+           "title": "Inheritance Tax Specialists at UHY ...",
+           "domain": "www.ross-brooke.co.uk",
+           "position": 4
+          },
+          {
+           "url": "https://www.geraldedelman.com/services/inheritance-tax/",
+           "title": "Inheritance Tax Advisers | Specialist IHT Planning & Advice",
+           "domain": "www.geraldedelman.com",
+           "position": 5
+          },
+          {
+           "url": "https://amberriver.com/inheritance-tax-planning/whos-the-best-person-to-advise-on-inheritance-tax/",
+           "title": "Who's the best person to advise on Inheritance Tax?",
+           "domain": "amberriver.com",
+           "position": 6
+          },
+          {
+           "url": "https://pkf-francisclark.co.uk/services/tax-advice/inheritance-tax/",
+           "title": "Inheritance tax advisers | IHT specialists",
+           "domain": "pkf-francisclark.co.uk",
+           "position": 7
+          },
+          {
+           "url": "https://bkl.co.uk/services/tax/estate-inheritance-tax-planning/",
+           "title": "Estate & Inheritance Tax Planning & Advice",
+           "domain": "bkl.co.uk",
+           "position": 8
+          },
+          {
+           "url": "https://www.hazlewoods.co.uk/expertise/business-accountants/tax/inheritance-tax-trusts-and-estate-planning/",
+           "title": "Inheritance tax, trusts and estate planning",
+           "domain": "www.hazlewoods.co.uk",
+           "position": 9
+          }
+         ],
+         "localPack": [
+          {
+           "title": "Alexander & Co",
+           "domain": "alexander.co.uk"
+          },
+          {
+           "title": "Accounts and Legal",
+           "domain": "www.accountsandlegal.co.uk"
+          },
+          {
+           "title": "A&C Chartered Accountants",
+           "domain": "www.ac-accounts.co.uk"
+          }
+         ],
+         "aiOverview": {
+          "text": "[Alexander & Co](https://alexander.co.uk/tax/inheritance-tax/) provides specialist inheritance tax (IHT) and estate planning services in Manchester.[[1]](https://alexander.co.uk/tax/inheritance-tax/)\n\n### Key Inheritance Tax Rules & Thresholds\n\n- **Standard Rate:** 40% charged on the net value of an estate above the available allowances.[[1]](https://keoghssolicitors.co.uk/services/inheritance-tax/)[[2]](https://alexander.co.uk/tax/inheritance-tax/)\n- **Nil-Rate Band:** £325,000 per individual (frozen since 2009).[[1]](https://pkf-francisclark.co.uk/services/tax-advice/inheritance-tax/)\n- **Residence Nil-Rate Band:** Up to £193,000 extra when passing a main home to direct descendants (tapered for estates worth over £2 million).[[1]](https://pkf-francisclark.co.uk/services/tax-advice/inheritance-tax/)[[2]](https://keoghssolicitors.co.uk/services/inheritance-tax/)\n- **Spouse/Civil Partner Exemption:** Assets passed between spouses or civil partners are generally tax-free, and unused nil-rate bands can be transferred (raising the combined threshold up to £1,000,000).[[1]](https://keoghssolicitors.co.uk/services/inheritance-tax/)\n- **Property Reliefs:** Business Property Relief (BPR) and Agricultural Property Relief (APR) offer 100% relief on the first £2.5 million of combined qualifying assets, dropping to 50% thereafter.[[1]](https://alexander.co.uk/tax/inheritance-tax/)\n- **Seven-Year Rule:** Lifetime gifts (Potentially Exempt Transfers) become completely exempt from IHT if you live for seven years after making them, with taper relief applying between years three and seven.[[1]](https://www.geraldedelman.com/services/inheritance-tax/)[[2]](https://pkf-francisclark.co.uk/services/tax-advice/inheritance-tax/)\n\n\n\n---\n\n### Manchester Inheritance Tax Accountants & Advisers\n\n- **Alexander & Co** \n\t- **Services:** Partner-led tax planning, BPR/APR advice, trust management, Family Investment Companies (FICs), and IHT compliance.\n\t- **Location:** Manchester and London.\n\t- **Website:** Alexander & Co[[1]](https://alexander.co.uk/tax/inheritance-tax/)\n- **Chadwick & Co** \n\t- **Services:** Estate planning, personal tax planning, trusts, and executorships with over 35 years of experience in liability mitigation and wealth protection.\n\t- **Phone:** 0161 370 9600\n\t- **Website:** [Chadwick & Co](https://www.chadwickandco.co.uk/accounting-services/personal-accounting-services/estate-planning/) [[1]](https://www.chadwickandco.co.uk/accounting-services/personal-accounting-services/estate-planning/)\n- **Humboldt Financial** \n\t- **Services:** Independent FCA-regulated financial and estate legacy planning, lifetime gifting strategies, and trust advice tailored for Manchester families.\n\t- **Website:** [Humboldt Financial](https://humboldtfinancial.co.uk/inheritance-tax-advice-manchester/) [[1]](https://humboldtfinancial.co.uk/inheritance-tax-advice-manchester/)\n\n\n\n---\n\nIf you'd like to narrow this down, please let me know:\n\n- **The estimated value** of the estate or property involved\n- Whether you need help with **lifetime gifting**, **trusts** , or **executorship/probate compliance**",
+          "present": true,
+          "referenceUrls": [
+           "https://alexander.co.uk/tax/inheritance-tax/",
+           "https://keoghssolicitors.co.uk/services/inheritance-tax/",
+           "https://pkf-francisclark.co.uk/services/tax-advice/inheritance-tax/",
+           "https://www.geraldedelman.com/services/inheritance-tax/",
+           "https://www.chadwickandco.co.uk/accounting-services/personal-accounting-services/estate-planning/",
+           "https://humboldtfinancial.co.uk/inheritance-tax-advice-manchester/"
+          ],
+          "referenceDomains": [
+           "alexander.co.uk",
+           "keoghssolicitors.co.uk",
+           "pkf-francisclark.co.uk",
+           "www.geraldedelman.com",
+           "www.chadwickandco.co.uk",
+           "humboldtfinancial.co.uk"
+          ],
+          "asynchronousAiOverview": true
+         },
+         "peopleAlsoAsk": [
+          "Can an accountant help with inheritance tax?",
+          "How much does an inheritance tax advisor cost?",
+          "Who is the best person to advise on inheritance tax?",
+          "What does Martin Lewis say about inheritance tax?"
+         ],
+         "relatedSearches": [
+          "inheritance tax accountants near manchester",
+          "inheritance tax accountants near stockport",
+          "Inheritance tax accountants near me",
+          "Top inheritance tax accountants",
+          "Inheritance tax accountants london",
+          "Best inheritance tax accountants",
+          "Free Inheritance tax advice UK",
+          "Tax accountant franchise"
+         ]
+        }
+       }
+      ],
+      "domain": "alexander.co.uk",
+      "locale": {
+       "place": {
+        "name": "Manchester",
+        "region": "Greater Manchester",
+        "location": "Manchester,Manchester,England,United Kingdom"
+       },
+       "country": "GB",
+       "language": "en"
+      },
+      "market": {
+       "at": "2026-10-15T12:46:38.947Z",
+       "kind": "zero",
+       "value": {
+        "pool": [
+         {
+          "rival": null,
+          "volume": 1900,
+          "keyword": "alexander and co",
+          "difficulty": 7
+         },
+         {
+          "rival": null,
+          "volume": 880,
+          "keyword": "alexander & co",
+          "difficulty": 8
+         },
+         {
+          "rival": null,
+          "volume": 590,
+          "keyword": "what is a land tax",
+          "difficulty": 22
+         },
+         {
+          "rival": null,
+          "volume": 480,
+          "keyword": "what is land value tax",
+          "difficulty": 15
+         },
+         {
+          "rival": null,
+          "volume": 480,
+          "keyword": "what is the land value tax",
+          "difficulty": 15
+         },
+         {
+          "rival": null,
+          "volume": 5400,
+          "keyword": "when is the next budget",
+          "difficulty": 5
+         },
+         {
+          "rival": null,
+          "volume": 720,
+          "keyword": "land tax uk",
+          "difficulty": 20
+         },
+         {
+          "rival": null,
+          "volume": 320,
+          "keyword": "when is the autumn budget 2026",
+          "difficulty": 12
+         },
+         {
+          "rival": null,
+          "volume": 590,
+          "keyword": "land value tax uk",
+          "difficulty": 1
+         },
+         {
+          "rival": null,
+          "volume": 590,
+          "keyword": "when is the budget 2026 uk",
+          "difficulty": 1
+         },
+         {
+          "rival": null,
+          "volume": 3600,
+          "keyword": "when is next uk budget",
+          "difficulty": 21
+         },
+         {
+          "rival": null,
+          "volume": 40500,
+          "keyword": "accountants",
+          "difficulty": 48
+         },
+         {
+          "rival": null,
+          "volume": 5400,
+          "keyword": "when next budget",
+          "difficulty": 9
+         },
+         {
+          "rival": null,
+          "volume": 480,
+          "keyword": "what is a land value tax",
+          "difficulty": 15
+         },
+         {
+          "rival": null,
+          "volume": 3600,
+          "keyword": "land tax valuation",
+          "difficulty": 15
+         },
+         {
+          "rival": null,
+          "volume": 210,
+          "keyword": "how does land value tax work",
+          "difficulty": 15
+         },
+         {
+          "rival": null,
+          "volume": 210,
+          "keyword": "how would a land value tax work",
+          "difficulty": 6
+         },
+         {
+          "rival": null,
+          "volume": 390,
+          "keyword": "when is the next budget 2026",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 27100,
+          "keyword": "companies house id verification",
+          "difficulty": 16
+         },
+         {
+          "rival": null,
+          "volume": 27100,
+          "keyword": "companies house identification verification",
+          "difficulty": 18
+         },
+         {
+          "rival": null,
+          "volume": 27100,
+          "keyword": "companies house identity verification",
+          "difficulty": 26
+         },
+         {
+          "rival": null,
+          "volume": 3600,
+          "keyword": "when is the next uk budget",
+          "difficulty": 30
+         },
+         {
+          "rival": null,
+          "volume": 140,
+          "keyword": "alexander & co accountants manchester",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 140,
+          "keyword": "alexander & co manchester",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 140,
+          "keyword": "alexander and co accountants manchester",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 140,
+          "keyword": "alexander and co manchester",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 18100,
+          "keyword": "alexander hughes",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 18100,
+          "keyword": "companies house phone number",
+          "difficulty": 41
+         },
+         {
+          "rival": null,
+          "volume": 1900,
+          "keyword": "accountants manchester",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 6600,
+          "keyword": "hmrc online accounts",
+          "difficulty": 22
+         },
+         {
+          "rival": null,
+          "volume": 210,
+          "keyword": "alexander and company",
+          "difficulty": 9
+         },
+         {
+          "rival": null,
+          "volume": 110,
+          "keyword": "alexander company",
+          "difficulty": 24
+         },
+         {
+          "rival": null,
+          "volume": 110,
+          "keyword": "property tax advisor near me",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 3600,
+          "keyword": "when is next budget in uk",
+          "difficulty": 21
+         },
+         {
+          "rival": null,
+          "volume": 3600,
+          "keyword": "when is next budget uk",
+          "difficulty": 21
+         },
+         {
+          "rival": null,
+          "volume": 3600,
+          "keyword": "when is the next budget uk",
+          "difficulty": 18
+         },
+         {
+          "rival": null,
+          "volume": 480,
+          "keyword": "entrepreneur tax relief",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 480,
+          "keyword": "hmrc errors",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 170,
+          "keyword": "autumn budget 2026 date",
+          "difficulty": 8
+         },
+         {
+          "rival": null,
+          "volume": 90,
+          "keyword": "how would a land tax work",
+          "difficulty": 5
+         },
+         {
+          "rival": null,
+          "volume": 90,
+          "keyword": "inheritance tax accountants",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 12100,
+          "keyword": "capital gain tax allowance",
+          "difficulty": 12
+         },
+         {
+          "rival": null,
+          "volume": 12100,
+          "keyword": "tax year england",
+          "difficulty": 11
+         },
+         {
+          "rival": null,
+          "volume": 260,
+          "keyword": "entrepreneur tax",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 260,
+          "keyword": "entrepreneurs tax",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 1900,
+          "keyword": "accountants in manchester",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 70,
+          "keyword": "alexander & co accountants",
+          "difficulty": 2
+         },
+         {
+          "rival": null,
+          "volume": 70,
+          "keyword": "alexander accountants",
+          "difficulty": 8
+         },
+         {
+          "rival": null,
+          "volume": 70,
+          "keyword": "alexander and co accountants",
+          "difficulty": 2
+         },
+         {
+          "rival": null,
+          "volume": 3600,
+          "keyword": "tax consultants near me",
+          "difficulty": 5
+         }
+        ],
+        "profile": {
+         "job": "provide expert tax advice, accounting services, and strategic business support for business owners and individuals",
+         "category": "accountants and tax advisors",
+         "vocabulary": [
+          "chartered accountant",
+          "tax advisor",
+          "tax planning",
+          "business accounting",
+          "self-assessment tax return",
+          "corporation tax",
+          "VAT advice",
+          "audit services",
+          "inheritance tax",
+          "capital gains tax",
+          "HMRC investigations",
+          "year-end accounts"
+         ],
+         "brandTokens": [
+          "Alexander & Co",
+          "ICAEW-regulated",
+          "Manchester",
+          "London"
+         ],
+         "namedRivals": [],
+         "offeringType": "professional services firm",
+         "audienceTerms": [
+          "business owners",
+          "entrepreneurs",
+          "property investors",
+          "high-net-worth individuals"
+         ]
+        },
+        "suggestions": [],
+        "totalVolume": 0
+       }
+      },
+      "onPage": {
+       "at": "2026-10-15T12:46:39.001Z",
+       "kind": "measured",
+       "value": {
+        "url": "https://alexander.co.uk/",
+        "dates": 9,
+        "noindex": false,
+        "headings": 27,
+        "numerals": 49,
+        "schemaTypes": [
+         "webpage",
+         "readaction",
+         "imageobject",
+         "breadcrumblist",
+         "listitem",
+         "website",
+         "searchaction",
+         "entrypoint",
+         "propertyvaluespecification",
+         "organization",
+         "imageobject",
+         "service",
+         "localbusiness",
+         "imageobject",
+         "postaladdress",
+         "state",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement",
+         "sitenavigationelement"
+        ],
+        "visibleChars": 7050,
+        "outboundCitations": 4,
+        "openGraphProperties": [
+         "og:locale",
+         "og:type",
+         "og:title",
+         "og:description",
+         "og:url",
+         "og:site_name"
+        ],
+        "directAnswerHeadings": 2,
+        "questionShapedHeadings": 3,
+        "noindexAppliesToEveryReader": false
+       }
+      },
+      "rivals": {
+       "at": "2026-10-15T12:46:43.922Z",
+       "kind": "measured",
+       "value": [
+        {
+         "score": 4,
+         "domain": "chadwickandco.co.uk",
+         "aiCitations": 1,
+         "top10Appearances": 2
+        },
+        {
+         "score": 3,
+         "domain": "geraldedelman.com",
+         "aiCitations": 1,
+         "top10Appearances": 1
+        },
+        {
+         "score": 3,
+         "domain": "keoghssolicitors.co.uk",
+         "aiCitations": 1,
+         "top10Appearances": 1
+        },
+        {
+         "score": 3,
+         "domain": "pkf-francisclark.co.uk",
+         "aiCitations": 1,
+         "top10Appearances": 1
+        },
+        {
+         "score": 2,
+         "domain": "humboldtfinancial.co.uk",
+         "aiCitations": 1,
+         "top10Appearances": 0
+        }
+       ]
+      },
+      "robots": {
+       "at": "2026-10-15T12:46:38.947Z",
+       "kind": "measured",
+       "value": {
+        "ok": true,
+        "rules": {
+         "*": [
+          {
+           "allow": false,
+           "pattern": ""
+          }
+         ]
+        },
+        "absent": false,
+        "origin": "https://alexander.co.uk",
+        "readAt": "2026-10-15T12:46:39.004Z",
+        "sitemaps": [
+         "https://alexander.co.uk/sitemap_index.xml"
+        ],
+        "disallowsAll": false,
+        "disallowedAgents": {
+         "*": false
+        },
+        "crawlDelaySeconds": {}
+       }
+      },
+      "scanId": "c9d00dd3-18ca-4bb2-bc8c-42e292fd5609",
+      "supply": {
+       "missingPages": {
+        "at": "2026-10-15T12:46:38.947Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+       },
+       "unquotablePages": {
+        "at": "2026-10-15T12:46:38.947Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+       }
+      },
+      "sources": [
+       "icaew.com",
+       "facebook.com",
+       "theguardian.com",
+       "youtube.com",
+       "google.com"
+      ],
+      "verdict": {
+       "domain": "alexander.co.uk",
+       "factors": {
+        "presence": {
+         "at": "2026-10-15T12:46:38.947Z",
+         "kind": "measured",
+         "value": 55.91472179517488
+        },
+        "foundations": {
+         "at": "2026-10-15T12:46:38.947Z",
+         "kind": "measured",
+         "value": 100
+        },
+        "answerability": {
+         "at": "2026-10-15T12:46:38.947Z",
+         "kind": "measured",
+         "value": 31.155446901432814
+        }
+       },
+       "missing": [],
+       "limiting": {
+        "kind": "factor",
+        "factor": "answerability"
+       },
+       "measuredAt": "2026-10-15T12:46:38.947Z",
+       "scoreAndBand": {
+        "at": "2026-10-15T12:46:38.947Z",
+        "kind": "measured",
+        "value": {
+         "band": "findable",
+         "score": 56
+        }
+       },
+       "blockedReaders": {
+        "at": "2026-10-15T12:46:38.947Z",
+        "kind": "zero",
+        "value": 0
+       },
+       "unmeasuredElsewhere": []
+      },
+      "version": 13,
+      "complete": true,
+      "freePage": {
+       "slug": {
+        "text": "entrepreneur-tax",
+        "source": "model"
+       },
+       "beats": "www.gov.uk",
+       "title": {
+        "text": "What taxes do I need to pay as an entrepreneur?",
+        "source": "model"
+       },
+       "format": "keyword_page",
+       "target": {
+        "volume": 260,
+        "keyword": "entrepreneur tax"
+       },
+       "totalPages": 2,
+       "opportunityId": "c9d00dd3-18ca-4bb2-bc8c-42e292fd5609:entrepreneur-tax"
+      },
+      "presence": {
+       "you": {
+        "domain": "alexander.co.uk",
+        "top10Count": 3
+       },
+       "rivals": [
+        {
+         "domain": "chadwickandco.co.uk",
+         "top10Count": 2
+        },
+        {
+         "domain": "geraldedelman.com",
+         "top10Count": 1
+        },
+        {
+         "domain": "keoghssolicitors.co.uk",
+         "top10Count": 1
+        },
+        {
+         "domain": "pkf-francisclark.co.uk",
+         "top10Count": 1
+        },
+        {
+         "domain": "humboldtfinancial.co.uk",
+         "top10Count": 0
+        }
+       ],
+       "framing": "shown",
+       "absentFrom": [
+        {
+         "volume": 6600,
+         "keyword": "hmrc online accounts",
+         "topHolder": "hmrc.gov.uk"
+        },
+        {
+         "volume": 260,
+         "keyword": "entrepreneur tax",
+         "topHolder": null
+        }
+       ],
+       "measuredSearches": 5
+      },
+      "aiAnswers": {
+       "rows": [
+        {
+         "cell": {
+          "kind": "answered",
+          "ownUrls": [],
+          "citedDomains": [
+           "facebook.com",
+           "edp24.co.uk",
+           "moneysavingexpert.com",
+           "bbc.co.uk",
+           "theguardian.com",
+           "walesonline.co.uk"
+          ],
+          "namesCustomer": false
+         },
+         "engines": [
+          {
+           "cell": {
+            "kind": "answered",
+            "ownUrls": [],
+            "citedDomains": [
+             "facebook.com",
+             "edp24.co.uk",
+             "moneysavingexpert.com",
+             "bbc.co.uk",
+             "theguardian.com",
+             "walesonline.co.uk"
+            ],
+            "namesCustomer": false
+           },
+           "engine": "ai_overview"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "ai_mode"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "chatgpt"
+          }
+         ],
+         "question": {
+          "n": 1,
+          "search": "hmrc errors",
+          "wording": {
+           "text": "What should I do if I've made errors on my HMRC returns?",
+           "source": "model"
+          }
+         }
+        },
+        {
+         "cell": {
+          "kind": "answered",
+          "ownUrls": [],
+          "citedDomains": [
+           "acemoneytransfer.com"
+          ],
+          "namesCustomer": false
+         },
+         "engines": [
+          {
+           "cell": {
+            "kind": "answered",
+            "ownUrls": [],
+            "citedDomains": [
+             "acemoneytransfer.com"
+            ],
+            "namesCustomer": false
+           },
+           "engine": "ai_overview"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "ai_mode"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "chatgpt"
+          }
+         ],
+         "question": {
+          "n": 2,
+          "search": "hmrc online accounts",
+          "wording": {
+           "text": "How do I access my HMRC online accounts?",
+           "source": "model"
+          }
+         }
+        },
+        {
+         "cell": {
+          "kind": "answered",
+          "named": true,
+          "ownUrls": [
+           "https://alexander.co.uk/tax/entrepreneurs-tax/"
+          ],
+          "citedDomains": [
+           "alexander.co.uk",
+           "lexisnexis.com",
+           "sleek.com",
+           "paystream.co.uk",
+           "ipse.co.uk",
+           "warekay.co.uk"
+          ],
+          "namesCustomer": true
+         },
+         "engines": [
+          {
+           "cell": {
+            "kind": "answered",
+            "named": true,
+            "ownUrls": [
+             "https://alexander.co.uk/tax/entrepreneurs-tax/"
+            ],
+            "citedDomains": [
+             "alexander.co.uk",
+             "lexisnexis.com",
+             "sleek.com",
+             "paystream.co.uk",
+             "ipse.co.uk",
+             "warekay.co.uk"
+            ],
+            "namesCustomer": true
+           },
+           "engine": "ai_overview"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "ai_mode"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "chatgpt"
+          }
+         ],
+         "question": {
+          "n": 3,
+          "search": "entrepreneur tax",
+          "wording": {
+           "text": "What taxes do I need to pay as an entrepreneur?",
+           "source": "model"
+          }
+         }
+        },
+        {
+         "cell": {
+          "kind": "no_answer"
+         },
+         "engines": [
+          {
+           "cell": {
+            "kind": "no_answer"
+           },
+           "engine": "ai_overview"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "ai_mode"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "chatgpt"
+          }
+         ],
+         "question": {
+          "n": 4,
+          "search": "property tax advisor near me",
+          "wording": {
+           "text": "Where can I find a property tax advisor near me in Manchester?",
+           "source": "model"
+          }
+         }
+        },
+        {
+         "cell": {
+          "kind": "answered",
+          "named": true,
+          "ownUrls": [
+           "https://alexander.co.uk/tax/inheritance-tax/"
+          ],
+          "citedDomains": [
+           "alexander.co.uk",
+           "keoghssolicitors.co.uk",
+           "pkf-francisclark.co.uk",
+           "geraldedelman.com",
+           "chadwickandco.co.uk",
+           "humboldtfinancial.co.uk"
+          ],
+          "namesCustomer": true
+         },
+         "engines": [
+          {
+           "cell": {
+            "kind": "answered",
+            "named": true,
+            "ownUrls": [
+             "https://alexander.co.uk/tax/inheritance-tax/"
+            ],
+            "citedDomains": [
+             "alexander.co.uk",
+             "keoghssolicitors.co.uk",
+             "pkf-francisclark.co.uk",
+             "geraldedelman.com",
+             "chadwickandco.co.uk",
+             "humboldtfinancial.co.uk"
+            ],
+            "namesCustomer": true
+           },
+           "engine": "ai_overview"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "ai_mode"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "chatgpt"
+          }
+         ],
+         "question": {
+          "n": 5,
+          "search": "inheritance tax accountants",
+          "wording": {
+           "text": "Which accountants in Manchester specialise in inheritance tax?",
+           "source": "model"
+          }
+         }
+        }
+       ],
+       "rivals": [
+        {
+         "cells": [
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "no_answer"
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [
+            "chadwickandco.co.uk"
+           ],
+           "namesCustomer": false
+          }
+         ],
+         "domain": "chadwickandco.co.uk"
+        },
+        {
+         "cells": [
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "no_answer"
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [
+            "geraldedelman.com"
+           ],
+           "namesCustomer": false
+          }
+         ],
+         "domain": "geraldedelman.com"
+        },
+        {
+         "cells": [
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "no_answer"
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [
+            "keoghssolicitors.co.uk"
+           ],
+           "namesCustomer": false
+          }
+         ],
+         "domain": "keoghssolicitors.co.uk"
+        },
+        {
+         "cells": [
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "no_answer"
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [
+            "pkf-francisclark.co.uk"
+           ],
+           "namesCustomer": false
+          }
+         ],
+         "domain": "pkf-francisclark.co.uk"
+        },
+        {
+         "cells": [
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "no_answer"
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [
+            "humboldtfinancial.co.uk"
+           ],
+           "namesCustomer": false
+          }
+         ],
+         "domain": "humboldtfinancial.co.uk"
+        }
+       ],
+       "coverage": "async_included",
+       "ownDomain": "alexander.co.uk",
+       "measuredAt": "2026-10-15T12:46:43.922Z",
+       "reusedFrom": null,
+       "answeredSearches": 4,
+       "measuredSearches": 5,
+       "customerCitations": 2
+      },
+      "coherence": {
+       "verdict": "coherent"
+      },
+      "ownRanked": {
+       "at": "2026-10-15T12:46:38.947Z",
+       "kind": "measured",
+       "value": 1337
+      },
+      "questions": {
+       "at": "2026-10-15T12:46:43.922Z",
+       "kind": "measured",
+       "value": [
+        {
+         "id": "q1",
+         "text": "What should I do if I've made errors on my HMRC returns?",
+         "search": {
+          "rank": 1,
+          "floor": 50,
+          "score": 5.364290152747664,
+          "intent": "problem",
+          "volume": 480,
+          "keyword": "hmrc errors",
+          "difficulty": 0
+         },
+         "phrasing": "model"
+        },
+        {
+         "id": "q2",
+         "text": "How do I access my HMRC online accounts?",
+         "search": {
+          "rank": 2,
+          "floor": 50,
+          "score": 3.8196097327515854,
+          "intent": "informational",
+          "volume": 6600,
+          "keyword": "hmrc online accounts",
+          "difficulty": 22
+         },
+         "phrasing": "model"
+        },
+        {
+         "id": "q3",
+         "text": "What taxes do I need to pay as an entrepreneur?",
+         "search": {
+          "rank": 3,
+          "floor": 50,
+          "score": 2.416640507338281,
+          "intent": "informational",
+          "volume": 260,
+          "keyword": "entrepreneur tax",
+          "difficulty": 0
+         },
+         "phrasing": "model"
+        },
+        {
+         "id": "q4",
+         "text": "Where can I find a property tax advisor near me in Manchester?",
+         "search": {
+          "rank": 4,
+          "floor": 50,
+          "score": 2.0453229787866576,
+          "intent": "informational",
+          "volume": 110,
+          "keyword": "property tax advisor near me",
+          "difficulty": 0
+         },
+         "phrasing": "model"
+        },
+        {
+         "id": "q5",
+         "text": "Which accountants in Manchester specialise in inheritance tax?",
+         "search": {
+          "rank": 5,
+          "floor": 50,
+          "score": 1.9590413923210936,
+          "intent": "informational",
+          "volume": 90,
+          "keyword": "inheritance tax accountants",
+          "difficulty": 0
+         },
+         "phrasing": "model"
+        }
+       ]
+      },
+      "rivalSizes": {
+       "at": "2026-10-15T12:46:38.947Z",
+       "kind": "unmeasured",
+       "reason": "not_attempted"
+      },
+      "siteIssues": {
+       "issues": [
+        {
+         "ran": true,
+         "doer": "reachkit_rewrites",
+         "over": 10,
+         "unit": "pages",
+         "check": "page_titles",
+         "count": 0,
+         "pages": [],
+         "parts": {
+          "missing": 0,
+          "duplicate": 0
+         },
+         "severity": "nothing_to_fix"
+        },
+        {
+         "ran": true,
+         "doer": "reachkit_rewrites",
+         "over": 10,
+         "unit": "pages",
+         "check": "meta_descriptions",
+         "count": 0,
+         "pages": [],
+         "parts": {
+          "missing": 0,
+          "duplicate": 0
+         },
+         "severity": "nothing_to_fix"
+        },
+        {
+         "ran": true,
+         "doer": "free_fix",
+         "over": 10,
+         "unit": "pages",
+         "check": "noindex_pages",
+         "count": 0,
+         "pages": [],
+         "severity": "nothing_to_fix"
+        },
+        {
+         "ran": true,
+         "doer": "free_fix",
+         "over": 1,
+         "unit": "site",
+         "check": "sitemap",
+         "count": 0,
+         "pages": null,
+         "severity": "nothing_to_fix"
+        },
+        {
+         "ran": true,
+         "doer": "free_fix",
+         "over": 9,
+         "unit": "pages",
+         "check": "slow_pages",
+         "count": 0,
+         "pages": [],
+         "severity": "nothing_to_fix"
+        },
+        {
+         "ran": true,
+         "doer": "free_fix",
+         "over": 9,
+         "unit": "links",
+         "check": "broken_links",
+         "count": 0,
+         "pages": null,
+         "severity": "nothing_to_fix"
+        },
+        {
+         "ran": true,
+         "doer": "free_fix",
+         "over": 10,
+         "unit": "pages",
+         "check": "phone_usability",
+         "count": 0,
+         "pages": [],
+         "severity": "nothing_to_fix"
+        },
+        {
+         "ran": true,
+         "doer": "reachkit_writes",
+         "over": 10,
+         "unit": "pages",
+         "check": "structured_data",
+         "count": 0,
+         "pages": [],
+         "severity": "nothing_to_fix"
+        },
+        {
+         "ran": true,
+         "doer": "free_fix",
+         "over": 14,
+         "unit": "ai_readers",
+         "check": "ai_readers_blocked",
+         "count": 0,
+         "pages": [],
+         "severity": "nothing_to_fix"
+        }
+       ],
+       "stoppedBy": "byte_cap",
+       "checkedPages": [
+        "https://alexander.co.uk/",
+        "https://alexander.co.uk/services/",
+        "https://alexander.co.uk/contact/",
+        "https://alexander.co.uk/testimonials/",
+        "https://alexander.co.uk/contact/manchester/",
+        "https://alexander.co.uk/contact/london-accountants/",
+        "https://alexander.co.uk/case-studies/56k-rd-tax-reduction/",
+        "https://alexander.co.uk/tax/",
+        "https://alexander.co.uk/business-accountancy-services/corporate-finance/",
+        "https://alexander.co.uk/tax/research-development-tax-credits/"
+       ],
+       "pagesChecked": 10
+      },
+      "statedPlace": {
+       "name": "Manchester",
+       "region": "Greater Manchester"
+      },
+      "blockedAgents": [],
+      "ownRankedRows": [
+       {
+        "url": "https://alexander.co.uk/",
+        "keyword": "alexander and co",
+        "position": 1,
+        "difficulty": 7,
+        "searchVolume": 1900
+       },
+       {
+        "url": "https://alexander.co.uk/",
+        "keyword": "alexander & co",
+        "position": 1,
+        "difficulty": 8,
+        "searchVolume": 880
+       },
+       {
+        "url": "https://alexander.co.uk/news/land-value-tax/",
+        "keyword": "what is a land tax",
+        "position": 1,
+        "difficulty": 22,
+        "searchVolume": 590
+       },
+       {
+        "url": "https://alexander.co.uk/news/land-value-tax/",
+        "keyword": "what is land value tax",
+        "position": 1,
+        "difficulty": 15,
+        "searchVolume": 480
+       },
+       {
+        "url": "https://alexander.co.uk/news/land-value-tax/",
+        "keyword": "what is the land value tax",
+        "position": 1,
+        "difficulty": 15,
+        "searchVolume": 480
+       },
+       {
+        "url": "https://alexander.co.uk/news/autumn-budget-2026/",
+        "keyword": "when is the next budget",
+        "position": 7,
+        "difficulty": 5,
+        "searchVolume": 5400
+       },
+       {
+        "url": "https://alexander.co.uk/news/land-value-tax/",
+        "keyword": "land tax uk",
+        "position": 2,
+        "difficulty": 20,
+        "searchVolume": 720
+       },
+       {
+        "url": "https://alexander.co.uk/news/autumn-budget-2026/",
+        "keyword": "when is the autumn budget 2026",
+        "position": 1,
+        "difficulty": 12,
+        "searchVolume": 320
+       },
+       {
+        "url": "https://alexander.co.uk/news/land-value-tax/",
+        "keyword": "land value tax uk",
+        "position": 2,
+        "difficulty": 1,
+        "searchVolume": 590
+       },
+       {
+        "url": "https://alexander.co.uk/news/autumn-budget-2026/",
+        "keyword": "when is the budget 2026 uk",
+        "position": 2,
+        "difficulty": 1,
+        "searchVolume": 590
+       },
+       {
+        "url": "https://alexander.co.uk/news/autumn-budget-2026/",
+        "keyword": "when is next uk budget",
+        "position": 7,
+        "difficulty": 21,
+        "searchVolume": 3600
+       },
+       {
+        "url": "https://alexander.co.uk/",
+        "keyword": "accountants",
+        "position": 86,
+        "difficulty": 48,
+        "searchVolume": 40500
+       },
+       {
+        "url": "https://alexander.co.uk/news/autumn-budget-2026/",
+        "keyword": "when next budget",
+        "position": 9,
+        "difficulty": 9,
+        "searchVolume": 5400
+       },
+       {
+        "url": "https://alexander.co.uk/news/land-value-tax/",
+        "keyword": "what is a land value tax",
+        "position": 2,
+        "difficulty": 15,
+        "searchVolume": 480
+       },
+       {
+        "url": "https://alexander.co.uk/news/land-value-tax/",
+        "keyword": "land tax valuation",
+        "position": 8,
+        "difficulty": 15,
+        "searchVolume": 3600
+       },
+       {
+        "url": "https://alexander.co.uk/news/land-value-tax/",
+        "keyword": "how does land value tax work",
+        "position": 1,
+        "difficulty": 15,
+        "searchVolume": 210
+       },
+       {
+        "url": "https://alexander.co.uk/news/land-value-tax/",
+        "keyword": "how would a land value tax work",
+        "position": 1,
+        "difficulty": 6,
+        "searchVolume": 210
+       },
+       {
+        "url": "https://alexander.co.uk/news/autumn-budget-2026/",
+        "keyword": "when is the next budget 2026",
+        "position": 2,
+        "difficulty": 0,
+        "searchVolume": 390
+       },
+       {
+        "url": "https://alexander.co.uk/news/companies-house-identity-verification/",
+        "keyword": "companies house id verification",
+        "position": 59,
+        "difficulty": 16,
+        "searchVolume": 27100
+       },
+       {
+        "url": "https://alexander.co.uk/news/companies-house-identity-verification/",
+        "keyword": "companies house identification verification",
+        "position": 40,
+        "difficulty": 18,
+        "searchVolume": 27100
+       },
+       {
+        "url": "https://alexander.co.uk/news/companies-house-identity-verification/",
+        "keyword": "companies house identity verification",
+        "position": 46,
+        "difficulty": 26,
+        "searchVolume": 27100
+       },
+       {
+        "url": "https://alexander.co.uk/news/autumn-budget-2026/",
+        "keyword": "when is the next uk budget",
+        "position": 9,
+        "difficulty": 30,
+        "searchVolume": 3600
+       },
+       {
+        "url": "https://alexander.co.uk/news/family-business-succession-planning/",
+        "keyword": "alexander & co accountants manchester",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 140
+       },
+       {
+        "url": "https://alexander.co.uk/news/payments-on-account-a-comprehensive-guide/",
+        "keyword": "alexander & co manchester",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 140
+       },
+       {
+        "url": "https://alexander.co.uk/",
+        "keyword": "alexander and co accountants manchester",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 140
+       },
+       {
+        "url": "https://alexander.co.uk/news/family-business-succession-planning/",
+        "keyword": "alexander and co manchester",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 140
+       },
+       {
+        "url": "https://alexander.co.uk/about-alexander-co/our-people/",
+        "keyword": "alexander hughes",
+        "position": 31,
+        "difficulty": 0,
+        "searchVolume": 18100
+       },
+       {
+        "url": "https://alexander.co.uk/news/companies-house-changes-to-be-aware-of-including-filing-obligations-and-fee-increases/",
+        "keyword": "companies house phone number",
+        "position": 25,
+        "difficulty": 41,
+        "searchVolume": 18100
+       },
+       {
+        "url": "https://alexander.co.uk/contact/manchester/",
+        "keyword": "accountants manchester",
+        "position": 8,
+        "difficulty": 0,
+        "searchVolume": 1900
+       },
+       {
+        "url": "https://alexander.co.uk/news/need-know-hmrc-online-account/",
+        "keyword": "hmrc online accounts",
+        "position": 14,
+        "difficulty": 22,
+        "searchVolume": 6600
+       },
+       {
+        "url": "https://alexander.co.uk/",
+        "keyword": "alexander and company",
+        "position": 2,
+        "difficulty": 9,
+        "searchVolume": 210
+       },
+       {
+        "url": "https://alexander.co.uk/",
+        "keyword": "alexander company",
+        "position": 1,
+        "difficulty": 24,
+        "searchVolume": 110
+       },
+       {
+        "url": "https://alexander.co.uk/tax/property-tax/",
+        "keyword": "property tax advisor near me",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 110
+       },
+       {
+        "url": "https://alexander.co.uk/news/autumn-budget-2026/",
+        "keyword": "when is next budget in uk",
+        "position": 11,
+        "difficulty": 21,
+        "searchVolume": 3600
+       },
+       {
+        "url": "https://alexander.co.uk/news/autumn-budget-2026/",
+        "keyword": "when is next budget uk",
+        "position": 11,
+        "difficulty": 21,
+        "searchVolume": 3600
+       },
+       {
+        "url": "https://alexander.co.uk/news/autumn-budget-2026/",
+        "keyword": "when is the next budget uk",
+        "position": 11,
+        "difficulty": 18,
+        "searchVolume": 3600
+       },
+       {
+        "url": "https://alexander.co.uk/tax/entrepreneurs-tax/",
+        "keyword": "entrepreneur tax relief",
+        "position": 4,
+        "difficulty": 0,
+        "searchVolume": 480
+       },
+       {
+        "url": "https://alexander.co.uk/news/hmrc-errors/",
+        "keyword": "hmrc errors",
+        "position": 4,
+        "difficulty": 0,
+        "searchVolume": 480
+       },
+       {
+        "url": "https://alexander.co.uk/news/autumn-budget-2026/",
+        "keyword": "autumn budget 2026 date",
+        "position": 2,
+        "difficulty": 8,
+        "searchVolume": 170
+       },
+       {
+        "url": "https://alexander.co.uk/news/land-value-tax/",
+        "keyword": "how would a land tax work",
+        "position": 1,
+        "difficulty": 5,
+        "searchVolume": 90
+       },
+       {
+        "url": "https://alexander.co.uk/tax/inheritance-tax/",
+        "keyword": "inheritance tax accountants",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 90
+       },
+       {
+        "url": "https://alexander.co.uk/news/capital-gains-tax-allowances-to-be-reduced-from-april-2023/",
+        "keyword": "capital gain tax allowance",
+        "position": 56,
+        "difficulty": 12,
+        "searchVolume": 12100
+       },
+       {
+        "url": "https://alexander.co.uk/news/important-uk-tax-dates-for-the-2023-24-tax-year/",
+        "keyword": "tax year england",
+        "position": 93,
+        "difficulty": 11,
+        "searchVolume": 12100
+       },
+       {
+        "url": "https://alexander.co.uk/tax/entrepreneurs-tax/",
+        "keyword": "entrepreneur tax",
+        "position": 3,
+        "difficulty": 0,
+        "searchVolume": 260
+       },
+       {
+        "url": "https://alexander.co.uk/tax/entrepreneurs-tax/",
+        "keyword": "entrepreneurs tax",
+        "position": 3,
+        "difficulty": 0,
+        "searchVolume": 260
+       },
+       {
+        "url": "https://alexander.co.uk/contact/manchester/",
+        "keyword": "accountants in manchester",
+        "position": 10,
+        "difficulty": 0,
+        "searchVolume": 1900
+       },
+       {
+        "url": "https://alexander.co.uk/",
+        "keyword": "alexander & co accountants",
+        "position": 1,
+        "difficulty": 2,
+        "searchVolume": 70
+       },
+       {
+        "url": "https://alexander.co.uk/",
+        "keyword": "alexander accountants",
+        "position": 1,
+        "difficulty": 8,
+        "searchVolume": 70
+       },
+       {
+        "url": "https://alexander.co.uk/",
+        "keyword": "alexander and co accountants",
+        "position": 1,
+        "difficulty": 2,
+        "searchVolume": 70
+       },
+       {
+        "url": "https://alexander.co.uk/tax/",
+        "keyword": "tax consultants near me",
+        "position": 13,
+        "difficulty": 5,
+        "searchVolume": 3600
+       }
+      ],
+      "pageQuestions": null,
+      "stoppedReason": "complete",
+      "correctionState": "none",
+      "measuredCategory": null,
+      "fromIncompleteRescan": false
+     },
+     "siteId": null,
+     "isCurrent": true
+    },
+    "reads": [
+     {
+      "source": "egress.safeFetch",
+      "created_at": "2026-10-15T12:46:39.188667+00:00",
+      "payload": {
+       "url": "https://alexander.co.uk/",
+       "html": "",
+       "bytes": 766413,
+       "readAt": "2026-10-15T12:46:39.001Z",
+       "status": 200,
+       "headers": {
+        "server": "cloudflare"
+       }
+      }
+     }
+    ],
+    "siteName": "Alexander & Co.",
+    "answers": []
+   }
+  },
+  {
+   "domain": "baeckerei-hinkel.de",
+   "status": "done",
+   "stoppedReason": "complete",
+   "score": 8,
+   "band": "invisible",
+   "limiting": "{\"kind\":\"factor\",\"factor\":\"answerability\"}",
+   "drivers": {
+    "foundations": "62.5",
+    "answerability": "1 (measured none, floored)",
+    "searchPresence": "54.6",
+    "aiPresence": "1 (measured none, floored)"
+   },
+   "missing": [],
+   "locale": "DE / de",
+   "statedPlace": null,
+   "category": "Bäckerei, Brot, Backwaren",
+   "marketFrom": null,
+   "questionsBecause": null,
+   "questions": [
+    {
+     "n": 1,
+     "text": "Wo kann ich frisches Brot bekommen?",
+     "search": "frisches brot",
+     "volume": 260,
+     "read": "read",
+     "ownPosition": null,
+     "aiAnswer": "no AI Overview",
+     "localPack": 1
+    },
+    {
+     "n": 2,
+     "text": "Wie backe ich frisches Brot selber?",
+     "search": "frisches brot backen",
+     "volume": 30,
+     "read": "read",
+     "ownPosition": null,
+     "aiAnswer": "AI Overview present, neither names nor cites it",
+     "localPack": 0
+    },
+    {
+     "n": 3,
+     "text": "Wo kann ich frisches Brot kaufen?",
+     "search": "frisches brot kaufen",
+     "volume": 20,
+     "read": "read",
+     "ownPosition": null,
+     "aiAnswer": "no AI Overview",
+     "localPack": 1
+    },
+    {
+     "n": 4,
+     "text": "Was ist Handwerksbrot?",
+     "search": "handwerksbrot",
+     "volume": 20,
+     "read": "read",
+     "ownPosition": null,
+     "aiAnswer": "AI Overview present, neither names nor cites it",
+     "localPack": 0
+    },
+    {
+     "n": 5,
+     "text": "Wo gibt es Handwerksbrot in meiner Nähe?",
+     "search": "handwerksbrot in der nähe",
+     "volume": 10,
+     "read": "read",
+     "ownPosition": null,
+     "aiAnswer": "no AI Overview",
+     "localPack": 1
+    }
+   ],
+   "rivals": [
+    "dorfbaeckerei-ackermann.de (3 top-ten, 1 AI)",
+    "bakersmachinery.com (1 top-ten, 1 AI)",
+    "lebensmittelmagazin.de (1 top-ten, 1 AI)",
+    "armbruster-baeckerei.de (0 top-ten, 1 AI)",
+    "gaumenfreundin.de (0 top-ten, 1 AI)"
+   ],
+   "rivalsBecause": null,
+   "localPack": true,
+   "cents": 8.854199999999999,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 1.8,
+    "profile": 0.2818,
+    "dataforseo_labs/google/keyword_suggestions": 5.4,
+    "question-phrasing": 0.1724,
+    "serp/google/organic": 1.2
+   },
+   "seconds": 35,
+   "budgetEnded": false,
+   "refused": [],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "baeckerei-hinkel.de",
+     "foundations": "measured",
+     "answerability": "zero",
+     "searchPresence": "measured",
+     "aiPresence": "unmeasured"
+    }
+   ],
+   "stored": {
+    "scan": {
+     "id": "c32c8610-6df9-4d71-8630-84ee4438d1d9",
+     "domain": "baeckerei-hinkel.de",
+     "createdAt": "2026-10-15T12:47:06.614133+00:00",
+     "status": "done",
+     "score": 8,
+     "drivers": {
+      "aiPresence": {
+       "at": "2026-10-15T12:47:06.619Z",
+       "kind": "zero",
+       "value": 1
+      },
+      "foundations": {
+       "at": "2026-10-15T12:47:06.619Z",
+       "kind": "measured",
+       "value": 62.5
+      },
+      "answerability": {
+       "at": "2026-10-15T12:47:06.619Z",
+       "kind": "zero",
+       "value": 1
+      },
+      "searchPresence": {
+       "at": "2026-10-15T12:47:06.619Z",
+       "kind": "measured",
+       "value": 54.61728577043997
+      }
+     },
+     "md5": "c9f012363f7527c907c5759d7f34df99",
+     "report": {
+      "tier": "free",
+      "serps": [
+       {
+        "at": "2026-10-15T12:47:13.937Z",
+        "kind": "measured",
+        "value": {
+         "organic": [
+          {
+           "url": "https://www.chefkoch.de/rezepte/3748011569691684/Friss-dich-dumm-Brot.html",
+           "title": "Friss dich dumm Brot - einfach & schnell",
+           "domain": "www.chefkoch.de",
+           "position": 1
+          },
+          {
+           "url": "https://culinarytales.de/blogs/news/frisches-brot-ganz-einfach-selbstgemacht?srsltid=AU7gw4XDQqVF_Xbo_jYRZrcBryVTsiFgU0piR1P8VIidnsIXMFvR-Imi",
+           "title": "https://culinarytales.de/blogs/news/frisches-brot-...",
+           "domain": "culinarytales.de",
+           "position": 2
+          },
+          {
+           "url": "https://www.dorfbaeckerei-ackermann.de/frisches-brot-erkennen-merkmale/",
+           "title": "Frisches Brot erkennen: So bleibt Genuss einzigartig",
+           "domain": "www.dorfbaeckerei-ackermann.de",
+           "position": 3
+          },
+          {
+           "url": "https://www.facebook.com/AOK.BW/videos/frisches-brot-ist-einfach-hmmmm-aber-auch-etwas-%C3%A4lteres-brot-kann-richtig-lecker/1614223162436980/",
+           "title": "Frisches Brot ist einfach … hmmmm. 🤤 Aber auch etwas ...",
+           "domain": "www.facebook.com",
+           "position": 4
+          },
+          {
+           "url": "https://www.lieblingszwei.de/brot/",
+           "title": "Schnelles, einfaches Brot selber backen - Lieblingszwei",
+           "domain": "www.lieblingszwei.de",
+           "position": 5
+          },
+          {
+           "url": "https://www.brooot.de/lexikon/wie-haelt-brot-lange-frisch-gekauft-und-selbst-backen/",
+           "title": "Wie hält Brot lange frisch? Gekauft und selbst backen - Brooot",
+           "domain": "www.brooot.de",
+           "position": 6
+          },
+          {
+           "url": "https://pixabay.com/de/images/search/frisches%20brot/",
+           "title": "20.000+ kostenlose Frisches Brot und Brot-Bilder",
+           "domain": "pixabay.com",
+           "position": 7
+          }
+         ],
+         "localPack": [
+          {
+           "title": "Frisches Brot aus dem Tandoor",
+           "domain": "www.google.com"
+          }
+         ],
+         "aiOverview": {
+          "present": false,
+          "referenceDomains": [],
+          "asynchronousAiOverview": false
+         },
+         "peopleAlsoAsk": [
+          "Wie bleibt Brot lange frisch?",
+          "Auf was backt man Brot?",
+          "Warum schimmelt selbstgebackenes Brot so schnell?",
+          "Wie kann ich altes Brot wieder weich machen?"
+         ],
+         "relatedSearches": [
+          "Omas schnelles Brot mit Trockenhefe",
+          "Brot backen Rezept einfach und schnell",
+          "Schnelles Brot mit frischer Hefe",
+          "Landfrauen Brot backen Rezept",
+          "Brot Rezept",
+          "Luftiges Brot mit Trockenhefe"
+         ]
+        }
+       },
+       {
+        "at": "2026-10-15T12:47:13.938Z",
+        "kind": "measured",
+        "value": {
+         "organic": [
+          {
+           "url": "https://www.familienkost.de/kategorie-brotrezepte.html",
+           "title": "Einfache Brotrezepte, die auch Anfängern gelingen",
+           "domain": "www.familienkost.de",
+           "position": 1
+          },
+          {
+           "url": "https://www.vigo.de/rubriken/ernaehrung-und-kochen/ernaehrungstrends/lesen/brot-backen-tipps.html",
+           "title": "Brot selber backen – ganz einfach zu Hause",
+           "domain": "www.vigo.de",
+           "position": 2
+          },
+          {
+           "url": "https://www.sevencooks.com/de/magazin/einfaches-brot-backen-5-minuten-4y8gq1v0gwI4SgY6O8MccM",
+           "title": "Einfaches Brot backen: in 5 Minuten mit nur 5 Zutaten",
+           "domain": "www.sevencooks.com",
+           "position": 3
+          },
+          {
+           "url": "https://www.pinterest.com/pin/einfaches-brot-backen-das-einfachste-brot-der-welt--102456960265988846/",
+           "title": "Einfaches Brot backen: Das einfachste Brot der Welt",
+           "domain": "www.pinterest.com",
+           "position": 4
+          },
+          {
+           "url": "https://brotwein.net/index-brot-broetchen/rezepte-mit-hefe-ohne-sauerteig",
+           "title": "Brot backen mit Hefe (ohne Sauerteig) - 82 Rezepte für ...",
+           "domain": "brotwein.net",
+           "position": 5
+          },
+          {
+           "url": "https://reiseschmaus.de/5-minuten-brot-backen",
+           "title": "5 Minuten Brot backen: Das einfachste Brot der Welt",
+           "domain": "reiseschmaus.de",
+           "position": 6
+          }
+         ],
+         "aiOverview": {
+          "text": "Frisches Brot lässt sich ganz einfach `mit wenigen Grundzutaten wie Mehl, Wasser, Hefe und Salz` zubereiten.[[1]](https://www.gaumenfreundin.de/einfaches-brot-backen/)[[2]](https://www.tastybits.de/rezepte/brot-snacks-dips/schnelles-5-minuten-brot-backen/)\n\n### Rezept für ein einfaches Topfbrot (Anfänger-Rezept)\n\n- **Zutaten:** \n\t- 600 g Dinkelmehl (Type 630) oder Weizenmehl (Type 505)\n\t- 450 ml lauwarmes Wasser\n\t- 10 g frische Hefe (oder ½ Päckchen Trockenhefe)\n\t- 15 g Salz\n\t- 10 g Zucker[[1]](https://www.tastybits.de/rezepte/brot-snacks-dips/schnelles-5-minuten-brot-backen/)[[2]](https://www.gaumenfreundin.de/einfaches-brot-backen/)\n- **Zubereitung:** \n\t- **Hefe auflösen:** Die Hefe zusammen mit dem Zucker im lauwarmen Wasser auflösen.\n\t- **Teig mischen:** Das Mehl und das Salz in eine Schüssel geben, die Hefe-Wasser-Mischung hinzufügen und alles zu einem geschmeidigen Teig verrühren oder kurz kneten.\n\t- **Gehen lassen:** Den Teig abdecken und an einem warmen Ort oder über Nacht im Kühlschrank ruhen lassen, bis das Volumen deutlich zugenommen hat.\n\t- **Im Topf backen:** Einen gusseisernen Topf oder Römertopf im Ofen auf ca. 240 °C vorheizen. Den Teig hineingeben und zuerst mit Deckel (ca. 30 Minuten), danach ohne Deckel (ca. 20 Minuten) knusprig braun backen.[[1]](https://www.lecker.de/brot-backen-so-gehts-schritt-fuer-schritt-78642.html)[[2]](https://www.gaumenfreundin.de/einfaches-brot-backen/)[[3]](https://www.youtube.com/shorts/iYV50R033u4)\n\nAusführliche Anleitungen und weitere einfache Varianten finden Sie bei der [Gaumenfreundin](https://www.gaumenfreundin.de/einfaches-brot-backen/) oder im Rezept von [LECKER](https://www.lecker.de/brot-backen-so-gehts-schritt-fuer-schritt-78642.html).[[1]](https://www.gaumenfreundin.de/einfaches-brot-backen/)[[2]](https://www.lecker.de/brot-backen-so-gehts-schritt-fuer-schritt-78642.html)Hier sehen Sie in einem kurzen Video, wie einfach der Teig für ein frisches Brot vorbereitet und gefaltet wird:\n\n![](https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS5AUqDaWoK3-lxD2gnqUOAh2MKOJnN4ydy8ub06GZYQCw_Ny9v)\n4:26\n[](https://www.youtube.com/watch?v=9jFA_iEa1wU) Einfaches Brot Rezept 4 Zutaten Weizenbrot backen 29.464 Aufrufe  · vor 11 Monaten![](https://encrypted-tbn2.gstatic.com/faviconV2?url=https://www.youtube.com&amp;client=AIM&amp;size=16&amp;type=FAVICON&amp;fallback_opts=TYPE,SIZE,URL)\nYouTube · Beas Rezepte und Ideen\n\nMöchten Sie das Brot **ohne Kneten über Nacht** im Kühlschrank vorbereiten oder suchen Sie nach einem Rezept mit **Sauerteig**?",
+          "present": true,
+          "referenceUrls": [
+           "https://www.gaumenfreundin.de/einfaches-brot-backen/",
+           "https://www.tastybits.de/rezepte/brot-snacks-dips/schnelles-5-minuten-brot-backen/",
+           "https://www.lecker.de/brot-backen-so-gehts-schritt-fuer-schritt-78642.html",
+           "https://www.youtube.com/shorts/iYV50R033u4"
+          ],
+          "referenceDomains": [
+           "www.gaumenfreundin.de",
+           "www.tastybits.de",
+           "www.lecker.de",
+           "www.youtube.com"
+          ],
+          "asynchronousAiOverview": false
+         },
+         "peopleAlsoAsk": [
+          "Wie lasse ich frisch gebackenes Brot abkühlen?",
+          "Wie lange Brot maximal gehen lassen?",
+          "Wie kann ich Weißbrot mit Hefe selber machen?",
+          "Wie backe ich hartes Brot auf?"
+         ],
+         "relatedSearches": [
+          "Brot backen Rezept einfach und schnell",
+          "Weißbrot selber backen mit Trockenhefe",
+          "Schnelles Brot backen ohne Ruhezeit",
+          "Schnelles Brot mit Trockenhefe",
+          "Omas schnelles Brot mit Trockenhefe",
+          "Friss dich dumm Brot Trockenhefe",
+          "Omas Geheimnis Friss dich dumm Brot",
+          "Gesundes Brot zum Abnehmen selber backen"
+         ]
+        }
+       },
+       {
+        "at": "2026-10-15T12:47:13.938Z",
+        "kind": "measured",
+        "value": {
+         "organic": [
+          {
+           "url": "https://www.lebegesund.de/brote-und-aufstriche/vegane-brote",
+           "title": "Brot online kaufen",
+           "domain": "www.lebegesund.de",
+           "position": 1
+          },
+          {
+           "url": "https://www.brot-baecker.de/Shop/?srsltid=AU7gw4UqRW2fMoPtNHXR4wgXUMUw3jhRtmEbazAdWINEtXwF1QFKo4Sb",
+           "title": "Brote online kaufen - Brot Bäcker Shop",
+           "domain": "www.brot-baecker.de",
+           "position": 2
+          },
+          {
+           "url": "https://www.baeren-brot.de/collections/versand?srsltid=AU7gw4WrrVnb3LF1BqOS5AnRjByy_r9td-MeX-AHOmecJRl08774bFmp",
+           "title": "Frisches Brot mit der Post",
+           "domain": "www.baeren-brot.de",
+           "position": 3
+          },
+          {
+           "url": "https://backverliebt.com/collections/brot?srsltid=AU7gw4VmW7t-PsD2B87ak8Jld67kornvzbd0RJ3z2fi6XBrgqkn7kOzx",
+           "title": "Brot online bestellen | Frisches Handwerksbrot direkt nach ...",
+           "domain": "backverliebt.com",
+           "position": 4
+          },
+          {
+           "url": "https://www.amazon.de/Frisches-Brot/b?ie=UTF8&node=11632702031",
+           "title": "Suchergebnis Auf Amazon.de Für: Frisches Brot",
+           "domain": "www.amazon.de",
+           "position": 5
+          },
+          {
+           "url": "https://vestakorn.de/brot-kaufen/",
+           "title": "Brot online kaufen | Handwerksbäckerei Vestakorn",
+           "domain": "vestakorn.de",
+           "position": 6
+          },
+          {
+           "url": "https://www.dorfbaeckerei-ackermann.de/baeckerei-brotversand-pulheim/",
+           "title": "Brotversand Online Pulheim: Versand auch nach Pulheim",
+           "domain": "www.dorfbaeckerei-ackermann.de",
+           "position": 7
+          },
+          {
+           "url": "https://www.resch-frisch.com/backs/shop/home/",
+           "title": "Backwaren & Gebäck online bestellen",
+           "domain": "www.resch-frisch.com",
+           "position": 8
+          },
+          {
+           "url": "https://www.facebook.com/baeckerei.spiegelhauer/videos/-unser-brotabo-frisches-brot-direkt-zu-dir-nach-hause-du-liebst-frisches-brot-ha/1689962875232726/",
+           "title": "Unser Brotabo – Frisches Brot direkt zu dir nach Hause!  Du ...",
+           "domain": "www.facebook.com",
+           "position": 9
+          },
+          {
+           "url": "https://landbaeckerei-hoffmann.de/brot-und-brotchen/",
+           "title": "Brot und Brötchen « Onlinebäckerei",
+           "domain": "landbaeckerei-hoffmann.de",
+           "position": 10
+          }
+         ],
+         "localPack": [
+          {
+           "title": "Dorfbäckerei Ackermann",
+           "domain": "www.google.com"
+          }
+         ],
+         "aiOverview": {
+          "present": false,
+          "referenceDomains": [],
+          "asynchronousAiOverview": false
+         },
+         "peopleAlsoAsk": [
+          "Was kostet 1 Kilo Brot beim Bäcker?",
+          "Dürfen Bäcker sonntags Brot verkaufen?",
+          "Warum kein Brot im Supermarkt kaufen?",
+          "Was ist das gesündeste Brot aus dem Supermarkt?"
+         ],
+         "relatedSearches": [
+          "Brot kaufen in der Nähe",
+          "Halbgebackenes Brot online bestellen",
+          "Gutes Brot online bestellen",
+          "Brot online kaufen auf Rechnung",
+          "Brot online bestellen Erfahrungen",
+          "Landbäckerei Online Shop"
+         ]
+        }
+       },
+       {
+        "at": "2026-10-15T12:47:13.938Z",
+        "kind": "measured",
+        "value": {
+         "organic": [
+          {
+           "url": "https://www.wlw.de/de/showroom/brot-lieferanten/c-DE",
+           "title": "brot-lieferanten in Deutschland",
+           "domain": "www.wlw.de",
+           "position": 1
+          },
+          {
+           "url": "https://www.dorfbaeckerei-ackermann.de/gutes-brot/",
+           "title": "Wie entsteht gutes Brot?",
+           "domain": "www.dorfbaeckerei-ackermann.de",
+           "position": 2
+          },
+          {
+           "url": "https://www.instagram.com/p/Dci5s1hnE9F/",
+           "title": "Brot beginnt nicht erst im Ofen. Es beginnt mit den Händen, ...",
+           "domain": "www.instagram.com",
+           "position": 3
+          },
+          {
+           "url": "https://www.facebook.com/DerBaeckerEifler/videos/20251015_eif_reel-brotmp4/1671575773836833/",
+           "title": "Du wachst auf… und hast einfach Lust auf richtig gutes Brot? ...",
+           "domain": "www.facebook.com",
+           "position": 4
+          },
+          {
+           "url": "https://bakersmachinery.com/de/entdecken-sie-die-eigenschaften-von-handwerklich-hergestelltem-brot-und-wie-sie-es-produzieren-koennen/",
+           "title": "Entdecken Sie die Eigenschaften von handwerklich ...",
+           "domain": "bakersmachinery.com",
+           "position": 5
+          },
+          {
+           "url": "https://www.lebensmittelmagazin.de/wirtschaft/20190507-tag-des-deutschen-brotes-und-es-gibt-sie-doch-noch-die-handwerks-baeckereien/",
+           "title": "Tag des Deutschen Brotes: Und es gibt sie doch noch",
+           "domain": "www.lebensmittelmagazin.de",
+           "position": 6
+          },
+          {
+           "url": "https://www.youtube.com/watch?v=isog6o1ktGo",
+           "title": "Comments",
+           "domain": "www.youtube.com",
+           "position": 7
+          },
+          {
+           "url": "https://www.wlw.de/de/showroom/das%20einfachste%20brot%20der%20welt",
+           "title": "Ergebnisse für „ das-einfachste-brot-der-welt “",
+           "domain": "www.wlw.de",
+           "position": 8
+          },
+          {
+           "url": "https://www.facebook.com/BaeckereiKarduck/posts/-authentisch-handwerklichaus-guten-zutaten-entsteht-gutes-brot-mit-zeit-handwerk/1644878837639782/",
+           "title": "Bäckerei Karduck",
+           "domain": "www.facebook.com",
+           "position": 9
+          }
+         ],
+         "aiOverview": {
+          "text": "Handwerksbrot `wird von Bäckern nach traditionellen Methoden, mit viel Handarbeit und ohne künstliche Beschleuniger hergestellt`.[[1]](https://bakersmachinery.com/de/entdecken-sie-die-eigenschaften-von-handwerklich-hergestelltem-brot-und-wie-sie-es-produzieren-koennen/)[[2]](https://www.youtube.com/watch?v=QHfzWmcGnqA&t=3)[[3]](https://www.instagram.com/p/Dci5s1hnE9F/)[[4]](https://www.instagram.com/p/DdjDLpPgEd_/)\n\n### Merkmale von Handwerksbrot\n\n- **Lange Teigführung:** Der Teig erhält durch Natursauerteig oder lange Ruhezeiten viel Zeit zum Reifen, was für ein intensives Aroma und bessere Bekömmlichkeit sorgt.[[1]](https://www.instagram.com/p/DdjDLpPgEd_/)[[2]](https://www.dorfbaeckerei-ackermann.de/gutes-brot/)\n- **Natürliche Zutaten:** Es werden primär Mehl, Wasser, Salz und Hefe oder Sauerteig verwendet.[[1]](https://bakersmachinery.com/de/entdecken-sie-die-eigenschaften-von-handwerklich-hergestelltem-brot-und-wie-sie-es-produzieren-koennen/)\n- **Krosse Kruste & fluffige Krume:** Das Backen bei hohen Temperaturen erzeugt eine goldene, knusprige Kruste und eine weiche, luftige Innenstruktur.[[1]](https://bakersmachinery.com/de/entdecken-sie-die-eigenschaften-von-handwerklich-hergestelltem-brot-und-wie-sie-es-produzieren-koennen/)[[2]](https://www.armbruster-baeckerei.de/online-shop-2/brot-und-broetchen/steinofenbrot/)\n- **Längere Frische:** Durch traditionelles Handwerk und Zeit bleiben die Brote oft von Natur aus länger frisch als Industrieware.[[1]](https://www.instagram.com/p/DdjDLpPgEd_/)\n\nMehr Hintergrundinformationen zur deutschen Brotkultur und handwerklicher Herstellung finden Sie beim [Lebensmittelmagazin](https://www.lebensmittelmagazin.de/wirtschaft/20190507-tag-des-deutschen-brotes-und-es-gibt-sie-doch-noch-die-handwerks-baeckereien/).[[1]](https://www.lebensmittelmagazin.de/wirtschaft/20190507-tag-des-deutschen-brotes-und-es-gibt-sie-doch-noch-die-handwerks-baeckereien/)Möchten Sie wissen, woran man eine **echte Handwerksbäckerei** im Alltag erkennt, oder suchen Sie Tipps für das **Brotbacken zu Hause**?",
+          "present": true,
+          "referenceUrls": [
+           "https://bakersmachinery.com/de/entdecken-sie-die-eigenschaften-von-handwerklich-hergestelltem-brot-und-wie-sie-es-produzieren-koennen/",
+           "https://www.youtube.com/watch?v=QHfzWmcGnqA&t=3",
+           "https://www.instagram.com/p/Dci5s1hnE9F/",
+           "https://www.instagram.com/p/DdjDLpPgEd_/",
+           "https://www.dorfbaeckerei-ackermann.de/gutes-brot/",
+           "https://www.armbruster-baeckerei.de/online-shop-2/brot-und-broetchen/steinofenbrot/",
+           "https://www.lebensmittelmagazin.de/wirtschaft/20190507-tag-des-deutschen-brotes-und-es-gibt-sie-doch-noch-die-handwerks-baeckereien/"
+          ],
+          "referenceDomains": [
+           "bakersmachinery.com",
+           "www.youtube.com",
+           "www.instagram.com",
+           "www.dorfbaeckerei-ackermann.de",
+           "www.armbruster-baeckerei.de",
+           "www.lebensmittelmagazin.de"
+          ],
+          "asynchronousAiOverview": true
+         },
+         "peopleAlsoAsk": [
+          "Was ist das beste deutsche Brot?",
+          "Wo kommen die Aldi Brötchen her?",
+          "Zu welcher Branche gehört eine Bäckerei?",
+          "Wie lange muss ein 500g Brot Backen?"
+         ]
+        }
+       },
+       {
+        "at": "2026-10-15T12:47:13.938Z",
+        "kind": "measured",
+        "value": {
+         "organic": [
+          {
+           "url": "https://mitvergnuegen.com/2026/handwerkliche-baeckereien-in-berlin",
+           "title": "21 Bäckereien in Berlin, in denen noch selbst gebacken wird",
+           "domain": "mitvergnuegen.com",
+           "position": 1
+          },
+          {
+           "url": "https://zeitfuerbrot.com/",
+           "title": "Zeit für Brot | Bioland-Backwaren. Vor Ort handgemacht ...",
+           "domain": "zeitfuerbrot.com",
+           "position": 2
+          },
+          {
+           "url": "https://bruno-ol.de/",
+           "title": "Bruno",
+           "domain": "bruno-ol.de",
+           "position": 3
+          },
+          {
+           "url": "https://www.werkenntdenbesten.de/baeckerei",
+           "title": "Die besten Bäckereien in der Nähe & Umgebung finden",
+           "domain": "www.werkenntdenbesten.de",
+           "position": 4
+          },
+          {
+           "url": "https://www.baeckerei-herter.de/",
+           "title": "Bäckerei Herter",
+           "domain": "www.baeckerei-herter.de",
+           "position": 5
+          },
+          {
+           "url": "https://tillundbrot.de/",
+           "title": "Home | Bäckerei Brotsommelier Till & Brot in Freiburg",
+           "domain": "tillundbrot.de",
+           "position": 6
+          },
+          {
+           "url": "https://www.nw.de/nachrichten/zwischen_weser_und_rhein/23916032_Baecker-in-OWL-25-Adressen-die-noch-echtes-Handwerk-pflegen.html",
+           "title": "Bäcker in OWL: 25 Adressen, die noch echtes Handwerk ...",
+           "domain": "www.nw.de",
+           "position": 7
+          },
+          {
+           "url": "https://diebrotpuristen.de/",
+           "title": "Die Brotpuristen - Speyer",
+           "domain": "diebrotpuristen.de",
+           "position": 8
+          },
+          {
+           "url": "https://www.baeckerei-grobe.de/",
+           "title": "Bäckerei Grobe | Home",
+           "domain": "www.baeckerei-grobe.de",
+           "position": 9
+          },
+          {
+           "url": "https://www.xn--tobi-derbrotbcker-2qb.de/",
+           "title": "Tobi der Brotbäcker, Brot wie Brot sein muss!",
+           "domain": "www.xn--tobi-derbrotbcker-2qb.de",
+           "position": 10
+          }
+         ],
+         "localPack": [
+          {
+           "title": "Bäckerei Balkhausen GmbH",
+           "domain": "www.google.com"
+          }
+         ],
+         "aiOverview": {
+          "present": false,
+          "referenceDomains": [],
+          "asynchronousAiOverview": false
+         },
+         "relatedSearches": [
+          "Offene Bäckerei in der Nähe",
+          "Traditionelle Bäckerei in der Nähe",
+          "Bäckerei in der Nähe von meinem Standort",
+          "Bäckerei Berlin in der Nähe",
+          "Bäckerei in der Nähe sonntags geöffnet",
+          "Bäckerei Berlin in der Nähe jetzt geöffnet",
+          "Bäckerei München in der Nähe jetzt geöffnet",
+          "Bäckerei in der Nähe von meinem standort maps"
+         ]
+        }
+       }
+      ],
+      "domain": "baeckerei-hinkel.de",
+      "locale": {
+       "country": "DE",
+       "language": "de"
+      },
+      "market": {
+       "at": "2026-10-15T12:47:06.619Z",
+       "kind": "measured",
+       "value": {
+        "pool": [
+         {
+          "rival": null,
+          "volume": 1220000,
+          "keyword": "bäckerei",
+          "difficulty": 50
+         },
+         {
+          "rival": null,
+          "volume": 6600,
+          "keyword": "bäckerei hinkel gmbh & co kg",
+          "difficulty": 5
+         },
+         {
+          "rival": null,
+          "volume": 5400,
+          "keyword": "bäckerei hinkel",
+          "difficulty": 5
+         },
+         {
+          "rival": null,
+          "volume": 5400,
+          "keyword": "hinkel bäckerei",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 3600,
+          "keyword": "bäcker düsseldorf",
+          "difficulty": 13
+         },
+         {
+          "rival": null,
+          "volume": 3600,
+          "keyword": "bäckerei düsseldorf",
+          "difficulty": 11
+         },
+         {
+          "rival": null,
+          "volume": 3600,
+          "keyword": "düsseldorf bäckerei",
+          "difficulty": 6
+         },
+         {
+          "rival": null,
+          "volume": 3600,
+          "keyword": "hinkel bäckerei düsseldorf",
+          "difficulty": 6
+         },
+         {
+          "rival": null,
+          "volume": 3600,
+          "keyword": "hinkel düsseldorf",
+          "difficulty": 5
+         },
+         {
+          "rival": null,
+          "volume": 3600,
+          "keyword": "bäckereien düsseldorf",
+          "difficulty": 9
+         },
+         {
+          "rival": null,
+          "volume": 1900,
+          "keyword": "hinkel",
+          "difficulty": 2
+         },
+         {
+          "rival": null,
+          "volume": 246000,
+          "keyword": "bakery",
+          "difficulty": 4
+         },
+         {
+          "rival": null,
+          "volume": 1300,
+          "keyword": "bäckerei hinkel düsseldorf",
+          "difficulty": 5
+         },
+         {
+          "rival": null,
+          "volume": 3600,
+          "keyword": "josef hinkel düsseldorf",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 320,
+          "keyword": "bäckerei düsseldorf in der nähe",
+          "difficulty": 6
+         },
+         {
+          "rival": null,
+          "volume": 260,
+          "keyword": "sophie hinkel",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 210,
+          "keyword": "bäckerei hinkel schließt",
+          "difficulty": 6
+         },
+         {
+          "rival": null,
+          "volume": 170,
+          "keyword": "bäcker in düsseldorf",
+          "difficulty": 4
+         },
+         {
+          "rival": null,
+          "volume": 170,
+          "keyword": "hinkel brot",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 140,
+          "keyword": "bäckerei hinkel düsseldorf filialen",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 110,
+          "keyword": "bäckerei hinkel filialen",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 320,
+          "keyword": "fleher bäckerei",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 90,
+          "keyword": "bäckerei düsseldorf jetzt geöffnet",
+          "difficulty": 5
+         },
+         {
+          "rival": null,
+          "volume": 90,
+          "keyword": "bäckerei hinkel produkte",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 90,
+          "keyword": "hinkel brotsorten",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 90,
+          "keyword": "hinkel meerbusch",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 12100,
+          "keyword": "bakers",
+          "difficulty": 24
+         },
+         {
+          "rival": null,
+          "volume": 140,
+          "keyword": "josef hinkel ehefrau",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 70,
+          "keyword": "bäckerei hinkel online shop",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 70,
+          "keyword": "bäckerei hinkel online-shop",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 70,
+          "keyword": "hinkel altstadt",
+          "difficulty": 1
+         },
+         {
+          "rival": null,
+          "volume": 70,
+          "keyword": "hinkel düsseldorf altstadt",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 70,
+          "keyword": "hohe straße 31",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 110,
+          "keyword": "hinkel düsseldorf online shop",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 110,
+          "keyword": "hinkel düsseldorf online-shop",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 170,
+          "keyword": "beste bäckerei düsseldorf",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 50,
+          "keyword": "hinkel düsseldorf öffnungszeiten",
+          "difficulty": 1
+         },
+         {
+          "rival": null,
+          "volume": 90,
+          "keyword": "sophie hinkel ehemann",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 140,
+          "keyword": "bäckerei gerresheim",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 70,
+          "keyword": "bäckerei düsseldorf jobs",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 70,
+          "keyword": "bäckerei jobs düsseldorf",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 110,
+          "keyword": "bäckerei sonntags geöffnet düsseldorf",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 70,
+          "keyword": "bäcker jobs düsseldorf",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 140,
+          "keyword": "sauerteigbrot düsseldorf",
+          "difficulty": 2
+         },
+         {
+          "rival": null,
+          "volume": 210,
+          "keyword": "türkischer bäcker düsseldorf",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 320,
+          "keyword": "bäckerei winkel",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 70,
+          "keyword": "sophie hinkel alter",
+          "difficulty": 0
+         },
+         {
+          "rival": null,
+          "volume": 1900,
+          "keyword": "bäckereien öffnungszeiten",
+          "difficulty": 56
+         },
+         {
+          "rival": null,
+          "volume": 1900,
+          "keyword": "der bäckerei",
+          "difficulty": 4
+         },
+         {
+          "rival": null,
+          "volume": 390,
+          "keyword": "celik bäckerei",
+          "difficulty": 0
+         }
+        ],
+        "profile": {
+         "job": "Hochwertige handwerkliche Backwaren und Brot täglich frisch liefern",
+         "category": "Bäckerei, Brot, Backwaren",
+         "language": "de",
+         "vocabulary": [
+          "Handwerksbrot",
+          "Frisches Brot",
+          "Backwaren",
+          "Qualitätsbackwaren",
+          "Sauerteig",
+          "Vollkorn",
+          "täglich gebacken",
+          "natürliche Zutaten",
+          "Brotkultur"
+         ],
+         "brandTokens": [
+          "Bäckerei Hinkel",
+          "Die Bäckerei der Brotfreunde"
+         ],
+         "namedRivals": [],
+         "offeringType": "Handwerksbäckerei mit Einzelhandel und möglicherweise Belieferung",
+         "audienceTerms": [
+          "Brotliebhaber",
+          "Qualitätsbewusste Kunden",
+          "Familien",
+          "Feinschmecker"
+         ]
+        },
+        "suggestions": [
+         {
+          "volume": 20,
+          "keyword": "handwerksbrot"
+         },
+         {
+          "volume": 10,
+          "keyword": "vestakorn handwerksbrot",
+          "difficulty": 50
+         },
+         {
+          "volume": 10,
+          "keyword": "handwerksbrot in der nähe"
+         },
+         {
+          "volume": 590,
+          "keyword": "frisches brot aufbewahren ohne brotkasten",
+          "difficulty": 0
+         },
+         {
+          "volume": 480,
+          "keyword": "frisches brot aus dem tandoor",
+          "difficulty": 0
+         },
+         {
+          "volume": 480,
+          "keyword": "aufbewahrung frisches brot",
+          "difficulty": 0
+         },
+         {
+          "volume": 480,
+          "keyword": "frisches brot aufbewahren",
+          "difficulty": 0
+         },
+         {
+          "volume": 260,
+          "keyword": "frisches brot",
+          "difficulty": 0
+         },
+         {
+          "volume": 170,
+          "keyword": "frisches brot lagern",
+          "difficulty": 0
+         },
+         {
+          "volume": 170,
+          "keyword": "frisches brot einfrieren",
+          "difficulty": 0
+         },
+         {
+          "volume": 70,
+          "keyword": "frisches brot blähungen",
+          "difficulty": 0
+         },
+         {
+          "volume": 50,
+          "keyword": "wie lange hält frisches brot",
+          "difficulty": 0
+         },
+         {
+          "volume": 40,
+          "keyword": "wie bewahrt man frisches brot am besten auf"
+         },
+         {
+          "volume": 40,
+          "keyword": "frisches glutenfreies brot bestellen"
+         },
+         {
+          "volume": 40,
+          "keyword": "aldi frisches brot",
+          "difficulty": 0
+         },
+         {
+          "volume": 40,
+          "keyword": "kann man frisches brot einfrieren"
+         },
+         {
+          "volume": 30,
+          "keyword": "frisches brot anschneiden",
+          "difficulty": 50
+         },
+         {
+          "volume": 30,
+          "keyword": "frisches brot backen",
+          "difficulty": 52
+         },
+         {
+          "volume": 30,
+          "keyword": "frisches brot schneiden",
+          "difficulty": 50
+         },
+         {
+          "volume": 20,
+          "keyword": "rewe frisches brot",
+          "difficulty": 0
+         },
+         {
+          "volume": 20,
+          "keyword": "wie frisches brot am besten aufbewahren"
+         },
+         {
+          "volume": 20,
+          "keyword": "wie lange ist frisches brot vom bäcker haltbar"
+         },
+         {
+          "volume": 20,
+          "keyword": "frisches brot durchfall",
+          "difficulty": 51
+         },
+         {
+          "volume": 20,
+          "keyword": "wo frisches brot aufbewahren"
+         },
+         {
+          "volume": 20,
+          "keyword": "frisches brot bauchschmerzen",
+          "difficulty": 51
+         },
+         {
+          "volume": 20,
+          "keyword": "wann frisches brot anschneiden"
+         },
+         {
+          "volume": 20,
+          "keyword": "frisches brot richtig aufbewahren"
+         },
+         {
+          "volume": 20,
+          "keyword": "dürfen hühner frisches brot essen"
+         },
+         {
+          "volume": 20,
+          "keyword": "frisches brot vakuumieren"
+         },
+         {
+          "volume": 20,
+          "keyword": "frisches brot kaufen"
+         },
+         {
+          "volume": 20,
+          "keyword": "wie frisches brot aufbewahren",
+          "difficulty": 0
+         },
+         {
+          "volume": 20,
+          "keyword": "kann man frisches brot vakuumieren"
+         },
+         {
+          "volume": 20,
+          "keyword": "wie frisches brot am besten lagern"
+         },
+         {
+          "volume": 20,
+          "keyword": "aldi süd frisches brot",
+          "difficulty": 0
+         },
+         {
+          "volume": 20,
+          "keyword": "frisches brot im kühlschrank aufbewahren"
+         },
+         {
+          "volume": 20,
+          "keyword": "ist altes brot gesünder als frisches"
+         },
+         {
+          "volume": 20,
+          "keyword": "wie lange frisches brot haltbar"
+         },
+         {
+          "volume": 10,
+          "keyword": "jeden tag frisches brot"
+         },
+         {
+          "volume": 10,
+          "keyword": "frisches brot einpacken"
+         },
+         {
+          "volume": 10,
+          "keyword": "frisches brot wie aufbewahren"
+         },
+         {
+          "volume": 10,
+          "keyword": "edeka frisches brot",
+          "difficulty": 0
+         },
+         {
+          "volume": 10,
+          "keyword": "frisches brot sodbrennen"
+         },
+         {
+          "volume": 10,
+          "keyword": "frisches brot magnesium"
+         },
+         {
+          "volume": 10,
+          "keyword": "frisches brot aldi"
+         },
+         {
+          "volume": 10,
+          "keyword": "frisches brot kinderlied"
+         },
+         {
+          "volume": 10,
+          "keyword": "frisches brot buch"
+         },
+         {
+          "volume": 10,
+          "keyword": "frisches glutenfreies brot kaufen"
+         },
+         {
+          "volume": 10,
+          "keyword": "frisches brot liefern lassen"
+         },
+         {
+          "volume": 10,
+          "keyword": "semmelknödel frisches brot"
+         },
+         {
+          "volume": 10,
+          "keyword": "frisches brot selber backen"
+         },
+         {
+          "volume": 10,
+          "keyword": "frisches brot wann anschneiden"
+         },
+         {
+          "volume": 10,
+          "keyword": "frisches brot wie am ersten tag"
+         },
+         {
+          "volume": 10,
+          "keyword": "warum ist frisches brot schwer verdaulich"
+         }
+        ],
+        "totalVolume": 3560
+       }
+      },
+      "onPage": {
+       "at": "2026-10-15T12:47:06.656Z",
+       "kind": "measured",
+       "value": {
+        "url": "https://baeckerei-hinkel.de/",
+        "dates": 0,
+        "noindex": false,
+        "headings": 0,
+        "numerals": 0,
+        "schemaTypes": [],
+        "visibleChars": 46,
+        "outboundCitations": 0,
+        "openGraphProperties": [],
+        "directAnswerHeadings": 0,
+        "questionShapedHeadings": 0,
+        "noindexAppliesToEveryReader": false
+       }
+      },
+      "rivals": {
+       "at": "2026-10-15T12:47:12.334Z",
+       "kind": "measured",
+       "value": [
+        {
+         "score": 5,
+         "domain": "dorfbaeckerei-ackermann.de",
+         "aiCitations": 1,
+         "top10Appearances": 3
+        },
+        {
+         "score": 3,
+         "domain": "bakersmachinery.com",
+         "aiCitations": 1,
+         "top10Appearances": 1
+        },
+        {
+         "score": 3,
+         "domain": "lebensmittelmagazin.de",
+         "aiCitations": 1,
+         "top10Appearances": 1
+        },
+        {
+         "score": 2,
+         "domain": "armbruster-baeckerei.de",
+         "aiCitations": 1,
+         "top10Appearances": 0
+        },
+        {
+         "score": 2,
+         "domain": "gaumenfreundin.de",
+         "aiCitations": 1,
+         "top10Appearances": 0
+        }
+       ]
+      },
+      "robots": {
+       "at": "2026-10-15T12:47:06.619Z",
+       "kind": "measured",
+       "value": {
+        "ok": true,
+        "rules": {},
+        "absent": false,
+        "origin": "https://baeckerei-hinkel.de",
+        "readAt": "2026-10-15T12:47:06.718Z",
+        "sitemaps": [],
+        "disallowsAll": false,
+        "disallowedAgents": {},
+        "crawlDelaySeconds": {}
+       }
+      },
+      "scanId": "c32c8610-6df9-4d71-8630-84ee4438d1d9",
+      "supply": {
+       "missingPages": {
+        "at": "2026-10-15T12:47:06.619Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+       },
+       "unquotablePages": {
+        "at": "2026-10-15T12:47:06.619Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+       }
+      },
+      "sources": [
+       "facebook.com",
+       "google.com",
+       "pinterest.com",
+       "youtube.com",
+       "instagram.com"
+      ],
+      "verdict": {
+       "domain": "baeckerei-hinkel.de",
+       "factors": {
+        "presence": {
+         "at": "2026-10-15T12:47:06.619Z",
+         "kind": "measured",
+         "value": 7.390350855706377
+        },
+        "foundations": {
+         "at": "2026-10-15T12:47:06.619Z",
+         "kind": "measured",
+         "value": 62.5
+        },
+        "answerability": {
+         "at": "2026-10-15T12:47:06.619Z",
+         "kind": "zero",
+         "value": 1
+        }
+       },
+       "missing": [],
+       "limiting": {
+        "kind": "factor",
+        "factor": "answerability"
+       },
+       "measuredAt": "2026-10-15T12:47:06.619Z",
+       "scoreAndBand": {
+        "at": "2026-10-15T12:47:06.619Z",
+        "kind": "measured",
+        "value": {
+         "band": "invisible",
+         "score": 8
+        }
+       },
+       "blockedReaders": {
+        "at": "2026-10-15T12:47:06.619Z",
+        "kind": "zero",
+        "value": 0
+       },
+       "unmeasuredElsewhere": []
+      },
+      "version": 13,
+      "complete": true,
+      "freePage": {
+       "slug": {
+        "text": "frisches-brot-backen",
+        "source": "model"
+       },
+       "beats": "familienkost.de",
+       "title": {
+        "text": "Wie backe ich frisches Brot selber?",
+        "source": "model"
+       },
+       "format": "answer_page",
+       "target": {
+        "volume": 30,
+        "keyword": "frisches brot backen"
+       },
+       "totalPages": 3,
+       "opportunityId": "c32c8610-6df9-4d71-8630-84ee4438d1d9:frisches-brot-backen"
+      },
+      "presence": {
+       "you": {
+        "domain": "baeckerei-hinkel.de",
+        "top10Count": 0
+       },
+       "rivals": [
+        {
+         "domain": "dorfbaeckerei-ackermann.de",
+         "top10Count": 3
+        },
+        {
+         "domain": "bakersmachinery.com",
+         "top10Count": 1
+        },
+        {
+         "domain": "lebensmittelmagazin.de",
+         "top10Count": 1
+        },
+        {
+         "domain": "armbruster-baeckerei.de",
+         "top10Count": 0
+        },
+        {
+         "domain": "gaumenfreundin.de",
+         "top10Count": 0
+        }
+       ],
+       "framing": "shown",
+       "absentFrom": [
+        {
+         "volume": 260,
+         "keyword": "frisches brot",
+         "topHolder": "chefkoch.de"
+        },
+        {
+         "volume": 30,
+         "keyword": "frisches brot backen",
+         "topHolder": "familienkost.de"
+        },
+        {
+         "volume": 20,
+         "keyword": "frisches brot kaufen",
+         "topHolder": "lebegesund.de"
+        },
+        {
+         "volume": 20,
+         "keyword": "handwerksbrot",
+         "topHolder": "wlw.de"
+        },
+        {
+         "volume": 10,
+         "keyword": "handwerksbrot in der nähe",
+         "topHolder": "mitvergnuegen.com"
+        }
+       ],
+       "measuredSearches": 5
+      },
+      "aiAnswers": {
+       "rows": [
+        {
+         "cell": {
+          "kind": "no_answer"
+         },
+         "engines": [
+          {
+           "cell": {
+            "kind": "no_answer"
+           },
+           "engine": "ai_overview"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "ai_mode"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "chatgpt"
+          }
+         ],
+         "question": {
+          "n": 1,
+          "search": "frisches brot",
+          "wording": {
+           "text": "Wo kann ich frisches Brot bekommen?",
+           "source": "model"
+          }
+         }
+        },
+        {
+         "cell": {
+          "kind": "answered",
+          "ownUrls": [],
+          "citedDomains": [
+           "gaumenfreundin.de",
+           "tastybits.de",
+           "lecker.de",
+           "youtube.com"
+          ],
+          "namesCustomer": false
+         },
+         "engines": [
+          {
+           "cell": {
+            "kind": "answered",
+            "ownUrls": [],
+            "citedDomains": [
+             "gaumenfreundin.de",
+             "tastybits.de",
+             "lecker.de",
+             "youtube.com"
+            ],
+            "namesCustomer": false
+           },
+           "engine": "ai_overview"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "ai_mode"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "chatgpt"
+          }
+         ],
+         "question": {
+          "n": 2,
+          "search": "frisches brot backen",
+          "wording": {
+           "text": "Wie backe ich frisches Brot selber?",
+           "source": "model"
+          }
+         }
+        },
+        {
+         "cell": {
+          "kind": "no_answer"
+         },
+         "engines": [
+          {
+           "cell": {
+            "kind": "no_answer"
+           },
+           "engine": "ai_overview"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "ai_mode"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "chatgpt"
+          }
+         ],
+         "question": {
+          "n": 3,
+          "search": "frisches brot kaufen",
+          "wording": {
+           "text": "Wo kann ich frisches Brot kaufen?",
+           "source": "model"
+          }
+         }
+        },
+        {
+         "cell": {
+          "kind": "answered",
+          "ownUrls": [],
+          "citedDomains": [
+           "bakersmachinery.com",
+           "youtube.com",
+           "instagram.com",
+           "dorfbaeckerei-ackermann.de",
+           "armbruster-baeckerei.de",
+           "lebensmittelmagazin.de"
+          ],
+          "namesCustomer": false
+         },
+         "engines": [
+          {
+           "cell": {
+            "kind": "answered",
+            "ownUrls": [],
+            "citedDomains": [
+             "bakersmachinery.com",
+             "youtube.com",
+             "instagram.com",
+             "dorfbaeckerei-ackermann.de",
+             "armbruster-baeckerei.de",
+             "lebensmittelmagazin.de"
+            ],
+            "namesCustomer": false
+           },
+           "engine": "ai_overview"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "ai_mode"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "chatgpt"
+          }
+         ],
+         "question": {
+          "n": 4,
+          "search": "handwerksbrot",
+          "wording": {
+           "text": "Was ist Handwerksbrot?",
+           "source": "model"
+          }
+         }
+        },
+        {
+         "cell": {
+          "kind": "no_answer"
+         },
+         "engines": [
+          {
+           "cell": {
+            "kind": "no_answer"
+           },
+           "engine": "ai_overview"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "ai_mode"
+          },
+          {
+           "cell": {
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+           },
+           "engine": "chatgpt"
+          }
+         ],
+         "question": {
+          "n": 5,
+          "search": "handwerksbrot in der nähe",
+          "wording": {
+           "text": "Wo gibt es Handwerksbrot in meiner Nähe?",
+           "source": "model"
+          }
+         }
+        }
+       ],
+       "rivals": [
+        {
+         "cells": [
+          {
+           "kind": "no_answer"
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "no_answer"
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [
+            "dorfbaeckerei-ackermann.de"
+           ],
+           "namesCustomer": false
+          },
+          {
+           "kind": "no_answer"
+          }
+         ],
+         "domain": "dorfbaeckerei-ackermann.de"
+        },
+        {
+         "cells": [
+          {
+           "kind": "no_answer"
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "no_answer"
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [
+            "bakersmachinery.com"
+           ],
+           "namesCustomer": false
+          },
+          {
+           "kind": "no_answer"
+          }
+         ],
+         "domain": "bakersmachinery.com"
+        },
+        {
+         "cells": [
+          {
+           "kind": "no_answer"
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "no_answer"
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [
+            "lebensmittelmagazin.de"
+           ],
+           "namesCustomer": false
+          },
+          {
+           "kind": "no_answer"
+          }
+         ],
+         "domain": "lebensmittelmagazin.de"
+        },
+        {
+         "cells": [
+          {
+           "kind": "no_answer"
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "no_answer"
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [
+            "armbruster-baeckerei.de"
+           ],
+           "namesCustomer": false
+          },
+          {
+           "kind": "no_answer"
+          }
+         ],
+         "domain": "armbruster-baeckerei.de"
+        },
+        {
+         "cells": [
+          {
+           "kind": "no_answer"
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [
+            "gaumenfreundin.de"
+           ],
+           "namesCustomer": false
+          },
+          {
+           "kind": "no_answer"
+          },
+          {
+           "kind": "answered",
+           "citedDomains": [],
+           "namesCustomer": false
+          },
+          {
+           "kind": "no_answer"
+          }
+         ],
+         "domain": "gaumenfreundin.de"
+        }
+       ],
+       "coverage": "async_included",
+       "ownDomain": "baeckerei-hinkel.de",
+       "measuredAt": "2026-10-15T12:47:12.334Z",
+       "reusedFrom": null,
+       "answeredSearches": 2,
+       "measuredSearches": 5,
+       "customerCitations": 0
+      },
+      "coherence": {
+       "verdict": "coherent"
+      },
+      "ownRanked": {
+       "at": "2026-10-15T12:47:06.619Z",
+       "kind": "measured",
+       "value": 152
+      },
+      "questions": {
+       "at": "2026-10-15T12:47:12.334Z",
+       "kind": "measured",
+       "value": [
+        {
+         "id": "q1",
+         "text": "Wo kann ich frisches Brot bekommen?",
+         "search": {
+          "rank": 1,
+          "floor": 50,
+          "score": 2.416640507338281,
+          "intent": "informational",
+          "volume": 260,
+          "keyword": "frisches brot",
+          "difficulty": 0
+         },
+         "phrasing": "model"
+        },
+        {
+         "id": "q2",
+         "text": "Wie backe ich frisches Brot selber?",
+         "search": {
+          "rank": 2,
+          "floor": 20,
+          "score": 1.4913616938342726,
+          "intent": "informational",
+          "volume": 30,
+          "keyword": "frisches brot backen",
+          "difficulty": 52
+         },
+         "phrasing": "model"
+        },
+        {
+         "id": "q3",
+         "text": "Wo kann ich frisches Brot kaufen?",
+         "search": {
+          "rank": 3,
+          "floor": 20,
+          "score": 1.3222192947339193,
+          "intent": "informational",
+          "volume": 20,
+          "keyword": "frisches brot kaufen"
+         },
+         "phrasing": "model"
+        },
+        {
+         "id": "q4",
+         "text": "Was ist Handwerksbrot?",
+         "search": {
+          "rank": 4,
+          "floor": 20,
+          "score": 1.3222192947339193,
+          "intent": "informational",
+          "volume": 20,
+          "keyword": "handwerksbrot"
+         },
+         "phrasing": "model"
+        },
+        {
+         "id": "q5",
+         "text": "Wo gibt es Handwerksbrot in meiner Nähe?",
+         "search": {
+          "rank": 5,
+          "floor": 10,
+          "score": 1.041392685158225,
+          "intent": "informational",
+          "volume": 10,
+          "keyword": "handwerksbrot in der nähe"
+         },
+         "phrasing": "model"
+        }
+       ]
+      },
+      "rivalSizes": {
+       "at": "2026-10-15T12:47:06.619Z",
+       "kind": "unmeasured",
+       "reason": "not_attempted"
+      },
+      "siteIssues": {
+       "issues": [
+        {
+         "ran": true,
+         "doer": "reachkit_rewrites",
+         "over": 1,
+         "unit": "pages",
+         "check": "page_titles",
+         "count": 0,
+         "pages": [],
+         "parts": {
+          "missing": 0,
+          "duplicate": 0
+         },
+         "severity": "nothing_to_fix"
+        },
+        {
+         "ran": true,
+         "doer": "reachkit_rewrites",
+         "over": 1,
+         "unit": "pages",
+         "check": "meta_descriptions",
+         "count": 0,
+         "pages": [],
+         "parts": {
+          "missing": 0,
+          "duplicate": 0
+         },
+         "severity": "nothing_to_fix"
+        },
+        {
+         "ran": true,
+         "doer": "free_fix",
+         "over": 1,
+         "unit": "pages",
+         "check": "noindex_pages",
+         "count": 0,
+         "pages": [],
+         "severity": "nothing_to_fix"
+        },
+        {
+         "ran": true,
+         "doer": "free_fix",
+         "over": 1,
+         "unit": "site",
+         "check": "sitemap",
+         "count": 1,
+         "pages": null,
+         "severity": "critical"
+        },
+        {
+         "ran": false,
+         "check": "slow_pages",
+         "because": "no_timed_reads"
+        },
+        {
+         "ran": true,
+         "doer": "free_fix",
+         "over": 0,
+         "unit": "links",
+         "check": "broken_links",
+         "count": 0,
+         "pages": null,
+         "severity": "nothing_to_fix"
+        },
+        {
+         "ran": true,
+         "doer": "free_fix",
+         "over": 1,
+         "unit": "pages",
+         "check": "phone_usability",
+         "count": 0,
+         "pages": [],
+         "severity": "nothing_to_fix"
+        },
+        {
+         "ran": true,
+         "doer": "reachkit_writes",
+         "over": 1,
+         "unit": "pages",
+         "check": "structured_data",
+         "count": 1,
+         "pages": [
+          "https://baeckerei-hinkel.de/"
+         ],
+         "severity": "critical"
+        },
+        {
+         "ran": true,
+         "doer": "free_fix",
+         "over": 5,
+         "unit": "ai_readers",
+         "check": "ai_readers_blocked",
+         "count": 0,
+         "pages": [],
+         "severity": "nothing_to_fix"
+        }
+       ],
+       "stoppedBy": "complete",
+       "checkedPages": [
+        "https://baeckerei-hinkel.de/"
+       ],
+       "pagesChecked": 1
+      },
+      "blockedAgents": [],
+      "ownRankedRows": [
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckerei",
+        "position": 59,
+        "difficulty": 50,
+        "searchVolume": 1220000
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckerei hinkel gmbh & co kg",
+        "position": 1,
+        "difficulty": 5,
+        "searchVolume": 6600
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckerei hinkel",
+        "position": 1,
+        "difficulty": 5,
+        "searchVolume": 5400
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/deutsch/produkte/",
+        "keyword": "hinkel bäckerei",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 5400
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäcker düsseldorf",
+        "position": 1,
+        "difficulty": 13,
+        "searchVolume": 3600
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckerei düsseldorf",
+        "position": 1,
+        "difficulty": 11,
+        "searchVolume": 3600
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "düsseldorf bäckerei",
+        "position": 1,
+        "difficulty": 6,
+        "searchVolume": 3600
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "hinkel bäckerei düsseldorf",
+        "position": 1,
+        "difficulty": 6,
+        "searchVolume": 3600
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "hinkel düsseldorf",
+        "position": 1,
+        "difficulty": 5,
+        "searchVolume": 3600
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckereien düsseldorf",
+        "position": 2,
+        "difficulty": 9,
+        "searchVolume": 3600
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "hinkel",
+        "position": 1,
+        "difficulty": 2,
+        "searchVolume": 1900
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/english/",
+        "keyword": "bakery",
+        "position": 44,
+        "difficulty": 4,
+        "searchVolume": 246000
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckerei hinkel düsseldorf",
+        "position": 1,
+        "difficulty": 5,
+        "searchVolume": 1300
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "josef hinkel düsseldorf",
+        "position": 3,
+        "difficulty": 0,
+        "searchVolume": 3600
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckerei düsseldorf in der nähe",
+        "position": 1,
+        "difficulty": 6,
+        "searchVolume": 320
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/deutsch/%C3%BCber-uns/betriebsgeschichte/",
+        "keyword": "sophie hinkel",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 260
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckerei hinkel schließt",
+        "position": 1,
+        "difficulty": 6,
+        "searchVolume": 210
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäcker in düsseldorf",
+        "position": 1,
+        "difficulty": 4,
+        "searchVolume": 170
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/deutsch/produkte/",
+        "keyword": "hinkel brot",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 170
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckerei hinkel düsseldorf filialen",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 140
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckerei hinkel filialen",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 110
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/deutsch/verkauf/wiederverk%C3%A4ufer/",
+        "keyword": "fleher bäckerei",
+        "position": 3,
+        "difficulty": 0,
+        "searchVolume": 320
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckerei düsseldorf jetzt geöffnet",
+        "position": 1,
+        "difficulty": 5,
+        "searchVolume": 90
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/deutsch/produkte/",
+        "keyword": "bäckerei hinkel produkte",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 90
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/deutsch/produkte/",
+        "keyword": "hinkel brotsorten",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 90
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/deutsch/verkauf/wiederverk%C3%A4ufer/",
+        "keyword": "hinkel meerbusch",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 90
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/english/",
+        "keyword": "bakers",
+        "position": 39,
+        "difficulty": 24,
+        "searchVolume": 12100
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/deutsch/%C3%BCber-uns/betriebsgeschichte/",
+        "keyword": "josef hinkel ehefrau",
+        "position": 2,
+        "difficulty": 0,
+        "searchVolume": 140
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckerei hinkel online shop",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 70
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckerei hinkel online-shop",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 70
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "hinkel altstadt",
+        "position": 1,
+        "difficulty": 1,
+        "searchVolume": 70
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "hinkel düsseldorf altstadt",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 70
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/deutsch/verkauf/hohe-stra%C3%9Fe/",
+        "keyword": "hohe straße 31",
+        "position": 1,
+        "difficulty": 0,
+        "searchVolume": 70
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "hinkel düsseldorf online shop",
+        "position": 2,
+        "difficulty": 0,
+        "searchVolume": 110
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "hinkel düsseldorf online-shop",
+        "position": 2,
+        "difficulty": 0,
+        "searchVolume": 110
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "beste bäckerei düsseldorf",
+        "position": 3,
+        "difficulty": 0,
+        "searchVolume": 170
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "hinkel düsseldorf öffnungszeiten",
+        "position": 1,
+        "difficulty": 1,
+        "searchVolume": 50
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/deutsch/%C3%BCber-uns/betriebsgeschichte/",
+        "keyword": "sophie hinkel ehemann",
+        "position": 2,
+        "difficulty": 0,
+        "searchVolume": 90
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckerei gerresheim",
+        "position": 3,
+        "difficulty": 0,
+        "searchVolume": 140
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/deutsch/karriere/",
+        "keyword": "bäckerei düsseldorf jobs",
+        "position": 2,
+        "difficulty": 0,
+        "searchVolume": 70
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/deutsch/karriere/",
+        "keyword": "bäckerei jobs düsseldorf",
+        "position": 2,
+        "difficulty": 0,
+        "searchVolume": 70
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckerei sonntags geöffnet düsseldorf",
+        "position": 4,
+        "difficulty": 0,
+        "searchVolume": 110
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/deutsch/karriere/",
+        "keyword": "bäcker jobs düsseldorf",
+        "position": 3,
+        "difficulty": 0,
+        "searchVolume": 70
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "sauerteigbrot düsseldorf",
+        "position": 5,
+        "difficulty": 2,
+        "searchVolume": 140
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "türkischer bäcker düsseldorf",
+        "position": 7,
+        "difficulty": 0,
+        "searchVolume": 210
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckerei winkel",
+        "position": 9,
+        "difficulty": 0,
+        "searchVolume": 320
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/deutsch/%C3%BCber-uns/betriebsgeschichte/",
+        "keyword": "sophie hinkel alter",
+        "position": 4,
+        "difficulty": 0,
+        "searchVolume": 70
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "bäckereien öffnungszeiten",
+        "position": 67,
+        "difficulty": 56,
+        "searchVolume": 1900
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "der bäckerei",
+        "position": 40,
+        "difficulty": 4,
+        "searchVolume": 1900
+       },
+       {
+        "url": "https://www.baeckerei-hinkel.de/",
+        "keyword": "celik bäckerei",
+        "position": 11,
+        "difficulty": 0,
+        "searchVolume": 390
+       }
+      ],
+      "pageQuestions": null,
+      "stoppedReason": "complete",
+      "correctionState": "none",
+      "measuredCategory": null,
+      "fromIncompleteRescan": false
+     },
+     "siteId": null,
+     "isCurrent": true
+    },
+    "reads": [
+     {
+      "source": "egress.safeFetch",
+      "created_at": "2026-10-15T12:47:07.177323+00:00",
+      "payload": {
+       "url": "https://baeckerei-hinkel.de/",
+       "html": "<!doctype html>\n<html lang=\"de\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <link rel=\"icon\" type=\"image/png\" href=\"/breadicon.png\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <meta\n      name=\"description\"\n      content=\"Bäckerei Hinkel in Düsseldorf – die Bäckerei der Brotfreunde. Handwerklich gebackenes Brot aus Mehl, Wasser und Salz, seit Generationen in Familienhand.\"\n    />\n    <link rel=\"preload\" href=\"/4487-font.ttf\" as=\"font\" type=\"font/ttf\" crossorigin />\n    <title>Bäckerei Hinkel – Die Bäckerei der Brotfreunde</title>\n    <script type=\"module\" crossorigin src=\"/assets/index-Dxw50rEw.js\"></script>\n    <link rel=\"stylesheet\" crossorigin href=\"/assets/index-BHwZfbur.css\">\n  </head>\n  <body>\n    <div id=\"root\"></div>\n  </body>\n</html>\n",
+       "bytes": 801,
+       "readAt": "2026-10-15T12:47:06.656Z",
+       "status": 200,
+       "headers": {
+        "server": "Netlify"
+       }
+      }
+     }
+    ],
+    "siteName": "Bäckerei Hinkel",
     "answers": []
    }
   }

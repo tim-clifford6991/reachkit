@@ -20,6 +20,7 @@ import {
   aiSampleOf,
   answerabilityOf,
   foundationsOf,
+  localPackSearches,
   ownRankedOf,
   searchPresenceOf,
 } from "../../../src/lib/measure/drivers.ts";
@@ -575,5 +576,42 @@ describe("issue 1439 — AI is judged on the answers that exist, and a score say
     expect(valueOf(presenceOf({ searchPresence: measuredZero(0, AT), aiPresence: named }))).toBeCloseTo(30, 10);
     const nobody = aiPresenceOf({ serps: fourOf(["example.com"]), ownDomain: OWN, at: AT });
     expect(valueOf(presenceOf({ searchPresence: measuredZero(0, AT), aiPresence: nobody }))).toBe(1);
+  });
+});
+
+describe("D67, owner ruling 2026-10-15 (issue 1441) — a place in the local pack counts toward SearchPresence as a top-ten result", () => {
+  const pack = (domains: readonly string[]): Measured<{ localPack?: readonly { domain: string }[] }> => measured({ localPack: domains.map((domain) => ({ domain })) }, AT);
+
+  it("reads the searches whose pack shows the site, by the search each SERP was bought for", () => {
+    const found = localPackSearches({
+      serps: [pack(["rival.co.uk", "www.reachkit.app"]), pack(["rival.co.uk"]), unmeasured("undeterminable", AT), measured({}, AT), pack(["shop.reachkit.app"])],
+      searches: ["plumber leeds", "boiler repair leeds", "drain unblocking leeds", "plumbers in leeds"],
+      ownDomain: OWN,
+    });
+    expect(found).toEqual(["plumber leeds"]);
+  });
+
+  it("a site that ranks for nothing but holds the pack on two searches is found on two, each a top-ten result", () => {
+    const none = searchPresenceOf({ ranked: measuredZero<RankedResult>({ rows: [], total: 0 }, AT), at: AT });
+    const local = searchPresenceOf({ ranked: measuredZero<RankedResult>({ rows: [], total: 0 }, AT), at: AT, localPack: ["plumber leeds", "Plumber Leeds", "emergency plumber leeds"] });
+    expect(valueOf(none)).toBe(0);
+    expect(valueOf(local)).toBeCloseTo(Math.min(100, 25 * Math.log10(3)) * 1.0, 10);
+  });
+
+  it("a pack search the ranked rows already hold below the top ten is moved into it, not counted twice", () => {
+    const rows = [{ ...rankedRow(30), keyword: "plumber leeds" }, rankedRow(40), rankedRow(50), rankedRow(60)];
+    const before = searchPresenceOf({ ranked: measured<RankedResult>({ rows, total: 4 }, AT), at: AT });
+    const after = searchPresenceOf({ ranked: measured<RankedResult>({ rows, total: 4 }, AT), at: AT, localPack: ["plumber leeds"] });
+    const reach = Math.min(100, 25 * Math.log10(5));
+    expect(valueOf(before)).toBeCloseTo(reach * 0.55, 10);
+    expect(valueOf(after)).toBeCloseTo(reach * 1.0, 10);
+  });
+
+  it("no pack, and an unmeasured ranked read, change nothing", () => {
+    const rows = [rankedRow(3), rankedRow(30)];
+    expect(searchPresenceOf({ ranked: measured<RankedResult>({ rows, total: 2 }, AT), at: AT, localPack: [] })).toEqual(
+      searchPresenceOf({ ranked: measured<RankedResult>({ rows, total: 2 }, AT), at: AT })
+    );
+    expect(searchPresenceOf({ ranked: unmeasured<RankedResult>("not_attempted", AT), at: AT, localPack: ["plumber leeds"] }).kind).toBe("unmeasured");
   });
 });

@@ -90,10 +90,10 @@ import { sizeRivals, type RivalSize } from "@/lib/market/rivals/size";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
 import { freePageOf } from "@/lib/opportunities/free-page";
-import { DEFAULT_LOCALE, type Locale } from "@/lib/locale/locales";
+import { DEFAULT_LOCALE, type Locale, type Place } from "@/lib/locale/locales";
 import { localSearch, statedPlace as statedPlaceOf } from "@/lib/locale/place";
 import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
-import { aiPresenceOf, aiSampleOf, BOT_PROTECTION, classifyReferences, measureDomain, type DomainMeasurement } from "@/lib/measure";
+import { aiPresenceOf, aiSampleOf, BOT_PROTECTION, classifyReferences, localPackSearches, measureDomain, searchPresenceOf, type DomainMeasurement } from "@/lib/measure";
 import { aiPresenceRangeOf } from "@/lib/measure/drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
@@ -343,6 +343,11 @@ interface TierParameters {
    *  to read them in the background inside the same cap? The free path, and
    *  it alone: its 50 s is what leaves them unread. */
   finishesReads: boolean;
+  /** D67 for the free pass (owner ruling 2026-10-15, issue 1441): does the
+   *  pass measure in the town its home page states? The free pass: it has
+   *  no stored place and no market call to settle one. A paid pass measures
+   *  the place its market conclusion settled. */
+  measuresStatedPlace: boolean;
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -373,6 +378,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     batteryOnTheTwelve: false,
     trackedPrompts: false,
     finishesReads: true,
+    measuresStatedPlace: true,
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -401,6 +407,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     batteryOnTheTwelve: true,
     trackedPrompts: false,
     finishesReads: false,
+    measuresStatedPlace: false,
   }),
   weekly: Object.freeze({
     cap: "WEEKLY",
@@ -429,6 +436,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     batteryOnTheTwelve: false,
     trackedPrompts: true,
     finishesReads: false,
+    measuresStatedPlace: false,
   }),
 } as const);
 
@@ -1295,8 +1303,16 @@ interface StageArgs {
  *  before D66 was. */
 function reportLocale(m: DomainMeasurement): ReportLocale | null {
   const usual = m.locale.country === DEFAULT_LOCALE.country && m.locale.language === DEFAULT_LOCALE.language;
-  if (usual && m.localeFellBack === null) return null;
-  return { country: m.locale.country, language: m.locale.language, ...(m.localeFellBack === null ? {} : { fellBack: m.localeFellBack }) };
+  const place = m.locale.place;
+  if (usual && m.localeFellBack === null && place === undefined) return null;
+  return {
+    country: m.locale.country,
+    language: m.locale.language,
+    // D67 (issue 1441): the town the pass was measured in, which the
+    // measurement line names.
+    ...(place === undefined ? {} : { place }),
+    ...(m.localeFellBack === null ? {} : { fellBack: m.localeFellBack }),
+  };
 }
 
 /** The country and language this pass measures in (D66): the one stage one
@@ -1305,6 +1321,33 @@ function reportLocale(m: DomainMeasurement): ReportLocale | null {
  *  below is reached by no vendor call. */
 function localeOfPass(a: Pick<StageArgs, "sections" | "locale">): Locale {
   return a.sections.measurement?.locale ?? a.locale ?? DEFAULT_LOCALE;
+}
+
+/** How long a free pass waits for the search vendor's list of cities: it
+ *  answers in under a second, and a pass that does not have it measures in
+ *  the country. */
+const FREE_PLACE_LOOKUP_MS = 6_000;
+
+/**
+ * The town a free pass measures in (D67; owner ruling 2026-10-15, issue
+ * 1441): the one the home page states it serves (`statedPlace`), with the
+ * search vendor's name for it so Google's results are read from there.
+ * `null` where the page states none or the pass already has a place. A
+ * lookup that fails leaves the place read in its country. Never throws.
+ */
+async function statedPlaceOfPass(m: DomainMeasurement): Promise<Place | null> {
+  if (m.locale.place !== undefined || m.stated === undefined) return null;
+  const place = statedPlaceOf(m.stated);
+  if (place === null) return null;
+  try {
+    const { placeLocation } = await import("@/lib/vendors/dataforseo");
+    const found = await placeLocation({ place, country: m.locale.country, timeoutMs: FREE_PLACE_LOOKUP_MS });
+    console.log(JSON.stringify({ event: "free_place_located", place: place.name, location: found === null ? "unread" : found.location }));
+    return found === null || found.location === null ? place : { ...place, location: found.location };
+  } catch (error) {
+    console.log(JSON.stringify({ event: "free_place_unlocated", because: error instanceof Error ? error.message : String(error) }));
+    return place;
+  }
 }
 
 /**
@@ -1420,6 +1463,12 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
     return;
   }
 
+  // D67 for the free pass (owner ruling 2026-10-15, issue 1441): a home page
+  // that states the town it serves is measured there, as a paid pass
+  // measures the place it settled. Looked up beside the crawl and the
+  // access rules, and in force before the market is read.
+  const placing = a.parameters.measuresStatedPlace && a.concludesMarket !== true ? statedPlaceOfPass(measurement) : Promise.resolve(null);
+
   // SPEC.md §2: "The scan builds the site profile" — up to 100 pages from
   // the sitemap and internal links, one run per scan, inside the existing
   // caps (§12 ruling 8, 2026-09-12). It belongs to this stage because this
@@ -1503,6 +1552,12 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
   if (bounds.stopNow() !== null) return;
   await enter("reading_access_rules");
   await exitStage(scanId, "reading_access_rules");
+
+  const place = await placing;
+  if (bounds.abandoned()) return;
+  if (place !== null && sections.measurement !== null) {
+    sections.measurement = { ...sections.measurement, locale: { ...sections.measurement.locale, place } };
+  }
 
   if (bounds.stopNow() !== null) return;
   await enter("reading_your_market");
@@ -3147,7 +3202,11 @@ function composeReport(a: {
           searchPresence: unmeasured("not_attempted", measuredAt),
           aiPresence: unmeasured("not_attempted", measuredAt),
         }
-      : { ...m.drivers, aiPresence: aiPresenceOf({ serps: s.serps, ownDomain: a.domain, siteName: s.siteName, at: measuredAt }) };
+      : {
+          ...m.drivers,
+          searchPresence: withLocalPackPresence(m, localPackSearches({ serps: s.serps, searches: s.selected.map((search) => search.keyword), ownDomain: a.domain })),
+          aiPresence: aiPresenceOf({ serps: s.serps, ownDomain: a.domain, siteName: s.siteName, at: measuredAt }),
+        };
 
   const market: Measured<MarketSet> =
     s.profile.kind === "unmeasured"
@@ -3306,6 +3365,15 @@ function marketFromPool(s: Sections, at: Date): Measured<MarketSet> {
   const pool = poolOf(s);
   if (pool.length === 0 || s.selected.length === 0) return unmeasured(rows.reason, at);
   return measured({ ...marketSetOf({ profile: s.profile.value, suggestions: [], pool }), suggestionsUnread: rows.reason }, at);
+}
+
+/** Search presence with the searches whose local pack shows the site
+ *  counted as top-ten results (D67; owner ruling 2026-10-15, issue 1441).
+ *  A site in no pack keeps the value its ranked rows gave. */
+function withLocalPackPresence(m: DomainMeasurement, localPack: readonly string[]): Measured<number> {
+  const held = m.drivers.searchPresence;
+  if (localPack.length === 0 || held.kind === "unmeasured" || m.ownRanked.kind === "unmeasured") return held;
+  return searchPresenceOf({ ranked: measured({ rows: m.ownRankedRows, total: m.ownRanked.value }, held.at), at: held.at, localPack });
 }
 
 /** Issue 898 — the two §6.7 steps that can leave a pass with no market at

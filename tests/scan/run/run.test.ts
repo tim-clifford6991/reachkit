@@ -57,9 +57,11 @@ vi.mock("@/lib/market/questions/phrase", async (importOriginal) => ({
 }));
 
 const serpOrganic = vi.fn();
+const placeLocation = vi.fn();
 vi.mock("@/lib/vendors/dataforseo", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../src/lib/vendors/dataforseo")>()),
   serpOrganic: (...a: unknown[]) => serpOrganic(...a),
+  placeLocation: (...a: unknown[]) => placeLocation(...a),
 }));
 
 const readCurrentReport = vi.fn();
@@ -242,6 +244,44 @@ describe("the six stages", () => {
     );
     await runScan({ domain: DOMAIN, tier: "free" });
     expect(storedReport().locale).toEqual({ country: "GB", language: "en", fellBack: { country: "FR", language: "fr" } });
+  });
+
+  // Owner ruling 2026-10-15 (issue 1441): D67 for the free pass.
+  describe("D67 — a free pass of a site that states the town it serves measures there", () => {
+    const GB = { country: "GB", language: "en" } as const;
+    const LEEDS = "Leeds,West Yorkshire,England,United Kingdom";
+    const STATED = { locality: "Leeds", region: "West Yorkshire", type: "Plumber" };
+
+    it("seeds the service plus the town, reads every Google result from the town, and names it on the report", async () => {
+      measureDomain.mockResolvedValue(measurement({ locale: GB, stated: STATED }));
+      placeLocation.mockResolvedValue({ location: LEEDS });
+      await runScan({ domain: DOMAIN, tier: "free" });
+
+      const place = { name: "Leeds", region: "West Yorkshire", location: LEEDS };
+      expect(placeLocation).toHaveBeenCalledWith(expect.objectContaining({ place: { name: "Leeds", region: "West Yorkshire" }, country: "GB" }));
+      const [, market] = deriveMarketSet.mock.calls[0] as [unknown, { seeds: string[]; locale: unknown }];
+      expect(market.locale).toEqual({ ...GB, place });
+      for (const seed of market.seeds) expect(seed.toLowerCase()).toMatch(/ leeds$/);
+      expect(serpOrganic.mock.calls.length).toBeGreaterThan(0);
+      for (const [, call] of serpOrganic.mock.calls as [unknown, { locale: unknown }][]) expect(call.locale).toEqual({ ...GB, place });
+      expect(storedReport().locale).toEqual({ ...GB, place });
+    });
+
+    it("a town the vendor's list does not hold is still searched by name, read in the country", async () => {
+      measureDomain.mockResolvedValue(measurement({ locale: GB, stated: STATED }));
+      placeLocation.mockResolvedValue(null);
+      await runScan({ domain: DOMAIN, tier: "free" });
+      const [, market] = deriveMarketSet.mock.calls[0] as [unknown, { locale: unknown }];
+      expect(market.locale).toEqual({ ...GB, place: { name: "Leeds", region: "West Yorkshire" } });
+    });
+
+    it("a site that states no town it serves is measured as before, and the list is not read", async () => {
+      measureDomain.mockResolvedValue(measurement({ locale: GB, stated: { locality: "Leeds", type: "LocalBusiness" } }));
+      await runScan({ domain: DOMAIN, tier: "free" });
+      expect(placeLocation).not.toHaveBeenCalled();
+      expect(deriveMarketSet).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ locale: GB }));
+      expect(storedReport().locale).toEqual(GB);
+    });
   });
 
   it("issue 866 — the stored report records the category the pass measured under", async () => {
