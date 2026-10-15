@@ -107,8 +107,9 @@ function DriverBar(p: { factor: ScoreFactorName; value: Measured<number>; limiti
  *  full ring is drawn and nothing moves. daisyUI's end-cap dot (`::after`)
  *  is placed from `--value`, which does not animate, so it sat at the final
  *  score while the arc grew toward it; `after:hidden` removes it (issue
- *  1436). The number inside is the one `<Num figure>`; the ring is its drawing, so it is hidden from a reader
- *  that already has the figure and "of 100". */
+ *  1436). The number inside is the one `<Num figure>`; the ring is its
+ *  drawing, so it is hidden from a reader that already has the figure and
+ *  "of 100". */
 function ScoreRing(p: { score: number }): React.JSX.Element {
   return (
     <div className="relative grid size-40 place-items-center">
