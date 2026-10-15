@@ -96,6 +96,10 @@ export interface MarketSerp extends MarketSerpOrganic {
    *  here branches on it; `SerpResult` satisfies this member structurally,
    *  as it does every other one. */
   reusedFrom?: string;
+  /** The businesses Google's local pack shows, by their own sites (SPEC §6,
+   *  D67). A place in it is found for the search as a top-ten result is
+   *  (owner ruling 2026-10-15, issue 1441). Absent where it showed none. */
+  localPack?: readonly { domain: string }[];
 }
 
 /** One of the searches the market set selected — the keyword the SERP was

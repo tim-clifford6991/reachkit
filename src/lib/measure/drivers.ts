@@ -20,7 +20,7 @@ import type { RankedResult, RankedRow, SerpAiOverview } from "@/lib/vendors/data
  *  and each row's position — all a stored report keeps enough of to
  *  re-score (issue 1426). */
 export interface RankedPositions {
-  readonly rows: readonly Pick<RankedRow, "position">[];
+  readonly rows: readonly (Pick<RankedRow, "position"> & { keyword?: string })[];
   readonly total: number | null;
 }
 import { measured, measuredZero, unmeasured, worseReason, type Measured, type UnmeasuredReason } from "./measured";
@@ -268,15 +268,63 @@ export function ownRankedOf(a: { ranked: Measured<RankedResult>; at: Date }): Me
  *  rows and no total is a legal result and a measured 0 (BUILD §6.3: "0
  *  rows is a legal result") — the `zero` arm, never `unmeasured`. An
  *  `unmeasured` answer is `unmeasured` with the reason it carried. */
-export function searchPresenceOf(a: { ranked: Measured<RankedPositions>; at: Date }): Measured<number> {
+export function searchPresenceOf(a: {
+  ranked: Measured<RankedPositions>;
+  at: Date;
+  /** The searches whose local pack shows the site (`localPackSearches`). */
+  localPack?: readonly string[];
+}): Measured<number> {
   if (a.ranked.kind === "unmeasured") return unmeasured(a.ranked.reason, a.at);
-  const rows = a.ranked.value.rows;
-  const ranked = rankedCountOf(a.ranked.value);
+  const read = a.localPack === undefined ? a.ranked.value : withLocalPack(a.ranked.value, a.localPack);
+  const rows = read.rows;
+  const ranked = rankedCountOf(read);
   const top10 = rows.filter((row) => row.position >= 1 && row.position <= TOP10_LAST_POSITION).length;
   const top10share = rows.length === 0 ? 0 : top10 / rows.length;
   const reach = Math.min(SCALE, SEARCH_LOG_COEFFICIENT * Math.log10(ranked + 1));
   const quality = SEARCH_BASE_SHARE + SEARCH_TOP10_WEIGHT * Math.min(1, top10share * SEARCH_TOP10_SATURATION);
   return ofValue(reach * quality, a.at);
+}
+
+/** The searches whose Google local pack shows the site (SPEC §6, owner
+ *  D67; owner ruling 2026-10-15, issue 1441). `serps[i]` was bought for
+ *  `searches[i]`, the pairing the presence card reads; a SERP with no search
+ *  beside it, or one not measured, holds nothing. */
+export function localPackSearches(a: {
+  serps: readonly Measured<{ localPack?: readonly { domain: string }[] }>[];
+  searches: readonly string[];
+  ownDomain: string;
+}): string[] {
+  const own = hostOf(a.ownDomain);
+  const found: string[] = [];
+  a.serps.forEach((serp, i) => {
+    const search = a.searches[i];
+    if (search === undefined || serp.kind === "unmeasured") return;
+    const shown = (serp.value.localPack ?? []).some((row) => {
+      const host = hostOf(row.domain);
+      return host === own || host.endsWith(`.${own}`);
+    });
+    if (shown && !found.includes(search)) found.push(search);
+  });
+  return found;
+}
+
+/** A place in a search's local pack is a top-ten result for that search
+ *  (issue 1441): a ranked row for it outside the top ten is moved into it,
+ *  and a search the ranked rows do not hold is one more the site is found
+ *  for. The pack is read from the city, the ranked rows from the country,
+ *  so a town's searches are seldom among them. */
+export function withLocalPack(ranked: RankedPositions, searches: readonly string[]): RankedPositions {
+  if (searches.length === 0) return ranked;
+  const key = (search: string): string => search.trim().toLowerCase();
+  const packed = new Set(searches.map(key));
+  const held = new Set<string>();
+  const rows = ranked.rows.map((row) => {
+    if (row.keyword === undefined || !packed.has(key(row.keyword))) return row;
+    held.add(key(row.keyword));
+    return row.position >= 1 && row.position <= TOP10_LAST_POSITION ? row : { ...row, position: TOP10_LAST_POSITION };
+  });
+  const added = [...packed].filter((search) => !held.has(search)).map((keyword) => ({ keyword, position: TOP10_LAST_POSITION }));
+  return { rows: [...rows, ...added], total: ranked.total === null ? null : ranked.total + added.length };
 }
 
 // ── AIPresence ──────────────────────────────────────────────────────────

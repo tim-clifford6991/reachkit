@@ -115,6 +115,19 @@ describe("where the vendor reads", () => {
     expect(matchLocation(list, { name: "Marfa" })).toBeNull();
   });
 
+  it("issue 1441 — two cities of one name are told apart by the other towns the business serves", () => {
+    const more = [
+      ...list,
+      { name: "Austin,Minnesota,United States", kind: "City" },
+      { name: "San Antonio,Texas,United States", kind: "City" },
+      { name: "Round Rock,Texas,United States", kind: "City" },
+      { name: "South Portland,Maine,United States", kind: "City" },
+    ];
+    expect(matchLocation(more, { name: "Austin" })).toBeNull();
+    expect(matchLocation(more, { name: "Austin" }, [{ name: "San Antonio" }, { name: "Round Rock" }])).toBe("Austin,Texas,United States");
+    expect(matchLocation(more, { name: "Austin" }, [{ name: "Nowhere" }])).toBeNull();
+  });
+
   it("Google's results are read from the city; volumes, which the vendor holds by country, from the country", () => {
     const locale = { country: "US", language: "en", place: IN_AUSTIN } as const;
     const where = (path: string): unknown => JSON.parse(buildRequest({ path, mode: "live", locale, fields: { keyword: "plumber austin" } }).body)[0].location_name;

@@ -23,7 +23,7 @@
 // rule WO-073 step 4 wrote down would keep it alive on `onboarding` alone.
 // Where the spec rules, the archived plan does not re-open it (CLAUDE.md).
 import { SHAPES, languagePack } from "@/lib/locale/language";
-import type { Language } from "@/lib/locale/locales";
+import type { Language, Place } from "@/lib/locale/locales";
 import { BATTERY, SELECTION, WINNABILITY } from "@/lib/config/constants";
 import { difficultyCeiling, qualifyingDemand } from "@/lib/opportunities/winnability/bars";
 import { withoutPlace } from "@/lib/locale/place";
@@ -330,6 +330,10 @@ export function selectTwelve(a: {
    *  write, and a market's own searches are what it is measured on — and a
    *  search that is off this market is never selected (`measured.ts`). */
   measured?: MeasuredMarket;
+  /** Where the pass measures, where it has no market in force to say so (a
+   *  free scan with a town, issue 1441): the town is where a search is asked,
+   *  not part of what the business sells. */
+  place?: Place;
   /** How many to return; the twelve unless a caller wants the runners-up
    *  too, to have them judged with the twelve. */
   limit?: number;
@@ -382,7 +386,8 @@ export function selectTwelve(a: {
     if (intent === "own_brand") continue;
     const rivals = row.rivals ?? [];
     // D67: the place is where the search is asked, not part of what is sold.
-    const subject = a.measured?.place === undefined ? row.keyword : withoutPlace(row.keyword, a.measured.place);
+    const place = a.measured?.place ?? a.place;
+    const subject = place === undefined ? row.keyword : withoutPlace(row.keyword, place);
     if (!passesRelevanceGuard(subject, profile, marketWords, rivals)) continue;
     const longTail = coldStart && contentTokens(row.keyword, profile.language).length >= SELECTION.longTailWords;
     survivors.push({

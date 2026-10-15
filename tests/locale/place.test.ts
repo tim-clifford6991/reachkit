@@ -2,7 +2,7 @@
 // one area is measured where it serves: how a search says a place, and what
 // a home page states of its own.
 import { describe, expect, it } from "vitest";
-import { areaOf, isLocalSearch, localSearch, namesPlace, readPlaceSignals, statedPlace, withoutPlace } from "../../src/lib/locale/place.ts";
+import { areaOf, isLocalSearch, localSearch, namesPlace, placeCandidates, readPlaceSignals, statedPlace, townOfAddress, withoutPlace } from "../../src/lib/locale/place.ts";
 import { modelInstruction } from "../../src/lib/locale/language/index.ts";
 
 const AUSTIN = { name: "Austin", region: "Texas" };
@@ -69,5 +69,33 @@ describe("what a model is told", () => {
     expect(modelInstruction({ country: "US", language: "en" })).toBeNull();
     expect(modelInstruction({ country: "US", language: "en", place: AUSTIN })).toContain("serves Austin, Texas and nowhere else");
     expect(modelInstruction({ country: "DE", language: "de", place: DUSSELDORF })).toMatch(/Germany.*serves Düsseldorf/s);
+  });
+});
+
+describe("owner ruling 2026-10-15 (issue 1441) — the towns a free pass may measure in, in the order of the evidence", () => {
+  const ld = (body: string): string => `<script type="application/ld+json">{"@context":"https://schema.org",${body}}</script>`;
+  const candidates = (html: string) => placeCandidates(readPlaceSignals(html)).map((c) => `${c.from}:${c.place.name}${c.place.region === undefined ? "" : `/${c.place.region}`}`);
+
+  it("the structured address first, as setup reads it", () => {
+    expect(candidates(ld('"@type":"Plumber","address":{"@type":"PostalAddress","addressLocality":"Austin","addressRegion":"TX"}'))).toEqual(["address:Austin/TX"]);
+  });
+
+  it("a business that lists the towns it serves and gives no address: each town it lists", () => {
+    expect(candidates(ld('"@type":"Plumber","name":"Peanut Plumbing","areaServed":["Austin","San Antonio"],"telephone":"(512) 924-7989"'))).toEqual([
+      "area_served:Austin",
+      "area_served:San Antonio",
+    ]);
+  });
+
+  it("an address written as one string: the town out of it", () => {
+    expect(candidates(ld('"@type":"LocalBusiness","address":"12-16 New Station Street\\nLeeds, LS15DL","name":"laynes"'))).toEqual(["address_text:Leeds"]);
+    expect(townOfAddress("500 W 2nd St, Austin, TX 78701")).toEqual({ name: "Austin", region: "TX" });
+    expect(townOfAddress("1 High Street, Leeds LS1 5DL, United Kingdom")).toEqual({ name: "Leeds" });
+    expect(townOfAddress("")).toBeNull();
+  });
+
+  it("nothing from a page that is no business, or gives an empty address", () => {
+    expect(candidates(ld('"@type":"Organization","address":"1 Main St, Leeds"'))).toEqual([]);
+    expect(candidates(ld('"@type":"LocalBusiness","address":""'))).toEqual([]);
   });
 });
