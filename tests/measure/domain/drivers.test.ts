@@ -507,7 +507,20 @@ describe("issue 1439 — AI is judged on the answers that exist, and a score say
     expect(aiSampleOf({ serps, ownDomain: OWN })).toEqual({ read: 4, answered: 1, mentioned: 0, cited: 1 });
   });
 
-  it("where AI answered none of the searches read, AI presence is not 0 and Presence is search presence alone", () => {
+  it("AI answering none of fewer than four reads is AI not read: the middle of its scale and its whole range", () => {
+    const serps = Array.from({ length: 3 }, () => measured(serp([], false), AT));
+    const ai = aiPresenceOf({ serps, ownDomain: OWN, at: AT });
+    expect(ai).toEqual({ kind: "unmeasured", reason: "undeterminable", at: AT });
+    expect(aiPresenceRangeOf(aiSampleOf({ serps, ownDomain: OWN }))).toEqual({ low: 1, high: 100 });
+  });
+
+  it("fewer than six results read is always a rough estimate, however narrow the range", () => {
+    const factors = factorsOf({ foundations: measured(100, AT), answerability: measured(30, AT), searchPresence: measured(80, AT), aiPresence: measured(40, AT) });
+    expect(estimateOf(factors, { low: 60, high: 60 }, 5)!.confidence).toBe("rough");
+    expect(estimateOf(factors, { low: 60, high: 60 }, 6)!.confidence).toBe("close");
+  });
+
+  it("where AI answered none of four or more searches read, AI presence is not 0 and Presence is search presence alone", () => {
     const serps = Array.from({ length: 6 }, () => measured(serp([], false), AT));
     const ai = aiPresenceOf({ serps, ownDomain: OWN, at: AT });
     expect(ai).toEqual({ kind: "unmeasured", reason: "undeterminable", at: AT, because: NO_AI_ANSWERS });
@@ -534,7 +547,8 @@ describe("issue 1439 — AI is judged on the answers that exist, and a score say
     const ai = aiOf("stripe.com");
     expect(ai).toEqual({ kind: "unmeasured", reason: "undeterminable", at: AT });
     const d = { searchPresence: measured(70, AT), aiPresence: ai };
-    expect(valueOf(presenceOf(d))).toBe(70);
+    // The unread AI half is the middle of its scale: the figure is inside the range.
+    expect(valueOf(presenceOf(d))).toBe(0.5 * 70 + 0.5 * 50.5);
     expect(presenceRangeOf(d, aiPresenceRangeOf(aiSampleOf({ serps: serpsOf("stripe.com"), ownDomain: "stripe.com" })))).toEqual({
       low: 0.5 * 70 + 0.5 * 1,
       high: 0.5 * 70 + 0.5 * 100,

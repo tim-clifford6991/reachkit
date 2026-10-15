@@ -575,9 +575,10 @@ function aiPresenceValue(mentionRate: number, citationRate: number): number {
  *
  *  - No SERP read: `unmeasured` with the fold of their reasons
  *    (`undeterminable` where none was handed in).
- *  - SERPs read and none showed an AI answer: `unmeasured`, `undeterminable`,
- *    `because` `NO_AI_ANSWERS`. There is nothing to judge, so Presence is
- *    search presence alone (`presenceOf`).
+ *  - At least `SCORE_ESTIMATE.noneMinReads` SERPs read and none showed an AI
+ *    answer: `unmeasured`, `undeterminable`, `because` `NO_AI_ANSWERS`.
+ *    There is nothing to judge, so Presence is search presence alone
+ *    (`presenceOf`). Fewer read and none answered is AI not read.
  *  - Otherwise the rate, however few answers back it: how sure it is, is
  *    the score's range (`aiPresenceRangeOf`), never a refusal to score.
  *
@@ -592,7 +593,13 @@ export function aiPresenceOf(a: {
 }): Measured<number> {
   const sample = aiSampleOf(a);
   if (sample.read === 0) return unmeasured(unmeasuredReasonOf(a.serps) ?? "undeterminable", a.at);
-  if (sample.answered === 0) return unmeasured("undeterminable", a.at, NO_AI_ANSWERS);
+  // "AI answered none" is only established over enough reads; fewer is AI
+  // not read (master review of PR 1445).
+  if (sample.answered === 0) {
+    return sample.read >= SCORE_ESTIMATE.noneMinReads
+      ? unmeasured("undeterminable", a.at, NO_AI_ANSWERS)
+      : unmeasured(unmeasuredReasonOf(a.serps) ?? "undeterminable", a.at);
+  }
   const raw = aiPresenceValue(sample.mentioned / sample.answered, sample.cited / sample.answered);
   return sample.mentioned === 0 && sample.cited === 0 ? measuredZero(raw, a.at) : measured(raw, a.at);
 }
@@ -613,10 +620,10 @@ export function wilsonOf(hits: number, n: number): { low: number; high: number }
 
 /** Where AI presence could lie given the answers behind it (issue 1439):
  *  each rate's Wilson interval, carried through §5's weighting. `null` where
- *  AI answered none of the searches read — there is no AI term to range
- *  over. Over no read at all it is the whole scale. */
+ *  AI answered none of enough searches read — there is no AI term to range
+ *  over. Over no answer otherwise it is the whole scale. */
 export function aiPresenceRangeOf(sample: AiSample): { low: number; high: number } | null {
-  if (sample.read > 0 && sample.answered === 0) return null;
+  if (sample.answered === 0 && sample.read >= SCORE_ESTIMATE.noneMinReads) return null;
   const mention = wilsonOf(sample.mentioned, sample.answered);
   const citation = wilsonOf(sample.cited, sample.answered);
   return { low: aiPresenceValue(mention.low, citation.low), high: aiPresenceValue(mention.high, citation.high) };

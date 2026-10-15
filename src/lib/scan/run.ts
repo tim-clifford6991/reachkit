@@ -3122,8 +3122,16 @@ function composeReport(a: {
     question_serps: outcomeOf(foldSerps(s.serps, measuredAt)),
   };
 
-  const aiRange = aiPresenceRangeOf(aiSampleOf({ serps: s.serps, ownDomain: a.domain, siteName: s.siteName }));
-  const verdict: Verdict = verdictOf({ domain: a.domain, measuredAt, drivers, inputs, robots, aiRange });
+  const aiSample = aiSampleOf({ serps: s.serps, ownDomain: a.domain, siteName: s.siteName });
+  const verdict: Verdict = verdictOf({
+    domain: a.domain,
+    measuredAt,
+    drivers,
+    inputs,
+    robots,
+    aiRange: aiPresenceRangeOf(aiSample),
+    searchesRead: aiSample.read,
+  });
 
   // Issue 898: which step left the pass with no market — the profile call
   // that did not answer, or the suggestions that did not. It is the same

@@ -297,8 +297,8 @@ export const REPORT_COPY = Object.freeze({
   // where AI answers appear, and how often they name the customer.
   "ai-answers.finding": ["AI answers appear on {answered} of your {measured} biggest searches — and name you on {named}.", { slots: { answered: "text", measured: "text", named: "text" }, fixedBy: "issue 1068" }],
   // Issue 1439: AI answered none of the searches read, so AI presence is not
-  // judged and the score counts search alone. Drafted.
-  "ai-answers.finding.unanswered": ["AI answers appear on none of your {measured} biggest searches yet, so your score counts Google search alone.", { slots: { measured: "text" }, fixedBy: "issue 1439" }],
+  // judged and the score counts search alone. Short, as titles are (#1444).
+  "ai-answers.finding.unanswered": ["AI doesn't answer these searches yet.", { slots: {}, fixedBy: "issue 1439" }],
   "ai-answers.finding.none": ["AI answers appear on {answered} of your {measured} biggest searches — and name you on none.", { slots: { answered: "text", measured: "text" }, fixedBy: "issue 1068" }],
   "ai-answers.customer-citations": ["You’re named in {cited} of the {answered} AI answers that appeared.", { slots: { cited: "text", answered: "text" }, fixedBy: "REQ-006 c1" }],
   "ai-answers.legend": ["Filled: named in that answer · Empty: not named · Muted: no AI answer appeared", { slots: {}, fixedBy: "REQ-006 c1" }],

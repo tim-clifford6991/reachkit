@@ -56,6 +56,7 @@
 import type React from "react";
 import { Bot } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { SCORE_ESTIMATE } from "@/lib/config/constants";
 import { renderQuestion } from "@/lib/presentation/generated";
 import type {
   AiAnswersSection,
@@ -481,10 +482,10 @@ export function AiAnswersCard(p: {
         {/* The card leads with its answer, not with its metric — and the
             answer is its heading, one sentence (#1068). */}
         <h2 className="text-lg font-semibold">
-          {section.answeredSearches === 0 && section.measuredSearches > 0
-            ? copy("ai-answers.finding.unanswered", {
-                measured: String(section.measuredSearches),
-              })
+          {/* Issue 1439: "AI doesn't answer" is only said over enough reads,
+              the rule AI presence keeps. */}
+          {section.answeredSearches === 0 && section.measuredSearches >= SCORE_ESTIMATE.noneMinReads
+            ? copy("ai-answers.finding.unanswered")
             : section.customerCitations === 0
               ? copy("ai-answers.finding.none", {
                   answered: String(section.answeredSearches),

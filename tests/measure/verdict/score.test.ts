@@ -248,19 +248,19 @@ describe(
 describe(
   'REQ-004 c12 — "… nothing stands in its place: no estimate, no interpolated value, no default …" — score/floors · a floor never manufactures a value',
   () => {
-    it("presenceOf over an unread half weighs the half that was read, and its range spans the other (issue 1439)", () => {
-      const noSearch = { searchPresence: unmeasured<number>("not_attempted", AT), aiPresence: measured(50, AT) };
-      expect(presenceOf(noSearch)).toEqual({ kind: "measured", value: 50, at: AT });
-      expect(presenceRangeOf(noSearch)).toEqual({ low: 25, high: 75 });
-      const noAi = { searchPresence: measured(50, AT), aiPresence: unmeasured<number>("undeterminable", AT) };
-      expect(presenceOf(noAi)).toEqual({ kind: "measured", value: 50, at: AT });
-      expect(presenceRangeOf(noAi)).toEqual({ low: 25.5, high: 75 });
+    it("an unread half is the middle of its scale, never the best case, so the figure sits inside its range (issue 1439)", () => {
+      const noSearch = { searchPresence: unmeasured<number>("not_attempted", AT), aiPresence: measured(20, AT) };
+      expect(presenceOf(noSearch)).toEqual({ kind: "measured", value: 0.5 * 50 + 0.5 * 20, at: AT });
+      expect(presenceRangeOf(noSearch)).toEqual({ low: 10, high: 60 });
+      const noAi = { searchPresence: measured(100, AT), aiPresence: unmeasured<number>("undeterminable", AT) };
+      expect(presenceOf(noAi)).toEqual({ kind: "measured", value: 0.5 * 100 + 0.5 * 50.5, at: AT });
+      expect(presenceRangeOf(noAi)).toEqual({ low: 50.5, high: 100 });
     });
 
-    it("presenceOf with neither half read is the middle of its whole range, never a floor", () => {
+    it("with neither half read Presence is mid-range, never a floor", () => {
       const neither = { searchPresence: unmeasured<number>("not_attempted", AT), aiPresence: unmeasured<number>("undeterminable", AT) };
       expect(presenceRangeOf(neither)).toEqual({ low: 1, high: 100 });
-      expect(presenceOf(neither)).toEqual({ kind: "measured", value: 50.5, at: AT });
+      expect(presenceOf(neither)).toEqual({ kind: "measured", value: 0.5 * 50 + 0.5 * 50.5, at: AT });
     });
 
     it("factorsOf's answerability path over an unmeasured Drivers.answerability stays unmeasured — the floor never applies", () => {

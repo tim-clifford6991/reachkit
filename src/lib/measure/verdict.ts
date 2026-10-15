@@ -104,6 +104,8 @@ export function verdictOf(a: {
   /** Where AI presence could lie given the answers behind it
    *  (`aiPresenceRangeOf`); absent, its value alone. */
   aiRange?: { low: number; high: number } | null;
+  /** How many Google results were read: few is always a rough estimate. */
+  searchesRead?: number;
 }): Verdict {
   const drivenFactors = factorsOf(a.drivers);
   const factors: ScoreFactors = a.presence === undefined ? drivenFactors : { ...drivenFactors, presence: a.presence };
@@ -114,7 +116,7 @@ export function verdictOf(a: {
       : a.presence.kind === "unmeasured"
         ? null
         : { low: a.presence.value, high: a.presence.value };
-  const estimate = presenceRange === null ? null : estimateOf(factors, presenceRange);
+  const estimate = presenceRange === null ? null : estimateOf(factors, presenceRange, a.searchesRead);
   const limiting = limitingFactorOf(factors);
 
   const missing: { factor: ScoreFactorName; reason: UnmeasuredReason }[] = [];

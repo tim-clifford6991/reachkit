@@ -70,26 +70,23 @@ function halfOf(m: Measured<number>): Half {
  *  had Presence 1 and a score of at most 22, whatever its pages and AI
  *  answers. A site nobody finds anywhere still has Presence 1.
  *
- *  Only what exists is weighed. Where AI answered none of the searches read,
- *  or a half was not read, Presence is the other half alone, and the range
- *  (`presenceRangeOf`) says where the unread half could put it. Where
- *  neither half was read it is the middle of the scale, and the range is
- *  the whole of it. Never `unmeasured`: a score is withheld only where the
+ *  Where AI answered none of the searches read, Presence is search presence
+ *  alone. A half that was not read is the middle of its scale — the neutral
+ *  assumption, never the best case — so the figure sits inside its range
+ *  (`presenceRangeOf`), which spans that half's whole scale (master review
+ *  of PR 1445). Never `unmeasured`: a score is withheld only where the
  *  site's own pages were not read. */
 export function presenceOf(d: Pick<Drivers, "searchPresence" | "aiPresence">): Measured<number> {
   const at = d.searchPresence.at;
-  const halves = [
-    { half: halfOf(d.searchPresence), weight: SCORE_ESTIMATE.searchWeight },
-    { half: halfOf(d.aiPresence), weight: SCORE_ESTIMATE.aiWeight },
-  ];
-  const weighed = halves.flatMap(({ half, weight }) => (half.kind === "value" ? [{ ...half, weight }] : []));
-  if (weighed.length < 1) {
-    const range = presenceRangeOf(d);
-    return { kind: "measured", value: (range.low + range.high) / 2, at };
-  }
-  const total = weighed.reduce((sum, h) => sum + h.weight, 0);
-  const value = Math.max(PRESENCE_FLOOR, weighed.reduce((sum, h) => sum + (h.weight / total) * h.value, 0));
-  return { kind: weighed.every((h) => h.zero) ? "zero" : "measured", value, at };
+  const search = halfOf(d.searchPresence);
+  const ai = halfOf(d.aiPresence);
+  const middle = (low: number): number => (low + SCALE_CEILING) / 2;
+  const sp = search.kind === "value" ? search.value : middle(0);
+  const zero = search.kind === "value" && search.zero && (ai.kind === "absent" || (ai.kind === "value" && ai.zero));
+  if (ai.kind === "absent") return { kind: zero ? "zero" : "measured", value: Math.max(PRESENCE_FLOOR, sp), at };
+  const ap = ai.kind === "value" ? ai.value : middle(PRESENCE_FLOOR);
+  const value = Math.max(PRESENCE_FLOOR, SCORE_ESTIMATE.searchWeight * sp + SCORE_ESTIMATE.aiWeight * ap);
+  return { kind: zero ? "zero" : "measured", value, at };
 }
 
 /** Where Presence could lie (issue 1439): a half that was read is its value,
@@ -145,15 +142,23 @@ export interface ScoreEstimate {
 
 /** The score at each end of Presence's range, with Foundations and
  *  Answerability as read: they are read off the site's own pages and carry
- *  no sampling range. `null` where there is no score. */
-export function estimateOf(f: ScoreFactors, presence: { low: number; high: number }): ScoreEstimate | null {
+ *  no sampling range. Rough where the range is wide or few results were
+ *  read. `null` where there is no score. */
+export function estimateOf(
+  f: ScoreFactors,
+  presence: { low: number; high: number },
+  /** The Google results read; fewer than `SCORE_ESTIMATE.closeMinReads` is
+   *  always rough, whatever the width. Absent, the width alone decides. */
+  searchesRead?: number
+): ScoreEstimate | null {
   const score = computeScore(f);
   const { foundations, answerability } = f;
   if (score.kind === "unmeasured" || foundations.kind === "unmeasured" || answerability.kind === "unmeasured") return null;
   const at = (p: number): number => Math.round(Math.cbrt(foundations.value * answerability.value * p));
   const low = Math.min(score.value.score, at(presence.low));
   const high = Math.max(score.value.score, at(presence.high));
-  return { low, high, confidence: high - low > SCORE_ESTIMATE.roughWidth ? "rough" : "close" };
+  const thin = searchesRead !== undefined && searchesRead < SCORE_ESTIMATE.closeMinReads;
+  return { low, high, confidence: thin || high - low > SCORE_ESTIMATE.roughWidth ? "rough" : "close" };
 }
 
 /** Which factor holds the score down — the one thing about the

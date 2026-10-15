@@ -310,14 +310,15 @@ export function rescoreScan(scan: RescoreScan): Rescored {
     own_ranked_rows: outcomeOf(drivers.searchPresence),
     question_serps: outcomeOf(foldSerps(r.serps, at)),
   };
-  const aiRange = aiPresenceRangeOf(aiSampleOf({ serps: r.serps, ownDomain: r.domain, siteName: scan.siteName }));
+  const aiSample = aiSampleOf({ serps: r.serps, ownDomain: r.domain, siteName: scan.siteName });
   const verdict = verdictOf({
     domain: r.verdict.domain,
     measuredAt: at,
     drivers,
     inputs,
     robots,
-    aiRange,
+    aiRange: aiPresenceRangeOf(aiSample),
+    searchesRead: aiSample.read,
     ...(presence === undefined ? {} : { presence }),
   });
 
