@@ -413,3 +413,29 @@ describe("selectTwelve — observability (BP-025 `## NFR budget`)", () => {
     expect(JSON.stringify(logged)).not.toContain("onboarding");
   });
 });
+
+describe("selectTwelve — a free scan with a town (issue 1441)", () => {
+  // laynescafe.co.uk's own profile and three of the vendor's suggestions for
+  // "coffee shop leeds", as the free scan of 2026-10-15 read them.
+  const cafe: Profile = {
+    category: "coffee shop",
+    job: "serves coffee and breakfast",
+    offeringType: "café",
+    audienceTerms: ["commuters", "coffee lovers"],
+    namedRivals: [],
+    vocabulary: ["coffee shop", "espresso", "breakfast", "coffee"],
+    brandTokens: ["laynes"],
+  };
+  const market = [
+    { keyword: "best coffee shop in leeds", volume: 1600 },
+    { keyword: "coffee shop leeds city centre", volume: 2400 },
+    { keyword: "speciality coffee leeds", volume: 110 },
+  ];
+
+  it("the town is where a search is asked, not a word the business has to sell", () => {
+    expect(selectTwelve({ profile: cafe, ownRanked: 600, market })).toEqual([]);
+    const local = selectTwelve({ profile: cafe, ownRanked: 600, market, place: { name: "Leeds" } }).map((s) => s.keyword);
+    expect(local.length).toBeGreaterThan(0);
+    for (const keyword of local) expect(market.map((row) => row.keyword)).toContain(keyword);
+  });
+});

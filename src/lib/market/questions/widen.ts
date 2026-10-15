@@ -17,6 +17,7 @@
 // twelve: the pool and the lower steps are read only while short. Never pad
 // (2026-09-11) still holds — every row selected here is a measured search
 // that passed the same gates.
+import type { Place } from "@/lib/locale/locales";
 import { BATTERY, SELECTION } from "@/lib/config/constants";
 import type { SuggestionRow } from "./market-set";
 import type { MeasuredMarket } from "./measured";
@@ -179,12 +180,15 @@ export function selectWidened(a: {
   /** The market in force and how many to return, as `selectTwelve` reads
    *  them (D65). */
   measured?: MeasuredMarket;
+  /** Where the pass measures (issue 1441), as `selectTwelve` reads it. */
+  place?: Place;
   limit?: number;
 }): SelectedSearch[] {
   const category = {
     ...(a.category === undefined ? {} : { category: a.category }),
     ...(a.synonyms === undefined ? {} : { synonyms: a.synonyms }),
     ...(a.measured === undefined ? {} : { measured: a.measured }),
+    ...(a.place === undefined ? {} : { place: a.place }),
     ...(a.limit === undefined ? {} : { limit: a.limit }),
   };
   const { ownRanked } = a;

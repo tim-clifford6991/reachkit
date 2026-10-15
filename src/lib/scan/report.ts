@@ -581,6 +581,10 @@ export interface StoredReport {
 
 export interface ReportLocale extends Locale {
   fellBack?: { country: string | null; language: string | null };
+  /** Which evidence named the town a free scan measured in (issue 1441):
+   *  `PLACE_FROM`. Absent where it measured in none, or a paid pass settled
+   *  the place. */
+  placeFrom?: "address" | "area_served" | "address_text" | "page_text";
 }
 
 /** The locale a stored report was measured in. */

@@ -71,11 +71,12 @@ function measuredPairs(
   return pairs;
 }
 
-/** The registrable domains of one SERP's top ten. A row whose host does
- *  not parse is dropped, not counted as somebody. */
+/** The registrable domains of one SERP's top ten and its local pack, which
+ *  counts as the top ten does (D67, issue 1441). A row whose host does not
+ *  parse is dropped, not counted as somebody. */
 function topTenDomains(serp: MarketSerp): Set<string> {
   const domains = new Set<string>();
-  for (const row of serp.organic) {
+  for (const row of [...serp.organic, ...(serp.localPack ?? [])]) {
     const domain = registrableDomain(row.domain);
     if (domain !== null) domains.add(domain);
   }

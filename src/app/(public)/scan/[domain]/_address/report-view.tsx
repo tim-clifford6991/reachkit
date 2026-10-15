@@ -221,12 +221,21 @@ function MeasuredInLine(p: { report: StoredReport }): React.JSX.Element | null {
 }
 
 /** SPEC §2's measurement line for a report measured outside US Google in
- *  English (D66); `null` for one measured there, whose line is unchanged. */
+ *  English (D66), or in the town its site serves (D67, issue 1441); `null`
+ *  for one measured in the United States in English, whose line is
+ *  unchanged. */
 function measurementLine(report: StoredReport): string | null {
   if (report.locale === undefined) return null;
   const measured = measuredLocale(report);
-  if (measured.country === "US" && measured.language === "en") return null;
   const tag = REPORT_TAG;
+  const place = report.locale.place?.name;
+  if (place !== undefined && place !== "") {
+    return copy("report.measurement.place", {
+      place,
+      language: new Intl.DisplayNames(tag, { type: "language" }).of(measured.language) ?? measured.language,
+    });
+  }
+  if (measured.country === "US" && measured.language === "en") return null;
   return copy("report.measurement.in", {
     country: new Intl.DisplayNames(tag, { type: "region" }).of(measured.country) ?? measured.country,
     language: new Intl.DisplayNames(tag, { type: "language" }).of(measured.language) ?? measured.language,

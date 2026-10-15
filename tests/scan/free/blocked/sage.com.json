@@ -1722,6 +1722,52 @@
      "output_tokens": 257
     }
    }
+  },
+  {
+   "key": "d69862bf9d929de3",
+   "response": {
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_013z173jYrSRASrAktF69KRM",
+      "name": "profile",
+      "input": {
+       "category": "accounting software",
+       "job": "manage accounting, financial transactions, payroll, and business finances",
+       "offeringType": "cloud-based software suite",
+       "audienceTerms": [
+        "small businesses",
+        "startups",
+        "enterprises",
+        "finance teams"
+       ],
+       "namedRivals": [],
+       "vocabulary": [
+        "cloud-based accounting",
+        "accounting software",
+        "bookkeeping software",
+        "payroll software",
+        "financial management",
+        "accounting packages",
+        "cloud accounting platform"
+       ],
+       "brandTokens": [
+        "Sage",
+        "Sage Intacct",
+        "Sage Business Cloud"
+       ],
+       "town": ""
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "usage": {
+     "input_tokens": 2768,
+     "output_tokens": 242
+    }
+   }
   }
  ]
 }

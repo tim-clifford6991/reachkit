@@ -7,7 +7,7 @@
 // plus the place, and its rivals are the ones found there.
 //
 // Pure: it reads the text it is handed. No fetch, no model call, no clock.
-import type { Place } from "./locales";
+import { COUNTRIES, type Place } from "./locales";
 
 /** What on a site said it serves a place, strongest first (issue 1370;
  *  read by `servingEvidence` in `./serving`). */
@@ -180,6 +180,9 @@ export interface PlaceSignals {
   telephone?: string;
   /** The schema.org type it gives itself: "Plumber", "Restaurant". */
   type?: string;
+  /** The address where the structured data gives it as one string
+   *  ("12-16 New Station Street\nLeeds, LS15DL") rather than its fields. */
+  address?: string;
   /** The page's own description of the business (`<meta name="description">`):
    *  one sentence the site chose, which often says the service and the
    *  place together (issue 1370). */
@@ -211,9 +214,11 @@ export function readPlaceSignals(html: string | null): PlaceSignals {
   const description = text((/\bcontent\s*=\s*"([^"]*)"/i.exec(meta) ?? /\bcontent\s*=\s*'([^']*)'/i.exec(meta))?.[1] ?? "", 240);
   const locality = field(html, "addressLocality");
   const region = field(html, "addressRegion");
+  const address = text(/"address"\s*:\s*"((?:[^"\\]|\\.){4,200})"/i.exec(html)?.[1]?.replace(/\\n/g, ", ") ?? "", 200);
   return {
     ...(locality === "" ? {} : { locality }),
     ...(region === "" ? {} : { region }),
+    ...(address === "" ? {} : { address }),
     ...(serves.length === 0 ? {} : { serves: serves.slice(0, 6) }),
     ...(telephone === "" ? {} : { telephone }),
     ...(type === undefined ? {} : { type }),
@@ -240,4 +245,58 @@ export function statedPlace(signals: PlaceSignals): Place | null {
   const served = (signals.serves ?? []).some((area) => namesPlace(area, place));
   const inPerson = signals.type !== undefined && !ANY_PREMISES_TYPE.test(signals.type);
   return served || inPerson ? place : null;
+}
+
+// ── Where a free pass measures (owner ruling 2026-10-15, issue 1441) ───────
+
+/** Which evidence named the town a free pass measures in, strongest first:
+ *  the structured address (`statedPlace`); a business's structured
+ *  `areaServed` with no address; a structured address written as one
+ *  string; the home page's own words, read by the profile call. */
+export const PLACE_FROM = ["address", "area_served", "address_text", "page_text"] as const;
+
+export type PlaceFrom = (typeof PLACE_FROM)[number];
+
+/** A town the home page's structured data may name, and what named it.
+ *  Only `address` stands as read; the others stand once the search
+ *  vendor's list of the country's towns holds them. */
+export interface PlaceCandidate {
+  place: Place;
+  from: Exclude<PlaceFrom, "page_text">;
+}
+
+/** "12-16 New Station Street, Leeds, LS15DL" or "500 W 2nd St, Austin, TX
+ *  78701": the town is the last part with no digit that is not a region's
+ *  short code, and a short code beside a postcode is its region. */
+/** A country's names, folded: never a town. */
+const COUNTRY_NAMES = new Set(Object.values(COUNTRIES).flatMap((country) => [country.location, ...country.names].map(folded)));
+
+export function townOfAddress(address: string): Place | null {
+  const parts = address.split(/[\n,]+/).map((part) => part.replace(/\s+/g, " ").trim()).filter((part) => part !== "");
+  let region: string | undefined;
+  let town: string | undefined;
+  for (const part of parts.slice(1).filter((each) => !COUNTRY_NAMES.has(folded(each)))) {
+    const letters = part.replace(/\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b|\d+(?:-\d+)?/gi, "").trim();
+    if (/^[A-Z]{2}$/.test(letters)) region = letters;
+    else if (!/\d/.test(part) && /\p{L}{2}/u.test(part) && part.split(" ").length <= 4) town = part;
+    else if (/\d/.test(part) && letters !== "" && /^\p{L}[\p{L}\s.'’-]*$/u.test(letters) && letters.split(" ").length <= 3) town ??= letters;
+  }
+  return town === undefined ? null : placeOf(town, region);
+}
+
+/** The towns the home page's structured data names, in the order of the
+ *  evidence (issue 1441). #1370's rule 4 still decides what the report
+ *  states for setup (`statedPlace`); a free pass reads further. */
+export function placeCandidates(signals: PlaceSignals): PlaceCandidate[] {
+  const out: PlaceCandidate[] = [];
+  const stated = statedPlace(signals);
+  if (stated !== null) out.push({ place: stated, from: "address" });
+  if (signals.type === undefined) return out;
+  for (const area of signals.serves ?? []) {
+    const place = placeOf(area, signals.region);
+    if (place !== null) out.push({ place, from: "area_served" });
+  }
+  const written = signals.address === undefined ? null : townOfAddress(signals.address);
+  if (written !== null) out.push({ place: written, from: "address_text" });
+  return out;
 }

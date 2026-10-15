@@ -63,6 +63,9 @@ export interface SiteResult {
   missing: string[];
   locale: string;
   statedPlace: string | null;
+  /** The town the pass measured in, which rule found it, and where Google
+   *  was read from (issue 1441). */
+  measuredIn: string | null;
   category: string | null;
   marketFrom: string | null;
   /** Why no question was asked, where none was. */
@@ -71,6 +74,8 @@ export interface SiteResult {
   rivals: string[];
   rivalsBecause: string | null;
   localPack: boolean;
+  /** How many searches showed the site in its own local pack. */
+  inOwnPack: number;
   cents: number;
   costBySource: Record<string, number>;
   seconds: number;
@@ -201,6 +206,7 @@ function shownOf(domain: string, scan: Row | null): Omit<SiteResult, "cents" | "
     missing: [],
     locale: "not stored",
     statedPlace: null,
+    measuredIn: null,
     category: null,
     marketFrom: null,
     questionsBecause: "no report",
@@ -208,6 +214,7 @@ function shownOf(domain: string, scan: Row | null): Omit<SiteResult, "cents" | "
     rivals: [],
     rivalsBecause: "no report",
     localPack: false,
+    inOwnPack: 0,
   };
   if (scan?.report === null || scan?.report === undefined) return empty;
   const report: StoredReport = readStoredReport(scan.report);
@@ -241,6 +248,10 @@ function shownOf(domain: string, scan: Row | null): Omit<SiteResult, "cents" | "
           };
         });
   const place = report.statedPlace;
+  const town = report.locale?.place;
+  const inOwnPack = report.serps.filter(
+    (serp) => serp.kind === "measured" && (serp.value.localPack ?? []).some((row) => isOwnDomain(row.domain, report.domain))
+  ).length;
   return {
     ...empty,
     band: report.verdict.scoreAndBand.kind === "unmeasured" ? null : report.verdict.scoreAndBand.value.band,
@@ -249,6 +260,8 @@ function shownOf(domain: string, scan: Row | null): Omit<SiteResult, "cents" | "
     missing: report.verdict.missing.map((m) => `${m.factor} (${m.reason})`),
     locale: report.locale === undefined ? "us / en" : `${report.locale.country} / ${report.locale.language}${report.locale.fellBack === undefined ? "" : `, fell back from ${JSON.stringify(report.locale.fellBack)}`}`,
     statedPlace: place === undefined ? null : `${place.name}${place.region === undefined ? "" : `, ${place.region}`}`,
+    measuredIn:
+      town === undefined ? null : `${town.name}${town.region === undefined ? "" : `, ${town.region}`} (${report.locale?.placeFrom ?? "settled"}; read from ${town.location ?? "the country"})`,
     category: report.market.kind === "unmeasured" ? null : report.market.value.profile.category,
     marketFrom: report.marketFrom ?? null,
     questionsBecause: whyUnmeasured(report.questions),
@@ -256,6 +269,7 @@ function shownOf(domain: string, scan: Row | null): Omit<SiteResult, "cents" | "
     rivals: report.rivals.kind === "unmeasured" ? [] : report.rivals.value.map((rival) => `${rival.domain} (${rival.top10Appearances} top-ten, ${rival.aiCitations} AI)`),
     rivalsBecause: whyUnmeasured(report.rivals),
     localPack: questions.some((question) => question.localPack > 0),
+    inOwnPack,
   };
 }
 
@@ -354,7 +368,7 @@ export function markdown(run: StoredRun): string {
     out.push(`- **Drivers:** ${Object.entries(site.drivers).map(([name, value]) => `${name} ${value}`).join("; ") || "none stored"}`);
     if (site.missing.length > 0) out.push(`- **Missing from the score:** ${site.missing.join(", ")}`);
     if (site.limiting !== null) out.push(`- **Limiting:** ${site.limiting}`);
-    out.push(`- **Locale:** ${site.locale}; stated place: ${site.statedPlace ?? "none"}`);
+    out.push(`- **Locale:** ${site.locale}; stated place: ${site.statedPlace ?? "none"}; measured in: ${site.measuredIn ?? "the country"}; in its own local pack on ${site.inOwnPack ?? 0} searches`);
     out.push(`- **Category:** ${site.category ?? "none"}${site.marketFrom === null ? "" : ` (read from ${site.marketFrom})`}`);
     out.push(`- **Rivals (${site.rivals.length}):** ${site.rivals.join("; ") || (site.rivalsBecause === null ? "none" : `unmeasured (${site.rivalsBecause})`)}`);
     out.push(`- **Local pack:** ${site.localPack ? `on ${site.questions.filter((q) => q.localPack > 0).length} of ${site.questions.length} searches` : "on no search"}`);
@@ -387,7 +401,7 @@ function write(dir: string, run: StoredRun): void {
 function printSite(site: SiteResult): void {
   console.log(`  score ${site.score ?? "none"} — ${site.status ?? "no row"} (${site.stoppedReason ?? "—"}) in ${site.seconds}s, ${cents(site.cents)}`);
   console.log(`  drivers ${Object.entries(site.drivers).map(([name, value]) => `${name} ${value}`).join("; ") || "none"}`);
-  console.log(`  ${site.questions.length} questions, ${site.rivals.length} rivals, local pack ${site.localPack ? "yes" : "no"}, locale ${site.locale}, place ${site.statedPlace ?? "none"}`);
+  console.log(`  ${site.questions.length} questions, ${site.rivals.length} rivals, local pack ${site.localPack ? "yes" : "no"}, locale ${site.locale}, place ${site.statedPlace ?? "none"}, measured in ${site.measuredIn ?? "the country"}, own pack on ${site.inOwnPack ?? 0}`);
 }
 
 // ── The run ────────────────────────────────────────────────────────────────

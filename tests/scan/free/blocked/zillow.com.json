@@ -1726,6 +1726,123 @@
      "output_tokens": 232
     }
    }
+  },
+  {
+   "key": "bab0f84adab43dba",
+   "response": {
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01RBE2g41K6bj6s42f3kpsT3",
+      "name": "profile",
+      "input": {
+       "category": "real estate marketplace",
+       "job": "search and find homes to buy or rent",
+       "offeringType": "online real estate listing platform",
+       "audienceTerms": [
+        "home buyers",
+        "renters",
+        "landlords",
+        "real estate agents"
+       ],
+       "namedRivals": [],
+       "vocabulary": [
+        "homes for sale",
+        "apartments for rent",
+        "rental listings",
+        "home values",
+        "mortgage calculator",
+        "Zestimate",
+        "real estate filters",
+        "property listings"
+       ],
+       "brandTokens": [
+        "Zillow",
+        "Zestimate"
+       ],
+       "town": ""
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "usage": {
+     "input_tokens": 2572,
+     "output_tokens": 237
+    }
+   }
+  },
+  {
+   "key": "d9065760ac69cadf",
+   "response": {
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01W5trbcbs4pu5mmAsXDKv1a",
+      "name": "question-phrasing",
+      "input": {
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Where can I find an apartment?"
+        },
+        {
+         "id": "q2",
+         "text": "What is a real estate marketplace platform?"
+        },
+        {
+         "id": "q3",
+         "text": "How do I calculate my mortgage payments?"
+        },
+        {
+         "id": "q4",
+         "text": "What apartments are available near me?"
+        },
+        {
+         "id": "q5",
+         "text": "Where can I find homes?"
+        },
+        {
+         "id": "q6",
+         "text": "Where can I find an apartment for rent?"
+        },
+        {
+         "id": "q7",
+         "text": "Where can I search for apartments to rent?"
+        },
+        {
+         "id": "q8",
+         "text": "What homes are for sale?"
+        },
+        {
+         "id": "q9",
+         "text": "What homes can I buy near me?"
+        },
+        {
+         "id": "q10",
+         "text": "Where can I find an apartment to rent near me?"
+        },
+        {
+         "id": "q11",
+         "text": "Where can I find homes available for rental near me?"
+        },
+        {
+         "id": "q12",
+         "text": "Where can I rent homes near me?"
+        }
+       ]
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "usage": {
+     "input_tokens": 1014,
+     "output_tokens": 240
+    }
+   }
   }
  ]
 }

@@ -128,7 +128,9 @@ export function deriveRivals(a: {
 
   for (const serp of a.serps) {
     const countedTop10 = new Set<string>();
-    for (const row of serp.organic) {
+    // A business in the local pack appears in the search as one in the top
+    // ten does (D67, issue 1441).
+    for (const row of [...serp.organic, ...(serp.localPack ?? [])]) {
       const domain = classify(row.domain);
       if (domain === null || countedTop10.has(domain)) continue;
       countedTop10.add(domain);

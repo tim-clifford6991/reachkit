@@ -18,7 +18,7 @@
 // `src/lib/scan/rescore-run.ts` reads the stored rows in production (the
 // `scan/rescore` job, issue 1433), writes the before and after, and on apply
 // writes the change, keeping the original report under `report.previous`.
-import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, foundationsOf, searchPresenceOf } from "@/lib/measure/drivers";
+import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, foundationsOf, localPackSearches, searchPresenceOf } from "@/lib/measure/drivers";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
@@ -166,11 +166,18 @@ function membersOf(r: RescoreReport): RescoredMembers {
 
 /** The search-presence driver from the ranked rows the report kept, or
  *  `null` where it kept a count but not its rows (a report of version 8 or
- *  before): then the stored driver stands. */
+ *  before): then the stored driver stands. A stored SERP whose local pack
+ *  shows the site counts that search as a top-ten result (issue 1441). */
 function searchPresenceFrom(r: RescoreReport, at: Date): Measured<number> | null {
   if (r.ownRanked.kind === "unmeasured") return searchPresenceOf({ ranked: r.ownRanked, at });
   if (r.ownRankedRows.length === 0 && r.ownRanked.value > 0) return null;
-  return searchPresenceOf({ ranked: measured({ rows: r.ownRankedRows, total: r.ownRanked.value }, at), at });
+  const searches = r.questions.kind === "unmeasured" ? [] : r.questions.value.map((question) => question.search.keyword);
+  const localPack = localPackSearches({ serps: r.serps, searches, ownDomain: r.domain });
+  return searchPresenceOf({
+    ranked: measured({ rows: r.ownRankedRows, total: r.ownRanked.value }, at),
+    at,
+    ...(localPack.length === 0 ? {} : { localPack }),
+  });
 }
 
 /** The cards over the stored SERPs, where the pass that stored them got as

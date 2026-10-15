@@ -191,6 +191,17 @@ describe("scan/finish-reads — a scan with 0 of 12 read finishes to 12 of 12 (i
     expect(db.written).toHaveLength(1);
   });
 
+  it("reads in the town the pass was measured in (D67, issue 1441)", async () => {
+    const leeds = { name: "Leeds", region: "West Yorkshire", location: "Leeds,West Yorkshire,England,United Kingdom" };
+    const report = { ...zeroOfTwelve(), locale: { country: "GB", language: "en", place: leeds, placeFrom: "page_text" } };
+    const locales: unknown[] = [];
+    const v = vendorOf({ spentCents: 7.2, centsPerRead: 0.1 });
+    const vendor: FinishVendor = { ...v.vendor, read: (cost, r) => (locales.push(r.locale), v.vendor.read(cost, r)) };
+    await finish(storeOf(report).store, vendor);
+    expect(locales).toHaveLength(12);
+    for (const locale of locales) expect(locale).toEqual({ country: "GB", language: "en", place: leeds });
+  });
+
   it("a report written after it was read is left alone", async () => {
     const db = storeOf(zeroOfTwelve());
     const store: FinishStore = { ...db.store, writeScan: async () => false };

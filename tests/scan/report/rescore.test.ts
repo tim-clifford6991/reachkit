@@ -310,3 +310,35 @@ describe("issue 1420: a mention is read again from whatever answer text was stor
     });
   });
 });
+
+describe("issue 1441: a stored SERP whose local pack shows the site counts that search toward search presence", () => {
+  // gusto.com's scan, with a small business's footprint: three searches,
+  // none on the first page.
+  const scan = ((): FixtureScan => {
+    const s = fixture("gusto.com");
+    const report = structuredClone(s.report) as Record<string, unknown> & { ownRanked: { value: number } };
+    report.ownRanked = { ...report.ownRanked, value: 3 };
+    report.ownRankedRows = [40, 55, 70].map((position, i) => ({ keyword: `payroll question ${i}`, position }));
+    return { ...s, report };
+  })();
+  const rowOf = (s: FixtureScan): StoredScanRow => ({ ...s, domain: "gusto.com", md5: md5(s.report), siteId: null, isCurrent: false });
+  const searchPresence = (s: FixtureScan): number => {
+    const row = rescoreRow(rowOf(s), []);
+    if (!("result" in row)) throw new Error(row.because);
+    const value = row.result.drivers.searchPresence;
+    if (value.kind === "unmeasured") throw new Error("unmeasured");
+    return value.value;
+  };
+  const withPack = (domain: string): FixtureScan => {
+    const report = structuredClone(scan.report) as { serps: { kind: string; value?: Record<string, unknown> }[] };
+    const first = report.serps.find((serp) => serp.kind === "measured")!;
+    first.value!.localPack = [{ title: "A business", domain }];
+    return { ...scan, report: report as unknown as Record<string, unknown> };
+  };
+
+  it("adds to it where the pack holds the site, and leaves it where the pack holds only others", () => {
+    const stored = searchPresence(scan);
+    expect(searchPresence(withPack("www.gusto.com"))).toBeGreaterThan(stored);
+    expect(searchPresence(withPack("rival.example"))).toBe(stored);
+  });
+});

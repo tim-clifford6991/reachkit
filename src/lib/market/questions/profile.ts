@@ -38,6 +38,12 @@ export interface Profile {
   namedRivals: readonly string[]; // rivals the site itself names
   vocabulary: readonly string[]; // the relevance guard's support set
   brandTokens: readonly string[]; // the own-brand drop set
+  /** The town or city the pages say the business serves its customers in
+   *  ("Leeds", "Austin, Texas"), `""` where they name none (owner ruling
+   *  2026-10-15, issue 1441). A free pass measures there only once the
+   *  search vendor's list of the country's towns holds it. Absent on a
+   *  profile read before it was asked. */
+  town?: string;
   /** The language the site's buyers search in (SPEC §6, owner D66, issue
    *  1311), where that is not English: the selection reads a search's stop
    *  words, endings and compounds by it. Never asked of the model — the
@@ -99,6 +105,9 @@ export const PROFILE_SCHEMA = z.strictObject({
   namedRivals: boundedList(PROFILE_LIST_BOUNDS.namedRivals),
   vocabulary: boundedList(PROFILE_LIST_BOUNDS.vocabulary),
   brandTokens: boundedList(PROFILE_LIST_BOUNDS.brandTokens),
+  // Absent or long is never fatal: a town is a nicety the free pass checks
+  // against the vendor's list before it trusts it.
+  town: z.preprocess((value) => (typeof value === "string" ? value.slice(0, 80) : value === undefined || value === null ? "" : value), z.string()),
 });
 
 /** How a bounded list is described to the model — the same two numbers
@@ -126,6 +135,8 @@ export const PROFILE_FIELDS: Readonly<Record<Exclude<keyof Profile, "language">,
   ),
   vocabulary: listOf(PROFILE_LIST_BOUNDS.vocabulary, "the words and phrases a buyer uses for this kind of product"),
   brandTokens: listOf(PROFILE_LIST_BOUNDS.brandTokens, "the business's own brand and product names"),
+  town:
+    "one string: the one town or city whose customers the business serves in person, as the pages say it (an address in the footer or contact block, \"based in\", \"serving\"), with its state or region after a comma where the pages give one; \"\" where the pages name none or the business sells across a country or online",
 });
 
 export const PROFILE_TASK =

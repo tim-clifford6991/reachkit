@@ -311,3 +311,18 @@ describe("Observability — the framing state, and nothing else", () => {
     expect(line).not.toContain("secret keyword");
   });
 });
+
+describe("D67, owner ruling 2026-10-15 (issue 1441) — the local pack counts as the top ten", () => {
+  it("the site in a search's local pack holds that search, and so does a rival there", () => {
+    const local: MarketSerp = { ...serp(["directory.com"]), localPack: [{ domain: "www.customer.com" }, { domain: "rival-a.com" }] };
+    const card = buildPresenceCard({
+      serps: [measured(local, AT), ok(["directory.com"])],
+      selected: [search("plumber leeds", 900), search("emergency plumber leeds", 300)],
+      ownDomain: "customer.com",
+      rivals: [candidate("rival-a.com")],
+    });
+    expect(card.you.top10Count).toBe(1);
+    expect(card.rivals).toEqual([{ domain: "rival-a.com", top10Count: 1 }]);
+    expect(card.absentFrom.map((a) => a.keyword)).toEqual(["emergency plumber leeds"]);
+  });
+});
