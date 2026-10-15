@@ -273,3 +273,22 @@ describe("the AI-answers matrix as CSS grid (issue 730, DESIGN rule 2)", () => {
     expect(cells.find((c) => c.name === "one.com · 1")?.paint).toContain("bg-(--chart-rival)");
   });
 });
+
+describe("issue 1439 — where AI answers none of the searches", () => {
+  it("says AI does not answer them yet, never that it names you on none", () => {
+    const html = render({
+      ...FREE_SECTION,
+      answeredSearches: 0,
+      customerCitations: 0,
+      rows: FREE_SECTION.rows.map((row) => ({ ...row, cell: NO_ANSWER })),
+    });
+    expect(html).toContain("ai-answers.finding.unanswered");
+    expect(html).not.toContain("ai-answers.finding.none");
+  });
+
+  it("over fewer than four searches read it says only what it counted", () => {
+    const html = render({ ...FREE_SECTION, measuredSearches: 1, answeredSearches: 0, customerCitations: 0, rows: FREE_SECTION.rows.slice(0, 1).map((row) => ({ ...row, cell: NO_ANSWER })) });
+    expect(html).toContain("ai-answers.finding.none(0|1)");
+    expect(html).not.toContain("ai-answers.finding.unanswered");
+  });
+});

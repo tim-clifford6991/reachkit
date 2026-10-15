@@ -20,7 +20,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type DbQuery } from "../run/harness";
 import { asQueue, pollTheQueueAtOnce } from "../../vendors/harness";
-import { AI_PRESENCE_MIN_READS, PROFILE_LIST_BOUNDS } from "../../../src/lib/config/constants";
+import { PROFILE_LIST_BOUNDS } from "../../../src/lib/config/constants";
 import { toolUseMessage } from "../../llm/fixtures";
 import type { FetchOutcome, RobotsPolicy } from "../../../src/lib/egress/types";
 
@@ -282,11 +282,9 @@ describe("figma's own answer: an over-full list no longer empties the report (is
     expect(report.questions.kind).not.toBe("unmeasured");
     expect(report.questions.value?.length ?? 0).toBeGreaterThan(0);
     expect(report.serps.every((serp) => serp.kind !== "unmeasured")).toBe(true);
-    // This market yields three questions, and AI presence is a rate over at
-    // least four read results (issue 1419), so presence is the one factor
-    // without a value; the profile the market came from is not the reason.
-    expect(report.questions.value?.length).toBeLessThan(AI_PRESENCE_MIN_READS);
-    expect(report.verdict.missing.map((m) => m.factor)).toEqual(["presence"]);
+    // This market yields three questions, and AI presence is judged on the
+    // answers that exist however few (issue 1439): every factor has a value.
+    expect(report.verdict.missing).toEqual([]);
 
     // Trimmed to the cap, in the model's own order.
     expect(report.market.value?.profile.brandTokens).toEqual(

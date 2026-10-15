@@ -11,20 +11,21 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { AI_PRESENCE_MIN_READS, SCORING } from "@/lib/config/constants";
+import { SCORING } from "@/lib/config/constants";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { RankedResult, RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
 import {
   aiPresenceOf,
+  aiPresenceRangeOf,
+  aiSampleOf,
   answerabilityOf,
   foundationsOf,
   ownRankedOf,
   searchPresenceOf,
-  TOO_FEW_READ,
 } from "../../../src/lib/measure/drivers.ts";
 import { measured, measuredZero, unmeasured, type Measured } from "../../../src/lib/measure/measured.ts";
 import type { OnPageFacts } from "../../../src/lib/measure/parse.ts";
-import { computeScore, factorsOf } from "../../../src/lib/measure/score.ts";
+import { computeScore, estimateOf, factorsOf, NO_AI_ANSWERS, presenceOf, presenceRangeOf } from "../../../src/lib/measure/score.ts";
 import stored from "./fixtures/ai-presence-free-scans.json";
 
 const AT = new Date("2026-09-05T00:00:00.000Z");
@@ -382,9 +383,9 @@ describe('BUILD §5: "SearchPresence = min(100, 25 × log10(ranked + 1)) × (0.5
 });
 
 describe('BUILD §5: "AIPresence = max(1, (0.4 × mentionRate + 0.6 × citationRate) × 100)"', () => {
-  /** The fewest reads AI presence is a rate over (issue 1419), each the same SERP. */
+  /** Four reads of the same SERP. */
   const enough = (references: readonly string[]): Measured<SerpResult>[] =>
-    Array.from({ length: AI_PRESENCE_MIN_READS }, () => measured(serp(references), AT));
+    Array.from({ length: 4 }, () => measured(serp(references), AT));
 
   it("AIPresence weights citations above mentions", () => {
     const mentionsOnly = aiPresenceOf({ serps: enough(["g2.com/reachkit"]), ownDomain: OWN, at: AT });
@@ -396,7 +397,7 @@ describe('BUILD §5: "AIPresence = max(1, (0.4 × mentionRate + 0.6 × citationR
 
   it("a measured set that names the customer nowhere is a zero carrying the floor of 1, not a 0", () => {
     const m = aiPresenceOf({
-      serps: [...enough(["example.com", "other.example"]), measured(serp([], false), AT)],
+      serps: enough(["example.com", "other.example"]),
       ownDomain: OWN,
       at: AT,
     });
@@ -472,7 +473,7 @@ describe("issue 1357 — an AI Overview whose sources were not loaded is not an 
   const unread: SerpResult = { organic: [], aiOverview: { present: true, asynchronousAiOverview: true, referenceDomains: [], unread: true } };
 
   it("is in neither rate: the site cited on every SERP that was read scores as cited on all of them", () => {
-    const cited = Array.from({ length: AI_PRESENCE_MIN_READS }, () => measured(serp(["reachkit.app"]), AT));
+    const cited = Array.from({ length: 4 }, () => measured(serp(["reachkit.app"]), AT));
     const alone = aiPresenceOf({ serps: cited, ownDomain: OWN, at: AT });
     const beside = aiPresenceOf({ serps: [...cited, measured(unread, AT), measured(unread, AT)], ownDomain: OWN, at: AT });
     expect(valueOf(beside)).toBe(valueOf(alone));
@@ -483,7 +484,7 @@ describe("issue 1357 — an AI Overview whose sources were not loaded is not an 
   });
 });
 
-describe("issue 1419 — AI presence is a rate over at least four read results", () => {
+describe("issue 1439 — AI is judged on the answers that exist, and a score says how sure it is", () => {
   type StoredSerp = { kind: string; reason?: string; because?: string; present?: boolean; referenceDomains?: string[] };
   const serpsOf = (domain: string): Measured<SerpResult>[] => {
     const scan = stored.scans.find((s) => s.domain === domain);
@@ -495,47 +496,84 @@ describe("issue 1419 — AI presence is a rate over at least four read results",
     );
   };
   const aiOf = (domain: string): Measured<number> => aiPresenceOf({ serps: serpsOf(domain), ownDomain: domain, at: AT });
+  const scoreWith = (aiPresence: Measured<number>) =>
+    computeScore(factorsOf({ foundations: measured(80, AT), answerability: measured(60, AT), searchPresence: measured(70, AT), aiPresence }));
+  const fourOf = (references: readonly string[]): Measured<SerpResult>[] =>
+    Array.from({ length: 4 }, () => measured(serp(references), AT));
 
-  it("zapier.com's one read, which cited only YouTube, is no rate and so no score", () => {
+  it("a search Google answers without an AI answer is in neither rate", () => {
+    const serps = [measured(serp(["reachkit.app"]), AT), ...Array.from({ length: 3 }, () => measured(serp([], false), AT))];
+    expect(valueOf(aiPresenceOf({ serps, ownDomain: OWN, at: AT }))).toBeCloseTo(60, 10);
+    expect(aiSampleOf({ serps, ownDomain: OWN })).toEqual({ read: 4, answered: 1, mentioned: 0, cited: 1 });
+  });
+
+  it("AI answering none of fewer than four reads is AI not read: the middle of its scale and its whole range", () => {
+    const serps = Array.from({ length: 3 }, () => measured(serp([], false), AT));
+    const ai = aiPresenceOf({ serps, ownDomain: OWN, at: AT });
+    expect(ai).toEqual({ kind: "unmeasured", reason: "undeterminable", at: AT });
+    expect(aiPresenceRangeOf(aiSampleOf({ serps, ownDomain: OWN }))).toEqual({ low: 1, high: 100 });
+  });
+
+  it("fewer than six results read is always a rough estimate, however narrow the range", () => {
+    const factors = factorsOf({ foundations: measured(100, AT), answerability: measured(30, AT), searchPresence: measured(80, AT), aiPresence: measured(40, AT) });
+    expect(estimateOf(factors, { low: 60, high: 60 }, 5)!.confidence).toBe("rough");
+    expect(estimateOf(factors, { low: 60, high: 60 }, 6)!.confidence).toBe("close");
+  });
+
+  it("where AI answered none of four or more searches read, AI presence is not 0 and Presence is search presence alone", () => {
+    const serps = Array.from({ length: 6 }, () => measured(serp([], false), AT));
+    const ai = aiPresenceOf({ serps, ownDomain: OWN, at: AT });
+    expect(ai).toEqual({ kind: "unmeasured", reason: "undeterminable", at: AT, because: NO_AI_ANSWERS });
+    const d = { searchPresence: measured(42, AT), aiPresence: ai };
+    expect(valueOf(presenceOf(d))).toBe(42);
+    expect(aiPresenceRangeOf(aiSampleOf({ serps, ownDomain: OWN }))).toBeNull();
+    expect(presenceRangeOf(d, null)).toEqual({ low: 42, high: 42 });
+  });
+
+  it("zapier.com's one read, which cited only YouTube, is a rate with a wide range and a score", () => {
     const ai = aiOf("zapier.com");
-    expect(ai).toEqual({ kind: "unmeasured", reason: "undeterminable", at: AT, because: TOO_FEW_READ });
-    const score = computeScore(
-      factorsOf({ foundations: measured(80, AT), answerability: measured(60, AT), searchPresence: measured(70, AT), aiPresence: ai })
-    );
-    expect(score.kind).toBe("unmeasured");
+    expect(ai.kind).toBe("zero");
+    expect(scoreWith(ai).kind).toBe("measured");
+    const range = aiPresenceRangeOf(aiSampleOf({ serps: serpsOf("zapier.com"), ownDomain: "zapier.com" }))!;
+    expect(range.low).toBe(1);
+    expect(range.high).toBeGreaterThan(70);
   });
 
-  it("mailchimp.com's two reads of ten are no rate either; the deadline's and the ceiling's reasons fold", () => {
-    expect(aiOf("mailchimp.com")).toEqual({ kind: "unmeasured", reason: "undeterminable", at: AT, because: TOO_FEW_READ });
+  it("mailchimp.com's two reads are a rate: one citation of two answers", () => {
+    expect(valueOf(aiOf("mailchimp.com"))).toBeCloseTo(0.6 * (1 / 2) * 100, 10);
   });
 
-  it("stripe.com's single question, unread at the deadline, stays unmeasured with the deadline's reason", () => {
-    expect(aiOf("stripe.com")).toEqual({ kind: "unmeasured", reason: "undeterminable", at: AT });
-  });
-
-  it("deel.com's four of four read is a rate", () => {
-    const ai = aiOf("deel.com");
-    expect(ai.kind).toBe("measured");
-    // One citation (www.deel.com) over four reads.
-    expect(valueOf(ai)).toBeCloseTo(0.6 * (1 / 4) * 100, 10);
-  });
-
-  it("three reads with every question asked read is undeterminable, never a not_attempted", () => {
-    const three = Array.from({ length: AI_PRESENCE_MIN_READS - 1 }, () => measured(serp(["reachkit.app"]), AT));
-    expect(aiPresenceOf({ serps: three, ownDomain: OWN, at: AT })).toEqual({
-      kind: "unmeasured",
-      reason: "undeterminable",
-      at: AT,
-      because: TOO_FEW_READ,
+  it("stripe.com's one question, unread at the deadline, keeps its reason and still scores, over the whole AI range", () => {
+    const ai = aiOf("stripe.com");
+    expect(ai).toEqual({ kind: "unmeasured", reason: "undeterminable", at: AT });
+    const d = { searchPresence: measured(70, AT), aiPresence: ai };
+    // The unread AI half is the middle of its scale: the figure is inside the range.
+    expect(valueOf(presenceOf(d))).toBe(0.5 * 70 + 0.5 * 50.5);
+    expect(presenceRangeOf(d, aiPresenceRangeOf(aiSampleOf({ serps: serpsOf("stripe.com"), ownDomain: "stripe.com" })))).toEqual({
+      low: 0.5 * 70 + 0.5 * 1,
+      high: 0.5 * 70 + 0.5 * 100,
     });
+    expect(scoreWith(ai).kind).toBe("measured");
   });
 
-  it("only reads count towards the four: an overview whose sources were not loaded does not", () => {
-    const unread: SerpResult = { organic: [], aiOverview: { present: true, asynchronousAiOverview: true, referenceDomains: [], unread: true } };
-    const serps = [
-      ...Array.from({ length: AI_PRESENCE_MIN_READS - 1 }, () => measured(serp(["reachkit.app"]), AT)),
-      measured(unread, AT),
-    ];
-    expect(aiPresenceOf({ serps, ownDomain: OWN, at: AT }).kind).toBe("unmeasured");
+  it("the range narrows as answers grow: one answer is a rough estimate, twelve a close one", () => {
+    const estimateOver = (answers: number) => {
+      const serps = Array.from({ length: answers }, () => measured(serp(["example.com"]), AT));
+      const d = { searchPresence: measured(100, AT), aiPresence: aiPresenceOf({ serps, ownDomain: OWN, at: AT }) };
+      const factors = factorsOf({ foundations: measured(100, AT), answerability: measured(30, AT), ...d });
+      return estimateOf(factors, presenceRangeOf(d, aiPresenceRangeOf(aiSampleOf({ serps, ownDomain: OWN }))))!;
+    };
+    const one = estimateOver(1);
+    const twelve = estimateOver(12);
+    expect(one.high - one.low).toBeGreaterThan(twelve.high - twelve.low);
+    expect(one.confidence).toBe("rough");
+    expect(twelve.confidence).toBe("close");
+  });
+
+  it("a site that does not rank yet is no longer capped: AI answers that name it lift Presence", () => {
+    const named = aiPresenceOf({ serps: fourOf(["reachkit.app"]), ownDomain: OWN, at: AT });
+    expect(valueOf(presenceOf({ searchPresence: measuredZero(0, AT), aiPresence: named }))).toBeCloseTo(30, 10);
+    const nobody = aiPresenceOf({ serps: fourOf(["example.com"]), ownDomain: OWN, at: AT });
+    expect(valueOf(presenceOf({ searchPresence: measuredZero(0, AT), aiPresence: nobody }))).toBe(1);
   });
 });

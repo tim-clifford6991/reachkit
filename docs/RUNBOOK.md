@@ -540,7 +540,7 @@ exported, and no change is typed back through the connector.
 2. **Read the summary**: `select finished_at, rescored_by, scans_read, scans_changed, sites_moved,
    error, summary from rescore_runs where id = '<id>';`. `finished_at` is null while it runs.
    `rescored_by` is the deployed commit. `summary` is a markdown table with one row per scan:
-   score, band, the three factors, the limiting factor, the rivals and the status, before → after.
+   score with its range and confidence (issue 1439), band, the three factors, the limiting factor, the rivals and the status, before → after.
    Then come the totals, what could not be fully recomputed and why, the site rival sets that move,
    and the site profiles read off a protection's page. If `error` is set, the run failed. Read the
    message and ask again.

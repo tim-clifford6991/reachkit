@@ -1197,14 +1197,24 @@ export const SELECTION = Object.freeze({                    // BP-025 · REQ-006
   maxMarketTerms: 6,
 } as const);
 
-/** SPEC §2 (2026-10-14, issue 1419): the fewest Google results whose AI
- *  Overview was read that AI presence is a rate over. Fewer is unmeasured,
- *  so one or two results never set the score. Four is
- *  `SELECTION.freeLadderMinQuestions`, the questions the free ladder buys
- *  towards: of the 31 free scans stored from 2026-10-08 to 2026-10-14, none
- *  scored on fewer than four, and five would have unscored deel.com (four
- *  asked, four read). Not in `SCORING`, which BP-005 pins to three members. */
-export const AI_PRESENCE_MIN_READS = 4 as const;
+/** SPEC §0 and §2 (owner, 2026-10-15, issue 1439): how a score says how sure
+ *  it is, and how Presence weighs its two halves. `z` is the Wilson interval's
+ *  (95%) over the AI answers each rate is read from; a score whose range is
+ *  wider than `roughWidth` points, or read from fewer than `closeMinReads`
+ *  Google results, is a "rough estimate", else a "close estimate". "AI
+ *  answered none" is only said over at least `noneMinReads` results read;
+ *  fewer is AI not read. `searchWeight` and `aiWeight` are Presence's
+ *  weighted mean, so one zero no longer collapses it. Drafted defaults the
+ *  owner may correct (master review of PR 1445 set the two read counts).
+ *  Not in `SCORING`, which BP-005 pins to three members. */
+export const SCORE_ESTIMATE = Object.freeze({
+  z: 1.96,
+  roughWidth: 8,
+  closeMinReads: 6,
+  noneMinReads: 4,
+  searchWeight: 0.5,
+  aiWeight: 0.5,
+} as const);
 
 /** SPEC §6 *Topics by business fit* (2026-09-29, 2026-10-03; issue 1134).
  *  `gate`: below it a target is `low_fit` and never supply. `writeAt`: the

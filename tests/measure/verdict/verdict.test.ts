@@ -80,13 +80,10 @@ describe(
       ["foundations", "not_attempted"],
       ["answerability", "undeterminable"],
       ["answerability", "not_attempted"],
-      ["presence", "undeterminable"],
-      ["presence", "not_attempted"],
     ] as const)("%s missing with reason %s — named exactly once, scoreAndBand unmeasured, domain/measuredAt populated", (factor, reason) => {
       const drivers: Drivers = fullDrivers();
       if (factor === "foundations") drivers.foundations = unmeasured(reason, AT);
       if (factor === "answerability") drivers.answerability = unmeasured(reason, AT);
-      if (factor === "presence") drivers.searchPresence = unmeasured(reason, AT);
 
       const v = verdictOf({ domain: DOMAIN, measuredAt: AT, drivers, inputs: allRead(), robots: robotsFixture() });
       expect(v.scoreAndBand.kind).toBe("unmeasured");
@@ -95,12 +92,14 @@ describe(
       expect(v.measuredAt).toBe(AT);
     });
 
-    it("is over factors, never over the four quantities — only aiPresence failed reports presence in missing, never aiPresence", () => {
+    it("an unread presence half never withholds the score: it widens the range (issue 1439)", () => {
       const drivers: Drivers = fullDrivers();
       drivers.aiPresence = unmeasured("undeterminable", AT);
+      drivers.searchPresence = unmeasured("not_attempted", AT);
       const v = verdictOf({ domain: DOMAIN, measuredAt: AT, drivers, inputs: allRead(), robots: robotsFixture() });
-      expect(v.missing).toEqual([{ factor: "presence", reason: "undeterminable" }]);
-      expect(v.missing.some((m) => (m.factor as string) === "aiPresence")).toBe(false);
+      expect(v.missing).toEqual([]);
+      expect(v.scoreAndBand.kind).toBe("measured");
+      expect(v.estimate?.confidence).toBe("rough");
     });
   }
 );
@@ -128,11 +127,13 @@ describe(
         // `factors` joined the seven on 2026-09-08 (ruling 1b): the header
         // strip draws the three driver bars with their values, so the
         // verdict keeps what `factorsOf` always computed. Nothing else
-        // moved, and no member here can hide anything.
+        // moved, and no member here can hide anything. `estimate` joined
+        // them with issue 1439: how sure the score is.
         new Set([
           "domain",
           "measuredAt",
           "scoreAndBand",
+          "estimate",
           "factors",
           "limiting",
           "missing",

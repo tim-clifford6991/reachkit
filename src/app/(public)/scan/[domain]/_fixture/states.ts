@@ -218,6 +218,8 @@ export const FIXTURE_REPORT: StoredReport = {
     domain: OWN_DOMAIN as CanonicalDomain,
     measuredAt: MEASURED_AT,
     scoreAndBand: measured({ score: 62, band: "findable" }, MEASURED_AT),
+    // How sure it is (issue 1439), invented to sit around the score above.
+    estimate: { low: 58, high: 66, confidence: "close" },
     // The three the score is composed of (ruling 1b: the header strip
     // draws them). Invented like every figure here, and invented
     // *coherently*: `∛(70 × 90 × 40)` is 62, which is the score above, and
@@ -295,6 +297,7 @@ export const FIXTURE_DEGRADED_REPORT: StoredReport = {
   verdict: {
     ...FIXTURE_REPORT.verdict,
     scoreAndBand: { kind: "unmeasured", reason: "undeterminable", at: MEASURED_AT },
+    estimate: undefined,
     limiting: { kind: "none", because: "score_unmeasured" },
     missing: [
       { factor: "foundations", reason: "undeterminable" },
@@ -391,6 +394,7 @@ export const FIXTURE_COLD_START_REPORT: StoredReport = {
   verdict: {
     ...FIXTURE_REPORT.verdict,
     scoreAndBand: measured({ score: 8, band: "invisible" }, MEASURED_AT),
+    estimate: { low: 8, high: 21, confidence: "rough" },
     limiting: { kind: "factor", factor: "presence" },
     blockedReaders: measuredZero(0, MEASURED_AT),
   },

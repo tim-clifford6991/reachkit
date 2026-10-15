@@ -211,13 +211,12 @@ describe("issue #504 — the ranked-keywords call fails at the vendor on a free 
     });
   });
 
-  it("the presence factor is `unmeasured`, and the stage's reason is the vendor's failure, not the insert", async () => {
+  it("search presence is unread, so the score is a rough estimate over it, and the stage's reason is the vendor's failure, not the insert", async () => {
     stubVendorFetch(() => ({ status: 502, statusText: "Bad Gateway" }));
     await runScan({ domain: "example.com", tier: "free" });
 
-    expect(storedReport().verdict.missing).toEqual(
-      expect.arrayContaining([{ factor: "presence", reason: "undeterminable" }])
-    );
+    // Issue 1439: an unread presence half widens the range; it withholds no score.
+    expect(storedReport().verdict.estimate?.confidence).toBe("rough");
     expect(linesOf("driver_undeterminable")).toEqual([
       expect.objectContaining({ driver: "searchPresence", because: "http_502", endpoint: RANKED }),
     ]);
