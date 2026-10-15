@@ -183,7 +183,7 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     for (const body of [mail.html, mail.text]) {
       expect(body.indexOf(COPY["mail.weekly.number.aiVisits"])).toBeGreaterThan(0);
       expect(body.indexOf(COPY["mail.weekly.number.aiVisits"])).toBeLessThan(firstOf(body, after));
-      expect(body).not.toMatch(/Discoverability Score/i);
+      expect(body).not.toMatch(/Visibility Score/i);
     }
   });
 
@@ -249,9 +249,9 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     // inbox loads no webfont, so the mail names faces a reader has
     // installed (issue #376, the owner's render of 2026-09-09).
     expect(mail.html).toContain("ui-monospace");
-    expect(mail.html).toContain("Discoverability Score");
+    expect(mail.html).toContain("Visibility Score");
     // And the plain-text twin states the same facts, one to a line.
-    expect(mail.text).toContain("Discoverability Score: 62 · Hard to find");
+    expect(mail.text).toContain("Visibility Score: 62 · Hard to find");
   });
 
   it("the report mail names the removal address once, from its one home", async () => {

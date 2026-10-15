@@ -62,7 +62,7 @@ import type { CopyPartition } from "../registry.ts";
 export const LAWS_COPY = Object.freeze({
   "stopped.work.line": ["ReachKit stopped its own work today, so no page was written. Nothing about your market changed.", { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c1" }],
   "stopped.work.needs-nothing": [
-    "Nothing is needed from you — ReachKit picks up again on its own.",
+    "Nothing is needed from you. ReachKit picks up again on its own.",
     { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c2" },
   ],
   "stopped.work.resumes-on": [
@@ -74,7 +74,7 @@ export const LAWS_COPY = Object.freeze({
     { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c4" },
   ],
   "stopped.work.partial-pass": [
-    "This page was written from a pass cut short — part of the measurement behind it wasn’t done.",
+    "This page was written from a scan cut short: part of it wasn’t done.",
     { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c6" },
   ],
   "next-publish.stopped": ["ReachKit stopped its own work, so no page is scheduled.", { law: "next-publish", slots: {}, fixedBy: "REQ-092 c7" }],
@@ -138,8 +138,8 @@ export const LAWS_COPY = Object.freeze({
     "proposed by ReachKit · not yet written · {pageTitle}",
     { slots: { pageTitle: "text" }, fixedBy: "REQ-093 c2" },
   ],
-  "unmeasured.undeterminable": ["{what} couldn’t be measured — nothing came back that could be read.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c6" }],
-  "unmeasured.not-attempted": ["{what} wasn’t measured — the scan stopped early, before it got there.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c9" }],
+  "unmeasured.undeterminable": ["{what} couldn’t be measured: nothing came back that could be read.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c6" }],
+  "unmeasured.not-attempted": ["{what} wasn’t measured: the scan stopped early, before it got there.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c9" }],
   "unmeasured.dash": ["—", { law: "unmeasured", slots: {}, fixedBy: "REQ-004 c2" }],
   // The label the screen set draws over the three nav rows, in the eyebrow
   // role (S12, UI-SPEC §2's sidebar row). Approved as written (11a); the
@@ -205,7 +205,7 @@ export const LAWS_COPY = Object.freeze({
   // is closed ("This module adds none"). So this key is the state sentence
   // only, and the owner decides whether c4 gains a cause.
   "shell.publishing.state.week-zero": [
-    "First page after the deep pass",
+    "First page after the deep scan",
     { slots: {}, fixedBy: "S13" },
   ],
   /** Issue #782: Overview and Calendar while the onboarding pass and the
@@ -232,26 +232,26 @@ export const LAWS_COPY = Object.freeze({
   /** Issue 1196 — the side panel's one status line for a pass: when its
    *  step began, and how it ended. Drafted in the registry's voice; the
    *  owner may correct them. */
-  "shell.pass.remeasure-head": ["Measuring your market again", { slots: {}, fixedBy: "issue 1196" }],
+  "shell.pass.remeasure-head": ["Scanning your market again", { slots: {}, fixedBy: "issue 1196" }],
   "shell.pass.since": ["This step started at {time}.", { slots: { time: "text" }, fixedBy: "issue 1196" }],
   "shell.pass.ended.done": [
-    "Measurement finished at {time}. Your screens show what it found.",
+    "Scan finished at {time}. Your screens show what it found.",
     { slots: { time: "text" }, fixedBy: "issue 1196" },
   ],
   "shell.pass.ended.failed": [
-    "Measurement failed at {time}: something went wrong on our side. Nothing is needed from you, and the next measurement fills it in.",
+    "Scan failed at {time}, on our side. Nothing is needed from you; the next scan fills it in.",
     { slots: { time: "text" }, fixedBy: "issue 1196" },
   ],
   "shell.pass.ended.site-unreadable": [
-    "Measurement failed at {time}: we couldn’t read your site. Check that it’s online, then measure again from Settings.",
+    "Scan failed at {time}: we couldn’t read your site. Check that it’s online, then scan again from Settings.",
     { slots: { time: "text" }, fixedBy: "issue 1196" },
   ],
   "shell.pass.ended.time-ceiling": [
-    "Measurement stopped at {time} because it ran out of time. What it measured by then is shown, and the next measurement fills in the rest.",
+    "Scan stopped at {time}: it ran out of time. What it measured is shown; the next scan fills in the rest.",
     { slots: { time: "text" }, fixedBy: "issue 1196" },
   ],
   "shell.pass.ended.spend-ceiling": [
-    "Measurement stopped at {time} because it reached its spending limit. What it measured by then is shown, and the next measurement fills in the rest.",
+    "Scan stopped at {time}: it reached its spending limit. What it measured is shown; the next scan fills in the rest.",
     { slots: { time: "text" }, fixedBy: "issue 1196" },
   ],
   // Both approved as written by the screen set (ruling 11a): S12's domain
@@ -260,11 +260,11 @@ export const LAWS_COPY = Object.freeze({
   // Sep". Each slot the key already declared is spent by the sentence the
   // owner drew, so neither shape moved to fit the words.
   "shell.domain.measured-weeks": [
-    "Week {weeks} · re-measured {on}",
+    "Week {weeks} · scanned {on}",
     { slots: { weeks: "text", on: "date" }, fixedBy: "REQ-040 c6 · S12" },
   ],
   "shell.domain.not-measured": [
-    "not measured yet · first due {due}",
+    "not scanned yet · first due {due}",
     { slots: { due: "date" }, fixedBy: "REQ-040 c7 · S13" },
   ],
 }) satisfies CopyPartition;

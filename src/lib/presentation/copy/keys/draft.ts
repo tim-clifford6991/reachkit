@@ -212,7 +212,7 @@ export const DRAFT_COPY = Object.freeze({
   "draft.links.why.known": ["An article you already have on a near topic.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "draft.links.why.newer": ["A newer article of yours. This page was updated to link it.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "draft.links.why.fact": ["A fact on this page was read there.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
-  "draft.links.why.source": ["Cited for a figure or claim on this page.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
+  "draft.links.why.source": ["Linked for a figure or claim on this page.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "draft.links.why.written": ["Linked in the text.", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "draft.links.live": ["Live", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
   "draft.links.unchecked": ["Could not be checked", { slots: {}, fixedBy: "issue 1391 (drafted)" }],
@@ -360,7 +360,7 @@ export const DRAFT_COPY = Object.freeze({
   // Where the opportunity behind this draft is no longer readable — it was
   // purged, or the draft was written before the row carried its target.
   "draft.target.unknown": [
-    "We can't show what this page is for — the work it came from is no longer on file.",
+    "We can’t show what this page is for. The work it came from is no longer on file.",
     { slots: {}, fixedBy: "issue 867" },
   ],
 
@@ -386,7 +386,7 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 1196" },
   ],
   "draft.unsaved": [
-    "could not save — your text is kept here; nothing unsaved publishes",
+    "could not save. Your text is kept here; nothing unsaved publishes",
     { slots: {}, fixedBy: "REQ-045 c7 · S17 (11a)" },
   ],
   "draft.not-found": [
@@ -444,7 +444,7 @@ export const DRAFT_COPY = Object.freeze({
   // in three groups. Every number is a slot — the total is the length of
   // the rule list and the ceiling is `NEAR_DUPLICATE_MAX`.
   "draft.checks.headline": [
-    "Checks — {passed} of {total} passed",
+    "Checks: {passed} of {total} passed",
     { slots: { passed: "text", total: "text" }, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
   "draft.checks.count.fixed": [
@@ -496,7 +496,7 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
   "draft.checks.rule.rival-source": [
-    "Every figure about a rival links to its source",
+    "Every figure about a competitor links to its source",
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
   "draft.checks.rule.no-invented-test": [
@@ -542,7 +542,7 @@ export const DRAFT_COPY = Object.freeze({
   // A title's specific detail is tried for and never stops a page (SPEC §7,
   // 2026-10-11), so this row names only what the rule does stop a page on.
   "draft.checks.rule.title": [
-    "Title fits its length and the heading matches it",
+    "Title fits, and the heading matches",
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
   "draft.checks.rule.first-block-answers": [
@@ -576,11 +576,11 @@ export const DRAFT_COPY = Object.freeze({
   // we do not link into. A site whose index holds nothing keeps the line
   // above — there is no page to name and no number worth stating.
   "draft.checks.not-a-repeat": [
-    "Not a repeat — checked against {n} pages you already have. The closest is “{title}”, and this page links to it.",
+    "Not a repeat: checked against {n} pages you already have. The closest is “{title}”, and this page links to it.",
     { slots: { n: "text", title: "text" }, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "draft.checks.not-a-repeat.unlinked": [
-    "Not a repeat — checked against {n} pages you already have. The closest is “{title}”.",
+    "Not a repeat: checked against {n} pages you already have. The closest is “{title}”.",
     { slots: { n: "text", title: "text" }, fixedBy: "SPEC §7 2026-09-20" },
   ],
 
@@ -746,7 +746,7 @@ export const DRAFT_COPY = Object.freeze({
     { slots: { entry: "text" }, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
   ],
   "draft.editor.break.rival-source": [
-    "This figure is about a rival and the sentence carries no link to where it came from. Give it a source or take the number out.",
+    "This figure is about a competitor and the sentence carries no link to where it came from. Give it a source or take the number out.",
     { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
   ],
   "draft.editor.break.no-invented-people": [
@@ -782,7 +782,7 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
   ],
   "draft.editor.break.first-block-answers": [
-    "The page has to open with a short, plain answer to the question it targets — a paragraph, not a heading, a list or a question.",
+    "The page has to open with a short, plain answer to the question it targets: a paragraph, not a heading, a list or a question.",
     { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
   ],
   // SPEC §7 (D41 stage 4; issue 1252, drafted): the two checks stage 4
@@ -852,19 +852,19 @@ export const DRAFT_COPY = Object.freeze({
   // is sourced to the report's own address. Drafted; the owner corrects
   // the wording.
   "fact.report.score": [
-    "ReachKit measured {domain} on {date} and gave it a Discoverability Score of {score} out of 100.",
+    "ReachKit measured {domain} on {date} and gave it a Visibility Score of {score} out of 100.",
     { slots: { domain: "text", date: "date", score: "text" }, fixedBy: "SPEC §7 (2026-10-03) · issue 1163 · drafted" },
   ],
   "fact.report.answers": [
-    "On {date}, AI answers named {domain} for {count} of the {total} buyer questions they answered in ReachKit's measurement.",
+    "On {date}, AI answers mentioned {domain} for {count} of the {total} buyer searches they answered in ReachKit's measurement.",
     { slots: { domain: "text", date: "date", count: "text", total: "text" }, fixedBy: "SPEC §7 (2026-10-03) · issue 1163 · drafted" },
   ],
   "fact.report.rival": [
-    "On {date}, AI answers cited {rival} for {count} of the {total} buyer questions they answered in ReachKit's measurement of {domain}.",
+    "On {date}, AI answers linked to {rival} for {count} of the {total} buyer searches they answered in ReachKit's measurement of {domain}.",
     { slots: { domain: "text", date: "date", rival: "text", count: "text", total: "text" }, fixedBy: "SPEC §7 (2026-10-03) · issue 1163 · drafted" },
   ],
   "fact.report.method": [
-    "ReachKit's measurement of {domain} on {date} read Google's top ten results and the answers of {engines}; it does not measure Perplexity.",
+    "ReachKit's measurement of {domain} on {date} read Google's first page and the answers of {engines}; it does not measure Perplexity.",
     { slots: { domain: "text", date: "date", engines: "text" }, fixedBy: "SPEC §7 (2026-10-03) · issue 1163 · drafted" },
   ],
 

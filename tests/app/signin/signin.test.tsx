@@ -129,7 +129,7 @@ describe('REQ-098 c2 — "then it carries these strings verbatim: the heading �
     const { copy } = await import("@/lib/presentation/copy");
     expect(copy("signin.heading")).toBe("Welcome back");
     expect(copy("signin.body")).toBe(
-      "Enter the email you paid with and we'll send you a sign-in link. No password — accounts are created by payment, never by a signup form."
+      "Enter the email you paid with and we'll send you a sign-in link. No password: accounts are created by payment."
     );
     expect(copy("signin.field.placeholder")).toBe("you@company.com");
     // Changed 2026-09-21 (#937): REQ-098 c2 wrote "Send my link" for a
@@ -367,9 +367,6 @@ describe("against the real registry — every arm renders, and nothing is invent
     expect(text).toContain(COPY["signin.panel.line"]);
     expect(text).toContain(">47<");
     expect(text).toContain('value="47"');
-    // The example line #266 added is gone, and the marker it rendered with
-    // it: ruling 5c admits the specimen without one.
-    expect(text).not.toContain(COPY["signin.panel.specimen"]);
   });
 });
 

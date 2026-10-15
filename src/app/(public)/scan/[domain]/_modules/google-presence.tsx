@@ -102,20 +102,19 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
             that never scrolls is still a box the layout law has to excuse
             and a tab stop #947 would have to name. `min-w-0` is the half
             that was doing the work, and it stays. */}
-        {/* The card's finding, as its heading (#1068): the most any rival
-            holds beside the customer's own count — or, with no rival to
-            hold anything, the customer's count alone. */}
-        <h2 className="text-lg font-semibold">
-          {section.rivals.length === 0 || section.framing === "suppressed_no_rivals"
-            ? copy("presence.occupancy", {
-                you: String(section.you.top10Count),
-                measured: String(section.measuredSearches),
-              })
-            : copy("presence.finding", {
-                rival: String(Math.max(...section.rivals.map((rival) => rival.top10Count))),
-                measured: String(section.measuredSearches),
-                you: String(section.you.top10Count),
+        {/* The card's finding, as its heading (#1068): the customer's own
+            count as the figure, and one short line under it saying what it
+            counts (issue 1444). The competitors' counts are the bars. */}
+        <h2 className="flex flex-col gap-1">
+          <span className="text-3xl">
+            <Num figure>
+              {copy("report.figure.of", {
+                count: String(section.you.top10Count),
+                total: String(section.measuredSearches),
               })}
+            </Num>
+          </span>
+          <span className="text-base font-normal">{copy("presence.finding")}</span>
         </h2>
         {section.framing === "suppressed_no_rivals" ? (
           <p className="grow-0 text-sm">{copy("presence.no-rivals")}</p>

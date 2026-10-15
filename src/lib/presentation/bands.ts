@@ -67,16 +67,24 @@ export const SEVERITY: readonly [CopyKey, CopyKey, CopyKey] = [
   "severity.high",
 ] as const;
 
+/** The bars the report shows (issue 1444): Readiness, Content, Google and
+ *  AI — or `presence`, both halves at once, where a stored report did not
+ *  keep them. Declared here, beside the lines it names, so a screen that
+ *  speaks a bar loads no measurement module. */
+export type ShownFactor = "foundations" | "answerability" | "google" | "ai" | "presence";
+
 /** Added 2026-09-04 under rule 1.1 (WO-278 `## Decision taken under rule
  *  1.1`): BP-024 decision 6 removed the three driver bars and put one
  *  written line in their place, naming BP-019 as the node that holds it.
  *  Same shape as `SCORE_BANDS`: a handle becomes a `CopyKey` and nothing
- *  else. The three keys ship owner-owed and empty; `copy()` throws naming
- *  the key rather than rendering a blank. */
-export const LIMITING_LINES: Readonly<Record<"foundations" | "answerability" | "presence", CopyKey>> = {
-  foundations: "verdict.limiting.foundations",
-  answerability: "verdict.limiting.answerability",
-  presence: "verdict.limiting.presence",
+ *  else. Since issue 1444 each bar the report shows has a short title
+ *  ("Biggest gap: Content") and one line under it. */
+export const LIMITING_LINES: Readonly<Record<ShownFactor, { title: CopyKey; line: CopyKey }>> = {
+  foundations: { title: "verdict.limiting.foundations", line: "verdict.limiting.foundations.line" },
+  answerability: { title: "verdict.limiting.answerability", line: "verdict.limiting.answerability.line" },
+  google: { title: "verdict.limiting.google", line: "verdict.limiting.google.line" },
+  ai: { title: "verdict.limiting.ai", line: "verdict.limiting.ai.line" },
+  presence: { title: "verdict.limiting.presence", line: "verdict.limiting.presence.line" },
 };
 
 /** Added 2026-09-06, issue #47 (REQ-063): the four words a published

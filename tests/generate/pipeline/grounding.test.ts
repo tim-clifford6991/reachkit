@@ -183,7 +183,7 @@ describe("issue 1163 — the knowledge base is the business speaking, and what R
   });
 
   it("offers the report's measurements as facts sourced to the report, after the site's own pages", async () => {
-    const measured = "ReachKit measured example.com on 1 September 2026 and gave it a Discoverability Score of 41 out of 100.";
+    const measured = "ReachKit measured example.com on 1 September 2026 and gave it a Visibility Score of 41 out of 100.";
     const reportUrl = "https://reachkit.app/scan/example.com";
     readReportPageMock.mockResolvedValue({ url: reportUrl, text: measured, measuredAt: at });
     const all = await readAllFacts({ siteId: SITE_ID });
@@ -196,7 +196,7 @@ describe("issue 1163 — the knowledge base is the business speaking, and what R
     readMeasuredTextMock.mockResolvedValue([]);
     readReportPageMock.mockResolvedValue({
       url: "https://reachkit.app/scan/example.com",
-      text: "ReachKit measured example.com on 1 September 2026 and gave it a Discoverability Score of 41 out of 100.",
+      text: "ReachKit measured example.com on 1 September 2026 and gave it a Visibility Score of 41 out of 100.",
       measuredAt: at,
     });
     expect(await readAllFacts({ siteId: SITE_ID })).toEqual([]);

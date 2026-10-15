@@ -34,7 +34,7 @@ export const OFFER_COPY = Object.freeze({
   "price.vat_included": ["VAT included", { slots: {}, fixedBy: "REQ-022 c1" }],
   "price.interval": ["per month, VAT included", { slots: {}, fixedBy: "REQ-022 c1" }],
   "offer.cadence.page": ["A page for your site {value}, new or updated", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
-  "offer.cadence.measure": ["Your findability re-measured {value}", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
+  "offer.cadence.measure": ["Your market scanned {value}", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
   "offer.cadence.movement": ["What moved, in your inbox {value}", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
   "offer.veto.window": ["Every page goes live on its own after {value}. You can edit or stop it before then, and cancel any time, yourself", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
   // 2026-09-05, issue #13: value moved from "" to `TODO(copy)` per
@@ -51,7 +51,7 @@ export const OFFER_COPY = Object.freeze({
   "offer.cancel_self_service": ["Cancel in one click, yourself.", { slots: {}, fixedBy: "REQ-021 c2" }],
   // Issue 1068, board R12-2: the price close's heading on the report.
   // Drafted; the owner corrects the wording.
-  "offer.close.heading": ["Close the gap, a page every day.", { slots: {}, fixedBy: "issue 1068" }],
+  "offer.close.heading": ["Gain ground, a page every day.", { slots: {}, fixedBy: "issue 1068" }],
   "offer.start": ["Start ReachKit", { slots: {}, fixedBy: "REQ-021 c4" }],
   /** The **control's** own label, and the one the approved set draws on it:
    *  "Start ReachKit €49" (11a). `offer.start` stays exactly as the owner
@@ -86,7 +86,7 @@ export const OFFER_COPY = Object.freeze({
     { slots: {}, fixedBy: "S4 · REQ-021 c2" },
   ],
   "offer.pricing.measure": [
-    "Weekly re-measure of your whole market",
+    "A weekly scan of your whole market",
     { slots: {}, fixedBy: "S4 · REQ-021 c2" },
   ],
   "offer.pricing.movement": [

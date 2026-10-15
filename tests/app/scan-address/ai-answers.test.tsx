@@ -218,12 +218,10 @@ describe("what the columns deliberately do not move", () => {
   const html = render(withBattery(() => ANSWERED_NAMING, () => ANSWERED_NAMING));
 
   it("leaves the counts as Google's AI answers alone", () => {
-    // The finding is the card's own sentence (#1068); the customer's
-    // citation count is the matrix row beside their name, `0/9`, which is
-    // where REQ-008 c3's sibling rule puts it on this card too — once.
-    expect(html).toContain(
-      `ai-answers.finding.none(${FREE_SECTION.answeredSearches}|${FREE_SECTION.measuredSearches})`
-    );
+    // The finding is the card's figure and its one line (#1068, issue
+    // 1444): the answers that mention the customer, of those that appeared.
+    expect(html).toContain(`report.figure.of(${FREE_SECTION.customerCitations}|${FREE_SECTION.answeredSearches})`);
+    expect(html).toContain("ai-answers.finding");
     expect(chart(html)).toContain(
       `${FREE_SECTION.customerCitations}/${FREE_SECTION.answeredSearches}`
     );
@@ -283,12 +281,12 @@ describe("issue 1439 — where AI answers none of the searches", () => {
       rows: FREE_SECTION.rows.map((row) => ({ ...row, cell: NO_ANSWER })),
     });
     expect(html).toContain("ai-answers.finding.unanswered");
-    expect(html).not.toContain("ai-answers.finding.none");
+    expect(html).not.toContain("report.figure.of");
   });
 
   it("over fewer than four searches read it says only what it counted", () => {
     const html = render({ ...FREE_SECTION, measuredSearches: 1, answeredSearches: 0, customerCitations: 0, rows: FREE_SECTION.rows.slice(0, 1).map((row) => ({ ...row, cell: NO_ANSWER })) });
-    expect(html).toContain("ai-answers.finding.none(0|1)");
+    expect(html).toContain("report.figure.of(0|0)");
     expect(html).not.toContain("ai-answers.finding.unanswered");
   });
 });

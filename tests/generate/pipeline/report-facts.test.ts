@@ -22,12 +22,12 @@ describe("a complete report states what it measured", () => {
   it("dates the score, who AI answers named, and the engines it asked — Perplexity not among them", () => {
     const sentences = reportSentences(readStoredReport(blob()));
     expect(sentences[0]).toBe(
-      "ReachKit measured reachkit.app on 17 September 2026 and gave it a Discoverability Score of 20 out of 100."
+      "ReachKit measured reachkit.app on 17 September 2026 and gave it a Visibility Score of 20 out of 100."
     );
     expect(sentences).toContain(
-      "On 17 September 2026, AI answers named reachkit.app for 0 of the 12 buyer questions they answered in ReachKit's measurement."
+      "On 17 September 2026, AI answers mentioned reachkit.app for 0 of the 12 buyer searches they answered in ReachKit's measurement."
     );
-    expect(sentences.some((sentence) => sentence.includes("AI answers cited freddiechatt.com for 3 of the 12"))).toBe(true);
+    expect(sentences.some((sentence) => sentence.includes("AI answers linked to freddiechatt.com for 3 of the 12"))).toBe(true);
     expect(sentences.at(-1)).toContain("Google AI Overview, Google AI Mode and ChatGPT; it does not measure Perplexity.");
   });
 

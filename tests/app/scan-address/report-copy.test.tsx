@@ -43,9 +43,8 @@ import { FIXTURE_DEGRADED_REPORT, FIXTURE_REPORT } from "@/app/(public)/scan/[do
  *  `ai-answers.legend` are legends for drawings that have none, because
  *  §2.4 direct-labels every mark instead.
  *
- *  All nine stay declared in the registry: the owner may still write them
- *  for a listing elsewhere, and deleting a key moves `registry.test.ts`'s
- *  pinned totals. They are named in the PR.
+ *  Issue 1444 deleted all nine from the registry, with every other key
+ *  nothing in `src/` read, and split Presence into its two bars.
  */
 const SCREEN_KEYS: readonly CopyKey[] = [
   // 1 · the header card
@@ -56,8 +55,17 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "verdict.limiting.foundations",
   "verdict.limiting.answerability",
   "verdict.limiting.presence",
+  "verdict.limiting.google",
+  "verdict.limiting.ai",
+  "verdict.limiting.foundations.line",
+  "verdict.limiting.answerability.line",
+  "verdict.limiting.google.line",
+  "verdict.limiting.ai.line",
+  "verdict.limiting.presence.line",
   "verdict.factor.foundations",
   "verdict.factor.answerability",
+  "verdict.factor.google",
+  "verdict.factor.ai",
   "verdict.factor.presence",
   "unmeasured.dash",
   "unmeasured.undeterminable",
@@ -70,7 +78,8 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   // 2a · AI answers
   "ai-answers.title",
   "ai-answers.source",
-  "ai-answers.denominator",
+  "ai-answers.finding",
+  "report.figure.of",
   "ai-answers.method",
   "ai-answers.questions.title",
   // Issue 873: what this report measured, stated on the card.
@@ -91,6 +100,7 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   // 2b · Google presence
   "presence.title",
   "presence.source",
+  "presence.finding",
   "presence.no-rivals",
   "presence.absent-from.title",
   "presence.absent-from.column.search",
@@ -157,7 +167,6 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "control.rescan-age",
   "control.rescan-incomplete",
   "control.retry",
-  "control.correction-retry",
   "removal.address",
   "removal.line.on-report",
   "removal.line.removed",

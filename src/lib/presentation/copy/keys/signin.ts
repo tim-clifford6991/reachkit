@@ -51,7 +51,7 @@ import type { CopyPartition } from "../registry.ts";
 export const SIGNIN_COPY = Object.freeze({
   "signin.heading": ["Welcome back", { slots: {}, fixedBy: "REQ-098 c2" }],
   "signin.body": [
-    "Enter the email you paid with and we'll send you a sign-in link. No password — accounts are created by payment, never by a signup form.",
+    "Enter the email you paid with and we'll send you a sign-in link. No password: accounts are created by payment.",
     { slots: {}, fixedBy: "REQ-098 c2" },
   ],
   "signin.field.placeholder": ["you@company.com", { slots: {}, fixedBy: "REQ-098 c2" }],
@@ -77,7 +77,7 @@ export const SIGNIN_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 718" },
   ],
   "signin.address.invalid": ["That doesn’t look like an email address. Check it and try again.", { slots: {}, fixedBy: "REQ-098 c6" }],
-  "signin.link_dead": ["This sign-in link can’t be used any more. Ask for a new one below — it goes to the email you paid with.", { slots: {}, fixedBy: "REQ-098 c7" }],
+  "signin.link_dead": ["This sign-in link can’t be used any more. Ask for a new one below; it goes to the email you paid with.", { slots: {}, fixedBy: "REQ-098 c7" }],
 
   // ── The two answered arms (UI-SPEC S9, issue #373) ───────────────────
   //
@@ -113,15 +113,15 @@ export const SIGNIN_COPY = Object.freeze({
   // six already stand on, and the archive's `idiom/copy.ts` records them
   // under the same rule. Not paraphrased, not improved.
   "signin.panel.heading": [
-    "One number tells you how findable you are.",
+    "How easily buyers find you",
     { slots: {}, fixedBy: "owner-supplied, 2026-09-02" },
   ],
   "signin.panel.score-label": [
-    "Discoverability Score",
+    "Visibility Score",
     { slots: {}, fixedBy: "owner-supplied, 2026-09-02" },
   ],
   "signin.panel.line": [
-    "Hard to find — and we'll show you the fixes that move it.",
+    "Hard to find, and we'll show you the fixes that move it.",
     { slots: {}, fixedBy: "owner-supplied, 2026-09-02" },
   ],
   /** The caption under the specimen tile (#937). Ruling 5c of 2026-09-08
@@ -139,7 +139,7 @@ export const SIGNIN_COPY = Object.freeze({
    *  are, and which one is the reader's. Drafted on the Round 7 board
    *  `R7-S1`; transcribed from it, for the owner to confirm. */
   "signin.panel.answers": [
-    "Who AI answers name for your buyers’ questions. The violet dot is you.",
+    "Who AI answers mention for your buyers’ searches. The violet dot is you.",
     { slots: {}, fixedBy: "issue 1025" },
   ],
   /** Under the sent alert (#937): what the link is good for, before a
@@ -155,11 +155,4 @@ export const SIGNIN_COPY = Object.freeze({
   // stranger's measurement.
   "signin.panel.delta": ["+6 pts est.", { slots: {}, fixedBy: "REQ-098 c4" }],
 
-  // **No longer spoken by this screen** (ruling 5c, 2026-09-08): "the
-  // sign-in card … render[s] as drawn on `example.com`, without a source
-  // date or an example line", which amends REQ-098 c5 to admit a
-  // reserved-domain specimen without the written line #266 added here. The
-  // key stays declared — the owner may want the sentence somewhere — and
-  // the screen stops saying it.
-  "signin.panel.specimen": ["Example figures on example.com — not a measurement.", { slots: {}, fixedBy: "issue 266 · tokens.md §9.4" }],
 }) satisfies CopyPartition;

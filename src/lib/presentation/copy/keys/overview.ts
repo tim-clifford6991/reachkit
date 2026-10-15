@@ -45,15 +45,15 @@ import type { CopyPartition } from "../registry.ts";
 
 export const OVERVIEW_COPY = Object.freeze({
   "place.overview.weekly-presence.chart": [
-    "No weekly measurement yet. The line begins with the first Monday pass.",
+    "No weekly scan yet. The line begins with the first Monday scan.",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-041 c3" },
   ],
   "place.overview.weekly-presence.week": [
-    "This week hasn’t been measured. The next pass is due Monday.",
+    "This week hasn’t been scanned. The next scan is due Monday.",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-065 c3" },
   ],
   "place.overview.weekly-presence.partial-week": [
-    "Not measured this week. What was measured is shown with its date.",
+    "Not scanned this week. What was scanned is shown with its date.",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-065 c4" },
   ],
   // ── The head: what autopilot is doing (owner 2026-10-09, issue 1362).
@@ -87,7 +87,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // The date is a slot — it is the measurement's own, read from the series,
   // and the sidebar states the same one from the same `firstDueOn`/week.
   "overview.growth.source.remeasured": [
-    "re-measured {on}",
+    "scanned again {on}",
     { slots: { on: "date" }, fixedBy: "S12" },
   ],
   // The week-0 chart's own chip and footnote pair. The chip names the pass
@@ -96,7 +96,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // weekly line has not begun, in place of the goal sentence the ordinary
   // arm carries.
   "overview.growth.source.deep-pass": [
-    "from the deep pass · {on}",
+    "from the deep scan · {on}",
     { slots: { on: "date" }, fixedBy: "S13" },
   ],
   "overview.growth.footnote.starting": [
@@ -109,7 +109,7 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
   "overview.growth.footnote.start": ["started at {value}", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
   "overview.growth.footnote.goal": [
-    "At {goal} the big category terms unlock.",
+    "At {goal} the big market searches unlock.",
     { slots: { goal: "text" }, fixedBy: "BUILD §4.5" },
   ],
 
@@ -119,11 +119,11 @@ export const OVERVIEW_COPY = Object.freeze({
   // own reading arrives, in place of a number nobody has measured — never
   // a zero, which REQ-004 forbids as a reading that was not taken.
   "overview.tile.score.first-due": [
-    "first measurement due {due}",
+    "first scan due {due}",
     { slots: { due: "date" }, fixedBy: "S13 · REQ-040 c7" },
   ],
   "overview.tile.ai-answers.first-pass": [
-    "measured with the first weekly pass",
+    "scanned with the first weekly scan",
     { slots: {}, fixedBy: "S13" },
   ],
   // #793: the deep pass is week 0. Where it measured the score or the AI
@@ -131,7 +131,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // measurement, with the date the weekly readings take over. Drafted
   // (#759); the owner corrects the wording.
   "overview.tile.starting": [
-    "starting measurement, {on} · weekly from {due}",
+    "first scan, {on} · weekly from {due}",
     { slots: { on: "date", due: "date" }, fixedBy: "issue 793" },
   ],
   "overview.tile.pages.first-review": [
@@ -144,7 +144,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // Ruling 6a fixes the name on every surface that labels the number:
   // "Discoverability Score" — the report head's eyebrow, this tile, the
   // landing component tile and the two mails. Transcribed, not chosen.
-  "overview.tile.score.label": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
+  "overview.tile.score.label": ["Visibility Score", { slots: {}, fixedBy: "ruling 6a" }],
   // What reaching `GOAL_VALUES.score` means, in the product's own words.
   // The set prints no such line beside the score — it prints the band —
   // so the words are the owner's (#460).
@@ -157,9 +157,9 @@ export const OVERVIEW_COPY = Object.freeze({
   // head. One key, reworded; drafted under issue 759's ruling and the
   // owner's to correct.
   "overview.tile.searches.label": ["Searches you appear for", { slots: {}, fixedBy: "issue 915" }],
-  "overview.tile.ai-answers.label": ["AI Visibility", { slots: {}, fixedBy: "BUILD §4.5" }],
+  "overview.tile.ai-answers.label": ["AI", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.tile.ai-answers.window": [
-    "named in {weeks} of the last {of} weeks",
+    "mentioned in {weeks} of the last {of} weeks",
     { slots: { weeks: "text", of: "text" }, fixedBy: "REQ-041 c12" },
   ],
   // Issue 867 (owner, 2026-09-17): the number counts Google's AI Overview
@@ -175,7 +175,7 @@ export const OVERVIEW_COPY = Object.freeze({
     "{engines} are measured on each page's own search.",
     { slots: { engines: "text" }, fixedBy: "issue 867" },
   ],
-  "overview.tile.ai-answers.means": ["Named by AI in half the weeks.", { slots: {}, fixedBy: "REQ-041 c4" }],
+  "overview.tile.ai-answers.means": ["Mentioned by AI in half the weeks.", { slots: {}, fixedBy: "REQ-041 c4" }],
   "overview.tile.pages.label": ["Pages published", { slots: {}, fixedBy: "BUILD §4.5" }],
   // The set's own two lines on the pages tile, both unbracketed and so
   // approved (11a): the badge beside the count, and the dim line under it.
@@ -186,7 +186,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { count: "text" }, fixedBy: "S12" },
   ],
   "overview.tile.pages.too-early": [
-    "rest under {weeks} weeks — too early to judge",
+    "rest under {weeks} weeks, too early to judge",
     { slots: { weeks: "text" }, fixedBy: "S12 · REQ-063 c2" },
   ],
   "overview.tile.pages.means": ["A month of daily pages.", { slots: {}, fixedBy: "REQ-041 c4" }],
@@ -197,7 +197,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.delta.down": ["▼", { slots: {}, fixedBy: "BUILD §4.5" }],
 
   // ── How far ahead each rival is.
-  "overview.rivals.title": ["How far ahead each rival is", { slots: {}, fixedBy: "BUILD §4.5" }],
+  "overview.rivals.title": ["How far ahead competitors are", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.rivals.spark.label": [
     "How far ahead {rival} is",
     { slots: { rival: "text" }, fixedBy: "BUILD §4.5" },
@@ -214,19 +214,19 @@ export const OVERVIEW_COPY = Object.freeze({
   // The cold-start arm's line, and the one key on this screen whose value is
   // constrained by what it must **not** say: nothing is shrinking yet, so it
   // can never be `overview.rivals.line.shrinking` (REQ-041 c9).
-  "overview.rivals.line.absolute": ["Each line is a rival’s own count beside yours.", { slots: {}, fixedBy: "REQ-041 c9" }],
+  "overview.rivals.line.absolute": ["Each line is a competitor’s own count beside yours.", { slots: {}, fixedBy: "REQ-041 c9" }],
   // The week-0 arm's one line, in place of the rows: nothing has been
   // sized yet, and the card says when it will be rather than drawing three
   // empty plots.
   "overview.rivals.line.week-zero": [
-    "Sized with the first weekly measurement, {due}.",
+    "Sized with the first weekly scan, {due}.",
     { slots: { due: "date" }, fixedBy: "S13" },
   ],
 
   // #793: the deep pass sized the rivals, so week 0 draws their rows from
   // it and says so. Drafted (#759); the owner corrects the wording.
   "overview.rivals.line.starting": [
-    "Starting sizes from your deep pass, {on}. Weekly from {due}.",
+    "Starting sizes from your deep scan, {on}. Weekly from {due}.",
     { slots: { on: "date", due: "date" }, fixedBy: "issue 793" },
   ],
 
@@ -237,7 +237,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // removing them — the customer changes the set from the competitors card.
   // Drafted (issue 759); the owner corrects the wording.
   "overview.rivals.leaders": [
-    "Market leaders in your searches: {rivals}. They are far larger than you for now, so they aren’t shown as your rivals.",
+    "Far larger competitors in your searches: {rivals}. They aren’t tracked against you for now.",
     { slots: { rivals: "text" }, fixedBy: "issue 858" },
   ],
   // The same sentence for the Rivals tab, where the line sits under bars
@@ -253,15 +253,15 @@ export const OVERVIEW_COPY = Object.freeze({
   // as written, with the existing key's slot name — the two take the same
   // vars, which is what lets the one module fill either.
   "overview.rivals.leaders.tab": [
-    "Market leaders in your searches: {rivals}. They are far larger than you for now, so the gap card leaves them out.",
+    "Far larger competitors in your searches: {rivals}. The gap card leaves them out for now.",
     { slots: { rivals: "text" }, fixedBy: "owner 2026-09-21 · issue 983" },
   ],
   "overview.rivals.none-reachable": [
-    "None of the rivals you track is within reach yet. Add a site closer to your size to see the gap move.",
+    "None of the competitors you track is within reach yet. Add one closer to your size.",
     { slots: {}, fixedBy: "issue 858" },
   ],
   // The one control c6 allows, and the whole of it. Never "remove".
-  "overview.rivals.leaders.swap": ["Change who you’re measured against", { slots: {}, fixedBy: "REQ-096 c6" }],
+  "overview.rivals.leaders.swap": ["Change your competitors", { slots: {}, fixedBy: "REQ-096 c6" }],
 
   // ── This week.
   "overview.week.title": ["This week", { slots: {}, fixedBy: "BUILD §4.5" }],
@@ -344,22 +344,22 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.alerts.empty": ["Nothing needs you today.", { slots: {}, fixedBy: "REQ-041 c5" }],
 
   // ── The one supply statement Overview may make, resolved in this order.
-  "overview.supply.exhausted": ["No pages are left worth writing. Monday’s re-measure looks for more.", { slots: {}, fixedBy: "REQ-095 c3" }],
+  "overview.supply.exhausted": ["No pages are left worth writing. Monday’s scan looks for more.", { slots: {}, fixedBy: "REQ-095 c3" }],
   // issue 784 (issue 765's distinction, 2026-09-16): zero supply over a market that
   // was never measured is not "no pages left". Drafted under issue 759's ruling.
-  "overview.supply.unmeasured": ["Nothing in your market is ready to write yet, so no pages are planned. Pick a broader category and we’ll measure again right away.", { slots: {}, fixedBy: "issue 784" }],
+  "overview.supply.unmeasured": ["Nothing in your market is ready to write yet. Pick a broader market and we’ll scan again right away.", { slots: {}, fixedBy: "issue 784" }],
   // issue 855: zero supply because the pass that should have filled it stopped
   // on a ceiling. Drafted under issue 759's ruling.
-  "overview.supply.measuring": ["Your market is still being measured, so no pages are planned yet. ReachKit measures it again automatically.", { slots: {}, fixedBy: "issue 855" }],
+  "overview.supply.measuring": ["Your market is still being scanned, so no pages are planned yet. ReachKit scans it again automatically.", { slots: {}, fixedBy: "issue 855" }],
   // Issue 881 (owner's dogfood, 2026-09-18): the same zero as the two
   // below, told apart — the market is not used up and not unmeasured, it is
   // too big for this site today. Drafted; the owner corrects the wording.
   "overview.supply.outsized": [
-    "Every search we've measured is still too big for your site, so no page is planned. Smaller ones come into reach as your site grows.",
+    "Every search we’ve measured is still too big for your site. Smaller ones come into reach as it grows.",
     { slots: {}, fixedBy: "issue 881" },
   ],
-  "overview.supply.short": ["Fewer than a week of pages is left. Monday’s re-measure looks for more.", { slots: {}, fixedBy: "REQ-095 c5" }],
-  "overview.supply.first-arrival": ["Your first pass found less than a month of pages. We look for more every Monday.", { slots: {}, fixedBy: "REQ-095 c6" }],
+  "overview.supply.short": ["Less than a week of pages is left. Monday’s scan looks for more.", { slots: {}, fixedBy: "REQ-095 c5" }],
+  "overview.supply.first-arrival": ["Your first scan found less than a month of pages. We look for more every Monday.", { slots: {}, fixedBy: "REQ-095 c6" }],
 
   // 2026-09-07, issue #205 — the account a broken series puts on its own
   // break. REQ-071 c12/c13 forbid drawing a difference across a date the
@@ -373,13 +373,13 @@ export const OVERVIEW_COPY = Object.freeze({
   // rather than as voice — §2.3's rule, the same one the draft screen's
   // matched-entry line follows.
   "overview.change.domain": ["Domain changed. Measurement starts again from here.", { slots: {}, fixedBy: "REQ-071 c12" }],
-  "overview.change.category": ["Market changed. The 12 questions were rebuilt from here.", { slots: {}, fixedBy: "REQ-071 c12" }],
-  "overview.change.rivals": ["Rivals changed. Comparison starts again from here.", { slots: {}, fixedBy: "REQ-071 c12" }],
+  "overview.change.category": ["Market changed. The 12 searches were rebuilt from here.", { slots: {}, fixedBy: "REQ-071 c12" }],
+  "overview.change.rivals": ["Competitors changed. Comparison starts again from here.", { slots: {}, fixedBy: "REQ-071 c12" }],
   // REQ-071 c13's other half: a card that compares two readings has to say
   // which span it compared over when a change falls inside it, rather than
   // quietly comparing across one.
   "overview.comparison.window": [
-    "Compared from {since}, when your settings changed — earlier readings aren’t joined to these.",
+    "Compared from {since}, when your settings changed. Earlier readings aren’t joined to these.",
     { slots: { since: "date" }, fixedBy: "REQ-071 c13" },
   ],
 
@@ -396,8 +396,8 @@ export const OVERVIEW_COPY = Object.freeze({
   // fourth spelling of a word the product already says would be a second
   // place to change it.
   "overview.tabs.label": ["Overview sections", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "overview.tab.search": ["Search", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "overview.tab.rivals": ["Rivals", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.tab.search": ["Google", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.tab.rivals": ["Competitors", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
   // Every one of Overview's four tabs has its screen, so the line a tab
   // carried while it had only an address is gone with the last placeholder
@@ -427,7 +427,6 @@ export const OVERVIEW_COPY = Object.freeze({
     "Goes live in {left} unless you stop it.",
     { slots: { left: "text" }, fixedBy: "SPEC §4 2026-09-24" },
   ],
-  "overview.waiting.why.label": ["Why this page:", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   // The four arms of the reason, one per shape of evidence the opportunity
   // carries. Never composed at a call site: the screen picks the arm and the
   // registry says the sentence.
@@ -452,9 +451,6 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
   "overview.waiting.badge.new": ["New page", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.waiting.badge.update": ["Update", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
-  // The small view of the page under the reason. The bar carries the address
-  // readers reach it at, where the destination has one.
-  "overview.waiting.preview.label": ["As your readers will see it", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   // The screen's second control. "Stop this page" is the product's word on
   // every screen and in every mail (SPEC §4 · §7, 2026-09-20); "veto" stays
   // internal.
@@ -463,29 +459,17 @@ export const OVERVIEW_COPY = Object.freeze({
   // says back, on the screen, in place of silence.
   "overview.waiting.stopped": ["Stopped. This page won’t publish.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.waiting.stop-refused": [
-    "That didn’t go through. The page is unchanged — try again in a moment.",
+    "That didn’t go through. The page is unchanged. Try again in a moment.",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
 
   // ── The three linked tiles. Each name is the tile's own; the chip beside
   // it is the tab it opens, spoken from that tab's key.
-  "overview.tile.questions.label": ["Questions that name you", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.tile.questions.label": ["Questions that mention you", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   // The window's own denominator, beside the count. Its own key because the
   // "of" is a word and the number is `OVERVIEW_TRAILING_WEEKS`, which is a
   // pin and is never written at a call site.
   "overview.tile.ai-answers.of": ["of {of}", { slots: { of: "text" }, fixedBy: "SPEC §4 2026-09-20" }],
-  "overview.tile.rivals.label": ["Your nearest rival’s lead", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  // The line under the searches tile. The count is REQ-063's own stored
-  // standing — pages whose week was judged `working` — so the sentence says
-  // "already ranking" and claims no position.
-  "overview.tile.searches.ranking": [
-    "{ranked} of your {published} pages are already ranking.",
-    { slots: { ranked: "text", published: "text" }, fixedBy: "issue 915" },
-  ],
-  "overview.tile.rivals.whose": [
-    "Your nearest rival is {rival}.",
-    { slots: { rival: "text" }, fixedBy: "issue 915" },
-  ],
 
   // ── This week: the word a day carries when nothing is scheduled on it.
   // The five stage words are the calendar's own (`calendar.stage.*`).
@@ -534,7 +518,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 1039" },
   ],
   "overview.search.tile.going-after.none": [
-    "No page is ready to write. Monday’s re-measure looks for more.",
+    "No page is ready to write. Monday’s scan looks for more.",
     { slots: {}, fixedBy: "issue 1039" },
   ],
   "overview.search.tile.first-two-pages": [
@@ -547,7 +531,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { of: "text" }, fixedBy: "SPEC §4 2026-09-20" },
   ],
   "overview.search.tile.first-two-pages.means": [
-    "Top 20 is where a page starts to be found.",
+    "The first two pages are where a page starts to be found.",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
   // The first-page tile names this site's own best-placed live page, in the
@@ -585,7 +569,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // stored count, never a new measurement — and the sentence says the one
   // thing a founder needs from it: it moves when they do.
   "overview.search.ceiling": [
-    "The mark on each difficulty bar is your limit — {ceiling} today. It rises as you rank for more.",
+    "The mark on each difficulty bar is your limit, {ceiling} today. It rises as you rank for more.",
     { slots: { ceiling: "text" }, fixedBy: "SPEC §4 2026-09-20" },
   ],
 
@@ -594,7 +578,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.search.column.volume": ["A month", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.column.difficulty": ["Difficulty", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.column.you": ["You", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "overview.search.column.rival": ["Best rival", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.column.rival": ["Best competitor", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.search.column.status": ["Status", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
   // SPEC §4's four status words, and the chip that stands for all of them.
@@ -645,7 +629,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // one whose market was too small. It claims neither: it says what is
   // true of the list, and the Overview's own supply statement says why.
   "overview.search.empty": [
-    "No searches are on file yet. They arrive with the first pass over your market.",
+    "No searches are on file yet. They arrive with the first scan of your market.",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
 
@@ -662,7 +646,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // The first tile: the four-week rate, its denominator, the split the
   // owner's ruling asks for, and the one line saying why four weeks.
   "overview.answers.rate.label": [
-    "Answers that name or link you",
+    "Answers that mention or link you",
     { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
   ],
   "overview.answers.rate.of": [
@@ -674,7 +658,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { weeks: "text", questions: "text", engines: "text" }, fixedBy: "SPEC §6 2026-09-20" },
   ],
   "overview.answers.rate.split": [
-    "{linked} link to you · {named} name you somewhere else",
+    "{linked} link to you · {named} mention you somewhere else",
     { slots: { linked: "text", named: "text" }, fixedBy: "SPEC §6 2026-09-20" },
   ],
 
@@ -688,7 +672,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // The grid: its head, the line under it, and the names a reader needs to
   // read a mark without seeing its colour.
   "overview.answers.grid.title": [
-    "The questions we ask every week",
+    "What AI says on your searches",
     { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
   ],
   "overview.answers.grid.lead": [
@@ -696,7 +680,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { of: "text" }, fixedBy: "SPEC §6 2026-09-20" },
   ],
   "overview.answers.grid.label": [
-    "Each question, and what each AI engine said",
+    "Each search, and what each AI engine said",
     { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
   ],
   // ── 2026-09-20 (#908, #919): the cap, stated on the grid it bounds.
@@ -707,7 +691,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // (R4-06) states it as "21 of 24 at most". **Drafted** under the owner's
   // 2026-09-16 ruling (#759); the PR names it so the owner can correct it.
   "overview.answers.grid.tracked": [
-    "{tracked} of {max} at most — your market’s twelve, and one question for each page we publish. A page’s question leaves after {weeks} weeks with no mention, so the set never grows past {max}.",
+    "{tracked} of {max} at most: your market’s twelve, and one question for each page we publish. A page’s question leaves after {weeks} weeks with no mention.",
     { slots: { tracked: "text", max: "text", weeks: "text" }, fixedBy: "SPEC §6 2026-09-20" },
   ],
   "overview.answers.legend.label": ["What each mark means", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
@@ -718,14 +702,14 @@ export const OVERVIEW_COPY = Object.freeze({
   // rival": an answer can cite a directory, a marketplace or nobody at all,
   // and none of those is a rival.
   "overview.answers.mark.links": ["Links to you", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
-  "overview.answers.mark.names": ["Names you", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
-  "overview.answers.mark.others": ["Names someone else", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
+  "overview.answers.mark.names": ["Mentions you", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
+  "overview.answers.mark.others": ["Mentions someone else", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
   "overview.answers.mark.no-answer": ["No answer", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
   "overview.answers.mark.not-measured": ["Not measured", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
   // One cell's accessible name: which question, which engine, what it said.
   // Never the colour, and never the mark alone.
   "overview.answers.cell": [
-    "{question} — {engine}: {mark}",
+    "{question} · {engine}: {mark}",
     { slots: { question: "text", engine: "text", mark: "text" }, fixedBy: "SPEC §6 2026-09-20" },
   ],
   // The search a question was phrased from — REQ-093 c3's other half, which
@@ -736,7 +720,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // Nothing measured yet — a site whose first weekly pass has not run. It
   // claims nothing about the engines; it says what is true of the record.
   "overview.answers.empty": [
-    "No AI answers have been measured yet. The first weekly pass asks AI your buyer prompts and checks your market’s twelve searches.",
+    "No AI answers have been measured yet. The first weekly scan asks AI your questions and checks your market’s twelve searches.",
     { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" },
   ],
 
@@ -754,7 +738,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { low: "text", high: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
   ],
   "overview.tile.mention-rate.of": [
-    "Named in {mentioned} of {answers} AI answers, last {weeks} weeks",
+    "Mentioned in {mentioned} of {answers} AI answers, last {weeks} weeks",
     { slots: { mentioned: "text", answers: "text", weeks: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
   ],
   // D58 (issue 1287, drafted): no rate is shown until two weeks of the
@@ -765,35 +749,30 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { answers: "text" }, fixedBy: "SPEC §6 2026-10-06 D58 (drafted)" },
   ],
   "overview.tile.mention-rate.early": [
-    "AI answers that named you so far. A rate appears after {weeks} weeks of these prompts",
+    "AI answers that mentioned you so far. A rate appears after {weeks} weeks of these questions",
     { slots: { weeks: "text" }, fixedBy: "SPEC §6 2026-10-06 D58 (drafted)" },
   ],
   // D64 (issue 1301, drafted): no pass has passed its own checks yet, so
   // the newest pass's count is shown and said to be the first.
   "overview.tile.mention-rate.first": [
-    "First measurement. A rate appears after {weeks} weeks of these prompts",
+    "First scan. A rate appears after {weeks} weeks of these questions",
     { slots: { weeks: "text" }, fixedBy: "SPEC §6 2026-10-07 D64 (drafted)" },
   ],
   "overview.tile.mention-rate.share": [
-    "{share}% share of voice against your rivals",
+    "{share}% share of voice against your competitors",
     { slots: { share: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
   ],
-  "overview.tile.mention-rate.pages": [
-    "{pages} of your pages cited",
-    { slots: { pages: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
-  ],
-  "overview.tile.mention-rate.pages.one": ["1 of your pages cited", { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" }],
 
   // Issue 1319 (owner, 2026-10-07): Overview leads with the action, then
   // D22's four numbers, each a tile that opens its screen. The tiles for
   // the second, third and fourth are **drafted** (#759); the pull request
   // names each so the owner can correct it.
-  "overview.tile.pages-cited.label": ["Your pages cited", { slots: {}, fixedBy: "SPEC §4 2026-10-07 (drafted)" }],
+  "overview.tile.pages-cited.label": ["Your pages linked", { slots: {}, fixedBy: "SPEC §4 2026-10-07 (drafted)" }],
   "overview.tile.pages-cited.window": [
     "in AI answers, last {weeks} weeks",
     { slots: { weeks: "text" }, fixedBy: "SPEC §4 2026-10-07 (drafted)" },
   ],
-  "overview.tile.top-20.label": ["Your pages in Google’s top 20", { slots: {}, fixedBy: "SPEC §4 2026-10-07 (drafted)" }],
+  "overview.tile.top-20.label": ["Your pages on Google’s first two pages", { slots: {}, fixedBy: "SPEC §4 2026-10-07 (drafted)" }],
   // AI visits, on a hosted blog. The figure is the pages an answer engine
   // fetched; the people who arrived stand under it and are never added in.
   "overview.tile.ai-visits.label": ["AI visits to your blog", { slots: {}, fixedBy: "SPEC §4 2026-10-07 (drafted)" }],
@@ -809,27 +788,27 @@ export const OVERVIEW_COPY = Object.freeze({
 
   // The AI answers tab: the rate's own card.
   "overview.prompts.rate.split": [
-    "{linked} link to you · {named} name you without a link",
+    "{linked} link to you · {named} mention you without a link",
     { slots: { linked: "text", named: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
   ],
   "overview.prompts.rate.means": [
-    "{prompts} buyer prompts, each put to Google AI Mode and ChatGPT twice a week, over the last {weeks} weeks. The range is where the true rate most likely sits with {answers} answers read.",
+    "{prompts} questions, asked of Google AI Mode and ChatGPT twice a week, over {weeks} weeks. The range fits the {answers} answers read.",
     { slots: { prompts: "text", weeks: "text", answers: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
   ],
   // The two prompts that ask about the site by name, counted apart.
   "overview.prompts.branded": [
-    "Asked about you by name, AI named you in {mentioned} of {answers} answers. Those are counted apart from the rate.",
+    "Asked about you by name, AI mentioned you in {mentioned} of {answers} answers. These are counted apart from the rate.",
     { slots: { mentioned: "text", answers: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
   ],
 
   // Share of voice: the site beside its rivals, by answers that named each.
   "overview.prompts.share.title": ["Share of voice", { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" }],
   "overview.prompts.share.lead": [
-    "How many of those answers named you, and how many named each rival.",
+    "How many of those answers mentioned you, and how many mentioned each competitor.",
     { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" },
   ],
   "overview.prompts.share.label": [
-    "You and your rivals, by AI answers that named each",
+    "You and your competitors, by AI answers that mentioned each",
     { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" },
   ],
   "overview.prompts.share.you": ["You", { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" }],
@@ -838,44 +817,44 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { count: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
   ],
   "overview.prompts.share.none": [
-    "No answer named you or a rival yet.",
+    "No answer mentioned you or a competitor yet.",
     { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" },
   ],
 
   // The site's own pages those answers cited.
-  "overview.prompts.pages.title": ["Your pages cited", { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" }],
+  "overview.prompts.pages.title": ["Your pages AI links to", { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" }],
   "overview.prompts.pages.lead": [
-    "Pages of yours that an answer to a buyer prompt linked to, over the last {weeks} weeks.",
+    "Pages of yours that an AI answer linked to, over the last {weeks} weeks.",
     { slots: { weeks: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
   ],
   "overview.prompts.pages.label": [
-    "Your pages AI answers cited, and how many answers each",
+    "Your pages AI answers linked, and how many answers each",
     { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" },
   ],
   "overview.prompts.pages.none": [
-    "No answer cited a page of yours yet. The pages we publish are written to be quotable.",
+    "No answer linked a page of yours yet. The pages we publish are written to be linked.",
     { slots: {}, fixedBy: "SPEC §4 2026-10-02 D22" },
   ],
 
   // The set itself, so a founder can read what is asked.
   "overview.prompts.list.title": [
-    "The buyer prompts we ask every week",
+    "Questions we ask AI weekly",
     { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" },
   ],
   "overview.prompts.list.lead": [
-    "Built from your market: who buys, the job they need done, your category and your rivals. At most a fifth of them change in a quarter, so the rate stays comparable.",
+    "Built from your market: who buys, the job they need done, and your competitors. At most a fifth change in a quarter, so the rate stays comparable.",
     { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" },
   ],
   "overview.prompts.list.label": [
-    "Each buyer prompt, and how many answers named you",
+    "Each question, and how many answers mentioned you",
     { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" },
   ],
   "overview.prompts.list.named": [
-    "named in {mentioned} of {answers}",
+    "mentioned in {mentioned} of {answers}",
     { slots: { mentioned: "text", answers: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
   ],
   "overview.prompts.list.unanswered": ["no answer yet", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
-  "overview.prompts.kind.category": ["Category", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
+  "overview.prompts.kind.category": ["Market", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
   "overview.prompts.kind.use-case": ["Use case", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
   "overview.prompts.kind.persona": ["Buyer", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
   "overview.prompts.kind.comparison": ["Comparison", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
@@ -885,7 +864,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // D32 (#1162): LLM Mentions is bought only at a footprint of 30 ranked
   // searches or more. A site below it is told so, not told "next Monday".
   "overview.mentions.small-footprint": [
-    "We read this once your site ranks for {min} searches or more. Below that the engines’ own record of you is almost always empty.",
+    "We read this once your site ranks for {min} searches or more. Below that, the engines’ record of you is almost always empty.",
     { slots: { min: "text" }, fixedBy: "SPEC §6 2026-10-03 D32" },
   ],
 
@@ -909,7 +888,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
   ],
   "overview.mentions.also.lead": [
-    "Questions AI already answers with you, beyond the ones we track. You did not ask for these — the engines found you anyway.",
+    "Questions AI already answers with you, beyond the ones we track. The engines found you on their own.",
     { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
   ],
   "overview.mentions.also.label": [
@@ -939,15 +918,15 @@ export const OVERVIEW_COPY = Object.freeze({
 
   // *Cited pages* — the site's own pages those answers quote.
   "overview.mentions.cited.title": [
-    "Your pages AI quotes",
+    "Your pages AI links to",
     { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
   ],
   "overview.mentions.cited.lead": [
-    "The pages on your own site that AI answers link to, and how many questions each one answers.",
+    "The pages on your own site that AI answers link to, and how many questions each answers.",
     { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
   ],
   "overview.mentions.cited.label": [
-    "Your pages AI answers cite, and how many questions each",
+    "Your pages AI answers link to, and how many questions each",
     { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
   ],
   "overview.mentions.cited.questions": [
@@ -961,7 +940,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // Answers name the site but quote no page of theirs — a real state, and
   // a different one from having no answers at all.
   "overview.mentions.cited.none": [
-    "No answer quoted a page of yours yet. The pages we publish are written to be quotable.",
+    "No answer linked a page of yours yet. The pages we publish are written to be linked.",
     { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
   ],
 
@@ -980,22 +959,22 @@ export const OVERVIEW_COPY = Object.freeze({
   // says so; a window nobody could read says that instead, and never that
   // the engines named nobody.
   "overview.mentions.zero": [
-    "Over the last {weeks} weeks no AI answer named you outside the questions we track. That is measured, not missing.",
+    "Over the last {weeks} weeks no AI answer mentioned you outside the questions we track. That is measured, not missing.",
     { slots: { weeks: "text" }, fixedBy: "SPEC §6 2026-09-22" },
   ],
   // A window can be one week — a site whose first Monday has just run. "Over
   // the last 1 weeks" is the sentence a slot writes when nobody wrote the
   // singular, and the proof at 390 is where it was read.
   "overview.mentions.zero.one-week": [
-    "This week no AI answer named you outside the questions we track. That is measured, not missing.",
+    "This week no AI answer mentioned you outside the questions we track. That is measured, not missing.",
     { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
   ],
   "overview.mentions.unread": [
-    "We have not read this in the last {weeks} weeks. A Monday pass buys it once a month.",
+    "We haven’t read this in the last {weeks} weeks. A Monday scan buys it once a month.",
     { slots: { weeks: "text" }, fixedBy: "SPEC §6 2026-09-22" },
   ],
   "overview.mentions.unread.one-week": [
-    "We have not read this yet. A Monday pass buys it once a month.",
+    "We haven’t read this yet. A Monday scan buys it once a month.",
     { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
   ],
 
@@ -1091,9 +1070,9 @@ export const OVERVIEW_COPY = Object.freeze({
 
   // The second: who the three answer engines name, counted the way the AI
   // answers tab draws it, with the link to that tab beneath.
-  "overview.rivals.named.title": ["Who AI answers name", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.rivals.named.title": ["Who AI answers mention", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.rivals.named.lead": [
-    "Across {engines} — {of} answers.",
+    "Across {engines}, {of} answers.",
     { slots: { engines: "text", of: "text" }, fixedBy: "SPEC §6 2026-09-20" },
   ],
   "overview.rivals.named.see-all": ["See every answer", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
@@ -1103,15 +1082,15 @@ export const OVERVIEW_COPY = Object.freeze({
   // counted are named under them (SPEC §4, 2026-10-09). Drafted (issue
   // 759); the owner corrects the wording.
   "overview.rivals.first-page.none": [
-    "None of your rivals is on the first page for these searches.",
+    "None of your competitors is on the first page for these searches.",
     { slots: {}, fixedBy: "SPEC §4 2026-10-09" },
   ],
   "overview.rivals.first-page.none.holders": [
-    "None of your rivals is on the first page for these searches. The sites there most often: {holders}.",
+    "None of your competitors is on the first page for these searches. The sites there most often: {holders}.",
     { slots: { holders: "text" }, fixedBy: "SPEC §4 2026-10-09" },
   ],
   "overview.rivals.named.none": [
-    "None of these answers named one of your rivals.",
+    "None of these answers mentioned one of your competitors.",
     { slots: {}, fixedBy: "SPEC §4 2026-10-09" },
   ],
   "overview.rivals.unseen": [
@@ -1125,25 +1104,25 @@ export const OVERVIEW_COPY = Object.freeze({
   // A card whose reading the pass never took. It claims nothing about the
   // rivals; it says what is true of the measurement.
   "overview.rivals.card.unmeasured": [
-    "Not measured yet. The first weekly pass reads all twelve searches and every answer.",
+    "Not scanned yet. The first weekly scan reads all twelve searches and every answer.",
     { slots: {}, fixedBy: "REQ-004 c6" },
   ],
 
   // The table: every search a rival wins that the site does not.
   "overview.rivals.table.title": [
-    "Searches your rivals win and you don’t",
+    "Searches competitors win",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
   "overview.rivals.table.lead": [
-    "From every search your rivals rank for. This list is where your plan comes from.",
+    "From every search your competitors rank for. Your plan comes from this list.",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
   "overview.rivals.table.label": [
-    "Searches your rivals win and you don’t",
+    "Searches competitors win and you don’t",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
   "overview.rivals.table.empty": [
-    "No search on file is one a rival wins and you don’t. That changes with the next weekly pass.",
+    "No search on file is one a competitor wins and you don’t. That can change with the next weekly scan.",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
   ],
   "overview.rivals.column.winner": ["Who wins it", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
@@ -1164,8 +1143,8 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.rivals.status.too-big": ["Too big for now", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
   // The chips over the table, and the foot under it.
-  "overview.rivals.filter.label": ["Show one rival", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "overview.rivals.filter.all": ["All rivals", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.rivals.filter.label": ["Show one competitor", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.rivals.filter.all": ["All competitors", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.rivals.chip": [
     "{rival}, {count} searches",
     { slots: { rival: "text", count: "text" }, fixedBy: "SPEC §4 2026-09-20" },
@@ -1189,7 +1168,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
   "overview.alert.connect-blog.line": [
-    "One DNS record for {host} — about 5 minutes. Pages are written and waiting until it exists.",
+    "One DNS record for {host}, about 5 minutes. Pages wait until it exists.",
     { slots: { host: "text" }, fixedBy: "SPEC §5 2026-09-20" },
   ],
   "overview.alert.connect-blog.action": [
@@ -1222,7 +1201,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 912 · issue 1362" },
   ],
   "overview.first-day.week": [
-    "Your week is planned as soon as the measurement finishes.",
+    "Your week is planned as soon as the scan finishes.",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" },
   ],
 
@@ -1246,19 +1225,19 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "overview.done.measured.note": [
-    "Once a week ReachKit looks up the searches your buyers make and puts their questions to the AI engines. Search and AI Visibility hold every result.",
+    "Once a week ReachKit looks up the searches your buyers make and puts their questions to the AI engines. Google and AI hold every result.",
     { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "overview.done.rivals": [
-    "Rivals tracked: {n}",
+    "Competitors tracked: {n}",
     { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "overview.done.rivals.none": [
-    "Rivals: not measured this week",
+    "Competitors: not measured this week",
     { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "overview.done.rivals.note": [
-    "These are the competitors your numbers are compared with each week. Rivals shows where each one stands.",
+    "These are the competitors your numbers are compared with each week. Competitors shows where each one stands.",
     { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "overview.done.wrote": [
@@ -1314,7 +1293,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "overview.process.step.rivals": [
-    "Find your rivals",
+    "Find your competitors",
     { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "overview.process.step.pick": [
@@ -1334,7 +1313,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "overview.process.step.remeasure": [
-    "Measure again",
+    "Scan again",
     { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "overview.process.figure.pages": [
@@ -1350,7 +1329,7 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "overview.process.figure.rivals": [
-    "Rivals tracked: {n}",
+    "Competitors tracked: {n}",
     { slots: { n: "text" }, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
   "overview.process.figure.ready": [

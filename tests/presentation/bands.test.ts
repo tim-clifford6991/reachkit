@@ -8,7 +8,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { BAND_LABELS, LIMITING_LINES, SCORE_BANDS, SEVERITY } from "../../src/lib/presentation/bands.ts";
-import { copy } from "../../src/lib/presentation/copy/index.ts";
+import { copy, type CopyKey } from "../../src/lib/presentation/copy/index.ts";
 
 const SOURCE_PATH = path.resolve(import.meta.dirname, "../../src/lib/presentation/bands.ts");
 const SOURCE = readFileSync(SOURCE_PATH, "utf8");
@@ -204,39 +204,45 @@ describe(
 );
 
 describe(
-  'REQ-004 c2 — "Given a score that could be computed, when it renders, then one written line beside it names the one driver … whose measurement holds the score down the most … Where the score could not be computed, criterion 3 governs the line instead." — bands · LIMITING_LINES is total over the three factor handles and every key resolves through the registry',
+  'REQ-004 c2 — "Given a score that could be computed, when it renders, then one written line beside it names the one driver … whose measurement holds the score down the most … Where the score could not be computed, criterion 3 governs the line instead." — bands · LIMITING_LINES is total over the bars the report shows and every key resolves through the registry',
   () => {
-    it("has exactly the three keys foundations, answerability, presence", () => {
-      expect(Object.keys(LIMITING_LINES).sort()).toEqual(["answerability", "foundations", "presence"]);
+    it("has exactly the bars the report shows: Readiness, Content, Google, AI, and Presence whole (issue 1444)", () => {
+      expect(Object.keys(LIMITING_LINES).sort()).toEqual(["ai", "answerability", "foundations", "google", "presence"]);
     });
 
-    it("each value is a declared CopyKey no longer listed in OWNER_OWED, and copy() returns its sentence (WO-287, owner ruling 2026-09-04, sheet 2)", async () => {
+    it("each title and line is a declared CopyKey no longer listed in OWNER_OWED, and copy() returns its sentence", async () => {
       const { OWNER_OWED } = await import("../../src/lib/presentation/copy/registry.ts");
-      for (const key of Object.values(LIMITING_LINES)) {
-        expect(OWNER_OWED).not.toContain(key);
-        expect(() => copy(key)).not.toThrow();
-        expect(copy(key).length).toBeGreaterThan(0);
+      for (const { title, line } of Object.values(LIMITING_LINES)) {
+        for (const key of [title, line]) {
+          expect(OWNER_OWED).not.toContain(key);
+          expect(() => copy(key)).not.toThrow();
+          expect(copy(key).length).toBeGreaterThan(0);
+        }
       }
     });
 
-    it("the three keys are distinct", () => {
-      expect(new Set(Object.values(LIMITING_LINES)).size).toBe(3);
+    it("the keys are distinct", () => {
+      const keys = Object.values(LIMITING_LINES).flatMap(({ title, line }) => [title, line]);
+      expect(new Set(keys).size).toBe(10);
     });
 
     // The @ts-expect-error fixture(s) below are never invoked at runtime.
     function _typeLevelNegatives(): void {
-      const fourthHandle: typeof LIMITING_LINES = {
-        foundations: "verdict.limiting.foundations",
-        answerability: "verdict.limiting.answerability",
-        presence: "verdict.limiting.presence",
-        // @ts-expect-error — a fourth factor handle is not a member of LIMITING_LINES' closed union.
-        velocity: "verdict.limiting.foundations",
+      const line = (title: CopyKey): { title: CopyKey; line: CopyKey } => ({ title, line: title });
+      const sixthHandle: typeof LIMITING_LINES = {
+        foundations: line("verdict.limiting.foundations"),
+        answerability: line("verdict.limiting.answerability"),
+        google: line("verdict.limiting.google"),
+        ai: line("verdict.limiting.ai"),
+        presence: line("verdict.limiting.presence"),
+        // @ts-expect-error — a sixth handle is not a member of LIMITING_LINES' closed union.
+        velocity: line("verdict.limiting.foundations"),
       };
-      void fourthHandle;
+      void sixthHandle;
     }
     void _typeLevelNegatives;
 
-    it("documents the @ts-expect-error fixture above; a fourth handle fails to compile", () => {
+    it("documents the @ts-expect-error fixture above; a sixth handle fails to compile", () => {
       expect(typeof _typeLevelNegatives).toBe("function");
     });
   }
