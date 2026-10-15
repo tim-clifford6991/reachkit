@@ -533,10 +533,20 @@ export async function measureDomain(
 
     // The robots policy at the origin. `absent` is a read with nothing in
     // it (the `zero` arm); a reader that cannot determine is
-    // `undeterminable`.
+    // `undeterminable`. A server too slow for its home page is waited on no
+    // longer than the rendered read is (issue 1449).
     (async (): Promise<Measured<RobotsPolicy>> => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
       try {
-        const policy = await ports.readRobots(new URL(homeUrl).origin);
+        const read = ports.readRobots(new URL(homeUrl).origin);
+        const policy = !slow
+          ? await read
+          : await Promise.race([
+              read,
+              new Promise<{ ok: false; reason: string }>((resolve) => {
+                timer = setTimeout(() => resolve({ ok: false, reason: "timeout" }), SLOW_HOME.RENDER_MS);
+              }),
+            ]);
         return !policy.ok
           ? unmeasured("undeterminable", at)
           : policy.absent
@@ -544,6 +554,8 @@ export async function measureDomain(
             : measured(policy, at);
       } catch {
         return unmeasured("undeterminable", at);
+      } finally {
+        clearTimeout(timer);
       }
     })(),
 
