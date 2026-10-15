@@ -170,8 +170,9 @@ describe("issue #326 — ReachKit's own address publishes its own sitemap", () =
 
   it("no account path and no hosted or preview address", async () => {
     const body = await (await get("reachkit.example")).text();
-    expect(body).not.toContain("/app");
-    expect(body).not.toContain("/setup");
+    // Whole segments: `/compare/appfigures` is not the app (issue 1458).
+    expect(body).not.toMatch(/\/app(\/|<)/);
+    expect(body).not.toMatch(/\/setup(\/|<)/);
     expect(body).not.toContain(PREVIEW_HOST_SUFFIX);
     expect(body).not.toContain("content.");
   });
