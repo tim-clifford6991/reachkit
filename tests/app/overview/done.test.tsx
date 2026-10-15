@@ -125,7 +125,7 @@ describe("the process", () => {
       ["Pages read: 84", "/app/settings"],
       ["Searches: 12", "/app/search"],
       ["AI questions: 25", "/app/ai-answers"],
-      ["Rivals tracked: 5", "/app/rivals"],
+      ["Competitors tracked: 5", "/app/rivals"],
       ["Topics ready: 30", "/app/calendar"],
       ["Daily at 7:00 AM", "/app/settings/publishing"],
     ] as const) {

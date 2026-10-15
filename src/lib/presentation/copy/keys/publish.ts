@@ -50,11 +50,11 @@ export const PUBLISH_COPY = Object.freeze({
   // The `{state}` slot is the state the page still holds — the refusal
   // never leaves it somewhere else.
   "publish.action.refused.notATransition": [
-    "Nothing changed — this page is {state}, and that action isn’t open from there.",
+    "Nothing changed. This page is {state}, and that action isn’t open from there.",
     { slots: { state: "text" }, fixedBy: "REQ-056 c2" },
   ],
   "publish.action.refused.guard": [
-    "Nothing changed — this page stays {state} until what is holding it clears.",
+    "Nothing changed. This page stays {state} until what is holding it clears.",
     { slots: { state: "text" }, fixedBy: "REQ-056 c2" },
   ],
 
@@ -109,9 +109,9 @@ export const PUBLISH_COPY = Object.freeze({
   "record.verification.never.noLiveAddress": ["not checked", { slots: {}, fixedBy: "REQ-062 c7" }],
   "record.unpublished.removed": ["removed from your hosted blog", { slots: {}, fixedBy: "REQ-056 c15" }],
   "record.unpublished.returnedToDraft": ["returned to draft in your WordPress", { slots: {}, fixedBy: "REQ-056 c15" }],
-  "record.unpublished.namedForRemoval": ["never live there — yours to remove", { slots: {}, fixedBy: "REQ-056 c16" }],
+  "record.unpublished.namedForRemoval": ["never live there, yours to remove", { slots: {}, fixedBy: "REQ-056 c16" }],
   "record.unpublished.alreadyGone": ["already gone from your site", { slots: {}, fixedBy: "REQ-056 c15" }],
-  "record.unpublished.unreachable": ["your site couldn’t be reached — the post may still be live", { slots: {}, fixedBy: "REQ-056 c15" }],
+  "record.unpublished.unreachable": ["your site couldn’t be reached; the post may still be live", { slots: {}, fixedBy: "REQ-056 c15" }],
 
   // The eight below are the destination lines (§9, issue #48): one written
   // line per `HealthReason`, which is what a broken destination says under
@@ -138,11 +138,11 @@ export const PUBLISH_COPY = Object.freeze({
   // it and whatever the site publishes to. Drafted under issue 759's
   // ruling; the owner corrects the wording.
   "publish.needs-you.rules": [
-    "This page didn’t pass our writing rules, so it wasn’t published. Read it to see which rules stopped it, or write it again.",
+    "This page didn’t meet our writing rules, so it wasn’t published. Read it to see which rules stopped it, or write it again.",
     { slots: {}, fixedBy: "issue 880" },
   ],
   "publish.needs-you.step": [
-    "We couldn’t finish writing this page — a step of the work failed twice. Nothing was published. Write it again to start it over.",
+    "We couldn’t finish writing this page: a step failed twice. Nothing was published. Write it again to start over.",
     { slots: {}, fixedBy: "issue 880" },
   ],
   // Issue 1143 (drafted): a new page that adds too little the web and the
@@ -166,7 +166,7 @@ export const PUBLISH_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 1252 (drafted)" },
   ],
   "publish.needs-you.pack.need.options": [
-    "three options to compare, each rival with a fact from its own pricing or feature page",
+    "three options to compare, each competitor with a fact from its own pricing or feature page",
     { slots: {}, fixedBy: "issue 1252 (drafted)" },
   ],
   "publish.needs-you.pack.need.own_price": [
@@ -186,7 +186,7 @@ export const PUBLISH_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 1252 (drafted)" },
   ],
   "publish.needs-you.pack.need.measured_questions": [
-    "a finished measurement of your site with enough questions measured",
+    "a finished scan of your site with enough searches measured",
     { slots: {}, fixedBy: "issue 1252 (drafted)" },
   ],
   "publish.needs-you.pack.need.changed_figures": [
@@ -225,26 +225,26 @@ export const PUBLISH_COPY = Object.freeze({
     "Not connected yet. Your pages are held as drafts you can read until it is.",
     { slots: {}, fixedBy: "§9 · REQ-028 c5" },
   ],
-  "publish.destination.line.dns-unset": ["Waiting on your DNS record. Pages are held until it’s set — nothing is lost.", { slots: {}, fixedBy: "§9 · REQ-059 c2" }],
+  "publish.destination.line.dns-unset": ["Waiting on your DNS record. Pages are held until it’s set; nothing is lost.", { slots: {}, fixedBy: "§9 · REQ-059 c2" }],
   "publish.destination.line.dns-elsewhere": [
     "The DNS record points elsewhere, so pages are waiting. Point it at us and they go out.",
     { slots: {}, fixedBy: "§9 · REQ-059 c2" },
   ],
   "publish.destination.line.credentials-expired": [
-    "The connection has expired. Your pages are being held — nothing is lost — and reconnecting releases them.",
+    "The connection has expired. Your pages are held, nothing is lost, and reconnecting releases them.",
     { slots: {}, fixedBy: "§9 · REQ-074 c2" },
   ],
   "publish.destination.line.credentials-invalid": [
-    "Your site refused the credential. Pages are being held, nothing is lost — reconnect with a working application password.",
+    "Your site refused the credential. Pages are held and nothing is lost. Reconnect with a working application password.",
     { slots: {}, fixedBy: "§9 · REQ-074 c2" },
   ],
-  "publish.destination.line.unreachable": ["Your site couldn’t be reached. Pages are being held — nothing is lost — and go out once it answers again.", { slots: {}, fixedBy: "§9 · REQ-074 c2" }],
+  "publish.destination.line.unreachable": ["Your site couldn’t be reached. Pages are held, nothing is lost, and they go out once it answers again.", { slots: {}, fixedBy: "§9 · REQ-074 c2" }],
   "publish.destination.line.destination-rejected": [
     "Your site rejected the page. Pages are being held and nothing is lost; reconnect to try again.",
     { slots: {}, fixedBy: "§9 · REQ-074 c2" },
   ],
   "publish.destination.line.cannot-publish": [
-    "Connected, but the WordPress account ReachKit uses there isn’t allowed to publish. Give it an account that can — re-entering this one changes nothing.",
+    "Connected, but the WordPress account ReachKit uses there isn’t allowed to publish. Give it an account that can.",
     { slots: {}, fixedBy: "ADR-086 · REQ-060 c7" },
   ],
 
@@ -319,7 +319,7 @@ export const PUBLISH_COPY = Object.freeze({
    *  the same moment the head on the left writes. Transcribed from the
    *  board, for the owner to confirm. */
   "publish.veto.panel.heading": [
-    "This is the page that goes live on {day}.",
+    "Goes live on {day}",
     { slots: { day: "text" }, fixedBy: "issue 1025" },
   ],
   /** The same heading on the stopped arm (#1025, `R7-S5`). The board
@@ -333,7 +333,7 @@ export const PUBLISH_COPY = Object.freeze({
    *  written for, and how often that is searched. Transcribed from the
    *  board, for the owner to confirm. */
   "publish.veto.panel.caption": [
-    "Written for “{query}” — {volume} searches a month.",
+    "Written for “{query}”, {volume} searches a month.",
     { slots: { query: "text", volume: "text" }, fixedBy: "issue 1025" },
   ],
   "publish.veto.alreadyUsed": ["This link was already used. The page is stopped.", { slots: {}, fixedBy: "REQ-057 c1" }],
@@ -428,7 +428,7 @@ export const PUBLISH_COPY = Object.freeze({
   // lands on it needs to know, because the columns past the edge are the
   // reason it is focusable at all.
   "body.table.label": [
-    "Table — scroll sideways to see every column",
+    "Table: scroll sideways to see every column",
     { slots: {}, fixedBy: "owner, PR 973" },
   ],
   // The publisher is the customer, by name: these are their other guides
@@ -493,8 +493,4 @@ export const PUBLISH_COPY = Object.freeze({
   ],
 
   "publish.wordpress.noSeoPlugin": ["No SEO plugin was found on your site, so the title and description weren’t written into one. The page is live all the same.", { slots: {}, fixedBy: "REQ-060 c4" }],
-  "publish.wordpress.namedForRemoval": [
-    "ReachKit never made this post live, so nothing in your site was changed. Removing the draft there is yours to do.",
-    { slots: {}, fixedBy: "ADR-084 d4 · REQ-056 c16" },
-  ],
 }) satisfies CopyPartition;

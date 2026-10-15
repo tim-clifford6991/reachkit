@@ -47,13 +47,13 @@ import type { CopyPartition } from "../registry.ts";
 
 export const META_COPY = Object.freeze({
   /* ── The two screens a stranger arrives at ────────────────────────── */
-  "meta.landing.title": ["ReachKit — see what AI tells buyers about your market", { slots: {}, fixedBy: "issue 326" }],
+  "meta.landing.title": ["Get found on Google and AI · ReachKit", { slots: {}, fixedBy: "issue 326" }],
   /** Spent twice: the landing's `<meta name="description">` and the web
    *  manifest's `description`, which describe the same product to two
    *  readers. Read from one key rather than written twice (rule 2.4). */
-  "meta.landing.description": ["Free scan, no account: see where AI answers and Google send buyers to your rivals, then let ReachKit publish a page every day, new or updated, to close the gap.", { slots: {}, fixedBy: "issue 326" }],
-  "meta.pricing.title": ["Pricing — ReachKit, €49 a month", { slots: {}, fixedBy: "issue 326" }],
-  "meta.pricing.description": ["One plan at €49 a month, VAT included: a page every day for your site, new or updated, a weekly re-measure of your market, and time to stop any page before it goes live.", { slots: {}, fixedBy: "issue 326" }],
+  "meta.landing.description": ["Free scan, no account: see where Google and AI send buyers to your competitors, then let ReachKit publish a page every day, new or updated, to close the gap.", { slots: {}, fixedBy: "issue 326" }],
+  "meta.pricing.title": ["Pricing · €49 a month · ReachKit", { slots: {}, fixedBy: "issue 326" }],
+  "meta.pricing.description": ["One plan at €49 a month, VAT included: a page every day for your site, new or updated, a weekly scan of your market, and time to stop any page before it goes live.", { slots: {}, fixedBy: "issue 326" }],
 
   /* ── The three legal pages ────────────────────────────────────────────
      Their on-screen headings are `legal.*.title` and are approved as
@@ -63,11 +63,11 @@ export const META_COPY = Object.freeze({
      privacy notice it is. Its own key rather than composed from the
      heading and the wordmark — composing one would be this file writing
      copy. */
-  "meta.privacy.title": ["Privacy — ReachKit", { slots: {}, fixedBy: "issue 326" }],
+  "meta.privacy.title": ["Privacy · ReachKit", { slots: {}, fixedBy: "issue 326" }],
   "meta.privacy.description": ["How ReachKit handles personal data: what a free scan stores, what your email is used for, who processes it, and how to ask for a report’s removal.", { slots: {}, fixedBy: "issue 326" }],
-  "meta.terms.title": ["Terms — ReachKit", { slots: {}, fixedBy: "issue 326" }],
+  "meta.terms.title": ["Terms · ReachKit", { slots: {}, fixedBy: "issue 326" }],
   "meta.terms.description": ["The terms for using ReachKit: the free report, the €49 monthly subscription, cancellation, and what ReachKit publishes for you.", { slots: {}, fixedBy: "issue 326" }],
-  "meta.imprint.title": ["Imprint — ReachKit", { slots: {}, fixedBy: "issue 326" }],
+  "meta.imprint.title": ["Imprint · ReachKit", { slots: {}, fixedBy: "issue 326" }],
   "meta.imprint.description": ["Who operates ReachKit: the legal entity, its address, and how to reach it.", { slots: {}, fixedBy: "issue 326" }],
 
   /* ── The four addresses no crawler may index ──────────────────────────
@@ -77,7 +77,7 @@ export const META_COPY = Object.freeze({
      same reason they are needed above. The robots directive is a separate
      promise, carried by `_seo/routes.ts` and, for the two token paths, by
      `next.config.ts`'s header half. */
-  "meta.signin.title": ["Sign in — ReachKit", { slots: {}, fixedBy: "issue 326" }],
+  "meta.signin.title": ["Sign in · ReachKit", { slots: {}, fixedBy: "issue 326" }],
   "meta.signin.description": ["Enter the email you paid with and ReachKit sends you a sign-in link. No password.", { slots: {}, fixedBy: "issue 326" }],
   /** The report's two carry `{domain}`: the address is per-domain, and a
    *  shared report link that unfurled as the same sentence for every domain
@@ -85,19 +85,19 @@ export const META_COPY = Object.freeze({
    *  is declared so that the owner's sentence has to spend it. */
   /** `/scans` — indexed, unlike the reports it lists (SPEC §2 2026-09-24,
    *  #1058). Drafted for the owner (#1069). */
-  "meta.scans.title": ["Free scans — every ReachKit report, in the open", { slots: {}, fixedBy: "issue 1069 · drafted" }],
-  "meta.scans.description": ["Every free ReachKit scan, listed: how each business shows up in Google search and AI answers, its Discoverability Score, and a permanent link to its report.", { slots: {}, fixedBy: "issue 1069 · drafted" }],
+  "meta.scans.title": ["Free scans · ReachKit", { slots: {}, fixedBy: "issue 1069 · drafted" }],
+  "meta.scans.description": ["Every free ReachKit scan, listed: how each business shows up on Google and in AI answers, its Visibility Score, and a permanent link to its report.", { slots: {}, fixedBy: "issue 1069 · drafted" }],
   // Issue 1396: the two pages that say how the product works and who
   // builds it. Drafted; named in that pull request.
-  "meta.how.title": ["How it works — ReachKit", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "meta.how.description": ["What ReachKit measures in Google and in AI answers, how a page for your site is chosen and written, the checks it passes before it goes live, and what you control.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "meta.about.title": ["About — ReachKit", { slots: {}, fixedBy: "issue 1396 · drafted" }],
+  "meta.how.title": ["How it works · ReachKit", { slots: {}, fixedBy: "issue 1396 · drafted" }],
+  "meta.how.description": ["What ReachKit measures on Google and in AI answers, how a page for your site is chosen and written, the checks before it goes live, and what you control.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
+  "meta.about.title": ["About · ReachKit", { slots: {}, fixedBy: "issue 1396 · drafted" }],
   "meta.about.description": ["Who builds ReachKit and why, and the rules it keeps about what it publishes.", { slots: {}, fixedBy: "issue 1396 · drafted" }],
-  "meta.report.title": ["{domain} · Discoverability Score · ReachKit", { slots: { domain: "text" }, fixedBy: "issue 326" }],
-  "meta.report.description": ["How findable {domain} is in Google and in AI answers, against its market’s biggest searches — and the pages that would change it. Permanent link.", { slots: { domain: "text" }, fixedBy: "issue 326 · issue 1309" }],
-  "meta.veto.title": ["Stop this page — ReachKit", { slots: {}, fixedBy: "issue 326" }],
+  "meta.report.title": ["{domain} · Visibility Score · ReachKit", { slots: { domain: "text" }, fixedBy: "issue 326" }],
+  "meta.report.description": ["How easily buyers find {domain} on Google and in AI answers, and the pages that would change it. Permanent link.", { slots: { domain: "text" }, fixedBy: "issue 326 · issue 1309" }],
+  "meta.veto.title": ["Stop this page · ReachKit", { slots: {}, fixedBy: "issue 326" }],
   "meta.veto.description": ["A page ReachKit wrote for your site is waiting to publish. Stop it here in one step, or do nothing and it goes live as planned.", { slots: {}, fixedBy: "issue 326" }],
-  "meta.optout.title": ["Opted out — ReachKit", { slots: {}, fixedBy: "issue 326" }],
+  "meta.optout.title": ["Opted out · ReachKit", { slots: {}, fixedBy: "issue 326" }],
   "meta.optout.description": ["This link stops every follow-up email from ReachKit to your address. The page you asked for stays yours.", { slots: {}, fixedBy: "issue 326" }],
 
   /* ── The two generated share images ───────────────────────────────────
@@ -107,7 +107,7 @@ export const META_COPY = Object.freeze({
      image's `alt` as a module-scope export, before any address is resolved,
      so no domain is in scope where the sentence is read. */
   "meta.og.alt": ["ReachKit wordmark on a plain card, with the site’s address beneath it.", { slots: {}, fixedBy: "issue 326" }],
-  "meta.report.og.alt": ["A ReachKit report card: the domain, its Discoverability Score and the band word.", { slots: {}, fixedBy: "issue 326" }],
+  "meta.report.og.alt": ["A ReachKit report card: the domain, its Visibility Score and the band word.", { slots: {}, fixedBy: "issue 326" }],
 
   /* ── The signed-in screens (#945) ─────────────────────────────────────
      Every `(account)` route had **no `<title>` at all** — axe's
@@ -135,27 +135,27 @@ export const META_COPY = Object.freeze({
 
      Drafted under the owner's 2026-09-16 ruling (#759) and named in the
      PR body so the owner can correct any of them. */
-  "meta.app.overview.title": ["Overview — ReachKit", { slots: {}, fixedBy: "issue 945" }],
-  "meta.app.search.title": ["Search — ReachKit", { slots: {}, fixedBy: "issue 945" }],
-  "meta.app.ai-answers.title": ["AI Visibility — ReachKit", { slots: {}, fixedBy: "issue 945" }],
-  "meta.app.rivals.title": ["Rivals — ReachKit", { slots: {}, fixedBy: "issue 945" }],
-  "meta.app.plan.title": ["Plan — ReachKit", { slots: {}, fixedBy: "issue 945" }],
-  "meta.app.draft.title": ["Your page — ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.overview.title": ["Overview · ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.search.title": ["Google · ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.ai-answers.title": ["AI · ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.rivals.title": ["Competitors · ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.plan.title": ["Plan · ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.draft.title": ["Your page · ReachKit", { slots: {}, fixedBy: "issue 945" }],
   // Owner ruling 2026-09-21 (#984): the page editor's tab says which page.
   // The title is the draft's own — model-written, and reaching a browser
   // tab through a slot in a written sentence, never as a sentence of ours.
   // The key above stays the floor: a draft with no title yet, and an id
   // that resolves to nothing, read it.
   "meta.app.draft.title.page": [
-    "{title} — ReachKit",
+    "{title} · ReachKit",
     { slots: { title: "text" }, fixedBy: "owner 2026-09-21 · issue 984" },
   ],
-  "meta.app.settings.title": ["Settings — ReachKit", { slots: {}, fixedBy: "issue 945" }],
-  "meta.app.setup.title": ["Setup — ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.settings.title": ["Settings · ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.setup.title": ["Setup · ReachKit", { slots: {}, fixedBy: "issue 945" }],
   // #924: the DNS step after setup is its own address, so it says which
   // screen it is rather than falling back to the account layout's floor.
   "meta.app.setup.connect.title": [
-    "Connect your blog — ReachKit",
+    "Connect your blog · ReachKit",
     { slots: {}, fixedBy: "issue 945" },
   ],
 
@@ -181,27 +181,27 @@ export const META_COPY = Object.freeze({
      Drafted under the owner's 2026-09-16 ruling (#759) and named in the PR
      body so the owner can correct any of them. */
   "meta.app.settings.market.title": [
-    "Market and rivals — Settings — ReachKit",
+    "Market and competitors · Settings · ReachKit",
     { slots: {}, fixedBy: "issue 925" },
   ],
   "meta.app.settings.publishing.title": [
-    "Publishing — Settings — ReachKit",
+    "Publishing · Settings · ReachKit",
     { slots: {}, fixedBy: "issue 925" },
   ],
   "meta.app.settings.voice.title": [
-    "Your voice — Settings — ReachKit",
+    "Your voice · Settings · ReachKit",
     { slots: {}, fixedBy: "issue 925" },
   ],
   "meta.app.settings.mail.title": [
-    "Mail — Settings — ReachKit",
+    "Mail · Settings · ReachKit",
     { slots: {}, fixedBy: "issue 925" },
   ],
   "meta.app.settings.billing.title": [
-    "Billing — Settings — ReachKit",
+    "Billing · Settings · ReachKit",
     { slots: {}, fixedBy: "issue 925" },
   ],
   "meta.app.settings.account.title": [
-    "Account — Settings — ReachKit",
+    "Account · Settings · ReachKit",
     { slots: {}, fixedBy: "issue 925" },
   ],
 }) satisfies CopyPartition;

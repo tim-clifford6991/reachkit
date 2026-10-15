@@ -273,7 +273,7 @@ done
 [ -n "$blocked" ] || [ -n "$band_seen" ] || fail "$step" "the report carries no band word"
 
 incomplete=$(copy_text "notice.incomplete")
-incomplete=${incomplete%% —*}
+incomplete=${incomplete%%:*}
 [ -n "$incomplete" ] || fail "$step" "the copy registry binds no notice.incomplete"
 grep -qF "$incomplete" "$page" && fail "$step" "the report shows the incomplete notice"
 

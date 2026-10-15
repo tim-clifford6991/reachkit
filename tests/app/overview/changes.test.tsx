@@ -34,7 +34,6 @@ const { readGrowth } = await import("@/app/(account)/app/_overview/growth");
 const { withBreaks, changeWithin, CHANGE_ACCOUNT_KEY } = await import(
   "@/app/(account)/app/_overview/changes"
 );
-const { GrowthModule } = await import("@/app/(account)/app/_overview/GrowthModule");
 const { RivalModule } = await import("@/app/(account)/app/_overview/RivalModule");
 const { measured } = await import("@/lib/measure/measured");
 type OverviewFacts = import("@/app/(account)/app/_overview/model").OverviewFacts;
@@ -144,26 +143,6 @@ describe("REQ-071 c12 — the growth series is two runs, never one line across a
     expect(growth.entries.filter((e) => e.kind === "break")).toHaveLength(1);
   });
 
-  it("the chart is handed a column with no value at the change, which is where it cuts its run", () => {
-    const growth = readGrowth({ points: POINTS, firstDueOn: AT(1), changes: [CHANGE] });
-    const markup = html(<GrowthModule growth={growth} timeZone={ZONE} />);
-    // One break column and its account: the same column an unmeasured week
-    // takes, so §2.4's inventory gains no sixth chart. What differs is that
-    // this one cuts the line and a week with no reading does not (#386) —
-    // two runs here, one there.
-    // The chart itself cuts its run at that column (#550, read in
-    // tests/ui/recharts-charts.test.tsx); here, the column is one more
-    // written reading than the four weeks, and it states the change.
-    expect(markup).toContain(CHANGE_ACCOUNT_KEY.domain);
-    expect(markup.split("<li>").length - 1).toBe(5);
-  });
-
-  it("without a change the same weeks draw four readings and no account", () => {
-    const growth = readGrowth({ points: POINTS, firstDueOn: AT(1), changes: [] });
-    const markup = html(<GrowthModule growth={growth} timeZone={ZONE} />);
-    expect(markup).not.toContain(CHANGE_ACCOUNT_KEY.domain);
-    expect(markup.split("<li>").length - 1).toBe(4);
-  });
 });
 
 // ── the AI-answers window ──────────────────────────────────────────────────

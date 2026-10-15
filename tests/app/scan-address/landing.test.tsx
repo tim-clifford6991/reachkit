@@ -449,10 +449,8 @@ describe("WO-070 — all eight landing keys are supplied; none is owner-owed", (
     const { copy: realCopy } = await import("@/lib/presentation/copy/copy.ts");
 
     // The three keys ruled 2026-09-03 (WO-070 `## Log`, "landing copy
-    // approved").
-    expect(realCopy("landing.headline" as never)).toBe(
-      "See what AI tells buyers about your market — and write your way in."
-    );
+    // approved"); the headline is the owner's of 2026-10-15 (issue 1444).
+    expect(realCopy("landing.headline" as never)).toBe("Get found on Google and AI.");
     expect(realCopy("landing.field.label" as never)).toBe("Your website");
     expect(realCopy("landing.submit.label" as never)).toBe("Scan my site");
 

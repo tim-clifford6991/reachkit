@@ -80,7 +80,7 @@ describe("SPEC §5 (2026-09-20) — five saved steps, one question each", () => 
     expect(columns.map((li) => (li.textContent ?? "").trim())).toEqual([
       "Site",
       "Business",
-      "Rivals",
+      "Competitors",
       "Voice",
       "Publishing",
     ]);

@@ -3,8 +3,10 @@
 // WO-287's own test plan. REQ-002 c1, REQ-002 c3, REQ-003 c6, REQ-003 c7,
 // REQ-004 c2, REQ-004 c6, REQ-004 c9, REQ-001 c14, REQ-001 c15, REQ-001
 // c16, REQ-094 c7, REQ-001 c7, and constitution §1 with rule 1.2 (the
-// eighteen values are the owner's, byte for byte), quoted verbatim in the
-// work order's own `## Test plan` table.
+// values are the owner's, byte for byte), quoted verbatim in the work
+// order's own `## Test plan` table. The owner's naming ruling of 2026-10-15
+// (issue 1444) supersedes that sheet's wording: the fixture holds the new
+// values, and `control.correction-retry`, which nothing rendered, is gone.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,7 +16,7 @@ import { OWNER_OWED } from "../../../src/lib/presentation/copy/registry.ts";
 import { LIMITING_LINES } from "../../../src/lib/presentation/bands.ts";
 import { renderMeasured } from "../../../src/lib/presentation/measured.ts";
 import { unmeasured } from "../../../src/lib/measure/measured.ts";
-import type { ScoreFactorName } from "@/lib/measure/score";
+import type { ShownFactor } from "@/lib/measure/verdict";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const RULING_PATH = path.resolve(HERE, "__fixtures__/RULING-copy-2026-09-04.json");
@@ -95,7 +97,13 @@ describe('REQ-003 c7 — "… if the running scan is of the domain they asked fo
 });
 
 describe('REQ-004 c2 — "… then one written line beside it names the one driver, of the three the score is composed of, whose measurement holds the score down the most — and names it without stating that driver\'s value, its weight, or how the score is put together." — ruled-copy/verdict · three lines, one per driver, and no value in any of them', () => {
-  const KEYS = ["verdict.limiting.foundations", "verdict.limiting.answerability", "verdict.limiting.presence"] as const;
+  const KEYS = [
+    "verdict.limiting.foundations",
+    "verdict.limiting.answerability",
+    "verdict.limiting.google",
+    "verdict.limiting.ai",
+    "verdict.limiting.presence",
+  ] as const;
 
   it("each of the three resolves through copy() without throwing and declares no slots", () => {
     for (const key of KEYS) {
@@ -104,16 +112,11 @@ describe('REQ-004 c2 — "… then one written line beside it names the one driv
     }
   });
 
-  it("every ScoreFactorName maps onto one of the three through LIMITING_LINES", () => {
-    // Type-level: LIMITING_LINES is declared Record<ScoreFactorName, CopyKey>
-    // (src/lib/presentation/bands.ts) — a key added to ScoreFactorName
-    // without a matching LIMITING_LINES entry is a compile error, not
-    // something this runtime assertion needs to re-derive. This checks
-    // the runtime set agrees.
-    const factorNames: readonly ScoreFactorName[] = ["foundations", "answerability", "presence"];
-    expect(Object.keys(LIMITING_LINES).sort()).toEqual([...factorNames].sort());
-    for (const name of factorNames) {
-      expect(KEYS).toContain(LIMITING_LINES[name]);
+  it("every bar the report shows maps onto one of the titles through LIMITING_LINES (issue 1444)", () => {
+    const shown: readonly ShownFactor[] = ["foundations", "answerability", "google", "ai", "presence"];
+    expect(Object.keys(LIMITING_LINES).sort()).toEqual([...shown].sort());
+    for (const name of shown) {
+      expect(KEYS).toContain(LIMITING_LINES[name].title);
     }
   });
 
@@ -221,7 +224,7 @@ describe('REQ-001 c16 — "… then one written line says what happened and a ma
     expect(() => copy("control.retry")).not.toThrow();
   });
 
-  it("the registry holds exactly eleven notice.* keys and exactly five control.* keys", () => {
+  it("the registry holds exactly eleven notice.* keys and exactly these control.* keys", () => {
     const allKeys = Object.keys(COPY) as CopyKey[];
     const noticeKeys = allKeys.filter((k) => k.startsWith("notice."));
     const controlKeys = allKeys.filter((k) => k.startsWith("control."));
@@ -252,13 +255,12 @@ describe('REQ-001 c16 — "… then one written line says what happened and a ma
     );
     expect(controlKeys.sort()).toEqual(
       [
-        "control.correction-retry",
         "control.rescan-age",
         "control.rescan-incomplete",
         "control.retry",
         "control.retry-part",
         // #936's three ways off a quiet page. None of them re-measures
-        // anything — that is what the five above are for, and it is why
+        // anything — that is what the four above are for, and it is why
         // this list is worth counting: a control key is a promise that
         // something happens when it is pressed, and these three navigate.
         "control.back-to-start",
@@ -270,13 +272,10 @@ describe('REQ-001 c16 — "… then one written line says what happened and a ma
 });
 
 describe('REQ-094 c7 — "… the reader is told in writing that the correction did not complete — in the one written line REQ-001 criterion 16 shows while it shows one, never a second line beside it — and the correction may be submitted once more on criterion 1\'s terms, that retry being the one control REQ-001 criterion 16 admits there." — ruled-copy/notice · the correction\'s failure is its own line and its own retry', () => {
-  it("notice.correction-failed and control.correction-retry both resolve, declare no slots, and differ from notice.measurement-failed and control.retry respectively", () => {
+  it("notice.correction-failed resolves, declares no slots, and differs from notice.measurement-failed", () => {
     expect(COPY_META["notice.correction-failed"].slots).toEqual({});
-    expect(COPY_META["control.correction-retry"].slots).toEqual({});
     expect(() => copy("notice.correction-failed")).not.toThrow();
-    expect(() => copy("control.correction-retry")).not.toThrow();
     expect(COPY["notice.correction-failed"]).not.toBe(COPY["notice.measurement-failed"]);
-    expect(COPY["control.correction-retry"]).not.toBe(COPY["control.retry"]);
   });
 });
 
@@ -288,26 +287,26 @@ describe('REQ-001 c7 — "Given a visitor on a completed report, when they use t
   });
 });
 
-describe("Constitution §1 (decision-rights table, \"Customer-visible strings\" — owner) with rule 1.2 — ruled-copy/fidelity · the eighteen values are the owner's, byte for byte", () => {
+describe("Constitution §1 (decision-rights table, \"Customer-visible strings\" — owner) with rule 1.2 — ruled-copy/fidelity · the seventeen values are the owner's, byte for byte", () => {
   const KEYS = Object.keys(RULING.strings) as CopyKey[];
 
-  it("the ruling names exactly eighteen keys", () => {
-    expect(KEYS.length).toBe(18);
+  it("the ruling names exactly seventeen keys", () => {
+    expect(KEYS.length).toBe(17);
   });
 
-  it("every one of the eighteen is asserted identical to its value in the ruling file", () => {
+  it("every one of the seventeen is asserted identical to its value in the ruling file", () => {
     for (const key of KEYS) {
       expect(COPY[key]).toBe(RULING.strings[key]);
     }
   });
 
-  it("the eighteen carry 8 U+2019, 8 U+2014, and zero U+0027 between them", () => {
+  it("the seventeen carry 8 U+2019, no U+2014 (issue 1444: no em-dash in a title), and zero U+0027 between them", () => {
     const joined = KEYS.map((key) => COPY[key]).join("");
     const apostrophes = [...joined].filter((ch) => ch === "’").length;
     const dashes = [...joined].filter((ch) => ch === "—").length;
     const straight = [...joined].filter((ch) => ch === "'").length;
     expect(apostrophes).toBe(8);
-    expect(dashes).toBe(8);
+    expect(dashes).toBe(0);
     expect(straight).toBe(0);
   });
 
@@ -319,7 +318,7 @@ describe("Constitution §1 (decision-rights table, \"Customer-visible strings\" 
     }
   });
 
-  it("none of the eighteen is owner-owed any longer", () => {
+  it("none of the seventeen is owner-owed any longer", () => {
     for (const key of KEYS) {
       expect(OWNER_OWED).not.toContain(key);
     }

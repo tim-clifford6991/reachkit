@@ -69,8 +69,12 @@ The nav label, the heading in the docs and the screen name are the same word. Is
 |---|---|---|
 | Plan | `/app/calendar` | Plan — not “calendar”, not `F7` |
 | The draft | `/app/draft/{draftId}` | Draft. The editor is the editing state of that draft, not a second screen |
-| Overview, Search, Rivals, Settings | unchanged | those words |
-| AI Visibility | `/app/ai-answers` | AI Visibility. “AI answers” was its label until 2026-10-09 (#1363); the route keeps the old word |
+| Overview, Settings | unchanged | those words |
+| Google | `/app/search` | Google. “Search” was its label until 2026-10-15 (#1444); the route keeps the old word |
+| AI | `/app/ai-answers` | AI. “AI answers” until 2026-10-09 (#1363), then “AI Visibility” until 2026-10-15 (#1444); the route keeps the old word |
+| Competitors | `/app/rivals` | Competitors. “Rivals” was its label until 2026-10-15 (#1444); the route keeps the old word |
+
+- 2026-10-15  **Section, tab and mail names equal the bar names** (owner, #1444). The free report's verdict draws four bars — Readiness, Content, Google, AI — and its two sections are “Google” and “AI”; the app tabs and the mail sections carry the same words. A title is at most six words, one idea, no em-dash; a number is the figure and its explanation one line under it (`docs/SPEC.md` §0, 2026-10-15).
 
 ## Boards
 
@@ -104,10 +108,10 @@ Each board is `docs/design/boards/<id>/<id>.dc.html` with its `.jpg` render. The
 | Overview | `/app` | [board](design/boards/R12-4-Overview/R12-4-Overview.dc.html) · [render](design/boards/R12-4-Overview/R12-4-Overview.jpg) |
 | Overview, phone | `/app` at 390 | [board](design/boards/R12-7-Phone-overview/R12-7-Phone-overview.dc.html) · [render](design/boards/R12-7-Phone-overview/R12-7-Phone-overview.jpg) |
 | Overview, dark | `/app` | [board](design/boards/R5-D1-Overview/R5-D1-Overview.dc.html) · [render](design/boards/R5-D1-Overview/R5-D1-Overview.jpg) |
-| Search | `/app/search` | [board](design/boards/R4-05-Search/R4-05-Search.dc.html) · [render](design/boards/R4-05-Search/R4-05-Search.jpg) |
-| Search, dark | `/app/search` | [board](design/boards/R5-D3-Search/R5-D3-Search.dc.html) · [render](design/boards/R5-D3-Search/R5-D3-Search.jpg) |
-| AI Visibility | `/app/ai-answers` | [board](design/boards/R4-06-AI-answers/R4-06-AI-answers.dc.html) · [render](design/boards/R4-06-AI-answers/R4-06-AI-answers.jpg) |
-| Rivals | `/app/rivals` | [board](design/boards/R4-07-Rivals/R4-07-Rivals.dc.html) · [render](design/boards/R4-07-Rivals/R4-07-Rivals.jpg) |
+| Google | `/app/search` | [board](design/boards/R4-05-Search/R4-05-Search.dc.html) · [render](design/boards/R4-05-Search/R4-05-Search.jpg) |
+| Google, dark | `/app/search` | [board](design/boards/R5-D3-Search/R5-D3-Search.dc.html) · [render](design/boards/R5-D3-Search/R5-D3-Search.jpg) |
+| AI | `/app/ai-answers` | [board](design/boards/R4-06-AI-answers/R4-06-AI-answers.dc.html) · [render](design/boards/R4-06-AI-answers/R4-06-AI-answers.jpg) |
+| Competitors | `/app/rivals` | [board](design/boards/R4-07-Rivals/R4-07-Rivals.dc.html) · [render](design/boards/R4-07-Rivals/R4-07-Rivals.jpg) |
 | Plan | `/app/calendar` | [board](design/boards/R12-5-Plan/R12-5-Plan.dc.html) · [render](design/boards/R12-5-Plan/R12-5-Plan.jpg) |
 | Plan, day cards | the day cards on Plan | [board](design/boards/R3-DayCards/R3-DayCards.dc.html) · [render](design/boards/R3-DayCards/R3-DayCards.jpg) |
 | Plan, phone | `/app/calendar` at 390 | [board](design/boards/R5-P3-Plan/R5-P3-Plan.dc.html) · [render](design/boards/R5-P3-Plan/R5-P3-Plan.jpg) |

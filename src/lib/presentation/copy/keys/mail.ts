@@ -27,7 +27,7 @@ export const MAIL_COPY = Object.freeze({
   // same line. It carries the `{address}` slot because the set writes the
   // address inside the sentence, in mono, and a sentence with a value in
   // it has a slot rather than two half-sentences.
-  "optout.confirmed": ["No more follow-up mail will reach {address} — for this domain or any other. The page you asked for stays yours.", { slots: { address: "text" }, fixedBy: "REQ-011 c3 · S7 (11a)" }],
+  "optout.confirmed": ["No more follow-up mail will reach {address}, for this domain or any other. The page you asked for stays yours.", { slots: { address: "text" }, fixedBy: "REQ-011 c3 · S7 (11a)" }],
   "optout.invalid": ["That unsubscribe link isn’t valid any more. Reply to any ReachKit email with \"stop\" and we’ll stop by hand.", { slots: {}, fixedBy: "REQ-011 c3" }],
 
   // The card's own head (UI-SPEC S7, 11a). The set draws one eyebrow over
@@ -53,8 +53,8 @@ export const MAIL_COPY = Object.freeze({
 
   "mail.shell.wordmark": ["ReachKit", { slots: {}, fixedBy: "§12" }],
   "mail.nothing_to_report": ["There is nothing to report this week.", { slots: {}, fixedBy: "§12" }],
-  "mail.week_unmeasured": ["This week could not be measured. The next measurement is due {nextDue}.", { slots: { nextDue: "date" }, fixedBy: "§12" }],
-  "mail.week_partly_measured": ["Part of this week could not be measured: {sections}. Those sections are left out rather than shown as zero.", { slots: { sections: "text" }, fixedBy: "§12" }],
+  "mail.week_unmeasured": ["This week couldn’t be scanned. The next scan is due {nextDue}.", { slots: { nextDue: "date" }, fixedBy: "§12" }],
+  "mail.week_partly_measured": ["Part of this week couldn’t be measured: {sections}. Those sections are left out, not shown as zero.", { slots: { sections: "text" }, fixedBy: "§12" }],
 
   // 2026-09-07, issue #181. The six names the line above interpolates.
   //
@@ -74,10 +74,10 @@ export const MAIL_COPY = Object.freeze({
   // two things.
   "mail.section.on_page": ["your pages", { slots: {}, fixedBy: "REQ-064 c4" }],
   "mail.section.market": ["your market", { slots: {}, fixedBy: "REQ-064 c4" }],
-  "mail.section.rankings": ["Google search", { slots: {}, fixedBy: "REQ-064 c4" }],
-  "mail.section.ai_answers": ["AI Visibility", { slots: {}, fixedBy: "REQ-064 c4" }],
-  "mail.section.rivals": ["rivals", { slots: {}, fixedBy: "REQ-064 c4" }],
-  "mail.section.score": ["Discoverability Score", { slots: {}, fixedBy: "REQ-064 c4" }],
+  "mail.section.rankings": ["Google", { slots: {}, fixedBy: "REQ-064 c4" }],
+  "mail.section.ai_answers": ["AI", { slots: {}, fixedBy: "REQ-064 c4" }],
+  "mail.section.rivals": ["competitors", { slots: {}, fixedBy: "REQ-064 c4" }],
+  "mail.section.score": ["Visibility Score", { slots: {}, fixedBy: "REQ-064 c4" }],
   "mail.unsubscribe.label": ["Switch off this mail", { slots: {}, fixedBy: "§12" }],
   "mail.optout.label": ["Opt out of all follow-up mail", { slots: {}, fixedBy: "§12" }],
 
@@ -96,8 +96,6 @@ export const MAIL_COPY = Object.freeze({
     { slots: { title: "text" }, fixedBy: "REQ-010 c4 · S20 (11a)" },
   ],
   "mail.firstPage.target_search": ["target search", { slots: {}, fixedBy: "REQ-010 c4 · S20 (11a)" }],
-  "mail.firstPage.volume_label": ["asked", { slots: {}, fixedBy: "REQ-010 c4" }],
-  "mail.firstPage.volume_note": ["Searches per month, measured on US Google in English.", { slots: {}, fixedBy: "REQ-010 c4" }],
   "mail.firstPage.first_of_n": [
     "The complete page, copy-ready, in Markdown and HTML. That’s page 1 of {pagesFound} we found for you.",
     { slots: { pagesFound: "text" }, fixedBy: "REQ-010 c4 · S20 (11a)" },
@@ -113,11 +111,11 @@ export const MAIL_COPY = Object.freeze({
 
   // The three touches (c9). One subject and one line each; the touch is
   // carried by the key, never by a conditional inside a template.
-  "mail.nurture.subject.1": ["The rest of the pages we found", { slots: {}, fixedBy: "REQ-010 c9" }],
+  "mail.nurture.subject.1": ["The rest of your pages", { slots: {}, fixedBy: "REQ-010 c9" }],
   "mail.nurture.subject.2": ["What changes once the pages ship", { slots: {}, fixedBy: "REQ-010 c9" }],
   "mail.nurture.subject.3": ["One last note about your report", { slots: {}, fixedBy: "REQ-010 c9" }],
   "mail.nurture.body.1": ["You have page 1 for {domain}. ReachKit takes it from here: a page every day, new or updated, published for you. Each goes live on its own unless you stop it first. €49 a month, cancel any time.", { slots: { domain: "text" }, fixedBy: "REQ-010 c9" }],
-  "mail.nurture.body.2": ["Every page ReachKit writes for {domain} targets one search your rivals already answer. Each Monday it re-measures your whole market and tells you what moved — only what was measured, never a guess.", { slots: { domain: "text" }, fixedBy: "REQ-010 c9" }],
+  "mail.nurture.body.2": ["Every page ReachKit writes for {domain} targets one search your competitors already answer. Each Monday it scans your whole market again and tells you what moved.", { slots: { domain: "text" }, fixedBy: "REQ-010 c9" }],
   "mail.nurture.body.3": ["This is the last follow-up about {domain}. Your report and your first page stay yours. When you want the rest written and published, ReachKit starts at €49 a month, cancel any time.", { slots: { domain: "text" }, fixedBy: "REQ-010 c9" }],
 
   // BUILD §4.3's setup reminder (REQ-025 c6). Three keys: the subject, the
@@ -168,7 +166,7 @@ export const MAIL_COPY = Object.freeze({
   // Two bodies, not one with a conditional: "here is your way in" and "we
   // are still opening it" are two different things to say.
   "mail.account.chase.subject": ["Payment received", { slots: {}, fixedBy: "REQ-024 c5" }],
-  "mail.account.chase.link_ready": ["Your payment went through and your account is open. Nobody has signed in yet — here is your way in.", { slots: {}, fixedBy: "REQ-024 c5" }],
+  "mail.account.chase.link_ready": ["Your payment went through and your account is open. Here is your way in.", { slots: {}, fixedBy: "REQ-024 c5" }],
   "mail.account.chase.not_open_yet": ["Your payment went through. Your account is not open yet; we are opening it, and a sign-in link follows as soon as it is. Nothing more is charged.", { slots: {}, fixedBy: "REQ-024 c5" }],
 
   // The second-purchase mail (REQ-024 c3): what a founder whose second
@@ -225,12 +223,12 @@ export const MAIL_COPY = Object.freeze({
     "of {answers} answers",
     { slots: { answers: "text" }, fixedBy: "SPEC §8 2026-10-07 (drafted)" },
   ],
-  "mail.weekly.number.pagesCited": ["Your pages cited", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
+  "mail.weekly.number.pagesCited": ["Your pages linked", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
   "mail.weekly.number.pagesCited.window": [
     "in AI answers, last {weeks} weeks",
     { slots: { weeks: "text" }, fixedBy: "SPEC §8 2026-10-07 (drafted)" },
   ],
-  "mail.weekly.number.top20": ["Your pages in Google’s top 20", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
+  "mail.weekly.number.top20": ["Your pages on Google’s first two pages", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
   "mail.weekly.number.aiVisits": ["AI visits to your blog", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
   "mail.weekly.number.aiVisits.atLeast": ["at least", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
   "mail.weekly.number.aiVisits.window": [
@@ -250,7 +248,7 @@ export const MAIL_COPY = Object.freeze({
   // SPEC §8 2026-09-29 (D16, issue 1147): the tracked questions whose
   // answer names the site this week and did not the week before, each by
   // its search and linked to the answer. It credits no page. Drafted (#759).
-  "mail.weekly.nowNamed": ["tracked questions that now name you", { slots: {}, fixedBy: "SPEC §8 2026-09-29 D16" }],
+  "mail.weekly.nowNamed": ["questions that now mention you", { slots: {}, fixedBy: "SPEC §8 2026-09-29 D16" }],
   "mail.weekly.nowNamed.item": ["{search}", { slots: { search: "text" }, fixedBy: "SPEC §8 2026-09-29 D16" }],
   "mail.weekly.verdicts": ["pages judged", { slots: {}, fixedBy: "REQ-063 c4" }],
   "mail.weekly.verdicts.none": ["No pages published yet, so none to judge.", { slots: {}, fixedBy: "REQ-064 c3" }],
@@ -368,7 +366,6 @@ export const MAIL_COPY = Object.freeze({
   // `generated.page.written` is the sentence that names it, and it is
   // already minted. A `mail.draftReady.title` key would be that same title
   // with ADR-012's label stripped off.
-  "mail.draftReady.why.search": ["Written for the search “{query}”.", { slots: { query: "text" }, fixedBy: "BUILD §12 · §7" }],
   "mail.draftReady.why.volume": ["asked", { slots: {}, fixedBy: "BUILD §12 · §7" }],
 
   // ── SPEC §8 (2026-09-20, #933): the page-ready mail as the approved
@@ -511,7 +508,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.account.deleted.subject": ["Account deleted", { slots: {}, fixedBy: "REQ-079 c6" }],
   // The pages still live at a destination that could not be reached: the
   // mail "names it and says what they must do about it".
-  "mail.account.deleted.still_live": ["Pages still live at a destination ReachKit could not reach: {count}. Taking them down there is now yours to do — ReachKit no longer can.", { slots: { count: "text" }, fixedBy: "REQ-079 c6" }],
+  "mail.account.deleted.still_live": ["Pages still live at a destination ReachKit could not reach: {count}. Taking them down there is now yours to do; ReachKit no longer can.", { slots: { count: "text" }, fixedBy: "REQ-079 c6" }],
   // "The mail says of every post still in that site that it is theirs to
   // keep or remove" — its own key, because a promise living inside another
   // sentence is one edit away from being dropped without anything failing.
@@ -625,7 +622,7 @@ export const MAIL_COPY = Object.freeze({
   // word because the set puts them there: a reader decides whether to open
   // it on the number, not on the domain alone (6a names the number).
   "mail.report.subject": [
-    "{domain} — Discoverability Score {score}, {band}",
+    "{domain}: Visibility Score {score}, {band}",
     { slots: { domain: "text", score: "text", band: "text" }, fixedBy: "S20 (11a)" },
   ],
   "mail.report.heading": ["Your report is ready", { slots: {}, fixedBy: "S20 (11a)" }],
@@ -641,9 +638,9 @@ export const MAIL_COPY = Object.freeze({
     "Each problem on it says who fixes it, and the complete method is there, free.",
     { slots: {}, fixedBy: "SPEC §8 · issue 638" },
   ],
-  "mail.report.fact.score": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
-  "mail.report.fact.aiAnswers": ["AI Visibility", { slots: {}, fixedBy: "S20 (11a)" }],
-  "mail.report.fact.googleSearch": ["Google search", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.report.fact.score": ["Visibility Score", { slots: {}, fixedBy: "ruling 6a" }],
+  "mail.report.fact.aiAnswers": ["AI", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.report.fact.googleSearch": ["Google", { slots: {}, fixedBy: "S20 (11a)" }],
 
   // The headings S20 gives the kinds whose heading is a sentence rather
   // than a page title. `first-page`, `draft-ready` and `published` head on
@@ -651,19 +648,10 @@ export const MAIL_COPY = Object.freeze({
   "mail.magicLink.heading": ["Sign in to ReachKit", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.magicLink.fact.for": ["for", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.firstPage.heading": ["{title}", { slots: { title: "text" }, fixedBy: "S20 (11a)" }],
-  "mail.firstPage.fact.format": ["format", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.draftReady.heading": ["{title}", { slots: { title: "text" }, fixedBy: "S20 (11a)" }],
-  "mail.draftReady.body": [
-    "Goes live on its own tomorrow at 07:00. You can edit or stop it until then.",
-    { slots: {}, fixedBy: "S20 (11a)" },
-  ],
   "mail.draftReady.fact.search": ["search", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.draftReady.fact.answeredBy": ["answered today by", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.draftReady.fact.you": ["you", { slots: {}, fixedBy: "S20 (11a)" }],
-  "mail.published.body": [
-    "Verified at its address after 24 hours.",
-    { slots: {}, fixedBy: "S20 (11a)" },
-  ],
   "mail.published.action": ["View the page", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.weekly.heading": ["What moved this week", { slots: {}, fixedBy: "S20 (11a)" }],
   // D28 (owner, 2026-10-02, #1185): what ReachKit changed about the market
@@ -673,11 +661,11 @@ export const MAIL_COPY = Object.freeze({
     { slots: { category: "text", reason: "text" }, fixedBy: "SPEC §8 2026-10-02 D28, issue 1185" },
   ],
   "mail.weekly.rival.added": [
-    "New rival: {rival}. {reason}",
+    "New competitor: {rival}. {reason}",
     { slots: { rival: "text", reason: "text" }, fixedBy: "SPEC §8 2026-10-02 D28, issue 1185" },
   ],
   "mail.weekly.rival.dropped": [
-    "No longer measured as a rival: {rival}.",
+    "No longer measured as a competitor: {rival}.",
     { slots: { rival: "text" }, fixedBy: "SPEC §8 2026-10-02 D28, issue 1185" },
   ],
   "mail.weekly.action": ["Open the overview", { slots: {}, fixedBy: "S20 (11a)" }],

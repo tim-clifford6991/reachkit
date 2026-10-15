@@ -13,8 +13,8 @@
 //
 // **Verdict, next step, one action** (SPEC §8, #638). The verdict is the
 // three fact rows and — where the score could be computed — the report's
-// own sentence naming the factor that holds it down (`verdict.limiting.*`,
-// the same key the report header renders). The next step is one line, and
+// own biggest gap, its title and its line (`verdict.limiting.*`, the same
+// keys the report header renders). The next step is one line, and
 // the action is the one button: open the report.
 //
 // The three fact rows are the report's own head, in the set's order and
@@ -23,7 +23,7 @@
 // the score through `formatStat`, the band through `BAND_LABELS` — because
 // a fact row states a value and never formats one.
 import type { CopyKey } from "@/lib/presentation/copy";
-import type { ScoreFactorName } from "@/lib/measure/score";
+import type { ShownFactor } from "@/lib/measure/verdict";
 import { LIMITING_LINES } from "@/lib/presentation/bands";
 import type { SiteIssuesSection } from "@/lib/site-issues/types";
 import { issueRows } from "../../blocks/site-issues";
@@ -62,9 +62,9 @@ export interface ReportFacts {
   readonly band: string;
   readonly aiAnswers: string;
   readonly googleSearch: string;
-  /** The factor holding the score down, or `null` where the score could
-   *  not be computed — an unmeasured verdict names no limiting factor. */
-  readonly limiting: ScoreFactorName | null;
+  /** The bar holding the score down (`shownLimitingOf`), or `null` where
+   *  the score could not be computed — an unmeasured verdict names no gap. */
+  readonly limiting: ShownFactor | null;
 }
 
 export function buildReport(a: {
@@ -104,7 +104,10 @@ export function buildReport(a: {
       ...(issues.length === 0 ? [] : [{ block: "facts", items: issues } as const]),
       ...(facts.limiting === null
         ? []
-        : [{ block: "paragraph", text: LIMITING_LINES[facts.limiting] } as const]),
+        : [
+            { block: "paragraph", text: LIMITING_LINES[facts.limiting].title } as const,
+            { block: "paragraph", text: LIMITING_LINES[facts.limiting].line } as const,
+          ]),
       { block: "paragraph", text: NEXT },
       { block: "action", label: ACTION, href: a.href },
     ],

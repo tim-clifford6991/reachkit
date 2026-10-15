@@ -24,6 +24,9 @@ import {
   type ScoreFactors,
 } from "./score";
 import type { BandHandle } from "./bands";
+import type { ShownFactor } from "@/lib/presentation/bands";
+
+export type { ShownFactor };
 
 export interface Verdict {
   domain: CanonicalDomain;
@@ -49,6 +52,11 @@ export interface Verdict {
    *  `factorsOf` computed this already; what changed is that the verdict
    *  now carries it rather than dropping it on the floor. */
   factors: ScoreFactors;
+  /** Presence's two halves, shown as their own bars beside Readiness and
+   *  Content (owner, issue 1444; display only — the score is still composed
+   *  of the three `factors`). Absent on a stored report whose halves were
+   *  not kept, where Presence shows whole. */
+  halves?: PresenceHalves;
   limiting: LimitingFactor;
   /** REQ-004 criterion 3: name every factor with no value and, for each,
    *  which of the two reasons applies. Empty when the score could be
@@ -61,6 +69,24 @@ export interface Verdict {
    *  measurement this node performs; BP-027 renders it and computes
    *  nothing. */
   blockedReaders: Measured<number>;
+}
+
+export interface PresenceHalves {
+  google: Measured<number>;
+  ai: Measured<number>;
+}
+
+/** The bar the biggest-gap line names. The score's own limiting factor,
+ *  except that Presence is named by its lower half: the half that was read
+ *  where only one was, Google on a tie. */
+export function shownLimitingOf(v: Pick<Verdict, "limiting" | "halves">): ShownFactor | null {
+  if (v.limiting.kind !== "factor") return null;
+  if (v.limiting.factor !== "presence") return v.limiting.factor;
+  if (v.halves === undefined) return "presence";
+  const { google, ai } = v.halves;
+  if (google.kind === "unmeasured") return ai.kind === "unmeasured" ? "presence" : "ai";
+  if (ai.kind === "unmeasured") return "google";
+  return ai.value < google.value ? "ai" : "google";
 }
 
 // `mapMeasured` alone cannot express the trichotomy REQ-009 c1's test row
@@ -145,6 +171,7 @@ export function verdictOf(a: {
     scoreAndBand,
     ...(estimate === null ? {} : { estimate }),
     factors,
+    ...(a.presence === undefined ? { halves: { google: a.drivers.searchPresence, ai: a.drivers.aiPresence } } : {}),
     limiting,
     missing,
     unmeasuredElsewhere,

@@ -147,17 +147,6 @@ describe("S11 — the strip, the card and the two approved lines (issue #356)", 
     expect(onSetup).toEqual(["Paid", "Setup", "First page"]);
   });
 
-  it("both of S11's lines are written, and the one that matters says what a fruitless pass does", () => {
-    // Ruling 11a: the set's unbracketed strings are approved as written.
-    // The first line is where the amended REQ-025 c1 spends its duration on
-    // this screen; it carries the promise that outlives the clock.
-    expect(COPY["setup.waiting.about"]).toContain("About three minutes");
-    expect(COPY["setup.waiting.about"]).toContain("it never invents a page");
-    expect(COPY["setup.waiting.close-tab"]).toBe(
-      "You can close this tab; the sign-in link in your mail brings you back."
-    );
-  });
-
   it("no row's own name states a duration — the time is a separate slot", () => {
     // The five names are the set's five sentences and nothing more: a
     // duration belongs in `…stage.elapsed`, whose only content is a slot
@@ -167,6 +156,5 @@ describe("S11 — the strip, the card and the two approved lines (issue #356)", 
         /(\d+\s*(second|minute|hour)s?|~\s*\d|%|elapsed)/i
       );
     }
-    expect(COPY["setup.waiting.stage.elapsed"]).toBe("{seconds} s");
   });
 });

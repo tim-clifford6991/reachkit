@@ -84,15 +84,26 @@
 import type { CopyPartition } from "../registry.ts";
 
 export const REPORT_COPY = Object.freeze({
-  "verdict.limiting.foundations": ["What holds your score down most: the foundations — how your site is built and how easily it can be read.", { slots: {}, fixedBy: "REQ-004 c2" }],
-  "verdict.limiting.answerability": ["What holds your score down most: answerability — how well your pages answer the questions buyers actually ask.", { slots: {}, fixedBy: "REQ-004 c2" }],
-  "verdict.limiting.presence": ["What holds your score down most: presence — how often you appear where buyers look, in Google and in AI answers.", { slots: {}, fixedBy: "REQ-004 c2" }],
+  // Issue 1444 (owner, 2026-10-15): the biggest gap is a short title naming
+  // the bar, and one line under it saying what that bar is. Presence shows
+  // as its two bars, Google and AI; `.presence` is a stored report whose two
+  // halves were not kept.
+  "verdict.limiting.foundations": ["Biggest gap: Readiness", { slots: {}, fixedBy: "REQ-004 c2 · issue 1444" }],
+  "verdict.limiting.foundations.line": ["Google and AI can’t fully read your site.", { slots: {}, fixedBy: "REQ-004 c2 · issue 1444" }],
+  "verdict.limiting.answerability": ["Biggest gap: Content", { slots: {}, fixedBy: "REQ-004 c2 · issue 1444" }],
+  "verdict.limiting.answerability.line": ["Your pages don’t answer buyers’ questions directly.", { slots: {}, fixedBy: "REQ-004 c2 · issue 1444" }],
+  "verdict.limiting.google": ["Biggest gap: Google", { slots: {}, fixedBy: "REQ-004 c2 · issue 1444" }],
+  "verdict.limiting.google.line": ["You’re rarely on the first page of buyers’ searches.", { slots: {}, fixedBy: "REQ-004 c2 · issue 1444" }],
+  "verdict.limiting.ai": ["Biggest gap: AI", { slots: {}, fixedBy: "REQ-004 c2 · issue 1444" }],
+  "verdict.limiting.ai.line": ["AI answers rarely mention you.", { slots: {}, fixedBy: "REQ-004 c2 · issue 1444" }],
+  "verdict.limiting.presence": ["Biggest gap: Google and AI", { slots: {}, fixedBy: "REQ-004 c2 · issue 1444" }],
+  "verdict.limiting.presence.line": ["Buyers rarely find you on Google or in AI answers.", { slots: {}, fixedBy: "REQ-004 c2 · issue 1444" }],
   "removal.address": ["remove@reachkit.app", { slots: {}, fixedBy: "REQ-002 c1" }],
   "removal.line.on-report": ["Own this site and want this report taken down? Write to {address}.", { slots: { address: "text" }, fixedBy: "REQ-002 c1" }],
   "removal.line.removed": ["This report was removed at the site owner’s request. To make {domain} scannable again, write to {address}.", { slots: { domain: "text", address: "text" }, fixedBy: "REQ-002 c3" }],
-  "notice.incomplete": ["This report is incomplete — {what} wasn’t measured.", { slots: { what: "text" }, fixedBy: "REQ-001 c14" }],
+  "notice.incomplete": ["This report is incomplete: {what} wasn’t measured.", { slots: { what: "text" }, fixedBy: "REQ-001 c14" }],
   "notice.measurement-failed": ["The last measurement didn’t finish, so nothing new was stored.", { slots: {}, fixedBy: "REQ-001 c16" }],
-  "notice.correction-failed": ["The correction didn’t finish — this is the report from before it.", { slots: {}, fixedBy: "REQ-094 c7" }],
+  "notice.correction-failed": ["The correction didn’t finish. This is the report from before it.", { slots: {}, fixedBy: "REQ-094 c7" }],
   // #479. The pass could not read the site's own home page — the fetcher
   // refused it (too large, no answer, blocked) — so nothing after it was
   // attempted and the report stops there. Owner-owed until 2026-09-11, when
@@ -102,7 +113,7 @@ export const REPORT_COPY = Object.freeze({
   // its own, so the site's own pages are unmeasured: never a zero, never
   // that page's facts. Drafted in this registry’s voice and shipped under
   // the owner ruling of 2026-09-16 (#759); the owner corrects the wording.
-  "notice.bot-protected": ["This site’s bot protection stopped our reader, so its own pages couldn’t be read and aren’t scored here. That is not a finding about the site.", { slots: {}, fixedBy: "SPEC §2 · issue 1379" }],
+  "notice.bot-protected": ["This site’s bot protection blocked our reader, so its pages aren’t scored.", { slots: {}, fixedBy: "SPEC §2 · issue 1379" }],
   // SPEC §2 (owner, 2026-10-10, issue 1387): where the market was read from
   // the site's listing in search. Drafted (#759).
   // SPEC §2 (owner, 2026-10-15, issue 1440): the searches a free scan left
@@ -114,7 +125,7 @@ export const REPORT_COPY = Object.freeze({
   // profile of them, so the market was read from its listing. Short on
   // purpose (master review on #1451). Drafted (#759).
   "report.market.from-listing": ["Market read from the site’s Google listing.", { slots: {}, fixedBy: "SPEC §2 · issue 1450" }],
-  "report.market.from-search": ["The market here was inferred from how this site appears in Google search, because its own pages couldn’t be read. The questions and the AI answers are measured for that market.", { slots: {}, fixedBy: "SPEC §2 · issue 1387" }],
+  "report.market.from-search": ["Market read from Google, because the site’s pages couldn’t be read.", { slots: {}, fixedBy: "SPEC §2 · issue 1387" }],
   // Issue 898. The site read and its market did not — the profile call or
   // the suggestions did not answer — so there is no question, no answer
   // card and no band. Distinct from `notice.incomplete`, which names
@@ -123,8 +134,8 @@ export const REPORT_COPY = Object.freeze({
   // consequence rather than the cause. Drafted in this registry’s voice
   // and shipped under the owner ruling of 2026-09-16 (#759); the owner
   // corrects the wording.
-  "notice.market-unread": ["We couldn’t read this site’s market, so there’s no report to show yet — no searches, no rivals and no score. Measure again in a moment.", { slots: {}, fixedBy: "SPEC §2 · issue 898" }],
-  "notice.refused.network-limit": ["That’s five scans from your network in the last hour — you can scan again in {wait}.", { slots: { wait: "text" }, fixedBy: "REQ-003 c6" }],
+  "notice.market-unread": ["We couldn’t read this site’s market, so there’s no report yet. Scan again in a moment.", { slots: {}, fixedBy: "SPEC §2 · issue 898" }],
+  "notice.refused.network-limit": ["That’s five scans from your network this hour. You can scan again in {wait}.", { slots: { wait: "text" }, fixedBy: "REQ-003 c6" }],
   // Issue 885's two free-path bounds. Drafted in this registry’s voice and
   // shipped under the owner ruling of 2026-09-16 (#759); the owner corrects
   // the wording. Neither borrows `network-limit`’s sentence: that one names
@@ -132,17 +143,16 @@ export const REPORT_COPY = Object.freeze({
   // bound is not about the visitor’s network at all, so a sentence that
   // said "from your network" would be telling a stranger they had done
   // something they had not.
-  "notice.refused.network-day-limit": ["Your network has had all the free scans it gets today — you can scan again in {wait}.", { slots: { wait: "text" }, fixedBy: "SPEC §2 · issue 885" }],
-  "notice.refused.domain-day-limit": ["This address has been scanned as many times as it can be today — it can be measured again in {wait}. Every stored report stays readable.", { slots: { wait: "text" }, fixedBy: "SPEC §2 · issue 885" }],
+  "notice.refused.network-day-limit": ["Your network has used today’s free scans. You can scan again in {wait}.", { slots: { wait: "text" }, fixedBy: "SPEC §2 · issue 885" }],
+  "notice.refused.domain-day-limit": ["This address has had all its scans for today. Scan again in {wait}.", { slots: { wait: "text" }, fixedBy: "SPEC §2 · issue 885" }],
   "notice.refused.scan-running": ["A scan is already running from your network. It finishes in about {wait}, then this one can start.", { slots: { wait: "text" }, fixedBy: "REQ-003 c7" }],
   // #104. ReachKit's own stop, in writing — the one refusal the visitor
   // did not cause and the only one that names no wait, because nobody can
   // say when we start again (ADR-011).
-  "notice.refused.stopped": ["Free scanning is paused for now, and we can’t say when it starts again. Every stored report stays readable.", { slots: {}, fixedBy: "REQ-003 c12" }],
-  "control.rescan-age": ["Measure again", { slots: {}, fixedBy: "REQ-001 c15" }],
-  "control.rescan-incomplete": ["Measure what’s missing", { slots: {}, fixedBy: "REQ-001 c14" }],
+  "notice.refused.stopped": ["Free scanning is paused for now. Every stored report stays readable.", { slots: {}, fixedBy: "REQ-003 c12" }],
+  "control.rescan-age": ["Scan again", { slots: {}, fixedBy: "REQ-001 c15" }],
+  "control.rescan-incomplete": ["Scan what’s missing", { slots: {}, fixedBy: "REQ-001 c14" }],
   "control.retry": ["Try again", { slots: {}, fixedBy: "REQ-001 c16" }],
-  "control.correction-retry": ["Try the correction again", { slots: {}, fixedBy: "REQ-094 c7" }],
   // Issue 715: the control on a part the pass's ceiling cut off — SPEC §2
   // quotes the words.
   "control.retry-part": ["Retry this part", { slots: {}, fixedBy: "SPEC §2 · issue 715" }],
@@ -151,14 +161,17 @@ export const REPORT_COPY = Object.freeze({
   // ── Module 1, the verdict strip (BUILD §4.1) ──────────────────────────
   // The domain and the date ride beside the score so it is never a bare
   // specimen number (REQ-004 c1).
-  // The three score factors, named as subjects. `LIMITING_LINES` holds the
-  // *sentence* about a factor; these three hold the factor's own name, for
-  // the `{what}` slot of `unmeasured.undeterminable` / `.not-attempted`
-  // (REQ-004 c3: "naming every driver that has no value, and stating for
-  // each which of the two reasons applies"). One key per `ScoreFactorName`.
-  "verdict.factor.foundations": ["Foundations", { slots: {}, fixedBy: "REQ-004 c3" }],
-  "verdict.factor.answerability": ["Answerability", { slots: {}, fixedBy: "REQ-004 c3" }],
-  "verdict.factor.presence": ["Presence", { slots: {}, fixedBy: "REQ-004 c3" }],
+  // The four bars, named as subjects (issue 1444): Readiness, Content, and
+  // Presence shown as its two halves, Google and AI. `LIMITING_LINES` holds
+  // the *sentence* about a bar; these hold the bar's own name, for the
+  // `{what}` slot of `unmeasured.undeterminable` / `.not-attempted`
+  // (REQ-004 c3). `.presence` names both halves at once, where a stored
+  // report kept Presence and not its halves.
+  "verdict.factor.foundations": ["Readiness", { slots: {}, fixedBy: "REQ-004 c3 · issue 1444" }],
+  "verdict.factor.answerability": ["Content", { slots: {}, fixedBy: "REQ-004 c3 · issue 1444" }],
+  "verdict.factor.google": ["Google", { slots: {}, fixedBy: "REQ-004 c3 · issue 1444" }],
+  "verdict.factor.ai": ["AI", { slots: {}, fixedBy: "REQ-004 c3 · issue 1444" }],
+  "verdict.factor.presence": ["Google and AI", { slots: {}, fixedBy: "REQ-004 c3 · issue 1444" }],
   // The `{wait}` the two refusal lines take: the figure is the refusal's
   // own `retryAfterSeconds` in whole minutes, the unit word is the
   // owner's, so no duration is composed in a component.
@@ -175,7 +188,7 @@ export const REPORT_COPY = Object.freeze({
   "report.measurement": ["Measured in US Google, in English.", { slots: {}, fixedBy: "SPEC §2 · issue 715" }],
   // 6a: "Discoverability Score" is the number's name on every surface that
   // labels it — this eyebrow, the Overview tile, and the two mails.
-  "verdict.score.label": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
+  "verdict.score.label": ["Visibility Score", { slots: {}, fixedBy: "ruling 6a" }],
   // Issue 1068, board R12-2: the summary card's eyebrow and what the ring's
   // figure is out of. Drafted; the owner corrects the wording.
   "report.eyebrow": ["Your free report", { slots: {}, fixedBy: "issue 1068" }],
@@ -192,20 +205,20 @@ export const REPORT_COPY = Object.freeze({
   // voice under the 2026-09-16 ruling (#759) — named in the PR for the
   // owner to correct.
   "correction.field.label": ["Your market, in a few words", { slots: {}, fixedBy: "SPEC §2 · issue 786" }],
-  "correction.submit": ["Measure again for this market", { slots: {}, fixedBy: "SPEC §2 · issue 786" }],
+  "correction.submit": ["Scan again for this market", { slots: {}, fixedBy: "SPEC §2 · issue 786" }],
   "correction.cancel": ["Cancel", { slots: {}, fixedBy: "SPEC §2 · issue 786" }],
   "correction.line": [
     "You can correct the market once. The AI answers already read are reused.",
     { slots: {}, fixedBy: "SPEC §2 · issue 786" },
   ],
   "correction.running": [
-    "Measuring again for the market you gave. This report updates when it finishes.",
+    "Scanning again for the market you gave. This report updates when it finishes.",
     { slots: {}, fixedBy: "SPEC §2 · issue 786" },
   ],
   "correction.refused.running": ["A correction is already running for this report.", { slots: {}, fixedBy: "SPEC §2 · issue 786" }],
   "correction.refused.used": ["This report’s one correction has already been used.", { slots: {}, fixedBy: "SPEC §2 · issue 786" }],
   "correction.refused.too-old": [
-    "This report is too old to correct — measure it again instead.",
+    "This report is too old to correct. Scan it again instead.",
     { slots: {}, fixedBy: "SPEC §2 · issue 786" },
   ],
   "correction.refused.unavailable": [
@@ -221,9 +234,9 @@ export const REPORT_COPY = Object.freeze({
   // without them, so they are minted here with the rest of this surface.
   "stage.reading_your_site": ["Reading your site", { slots: {}, fixedBy: "REQ-003 c1" }],
   "stage.reading_access_rules": ["Reading your access rules", { slots: {}, fixedBy: "REQ-003 c1" }],
-  "stage.reading_your_market": ["Finding your market and rivals", { slots: {}, fixedBy: "REQ-003 c1" }],
+  "stage.reading_your_market": ["Finding your market and competitors", { slots: {}, fixedBy: "REQ-003 c1" }],
   "stage.checking_your_presence": ["Checking the 12 biggest searches", { slots: {}, fixedBy: "REQ-003 c1" }],
-  "stage.asking_the_twelve": ["Asking AI the 12 questions", { slots: {}, fixedBy: "REQ-003 c1" }],
+  "stage.asking_the_twelve": ["Asking AI the 12 searches", { slots: {}, fixedBy: "REQ-003 c1" }],
   "stage.scoring": ["Scoring", { slots: {}, fixedBy: "REQ-003 c1" }],
   // The elapsed time the approved set draws beside a finished stage, and
   // the one line the scanning screen ends on (S3, approved under 11a).
@@ -239,12 +252,12 @@ export const REPORT_COPY = Object.freeze({
    *  `correction.running`, which names the market they gave. Drafted under
    *  the owner's 2026-09-16 ruling (#759), in this registry's voice. */
   "scan.rescanning.line": [
-    "Measuring again. This report updates when it finishes.",
+    "Scanning again. This report updates when it finishes.",
     { slots: {}, fixedBy: "issue 935 · drafted" },
   ],
 
   // ── Module 2, left card — AI answers (REQ-006) ────────────────────────
-  "ai-answers.title": ["AI Visibility", { slots: {}, fixedBy: "REQ-006 c1" }],
+  "ai-answers.title": ["AI", { slots: {}, fixedBy: "REQ-006 c1" }],
   "ai-answers.source": ["Google AI answers · {date}", { slots: { date: "text" }, fixedBy: "REQ-006 c9" }],
   // Issue 715: SPEC §2 — a category correction reuses the AI answers already
   // read, "and says so". Owner-owed.
@@ -281,31 +294,28 @@ export const REPORT_COPY = Object.freeze({
      Drafted in this registry's voice under the 2026-09-16 ruling (#759);
      the owner corrects the wording. */
   "retry-part.running": [
-    "Measuring this part again. This report updates when it finishes.",
+    "Scanning this part again. This report updates when it finishes.",
     { slots: {}, fixedBy: "SPEC §2 · issue 715" },
   ],
   "retry-part.refused.no-budget": [
-    "This scan has used what it can spend, so this part can't be measured again here. Measure the whole site again instead.",
+    "This scan has used its budget, so this part can’t be scanned again. Scan the whole site again instead.",
     { slots: {}, fixedBy: "SPEC §2 · issue 715" },
   ],
   "retry-part.refused.already-measured": [
-    "This part has already been measured. Reload the report to see it.",
+    "This part has already been scanned. Reload the report to see it.",
     { slots: {}, fixedBy: "SPEC §2 · issue 715" },
   ],
   "retry-part.refused.unavailable": [
-    "This part couldn’t be measured again just now, and nothing was spent. Try again in a few minutes.",
+    "This part couldn’t be scanned again just now, and nothing was spent. Try again in a few minutes.",
     { slots: {}, fixedBy: "SPEC §2 · issue 715" },
   ],
-  "ai-answers.denominator": ["AI answers appear on {answered} of your {measured} biggest searches", { slots: { answered: "text", measured: "text" }, fixedBy: "REQ-006 c1" }],
-  // Issue 1068: the card's heading states its finding in one sentence —
-  // where AI answers appear, and how often they name the customer.
-  "ai-answers.finding": ["AI answers appear on {answered} of your {measured} biggest searches — and name you on {named}.", { slots: { answered: "text", measured: "text", named: "text" }, fixedBy: "issue 1068" }],
+  // Issue 1444: the card's figure is `{count} of {total}` (`report.figure.of`)
+  // — the answers that mention the customer of those that appeared — and
+  // this is the one line under it.
+  "ai-answers.finding": ["AI answers that mention you", { slots: {}, fixedBy: "issue 1068 · issue 1444" }],
   // Issue 1439: AI answered none of the searches read, so AI presence is not
   // judged and the score counts search alone. Short, as titles are (#1444).
   "ai-answers.finding.unanswered": ["AI doesn't answer these searches yet.", { slots: {}, fixedBy: "issue 1439" }],
-  "ai-answers.finding.none": ["AI answers appear on {answered} of your {measured} biggest searches — and name you on none.", { slots: { answered: "text", measured: "text" }, fixedBy: "issue 1068" }],
-  "ai-answers.customer-citations": ["You’re named in {cited} of the {answered} AI answers that appeared.", { slots: { cited: "text", answered: "text" }, fixedBy: "REQ-006 c1" }],
-  "ai-answers.legend": ["Filled: named in that answer · Empty: not named · Muted: no AI answer appeared", { slots: {}, fixedBy: "REQ-006 c1" }],
   // REQ-006 c6's one written line: what was measured, and no second
   // engine named anywhere on the card. S2 draws it as the source chip at
   // the foot of the card.
@@ -317,7 +327,7 @@ export const REPORT_COPY = Object.freeze({
     "= your market’s {total} biggest searches, asked as a buyer asks AI.",
     { slots: { total: "text" }, fixedBy: "REQ-006 c9 · issue 873" },
   ],
-  "ai-answers.questions.title": ["The {total} questions", { slots: { total: "text" }, fixedBy: "REQ-006 c9 · issue 873" }],
+  "ai-answers.questions.title": ["The {total} searches", { slots: { total: "text" }, fixedBy: "REQ-006 c9 · issue 873" }],
   // Issue 873: what this report measured, in one line, so a founder does
   // not count rows to find out.
   "ai-answers.questions.measured": [
@@ -328,9 +338,9 @@ export const REPORT_COPY = Object.freeze({
   // could measure lists them all, so the list's count is not the report's
   // measured count. These two say which is which; the pair above stays for
   // a report that measured every question it lists.
-  "ai-answers.questions.title.partial": ["{total} questions found, {measured} measured", { slots: { total: "text", measured: "text" }, fixedBy: "issue 1309 · drafted" }],
+  "ai-answers.questions.title.partial": ["Searches measured: {measured} of {total}", { slots: { total: "text", measured: "text" }, fixedBy: "issue 1309 · drafted" }],
   "ai-answers.questions.measured.partial": [
-    "This report measured {measured} of these {total} questions. A question marked “not measured” is counted nowhere on this page.",
+    "Of the {total} found, this report measured {measured} searches. One marked “not measured” counts nowhere here.",
     { slots: { measured: "text", total: "text" }, fixedBy: "issue 1309 · drafted" },
   ],
   "ai-answers.question.not-you": ["not you", { slots: {}, fixedBy: "REQ-006 c1" }],
@@ -343,7 +353,7 @@ export const REPORT_COPY = Object.freeze({
   // anywhere else on the questions module", the owner removed it on
   // 2026-09-03, and `StoredQuestion` has no member to render it from. The
   // scaffolding either side of it is the set's, as written.
-  "ai-answers.question.provenance": ["from: {search} · named: {brands}", { slots: { search: "text", brands: "text" }, fixedBy: "REQ-006 c9" }],
+  "ai-answers.question.provenance": ["from: {search} · mentioned: {brands}", { slots: { search: "text", brands: "text" }, fixedBy: "REQ-006 c9" }],
   // §6.2's three answer columns (issue #128). The data is measured and
   // stored; the *visual* — three columns on an approved card — is the
   // design gate #128 names and lands in its follow-up, so these four are
@@ -355,35 +365,31 @@ export const REPORT_COPY = Object.freeze({
   // engine columns are a table of the twelve, and the row-label column is
   // a column like the other three — a header it does not have would be an
   // invented blank, not an absent sentence (issue #157).
-  "ai-answers.engine.column.question": ["Question", { slots: {}, fixedBy: "BUILD §6.2" }],
+  "ai-answers.engine.column.question": ["Search", { slots: {}, fixedBy: "BUILD §6.2" }],
   // What a cell says where that engine's answer named the customer. The
   // approved one-column card says this by rendering *nothing* beside the
   // question — the absence of the `not-you` badge is the good news. In a
   // three-column grid a blank cell is ambiguous (a hit, or an engine
   // nobody asked?), so the positive state states itself (issue #157).
-  "ai-answers.engine.cell.cited": ["named you", { slots: {}, fixedBy: "BUILD §6.2" }],
+  "ai-answers.engine.cell.cited": ["mentioned you", { slots: {}, fixedBy: "BUILD §6.2" }],
   // What a column says where the engine was never asked — the free
   // report's two battery columns, and any question a ceiling stopped the
   // pass reaching. It states a fact about the measurement, never a miss.
   "ai-answers.engine.not-measured": ["not measured", { slots: {}, fixedBy: "BUILD §6.2" }],
-  "ai-answers.matrix.column.domain": ["Domain", { slots: {}, fixedBy: "REQ-006 c1" }],
-  "ai-answers.matrix.column.cited": ["Named in", { slots: {}, fixedBy: "REQ-006 c1" }],
-  "ai-answers.matrix.empty": ["No rivals to compare yet — this row is yours alone.", { slots: {}, fixedBy: "REQ-006 c1" }],
   "ai-answers.absent": ["AI answers couldn’t be measured this time. The rest of the report stands.", { slots: {}, fixedBy: "REQ-004 c10" }],
 
   // ── Module 2, right card — Google presence (REQ-008) ──────────────────
-  "presence.title": ["Google search", { slots: {}, fixedBy: "REQ-008 c1" }],
+  "presence.title": ["Google", { slots: {}, fixedBy: "REQ-008 c1" }],
   // Issue 1309: the count is the card's own denominator, never the literal
   // twelve — the chip said 12 over a report that measured two.
   "presence.source": ["your market’s {measured} biggest searches", { slots: { measured: "text" }, fixedBy: "REQ-008 c1 · issue 1309" }],
-  "presence.occupancy": ["You’re in the top ten on {you} of {measured} searches.", { slots: { you: "text", measured: "text" }, fixedBy: "REQ-008 c1" }],
-  // Issue 1068: the card's one-sentence finding, the most any rival holds
-  // beside the customer's own count.
-  "presence.finding": ["Rivals rank on up to {rival} of your {measured} searches. You rank on {you}.", { slots: { rival: "text", measured: "text", you: "text" }, fixedBy: "issue 1068" }],
-  "presence.legend": ["Your bar in colour, rivals in grey · n/12 = searches where the domain is in the top ten", { slots: {}, fixedBy: "REQ-008 c2" }],
-  "presence.no-rivals": ["No rival domain was found across these searches, so there is nothing to compare your count against yet.", { slots: {}, fixedBy: "REQ-008 c6" }],
-  "presence.occupancy.column.domain": ["Domain", { slots: {}, fixedBy: "REQ-008 c1" }],
-  "presence.occupancy.column.count": ["Top-ten searches", { slots: {}, fixedBy: "REQ-008 c1" }],
+  // Issue 1444: the card's figure is `{count} of {total}` — the searches
+  // the customer is on the first page for, of those measured — and this is
+  // the one line under it. The competitors' counts are the bars.
+  "presence.finding": ["Searches where you’re on the first page", { slots: {}, fixedBy: "REQ-008 c1 · issue 1444" }],
+  // A figure: one count out of another, as each card's head states it.
+  "report.figure.of": ["{count} of {total}", { slots: { count: "text", total: "text" }, fixedBy: "issue 1444" }],
+  "presence.no-rivals": ["No competitor was found across these searches, so there’s nothing to compare yet.", { slots: {}, fixedBy: "REQ-008 c6" }],
   "presence.absent-from.title": ["5 biggest searches you’re absent from", { slots: {}, fixedBy: "REQ-008 c4" }],
   // Issue 1309: the list holds five only where the report measured five
   // searches the customer is absent from; a shorter list names no number.
@@ -392,18 +398,18 @@ export const REPORT_COPY = Object.freeze({
   "presence.absent-from.column.volume": ["Volume", { slots: {}, fixedBy: "REQ-008 c4" }],
   "presence.absent-from.column.holder": ["Holds #1", { slots: {}, fixedBy: "REQ-008 c4" }],
   "presence.absent-from.empty": ["You appear in every search measured.", { slots: {}, fixedBy: "REQ-008 c4" }],
-  "presence.absent": ["Google search couldn’t be measured this time. The rest of the report stands.", { slots: {}, fixedBy: "REQ-004 c10" }],
+  "presence.absent": ["Google couldn’t be measured this time. The rest of the report stands.", { slots: {}, fixedBy: "REQ-004 c10" }],
 
   // ── Module 3, the three problem cards (REQ-009) ───────────────────────
   // One title, one doer and one measured-zero line per problem; the three
   // severity words are BANDS_COPY's `severity.*` and are not restated.
-  "problem.blocked-readers.title": ["AI answer readers blocked", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
+  "problem.blocked-readers.title": ["AI readers blocked", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
   "problem.blocked-readers.doer": ["Free fix · 10 min", { slots: {}, fixedBy: "REQ-009 c2" }],
   "problem.blocked-readers.none-needed": ["Nothing to fix", { slots: {}, fixedBy: "REQ-009 c3" }],
   "problem.missing-pages.title": ["Missing pages", { slots: {}, fixedBy: "REQ-009 c1" }],
   "problem.missing-pages.doer": ["ReachKit writes", { slots: {}, fixedBy: "REQ-009 c5" }],
   "problem.missing-pages.none-needed": ["Nothing to fix", { slots: {}, fixedBy: "REQ-009 c3" }],
-  "problem.unquotable-pages.title": ["Unquotable pages", { slots: {}, fixedBy: "REQ-009 c1" }],
+  "problem.unquotable-pages.title": ["Pages AI can’t answer from", { slots: {}, fixedBy: "REQ-009 c1" }],
   "problem.unquotable-pages.doer": ["ReachKit rewrites on WordPress", { slots: {}, fixedBy: "REQ-009 c5" }],
   "problem.unquotable-pages.none-needed": ["Nothing to fix", { slots: {}, fixedBy: "REQ-009 c3" }],
   // The one control any fix carries (REQ-009 c2), on the paste arm only.
@@ -412,9 +418,9 @@ export const REPORT_COPY = Object.freeze({
   // and the *show me* link the card opens. Drafted; the owner corrects them.
   "problem.section.title": ["What holds you back", { slots: {}, fixedBy: "issue 1068" }],
   "problem.section.sub": ["3 that cost you most, then 8 quick checks", { slots: {}, fixedBy: "issue 1068" }],
-  "problem.blocked-readers.cause": ["An AI answer can’t quote a page its reader is turned away from, or a page that forbids snippets.", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
+  "problem.blocked-readers.cause": ["AI can’t use a page its reader is turned away from, or a page that forbids snippets.", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
   "problem.missing-pages.cause": ["Questions your buyers ask that no page on your site answers.", { slots: {}, fixedBy: "issue 1068" }],
-  "problem.unquotable-pages.cause": ["Pages with no line an AI answer could lift and quote with your name on it.", { slots: {}, fixedBy: "issue 1068" }],
+  "problem.unquotable-pages.cause": ["Pages with no line an AI answer could use and link to your name.", { slots: {}, fixedBy: "issue 1068" }],
   "problem.show.lines": ["Show me the lines", { slots: {}, fixedBy: "issue 1068" }],
   "problem.show.first-page": ["See the first one", { slots: {}, fixedBy: "issue 1068" }],
   "problem.show.method": ["Show me how", { slots: {}, fixedBy: "issue 1068" }],
@@ -428,12 +434,12 @@ export const REPORT_COPY = Object.freeze({
   "check.doer.reachkit-rewrites": ["ReachKit rewrites on WordPress", { slots: {}, fixedBy: "SPEC §9" }],
   "check.none-needed": ["Nothing to fix", { slots: {}, fixedBy: "SPEC §9" }],
   "check.not-run": [
-    "This check couldn’t run this time — that isn’t the same as nothing to fix.",
+    "This check couldn’t run this time. That isn’t the same as nothing to fix.",
     { slots: {}, fixedBy: "issue 571" },
   ],
   // Issue 1068: the eight checks are one list, and a grey dot is the not-run
   // line said once under it.
-  "check.legend": ["Grey dot: this check couldn’t run this time — that isn’t the same as nothing to fix.", { slots: {}, fixedBy: "issue 1068" }],
+  "check.legend": ["Grey dot: this check couldn’t run this time, which isn’t the same as nothing to fix.", { slots: {}, fixedBy: "issue 1068" }],
   "check.page-titles.title": ["Missing or duplicate titles", { slots: {}, fixedBy: "issue 571" }],
   "check.meta-descriptions.title": ["Missing or duplicate descriptions", { slots: {}, fixedBy: "issue 571" }],
   "check.noindex-pages.title": ["Pages hidden from search", { slots: {}, fixedBy: "issue 571" }],
@@ -448,14 +454,14 @@ export const REPORT_COPY = Object.freeze({
   // S2's eyebrow over the three collapses. The collapses' instructional
   // prose is the owner's (approved 2026-09-10, #459).
   "method.title": ["The complete method, free", { slots: {}, fixedBy: "REQ-009 c6" }],
-  "method.blocked-readers.title": ["Unblock the AI answer readers", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
+  "method.blocked-readers.title": ["Unblock the AI readers", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
   "method.blocked-readers.body": ["Open the robots.txt file at the root of your site — your host or CMS usually has a setting for it. Find the rules that block the readers AI answers are drawn from and add the lines shown below, so each one is allowed. Save and publish; the readers pick up the change on their next visit. A page can also keep itself out of an answer: remove nosnippet or max-snippet:0 from its robots meta tag, and data-nosnippet from around its main content. If your home page carries a noindex rule in its head, remove that too — it tells every reader, Google included, to ignore the page. Nothing else in the file needs to change, and no other reader gains access.", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
-  "method.blocked-readers.snippet-pages": ["These pages forbid snippets, so an AI answer can’t quote them:", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
+  "method.blocked-readers.snippet-pages": ["These pages forbid snippets, so an AI answer can’t use them:", { slots: {}, fixedBy: "SPEC §9 D14 · issue 1145" }],
   "method.blocked-readers.training-choice": ["Your robots.txt turns away {crawlers}. That keeps your pages out of AI training and it is your choice — it doesn’t stop an AI answer from reading you, and it isn’t counted here.", { slots: { crawlers: "text" }, fixedBy: "SPEC §9 D14 · issue 1145" }],
   "method.missing-pages.title": ["Write the missing pages", { slots: {}, fixedBy: "REQ-009 c6" }],
-  "method.missing-pages.body": ["Each missing page answers one question your market asks that names rivals and not you. Take the question, answer it plainly in the first paragraph, then back the answer with facts from your own site — numbers, dates, names, with a link to where each one lives. Publish it at a plain address on your own domain and link to it from a page that already ranks. One page a day is a good pace; one a week still moves the number. ReachKit writes these for subscribers, but nothing here needs a subscription.", { slots: {}, fixedBy: "REQ-009 c6" }],
-  "method.unquotable-pages.title": ["Make your pages quotable", { slots: {}, fixedBy: "REQ-009 c6" }],
-  "method.unquotable-pages.body": ["AI answers quote pages that answer a question directly. Writing for that is sometimes called GEO, generative engine optimisation. For each page of yours that has search value but reads like a brochure: turn its headings into the questions a buyer would ask, put a direct answer of two or three sentences right under each heading, and add evidence — a figure, a date, a source you link to. Keep the page’s address; rewriting in place keeps whatever it already ranks for.", { slots: {}, fixedBy: "REQ-009 c6" }],
+  "method.missing-pages.body": ["Each missing page answers one question your market asks that mentions competitors and not you. Take the question, answer it plainly in the first paragraph, then back the answer with facts from your own site — numbers, dates, names, with a link to where each one lives. Publish it at a plain address on your own domain and link to it from a page that already ranks. One page a day is a good pace; one a week still moves the number. ReachKit writes these for subscribers, but nothing here needs a subscription.", { slots: {}, fixedBy: "REQ-009 c6" }],
+  "method.unquotable-pages.title": ["Make pages AI can answer from", { slots: {}, fixedBy: "REQ-009 c6" }],
+  "method.unquotable-pages.body": ["AI answers mention and link pages that answer a question directly. Writing for that is sometimes called GEO, generative engine optimisation. For each page of yours that has search value but reads like a brochure: turn its headings into the questions a buyer would ask, put a direct answer of two or three sentences right under each heading, and add evidence — a figure, a date, a source you link to. Keep the page’s address; rewriting in place keeps whatever it already ranks for.", { slots: {}, fixedBy: "REQ-009 c6" }],
 
   // ── Module 5, the free page card (REQ-010, BUILD §4.2's trade) ────────
   "free-page.title": ["Your first page", { slots: {}, fixedBy: "REQ-010 c1" }],
@@ -479,14 +485,14 @@ export const REPORT_COPY = Object.freeze({
   "free-page.email.label": ["Where should we send it?", { slots: {}, fixedBy: "REQ-010 c2" }],
   "free-page.email.placeholder": ["you@company.com", { slots: {}, fixedBy: "REQ-010 c2" }],
   "free-page.submit": ["Email me the full page", { slots: {}, fixedBy: "REQ-010 c2" }],
-  "free-page.absent": ["No first page for this domain this time — the scan found none worth writing, or didn’t get that far. Nothing is invented to fill the slot.", { slots: {}, fixedBy: "REQ-004 c10" }],
+  "free-page.absent": ["No first page this time: the scan found none worth writing.", { slots: {}, fixedBy: "REQ-004 c10" }],
 
   "place.report.first-page.rival": [
-    "No rival holds this ground yet",
+    "No competitor holds this yet",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-010 c1" },
   ],
   "landing.headline": [
-    "See what AI tells buyers about your market — and write your way in.",
+    "Get found on Google and AI.",
     { slots: {}, fixedBy: "REQ-001 c1" },
   ],
   "landing.field.label": ["Your website", { slots: {}, fixedBy: "REQ-001 c1" }],
@@ -514,16 +520,14 @@ export const REPORT_COPY = Object.freeze({
   //
   // L7–L10 were the demo video block. Issue 1396 replaced the frame with
   // *What happens every day* (`landing.day.*` in `chrome.ts`).
-  "landing.subline": ["A free scan shows where AI answers and Google search send buyers to your rivals instead of you. Then ReachKit publishes a page every day, new or updated, to change that.", { slots: {}, fixedBy: "issue 266 · L1" }],
-  "landing.hero.specimen.label": ["Live example", { slots: {}, fixedBy: "issue 266 · L5" }],
-  "landing.hero.specimen.caption": ["The figures are an example on example.com. They measure no site.", { slots: {}, fixedBy: "issue 266 · L6" }],
+  "landing.subline": ["A free scan shows where Google and AI send buyers to your competitors instead of you. Then ReachKit publishes a page every day, new or updated, to change that.", { slots: {}, fixedBy: "issue 266 · L1" }],
   "landing.why.eyebrow": ["Why you should care", { slots: {}, fixedBy: "issue 266 · L11" }],
   "landing.why.heading": ["Your competitors are being found.", { slots: {}, fixedBy: "issue 266 · L12" }],
-  "landing.why.body": ["Buyers now ask ChatGPT and Google’s AI what to use, and the answer names a handful of companies. If yours isn’t one of them, that buyer never meets you — and nothing on your side tells you it happened.", { slots: {}, fixedBy: "issue 266 · L13" }],
+  "landing.why.body": ["Buyers now ask ChatGPT and Google’s AI what to use, and the answer mentions a handful of companies. If yours isn’t one of them, that buyer never meets you — and nothing on your side tells you it happened.", { slots: {}, fixedBy: "issue 266 · L13" }],
   "landing.start.eyebrow": ["What to do next", { slots: {}, fixedBy: "issue 266 · L22" }],
   "landing.start.heading": ["Start with the scan.", { slots: {}, fixedBy: "issue 266 · L23" }],
   "landing.start.body": ["Free, under a minute. Then five minutes, once — and ReachKit does the rest.", { slots: {}, fixedBy: "issue 266 · L24" }],
-  "landing.start.cta": ["Scan my site — free", { slots: {}, fixedBy: "issue 266 · L25" }],
+  "landing.start.cta": ["Scan my site for free", { slots: {}, fixedBy: "issue 266 · L25" }],
 
   // ── S1, the owner-approved screen set (2026-09-08) ────────────────────
   //
@@ -543,48 +547,25 @@ export const REPORT_COPY = Object.freeze({
   "landing.field.placeholder": ["yourdomain.com", { slots: {}, fixedBy: "approved set S1 · 11a" }],
   /** The line under the field. Approved (11a). */
   "landing.hero.assurance": ["free · no account · permanent link", { slots: {}, fixedBy: "approved set S1 · 11a" }],
-  /** The address in the hero component's browser frame — a value, not a
-   *  sentence: this product's own app address, in the mono face like every
-   *  other address (§2.3). */
-  "landing.shot.address": ["reachkit.app/app", { slots: {}, fixedBy: "approved set S1 · 11a" }],
-  /** The badge beside the hero component's headline. The Overview's own
-   *  badge reads "every week since you started"; the set's miniature shows
-   *  the short form, and it is the miniature that renders here. */
-  "landing.shot.badge": ["every week", { slots: {}, fixedBy: "approved set S1 · 11a" }],
 
-  /** Section 01's own line, under the live AI-answers matrix. Approved
-   *  (11a) — it is the sentence that makes the matrix an argument. */
-  "landing.why.matrix.line": ["Every filled row is a rival being recommended. The empty one is you.", { slots: {}, fixedBy: "approved set S1 · 11a" }],
-  /** Section 02's This-week card: the head badge, and the panel under the
-   *  week strip. The page's own title is data this specimen has none of, so
-   *  it is the owner's (approved 2026-09-10, #459); the line is approved
-   *  (11a). */
-  "landing.week.badge": ["on schedule", { slots: {}, fixedBy: "approved set S1 · 11a" }],
-  "landing.week.page.title": ["What buyers ask before they switch, answered", { slots: {}, fixedBy: "approved set S1" }],
-  "landing.week.page.line": ["publishes in 6 h 12 m unless you say otherwise", { slots: {}, fixedBy: "approved set S1 · 11a" }],
 
   /** Section 03's three Step cards. The eyebrow and the three titles are
    *  approved (11a); the three bodies are bracketed in the set, and are the
    *  owner's approved sentences (2026-09-10, #459). */
-  "landing.step.eyebrow": ["Step {n}", { slots: { n: "text" }, fixedBy: "approved set S1 · 11a" }],
   "landing.step.1.title": ["Scan your domain", { slots: {}, fixedBy: "approved set S1 · 11a" }],
-  "landing.step.1.body": ["Free, no account. You get your score, your rivals and your first page — at a permanent link.", { slots: {}, fixedBy: "approved set S1" }],
+  "landing.step.1.body": ["Free, no account. You get your score, your competitors and your first page, at a permanent link.", { slots: {}, fixedBy: "approved set S1" }],
   // Step 2's approved-set pair told a founder to pick and confirm the market
   // and the rivals. SPEC §5 (2026-10-02, D28) rules that out: ReachKit
   // identifies both, and the founder may override them but never has to.
   // Both sentences are drafted (issue 1308) for the owner to correct.
-  "landing.step.2.title": ["We find your market and rivals", { slots: {}, fixedBy: "issue 1308 · drafted" }],
-  "landing.step.2.body": ["You can change them, and you never have to. Site, business, rivals, voice, publishing — then straight to the app.", { slots: {}, fixedBy: "issue 1308 · drafted" }],
+  "landing.step.2.title": ["We find your market and competitors", { slots: {}, fixedBy: "issue 1308 · drafted" }],
+  "landing.step.2.body": ["You can change them, and you never have to. Site, business, competitors, voice, publishing — then straight to the app.", { slots: {}, fixedBy: "issue 1308 · drafted" }],
   // Step 3's title is the one approved-set string on this screen the owner
   // has since replaced: the set promised a page a day, and the Autopilot
   // brief (DECISIONS 2026-09-10) rules that out — a page goes live when one
   // is ready, at most one a day. Approved 2026-09-11 (#516).
   "landing.step.3.title": ["Pages go live on your domain", { slots: {}, fixedBy: "approved set S1 · 11a" }],
   "landing.step.3.body": ["A page every day, new or updated. Each goes live on its own unless you stop it, and every Monday you see what moved.", { slots: {}, fixedBy: "approved set S1" }],
-  /** Under the closing CTA. Approved (11a). The pricing card carries the
-   *  same sentence through `offer.cancel-line`, which is still empty and is
-   *  #369's to fill — one key per screen, neither borrowed. */
-  "landing.start.cancel": ["Cancel in one click.", { slots: {}, fixedBy: "approved set S1 · 11a" }],
 
   /* ── The hero component: "one week, one card" (#935) ──────────────────
      Owner ruling 2026-09-21: the landing hero is Round 11 `R11-H4-Week`.
@@ -614,7 +595,7 @@ export const REPORT_COPY = Object.freeze({
   /** Monday's cell: the one day of the six that measures rather than
    *  publishes, which is why it is the only cell that carries no page. */
   "landing.hero.week.measured": [
-    "Measured {searches} searches and {questions} AI questions",
+    "Scanned {searches} searches, asked AI {questions} questions",
     { slots: { searches: "text", questions: "text" }, fixedBy: "issue 935 · drafted" },
   ],
   /** Tuesday to Saturday: five page titles, as this example business's
@@ -636,7 +617,7 @@ export const REPORT_COPY = Object.freeze({
    *  said as two halves of one trade rather than a claim about effort. */
   "landing.hero.work.you": ["You: five minutes, once", { slots: {}, fixedBy: "issue 935 · drafted" }],
   "landing.hero.work.reachkit": [
-    "ReachKit: a page every day, measured every Monday",
+    "ReachKit: a page every day, scanned every Monday",
     { slots: {}, fixedBy: "issue 935 · drafted" },
   ],
   /** Under the card. `landing.hero.specimen.caption` above says the same
@@ -652,38 +633,38 @@ export const REPORT_COPY = Object.freeze({
    *  score (SPEC §1, D22), so the preview draws none (issue 1393). */
   "landing.inside.title": ["Inside ReachKit", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.inside.tab.week": ["Your week", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
-  "landing.inside.tab.answers": ["AI Visibility", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.inside.tab.answers": ["AI", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.inside.tab.page": ["Your page", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   /** *AI answers*: the line over the answer, and the one under it. */
   "landing.inside.answers.head": ["What Google’s AI Overview says now", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.inside.answers.monday": [
-    "Every Monday: how often AI names you when buyers ask about your market, and which rivals it names instead.",
+    "Every Monday: how often AI mentions you when buyers ask about your market, and which competitors it mentions instead.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
   /** *Your page*: the page waiting for the owner's read. */
   "landing.inside.page.due": ["Goes live in {in} unless you stop it", { slots: { in: "text" }, fixedBy: "board R12-1 · issue 1067" }],
   "landing.inside.page.why.label": ["Why this page:", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.inside.page.why.body": [
-    "people near you search it every month, and today a rival answers them.",
+    "people near you search it every month, and today a competitor answers them.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
   /** *Why you should care*: four features, each a title, a line and a
    *  small drawing whose words follow it. */
-  "landing.feature.ai.title": ["AI Visibility: get named by AI", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.ai.title": ["Get mentioned by AI", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.ai.body": [
-    "We put about 25 questions your buyers ask to Google AI Mode and ChatGPT every week, twice each, and show how often they name you and which rivals they name instead. Then we write the page that earns the mention. Some call this GEO, generative engine optimisation.",
+    "We put about 25 questions your buyers ask to Google AI Mode and ChatGPT every week, twice each, and show how often they mention you and which competitors they mention instead. Then we write the page that earns the mention. Some call this GEO, generative engine optimisation.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
-  "landing.feature.ai.meter": ["named in {named} of {total} answers this week", { slots: { named: "text", total: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" }],
-  "landing.feature.google.title": ["Rank on Google", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.ai.meter": ["mentioned in {named} of {total} answers this week", { slots: { named: "text", total: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" }],
+  "landing.feature.google.title": ["Get on Google’s first page", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.google.body": [
-    "We find the searches your buyers make that rivals rank for and you don’t, and go after the ones you can win — one page at a time.",
+    "We find the searches your buyers make that competitors rank for and you don’t, and go after the ones you can win, one page at a time.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
-  "landing.feature.google.rival": ["your rival", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.feature.google.rival": ["your competitor", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.google.you": ["you", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.feature.google.open": [
-    "Open — no rival holds these yet: the ones we go after first",
+    "Open: no competitor holds these yet",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
   ],
   "landing.feature.fix.title": ["Fix what holds you back", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
@@ -706,7 +687,7 @@ export const REPORT_COPY = Object.freeze({
   "landing.step.2.tag": ["five minutes, once", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.step.3.tag": ["from tomorrow", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   /** The closing band: its heading, its line, and the line under its button. */
-  "landing.close.heading": ["See where you stand in under a minute.", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
+  "landing.close.heading": ["See where you stand today.", { slots: {}, fixedBy: "board R12-1 · issue 1067" }],
   "landing.close.body": [
     "The report is free and yours to keep. ReachKit is €49 a month, VAT included, when you want the pages written.",
     { slots: {}, fixedBy: "board R12-1 · issue 1067" },
@@ -746,8 +727,8 @@ export const REPORT_COPY = Object.freeze({
    *  `refusal.ts` maps them with `satisfies`, so a sixth reason fails the
    *  build until it has a heading here too. */
   "quiet.refused.head.network-limit": ["Too many scans from your network", { slots: {}, fixedBy: "issue 936" }],
-  "quiet.refused.head.network-day-limit": ["Your network has used its free scans for today", { slots: {}, fixedBy: "issue 936" }],
-  "quiet.refused.head.domain-day-limit": ["This address has been scanned enough for today", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.refused.head.network-day-limit": ["No free scans left today", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.refused.head.domain-day-limit": ["Scanned enough for today", { slots: {}, fixedBy: "issue 936" }],
   "quiet.refused.head.scan-running": ["A scan is already running", { slots: {}, fixedBy: "issue 936" }],
   "quiet.refused.head.stopped": ["Free scanning is paused", { slots: {}, fixedBy: "issue 936" }],
   "quiet.cooldown.head": ["We couldn’t finish measuring this site", { slots: {}, fixedBy: "issue 936" }],
@@ -763,17 +744,17 @@ export const REPORT_COPY = Object.freeze({
   "gallery.eyebrow": ["Free scans · live", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
   "gallery.heading": ["Every free scan, in the open.", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
   "gallery.subline": [
-    "Each report is a permanent public link. See how any business here shows up in AI answers and Google search — and where its rivals are found instead.",
+    "Each report is a permanent public link. See how any business here shows up on Google and AI, and where its competitors are found instead.",
     { slots: {}, fixedBy: "issue 1069 · R12-3" },
   ],
   "gallery.next.heading": ["Your site next?", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
   "gallery.search.label": ["Search by company or domain", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
-  "gallery.filter.label": ["Category", { slots: {}, fixedBy: "issue 1069 · drafted" }],
+  "gallery.filter.label": ["Market", { slots: {}, fixedBy: "issue 1069 · drafted" }],
   "gallery.filter.all": ["All", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
   // The categories that are not pills (issue 1377): the button's word, and
   // its name to a screen reader.
   "gallery.filter.more": ["More", { slots: {}, fixedBy: "issue 1377 · drafted" }],
-  "gallery.filter.more.label": ["More categories", { slots: {}, fixedBy: "issue 1377 · drafted" }],
+  "gallery.filter.more.label": ["More markets", { slots: {}, fixedBy: "issue 1377 · drafted" }],
   "gallery.showing": ["Showing {shown} of {total} reports", { slots: { shown: "text", total: "text" }, fixedBy: "issue 1069 · R12-3" }],
   "gallery.sort.label": ["Sort", { slots: {}, fixedBy: "issue 1069 · R12-3" }],
   "gallery.sort.newest": ["Newest first", { slots: {}, fixedBy: "issue 1069 · R12-3" }],

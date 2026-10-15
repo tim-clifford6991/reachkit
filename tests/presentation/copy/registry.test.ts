@@ -272,7 +272,7 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
       "A page for your site every week, new or updated"
     );
     expect(copy("offer.cadence.measure", { value: "every week" })).toBe(
-      "Your findability re-measured every week"
+      "Your market scanned every week"
     );
     expect(copy("offer.cadence.movement", { value: "every week" })).toBe(
       "What moved, in your inbox every week"
@@ -283,7 +283,7 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
   });
 
   it("report — no-presence-yet line for the first page of the rival list", () => {
-    expect(copy("place.report.first-page.rival")).toBe("No rival holds this ground yet");
+    expect(copy("place.report.first-page.rival")).toBe("No competitor holds this yet");
   });
 
   it("stopped-work law — two of the five lines", () => {
@@ -291,7 +291,7 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
       "ReachKit stopped its own work today, so no page was written. Nothing about your market changed."
     );
     expect(copy("stopped.work.needs-nothing")).toBe(
-      "Nothing is needed from you — ReachKit picks up again on its own."
+      "Nothing is needed from you. ReachKit picks up again on its own."
     );
   });
 
@@ -305,7 +305,7 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
     // it in: the 2026-09-04 ruling wrote a line for a page nobody had drawn
     // yet, and the drawing is the later word on it.
     expect(copy("optout.confirmed", { address: "you@company.com" })).toBe(
-      "No more follow-up mail will reach you@company.com — for this domain or any other. " +
+      "No more follow-up mail will reach you@company.com, for this domain or any other. " +
         "The page you asked for stays yours."
     );
     expect(copy("optout.invalid")).toBe(
@@ -357,7 +357,7 @@ describe("the five keys the owner ruled 2026-09-11 (DECISIONS 2026-09-11, #516)"
   });
 
   it("the two approved-set strings that promised a page a day are replaced", () => {
-    expect(COPY["calendar.head"]).toBe("Pages go live when one is ready — at most one a day.");
+    expect(COPY["calendar.head"]).toBe("Pages go live when ready, at most one a day.");
     expect(COPY["landing.step.3.title"]).toBe("Pages go live on your domain");
     for (const key of ["calendar.head", "landing.step.3.title"] satisfies CopyKey[]) {
       expect(COPY[key], key).not.toContain("every day");

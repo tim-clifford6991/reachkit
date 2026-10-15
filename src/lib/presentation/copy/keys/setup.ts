@@ -43,7 +43,7 @@ export const SETUP_COPY = Object.freeze({
   /** Issue 1196: a step whose request never came back. Drafted; the owner
    *  may correct it. */
   "setup.refused.could-not-ask": ["We couldn’t reach ReachKit just now, so this step wasn’t saved. Check your connection and press again.", { slots: {}, fixedBy: "issue 1196" }],
-  "setup.refused.no-access": ["We couldn’t find an active plan for this account, so setup can’t start. Settings is still open to you — cancel or export your content there at any time.", { slots: {}, fixedBy: "REQ-025 c5" }],
+  "setup.refused.no-access": ["We couldn’t find an active plan for this account, so setup can’t start. Settings stays open to cancel or export.", { slots: {}, fixedBy: "REQ-025 c5" }],
   // ── The progress strip (UI-SPEC S10 · S11, issue #356) ──────────────
   "setup.progress.paid": ["Paid", { slots: {}, fixedBy: "S10 · 11a" }],
   "setup.progress.setup": ["Setup", { slots: {}, fixedBy: "S10 · 11a" }],
@@ -63,12 +63,12 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "S10 · REQ-021 c6" },
   ],
   "setup.competitors.add.placeholder.first": [
-    "rival.com",
+    "competitor.com",
     { slots: {}, fixedBy: "S10 · REQ-026 c3" },
   ],
   "setup.mode.default": ["default", { slots: {}, fixedBy: "S10 · 11a" }],
   "setup.footer.line": [
-    "You can reach Settings, cancel or export at any time — finishing setup is not required for that.",
+    "You can reach Settings, cancel or export at any time, without finishing setup.",
     { slots: {}, fixedBy: "S10 · REQ-021 c10" },
   ],
 
@@ -101,7 +101,7 @@ export const SETUP_COPY = Object.freeze({
   "setup.competitors.title": ["Competitors", { slots: {}, fixedBy: "REQ-026 c7" }],
   // D28 (owner, 2026-10-02, #1185): drafted, named in the pull request.
   "setup.competitors.concluded": [
-    "ReachKit found these rivals in your market and keeps them current each week. Remove or add any if you like — you don’t have to.",
+    "ReachKit found these competitors in your market and keeps them current each week. Remove or add any if you like.",
     { slots: {}, fixedBy: "SPEC §5 2026-10-02 D28, issue 1185" },
   ],
   "setup.market.concluded": [
@@ -110,11 +110,11 @@ export const SETUP_COPY = Object.freeze({
   ],
   /** REQ-026 c10, first limb: waiting on the market, never "none found". */
   "setup.competitors.awaiting-market": ["Suggested once your market is stated.", { slots: {}, fixedBy: "REQ-026 c10" }],
-  "setup.competitors.seeking": ["Looking for rivals in your market…", { slots: {}, fixedBy: "REQ-026 c10" }],
+  "setup.competitors.seeking": ["Looking for competitors in your market…", { slots: {}, fixedBy: "REQ-026 c10" }],
   /** REQ-026 c10, second limb: a known market whose suggestions came back
    *  empty. */
   "setup.competitors.none-found": [
-    "No rivals could be suggested for this market yet. Add up to five, or continue without — ReachKit finds them as it measures.",
+    "No competitors could be suggested for this market yet. Add up to five, or continue; ReachKit finds them as it measures.",
     { slots: {}, fixedBy: "REQ-026 c10 · S10 (11a)" },
   ],
   /** REQ-026 c9: the limit is stated on screen rather than silently
@@ -130,11 +130,11 @@ export const SETUP_COPY = Object.freeze({
   /** The accessible name on a chosen tag's ×, naming the rival it takes
    *  out. The set draws the glyph and no words. */
   "setup.competitors.remove": ["Remove {rival}", { slots: { rival: "text" }, fixedBy: "REQ-026 c7" }],
-  "setup.competitors.refused.not-a-domain": ["That isn’t a domain. Enter one like rival.com.", { slots: {}, fixedBy: "REQ-026 c8" }],
+  "setup.competitors.refused.not-a-domain": ["That isn’t a domain. Enter one like competitor.com.", { slots: {}, fixedBy: "REQ-026 c8" }],
   "setup.competitors.refused.does-not-resolve": ["That domain doesn’t resolve. Check the spelling.", { slots: {}, fixedBy: "REQ-026 c8" }],
-  "setup.competitors.refused.own-domain": ["That’s your own site, not a rival.", { slots: {}, fixedBy: "REQ-026 c8" }],
-  "setup.competitors.refused.already-present": ["That domain is already in your set.", { slots: {}, fixedBy: "REQ-026 c8" }],
-  "setup.competitors.refused.set-full": ["Your set is full. Remove a rival to add another.", { slots: {}, fixedBy: "REQ-026 c9" }],
+  "setup.competitors.refused.own-domain": ["That’s your own site, not a competitor.", { slots: {}, fixedBy: "REQ-026 c8" }],
+  "setup.competitors.refused.already-present": ["That domain is already in your list.", { slots: {}, fixedBy: "REQ-026 c8" }],
+  "setup.competitors.refused.set-full": ["Your list is full. Remove a competitor to add another.", { slots: {}, fixedBy: "REQ-026 c9" }],
 
   // ── Destination (REQ-028) ───────────────────────────────────────────
   // No mode pair and no mode title (SPEC §7, #476): the card is headed with
@@ -146,14 +146,11 @@ export const SETUP_COPY = Object.freeze({
     "connect later, ask me after the first page",
     { slots: {}, fixedBy: "REQ-028 c3 · S10 (11a)" },
   ],
-  /** The caption over the record itself. The record's three values are
-   *  data and carry no key. */
-  "setup.destination.dnsRecord": ["Add this record at your DNS provider", { slots: {}, fixedBy: "REQ-028 c2" }],
   /** Issue 759 (owner ruling 2026-09-16): where that provider is — beside
    *  the record on `/setup` and in Settings. Since issue 760 it is the
    *  fallback for a lookup that could not answer. */
   "setup.destination.dnsWhere": [
-    "Add it wherever your domain’s DNS is managed — usually your registrar, or Cloudflare if your domain is on it.",
+    "Add it wherever your domain’s DNS is managed: usually your registrar, or Cloudflare if your domain is on it.",
     { slots: {}, fixedBy: "SPEC §5 · §12 (2026-09-16, issue 759)" },
   ],
   /** Issue 760 (owner ruling 2026-09-16): the guidance is derived, not
@@ -178,7 +175,7 @@ export const SETUP_COPY = Object.freeze({
    *  founder to choose. DNS only is the instruction; the reason is one
    *  line. Shown only on Cloudflare. */
   "setup.destination.dnsProxy": [
-    "Set Proxy status to DNS only — the grey cloud. With Cloudflare’s proxy on, the secure certificate for this address often can’t be issued and the connection won’t verify.",
+    "Set Proxy status to DNS only (the grey cloud). With Cloudflare’s proxy on, the secure certificate often can’t be issued and the connection won’t verify.",
     { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" },
   ],
 
@@ -283,10 +280,10 @@ export const SETUP_COPY = Object.freeze({
   /** Issue #757: a "check connection" press on `/setup` for an address the
    *  founder has changed on screen but not submitted. The server knows only
    *  the site's stored address as theirs, and asks about no other host. */
-  "setup.destination.check.address-unsaved": ["Confirm your site address first — this record is for the address ReachKit has.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+  "setup.destination.check.address-unsaved": ["Confirm your site address first. This record is for the address ReachKit has.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
 
   // ── The waiting screen (REQ-029) ────────────────────────────────────
-  "setup.waiting.head": ["Your first page is on its way.", { slots: {}, fixedBy: "REQ-029 c1" }],
+  "setup.waiting.head": ["Your first page is coming", { slots: {}, fixedBy: "REQ-029 c1" }],
   /** One line per stage of the pass. Which step is under way, in written
    *  words — never a bare spinner, and never how long. */
   //
@@ -305,7 +302,7 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "S11 · 11a · REQ-029 c1" },
   ],
   "setup.waiting.stage.sizing-your-rivals": [
-    "Sizing your rivals",
+    "Sizing your competitors",
     { slots: {}, fixedBy: "S11 · 11a · REQ-029 c1" },
   ],
   "setup.waiting.stage.finding-pages": [
@@ -319,28 +316,6 @@ export const SETUP_COPY = Object.freeze({
   "setup.waiting.stage.checking-it": [
     "Checking it",
     { slots: {}, fixedBy: "S11 · 11a · REQ-029 c1" },
-  ],
-  /** A finished row's elapsed time, in the numeral face. Whole seconds:
-   *  the set prints "41 s", and the pass records instants a second apart
-   *  at best. */
-  "setup.waiting.stage.elapsed": [
-    "{seconds} s",
-    { slots: { seconds: "text" }, fixedBy: "S11 · 11a" },
-  ],
-  /** The running row's own time. The set draws a dash rather than a clock,
-   *  and nothing on this screen ticks. */
-  "setup.waiting.stage.running": ["–", { slots: {}, fixedBy: "S11 · 11a" }],
-  /** A degraded pass still releases setup (§4.3); the founder is told so
-   *  on the screen they arrive at, not only at the moment of release. */
-  "setup.waiting.degraded": ["The pass couldn’t measure everything. You’re going into the app all the same — what was measured is shown, and the rest is marked as not measured.", { slots: {}, fixedBy: "REQ-029 c3" }],
-  /** S11's own two lines, both unbracketed in the set (11a). */
-  "setup.waiting.about": [
-    "About three minutes. When it finishes you land in the app with the first page already in your plan. If it finds nothing worth writing, it says so — it never invents a page.",
-    { slots: {}, fixedBy: "S11 · 11a" },
-  ],
-  "setup.waiting.close-tab": [
-    "You can close this tab; the sign-in link in your mail brings you back.",
-    { slots: {}, fixedBy: "S11 · 11a" },
   ],
 
   // ── No stated time zone yet (issue 753) ─────────────────────────────
@@ -368,16 +343,6 @@ export const SETUP_COPY = Object.freeze({
   // reason the band words are: `pricing` is an identifier the engine
   // classifies by, and what a customer reads beside a count is a word the
   // owner chooses.
-  // The owner's own name for the section (issue 839): the key is kept so
-  // nothing that reads it churns.
-  "setup.profile.title": ["Your voice", { slots: {}, fixedBy: "issue 839" }],
-  /** The head's pill. `{pages}` is the inventory's own row count — what
-   *  was read, never a target or a promise. */
-  "setup.profile.pages-read": [
-    "{pages} pages read",
-    { slots: { pages: "text" }, fixedBy: "SPEC.md §5 (2026-09-12)" },
-  ],
-  "setup.profile.site-name": ["Site name", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
   /** The line above the purpose chips — what each page is for. */
   "setup.profile.purposes": ["What these pages are for", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
   "setup.profile.voice.label": ["Brand voice", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
@@ -386,7 +351,7 @@ export const SETUP_COPY = Object.freeze({
    *  runs after this submit. Drafted under the owner ruling of 2026-09-16
    *  (issue 759); the owner corrects the wording. */
   "setup.profile.voice.unread": [
-    "ReachKit has not read your voice yet. Describe how your site sounds — who it speaks to, the words it uses, the claims it makes — or leave this empty and ReachKit reads it from your pages after you finish setup.",
+    "ReachKit hasn’t read your voice yet. Describe how your site sounds, or leave this empty and ReachKit reads it from your pages.",
     { slots: {}, fixedBy: "issue 839" },
   ],
   /** The note under the voice box: the same text is editable in Settings
@@ -420,31 +385,31 @@ export const SETUP_COPY = Object.freeze({
 
   /** REQ-029 c3: the pass measured some of it. One sentence saying what
    *  could not be measured. */
-  "setup.release.unmeasured": ["Your first measurement fell short in places. What was measured is shown with its date; the rest is marked as not measured until the next pass fills it in.", { slots: {}, fixedBy: "REQ-029 c3" }],
+  "setup.release.unmeasured": ["Your first scan fell short in places. What was measured is shown with its date; the next scan fills in the rest.", { slots: {}, fixedBy: "REQ-029 c3" }],
   /** REQ-029 c5: the pass failed outright, or had not ended when the
    *  founder was released anyway. One sentence saying the measurement did
    *  not complete — never that it found nothing, which is a different
    *  fact with its own line (§7). */
-  "setup.release.incomplete": ["Your first measurement didn’t complete. Nothing is needed from you — the next measurement fills it in.", { slots: {}, fixedBy: "REQ-029 c5" }],
+  "setup.release.incomplete": ["Your first scan didn’t complete. Nothing is needed from you; the next scan fills it in.", { slots: {}, fixedBy: "REQ-029 c5" }],
   /** Issue #770: the pass read the market and found too few searches to
    *  plan a page from — a measurement, not a failure. Issue 837 (owner,
    *  2026-09-17): it points at the choice beside it, never at a week. */
-  "setup.release.market-too-small": ["We couldn’t find enough searches for your market to plan pages yet. Pick a broader category and we’ll measure your market again right away.", { slots: {}, fixedBy: "issue 770" }],
+  "setup.release.market-too-small": ["We couldn’t find enough searches for your market to plan pages yet. Pick a broader market and we’ll scan again right away.", { slots: {}, fixedBy: "issue 770" }],
   /** Issue 855 (owner, 2026-09-17): the pass stopped on a ceiling before it
    *  finished reading the market. Not a market too small, and nothing for
    *  the founder to change. Drafted under issue 759's ruling. */
-  "setup.release.measuring": ["Your market is still being measured — the first pass ran out of time before it finished. ReachKit measures it again automatically, and your first pages follow.", { slots: {}, fixedBy: "issue 855" }],
+  "setup.release.measuring": ["Your market is still being scanned. ReachKit scans it again automatically, and your first pages follow.", { slots: {}, fixedBy: "issue 855" }],
 
   // Issue 837 (owner ruling 2026-09-17): the choice a thin market offers —
   // two or three broader categories from the site's own profile, and the
   // founder's own words — and the two ways a press is refused. Drafted under
   // issue 759's ruling; the owner corrects the wording.
-  "setup.remeasure.suggested": ["Broader categories to try", { slots: {}, fixedBy: "issue 837" }],
+  "setup.remeasure.suggested": ["Broader markets to try", { slots: {}, fixedBy: "issue 837" }],
   "setup.remeasure.own": ["Or describe your market in your own words", { slots: {}, fixedBy: "issue 837" }],
-  "setup.remeasure.submit": ["Measure again now", { slots: {}, fixedBy: "issue 837" }],
-  "setup.remeasure.refused.empty": ["Type a category, or pick one of the suggestions.", { slots: {}, fixedBy: "issue 837" }],
-  "setup.remeasure.refused.running": ["Your market is already being measured. Your pages follow as soon as it finishes.", { slots: {}, fixedBy: "issue 837" }],
-  "setup.remeasure.refused.daily-limit": ["You’ve measured your market as many times as a day allows. You can measure again after {time}.", { slots: { time: "text" }, fixedBy: "issue 837" }],
+  "setup.remeasure.submit": ["Scan again now", { slots: {}, fixedBy: "issue 837" }],
+  "setup.remeasure.refused.empty": ["Type a market, or pick one of the suggestions.", { slots: {}, fixedBy: "issue 837" }],
+  "setup.remeasure.refused.running": ["Your market is already being scanned. Your pages follow as soon as it finishes.", { slots: {}, fixedBy: "issue 837" }],
+  "setup.remeasure.refused.daily-limit": ["You’ve scanned your market as many times as a day allows. You can scan again after {time}.", { slots: { time: "text" }, fixedBy: "issue 837" }],
 
   // ── The five steps (SPEC §5, 2026-09-20, #908) ──────────────────────
   //
@@ -466,7 +431,7 @@ export const SETUP_COPY = Object.freeze({
    *  at 390px only hold one. */
   "setup.step.site": ["Site", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
   "setup.step.business": ["Business", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
-  "setup.step.rivals": ["Rivals", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.step.rivals": ["Competitors", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
   "setup.step.voice": ["Voice", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
   "setup.step.publishing": ["Publishing", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
 
@@ -499,13 +464,13 @@ export const SETUP_COPY = Object.freeze({
   /** The same step for a founder whose site nobody has read yet — the free
    *  scan reads no profile, and the pass that does runs after step 3. */
   "setup.step.business.line.unread": [
-    "Nothing has been read of your site yet. Add anything your pages should be written from, or carry on — ReachKit reads your site while you finish setup.",
+    "Nothing has been read of your site yet. Add anything your pages should be written from, or carry on while ReachKit reads it.",
     { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
   ],
   /** `{max}` is `BATTERY.COMPETITORS_MAX`. No count of what was found: the
    *  screen has as many as the pass offered, which is often none. */
   "setup.step.rivals.line": [
-    "We found these answering the searches you should be winning. Remove any that aren’t rivals and add your own — up to {max}.",
+    "We found these answering the searches you should be winning. Remove any that aren’t competitors and add your own, up to {max}.",
     { slots: { max: "text" }, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
   ],
   "setup.step.voice.line": [
@@ -614,7 +579,7 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 (2026-09-29, issue 1133, drafted)" },
   ],
   "setup.business.question.edge": [
-    "What do you do that your rivals don’t?",
+    "What do you do that your competitors don’t?",
     { slots: {}, fixedBy: "SPEC §5 (2026-09-29, issue 1133, drafted)" },
   ],
   "setup.business.question.asked": [
@@ -667,7 +632,7 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
   ],
   "setup.panel.publishing.title": [
-    "Your blog, ready for its first page",
+    "Your blog, ready to publish",
     { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
   ],
   /** Under the panel, for the whole of setup: nothing on this screen waits
@@ -712,7 +677,7 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
   "setup.panel.voice.refused.no-voice": [
-    "Put a paragraph in the box first — the sample is written to sound like it.",
+    "Put a paragraph in the box first. The sample is written to sound like it.",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
   "setup.panel.voice.refused.nothing-measured": [
@@ -724,7 +689,7 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
   "setup.panel.voice.refused.unavailable": [
-    "The sample didn't come back. Nothing is lost — try again in a moment.",
+    "The sample didn’t come back. Nothing is lost. Try again in a moment.",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
 
@@ -782,9 +747,9 @@ export const SETUP_COPY = Object.freeze({
   // timeline says so.
   "setup.connect.later": ["Do this later", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
   "setup.connect.onward": ["Go to your dashboard", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
-  "setup.connect.onward.live": ["It’s connected — go to your dashboard", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  "setup.connect.onward.live": ["It’s connected. Go to your dashboard", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
   "setup.connect.skipping": [
-    "Skipping is fine. Pages are still written and you can read them — they just can’t go live until this record exists. You’ll find it again under Overview and in Settings.",
+    "Skipping is fine. Pages are still written, but can’t go live until this record exists. You’ll find it under Overview and in Settings.",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
 
@@ -814,11 +779,11 @@ export const SETUP_COPY = Object.freeze({
   "setup.locale.option": ["{country} · {language}", { slots: { country: "text", language: "text" }, fixedBy: "SPEC §6 · D66 · issue 1311" }],
   "setup.place.label": ["The city or area you serve", { slots: {}, fixedBy: "SPEC §6 · D67 · issue 1318" }],
   "setup.place.note": [
-    "Leave it empty if you sell across the country or online. A local business is measured in its own place: its searches, its rivals and the questions put to AI all name it.",
+    "Leave it empty if you sell across the country or online. A local business is measured in its own place.",
     { slots: {}, fixedBy: "SPEC §6 · D67 · issue 1318" },
   ],
   "setup.locale.note": [
-    "Read from your site. Searches, AI answers and rivals are measured there, and your pages are written in that language.",
+    "Read from your site. Searches, AI answers and competitors are measured there, and your pages are written in that language.",
     { slots: {}, fixedBy: "SPEC §6 · D66 · issue 1311" },
   ],
 }) satisfies CopyPartition;
