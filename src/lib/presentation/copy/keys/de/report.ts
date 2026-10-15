@@ -80,7 +80,6 @@ export const REPORT_COPY_DE = {
   "ai-answers.method": "= die {total} größten Suchanfragen Ihres Marktes, gestellt, wie ein Käufer die KI fragt.",
   "ai-answers.questions.title": "Die {total} Fragen",
   "ai-answers.questions.measured": "Dieser Bericht hat {measured} dieser {total} Suchanfragen gemessen.",
-  "ai-answers.questions.show-all": "Alle {total} anzeigen",
   "ai-answers.question.not-you": "nicht Sie",
   "ai-answers.question.no-answer": "keine Antwort",
   "ai-answers.question.provenance": "aus: {search} · genannt: {brands}",

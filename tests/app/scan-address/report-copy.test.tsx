@@ -75,7 +75,6 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "ai-answers.questions.title",
   // Issue 873: what this report measured, stated on the card.
   "ai-answers.questions.measured",
-  "ai-answers.questions.show-all",
   "ai-answers.question.not-you",
   "ai-answers.question.no-answer",
   "ai-answers.question.provenance",

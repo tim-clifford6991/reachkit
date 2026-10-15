@@ -358,7 +358,7 @@ describe("SPEC §2, 2026-10-07 (issue 1328) — the result and the action first,
 
   /** The markup of every outermost `details` on the page, each cut at its
    *  own end, so what is inside a closed section can be told from what is
-   *  not. Depth is counted because the questions hold a second one. */
+   *  not. Depth is counted so a nested `details` could never split one. */
   function closedParts(markup: string): string {
     const parts: string[] = [];
     let depth = 0;

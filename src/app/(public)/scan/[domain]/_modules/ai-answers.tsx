@@ -91,11 +91,6 @@ function formatReusedOn(iso: string): string {
     : at.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 }
 
-/** How many of the twelve the list shows before "Show all 12"
- *  (`BUILD.md` §4.1: "First 4 shown"). A layout parameter of this one
- *  card, not a pin any other module reads. */
-const QUESTIONS_SHOWN = 4;
-
 function citedCount(cells: readonly AnswerCell[]): number {
   return cells.filter((c) => c.kind === "answered" && c.citedDomains.length > 0).length;
 }
@@ -451,8 +446,6 @@ export function AiAnswersCard(p: {
   measuredOn: string;
 }): React.JSX.Element {
   const { section } = p;
-  const shown = section.rows.slice(0, QUESTIONS_SHOWN);
-  const rest = section.rows.slice(QUESTIONS_SHOWN);
   // Issue 1309: the list holds every question the pass found, and the pass
   // may have measured fewer. Where it did, the heading and its line say
   // both counts apart, and no line counts an unmeasured row as measured.
@@ -542,20 +535,10 @@ export function AiAnswersCard(p: {
                 total,
               })}
             </p>
-            <QuestionRows rows={shown} />
-            {/* REQ-006 c8: the first four visible and the remainder one
-                action away — `details`, so they are in the document with no
-                JavaScript. */}
-            {rest.length === 0 ? null : (
-              <details className="collapse collapse-arrow border-base-300 border">
-                <summary className="collapse-title text-sm">
-                  {copy("ai-answers.questions.show-all", { total })}
-                </summary>
-                <div className="collapse-content">
-                  <QuestionRows rows={rest} />
-                </div>
-              </details>
-            )}
+            {/* REQ-006 c8 (issue 1436): every question, once the list is
+                open. The outer `details` is the one action away; a second
+                toggle inside it hid the fifth row behind another tap. */}
+            <QuestionRows rows={section.rows} />
             <p className="text-base-content/70 text-xs">{copy("ai-answers.method", { total: measured })}</p>
           </div>
         </details>

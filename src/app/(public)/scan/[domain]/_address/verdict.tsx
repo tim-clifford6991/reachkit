@@ -104,15 +104,17 @@ function DriverBar(p: { factor: ScoreFactorName; value: Measured<number>; limiti
 /** The score in a ring that fills once (the calm layer, #1068): daisyUI's
  *  `radial-progress`, its track an inset ring in `base-200`, and the fill
  *  drawn from nothing in 1.4s by `animate-ring` — under reduced motion the
- *  full ring is drawn and nothing moves. The number inside is the one
- *  `<Num figure>`; the ring is its drawing, so it is hidden from a reader
+ *  full ring is drawn and nothing moves. daisyUI's end-cap dot (`::after`)
+ *  is placed from `--value`, which does not animate, so it sat at the final
+ *  score while the arc grew toward it; `after:hidden` removes it (issue
+ *  1436). The number inside is the one `<Num figure>`; the ring is its drawing, so it is hidden from a reader
  *  that already has the figure and "of 100". */
 function ScoreRing(p: { score: number }): React.JSX.Element {
   return (
     <div className="relative grid size-40 place-items-center">
       <div
         aria-hidden
-        className="radial-progress text-primary motion-safe:animate-ring absolute inset-0 shadow-[inset_0_0_0_12px_var(--color-base-200)] [--size:10rem] [--thickness:12px]"
+        className="radial-progress text-primary motion-safe:animate-ring absolute after:hidden inset-0 shadow-[inset_0_0_0_12px_var(--color-base-200)] [--size:10rem] [--thickness:12px]"
         style={{ "--value": p.score } as React.CSSProperties}
       />
       <div className="relative flex flex-col items-center">

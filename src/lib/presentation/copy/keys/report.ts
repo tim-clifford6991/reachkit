@@ -317,7 +317,6 @@ export const REPORT_COPY = Object.freeze({
     "This report measured {measured} of these {total} questions. A question marked “not measured” is counted nowhere on this page.",
     { slots: { measured: "text", total: "text" }, fixedBy: "issue 1309 · drafted" },
   ],
-  "ai-answers.questions.show-all": ["Show all {total}", { slots: { total: "text" }, fixedBy: "REQ-006 c9" }],
   "ai-answers.question.not-you": ["not you", { slots: {}, fixedBy: "REQ-006 c1" }],
   "ai-answers.question.no-answer": ["no answer", { slots: {}, fixedBy: "REQ-006 c1" }],
   // REQ-006 c9's provenance pair: the search a question was derived from
