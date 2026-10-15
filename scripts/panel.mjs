@@ -31,11 +31,9 @@
 // One database per worktree: a run rebuilds it, so do not run one beside
 // `vitest --project db`, the layout sweep or `npm run pass` in the same
 // worktree.
-import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { createServer } from "vite";
+import { bindings, loadTs, substrateDown, substrateUp } from "./local-run.mjs";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const argv = process.argv.slice(2);
@@ -43,62 +41,6 @@ const flag = (name, fallback) => {
   const at = argv.indexOf(name);
   return at === -1 || at + 1 >= argv.length ? fallback : argv[at + 1];
 };
-
-const VENDOR_KEYS = ["ANTHROPIC_API_KEY", "DATAFORSEO_LOGIN", "DATAFORSEO_PASSWORD"];
-
-/** The vendors' keys out of an env file, and no other line of it. */
-function vendorKeys(file) {
-  if (!existsSync(file)) throw new Error(`No env file at ${file}. The panel runs live and needs the vendor keys: pass --env-file <path>.`);
-  const keys = {};
-  for (const line of readFileSync(file, "utf8").split("\n")) {
-    const match = /^\s*([A-Z][A-Z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line);
-    if (match !== null && VENDOR_KEYS.includes(match[1])) keys[match[1]] = match[2].replace(/^["']|["']$/g, "");
-  }
-  for (const key of VENDOR_KEYS) {
-    if (keys[key] === undefined || keys[key] === "" || keys[key].startsWith("PENDING")) throw new Error(`${key} is not set to a real key in ${file}.`);
-  }
-  return keys;
-}
-
-/** Every other binding the product's `env` asks of a process, as a value
- *  that reaches nothing. */
-const NO_KEYS = {
-  STRIPE_SECRET_KEY: "panel",
-  STRIPE_WEBHOOK_SECRET: "panel",
-  STRIPE_PRICE_ID: "panel",
-  RESEND_API_KEY: "panel",
-  MAIL_FROM: "panel@example.com",
-  IP_HASH_SALT: "panel",
-  OWNER_EMAILS: "panel@example.com",
-  NEXT_PUBLIC_APP_URL: "http://127.0.0.1",
-  HOSTED_EDGE_CNAME_TARGET: "panel.example.com",
-  KILL_SWITCH: "false",
-};
-/** Bindings a shell may hold that would let the run reach a service. */
-const NEVER = ["POSTHOG_API_KEY", "POSTHOG_HOST", "INNGEST_SIGNING_KEY", "INNGEST_EVENT_KEY", "VERCEL_API_TOKEN", "NANO_API_KEY"];
-
-function substrateUp() {
-  const out = execFileSync("bash", [path.join(ROOT, "scripts/db-substrate/up.sh"), "--run"], {
-    cwd: ROOT,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "inherit"],
-  });
-  for (const line of out.split("\n")) {
-    const match = /^export ([A-Z_]+)=(.*)$/.exec(line.trim());
-    if (match !== null) process.env[match[1]] = match[2].replace(/^["']|["']$/g, "");
-  }
-  if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(process.env.SUPABASE_URL ?? "")) {
-    throw new Error("scripts/db-substrate/up.sh did not name a local database; nothing was run.");
-  }
-}
-
-function substrateDown() {
-  try {
-    execFileSync("bash", [path.join(ROOT, "scripts/db-substrate/down.sh")], { cwd: ROOT, stdio: ["ignore", "ignore", "inherit"] });
-  } catch {
-    console.error("The local database could not be stopped: run scripts/db-substrate/down.sh.");
-  }
-}
 
 async function main() {
   const capCents = Number(flag("--cap-cents", "100"));
@@ -109,27 +51,15 @@ async function main() {
 
   const options = { root: ROOT, sites, capCents, date, resume: argv.includes("--continue"), recheck: argv.includes("--recheck") };
 
-  // A recheck reads a stored run: it holds no key and names no database.
-  const NOTHING = { ANTHROPIC_API_KEY: "panel", DATAFORSEO_LOGIN: "panel", DATAFORSEO_PASSWORD: "panel", SUPABASE_URL: "http://127.0.0.1:9", SUPABASE_ANON_KEY: "panel", SUPABASE_SERVICE_ROLE_KEY: "panel" };
-  Object.assign(process.env, NO_KEYS, options.recheck ? NOTHING : vendorKeys(path.resolve(ROOT, flag("--env-file", ".env.local"))));
-  for (const key of NEVER) delete process.env[key];
-  // The local database's bindings come last, over anything the shell held.
-  if (!options.recheck) substrateUp();
+  bindings(options.recheck ? null : path.resolve(ROOT, flag("--env-file", ".env.local")));
+  if (!options.recheck) substrateUp(ROOT);
 
-  const server = await createServer({
-    configFile: false,
-    root: ROOT,
-    appType: "custom",
-    logLevel: "error",
-    server: { middlewareMode: true, hmr: false, watch: null },
-    resolve: { alias: [{ find: /^@\//, replacement: `${path.join(ROOT, "src")}/` }] },
-  });
+  const { module: run, close } = await loadTs(ROOT, "/scripts/panel/run.ts");
   try {
-    const run = await server.ssrLoadModule("/scripts/panel/run.ts");
     return options.recheck ? run.recheck(options) : await run.main(options);
   } finally {
-    await server.close();
-    if (!options.recheck && !argv.includes("--keep")) substrateDown();
+    await close();
+    if (!options.recheck && !argv.includes("--keep")) substrateDown(ROOT);
   }
 }
 
