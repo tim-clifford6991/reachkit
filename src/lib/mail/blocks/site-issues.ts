@@ -10,7 +10,7 @@
 //
 // A check that could not run gives no row: a mail has no room for its
 // why-line, and a zero in its place would be "no issues found".
-import { copy } from "@/lib/mail/language";
+import { copy } from "@/lib/presentation/copy";
 import { SITE_CHECK_TITLE, SITE_SEVERITY_WORD } from "@/lib/presentation/site-issues";
 import { measured, type Measured } from "@/lib/measure/measured";
 import type { IssueChange } from "@/lib/site-issues/changes";

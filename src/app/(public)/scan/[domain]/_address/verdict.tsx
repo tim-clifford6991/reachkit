@@ -16,12 +16,11 @@
 import type React from "react";
 import { BAND_TONE } from "@/ui/bands";
 import type { Tone } from "@/ui/types";
-import { copy } from "@/lib/presentation/copy/reader";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { LIMITING_LINES, SCORE_BANDS } from "@/lib/presentation/bands";
 import type { Verdict } from "@/lib/measure/verdict";
 import type { Measured } from "@/lib/measure/measured";
 import type { ScoreFactorName } from "@/lib/measure/score";
-import type { CopyKey } from "@/lib/presentation/copy";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import { CategoryCorrection } from "./correction";
 import { dash, Num, unmeasuredLineFor } from "./measured";

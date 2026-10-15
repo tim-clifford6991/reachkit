@@ -17,8 +17,7 @@
 import type React from "react";
 import { ArrowRight, FileText, Lock, MessageSquareQuote, type LucideIcon } from "lucide-react";
 import { ARROW_NUDGE, CARD_LIFT } from "@/ui/lift";
-import type { CopyKey } from "@/lib/presentation/copy";
-import { copy } from "@/lib/presentation/copy/reader";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { SEVERITY } from "@/lib/presentation/bands";
 import { dash, MeasuredNum, measuredText } from "../_address/measured";
 import type { Measured } from "@/lib/measure/measured";

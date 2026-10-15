@@ -1,5 +1,5 @@
-// A reader of a German site's report or mail is shown German (SPEC §6, D66,
-// issue 1311), and a translated sentence can never say less than its key
+// A German site's own pages are written in German (SPEC §6, D66, issue 1311;
+// ReachKit's own screens and mail stay English, issue 1443), and a translated sentence can never say less than its key
 // promises: it fills the same slots, and a key with no translation is shown
 // in English rather than breaking the screen.
 import { describe, expect, it } from "vitest";
@@ -27,12 +27,12 @@ describe("the German overlay", () => {
     expect(wrong).toEqual([]);
   });
 
-  it("shows a German reader the German sentence with its slot filled, and an English reader the registry's", () => {
-    const key = "ai-answers.reused-from" satisfies CopyKey;
+  it("writes a German page's sentence with its slot filled, and an English page's from the registry", () => {
+    const key = "hosted.visit" satisfies CopyKey;
     const german = translationOf(key, "de");
     expect(german).toBeDefined();
-    expect(copyIn("de", key, { date: "3. Mai 2026" })).toBe(german!.replace("{date}", "3. Mai 2026"));
-    expect(copyIn("en", key, { date: "3 May 2026" })).toBe(copy(key, { date: "3 May 2026" }));
+    expect(copyIn("de", key, { site: "cafe.example" })).toBe(german!.replace("{site}", "cafe.example"));
+    expect(copyIn("en", key, { site: "cafe.example" })).toBe(copy(key, { site: "cafe.example" }));
   });
 
   it("shows English for a key the overlay does not hold, and still refuses a missing slot", () => {

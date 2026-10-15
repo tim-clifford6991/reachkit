@@ -38,7 +38,7 @@
 // screen behind it and not an empty card.
 import type React from "react";
 import { ImageResponse } from "next/og";
-import { copy } from "@/lib/presentation/copy/reader";
+import { copy } from "@/lib/presentation/copy";
 import { token } from "@/lib/mail/shell/tokens";
 import { SCORE_BANDS } from "@/lib/presentation/bands";
 import { parseDomain } from "@/lib/scan/domain";

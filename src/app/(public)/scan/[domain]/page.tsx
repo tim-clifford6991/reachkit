@@ -42,8 +42,6 @@
 // `metadata` export below, and the `X-Robots-Tag` header is declared for
 // this path in `next.config.ts` so it rides on every response the path
 // produces, the 308 included. Neither half is enough alone.
-import { readIn } from "@/lib/presentation/copy/reader";
-import { measuredLocale } from "@/lib/locale/locales";
 import { permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { parseDomain } from "@/lib/scan/domain";
@@ -129,9 +127,6 @@ export default async function ScanAddressPage({
   if (redirectTo !== null) permanentRedirect(redirectTo.redirectTo);
 
   const state = await resolve(raw);
-  // D66: a report is read in the language it was measured in. Said once,
-  // here, for every server component of this request.
-  if (state.kind === "report") readIn(measuredLocale(state.report).language);
   // No `Surface` here. ADR-093 decision 6 puts one at every *screen* root,
   // and seven arms are seven screens with seven different band behaviours —
   // a long report that goes two columns at `medium`, and six short panes

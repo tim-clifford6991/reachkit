@@ -10,7 +10,7 @@
 // This file holds no second omission rule and no second formatter. What
 // differs between the two bodies is layout — line breaks, a URL written
 // out beside its label — and nothing else.
-import { copy } from "@/lib/mail/language";
+import { copy } from "@/lib/presentation/copy";
 import { generatedLabel } from "@/lib/presentation/generated";
 import { formatStat } from "./format";
 import { factRowsOf, rowsOf, statRowsOf } from "./rows";

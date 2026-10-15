@@ -28,8 +28,7 @@
 import type React from "react";
 import { CircleAlert } from "lucide-react";
 import { Surface } from "@/ui/layout";
-import type { CopyKey } from "@/lib/presentation/copy";
-import { copy, readerLanguage } from "@/lib/presentation/copy/reader";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { ScoreFactorName } from "@/lib/measure/score";
 import { measuredLocale } from "@/lib/locale/locales";
 import { stillReading, type StoredReport } from "@/lib/scan/report";
@@ -60,13 +59,10 @@ import { TIMING } from "@/lib/config/constants";
 // rather than from a second member the blob used to carry.
 import { categoryOf, trainingOptOutOf } from "@/lib/scan/sections";
 
-/** BUILD §6.3a / DECISIONS 2026-08-28: MVP is US-English only, one
- *  location constant, so the date a report was measured is formatted once,
- *  here, in that one locale. Since D66 (SPEC §6, issue 1311) the locale is
- *  the report's own: the country and language it was measured in. */
-function reportTag(): string {
-  return readerLanguage() === "de" ? "de-DE" : "en-US";
-}
+/** The report is read in English, whatever it was measured in (SPEC §6,
+ *  owner 2026-10-15, issue 1443), so its dates and the names of countries
+ *  and languages are written in that one locale. */
+const REPORT_TAG = "en-US";
 
 /** The factor's own name, for the notice line that lists what was not
  *  measured. The same three keys the verdict strip's own missing-factor
@@ -79,7 +75,7 @@ const FACTOR_NAME_KEY: Readonly<Record<ScoreFactorName, CopyKey>> =
   });
 
 function formatMeasuredOn(at: Date): string {
-  return at.toLocaleDateString(reportTag(), {
+  return at.toLocaleDateString(REPORT_TAG, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -192,7 +188,7 @@ function MeasuredInLine(p: { report: StoredReport }): React.JSX.Element | null {
   const fellBack = p.report.locale?.fellBack;
   if (fellBack === undefined) return null;
   const measured = measuredLocale(p.report);
-  const tag = reportTag();
+  const tag = REPORT_TAG;
   const countries = new Intl.DisplayNames(tag, { type: "region" });
   const languages = new Intl.DisplayNames(tag, { type: "language" });
   const named = (code: string, names: Intl.DisplayNames): string => {
@@ -226,7 +222,7 @@ function measurementLine(report: StoredReport): string | null {
   if (report.locale === undefined) return null;
   const measured = measuredLocale(report);
   if (measured.country === "US" && measured.language === "en") return null;
-  const tag = reportTag();
+  const tag = REPORT_TAG;
   return copy("report.measurement.in", {
     country: new Intl.DisplayNames(tag, { type: "region" }).of(measured.country) ?? measured.country,
     language: new Intl.DisplayNames(tag, { type: "language" }).of(measured.language) ?? measured.language,

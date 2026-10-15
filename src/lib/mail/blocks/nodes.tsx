@@ -20,7 +20,7 @@
 // every numeral in a mail goes through it.
 import type { ReactNode } from "react";
 import { Button, Column, Heading, Link, Row, Text } from "react-email";
-import { copy } from "@/lib/mail/language";
+import { copy } from "@/lib/presentation/copy";
 import { generatedLabel } from "@/lib/presentation/generated";
 import { token } from "../shell/tokens";
 import { formatStat } from "./format";

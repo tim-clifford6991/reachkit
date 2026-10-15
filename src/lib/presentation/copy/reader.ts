@@ -1,11 +1,13 @@
 // src/lib/presentation/copy/reader.ts — `copy()` in the language of the
-// reader a server-rendered screen is drawn for (SPEC §6, owner D66 of
-// 2026-10-07, issue 1311).
+// customer's own site, for the hosted blog a server render draws on its
+// domain (SPEC §6, owner D66 of 2026-10-07, issue 1311). ReachKit's own
+// screens are English and import `copy` from the registry (owner 2026-10-15,
+// issue 1443).
 //
-// A route says once whose screen it is drawing (`readIn`), and every server
+// A route says once whose page it is drawing (`readIn`), and every server
 // component under it that imports `copy` from here speaks that language,
 // with no prop handed down for it. The language is held for one request and
-// no longer: `cache` is React's own per-request memo, so two reports drawn
+// no longer: `cache` is React's own per-request memo, so two pages drawn
 // at once never share it. Outside a server render — a test, a job — nothing
 // was said and the language is English, which is `copy()` itself.
 //
