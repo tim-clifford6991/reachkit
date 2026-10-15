@@ -11,7 +11,8 @@ Ship the paying path. Prefer a library over new code. Follow **Current** in `doc
 - Never match pixels or copy markup from a board; it says what a screen holds, daisyUI classes say how it looks. Never add a UI dependency that is not on `docs/DESIGN.md`’s list.
 - Never write a test that transcribes a document.
 - Never guess an owner decision — `blocked-on-owner` and ask; record the answer as a dated SPEC line.
-- Never add a merge gate beyond the four in `docs/PROCESS.md`. One issue uses one worktree, removed when its pull request merges.
+- Never add a merge gate beyond the four in `docs/PROCESS.md`. Coherence and the UI strategy checks live inside `audit` and `no overflow · axe`. One issue uses one worktree, removed when its pull request merges.
+- Follow **Coherence** in `docs/PROCESS.md` before an issue is Ready and on every pull request. Fill Surfaces, Invariants or Conditions, and Overlaps. An example of a parent listed there is a comment on that parent, not a new issue. The owner's look at `dev.reachkit.app` is taste. It is not the check for a condition or a screen the gates already cover.
 - Never copy a rule into a memory file or into `/root/ops` that these pages do not already state.
 - Never keep something only because a test, gate, ruling or approved file protects it; where a library does the job, delete the custom version and its test (owner 2026-09-25, `docs/PROCESS.md`, #1105).
 

@@ -32,7 +32,7 @@ every two hours) and receives every merge, the same as dev (no freeze, owner 202
 `/api/jobs` is served by production, so a job or pass change takes effect only once production is
 deployed. `Vercel` is not a check: Git deployments are off (`vercel.json` `git.deploymentEnabled: false`).
 
-The owner tests the path live on `dev.reachkit.app`. A merged migration is applied through the
+The owner tests the path live on `dev.reachkit.app` for taste and for the stranger walk. Conditions and screen strategy are already the gates (`docs/PROCESS.md` Coherence, `docs/DESIGN.md`). This live pass is not a second check of those. A merged migration is applied through the
 Supabase connector after the target deploy is READY, then the path is walked again
 (`scripts/smoke.sh` / `scripts/land.sh`).
 

@@ -8,7 +8,7 @@ How a screen is built today. Rulings and their history are in git; this page hol
 2. **Recharts 3** — every series (line, bar, sparkline), each in a `ResponsiveContainer`, stroked and filled from the theme's chart colours, labelled directly with no legend box. A grid that is not a series (rivals × questions, the week strip, the AI-answers matrix) is CSS grid.
 3. **lucide-react** — stroke 1.75, 20px in chrome, 16px in badges. No emoji.
 
-Spacing and type are Tailwind's scale (`p-4`, `text-sm`). Colour is the `reachkit` theme. The owner reviews UI by clicking `dev.reachkit.app`; there is no pixel baseline.
+Spacing and type are Tailwind's scale (`p-4`, `text-sm`). Colour is the `reachkit` theme. There is no pixel baseline. The gates check the strategy in this page. The owner looks at `dev.reachkit.app` for taste.
 
 Admitting new UI: a daisyUI class → a daisyUI class plus a theme colour → Recharts → lucide → a library on the list below → stop. A pull request that adds a custom component, a stylesheet, a token, a type scale or an SVG chart where those already cover it is rejected. Do not wrap daisyUI in a `Btn` or `Card`.
 
@@ -76,6 +76,14 @@ The nav label, the heading in the docs and the screen name are the same word. Is
 | Competitors | `/app/rivals` | Competitors. “Rivals” was its label until 2026-10-15 (#1444); the route keeps the old word |
 
 - 2026-10-15  **Section, tab and mail names equal the bar names** (owner, #1444). The free report's verdict draws four bars — Readiness, Content, Google, AI — and its two sections are “Google” and “AI”; the app tabs and the mail sections carry the same words. A title is at most six words, one idea, no em-dash; a number is the figure and its explanation one line under it (`docs/SPEC.md` §0, 2026-10-15).
+
+## Strategy the gate checks
+
+2026-10-15  **Every code change re-checks the strategy** (owner, #1463). `no overflow · axe` renders every `(public)` and `(account)` screen at 390, 768 and 1280, in light and dark. `tests/ui/design/strategy.test.ts` runs in `typecheck · lint · unit` on the same change. A screen is not done because it was looked at.
+
+The test holds two rules from the names above. A copy key ending in `.title`, `.heading` or `.subject` is at most six words, not counting a trailing `· ReachKit`, and it contains no em-dash. Customer-visible copy does not use a retired name: `AI Visibility`, `Measure again`, `re-measure`, `top ten`, `top 20`. The stack, the one theme, the calm layer, emoji and the heading scale stay on the design tests and the layout gate that already cover them.
+
+The owner looks at `dev.reachkit.app` for taste: voice, and an asset only the owner holds. A rule this page states is a gate.
 
 ## Boards
 

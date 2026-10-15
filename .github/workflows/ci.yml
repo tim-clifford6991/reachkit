@@ -109,11 +109,13 @@ jobs:
     # accounts, Settings with a field open, the current Settings tab on
     # screen, the security headers, the theme slots and the values, and the
     # landing's script budget (#988). It takes no screenshot. The owner
-    # looks at the product on `dev.reachkit.app`.
+    # looks at `dev.reachkit.app` for taste, not as a second pass over this gate.
     #
     # Every failure it can produce is a sentence naming an element on a
     # named screen at a named width in a named theme, which is what makes
-    # it fit to block a merge.
+    # it fit to block a merge. Strategy that is not a layout measure
+    # (titles, retired names) is tests/ui/design/strategy.test.ts in the
+    # unit job, as docs/DESIGN.md states. The owner looks for taste.
     #
     # **Where the data comes from.**
     # `scripts/db-substrate/up.sh --run` against the box's own PostgreSQL 18,

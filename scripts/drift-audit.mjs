@@ -113,6 +113,103 @@ for (const date of [...bad].sort()) add("rulings", "MALFORMED", date, "dated rul
 const dates = new Set(markers.map((m) => `${m[1]}-${m[2]}-${m[3]}`));
 add("rulings", "OK", "docs/SPEC.md", `${markers.length} dated ruling marker(s), ${dates.size} distinct date(s), ${bad.size} malformed`);
 
+// ----------------------------------------------------------------- coherence
+// Owner 2026-10-15, #1463. The registry lives in docs/PROCESS.md Coherence.
+// A named check file must exist. `pending` is allowed only on the three
+// parents whose check is not written yet. A pull request body is read only
+// when --require-pr-body is set, from the PR_BODY environment variable.
+const PENDING_OK = new Set(["1454", "1127", "1457"]);
+const REQUIRED_PARENTS = ["1454", "1127", "1457", "1458"];
+
+function coherenceSection(doc) {
+  const start = doc.indexOf("\n### Coherence\n");
+  if (start < 0) return null;
+  const rest = doc.slice(start + 1);
+  const next = rest.slice("### Coherence\n".length).search(/\n### /);
+  return next < 0 ? rest : rest.slice(0, next + "### Coherence\n".length);
+}
+
+function sectionBody(text, heading) {
+  const normalised = text.replace(/\r\n/g, "\n");
+  const re = new RegExp(`^## ${heading}\\n([\\s\\S]*?)(?=^## |$)`, "m");
+  const found = normalised.match(re);
+  if (!found) return null;
+  return found[1].replace(/<!--[\s\S]*?-->/g, "").trim();
+}
+
+const processDoc = read("docs/PROCESS.md");
+const coherenceText = coherenceSection(processDoc ?? "");
+if (!coherenceText) {
+  add("coherence", "MISSING", "docs/PROCESS.md", "Current has no ### Coherence section", true);
+} else {
+  const parsed = [];
+  for (const line of coherenceText.split("\n")) {
+    if (!line.startsWith("| #")) continue;
+    const cells = line.split("|").slice(1, -1).map((cell) => cell.trim());
+    if (cells.length !== 4) {
+      add("coherence", "MALFORMED", line, "a registry row needs Parent, Surface, Condition, Check", true);
+      continue;
+    }
+    parsed.push({ parent: cells[0], surface: cells[1], condition: cells[2], check: cells[3] });
+  }
+  const seenParents = new Set();
+  for (const row of parsed) {
+    const number = /^#(\d+)$/.exec(row.parent)?.[1];
+    if (!number) {
+      add("coherence", "MALFORMED", row.parent, "parent is not an issue number", true);
+      continue;
+    }
+    if (seenParents.has(number)) add("coherence", "MALFORMED", row.parent, "parent listed twice", true);
+    seenParents.add(number);
+    if (row.check === "pending") {
+      if (!PENDING_OK.has(number)) add("coherence", "MISSING", row.parent, "a new condition needs a check file, not pending", true);
+      else add("coherence", "OK", row.parent, `${row.surface}: pending, allowed for this parent`);
+    } else if (!/^(tests|scripts)\/[\w./-]+\.(ts|tsx|mjs)$/.test(row.check) || !existsSync(path.join(ROOT, row.check))) {
+      add("coherence", "MISSING", row.parent, `check file missing or not a test path: ${row.check}`, true);
+    } else {
+      add("coherence", "OK", row.parent, row.check);
+    }
+  }
+  for (const number of REQUIRED_PARENTS) {
+    if (!seenParents.has(number)) add("coherence", "MISSING", `#${number}`, "required parent is not in the Coherence registry", true);
+  }
+}
+
+for (const [rel, needles] of [
+  [".github/pull_request_template.md", ["## Conditions", "## Overlaps", "## Surfaces"]],
+  [".github/ISSUE_TEMPLATE/feature.md", ["## Surfaces", "## Invariants", "## Overlaps"]],
+  [".github/ISSUE_TEMPLATE/bug.md", ["## Surfaces", "## Invariants", "## Overlaps"]],
+  ["CLAUDE.md", ["Coherence"]],
+  ["docs/DESIGN.md", ["tests/ui/design/strategy.test.ts"]],
+]) {
+  const text = read(rel);
+  if (text == null) {
+    add("coherence", "MISSING", rel, "file missing", true);
+    continue;
+  }
+  const absent = needles.filter((needle) => !text.includes(needle));
+  if (absent.length) add("coherence", "MISSING", rel, `does not name ${absent.join(", ")}`, true);
+  else add("coherence", "OK", rel, needles.join(", "));
+}
+
+if (!existsSync(path.join(ROOT, "tests/ui/design/strategy.test.ts"))) {
+  add("coherence", "MISSING", "tests/ui/design/strategy.test.ts", "the UI strategy check is not in the tree", true);
+}
+
+if (process.argv.includes("--require-pr-body")) {
+  const body = process.env.PR_BODY ?? "";
+  if (!body.trim()) {
+    add("coherence", "MISSING", "pull request", "body is empty", true);
+  } else {
+    for (const heading of ["Conditions", "Overlaps", "Surfaces"]) {
+      const filled = sectionBody(body, heading);
+      if (filled == null) add("coherence", "MISSING", `## ${heading}`, "the pull request body has no such section", true);
+      else if (!filled) add("coherence", "MISSING", `## ${heading}`, "the section is empty or still only the template note", true);
+      else add("coherence", "OK", `## ${heading}`, "filled");
+    }
+  }
+}
+
 // -------------------------------------------------------------------- output
 const order = { MALFORMED: 0, MISSING: 1, MISMATCH: 2, TODO: 3, OK: 9 };
 rows.sort((a, b) => (order[a.status] ?? 8) - (order[b.status] ?? 8) || a.area.localeCompare(b.area) || a.subject.localeCompare(b.subject));

@@ -40,6 +40,7 @@ const CURRENT_HEADINGS = [
   "### Roles",
   "### Four steps",
   "### Gates",
+  "### Coherence",
   "### Testing budget",
   "### Deploys",
   "### Worktrees",

@@ -43,7 +43,7 @@ weekly scan → calendar → email → technical issues — but all nine are MVP
 | 1 | `README.md` | This page: what ReachKit is, the nine features, what delivered means. |
 | 2 | `docs/SPEC.md` | One section per feature: what the user gets, rules, done-when. No pixels. |
 | 3 | `docs/DESIGN.md` | daisyUI + Recharts + lucide. No artboards. |
-| 4 | `docs/PROCESS.md` | How work moves. The four gates, the worktrees, the queue. |
+| 4 | `docs/PROCESS.md` | How work moves. The four gates, Coherence, the worktrees, the queue. |
 | 5 | `docs/GO-LIVE.md` | The only checklist of what is left before a stranger pays. |
 | 6 | `docs/RUNBOOK.md` | How the box and the vendors are operated after a change is merged. |
 | 7 | `CLAUDE.md` | What an agent reads first. It points at the pages above and does not restate a different rule. |
@@ -56,6 +56,6 @@ A difference between the code and `SPEC.md` is a defect in the code — CI's `au
 |---|---|
 | [The Project board](https://github.com/users/tim-clifford6991/projects/1) | Status (Ready is next) and Feature (F1–F9). P0 = the paying path. |
 | Issues | What the user can do afterwards. A SPEC link when behaviour is new. |
-| Pull requests | What changed, how it was proved, `Closes #n` when it closes an issue. |
+| Pull requests | What changed, the conditions, the overlaps, the surfaces, how it was proved, `Closes #n` when it closes an issue. |
 
-How work flows is `docs/PROCESS.md`. The owner does not review by reading tickets: they answer questions and click through `dev.reachkit.app`.
+How work flows is `docs/PROCESS.md`, including Coherence. The owner answers questions and looks at `dev.reachkit.app` for taste. Conditions and screen strategy are the gates.
