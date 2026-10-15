@@ -140,7 +140,10 @@ export async function finishReads(
   const at = report.questions.at;
   const cells = new Map<number, Measured<SerpResult>>();
   if (unread.length > 0 && leftCents(row.costCents ?? CAPS.FREE_C) > 0) {
-    const locale = localeOfReport(report);
+    // D67 (issue 1441): a free pass measured in its town finishes its reads
+    // there too, not in the country.
+    const place = report.locale?.place;
+    const locale = place === undefined ? localeOfReport(report) : { ...localeOfReport(report), place };
     const untilMs = Date.now() + TIMING.paidPassCeilingS * 1000;
     await vendor.spend(a.scanId, async (cost) => {
       let next = 0;
