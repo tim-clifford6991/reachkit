@@ -82,9 +82,12 @@ function listed(payload: unknown): ListedLocation[] {
  * cannot say which of several it is. The city's own name leads the listed
  * name; a region the place states has to be among the rest. Two cities of
  * one name with no region to tell them apart are not guessed between
- * (Portland in Oregon and in Maine).
+ * (Portland in Oregon and in Maine) — unless `near` names other towns the
+ * business serves, and the region that holds most of them holds one of the
+ * two ("Austin" beside "San Antonio" and "Round Rock" is Texas's; issue
+ * 1441).
  */
-export function matchLocation(list: readonly ListedLocation[], place: Place): string | null {
+export function matchLocation(list: readonly ListedLocation[], place: Place, near: readonly Place[] = []): string | null {
   const name = folded(place.name);
   const wanted = EXONYMS[name] ?? name;
   const stated = place.region === undefined ? "" : folded(place.region);
@@ -99,33 +102,57 @@ export function matchLocation(list: readonly ListedLocation[], place: Place): st
       // ("Greater Manchester"): the city stands where it is the only one.
     }
     if (named.length === 1) return named[0]!.name;
-    return null;
+    return nearest(list, named, near);
   }
   return null;
 }
 
-/** Answers already read, by country and place: the list does not change
- *  between two scans an instance serves, and the free pass asks it while a
- *  person waits (issue 1441). */
-const ANSWERED = new Map<string, { location: string | null }>();
+/** Of several cities of one name, the one whose region holds the most of
+ *  the other towns named beside it; `null` where none or a tie. */
+function nearest(list: readonly ListedLocation[], named: readonly ListedLocation[], near: readonly Place[]): string | null {
+  if (near.length === 0) return null;
+  const regionsOf = (row: ListedLocation): string[] => row.name.split(",").slice(1, -1).map(folded);
+  const held = new Map<string, number>();
+  for (const other of near) {
+    const wanted = folded(other.name);
+    const regions = new Set(list.filter((row) => KINDS.includes(row.kind as (typeof KINDS)[number]) && folded(row.name.split(",")[0] ?? "") === wanted).flatMap(regionsOf));
+    for (const region of regions) held.set(region, (held.get(region) ?? 0) + 1);
+  }
+  const scored = named.map((row) => ({ row, score: Math.max(0, ...regionsOf(row).map((region) => held.get(region) ?? 0)) })).sort((a, b) => b.score - a.score);
+  const [first, second] = scored;
+  return first !== undefined && first.score > 0 && (second === undefined || second.score < first.score) ? first.row.name : null;
+}
+
+/** The list, read once a country by an instance: it does not change between
+ *  two scans, and a free pass asks it while a person waits (issue 1441). A
+ *  read that failed is not kept. */
+const LISTS = new Map<Country, Promise<ListedLocation[] | null>>();
+
+function listOf(country: Country, timeoutMs: number): Promise<ListedLocation[] | null> {
+  const held = LISTS.get(country);
+  if (held !== undefined) return held;
+  const reading = sendGet<unknown>(`/v3/serp/google/locations/${country.toLowerCase()}`, timeoutMs).then((got) => {
+    const list = got.ok ? listed(got.payload) : [];
+    if (list.length === 0) {
+      LISTS.delete(country);
+      return null;
+    }
+    return list;
+  });
+  LISTS.set(country, reading);
+  return reading;
+}
 
 /**
  * The vendor's name for `place` in `country`: `{ location }` where its
  * list holds the place, `{ location: null }` where the list was read and
  * does not, and `null` where the list could not be read — the caller then
  * asks again on a later pass. `timeoutMs` is shorter for a pass a person is
- * waiting on.
+ * waiting on; `near` is `matchLocation`'s.
  */
-export async function placeLocation(a: { place: Place; country: Country; timeoutMs?: number }): Promise<{ location: string | null } | null> {
+export async function placeLocation(a: { place: Place; country: Country; timeoutMs?: number; near?: readonly Place[] }): Promise<{ location: string | null } | null> {
   if (!Object.prototype.hasOwnProperty.call(COUNTRIES, a.country)) return null;
-  const key = `${a.country}|${folded(a.place.name)}|${folded(a.place.region ?? "")}`;
-  const held = ANSWERED.get(key);
-  if (held !== undefined) return held;
-  const got = await sendGet<unknown>(`/v3/serp/google/locations/${a.country.toLowerCase()}`, a.timeoutMs ?? LIST_TIMEOUT_MS);
-  if (!got.ok) return null;
-  const list = listed(got.payload);
-  if (list.length === 0) return null;
-  const answer = { location: matchLocation(list, a.place) };
-  ANSWERED.set(key, answer);
-  return answer;
+  const list = await listOf(a.country, a.timeoutMs ?? LIST_TIMEOUT_MS);
+  if (list === null) return null;
+  return { location: matchLocation(list, a.place, a.near) };
 }

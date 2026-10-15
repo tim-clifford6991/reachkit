@@ -1724,6 +1724,125 @@
      "output_tokens": 346
     }
    }
+  },
+  {
+   "key": "7cf24ea87461d775",
+   "response": {
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01VYBXZnreNVih3xnUjMLMiQ",
+      "name": "profile",
+      "input": {
+       "category": "HR-Software",
+       "job": "HR-Prozesse, Lohnbuchhaltung und Recruiting verwalten und automatisieren",
+       "offeringType": "Cloud-basierte Softwarelösung",
+       "audienceTerms": [
+        "Personalverwaltung",
+        "Recruiting",
+        "Lohnabrechnung",
+        "kleine und mittlere Unternehmen"
+       ],
+       "namedRivals": [],
+       "vocabulary": [
+        "Personalmanagementsoftware",
+        "Lohnbuchhaltung",
+        "Urlaubsverwaltung",
+        "Bewerberverwaltung",
+        "Arbeitszeiterfassung",
+        "Abwesenheitsmanagement",
+        "Entgeltabrechnung",
+        "Employee Self Service",
+        "Payroll",
+        "HR-Lexikon"
+       ],
+       "brandTokens": [
+        "Personio",
+        "equipme"
+       ],
+       "town": ""
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "usage": {
+     "input_tokens": 4170,
+     "output_tokens": 318
+    }
+   }
+  },
+  {
+   "key": "df42ed7f13a0059b",
+   "response": {
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01LRuoybHJVL1d7UcV1Nrqee",
+      "name": "question-phrasing",
+      "input": {
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Wie funktioniert HR in der Softwareentwicklung?"
+        },
+        {
+         "id": "q2",
+         "text": "Welche Software hilft mir als HR-Manager bei meiner Arbeit?"
+        },
+        {
+         "id": "q3",
+         "text": "Welche HR-Software ist die richtige für mein Unternehmen?"
+        },
+        {
+         "id": "q4",
+         "text": "Wie vergleiche ich verschiedene HR-Softwarelösungen?"
+        },
+        {
+         "id": "q5",
+         "text": "Welche Anbieter von HR-Software gibt es?"
+        },
+        {
+         "id": "q6",
+         "text": "Welche HR-Management-Software passt zu meinem Betrieb?"
+        },
+        {
+         "id": "q7",
+         "text": "Wie kann ich Arbeitszeiten berechnen?"
+        },
+        {
+         "id": "q8",
+         "text": "Welche ist die beste HR-Software?"
+        },
+        {
+         "id": "q9",
+         "text": "Wie läuft das Recruiting in meinem Unternehmen ab?"
+        },
+        {
+         "id": "q10",
+         "text": "Was ist Employee Self Service in der HR?"
+        },
+        {
+         "id": "q11",
+         "text": "Wie verwalte ich Abwesenheiten meiner Mitarbeiter?"
+        },
+        {
+         "id": "q12",
+         "text": "Wie funktioniert Payroll in meinem Unternehmen?"
+        }
+       ]
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "usage": {
+     "input_tokens": 1090,
+     "output_tokens": 329
+    }
+   }
   }
  ]
 }

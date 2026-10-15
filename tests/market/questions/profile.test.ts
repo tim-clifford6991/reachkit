@@ -349,7 +349,13 @@ describe("deriveProfile — the prompt and the schema agree (issue #462)", () =>
     // and still an object.
     const schema = jsonSchema();
     expect(schema.additionalProperties).toBe(false);
-    expect(Object.keys(schema.properties)).toHaveLength(7);
+    expect(Object.keys(schema.properties)).toHaveLength(Object.keys(PROFILE_FIELDS).length);
+  });
+
+  it("issue 1441 — an answer with no town, or a long one, is kept: a town is checked against the vendor's list before it is trusted", () => {
+    const answer = { category: "plumber", job: "fixes pipes", offeringType: "service", audienceTerms: ["homeowners", "landlords"], namedRivals: [], vocabulary: ["plumber", "drain", "boiler"], brandTokens: ["peanut"] };
+    expect(PROFILE_SCHEMA.safeParse(answer).data?.town).toBe("");
+    expect(PROFILE_SCHEMA.safeParse({ ...answer, town: "x".repeat(200) }).data?.town).toHaveLength(80);
   });
 
   it("the instruction asks for JSON only — no prose, no code fence — and carries no keyword or search of its own", () => {

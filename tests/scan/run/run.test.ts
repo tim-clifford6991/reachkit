@@ -264,7 +264,7 @@ describe("the six stages", () => {
       for (const seed of market.seeds) expect(seed.toLowerCase()).toMatch(/ leeds$/);
       expect(serpOrganic.mock.calls.length).toBeGreaterThan(0);
       for (const [, call] of serpOrganic.mock.calls as [unknown, { locale: unknown }][]) expect(call.locale).toEqual({ ...GB, place });
-      expect(storedReport().locale).toEqual({ ...GB, place });
+      expect(storedReport().locale).toEqual({ ...GB, place, placeFrom: "address" });
     });
 
     it("a town the vendor's list does not hold is still searched by name, read in the country", async () => {
@@ -273,6 +273,36 @@ describe("the six stages", () => {
       await runScan({ domain: DOMAIN, tier: "free" });
       const [, market] = deriveMarketSet.mock.calls[0] as [unknown, { locale: unknown }];
       expect(market.locale).toEqual({ ...GB, place: { name: "Leeds", region: "West Yorkshire" } });
+    });
+
+    it("issue 1441 — a Plumber that lists the towns it serves and gives no address is measured in the first the list holds, and says so", async () => {
+      measureDomain.mockResolvedValue(measurement({ locale: GB, stated: { type: "Plumber", serves: ["West Riding", "Leeds"] } }));
+      placeLocation.mockImplementation(async (a: { place: { name: string } }) => ({ location: a.place.name === "Leeds" ? LEEDS : null }));
+      await runScan({ domain: DOMAIN, tier: "free" });
+      expect(storedReport().locale).toEqual({ ...GB, place: { name: "Leeds", location: LEEDS }, placeFrom: "area_served" });
+    });
+
+    it("issue 1441 — with no town in the structured data, the town the profile read off the page, once the list holds it", async () => {
+      measureDomain.mockResolvedValue(measurement({ locale: GB }));
+      deriveProfile.mockResolvedValue(measured({ ...PROFILE, town: "Leeds, West Yorkshire" }, AT));
+      placeLocation.mockResolvedValue({ location: LEEDS });
+      await runScan({ domain: DOMAIN, tier: "free" });
+      const place = { name: "Leeds", region: "West Yorkshire", location: LEEDS };
+      const [, market] = deriveMarketSet.mock.calls[0] as [unknown, { seeds: string[]; locale: unknown }];
+      expect(market.locale).toEqual({ ...GB, place });
+      expect(storedReport().locale).toEqual({ ...GB, place, placeFrom: "page_text" });
+      // Every search worded is asked of the town: none is left national.
+      const [, worded] = phraseQuestions.mock.calls[0] as [unknown, { selected: { keyword: string }[] }];
+      expect(worded.selected.length).toBeGreaterThan(0);
+      for (const search of worded.selected) expect(search.keyword.toLowerCase()).toMatch(/ leeds$/);
+    });
+
+    it("issue 1441 — a town the profile names that the list does not hold in the country is dropped", async () => {
+      measureDomain.mockResolvedValue(measurement({ locale: GB }));
+      deriveProfile.mockResolvedValue(measured({ ...PROFILE, town: "Atlantis" }, AT));
+      placeLocation.mockResolvedValue({ location: null });
+      await runScan({ domain: DOMAIN, tier: "free" });
+      expect(storedReport().locale).toEqual(GB);
     });
 
     it("a site that states no town it serves is measured as before, and the list is not read", async () => {

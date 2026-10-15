@@ -91,7 +91,7 @@ import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
 import { freePageOf } from "@/lib/opportunities/free-page";
 import { DEFAULT_LOCALE, type Locale, type Place } from "@/lib/locale/locales";
-import { localSearch, statedPlace as statedPlaceOf } from "@/lib/locale/place";
+import { localSearch, placeCandidates, placeOf, statedPlace as statedPlaceOf, type PlaceFrom } from "@/lib/locale/place";
 import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
 import { aiPresenceOf, aiSampleOf, BOT_PROTECTION, classifyReferences, localPackSearches, measureDomain, searchPresenceOf, type DomainMeasurement } from "@/lib/measure";
 import { aiPresenceRangeOf } from "@/lib/measure/drivers";
@@ -452,6 +452,9 @@ interface Sections {
   /** Why that listing named no market, where it did not: the pass then
    *  guesses none, and the report keeps the reason. */
   marketThin: ThinFootprint | null;
+  /** Which evidence named the town a free pass measured in (issue 1441);
+   *  `null` where it measured in none, or a paid pass settled the place. */
+  placeFrom: PlaceFrom | null;
   marketRows: Measured<readonly SuggestionRow[]>;
   selected: SelectedSearch[];
   questions: Measured<Question[]>;
@@ -606,6 +609,7 @@ function freshSections(at: Date): Sections {
     profile: unmeasured("not_attempted", at),
     marketFrom: null,
     marketThin: null,
+    placeFrom: null,
     marketRows: unmeasured("not_attempted", at),
     selected: [],
     sealed: false,
@@ -1323,31 +1327,80 @@ function localeOfPass(a: Pick<StageArgs, "sections" | "locale">): Locale {
   return a.sections.measurement?.locale ?? a.locale ?? DEFAULT_LOCALE;
 }
 
+/** The pass measures in `placed` from here on (issue 1441). */
+function inPlace(sections: Sections, placed: PassPlace): void {
+  if (sections.measurement === null) return;
+  sections.measurement = { ...sections.measurement, locale: { ...sections.measurement.locale, place: placed.place } };
+  sections.placeFrom = placed.from;
+}
+
 /** How long a free pass waits for the search vendor's list of cities: it
  *  answers in under a second, and a pass that does not have it measures in
  *  the country. */
 const FREE_PLACE_LOOKUP_MS = 6_000;
 
-/**
- * The town a free pass measures in (D67; owner ruling 2026-10-15, issue
- * 1441): the one the home page states it serves (`statedPlace`), with the
- * search vendor's name for it so Google's results are read from there.
- * `null` where the page states none or the pass already has a place. A
- * lookup that fails leaves the place read in its country. Never throws.
- */
-async function statedPlaceOfPass(m: DomainMeasurement): Promise<Place | null> {
-  if (m.locale.place !== undefined || m.stated === undefined) return null;
-  const place = statedPlaceOf(m.stated);
-  if (place === null) return null;
+/** A town a free pass measures in, and which evidence named it. */
+interface PassPlace {
+  place: Place;
+  from: PlaceFrom;
+}
+
+/** The search vendor's name for `place` in the pass's country, or `null`
+ *  where the list does not hold it or could not be read. Never throws. */
+async function locatedIn(place: Place, m: DomainMeasurement, near: readonly Place[] = []): Promise<{ location: string | null } | null> {
   try {
     const { placeLocation } = await import("@/lib/vendors/dataforseo");
-    const found = await placeLocation({ place, country: m.locale.country, timeoutMs: FREE_PLACE_LOOKUP_MS });
-    console.log(JSON.stringify({ event: "free_place_located", place: place.name, location: found === null ? "unread" : found.location }));
-    return found === null || found.location === null ? place : { ...place, location: found.location };
+    return await placeLocation({ place, country: m.locale.country, timeoutMs: FREE_PLACE_LOOKUP_MS, near });
   } catch (error) {
     console.log(JSON.stringify({ event: "free_place_unlocated", because: error instanceof Error ? error.message : String(error) }));
-    return place;
+    return null;
   }
+}
+
+function logPassPlace(fields: { from: PlaceFrom | null; place: string | null; location: string | null }): void {
+  console.log(JSON.stringify({ event: "free_place_located", ...fields }));
+}
+
+/**
+ * The town a free pass measures in from the home page's structured data
+ * (D67; owner ruling 2026-10-15, issue 1441), in the order of the
+ * evidence, stopping at the first that holds: the structured address
+ * `statedPlace` reads, which stands even where the vendor's list does not
+ * hold it (the town is searched by name and read in its country); then a
+ * business's `areaServed`, and an address written as one string, each only
+ * where the list holds the town in the site's country. `null` where none
+ * holds or the pass already has a place: the profile call's reading of the
+ * page is tried next (`townFromPage`). Never throws.
+ */
+async function statedPlaceOfPass(m: DomainMeasurement): Promise<PassPlace | null> {
+  if (m.locale.place !== undefined || m.stated === undefined) return null;
+  const candidates = placeCandidates(m.stated);
+  const served = candidates.filter((c) => c.from === "area_served").map((c) => c.place);
+  for (const candidate of candidates) {
+    const near = candidate.from === "area_served" ? served.filter((other) => other !== candidate.place) : [];
+    const found = await locatedIn(candidate.place, m, near);
+    if (candidate.from === "address" || (found !== null && found.location !== null)) {
+      const location = found?.location ?? null;
+      logPassPlace({ from: candidate.from, place: candidate.place.name, location });
+      return { place: location === null ? candidate.place : { ...candidate.place, location }, from: candidate.from };
+    }
+  }
+  return null;
+}
+
+/** The town the profile call read off the home page's own words (rule 4 of
+ *  issue 1441), where the vendor's list holds it in the site's country: a
+ *  town the model made up, or one abroad, is dropped. */
+async function townFromPage(town: string | undefined, m: DomainMeasurement): Promise<PassPlace | null> {
+  const place = placeOf(town);
+  if (place === null) return null;
+  const found = await locatedIn(place, m);
+  if (found === null || found.location === null) {
+    logPassPlace({ from: null, place: place.name, location: null });
+    return null;
+  }
+  logPassPlace({ from: "page_text", place: place.name, location: found.location });
+  return { place: { ...place, location: found.location }, from: "page_text" };
 }
 
 /**
@@ -1553,11 +1606,9 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
   await enter("reading_access_rules");
   await exitStage(scanId, "reading_access_rules");
 
-  const place = await placing;
+  const placed = await placing;
   if (bounds.abandoned()) return;
-  if (place !== null && sections.measurement !== null) {
-    sections.measurement = { ...sections.measurement, locale: { ...sections.measurement.locale, place } };
-  }
+  if (placed !== null) inPlace(sections, placed);
 
   if (bounds.stopNow() !== null) return;
   await enter("reading_your_market");
@@ -2076,6 +2127,15 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
     }
   }
 
+  // Issue 1441, rule 4: where the structured data named no town, the town
+  // the profile call read off the page's own words, once the vendor's list
+  // holds it.
+  if (a.parameters.measuresStatedPlace && a.concludesMarket !== true && sections.measurement !== null && localeOfPass(a).place === undefined) {
+    const fromPage = await townFromPage(profile.value.town, sections.measurement);
+    if (abandoned()) return;
+    if (fromPage !== null) inPlace(sections, fromPage);
+  }
+
   // SPEC §6 thin markets (#778): the first seed is the one every pass buys.
   // The rest of the ladder is bought one seed at a time, only while short —
   // except the market's other names, which are bought with the first inside
@@ -2117,10 +2177,13 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   // about this market, not off it. And the market in force says which of
   // its own searches are measured and which searches never are (D65).
   let measuredMarket = measuredMarketOf(sections.market, place);
-  const category = (): Pick<Parameters<typeof selectTwelve>[0], "category" | "synonyms" | "measured"> => ({
+  const category = (): Pick<Parameters<typeof selectTwelve>[0], "category" | "synonyms" | "measured" | "place"> => ({
     ...(measuredUnder === undefined ? {} : { category: measuredUnder }),
     synonyms: [...synonyms, ...searched],
     ...(measuredMarket === undefined ? {} : { measured: measuredMarket }),
+    // Issue 1441: a free pass with a town has no market to say where it
+    // measures; the town is no part of what the business sells.
+    ...(place === undefined ? {} : { place }),
   });
   const widen = (floors?: readonly number[], limit?: number): SelectedSearch[] => {
     const rows = sections.marketRows;
@@ -2199,11 +2262,34 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
 async function phrase(a: StageArgs, abandoned: () => boolean): Promise<void> {
   const { bounds, cost, sections } = a;
   if (bounds.stopNow() !== null) return;
+  const place = localeOfPass(a).place;
+  if (a.parameters.measuresStatedPlace && place !== undefined) sections.selected = inTheTown(sections.selected, place);
   if (a.parameters.questionsFitThePurse) sections.selected = whatThePurseCanAsk(a);
   const questions = await attempt("reading_your_market", () =>
     phraseQuestions(cost, { selected: sections.selected, locale: localeOfPass(a) })
   );
   if (!failed(questions) && !abandoned()) sections.questions = questions;
+}
+
+/**
+ * The searches a free pass asks for a business with a town, each asked of
+ * the town (owner ruling 2026-10-15, issue 1441): a "near me" search is
+ * answered for wherever it is asked from, and one that names no place for
+ * the whole country, so each becomes the service plus the town
+ * (`localSearch`). Two that become one search are asked once, in the
+ * selection's order; each keeps the volume the vendor listed it at.
+ */
+function inTheTown(selected: readonly SelectedSearch[], place: Place): SelectedSearch[] {
+  const seen = new Set<string>();
+  const out: SelectedSearch[] = [];
+  for (const search of selected) {
+    const keyword = localSearch(search.keyword, place);
+    const key = keyword.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(keyword === search.keyword ? search : { ...search, keyword, rank: out.length + 1 });
+  }
+  return out.map((search, i) => (search.rank === i + 1 ? search : { ...search, rank: i + 1 }));
 }
 
 /**
@@ -3311,7 +3397,7 @@ function composeReport(a: {
   const report: StoredReport = {
     ...assembled,
     freePage: freePageOf(assembled) ?? carried?.freePage ?? null,
-    ...(measuredIn === null ? {} : { locale: measuredIn }),
+    ...(measuredIn === null ? {} : { locale: s.placeFrom === null ? measuredIn : { ...measuredIn, placeFrom: s.placeFrom } }),
     ...(statedPlace === null ? {} : { statedPlace }),
     ...(s.marketFrom === null || market.kind === "unmeasured" ? {} : { marketFrom: s.marketFrom }),
   };
