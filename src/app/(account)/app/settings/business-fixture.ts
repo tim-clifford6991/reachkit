@@ -66,6 +66,10 @@ export const FIXTURE_MARKET_READING: MarketReading = Object.freeze({
   vocabulary: Object.freeze(["bike service", "bike repair", "commuter"]),
 });
 
+/** A page address longer than a phone is wide, with nowhere to break. */
+export const LONG_URL =
+  "https://example.com/journal/2026/10/0f8c2a7e5b9d4c1aa3e6f0b2d8c4e1a9b7f3d5c2e8a0b4f6d1c3e5a7b9d2f4e6";
+
 /** The passages the grounding read would offer, in the order it offers
  *  them, with the page each was read from. Shaped as
  *  `src/lib/generate/pipeline/grounding.ts` returns them — one passage per
@@ -89,6 +93,12 @@ export const FIXTURE_QUOTABLE: readonly { passage: string; url: string }[] = Obj
   {
     passage: "We quote the full price before we pick up a tool.",
     url: "https://example.com/pricing",
+  },
+  // An address with no break in it, as a CMS writes one: the layout gate
+  // measures it at 390 (issue 1456, where one scrolled the page sideways).
+  {
+    passage: "Every e-bike service includes a battery health report you can keep.",
+    url: LONG_URL,
   },
 ]);
 
@@ -114,6 +124,20 @@ export const FIXTURE_KNOWLEDGE: StoredKnowledge = Object.freeze({
         differentiators: [{ rival: null, text: "We quote the full price before we pick up a tool." }],
         proof: [],
         questions: ["How long does a service take?"],
+        integrations: [],
+        places: [],
+      },
+    },
+    {
+      url: LONG_URL,
+      hash: "fixture-long",
+      reading: {
+        offerings: [],
+        audience: [],
+        problems: [],
+        differentiators: [],
+        proof: ["A battery health report with every e-bike service"],
+        questions: [],
         integrations: [],
         places: [],
       },

@@ -1,0 +1,332 @@
+{
+ "date": "2026-10-15",
+ "commit": "27db7bb1",
+ "capCents": 12,
+ "spentCents": 1.95,
+ "notRun": [],
+ "sites": [
+  {
+   "domain": "manchester-plumber.com",
+   "status": "degraded",
+   "stoppedReason": "complete",
+   "score": null,
+   "band": null,
+   "limiting": "{\"kind\":\"none\",\"because\":\"score_unmeasured\"}",
+   "drivers": {
+    "foundations": "unmeasured (undeterminable)",
+    "answerability": "unmeasured (undeterminable)",
+    "searchPresence": "0 (measured none, floored)",
+    "aiPresence": "unmeasured (undeterminable)"
+   },
+   "missing": [
+    "foundations (undeterminable)",
+    "answerability (undeterminable)"
+   ],
+   "locale": "us / en",
+   "statedPlace": null,
+   "measuredIn": null,
+   "category": null,
+   "marketFrom": null,
+   "questionsBecause": "not_attempted",
+   "questions": [],
+   "rivals": [],
+   "rivalsBecause": null,
+   "localPack": false,
+   "inOwnPack": 0,
+   "cents": 1.95,
+   "costBySource": {
+    "dataforseo_labs/google/ranked_keywords": 1.8,
+    "on_page/instant_pages": 0.15
+   },
+   "seconds": 18,
+   "budgetEnded": false,
+   "refused": [],
+   "events": [
+    {
+     "event": "drivers_measured",
+     "domain": "manchester-plumber.com",
+     "foundations": "unmeasured",
+     "answerability": "unmeasured",
+     "searchPresence": "zero",
+     "aiPresence": "unmeasured"
+    },
+    {
+     "event": "market_from_search",
+     "read": false,
+     "because": "few_ranked_searches",
+     "searches": 0,
+     "descriptive": 0
+    },
+    {
+     "event": "scan_pass",
+     "scanId": "e480e408-a147-4ebd-a887-bf24d3d966f6",
+     "tier": "free",
+     "stoppedReason": "complete",
+     "status": "degraded",
+     "serpsMeasured": 0,
+     "serpsAsked": 0,
+     "because": "business_profile_unmeasured"
+    }
+   ],
+   "stored": {
+    "scan": {
+     "id": "e480e408-a147-4ebd-a887-bf24d3d966f6",
+     "domain": "manchester-plumber.com",
+     "createdAt": "2026-10-15T21:40:48.574017+00:00",
+     "status": "degraded",
+     "score": null,
+     "drivers": {
+      "aiPresence": {
+       "at": "2026-10-15T21:40:49.303Z",
+       "kind": "unmeasured",
+       "reason": "undeterminable"
+      },
+      "foundations": {
+       "at": "2026-10-15T21:40:49.303Z",
+       "kind": "unmeasured",
+       "reason": "undeterminable"
+      },
+      "answerability": {
+       "at": "2026-10-15T21:40:49.303Z",
+       "kind": "unmeasured",
+       "reason": "undeterminable"
+      },
+      "searchPresence": {
+       "at": "2026-10-15T21:40:49.303Z",
+       "kind": "zero",
+       "value": 0
+      }
+     },
+     "md5": "6558f416ea303048b4ae4b7df5675f68",
+     "report": {
+      "tier": "free",
+      "serps": [],
+      "domain": "manchester-plumber.com",
+      "market": {
+       "at": "2026-10-15T21:40:49.303Z",
+       "kind": "unmeasured",
+       "reason": "not_attempted",
+       "because": "few_ranked_searches"
+      },
+      "onPage": {
+       "at": "2026-10-15T21:40:49.349Z",
+       "kind": "unmeasured",
+       "reason": "undeterminable",
+       "because": "home_timeout"
+      },
+      "rivals": {
+       "at": "2026-10-15T21:40:49.303Z",
+       "kind": "measured",
+       "value": []
+      },
+      "robots": {
+       "at": "2026-10-15T21:40:49.303Z",
+       "kind": "unmeasured",
+       "reason": "undeterminable"
+      },
+      "scanId": "e480e408-a147-4ebd-a887-bf24d3d966f6",
+      "supply": {
+       "missingPages": {
+        "at": "2026-10-15T21:40:49.303Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+       },
+       "unquotablePages": {
+        "at": "2026-10-15T21:40:49.303Z",
+        "kind": "unmeasured",
+        "reason": "not_attempted"
+       }
+      },
+      "sources": [],
+      "verdict": {
+       "domain": "manchester-plumber.com",
+       "factors": {
+        "presence": {
+         "at": "2026-10-15T21:40:49.303Z",
+         "kind": "measured",
+         "value": 25.25
+        },
+        "foundations": {
+         "at": "2026-10-15T21:40:49.303Z",
+         "kind": "unmeasured",
+         "reason": "undeterminable"
+        },
+        "answerability": {
+         "at": "2026-10-15T21:40:49.303Z",
+         "kind": "unmeasured",
+         "reason": "undeterminable"
+        }
+       },
+       "missing": [
+        {
+         "factor": "foundations",
+         "reason": "undeterminable"
+        },
+        {
+         "factor": "answerability",
+         "reason": "undeterminable"
+        }
+       ],
+       "limiting": {
+        "kind": "none",
+        "because": "score_unmeasured"
+       },
+       "measuredAt": "2026-10-15T21:40:49.303Z",
+       "scoreAndBand": {
+        "at": "2026-10-15T21:40:49.303Z",
+        "kind": "unmeasured",
+        "reason": "undeterminable"
+       },
+       "blockedReaders": {
+        "at": "2026-10-15T21:40:49.303Z",
+        "kind": "unmeasured",
+        "reason": "undeterminable"
+       },
+       "unmeasuredElsewhere": [
+        {
+         "input": "business_profile",
+         "reason": "not_attempted"
+        },
+        {
+         "input": "market_suggestions",
+         "reason": "not_attempted"
+        },
+        {
+         "input": "question_serps",
+         "reason": "not_attempted"
+        }
+       ]
+      },
+      "version": 13,
+      "complete": true,
+      "freePage": null,
+      "presence": {
+       "you": {
+        "domain": "manchester-plumber.com",
+        "top10Count": 0
+       },
+       "rivals": [],
+       "framing": "suppressed_no_rivals",
+       "absentFrom": [],
+       "measuredSearches": 0
+      },
+      "aiAnswers": null,
+      "coherence": {
+       "verdict": "unjudgeable",
+       "measuredCount": 0
+      },
+      "ownRanked": {
+       "at": "2026-10-15T21:40:49.303Z",
+       "kind": "zero",
+       "value": 0
+      },
+      "questions": {
+       "at": "2026-10-15T21:40:49.303Z",
+       "kind": "unmeasured",
+       "reason": "not_attempted"
+      },
+      "rivalSizes": {
+       "at": "2026-10-15T21:40:49.303Z",
+       "kind": "unmeasured",
+       "reason": "not_attempted"
+      },
+      "siteIssues": {
+       "issues": [
+        {
+         "ran": false,
+         "check": "page_titles",
+         "because": "no_pages_read"
+        },
+        {
+         "ran": false,
+         "check": "meta_descriptions",
+         "because": "no_pages_read"
+        },
+        {
+         "ran": false,
+         "check": "noindex_pages",
+         "because": "no_pages_read"
+        },
+        {
+         "ran": false,
+         "check": "sitemap",
+         "because": "no_pages_read"
+        },
+        {
+         "ran": false,
+         "check": "slow_pages",
+         "because": "no_pages_read"
+        },
+        {
+         "ran": false,
+         "check": "broken_links",
+         "because": "no_pages_read"
+        },
+        {
+         "ran": false,
+         "check": "phone_usability",
+         "because": "no_pages_read"
+        },
+        {
+         "ran": false,
+         "check": "structured_data",
+         "because": "no_pages_read"
+        },
+        {
+         "ran": false,
+         "check": "ai_readers_blocked",
+         "because": "access_rules_unreadable"
+        }
+       ],
+       "stoppedBy": "complete",
+       "checkedPages": [],
+       "pagesChecked": 0
+      },
+      "blockedAgents": [],
+      "ownRankedRows": [],
+      "pageQuestions": null,
+      "stoppedReason": "complete",
+      "correctionState": "none",
+      "measuredCategory": null,
+      "fromIncompleteRescan": false
+     },
+     "siteId": null,
+     "isCurrent": true
+    },
+    "reads": [
+     {
+      "source": "egress.safeFetch",
+      "created_at": "2026-10-15T21:41:06.083904+00:00",
+      "payload": {
+       "host": "manchester-plumber.com",
+       "bytes": 0,
+       "status": null,
+       "refusal": "timeout"
+      }
+     },
+     {
+      "source": "egress.safeFetch",
+      "created_at": "2026-10-15T21:40:54.358167+00:00",
+      "payload": {
+       "host": "manchester-plumber.com",
+       "bytes": 0,
+       "status": null,
+       "refusal": "timeout"
+      }
+     },
+     {
+      "source": "on_page/instant_pages",
+      "created_at": "2026-10-15T21:41:04.453591+00:00",
+      "payload": {
+       "billed": true,
+       "endpoint": "on_page/instant_pages",
+       "vendorFailure": "timeout"
+      }
+     }
+    ],
+    "siteName": null,
+    "answers": []
+   }
+  }
+ ]
+}

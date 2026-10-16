@@ -171,7 +171,7 @@ describe("REQ-045 c2 and c8 — the grounded fact, marked, with its source line"
     const url = root.querySelector('[data-testid="draft-grounded-url"]');
     expect(url?.textContent).toBe(VIEW.grounded.url);
     expect(url?.getAttribute("href")).toBe(VIEW.grounded.url);
-    expect(url?.getAttribute("class")).toContain("num");
+    expect(url?.getAttribute("class")).toContain("font-mono");
     const readAt = root.querySelector('[data-testid="draft-grounded-read-at"]');
     expect(readAt?.textContent).toBe("Sep 14, 2026");
     expect(readAt?.getAttribute("class")).toContain("num");

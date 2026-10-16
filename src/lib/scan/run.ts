@@ -1979,7 +1979,8 @@ async function previousSizes(domain: CanonicalDomain): Promise<readonly RivalSiz
  * text, or `null` where there is none to read.
  *
  * **A site its bot protection kept the reader off** (SPEC §2, owner
- * 2026-10-10, issue 1387) has no text of its own, and only then is its
+ * 2026-10-10, issue 1387), or whose home page did not answer in time
+ * (issue 1449), has no text of its own, and only then is its
  * listing in search read in its place: the ranked rows stage one already
  * bought, with the title and snippet Google shows for each page. A listing
  * too thin to name a market from is not read, and the reason is kept.
@@ -1994,7 +1995,8 @@ function marketReadingOf(
       ...(measurement.text.pricing === null ? {} : { pricing: measurement.text.pricing }),
     };
   }
-  if (measurement.protection === undefined) return null;
+  // Issue 1449: and so is one whose home page did not answer in time.
+  if (measurement.protection === undefined && measurement.homeTimedOut !== true) return null;
   return listingReadingOf(a, measurement);
 }
 
@@ -3181,6 +3183,7 @@ function score(a: Pick<StageArgs, "domain" | "sections" | "parameters" | "correc
     battery: sections.battery,
     rivalSizes: sections.rivalSizes,
     ownDomain: domain,
+    local: sections.measurement?.locale.place !== undefined,
     siteName: sections.siteName,
     coverage: a.parameters.asyncAiOverview && !a.correction ? "async_included" : "cached_only",
   });

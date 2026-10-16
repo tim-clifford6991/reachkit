@@ -15,10 +15,17 @@
 //   * a rival called by its domain's label where that is no word of its
 //     name ("abcplumbingaustin" for ABC Home & Commercial Services).
 //
+// And two from the first free scans of real local businesses (issue 1449),
+// both from the vendor's own keyword lists:
+//
+//   * a directory's padded listing name ("a a a plumbing services", "aaa
+//     plumbers"): the letter a said over so a name sorts first;
+//   * "near" with nothing it is near ("near coffee shop").
+//
 // Pure: no context, no clock, no I/O, and no import — the setup screen
 // reaches the selection that reads this, in the browser.
 
-export type Malformed = "repeated_phrase" | "empty_comparison" | "web_address" | "domain_for_name";
+export type Malformed = "repeated_phrase" | "empty_comparison" | "web_address" | "domain_for_name" | "padded_name" | "dangling_near";
 
 /** A rival as these rules read it. */
 export interface NamedRival {
@@ -52,6 +59,15 @@ function saysAPhraseTwice(words: readonly string[]): boolean {
   }
   return false;
 }
+
+/** A listing name padded to sort first in a directory (issue 1449): "a"
+ *  said twice running, or a word that opens with "aaa". */
+function paddedName(words: readonly string[]): boolean {
+  return words.some((word, i) => (word === "a" && words[i + 1] === "a") || /^a{3,}/.test(word));
+}
+
+/** "near" at the start with no "me" after it, or at the end. */
+const DANGLING_NEAR = /^near\b(?! me\b)|\bnear$/;
 
 /** The endings a site's address most often has: the generic ones, and the
  *  countries a site's buyers are most often in. A closed list, so it
@@ -94,6 +110,8 @@ export function malformedSearch(search: string, rivals: readonly NamedRival[] = 
   const words = wordsOf(search);
   if (saysAPhraseTwice(words)) return "repeated_phrase";
   if (DANGLING.test(words.join(" "))) return "empty_comparison";
+  if (paddedName(words)) return "padded_name";
+  if (DANGLING_NEAR.test(words.join(" "))) return "dangling_near";
   if (holdsAnAddress(search)) return "web_address";
   const said = new Set(words.map(lettersOf));
   for (const rival of rivals) {

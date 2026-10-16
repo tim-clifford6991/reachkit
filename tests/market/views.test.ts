@@ -38,10 +38,10 @@ describe("A vendor SerpResult satisfies every view the market leaves read", () =
       verdict: "unjudgeable",
       measuredCount: 0,
     });
-    expect(deriveRivals({ serps: [VENDOR_SERP], ownDomain: "customer.com" }).rivals[0]).toMatchObject({
+    expect(deriveRivals({ serps: [VENDOR_SERP, VENDOR_SERP], ownDomain: "customer.com" }).rivals[0]).toMatchObject({
       domain: "rival.com",
-      top10Appearances: 1,
-      aiCitations: 1,
+      top10Appearances: 2,
+      aiCitations: 2,
     });
   });
 

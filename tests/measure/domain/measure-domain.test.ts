@@ -40,7 +40,7 @@ vi.hoisted(() => {
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { BATTERY, CACHE_WINDOWS_D, PRICE_BOOK } from "@/lib/config/constants";
+import { BATTERY, CACHE_WINDOWS_D, PRICE_BOOK, SLOW_HOME } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import type { RankedResult } from "@/lib/vendors/dataforseo/types";
@@ -51,7 +51,8 @@ import {
   type MeasurePorts,
   type Tier,
 } from "../../../src/lib/measure/index.ts";
-import { measured, type Measured } from "../../../src/lib/measure/measured.ts";
+import { measured, unmeasured, type Measured } from "../../../src/lib/measure/measured.ts";
+import { HOME_TIMEOUT } from "../../../src/lib/measure/challenge.ts";
 import { OWN_FETCH_OPTS, OWN_FETCH_SOURCE } from "../../../src/lib/measure/own-fetch.ts";
 import { OWN_DOCUMENT_MAX_BYTES } from "../../../src/lib/config/constants.ts";
 
@@ -202,7 +203,8 @@ afterEach(() => {
 });
 
 describe('BP-010 `## Responsibility` — "classify every result as measured, measured-zero or unmeasured at the point it is produced, so no downstream surface has to guess which it was"', () => {
-  const REASONS = ["dns", "refused", "timeout", "too_large", "blocked_by_policy", "robots_disallowed", "status"] as const;
+  // A `timeout` is read as a slow site, not a refusal (issue 1449, below).
+  const REASONS = ["dns", "refused", "too_large", "blocked_by_policy", "robots_disallowed", "status"] as const;
 
   it.each(REASONS)("a home document that failed with `%s` is unmeasured/undeterminable, never a 0", async (reason) => {
     const { result } = await measure({ [HOME]: failOutcome(HOME, reason) });
@@ -311,7 +313,7 @@ describe("issue #479 — the own-site read's cap, and a refused home document", 
     };
     await measureDomain(fakeCost(), { domain: DOMAIN, at: SCAN_AT, tier: "free" }, ports);
     expect(seen).toHaveLength(2);
-    for (const opts of seen) expect(opts).toEqual(OWN_FETCH_OPTS);
+    for (const opts of seen) expect(opts).toMatchObject(OWN_FETCH_OPTS);
     expect(OWN_FETCH_OPTS.maxBytes).toBe(OWN_DOCUMENT_MAX_BYTES);
   });
 
@@ -320,7 +322,7 @@ describe("issue #479 — the own-site read's cap, and a refused home document", 
     expect(result.homeRefusal).toBeNull();
   });
 
-  it.each(["dns", "refused", "timeout", "too_large", "blocked_by_policy"] as const)(
+  it.each(["dns", "refused", "too_large", "blocked_by_policy"] as const)(
     "a `%s` home is ledgered as its refusal — never a null payload — and nothing after it is read or bought",
     async (reason) => {
       const { result, cost, ports } = await measure({ [HOME]: failOutcome(HOME, reason) });
@@ -354,11 +356,11 @@ describe('BP-012 `## Error & edge behavior`, governing its callee — "The pipel
     expect(weekly.ports.log.ranked).toEqual([{ domain: DOMAIN, rows: PRICE_BOOK.RANKED_PAID_ROWS }]);
   });
 
-  it("no `tier` comparison appears outside the two lookup tables", () => {
+  it("no `tier` comparison appears outside the three lookup tables", () => {
     expect(CODE_ONLY).not.toMatch(/tier\s*===/);
     expect(CODE_ONLY).not.toMatch(/===\s*"(free|deep|weekly)"/);
-    // The only two reads of `tier` are the two table lookups.
-    expect([...CODE_ONLY.matchAll(/a\.tier/g)]).toHaveLength(2);
+    // The only three reads of `tier` are the three table lookups.
+    expect([...CODE_ONLY.matchAll(/a\.tier/g)]).toHaveLength(3);
   });
 });
 
@@ -483,6 +485,47 @@ describe("SPEC §2 (issue 1379) — a bot-protection page is never measured as t
     const result = await measureDomain(fakeCost(), { domain: DOMAIN, at: SCAN_AT, tier: "free" }, ports);
     expect(result.onPage.kind).toBe("unmeasured");
     expect(result.renderedHome).toBeUndefined();
+  });
+});
+
+describe("issue 1449 — a home page that does not answer in time is read as a slow site, not a refused one", () => {
+  const slow: Readonly<Record<string, FetchOutcome>> = { [HOME]: failOutcome(HOME, "timeout") };
+
+  it("a free pass gives up on it sooner, asks the vendor's browser once, and still buys the ranked rows with their listing", async () => {
+    const opts: unknown[] = [];
+    const listing: boolean[] = [];
+    const base = fakePorts(slow);
+    const ports: MeasurePorts = {
+      ...base,
+      async fetchDocument(url, o) {
+        opts.push(o);
+        return base.fetchDocument(url, o);
+      },
+      async rankedKeywords(c, a) {
+        listing.push(a.listing === true);
+        return base.rankedKeywords(c, a);
+      },
+      renderedPage: async () => unmeasured("undeterminable", READ_AT),
+    };
+    const result = await measureDomain(fakeCost(), { domain: DOMAIN, at: SCAN_AT, tier: "free" }, ports);
+    expect(opts[0]).toMatchObject({ timeoutMs: SLOW_HOME.FREE_READ_MS });
+    expect(result.homeRefusal).toBeNull();
+    expect(result.homeTimedOut).toBe(true);
+    expect(result.onPage).toMatchObject({ kind: "unmeasured", because: HOME_TIMEOUT });
+    expect(result.drivers.searchPresence.kind).toBe("measured");
+    expect(listing).toEqual([true]);
+  });
+
+  it("where the vendor's browser returns the page, the site is measured from it", async () => {
+    const ports: MeasurePorts = {
+      ...fakePorts(slow),
+      renderedPage: async () => measured([{ url: HOME, status: 200, html: RICH_HTML, bytes: RICH_HTML.length, readAt: READ_AT.toISOString() }], READ_AT),
+    };
+    const result = await measureDomain(fakeCost(), { domain: DOMAIN, at: SCAN_AT, tier: "free" }, ports);
+    expect(result.onPage.kind).toBe("measured");
+    expect(result.homeTimedOut).toBeUndefined();
+    expect(result.renderedHome).toBe(RICH_HTML);
+    expect(result.drivers.answerability.kind).toBe("measured");
   });
 });
 

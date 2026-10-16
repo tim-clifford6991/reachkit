@@ -92,7 +92,7 @@ export const writeLeadPage: DraftWriter = async (a) => {
   const decided = contentTypeOf(opportunity);
   if (decided === null) return FAILED;
 
-  const pages = await readDomainText(report.domain);
+  const pages = await readDomainText(report.domain, { customerOnly: true });
   const facts = factsOf(pages);
   const grounding = facts[0];
   // §8 hard rule 1 with nothing to stand on: the page cannot pass.

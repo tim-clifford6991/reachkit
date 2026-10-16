@@ -79,7 +79,7 @@ const CLAIMED_ID = "47947947-9479-4479-8479-479479479479";
 
 /** What `measureDomain` answers for a home document the fetcher refused:
  *  the shape `src/lib/measure/index.ts` returns on that arm. */
-function refusedHome(refusal: "too_large" | "timeout" | "dns"): DomainMeasurement {
+function refusedHome(refusal: "too_large" | "refused" | "dns"): DomainMeasurement {
   return {
     drivers: {
       foundations: unmeasured("undeterminable", AT),
@@ -182,7 +182,8 @@ describe("issue #479 — home document refused → the pass ends `site_unreadabl
     ]);
   });
 
-  it.each(["timeout", "dns"] as const)("a `%s` home ends the same way, carrying its own reason", async (refusal) => {
+  // A `timeout` is no refusal: the site is read from its listing (issue 1449).
+  it.each(["refused", "dns"] as const)("a `%s` home ends the same way, carrying its own reason", async (refusal) => {
     measureDomain.mockResolvedValue(refusedHome(refusal));
     await runScan({ domain: "cal.com", tier: "free" });
     expect(storedReport().stoppedReason).toBe("site_unreadable");

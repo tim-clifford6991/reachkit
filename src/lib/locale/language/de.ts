@@ -121,6 +121,16 @@ export const DE: LanguagePack = {
   ]),
   priceFiller: new Set(["preis", "preise", "kosten", "kostet", "wie", "viel", "wieviel", "was", "ist", "der", "die", "das", "ein", "eine", "tarif", "tarife"]),
   priceWords: withStems(["preis", "preise", "kosten", "kostet", "tarif", "tarife"]),
+  // Drafted (issue 1449); the owner may correct the lists.
+  offering: {
+    before: new Set(["für", "in", "im", "nahe", "mit", "bei", "beim", "von", "vom", "an", "am", "um", "zum", "zur"]),
+    local: new Set(["nähe", "umgebung", "lokal", "stadt", "zentrum", "innenstadt", "geöffnet", "offen", "heute", "jetzt", "24", "stunden", "notdienst", "günstig"]),
+    providers: (
+      "dienst service reparatur installation montage reinigung wartung austausch lieferung laden geschäft café restaurant " +
+      "bäckerei konditorei bar salon praxis studio firma betrieb fachbetrieb agentur berater beratung handwerker " +
+      "frühstück brunch mittagessen mittagstisch abendessen"
+    ).split(" "),
+  },
   stem,
   title: {
     filler: new Set(

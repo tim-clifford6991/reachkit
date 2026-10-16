@@ -63,7 +63,7 @@ export async function buildKnowledge(
   // has since taken down must not stay in the base.
   // The pages as served: whether the site is a shell is asked of them on
   // every pass, never of an earlier pass's rendered reads.
-  const served = (await readMeasuredText({ siteId: a.siteId })).filter((page) => page.rendered !== true);
+  const served = (await readMeasuredText({ siteId: a.siteId, customerOnly: true })).filter((page) => page.rendered !== true);
   const held = ownPages(served, a.domain);
   const profile = await readSiteProfile(a.domain).catch(() => undefined);
   // The base is kept in the profile's row (issue 1414). Where the pass
