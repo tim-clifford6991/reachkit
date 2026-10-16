@@ -6,17 +6,24 @@
 // the local free scans of 2026-10-15 that issue 1449 was fixed on. A
 // software maker keeps the businesses it competes with, the noise that
 // issue 1449's rule let in never enters, and what that rule rightly took
-// out stays out.
+// out stays out. Issue 1468: whether a market is local is read from what
+// the site says of itself (`readsLocal`), and directories, publishers and
+// namesakes stay out generally.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { deriveRivals } from "../../../src/lib/market/rivals/derive.ts";
+import { readsLocal, type ReachProfile } from "../../../src/lib/market/rivals/reach.ts";
 import type { MarketSerp } from "../../../src/lib/market/views.ts";
 
 interface StoredScan {
   id: string;
   domain: string;
   local: boolean;
+  /** The local runs' profile read and home page schema types, from their
+   *  walk records; absent on the production scans, all software makers. */
+  profile?: ReachProfile | null;
+  schemaTypes?: string[];
   serps: MarketSerp[];
 }
 
@@ -29,7 +36,9 @@ beforeEach(() => {
   vi.spyOn(console, "log").mockImplementation(() => {});
 });
 
-const derived = (scan: StoredScan) => deriveRivals({ serps: scan.serps, ownDomain: scan.domain, local: scan.local });
+const localOf = (scan: StoredScan): boolean =>
+  readsLocal({ measuredInTown: scan.local, profile: scan.profile ?? null, schemaTypes: scan.schemaTypes ?? [], serps: scan.serps });
+const derived = (scan: StoredScan) => deriveRivals({ serps: scan.serps, ownDomain: scan.domain, local: localOf(scan) });
 const scan = (id: string): StoredScan => {
   const found = [...STORED, ...LOCAL].find((s) => s.id === id);
   if (found === undefined) throw new Error(`no stored scan ${id}`);
@@ -113,7 +122,7 @@ describe("issue 1465 — the local gains of issue 1449 hold", () => {
     expect(rivalsOf("2026-10-15 (#1449 live) zunicafe.com")).toEqual(["garydanko.com", "sonsanddaughterssf.com", "sprucesf.com", "chezmamanrestos.com", "lardoisesf.com"]);
   });
 
-  it("a local business's report stored before D67 is read as local by its map: no 'aaa' plumbers, recipe sites or marketplaces", () => {
+  it("a local business's report stored before D67 is read as local by its profile: no 'aaa' plumbers, recipe sites or marketplaces", () => {
     for (const s of LOCAL) {
       const rivals = derived(s).rivals.map((r) => r.domain);
       expect(rivals.filter((r) => /^aaa/.test(r)), s.id).toEqual([]);
@@ -121,5 +130,41 @@ describe("issue 1465 — the local gains of issue 1449 hold", () => {
     }
     expect(rivalsOf("2026-10-15 (#1438) peanutplumbingtx.com")).toEqual([]);
     expect(rivalsOf("2026-10-15 (#1438) zunicafe.com")).toEqual([]);
+  });
+});
+
+describe("issue 1468 — a market is local by what the site says of itself, never by the map alone", () => {
+  it("a café, a restaurant, a roaster's shop counter, a plumber and a bakery stored before the town was asked are local", () => {
+    for (const s of LOCAL) expect(localOf(s), s.id).toBe(!/trello|savvycal|streaksapp/.test(s.domain));
+    expect(localOf(scan("2026-10-15 (#1438) zunicafe.com"))).toBe(true);
+    expect(localOf(scan("2026-10-15 (#1438) roselinecoffee.com"))).toBe(true);
+  });
+
+  it("software is national", () => {
+    expect(localOf(scan("2026-10-15 (#1449 live) trello.com"))).toBe(false);
+    for (const s of STORED) expect(localOf(s), s.id).toBe(false);
+  });
+});
+
+describe("issue 1468 — directories, publishers and namesakes are no rival", () => {
+  it.each([
+    ["c87d682f", "deel.com", "uschamber.com"],
+    ["f290ca40", "intercom.com", "outsource-philippines.com"],
+    ["c0534d03", "mailerlite.com", "geeksforgeeks.org"],
+    ["9c4ab63b", "notion.so", "jpmchase.com"],
+    ["9c4ab63b", "notion.so", "deskpass.com"],
+  ])("%s %s does not get %s", (id, _domain, noise) => {
+    expect(rivalsOf(id)).not.toContain(noise);
+  });
+
+  it("the rivals issue 1465 restored stay", () => {
+    expect(rivalsOf("618524da")).toEqual(expect.arrayContaining(["klaviyo.com", "activecampaign.com"]));
+    expect(rivalsOf("b1565f9c")).toEqual(expect.arrayContaining(["ada.cx", "botpress.com"]));
+    expect(rivalsOf("c87d682f")).toContain("remote.com");
+  });
+
+  it("a business explaining its own market keeps its place", () => {
+    expect(rivalsOf("7ae27137")).toEqual(expect.arrayContaining(["atlassian.com", "microsoft.com", "monday.com"]));
+    expect(rivalsOf("4192111d")).toEqual(expect.arrayContaining(["atlassian.com", "microsoft.com", "ibm.com"]));
   });
 });

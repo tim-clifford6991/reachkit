@@ -1,3 +1,25 @@
+/** The reach a stored report holds (issue 1468): the town it measured in,
+ *  its profile read, and its home page's structured data. */
+export function reachOfReport(r: {
+  locale?: { place?: unknown } | null;
+  market: Measured<{ profile: { town?: string; offeringType?: string; category?: string | null } }>;
+  onPage: Measured<{ schemaTypes: readonly string[] }>;
+}): NonNullable<Parameters<typeof cardsOf>[0]["reach"]> {
+  const profile = r.market.kind === "unmeasured" ? null : r.market.value.profile;
+  return {
+    measuredInTown: r.locale?.place !== undefined,
+    profile:
+      profile === null
+        ? null
+        : {
+            ...(profile.town === undefined ? {} : { town: profile.town }),
+            ...(profile.offeringType === undefined ? {} : { offeringType: profile.offeringType }),
+            ...(typeof profile.category === "string" ? { category: profile.category } : {}),
+          },
+    schemaTypes: r.onPage.kind === "unmeasured" ? [] : r.onPage.value.schemaTypes,
+  };
+}
+
 // src/lib/scan/cards.ts — the rivals, the two cards and the coherence
 // verdict, counted over SERPs a pass already holds (§6.6's "zero extra
 // cost").
@@ -10,6 +32,7 @@ import { checkCoherence, type CoherenceVerdict } from "@/lib/market/coherence/ch
 import { buildAiAnswersCard, type AiAnswersCard, type BatteryAnswers } from "@/lib/market/questions/matrix";
 import type { RivalSizeBand } from "@/lib/market/rivals/band";
 import { deriveRivals, type RivalCandidate } from "@/lib/market/rivals/derive";
+import { readsLocal } from "@/lib/market/rivals/reach";
 import { buildPresenceCard, type PresenceCard } from "@/lib/market/rivals/presence";
 import type { MarketSerp, QuestionView, SelectedSearchView } from "@/lib/market/views";
 import type { Measured } from "@/lib/measure/measured";
@@ -32,9 +55,10 @@ export function cardsOf(a: {
   /** `RivalSize` as far as a band goes: a stored sizing, or its slim export. */
   rivalSizes: Measured<readonly { domain: string; state: string; band?: RivalSizeBand }[]>;
   ownDomain: string;
-  /** The pass measured a local business in its town (D67): its local pack
-   *  leads its rivals (issue 1449). */
-  local?: boolean;
+  /** What the site says of its reach (`readsLocal`, issue 1468): a local
+   *  business's local pack leads its rivals (issue 1449). Absent is a
+   *  national market. */
+  reach?: Omit<Parameters<typeof readsLocal>[0], "serps">;
   /** The site's name, as `namesSite` reads it; `null` where none is known. */
   siteName?: string | null;
   coverage: AiAnswersCard["coverage"];
@@ -48,7 +72,8 @@ export function cardsOf(a: {
   if (a.rivalSizes.kind !== "unmeasured") {
     for (const size of a.rivalSizes.value) if (size.state === "sized" && size.band !== undefined) sizes.set(size.domain, size.band);
   }
-  const derivation = deriveRivals({ serps: readSerps, ownDomain: a.ownDomain, sizes, local: a.local === true });
+  const local = a.reach !== undefined && readsLocal({ ...a.reach, serps: readSerps });
+  const derivation = deriveRivals({ serps: readSerps, ownDomain: a.ownDomain, sizes, local });
 
   return {
     rivals: derivation.rivals,

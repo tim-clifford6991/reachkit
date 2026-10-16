@@ -169,15 +169,19 @@ export function isPlatformDomain(host: string): boolean {
 
 /** A path that is an article about others: a blog post, a guide, a review,
  *  a "best" or "top ten" list, a comparison or a list of alternatives. */
-const ARTICLE_SECTION = /^(blogs?|articles?|news|guides?|resources?|resource-hub|learn|insights|magazine|posts?|reviews?|best|top|recipes?)$/;
+const ARTICLE_SECTION = /^(blogs?|articles?|news|guides?|resources?|resource-hub|learn|insights|magazine|posts?|reviews?|best|top|recipes?|directory|compare)$/;
 const ARTICLE_WORD = /(^|[-_])(best|top-?\d+|alternatives?|vs|versus|reviews?|compared|comparison|guides?|recipes?)($|[-_.])/;
-/** A title that is a numbered list of others: "10 Best Cafés in Leeds",
- *  "Top 5 plumbers". A business's own "Best Plumber in Austin" is not one. */
-const LIST_TITLE = /(^|\s)(top\s*\d+|\d+\s+(best|top|great|favourite|favorite))\b/i;
+/** A title that is a list of others: a numbered one ("10 Best Cafés in
+ *  Leeds", "Top 5 plumbers"), a dated one ("Best Email Clients of 2026"),
+ *  or a directory's "Reviews & Comparison". A business's own "Best Plumber
+ *  in Austin" is not one. */
+const LIST_TITLE = /(^|\s)(top\s*\d+|\d+\s+(best|top|great|favourite|favorite))\b|\b(best|top)\b.*\b20\d\d\b|\breviews?\s*(&|and)\s*comparisons?\b/i;
 
 /** Whether an address is an article page (issue 1417): a domain cited for
- *  one is cited as a publisher of a list, not recommended as a product.
- *  Anything that does not parse as an address is not one. */
+ *  one is cited as a publisher of a list, not recommended as a product. A
+ *  directory's page of one category of software (`/software/email-clients/`)
+ *  is one too (issue 1468). Anything that does not parse as an address is
+ *  not one. */
 export function isArticleUrl(url: string): boolean {
   let path: string;
   try {
@@ -186,7 +190,51 @@ export function isArticleUrl(url: string): boolean {
     return false;
   }
   const segments = path.split("/").filter(Boolean);
-  return segments.some((segment) => ARTICLE_SECTION.test(segment) || ARTICLE_WORD.test(segment));
+  return (
+    segments.some((segment) => ARTICLE_SECTION.test(segment) || ARTICLE_WORD.test(segment)) ||
+    segments.slice(0, -1).some((segment) => segment === "software")
+  );
+}
+
+/** A title that explains a subject rather than offers something: "What is
+ *  a PEO?", "11 types of web pages", "How to write a newsletter", "CRM
+ *  explained", "Newsletter examples", "Best practices" (issue 1468). */
+const EXPLAINER_TITLE =
+  /^(what|why|how)\b|\b(what (is|are)|how to|definition|defining|meaning|explained|types of|examples?|best practices|ultimate guide|guide to|beginner'?s guide)\b|\b\w+ types\b|^(was ist|qu'est-ce|qué es|que es)\b/i;
+
+/** Whether a top-ten title explains a subject (issue 1468): a search whose
+ *  top ten is mostly these asks what something is, not whom to buy from. */
+export function isExplainerTitle(title: string): boolean {
+  return EXPLAINER_TITLE.test(title);
+}
+
+/** A title of a page for one place: "Office Space in Merced, CA", a street
+ *  address ("1750 E Golf Rd"), "near Riverton". */
+const PLACE_TITLE = new RegExp(
+  [
+    ",\\s*(?:AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|DC)\\b",
+    "\\b\\d{1,5}\\s+(?:[NSEW]\\.?\\s+)?(?:[A-Z][a-z]+\\s+){1,3}(?:St|Street|Rd|Road|Ave|Avenue|Blvd|Boulevard|Dr|Drive|Ln|Lane|Way|Pkwy|Hwy|Highway)\\b",
+    "\\bnear\\s+(?![Mm]e\\b)[A-Z][a-z]+",
+  ].join("|")
+);
+
+/** Whether a top-ten title names one place (issue 1468): a national
+ *  market's search whose top ten is mostly these is a search for another
+ *  town's businesses, not this business's rivals. */
+export function isPlaceTitle(title: string): boolean {
+  return PLACE_TITLE.test(title);
+}
+
+/** Whether an address is a site's home page: no path, or only a language
+ *  segment (`/en/`, `/en-us/`). */
+export function isHomeUrl(url: string): boolean {
+  let segments: string[];
+  try {
+    segments = new URL(url).pathname.toLowerCase().split("/").filter(Boolean);
+  } catch {
+    return false;
+  }
+  return segments.length === 0 || (segments.length === 1 && LOCALE_SEGMENT.test(segments[0]!));
 }
 
 /** The sections where a business keeps what it writes about its own

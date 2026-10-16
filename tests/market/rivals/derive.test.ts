@@ -281,7 +281,7 @@ describe("issue 1357 — an AI Overview whose sources were not loaded", () => {
 describe("D67, owner ruling 2026-10-15 (issue 1441) — the local pack counts as the top ten", () => {
   it("a business in a search's local pack is a rival found on that search, once however it also ranks", () => {
     const local: MarketSerp = { ...serp({ organic: ["directory-rival.com", "pack-and-organic.com"] }), localPack: [{ domain: "pack-only.co.uk" }, { domain: "pack-and-organic.com" }, { domain: "customer.com" }] };
-    const { rivals } = deriveRivals({ serps: [local, serp({ organic: ["pack-only.co.uk"] })], ownDomain: "customer.com" });
+    const { rivals } = deriveRivals({ serps: [local, serp({ organic: ["pack-only.co.uk"] })], ownDomain: "customer.com", local: true });
     expect(rivals.find((r) => r.domain === "pack-only.co.uk")?.top10Appearances).toBe(2);
     expect(rivals.find((r) => r.domain === "pack-and-organic.com")?.top10Appearances).toBe(1);
     expect(rivals.some((r) => r.domain === "customer.com")).toBe(false);
@@ -295,6 +295,7 @@ describe("issue 1449 — a rival is a business found across the market, never on
     const { rivals } = deriveRivals({
       serps: [packed(["once.com", "twice.com"], ["cafe-on-the-map.co.uk"]), serp({ organic: ["twice.com"] })],
       ownDomain: "customer.com",
+      local: true,
     });
     expect(rivals.map((r) => r.domain).sort()).toEqual(["cafe-on-the-map.co.uk", "twice.com"]);
   });
@@ -302,9 +303,9 @@ describe("issue 1449 — a rival is a business found across the market, never on
   it("for a local business the map's businesses lead, the most often shown first", () => {
     const serps = [packed(["big.com"], ["corner.co.uk", "street.co.uk"]), packed(["big.com"], ["street.co.uk"]), serp({ organic: ["big.com"] })];
     expect(deriveRivals({ serps, ownDomain: "customer.com", local: true }).rivals.map((r) => r.domain)).toEqual(["street.co.uk", "corner.co.uk", "big.com"]);
-    // A market whose searches show a local pack is local though no town
-    // was stored (issue 1465).
-    expect(deriveRivals({ serps, ownDomain: "customer.com" }).rivals.map((r) => r.domain)).toEqual(["street.co.uk", "corner.co.uk", "big.com"]);
+    // Issue 1468: a map on its searches does not make a market local; in a
+    // national one the map's businesses are another town's.
+    expect(deriveRivals({ serps, ownDomain: "customer.com" }).rivals.map((r) => r.domain)).toEqual(["big.com"]);
   });
 
   it("a university is a source, and so is a marketplace for a local business", () => {
@@ -332,7 +333,22 @@ describe("issue 1449 — a rival is a business found across the market, never on
 
   it("a tie of one-search businesses at the last places is left out, never broken by name", () => {
     const pack = ["a.co.uk", "b.co.uk", "c.co.uk", "d.co.uk", "e.co.uk", "f.co.uk"];
-    const { rivals } = deriveRivals({ serps: [packed([], ["lead.co.uk", ...pack]), packed([], ["lead.co.uk"])], ownDomain: "customer.com" });
+    const { rivals } = deriveRivals({ serps: [packed([], ["lead.co.uk", ...pack]), packed([], ["lead.co.uk"])], ownDomain: "customer.com", local: true });
     expect(rivals.map((r) => r.domain)).toEqual(["lead.co.uk"]);
+  });
+});
+
+describe("issue 1468 — a software directory's category page is no rival", () => {
+  it("a directory ranked or cited for a category of software is a source; the maker it lists stays", () => {
+    const one: MarketSerp = {
+      organic: [
+        { position: 1, domain: "sourceforge.net", url: "https://sourceforge.net/software/email-clients/", title: "Best Email Clients of 2026 - Reviews & Comparison" },
+        { position: 2, domain: "canarymail.io", url: "https://canarymail.io/", title: "Canary Mail - The AI email app" },
+      ],
+      aiOverview: { present: true, referenceDomains: ["slashdot.org", "calendly.com"], referenceUrls: ["https://slashdot.org/software/email-clients/", "https://calendly.com/"] },
+    };
+    const { rivals, sources } = deriveRivals({ serps: [one], ownDomain: "hey.com" });
+    expect(rivals.map((r) => r.domain)).toEqual(["calendly.com", "canarymail.io"]);
+    expect(sources).toContain("sourceforge.net");
   });
 });
