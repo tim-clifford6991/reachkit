@@ -61,3 +61,18 @@ describe("a letter outside ASCII is written in ASCII in a slug, never dropped", 
     expect(slugify("Bäckerei Hohe Straße")).toBe("backerei-hohe-strasse");
   });
 });
+
+describe("issue 1449 — a directory's padded name, and near with nothing it is near", () => {
+  it("is not a search", () => {
+    expect(malformedSearch("a a a plumbing services")).toBe("padded_name");
+    expect(malformedSearch("aaa plumbers austin")).toBe("padded_name");
+    expect(malformedSearch("near coffee shop")).toBe("dangling_near");
+    expect(malformedSearch("coffee shop near")).toBe("dangling_near");
+  });
+
+  it("leaves real searches alone", () => {
+    for (const search of ["a plumber near me", "near me coffee shop", "aa meetings near me", "a b testing tools", "coffee shop near leeds station"]) {
+      expect(malformedSearch(search)).toBeNull();
+    }
+  });
+});

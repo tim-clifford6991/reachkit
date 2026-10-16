@@ -71,6 +71,17 @@ export const EN: LanguagePack = {
   ]),
   priceFiller: new Set(["pricing", "price", "prices", "cost", "costs", "how", "much", "is", "does", "do", "the", "a", "plan", "plans"]),
   priceWords: new Set(["price", "pricing", "cost"]),
+  // Drafted (issue 1449); the owner may correct the lists.
+  offering: {
+    before: new Set(["for", "in", "near", "with", "at", "by", "from", "on", "of", "to", "around", "that", "who", "which"]),
+    local: new Set(["nearby", "local", "city", "centre", "center", "downtown", "area", "open", "now", "today", "tonight", "24", "hour", "hours", "same", "day", "emergency", "cheap", "affordable"]),
+    providers: (
+      "service services repair repairs installation installer install replacement cleaning cleaner inspection maintenance removal " +
+      "detection hire rental delivery shop store bar cafe café coffeehouse restaurant bakery bistro pub salon clinic studio " +
+      "company contractor agency firm specialist expert consultant advisor adviser provider technician fitter " +
+      "breakfast brunch lunch dinner takeaway"
+    ).split(" "),
+  },
   title: {
     filler: new Set(
       "a an and are as at be best but by can do does for from how i in is it my of on or our that the to top vs was we what when which who why will with you your".split(" ")

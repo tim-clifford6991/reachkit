@@ -28,19 +28,19 @@ function serp(a: { organic?: string[]; cited?: string[] }): MarketSerp {
 describe('BUILD §6.6 — "score = top10Appearances + 2 × aiCitations (cited-by-AI weighs double)"', () => {
   it("deriveRivals/counts-once-per-serp — one domain twice on one SERP raises its count by 1, not 2", () => {
     const { rivals } = deriveRivals({
-      serps: [serp({ organic: ["rival.com", "other.com", "rival.com"] })],
+      serps: [serp({ organic: ["rival.com", "other.com", "rival.com"] }), serp({ organic: ["rival.com"] })],
       ownDomain: "customer.com",
     });
     const rival = rivals.find((r) => r.domain === "rival.com");
-    expect(rival?.top10Appearances).toBe(1);
+    expect(rival?.top10Appearances).toBe(2);
   });
 
   it("deriveRivals/counts-once-per-serp — an AI Overview citing one domain twice cites it once", () => {
     const { rivals } = deriveRivals({
-      serps: [serp({ cited: ["https://rival.com/a", "https://www.rival.com/b"] })],
+      serps: [serp({ cited: ["https://rival.com/a", "https://www.rival.com/b"] }), serp({ cited: ["rival.com"] })],
       ownDomain: "customer.com",
     });
-    expect(rivals.find((r) => r.domain === "rival.com")?.aiCitations).toBe(1);
+    expect(rivals.find((r) => r.domain === "rival.com")?.aiCitations).toBe(2);
   });
 
   it("deriveRivals/score-is-the-pinned-expression — every candidate's score is top10 + 2 × aiCitations", () => {
@@ -57,17 +57,17 @@ describe('BUILD §6.6 — "score = top10Appearances + 2 × aiCitations (cited-by
         rival.top10Appearances * RIVAL_SCORE.top10Weight + rival.aiCitations * RIVAL_SCORE.aiCitationWeight
       );
     }
-    // a.com: 2 top-ten + 1 citation = 4; b.com: 1 + 1 = 3; c.com: 0 + 1 = 2.
+    // a.com: 2 top-ten + 1 citation = 4; b.com: 1 + 1 = 3; c.com, cited on
+    // one search only, is no rival (issue 1449).
     expect(rivals.map((r) => [r.domain, r.score])).toEqual([
       ["a.com", 4],
       ["b.com", 3],
-      ["c.com", 2],
     ]);
   });
 
   it("deriveRivals/ai-weighs-double — one AI citation outscores one top-ten appearance", () => {
     const { rivals } = deriveRivals({
-      serps: [serp({ organic: ["organic-only.com"], cited: ["cited-only.com"] })],
+      serps: [serp({ organic: ["organic-only.com"], cited: ["cited-only.com"] }), serp({ organic: ["organic-only.com"], cited: ["cited-only.com"] })],
       ownDomain: "customer.com",
     });
     expect(rivals[0]?.domain).toBe("cited-only.com");
@@ -88,7 +88,7 @@ describe('BUILD §6.6 — "strip the customer\'s own domain … partition agains
     const { rivals, sources } = deriveRivals({
       serps: [
         serp({ organic: ["reddit.com", "rival.com"], cited: ["quora.com"] }),
-        serp({ organic: ["reddit.com"] }),
+        serp({ organic: ["reddit.com", "rival.com"] }),
       ],
       ownDomain: "customer.com",
     });
@@ -98,26 +98,22 @@ describe('BUILD §6.6 — "strip the customer\'s own domain … partition agains
 
   it("a store page is a listing: the app it lists is not a rival under the store's domain (issue 1417)", () => {
     const { rivals } = deriveRivals({
-      serps: [serp({ organic: ["play.google.com", "apps.apple.com", "rival.com"] })],
+      serps: [serp({ organic: ["play.google.com", "apps.apple.com", "rival.com"] }), serp({ organic: ["rival.com"] })],
       ownDomain: "customer.com",
     });
     expect(rivals.map((r) => r.domain)).toEqual(["rival.com"]);
   });
 
   it("a domain the AI overview cites only for articles is their publisher, not a rival; a top-ten place counts whatever the page (issue 1417)", () => {
-    const { rivals } = deriveRivals({
-      serps: [
-        {
-          organic: [{ position: 1, domain: "hubspot.com" }],
-          aiOverview: {
-            present: true,
-            referenceDomains: ["zapier.com", "otterly.ai"],
-            referenceUrls: ["https://zapier.com/blog/best-ai-visibility-tool/", "https://otterly.ai/pricing"],
-          },
-        },
-      ],
-      ownDomain: "customer.com",
-    });
+    const one: MarketSerp = {
+      organic: [{ position: 1, domain: "hubspot.com" }],
+      aiOverview: {
+        present: true,
+        referenceDomains: ["zapier.com", "otterly.ai"],
+        referenceUrls: ["https://zapier.com/blog/best-ai-visibility-tool/", "https://otterly.ai/pricing"],
+      },
+    };
+    const { rivals } = deriveRivals({ serps: [one, one], ownDomain: "customer.com" });
     expect(rivals.map((r) => r.domain)).toEqual(["otterly.ai", "hubspot.com"]);
   });
 
@@ -134,7 +130,7 @@ describe('BUILD §6.6 — "strip the customer\'s own domain … partition agains
 
   it("deriveRivals/unparseable-hosts-are-dropped — never counted as somebody", () => {
     const { rivals } = deriveRivals({
-      serps: [serp({ organic: ["", "not a host", "192.0.2.1", "rival.com"] })],
+      serps: [serp({ organic: ["", "not a host", "192.0.2.1", "rival.com"] }), serp({ organic: ["rival.com"] })],
       ownDomain: "customer.com",
     });
     expect(rivals.map((r) => r.domain)).toEqual(["rival.com"]);
@@ -145,7 +141,7 @@ describe('BUILD §6.6 — "top 5 by score = suggested rivals"; fewer than five, 
   it("deriveRivals/top-five-by-score — a market with eight product domains returns exactly COMPETITORS_MAX", () => {
     const eight = ["a", "b", "c", "d", "e", "f", "g", "h"].map((n) => `${n}.com`);
     const { rivals } = deriveRivals({
-      serps: eight.map((domain, i) => serp({ organic: Array(i + 1).fill(domain) })),
+      serps: eight.map((_, i) => serp({ organic: eight.slice(i) })),
       ownDomain: "customer.com",
     });
     expect(rivals).toHaveLength(BATTERY.COMPETITORS_MAX);
@@ -153,7 +149,7 @@ describe('BUILD §6.6 — "top 5 by score = suggested rivals"; fewer than five, 
 
   it("deriveRivals/fewer-than-five-is-legal — two product domains return two rivals", () => {
     const { rivals } = deriveRivals({
-      serps: [serp({ organic: ["one.com", "two.com", "reddit.com"] })],
+      serps: [serp({ organic: ["one.com", "two.com", "reddit.com"] }), serp({ organic: ["one.com", "two.com"] })],
       ownDomain: "customer.com",
     });
     expect(rivals).toHaveLength(2);
@@ -195,13 +191,13 @@ describe('BUILD §6.6 — "the output is identical whether the customer ranks fo
 
 describe("Determinism — identical SERPs in, byte-identical rival order out", () => {
   const tied = [
-    serp({ organic: ["delta.com", "alpha.com", "echo.com"] }),
-    serp({ organic: ["charlie.com", "bravo.com", "foxtrot.com"] }),
+    serp({ organic: ["delta.com", "alpha.com", "echo.com", "charlie.com", "bravo.com", "foxtrot.com"] }),
+    serp({ organic: ["charlie.com", "bravo.com", "foxtrot.com", "delta.com", "alpha.com", "echo.com"] }),
   ];
 
   it("deriveRivals/total-order-under-ties — six domains on an identical score come back in domain order", () => {
     const { rivals } = deriveRivals({ serps: tied, ownDomain: "customer.com" });
-    expect(rivals.every((r) => r.score === 1)).toBe(true);
+    expect(rivals.every((r) => r.score === 2)).toBe(true);
     expect(rivals.map((r) => r.domain)).toEqual([
       "alpha.com",
       "bravo.com",
@@ -213,8 +209,8 @@ describe("Determinism — identical SERPs in, byte-identical rival order out", (
 
   it("deriveRivals/total-order-under-ties — a shuffled input produces the identical output", () => {
     const shuffled = [
-      serp({ organic: ["foxtrot.com", "charlie.com", "bravo.com"] }),
-      serp({ organic: ["echo.com", "alpha.com", "delta.com"] }),
+      serp({ organic: ["foxtrot.com", "charlie.com", "bravo.com", "echo.com", "alpha.com", "delta.com"] }),
+      serp({ organic: ["echo.com", "alpha.com", "delta.com", "foxtrot.com", "charlie.com", "bravo.com"] }),
     ];
     expect(deriveRivals({ serps: shuffled, ownDomain: "customer.com" }).rivals).toEqual(
       deriveRivals({ serps: tied, ownDomain: "customer.com" }).rivals
@@ -258,7 +254,7 @@ describe('BUILD §6.6 — "Zero extra cost — it counts over SERPs already boug
 describe("Observability — counts only, never a domain", () => {
   it("deriveRivals/logs-counts-not-domains", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
-    deriveRivals({ serps: [serp({ organic: ["rival.com", "reddit.com"] })], ownDomain: "customer.com" });
+    deriveRivals({ serps: [serp({ organic: ["rival.com", "reddit.com"] }), serp({ organic: ["rival.com"] })], ownDomain: "customer.com" });
     const line = spy.mock.calls.at(-1)?.[0] as string;
     expect(JSON.parse(line)).toEqual({
       event: "rival_derivation",
@@ -289,5 +285,52 @@ describe("D67, owner ruling 2026-10-15 (issue 1441) — the local pack counts as
     expect(rivals.find((r) => r.domain === "pack-only.co.uk")?.top10Appearances).toBe(2);
     expect(rivals.find((r) => r.domain === "pack-and-organic.com")?.top10Appearances).toBe(1);
     expect(rivals.some((r) => r.domain === "customer.com")).toBe(false);
+  });
+});
+
+describe("issue 1449 — a rival is a business found across the market, never one search's chance", () => {
+  const packed = (organic: string[], pack: string[]): MarketSerp => ({ ...serp({ organic }), localPack: pack.map((domain) => ({ domain })) });
+
+  it("a domain on one search's top ten only is not a rival; one in a local pack is", () => {
+    const { rivals } = deriveRivals({
+      serps: [packed(["once.com", "twice.com"], ["cafe-on-the-map.co.uk"]), serp({ organic: ["twice.com"] })],
+      ownDomain: "customer.com",
+    });
+    expect(rivals.map((r) => r.domain).sort()).toEqual(["cafe-on-the-map.co.uk", "twice.com"]);
+  });
+
+  it("for a local business the map's businesses lead, the most often shown first", () => {
+    const serps = [packed(["big.com"], ["corner.co.uk", "street.co.uk"]), packed(["big.com"], ["street.co.uk"]), serp({ organic: ["big.com"] })];
+    expect(deriveRivals({ serps, ownDomain: "customer.com", local: true }).rivals.map((r) => r.domain)).toEqual(["street.co.uk", "corner.co.uk", "big.com"]);
+    expect(deriveRivals({ serps, ownDomain: "customer.com" }).rivals[0]?.domain).toBe("big.com");
+  });
+
+  it("a university is a source, and so is a marketplace for a local business", () => {
+    const serps = [serp({ organic: ["leedsbeckett.ac.uk", "amazon.co.uk"] }), serp({ organic: ["leedsbeckett.ac.uk", "amazon.co.uk"] })];
+    const local = deriveRivals({ serps, ownDomain: "customer.com", local: true });
+    expect(local.rivals).toEqual([]);
+    expect(local.sources).toEqual(["leedsbeckett.ac.uk", "amazon.co.uk"]);
+    expect(deriveRivals({ serps, ownDomain: "customer.com" }).rivals.map((r) => r.domain)).toEqual(["amazon.co.uk"]);
+  });
+
+  it("a domain whose every top-ten page is an article about others is their publisher", () => {
+    const row = (position: number, domain: string, url: string, title: string) => ({ position, domain, url, title });
+    const one: MarketSerp = {
+      organic: [
+        row(1, "foodguide.co.uk", "https://foodguide.co.uk/leeds/coffee", "10 Best Cafés in Leeds"),
+        row(2, "simplyrecipes.com", "https://simplyrecipes.com/recipes/cold-brew/", "Cold Brew"),
+        row(3, "corner.co.uk", "https://corner.co.uk/", "Corner Coffee | Best coffee in Leeds"),
+      ],
+      aiOverview: { present: false, referenceDomains: [] },
+    };
+    const { rivals, sources } = deriveRivals({ serps: [one, one], ownDomain: "customer.com" });
+    expect(rivals.map((r) => r.domain)).toEqual(["corner.co.uk"]);
+    expect(sources).toEqual(["foodguide.co.uk", "simplyrecipes.com"]);
+  });
+
+  it("a tie of one-search businesses at the last places is left out, never broken by name", () => {
+    const pack = ["a.co.uk", "b.co.uk", "c.co.uk", "d.co.uk", "e.co.uk", "f.co.uk"];
+    const { rivals } = deriveRivals({ serps: [packed(["lead.com"], pack), serp({ organic: ["lead.com"] })], ownDomain: "customer.com" });
+    expect(rivals.map((r) => r.domain)).toEqual(["lead.com"]);
   });
 });

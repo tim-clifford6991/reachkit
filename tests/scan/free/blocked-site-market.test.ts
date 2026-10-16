@@ -63,8 +63,10 @@ const READABLE: Served = {
 };
 
 let served: Served = READABLE;
+/** The site's server did not answer in time (issue 1449). */
+let timesOut = false;
 vi.mock("@/lib/egress/safe-fetch", () => ({
-  safeFetch: async (url: string): Promise<FetchOutcome> => ({
+  safeFetch: async (url: string): Promise<FetchOutcome> => timesOut ? { ok: false, reason: "timeout", url, readAt: READ_AT } : ({
     ok: true,
     status: served.status,
     url,
@@ -174,6 +176,7 @@ beforeEach(() => {
   recording = null;
   current = null;
   served = READABLE;
+  timesOut = false;
   pass += 1;
   scanId = `1387138${pass % 10}-1387-4387-8387-13871387138${Math.floor(pass / 10)}`;
   db.answer = answerQuery;
@@ -306,6 +309,20 @@ describe("a site its bot protection kept the reader off (SPEC §2, issue 1387)",
       return answer;
     };
   }
+
+  it("a home page that does not answer in time takes the same path: an honest partial report, not nothing (issue 1449)", async () => {
+    timesOut = true;
+    recording = loadRecording("sage.com");
+    const { report, spentCents } = await scan("sage.com");
+
+    expect(report.complete).toBe(true);
+    expect(report.stoppedReason).not.toBe("site_unreadable");
+    expect(report.onPage).toMatchObject({ kind: "unmeasured", because: "home_timeout" });
+    expect(report.marketFrom).toBe("search");
+    if (report.questions.kind === "unmeasured") throw new Error("no question was asked");
+    expect(report.questions.value).toHaveLength(BATTERY.QUESTIONS);
+    expect(spentCents).toBeLessThanOrEqual(CAPS.FREE_C);
+  }, PASS_TIMEOUT_MS);
 
   it("guesses no market where the listing is too thin, and keeps why", async () => {
     served = PROTECTED["sage.com"] as Served;

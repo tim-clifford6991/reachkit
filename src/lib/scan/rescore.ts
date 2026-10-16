@@ -74,6 +74,7 @@ export interface RescoreReport extends Pick<
   | "siteIssues"
   | "measuredCategory"
   | "marketPrompts"
+  | "locale"
 > {
   ownRankedRows: readonly (Pick<RankedRow, "position"> & { keyword?: string })[];
   serps: readonly Measured<MarketSerp>[];
@@ -195,6 +196,7 @@ function cardsAfter(
     questions: r.questions.value,
     rivalSizes: r.rivalSizes,
     ownDomain: r.domain,
+    local: r.locale?.place !== undefined,
     siteName: scan.siteName,
     coverage: r.aiAnswers?.coverage ?? "async_included",
   });

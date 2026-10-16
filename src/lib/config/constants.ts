@@ -512,6 +512,18 @@ export const KNOWLEDGE_BASE = Object.freeze({
  *  inside `reading_your_site`'s own ten seconds on the free path. */
 export const CHALLENGE_RENDER_MS = 5_000;
 
+/** Issue 1449 (drafted defaults, the owner may correct them): a free pass's
+ *  plain read of the home page gives up after `FREE_READ_MS`, and a home
+ *  page that did not answer by then is asked once of the vendor's browser,
+ *  waited on for `RENDER_MS` beside the ranked rows — so a slow site's
+ *  rendered read and its listing in search both fit inside
+ *  `reading_your_site`'s ten seconds. A paid pass keeps the fetcher's own
+ *  eight seconds. */
+export const SLOW_HOME = Object.freeze({
+  FREE_READ_MS: 5_000,
+  RENDER_MS: 3_500,
+} as const);
+
 /** SPEC §2 (issue 1427): the one second read of a home page that answered
  *  with an error or a rate limit. It waits what the server's `Retry-After`
  *  asks, or `WAIT_MS` where it asks nothing, and is not made where the
@@ -1641,6 +1653,11 @@ export const PUBLISH_VERIFY_DELAY_H = 24 as const;            // BP-049 · BUILD
  *  the AI weight is the larger of the two: "cited-by-AI weighs double". */
 export const RIVAL_SCORE = Object.freeze({                    // BUILD §6.1 · §6.6
   top10Weight: 1, aiCitationWeight: 2,
+  /** Issue 1449 (drafted default, the owner may correct it): how many of a
+   *  pass's searches must find a domain — in the top ten, the local pack
+   *  or an AI answer — before it is a rival. A place in a local pack
+   *  stands on one. */
+  minSearches: 2,
 } as const);
 
 /** REQ-008 criterion 4: of the searches the customer is absent from, "up

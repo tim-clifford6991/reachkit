@@ -336,6 +336,8 @@ const NOT_A_SEARCH: Readonly<Record<Malformed, string>> = {
   empty_comparison: "compares with nothing",
   web_address: "holds a web address in place of a name",
   domain_for_name: "calls a rival by its domain, not its name",
+  padded_name: "is a directory's padded listing name",
+  dangling_near: "says near with nothing it is near",
 };
 
 /** The site's name as it reads with every letter outside ASCII dropped,

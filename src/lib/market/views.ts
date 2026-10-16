@@ -44,6 +44,11 @@ export interface MarketSerpOrganic {
 export interface MarketOrganicRow {
   position: number;
   domain: string;
+  /** The page's address and title, where the read carried them: a row
+   *  whose page is an article about others is read as its publisher's
+   *  (issue 1449). */
+  url?: string;
+  title?: string;
 }
 
 /** The AI Overview of one SERP as the market leaves read it: whether
