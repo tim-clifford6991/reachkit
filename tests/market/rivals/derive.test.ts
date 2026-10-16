@@ -57,11 +57,13 @@ describe('BUILD §6.6 — "score = top10Appearances + 2 × aiCitations (cited-by
         rival.top10Appearances * RIVAL_SCORE.top10Weight + rival.aiCitations * RIVAL_SCORE.aiCitationWeight
       );
     }
-    // a.com: 2 top-ten + 1 citation = 4; b.com: 1 + 1 = 3; c.com, cited on
-    // one search only, is no rival (issue 1449).
+    // a.com: 2 top-ten + 1 citation = 4; b.com: 1 + 1 = 3; c.com: one
+    // citation = 2, and outside a local market one search finds a rival
+    // (issue 1465).
     expect(rivals.map((r) => [r.domain, r.score])).toEqual([
       ["a.com", 4],
       ["b.com", 3],
+      ["c.com", 2],
     ]);
   });
 
@@ -195,24 +197,22 @@ describe("Determinism — identical SERPs in, byte-identical rival order out", (
     serp({ organic: ["charlie.com", "bravo.com", "foxtrot.com", "delta.com", "alpha.com", "echo.com"] }),
   ];
 
-  it("deriveRivals/total-order-under-ties — six domains on an identical score come back in domain order", () => {
+  it("deriveRivals/total-order-under-ties — six domains on an identical score come back by their best place, then by domain", () => {
     const { rivals } = deriveRivals({ serps: tied, ownDomain: "customer.com" });
     expect(rivals.every((r) => r.score === 2)).toBe(true);
+    // Best places: charlie and delta 1, alpha and bravo 2, echo and foxtrot 3
+    // (issue 1465).
     expect(rivals.map((r) => r.domain)).toEqual([
-      "alpha.com",
-      "bravo.com",
       "charlie.com",
       "delta.com",
+      "alpha.com",
+      "bravo.com",
       "echo.com",
     ]);
   });
 
-  it("deriveRivals/total-order-under-ties — a shuffled input produces the identical output", () => {
-    const shuffled = [
-      serp({ organic: ["foxtrot.com", "charlie.com", "bravo.com", "echo.com", "alpha.com", "delta.com"] }),
-      serp({ organic: ["echo.com", "alpha.com", "delta.com", "foxtrot.com", "charlie.com", "bravo.com"] }),
-    ];
-    expect(deriveRivals({ serps: shuffled, ownDomain: "customer.com" }).rivals).toEqual(
+  it("deriveRivals/total-order-under-ties — the same searches in another order produce the identical output", () => {
+    expect(deriveRivals({ serps: [tied[1]!, tied[0]!], ownDomain: "customer.com" }).rivals).toEqual(
       deriveRivals({ serps: tied, ownDomain: "customer.com" }).rivals
     );
   });
@@ -302,7 +302,9 @@ describe("issue 1449 — a rival is a business found across the market, never on
   it("for a local business the map's businesses lead, the most often shown first", () => {
     const serps = [packed(["big.com"], ["corner.co.uk", "street.co.uk"]), packed(["big.com"], ["street.co.uk"]), serp({ organic: ["big.com"] })];
     expect(deriveRivals({ serps, ownDomain: "customer.com", local: true }).rivals.map((r) => r.domain)).toEqual(["street.co.uk", "corner.co.uk", "big.com"]);
-    expect(deriveRivals({ serps, ownDomain: "customer.com" }).rivals[0]?.domain).toBe("big.com");
+    // A market whose searches show a local pack is local though no town
+    // was stored (issue 1465).
+    expect(deriveRivals({ serps, ownDomain: "customer.com" }).rivals.map((r) => r.domain)).toEqual(["street.co.uk", "corner.co.uk", "big.com"]);
   });
 
   it("a university is a source, and so is a marketplace for a local business", () => {
@@ -330,7 +332,7 @@ describe("issue 1449 — a rival is a business found across the market, never on
 
   it("a tie of one-search businesses at the last places is left out, never broken by name", () => {
     const pack = ["a.co.uk", "b.co.uk", "c.co.uk", "d.co.uk", "e.co.uk", "f.co.uk"];
-    const { rivals } = deriveRivals({ serps: [packed(["lead.com"], pack), serp({ organic: ["lead.com"] })], ownDomain: "customer.com" });
-    expect(rivals.map((r) => r.domain)).toEqual(["lead.com"]);
+    const { rivals } = deriveRivals({ serps: [packed([], ["lead.co.uk", ...pack]), packed([], ["lead.co.uk"])], ownDomain: "customer.com" });
+    expect(rivals.map((r) => r.domain)).toEqual(["lead.co.uk"]);
   });
 });
