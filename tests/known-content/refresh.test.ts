@@ -32,9 +32,24 @@ vi.mock("@/lib/known-content/store", () => ({
   readKnownContent: async () => [],
 }));
 
+/** The pages ReachKit wrote, as `./ours` reads them; the rule is its own. */
+const ours = { url: null as string | null };
+vi.mock("@/lib/db", () => ({ dbAdmin: vi.fn() }));
+vi.mock("@/lib/known-content/ours", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/known-content/ours")>();
+  return {
+    ...actual,
+    readOurPages: async () =>
+      ours.url === null
+        ? actual.NO_PAGES_OF_OURS
+        : { addresses: new Set([actual.addressKey(ours.url) ?? ""]), hosts: new Set<string>() },
+  };
+});
+
 beforeEach(() => {
   written.length = 0;
   writeFails.on = null;
+  ours.url = null;
 });
 
 function inventory(n: number): InventoryRow[] {
@@ -83,6 +98,23 @@ describe("#928 — a refresh writes each source on its own", () => {
     const result = await refreshKnownContent({ siteId: "site-1", inventory: inventory(1) });
     expect(result.reachkit).toBeNull();
     expect(result.site).toBe(1);
+  });
+});
+
+describe("issue 1456 — a page ReachKit wrote is never one of the customer's own", () => {
+  it("is left out of the crawl's rows and the WordPress rows, and stays a `reachkit` row", async () => {
+    ours.url = "https://acme.example/blog/winter-care";
+    await refreshKnownContent({
+      siteId: "site-1",
+      inventory: [...inventory(1), { url: "https://acme.example/blog/winter-care/", title: "Winter care", h1: "Winter care", purpose: "blog" }],
+      readWordPress: async () => [
+        { source: "wordpress", ref: "9", url: "https://acme.example/blog/winter-care", title: "Winter care", headings: [], live: true, publishedAt: null },
+        { source: "wordpress", ref: "8", url: "https://acme.example/p/8", title: "Theirs", headings: [], live: true, publishedAt: null },
+      ],
+    });
+    const urls = (source: KnownSource) => written.find((row) => row.source === source)?.pages.map((page) => page.url);
+    expect(urls("site")).toEqual(["https://acme.example/page-0"]);
+    expect(urls("wordpress")).toEqual(["https://acme.example/p/8"]);
   });
 });
 

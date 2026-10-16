@@ -18,7 +18,6 @@ import { copy } from "@/lib/presentation/copy";
 import type { LinkMap } from "@/lib/known-content/link-map";
 
 const ICON = { strokeWidth: 1.75, "aria-hidden": true } as const;
-const VALUE_BOX = "min-w-0 max-w-full overflow-x-auto";
 
 function readable(url: string): string {
   try {
@@ -57,8 +56,8 @@ export function LinkMapPanel(p: { map: LinkMap }): React.JSX.Element {
                 <ul className="list min-w-0 rounded-box" data-testid="settings-link-map-receiving">
                   {p.map.receiving.map((page) => (
                     <li className="list-row min-w-0 px-0" key={page.url}>
-                      <span className={`list-col-grow ${VALUE_BOX}`}>
-                        <a className="link link-hover num text-sm" href={page.url} target="_blank" rel="noreferrer">
+                      <span className="list-col-grow min-w-0">
+                        <a className="link link-hover font-mono break-all text-sm" href={page.url} target="_blank" rel="noreferrer">
                           {readable(page.url)}
                         </a>
                       </span>

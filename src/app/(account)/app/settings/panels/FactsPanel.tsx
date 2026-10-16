@@ -22,11 +22,9 @@
 // link under it folds at its own boundaries, and the row's control sits
 // below both at 390 rather than beside them.
 //
-// **The address is a value, so it carries `.num`** — `src/ui/type.css`'s one
-// mechanism for §2.3's "every numeral, date, URL … in JetBrains Mono". It is
-// also the one thing here that cannot be allowed to fold mid-string, which
-// is what `.num`'s own rules already guarantee; where it will not fit, the
-// box changes, which at this width means the row grows taller.
+// **The address is mono and breaks anywhere** (`docs/DESIGN.md`, 2026-10-15,
+// issue 1456): `font-mono break-all`, never `.num`, whose `nowrap` pushed a
+// long address past the card and scrolled the whole page sideways at 390.
 "use client";
 
 import type React from "react";
@@ -83,7 +81,7 @@ function Fact(p: {
         </p>
         <span className="flex min-w-0 flex-wrap items-center gap-2 text-xs">
           <a
-            className="link link-hover num min-w-0"
+            className="link link-hover min-w-0 font-mono break-all"
             href={fact.url}
             target="_blank"
             rel="noreferrer"

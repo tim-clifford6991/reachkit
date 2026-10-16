@@ -100,19 +100,13 @@ export function PageRecordBlock(p: {
         {record.address.offered ? (
           <>
             <span>{writtenLine(record.address.label)}</span>
-            {/* **The box scrolls; the address is not clipped** (#931's
-                shot harness found this on the delivered fixture at 390).
-                `.truncate` is allow-listed for clamped *prose*, and this
-                is a value: `checks.ts` reads the mono face off the
-                computed style and fails a cut-off address whatever box it
-                sits in — "a domain or a query cut in half is a different
-                value" — and a reviewer needs the whole live address to
-                check the page is where we say it is. `src/ui/type.css`
-                names the remedy: the *box* changes (`overflow-x-auto`),
-                never the value. No `tabIndex` on the wrap, because what
-                is inside it is a link and already takes focus. */}
-            <span className="min-w-0 max-w-full overflow-x-auto">
-              <a className="link num" href={record.address.url}>
+            {/* **The address wraps; it is never clipped** (#931's shot
+                harness found a cut-off one at 390). A reviewer needs the
+                whole live address to check the page is where we say it
+                is, so it is mono and breaks anywhere (`docs/DESIGN.md`,
+                2026-10-15, issue 1456) rather than scrolling sideways. */}
+            <span className="min-w-0 max-w-full">
+              <a className="link font-mono break-all" href={record.address.url}>
                 {record.address.url}
               </a>
             </span>

@@ -127,10 +127,7 @@ export function SearchResult(p: {
           </summary>
           <div className={CLOSED.body}>
             <div className="rounded-box bg-base-200 flex min-w-0 flex-col gap-1 p-4">
-              <span
-                className={`num text-xs text-base-content/70 ${VALUE_BOX}`}
-                tabIndex={0}
-              >
+              <span className="min-w-0 font-mono break-all text-xs text-base-content/70">
                 {readableAddress(p.publisher.url)}
               </span>
               {/* The title as a result draws it: the one blue line. Not a link —
@@ -245,9 +242,9 @@ export function WrittenFromCard(p: {
                             {copy("draft.written-from.source-unknown")}
                           </span>
                         ) : (
-                          <span className={VALUE_BOX}>
+                          <span className="min-w-0 max-w-full">
                             <a
-                              className="link link-hover num text-xs"
+                              className="link link-hover font-mono break-all text-xs"
                               href={fact.url}
                               target="_blank"
                               rel="noreferrer"
@@ -572,8 +569,8 @@ export function LinksCard(p: { links: PageLinks }): React.JSX.Element | null {
                         <li className="list-row min-w-0" key={link.url}>
                           <span className="list-col-grow min-w-0 text-sm wrap-anywhere">{link.text}</span>
                           <span className="list-col-wrap flex min-w-0 flex-col items-start gap-1">
-                            <span className={VALUE_BOX}>
-                              <a className="link link-hover num text-xs" href={link.url} target="_blank" rel="noreferrer">
+                            <span className="min-w-0 max-w-full">
+                              <a className="link link-hover font-mono break-all text-xs" href={link.url} target="_blank" rel="noreferrer">
                                 {readableAddress(link.url)}
                               </a>
                             </span>
@@ -597,7 +594,7 @@ export function LinksCard(p: { links: PageLinks }): React.JSX.Element | null {
                       <li className="list-row min-w-0" key={`${link.url}-${link.text}`}>
                         <span className="list-col-grow min-w-0 text-sm wrap-anywhere">{link.text}</span>
                         <span className="list-col-wrap flex min-w-0 flex-col items-start gap-1">
-                          <span className={`num text-xs text-base-content/70 ${VALUE_BOX}`} tabIndex={0}>
+                          <span className="min-w-0 max-w-full font-mono break-all text-xs text-base-content/70">
                             {readableAddress(link.url)}
                           </span>
                           <span className="min-w-0 text-xs text-base-content/70 wrap-anywhere">

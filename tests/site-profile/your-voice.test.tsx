@@ -36,6 +36,11 @@ vi.mock("@anthropic-ai/sdk", () => ({
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), redirect: vi.fn() }));
 vi.mock("../../src/lib/site-profile/crawl", () => ({ crawlSite: crawlMock }));
+// No page of this site is one ReachKit wrote (issue 1456).
+vi.mock("@/lib/known-content/ours", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/known-content/ours")>()),
+  readOurPages: async () => ({ addresses: new Set<string>(), hosts: new Set<string>() }),
+}));
 vi.mock("../../src/lib/site-profile/store", () => ({
   writeSiteProfile: writeMock,
   readSiteProfile: vi.fn(),

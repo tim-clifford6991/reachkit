@@ -75,10 +75,32 @@ function compareMeasuredText(a: MeasuredText, b: MeasuredText): number {
   return a.url < b.url ? -1 : a.url > b.url ? 1 : 0;
 }
 
+/** Which pages a read is for. `customerOnly` is every reader of facts about
+ *  the business: it leaves out the pages ReachKit wrote (SPEC §5,
+ *  2026-10-15, issue 1456). A measurement, a comparison or a link reads
+ *  them all — our pages are on the site and are measured as its pages. */
+export interface TextRead {
+  customerOnly?: boolean;
+}
+
+async function customerPages(
+  pages: MeasuredText[],
+  read: TextRead | undefined,
+  whose: { siteId: string } | { domain: string }
+): Promise<MeasuredText[]> {
+  if (read?.customerOnly !== true || pages.length === 0) return pages;
+  const { readOurPages, withoutOurPages } = await import("@/lib/known-content/ours");
+  return withoutOurPages(pages, await readOurPages(whose));
+}
+
 /** Every page measured for `siteId` — or for one of its scans, when
  *  `scanId` is given — as rendered text. One indexed read of `scans`, one
  *  of `fetches`; no fetch, no write. */
-export async function readMeasuredText(a: { siteId: string; scanId?: string }): Promise<MeasuredText[]> {
+export async function readMeasuredText(a: { siteId: string; scanId?: string } & TextRead): Promise<MeasuredText[]> {
+  return customerPages(await measuredText(a), a, { siteId: a.siteId });
+}
+
+async function measuredText(a: { siteId: string; scanId?: string }): Promise<MeasuredText[]> {
   const client = dbAdmin();
 
   let scansQuery = client.from("scans").select("id, domain").eq("site_id", a.siteId);
@@ -118,13 +140,13 @@ export async function readMeasuredText(a: { siteId: string; scanId?: string }): 
 
 /** The pages the free scans of `domain` measured (issue 787): a free report's
  *  lead has no site, so its page is grounded on the domain's own reads. */
-export async function readDomainText(domain: string): Promise<MeasuredText[]> {
+export async function readDomainText(domain: string, read?: TextRead): Promise<MeasuredText[]> {
   const free = await dbAdmin().from("scans").select("id").eq("tier", "free").eq("domain", domain);
   if (free.error) {
     throw new Error(`text.ts: read from scans failed: ${free.error.message}`);
   }
   const scanIds = (free.data ?? []).map((row) => row.id);
-  return scanIds.length === 0 ? [] : textOfScans(scanIds);
+  return scanIds.length === 0 ? [] : customerPages(await textOfScans(scanIds), read, { domain });
 }
 
 async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> {
