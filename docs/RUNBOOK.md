@@ -1118,6 +1118,18 @@ Until then `POST /api/setup` answered 500 on `dev.reachkit.app` (the deployed co
 `apply_setup_choice` with four arguments; the live function still took three), and `GET /app`
 logged `retention store: seen: column users.last_seen_at does not exist`.
 
+### Applied 2026-10-16
+
+The master session applied two migrations to the `reachkit` project through the connector on
+2026-10-16:
+
+1. `20261015120000_jobs_draft_days`: `draft_days` (issue 1455)
+2. `20261015120000_sites_profile_ours`: removed 5 `known_content` rows on `content.reachkit.app`
+
+The security advisor afterwards showed the expected `rls_enabled_no_policy` INFO row for
+`draft_days` and the `known_content_near` finding of issue 1472, which
+`20261016120000_sites_content_known_grants` closes.
+
 **Dev shares this database.** There is one Supabase project (§2). A migration merged to `main` and
 left unapplied breaks `dev.reachkit.app` as soon as a code path reads its columns, as the two
 failures above did.
@@ -1147,6 +1159,7 @@ what each report means here:
 |---|---|
 | `function_search_path_mutable` — eight plpgsql functions | **Fixed** by `supabase/migrations/20260909130000_rls_functions_search_path.sql` (#384): each function pins `set search_path = ''` and names this schema's tables `public.<table>`. Re-applied to the project through the connector after the merge; the WARN count is then 0. A new function without the clause fails `tests/db/functions-search-path.test.ts` before it can reach the project |
 | `rls_enabled_no_policy` — `domain_blocks`, `email_suppressions`, `fetches`, `job_runs` (the job heartbeat, #799 — six INFO rows once its migration is applied) in `public` (`auth_links` dropped 2026-09-10, #468), and two tables in `v2_archive` | **By design, and now said in place.** The four in `public` are `dbAdmin()`-only (BUILD §10 default-deny) and each carries a `comment on table` naming the rule, so the intent is where the advisor reads. The two in `v2_archive` are v2's frozen objects, kept as the v2 rollback path (*Backups and restore*); they are not v3's to change and go when the rollback path is retired |
+| `anon_security_definer_function_executable`, `authenticated_security_definer_function_executable` — `known_content_near` | **Fixed** by `supabase/migrations/20261016120000_sites_content_known_grants.sql` (issue 1472): `execute` is revoked from `public`, `anon` and `authenticated`, and kept for `service_role`, the only caller (`dbAdmin()`). Apply it through the connector after the merge; neither finding should remain. A `security definer` function that a session can execute fails `tests/db/functions-search-path.test.ts` before it can reach the project |
 | `auth_leaked_password_protection` — HaveIBeenPwned check disabled | **Not applicable.** v3 has no passwords: sign-in is a one-time link and nothing else (REQ-098 — "no password field, no social sign-in"; `supabase/config.toml` sets `enable_password_signin = false`). There is no password for the check to read, so the setting stays off and this WARN is expected on every advisor run |
 
 ### The substrate
