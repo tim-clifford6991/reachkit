@@ -33,7 +33,7 @@ import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import type { PresenceCard } from "@/lib/market/rivals/presence";
 import type { MarketSerp, QuestionView } from "@/lib/market/views";
 import { AI_ANSWER_SOURCES, type RankedRow } from "@/lib/vendors/dataforseo/types";
-import { cardsOf } from "./cards";
+import { cardsOf, reachOfReport } from "./cards";
 import { readAsProtection, unreadByProtection } from "./challenged";
 import { marketEvidence, type EvidenceReport } from "./market-evidence";
 import type { AnswerCell, EngineCell, StoredReport } from "./report";
@@ -81,7 +81,7 @@ export interface RescoreReport extends Pick<
   questions: Measured<QuestionView[]>;
   rivalSizes: Measured<readonly { domain: string; state: string; band?: RivalSizeBand }[]>;
   aiAnswers: RescoreAnswers | null;
-  market: Measured<{ profile: { category: string | null } }>;
+  market: Measured<{ profile: { category: string | null; town?: string; offeringType?: string } }>;
 }
 
 /** One stored scan, as the export hands it over. */
@@ -196,7 +196,7 @@ function cardsAfter(
     questions: r.questions.value,
     rivalSizes: r.rivalSizes,
     ownDomain: r.domain,
-    local: r.locale?.place !== undefined,
+    reach: reachOfReport(r),
     siteName: scan.siteName,
     coverage: r.aiAnswers?.coverage ?? "async_included",
   });

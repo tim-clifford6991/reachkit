@@ -20,7 +20,7 @@
 // all `./domains`' — one implementation in the product, not two.
 import { BATTERY, RIVAL_SCORE } from "@/lib/config/constants";
 import type { MarketOrganicRow, MarketSerp } from "../views";
-import { isAcademicDomain, isArticleRow, isArticleUrl, isListingAddress, isMarketplaceHost, isOwnContentUrl, isOwnDomain, isPlatformDomain, registrableDomain } from "./domains";
+import { isAcademicDomain, isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isListingAddress, isMarketplaceHost, isOwnContentUrl, isOwnDomain, isPlaceTitle, isPlatformDomain, registrableDomain } from "./domains";
 
 /** `band.ts`'s `RivalSizeBand`, spelled out: the free card's modules name no
  *  sizing module, not even for a type (§6.4, `size.test.ts`). */
@@ -46,6 +46,9 @@ interface Tally {
   /** The searches it was found on, by their index: a top-ten place, a place
    *  in the local pack or an AI citation, once a search (issue 1449). */
   searches: Set<number>;
+  /** The searches it was found on other than as an explanation an AI
+   *  overview cited on a search that asks what something is (issue 1468). */
+  offered: Set<number>;
   /** How many searches showed it in the local pack. */
   localPack: number;
   /** Its organic top-ten rows, and how many of them are roundups of
@@ -81,6 +84,38 @@ function byScoreThenDomain(a: RivalCandidate, b: RivalCandidate): number {
   );
 }
 
+/** The words of a host's labels, its public suffix left out:
+ *  `myworkspace-sg-1.jpmchase.com` -> myworkspace, sg, jpmchase. */
+function hostWords(host: string): string[] {
+  const domain = registrableDomain(host);
+  if (domain === null) return [];
+  const suffix = domain.slice(domain.indexOf(".") + 1);
+  const name = host.toLowerCase().replace(/^www\./, "").slice(0, -suffix.length - 1);
+  return name.split(/[.\-_\d]+/).filter((word) => word.length >= 4);
+}
+
+/**
+ * Whether a search finds a name rather than a market (issue 1468): at least
+ * half its top ten sits on hosts that carry one word, held by at least
+ * three different businesses — `workspace.google.com`, `my.workspace.cc`,
+ * `workspace-tok-jp.jpmchase.com`. A word one business holds on many
+ * pages is that business's own search, and stays.
+ */
+function isNamesakeSearch(serp: MarketSerp): boolean {
+  const owners = new Map<string, Set<string>>();
+  const rows = new Map<string, number>();
+  for (const row of serp.organic) {
+    const domain = registrableDomain(row.domain);
+    if (domain === null) continue;
+    for (const word of new Set(hostWords(row.domain))) {
+      owners.set(word, (owners.get(word) ?? new Set()).add(domain));
+      rows.set(word, (rows.get(word) ?? 0) + 1);
+    }
+  }
+  for (const [word, held] of owners) if (held.size >= 3 && (rows.get(word) ?? 0) * 2 >= serp.organic.length) return true;
+  return false;
+}
+
 /**
  * §6.6's derivation, step for step: every organic top-ten domain and every
  * AI Overview reference domain across the supplied SERPs, the customer's
@@ -104,9 +139,9 @@ function byScoreThenDomain(a: RivalCandidate, b: RivalCandidate): number {
 export function deriveRivals(a: {
   serps: readonly MarketSerp[];
   ownDomain: string;
-  /** The pass measured a local business in its town (D67, issue 1441):
-   *  the businesses of its local pack lead, and a marketplace is a source
-   *  (issue 1449). */
+  /** The market is a local business's (`readsLocal`, issue 1468): the
+   *  businesses of its local pack lead, and a marketplace is a source
+   *  (issue 1449). Absent is a national market. */
   local?: boolean;
   /** The bands a pass already holds for some of these domains (SPEC §6
    *  right-sizing, owner walk 2026-09-17, issue 858) — the tracked rivals a
@@ -115,17 +150,23 @@ export function deriveRivals(a: {
    *  those nobody sized. Absent (the free path): the score order alone. */
   sizes?: ReadonlyMap<string, SizeBand>;
 }): { rivals: RivalCandidate[]; sources: string[] } {
-  // A market whose searches show a local pack is a local one, though the
-  // report that holds them stored no town (issue 1465: the scans of local
-  // businesses before D67).
-  const local = a.local === true || a.serps.some((serp) => (serp.localPack?.length ?? 0) > 0);
-  // A top-ten page that is an article about others (issue 1449). Outside a
-  // local market, not one in the domain's own blog or resources (issue
-  // 1465): a software maker's "15 best email platforms" in its blog is that
-  // business writing about its market, while a review site's roundup is the
-  // site.
+  // Whether the market is local is the site's own reach (`readsLocal`),
+  // never the map alone: a national bookkeeping or forms company is shown a
+  // map on some of its searches too (issue 1468).
+  const local = a.local === true;
+  // A top-ten page that is an article about others (issue 1449), or one
+  // that explains a subject (issue 1468). Outside a local market, not one
+  // in the domain's own blog or resources (issue 1465): a software maker's
+  // "15 best email platforms" in its blog is that business writing about
+  // its market, while a review site's roundup is the site.
   const isRoundup = (row: MarketOrganicRow): boolean =>
-    isArticleRow(row) && (local || row.url === undefined || !isOwnContentUrl(row.url));
+    (isArticleRow(row) || (row.title !== undefined && isExplainerTitle(row.title))) &&
+    (local || row.url === undefined || !isOwnContentUrl(row.url));
+  // The share of a search's titled top ten that `test` holds, at least half.
+  const mostly = (serp: MarketSerp, test: (title: string) => boolean): boolean => {
+    const titles = serp.organic.flatMap((row) => (row.title === undefined ? [] : [row.title]));
+    return titles.length > 0 && titles.filter(test).length * 2 >= titles.length;
+  };
   const tallies = new Map<string, Tally>();
   const sources: string[] = [];
   const seenSources = new Set<string>();
@@ -134,7 +175,7 @@ export function deriveRivals(a: {
   const tally = (domain: string): Tally => {
     const existing = tallies.get(domain);
     if (existing) return existing;
-    const fresh: Tally = { domain, top10Appearances: 0, aiCitations: 0, searches: new Set(), localPack: 0, organicRows: 0, roundupRows: 0, bestPosition: NO_POSITION, bestCitation: NO_POSITION };
+    const fresh: Tally = { domain, top10Appearances: 0, aiCitations: 0, searches: new Set(), offered: new Set(), localPack: 0, organicRows: 0, roundupRows: 0, bestPosition: NO_POSITION, bestCitation: NO_POSITION };
     tallies.set(domain, fresh);
     productDomains += 1;
     return fresh;
@@ -172,9 +213,23 @@ export function deriveRivals(a: {
   };
 
   a.serps.forEach((serp, index) => {
+    // Issue 1468: in a national market, a search whose top ten is mostly
+    // pages of one place each ("Office Space in Merced, CA") looks for
+    // another town's businesses, and none of them is this one's rival.
+    if (!local && mostly(serp, isPlaceTitle)) return;
+    // A search whose top ten is mostly businesses that share one word of
+    // their name ("workspace": a bank's portal, a coworking chain, a
+    // collaboration suite) finds what is called that, not what this market
+    // buys (issue 1468).
+    if (isNamesakeSearch(serp)) return;
+    // A search whose top ten mostly explains a subject ("What is a PEO?",
+    // "11 types of web pages") asks what something is (issue 1468).
+    const informational = mostly(serp, isExplainerTitle);
+    // The overview of such a search cites what explains the subject: a
+    // domain cited there for a page other than its home is found as a
+    // publisher of that explanation, unless it is found otherwise too, or
+    // explains on two searches (issue 1468).
     const countedTop10 = new Set<string>();
-    // A business in the local pack appears in the search as one in the top
-    // ten does (D67, issue 1441).
     for (const row of serp.organic) {
       const domain = classify(row.domain, row.url);
       if (domain === null) continue;
@@ -186,15 +241,20 @@ export function deriveRivals(a: {
       countedTop10.add(domain);
       t.top10Appearances += 1;
       t.searches.add(index);
+      t.offered.add(index);
     }
+    // A business in the local pack appears in the search as one in the top
+    // ten does (D67, issue 1441). In a national market the map shows the
+    // businesses of whatever town the search was read in (issue 1468).
     const countedPack = new Set<string>();
-    for (const row of serp.localPack ?? []) {
+    for (const row of local ? (serp.localPack ?? []) : []) {
       const domain = classify(row.domain);
       if (domain === null || countedPack.has(domain)) continue;
       countedPack.add(domain);
       const t = tally(domain);
       t.localPack += 1;
       t.searches.add(index);
+      t.offered.add(index);
       if (countedTop10.has(domain)) continue;
       countedTop10.add(domain);
       t.top10Appearances += 1;
@@ -219,12 +279,14 @@ export function deriveRivals(a: {
         }
       });
     serp.aiOverview.referenceDomains.forEach((host, cited) => {
-      const domain = classify(host, citedAt(host));
+      const at = citedAt(host);
+      const domain = classify(host, at);
       if (domain === null || countedCitations.has(domain) || onlyArticles(domain)) return;
       countedCitations.add(domain);
       const t = tally(domain);
       t.aiCitations += 1;
       t.searches.add(index);
+      if (!informational || (at !== undefined && isHomeUrl(at))) t.offered.add(index);
       t.bestCitation = Math.min(t.bestCitation, cited + 1);
     });
   });
@@ -248,7 +310,9 @@ export function deriveRivals(a: {
   const kept: Tally[] = [];
   for (const t of tallies.values()) {
     const banded = sizes.has(t.domain) && sizes.get(t.domain) !== "far";
-    const publisher = t.localPack === 0 && t.organicRows > 0 && t.roundupRows === t.organicRows && t.aiCitations === 0;
+    const publisher =
+      (t.localPack === 0 && t.organicRows > 0 && t.roundupRows === t.organicRows && t.aiCitations === 0) ||
+      (t.offered.size === 0 && t.searches.size < 2);
     if (publisher) {
       if (!seenSources.has(t.domain)) platforms -= 1;
       toSources(t.domain);
