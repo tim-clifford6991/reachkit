@@ -84,6 +84,10 @@ const PURGE_ORDER: readonly {
   // of this customer's pages.
   { table: "fetches", column: "scan_id", from: "scanIds" },
   { table: "scans", column: "site_id", from: "siteIds" },
+  // How each draft day ended and why, and when the owner was told a day had
+  // no page (issue 1455). No cascade (ADR-051 point 7), so it goes here,
+  // before `sites`.
+  { table: "draft_days", column: "site_id", from: "siteIds" },
   // Destination credentials.
   { table: "destinations", column: "site_id", from: "siteIds" },
   { table: "sites", column: "user_id", from: "userIds" },

@@ -162,8 +162,8 @@ describe("supply is the cap — the calendar is never padded", () => {
   });
 });
 
-describe("issue 857 — the plan stops the day before the next weekly pass", () => {
-  it("plans today through Sunday and nothing after, however much supply is left", async () => {
+describe("issue 1455 — the plan is the next seven days", () => {
+  it("plans today and the six days after it and nothing further, however much supply is left", async () => {
     withSupply(30);
     const facts = await readCalendarFacts({ site: SITE, month: "2026-09", now: NOW });
     expect(facts.drafts.map((d) => d.scheduledFor)).toEqual([
@@ -173,6 +173,7 @@ describe("issue 857 — the plan stops the day before the next weekly pass", () 
       "2026-09-18",
       "2026-09-19",
       "2026-09-20",
+      "2026-09-21",
     ]);
     const october = await readCalendarFacts({ site: SITE, month: "2026-10", now: NOW });
     expect(october.drafts).toHaveLength(0);

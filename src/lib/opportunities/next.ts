@@ -25,7 +25,9 @@ export async function nextForDay(siteId: string): Promise<Opportunity | null> {
   const head = ranked[0];
   if (head === undefined) return null;
   const row = await opportunityStore().byId(head.opportunityId);
-  return row === null ? null : readOpportunity(row);
+  if (row === null) return null;
+  // Issue 1455: a comparison over D52's cap is written as a Q&A.
+  return head.writeAs === undefined ? readOpportunity(row) : { ...readOpportunity(row), writeAs: head.writeAs };
 }
 
 /** One opportunity by id, read the way `nextForDay` reads it — for a draft

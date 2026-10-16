@@ -71,6 +71,10 @@ export type OpsIncident =
   // interval. The facts are the job id, its last run as an instant and its
   // interval in minutes.
   | { occasion: "job-stale"; jobId: string; lastRunAt: string; intervalMinutes: number }
+  // Issue 1455: no error — a paying site's publish time passed with no page
+  // for the day. Owner-only, so the site is named; the reason is the code
+  // its due hour recorded (`draft_days`), a closed name.
+  | { occasion: "no-draft-at-publish"; domain: string; date: string; reason: string }
   // Issue 1187: no error — the writing rules stopped one draft twice. Each
   // rule that stopped the last attempt, with the sentences that broke it
   // where the rule can point at them.
@@ -95,6 +99,7 @@ const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "market-too-small": "mail.ops.incident.market-too-small",
   "market-too-small-week": "mail.ops.incident.market-too-small-week",
   "job-stale": "mail.ops.incident.job-stale",
+  "no-draft-at-publish": "mail.ops.incident.no-draft-at-publish",
   "draft-stopped-twice": "mail.ops.incident.draft-stopped-twice",
 });
 
@@ -158,6 +163,13 @@ function factsOf(incident: OpsIncident): FactRow[] {
       { label: "mail.ops.incident.fact.job", value: closedName(incident.jobId) },
       { label: "mail.ops.incident.fact.last-run", value: closedInstant(incident.lastRunAt) },
       { label: "mail.ops.incident.fact.interval", value: String(Math.max(0, Math.trunc(incident.intervalMinutes))) },
+    ];
+  }
+  if (incident.occasion === "no-draft-at-publish") {
+    return [
+      { label: "mail.ops.incident.fact.site", value: closedDomain(incident.domain) },
+      { label: "mail.ops.incident.fact.date", value: closedDate(incident.date) },
+      { label: "mail.ops.incident.fact.cause", value: closedName(incident.reason.replace(/[^A-Za-z0-9_/-]/g, "/")) },
     ];
   }
   if (incident.occasion === "market-too-small") {

@@ -48,6 +48,14 @@ function engineDouble(): Record<string, unknown> {
       return [{ draftId: "d1", siteId: "site-1" }];
     },
     regenerateDraft: ran,
+    // Issue 1455: the day's reason, and the publish-time check.
+    recordDraftDay: async () => {
+      engineCalls.count += 1;
+    },
+    alertMissingDrafts: async () => {
+      engineCalls.count += 1;
+      return 0;
+    },
     // BUILD §9's one mail per breakage rides `draft/generate`, so the kill
     // switch stops it too — this counter is what proves it.
     noticeBrokenDestination: ran,

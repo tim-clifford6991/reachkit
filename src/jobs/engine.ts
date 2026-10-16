@@ -108,6 +108,29 @@ export async function activeSites(): Promise<DailySelection> {
   return sitesForDailyTick();
 }
 
+/** Keeps how one site's due hour ended, under the date its page was for
+ *  (issue 1455). Never throws. */
+export async function recordDraftDay(a: {
+  readonly siteId: string;
+  readonly publishDate: string;
+  readonly outcome: "drafted" | "no_page" | "failed";
+  readonly reason: string | null;
+  readonly at: Date;
+}): Promise<void> {
+  const { recordDraftDay: record } = await import("@/lib/publish/daily");
+  await record({ ...a });
+}
+
+/** Tells the owner about each of these sites whose publish time falls in
+ *  `hour` with no page for the day, once a date (issue 1455). Never throws. */
+export async function alertMissingDrafts(a: {
+  readonly sites: DailySelection["sites"];
+  readonly hour: Date;
+}): Promise<number> {
+  const { alertMissingDrafts: alert } = await import("@/lib/publish/daily");
+  return alert(a);
+}
+
 // ── The weekly measurement — issue #41, built.
 //
 // Two calls into `src/lib/scan/weekly/`, and no logic of their own. The
