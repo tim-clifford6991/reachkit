@@ -168,6 +168,19 @@ describe(
         // Issue #326: the web app manifest, a Next metadata route at the
         // one address the convention allows.
         "/manifest.webmanifest": "/manifest.webmanifest",
+        // Issue 1458 — the pages earlier versions published, the free
+        // tools, the 410, the old share card's source and llms.txt.
+        "/compare": "/compare",
+        "/compare/:tool": "/compare/ahrefs",
+        "/teardowns": "/teardowns",
+        "/teardowns/:site": "/teardowns/plausible",
+        "/answers/:question": "/answers/free-seo-competitor-analysis-tool",
+        "/tools": "/tools",
+        "/tools/meta-preview": "/tools/meta-preview",
+        "/tools/on-page-check": "/tools/on-page-check",
+        "/gone": "/gone",
+        "/share-card": "/share-card",
+        "/llms.txt": "/llms.txt",
       };
       expect(Object.keys(instances).sort()).toEqual([...PUBLIC_PATHS].sort());
       for (const pattern of PUBLIC_PATHS) {
@@ -200,6 +213,10 @@ describe('BP-001 NFR budget, the other way round — "`src/app/(public)/**` expl
   const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
     "[domain]": "example.com",
     "[token]": "abc123",
+    // Issue 1458.
+    "[tool]": "ahrefs",
+    "[site]": "plausible",
+    "[question]": "free-seo-competitor-analysis-tool",
   };
 
   const routes = routesUnder(PUBLIC_DIR);
@@ -303,9 +320,9 @@ describe("#405 — an unmatched address falls through to the root 404, signed ou
   // not be reached by any URL at all.
   const UNMATCHED = [
     "/nonsense",
-    // The report *prefix* with no domain after it, and one segment too many
-    // after it: neither is a route, and `/scan` is not on `GUARDED_SEGMENTS`.
-    "/scan",
+    // One segment too many after the report prefix: not a route, and
+    // `/scan` is not on `GUARDED_SEGMENTS`. (The bare `/scan` was v1's scan
+    // form and now moves to the landing, issue 1458.)
     "/scan/example.com/extra",
     // Whole segments, never prefixes: `/appointments` is not `/app`, and
     // `/setuphelp` is not `/setup`.

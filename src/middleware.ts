@@ -55,6 +55,7 @@ import { isDomainRemoved } from "@/lib/scan/removal";
 import type { LiveAnswer } from "@/app/(hosted)/edge";
 import { isFixtureDomain } from "@/app/(public)/scan/[domain]/_fixture/states";
 import { GATE_PATH_HEADER } from "@/app/(account)/setup/gate";
+import { movedAnswer } from "@/app/(public)/_seo/moved";
 // Three names, one home (issue #35). `src/lib/account/identity/addresses.ts`
 // imports nothing at all — precisely so this file can share the session
 // cookie's name and the two routes with the module that issues them,
@@ -121,8 +122,10 @@ const STRIPE_BILLING = "https://billing.stripe.com";
  *  itself where no logo is stored — the landing's strip and the gallery
  *  (#1110 §6, #1108): only there may an
  *  image come from any `https:` origin. An image cannot run script, and
- *  the `<img>` sends no referrer (`scans/SiteIcon.tsx`). */
-export const SITE_ICON_PATHS: readonly string[] = ["/", "/scans"];
+ *  the `<img>` sends no referrer (`scans/SiteIcon.tsx`). The meta tag
+ *  preview draws the share image the checked page names, on the same terms
+ *  (issue 1458). */
+export const SITE_ICON_PATHS: readonly string[] = ["/", "/scans", "/tools/meta-preview"];
 
 /** 16 CSPRNG bytes, base64 — inside the character class Next's own
  *  extractor accepts (`/^'nonce-([A-Za-z0-9+/_-]+={0,2})'$/`). Web Crypto
@@ -190,6 +193,10 @@ export function contentSecurityPolicy(
     `frame-src 'self' ${VERCEL_LIVE}`,
   ].join("; ");
 }
+
+/** Where an address that is gone for good is answered, at its own status
+ *  (issue 1458, `src/app/(public)/gone/route.ts`). */
+const GONE_PATH = "/gone";
 
 /** One entry per BP-001 `## Public interface` "Routes (public)" row
  *  (`## Steps` step 1). A leading `:` marks a single dynamic path segment —
@@ -269,6 +276,22 @@ export const PUBLIC_PATHS: readonly string[] = [
   // ordinary row. It reads nothing: the document is a copy key, two
   // tokens and a start URL.
   "/manifest.webmanifest",
+  // Issue 1458: the pages Google still ranks from earlier versions, the
+  // two free tools, the 410 and the share card those addresses are served
+  // from, and the plain-text summary for AI readers. Each reads nothing but
+  // the articles in `src/app/(public)/_library/`; a tool reads the one
+  // public page its visitor names, through `safeFetch`.
+  "/compare",
+  "/compare/:tool",
+  "/teardowns",
+  "/teardowns/:site",
+  "/answers/:question",
+  "/tools",
+  "/tools/meta-preview",
+  "/tools/on-page-check",
+  GONE_PATH,
+  "/share-card",
+  "/llms.txt",
 ];
 
 /** The addresses of Next's own generated metadata assets under `(public)`:
@@ -838,6 +861,16 @@ export async function middleware(
   // request under `/hosted-page`, so only a ReachKit host arrives here.
   if (pathname.split("/")[1] === HOSTED_LIVE_SEGMENT) {
     return sealed(new NextResponse(null, { status: 404 }));
+  }
+
+  // Issue 1458: an address an earlier ReachKit published. Decided here,
+  // after the hosted edge, so a customer's own page at the same path is
+  // never taken away (`_seo/moved.ts`).
+  const moved = movedAnswer(pathname);
+  if (moved !== null) {
+    if (moved.status === 301) return sealed(NextResponse.redirect(new URL(moved.to, req.url), 301));
+    const target = moved.status === 410 ? GONE_PATH : moved.rewrite;
+    return sealed(NextResponse.rewrite(new URL(target, req.url), { request: { headers: forwarded } }));
   }
 
   const removed = await removedRewrite(req, forwarded);

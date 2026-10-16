@@ -23,6 +23,12 @@ const LEGAL: readonly { href: string; key: "legal.privacy.title" | "legal.terms.
   { href: "/imprint", key: "legal.imprint.title" },
 ];
 
+const LEARN: readonly { href: string; key: "chrome.nav.compare" | "chrome.nav.tools" | "chrome.nav.teardowns" }[] = [
+  { href: "/compare", key: "chrome.nav.compare" },
+  { href: "/tools", key: "chrome.nav.tools" },
+  { href: "/teardowns", key: "chrome.nav.teardowns" },
+];
+
 export function Footer(): React.JSX.Element {
   return (
     <footer className="border-t border-base-300 bg-base-100" data-testid="public-footer">
@@ -56,6 +62,17 @@ export function Footer(): React.JSX.Element {
           <Link href="/signin" className="link link-hover">
             {copy("chrome.nav.signin")}
           </Link>
+        </nav>
+
+        {/* Issue 1458: the pages earlier versions published and Google
+            still ranks, linked from every public page so they are crawled. */}
+        <nav aria-label={copy("chrome.footer.learn")}>
+          <div className="footer-title opacity-70">{copy("chrome.footer.learn")}</div>
+          {LEARN.map((link) => (
+            <Link key={link.href} href={link.href} className="link link-hover">
+              {copy(link.key)}
+            </Link>
+          ))}
         </nav>
 
         <nav aria-label={copy("chrome.footer.legal")}>

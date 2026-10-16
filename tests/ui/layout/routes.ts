@@ -66,6 +66,13 @@ export const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
    * same boxes.
    */
   "[draftId]": "draft-2026-09-15",
+  /**
+   * Issue 1458: one comparison, one teardown and the answer page. Each is
+   * the longest of its kind's shapes: a full table, four sections, a FAQ.
+   */
+  "[tool]": "moz-competitive-research",
+  "[site]": "plausible",
+  "[question]": "free-seo-competitor-analysis-tool",
 };
 
 /**
@@ -105,6 +112,28 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
   "/how-it-works": "S5",
   /** REFERENCE: S5 — Legal, the nearest approved screen (issue 1396) */
   "/about": "S5",
+  /**
+   * REFERENCE: S5 — Legal, the nearest approved screen (issue 1458).
+   *
+   * The pages earlier versions published, and the two free tools, are newer
+   * than the approved set. They are the same kind of screen as `/about`: a
+   * title, then cards at the reading measure.
+   */
+  "/compare": "S5",
+  /** REFERENCE: S5 (issue 1458) */
+  "/compare/moz-competitive-research": "S5",
+  /** REFERENCE: S5 (issue 1458) */
+  "/teardowns": "S5",
+  /** REFERENCE: S5 (issue 1458) */
+  "/teardowns/plausible": "S5",
+  /** REFERENCE: S5 (issue 1458) */
+  "/answers/free-seo-competitor-analysis-tool": "S5",
+  /** REFERENCE: S5 (issue 1458) */
+  "/tools": "S5",
+  /** REFERENCE: S5 (issue 1458) */
+  "/tools/meta-preview": "S5",
+  /** REFERENCE: S5 (issue 1458) */
+  "/tools/on-page-check": "S5",
   /** REFERENCE: S6 — Veto page (§S6; REQ-057, REQ-075) */
   "/veto/layout-sweep-fixture": "S6",
   /** REFERENCE: S7 — Opt-out (§S7; REQ-010 c11) */

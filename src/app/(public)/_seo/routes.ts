@@ -13,6 +13,10 @@
 // below and by `metadata.ts`'s `robots` directive, so a page cannot be
 // listed for crawling and told not to be indexed, or the reverse.
 //
+// Three indexable rows carry a `{param}` (issue 1458): the comparisons, the
+// teardowns and the answer page. Each declares the addresses it serves, and
+// those are what the sitemap names.
+//
 // **Four routes are `indexable: false`, and each for its own reason:**
 //
 //   · `/scan/{domain}` — ADR-002 decision 1 and REQ-001 c8: report pages
@@ -35,6 +39,7 @@
 // they have no address of their own, and Next reads no `metadata` export
 // from `not-found.tsx` or `error.tsx`.
 import type { CopyKey } from "@/lib/presentation/copy";
+import { ANSWERS, COMPARISONS, TEARDOWNS } from "../_library";
 
 export interface PublicRouteSeo {
   /** The route as `BUILD.md` §3 spells it — `{param}`, not `[param]`. */
@@ -44,6 +49,9 @@ export interface PublicRouteSeo {
   /** Named in the app host's sitemap, and free of a `noindex` directive.
    *  The two move together; see this file's header. */
   readonly indexable: boolean;
+  /** Every address an indexable `{param}` route serves, for the sitemap
+   *  (issue 1458). A pattern is not an address; this list is. */
+  readonly addresses?: () => readonly string[];
 }
 
 export const PUBLIC_ROUTE_SEO = Object.freeze({
@@ -100,6 +108,60 @@ export const PUBLIC_ROUTE_SEO = Object.freeze({
     description: "meta.imprint.description",
     indexable: true,
   },
+  // Issue 1458: the pages Google still ranks from earlier versions, at the
+  // addresses they were first published under. An article's title and
+  // description are its own data, carried in the two `meta.article.*` slots.
+  compare: {
+    route: "/compare",
+    title: "meta.compare.title",
+    description: "meta.compare.description",
+    indexable: true,
+  },
+  comparison: {
+    route: "/compare/{tool}",
+    title: "meta.article.title",
+    description: "meta.article.description",
+    indexable: true,
+    addresses: () => COMPARISONS.map((c) => `/compare/${c.slug}`),
+  },
+  teardowns: {
+    route: "/teardowns",
+    title: "meta.teardowns.title",
+    description: "meta.teardowns.description",
+    indexable: true,
+  },
+  teardown: {
+    route: "/teardowns/{site}",
+    title: "meta.article.title",
+    description: "meta.article.description",
+    indexable: true,
+    addresses: () => TEARDOWNS.map((t) => `/teardowns/${t.slug}`),
+  },
+  answer: {
+    route: "/answers/{question}",
+    title: "meta.article.title",
+    description: "meta.article.description",
+    indexable: true,
+    addresses: () => ANSWERS.map((a) => `/answers/${a.slug}`),
+  },
+  tools: {
+    route: "/tools",
+    title: "meta.tools.title",
+    description: "meta.tools.description",
+    indexable: true,
+  },
+  metaPreview: {
+    route: "/tools/meta-preview",
+    title: "meta.tools.meta.title",
+    description: "meta.tools.meta.description",
+    indexable: true,
+  },
+  onPageCheck: {
+    route: "/tools/on-page-check",
+    title: "meta.tools.onpage.title",
+    description: "meta.tools.onpage.description",
+    indexable: true,
+  },
   signin: {
     route: "/signin",
     title: "meta.signin.title",
@@ -135,15 +197,12 @@ export const PUBLIC_ROUTE_SEO_ROWS: readonly PublicRouteSeo[] = Object.freeze(
 /**
  * The paths the app host's sitemap names, in the order it names them.
  *
- * Derived, never typed twice: every `indexable` row, and no row carrying a
- * `{param}` — a sitemap entry is one address, and a pattern is not one. The
- * two predicates agree today (every indexable public route is static) and
- * the filter is what keeps them agreeing if a dynamic route is ever ruled
- * indexable: it would need an enumeration of its own before it could
- * appear here, and it would be absent rather than wrong in the meantime.
+ * Derived, never typed twice: every `indexable` row — a static one as its
+ * own address, a `{param}` one as the addresses it declares (issue 1458).
+ * An indexable pattern with no `addresses` is absent rather than wrong.
  */
 export function sitemapPaths(): readonly string[] {
-  return PUBLIC_ROUTE_SEO_ROWS.filter(
-    (row) => row.indexable && !row.route.includes("{")
-  ).map((row) => row.route);
+  return PUBLIC_ROUTE_SEO_ROWS.filter((row) => row.indexable).flatMap((row) =>
+    row.route.includes("{") ? (row.addresses?.() ?? []) : [row.route]
+  );
 }

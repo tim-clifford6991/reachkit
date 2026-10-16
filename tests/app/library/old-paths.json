@@ -1,0 +1,352 @@
+{
+  "_": "Issue 1458: every address an earlier ReachKit published, with what it answers today. tests/app/library/old-paths.test.ts holds the tree to it in CI; scripts/old-paths.mjs checks a deployment against it.",
+  "paths": {
+    "/": {
+      "status": 200
+    },
+    "/about": {
+      "status": 200
+    },
+    "/affiliates": {
+      "status": 410
+    },
+    "/answers/free-seo-competitor-analysis-tool": {
+      "status": 200
+    },
+    "/compare": {
+      "status": 200
+    },
+    "/compare/ahrefs": {
+      "status": 200
+    },
+    "/compare/appfigures": {
+      "status": 200
+    },
+    "/compare/chatgpt": {
+      "status": 200
+    },
+    "/compare/debugbear": {
+      "status": 200
+    },
+    "/compare/google-search-console": {
+      "status": 200
+    },
+    "/compare/gummysearch": {
+      "status": 200
+    },
+    "/compare/mangools": {
+      "status": 200
+    },
+    "/compare/moz": {
+      "status": 200
+    },
+    "/compare/moz-competitive-research": {
+      "status": 200
+    },
+    "/compare/rankmath": {
+      "status": 200
+    },
+    "/compare/screaming-frog": {
+      "status": 200
+    },
+    "/compare/se-ranking": {
+      "status": 200
+    },
+    "/compare/semrush": {
+      "status": 200
+    },
+    "/compare/seobility": {
+      "status": 200
+    },
+    "/compare/seobility-competitor-analysis": {
+      "status": 200
+    },
+    "/compare/seoptimer": {
+      "status": 200
+    },
+    "/compare/seositecheckup": {
+      "status": 200
+    },
+    "/compare/similarweb": {
+      "status": 200
+    },
+    "/compare/sitechecker": {
+      "status": 200
+    },
+    "/compare/sparktoro": {
+      "status": 200
+    },
+    "/compare/surfer-seo": {
+      "status": 200
+    },
+    "/compare/ubersuggest": {
+      "status": 200
+    },
+    "/compare/website-grader": {
+      "status": 200
+    },
+    "/compare/yoast-seo": {
+      "status": 200
+    },
+    "/contact": {
+      "status": 301,
+      "location": "/about"
+    },
+    "/cookie-policy": {
+      "status": 301,
+      "location": "/privacy"
+    },
+    "/dashboard": {
+      "status": 301,
+      "location": "/app"
+    },
+    "/design": {
+      "status": 410
+    },
+    "/design/clay": {
+      "status": 410
+    },
+    "/gallery": {
+      "status": 301,
+      "location": "/scans"
+    },
+    "/gone": {
+      "status": 410
+    },
+    "/how-it-works": {
+      "status": 200
+    },
+    "/imprint": {
+      "status": 200
+    },
+    "/legal/cookies": {
+      "status": 301,
+      "location": "/privacy"
+    },
+    "/legal/privacy": {
+      "status": 301,
+      "location": "/privacy"
+    },
+    "/legal/terms": {
+      "status": 301,
+      "location": "/terms"
+    },
+    "/llms.txt": {
+      "status": 200
+    },
+    "/login": {
+      "status": 301,
+      "location": "/signin"
+    },
+    "/onboarding": {
+      "status": 301,
+      "location": "/app"
+    },
+    "/opengraph-image": {
+      "status": 200
+    },
+    "/pricing": {
+      "status": 200
+    },
+    "/privacy": {
+      "status": 200
+    },
+    "/r/00000000-0000-0000-0000-000000000000": {
+      "status": 301,
+      "location": "/scans"
+    },
+    "/r/077d1db1-0863-4be6-aeda-cfdb46a3ea10": {
+      "status": 301,
+      "location": "/scan/trustmrr.com"
+    },
+    "/r/077d1db1-0863-4be6-aeda-cfdb46a3ea10/opengraph-image": {
+      "status": 301,
+      "location": "/scan/trustmrr.com"
+    },
+    "/r/20d53db5-9c53-4fcd-869d-2b7fc11cbcd0": {
+      "status": 301,
+      "location": "/scan/reachkit.app"
+    },
+    "/r/20d53db5-9c53-4fcd-869d-2b7fc11cbcd0/opengraph-image": {
+      "status": 301,
+      "location": "/scan/reachkit.app"
+    },
+    "/r/35afd3d5-0ca1-421f-b898-fccd03bf5e74": {
+      "status": 301,
+      "location": "/scan/x.com"
+    },
+    "/r/35afd3d5-0ca1-421f-b898-fccd03bf5e74/opengraph-image": {
+      "status": 301,
+      "location": "/scan/x.com"
+    },
+    "/r/37f47906-df0b-465a-8ff4-99d755506bdc": {
+      "status": 301,
+      "location": "/scan/cal.com"
+    },
+    "/r/37f47906-df0b-465a-8ff4-99d755506bdc/opengraph-image": {
+      "status": 301,
+      "location": "/scan/cal.com"
+    },
+    "/r/4f0d4136-6200-41f8-a69c-309020804a00": {
+      "status": 301,
+      "location": "/scan/linear.app"
+    },
+    "/r/4f0d4136-6200-41f8-a69c-309020804a00/opengraph-image": {
+      "status": 301,
+      "location": "/scan/linear.app"
+    },
+    "/r/c8e1d8dc-3115-46e4-870f-14fbe745c4b3": {
+      "status": 301,
+      "location": "/scan/plausible.io"
+    },
+    "/r/c8e1d8dc-3115-46e4-870f-14fbe745c4b3/opengraph-image": {
+      "status": 301,
+      "location": "/scan/plausible.io"
+    },
+    "/r/cb03dc85-c099-45a3-aef2-de14b6dd79c0": {
+      "status": 301,
+      "location": "/scan/resend.com"
+    },
+    "/r/cb03dc85-c099-45a3-aef2-de14b6dd79c0/opengraph-image": {
+      "status": 301,
+      "location": "/scan/resend.com"
+    },
+    "/r/dea60384-31c6-4410-8307-9ca9ed7e93f8": {
+      "status": 301,
+      "location": "/scan/photoai.com"
+    },
+    "/r/dea60384-31c6-4410-8307-9ca9ed7e93f8/opengraph-image": {
+      "status": 301,
+      "location": "/scan/photoai.com"
+    },
+    "/reachkit-icon-512.png": {
+      "status": 301,
+      "location": "/brand/mark-512.png"
+    },
+    "/reachkit-icon.svg": {
+      "status": 301,
+      "location": "/brand/mark.svg"
+    },
+    "/reachkit-logo-white-bg.png": {
+      "status": 301,
+      "location": "/brand/logo.png"
+    },
+    "/reachkit-logo.png": {
+      "status": 301,
+      "location": "/brand/logo.png"
+    },
+    "/reachkit-logo.svg": {
+      "status": 301,
+      "location": "/brand/mark.svg"
+    },
+    "/report/cal.com": {
+      "status": 301,
+      "location": "/scan/cal.com"
+    },
+    "/roadmap": {
+      "status": 410
+    },
+    "/robots.txt": {
+      "status": 200
+    },
+    "/scan": {
+      "status": 301,
+      "location": "/"
+    },
+    "/scan/cal.com": {
+      "status": 200
+    },
+    "/scan/cal.com/results": {
+      "status": 301,
+      "location": "/scan/cal.com"
+    },
+    "/scan/linear.app": {
+      "status": 200
+    },
+    "/scan/photoai.com": {
+      "status": 200
+    },
+    "/scan/plausible.io": {
+      "status": 200
+    },
+    "/scan/reachkit.app": {
+      "status": 200
+    },
+    "/scan/resend.com": {
+      "status": 200
+    },
+    "/scan/trustmrr.com": {
+      "status": 200
+    },
+    "/scan/x.com": {
+      "status": 200
+    },
+    "/signup": {
+      "status": 301,
+      "location": "/"
+    },
+    "/sitemap.xml": {
+      "status": 200
+    },
+    "/status": {
+      "status": 410
+    },
+    "/teardowns": {
+      "status": 200
+    },
+    "/teardowns/bearable": {
+      "status": 200
+    },
+    "/teardowns/cal-com": {
+      "status": 200
+    },
+    "/teardowns/cardpointers": {
+      "status": 200
+    },
+    "/teardowns/nudgi": {
+      "status": 200
+    },
+    "/teardowns/opal": {
+      "status": 200
+    },
+    "/teardowns/plausible": {
+      "status": 200
+    },
+    "/teardowns/raycast": {
+      "status": 200
+    },
+    "/teardowns/reflect": {
+      "status": 200
+    },
+    "/teardowns/rss.xml": {
+      "status": 200
+    },
+    "/teardowns/sofa": {
+      "status": 200
+    },
+    "/terms": {
+      "status": 200
+    },
+    "/terms-of-service": {
+      "status": 301,
+      "location": "/terms"
+    },
+    "/tools": {
+      "status": 200
+    },
+    "/tools/ai-visibility-check": {
+      "status": 301,
+      "location": "/"
+    },
+    "/tools/meta-preview": {
+      "status": 200
+    },
+    "/tools/on-page-check": {
+      "status": 200
+    },
+    "/welcome": {
+      "status": 301,
+      "location": "/app"
+    }
+  }
+}
