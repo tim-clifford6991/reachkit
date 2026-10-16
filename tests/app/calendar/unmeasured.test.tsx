@@ -49,6 +49,11 @@ vi.mock("@/app/(account)/app/calendar/drafts-read", () => ({
 }));
 
 vi.mock("@/app/(account)/app/_shell/stop", () => ({ readStop: async () => null }));
+// Issue 1457: Plan's *Published* list reads publications; these cases are
+// about supply, so the list is empty.
+vi.mock("@/app/(account)/app/_overview/content-provider", () => ({
+  readPublishedFor: async () => ({ pages: [], now: new Date(0) }),
+}));
 
 // The pass has released the founder; the side panel is not this suite's.
 vi.mock("@/app/(account)/app/_shell/onboarding", () => ({ readOnboarding: async () => ({ kind: "none" }) }));

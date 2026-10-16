@@ -5,9 +5,6 @@ export { PresenceBars } from "./PresenceBars";
 export type { PresenceBar } from "./PresenceBars";
 export { RivalSparkline } from "./RivalSparkline";
 export type { RivalSparklineProps } from "./RivalSparkline";
-// The small trend beside a number (SPEC §4, 2026-09-20): the Overview
-// header's score and each of its three linked tiles.
-export { TrendSparkline } from "./TrendSparkline";
 
 export { SERIES_COLOR } from "./series";
 export type { SeriesKind } from "./series";

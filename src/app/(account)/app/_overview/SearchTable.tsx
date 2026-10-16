@@ -50,15 +50,13 @@ import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   useReactTable,
-  type ColumnFiltersState,
 } from "@tanstack/react-table";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { FILTER_PILL, formatCount, renderValue } from "./present";
 import { DifficultyBar } from "./DifficultyBar";
-import { SEARCH_FILTERS, type SearchModel, type SearchRow } from "./search-model";
+import { SEARCH_FILTERS, rowsFor, type SearchModel, type SearchRow } from "./search-model";
 import {
   COLUMN_COPY_KEY,
   FILTER_COPY_KEY,
@@ -222,20 +220,16 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
   );
 
   // The library takes a mutable array; the model hands out a readonly one,
-  // because nothing on this screen may reorder it. One copy, memoised on
-  // the model, rather than a cast that would let a cell write to it.
-  const rows = useMemo(() => [...p.model.rows], [p.model.rows]);
-
-  const columnFilters: ColumnFiltersState = useMemo(
-    () => (filter === "all" ? [] : [{ id: "status", value: filter }]),
-    [filter]
-  );
+  // because nothing on this screen may reorder it. The chip's rows come
+  // from the model's own `rowsFor` — the selector Overview's Google tile
+  // counts with (issue 1457) — so a tile and the rows it opens cannot
+  // disagree.
+  const rows = useMemo(() => [...rowsFor(p.model.rows, filter)], [p.model.rows, filter]);
 
   const table = useReactTable({
     data: rows,
     columns,
     state: {
-      columnFilters,
       pagination: {
         pageIndex: 0,
         // `Show all` is one page holding everything, not a pager: a founder
@@ -244,14 +238,12 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
       },
     },
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    onColumnFiltersChange: () => undefined,
     onPaginationChange: () => undefined,
   });
 
   const shown = table.getRowModel().rows.length;
-  const total = table.getFilteredRowModel().rows.length;
+  const total = rows.length;
   const ceiling =
     p.model.ceiling === null
       ? null
@@ -270,10 +262,11 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
   return (
     <section className="card card-border min-w-0 overflow-hidden bg-base-100" data-testid="search-table">
       <div className="flex min-w-0 flex-col gap-3 p-4">
-        {/* daisyUI `filter`: four chips with their counts, and a reset that
-            appears beside the chosen one. `all` is that reset — it is the
+        {/* daisyUI `filter`: five chips with their counts — the first
+            page, then the four statuses — and a reset that appears beside
+            the chosen one. `all` is that reset — it is the
             state in which no chip is chosen, which is what the component
-            already means by unchecked, so there is no fifth chip standing
+            already means by unchecked, so there is no extra chip standing
             for "no filter". Its accessible name is still the registry's
             word; the × over it is daisyUI's own. */}
         <div

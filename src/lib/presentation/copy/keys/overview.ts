@@ -162,15 +162,9 @@ export const OVERVIEW_COPY = Object.freeze({
     "mentioned in {weeks} of the last {of} weeks",
     { slots: { weeks: "text", of: "text" }, fixedBy: "REQ-041 c12" },
   ],
-  // Issue 867 (owner, 2026-09-17): the number counts Google's AI Overview
-  // alone (§6.2, matrix.ts), so the line under the tile says which engine it
-  // is counted from, and names the other engines this site's pages are
+  // Issue 867 (owner, 2026-09-17): the other engines this site's pages are
   // measured on where the paid battery asked them. Drafted under issue 759's
   // ruling; the owner corrects the wording.
-  "overview.tile.ai-answers.counted-from": [
-    "Counted from {engine}.",
-    { slots: { engine: "text" }, fixedBy: "issue 867" },
-  ],
   "overview.tile.ai-answers.also-measured": [
     "{engines} are measured on each page's own search.",
     { slots: { engines: "text" }, fixedBy: "issue 867" },
@@ -195,6 +189,21 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.goal": ["goal: {value}", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
   "overview.delta.up": ["▲", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.delta.down": ["▼", { slots: {}, fixedBy: "BUILD §4.5" }],
+
+  // ── The core data at a glance (owner, 2026-10-15, issue 1457): Visibility
+  // Score, Google, AI and Content, in the #1444 vocabulary. Every line is
+  // drafted (#759); the pull request names each so the owner can correct it.
+  "overview.tile.change": ["{mark} {value} since last week", { slots: { mark: "text", value: "text" }, fixedBy: "issue 1457 (drafted)" }],
+  "overview.tile.no-change": ["No change since last week", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
+  "overview.tile.first-scan": ["First scan {due}.", { slots: { due: "date" }, fixedBy: "issue 1457 (drafted)" }],
+  "overview.tile.google.line": ["Searches where you’re on the first page", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
+  "overview.tile.ai.line": ["Searches where AI answers mention you", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
+  "overview.tile.ai.linked": ["{linked} of them link to you", { slots: { linked: "text" }, fixedBy: "issue 1457 (drafted)" }],
+  "overview.tile.content.label": ["Content", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
+  "overview.tile.content.of": ["pages published", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
+  "overview.tile.content.recent": ["{recent} in the last {weeks} weeks", { slots: { recent: "text", weeks: "text" }, fixedBy: "issue 1457 (drafted)" }],
+  "overview.tile.content.last": ["Last: {title}, {on}", { slots: { title: "text", on: "date" }, fixedBy: "issue 1457 (drafted)" }],
+  "overview.tile.content.next": ["Next: {on}", { slots: { on: "date" }, fixedBy: "issue 1457 (drafted)" }],
 
   // ── How far ahead each rival is.
   "overview.rivals.title": ["How far ahead competitors are", { slots: {}, fixedBy: "BUILD §4.5" }],
@@ -406,10 +415,6 @@ export const OVERVIEW_COPY = Object.freeze({
   // Every sparkline's accessible name: what it is a reading of, over how
   // many weeks. One key, because every trend on this screen is the same kind
   // of thing and a chart with no name is a chart a screen reader skips.
-  "overview.trend.label": [
-    "{name}, the last {weeks} weeks",
-    { slots: { name: "text", weeks: "text" }, fixedBy: "SPEC §4 2026-09-20" },
-  ],
 
   // ── The page waiting for review.
   "overview.waiting.goes-live": [
@@ -552,12 +557,15 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { search: "text", position: "text" }, fixedBy: "issue 1039" },
   ],
   "overview.search.tile.first-page.no-place": [
-    "Google doesn’t show any of your live pages for its search yet.",
-    { slots: {}, fixedBy: "issue 1039" },
+    "Google doesn’t show you for these searches yet.",
+    { slots: {}, fixedBy: "issue 1457 (drafted)" },
   ],
-  "overview.search.tile.first-page.none-live": [
-    "Your first page isn’t live yet.",
-    { slots: {}, fixedBy: "issue 1039" },
+  // Issue 1457: the first-page tile counts every search ReachKit tracks,
+  // and Overview's Google and AI tiles say what they are out of the same
+  // way. Drafted (#759).
+  "overview.search.tile.searches.of": [
+    "of {of} searches",
+    { slots: { of: "text" }, fixedBy: "issue 1457 (drafted)" },
   ],
   "overview.search.tile.appear-for.means": [
     "Every search Google shows you for, at any position.",
@@ -758,33 +766,6 @@ export const OVERVIEW_COPY = Object.freeze({
     "First scan. A rate appears after {weeks} weeks of these questions",
     { slots: { weeks: "text" }, fixedBy: "SPEC §6 2026-10-07 D64 (drafted)" },
   ],
-  "overview.tile.mention-rate.share": [
-    "{share}% share of voice against your competitors",
-    { slots: { share: "text" }, fixedBy: "SPEC §4 2026-10-02 D22" },
-  ],
-
-  // Issue 1319 (owner, 2026-10-07): Overview leads with the action, then
-  // D22's four numbers, each a tile that opens its screen. The tiles for
-  // the second, third and fourth are **drafted** (#759); the pull request
-  // names each so the owner can correct it.
-  "overview.tile.pages-cited.label": ["Your pages linked", { slots: {}, fixedBy: "SPEC §4 2026-10-07 (drafted)" }],
-  "overview.tile.pages-cited.window": [
-    "in AI answers, last {weeks} weeks",
-    { slots: { weeks: "text" }, fixedBy: "SPEC §4 2026-10-07 (drafted)" },
-  ],
-  "overview.tile.top-20.label": ["Your pages on Google’s first two pages", { slots: {}, fixedBy: "SPEC §4 2026-10-07 (drafted)" }],
-  // AI visits, on a hosted blog. The figure is the pages an answer engine
-  // fetched; the people who arrived stand under it and are never added in.
-  "overview.tile.ai-visits.label": ["AI visits to your blog", { slots: {}, fixedBy: "SPEC §4 2026-10-07 (drafted)" }],
-  "overview.tile.ai-visits.at-least": ["at least", { slots: {}, fixedBy: "SPEC §4 2026-10-07 (drafted)" }],
-  "overview.tile.ai-visits.window": [
-    "pages read, last {days} days",
-    { slots: { days: "text" }, fixedBy: "SPEC §4 2026-10-07 (drafted)" },
-  ],
-  "overview.tile.ai-visits.referrals": [
-    "At least {visitors} people came from an AI answer",
-    { slots: { visitors: "text" }, fixedBy: "SPEC §4 2026-10-07 (drafted)" },
-  ],
 
   // The AI answers tab: the rate's own card.
   "overview.prompts.rate.split": [
@@ -854,6 +835,9 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { mentioned: "text", answers: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },
   ],
   "overview.prompts.list.unanswered": ["no answer yet", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
+  // Issue 1457: the rows Overview's AI tile counts, marked. Drafted (#759).
+  "overview.prompts.list.links-you": ["Links to you", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
+  "overview.prompts.list.mentions-you": ["Mentions you", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
   "overview.prompts.kind.category": ["Market", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
   "overview.prompts.kind.use-case": ["Use case", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
   "overview.prompts.kind.persona": ["Buyer", { slots: {}, fixedBy: "SPEC §6 2026-10-03 D19" }],
@@ -917,9 +901,11 @@ export const OVERVIEW_COPY = Object.freeze({
   ],
 
   // *Cited pages* — the site's own pages those answers quote.
+  // Issue 1457: this card reads other questions' answers, so it no longer
+  // shares the tracked searches' card title. Drafted (#759).
   "overview.mentions.cited.title": [
-    "Your pages AI links to",
-    { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
+    "Your pages in other AI answers",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-22 · issue 1457 (drafted)" },
   ],
   "overview.mentions.cited.lead": [
     "The pages on your own site that AI answers link to, and how many questions each answers.",

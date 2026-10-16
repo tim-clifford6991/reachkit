@@ -134,9 +134,9 @@ describe("the table", () => {
 });
 
 describe("the chips", () => {
-  it("are one per status, each carrying its own count, plus the reset that clears them", () => {
+  it("are the first page and one per status, each carrying its own count, plus the reset that clears them", () => {
     const chips = [...table().querySelectorAll('[data-testid^="search-chip-"]')];
-    expect(chips).toHaveLength(5);
+    expect(chips).toHaveLength(6);
     for (const status of ["live", "your_review", "up_next", "too_big"] as const) {
       const chip = chips.find((c) => c.getAttribute("data-testid") === `search-chip-${status}`);
       expect(chip?.getAttribute("aria-label"), status).toContain(String(MODEL.counts[status]));

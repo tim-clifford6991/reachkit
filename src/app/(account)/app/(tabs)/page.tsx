@@ -1,11 +1,10 @@
 // SPEC §4 (2026-10-07, issue 1319) — the Overview tab, at `/app`.
 //
-// A dashboard that opens with its numbers (owner 2026-10-09, issue 1364):
-// D22's four headline numbers, each opening its screen, then what autopilot
-// is doing — and, while a page is in review, that page with *Read or edit*
-// and *Stop this page* — then this week and needs you. No Discoverability
-// Score and no goal (D22, D23), and the page as a reader will see it is one
-// step away, not here.
+// The core data at a glance (owner 2026-10-15, issue 1457): the Visibility
+// Score, Google, AI and Content, then the biggest gap — each number opening
+// exactly the items it counts — then what autopilot is doing, and — while a
+// page is in review — that page with *Read or edit* and *Stop this page*,
+// then this week and needs you.
 //
 // **The head states what autopilot is doing** (owner 2026-10-09, issue
 // 1362; `_overview/autopilot.ts`), and it is said once: while a page is in
@@ -15,9 +14,9 @@
 // **Every read is a stored one, and the modules are pure over them.** No
 // module fetches for itself, so the render performs no measurement, no
 // vendor call and no model call — a property
-// `tests/app/overview/page.test.tsx` asserts rather than assumes. The
-// top-20 number is the Search tab's own reading and AI visits is the AI
-// answers tab's, each through that tab's request-cached provider.
+// `tests/app/overview/page.test.tsx` asserts rather than assumes. Google
+// is the Google tab's own reading, AI the AI tab's and Content Plan's, each
+// through that screen's request-cached provider and its one selector.
 //
 // **It declares no `Surface`:** the shell's layout owns this route's screen
 // root (see `../layout.tsx`), and a second one would be a second
@@ -31,17 +30,16 @@ import type { Metadata } from "next";
 import { readShell } from "../_shell/provider";
 import { readOverview } from "../_overview/provider";
 import { readPrompts } from "../_overview/prompts-provider";
-import { readBlogReads } from "../_overview/blog-reads-provider";
+import { readPublished } from "../_overview/content-provider";
+import { contentOf } from "../_overview/content";
 import { readDone } from "../_overview/done-provider";
 import { overviewNotice, readOnboarding, readReleaseNotice } from "../_shell/onboarding";
 import { FirstPageNotice, ReleaseNoticeLine } from "../_shell/OnboardingStatus";
 import { MARKET_TOO_SMALL, readCategoryChoice } from "../_shell/remeasure";
-import { ENGINE_LABEL } from "../_shell/page-target-words";
 import { writtenLine } from "../_shell/written";
 import { formatDate } from "../_shell/format";
 import { copy } from "@/lib/presentation/copy";
 import { readAutopilot } from "../_overview/autopilot";
-import { unmeasured } from "@/lib/measure/measured";
 import { LinkedTiles } from "../_overview/LinkedTiles";
 import { NeedsYouModule } from "../_overview/NeedsYouModule";
 import { ScoreHead, type HeadNote } from "../_overview/ScoreHead";
@@ -61,7 +59,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   // the shell's own request-cached provider rather than restated here: two
   // readers of a customer's time zone is how two parts of one screen come to
   // state two different days.
-  const [shell, overview, onboarding, prompts, top20, blogReads, done] = await Promise.all([
+  const [shell, overview, onboarding, prompts, google, published, done] = await Promise.all([
     readShell(),
     readOverview(),
     readOnboarding(),
@@ -74,9 +72,9 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
     // says the number could not be read and the rest of Overview stands.
     import("../_overview/search-provider")
       .then((tab) => tab.readSearch())
-      .then((model) => model.tiles.firstTwoPages)
+      .then((model) => model.tiles.firstPage)
       .catch(() => null),
-    readBlogReads(),
+    readPublished(),
     // Issue 1395: what ReachKit did this week, from stored rows.
     readDone(),
   ]);
@@ -92,13 +90,6 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
     (onboarding.kind === "none" || onboarding.kind === "ended") && (notice === MARKET_TOO_SMALL || overview.supply?.key === "overview.supply.unmeasured")
       ? await readCategoryChoice()
       : null;
-
-  // Issue 867: the Overview says which engine its AI-answers number is
-  // counted from. The line is written here and handed to the tile, so the
-  // tile composes no sentence of its own.
-  const engineLine = writtenLine("overview.tile.ai-answers.counted-from", {
-    engine: copy(ENGINE_LABEL[overview.aiAnswers.engines.countedFrom]),
-  });
 
   // #1070: the market-too-small notice moves into *This week* beside its
   // one suggestion, so it is not said a second time above the headline.
@@ -129,15 +120,17 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="overview">
-      {/* The headline numbers open the screen (owner 2026-10-09, issue
-          1364); what autopilot is doing, and everything else, is under
-          them. */}
+      {/* The core data opens the screen (owner 2026-10-15, issue 1457);
+          what autopilot is doing, and everything else, is under it. */}
       <LinkedTiles
-        aiAnswers={overview.aiAnswers}
-        engineLine={engineLine}
+        score={overview.score}
+        biggestGap={overview.biggestGap}
+        google={google}
         prompts={prompts}
-        top20={top20 ?? { value: unmeasured("undeterminable", overview.today), of: unmeasured("undeterminable", overview.today) }}
-        blogReads={blogReads}
+        content={contentOf(published)}
+        nextAt={shell.publishing.next}
+        firstDueOn={overview.firstDueOn}
+        timeZone={shell.timeZone}
       />
 
       <FirstPageNotice state={onboarding} />

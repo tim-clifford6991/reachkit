@@ -107,22 +107,18 @@ describe("REQ-041 c1 — Overview is the screen a signed-in customer lands on", 
     }
   });
 
-  it("renders D22's four headline numbers and no fifth", async () => {
+  it("renders the four core tiles and no fifth (issue 1457)", async () => {
     const html = await markup();
-    for (const tile of ["mention-rate", "pages-cited", "top-20", "ai-visits"]) {
-      expect(html).toContain(`data-testid="overview-tile-${tile}"`);
-    }
-    expect(html.split('data-testid="overview-tile-').length - 1).toBe(4);
+    const tiles = [...html.matchAll(/data-testid="overview-tile-([a-z]+)"/g)].map((m) => m[1]);
+    expect(tiles).toEqual(["score", "google", "ai", "content"]);
   });
 
-  it("opens with the headline numbers, AI visits first (issue 1364)", async () => {
+  it("opens with the core tiles (issues 1364, 1457)", async () => {
     const html = await markup();
     const tiles = html.indexOf('data-testid="overview-tiles"');
     expect(tiles).toBeGreaterThan(-1);
     expect(tiles).toBeLessThan(html.indexOf('data-testid="overview-waiting"'));
     expect(tiles).toBeLessThan(html.indexOf('data-testid="overview-week"'));
-    const first = html.indexOf('data-testid="overview-tile-');
-    expect(first).toBe(html.indexOf('data-testid="overview-tile-ai-visits"'));
   });
 
   it("the page in review is the action under the numbers (issues 1319, 1364)", async () => {
@@ -137,10 +133,11 @@ describe("REQ-041 c1 — Overview is the screen a signed-in customer lands on", 
     expect(html).not.toContain("mockup-browser");
   });
 
-  it("draws no Discoverability Score and no goal (D22, D23)", async () => {
+  it("draws the Visibility Score with its band, range and change, and no goal (issue 1457, D23)", async () => {
     const html = await markup();
-    expect(html).not.toContain('data-testid="overview-score"');
-    expect(html).not.toContain(COPY["overview.tile.score.label"]);
+    expect(html).toContain(COPY["overview.tile.score.label"]);
+    expect(html).toContain('data-testid="overview-tile-score-change"');
+    expect(html).toContain('data-testid="overview-gap"');
     expect(html).not.toMatch(/goal: \d/);
   });
 

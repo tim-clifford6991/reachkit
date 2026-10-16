@@ -43,11 +43,14 @@ import { CalendarView } from "./CalendarView";
 import { PlanHead } from "./PlanHead";
 import { PlanNumbers } from "./PlanNumbers";
 import { addMonths, monthNameOnly, monthShortLabel } from "./dates";
-import { parseMonth, readMonth, readStalledWeek, readSupplyNotice, readWeek } from "./provider";
+import { currentCalendarSite, parseMonth, readMonth, readStalledWeek, readSupplyNotice, readWeek } from "./provider";
 import { stalledLine, supplyLine } from "./supply";
 import { readOnboarding } from "../_shell/onboarding";
 import { FirstPageNotice } from "../_shell/OnboardingStatus";
 import { SupplyNotice } from "./SupplyNotice";
+import { PublishedList } from "./PublishedList";
+import { readPublishedFor } from "../_overview/content-provider";
+import { contentOf } from "../_overview/content";
 import { readCategoryChoice } from "../_shell/remeasure";
 
 /** /app/calendar's own `<title>` (#945). Without it this screen announced
@@ -62,7 +65,7 @@ export default async function CalendarPage({
 }): Promise<React.JSX.Element> {
   const asked = (await searchParams).month;
   const month = await parseMonth(typeof asked === "string" ? asked : undefined);
-  const [model, onboarding] = await Promise.all([readMonth(month), readOnboarding()]);
+  const [model, onboarding, published] = await Promise.all([readMonth(month), readOnboarding(), currentCalendarSite().then((site) => readPublishedFor(site?.siteId ?? null))]);
   const week = await readWeek(model.today);
   // §7's one statement of supply. At most one — the precedence between the
   // three arms is the engine's, and this screen renders whichever it
@@ -161,6 +164,10 @@ export default async function CalendarPage({
       <Suspense fallback={<PlanSkeleton />}>
         <CalendarView model={model} week={week} />
       </Suspense>
+
+      {/* Every page published (issue 1457): what Overview's Content tile
+          counts, and where it opens. */}
+      <PublishedList content={contentOf(published)} timeZone={model.timeZone} />
 
       {/* One footnote under the grid: the rule. What supply is doing right
           now is stated at the top. */}

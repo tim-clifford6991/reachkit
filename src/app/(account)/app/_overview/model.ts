@@ -25,6 +25,7 @@ import type { AnswerEngine } from "@/lib/opportunities/types";
 import { weekOf, withBreaks, type SeriesEntry } from "./changes";
 import type { Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
+import type { ShownFactor } from "@/lib/presentation/bands";
 import { OVERVIEW_TRAILING_WEEKS } from "@/lib/config/constants";
 import type { GoalKey } from "./goals";
 import { headDirection, type HeadDirection } from "./head";
@@ -87,13 +88,24 @@ export interface AiPresenceWindow {
   readonly of: number;
 }
 
-/** The Discoverability Score, as the set's first tile states it: the
+/** The verdict's `ScoreEstimate`, declared by shape so this screen's graph
+ *  does not reach the score's own module. */
+export interface ScoreEstimateFacts {
+  low: number;
+  high: number;
+  confidence: "rough" | "close";
+}
+
+/** The Visibility Score, as the set's first tile states it: the
  *  number, the change since the previous week, and the band word it stands
  *  in. `band` is `null` wherever the score is unmeasured — a band is a
  *  reading of a score, so a screen with no score has no band to name, and
  *  the tile shows the dash with its own line instead (S13). */
 export type ScoreModule = Module<number> & {
   band: BandHandle | null;
+  /** How sure the score is (issue 1439): the scores its range allows and
+   *  the word for how wide that is. `null` on a report scored without one. */
+  estimate: ScoreEstimateFacts | null;
   /** SPEC §4 (2026-09-20): the header's twelve-week trend, oldest first.
    *  `null` is a week that was not measured — never a zero, and never a
    *  point the line is drawn through as though it had been. */
@@ -122,6 +134,12 @@ export interface OverviewModel {
    *  DECISIONS 2026-09-03 and the owner's 2026-09-08 screen set; see
    *  `goals.ts` for the supersession. */
   score: ScoreModule;
+  /** Issue 1457: the bar the biggest-gap line names, off the latest
+   *  verdict. `null` where no verdict names one. */
+  biggestGap: ShownFactor | null;
+  /** When the first weekly scan is due — what a tile with no reading yet
+   *  says instead of a zero (issue 1457). */
+  firstDueOn: Date;
   /** The searches-you-appear-in reading. No tile of its own since #353 —
    *  the approved set gives this number the growth card, which draws the
    *  whole series rather than one headline — and it is still assembled,
@@ -223,6 +241,10 @@ export interface OverviewFacts {
    *  difference of the two; with no previous reading there is no delta and
    *  the tile carries its goal instead. */
   scorePrevious?: Measured<{ score: number; band: BandHandle }>;
+  /** The latest verdict's estimate (issue 1439), where it carries one. */
+  scoreEstimate?: ScoreEstimateFacts;
+  /** The latest verdict's biggest gap (issue 1457). */
+  biggestGap?: ShownFactor | null;
   pagesPublished: Measured<number>;
   /** The live count a week before `today` — the pages tile's delta is the
    *  difference. Taken only once the weekly series has begun: before the
@@ -316,8 +338,11 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
         ...(scoreDelta === undefined ? {} : { delta: scoreDelta }),
       },
       band: facts.score.kind === "unmeasured" ? null : facts.score.value.band,
+      estimate: facts.score.kind === "unmeasured" ? null : (facts.scoreEstimate ?? null),
       trend: facts.scorePoints ?? [],
     },
+    biggestGap: facts.biggestGap ?? null,
+    firstDueOn: facts.firstDueOn,
     searches: {
       headline: {
         value: latest?.value ?? { kind: "unmeasured", reason: "not_attempted", at: facts.today },

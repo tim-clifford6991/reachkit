@@ -15,10 +15,11 @@ export interface PromptRow {
   id: string;
   kind: PromptKind;
   text: string;
-  /** Answers read for it in the window, and how many named or linked the
-   *  site. */
+  /** Answers read for it in the window, how many named or linked the
+   *  site, and how many linked it. */
   answers: number;
   mentioned: number;
+  linked: number;
 }
 
 export interface CitedPageRow {
@@ -49,6 +50,10 @@ export type PromptsModel =
       /** One point per week that asked, oldest first: that week's rate as
        *  a percentage, `null` where no unbranded answer was read. */
       readonly trend: readonly (number | null)[];
+      /** The same counts as `aiSearchesOf`, over the window that ended the
+       *  week before — what the AI tile's change is taken against. `null`
+       *  where that window held no answer. */
+      readonly previous: { readonly mentioned: number; readonly linked: number } | null;
     };
 
 /** A fraction as a whole percentage. */
@@ -71,12 +76,9 @@ export function rateShown(window: Pick<PromptWindow, "weeks">): boolean {
   return window.weeks.length >= MENTION_RATE_MIN_WEEKS;
 }
 
-export function assemblePrompts(window: PromptWindow): PromptsModel {
+function promptRows(window: PromptWindow, prompts: PromptWindow["prompts"]): PromptRow[] {
   const samples = window.weeks.flatMap((week) => week.samples);
-  const measure = measurePrompts(samples);
-  if (measure.rate === null) return { kind: "none" };
-
-  const prompts = window.prompts.map((prompt): PromptRow => {
+  return prompts.map((prompt): PromptRow => {
     const own = samples.filter((sample) => sample.promptId === prompt.id);
     return {
       id: prompt.id,
@@ -84,8 +86,43 @@ export function assemblePrompts(window: PromptWindow): PromptsModel {
       text: prompt.text,
       answers: own.length,
       mentioned: own.filter((sample) => sample.named || sample.linked).length,
+      linked: own.filter((sample) => sample.linked).length,
     };
   });
+}
+
+/** The AI tile's searches (issue 1457): the tracked prompts that are not
+ *  the site's own name, those whose answers in the window mention the site,
+ *  and those whose answers link it. One selector: the tile counts these
+ *  rows and the AI tab's list marks exactly them. */
+export function aiSearchesOf(prompts: readonly PromptRow[]): {
+  asked: readonly PromptRow[];
+  mentioned: readonly PromptRow[];
+  linked: readonly PromptRow[];
+} {
+  const asked = prompts.filter((prompt) => prompt.kind !== "branded");
+  return {
+    asked,
+    mentioned: asked.filter((prompt) => prompt.mentioned > 0),
+    linked: asked.filter((prompt) => prompt.linked > 0),
+  };
+}
+
+/**
+ * `previous` is the window that ended the week before the newest week of
+ * `window`, read the same way; the counts are over the newest set's prompts
+ * alone, so a change is never a change of set.
+ */
+export function assemblePrompts(window: PromptWindow, previous?: PromptWindow): PromptsModel {
+  const samples = window.weeks.flatMap((week) => week.samples);
+  const measure = measurePrompts(samples);
+  if (measure.rate === null) return { kind: "none" };
+
+  const prompts = promptRows(window, window.prompts);
+  const before =
+    previous === undefined || previous.weeks.every((week) => week.samples.length === 0)
+      ? null
+      : aiSearchesOf(promptRows(previous, window.prompts));
 
   return {
     kind: "measured",
@@ -101,5 +138,6 @@ export function assemblePrompts(window: PromptWindow): PromptsModel {
       const rate = measurePrompts(week.samples).rate;
       return rate === null ? null : percent(rate.rate);
     }),
+    previous: before === null ? null : { mentioned: before.mentioned.length, linked: before.linked.length },
   };
 }
