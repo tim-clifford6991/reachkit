@@ -124,6 +124,19 @@ export const REPORT_COPY = Object.freeze({
   // SPEC §2 (issue 1450): the site's pages were read and the model gave no
   // profile of them, so the market was read from its listing. Short on
   // purpose (master review on #1451). Drafted (#759).
+  // Issue 1454: what ReachKit read of the business, in one short card on
+  // the free report and on the app's Overview. Drafted (#759).
+  "report.read.title": ["What we read", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
+  "report.read.name": ["Name", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
+  "report.read.sells": ["What you sell", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
+  "report.read.buyers": ["Who buys", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
+  "report.read.where": ["Where", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
+  "report.read.where.local": ["In and around {place}", { slots: { place: "text" }, fixedBy: "SPEC §2 · issue 1454" }],
+  "report.read.where.national": ["Across {country}", { slots: { country: "text" }, fixedBy: "SPEC §2 · issue 1454" }],
+  "report.read.where.international": ["Online, in more than one country", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
+  "report.read.where.measured": ["Measured in {country}", { slots: { country: "text" }, fixedBy: "SPEC §2 · issue 1454" }],
+  "report.read.none": ["Not read yet", { slots: {}, fixedBy: "SPEC §2 · issue 1454" }],
+  "report.read.edit": ["Correct it in Settings", { slots: {}, fixedBy: "SPEC §4 · issue 1454" }],
   "report.market.from-listing": ["Market read from the site’s Google listing.", { slots: {}, fixedBy: "SPEC §2 · issue 1450" }],
   "report.market.from-search": ["Market read from Google, because the site’s pages couldn’t be read.", { slots: {}, fixedBy: "SPEC §2 · issue 1387" }],
   // Issue 898. The site read and its market did not — the profile call or

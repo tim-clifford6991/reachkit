@@ -267,6 +267,28 @@ describe("the six stages", () => {
       expect(storedReport().locale).toEqual({ ...GB, place, placeFrom: "address" });
     });
 
+    it("issue 1454 — a business read as selling nationally or beyond is measured in its country, whatever address it states; one read as local keeps the town", async () => {
+      measureDomain.mockResolvedValue(measurement({ locale: GB, stated: STATED }));
+      placeLocation.mockResolvedValue({ location: LEEDS });
+      for (const reach of ["national", "international"] as const) {
+        deriveMarketSet.mockClear();
+        deriveProfile.mockResolvedValue(measured({ ...PROFILE, kind: "software", reach }, AT));
+        await runScan({ domain: DOMAIN, tier: "free" });
+        const [, market] = deriveMarketSet.mock.calls[0] as [unknown, { seeds: string[]; locale: unknown }];
+        expect(market.locale, reach).toEqual(GB);
+        for (const seed of market.seeds) expect(seed.toLowerCase(), reach).not.toMatch(/leeds/);
+        for (const [, call] of serpOrganic.mock.calls as [unknown, { locale: unknown }][]) expect(call.locale, reach).toEqual(GB);
+        expect(storedReport().locale, reach).toEqual(GB);
+        serpOrganic.mockClear();
+      }
+
+      deriveMarketSet.mockClear();
+      deriveProfile.mockResolvedValue(measured({ ...PROFILE, kind: "local-service", reach: "local" }, AT));
+      await runScan({ domain: DOMAIN, tier: "free" });
+      const [, market] = deriveMarketSet.mock.calls[0] as [unknown, { locale: unknown }];
+      expect(market.locale).toEqual({ ...GB, place: { name: "Leeds", region: "West Yorkshire", location: LEEDS } });
+    });
+
     it("a town the vendor's list does not hold is still searched by name, read in the country", async () => {
       measureDomain.mockResolvedValue(measurement({ locale: GB, stated: STATED }));
       placeLocation.mockResolvedValue(null);

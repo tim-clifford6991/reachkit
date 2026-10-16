@@ -23,6 +23,7 @@ import type { SuggestionRow } from "./market-set";
 import type { MeasuredMarket } from "./measured";
 import type { Profile } from "./profile";
 import type { RankedRow } from "@/lib/vendors/dataforseo/types";
+import { offeringSeeds } from "./offerings";
 import { STOP_WORDS, difficultyField, selectTwelve, type MarketRow, type SelectedSearch } from "./select";
 
 /** A ranked keyword pooled beside the suggestions: the site's own row
@@ -94,10 +95,12 @@ export function headTermOf(category: string): string | null {
 /**
  * The seeds in the order SPEC §6 buys them. The first is the one every pass
  * buys (#767): the confirmed category, else the profile's category, else its
- * first vocabulary term. Then a concluded market's synonyms (#1185), the
+ * first vocabulary term. Then the categories of the other lines the
+ * business sells (issue 1454), a concluded market's synonyms (#1185), the
  * head term and the vocabulary — bought only while short, except the
- * synonyms, which the pass buys with the category. Case-insensitively distinct; empty where the
- * profile names nothing.
+ * synonyms and the larger lines' categories, which the pass buys with the
+ * category. Case-insensitively distinct; empty where the profile names
+ * nothing.
  */
 export function seedLadder(
   profile: Profile,
@@ -123,6 +126,9 @@ export function seedLadder(
   // are labels nobody need search for (D49), bought only while short.
   for (const term of searched) add(term);
   add(category);
+  // Issue 1454: each other line the business sells is a market of its own,
+  // bought before any narrower name of the first.
+  for (const offering of offeringSeeds(profile)) add(offering);
   // A concluded market's other names come next (#1159, #1185): each is the
   // same market in a buyer's other words, so each is a seed before the
   // head term narrows any of them.

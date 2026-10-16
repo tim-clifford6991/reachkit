@@ -53,6 +53,8 @@ import { VerdictStrip } from "./verdict";
 import { RescanControl } from "./rescan";
 import { startReportCheckout } from "./checkout";
 import { StillReading } from "./still-reading";
+import { WhatWeRead } from "@/app/_business/WhatWeRead";
+import { profileOfReport, understandBusiness } from "@/lib/business/understanding";
 import { TIMING } from "@/lib/config/constants";
 import { BOT_PROTECTION, HOME_TIMEOUT } from "@/lib/measure/challenge";
 // #103: the category has one home — the market the profile inferred.
@@ -336,6 +338,9 @@ export function ReportView(p: {
   const measurement = measurementLine(report);
   const cards = cardsOf(report, unblockLines(report.blockedAgents));
   const cutOff = cutByCeiling(report);
+  const profile = profileOfReport(report);
+  const understanding =
+    profile === null ? null : understandBusiness({ domain: report.domain, profile, locale: measuredLocale(report) });
 
   return (
     // ADR-093 decision 6: the report is a screen, so it is a screen root,
@@ -425,6 +430,15 @@ export function ReportView(p: {
           <GooglePresenceAbsent cutOff={cutOff} domain={report.domain} />
         ) : (
           <GooglePresenceCard section={report.presence} />
+        )}
+
+        {/* Issue 1454: what the scan read of the business, in four short
+            lines, under the two results it was measured for. Not drawn where
+            the scan read no market of it. */}
+        {understanding === null ? null : (
+          <div className="col-span-full">
+            <WhatWeRead understanding={understanding} />
+          </div>
         )}
 
         {/* SPEC §2 (owner, 2026-10-07, issue 1328): the offer is the fourth

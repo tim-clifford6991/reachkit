@@ -255,7 +255,8 @@ export const INFERENCE_MAX_RETRIES = 0 as const;
  *  retry BP-009's policy promises. Each figure below is the smallest the
  *  site's schema can need with headroom, at ~4 chars per token:
  *  - `profile` — seven fields, three short strings and four lists capped
- *    by `PROFILE_LIST_BOUNDS` (27 short strings at most): ~300 needed.
+ *    by `PROFILE_LIST_BOUNDS` (27 short strings at most): ~300 needed; the
+ *    offerings, kind and reach of issue 1454: ~120 more.
  *  - `question-phrasing` — at most `BATTERY.QUESTIONS` `{ id, text }`
  *    pairs of one question each: ~30 a pair, ~360 needed.
  *  - `opportunity-typing` — `{ type, slug, title }`: ~60 needed.
@@ -264,7 +265,9 @@ export const INFERENCE_MAX_RETRIES = 0 as const;
  *    words a sentence, and few sentences on a page that fails: ~20 each
  *    (issue 1136). */
 export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
-  profile: 700,
+  /** Issue 1454: up to four offerings (a name, a category, a weight), a
+   *  kind and a reach beside the seven fields: ~120 more. */
+  profile: 900,
   "question-phrasing": 800,
   "opportunity-typing": 256,
   /** `{ pairs: { search, sameAs }[] }` over at most the pass's candidates:
@@ -409,6 +412,27 @@ export const PROFILE_LIST_BOUNDS = Object.freeze({
   namedRivals: Object.freeze({ min: 0, max: 5 } as const),
   vocabulary: Object.freeze({ min: 0, max: 12 } as const),
   brandTokens: Object.freeze({ min: 0, max: 6 } as const),
+  /** Issue 1454: what the business sells, one entry per line it sells, each
+   *  with its own category; four is the most a site's searches can usefully
+   *  be spread across. An answer with none is kept: its `category` is then
+   *  its one offering. */
+  offerings: Object.freeze({ min: 0, max: 4 } as const),
+} as const);
+
+/** Issue 1454 (drafted defaults the owner may correct): how a profile's
+ *  offerings share the searches. An offering with less than `seedShare` of
+ *  the site's weight gets no seed of its own bought up front; it is still a
+ *  seed while the pass is short, still a relevance term, and still held
+ *  to its share of the searches its category yields.
+ *
+ *  `genericWords` say what kind of thing a line is, not what it is about:
+ *  two lines that share only one of them ("plumbing services", "audit
+ *  services") are two lines, and two that share any other word
+ *  ("residential plumbing repair" after "plumbing services") are one line
+ *  worded twice, bought one seed (the live check of issue 1454). */
+export const OFFERINGS = Object.freeze({
+  seedShare: 0.2,
+  genericWords: ["service", "services", "product", "products", "solution", "solutions"],
 } as const);
 
 /**
