@@ -41,6 +41,26 @@ export interface Retrofit {
   reach?: Reach;
 }
 
+/** A trade or firm word that, read alone as the whole of what named the
+ *  kind, also names a product: a "builder" lays bricks or builds websites,
+ *  an "agency" is a firm or a marketplace that books others' work. Such a
+ *  word does not decide the kind on its own (issue 1474). */
+const EITHER_WAY = /^(?:builders?|agency|agencies)$/iu;
+
+/** Words that bound a word list, as `KIND_WORDS` bounds its rows. */
+function wordsOf(words: string, flags = "iu"): RegExp {
+  return new RegExp(`(?<![\\p{L}\\p{N}])(?:${words})(?![\\p{L}\\p{N}])`, flags);
+}
+
+/** Explicit signals of how the business is bought, wherever a phrase says
+ *  them. Software is a product used, not a service carried out; online is
+ *  bought from anywhere; in person is carried out where the customer is. */
+const SOFTWARE_SIGNAL = wordsOf("software|saas|software-as-a-service|platforms?|apps?|applications?|api|plugins?|cloud-based|web-based|hosted");
+const ONLINE_SIGNAL = wordsOf("online|internet");
+const IN_PERSON_SIGNAL = wordsOf(
+  "on-?site|on site|in-store|in store|in-person|in person|home visits?|site visits?|near (?:you|me)|call-?outs?|house calls?|walk-ins?|at your (?:home|door|premises)"
+);
+
 /**
  * The kind a phrase names, by the words a buyer uses for it. Each row is one
  * kind; a phrase that names several is read by the one it names last, which
@@ -75,7 +95,7 @@ const KIND_WORDS: readonly (readonly [BusinessKind, RegExp])[] = (
     ["software", "software|saas|apps?|platforms?|api|plugins?|cloud-based|crm|erp|cms"],
     ["creator", "online courses?|courses?|lessons|newsletters?|e-?books?|tutorials|coaching programs?|masterclass(?:es)?"],
   ] as const
-).map(([kind, words]) => [kind, new RegExp(`(?<![\\p{L}\\p{N}])(?:${words})(?![\\p{L}\\p{N}])`, "giu")] as const);
+).map(([kind, words]) => [kind, wordsOf(words, "giu")] as const);
 
 /** What a phrase is about, before what it is for or where: "software for
  *  restaurants" is software, "plumbers in Austin" plumbers. */
@@ -83,17 +103,81 @@ function headPart(text: string): string {
   return text.split(/\s(?:for|in|near|with|to|at|from|by)\s/iu)[0] ?? text;
 }
 
-/** The kind a phrase names, `null` where it names none. */
-export function kindOfWords(text: string): BusinessKind | null {
+/** What one phrase says of the kind: the kind its head names, whether that
+ *  head decides it alone, and the explicit signals it carries. */
+interface PhraseReading {
+  kind: BusinessKind | null;
+  /** Every kind the head names, its own among them ("café and bakery"
+   *  names hospitality and a shop). */
+  names: ReadonlySet<BusinessKind>;
+  /** False where the head is a word that is a trade or a product
+   *  (`EITHER_WAY`). */
+  firm: boolean;
+  software: boolean;
+  inPerson: boolean;
+}
+
+function readPhrase(text: string): PhraseReading {
   const head = headPart(text);
-  let best: { kind: BusinessKind; end: number } | null = null;
+  const found: { kind: BusinessKind; start: number; end: number; word: string }[] = [];
   for (const [kind, words] of KIND_WORDS) {
     for (const match of head.matchAll(words)) {
-      const end = (match.index ?? 0) + match[0].length;
-      if (best === null || end > best.end) best = { kind, end };
+      const start = match.index ?? 0;
+      found.push({ kind, start, end: start + match[0].length, word: match[0] });
     }
   }
-  return best?.kind ?? null;
+  // A word inside a longer phrase of another row is that phrase's: the
+  // "shop" of "coffee shop" names no shop.
+  const words = found.filter(
+    (one) => !found.some((other) => other !== one && other.start <= one.start && other.end >= one.end && other.end - other.start > one.end - one.start)
+  );
+  let best: (typeof words)[number] | null = null;
+  for (const one of words) if (best === null || one.end > best.end) best = one;
+  const names = new Set(words.map((one) => one.kind));
+  return {
+    kind: best?.kind ?? null,
+    names,
+    firm: best === null || !EITHER_WAY.test(best.word),
+    software: SOFTWARE_SIGNAL.test(text) || ONLINE_SIGNAL.test(text),
+    inPerson: IN_PERSON_SIGNAL.test(text),
+  };
+}
+
+/** The kind a phrase names on its own, `null` where it names none or its
+ *  head is a word that is a trade or a product. */
+export function kindOfWords(text: string): BusinessKind | null {
+  const read = readPhrase(text);
+  return read.firm ? read.kind : null;
+}
+
+/**
+ * The kind a stored category and offering type name together (issue 1474).
+ * Where both name one kind by a word that decides it, it is that kind. A
+ * word that is a trade or a product ("builder") stands only where the other
+ * phrase names the same kind by a word that decides it, or the business
+ * names a town or says it meets its customers in person. Two kinds where
+ * one phrase also names the other's ("coffee shop", "café and bakery") are
+ * the kind both name. Otherwise, where what stands is two kinds, or one
+ * kind by such a word only, the explicit signals weigh it: a software,
+ * platform, app or online signal in either phrase outweighs a trade carried
+ * out in person; an in-person signal ("on site", "in store", "near you")
+ * outweighs software or teaching. The one kind left decides; where none or
+ * two are, the kind is unread.
+ */
+export function kindOfProfile(category: string, offeringType: string, town: boolean): BusinessKind | null {
+  const phrases = [category, offeringType].filter((phrase) => phrase !== "" && !isPlaceholder(phrase)).map(readPhrase);
+  const named = phrases.filter((phrase): phrase is PhraseReading & { kind: BusinessKind } => phrase.kind !== null);
+  const software = phrases.some((phrase) => phrase.software);
+  const inPerson = phrases.some((phrase) => phrase.inPerson);
+  const stands = named.filter(
+    (phrase) => phrase.firm || town || inPerson || named.some((other) => other !== phrase && other.firm && other.kind === phrase.kind)
+  );
+  const kinds = [...new Set(stands.map((phrase) => phrase.kind))];
+  if (kinds.length === 1 && stands.every((phrase) => phrase.firm)) return kinds[0]!;
+  const shared = kinds.filter((kind) => stands.every((phrase) => phrase.names.has(kind)));
+  if (kinds.length > 1 && shared.length === 1) return shared[0]!;
+  const weighed = kinds.filter((kind) => !((software && BUSINESS_KINDS[kind].inPerson) || (inPerson && !BUSINESS_KINDS[kind].placed)));
+  return weighed.length === 1 ? weighed[0]! : null;
 }
 
 /** schema.org types that name a kind, as `parse.ts` keeps them (lower case).
@@ -213,8 +297,9 @@ function text(value: unknown): string {
  * - **Lines.** The stored category's lines (`linesOfCategory`); none where
  *   the category is empty or a placeholder.
  * - **Kind.** A paying site's concluded market's kind, as the paid pass read
- *   it. Else the kind the category's words name, then the offering type's,
- *   then the home page's structured data (one kind only). Else unread.
+ *   it. Else the kind the category and the offering type name together
+ *   (`kindOfProfile`), then the home page's structured data (one kind
+ *   only). Else unread.
  * - **Reach.** A paying site's market: a place the founder gave or the
  *   pass settled is local; one read as selling nationally or online is international for a kind that
  *   is bought from anywhere (software, teaching) and national otherwise. A
@@ -249,8 +334,7 @@ export function retrofitReading(a: {
   const kind =
     stored ??
     (isBusinessKind(concluded) ? concluded : null) ??
-    (isPlaceholder(category) ? null : kindOfWords(category)) ??
-    (isPlaceholder(offeringType) ? null : kindOfWords(offeringType)) ??
+    kindOfProfile(category, offeringType, text(p.town) !== "" && !isPlaceholder(text(p.town))) ??
     kindOfSchema(a.schemaTypes);
   if (stored === null && kind !== null) out.kind = kind;
 
