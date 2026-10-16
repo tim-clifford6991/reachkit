@@ -36,8 +36,11 @@ export interface Profile {
    *  profile read before it was asked. */
   town?: string;
   /** Every line the business sells, 1–4, most of the site first (issue
-   *  1454). The first one's category is `category`. Absent on a profile
-   *  read before it was asked: that profile sells one line, `category`. */
+   *  1454). The first one's category is `category`, except on a stored
+   *  profile given its lines by the re-score (issue 1470), where they are
+   *  the lines a category such as "payroll and HR software" lists. Absent
+   *  on a profile read before it was asked: that profile sells one line,
+   *  `category`. */
   offerings?: readonly Offering[];
   /** The kind of business, from the closed list the paid pass's market
    *  uses (`src/lib/market/kinds.ts`). Absent where the model named none

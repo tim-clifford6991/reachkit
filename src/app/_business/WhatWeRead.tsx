@@ -1,6 +1,7 @@
 // SPEC §2 and §4 (issue 1454) — what ReachKit read of the business, in one
-// short card: its name, what it sells, who buys and where. The free report
-// and the app's Overview draw this same card from the same reading
+// short card: its name, what it sells, what kind of business it is (issue
+// 1470), who buys and where. The free report and the app's Overview draw
+// this same card from the same reading
 // (`src/lib/business/understanding.ts`), so they cannot say two things.
 //
 // In the app the card links to Settings, where the customer corrects what
@@ -24,8 +25,10 @@ function whereLine(where: BusinessUnderstanding["where"]): string {
     case "international":
       return copy("report.read.where.international");
     case "local":
-    case null:
       return copy("report.read.where.measured", { country });
+    case null:
+      // Issue 1470: a stored scan whose reach nothing stored decides.
+      return copy("report.read.where.unread", { country });
   }
 }
 
@@ -39,6 +42,7 @@ export function WhatWeRead(p: { understanding: BusinessUnderstanding; editHref?:
       label: copy("report.read.sells"),
       value: u.sells.length === 0 ? null : u.sells.slice(0, SHOWN).map((o) => o.category).join(" · "),
     },
+    { key: "kind", label: copy("report.read.kind"), value: u.kind === null ? null : copy(`report.read.kind.${u.kind}`) },
     { key: "buyers", label: copy("report.read.buyers"), value: u.buyers.length === 0 ? null : u.buyers.slice(0, SHOWN).join(", ") },
     { key: "where", label: copy("report.read.where"), value: whereLine(u.where) },
   ];

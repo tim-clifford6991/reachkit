@@ -18,6 +18,7 @@
 // `src/lib/scan/rescore-run.ts` reads the stored rows in production (the
 // `scan/rescore` job, issue 1433), writes the before and after, and on apply
 // writes the change, keeping the original report under `report.previous`.
+import { retrofitReading, type Retrofit } from "@/lib/business/retrofit";
 import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, foundationsOf, localPackSearches, searchPresenceOf } from "@/lib/measure/drivers";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
@@ -81,7 +82,9 @@ export interface RescoreReport extends Pick<
   questions: Measured<QuestionView[]>;
   rivalSizes: Measured<readonly { domain: string; state: string; band?: RivalSizeBand }[]>;
   aiAnswers: RescoreAnswers | null;
-  market: Measured<{ profile: { category: string | null; town?: string; offeringType?: string } }>;
+  market: Measured<{
+    profile: { category: string | null; town?: string; offeringType?: string; language?: string; offerings?: unknown; kind?: unknown; reach?: unknown };
+  }>;
 }
 
 /** One stored scan, as the export hands it over. */
@@ -103,6 +106,9 @@ export interface RescoreScan {
    *  them: the ledger source, the cache key (the search first) and what the
    *  answer said (issue 1420). Empty where none is stored under this scan. */
   answers: readonly StoredAnswer[];
+  /** A paying site's market (`sites.market`): the kind and place its pass
+   *  concluded and the place the founder gave; absent on a free scan. */
+  market?: { kind?: unknown; serves?: unknown; area?: { place?: unknown } } | null;
 }
 
 /** One bought AI Mode or ChatGPT answer, as `fetches` keeps it. */
@@ -143,6 +149,9 @@ export interface Rescored {
   status: ScanStatus;
   /** What stands as stored on this scan, and why. */
   kept: readonly string[];
+  /** What the stored profile gains of the business's reading (issue 1470):
+   *  empty where it holds it all, or nothing stored decides the rest. */
+  reading: Retrofit;
 }
 
 /** Every `Measured` under one verdict carries the verdict's date
@@ -345,9 +354,34 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   }
 
   const before = membersOf(r);
-  const changes = changesOf(before, after);
+  const reading = readingOf(r, scan.market ?? null);
+  const changes = [...changesOf(before, after), ...readingChanges(reading)];
   const score = after.verdict.scoreAndBand.kind === "unmeasured" ? null : after.verdict.scoreAndBand.value.score;
-  return { before, after, changes, drivers, score, status: statusAfter(scan.status, before.verdict, after.verdict), kept };
+  return { before, after, changes, drivers, score, status: statusAfter(scan.status, before.verdict, after.verdict), kept, reading };
+}
+
+/** Issue 1470: the lines, kind and reach a stored profile lacks, read from
+ *  what the scan stored (`retrofitReading`). None where no profile is. */
+function readingOf(r: RescoreReport, market: RescoreScan["market"] | null): Retrofit {
+  if (r.market.kind === "unmeasured") return {};
+  const profile: unknown = r.market.value.profile;
+  if (profile === null || typeof profile !== "object") return {};
+  const serps: MarketSerp[] = [];
+  for (const serp of r.serps) if (serp.kind !== "unmeasured") serps.push(serp.value);
+  return retrofitReading({
+    profile,
+    measuredInTown: r.locale?.place !== undefined,
+    schemaTypes: r.onPage.kind === "unmeasured" ? [] : r.onPage.value.schemaTypes,
+    serps,
+    market,
+  });
+}
+
+/** The profile's new members, each written at its own path. */
+function readingChanges(reading: Retrofit): ReportChange[] {
+  return (["offerings", "kind", "reach"] as const)
+    .filter((key) => reading[key] !== undefined)
+    .map((key) => ({ path: ["market", "value", "profile", key], value: reading[key] }));
 }
 
 /** A factor the current code cannot measure on this scan degrades it, as it
