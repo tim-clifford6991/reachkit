@@ -57,6 +57,7 @@ interface MinimalQuery<T> extends PromiseLike<MinimalResult<T>> {
   is(column: string, value: null): MinimalQuery<T>;
   not(column: string, operator: string, value: unknown): MinimalQuery<T>;
   order(column: string, opts: { ascending: boolean }): MinimalQuery<T>;
+  limit(count: number): MinimalQuery<T>;
 }
 
 interface MinimalClient {
@@ -104,13 +105,14 @@ export async function readSearchFacts(site: SearchSite, at: Date): Promise<Searc
   // Everything else degrades to its own unmeasured arm: a missing report
   // means no position and no ceiling, a missing verdict means no change
   // stated, an unreadable count of live pages means the dash.
-  const [open, withPages, livePages, verdicts, report, ready] = await Promise.all([
+  const [open, withPages, livePages, verdicts, report, ready, previousPositions] = await Promise.all([
     store.openRankable(site.siteId),
     pagedRows(site.siteId),
     readLivePages(site.siteId),
     readMovements(site.siteId),
     store.currentReport(site.siteId).catch(() => null),
     readReadyDepth(site.siteId, at),
+    readPreviousPositions(site.siteId).catch(() => null),
   ]);
 
   const liveByOpportunity = new Set(livePages.rows.map((row) => row.drafts?.opportunity_id ?? ""));
@@ -204,9 +206,42 @@ export async function readSearchFacts(site: SearchSite, at: Date): Promise<Searc
     liveSearches,
     ready,
     ownRanked,
+    previousPositions,
     ceiling: ownRanked.kind === "unmeasured" ? null : difficultyCeiling(ownRanked.value),
     measuredAt,
   };
+}
+
+/** How many scans back the scan before the current one is looked for. */
+const PREVIOUS_SCAN_LOOKBACK = 8;
+
+/**
+ * The site's places on the scan before the current one (issue 1457): the
+ * first-page tile's change is a count over the same searches on the two
+ * scans. `null` where there is no earlier scan with places, so no change is
+ * stated rather than a change from nothing.
+ */
+async function readPreviousPositions(siteId: string): Promise<ReadonlyMap<string, Measured<number>> | null> {
+  const { data, error } = await client()
+    .from<{ is_current: boolean | null; rows: unknown; at: unknown }>("scans")
+    .select("is_current, rows:report->ownRankedRows, at:report->verdict->measuredAt")
+    .eq("site_id", siteId)
+    .not("report", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(PREVIOUS_SCAN_LOOKBACK);
+  if (error !== null || data === null) return null;
+  const current = data.findIndex((row) => row.is_current === true);
+  if (current === -1) return null;
+  const before = data.slice(current + 1).find((row) => Array.isArray(row.rows));
+  if (before === undefined || !Array.isArray(before.rows)) return null;
+  const at = typeof before.at === "string" ? new Date(before.at) : new Date(0);
+  const positions = new Map<string, Measured<number>>();
+  for (const row of before.rows as unknown[]) {
+    if (typeof row !== "object" || row === null) continue;
+    const { keyword, position } = row as { keyword?: unknown; position?: unknown };
+    if (typeof keyword === "string" && typeof position === "number") positions.set(keyword, measured(position, at));
+  }
+  return positions;
 }
 
 /**

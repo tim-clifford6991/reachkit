@@ -38,6 +38,11 @@ vi.mock("@/app/(account)/app/calendar/drafts-read", () => ({
 }));
 
 vi.mock("@/app/(account)/app/_shell/stop", () => ({ readStop: async () => null }));
+// Issue 1457: Plan's *Published* list reads publications; these cases are
+// about supply, so the list is empty.
+vi.mock("@/app/(account)/app/_overview/content-provider", () => ({
+  readPublishedFor: async () => ({ pages: [], now: new Date(0) }),
+}));
 vi.mock("@/app/(account)/app/_shell/onboarding", () => ({ readOnboarding: async () => ({ kind: "none" }) }));
 vi.mock("@/app/(account)/app/_shell/remeasure", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/app/(account)/app/_shell/remeasure")>()),

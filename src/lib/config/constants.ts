@@ -1694,6 +1694,11 @@ export const OVERVIEW_TRAILING_WEEKS = 12 as const;           // BUILD §4.5 · 
  *  where `OVERVIEW_TRAILING_WEEKS` counts *weeks*. */
 export const ANSWER_RATE_WEEKS = 4 as const;                  // SPEC §6 2026-09-20
 
+/** SPEC §4 (owner, 2026-10-15, issue 1457): Overview's Content tile states
+ *  the pages published in this many recent weeks beside the total, and
+ *  Plan's *Published* list counts the same weeks. */
+export const CONTENT_RECENT_WEEKS = 4 as const;               // SPEC §4 2026-10-15
+
 /** SPEC §6 (owner, D58 of 2026-10-06, issue 1287): no mention rate is shown
  *  until this many weeks of the current prompt set exist. Before then the
  *  count and its sample stand in its place ("0 of 46 answers"). */

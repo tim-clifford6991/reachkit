@@ -78,6 +78,9 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
   // row and carries no goal chip (issue #536).
   score: measured({ score: 62, band: "hard-to-find" as const }, MONDAY(31)),
   scorePrevious: measured({ score: 54, band: "hard-to-find" as const }, MONDAY(17)),
+  // Issue 1457: the score's range and the bar holding it down.
+  scoreEstimate: Object.freeze({ low: 55, high: 68, confidence: "rough" as const }),
+  biggestGap: "answerability",
   // The header's trend (SPEC §4, 2026-09-20), aligned to `points` above:
   // the week that did not run is `null`, never a zero.
   scorePoints: Object.freeze([31, 54, null, 62]),

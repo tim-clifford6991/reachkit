@@ -82,6 +82,7 @@ import { unmeasured, measured, type Measured } from "@/lib/measure/measured";
 import type { RivalSize } from "@/lib/market/rivals/rival-size";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
+import { shownLimitingOf } from "@/lib/measure/verdict";
 import {
   nextDueOn,
   previousWeekStart,
@@ -917,6 +918,10 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     ...(published.previous === undefined ? {} : { pagesPublishedPrevious: published.previous }),
     pagesRanking: ranking,
     score: series.score,
+    // Issue 1457: the score's range and the biggest gap, off the same
+    // stored verdict the score is read from.
+    ...(series.latest?.verdict?.estimate === undefined ? {} : { scoreEstimate: series.latest.verdict.estimate }),
+    biggestGap: series.latest?.verdict?.limiting == null ? null : shownLimitingOf(series.latest.verdict),
     scorePoints: series.scorePoints,
     ...(series.scorePrevious === undefined ? {} : { scorePrevious: series.scorePrevious }),
     rivals: series.rivals,

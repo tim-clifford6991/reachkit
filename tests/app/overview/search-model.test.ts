@@ -50,6 +50,7 @@ function facts(over: Partial<SearchFacts> = {}): SearchFacts {
     liveSearches: [],
     ready: measured(0, AT),
     ownRanked: measured(81, AT),
+    previousPositions: null,
     ceiling: 49,
     measuredAt: AT,
     ...over,
@@ -124,7 +125,7 @@ describe("the chips count the rows they stand for", () => {
   );
 
   it("counts every status, and `all` counts the whole table", () => {
-    expect(model.counts).toEqual({ all: 5, live: 2, your_review: 1, up_next: 1, too_big: 1 });
+    expect(model.counts).toMatchObject({ all: 5, live: 2, your_review: 1, up_next: 1, too_big: 1 });
   });
 
   it("and the rows one chip stands for are exactly the ones it counted", () => {
@@ -174,13 +175,17 @@ describe("the four tiles carry a denominator or a goal, never a bare number", ()
     expect(model.tiles.firstTwoPages.value.kind).toBe("zero");
   });
 
-  it("a live-page count that could not be taken leaves both position tiles unmeasured, never at zero", () => {
+  it("a live-page count that could not be taken leaves the top-20 tile unmeasured, never at zero", () => {
     const model = assembleSearch(
       facts({ livePages: unmeasured<number>("undeterminable", AT) }),
       AT
     );
-    expect(model.tiles.firstPage.value.kind).toBe("unmeasured");
     expect(model.tiles.firstTwoPages.value.kind).toBe("unmeasured");
+  });
+
+  it("with no scan the first-page count is unmeasured, never a zero (issue 1457)", () => {
+    const model = assembleSearch(facts({ targets: [target("a", "x", "up_next")], measuredAt: null }), AT);
+    expect(model.tiles.firstPage.value.kind).toBe("unmeasured");
   });
 
   it("the queue is read against the depth §7 keeps ready, and the footprint against its goal", () => {
@@ -198,11 +203,14 @@ describe("two tiles state this site's own reading (#1039)", () => {
     expect(at(13)).toEqual({ kind: "queue", weeks: 1, days: 13 });
   });
 
-  it("the first page names the best-placed live page and how many more stand beside it", () => {
+  it("the first page names the best-placed search and how many more stand beside it", () => {
     const model = assembleSearch(
       facts({
-        liveSearches: ["brake pads when to replace", "rotor noise", "page-five"],
-        livePages: measured(3, AT),
+        targets: [
+          target("a", "brake pads when to replace", "live"),
+          target("b", "rotor noise", "up_next"),
+          target("c", "page-five", "live"),
+        ],
         positions: new Map([
           ["rotor noise", measured(9, AT)],
           ["brake pads when to replace", measured(4, AT)],
@@ -222,8 +230,7 @@ describe("two tiles state this site's own reading (#1039)", () => {
   it("with none on the first page it names the closest, and with no place at all it says so", () => {
     const closest = assembleSearch(
       facts({
-        liveSearches: ["near", "far"],
-        livePages: measured(2, AT),
+        targets: [target("a", "near", "live"), target("b", "far", "up_next")],
         positions: new Map([
           ["far", measured(60, AT)],
           ["near", measured(11, AT)],
@@ -232,9 +239,8 @@ describe("two tiles state this site's own reading (#1039)", () => {
       AT
     );
     expect(closest.tiles.firstPage.reading).toEqual({ kind: "closest", search: "near", position: 11 });
-    const nowhere = assembleSearch(facts({ liveSearches: ["x"], livePages: measured(1, AT) }), AT);
+    const nowhere = assembleSearch(facts({ targets: [target("a", "x", "live")] }), AT);
     expect(nowhere.tiles.firstPage.reading).toEqual({ kind: "no-place" });
-    expect(assembleSearch(facts(), AT).tiles.firstPage.reading).toEqual({ kind: "none-live" });
   });
 
   it("an unmeasured count carries no reading, so the dash says why rather than a guess", () => {
@@ -243,7 +249,42 @@ describe("two tiles state this site's own reading (#1039)", () => {
       AT
     );
     expect(model.tiles.goingAfter.reading).toBeUndefined();
-    expect(model.tiles.firstPage.reading).toBeUndefined();
+  });
+});
+
+describe("issue 1457 — the first-page tile counts exactly the rows its chip shows", () => {
+  const rows = facts({
+    targets: [
+      target("a", "one", "live"),
+      target("b", "two", "up_next"),
+      target("c", "three", "too_big"),
+      target("d", "four", "your_review"),
+    ],
+    positions: new Map([
+      ["one", measured(3, AT)],
+      ["two", measured(10, AT)],
+      ["three", measured(11, AT)],
+    ]),
+    previousPositions: new Map([
+      ["one", measured(12, AT)],
+      ["three", measured(7, AT)],
+      ["four", measured(9, AT)],
+    ]),
+  });
+
+  it("the tile's count is the chip's count and the chip's rows, out of every search tracked", () => {
+    const model = assembleSearch(rows, AT);
+    const shown = rowsFor(model.rows, "first_page");
+    expect(shown.map((row) => row.target.search).sort()).toEqual(["one", "two"]);
+    expect(model.tiles.firstPage.value).toMatchObject({ value: shown.length });
+    expect(model.counts.first_page).toBe(shown.length);
+    expect(model.tiles.firstPage.of).toMatchObject({ value: model.rows.length });
+  });
+
+  it("the change is over the same searches on the scan before, and absent with no scan before", () => {
+    expect(assembleSearch(rows, AT).tiles.firstPage.change).toBe(0);
+    expect(assembleSearch({ ...rows, previousPositions: new Map() }, AT).tiles.firstPage.change).toBe(2);
+    expect(assembleSearch({ ...rows, previousPositions: null }, AT).tiles.firstPage.change).toBeUndefined();
   });
 });
 
