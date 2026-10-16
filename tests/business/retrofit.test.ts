@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { kindOfWords, linesOfCategory, retrofitReading } from "../../src/lib/business/retrofit";
+import { kindOfProfile, kindOfWords, linesOfCategory, retrofitReading } from "../../src/lib/business/retrofit";
 import { profileOfReport, understandBusiness } from "../../src/lib/business/understanding";
 import { DEFAULT_LOCALE } from "../../src/lib/locale/locales";
 import { rescoreRow, type StoredScanRow } from "../../src/lib/scan/rescore-run";
@@ -79,6 +79,7 @@ describe("what the stored words decide", () => {
     ["e-commerce platform", "software"],
     ["Handwerksbäckerei mit Einzelhandel", "shop"],
     ["temporary tattoos", null],
+    ["website builder", null],
   ])("%s → %s", (words, kind) => {
     expect(kindOfWords(words)).toBe(kind);
   });
@@ -115,5 +116,34 @@ describe("what the stored words decide", () => {
     expect(
       retrofitReading({ ...base, profile: { category: "business software", offerings: [], kind: "software", reach: "international" } })
     ).toEqual({});
+  });
+});
+
+// Issue 1474 — a word that is a trade or a product ("builder") does not
+// decide the kind alone, and an explicit signal weighs two readings.
+describe("the category and the offering type are read together", () => {
+  it.each([
+    ["plumbing services", "residential plumbing repair", false, "local-service"],
+    ["restaurant", "sit-down dining", false, "hospitality"],
+    ["coffee shop", "independent café and bakery", false, "hospitality"],
+    ["home builder", "custom homes", true, "local-service"],
+    ["home builder", "custom homes", false, null],
+    ["website builder", "SaaS platform", false, "software"],
+    ["online form builder", "form builder with paid upgrades", false, null],
+    ["accountants", "bookkeeping app", false, null],
+  ] as const)("%s, %s, a town %s → %s", (category, offeringType, town, kind) => {
+    expect(kindOfProfile(category, offeringType, town)).toBe(kind);
+  });
+
+  it("a stored home builder with a town is a local trade; a website builder sold as SaaS is software", () => {
+    const base = { measuredInTown: false, schemaTypes: [], serps: [] };
+    expect(retrofitReading({ ...base, profile: { category: "home builder", offeringType: "new build homes", town: "Leeds" } })).toMatchObject({
+      kind: "local-service",
+      reach: "local",
+    });
+    expect(retrofitReading({ ...base, profile: { category: "website builder", offeringType: "SaaS platform" } })).toMatchObject({
+      kind: "software",
+      reach: "international",
+    });
   });
 });
