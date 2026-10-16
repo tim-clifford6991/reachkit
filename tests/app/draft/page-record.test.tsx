@@ -103,8 +103,8 @@ describe("the address is the one the record decided, never one the screen chose"
     expect(html).not.toContain("<a ");
   });
 
-  it("the address renders in the mono utility — §2.3's code-like string", () => {
-    expect(render()).toMatch(/class="[^"]*\bnum\b[^"]*"[^>]*href="https:\/\/blog\.example\.com\/best-crm"/);
+  it("the address renders in the mono face and wraps — §2.3's code-like string (issue 1456)", () => {
+    expect(render()).toMatch(/class="[^"]*\bfont-mono break-all\b[^"]*"[^>]*href="https:\/\/blog\.example\.com\/best-crm"/);
   });
 });
 

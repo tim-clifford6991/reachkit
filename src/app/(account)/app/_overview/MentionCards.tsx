@@ -14,11 +14,9 @@
 //
 // **Nothing here can overflow, and nothing is clamped to hide it.** A
 // question is prose: it wraps at its spaces and the row grows with it. A
-// page address is a **value** — `.num`, which `src/ui/type.css` forbids
-// breaking inside — so it cannot wrap, and ADR-093's rule applies instead:
-// the *box* changes, and it sits in the `overflow-x-auto` container that
-// rule names. Either way no figure is clamped and no text is cut off, which
-// is `docs/DESIGN.md`'s no-overflow rule. The only mono-face values are the
+// page address is mono and breaks anywhere (`docs/DESIGN.md`, 2026-10-15,
+// issue 1456), so it wraps too. Either way no figure is clamped and no text
+// is cut off, which is `docs/DESIGN.md`'s no-overflow rule. The only mono-face values are the
 // counts and that address, which is what JetBrains Mono is reserved for.
 //
 // **Every sentence is the registry's.** The one thing drawn as data is the
@@ -233,14 +231,14 @@ export function MentionCards(p: {
                     then `wrap-anywhere` both computed to `normal` here,
                     and a 368px address sat in a 199px grid track and
                     pushed the whole page into a horizontal scroll. */}
-                <div className="list-col-grow min-w-0 max-w-full overflow-x-auto">
+                <div className="list-col-grow min-w-0">
                   {/* The path is what is shown; the whole address is what
                       the link goes to. The domain is the customer's own and
                       is identical on every row, so showing it four times
                       spends the width that tells the four pages apart. */}
                   <a
                     href={page.url}
-                    className="link link-primary num text-sm"
+                    className="link link-primary font-mono break-all text-sm"
                     data-testid="mentions-cited-url"
                   >
                     {page.label}

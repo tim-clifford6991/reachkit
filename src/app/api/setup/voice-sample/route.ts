@@ -58,7 +58,7 @@ async function passagesFor(domain: string): Promise<VoicePassage[]> {
     import("@/lib/generate/pipeline/grounding"),
     import("@/lib/config/constants"),
   ]);
-  const pages = await readDomainText(domain);
+  const pages = await readDomainText(domain, { customerOnly: true });
   const out: VoicePassage[] = [];
   const seen = new Set<string>();
   // Freshest page first, the order `writeLeadPage` already grounds in.

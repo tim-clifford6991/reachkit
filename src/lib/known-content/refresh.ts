@@ -91,12 +91,23 @@ export async function refreshKnownContent(a: {
   readWordPress?: () => Promise<readonly KnownPage[] | null>;
 }): Promise<KnownRefresh> {
   const reachkit = await write(a.siteId, "reachkit", () => readOurPages(a.siteId));
+  // The customer's own sources hold the customer's own pages: a page
+  // ReachKit wrote is a `reachkit` row and never a `site` or `wordpress` one
+  // (SPEC §5, 2026-10-15, issue 1456). Where ours cannot be read, neither
+  // source is written and what it held stands.
+  const theirs = async (pages: readonly KnownPage[] | null): Promise<KnownPage[] | null> => {
+    if (pages === null) return null;
+    const { readOurPages: readOurs, isOurPage } = await import("./ours");
+    const ours = await readOurs({ siteId: a.siteId });
+    return pages.filter((page) => page.url === null || !isOurPage(ours, page.url));
+  };
   const site = await write(a.siteId, "site", async () => {
     const inventory = a.inventory ?? (a.readInventory === undefined ? null : await a.readInventory());
-    return inventory === null ? null : inventoryPages(inventory);
+    return theirs(inventory === null ? null : inventoryPages(inventory));
   });
+  const readWordPress = a.readWordPress;
   const wordpress =
-    a.readWordPress === undefined ? null : await write(a.siteId, "wordpress", a.readWordPress);
+    readWordPress === undefined ? null : await write(a.siteId, "wordpress", async () => theirs(await readWordPress()));
   return { reachkit, wordpress, site };
 }
 

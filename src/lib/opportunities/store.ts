@@ -609,7 +609,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
           currentReportOf(siteId),
         ]);
         const [measuredPages, profile] = await Promise.all([
-          readMeasuredText({ siteId }),
+          readMeasuredText({ siteId, customerOnly: true }),
           report === null ? Promise.resolve(null) : readSiteProfile(report.domain),
         ]);
         return earnGroundingOf({
