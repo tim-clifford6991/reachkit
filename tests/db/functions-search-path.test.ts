@@ -1,6 +1,6 @@
 // tests/db/functions-search-path.test.ts — issue #384
 //
-// Two rules about the applied schema's *security posture*, kept as rules
+// Three rules about the applied schema's *security posture*, kept as rules
 // rather than as a one-off fix:
 //
 //   1. **Every function in `public` pins its own search path.** Without a
@@ -15,6 +15,12 @@
 //      default-deny — but the advisor reads `pg_description`, not a
 //      migration header, so the intent has to be written where it looks
 //      (`rls_enabled_no_policy`).
+//   3. **A `security definer` function is the service client's alone.** It
+//      reads past RLS, so a session that may call it reads any site's rows
+//      — `known_content_near` did until issue 1472
+//      (`anon_security_definer_function_executable`). Its migrations revoke
+//      `execute` from `public`, `anon` and `authenticated`, unless it is
+//      allow-listed below with a reason.
 //
 // **A text test, deliberately.** The live-schema project's file list lives
 // in `vitest.config.ts`, which a feature PR may not edit (CLAUDE.md), so
@@ -207,5 +213,83 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
     // must not appear in the list this file checks.
     expect(policied.has("scans")).toBe(true);
     expect(policyLess).not.toContain("scans");
+  });
+});
+
+// ── 3. A `security definer` function is not callable from a session ──────
+
+/** Who may run a `security definer` function from a session, and why. A
+ *  definer function reads past RLS, so a name here is a decision, not a
+ *  default. Empty: every one in this schema is the service client's. */
+const SESSION_CALLABLE_DEFINERS: ReadonlyMap<string, string> = new Map<string, string>([]);
+
+/** The roles a session reaches the database as. `public` is every role,
+ *  and Postgres grants it `execute` on each new function; Supabase's default
+ *  privileges grant `anon` and `authenticated` the same. */
+const SESSION_ROLES = ["public", "anon", "authenticated"] as const;
+
+const PRIVILEGE_STATEMENT =
+  /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?([a-z_][a-z0-9_]*)\s*\(|\b(revoke|grant)\s+(?:all(?:\s+privileges)?|execute)\s+on\s+function\s+(?:public\.)?([a-z_][a-z0-9_]*)\s*\([^)]*\)\s+(?:from|to)\s+([a-z_,\s]+?)\s*;/gi;
+
+/** The roles that may execute `name` once `migrations` have run, from its
+ *  last `create function` on. A definition starts from the default grants:
+ *  Postgres keeps a replaced function's grants, but the migration that
+ *  changes a definer function is the one a reviewer reads, so it states
+ *  them again. */
+function executableBy(migrations: readonly { sql: string }[], name: string): Set<string> {
+  let roles = new Set<string>();
+  for (const { sql } of migrations) {
+    for (const match of statementsOf(sql).matchAll(PRIVILEGE_STATEMENT)) {
+      if (match[1] !== undefined) {
+        if (match[1] === name) roles = new Set([...SESSION_ROLES, "service_role"]);
+        continue;
+      }
+      if (match[3] !== name) continue;
+      for (const role of (match[4] ?? "").split(",").map((r) => r.trim().toLowerCase())) {
+        if (match[2]?.toLowerCase() === "grant") roles.add(role);
+        else roles.delete(role);
+      }
+    }
+  }
+  return roles;
+}
+
+const DEFINERS = [...FUNCTIONS.values()]
+  .filter((definition) => /\bsecurity\s+definer\b/i.test(definition.text))
+  .map((definition) => definition.name);
+
+describe('advisor `anon_security_definer_function_executable` — "a definer function a session can call reads past RLS"', () => {
+  it("finds the definer function the advisor named, and no fewer", () => {
+    // Issue 1472. A missing one means the parse has drifted and the rule
+    // below is checking nothing.
+    expect(DEFINERS).toContain("known_content_near");
+  });
+
+  it.each(DEFINERS.filter((name) => !SESSION_CALLABLE_DEFINERS.has(name)))(
+    "%s is executable by `service_role` alone",
+    (name) => {
+      const roles = executableBy(MIGRATIONS, name);
+      expect(SESSION_ROLES.filter((role) => roles.has(role))).toEqual([]);
+      expect(roles.has("service_role")).toBe(true);
+    }
+  );
+
+  it.each([...SESSION_CALLABLE_DEFINERS])("%s is allow-listed with a reason", (_name, reason) => {
+    expect(reason.trim()).not.toBe("");
+  });
+
+  it("a grant to `service_role` without the revokes is what fails — the mutation this test guards against", () => {
+    // The shape of 20260921150000_sites_content_known.sql before issue
+    // 1472: granted to the service client, the default grants left in place.
+    const create =
+      "create or replace function widgets_near(p uuid)\nreturns int\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$ select 1; $$;";
+    const grant = "grant execute on function widgets_near(uuid) to service_role;";
+    const revoke = "revoke all on function widgets_near(uuid) from public, anon, authenticated;";
+
+    const open = executableBy([{ sql: `${create}\n${grant}` }], "widgets_near");
+    expect(SESSION_ROLES.filter((role) => open.has(role))).toEqual(["public", "anon", "authenticated"]);
+
+    const closed = executableBy([{ sql: `${create}\n${grant}` }, { sql: revoke }], "widgets_near");
+    expect([...closed]).toEqual(["service_role"]);
   });
 });
