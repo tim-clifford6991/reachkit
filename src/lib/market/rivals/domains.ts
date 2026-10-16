@@ -60,7 +60,12 @@ export const LISTING_HOSTS: ReadonlySet<string> = new Set(
     "myhammer.de healthgrades.com webmd.com eater.com timeout.com infatuation.com michelin.com " +
     "apps.apple.com play.google.com forbes.com nytimes.com theguardian.com techcrunch.com nerdwallet.com " +
     "legal500.com chambers.com lawsociety.org.uk icaew.com unbiased.co.uk " +
-    "apps.microsoft.com apps.shopify.com marketplace.atlassian.com alternativeto.net saasworthy.com f-droid.org"
+    "apps.microsoft.com apps.shopify.com marketplace.atlassian.com alternativeto.net saasworthy.com f-droid.org " +
+    // Issue 1465: reference, review, news and job sites, catalogues of
+    // films, and hosts of personal blogs, as the stored scans held them.
+    "imdb.com rottentomatoes.com letterboxd.com netflix.com tv.apple.com merriam-webster.com collinsdictionary.com " +
+    "dictionary.cambridge.org dictionary.com stackexchange.com study.com investopedia.com pcmag.com cnet.com " +
+    "indeed.com ziprecruiter.com glassdoor.com huffpost.com mapquest.com livejournal.com github.io"
   ).split(" ")
 );
 
@@ -83,7 +88,7 @@ export const MARKETPLACE_HOSTS: ReadonlySet<string> = new Set(
 /** The first path segment of a marketplace page that is one business's or
  *  one product's own: a product, an app, a shop, a course, a venue. */
 const LISTING_SECTION =
-  /^(products?|apps?|biz|course|courses|learn|specializations|dp|itm|str|listing|ip|shop|store|stores|seller|restaurant|restaurants|r|a|menu|speisekarte|hotel|hotels|rooms|place|places|venue|venues|salon|doctor|practice|profile|freelancers)$/;
+  /^(marketplace|products?|apps?|biz|course|courses|learn|specializations|dp|itm|str|listing|ip|shop|store|stores|seller|restaurant|restaurants|r|a|menu|speisekarte|hotel|hotels|rooms|place|places|venue|venues|salon|doctor|practice|profile|freelancers)$/;
 
 /** Marketplaces where each publication has its own subdomain. */
 const PUBLICATION_HOSTS: ReadonlySet<string> = new Set(["substack.com", "medium.com"]);
@@ -125,7 +130,10 @@ export function isListingAddress(hostOrUrl: string): boolean {
   const [first, second] = path.split("/").filter(Boolean).map((segment) => segment.toLowerCase());
   if (first === undefined) return false;
   if (first.startsWith("@")) return first.length > 1;
-  return second !== undefined && LISTING_SECTION.test(first);
+  // Amazon names a product page `/<its name>/dp/<id>` and a page of search
+  // results `/s` or `/<a word>/s` (issue 1465).
+  if (first === "s" || second === "s") return true;
+  return second !== undefined && (LISTING_SECTION.test(first) || second === "dp");
 }
 
 /** Membership in BP-005's closed `PLATFORM_DOMAINS` list, or a listing
@@ -179,6 +187,28 @@ export function isArticleUrl(url: string): boolean {
   }
   const segments = path.split("/").filter(Boolean);
   return segments.some((segment) => ARTICLE_SECTION.test(segment) || ARTICLE_WORD.test(segment));
+}
+
+/** The sections where a business keeps what it writes about its own
+ *  market: its blog, its resources, its guides. A locale's segment
+ *  (`/en/`, `/en-us/`) before it is read past. */
+const OWN_CONTENT_SECTION = /^(blogs?|articles?|posts?|resources?|resource-hub|learn|learning-center|insights|guides?|academy|library|glossary)$/;
+const LOCALE_SEGMENT = /^[a-z]{2}(?:[-_][a-z]{2})?$/;
+
+/** Whether an article sits in its own domain's blog, resources or guides
+ *  (issue 1465): a business writing about its market, as a software maker
+ *  writes "The 10 best email tools" in its own blog, rather than a review
+ *  site whose roundups are the whole site. */
+export function isOwnContentUrl(url: string): boolean {
+  let segments: string[];
+  try {
+    segments = new URL(url).pathname.toLowerCase().split("/").filter(Boolean);
+  } catch {
+    return false;
+  }
+  const [first, second] = segments;
+  if (first === undefined) return false;
+  return OWN_CONTENT_SECTION.test(first) || (LOCALE_SEGMENT.test(first) && second !== undefined && OWN_CONTENT_SECTION.test(second));
 }
 
 /** Whether a top-ten row is an article about others (issue 1449): its
