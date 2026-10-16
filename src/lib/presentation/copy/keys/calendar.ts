@@ -465,6 +465,15 @@ export const CALENDAR_COPY = Object.freeze({
   ],
   "calendar.numbers.week": ["this week", { slots: {}, fixedBy: "SPEC §7 2026-10-09 (drafted)" }],
 
+  // Issue 1457: every page published — the rows Overview's Content tile
+  // counts. Drafted (#759).
+  "calendar.published.title": ["Published", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
+  "calendar.published.none": ["No page is live yet.", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
+  "calendar.published.count": [
+    "{total} pages, {recent} in the last {weeks} weeks",
+    { slots: { total: "text", recent: "text", weeks: "text" }, fixedBy: "issue 1457 (drafted)" },
+  ],
+
   // The one note under the month: what the number on a live card is. It is
   // not a supply statement and does not repeat one — it explains a value,
   // which is the only thing on the card a founder cannot read off the word

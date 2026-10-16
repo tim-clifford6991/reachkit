@@ -45,8 +45,11 @@ export type SearchStatus = (typeof SEARCH_STATUSES)[number];
 
 /** The chips over the table: `all` is a filter and never a status, which is
  *  why it is a separate tuple rather than a fifth `SearchStatus` — the same
- *  shape, and the same reason, as the calendar's `STAGE_FILTERS`. */
-export const SEARCH_FILTERS = ["all", ...SEARCH_STATUSES] as const;
+ *  shape, and the same reason, as the calendar's `STAGE_FILTERS`.
+ *  `first_page` is the searches Google shows the site on its first page —
+ *  the rows Overview's Google tile counts (issue 1457), so the tile opens
+ *  exactly them. */
+export const SEARCH_FILTERS = ["all", "first_page", ...SEARCH_STATUSES] as const;
 export type SearchFilter = (typeof SEARCH_FILTERS)[number];
 
 /**
@@ -113,6 +116,9 @@ export interface SearchTile {
    *  (#1039) — absent where the tile's line is a fixed one, and where the
    *  number was not measured: a dash says why, never a generality. */
   reading?: TileReading;
+  /** The change on the scan before, over the same searches. Absent where
+   *  no earlier scan's places were read. */
+  change?: number;
 }
 
 /**
@@ -120,17 +126,15 @@ export interface SearchTile {
  *
  * `queue` is how long the kept-ready searches last at §7's one page a day,
  * in whole weeks once there are two of them and in days before that.
- * `first-page` is the best-placed live page on the first page and how many
- * more stand beside it; `closest` is the best-placed live page where none
- * has reached it; `no-place` is live pages Google shows for none of their
- * searches; `none-live` is no live page at all.
+ * `first-page` is the best-placed search on the first page and how many
+ * more stand beside it; `closest` is the best-placed search where none has
+ * reached it; `no-place` is no search Google shows the site for.
  */
 export type TileReading =
   | { kind: "queue"; weeks: number; days: number }
   | { kind: "first-page"; search: string; position: number; others: number }
   | { kind: "closest"; search: string; position: number }
-  | { kind: "no-place" }
-  | { kind: "none-live" };
+  | { kind: "no-place" };
 
 export interface SearchTiles {
   /** Open, ready, non-Fix rows — days of pages the product holds
@@ -139,7 +143,9 @@ export interface SearchTiles {
   /** Live pages whose search the site now holds a top-20 place for, out of
    *  the live pages counted. */
   firstTwoPages: SearchTile;
-  /** The same at the top ten. */
+  /** Every search ReachKit tracks that Google shows the site on its first
+   *  page for, out of all of them — `onFirstPage`, the rows the
+   *  `first_page` chip shows and Overview's Google tile counts. */
   firstPage: SearchTile;
   /** Every search the site appears for at any position — the current
    *  report's own `ownRanked` — against the product's goal. */
@@ -174,10 +180,10 @@ export interface SearchFacts {
    *  absent from the map is one the site holds no place for. */
   positions: ReadonlyMap<string, Measured<number>>;
   /** Live, non-unpublished publications this site holds — the denominator
-   *  of the two position tiles. */
+   *  of the top-20 tile. */
   livePages: Measured<number>;
-  /** The searches those live pages were written to win. The two position
-   *  tiles count over exactly these, so a top-20 place the site held before
+  /** The searches those live pages were written to win. The top-20 tile
+   *  counts over exactly these, so a top-20 place the site held before
    *  ReachKit ever wrote for it is not counted as a page ReachKit put
    *  there. */
   liveSearches: readonly string[];
@@ -185,6 +191,9 @@ export interface SearchFacts {
   ready: Measured<number>;
   /** The whole site's ranked count from the current stored report. */
   ownRanked: Measured<number>;
+  /** The site's places on the scan before the current one, keyed like
+   *  `positions`. `null` where no earlier scan's places could be read. */
+  previousPositions: ReadonlyMap<string, Measured<number>> | null;
   ceiling: number | null;
   measuredAt: Date | null;
 }
@@ -258,15 +267,17 @@ export function assembleSearch(facts: SearchFacts, at: Date): SearchModel {
 
   rows.sort((a, b) => closeness(a) - closeness(b) || demandOf(b) - demandOf(a) || a.id.localeCompare(b.id));
 
+  const firstPage = onFirstPage(rows);
   const counts = {
     all: rows.length,
+    first_page: firstPage.length,
     live: rows.filter((row) => row.status === "live").length,
     your_review: rows.filter((row) => row.status === "your_review").length,
     up_next: rows.filter((row) => row.status === "up_next").length,
     too_big: rows.filter((row) => row.status === "too_big").length,
   } satisfies Record<SearchFilter, number>;
 
-  // The two position tiles count over the live pages' own searches, and
+  // The top-20 tile counts over the live pages' own searches, and
   // only over the ones the report actually measured a place for: a search
   // it did not reach is not a page that fell off the first two pages.
   const live = new Set(facts.liveSearches);
@@ -292,10 +303,13 @@ export function assembleSearch(facts: SearchFacts, at: Date): SearchModel {
       },
       firstTwoPages: { value: within(FIRST_TWO_PAGES), of: facts.livePages },
       firstPage: {
-        value: within(FIRST_PAGE),
-        of: facts.livePages,
-        reading:
-          facts.livePages.kind === "unmeasured" ? undefined : firstPageReading(placed, facts.livePages.value),
+        // No scan, no places: not a zero (issue 1457).
+        value: facts.measuredAt === null ? unmeasured<number>("not_attempted", at) : counted(firstPage.length, at),
+        of: counted(rows.length, at),
+        reading: firstPageReading(placedRows(rows)),
+        ...(facts.previousPositions === null
+          ? {}
+          : { change: firstPage.length - rows.filter((row) => onPage(facts.previousPositions?.get(row.target.search))).length }),
       },
       appearFor: { value: facts.ownRanked, of: measured(GOALS.searches_appeared_in.value, at) },
     },
@@ -313,18 +327,15 @@ export function queueReading(ready: number): TileReading {
   return { kind: "queue", weeks: Math.floor(ready / DAYS_A_WEEK), days: ready };
 }
 
-/** The first-page tile's line, from the live pages' own places, best
+/** The first-page tile's line, from the searches' own places, best
  *  first. */
-export function firstPageReading(
-  placed: readonly { search: string; position: number }[],
-  livePages: number
-): TileReading {
+export function firstPageReading(placed: readonly { search: string; position: number }[]): TileReading {
   const best = placed[0];
-  if (best === undefined) return livePages === 0 ? { kind: "none-live" } : { kind: "no-place" };
-  const onFirstPage = placed.filter((p) => p.position <= FIRST_PAGE).length;
-  return onFirstPage === 0
+  if (best === undefined) return { kind: "no-place" };
+  const count = placed.filter((p) => p.position <= FIRST_PAGE).length;
+  return count === 0
     ? { kind: "closest", search: best.search, position: best.position }
-    : { kind: "first-page", search: best.search, position: best.position, others: onFirstPage - 1 };
+    : { kind: "first-page", search: best.search, position: best.position, others: count - 1 };
 }
 
 /** Google's first two pages, and its first page. Ten results to a page is
@@ -334,8 +345,28 @@ export function firstPageReading(
 export const FIRST_PAGE = 10 as const;
 export const FIRST_TWO_PAGES = 20 as const;
 
-/** The rows one chip stands for. The filter is applied here as well as by
- *  the table, so a test can decide the rule without a browser. */
+/** Whether a place is on Google's first page. */
+function onPage(position: Measured<number> | undefined): boolean {
+  return position !== undefined && position.kind !== "unmeasured" && position.value <= FIRST_PAGE;
+}
+
+/** The searches Google shows the site on its first page for (issue 1457).
+ *  One selector: the Search tab's tile, its `first_page` chip and
+ *  Overview's Google tile all count these rows. */
+export function onFirstPage(rows: readonly SearchRow[]): readonly SearchRow[] {
+  return rows.filter((row) => onPage(row.position));
+}
+
+/** Every row with a place, best first. */
+function placedRows(rows: readonly SearchRow[]): { search: string; position: number }[] {
+  return rows
+    .flatMap((row) => (row.position.kind === "unmeasured" ? [] : [{ search: row.target.search, position: row.position.value }]))
+    .sort((a, b) => a.position - b.position || a.search.localeCompare(b.search));
+}
+
+/** The rows one chip stands for — the rows the table draws. */
 export function rowsFor(rows: readonly SearchRow[], filter: SearchFilter): readonly SearchRow[] {
-  return filter === "all" ? rows : rows.filter((row) => row.status === filter);
+  if (filter === "all") return rows;
+  if (filter === "first_page") return onFirstPage(rows);
+  return rows.filter((row) => row.status === filter);
 }
