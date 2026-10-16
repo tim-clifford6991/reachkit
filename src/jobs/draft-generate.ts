@@ -38,8 +38,10 @@
 //     deliveries running together rewrite one row rather than writing two.
 import {
   activeSites,
+  alertMissingDrafts,
   generateDraft,
   noticeBrokenDestination,
+  recordDraftDay,
   regenerateDraft,
   restartedDrafts,
 } from "@/jobs/engine";
@@ -72,6 +74,9 @@ export const draftGenerate: JobDefinition = {
     // The window a due page opens is counted from the tick's own hour, so
     // it ends at or before the publish time however late the tick arrived.
     const hour = tickHour(input.now);
+    // Issue 1455: a site whose publish time falls in this hour with no page
+    // for the day is told to the owner, whatever site is due to draft.
+    await alertMissingDrafts({ sites: selection.sites, hour });
     const due = selection.sites.filter((site) => isDraftDue(hour, site));
     if (due.length === 0) {
       return restarted.length === 0
@@ -80,16 +85,26 @@ export const draftGenerate: JobDefinition = {
     }
 
     const results = await fanOut(due, async (site) => {
-      // BUILD §9's one mail per breakage, before the page this site's
-      // broken destination would be holding is prepared. First, and not
-      // last: a generation that falls over must not also cost the customer
-      // the only telling they get that their pages are going nowhere.
-      await noticeBrokenDestination({ siteId: site.siteId, now: input.now });
-      return generateDraft({
-        siteId: site.siteId,
-        publishDate: nextPublishDate(hour, site),
-        now: hour,
-      });
+      const publishDate = nextPublishDate(hour, site);
+      try {
+        // BUILD §9's one mail per breakage, before the page this site's
+        // broken destination would be holding is prepared. First, and not
+        // last: a generation that falls over must not also cost the customer
+        // the only telling they get that their pages are going nowhere.
+        await noticeBrokenDestination({ siteId: site.siteId, now: input.now });
+        const result = await generateDraft({ siteId: site.siteId, publishDate, now: hour });
+        // Issue 1455: the day keeps its reason after the next tick has run.
+        await recordDraftDay(
+          "degraded" in result
+            ? { siteId: site.siteId, publishDate, outcome: "no_page", reason: result.degraded, at: hour }
+            : { siteId: site.siteId, publishDate, outcome: "drafted", reason: null, at: hour }
+        );
+        return result;
+      } catch (error) {
+        const reason = error instanceof Error ? error.name : "unknown";
+        await recordDraftDay({ siteId: site.siteId, publishDate, outcome: "failed", reason, at: hour });
+        throw error;
+      }
     });
     return settle([...regenerated, ...results], null);
   },

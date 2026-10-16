@@ -54,6 +54,8 @@ const LIVE_SCHEMA_TESTS = [
   "tests/scan/gallery/listing.test.ts",
   // Issue 1433: `rescore_runs`, `report_md5` and the guarded `rescore_scan`.
   "tests/scan/report/rescore-schema.test.ts",
+  // Issue 1455: every draft day, per site, and its once-a-date alert.
+  "tests/publish/daily/days-schema.test.ts",
 ];
 
 export default defineConfig({

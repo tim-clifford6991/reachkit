@@ -247,8 +247,11 @@ export async function regenerateRestarted(a: {
   if (site === null) return { ok: false, because: "no_site" };
   const report = await store.latestReport(a.siteId);
   if (report === null) return { ok: false, because: "no_scan" };
-  const opportunity = await opportunityById(row.opportunity_id);
-  if (opportunity === null) return { ok: false, because: "no_opportunity" };
+  const found = await opportunityById(row.opportunity_id);
+  if (found === null) return { ok: false, because: "no_opportunity" };
+  // A comparison the day answered as a Q&A (issue 1455) is written again as one.
+  const writtenAs = (row.meta as { contentType?: unknown } | null)?.contentType;
+  const opportunity = writtenAs === "qa" && contentTypeOf(found) === "listicle" ? { ...found, writeAs: "qa" as const } : found;
 
   const page = { siteId: a.siteId, site, report, opportunity, publishDate: row.scheduled_for, draftId: row.id };
   const outcome = await withDraftCost({ scanId: report.scanId }, (cost) =>
@@ -493,7 +496,8 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
   /** Stages 1 and 2 for one opportunity: its type, then its context pack. */
   const packFor = async (o: Opportunity): Promise<{ pack: ContextPack; links: LinkTarget[] } | null> => {
     // 1. Decide (code only): new or an update, and which of the seven types.
-    const type = contentTypeOf(o);
+    // Issue 1455: the ranking may write a comparison over D52's cap as a Q&A.
+    const type = o.writeAs ?? contentTypeOf(o);
     if (type === null) return null;
     const template = TEMPLATES[type];
     const links = linksFor(o).filter((link) => link.url !== o.targetRef);

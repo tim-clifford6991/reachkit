@@ -72,23 +72,21 @@ export function addMonths(month: MonthKey, delta: number): MonthKey {
 }
 
 /**
- * The last date the plan reaches (issue 857, owner 2026-09-17): the day
- * before the next weekly pass, which is the Sunday of today's own Mon–Sun
- * week. Plans are decided per weekly pass, so nothing is planned past it.
- *
- * On a Monday it is that week's Sunday whether or not the pass has run yet:
- * before the pass the plan runs through Sunday, and after it the next pass
- * is a week away. `today` is already site-local, so the edge falls on the
- * customer's own Monday.
+ * The last date the plan reaches (SPEC §7, 2026-10-15, issue 1455): six
+ * days after today, so the next seven days always carry their planned page.
+ * It replaces issue 857's Sunday before the next weekly pass, which on a
+ * Saturday planned two days. A date after that pass is planned from the
+ * ranking that stands today, and the pass may plan it again. `today` is
+ * already site-local.
  */
 export function planHorizonEnd(today: DayKey): DayKey {
-  return addDays(today, 6 - weekdayIndex(today));
+  return addDays(today, 6);
 }
 
 /**
- * The dates Plan lists on a phone (SPEC §7, 2026-10-08, issue 1340): the
- * site-local week that contains today, Monday through the plan horizon.
- * The recent days and the days ahead, and never a month.
+ * The dates Plan lists on a phone (SPEC §7, 2026-10-08, issue 1340): from
+ * the Monday of the site-local week that contains today through the plan
+ * horizon. The recent days and the days ahead, and never a month.
  */
 export function planWeek(today: DayKey): readonly DayKey[] {
   const end = planHorizonEnd(today);

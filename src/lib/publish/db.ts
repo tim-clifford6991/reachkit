@@ -51,6 +51,7 @@ export interface PublishQuery<T> extends PromiseLike<QueryResult<T>> {
   limit(count: number): PublishQuery<T>;
   insert<R extends object>(row: R): PublishQuery<T>;
   update<R extends object>(values: R): PublishQuery<T>;
+  upsert<R extends object>(row: R, options: { onConflict: string; ignoreDuplicates?: boolean }): PublishQuery<T>;
   single(): PromiseLike<SingleResult<T>>;
 }
 
