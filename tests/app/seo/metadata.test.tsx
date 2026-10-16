@@ -75,7 +75,7 @@ function publicRoutePatterns(dir: string, prefix = ""): string[] {
 }
 
 /** Which module Next reads each route's `<head>` from, and how. */
-const OWNER: Readonly<Record<string, { module: string; generated?: true }>> = {
+const OWNER: Readonly<Record<string, { module: string; generated?: Record<string, string> }>> = {
   "/": { module: "@/app/(public)/page" },
   "/pricing": { module: "@/app/(public)/pricing/page" },
   "/scans": { module: "@/app/(public)/scans/page" },
@@ -86,7 +86,19 @@ const OWNER: Readonly<Record<string, { module: string; generated?: true }>> = {
   "/imprint": { module: "@/app/(public)/imprint/page" },
   // The screen is a Client Component; its metadata is the segment layout's.
   "/signin": { module: "@/app/(public)/signin/layout" },
-  "/scan/{domain}": { module: "@/app/(public)/scan/[domain]/page", generated: true },
+  "/scan/{domain}": { module: "@/app/(public)/scan/[domain]/page", generated: { domain: "example.com" } },
+  // Issue 1458: the pages earlier versions published.
+  "/compare": { module: "@/app/(public)/compare/page" },
+  "/compare/{tool}": { module: "@/app/(public)/compare/[tool]/page", generated: { tool: "ahrefs" } },
+  "/teardowns": { module: "@/app/(public)/teardowns/page" },
+  "/teardowns/{site}": { module: "@/app/(public)/teardowns/[site]/page", generated: { site: "plausible" } },
+  "/answers/{question}": {
+    module: "@/app/(public)/answers/[question]/page",
+    generated: { question: "free-seo-competitor-analysis-tool" },
+  },
+  "/tools": { module: "@/app/(public)/tools/page" },
+  "/tools/meta-preview": { module: "@/app/(public)/tools/meta-preview/page" },
+  "/tools/on-page-check": { module: "@/app/(public)/tools/on-page-check/page" },
   "/veto/{token}": { module: "@/app/(public)/veto/[token]/page" },
   "/opt-out/{token}": { module: "@/app/(public)/opt-out/[token]/page" },
 };
@@ -99,9 +111,9 @@ async function metadataOf(route: string): Promise<Metadata> {
     metadata?: Metadata;
     generateMetadata?: (a: { params: Promise<Record<string, string>> }) => Promise<Metadata>;
   };
-  if (owner.generated === true) {
+  if (owner.generated !== undefined) {
     if (mod.generateMetadata === undefined) throw new Error(`${route} exports no generateMetadata`);
-    return await mod.generateMetadata({ params: Promise.resolve({ domain: "example.com" }) });
+    return await mod.generateMetadata({ params: Promise.resolve(owner.generated) });
   }
   if (mod.metadata === undefined) throw new Error(`${route} exports no metadata`);
   return mod.metadata;
@@ -177,6 +189,14 @@ describe("the canonical address is the address, and never a pattern", () => {
     "/signin": "/signin",
     // `generateMetadata` is asked for `example.com` above.
     "/scan/{domain}": "/scan/example.com",
+    "/compare": "/compare",
+    "/compare/{tool}": "/compare/ahrefs",
+    "/teardowns": "/teardowns",
+    "/teardowns/{site}": "/teardowns/plausible",
+    "/answers/{question}": "/answers/free-seo-competitor-analysis-tool",
+    "/tools": "/tools",
+    "/tools/meta-preview": "/tools/meta-preview",
+    "/tools/on-page-check": "/tools/on-page-check",
   };
 
   for (const [route, address] of Object.entries(ADDRESSED)) {
@@ -236,10 +256,17 @@ describe("indexing is one fact, read by the page and by the sitemap", () => {
     }
   });
 
-  it("the sitemap names exactly the indexable rows with no {param} in them", () => {
+  it("the sitemap names every indexable row: a static one itself, a {param} one by its addresses", () => {
     expect([...sitemapPaths()]).toEqual(
-      PUBLIC_ROUTE_SEO_ROWS.filter((r) => r.indexable && !r.route.includes("{")).map((r) => r.route)
+      PUBLIC_ROUTE_SEO_ROWS.filter((r) => r.indexable).flatMap((r) =>
+        r.route.includes("{") ? [...(r.addresses?.() ?? [])] : [r.route]
+      )
     );
+    // Issue 1458: every indexable pattern names its addresses, so none is
+    // silently missing from the sitemap.
+    for (const row of PUBLIC_ROUTE_SEO_ROWS.filter((r) => r.indexable && r.route.includes("{"))) {
+      expect(row.addresses?.().length ?? 0, row.route).toBeGreaterThan(0);
+    }
   });
 
   it("no report address is in it (ADR-002 decision 1 · REQ-001 c8)", () => {
@@ -263,7 +290,9 @@ describe("every sentence in a public <head> is a key, and the owner is told whic
     // first twenty on 2026-09-10 (#459), and the four of `/how-it-works`
     // and `/about` are drafted (issue 1396).
     const keys = PUBLIC_ROUTE_SEO_ROWS.flatMap((row) => [row.title, row.description]);
-    expect(keys).toHaveLength(24);
+    // Issue 1458 adds eight rows: six with keys of their own and three
+    // articles sharing the two `meta.article.*` slot keys.
+    expect(keys).toHaveLength(40);
     for (const key of keys) {
       expect(AWAITING_COPY, key).not.toContain(key);
       expect(COPY[key], key).not.toBe("");
