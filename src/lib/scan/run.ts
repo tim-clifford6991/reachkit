@@ -1335,6 +1335,17 @@ function inPlace(sections: Sections, placed: PassPlace): void {
   sections.placeFrom = placed.from;
 }
 
+/** The pass measures in its country again (issue 1454): the town `inPlace`
+ *  set is not this business's market. */
+function outOfPlace(sections: Sections): void {
+  if (sections.measurement === null) return;
+  const locale: Locale = { ...sections.measurement.locale };
+  delete locale.place;
+  sections.measurement = { ...sections.measurement, locale };
+  sections.placeFrom = null;
+  console.log(JSON.stringify({ event: "free_place_dropped", because: "reach" }));
+}
+
 /** How long a free pass waits for the search vendor's list of cities: it
  *  answers in under a second, and a pass that does not have it measures in
  *  the country. */
@@ -2092,6 +2103,14 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   // report keeps the profile as read.
   const selecting = a.siteId !== undefined && a.concludesMarket === true ? await withFounderEdits(a.siteId, profile.value) : profile.value;
   if (abandoned()) return;
+  // Issue 1454: a town is the market of a business that sells locally. One
+  // the profile reads as selling across its country or beyond is measured
+  // there, whatever address its home page states (hubspot.com states
+  // Cambridge, MA, and was asked one search of it). Nothing has been bought
+  // in the town yet: the place is first read by the seeds below.
+  if (a.concludesMarket !== true && sections.placeFrom !== null && selecting.reach !== undefined && selecting.reach !== "local") {
+    outOfPlace(sections);
+  }
 
   // SPEC §6 (owner D28, #1185): the market is ReachKit's to keep current.
   // Re-checked here, before anything is bought for it, so this pass seeds
