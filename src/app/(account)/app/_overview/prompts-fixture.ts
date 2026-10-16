@@ -54,3 +54,10 @@ export const FIXTURE_PROMPT_WINDOW: PromptWindow = {
     { weekStart: "2026-09-28", asks: 24, samples: week(5) },
   ],
 };
+
+/** The window that ended the week before the newest week (issue 1457):
+ *  what the AI tile's change is taken against. */
+export const FIXTURE_PREVIOUS_WINDOW: PromptWindow = {
+  prompts: PROMPTS,
+  weeks: FIXTURE_PROMPT_WINDOW.weeks.slice(0, -1),
+};

@@ -26,6 +26,7 @@ export const STATUS_COPY_KEY: Readonly<Record<SearchStatus, CopyKey>> = Object.f
  *  fall back wrongly. */
 export const FILTER_COPY_KEY: Readonly<Record<SearchFilter, CopyKey>> = Object.freeze({
   all: "overview.search.status.all",
+  first_page: "overview.search.tile.first-page",
   live: "overview.search.status.live",
   your_review: "overview.search.status.your-review",
   up_next: "overview.search.status.up-next",

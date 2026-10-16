@@ -11,7 +11,7 @@ import { ANSWER_RATE_WEEKS, MENTION_RATE_MIN_WEEKS } from "@/lib/config/constant
 import type { PromptKind } from "@/lib/market/prompts/generate";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { CLOSED, TILE_FIGURE, formatCount } from "./present";
-import { percent, type PromptsModel } from "./prompts-model";
+import { aiSearchesOf, percent, type PromptsModel } from "./prompts-model";
 
 type Measured = Extract<PromptsModel, { kind: "measured" }>;
 
@@ -26,9 +26,15 @@ const KIND_LABEL: Readonly<Record<PromptKind, CopyKey>> = Object.freeze({
 
 const INK = "text-base-content/70";
 
-function Card(p: { testId: string; title: string; lead: string; children: React.ReactNode }): React.JSX.Element {
+function Card(p: {
+  testId: string;
+  id?: string;
+  title: string;
+  lead: string;
+  children: React.ReactNode;
+}): React.JSX.Element {
   return (
-    <section className="card card-border min-w-0 bg-base-100" data-testid={p.testId}>
+    <section id={p.id} className="card card-border min-w-0 scroll-mt-32 bg-base-100" data-testid={p.testId}>
       <div className="flex min-w-0 flex-col gap-3 p-4">
         {/* What the card counts, closed under its own name (SPEC §4,
             2026-10-07, issue 1324). */}
@@ -187,16 +193,40 @@ function PagesCard(p: { model: Measured }): React.JSX.Element {
   );
 }
 
-/** The set itself: each prompt, its kind and how its answers read. */
+/** The anchor Overview's AI tile opens (issue 1457). */
+export const PROMPTS_LIST_ID = "prompts-list";
+
+/** The set itself: each prompt, its kind and how its answers read. The
+ *  rows Overview's AI tile counts — `aiSearchesOf` — carry their mark, so
+ *  the tile opens exactly the rows it counted. */
 function ListCard(p: { model: Measured }): React.JSX.Element {
+  const counted = aiSearchesOf(p.model.prompts);
+  const linked = new Set(counted.linked.map((prompt) => prompt.id));
+  const mentioned = new Set(counted.mentioned.map((prompt) => prompt.id));
   return (
-    <Card testId="prompts-list" title={copy("overview.prompts.list.title")} lead={copy("overview.prompts.list.lead")}>
+    <Card
+      testId="prompts-list"
+      id={PROMPTS_LIST_ID}
+      title={copy("overview.prompts.list.title")}
+      lead={copy("overview.prompts.list.lead")}
+    >
       <ul className="flex min-w-0 flex-col" aria-label={copy("overview.prompts.list.label")}>
         {p.model.prompts.map((prompt) => (
-          <li key={prompt.id} className="flex min-w-0 flex-col gap-1 border-t border-base-300 py-2" data-testid="prompts-row">
+          <li
+            key={prompt.id}
+            className="flex min-w-0 flex-col gap-1 border-t border-base-300 py-2"
+            data-testid="prompts-row"
+            data-mentioned={mentioned.has(prompt.id) ? "" : undefined}
+            data-linked={linked.has(prompt.id) ? "" : undefined}
+          >
             <span className="min-w-0 text-sm">{prompt.text}</span>
             <span className="flex min-w-0 flex-wrap items-center gap-2">
               <span className="badge badge-ghost badge-sm">{copy(KIND_LABEL[prompt.kind])}</span>
+              {linked.has(prompt.id) ? (
+                <span className="badge badge-primary badge-sm">{copy("overview.prompts.list.links-you")}</span>
+              ) : mentioned.has(prompt.id) ? (
+                <span className="badge badge-outline badge-sm">{copy("overview.prompts.list.mentions-you")}</span>
+              ) : null}
               <span className={`num text-xs ${INK}`}>
                 {prompt.answers === 0
                   ? copy("overview.prompts.list.unanswered")

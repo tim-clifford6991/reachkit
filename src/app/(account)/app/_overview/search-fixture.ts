@@ -140,6 +140,16 @@ const POSITIONS: ReadonlyMap<string, Measured<number>> = new Map(
   )
 );
 
+/** The scan before: each place as the week's recorded move says it stood.
+ *  A row on its first week held no place then. */
+const PREVIOUS_POSITIONS: ReadonlyMap<string, Measured<number>> = new Map(
+  SPECS.flatMap(([search, , , , , , , position, change]) => {
+    if (position === null || change.kind === "first") return [];
+    const before = change.kind === "moved" ? position + (change.better ? change.places : -change.places) : position;
+    return [[search, measured(before, MEASURED_AT)] as const];
+  })
+);
+
 const LIVE = TARGETS.filter((target) => target.status === "live");
 
 export const FIXTURE_SEARCH_FACTS: SearchFacts = Object.freeze({
@@ -150,6 +160,7 @@ export const FIXTURE_SEARCH_FACTS: SearchFacts = Object.freeze({
   // The queue §7 keeps: every open, ready row on file.
   ready: measured(TARGETS.filter((target) => target.status === "up_next").length, MEASURED_AT),
   ownRanked: measured(OWN_RANKED, MEASURED_AT),
+  previousPositions: PREVIOUS_POSITIONS,
   ceiling: CEILING,
   measuredAt: MEASURED_AT,
 });

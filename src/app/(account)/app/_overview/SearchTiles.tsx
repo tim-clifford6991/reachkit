@@ -1,8 +1,9 @@
 // SPEC §4 (2026-09-20, #908) — the Search tab's four readings.
 //
 // The searches ReachKit is keeping ready, how many of the live pages have
-// reached Google's first two pages and its first page, and every search the
-// site appears for at all.
+// reached Google's first two pages, how many of the searches it tracks are
+// on Google's first page (issue 1457: the rows the `first_page` chip shows,
+// and Overview's Google tile), and every search the site appears for.
 //
 // **§4's data rule holds on all four**: "every headline number has a
 // change, a goal or a denominator." None of them carries a change — no
@@ -15,7 +16,7 @@
 // the dash and its own written line and never a zero.
 //
 // **Two lines are this site's own reading** (#1039, board R4-05-Search):
-// the queue says how long it lasts, and the first page names the live page
+// the queue says how long it lasts, and the first page names the search
 // best placed on it. The other two keep the board's fixed line. A dash on
 // either of the two says why it is a dash — never the fixed line instead.
 //
@@ -60,8 +61,6 @@ function readingLine(r: TileReading): string {
       return copy("overview.search.tile.first-page.closest", { search: r.search, position: place(r.position) });
     case "no-place":
       return copy("overview.search.tile.first-page.no-place");
-    case "none-live":
-      return copy("overview.search.tile.first-page.none-live");
   }
 }
 
@@ -173,7 +172,7 @@ const TILES = [
     id: "firstPage",
     labelKey: "overview.search.tile.first-page",
     testId: "search-tile-first-page",
-    againstKey: "overview.search.tile.pages.of",
+    againstKey: "overview.search.tile.searches.of",
     meansKey: null,
   },
   {
