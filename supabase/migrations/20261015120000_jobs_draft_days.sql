@@ -12,6 +12,10 @@
 -- time passed with no draft. The claim is conditional on it being null, so
 -- a date is told about once, however many ticks see it.
 --
+-- The foreign key carries no cascade (ADR-051 point 7): the account purge
+-- is the only deleter, and it removes these rows before `sites`
+-- (`PURGE_ORDER` in src/lib/account/lifecycle/purge.ts).
+--
 -- **RLS: enabled, no policy** — the `fetches` convention. Nothing a
 -- customer holds reads or writes it; it is reachable only through
 -- `dbAdmin()` (`service_role`, which bypasses RLS).
@@ -20,7 +24,7 @@
 -- Supabase connector (docs/PROCESS.md step 4).
 
 create table draft_days (
-  site_id uuid not null references sites (id) on delete cascade,
+  site_id uuid not null references sites (id),
   publish_date date not null,
   outcome text,
   reason text,

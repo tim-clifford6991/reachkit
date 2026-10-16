@@ -1,8 +1,9 @@
 // Issue 1455 — `draft_days`, against a live database.
 //
 // One row per site and date. The publish-time alert is claimed once a date,
-// as the store claims it (a null `missing_alerted_at` updated), a reason no
-// tick knows is refused, a deleted site takes its days with it, and no
+// as the store claims it (a null `missing_alerted_at` updated), an outcome no
+// tick writes is refused, a site's days hold the site until the purge
+// removes them first (ADR-051 point 7: no cascade), and no
 // customer's session reaches the table.
 //
 // A `db`-project suite (`vitest.config.ts`'s `LIVE_SCHEMA_TESTS`), run
@@ -73,12 +74,14 @@ describe("draft_days — every draft day, with its reason", () => {
     expect(claim(id, "2026-10-16")).toBe(false);
   });
 
-  it("refuses an outcome no tick writes, and a deleted site takes its days with it", () => {
+  it("refuses an outcome no tick writes, and a site is deleted only after its days (ADR-051)", () => {
     const id = site();
     expect(raises(`insert into draft_days (site_id, publish_date, outcome) values ('${id}', '2026-10-15', 'maybe');`)).toBe(true);
     run(`insert into draft_days (site_id, publish_date, outcome) values ('${id}', '2026-10-15', 'drafted');`);
+    expect(raises(`delete from sites where id = '${id}';`)).toBe(true);
+    run(`delete from draft_days where site_id = '${id}';`);
     run(`delete from sites where id = '${id}';`);
-    expect(value(`select count(*) from draft_days where site_id = '${id}';`)).toBe("0");
+    expect(value(`select count(*) from sites where id = '${id}';`)).toBe("0");
   });
 
   it("no customer's session reaches it", () => {
