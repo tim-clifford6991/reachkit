@@ -335,6 +335,26 @@ read the table after a deploy or a sync. The heartbeat is installed only where `
 the registry; a failed write logs `{"event":"job_heartbeat","outcome":"record-failed"}` and never
 fails the job.
 
+### Why a site had no page on a date
+
+`job_runs` keeps one row per job, so an hourly `skipped` overwrites the due hour that wrote nothing,
+and Vercel Hobby keeps one hour of runtime logs. The draft tick also keeps one row per site and
+date in `draft_days` (issue 1455): how that date's due hour ended (`drafted`, `no_page`, `failed`)
+and why (`reason`, the engine's step such as `generate:no_opportunity`, or the error's class name):
+
+```sql
+select s.domain, d.publish_date, d.outcome, d.reason, d.decided_at, d.missing_alerted_at
+from draft_days d join sites s on s.id = d.site_id
+order by d.publish_date desc limit 30;
+```
+
+In the hour a paying, publishing site's publish time falls in, a date with no page going out is
+mailed to `OWNER_EMAILS` once (*"A site's publish time passed with no page for the day."*), with that
+row's reason, and `missing_alerted_at` records it. A row with only `missing_alerted_at` set is a date
+whose due hour never ran for that site, for example a tick that did not fire or a site not selected
+then. `no_page` with `generate:no_opportunity` and open, ready rows on file means the ranking left
+nothing for the day: read `opportunities` for the site and SPEC §7's *The cap never empties a day*.
+
 ### Verifying a WordPress destination end to end
 
 The walk, in order, with the observation each step should produce. It has not been run against a

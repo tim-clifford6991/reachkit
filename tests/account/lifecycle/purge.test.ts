@@ -101,6 +101,7 @@ describe("REQ-079 c7 — the enumerated sweep, one case per named class", () => 
     before("leads", "scans");
     before("scans", "sites");
     before("destinations", "sites");
+    before("draft_days", "sites");
     before("danger_tickets", "sites");
     before("sites", "users");
     before("users", "auth.users");

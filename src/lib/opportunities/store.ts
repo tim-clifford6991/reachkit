@@ -117,6 +117,9 @@ export interface DraftedPage {
   state: string;
   title: string | null;
   row: OpportunityRow;
+  /** The type the page was written as (`drafts.meta.contentType`), where
+   *  the draft records one (issue 1455). */
+  writtenAs?: string | null;
 }
 
 export interface OpportunityStore {
@@ -535,10 +538,14 @@ export function supabaseOpportunityStore(): OpportunityStore {
 
     async draftedPages(siteId, limit) {
       const { data, error } = await untyped()
-        .from<{ scheduled_for: string | null; state: string; title: string | null; opportunities: OpportunityRow | null }>(
-          "drafts"
-        )
-        .select(`scheduled_for, state, title, opportunities(${COLUMNS})`)
+        .from<{
+          scheduled_for: string | null;
+          state: string;
+          title: string | null;
+          written_as: string | null;
+          opportunities: OpportunityRow | null;
+        }>("drafts")
+        .select(`scheduled_for, state, title, written_as:meta->>contentType, opportunities(${COLUMNS})`)
         .eq("site_id", siteId)
         // A descending order puts a row with no date first.
         .not("scheduled_for", "is", null)
@@ -548,7 +555,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
       const pages = (data ?? []).flatMap((draft) =>
         draft.scheduled_for === null || draft.opportunities === null
           ? []
-          : [{ date: draft.scheduled_for, state: draft.state, title: draft.title, row: draft.opportunities }]
+          : [{ date: draft.scheduled_for, state: draft.state, title: draft.title, writtenAs: draft.written_as ?? null, row: draft.opportunities }]
       );
       const rows = await atCurrentHost(
         siteId,
