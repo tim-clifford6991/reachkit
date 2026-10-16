@@ -423,8 +423,17 @@ export const PROFILE_LIST_BOUNDS = Object.freeze({
  *  offerings share the searches. An offering with less than `seedShare` of
  *  the site's weight gets no seed of its own bought up front; it is still a
  *  seed while the pass is short, still a relevance term, and still held
- *  to its share of the searches its category yields. */
-export const OFFERINGS = Object.freeze({ seedShare: 0.2 } as const);
+ *  to its share of the searches its category yields.
+ *
+ *  `genericWords` say what kind of thing a line is, not what it is about:
+ *  two lines that share only one of them ("plumbing services", "audit
+ *  services") are two lines, and two that share any other word
+ *  ("residential plumbing repair" after "plumbing services") are one line
+ *  worded twice, bought one seed (the live check of issue 1454). */
+export const OFFERINGS = Object.freeze({
+  seedShare: 0.2,
+  genericWords: ["service", "services", "product", "products", "solution", "solutions"],
+} as const);
 
 /**
  * How much of the **confirmed business profile** a generation prompt may

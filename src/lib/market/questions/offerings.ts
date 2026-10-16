@@ -23,13 +23,26 @@ export function offeringsOf(profile: Pick<Profile, "category" | "offerings">): r
 
 /** The offerings after the first that are bought a seed of their own
  *  before the pass knows whether it is short: those with at least
- *  `OFFERINGS.seedShare` of the site. Their categories, in the profile's
- *  order. */
-export function offeringSeeds(profile: Pick<Profile, "category" | "offerings">): string[] {
-  return offeringsOf(profile)
-    .slice(1)
-    .filter((o) => o.weight >= OFFERINGS.seedShare)
-    .map((o) => o.category);
+ *  `OFFERINGS.seedShare` of the site whose category shares no word but a
+ *  generic one with a line already seeded. A line that does is the same
+ *  line worded again, and the earlier seed's suggestions already hold its
+ *  searches. Their categories, in the profile's order. */
+export function offeringSeeds(profile: Pick<Profile, "category" | "offerings" | "language">): string[] {
+  const language = profile.language ?? "en";
+  const generic = new Set(OFFERINGS.genericWords.flatMap((word) => contentTokens(word, language)));
+  const words = (o: Offering): string[] => contentTokens(o.category, language).filter((token) => !generic.has(token));
+  const [lead, ...rest] = offeringsOf(profile);
+  if (lead === undefined) return [];
+  const seeded = new Set(words(lead));
+  const seeds: string[] = [];
+  for (const o of rest) {
+    if (o.weight < OFFERINGS.seedShare) continue;
+    const own = words(o);
+    if (own.some((token) => seeded.has(token))) continue;
+    own.forEach((token) => seeded.add(token));
+    seeds.push(o.category);
+  }
+  return seeds;
 }
 
 /** Which offering a search is about: the one whose category and name share

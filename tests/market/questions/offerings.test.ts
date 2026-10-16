@@ -107,4 +107,27 @@ describe("selection spreads the searches across the lines", () => {
     expect(offeringSeeds(profile)).toEqual(["breakfast café"]);
     expect(seedLadder(profile).slice(0, 2)).toEqual(["coffee shop", "breakfast café"]);
   });
+
+  it("a line that is the first worded again is bought no seed; a line that shares only a generic word is", () => {
+    const plumber = normaliseProfile({
+      ...ANSWER,
+      category: "plumbing services",
+      offerings: [
+        { name: "Residential", category: "residential plumbing repair and maintenance", weight: 1 },
+        { name: "Commercial", category: "commercial plumbing repair and maintenance", weight: 1 },
+      ],
+    });
+    expect(offeringSeeds(plumber)).toEqual([]);
+
+    const accountancy = normaliseProfile({
+      ...ANSWER,
+      category: "chartered accountant services",
+      offerings: [
+        { name: "Tax", category: "tax advisory", weight: 1 },
+        { name: "Accounts", category: "accounting and bookkeeping", weight: 1 },
+        { name: "Audit", category: "audit services", weight: 1 },
+      ],
+    });
+    expect(offeringSeeds(accountancy)).toEqual(["tax advisory", "accounting and bookkeeping", "audit services"]);
+  });
 });
