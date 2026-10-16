@@ -3183,7 +3183,11 @@ function score(a: Pick<StageArgs, "domain" | "sections" | "parameters" | "correc
     battery: sections.battery,
     rivalSizes: sections.rivalSizes,
     ownDomain: domain,
-    local: sections.measurement?.locale.place !== undefined,
+    reach: {
+      measuredInTown: sections.measurement?.locale.place !== undefined,
+      profile: sections.profile.kind === "unmeasured" ? null : sections.profile.value,
+      schemaTypes: sections.measurement === null || sections.measurement.onPage.kind === "unmeasured" ? [] : sections.measurement.onPage.value.schemaTypes,
+    },
     siteName: sections.siteName,
     coverage: a.parameters.asyncAiOverview && !a.correction ? "async_included" : "cached_only",
   });
