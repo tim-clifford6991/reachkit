@@ -28,7 +28,7 @@ import { BATTERY, SELECTION, WINNABILITY } from "@/lib/config/constants";
 import { difficultyCeiling, qualifyingDemand } from "@/lib/opportunities/winnability/bars";
 import { withoutPlace } from "@/lib/locale/place";
 import { neverMeasured, type MeasuredMarket } from "./measured";
-import type { Profile } from "./profile";
+import type { Profile } from "./profile-types";
 import type { SuggestionRow } from "./market-set";
 import { malformedSearch } from "./well-formed";
 import { isCategoryName } from "@/lib/market/rivals/category-name";
@@ -120,7 +120,7 @@ function normalise(keyword: string): string {
 /** Plural content tokens to their singular. Deliberately blunt and total —
  *  both sides of every comparison pass through it, so a word it stems oddly
  *  still matches itself. */
-function contentTokens(text: string, language: Language = "en"): string[] {
+export function contentTokens(text: string, language: Language = "en"): string[] {
   const pack = languagePack(language);
   const out: string[] = [];
   for (const token of normalise(text).split(" ")) {
@@ -206,7 +206,8 @@ export function stemKey(keyword: string, language: Language = "en"): string {
  * nothing and passes nothing, rather than passing every keyword vacuously.
  *
  * The support set is the profile's and only the profile's: its `vocabulary`,
- * `category`, `offeringType`, `job`, `audienceTerms` and `namedRivals`. The
+ * `category`, `offeringType`, `job`, every offering's category and name
+ * (issue 1454), `audienceTerms` and `namedRivals`. The
  * last is not decoration — `SELECTION.maxRivalBrand` admits up to three
  * rival-brand searches into the twelve, which a guard blind to the rivals the
  * site itself names would delete before the cap ever saw them.
@@ -278,6 +279,8 @@ function supportSet(p: Profile, category?: string, rivals: readonly string[] = [
     p.category,
     p.offeringType,
     p.job,
+    // Issue 1454: every line the business sells is its market too.
+    ...(p.offerings ?? []).flatMap((o) => [o.category, o.name]),
     ...p.vocabulary,
     ...p.audienceTerms,
     ...p.namedRivals,

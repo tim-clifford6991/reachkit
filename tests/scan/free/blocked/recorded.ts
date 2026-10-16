@@ -146,9 +146,26 @@ export function labsAnswer(recording: Recording, url: string, task: Record<strin
 const NANO_USD_PER_MTOK = { in: 1, out: 5 };
 
 /** A model answer: the file's, or asked once while recording. */
+/** A recording made before issue 1454 asked the profile call without its
+ *  offerings, kind and reach. Its answer is read under the input it was
+ *  recorded for, and the profile reads the three as none, so the recorded
+ *  scans replay at 0¢. */
+function beforeIssue1454(input: string): string {
+  try {
+    const parsed = JSON.parse(input) as { fields?: Record<string, unknown> };
+    if (parsed.fields === undefined || !("offerings" in parsed.fields)) return input;
+    const fields = Object.fromEntries(Object.entries(parsed.fields).filter(([field]) => !["offerings", "kind", "reach"].includes(field)));
+    return JSON.stringify({ ...parsed, fields });
+  } catch {
+    return input;
+  }
+}
+
 export function modelAnswer(recording: Recording, request: { messages: { content: string }[] }): ModelEntry["response"] {
   const key = modelKey(request.messages[0]?.content ?? "");
-  const held = recording.model.find((entry) => entry.key === key);
+  const held =
+    recording.model.find((entry) => entry.key === key) ??
+    recording.model.find((entry) => entry.key === modelKey(beforeIssue1454(request.messages[0]?.content ?? "")));
   if (held !== undefined) return held.response;
   if (!RECORDING) throw new Error(`recorded.ts: ${recording.domain}.json holds no model answer for input ${key}.`);
   const message = post("https://api.anthropic.com/v1/messages", [`x-api-key: ${keysOf().anthropic}`, "anthropic-version: 2023-06-01"], request) as ModelEntry["response"];

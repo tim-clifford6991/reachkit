@@ -646,8 +646,8 @@ describe("llm() — the output budget is the call site's own (issue #462)", () =
     }
   });
 
-  it("the profile's budget is far below the seam's old 4 096 — a seven-field answer cannot spend the whole call", () => {
-    expect(INFERENCE_MAX_OUTPUT_TOKENS.profile).toBeLessThanOrEqual(700);
+  it("the profile's budget is far below the seam's old 4 096 — a profile answer cannot spend the whole call", () => {
+    expect(INFERENCE_MAX_OUTPUT_TOKENS.profile).toBeLessThanOrEqual(900);
     expect(INFERENCE_MAX_OUTPUT_TOKENS.profile).toBeLessThan(4096);
     // Every site has a budget of its own; the one write call's holds a whole
     // page (SPEC §7, D41), so 4 096 is no longer a ceiling over all of them.

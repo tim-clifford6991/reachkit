@@ -48,10 +48,14 @@ import { WeekModule } from "../_overview/WeekModule";
 import { WeekWaiting } from "../_overview/WeekWaiting";
 import { DoneThisWeek } from "../_overview/DoneThisWeek";
 import { ProcessTimeline } from "../_shell/ProcessTimeline";
+import { WhatWeRead } from "@/app/_business/WhatWeRead";
 
 /** /app's own `<title>` (#945). Without it this screen announced
  *  nothing at all — the `(account)` layout's fallback is the floor, not
  *  the name of this screen. */
+/** Where the customer corrects what *What we read* says (issue 1454). */
+const BUSINESS_SETTINGS = "/app/settings";
+
 export const metadata: Metadata = { title: copy("meta.app.overview.title") };
 
 export default async function OverviewPage(): Promise<React.JSX.Element> {
@@ -59,7 +63,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   // the shell's own request-cached provider rather than restated here: two
   // readers of a customer's time zone is how two parts of one screen come to
   // state two different days.
-  const [shell, overview, onboarding, prompts, google, published, done] = await Promise.all([
+  const [shell, overview, onboarding, prompts, google, published, done, understanding] = await Promise.all([
     readShell(),
     readOverview(),
     readOnboarding(),
@@ -77,6 +81,12 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
     readPublished(),
     // Issue 1395: what ReachKit did this week, from stored rows.
     readDone(),
+    // Issue 1454: what ReachKit read of the business. Reached at the call,
+    // as the Search tile is; where it cannot be read the card is not drawn
+    // and the rest of Overview stands.
+    import("../_overview/understanding-provider")
+      .then((provider) => provider.readUnderstanding())
+      .catch(() => null),
   ]);
   // issue 784: the founder's reason when the pass released them short — what the
   // shell's panel is not already saying.
@@ -173,6 +183,10 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         )}
         <NeedsYouModule alerts={overview.alerts} overflow={overview.overflow} issuesOverflow={overview.issuesOverflow} />
       </div>
+
+      {/* Issue 1454: what ReachKit read of the business, and where the
+          customer corrects it. */}
+      {understanding === null ? null : <WhatWeRead understanding={understanding} editHref={BUSINESS_SETTINGS} />}
 
       {/* While the first pass runs there is no week to report, so the
           screen says what the pass is working through instead (SPEC §4,
