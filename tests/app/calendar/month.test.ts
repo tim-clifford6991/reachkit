@@ -125,7 +125,7 @@ describe("REQ-043 c1 — one page per date, and no page invented to fill one", (
     const pages = model.cells.filter((c) => c.page !== null);
     expect(pages).toHaveLength(1);
     expect(drafts).toHaveLength(1);
-    // Every other date in the plan (Tue 15 – Sun 20) is empty with an
+    // Every other date in the plan (Tue 15 – Mon 21) is empty with an
     // account — never a page the read produced to fill it (§4.6: "the
     // calendar is never padded").
     expect(model.cells.filter((c) => c.inMonth && c.empty !== null).map((c) => c.day)).toEqual([
@@ -135,6 +135,7 @@ describe("REQ-043 c1 — one page per date, and no page invented to fill one", (
       "2026-09-18",
       "2026-09-19",
       "2026-09-20",
+      "2026-09-21",
     ]);
   });
 

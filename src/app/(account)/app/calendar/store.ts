@@ -262,8 +262,7 @@ function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
  * the supply that is left after this month has taken its share, not rank 1
  * again.
  *
- * And no later than the day before the next weekly pass (issue 857): plans
- * are decided per pass, so a date that pass decides is not planned now.
+ * And no later than the plan horizon, six days after today (issue 1455).
  */
 export function fillableDates(a: { month: MonthKey; today: DayKey }): readonly DayKey[] {
   const last = planHorizonEnd(a.today);

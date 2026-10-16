@@ -45,6 +45,8 @@ const INCIDENT_KEYS = [
   "mail.ops.incident.job-stale",
   "mail.ops.incident.fact.last-run",
   "mail.ops.incident.fact.interval",
+  "mail.ops.incident.no-draft-at-publish",
+  "mail.ops.incident.fact.date",
 ] as const;
 
 describe("#759 — the incident alert leaves, on every occasion", () => {
@@ -57,6 +59,7 @@ describe("#759 — the incident alert leaves, on every occasion", () => {
     { occasion: "dead-lettered", jobId: "scan/run", errorName: "TypeError" },
     { occasion: "boot-refused", check: "jobs", errorName: "MissingJobsBindings" },
     { occasion: "job-stale", jobId: "account/maintenance", lastRunAt: "2026-09-16T11:00:00.000Z", intervalMinutes: 15 },
+    { occasion: "no-draft-at-publish", domain: "reachkit.app", date: "2026-10-15", reason: "no_page:no_opportunity" },
   ])("$occasion reaches the vendor, with no marker in it", async (incident) => {
     await reportIncident(incident);
 

@@ -758,6 +758,9 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.job-stale": ["A scheduled job has not run for more than twice its usual interval.", { slots: {}, fixedBy: "issue 799" }],
   "mail.ops.incident.fact.last-run": ["Last run", { slots: {}, fixedBy: "issue 799" }],
   "mail.ops.incident.fact.interval": ["Runs every (minutes)", { slots: {}, fixedBy: "issue 799" }],
+
+  "mail.ops.incident.no-draft-at-publish": ["A site's publish time passed with no page for the day. The cause is the one its draft run recorded.", { slots: {}, fixedBy: "issue 1455 (drafted)" }],
+  "mail.ops.incident.fact.date": ["Date", { slots: {}, fixedBy: "issue 1455 (drafted)" }],
   // Issue 1187: a draft the writing rules stopped twice (owner, D27).
   "mail.ops.incident.draft-stopped-twice": ["The writing rules stopped a page twice, so it was not published. Read the sentences below and decide whether the page or the rule is wrong.", { slots: {}, fixedBy: "issue 1187" }],
   "mail.ops.incident.fact.site": ["Site", { slots: {}, fixedBy: "issue 1187" }],

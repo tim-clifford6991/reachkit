@@ -38,7 +38,7 @@ import { opportunityStore } from "../store";
 import { readOpportunity, type DraftedPage } from "../store";
 import { canonicalUrl, comparePrecedence, sameTopic } from "../cluster";
 import { isCloseUpdate } from "../close";
-import { contentTypeOf, type ContentType } from "../content-type";
+import { CONTENT_TYPES, contentTypeOf, type ContentType } from "../content-type";
 import { isPausedType } from "../paused";
 import { isOwnRefresh, type Opportunity, type OpportunityType, type Ranked } from "../types";
 import { rankScore } from "./score";
@@ -110,10 +110,12 @@ function byScore(
  *  **The self-promotion cap** (SPEC §7, owner, D52, issue 1267): a day whose
  *  window already holds `SELF_PROMOTING_MAX` listicles or comparisons — the
  *  type whose page includes the business — takes no other one. The topic
- *  falls through to the next, and unlike the mix this is never given up:
- *  where every row left is over the cap the list ends, the day is empty
- *  (supply is the cap), and the topics stay on file for the day the window
- *  has room. */
+ *  falls through to the next, and unlike the mix this is never given up.
+ *  Where every row left is over the cap, the day does not go empty (issue
+ *  1455: reachkit.app published nothing for days because every topic it
+ *  held was a comparison): the best of them is written as a Q&A of its
+ *  buyer question, which answers it without ranking the business, and the
+ *  day counts as a Q&A. */
 export function orderRanked(
   scored: readonly { opportunity: Opportunity; score: number }[],
   rotation: {
@@ -165,11 +167,14 @@ export function orderRanked(
       at = left.findIndex((entry) => !capped(entry) && tier(entry));
       if (at !== -1) break;
     }
-    if (at === -1) break;
+    // Only rows over the cap are left: the freshest of them is answered as
+    // a Q&A rather than leave the day empty (issue 1455).
+    const asQa = at === -1;
+    if (asQa) at = Math.max(0, left.findIndex(fresh));
     const [entry] = left.splice(at, 1);
-    out.push({ opportunityId: entry!.opportunity.id, score: entry!.score });
+    out.push({ opportunityId: entry!.opportunity.id, score: entry!.score, ...(asQa ? { writeAs: "qa" as const } : {}) });
     previous = entry!.opportunity;
-    const kind = kindOf(entry!);
+    const kind = asQa ? "qa" : kindOf(entry!);
     if (kind !== null) placed.push({ day, kind });
   }
   return out;
@@ -198,14 +203,17 @@ const HOLDS_ITS_DAY: ReadonlySet<string> = new Set([
 
 /** The mix as the site's own drafted pages state it. The first day planned
  *  is the day after the latest date that has a draft, and never before
- *  `at`'s own day. */
+ *  `at`'s own day. A page counts as the type it was written as, where the
+ *  draft records one (issue 1455: a comparison answered as a Q&A is a Q&A),
+ *  else as its row's. */
 export function mixOf(drafted: readonly DraftedPage[], at: Date): Mix {
   const dayOf = (date: string) => Math.floor(Date.parse(`${date}T00:00:00Z`) / DAY_MS);
   const today = Math.floor(at.getTime() / DAY_MS);
   const days = drafted.map((page) => dayOf(page.date));
   const from = Math.max(today, ...days.map((day) => day + 1));
   const recent = drafted.flatMap((page) => {
-    const kind = contentTypeOf({
+    const written = CONTENT_TYPES.find((type) => type === page.writtenAs);
+    const kind = written ?? contentTypeOf({
       type: page.row.type as OpportunityType,
       targetQuery: page.row.target_query,
       evidence: page.row.evidence as Opportunity["evidence"],

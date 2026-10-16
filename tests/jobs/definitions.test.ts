@@ -40,6 +40,9 @@ function engineDouble(): Record<string, unknown> {
     // The customer's Regenerate rides the same tick (#788).
     restartedDrafts: record("restartedDrafts", []),
     regenerateDraft: record("regenerateDraft", done),
+    // Issue 1455: the day's reason, and the publish-time check.
+    recordDraftDay: record("recordDraftDay", undefined),
+    alertMissingDrafts: record("alertMissingDrafts", 0),
     publishApproved: record("publishApproved", done),
     publishDue: record("publishDue", done),
     duePublishRetries: record("duePublishRetries", [{ draftId: "d1", destinationId: "dest-1" }]),
@@ -249,6 +252,24 @@ describe("draft/generate — the site's own due hour, the date its window ends o
       { fn: "generateDraft", arg: { siteId: "site-1", publishDate: "2026-09-08", now: EVENING_UTC } },
     ]);
     expect(outcome).toEqual({ outcome: "ran", subjectId: null });
+  });
+
+  it("keeps each due site's day and its reason, and checks every site's publish time (issue 1455)", async () => {
+    results.set("generateDraft", { degraded: "generate:no_opportunity" });
+    const job = await definition("draft/generate");
+    await job.run({ data: {}, now: EVENING_UTC });
+    expect(calls.filter((c) => c.fn === "recordDraftDay")).toEqual([
+      {
+        fn: "recordDraftDay",
+        arg: { siteId: "site-1", publishDate: "2026-09-08", outcome: "no_page", reason: "generate:no_opportunity", at: EVENING_UTC },
+      },
+    ]);
+    expect(calls.filter((c) => c.fn === "alertMissingDrafts")).toEqual([
+      {
+        fn: "alertMissingDrafts",
+        arg: { sites: [{ siteId: "site-1", timeZone: "UTC", publishTime: "18:00", vetoHours: 24 }], hour: EVENING_UTC },
+      },
+    ]);
   });
 
   it("a tick that cannot decide who is paying prepares no page and records the hold (#201)", async () => {

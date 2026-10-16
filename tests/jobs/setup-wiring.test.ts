@@ -21,7 +21,12 @@ vi.mock("@/lib/scan/deep/run", () => ({ runDeepPass: (a: unknown) => deepPass(a)
 // evening tick's own selection and pipeline — both stood in.
 const selection = vi.fn(async () => ({ sites: [] as { siteId: string; timeZone: string; publishTime: string; vetoHours: number }[], held: null }));
 const dayPage = vi.fn<(a: { siteId: string; publishDate: string }) => Promise<unknown>>(async () => ({ ok: false, because: "no_opportunity" }));
-vi.mock("@/lib/publish/daily", () => ({ sitesForDailyTick: () => selection() }));
+vi.mock("@/lib/publish/daily", () => ({
+  sitesForDailyTick: () => selection(),
+  // Issue 1455's day record and publish-time check, tested where they live.
+  recordDraftDay: async () => {},
+  alertMissingDrafts: async () => 0,
+}));
 vi.mock("@/lib/generate", () => ({ generateDayPage: (a: { siteId: string; publishDate: string }) => dayPage(a) }));
 vi.mock("@/lib/mail/setup/reminders", () => ({
   sitesDueSetupReminder: () => dueReminders(),

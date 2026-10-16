@@ -28,12 +28,17 @@ const listed = (root: Element): string[] =>
   );
 
 describe("the week a phone lists", () => {
-  it("is Monday of today's week through the plan horizon, whichever day today is", () => {
-    const week = ["2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09", "2026-10-10", "2026-10-11"];
-    // A Thursday, the Monday itself, and the Sunday the horizon ends on.
-    for (const today of ["2026-10-08", "2026-10-05", "2026-10-11"]) {
-      expect(planWeek(today), today).toEqual(week);
-      expect(planWeek(today).at(-1), today).toBe(planHorizonEnd(today));
+  it("is Monday of today's week through the plan horizon, and the horizon is always the next seven days (issue 1455)", () => {
+    // A Thursday, the Monday itself, and a Sunday: each plans six days past
+    // today, so a Sunday never plans one day.
+    for (const [today, end] of [
+      ["2026-10-08", "2026-10-14"],
+      ["2026-10-05", "2026-10-11"],
+      ["2026-10-11", "2026-10-17"],
+    ] as const) {
+      expect(planHorizonEnd(today), today).toBe(end);
+      expect(planWeek(today)[0], today).toBe("2026-10-05");
+      expect(planWeek(today).at(-1), today).toBe(end);
     }
   });
 
