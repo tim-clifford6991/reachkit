@@ -73,7 +73,7 @@ export default async function ComparisonPage({ params }: Params): Promise<React.
         <div className={BODY}>
           <h2>{copy("compare.item.table")}</h2>
           <table className="table table-sm w-full table-fixed">
-            <thead>
+            <thead className="text-base-content/70">
               <tr>
                 <th scope="col" className="w-2/5">
                   {copy("compare.item.feature")}
