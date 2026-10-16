@@ -24,7 +24,7 @@ import type { Locale } from "@/lib/locale/locales";
 import { promptSiteName } from "@/lib/market/prompts/generate";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { PAID_SERP_FANOUT } from "./budgets";
-import { cardsOf } from "./cards";
+import { cardsOf, reachOfReport } from "./cards";
 import { localeOfReport, readStoredReport, type StoredReport } from "./report";
 import { same, type ReportChange } from "./rescore";
 import { rescoreRow, type ScanWrite, type StoredRead, type StoredScanRow } from "./rescore-run";
@@ -192,7 +192,7 @@ export async function finishReads(
       questions: twelve,
       rivalSizes: report.rivalSizes,
       ownDomain: report.domain,
-      local: report.locale?.place !== undefined,
+      reach: reachOfReport(report),
       siteName: promptSiteName(await store.siteName(report.domain), report.domain),
       coverage: "async_included",
     });
