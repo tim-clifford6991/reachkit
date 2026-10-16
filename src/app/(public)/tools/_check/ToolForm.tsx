@@ -27,7 +27,7 @@ export function ToolForm(p: { value: string }): React.JSX.Element {
           required
         />
       </label>
-      <button type="submit" className="btn btn-primary active:scale-[.98]">
+      <button type="submit" className="btn btn-soft btn-primary active:scale-[.98]">
         {copy("tools.submit")}
       </button>
     </form>

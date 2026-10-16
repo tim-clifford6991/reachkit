@@ -15,6 +15,7 @@
 // row.
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { ANSWERS, COMPARISONS, TEARDOWNS } from "@/app/(public)/_library";
 import { settledMarkup } from "../../app/shell/settled";
 import type { EnumeratedRoute } from "./routes";
 
@@ -93,6 +94,37 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
   },
   "(public)/scan/[domain]/page.tsx": {
     props: (state) => ({ params: { domain: state.domain } }),
+    shell: false,
+    async: true,
+  },
+  // Issue 1458: the library and the two free tools, back at the addresses
+  // v1 and v2 published. Each article page renders the library's first
+  // entry; each tool renders with no `?url=`, so it reads no page.
+  "(public)/compare/page.tsx": { props: () => ({}), shell: false, async: false },
+  "(public)/compare/[tool]/page.tsx": {
+    props: () => ({ params: Promise.resolve({ tool: COMPARISONS[0]!.slug }) }),
+    shell: false,
+    async: true,
+  },
+  "(public)/teardowns/page.tsx": { props: () => ({}), shell: false, async: false },
+  "(public)/teardowns/[site]/page.tsx": {
+    props: () => ({ params: Promise.resolve({ site: TEARDOWNS[0]!.slug }) }),
+    shell: false,
+    async: true,
+  },
+  "(public)/answers/[question]/page.tsx": {
+    props: () => ({ params: Promise.resolve({ question: ANSWERS[0]!.slug }) }),
+    shell: false,
+    async: true,
+  },
+  "(public)/tools/page.tsx": { props: () => ({}), shell: false, async: false },
+  "(public)/tools/meta-preview/page.tsx": {
+    props: () => ({ searchParams: Promise.resolve({}) }),
+    shell: false,
+    async: true,
+  },
+  "(public)/tools/on-page-check/page.tsx": {
+    props: () => ({ searchParams: Promise.resolve({}) }),
     shell: false,
     async: true,
   },
