@@ -31,6 +31,7 @@ import {
   type Rescored,
   type RescoredMembers,
   type RescoreReport,
+  type RescoreScan,
   type StoredAnswer,
 } from "./rescore";
 import type { ScanStatus } from "./store";
@@ -190,7 +191,7 @@ function homeOf(report: RescoreReport, reads: readonly StoredRead[]): { created_
 export function rescoreRow(
   scan: StoredScanRow,
   reads: readonly StoredRead[],
-  said: { siteName: string | null; answers: readonly StoredAnswer[] } = { siteName: null, answers: [] }
+  said: { siteName: string | null; answers: readonly StoredAnswer[]; market?: RescoreScan["market"] } = { siteName: null, answers: [] }
 ): Row | { id: string; because: string } {
   let report: RescoreReport;
   try {
@@ -208,6 +209,7 @@ export function rescoreRow(
     rendered: reads.filter((r) => r.source === "on_page/instant_pages").map((r) => ({ created_at: r.created_at, payload: r.payload })),
     siteName: said.siteName,
     answers: said.answers,
+    ...(said.market === undefined ? {} : { market: said.market }),
   });
   return { scan, report, result };
 }
@@ -216,6 +218,19 @@ export function rescoreRow(
  *  score or status did. */
 export function moves(row: Row): boolean {
   return row.result.changes.length > 0 || row.scan.score !== row.result.score || row.scan.status !== row.result.status;
+}
+
+/** What the reading reads of `sites.market`: the concluded kind and place
+ *  and the founder's place. */
+function marketOfSite(market: Record<string, unknown> | null): NonNullable<RescoreScan["market"]> | null {
+  if (market === null) return null;
+  const current = (market.current ?? null) as { kind?: unknown; serves?: unknown } | null;
+  const area = market.area as { place?: unknown } | undefined;
+  return {
+    ...(current?.kind === undefined ? {} : { kind: current.kind }),
+    ...(current?.serves === undefined ? {} : { serves: current.serves }),
+    ...(area === undefined || area === null ? {} : { area }),
+  };
 }
 
 function rivalsOf(market: Record<string, unknown> | null): readonly RivalConclusion[] | null {
@@ -343,6 +358,39 @@ function totals(rows: readonly Row[], unreadable: readonly { id: string; because
   ];
 }
 
+/** Issue 1470: how many stored profiles gain each part of the business's
+ *  reading, what they gain, and which stay unread. */
+export function readingLines(rows: readonly Row[]): string[] {
+  const profiled = rows.filter(({ report }) => report.market.kind !== "unmeasured" && typeof report.market.value.profile === "object" && report.market.value.profile !== null);
+  const gain = (key: "offerings" | "kind" | "reach") => profiled.filter((row) => row.result.reading[key] !== undefined);
+  const tally = (values: readonly string[]): string =>
+    [...values.reduce((m, v) => m.set(v, (m.get(v) ?? 0) + 1), new Map<string, number>())]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([v, n]) => `${v} ${n}`)
+      .join(", ") || "none";
+  // A profile that holds neither the field nor gains it: what the card says
+  // is not read yet.
+  const unread = (key: "kind" | "reach"): string[] => [
+    ...new Set(
+      profiled
+        .filter(({ report, result }) => report.market.kind !== "unmeasured" && report.market.value.profile[key] === undefined && result.reading[key] === undefined)
+        .map(({ report }) => report.domain)
+    ),
+  ];
+  const lines = gain("offerings").map((row) => row.result.reading.offerings!.length);
+  const several = [...new Set(gain("offerings").filter((row) => row.result.reading.offerings!.length > 1).map(({ report, result }) => `${report.domain} (${result.reading.offerings!.map((o) => o.category).join(" · ")})`))];
+  const kindUnread = unread("kind");
+  const reachUnread = unread("reach");
+  return [
+    `- Scans with a stored profile: ${profiled.length} of ${rows.length}`,
+    `- Gain their lines: ${lines.length} (one line ${lines.filter((n) => n === 1).length}, several ${lines.filter((n) => n > 1).length})${several.length === 0 ? "" : ` — ${several.join(", ")}`}`,
+    `- Gain a kind: ${gain("kind").length} (${tally(gain("kind").map((row) => row.result.reading.kind!))})`,
+    `- Gain a reach: ${gain("reach").length} (${tally(gain("reach").map((row) => row.result.reading.reach!))})`,
+    `- Kind left unread, as nothing stored decides it: ${kindUnread.length === 0 ? "none" : kindUnread.join(", ")}`,
+    `- Reach left unread, as nothing stored decides it: ${reachUnread.length === 0 ? "none" : reachUnread.join(", ")}`,
+  ];
+}
+
 function keptLines(rows: readonly Row[], unreadable: readonly { id: string; because: string }[]): string[] {
   const byReason = new Map<string, string[]>();
   for (const { scan, report, result } of rows) {
@@ -386,6 +434,10 @@ function summaryOf(a: {
     "",
     ...keptLines(a.rows, a.unreadable),
     "",
+    "## The business's reading (issue 1470)",
+    "",
+    ...readingLines(a.rows),
+    "",
     "## Site rival sets",
     "",
     ...(a.movedSites.length === 0
@@ -410,6 +462,9 @@ function summaryOf(a: {
 export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Promise<RescoreAnswer> {
   const scans = await store.scans();
   const profiles = await store.profiles();
+  const sites = await store.sites();
+  // A paying site's market, read beside each of its scans' profiles (issue 1470).
+  const markets = new Map(sites.map((site) => [site.id, marketOfSite(site.market)] as const));
   // The name an AI answer is read for (issue 1420), as the pass reads it.
   const names = new Map(profiles.map((p) => [p.domain, promptSiteName(p.siteName, p.domain)] as const));
   const rows: Row[] = [];
@@ -421,7 +476,8 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
     const reads = await store.homeReads(domain);
     for (const scan of ofDomain) {
       const answers = scan.siteId !== null && scan.isCurrent ? await store.answers(scan.id) : [];
-      const said = { siteName: names.get(domain) ?? null, answers };
+      const market = scan.siteId === null ? undefined : markets.get(scan.siteId);
+      const said = { siteName: names.get(domain) ?? null, answers, ...(market === undefined ? {} : { market }) };
       const row = quietly(() => rescoreRow(scan, reads, said));
       if ("result" in row) rows.push(row);
       else unreadable.push(row);
@@ -429,7 +485,6 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
   }
   rows.sort((a, b) => a.scan.createdAt.localeCompare(b.scan.createdAt) || a.scan.id.localeCompare(b.scan.id));
 
-  const sites = await store.sites();
   const movedSites = quietly(() => rehome(sites, rows));
 
   let written: { scans: number; left: string[] } | null = null;
