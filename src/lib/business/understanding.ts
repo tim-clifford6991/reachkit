@@ -25,6 +25,8 @@ import type { BusinessUnderstanding, UnderstandingEdits } from "./types";
 export type { BusinessUnderstanding, UnderstandingEdits };
 import { offeringsOf } from "@/lib/market/questions/offerings";
 import { brandName, domainBrand } from "@/lib/site-profile/site-name";
+import { isProtectionName } from "@/lib/measure/challenge";
+import { isPlaceholder, withoutPlaceholders } from "@/lib/measure/placeholder";
 
 export function understandBusiness(a: {
   domain: string;
@@ -105,7 +107,8 @@ function unique(texts: readonly string[]): string[] {
   return out;
 }
 
-/** The profile a stored report carries, or `null`. Read defensively: a
+/** The profile a stored report carries, or `null`, with what names nothing
+ *  taken out. Read defensively: a
  *  report written before the market carried its profile, or one whose
  *  market was never read, has none, and that is never a reason for a
  *  screen to fail. */
@@ -119,9 +122,11 @@ export function profileOfReport(report: unknown): Profile | null {
   if (typeof profile !== "object" || profile === null) return null;
   const { category, job, audienceTerms, brandTokens } = profile as Record<string, unknown>;
   const strings = (list: unknown): boolean => Array.isArray(list) && list.every((item) => typeof item === "string");
-  return typeof category === "string" && typeof job === "string" && strings(audienceTerms) && strings(brandTokens)
-    ? (profile as Profile)
-    : null;
+  if (typeof category !== "string" || typeof job !== "string" || !strings(audienceTerms) || !strings(brandTokens)) return null;
+  // A field stored as a placeholder or a protection page's words names
+  // nothing, so it is read as none and never shown (issue 1479).
+  const domain = (report as { domain?: unknown }).domain;
+  return withoutPlaceholders(profile as Profile, (text) => isPlaceholder(text) || (typeof domain === "string" && isProtectionName(text, domain)));
 }
 
 /**

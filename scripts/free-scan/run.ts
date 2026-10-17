@@ -35,6 +35,7 @@ import { parseDomain } from "@/lib/scan/domain";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { databaseRescore, moves, rescoreRow, type StoredRead, type StoredScanRow } from "@/lib/scan/rescore-run";
 import type { StoredAnswer } from "@/lib/scan/rescore";
+import { storedSiteName } from "@/lib/site-profile/site-name";
 import { commitOf, psql, rebuild, waitForSchema } from "../local-run.mjs";
 import { appendSpend } from "../spend-log.mjs";
 
@@ -293,7 +294,7 @@ async function rescoreInputs(domain: string, scanId: string): Promise<SiteResult
   return {
     scan,
     reads: (await store.homeReads(domain)).map(keptRead),
-    siteName: profile === undefined ? null : promptSiteName(profile.siteName, domain),
+    siteName: profile === undefined ? null : promptSiteName(storedSiteName(profile, profile.home_title), domain),
     // As the re-score asks: a site's current scan alone carries the battery's
     // answers, and a free scan belongs to no site.
     answers: scan.siteId !== null && scan.isCurrent ? [...(await store.answers(scan.id))] : [],

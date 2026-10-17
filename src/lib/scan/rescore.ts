@@ -20,9 +20,11 @@
 // writes the change, keeping the original report under `report.previous`.
 import { retrofitReading, type Retrofit } from "@/lib/business/retrofit";
 import { aiPresenceOf, aiPresenceRangeOf, aiSampleOf, classifyReferences, foundationsOf, localPackSearches, searchPresenceOf } from "@/lib/measure/drivers";
+import { isProtectionName } from "@/lib/measure/challenge";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
+import { isPlaceholder, withoutPlaceholders } from "@/lib/measure/placeholder";
 import type { Drivers } from "@/lib/measure/score";
 import { verdictOf, type Verdict } from "@/lib/measure/verdict";
 import type { CoherenceVerdict } from "@/lib/market/coherence/check";
@@ -31,6 +33,7 @@ import type { RivalConclusion } from "@/lib/market/infer/types";
 import type { RivalSizeBand } from "@/lib/market/rivals/band";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
+import type { Profile } from "@/lib/market/questions/profile-types";
 import type { PresenceCard } from "@/lib/market/rivals/presence";
 import type { MarketSerp, QuestionView } from "@/lib/market/views";
 import { AI_ANSWER_SOURCES, type RankedRow } from "@/lib/vendors/dataforseo/types";
@@ -109,6 +112,10 @@ export interface RescoreScan {
   /** A paying site's market (`sites.market`): the kind and place its pass
    *  concluded and the place the founder gave; absent on a free scan. */
   market?: { kind?: unknown; serves?: unknown; area?: { place?: unknown } } | null;
+  /** When the scan was asked for (`scans.created_at`): a report dated
+   *  before it was dated by a stored read of a page (issue 1392), and is
+   *  dated again by it (issue 1479). Absent, the stored date stands. */
+  startedAt?: string;
 }
 
 /** One bought AI Mode or ChatGPT answer, as `fetches` keeps it. */
@@ -278,7 +285,7 @@ function engineCellAfter(
 /** A stored scan scored again by the current code, from what it stored. */
 export function rescoreScan(scan: RescoreScan): Rescored {
   const r = scan.report;
-  const at = r.verdict.measuredAt;
+  const at = scanDate(r.verdict.measuredAt, scan.startedAt);
   const kept: string[] = [];
   const stored = scan.drivers;
   const robots = dated(r.robots, at);
@@ -354,18 +361,42 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   }
 
   const before = membersOf(r);
-  const reading = readingOf(r, scan.market ?? null);
-  const changes = [...changesOf(before, after), ...readingChanges(reading)];
+  const profile = clearedProfileOf(r);
+  const reading = readingOf(r, profile, scan.market ?? null);
+  const changes = [...changesOf(before, after), ...profileChanges(r, profile, reading)];
+  // A new date is a change though `same` reads past dates: the whole
+  // verdict is written again, every member of it carrying that date.
+  if (at.getTime() !== new Date(r.verdict.measuredAt).getTime() && !changes.some((c) => c.path.length === 1 && c.path[0] === "verdict")) {
+    changes.unshift({ path: ["verdict"], value: after.verdict });
+  }
   const score = after.verdict.scoreAndBand.kind === "unmeasured" ? null : after.verdict.scoreAndBand.value.score;
   return { before, after, changes, drivers, score, status: statusAfter(scan.status, before.verdict, after.verdict), kept, reading };
 }
 
+/** The date the report wears: the scan's start (issue 1392). A stored date
+ *  before the scan was asked for is a cached page read's, so the scan's own
+ *  replaces it; any other stands. */
+function scanDate(stored: Date | string, startedAt: string | undefined): Date {
+  const measured = new Date(stored);
+  if (startedAt === undefined) return measured;
+  const started = new Date(startedAt);
+  return Number.isNaN(started.getTime()) || measured.getTime() >= started.getTime() ? measured : started;
+}
+
+/** The stored profile with every field that names nothing taken out
+ *  (issue 1479): a placeholder, or a protection page's words where the scan
+ *  read one. `null` where no profile is stored. */
+function clearedProfileOf(r: RescoreReport): Record<string, unknown> | null {
+  if (r.market.kind === "unmeasured") return null;
+  const profile: unknown = r.market.value.profile;
+  if (profile === null || typeof profile !== "object") return null;
+  return withoutPlaceholders(profile as Profile, (text) => isPlaceholder(text) || isProtectionName(text, r.domain)) as unknown as Record<string, unknown>;
+}
+
 /** Issue 1470: the lines, kind and reach a stored profile lacks, read from
  *  what the scan stored (`retrofitReading`). None where no profile is. */
-function readingOf(r: RescoreReport, market: RescoreScan["market"] | null): Retrofit {
-  if (r.market.kind === "unmeasured") return {};
-  const profile: unknown = r.market.value.profile;
-  if (profile === null || typeof profile !== "object") return {};
+function readingOf(r: RescoreReport, profile: Record<string, unknown> | null, market: RescoreScan["market"] | null): Retrofit {
+  if (profile === null) return {};
   const serps: MarketSerp[] = [];
   for (const serp of r.serps) if (serp.kind !== "unmeasured") serps.push(serp.value);
   return retrofitReading({
@@ -377,11 +408,15 @@ function readingOf(r: RescoreReport, market: RescoreScan["market"] | null): Retr
   });
 }
 
-/** The profile's new members, each written at its own path. */
-function readingChanges(reading: Retrofit): ReportChange[] {
-  return (["offerings", "kind", "reach"] as const)
-    .filter((key) => reading[key] !== undefined)
-    .map((key) => ({ path: ["market", "value", "profile", key], value: reading[key] }));
+/** The profile's new members, each written at its own path; a profile that
+ *  lost a field that named nothing is written whole. */
+function profileChanges(r: RescoreReport, profile: Record<string, unknown> | null, reading: Retrofit): ReportChange[] {
+  const path = ["market", "value", "profile"];
+  const gained = (["offerings", "kind", "reach"] as const).filter((key) => reading[key] !== undefined);
+  if (profile !== null && r.market.kind !== "unmeasured" && profile !== r.market.value.profile) {
+    return [{ path, value: { ...profile, ...Object.fromEntries(gained.map((key) => [key, reading[key]])) } }];
+  }
+  return gained.map((key) => ({ path: [...path, key], value: reading[key] }));
 }
 
 /** A factor the current code cannot measure on this scan degrades it, as it

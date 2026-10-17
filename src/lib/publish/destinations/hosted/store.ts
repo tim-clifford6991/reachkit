@@ -23,6 +23,7 @@ import { publishDb } from "../../db";
 import { liveUrlOnHost } from "./address";
 import { hostFor } from "./label";
 import type { HostedOwnPages } from "./own-page";
+import { storedSiteName } from "@/lib/site-profile/site-name";
 
 /** A site, as the edge sees it: an id and the domain that resolved to it.
  *  There is nothing about its owner on this shape. */
@@ -322,7 +323,8 @@ function toPage(row: PublicationRow, host: string): HostedPage | null {
  * line about it.
  */
 export interface HostedIdentity {
-  /** `site_profiles.site_name`, else the domain — the one name it gave. */
+  /** The name its stored profile gives it (`storedSiteName`), else the
+   *  domain — the one name it gave. */
   name: string;
   /** The picture format of the kept logo, or `null` for a first-letter tile. */
   logoType: string | null;
@@ -331,7 +333,9 @@ export interface HostedIdentity {
 }
 
 interface IdentityRow {
+  domain: string;
   site_name: string | null;
+  home_title: string | null;
   logo_type: string | null;
   claims: unknown;
 }
@@ -359,7 +363,7 @@ export async function hostedIdentity(a: { siteId: string; domain: string }): Pro
     const [profile, site, edits] = await Promise.all([
       publishDb()
         .from<IdentityRow>("site_profiles")
-        .select("site_name, logo_type, claims")
+        .select("domain, site_name, home_title:inventory->0->>title, logo_type, claims")
         .eq("domain", a.domain)
         .limit(1),
       publishDb().from<{ market: unknown }>("sites").select("market").eq("id", a.siteId).limit(1),
@@ -371,7 +375,7 @@ export async function hostedIdentity(a: { siteId: string; domain: string }): Pro
       : undefined;
     const job = emptyToNull(edits?.job ?? null) ?? marketJobOf(site.data?.[0]?.market);
     return {
-      name: emptyToNull(row?.site_name ?? null) ?? a.domain,
+      name: (row === undefined ? null : storedSiteName(row, row.home_title)) ?? a.domain,
       logoType: emptyToNull(row?.logo_type ?? null),
       line: job ?? emptyToNull(claim ?? null),
     };

@@ -16,11 +16,11 @@
 // stamps, and the report's checksum as the guard, so a scan written since it
 // was read is left alone and a second apply changes nothing.
 import { offline } from "@/lib/egress/offline";
-import { isProtectionName } from "@/lib/measure/challenge";
 import type { Measured } from "@/lib/measure/measured";
 import type { Drivers, ScoreFactorName } from "@/lib/measure/score";
 import type { RivalConclusion } from "@/lib/market/infer/types";
 import { promptSiteName } from "@/lib/market/prompts/generate";
+import { rewrittenSiteName, storedSiteName } from "@/lib/site-profile/site-name";
 import { AI_ANSWER_SOURCES, AI_OVERVIEW_TEXT_MAX_CHARS } from "@/lib/vendors/dataforseo/types";
 import { readStoredReport } from "./report";
 import {
@@ -76,6 +76,22 @@ export interface ScanWrite {
   by: string;
 }
 
+/** A stored profile's name as the column holds it, with its stored home
+ *  title, which says how the site cases its name. Read only through
+ *  `storedSiteName` (issue 1479). */
+export interface StoredProfileName {
+  domain: string;
+  site_name: string | null;
+  home_title: string | null;
+}
+
+/** A stored name the re-score writes again, guarded by the one it read. */
+export interface ProfileNameWrite {
+  domain: string;
+  from: string;
+  to: string | null;
+}
+
 export interface SiteWrite {
   id: string;
   market: Record<string, unknown>;
@@ -87,7 +103,7 @@ export interface RescoreStore {
   /** The home page reads stored for `https://<domain>/`. */
   homeReads(domain: string): Promise<readonly StoredRead[]>;
   sites(): Promise<readonly StoredSiteRow[]>;
-  profiles(): Promise<readonly { domain: string; siteName: string | null }[]>;
+  profiles(): Promise<readonly StoredProfileName[]>;
   /** The AI Mode and ChatGPT answers a scan bought, as `fetches` keeps them
    *  under it (issue 1420). Asked only for a site's current scan, the one
    *  whose report carries those engines' cells. */
@@ -95,6 +111,8 @@ export interface RescoreStore {
   /** False where the report's checksum is no longer `md5`: nothing written. */
   writeScan(write: ScanWrite): Promise<boolean>;
   writeSite(write: SiteWrite): Promise<void>;
+  /** False where the stored name is no longer `from`: nothing written. */
+  writeProfileName(write: ProfileNameWrite): Promise<boolean>;
 }
 
 export interface RescoreOptions {
@@ -107,6 +125,8 @@ export interface RescoreOptions {
 export interface RescoreAnswer {
   scansRead: number;
   scansChanged: number;
+  /** Site-level rows that move: a paying site's rival set, and a stored
+   *  profile's name (issue 1479). */
   sitesMoved: number;
   /** Apply only; 0 on a dry run. */
   scansWritten: number;
@@ -209,6 +229,7 @@ export function rescoreRow(
     rendered: reads.filter((r) => r.source === "on_page/instant_pages").map((r) => ({ created_at: r.created_at, payload: r.payload })),
     siteName: said.siteName,
     answers: said.answers,
+    startedAt: scan.createdAt,
     ...(said.market === undefined ? {} : { market: said.market }),
   });
   return { scan, report, result };
@@ -410,10 +431,10 @@ function summaryOf(a: {
   unreadable: readonly { id: string; because: string }[];
   sites: readonly StoredSiteRow[];
   movedSites: readonly { site: StoredSiteRow; moved: RehomedSite }[];
-  profiles: readonly { domain: string; siteName: string | null }[];
-  written: { scans: number; left: readonly string[] } | null;
+  profiles: readonly StoredProfileName[];
+  renamed: readonly ProfileNameWrite[];
+  written: { scans: number; left: readonly string[]; names: number } | null;
 }): string {
-  const protectedProfiles = a.profiles.filter((p) => p.siteName !== null && isProtectionName(p.siteName, p.domain));
   return [
     `# Re-score of ${a.rows.length + a.unreadable.length} stored scans, by ${a.o.version}, ${a.o.apply ? "applied" : "dry run"} at ${a.o.at.toISOString()}`,
     "",
@@ -446,11 +467,11 @@ function summaryOf(a: {
     "",
     "## Site profiles",
     "",
-    `- ${a.profiles.length} read. Products, claims and voice are model answers over the pages read; none is asked again.`,
-    ...(protectedProfiles.length === 0
-      ? ["- None carries a protection page's name."]
+    `- ${a.profiles.length} read. Products, claims and voice are model answers over the pages read; none is asked again. A business's lines, kind and reach are its scan's profile's, above.`,
+    ...(a.renamed.length === 0
+      ? ["- Every stored name already reads as itself."]
       : [
-          `- Read off a protection's page, so their products, claims and voice need a model call and stand as stored; the name is already hidden where it is read: ${protectedProfiles.map((p) => `${p.domain} ("${p.siteName}")`).join(", ")}`,
+          `- Names read again by the name rule (issue 1479), ${a.written === null ? "not written (a dry run)" : `${a.written.names} written`}: ${a.renamed.map((n) => `${n.domain} "${n.from}" → ${n.to === null ? "none" : `"${n.to}"`}`).join(", ")}`,
         ]),
   ].join("\n");
 }
@@ -465,8 +486,13 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
   const sites = await store.sites();
   // A paying site's market, read beside each of its scans' profiles (issue 1470).
   const markets = new Map(sites.map((site) => [site.id, marketOfSite(site.market)] as const));
-  // The name an AI answer is read for (issue 1420), as the pass reads it.
-  const names = new Map(profiles.map((p) => [p.domain, promptSiteName(p.siteName, p.domain)] as const));
+  // The name an AI answer is read for (issue 1420), as the pass reads it:
+  // by the name rule, never the column as stored (issue 1479).
+  const names = new Map(profiles.map((p) => [p.domain, promptSiteName(storedSiteName(p, p.home_title), p.domain)] as const));
+  const renamed = profiles.flatMap((p) => {
+    const name = rewrittenSiteName(p, p.home_title);
+    return name === null ? [] : [{ domain: p.domain, ...name }];
+  });
   const rows: Row[] = [];
   const unreadable: { id: string; because: string }[] = [];
   const byDomain = new Map<string, StoredScanRow[]>();
@@ -487,9 +513,9 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
 
   const movedSites = quietly(() => rehome(sites, rows));
 
-  let written: { scans: number; left: string[] } | null = null;
+  let written: { scans: number; left: string[]; names: number } | null = null;
   if (o.apply) {
-    written = { scans: 0, left: [] };
+    written = { scans: 0, left: [], names: 0 };
     const at = o.at.toISOString();
     for (const row of rows.filter(moves)) {
       const { result } = row;
@@ -507,15 +533,16 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
       else written.left.push(row.scan.id);
     }
     for (const { site, moved } of movedSites) await store.writeSite(siteWrite(site, moved, o));
+    for (const name of renamed) if (await store.writeProfileName(name)) written.names += 1;
   }
 
   return {
     scansRead: rows.length + unreadable.length,
     scansChanged: rows.filter(moves).length,
-    sitesMoved: movedSites.length,
+    sitesMoved: movedSites.length + renamed.length,
     scansWritten: written?.scans ?? 0,
     scansLeft: written?.left.length ?? 0,
-    summary: quietly(() => summaryOf({ o, rows, unreadable, sites, movedSites, profiles, written })),
+    summary: quietly(() => summaryOf({ o, rows, unreadable, sites, movedSites, profiles, renamed, written })),
   };
 }
 
@@ -655,8 +682,10 @@ export function databaseRescore(): RescoreQueue & RescoreStore {
       return (rows ?? []).map((s) => ({ ...s, competitors: s.competitors ?? [] }));
     },
     async profiles() {
-      const rows = checked(await (await client()).from<{ domain: string; site_name: string | null }>("site_profiles").select("domain, site_name"));
-      return (rows ?? []).map((p) => ({ domain: p.domain, siteName: p.site_name }));
+      const rows = checked(
+        await (await client()).from<StoredProfileName>("site_profiles").select("domain, site_name, home_title:inventory->0->>title")
+      );
+      return rows ?? [];
     },
     async answers(scanId) {
       const rows = checked(
@@ -693,6 +722,17 @@ export function databaseRescore(): RescoreQueue & RescoreStore {
     },
     async writeSite(w) {
       checked(await (await client()).from("sites").update({ market: w.market, competitors: w.competitors }).eq("id", w.id));
+    },
+    async writeProfileName(w) {
+      const rows = checked(
+        await (await client())
+          .from<{ domain: string }>("site_profiles")
+          .update({ site_name: w.to })
+          .eq("domain", w.domain)
+          .eq("site_name", w.from)
+          .select("domain")
+      );
+      return (rows ?? []).length === 1;
     },
     async claim(at) {
       const db = await client();
