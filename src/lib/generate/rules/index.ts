@@ -40,7 +40,7 @@ import { checkMachineAddress } from "./machine";
 import { checkNearDuplicate } from "./nearduplicate";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "./people";
 import { checkProse, proseText, type ProseRuleInputs } from "./prose";
-import { checkRivalSource } from "./rivals";
+import { checkRivalNegative, checkRivalScope, checkRivalSource, namedRivals, type NamedRival } from "./rivals";
 import { renderOf, withoutReferenceLists } from "./text";
 import { checkTitle, type TitleRuleInputs } from "./title";
 import { HARD_RULES, SWITCHED_RULES } from "./types";
@@ -135,6 +135,10 @@ export interface DeterministicInputs {
   /** The page's H1 where it is not its title. The honest row and the
    *  never-claim list read it beside the title. */
   heading?: string;
+  /** The site's rivals with the names its market gives them (issue 1485):
+   *  what the rival rules recognise beside the domains. Absent, each is
+   *  named by its domain alone. */
+  rivalsNamed?: readonly NamedRival[];
   /** What the page's wording is held to (issue 1390). Passed only for a
    *  page this product generated; absent, `plain_prose` asks nothing — a
    *  founder's own words are theirs. */
@@ -158,13 +162,15 @@ export function runDeterministicRules(
   const a = withoutSources(given);
   return {
     grounding: checkGrounding({ grounded: a.grounded, sourceText: a.sourceText }),
-    rival_source: checkRivalSource({
-      markdown: a.markdown,
-      rivals: a.site.rivals,
-      ...(a.brief.marketFacts === undefined
-        ? {}
-        : { factPages: [...(a.factPages ?? []), ...a.brief.marketFacts.map((fact) => fact.url)] }),
-    }),
+    rival_source:
+      checkRivalSource({
+        markdown: a.markdown,
+        rivals: a.site.rivals,
+        ...(a.brief.marketFacts === undefined
+          ? {}
+          : { factPages: [...(a.factPages ?? []), ...a.brief.marketFacts.map((fact) => fact.url)] }),
+      }) ?? checkRivalScope({ markdown: a.markdown, rivals: rivals(a), facts: a.brief.marketFacts }),
+    rival_negative: checkRivalNegative({ markdown: a.markdown, faq: a.blocks?.faq ?? [], rivals: rivals(a), facts: a.brief.marketFacts }),
     no_invented_people: checkInventedPeople({
       markdown: a.markdown,
       businessName: a.site.businessName,
@@ -196,6 +202,10 @@ export function runDeterministicRules(
     title: checkTitle({ title: a.title, ...(a.heading === undefined ? {} : { heading: a.heading }), rule: a.titleRule ?? null }),
     plain_prose: checkProse({ markdown: a.markdown, prose: a.prose ?? null }),
   };
+}
+
+function rivals(a: DeterministicInputs): readonly NamedRival[] {
+  return a.rivalsNamed ?? namedRivals(a.site.rivals, null);
 }
 
 /** The sources list is code's, not the page's own words (issue 1135): the

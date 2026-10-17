@@ -29,6 +29,7 @@ describe("BUILD §8 — the hard rules are a closed, ordered list", () => {
     const every: Record<HardRule, true> = {
       grounding: true,
       rival_source: true,
+      rival_negative: true,
       no_invented_people: true,
       no_unsourced_testimonial: true,
       honest_row: true,

@@ -127,6 +127,8 @@ const HOUSE_RULES = [
   "Never write any of the phrases in `pack.neverClaim`, in those words or any others.",
   "Never invent a byline, an author biography, a persona, a quotation, a testimonial, a review or a case study, and never say the page's claims were tested, trialled or benchmarked. The page prints its own byline and dates: write neither.",
   "Name a competing product only where `pack.claims` holds a claim from that product's own page (`pack.products` lists them), and say what that page says. Never state a figure about a competitor without linking the page it was read from.",
+  "A claim with a `plan` is true of that plan only: name the plan in the sentence that states it (\"its free trial includes …\"), and never present a trial, a starter tier or one plan's limits as the whole product. Where `pack.claims` holds a competitor's own page, cite that page for it and no other page's claim about it.",
+  "Never say a competitor has no, lacks or does not offer something unless a claim in `pack.claims` says so, linked in that same sentence. A page that does not mention a thing is not a page saying the product lacks it.",
   "A GFM table is a header row, a delimiter row with one `---` for every column, then one row per option.",
   "Do not write a sources list: one is added from the pages you linked.",
   "Never state a ranking position or a search volume, and never another company's scan score.",

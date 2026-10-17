@@ -42,7 +42,11 @@
 // the moment later, or was held re-enters here: the same work, through
 // `publishApproved()`, inside the kill switch's scope. Which windows have
 // run out is `publish/attempt/window.ts`'s, not this file's.
-import { duePublishApprovals, duePublishRetries, publishApproved } from "@/jobs/engine";
+//
+// **It first re-reads the live pages** (SPEC §7, issue 1485): a page written
+// before the rival rules that fails them is withdrawn before anything is
+// attempted. 0¢, and a tick that withdraws a page has run.
+import { duePublishApprovals, duePublishRetries, publishApproved, recheckLivePages } from "@/jobs/engine";
 import { fanOut, settle } from "./fan-out";
 import type { JobDefinition, Outcome } from "./types";
 
@@ -60,6 +64,7 @@ export const publishRetry: JobDefinition = {
   trigger: { kind: "cron", cron: PUBLISH_RETRY_TICK_CRON },
   idempotencyKey: [],
   async run(input): Promise<Outcome> {
+    const { withdrawn } = await recheckLivePages(input.now);
     const retries = await duePublishRetries(input.now);
     const approvals = await duePublishApprovals(input.now);
     // One attempt per page per tick: a page is in `failed` or waiting on its
@@ -69,7 +74,7 @@ export const publishRetry: JobDefinition = {
     // An hour with nothing due is the ordinary case and is recorded as
     // such — never as a run, which would make the observability line say
     // work happened on every hour of every day.
-    if (due.length === 0) return { outcome: "skipped", subjectId: null, reason: "not-due" };
+    if (due.length === 0) return withdrawn > 0 ? { outcome: "ran", subjectId: null } : { outcome: "skipped", subjectId: null, reason: "not-due" };
 
     const results = await fanOut(due, (page) => publishApproved(page));
     return settle(results, null);
