@@ -28,9 +28,9 @@
 // of a database. That is not only the possible shape but the useful one:
 // the rules bind the *migration a future PR writes*, and a text sweep fails
 // on the PR that adds an unpinned function rather than the deploy that
-// re-runs the advisor. The applied-schema side is verified by hand against
-// the substrate (`pg_proc.proconfig`) and re-checked by the advisor after
-// the merge, both recorded in #384.
+// re-runs the advisor. The applied-schema side of rule 3 — who may execute
+// any function in `public`, whatever statement granted it — is
+// `function-privileges.test.ts`, in the `db` project (issue 1483).
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";

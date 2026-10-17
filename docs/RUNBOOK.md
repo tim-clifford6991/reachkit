@@ -1110,10 +1110,10 @@ The procedure, per migration:
 1. Land the PR. The migration is in `main`.
 2. Re-read the file and paste it into the Supabase SQL editor on the `reachkit` project. One
    migration per run, in filename order, oldest first.
-3. Re-read the **security advisor** afterwards. A new `plpgsql` function without
+3. Re-read the **security and performance advisors** afterwards. A new `plpgsql` function without
    `set search_path = ''` is a WARN, and `tests/db/functions-search-path.test.ts` should have
-   caught it before the merge. The `rls_enabled_no_policy` INFO rows (six once `job_runs` is applied, #799) and the
-   leaked-password WARN are dispositioned below and are expected on every run.
+   caught it before the merge. Every finding the advisors return is in the dispositions table
+   below; a finding that is not is new, and gets a row in the same change that answers it.
 4. Record it in this section with the date.
 
 ### Applied 2026-09-16
@@ -1171,17 +1171,42 @@ done
 psql -h 127.0.0.1 -U reachkit -d postgres -c "drop database reachkit_check"
 ```
 
-### Security advisor — the standing dispositions
+### Pending: `20261017120000_rls_privileges` (issue 1483)
 
-The advisor is re-read after every schema change. What it reports on the `reachkit` project, and
-what each report means here:
+Merged, applied by the master session through the connector after the deploy is READY. It
+revokes the default `execute` that `PUBLIC`, `anon` and `authenticated` get on every new function
+in `public` (production's `pg_default_acl` granted both, role `postgres`), revokes it from the nine
+functions created under that default, and rewrites the 22 policies the performance advisor names
+to `(select auth.uid())`. Afterwards: the advisor's `auth_rls_initplan` rows in `public` are 0, and
+
+```sql
+select p.proname from pg_proc p
+ where p.pronamespace = 'public'::regnamespace
+   and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+   and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'));
+```
+
+returns no row. `tests/db/function-privileges.test.ts` (`schema · RLS`) runs the same query on
+the migrated substrate, with production's default privileges, and fails a function a session can
+execute unless it is allow-listed there with a reason.
+
+### Advisor findings — the standing dispositions
+
+Both advisors are re-read after every schema change. Every finding they returned on the
+`reachkit` project on 2026-10-17, and what each means here. Security first, then performance:
 
 | Finding | Disposition |
 |---|---|
 | `function_search_path_mutable` — eight plpgsql functions | **Fixed** by `supabase/migrations/20260909130000_rls_functions_search_path.sql` (#384): each function pins `set search_path = ''` and names this schema's tables `public.<table>`. Re-applied to the project through the connector after the merge; the WARN count is then 0. A new function without the clause fails `tests/db/functions-search-path.test.ts` before it can reach the project |
-| `rls_enabled_no_policy` — `domain_blocks`, `email_suppressions`, `fetches`, `job_runs` (the job heartbeat, #799 — six INFO rows once its migration is applied) in `public` (`auth_links` dropped 2026-09-10, #468), and two tables in `v2_archive` | **By design, and now said in place.** The four in `public` are `dbAdmin()`-only (BUILD §10 default-deny) and each carries a `comment on table` naming the rule, so the intent is where the advisor reads. The two in `v2_archive` are v2's frozen objects, kept as the v2 rollback path (*Backups and restore*); they are not v3's to change and go when the rollback path is retired |
+| `rls_enabled_no_policy` — eight tables in `public`: `domain_blocks`, `draft_days`, `email_suppressions`, `fetches`, `job_runs`, `llm_mention_reads`, `llm_mentions`, `rescore_runs`; and `fetches`, `leads` in `v2_archive` (ten INFO rows) | **By design, and said in place.** The eight in `public` are `dbAdmin()`-only (BUILD §10 default-deny) and each carries a `comment on table` naming the rule, so the intent is where the advisor reads; `tests/db/functions-search-path.test.ts` holds the list and fails a ninth without the comment. The two in `v2_archive` are v2's frozen objects, kept as the v2 rollback path (*Backups and restore*); they are not v3's to change and go when the rollback path is retired |
 | `anon_security_definer_function_executable`, `authenticated_security_definer_function_executable` — `known_content_near` | **Fixed** by `supabase/migrations/20261016120000_sites_content_known_grants.sql` (issue 1472): `execute` is revoked from `public`, `anon` and `authenticated`, and kept for `service_role`, the only caller (`dbAdmin()`). Apply it through the connector after the merge; neither finding should remain. A `security definer` function that a session can execute fails `tests/db/functions-search-path.test.ts` before it can reach the project |
+| Default `execute` on new functions in `public` for `PUBLIC`, `anon` and `authenticated` (no advisor lint; issue 1483) | **Fixed** by `supabase/migrations/20261017120000_rls_privileges.sql`: a new function is its owner's and `service_role`'s, and one a session must call is granted by name in its own migration. `tests/db/function-privileges.test.ts` reads live `pg_proc` in `schema · RLS`, so an `alter function`, a `do` block or a forgotten revoke fails there too |
+| `extension_in_public` — `pg_trgm` | **Accepted.** Its functions and operators read no table, so a session that can call `similarity()` learns nothing about any row; the one reader of `known_content` through it is `known_content_near`, which is `service_role`'s alone. Moving the extension would rewrite that function's `public.similarity` calls for no change in what anyone can read. Extension-owned functions are left out of `function-privileges.test.ts` for the same reason. Revisit if an extension that reads data lands in `public` |
 | `auth_leaked_password_protection` — HaveIBeenPwned check disabled | **Not applicable.** v3 has no passwords: sign-in is a one-time link and nothing else (REQ-098 — "no password field, no social sign-in"; `supabase/config.toml` sets `enable_password_signin = false`). There is no password for the check to read, so the setting stays off and this WARN is expected on every advisor run |
+| `auth_rls_initplan` — 22 policies in `public` (`users`, `sites`, `scans`, `opportunities`, `drafts`, `publications`, `destinations`, `leads`, `page_verdicts`, `site_profiles`, `site_profile_edits`, `known_content`, `publication_reads`) and 4 in `v2_archive` | **Fixed in `public`** by `20261017120000_rls_privileges.sql`: each reads `(select auth.uid())`, evaluated once per statement instead of once per row, with the same command, roles and predicate, so every policy admits the rows it did. `tests/db/function-privileges.test.ts` fails a policy that calls an auth function bare, and one whose predicate changed. **Left** in `v2_archive`, v2's frozen rollback path |
+| `unindexed_foreign_keys` — `llm_mention_reads.scan_id`, `page_verdicts.scan_id`, `scans.supersedes_scan_id`, `sites.provisioned_from_scan_id`; and `v2_archive.actions.scan_id` | **Accepted.** Each references `scans`, and nothing deletes a `scans` row (no cascade, tombstones only), so the index a foreign key needs to make a parent's delete cheap would never be read; no query in `src/` filters by one of these four columns (checked 2026-10-17). Table design was left alone (issue 1483). Revisit when a code path deletes scans or filters by one of these columns |
+| `unused_index` — 30 in `public`, 7 in `v2_archive` | **Kept.** The counters reset with the project's statistics and production traffic is small, so the planner reads most small tables by sequential scan today; each index in `public` backs a uniqueness rule or a query in `src/` (the retention sweeps, the publish queue, `known_content_near`'s trigram search) that will need it at volume. Dropping one is table design and was left alone (issue 1483). The `v2_archive` ones go with the rollback path |
+| `no_primary_key` — 18 tables in `archive` and `backup_20261005` | **Not v3's schema.** They are dated snapshot copies, read by hand only; no code path reads them. They go when the owner retires the snapshots |
 
 ### The substrate
 
