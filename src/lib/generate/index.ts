@@ -25,7 +25,8 @@
 //     one `CAP_DRAFT` context;
 //   * a pack short of what its template asks, or a new page whose pack adds
 //     too little (D12), writes nothing: the page stops, naming what is
-//     missing, and the day goes to the next topic the same way.
+//     missing, and the day goes to the next topic the same way — without
+//     using up D26's one more, since nothing was written (issue 1477).
 //
 // `regenerateRestarted` is the customer's Regenerate carried out: the
 // restart moves the row back into `generating`, and the next draft tick
@@ -162,6 +163,8 @@ export async function generateDayPage(a: {
     // One `CAP_DRAFT` context for the day, whichever topic fills it.
     return await withDraftCost({ scanId: report.scanId }, async (cost): Promise<DayPageOutcome> => {
       let opportunity = first;
+      // The topics whose page was written: D26's "at most once more" counts these.
+      let written = 0;
       for (let topic = 1; ; topic++) {
         const page = { siteId: a.siteId, site, report, opportunity, publishDate: a.publishDate };
         // Each row carries what its own page cost, not the day's.
@@ -179,8 +182,12 @@ export async function generateDayPage(a: {
         // Only a row that was written and stopped is moved on from — a run
         // that wrote none rested nothing, and its topic is still the head.
         const stopped = stoppedRow(outcome);
+        // Issue 1477: a topic whose pack was short wrote nothing and cost
+        // its pack alone, so it does not use up D26's one more topic — the
+        // day goes on to the next ready one, within the same cap and time.
+        if (!packShort(outcome)) written += 1;
         // And only while the job's invocation has the time for a second page.
-        if (stopped === null || topic >= DAY_TOPICS_MAX || cost.capHit() || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return outcome;
+        if (stopped === null || written >= DAY_TOPICS_MAX || cost.capHit() || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return outcome;
         // The stopped topic rests by now, so the head is the next one.
         const next = await nextForDay(a.siteId);
         if (next === null || next.id === first.id) return outcome;
@@ -204,6 +211,12 @@ export async function generateDayPage(a: {
 function stoppedRow(outcome: DayPageOutcome): string | null {
   if (outcome.ok) return null;
   return outcome.because === "rules" || outcome.because === "step_failed" ? outcome.draftId : null;
+}
+
+/** A run stopped before its write call because the pack was short of what
+ *  its template asks (D41): no page was written. */
+function packShort(outcome: DayPageOutcome): boolean {
+  return !outcome.ok && outcome.because === "step_failed" && outcome.step.startsWith("pack");
 }
 
 /** The day's cost context as one page sees it: the same ceiling, and a

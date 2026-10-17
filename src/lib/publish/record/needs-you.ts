@@ -140,3 +140,16 @@ export function needsYouOf(a: { state: State; transitions: unknown }): NeedsYouC
 export function waitsOnDestination(cause: NeedsYouCause | null): boolean {
   return cause !== null && (cause.kind === "destination" || cause.kind === "delivery");
 }
+
+/**
+ * Whether a page resting in `needs_attention` waits on the customer at all
+ * (issue 1477). Every site runs on autopilot, where owner action is never a
+ * required step: a page the writing stopped — its rules, a step, too little
+ * added, too close to a page elsewhere, a short pack — rests, its topic
+ * comes back, and the day goes to another topic. A page that could not be
+ * delivered waits on a destination only the customer can reconnect, and a
+ * page whose record states no cause claims none.
+ */
+export function waitsOnCustomer(cause: NeedsYouCause | null): boolean {
+  return cause === null || waitsOnDestination(cause) || cause.kind === "unknown";
+}

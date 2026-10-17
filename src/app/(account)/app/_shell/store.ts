@@ -26,6 +26,8 @@
 // stop, and `readStop` does not read `scans` at all.
 import { dbAdmin } from "@/lib/db";
 import { now as clock } from "@/lib/config/now";
+import { needsYouOf, waitsOnCustomer } from "@/lib/publish/record/needs-you";
+import type { State } from "@/lib/publish/types";
 import { readStop } from "./stop";
 import { nextDueOn } from "@/lib/scan/weekly";
 import { measuredWeeksOf } from "./week-rows";
@@ -101,6 +103,8 @@ interface WaitingDraftRow extends DraftStateRow {
   /** What the customer was last told (`drafts.told`): its `publishesAt` is
    *  the moment the mail named, so the card names the same one (issue 1337). */
   told?: { publishesAt?: string | null } | null;
+  /** Why a resting page rests (issue 880), as Overview reads it. */
+  transitions?: unknown;
 }
 
 /** One hosted destination, as the *Visit your blog* shortcut needs it: the
@@ -125,18 +129,21 @@ interface BlogDestinationRow {
 async function waiting(siteId: string): Promise<{ count: number; review: WaitingPage | null }> {
   const { data, error } = await client()
     .from<WaitingDraftRow>("drafts")
-    .select("id, state, scheduled_for, title, veto_deadline, told")
+    .select("id, state, scheduled_for, title, veto_deadline, told, transitions")
     .eq("site_id", siteId)
     .in("state", WAITING_STATES);
   if (error !== null || data === null) return { count: 0, review: null };
 
-  const pages = data.map(waitingPage);
+  // Issue 1477: the count is Overview's — a page the writing stopped waits
+  // on nobody.
+  const rows = data.filter((row) => waitsOnCustomer(needsYouOf({ state: row.state as State, transitions: row.transitions })));
+  const pages = rows.map(waitingPage);
   // A page with no time yet sorts last: a time the customer can act before
   // is more urgent than one nobody has set.
   const soonest = [...pages].sort(
     (a, b) => (a.goesLiveAt?.getTime() ?? Infinity) - (b.goesLiveAt?.getTime() ?? Infinity)
   )[0];
-  return { count: data.length, review: soonest ?? null };
+  return { count: rows.length, review: soonest ?? null };
 }
 
 function waitingPage(row: WaitingDraftRow): WaitingPage {

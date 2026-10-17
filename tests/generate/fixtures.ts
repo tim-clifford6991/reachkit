@@ -322,7 +322,7 @@ export function pack(over: Partial<ContextPack> = {}): ContextPack {
 
 /** What `packStandIn` says a built pack lacks. A suite about a short pack
  *  names a need here, or sets `short` for a new page that adds too little. */
-export const packAnswer: { missing: PackNeed[]; short: boolean } = { missing: [], short: false };
+export const packAnswer: { missing: PackNeed[]; short: boolean; missingFor?: (targetQuery: string | null) => PackNeed[] } = { missing: [], short: false };
 
 /**
  * The `pipeline/pack` module for the suites whose subject is what happens
@@ -338,7 +338,8 @@ export function packStandIn<T extends object>(actual: T): T {
       const built = real.buildPack({ ...a, type: a.type === "update" ? "update" : "qa" });
       // As the real pack counts it: an update is held to no bar of its own.
       const short = packAnswer.short && built.type !== "update";
-      return { ...built, missing: [...packAnswer.missing], adds: { claims: built.adds.claims, short } };
+      const missing = packAnswer.missingFor?.(a.opportunity.targetQuery) ?? packAnswer.missing;
+      return { ...built, missing: [...missing], adds: { claims: built.adds.claims, short } };
     },
   };
 }
