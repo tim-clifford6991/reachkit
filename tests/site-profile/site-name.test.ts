@@ -1,4 +1,4 @@
-// tests/site-profile/site-name.test.ts — issues #577, #1380 and #1384,
+// tests/site-profile/site-name.test.ts — issues #577, #1380, #1384 and 1479,
 // SPEC.md §2 ("the site name", and the lines of 2026-10-10).
 //
 // The name a card, a report and the setup screen show for a company: its
@@ -6,7 +6,9 @@
 // the tagline its page title carries. A site that names itself nowhere has
 // no name, because a guessed one would put a word in the customer's mouth.
 import { describe, expect, it } from "vitest";
-import { brandName, imageAlts, publishedNames } from "../../src/lib/site-profile/site-name";
+import { namesSite } from "../../src/lib/measure/drivers";
+import { promptSiteName } from "../../src/lib/market/prompts/generate";
+import { brandName, imageAlts, publishedNames, storedSiteName } from "../../src/lib/site-profile/site-name";
 
 const nameOf = (html: string, domain: string) => brandName(publishedNames(html), domain);
 
@@ -122,5 +124,24 @@ describe("the names a home document publishes", () => {
     expect(nameOf("<html><head></head><body><h1>Welcome</h1></body></html>", "example.com")).toBeNull();
     expect(nameOf("", "example.com")).toBeNull();
     expect(nameOf("<title>   </title>", "example.com")).toBeNull();
+  });
+});
+
+describe("a stored name is read by the rule wherever it is read (issue 1479)", () => {
+  it("a placeholder or a protection page's name is no name, from any source", () => {
+    expect(storedSiteName({ domain: "example.com", site_name: "<UNKNOWN>" })).toBeNull();
+    expect(storedSiteName({ domain: "sage.com", site_name: "Cloudflare" })).toBeNull();
+    expect(storedSiteName({ domain: "freshworks.com", site_name: "Just a moment..." })).toBeNull();
+    expect(brandName(["Just a moment...", "Freshworks | Customer service software"], "freshworks.com")).toBe("Freshworks");
+    expect(storedSiteName({ domain: "cloudflare.com", site_name: "Cloudflare" })).toBe("Cloudflare");
+  });
+
+  it("an AI answer that says a stored call to action or a vendor's name does not name the site", () => {
+    const deel = promptSiteName(storedSiteName({ domain: "deel.com", site_name: "HRIS" }), "deel.com");
+    expect(deel).toBe("Deel");
+    expect(namesSite("An HRIS keeps employee records in one place.", deel, "deel.com")).toBe(false);
+    expect(namesSite("Deel runs payroll in 150 countries.", deel, "deel.com")).toBe(true);
+    const sage = promptSiteName(storedSiteName({ domain: "sage.com", site_name: "Cloudflare" }), "sage.com");
+    expect(namesSite("Cloudflare protects the site.", sage, "sage.com")).toBe(false);
   });
 });

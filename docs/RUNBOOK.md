@@ -583,7 +583,8 @@ exported, and no change is typed back through the connector.
    `rescored_by` is the deployed commit. `summary` is a markdown table with one row per scan:
    score with its range and confidence (issue 1439), band, the three factors, the limiting factor, the rivals and the status, before → after.
    Then come the totals, what could not be fully recomputed and why, the site rival sets that move,
-   and the site profiles read off a protection's page. If `error` is set, the run failed. Read the
+   and the stored site names the name rule reads differently (issue 1479). `sites_moved` counts both:
+   a moved rival set and a rewritten name. If `error` is set, the run failed. Read the
    message and ask again.
 3. **Ask for the apply**: `insert into rescore_runs (mode) values ('apply') returning id;`, then
    read it the same way. Each scan that moves is written by `rescore_scan`. The function rewrites
@@ -591,15 +592,16 @@ exported, and no change is typed back through the connector.
    original `score`, `status` and `drivers` under `report.previousColumns`, and stamps
    `rescoredAt` and `rescoredBy`. It is guarded by the report's checksum as the job read it:
    `scans_left` counts the scans written after the read and left alone. Ask again for those. A moved
-   site rival set keeps its old rivals under `market.rescored`.
-4. **Check**: ask for another dry run. `scans_changed` reads 0.
+   site rival set keeps its old rivals under `market.rescored`. A stored name is written only where
+   it is still the one the job read; the summary lists each one's before and after.
+4. **Check**: ask for another dry run. `scans_changed` and `sites_moved` read 0.
 
 What it cannot recompute it leaves as stored and lists: Answerability on every scan (a report keeps
 the home page's facts, not the pages beyond it), search presence where a report of version 8 or
 before kept its ranked count without the rows, a home read no longer in `fetches`, a brand an AI
 Overview named only in its text where the report kept no text (every scan before issue 1420), and
 whether an AI Mode or ChatGPT answer named the site where its text is not in `fetches` under that
-scan (issue 1420). A profile read off a protection's page needs a model call and is only listed. Week-on-week movement and the
+scan (issue 1420). A profile's products, claims and voice read off a protection's page need a model call and stand; its name is read again. Week-on-week movement and the
 Overview are read from each week's report, so they follow; a Monday mail already sent is not sent
 again.
 

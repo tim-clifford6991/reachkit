@@ -23,6 +23,7 @@ import { unmeasured, type Measured } from "@/lib/measure/measured";
 import type { Locale } from "@/lib/locale/locales";
 import { promptSiteName } from "@/lib/market/prompts/generate";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
+import { storedSiteName } from "@/lib/site-profile/site-name";
 import { PAID_SERP_FANOUT } from "./budgets";
 import { cardsOf, reachOfReport } from "./cards";
 import { localeOfReport, readStoredReport, type StoredReport } from "./report";
@@ -297,12 +298,15 @@ export function databaseFinish(): FinishStore {
     homeReads: (domain) => databaseRescoreReads(domain),
     async siteName(domain) {
       const { data, error } = await (await client())
-        .from<{ site_name: string | null }>("site_profiles")
-        .select("site_name")
+        .from<{ domain: string; site_name: string | null; home_title: string | null }>("site_profiles")
+        .select("domain, site_name, home_title:inventory->0->>title")
         .eq("domain", domain)
         .limit(1);
       if (error !== null) throw new Error(error.message);
-      return data?.[0]?.site_name ?? null;
+      const row = data?.[0];
+      // Read by the name rule, so a placeholder, a protection's page or a
+      // call to action is never the name an answer is read for (issue 1479).
+      return row === undefined ? null : storedSiteName(row, row.home_title);
     },
     async writeScan(w) {
       const { databaseRescore } = await import("./rescore-run");
