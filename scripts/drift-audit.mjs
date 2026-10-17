@@ -122,6 +122,7 @@ add("rulings", "OK", "docs/SPEC.md", `${markers.length} dated ruling marker(s), 
 // until the next heading or the end of the whole body.
 const PENDING_OK = new Set(["1454", "1127", "1457"]);
 const REQUIRED_PARENTS = ["1454", "1127", "1457", "1458"];
+const registryParents = new Set();
 
 function coherenceSection(doc) {
   const start = doc.indexOf("\n### Coherence\n");
@@ -163,6 +164,7 @@ if (!coherenceText) {
     }
     if (seenParents.has(number)) add("coherence", "MALFORMED", row.parent, "parent listed twice", true);
     seenParents.add(number);
+    registryParents.add(number);
     if (row.check === "pending") {
       if (!PENDING_OK.has(number)) add("coherence", "MISSING", row.parent, "a new condition needs a check file, not pending", true);
       else add("coherence", "OK", row.parent, `${row.surface}: pending, allowed for this parent`);
@@ -208,6 +210,14 @@ if (process.argv.includes("--require-pr-body")) {
       if (filled == null) add("coherence", "MISSING", `## ${heading}`, `no such section in a body of ${body.length} characters`, true);
       else if (!filled) add("coherence", "MISSING", `## ${heading}`, `empty, or still only the template note, in a body of ${body.length} characters`, true);
       else add("coherence", "OK", `## ${heading}`, "filled");
+    }
+    // Issue 1482: a registry parent stays open while its row stands. GitHub
+    // closes an issue the body names after close, fix or resolve in any
+    // tense, with or without a colon, as #n, owner/repo#n or the issue URL.
+    // A parent is named with Refs.
+    const closing = /\b(close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b:?\s+(?:https:\/\/github\.com\/tim-clifford6991\/reachkit\/issues\/|(?:tim-clifford6991\/reachkit)?#)(\d+)\b/gi;
+    for (const m of body.matchAll(closing)) {
+      if (registryParents.has(m[2])) add("coherence", "MISSING", `#${m[2]}`, `"${m[0]}" would close a registry parent; use Refs #${m[2]}`, true);
     }
   }
 }
