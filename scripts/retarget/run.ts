@@ -12,7 +12,8 @@
 // The statement adds one open `refresh_page` at the page's address. The
 // evening's generation records its readiness and ranks it with the site's
 // other topics; the page it writes is the new search's own type, published
-// as a new version at the same address.
+// at the address the new search names, and the old address answers 301 to
+// it (issue 1487).
 import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { retargetCandidate } from "@/lib/opportunities/retarget";

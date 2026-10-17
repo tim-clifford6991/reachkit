@@ -44,7 +44,7 @@ import { persist } from "./derive/persist";
 import { closestPrompt, measuredVolume } from "./intent";
 import { retargetCandidate } from "./retarget";
 import { COLUMNS, opportunityStore, readOpportunity, untyped, type OpportunityRow } from "./store";
-import { FAMILY_OF, isOwnRefresh, type Evidence, type Opportunity, type RefreshCause } from "./types";
+import { FAMILY_OF, isOwnRefresh, isRetarget, type Evidence, type Opportunity, type RefreshCause } from "./types";
 
 const DAY_MS = 86_400_000;
 
@@ -304,7 +304,9 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
     if (publication.live_url === null || publication.published_at === null || opportunity === null) continue;
     if (typeof opportunity.family !== "string" || typeof opportunity.id !== "string") continue;
     const url = now(publication.live_url);
-    if (opportunity.family === "write" || opportunity.family === "earn") ours.add(url);
+    // A retarget of one of ours moved it to an address of its own (issue
+    // 1487): the page there is still ours.
+    if (opportunity.family === "write" || opportunity.family === "earn" || isRetarget(readOpportunity(opportunity))) ours.add(url);
     // A fix of a page's metadata is not a version of its content.
     if (opportunity.family === "fix") continue;
     const meta = publication.drafts?.meta ?? {};

@@ -40,6 +40,7 @@ export { DEFAULT_HOSTED_LABEL, checkLabel, hostFor, normaliseLabel } from "./lab
 export { addressesOwnPage } from "./own-page";
 export type { HostedOwnPages } from "./own-page";
 export type { LabelCheck, LabelRefusal } from "./label";
+export { slugDescribesTitle } from "./moved";
 export {
   hostedAddressNow,
   hostedAddressesNow,
@@ -118,6 +119,12 @@ export const HOSTED_ADAPTER: DestinationAdapter = Object.freeze({
       if (!addressesOwnPage(page.updateOf, { host: site.host, slugs })) {
         return { ok: false, madeLive: false, reason: "destination_rejected" };
       }
+      // SPEC §7 (2026-10-17, issue 1487): a retarget moves to the address
+      // its new search names — never onto another live page of the site,
+      // which is already that search's page.
+      if (page.moveTo !== undefined && slugs.includes(page.moveTo)) {
+        return { ok: false, madeLive: false, reason: "destination_rejected" };
+      }
     }
     // A metadata-only update (#690) has no body to serve: the hosted page is
     // its row, and this destination changes no page's metadata alone. Hosted
@@ -138,7 +145,7 @@ export const HOSTED_ADAPTER: DestinationAdapter = Object.freeze({
       // of 2026-09-12 is the label the customer chose. Read off the site
       // rather than recomposed, so the address recorded on the publication
       // and the address the edge answers at cannot disagree.
-      liveUrl: liveUrlOnHost({ host: site.host, slug: page.slug }),
+      liveUrl: liveUrlOnHost({ host: site.host, slug: page.moveTo ?? page.slug }),
     };
   },
 

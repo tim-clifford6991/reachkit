@@ -52,7 +52,7 @@ import { HOSTED_SUBDOMAIN_LABEL, PREVIEW_HOST_SUFFIX } from "@/lib/config/consta
 import { env } from "@/lib/config/env";
 import { classifyBlogRead } from "@/lib/publish/reads/classify";
 import { isDomainRemoved } from "@/lib/scan/removal";
-import type { LiveAnswer } from "@/app/(hosted)/edge";
+import type { HostedAnswer, LiveAnswer } from "@/app/(hosted)/edge";
 import { isFixtureDomain } from "@/app/(public)/scan/[domain]/_fixture/states";
 import { GATE_PATH_HEADER } from "@/app/(account)/setup/gate";
 import { movedAnswer } from "@/app/(public)/_seo/moved";
@@ -525,7 +525,7 @@ async function hostedRewrite(
   if (isNextInternal(pathname)) return null;
   if (HOSTED_DOCUMENT_PATHS.includes(pathname)) return null;
 
-  let answer: "gone" | "page" | LiveAnswer = "page";
+  let answer: HostedAnswer = "page";
   try {
     const { hostedAnswer } = await import("@/app/(hosted)/edge");
     answer = await withDeadline(
@@ -537,6 +537,11 @@ async function hostedRewrite(
   }
 
   const destination = req.nextUrl.clone();
+  // SPEC §7 (2026-10-17, issue 1487): a retargeted page's old address moves
+  // its visitor, and its ranking, to the page's new one on the same host.
+  if (typeof answer === "object" && answer.kind === "moved") {
+    return { response: NextResponse.redirect(`https://${answer.host}/${answer.slug}`, 301), scriptFree: false };
+  }
   if (typeof answer === "object") {
     countBlogRead(req, answer, event);
     // The host that resolved and the segment as it was asked for: the

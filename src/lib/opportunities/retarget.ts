@@ -9,16 +9,17 @@ import type { Candidate } from "./derive/candidate";
 import { FAMILY_OF, type Opportunity } from "./types";
 
 /**
- * SPEC §7 (D53, issue 1268): one of ReachKit's own live pages, rewritten in
- * place for a new search. An update of the page's own address — a new
- * version there, as a refresh is — whose search is `target` and not the one
- * the page was written for, so its acceptance test is the new search's and
- * no fit or source judged for the old one is carried. The target is the
+ * SPEC §7 (D53, issue 1268): one of ReachKit's own live pages, rewritten
+ * for a new search. An update of the page's own address whose search is
+ * `target` and not the one the page was written for, so its acceptance
+ * test is the new search's and no fit or source judged for the old one is
+ * carried. The target is the
  * operator's own choice, so it is stored at the top fit and no pass judges
  * it (issue 1285: a pass scored reachkit.app's own category 1, and the page
  * could never be written). It is written as the new search's own type
  * (`contentTypeOf`). `volume` is the new search's monthly searches where
- * they were measured. Pure.
+ * they were measured. It is published at the slug the new search names,
+ * and the old address answers 301 to it (issue 1487). Pure.
  */
 export function retargetCandidate(
   page: { url: string; row: Pick<Opportunity, "siteId" | "scanId" | "fitBand"> },

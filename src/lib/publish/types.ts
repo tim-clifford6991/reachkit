@@ -353,6 +353,11 @@ export interface RenderedPage {
    *  the URL the opportunity recorded. Absent on a new post or page. An
    *  adapter that sees it changes that address and never mints a second. */
   updateOf?: string;
+  /** SPEC §7 (2026-10-17, issue 1487): the slug a retargeted page moves to,
+   *  where its new search names another one. Present only beside
+   *  `updateOf`. The hosted destination publishes there and the old address
+   *  answers 301 to it; WordPress keeps the post's own address. */
+  moveTo?: string;
   /** SPEC §9 (#690): an update that changes only a page's metadata — its
    *  title where `title` is set, its SEO description where `description`
    *  is — and leaves its content exactly as it is. Present only beside
