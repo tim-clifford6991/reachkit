@@ -19,9 +19,12 @@
 // WO-230/WO-231 (the page and the sitemap).
 import { readRecordedFact, type RecordedFact } from "@/lib/generate/fact";
 import { madeCounts, type MadeCounts } from "../../render/made-counts";
+import { readFaq, type FaqEntry } from "../../render/faq";
 import { publishDb } from "../../db";
 import { liveUrlOnHost } from "./address";
 import { hostFor } from "./label";
+
+export { readFaq, type FaqEntry } from "../../render/faq";
 import type { HostedOwnPages } from "./own-page";
 
 /** A site, as the edge sees it: an id and the domain that resolved to it.
@@ -52,17 +55,6 @@ export interface PublishedPageRecord {
   measuredOn: Date | null;
   mode: "approved" | "autopilot";
   liveUrl: string;
-}
-
-/** One question-and-answer pair, as `drafts.meta.faq` holds it.
- *
- *  **Read from the stored meta, never parsed out of the body** (the
- *  archived BP-047 decision 2): a heading heuristic that is wrong emits
- *  schema claiming a question-and-answer section that is not there, which
- *  is a structured false statement on the customer's own domain. */
-export interface FaqEntry {
-  question: string;
-  answer: string;
 }
 
 /**
@@ -378,25 +370,6 @@ export async function hostedIdentity(a: { siteId: string; domain: string }): Pro
   } catch {
     return fallback;
   }
-}
-
-/** `drafts.meta.faq`, read defensively: a meta blob is jsonb and nothing
- *  in the database constrains its shape, so an entry missing either half
- *  is dropped rather than emitted as a question with no answer. An absent
- *  or empty section yields an empty array, and the caller emits no markup
- *  at all for one — never an empty `FAQPage`. */
-export function readFaq(meta: Record<string, unknown> | null): readonly FaqEntry[] {
-  const raw = meta?.faq;
-  if (!Array.isArray(raw)) return [];
-  const entries: FaqEntry[] = [];
-  for (const item of raw) {
-    if (typeof item !== "object" || item === null) continue;
-    const { question, answer } = item as { question?: unknown; answer?: unknown };
-    if (typeof question !== "string" || typeof answer !== "string") continue;
-    if (question.trim() === "" || answer.trim() === "") continue;
-    entries.push({ question, answer });
-  }
-  return Object.freeze(entries);
 }
 
 /** `drafts.meta.description`, read as defensively as the FAQ: a blank or
