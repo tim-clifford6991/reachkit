@@ -81,11 +81,11 @@ A change is finished when its conditions are checks and every screen it touches 
 | #1457 | app | Every figure on Overview equals the rows it opens, and the four tiles are the strategy | pending |
 | #1458 | public | The public offer matches the product, and a ranked URL does not 404 | tests/presentation/copy/public-claims.test.ts |
 
-`pending` is allowed only on `#1454`, `#1127` and `#1457`, the three parents whose check is not written yet. A later condition names a file. `#1455` is the silence inside `#1127`, not a fifth parent.
+`pending` is allowed only on `#1454`, `#1127` and `#1457`, the three parents whose check is not written yet. A later condition names a file. `#1455` is the silence inside `#1127`, not a fifth parent. A pull request names a parent with `Refs #n`: `audit` fails a body that says Closes, Fixes or Resolves for one, and `scripts/hygiene.mjs` fails while a parent with a row here is closed.
 
 The box is checked by hand with `node scripts/box.mjs` (`npm run box`). It reports a dirty worktree, a worktree with no open pull request, a worktree ahead of or behind its remote, and a leftover that is not a worktree. `--clean` removes only an empty directory on its list, a loadgen folder that holds a Next cache, and a closed-sessions spreadsheet. It never removes a worktree and it never edits `main`. It is not a gate and it does not run on the timer.
 
-`scripts/hygiene.mjs` runs inside `audit`. It fails when an authority page is missing, when Current and the workflows disagree on the four gates, when a second process page appears, or when a name in that script's list is back in the tree. The nightly run of the audit workflow, and `rk-hygiene.timer` at 05:30 UTC, open one issue titled `[hygiene]` when the check is red, or comment on the open one. The check does not edit the tree. An engineer starts from that issue, one worktree, then the tab closes. It is not a fifth gate.
+`scripts/hygiene.mjs` runs inside `audit`. It fails when an authority page is missing, when Current and the workflows disagree on the four gates, when a second process page appears, when a name in that script's list is back in the tree, or when a Coherence registry parent is closed. The nightly run of the audit workflow, and `rk-hygiene.timer` at 05:30 UTC, open one issue titled `[hygiene]` when the check is red, or comment on the open one. The check does not edit the tree. An engineer starts from that issue, one worktree, then the tab closes. It is not a fifth gate.
 
 ### Testing budget
 

@@ -181,6 +181,7 @@ function checkRepo() {
         add("repo", "Current does not name scripts/hygiene.mjs");
       }
       if (!current.includes("[hygiene]")) add("repo", "Current does not name the [hygiene] issue");
+      checkParents(current);
     }
   }
 
@@ -266,6 +267,26 @@ function checkRepo() {
       continue;
     }
     scanText("repo", rel, text);
+  }
+}
+
+// Issue 1482: a Coherence registry parent stays open while its row stands.
+// A state that cannot be read is a finding too, so a failed lookup is never green.
+function checkParents(current) {
+  const start = current.indexOf("\n### Coherence\n");
+  if (start < 0) return;
+  const rest = current.slice(start + 1);
+  const end = rest.slice(1).search(/\n### /);
+  const section = end < 0 ? rest : rest.slice(0, end + 1);
+  const parents = [...section.matchAll(/^\| #(\d+) \|/gm)].map((m) => m[1]);
+  for (const number of parents) {
+    const viewed = run("gh", ["issue", "view", number, "--repo", REPO, "--json", "state", "--jq", ".state"]);
+    const state = viewed.stdout.trim();
+    if (!viewed.ok || !state) {
+      add("repo", `could not read the state of registry parent #${number} (${viewed.stderr.trim().split("\n")[0] || viewed.error?.message || viewed.status})`);
+    } else if (state !== "OPEN") {
+      add("repo", `registry parent #${number} is ${state.toLowerCase()} while its Coherence row stands; reopen it`);
+    }
   }
 }
 

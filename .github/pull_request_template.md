@@ -13,3 +13,4 @@
 <!-- command, route, or what to click on dev.reachkit.app -->
 
 Closes #
+<!-- A Coherence registry parent in docs/PROCESS.md is `Refs #n`, never Closes. -->
