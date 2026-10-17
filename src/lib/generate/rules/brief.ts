@@ -20,7 +20,7 @@
 // words and is never failed by the two phrase rules. Deterministic, no I/O.
 import { ANSWER_FIRST_BLOCK_CHARS, PAGE_BLOCKS } from "@/lib/config/constants";
 import { answerBoxOf } from "./blocks";
-import { numeralsOf, REGISTER_FLOOR } from "./figures";
+import { measurementsIn, numeralsOf, ownMeasurementIn, REGISTER_FLOOR } from "./figures";
 import { blocksOf, ownWordsOf, sentencesOf } from "./text";
 import type { RuleFailure } from "./types";
 
@@ -34,6 +34,11 @@ export interface BriefRuleInputs {
    *  read from (SPEC §7, 2026-09-29; issue 1135). Absent on a page written
    *  before the research step, whose rules read as they did then. */
   marketFacts?: readonly MarketFactRead[];
+  /** The sentences the site's own report states (`../pipeline/report-facts.ts`),
+   *  handed only to a page that is not a research page (SPEC §7, owner
+   *  2026-10-17, issue 1490): no measurement they state may appear on it,
+   *  linked or not. Absent, nothing is withheld. */
+  reportPassages?: readonly string[];
 }
 
 /** One market fact as the rules read it. `product` is the rival whose own
@@ -48,6 +53,11 @@ export interface MarketFactRead {
   product?: string;
   about?: string;
   plan?: string | null;
+}
+
+/** The measurements the brief withholds from this page, as `count/total`. */
+export function withheldMeasurements(brief: BriefRuleInputs): Set<string> {
+  return new Set((brief.reportPassages ?? []).flatMap((passage) => measurementsIn(passage).map((each) => each.key)));
 }
 
 /** Every passage the page was handed, from either pool. */
@@ -167,7 +177,12 @@ export function checkTraceableNumerals(a: {
   brief: BriefRuleInputs;
 }): RuleFailure | null {
   const traceable = pageTraceableNumerals(a.markdown, a.brief);
+  const withheld = withheldMeasurements(a.brief);
   for (const sentence of sentencesOf(a.markdown)) {
+    // Issue 1490: the site's own measurement on a page that is not research
+    // is not a figure this page may state, whatever it links to.
+    const own = ownMeasurementIn(sentence.text, withheld);
+    if (own !== null) return { rule: "traceable_numerals", detail: { rule: "traceable_numerals", figure: own } };
     // A figure beside the address it was read from is sourced where it
     // stands — the rival-sourcing rule's own allowance.
     if (sentence.hasLink) continue;

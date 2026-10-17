@@ -25,8 +25,10 @@ import {
   isPhraseBreach,
   pageTraceableNumerals,
   untraceableIn,
+  withheldMeasurements,
   type BriefRuleInputs,
 } from "../rules/brief";
+import { ownMeasurementIn } from "../rules/figures";
 import { PAGE_BLOCKS } from "@/lib/config/constants";
 import { answerBoxOf } from "../rules/blocks";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "../rules/people";
@@ -163,7 +165,11 @@ function sourceOf(raw: string, words: string, sources: RepairInputs["sources"]):
 
 function repairNumerals(markdown: string, inputs: RepairInputs): string {
   const traceable = pageTraceableNumerals(markdown, inputs.brief);
+  const withheld = withheldMeasurements(inputs.brief);
   return mapSentences(markdown, (piece) => {
+    // Issue 1490: the site's own measurement on a page that is not research
+    // goes with its sentence; linking it to the report would still state it.
+    if (ownMeasurementIn(wordsOf(piece), withheld) !== null) return null;
     const figures = untraceable(piece, traceable);
     if (figures.length === 0) return piece;
     const words = wordsOf(piece);
@@ -325,9 +331,10 @@ function sentencesFor(
       return sentences.filter((s) => isPhraseBreach(s, INVENTED_PROVENANCE_RES, brief)).map((s) => s.text);
     case "traceable_numerals": {
       const traceable = pageTraceableNumerals(markdown, brief);
+      const withheld = withheldMeasurements(brief);
       return sourceBlocksOf(markdown)
         .flatMap((block) => splitSentences(block.raw))
-        .filter((piece) => untraceable(piece, traceable).length > 0)
+        .filter((piece) => untraceable(piece, traceable).length > 0 || ownMeasurementIn(wordsOf(piece), withheld) !== null)
         .map(wordsOf);
     }
     case "rival_negative":

@@ -132,7 +132,7 @@ export type Shortfall =
  *  verdict found it in a worse place, a pool holds a fact newer than it,
  *  eight weekly verdicts found it neither ranking nor cited (D60, issue 1288),
  *  or a newer related page went live that it does not link (issue 1391). */
-export type RefreshCause = "aged" | "lost_position" | "newer_fact" | "unmet" | "link";
+export type RefreshCause = "aged" | "lost_position" | "newer_fact" | "unmet" | "link" | "own_figures";
 
 /** §7's Fix trigger — "any access gate fails" — as the closed set of gates
  *  the measurement engine can actually report. A sixth barrier is a change

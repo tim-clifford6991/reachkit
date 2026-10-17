@@ -28,6 +28,7 @@ import type { StoredMarket } from "@/lib/market/infer/types";
 import { readSiteProfile } from "@/lib/site-profile/store";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import type { ClusterPage } from "./links/select";
+import { withheldReportPassages } from "./pipeline/report-facts";
 
 /** The `drafts` row, as §10 and this issue's two migrations leave it. */
 export interface DraftRow {
@@ -123,6 +124,10 @@ export interface StoredPage {
   ref: string;
   title: string;
   markdown: string;
+  /** Issue 1490: the report sentences its pack held where it is not a
+   *  research page — what a refresh of it may no longer state. Absent reads
+   *  as none. */
+  reportPassages?: string[];
 }
 
 export interface GenerateStore {
@@ -274,7 +279,8 @@ const DRAFT_COLUMNS =
   "scheduled_for, veto_deadline, created_at, transitions";
 
 function pageOf(row: DraftRow): StoredPage {
-  return { ref: row.id, title: row.title ?? "", markdown: row.body_md ?? "" };
+  const reportPassages = withheldReportPassages(row.meta);
+  return { ref: row.id, title: row.title ?? "", markdown: row.body_md ?? "", ...(reportPassages.length === 0 ? {} : { reportPassages }) };
 }
 
 export function supabaseGenerateStore(): GenerateStore {

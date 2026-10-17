@@ -34,10 +34,20 @@
 // or whose refresh they stopped, is theirs and is never among them. The
 // floor stands for this cause as for the others.
 //
+// **The site's own measurements** (SPEC §7, owner 2026-10-17, issue 1490):
+// a cause of its own, `own_figures` — a live page that is not a research page
+// states a measurement read off the site's own report ("0 of 12",
+// "18/100"). Its refresh is written from a pack that no longer holds those
+// sentences, and the numeral rule drops any the live page still carries.
+// The floor stands for this cause as for the others.
+//
 // Nothing is bought and no model is asked. The partial unique index keeps
 // one open or queued refresh a page.
 import { CROSS_LINKS, EFFORT_BY_TYPE, INTENT_UNMET_WEEKS, PACE, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { linkWords, sameWord } from "@/lib/generate/links/text";
+import { withheldReportPassages } from "@/lib/generate/pipeline/report-facts";
+import { withheldMeasurements } from "@/lib/generate/rules/brief";
+import { ownMeasurementIn } from "@/lib/generate/rules/figures";
 import { measured } from "@/lib/measure/measured";
 import type { Candidate } from "./derive/candidate";
 import { persist } from "./derive/persist";
@@ -78,6 +88,9 @@ export interface OwnLivePage {
   markdown?: string;
   edited?: boolean;
   stopped?: boolean;
+  /** Issue 1490: this version is not a research page and states one of the
+   *  site's own measurements its pack held. Absent reads as not so. */
+  ownFigures?: boolean;
 }
 
 export interface RefreshPools {
@@ -125,6 +138,7 @@ function hasNewerFact(page: OwnLivePage, pools: RefreshPools): boolean {
 export function refreshCauseOf(page: OwnLivePage, pools: RefreshPools, at: Date): RefreshCause | null {
   const age = at.getTime() - page.publishedAt.getTime();
   if (age < REFRESH_MIN_AGE_DAYS * DAY_MS) return null;
+  if (page.ownFigures === true) return "own_figures";
   if (page.unmet === true) return "unmet";
   if (page.declined) return "lost_position";
   if (hasNewerFact(page, pools)) return "newer_fact";
@@ -264,6 +278,17 @@ function passagesOf(value: unknown): (RecordedPassage & { readAt: Date | null })
   });
 }
 
+/**
+ * Whether a version that is not a research page states one of the site's
+ * own measurements (issue 1490): a measurement of a report sentence its
+ * pack held, found in its body. A research page, and a version written
+ * before the pack, state none.
+ */
+export function statesOwnFigures(meta: unknown, markdown: string): boolean {
+  const own = withheldMeasurements({ facts: [], queries: [], reportPassages: withheldReportPassages(meta) });
+  return ownMeasurementIn(markdown.replace(/\s+/g, " "), own) !== null;
+}
+
 /** The site's live pages that ReachKit wrote, each at its current version. */
 async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
   const client = untyped();
@@ -320,6 +345,7 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
       markdown: publication.drafts?.body_md ?? "",
       // `generate/edit.ts` stamps the first save a customer makes.
       edited: typeof meta.first_edited_at === "string",
+      ownFigures: statesOwnFigures(meta, publication.drafts?.body_md ?? ""),
     });
   }
   return [...pages.values()].filter((page) => ours.has(page.url));

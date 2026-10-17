@@ -14,6 +14,14 @@
 // switch one off on Settings › Your business, and the grounding rule
 // re-verifies a recorded passage against this text word for word.
 //
+// **Only on a research page** (SPEC §7, owner 2026-10-17, issue 1490,
+// amending 1163): *"Only on research pages."* A page built on the site's own
+// measurements is a research page, which aggregates them by design; every
+// other type would publish the customer's weakness ("0 of 12", "18/100").
+// `reportFactsAllowed` is the one place that decides it: the pack holds
+// these sentences only where it says so, and the numeral rule withholds
+// their measurements from every other page.
+//
 // **Only a complete report, and only what it measured.** A pass that
 // stopped early is not quoted, an unmeasured score yields no score
 // sentence, and a rival no answer cited yields no rival sentence. No figure
@@ -21,6 +29,7 @@
 import { env } from "@/lib/config/env";
 import { dbAdmin } from "@/lib/db";
 import type { MeasuredText } from "@/lib/measure/text";
+import type { ContentType } from "@/lib/opportunities/content-type";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { copyIn } from "@/lib/presentation/copy/translated";
 import { localeOfReport, readStoredReport, type StoredReport } from "@/lib/scan/report";
@@ -40,6 +49,24 @@ const DAY = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", ye
 function listed(names: readonly string[]): string {
   if (names.length <= 1) return names.join("");
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+/** Whether a page of this type may state the site's own measurements:
+ *  only a research page may (issue 1490). */
+export function reportFactsAllowed(type: ContentType): boolean {
+  return type === "research";
+}
+
+/** The report sentences a stored page's pack held, where that page is not a
+ *  research page (issue 1490): what its refresh may no longer state. Empty
+ *  for a research page and for a row written before the pack. */
+export function withheldReportPassages(meta: unknown): string[] {
+  const pack = (meta as { pack?: { type?: unknown; facts?: unknown } } | null)?.pack;
+  if (pack === undefined || pack === null || typeof pack.type !== "string" || !Array.isArray(pack.facts)) return [];
+  if (reportFactsAllowed(pack.type as ContentType)) return [];
+  return (pack.facts as { passage?: unknown; report?: unknown }[]).flatMap((fact) =>
+    fact?.report === true && typeof fact.passage === "string" ? [fact.passage] : []
+  );
 }
 
 /** The report's public address: where a reader can check the figure. */
