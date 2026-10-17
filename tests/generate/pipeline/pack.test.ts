@@ -3,11 +3,13 @@
 // pack short of it names what is missing.
 import "../env";
 import { describe, expect, it } from "vitest";
-import { buildPack, missingFrom, packAdds, questionsHeld, readPack, type PackInputs } from "../../../src/lib/generate/pipeline/pack";
-import { marketSearches, type WritingMarket } from "../../../src/lib/generate/voice/market";
+import { buildPack, missingFrom, packAdds, questionsHeld, readPack, topicWords, type PackInputs } from "../../../src/lib/generate/pipeline/pack";
+import { marketSearches, writingMarket, type WritingMarket } from "../../../src/lib/generate/voice/market";
+import { parseStoredMarket } from "../../../src/lib/market/infer/stored";
 import type { PromptProfile } from "../../../src/lib/generate/voice/profile-block";
 import type { StoredReport } from "../../../src/lib/scan/report";
 import { AT, FACTS, GROUNDED, opportunity, report } from "../fixtures";
+import stored from "./fixtures/capped-comparison.json";
 
 const PROFILE: PromptProfile = {
   job: "plans projects for small teams",
@@ -262,6 +264,65 @@ describe("a Q&A's questions are on the current market, each with a fact that ans
   it("the knowledge base's own recorded questions are not a source", () => {
     const profile = { ...PROFILE, knowledge: { ...PROFILE.knowledge!, questions: [{ text: "What to do next", from: "https://example.com/" }] } };
     expect(qa({ report: reportWith([]), profile }).questions).toEqual([]);
+  });
+});
+
+describe("issue 1477: a comparison over D52's cap, written as a Q&A, is read on its market", () => {
+  // reachkit.app, 17 October 07:00Z: every ready topic was a comparison over
+  // the cap, each was written as a Q&A, and both packs stopped on
+  // `buyer_questions,facts_on_topic` — from the rows stored for them.
+  const rivals = stored.market.rivals.map((rival) => rival.domain);
+  const market = writingMarket({ site: { category: stored.market.category, competitors: rivals, stored: parseStoredMarket({ current: stored.market }) }, reportCategory: "" });
+  const capped = (target: "peec ai alternatives" | "profound vs otterly", asked: { peopleAlsoAsk: string[]; related: { search: string; volume: number }[] }) =>
+    buildPack({
+      ...inputs(),
+      type: "qa",
+      opportunity: opportunity({ targetQuery: target, targetRef: target, title: target, family: "earn" }),
+      site: { businessName: "ReachKit", domain: "reachkit.app", doNotClaim: [], rivals },
+      category: market.category,
+      market: { from: "site", ...market.market },
+      writingFor: market,
+      profile: { job: stored.job, products: [], audience: [], promises: stored.promises, vocabulary: [], knowledge: stored.knowledge as PromptProfile["knowledge"] },
+      facts: stored.facts.map((passage) => ({ fact: { ...GROUNDED, passage, url: "https://reachkit.app/" }, sourceText: passage })),
+      research: { facts: stored.claims[target].map((claim) => ({ ...claim, title: claim.product, readAt: AT })) as never, products: [], asked },
+    });
+  const borrowed = stored.asked["peec ai alternatives"];
+  const own = stored.asked["profound vs otterly"];
+
+  it("its facts are on the topic: a rival's name is not a word the business's own facts can state", () => {
+    expect(capped("peec ai alternatives", borrowed).missing).not.toContain("facts_on_topic");
+    expect(capped("profound vs otterly", own).missing).not.toContain("facts_on_topic");
+  });
+
+  it("with the market's borrowed questions it holds five or more, each answered from the pack, and is written", () => {
+    const pack = capped("profound vs otterly", { peopleAlsoAsk: [...own.peopleAlsoAsk, ...borrowed.peopleAlsoAsk], related: [...own.related, ...borrowed.related] });
+    expect(pack.missing).toEqual([]);
+    expect(pack.questions).toEqual(expect.arrayContaining(["What kind of company is profound?", "Which search engine has AI?"]));
+    expect(pack.questions.length).toBeGreaterThanOrEqual(5);
+    // A topic whose own SERP asked nothing is still short, and says so: the
+    // day goes on to the next topic (`tests/jobs/draft-rest.test.ts`).
+    expect(capped("peec ai alternatives", borrowed).missing).toEqual(["buyer_questions"]);
+  });
+
+  it("a plural is the word it is plural of, for every kind of business", () => {
+    // The panel's kinds (docs/walk/panel/sites.json): software, local
+    // service, shop, hospitality, professional services, creator.
+    const pairs = [["engines", "engine"], ["services", "service"], ["prices", "price"], ["places", "place"], ["practices", "practice"], ["courses", "course"], ["dishes", "dish"], ["boxes", "box"], ["categories", "category"]];
+    for (const [plural, word] of pairs) expect([...topicWords(plural!)]).toEqual([...topicWords(word!)]);
+  });
+
+  it("a local service's rivals-only comparison is read on its category and job, not its rivals' names", () => {
+    const pack = buildPack({
+      ...inputs(),
+      type: "qa",
+      opportunity: opportunity({ targetQuery: "roto-rooter vs mr rooter", targetRef: "roto-rooter-vs-mr-rooter", title: null, family: "write" }),
+      site: { businessName: "Dale's Drains", domain: "dalesdrains.example", doNotClaim: [], rivals: ["rotorooter.com", "mrrooter.com"] },
+      category: "drain cleaning",
+      market: { from: "site", category: "drain cleaning", job: "Clear blocked drains and sewer lines", rivals: [{ name: "Roto-Rooter", domain: "rotorooter.com" }, { name: "Mr. Rooter", domain: "mrrooter.com" }] },
+      profile: null,
+      facts: ["We clear blocked drains the same day.", "Every drain job is quoted before we start.", "Sewer camera inspection is $95.", "We have cleared drains in Leeds since 2009.", "Our vans carry a jetter on every call."].map((passage) => ({ fact: { ...GROUNDED, passage, url: "https://dalesdrains.example/" }, sourceText: passage })),
+    });
+    expect(pack.missing).not.toContain("facts_on_topic");
   });
 });
 

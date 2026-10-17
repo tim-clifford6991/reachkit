@@ -94,7 +94,7 @@ import type { AnswerEngine, LastLive, OverviewFacts } from "./model";
 import { CALENDAR_DAY_ZONE } from "./week";
 import type { WeeklyPoint } from "./growth";
 import type { RivalFact, RivalFacts } from "./rivals";
-import { needsYouOf } from "@/lib/publish/record/needs-you";
+import { needsYouOf, waitsOnCustomer } from "@/lib/publish/record/needs-you";
 import type { State } from "@/lib/publish/types";
 import { waitingIssues, type WaitingItem } from "./alerts";
 import type { WaitingPageFacts, WaitingTarget } from "./waiting";
@@ -520,7 +520,9 @@ async function waitingItems(siteId: string): Promise<readonly WaitingItem[]> {
     .in("state", ["in_review", "needs_attention"])
     .order("created_at", { ascending: true });
   if (error !== null || data === null) return [];
-  return data.map((row) => ({
+  // Issue 1477: a page the writing stopped is not one the customer is asked
+  // to act on; the day's run has gone on to another topic.
+  return data.filter((row) => waitsOnCustomer(needsYouOf({ state: row.state as State, transitions: row.transitions }))).map((row) => ({
     kind: row.state === "needs_attention" ? ("needs_you" as const) : ("pending_veto" as const),
     // The customer's own words for their page, never a sentence this
     // product composed.
