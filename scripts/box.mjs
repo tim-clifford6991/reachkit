@@ -16,7 +16,6 @@ import path from "node:path";
 
 const MAIN = "/root/projects/reachkitv3";
 const WT = "/root/projects/reachkitv3-wt";
-const PROJECTS = "/root/projects";
 const REPO = "tim-clifford6991/reachkit";
 const EMPTY_DIRS = ["/root/projects/reachkitv3-gates", "/root/projects/wt"];
 
