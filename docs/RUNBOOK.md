@@ -880,8 +880,9 @@ Only an app URL whose host is `localhost`, `127.0.0.1` or `[::1]` is not.
 ## 8. The cost ledger
 
 Every vendor and model call goes through the seam in `src/lib/costs/`, and every call that
-actually spent writes one row to **`fetches`**. That table is the source of truth for spend;
-`scans.cost_cents` is a cached roll-up of it.
+actually spent writes one row to **`fetches`**. That table is the source of truth for spend.
+`scans.cost_cents` and `drafts.cost_cents` are its roll-ups, and the database computes them
+(issue 1478): whatever a process writes there is replaced by the ledger's sum.
 
 `fetches` — `supabase/migrations/20260903080000_fetches.sql`:
 
@@ -893,11 +894,19 @@ actually spent writes one row to **`fetches`**. That table is the source of trut
 | `reserved_cents` | what the cap was checked against |
 | `cost_cents` | what it settled at, from our own price list |
 | `billed_cents` | what the vendor says it charged for the call, read from its response (#1408). Null where the response carried no charge: a model call, an own-page read, a timeout, and every row before 2026-10-11 |
+| `site_id` | the scan's site, filled on insert (issue 1478). Null for a free scan |
+| `activity` | why: `free_scan`, `onboarding`, `weekly`, `draft`, `rescore` (a deep pass after the site's first), `smoke`, `test` (a reserved example domain) or `box`. Filled on insert from the scan; a draft's cost context writes `draft` |
+| `draft_id` | the draft the call was made for, named once the draft has a row |
+| `outcome` | `ok`, `failed` or `timeout`, read from the stored payload on insert |
 | `created_at` | when |
 
 RLS is on with no policy — default-deny — so it is reachable only through `dbAdmin()`. **No cost
-figure is ever rendered to a customer**, and there is no `site_id`: a site is reached through
-`scans.site_id`.
+figure is ever rendered to a customer.** Migration `20261017130000_fetches_attribution.sql`
+(issue 1478) added the four attribution columns, filled them for every older row at 0¢, and
+added the roll-up triggers: `scans.cost_cents = carried_cents + Σ cost_cents` over the scan's
+rows that are not a draft's, `drafts.cost_cents = carried_cents + Σ cost_cents` over the draft's.
+`carried_cents` is what a retry carries from the report it retries, and on a draft written before
+2026-10-17 the part of its figure no row could be matched to.
 
 ### The caps
 
@@ -937,6 +946,22 @@ select smoke, count(*) as scans, sum(cost_cents) as cents
   from scans
  where tier = 'free' and created_at >= now() - interval '7 days'
  group by 1;
+```
+
+**The owner's page is `/app/costs`** (issue 1478), signed in at one of `OWNER_EMAILS`; every
+other account gets the 404, and it is not in the navigation. It reads `cost_site_day` and
+`vendor_days` for the seven UTC days to today: each site's and each segment's week (free,
+smoke, test, box), estimated beside billed, with its month at that pace against €40.50 net; each
+site each day; the week by activity with its failed and timed-out calls; each vendor-day's
+recorded spend beside the vendor's own bill, and the gap; and each day against D34's €2, judged
+on billed spend where known. `cost_site_day` is the ledger grouped by UTC day, site or segment,
+vendor and activity; a free scan's rows count for the site provisioned from it:
+
+```sql
+-- the week by site or segment, estimated beside billed
+select coalesce(site_id::text, segment) as who, sum(estimated_cents), sum(billed_cents),
+       sum(billed_calls) as priced, sum(calls) as calls, sum(judged_cents)
+  from cost_site_day where day >= current_date - 6 group by 1 order by 6 desc;
 ```
 
 For anything the digest does not say, read the ledger in the Supabase SQL editor. The only other
@@ -1091,6 +1116,25 @@ select coalesce(jsonb_agg(d), '[]'::jsonb) from (
 
 Other flags: `--stored` takes no fresh reading, and `--log`, `--snapshots` and `--env-file`
 name other files.
+
+**Each day, stored: `vendor_days`** (issue 1478). One row per vendor per UTC day, `kind` `usage`,
+`fixed` (one a month, `day` its first) or `box` (one per day, vendor and `domain`). `billed_cents`
+is in cents of `currency`, null where nothing reported it, never 0. `account/maintenance` writes it
+on every tick until the day's row exists (`src/jobs/vendor-days.ts`, `src/lib/costs/vendor-days.ts`),
+and every reading is free:
+
+- *DataForSEO*: the balance and deposits at the day's first tick; the day before gets its bill,
+  the fall between the two openings with deposits added back.
+- *Anthropic*: the cost report for the last eight days, closed days only, when the deployment
+  holds `ANTHROPIC_ADMIN_KEY`. Without it the page says AI spend is estimated.
+- *Fixed*: on the first tick of a month, last month's Stripe fees from its balance transactions
+  (euro cents), and a row with no figure for Vercel, Supabase, the job platform and Resend, which
+  report no bill the product can read. A figure learned elsewhere is written into that row by hand
+  in the SQL editor.
+- *Box*: `scripts/vendor-snapshot.mjs` writes the spend log's last eight days as `box` rows when
+  `.env.local` holds a real `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; the box's are
+  placeholders today, so it says `no database key` and box spend stays in the spend log, which now
+  carries each line's `domain` where the script knows it.
 
 ---
 

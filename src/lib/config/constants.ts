@@ -146,6 +146,17 @@ export const USD_PER_EUR = Object.freeze({
   source: "ECB euro foreign exchange reference rate",
 } as const);
 
+/** D34's testing budget (`docs/PROCESS.md`, *Testing budget*), in euros: two a
+ *  day across all live testing, judged on what the vendors billed where it
+ *  is known, with a warning at one and a half. Read by `npm run costs` and the
+ *  owner's cost page (issue 1478). */
+export const TEST_DAY_EUR = Object.freeze({ cap: 2, warn: 1.5 } as const);
+
+/** What one site's month brings in, in euro cents, net of sales tax:
+ *  `PRICE_EUR_CENTS` with 21% tax taken out (issue 1478). The owner's cost
+ *  page sets each site's monthly cost against it. */
+export const PLAN_NET_EUR_CENTS = 4050 as const;
+
 /** Per-token model prices, cents per million tokens. `haiku` is BP-005
  *  `## Public interface`, transcribed verbatim (rule 1.2 — data, not a
  *  chosen parameter): `haiku: { inCentsPerM: 100; outCentsPerM: 500 }`.

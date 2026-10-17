@@ -197,6 +197,7 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
       "llm_mention_reads",
       "llm_mentions",
       "rescore_runs",
+      "vendor_days",
     ]);
   });
 

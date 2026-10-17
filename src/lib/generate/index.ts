@@ -167,7 +167,9 @@ export async function generateDayPage(a: {
       let written = 0;
       for (let topic = 1; ; topic++) {
         const page = { siteId: a.siteId, site, report, opportunity, publishDate: a.publishDate };
-        // Each row carries what its own page cost, not the day's.
+        // Each row carries what its own page cost, not the day's, and its
+        // own calls (issue 1478): a second topic is a page with no row yet.
+        if (topic > 1) await cost.forDraft?.(null);
         const own = sinceNow(cost);
         // A fix is a metadata-only update: one call, no regeneration loop —
         // the only rule it can fail is the customer's own do-not-claim list,
@@ -267,7 +269,7 @@ export async function regenerateRestarted(a: {
   const opportunity = writtenAs === "qa" && contentTypeOf(found) === "listicle" ? { ...found, writeAs: "qa" as const } : found;
 
   const page = { siteId: a.siteId, site, report, opportunity, publishDate: row.scheduled_for, draftId: row.id };
-  const outcome = await withDraftCost({ scanId: report.scanId }, (cost) =>
+  const outcome = await withDraftCost({ scanId: report.scanId, draftId: row.id }, (cost) =>
     opportunity.type === "fix_page" ? fixPage(page, cost) : writePage({ ...page, attempts: 1 }, cost)
   );
   await settle(outcome, opportunity.id, a.now ?? new Date(), site.domain);

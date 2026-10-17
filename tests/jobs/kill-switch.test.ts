@@ -148,6 +148,7 @@ async function invoke(id: JobId, killSwitch: boolean) {
     sitesWithoutDeepPass: async () => [],
     deepPassDomain: async () => null,
   }));
+  vi.doMock("@/lib/costs/vendor-days", () => ({ vendorDaysDue: async () => [], readVendorDay: async () => ({ done: true }) }));
   const { jobs } = await import("@/jobs");
   const { runJob } = await import("@/jobs/run");
   const definition = jobs.find((j: JobDefinition) => j.id === id);

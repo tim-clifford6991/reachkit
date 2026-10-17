@@ -146,6 +146,11 @@ const schema = z.object({
   // only: `.optional()` because no process needs it, and the middleware
   // ignores it on production and when it names the app's own host.
   HOSTED_TEST_HOST: z.string().min(1).optional(),
+  // Issue 1478: the key that reads Anthropic's cost report, so the owner's
+  // cost page shows what the model was billed beside what was estimated.
+  // The key the product calls the model with cannot read it. `.optional()`:
+  // without it AI spend is shown as estimated, and nothing else changes.
+  ANTHROPIC_ADMIN_KEY: z.string().min(1).optional(),
 });
 
 // BP-005 decision 6b: "the member's type is a required `string` either
@@ -184,6 +189,8 @@ const SERVER_ONLY_KEYS = [
   // Issue 336: an ingestion key belongs on the server. It writes events; a
   // browser bundle has no business holding one.
   "POSTHOG_API_KEY",
+  // Issue 1478: an admin key reads the organisation's billing.
+  "ANTHROPIC_ADMIN_KEY",
 ] as const satisfies readonly (keyof Env)[];
 
 const serverOnlyKeySet: ReadonlySet<string> = new Set(SERVER_ONLY_KEYS);

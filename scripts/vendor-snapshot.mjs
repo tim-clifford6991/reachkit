@@ -26,12 +26,19 @@
 // A vendor that could not be read is left out of the line and said on
 // stderr. Nothing here prints a credential, and nothing here spends.
 //
+// Box spend (issue 1478): where the env file holds a real `SUPABASE_URL` and
+// `SUPABASE_SERVICE_ROLE_KEY`, each run also writes the spend log's last
+// eight UTC days to production's `vendor_days`, one row per day, vendor and
+// domain (`kind = 'box'`), so the owner's cost page shows it beside
+// production's. Without the key nothing is written and nothing fails.
+//
 // Plain JavaScript: the timer runs it on the box's Node, which has no type
 // stripping.
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
+import { readSpend } from "./spend-log.mjs";
 
 const DEFAULT_FILE = "/root/ops/reachkit/vendor-snapshots.jsonl";
 export const DEFAULT_ENV_FILE = "/root/projects/reachkitv3/.env.local";
@@ -176,12 +183,55 @@ export function readSnapshots(file = snapshotPath()) {
   return rows.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
 }
 
+/** The spend log's lines from `since` (a UTC day) on, as box rows: one per
+ *  day, vendor and domain, the price book's cents beside what the vendor
+ *  billed. What it billed is the row's only where every line in it carried
+ *  a charge, so a part is never read as the whole. A source is DataForSEO's
+ *  when it is one of its endpoints, else the model's. */
+export function boxRows(spend, since) {
+  const rows = new Map();
+  for (const line of spend) {
+    const day = line.at.slice(0, 10);
+    if (day < since) continue;
+    const vendor = /^(?:\/v3\/)?(?:serp|dataforseo_labs|ai_optimization|on_page|keywords_data)\/|^dataforseo[:_]/.test(line.source) ? "dataforseo" : "anthropic";
+    const domain = line.domain ?? "";
+    const key = `${day}|${vendor}|${domain}`;
+    const row = rows.get(key) ?? { vendor, day, kind: "box", domain, estimated_cents: 0, billed: 0, unbilled: 0, currency: "usd", source: "spend_log" };
+    row.estimated_cents = Math.round((row.estimated_cents + line.cents) * 10000) / 10000;
+    if (line.billed === null) row.unbilled += 1;
+    else row.billed = Math.round((row.billed + line.billed) * 10000) / 10000;
+    rows.set(key, row);
+  }
+  return [...rows.values()].map(({ billed, unbilled, ...row }) => ({ ...row, billed_cents: unbilled === 0 ? billed : null }));
+}
+
+/** Writes the box rows to production, where the keys allow. Says why not. */
+export async function storeBoxRows(keys, rows) {
+  if (keys.SUPABASE_URL === undefined || keys.SUPABASE_SERVICE_ROLE_KEY === undefined) return "no database key";
+  if (rows.length === 0) return "nothing to write";
+  const response = await fetch(`${keys.SUPABASE_URL}/rest/v1/vendor_days?on_conflict=vendor,day,kind,domain`, {
+    method: "POST",
+    headers: {
+      apikey: keys.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${keys.SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates,return=minimal",
+    },
+    body: JSON.stringify(rows),
+    signal: AbortSignal.timeout(REQUEST_MS),
+  });
+  return response.ok ? `${rows.length} box rows written` : `box rows not written: HTTP ${response.status}`;
+}
+
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const at = process.argv.indexOf("--env-file");
   const keys = readKeys(at === -1 || at + 1 >= process.argv.length ? DEFAULT_ENV_FILE : process.argv[at + 1]);
   const { row, problems } = await takeSnapshot(keys);
   for (const problem of problems) console.error(`vendor-snapshot: ${problem}`);
   const kept = appendSnapshot(row);
+  const since = new Date(Date.now() - (REPORT_DAYS - 1) * DAY_MS).toISOString().slice(0, 10);
+  const box = await storeBoxRows(keys, boxRows(readSpend(), since)).catch((error) => `box rows not written: ${String(error?.message ?? error)}`);
+  console.error(`vendor-snapshot: ${box}`);
   const d = row.dataforseo;
   console.log(
     `${row.at} ${kept ? "kept" : "not kept"}: DataForSEO ${d === undefined ? "unread" : `balance ${d.balanceCents}¢ of ${d.depositedCents}¢ deposited`}; Anthropic ${

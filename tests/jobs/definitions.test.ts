@@ -102,6 +102,7 @@ async function load(): Promise<readonly JobDefinition[]> {
     sitesWithoutDeepPass: async () => [],
     deepPassDomain: async () => null,
   }));
+  vi.doMock("@/lib/costs/vendor-days", () => ({ vendorDaysDue: async () => [], readVendorDay: async () => ({ done: true }) }));
   const { jobs } = await import("@/jobs");
   return jobs;
 }
@@ -124,6 +125,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.doUnmock("@/jobs/engine");
   vi.doUnmock("@/lib/scan/deep/backstop");
+  vi.doUnmock("@/lib/costs/vendor-days");
   vi.unstubAllEnvs();
   vi.resetModules();
   vi.restoreAllMocks();
@@ -812,6 +814,7 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
       sitesWithoutDeepPass: async () => [],
       deepPassDomain: async () => null,
     }));
+    vi.doMock("@/lib/costs/vendor-days", () => ({ vendorDaysDue: async () => [], readVendorDay: async () => ({ done: true }) }));
     // SPEC §8's retention sequence (issue #569), stood in with nothing due.
     vi.doMock("@/lib/mail/retention", () => ({
       accountsDueInactivity: async () => [],

@@ -179,6 +179,8 @@ export async function generatePageFix(
     draftId = a.draftId;
     await store.patchDraft(draftId, fields);
   }
+  // Issue 1478: the calls this page made are named for its row.
+  await c.forDraft?.(draftId);
 
   const claim = claimCheck({
     text: [record.title, record.description].filter((v) => v !== null).join("\n"),

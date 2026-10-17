@@ -81,6 +81,8 @@ const OWNER: Readonly<Record<string, string>> = {
   "/app/settings/mail": "@/app/(account)/app/settings/mail/page",
   "/app/settings/billing": "@/app/(account)/app/settings/billing/page",
   "/app/settings/account": "@/app/(account)/app/settings/account/page",
+  // Issue 1478: the owner's cost page.
+  "/app/costs": "@/app/(account)/app/costs/page",
   "/setup": "@/app/(account)/setup/page",
   // #924: the DNS record is its own step after setup, so it is its own
   // address and exports its own title rather than taking the group's
@@ -154,6 +156,7 @@ const NAMED: Readonly<Record<string, string>> = {
   "/app/settings/mail": "meta.app.settings.mail.title",
   "/app/settings/billing": "meta.app.settings.billing.title",
   "/app/settings/account": "meta.app.settings.account.title",
+  "/app/costs": "meta.app.costs.title",
   "/setup": "meta.app.setup.title",
 };
 
