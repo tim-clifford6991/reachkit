@@ -228,6 +228,16 @@ describe("§4.5 — what has not been measured is said, not guessed", () => {
     expect(facts.waiting.map((item) => item.href)).toEqual(["/app/draft/d1", "/app/draft/d2"]);
   });
 
+  it("issue 1477: a page the writing stopped is not a needs-you; one waiting on its destination is", async () => {
+    const rested = (reason: string) => [{ from: "generating", to: "needs_attention", reason }];
+    rows.set("drafts", [
+      { id: "d1", site_id: "site-1", state: "needs_attention", title: "Short pack", created_at: "2026-10-17", transitions: rested("step_failed:pack:buyer_questions") },
+      { id: "d2", site_id: "site-1", state: "needs_attention", title: "Not delivered", created_at: "2026-10-17", transitions: rested("reason_needs_customer") },
+    ]);
+    const facts = await readOverviewFacts({ siteId: "site-1", timeZone: "America/New_York", domain: "example.com" });
+    expect(facts.waiting.map((item) => ("title" in item ? item.title : null))).toEqual(["Not delivered"]);
+  });
+
   it("the zone it states is the account's own", async () => {
     const facts = await readOverviewFacts({ siteId: "site-1", timeZone: "Europe/Dublin", domain: "example.com" });
     expect(facts.timeZone).toBe("Europe/Dublin");

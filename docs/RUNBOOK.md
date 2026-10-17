@@ -361,6 +361,21 @@ whose due hour never ran for that site, for example a tick that did not fire or 
 then. `no_page` with `generate:no_opportunity` and open, ready rows on file means the ranking left
 nothing for the day: read `opportunities` for the site and SPEC §7's *The cap never empties a day*.
 
+The check after a tick (issue 1477) is each site's latest decided date, with how many open, ready
+topics it held:
+
+```sql
+select distinct on (s.domain) s.domain, d.publish_date, d.outcome, d.reason,
+  (select count(*) from opportunities o where o.site_id = s.id and o.status = 'open' and o.ready) as ready_open
+from draft_days d join sites s on s.id = d.site_id
+where d.outcome is not null
+order by s.domain, d.publish_date desc;
+```
+
+A latest row that is not `drafted` while `ready_open` is above 0 means the run ended its day with a
+topic still writable. Read the site's drafts for that date: each topic the run tried has a row with
+its reason (`step_failed:pack:…` names what its pack lacked).
+
 ### Verifying a WordPress destination end to end
 
 The walk, in order, with the observation each step should produce. It has not been run against a
