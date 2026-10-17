@@ -50,4 +50,5 @@ The tester should plan for **two or three days**. The walk is not one sitting:
 
 Nobody helps during the walk. The owner watches (`docs/walk/watch.md`) and writes down what the
 tester did, but does not answer questions. After the walk: one issue per finding, sized for one PR,
-then the refund (`docs/walk/refund.md`), then #1044 is closed with the walk's timeline.
+unless the finding is an example of a parent in `docs/PROCESS.md` Coherence, which is a comment on
+that parent. Then the refund (`docs/walk/refund.md`), then #1044 is closed with the walk's timeline.

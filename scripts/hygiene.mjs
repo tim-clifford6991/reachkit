@@ -40,6 +40,7 @@ const CURRENT_HEADINGS = [
   "### Roles",
   "### Four steps",
   "### Gates",
+  "### Coherence",
   "### Testing budget",
   "### Deploys",
   "### Worktrees",
@@ -51,11 +52,12 @@ const CITED = [
   "scripts/land.sh",
   "scripts/db-substrate/up.sh",
   "scripts/drift-audit.mjs",
+  "scripts/box.mjs",
   "docs/walk/panel/sites.json",
   ".github/workflows/ci.yml",
   ".github/workflows/drift-audit.yml",
 ];
-const PACKAGE_SCRIPTS = ["typecheck", "lint", "panel", "costs", "test:layout:full"];
+const PACKAGE_SCRIPTS = ["typecheck", "lint", "panel", "costs", "box", "test:layout:full"];
 const BINS = ["heavy.sh", "redeploy.sh", "deploy-dev-once.sh", "resource-guard.sh", "deployer.sh"];
 const ABSENT_ON_BOX = [
   "/root/ops/reachkit/corpus-drafts",

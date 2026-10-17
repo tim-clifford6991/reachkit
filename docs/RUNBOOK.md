@@ -26,13 +26,19 @@ the check is red and comment on it when it is still red. The timer runs
 template, the units, and `/root/ops/reachkit` are included. The shell file only finds
 the script. The log is `/root/ops/reachkit/log/hygiene.log`. A green run changes nothing.
 
+2026-10-15  **The box folders are checked by hand** (owner, #1463). `node scripts/box.mjs`
+reports worktrees and leftovers. `node scripts/box.mjs --clean` removes only an empty
+directory on its list, a loadgen folder that holds a Next cache, and a closed-sessions
+spreadsheet. It leaves every worktree, including a dirty one. It is not on the timer
+and it is not a gate.
+
 Dev (`dev.reachkit.app`) deploys from `main` via `rk-deployer`. If it has not moved after a
 merge, run `bash /root/ops/reachkit/bin/deploy-dev-once.sh`. Production is batched (at most
 every two hours) and receives every merge, the same as dev (no freeze, owner 2026-09-17, #844).
 `/api/jobs` is served by production, so a job or pass change takes effect only once production is
 deployed. `Vercel` is not a check: Git deployments are off (`vercel.json` `git.deploymentEnabled: false`).
 
-The owner tests the path live on `dev.reachkit.app`. A merged migration is applied through the
+The owner tests the path live on `dev.reachkit.app` for taste and for the stranger walk. Conditions and screen strategy are already the gates (`docs/PROCESS.md` Coherence, `docs/DESIGN.md`). This live pass is not a second check of those. A merged migration is applied through the
 Supabase connector after the target deploy is READY, then the path is walked again
 (`scripts/smoke.sh` / `scripts/land.sh`).
 

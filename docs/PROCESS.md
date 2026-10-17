@@ -27,16 +27,16 @@ The repository and the GitHub issues are the only record. A chat, a memory file,
 | Who | Does |
 |---|---|
 | **Owner** | Product, copy, secrets, answers, tests live on `dev.reachkit.app`. Does not read ticket piles. |
-| **Engineer** | One session, one issue. Issue → docs if behaviour changed → implement with libraries → PR → merge when the four gates are green. |
+| **Engineer** | One session, one issue. Issue → docs if behaviour changed → implement with libraries → PR → merge when the four gates are green, Coherence included. |
 
 The orchestration session holds no implementation and no state. It writes the decision into the repository before anyone builds it. One engineer per issue, in a clean context. The next issue is a new session.
 
 ### Four steps
 
-1. **State it.** GitHub issue: what the user can do afterwards. `feature` or `bug`. Board: Status (Ready is next) and Feature (F1–F9). P0 = the paying path is broken.
+1. **State it.** GitHub issue: what the user can do afterwards. `feature` or `bug`. Board: Status (Ready is next) and Feature (F1–F9). P0 = the paying path is broken. The issue carries Surfaces, Invariants and Overlaps before it is Ready. An example of a parent in Coherence is a comment on that parent, not a new issue.
 2. **Document if required.** New behaviour → that section of `docs/SPEC.md`. Look of a screen → `docs/DESIGN.md` (the three library rules, not a drawing). A bug in specified behaviour → no docs edit. An owner answer → one dated line in that SPEC section the same day.
 3. **Implement.** One issue, one worktree, at `/root/projects/reachkitv3-wt/issue-<N>`, branched from `origin/main`. The checkout at `/root/projects/reachkitv3` stays on `main`. daisyUI classes in the route, Recharts for series, lucide for icons, the libraries on `docs/DESIGN.md`'s list and no others, Stripe / Resend / Supabase for those jobs. No new wrapper, no new CSS sheet, no SVG chart. PR: what changed, how you proved it, `Closes #n`. An issue cites a screen's board in `docs/DESIGN.md` for structure and wording, never pixels.
-4. **Prove and ship.** The four gates below are green. `gh pr merge --squash --delete-branch`, then remove the worktree and close the tab. Owner clicks `dev.reachkit.app`. Merges deploy to dev and production (owner ruling 2026-09-17, #844); run `scripts/smoke.sh` against production after a production deploy. Apply a merged migration through the Supabase connector after the target deploy is READY, then walk the path again. There is no production freeze.
+4. **Prove and ship.** The four gates below are green, including the Coherence reading inside `audit` and the strategy checks inside `no overflow · axe`. `gh pr merge --squash --delete-branch`, then remove the worktree and close the tab. The owner looks at `dev.reachkit.app` for taste. Merges deploy to dev and production (owner ruling 2026-09-17, #844); run `scripts/smoke.sh` against production after a production deploy. Apply a merged migration through the Supabase connector after the target deploy is READY, then walk the path again. There is no production freeze.
 
 `blocked-on-owner` is not implemented around. Missing copy is drafted and shipped, never `TODO(copy)` (owner ruling 2026-09-16, #759): the PR body names every new or changed string so the owner can correct the wording.
 
@@ -52,13 +52,38 @@ Every owner decision is a dated line in `docs/SPEC.md`, `docs/DESIGN.md`, `docs/
 | `no overflow · axe (390 / 768 / 1280, light and dark)` | **Yes** |
 | Production smoke (`scripts/smoke.sh`) | **Yes** for a production deploy, by hand |
 
-`no overflow · axe` renders every `(public)` and `(account)` screen in a real browser, hydrated, at 390, 768 and 1280, in light and dark, and runs `@axe-core/playwright` on the same page. It fails on an element wider than its container, on text its card cuts off, on a chart that did not fit or did not draw, and on a serious or critical axe finding. It takes no screenshot and keeps no baseline. The owner looks at the live site.
+`no overflow · axe` renders every `(public)` and `(account)` screen in a real browser, hydrated, at 390, 768 and 1280, in light and dark, and runs `@axe-core/playwright` on the same page. It fails on an element wider than its container, on text its card cuts off, on a chart that did not fit or did not draw, and on a serious or critical axe finding. It takes no screenshot and keeps no baseline. The strategy list in `docs/DESIGN.md` is checked with it, by `tests/ui/design/strategy.test.ts` on the same code change. The owner looks at the live site for taste.
 
 A documentation-only pull request runs `audit` alone (owner, #1053). When every file it changes is under `docs/` or is markdown outside `src/`, `tests/`, `supabase/`, `.github/` and `scripts/`, the other three gates report skipped. Any other file runs all four.
 
 Before pushing, an engineer runs `npm run typecheck`, `npm run lint`, and the test files that cover the files it changed (`npx vitest run <paths>`). Each heavy command goes through `bash /root/ops/reachkit/bin/heavy.sh`. CI runs the full `typecheck · lint · unit` suite. An engineer does not run the whole `vitest run --project node --project ui` locally. A red full suite is read from the CI log (owner, 2026-10-08).
 
 Where the jobs run is `docs/RUNBOOK.md` §1. There is no fifth merge gate.
+
+### Coherence
+
+A change is finished when its conditions are checks and every screen it touches still matches the product strategy. Both readings sit inside the four gates. This is not a fifth gate, and it is not a standing agent.
+
+**Feedback.** The session that hears the owner classifies it before a worktree exists. An example of a parent below is a comment on that parent. A word, a label, or a screen is the strategy in `docs/DESIGN.md`, and the change extends `tests/ui/design/strategy.test.ts` or the layout gate. A new condition is an issue whose Surfaces, Invariants and Overlaps are filled. An engineer starts only after that classification is on the issue. The session that classifies does not also implement.
+
+**Before Ready.** The issue states the surfaces it touches (`scan`, `content`, `app`, `public`), the invariant that must stay true, and the overlaps: the `docs/SPEC.md` sections and open issues it was read against, and what was left alone. A slice of a parent is a sub-issue. An issue with any of those three empty is not Ready. An example of a parent below is a comment on that parent, not a new issue.
+
+**On the pull request.** The body has `Conditions`, `Overlaps` and `Surfaces`. `audit` reads that body on a pull request and fails a missing or empty section. A section that is still only the template's note is empty. `none` is a real answer when the change cannot break a condition or cannot touch a surface. Each condition names the check that fails when it breaks. `audit` reads the registry below and fails when a named check file is missing, or when a new row is `pending`.
+
+**UI.** Every code change runs `no overflow · axe`, which renders every `(public)` and `(account)` screen at 390, 768 and 1280, in light and dark. `tests/ui/design/strategy.test.ts` runs in `typecheck · lint · unit` on the same change. Together they hold the strategy in `docs/DESIGN.md`: the stack, the calm layer, the names, a title of at most six words, and no retired vocabulary. The owner looks at `dev.reachkit.app` for taste — voice, and an asset only the owner holds. Taste is not a second review of a condition the gates already check.
+
+**After merge.** A witness of the same shape as the hygiene check reads stored production rows and comments on the one open parent for that surface. It does not edit the tree, it does not merge, and an engineer starts only from the issue it files. No witness runs until its script is named in this section and in `.github/workflows/drift-audit.yml`. Until that line is here, these parents stay open and the pull request is the enforcement.
+
+| Parent | Surface | Condition | Check |
+|---|---|---|---|
+| #1454 | scan | One profile describes the business for a free scan, a paid site and the dogfood | pending |
+| #1127 | content | A page is about the business and sourced, and a paying site on autopilot has its next page | pending |
+| #1457 | app | Every figure on Overview equals the rows it opens, and the four tiles are the strategy | pending |
+| #1458 | public | The public offer matches the product, and a ranked URL does not 404 | tests/presentation/copy/public-claims.test.ts |
+
+`pending` is allowed only on `#1454`, `#1127` and `#1457`, the three parents whose check is not written yet. A later condition names a file. `#1455` is the silence inside `#1127`, not a fifth parent.
+
+The box is checked by hand with `node scripts/box.mjs` (`npm run box`). It reports a dirty worktree, a worktree with no open pull request, a worktree ahead of or behind its remote, and a leftover that is not a worktree. `--clean` removes only an empty directory on its list, a loadgen folder that holds a Next cache, and a closed-sessions spreadsheet. It never removes a worktree and it never edits `main`. It is not a gate and it does not run on the timer.
 
 `scripts/hygiene.mjs` runs inside `audit`. It fails when an authority page is missing, when Current and the workflows disagree on the four gates, when a second process page appears, or when a name in that script's list is back in the tree. The nightly run of the audit workflow, and `rk-hygiene.timer` at 05:30 UTC, open one issue titled `[hygiene]` when the check is red, or comment on the open one. The check does not edit the tree. An engineer starts from that issue, one worktree, then the tab closes. It is not a fifth gate.
 
@@ -107,7 +132,7 @@ The milestone **Launch** is the launch queue. Take an open Launch issue that is 
 - Add a merge gate beyond the four above.
 - Spawn an implementation agent as a subagent of the orchestration session. It is a Herdr tab in the reachkit workspace, one issue, then the tab is closed.
 - Keep a second copy of these rules in a memory file, a settings note, or `/root/ops`.
-- Schedule a standing agent to re-read these pages. The hygiene check is the daily pass, and an engineer starts only from the issue it files.
+- Schedule a standing agent to re-read these pages. The hygiene check is the daily pass. The coherence witness, once its script is named in Coherence, is the same kind of pass. An engineer starts only from the issue either one files.
 
 ## History
 
@@ -144,3 +169,5 @@ Dated rulings. They explain Current. They are not instructions to carry out.
 2026-10-08  **The hygiene check keeps the documents and the box on Current** (owner). Stated in Current. It is part of `audit`, not a fifth gate. The timer is `docs/RUNBOOK.md`.
 
 2026-10-11  **Test spend is judged on what the vendors billed** (owner, #1408). An audit found the price book overstated DataForSEO by about 1.7× on the day, and about $56 of lifetime DataForSEO spend in no record. Fixtures are the default, a live vendor call needs the master session's approval with a cap (default 20¢), the panel runs only for a change to how markets are read on at most five sites, and the €2 cap is judged on billed spend recorded in USD. Stated in Current.
+
+2026-10-15  **A change is finished when its conditions are checks and the UI still matches the strategy** (owner, #1463). Stated in Current, Coherence. It is inside `audit` and `no overflow · axe`. It is not a fifth gate. The witness does not run until its script is named there.

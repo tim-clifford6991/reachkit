@@ -35,9 +35,11 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - name: run audit
         id: audit
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           set +e
-          node scripts/drift-audit.mjs ${{ github.event_name == 'pull_request' && '--strict' || '' }} > drift.md
+          node scripts/drift-audit.mjs ${{ github.event_name == 'pull_request' && '--strict --require-pr-body' || '' }} > drift.md
           echo "exit=$?" >> "$GITHUB_OUTPUT"
           cat drift.md >> "$GITHUB_STEP_SUMMARY"
       - name: hygiene
