@@ -20,7 +20,7 @@ const APPLIED = [
   "00000000000001_baseline.sql",
   "00000000000002_rls.sql",
   "20261014130000_scans_rescore.sql",
-  "20261017130000_scans_rescore_auto.sql",
+  "20261017140000_scans_rescore_auto.sql",
 ];
 
 function run(sql: string): void {

@@ -1,4 +1,4 @@
--- supabase/migrations/20261017130000_scans_rescore_auto.sql
+-- supabase/migrations/20261017140000_scans_rescore_auto.sql
 --
 -- Issue 1481 — the re-score follows every scoring deploy by itself. The
 -- deployment carries its derivation (`RK_DERIVATION`, a fingerprint of the
