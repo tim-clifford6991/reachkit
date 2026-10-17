@@ -38,6 +38,7 @@ import { isDomainRemoved } from "@/lib/scan/removal";
 import { RUNNING_ROW_BOUND_S } from "@/lib/scan/stuck";
 import { parseDomain, type CanonicalDomain } from "@/lib/scan/domain";
 import { readCurrentReport, type StoredReport } from "@/lib/scan/report";
+import { readsDifferently } from "@/lib/scan/derivation";
 import { correctionOffer, type CorrectionOffer } from "@/lib/market/coherence/offer";
 import type { AddressControl, AddressNotice, AddressRefusal, AddressState } from "./state";
 import { categoryOf } from "@/lib/scan/sections";
@@ -267,6 +268,7 @@ export async function resolveAddress(a: {
         now,
       }),
       correction: offer,
+      readsDifferently: await readsDifferently(report.scanId),
     };
   }
 

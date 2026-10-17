@@ -7,8 +7,11 @@ import { describe, expect, it } from "vitest";
 import { offline } from "../../../src/lib/egress/offline";
 import { KEPT_NO_OVERVIEW_TEXT, rehomeSite } from "../../../src/lib/scan/rescore";
 import {
+  answerRequest,
+  claimRequest,
   rescoreRow,
   rescoreStored,
+  type RescoreQueue,
   type RescoreStore,
   type ProfileNameWrite,
   type ScanWrite,
@@ -19,6 +22,7 @@ import {
   type StoredSiteRow,
 } from "../../../src/lib/scan/rescore-run";
 import type { RivalConclusion } from "../../../src/lib/market/infer/types";
+import type { RunRecord } from "../../../src/lib/scan/derivation";
 
 const read = (path: string): unknown => JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
 
@@ -426,5 +430,158 @@ describe("issue 1441: a stored SERP whose local pack shows the site counts that 
     const stored = searchPresence(scan);
     expect(searchPresence(withPack("www.gusto.com"))).toBeGreaterThan(stored);
     expect(searchPresence(withPack("rival.example"))).toBe(stored);
+  });
+});
+
+describe("issue 1481: a deploy that changes how a scan is read is followed by a dry run, then an apply, with nobody asking", () => {
+  const DERIVATION = "f026342a5919";
+
+  /** `rescore_runs` as the tick reads and writes it, over the store above. */
+  function queueOf(db: ReturnType<typeof storeOf>) {
+    const runs: (RunRecord & { id: string; started: boolean; auto: boolean; stale: readonly string[] | null })[] = [];
+    let asked = 0;
+    const queue: RescoreQueue & RescoreStore = {
+      ...db.store,
+      async claim() {
+        const next = runs.find((r) => !r.started);
+        if (next === undefined) return null;
+        next.started = true;
+        return { id: next.id, mode: next.mode };
+      },
+      runs: async () => runs.map((r) => ({ ...r })),
+      async ask(mode, when) {
+        asked += 1;
+        runs.push({
+          id: `run-${asked}`,
+          mode,
+          auto: true,
+          started: false,
+          derivation: null,
+          requestedAt: new Date(when.getTime() + asked).toISOString(),
+          finishedAt: null,
+          error: null,
+          held: null,
+          scansChanged: null,
+          sitesMoved: null,
+          unreadable: null,
+          stale: null,
+        });
+      },
+      async answer(id, a, o) {
+        Object.assign(runs.find((r) => r.id === id)!, {
+          finishedAt: o.at.toISOString(),
+          derivation: o.derivation ?? null,
+          held: a.held,
+          scansChanged: a.scansChanged,
+          sitesMoved: a.sitesMoved,
+          unreadable: a.scansUnreadable,
+          stale: a.stale,
+        });
+      },
+      async failed(id, error, o) {
+        Object.assign(runs.find((r) => r.id === id)!, { finishedAt: o.at.toISOString(), error, derivation: o.derivation ?? null });
+      },
+    };
+    /** One tick of `scan/rescore` in production at the deployed derivation. */
+    async function tick(derivation = DERIVATION) {
+      const request = await claimRequest(at, derivation, queue, true);
+      if (request !== null && "id" in request) await answerRequest(request, { version: "abc1234", derivation, at }, queue);
+      return request;
+    }
+    return { queue, runs, tick };
+  }
+
+  /** zapier.com's stored scan with a stored score of 40: read again it is 47,
+   *  a move the guard expects. */
+  const near = ((): FixtureScan => {
+    const s = fixture("zapier.com");
+    const report = structuredClone(s.report) as Record<string, unknown> & { verdict: { scoreAndBand: { value: { score: number } } } };
+    report.verdict.scoreAndBand.value.score = 40;
+    return { ...s, score: 40, report };
+  })();
+
+  it("asks the dry run, then the apply where the guard holds, then a dry run that finds nothing left", async () => {
+    const db = storeOf([near]);
+    const { runs, tick } = queueOf(db);
+
+    await tick();
+    expect(runs.map((r) => [r.mode, r.auto, r.derivation, r.held, r.scansChanged])).toEqual([["dry", true, DERIVATION, null, 1]]);
+    expect(runs[0]!.stale).toEqual([near.id]);
+    expect(db.written).toEqual([]);
+
+    await tick();
+    expect(runs[1]).toMatchObject({ mode: "apply", auto: true, derivation: DERIVATION, scansChanged: 1, stale: [] });
+    expect(db.written[0]).toMatchObject({ id: near.id, score: 47, by: "abc1234" });
+    expect((db.rows.get(near.id)!.report as { rescoredBy?: string }).rescoredBy).toBe("abc1234");
+
+    await tick();
+    expect(runs[2]).toMatchObject({ mode: "dry", auto: true, scansChanged: 0, held: null, stale: [] });
+
+    // Settled: the next tick at the same derivation asks nothing.
+    await expect(tick()).resolves.toBeNull();
+    expect(runs).toHaveLength(3);
+  });
+
+  it("a deploy that does not change the derivation asks nothing again; one that does starts over", async () => {
+    const db = storeOf([near]);
+    const { runs, tick } = queueOf(db);
+    for (let i = 0; i < 4; i += 1) await tick();
+    expect(runs).toHaveLength(3);
+    await tick("0a1b2c3d4e5f");
+    expect(runs.at(-1)).toMatchObject({ mode: "dry", derivation: "0a1b2c3d4e5f", scansChanged: 0 });
+    await expect(tick("0a1b2c3d4e5f")).resolves.toBeNull();
+  });
+
+  it("holds the apply where a score moves further than the guard allows, or loses its number, and says why on every tick", async () => {
+    const db = storeOf([fixture("gusto.com"), fixture("zapier.com")]);
+    const { runs, tick } = queueOf(db);
+    await tick();
+    expect(runs[0]!.held).toBe("zapier.com moves 20 points (27 → 47), more than 15; gusto.com loses its score (0 → none)");
+    expect(runs[0]!.stale).toEqual([fixture("zapier.com").id, fixture("gusto.com").id]);
+    await expect(tick()).resolves.toEqual({ held: runs[0]!.held });
+    await expect(tick()).resolves.toEqual({ held: runs[0]!.held });
+    expect(runs).toHaveLength(1);
+    expect(db.written).toEqual([]);
+  });
+
+  it("holds where the build cannot read a stored scan the run before could", async () => {
+    const db = storeOf([near]);
+    const { queue, runs, tick } = queueOf(db);
+    const unreadable: RescoreQueue & RescoreStore = {
+      ...queue,
+      scans: async () => [...(await queue.scans()), { ...(await queue.scans())[0]!, id: "00000000-0000-0000-0000-000000000001", report: "not a report" }],
+    };
+    for (let i = 0; i < 3; i += 1) await tick("0a1b2c3d4e5f");
+    expect(runs.at(-1)).toMatchObject({ unreadable: 0, scansChanged: 0 });
+    const writes = db.written.length;
+    const request = await claimRequest(at, DERIVATION, unreadable, true);
+    if (request === null || !("id" in request)) throw new Error("no request");
+    await answerRequest(request, { version: "abc1234", derivation: DERIVATION, at }, unreadable);
+    expect(runs.at(-1)!.held).toBe("1 stored scans this build cannot read, 0 before");
+    await expect(claimRequest(at, DERIVATION, unreadable, true)).resolves.toEqual({ held: runs.at(-1)!.held });
+    expect(db.written).toHaveLength(writes);
+  });
+
+  it("a check that still finds moves after the apply is the apply lagging: held, and the scans it names stay stale", async () => {
+    const db = storeOf([near]);
+    const lagging: RescoreStore = { ...db.store, writeScan: async () => false };
+    const { queue, runs } = queueOf(db);
+    const q = { ...queue, writeScan: lagging.writeScan };
+    for (let i = 0; i < 3; i += 1) {
+      const request = await claimRequest(at, DERIVATION, q, true);
+      if (request !== null && "id" in request) await answerRequest(request, { version: "abc1234", derivation: DERIVATION, at }, q);
+    }
+    expect(runs.map((r) => r.mode)).toEqual(["dry", "apply", "dry"]);
+    expect(runs[1]).toMatchObject({ stale: [near.id] });
+    expect(runs[2]!.held).toBe("after the apply, 1 scan still reads differently from the deployed code");
+    await expect(claimRequest(at, DERIVATION, q, true)).resolves.toEqual({ held: runs[2]!.held });
+  });
+
+  it("a request the master session inserted is answered first, and outside production nothing is asked", async () => {
+    const db = storeOf([near]);
+    const { queue, runs } = queueOf(db);
+    await expect(claimRequest(at, DERIVATION, queue, false)).resolves.toBeNull();
+    await expect(claimRequest(at, null, queue, true)).resolves.toBeNull();
+    expect(runs).toEqual([]);
   });
 });

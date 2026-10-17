@@ -16,7 +16,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { psql, psqlRows } from "../../db/substrate";
 
 const MIGRATIONS = path.resolve(import.meta.dirname, "../../../supabase/migrations");
-const APPLIED = ["00000000000001_baseline.sql", "00000000000002_rls.sql", "20261014130000_scans_rescore.sql"];
+const APPLIED = [
+  "00000000000001_baseline.sql",
+  "00000000000002_rls.sql",
+  "20261014130000_scans_rescore.sql",
+  "20261017120000_rescore_runs_auto.sql",
+];
 
 function run(sql: string): void {
   psql(["-v", "ON_ERROR_STOP=1", "-c", sql]);
@@ -140,5 +145,24 @@ describe("rescore_runs — the master session's request", () => {
       expect(value(`select has_table_privilege('${role}', 'rescore_runs', 'select');`)).toBe("f");
     }
     expect(value("select has_function_privilege('service_role', 'rescore_scan(uuid, text, jsonb, integer, text, jsonb, text, text)', 'execute');")).toBe("t");
+  });
+});
+
+describe("rescore_runs — the tick's own request and its answer (issue 1481)", () => {
+  it("a row nobody marks auto is a person's; the tick's records its derivation, its guard and the scans still stale", () => {
+    const person = value("insert into rescore_runs (mode) values ('dry') returning id;");
+    expect(value(`select auto from rescore_runs where id = '${person}';`)).toBe("f");
+    const scanId = scan();
+    const id = value("insert into rescore_runs (mode, auto) values ('dry', true) returning id;");
+    run(
+      `update rescore_runs set finished_at = now(), derivation = 'f026342a5919', held = 'gusto.com loses its score (0 → none)', scans_unreadable = 0, stale_scans = array['${scanId}']::uuid[] where id = '${id}';`
+    );
+    expect(psqlRows(`select auto, derivation, held, scans_unreadable from rescore_runs where id = '${id}';`)[0]).toEqual([
+      "t",
+      "f026342a5919",
+      "gusto.com loses its score (0 → none)",
+      "0",
+    ]);
+    expect(value(`select '${scanId}'::uuid = any(stale_scans) from rescore_runs where id = '${id}';`)).toBe("t");
   });
 });

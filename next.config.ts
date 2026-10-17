@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { derivation } from "./scripts/derivation.mjs";
 
 // BP-001's own file (`code:` glob `next.config.ts`). WO-001 step 3 and the
 // file plan: typed config; `serverExternalPackages` for the Supabase admin
@@ -89,6 +90,10 @@ export const SECURITY_HEADERS: readonly { key: string; value: string }[] = [
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@supabase/supabase-js"],
+  // Issue 1481: the deployment's derivation — a fingerprint of the files the
+  // re-score reads a scan with. The `scan/rescore` tick asks for a dry run
+  // and an apply by itself when it finds no run at this value.
+  env: { RK_DERIVATION: derivation() },
   // Issue #782: the waiting screen is gone — a founder waits for their pass
   // inside the app, where the side panel says which step is running. An old
   // tab or a saved link still reaches the app.

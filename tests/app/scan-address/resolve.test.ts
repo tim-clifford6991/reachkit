@@ -13,6 +13,7 @@ import type { StoredReport } from "@/lib/scan/report";
 const admitFreeScan = vi.fn<() => Promise<Admission>>();
 const readCurrentReport = vi.fn<() => Promise<StoredReport | null>>();
 const isDomainRemoved = vi.fn<() => Promise<boolean>>();
+const readsDifferently = vi.fn<(scanId: string) => Promise<boolean>>();
 
 vi.mock("@/lib/scan/removal", () => ({ isDomainRemoved: () => isDomainRemoved() }));
 
@@ -24,6 +25,8 @@ vi.mock("@/lib/scan/report", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/scan/report")>()),
   readCurrentReport: () => readCurrentReport(),
 }));
+
+vi.mock("@/lib/scan/derivation", () => ({ readsDifferently: (scanId: string) => readsDifferently(scanId) }));
 
 const { resolveAddress } = await import(
   "@/app/(public)/scan/[domain]/_address/resolve"
@@ -85,6 +88,8 @@ beforeEach(() => {
   admitFreeScan.mockReset();
   readCurrentReport.mockReset();
   isDomainRemoved.mockReset();
+  readsDifferently.mockReset();
+  readsDifferently.mockResolvedValue(false);
   admitFreeScan.mockResolvedValue({ admit: true });
   readCurrentReport.mockResolvedValue(null);
   isDomainRemoved.mockResolvedValue(false);
@@ -291,6 +296,17 @@ describe("row 3 — a current report is a thing to read", () => {
     // happened to them and offered nothing that cannot spend.
     expect(state.notice?.kind).toBe("refused");
     expect(state.control).toEqual({ kind: "none" });
+  });
+});
+
+describe("issue 1481 — a report the deployed code reads differently", () => {
+  it("is asked of the last re-score at the deployed derivation, by its own scan, and carried to the view", async () => {
+    readCurrentReport.mockResolvedValue(storedReport());
+    readsDifferently.mockResolvedValue(true);
+    const state = await resolve();
+    if (state.kind !== "report") throw new Error("unreachable");
+    expect(readsDifferently).toHaveBeenCalledWith("scan-1");
+    expect(state.readsDifferently).toBe(true);
   });
 });
 

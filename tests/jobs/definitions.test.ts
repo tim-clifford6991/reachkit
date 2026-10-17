@@ -527,6 +527,15 @@ describe("scan/rescore — a request the master session wrote, answered by the d
   });
 });
 
+describe("scan/rescore — a re-score the guard held fails every tick until it moves on (issue 1481)", () => {
+  it("is degraded at `rescore-held`, and answers nothing", async () => {
+    results.set("claimRescore", { held: "zapier.com moves 20 points (27 → 47), more than 15" });
+    const job = await definition("scan/rescore");
+    await expect(job.run({ data: {}, now: EVENING_UTC })).resolves.toEqual({ outcome: "degraded", subjectId: null, step: "rescore-held" });
+    expect(calls.map((c) => c.fn)).toEqual(["claimRescore"]);
+  });
+});
+
 describe("scan/finish-reads — a free scan's unread searches, read once in the background (issue 1440)", () => {
   it("is keyed by the scan, so a second send for it is dropped", async () => {
     const job = await definition("scan/finish-reads");

@@ -121,6 +121,9 @@ export const REPORT_COPY = Object.freeze({
   // own words). Drafted (#759).
   "report.finishing-reads": ["Still reading {count} searches…", { slots: { count: "text" }, fixedBy: "SPEC §2 · issue 1440" }],
   "report.finishing-reads.one": ["Still reading {count} search…", { slots: { count: "text" }, fixedBy: "SPEC §2 · issue 1440" }],
+  // SPEC §2 (issue 1481): the deployed code would read this stored scan
+  // differently and the re-score has not rewritten it yet. Drafted (#759).
+  "report.reads-differently": ["Read on {date}. How ReachKit reads a site has changed since, and this report hasn’t been read again yet.", { slots: { date: "text" }, fixedBy: "SPEC §2 · issue 1481" }],
   // SPEC §2 (issue 1450): the site's pages were read and the model gave no
   // profile of them, so the market was read from its listing. Short on
   // purpose (master review on #1451). Drafted (#759).
