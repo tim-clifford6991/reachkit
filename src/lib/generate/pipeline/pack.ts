@@ -21,7 +21,7 @@
 // whose words are on none of the top results the research step read.
 //
 // Pure. The reads are the caller's (`../index.ts`, `scripts/page/`).
-import { LANGUAGE_PACKS, SHAPES, modelInstruction } from "@/lib/locale/language";
+import { LANGUAGE_PACKS, SHAPES, languagePack, modelInstruction } from "@/lib/locale/language";
 import type { Language, Locale } from "@/lib/locale/locales";
 import { ADDS, PACK, RIVAL_PRICE_MAX_AGE_D } from "@/lib/config/constants";
 import { promptTemplateOf } from "@/lib/market/prompts/generate";
@@ -196,6 +196,8 @@ const STOP = new Set([
   ...LANGUAGE_PACKS.filter((pack) => pack.language !== "en").flatMap((pack) => [...pack.stopWords]),
 ]);
 
+const ENGLISH = languagePack("en");
+
 /** The content words of a text: what tells two topics apart. */
 export function topicWords(text: string): Set<string> {
   return new Set(
@@ -203,7 +205,9 @@ export function topicWords(text: string): Set<string> {
       .toLowerCase()
       .split(/[^\p{L}\p{N}]+/u)
       .filter((word) => word.length > 2 && !STOP.has(word))
-      .map((word) => word.replace(/(?:ies|es|s)$/, (end) => (end === "ies" ? "y" : "")))
+      // Issue 1477: "engines" is "engine", as "services" is "service" — the
+      // language pack's own plural, never a cut "es" ("engin").
+      .map(ENGLISH.stem)
   );
 }
 
@@ -457,9 +461,32 @@ export function packAdds(a: {
   return { claims, short: a.newPage && !enough };
 }
 
+/**
+ * The target's words a business's own facts can state (issue 1477). A
+ * rival's name is not one: "peec ai alternatives" and "profound vs otterly"
+ * are about the market those rivals sell in, and no business describes
+ * itself by its rivals' names. Where the target is nothing but names and
+ * the words every search shares, the market's own words stand for it: its
+ * category and the job it is concluded to do, as the pack carries them.
+ */
+function ownTopicWords(pack: Omit<ContextPack, "missing">): Set<string> {
+  const market = pack.business.market as { job?: unknown; rivals?: unknown } | null;
+  const rivals = Array.isArray(market?.rivals) ? (market.rivals as { name?: unknown; domain?: unknown }[]) : [];
+  const named = new Set([
+    ...pack.business.rivals.map(brandOf),
+    ...rivals.flatMap((rival) => [
+      ...(typeof rival.name === "string" ? topicWords(rival.name) : []),
+      ...(typeof rival.domain === "string" ? [brandOf(rival.domain)] : []),
+    ]),
+  ]);
+  const own = (text: string) => new Set([...topicWords(text)].filter((word) => !named.has(word)));
+  const target = own(pack.target.searches.join(" "));
+  if ([...target].some((word) => !GENERIC_TOKENS.has(word))) return target;
+  return own(`${pack.business.category} ${typeof market?.job === "string" ? market.job : ""}`);
+}
+
 function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">, previousResearch: PackMeasurements | null): boolean {
   const knowledge = pack.profile?.knowledge;
-  const words = topicWords(pack.target.searches.join(" "));
   switch (requirement.need) {
     case "options":
       // D47: the options are the ones code can lay a table out of — the
@@ -478,7 +505,7 @@ function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">,
       // was ranked (issue 1134); a buyer's words and a site's seldom match
       // fact for fact ("ChatGPT" and "AI answers"), so the rest are counted.
       const held = [...pack.facts.map((fact) => fact.passage), ...knowledgeTexts(knowledge)];
-      return held.length >= requirement.min && held.some((text) => shares(words, text));
+      return held.length >= requirement.min && held.some((text) => shares(ownTopicWords(pack), text));
     }
     case "product_page":
       return pack.links.some((link) => link.purpose === "product" || link.purpose === "features" || link.purpose === "pricing");
