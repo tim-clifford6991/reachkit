@@ -201,10 +201,12 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
 
   // SPEC §7 (2026-10-17, issue 1487): a page that moved leaves its old
   // address, which answers 301 to this one, and the pages that linked the
-  // old address link this one by its new name.
-  if (page.moveTo !== undefined && page.updateOf !== undefined && liveUrl !== null) {
+  // old address are planned an update that links this one by its new name.
+  // Only where the destination did publish elsewhere: WordPress keeps the
+  // post's own address.
+  if (page.moveTo !== undefined && page.updateOf !== undefined && liveUrl !== null && liveUrl.endsWith(`/${page.moveTo}`)) {
     const { moveAddress } = await import("./move");
-    await moveAddress({ from: page.updateOf, to: { publicationId: claimed.publicationId, url: liveUrl }, at });
+    await moveAddress({ from: page.updateOf, to: { publicationId: claimed.publicationId, url: liveUrl }, at, by: a.by });
   }
 
   await transition(a.draftId, "published", a.by, {

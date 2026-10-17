@@ -58,6 +58,7 @@ import {
   knownLinkTargets as knownContentTargets,
   siteLinkTargets,
 } from "./links/select";
+import { withMovedLink } from "./links/moved";
 import { urlKey, type LinkTarget } from "./links/select";
 import { generateDraft, targetSearches, type GenerateOutcome } from "./pipeline";
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
@@ -410,10 +411,16 @@ async function livePageOf(
   if (markdown.trim() === "") return null;
   const evidence = opportunity.evidence as { shortfall?: { kind?: unknown } } | undefined;
   const linkTo = linkBackOf(opportunity);
+  // Issue 1487: a link to a page that moved is pointed at its new address in
+  // code, by the name the row records; the writer returns the page as it is.
+  const moved =
+    linkTo?.replaces === undefined
+      ? markdown
+      : withMovedLink(markdown, { from: (href) => href === linkTo.replaces, to: linkTo.url, text: linkTo.title }).markdown;
   return {
     url,
     title,
-    markdown,
+    markdown: moved,
     why: typeof evidence?.shortfall?.kind === "string" ? evidence.shortfall.kind : null,
     ...(linkTo === null ? {} : { linkTo }),
   };
@@ -421,10 +428,11 @@ async function livePageOf(
 
 /** SPEC §7 (2026-10-10, issue 1391): the newer live page a refresh planned
  *  for `link` adds a link to, as its row records it. */
-function linkBackOf(opportunity: Opportunity): { url: string; title: string } | null {
-  const shortfall = (opportunity.evidence as { shortfall?: { cause?: unknown; link?: { url?: unknown; title?: unknown } } } | undefined)?.shortfall;
+function linkBackOf(opportunity: Opportunity): { url: string; title: string; replaces?: string } | null {
+  const shortfall = (opportunity.evidence as { shortfall?: { cause?: unknown; link?: { url?: unknown; title?: unknown; replaces?: unknown } } } | undefined)?.shortfall;
   const link = shortfall?.cause === "link" ? shortfall.link : undefined;
-  return typeof link?.url === "string" && typeof link.title === "string" ? { url: link.url, title: link.title } : null;
+  if (typeof link?.url !== "string" || typeof link.title !== "string") return null;
+  return { url: link.url, title: link.title, ...(typeof link.replaces === "string" ? { replaces: link.replaces } : {}) };
 }
 
 async function writePage(a: PageInput & { attempts: number; startedAt?: number }, cost: CostContext): Promise<DayPageOutcome> {

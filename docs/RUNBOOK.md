@@ -541,7 +541,7 @@ it (#1285). No row returned means the address is not a live page of ours. A uniq
 page already has that update open or queued. The next generation run records the row's readiness
 and ranks it with the site's other topics; nothing publishes until that day's page is written. The
 page is written as the new search's own type and published at the address the new search names;
-the old address answers 301 to it, and the site's pages that linked it link the new one (issue 1487).
+the old address answers 301 to it, and each site page that linked it is planned a link refresh to the new one (issue 1487).
 
 ### Checking a stored pass again
 

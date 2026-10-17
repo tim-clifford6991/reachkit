@@ -1,10 +1,11 @@
 // SPEC §7 (2026-10-17, issue 1487) — a link to a page that moved.
 //
 // When a retargeted page moves to a new address, every live page of the
-// site that linked the old one links the new one, by the words that name
-// it now: the old words named the old topic. Code does it, as the rest of
-// §7's *Links* does — no writer is asked, nothing is bought, and the
-// sentence around the link is kept as it was.
+// site that linked the old one is planned a `link` refresh (§7, *Links in
+// both directions*). Its new version links the new address by the words
+// that name the page now — the old words named the old topic — and keeps
+// the sentence around the link as it was. Code points the link; the writer
+// returns the page as it stands.
 
 const LINK_RE = /\[([^\]\n]*)\]\(([^)\s]+)\)/g;
 

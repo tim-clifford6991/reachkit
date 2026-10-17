@@ -4,7 +4,8 @@
 // /tools-to-track-where-ai-sends-potential-customers, the 10 October page
 // that links it, and the 9 October retarget to "how to rank on chatgpt",
 // which went out at the old address. Through the real `publish()`, the real
-// hosted adapter and the real edge read; only the database is doubled.
+// hosted adapter, the real state machine, the real link-refresh planner and
+// the real edge read; only the database is doubled.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, installTransitionRpc, type Row } from "../harness";
 
@@ -13,6 +14,7 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 vi.mock("next/cache", () => ({ revalidateTag: () => undefined }));
 
 import { publish } from "@/lib/publish/attempt";
+import { repairMoves } from "@/lib/publish/attempt/move";
 import { hostedAddress, livePagesForSite, slugDescribesTitle } from "@/lib/publish/destinations/hosted";
 import type { GuardDeps } from "@/lib/publish/machine";
 import type { Actor } from "@/lib/publish/types";
@@ -23,6 +25,12 @@ const HOST = "content.reachkit.app";
 const OLD = `https://${HOST}/tools-to-track-where-ai-sends-potential-customers`;
 const NEW = `https://${HOST}/how-to-rank-on-chatgpt`;
 const RETARGET_TITLE = "How to rank on ChatGPT when buyers search your market";
+const VOLUME = { kind: "zero", value: 0, at: "2026-10-05T00:00:00.000Z" };
+const NOV_10 = new Date(Date.UTC(2026, 10, 10, 7, 0, 0));
+
+function linkRefreshes(): Row[] {
+  return db.rows("opportunities").filter((row) => (row.evidence as { shortfall?: { cause?: string } } | null)?.shortfall?.cause === "link");
+}
 
 function openDeps(): GuardDeps {
   return {
@@ -67,8 +75,8 @@ function seed(shortfall: "retarget" | "due"): void {
   db.seed("scans", [{ id: "scan-1", created_at: "2026-10-05T00:00:00.000Z" }]);
   const target = shortfall === "retarget" ? "how to rank on chatgpt" : "tools to track where ai sends potential customers";
   db.seed("opportunities", [
-    { id: "oC", scan_id: "scan-1", family: "write", type: "keyword_page", target_query: "tools to track where ai sends potential customers", proposed_slug: "tools-to-track-where-ai-sends-potential-customers", target_ref: "tools-to-track-where-ai-sends-potential-customers" },
-    { id: "oD", scan_id: "scan-1", family: "earn", type: "listed_page", target_query: "how to rank in ai overview", proposed_slug: "how-to-rank-in-ai-overview", target_ref: "how-to-rank-in-ai-overview" },
+    { id: "oC", scan_id: "scan-1", family: "write", type: "keyword_page", target_query: "tools to track where ai sends potential customers", proposed_slug: "tools-to-track-where-ai-sends-potential-customers", target_ref: "tools-to-track-where-ai-sends-potential-customers", evidence: { family: "write", query: "tools to track where ai sends potential customers", volume: VOLUME } },
+    { id: "oD", scan_id: "scan-1", family: "earn", type: "listed_page", target_query: "how to rank in ai overview", proposed_slug: "how-to-rank-in-ai-overview", target_ref: "how-to-rank-in-ai-overview", evidence: { family: "earn", query: "how to rank in ai overview", volume: VOLUME } },
     {
       id: "oR",
       scan_id: "scan-1",
@@ -128,12 +136,33 @@ describe("a retarget moves the page to an address that says its new topic", () =
     expect(moved?.publishedAt).toEqual(AT);
   });
 
-  it("the page that linked the old address links the new one, by its new name", async () => {
+  it("the version at the old address leaves through the state machine, not a row edit alone", async () => {
     await publishRetarget();
-    const body = db.rows("drafts").find((row) => row.id === "dD")?.body_md as string;
+    const old = db.rows("drafts").find((row) => row.id === "dC");
 
-    expect(body).toContain(`see [${RETARGET_TITLE}](${NEW}). And more.`);
-    expect(body).not.toContain(OLD);
+    expect(db.rows("publications").find((row) => row.id === "pC")?.unpublished_at).toBe(AT.toISOString());
+    expect(old?.state).toBe("unpublished");
+    expect(old?.transitions).toEqual([expect.objectContaining({ from: "published", to: "unpublished", reason: "moved" })]);
+  });
+
+  it("no live page's text is edited: the page that links the old address keeps its body", async () => {
+    await publishRetarget();
+    expect(db.rows("drafts").find((row) => row.id === "dD")?.body_md).toContain(OLD);
+  });
+
+  it("the page that linked the old address is planned a link refresh to the new one, by its new name, once it is old enough", async () => {
+    await publishRetarget();
+    // 10 October is eight days before AT: §6's floor holds it.
+    expect(linkRefreshes()).toEqual([]);
+
+    await repairMoves({ now: NOV_10 });
+    expect(linkRefreshes()).toEqual([
+      expect.objectContaining({
+        type: "refresh_page",
+        target_ref: `https://${HOST}/how-to-rank-in-ai-overview`,
+        evidence: expect.objectContaining({ shortfall: expect.objectContaining({ cause: "link", link: { url: NEW, title: RETARGET_TITLE, replaces: OLD } }) }),
+      }),
+    ]);
   });
 
   it("every live address and its title describe the same topic", async () => {
@@ -161,5 +190,59 @@ describe("a refresh that keeps the topic keeps its address", () => {
     expect(await publishRetarget()).toMatchObject({ ok: true, liveUrl: OLD });
     expect(await hostedAddress("s1", "tools-to-track-where-ai-sends-potential-customers")).toMatchObject({ state: "live" });
     expect(db.rows("drafts").find((row) => row.id === "dD")?.body_md).toContain(OLD);
+  });
+});
+
+// The stored state of 17 October, before issue 1487: the retarget went out
+// at the old address beside the version it replaced. The hourly repair moves
+// it with the same code a retarget published since runs.
+describe("a retarget stored at its old address is moved by the hourly repair", () => {
+  beforeEach(() => {
+    seed("retarget");
+    db.seed("drafts", db.rows("drafts").map((row) => (row.id === "dR" ? { ...row, state: "published" } : row)));
+    db.seed("publications", [
+      ...db.rows("publications"),
+      { ...LIVE, id: "pR", draft_id: "dR", live_url: OLD, published_at: "2026-10-09T07:00:30.000Z" },
+    ]);
+  });
+
+  it("serves both at the old address before it runs", async () => {
+    expect(await hostedAddress("s1", "tools-to-track-where-ai-sends-potential-customers")).toMatchObject({ state: "live" });
+    expect((await livePagesForSite("s1", HOST)).some((page) => page.liveUrl === NEW)).toBe(false);
+  });
+
+  it("moves it to the new search's slug, and the old address answers 301 to it", async () => {
+    expect(await repairMoves({ now: AT })).toEqual({ moved: 1 });
+
+    expect(db.rows("publications").find((row) => row.id === "pR")?.live_url).toBe(NEW);
+    expect(await hostedAddress("s1", "tools-to-track-where-ai-sends-potential-customers")).toMatchObject({ state: "moved", slug: "how-to-rank-on-chatgpt" });
+    expect((await livePagesForSite("s1", HOST)).map((page) => page.liveUrl).sort()).toEqual([`https://${HOST}/how-to-rank-in-ai-overview`, NEW]);
+  });
+
+  it("takes the version it replaced through the state machine, and leaves the retarget published", async () => {
+    await repairMoves({ now: AT });
+    const drafts = db.rows("drafts");
+
+    expect(drafts.find((row) => row.id === "dC")?.state).toBe("unpublished");
+    expect(drafts.find((row) => row.id === "dC")?.transitions).toEqual([expect.objectContaining({ to: "unpublished", reason: "moved" })]);
+    expect(drafts.find((row) => row.id === "dR")?.state).toBe("published");
+    expect(drafts.find((row) => row.id === "dR")?.body_md).toBe("# New");
+  });
+
+  it("is idempotent: a second hour moves nothing and changes no row", async () => {
+    await repairMoves({ now: AT });
+    const before = JSON.stringify([db.rows("publications"), db.rows("drafts"), db.rows("opportunities")]);
+
+    expect(await repairMoves({ now: new Date(AT.getTime() + 3_600_000) })).toEqual({ moved: 0 });
+    expect(JSON.stringify([db.rows("publications"), db.rows("drafts"), db.rows("opportunities")])).toBe(before);
+  });
+
+  it("leaves a retarget whose new slug another live page holds", async () => {
+    db.seed("publications", [
+      ...db.rows("publications"),
+      { ...LIVE, id: "pX", draft_id: "dD", live_url: NEW, published_at: "2026-10-11T07:00:00.000Z" },
+    ]);
+    expect(await repairMoves({ now: AT })).toEqual({ moved: 0 });
+    expect(db.rows("publications").find((row) => row.id === "pR")?.live_url).toBe(OLD);
   });
 });

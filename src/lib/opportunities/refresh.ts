@@ -34,6 +34,11 @@
 // or whose refresh they stopped, is theirs and is never among them. The
 // floor stands for this cause as for the others.
 //
+// A page that moved (issue 1487) is the same cause seen from the other
+// side: each live page that links its old address is planned a `link`
+// refresh whose new version links the new one. The floor stands for it too,
+// so a younger page is planned on the first hour it is old enough.
+//
 // Nothing is bought and no model is asked. The partial unique index keeps
 // one open or queued refresh a page.
 import { CROSS_LINKS, EFFORT_BY_TYPE, INTENT_UNMET_WEEKS, PACE, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
@@ -189,7 +194,7 @@ export function linkBackCandidates(pages: readonly OwnLivePage[], freshUrl: stri
 }
 
 /** The refresh of one page, for one cause. */
-function refreshOf(page: OwnLivePage, cause: RefreshCause, at: Date, link?: { url: string; title: string }): Candidate {
+function refreshOf(page: OwnLivePage, cause: RefreshCause, at: Date, link?: { url: string; title: string; replaces?: string }): Candidate {
   const { row } = page;
   const query = row.targetQuery ?? "";
   const evidence: Evidence = {
@@ -423,6 +428,58 @@ export async function planLinkBacks(a: { siteId: string; url: string; at: Date }
     return created.length;
   } catch (error) {
     console.error(JSON.stringify({ event: "link_back_plan_failed", siteId: a.siteId, message: String(error) }));
+    return 0;
+  }
+}
+
+/** The link a page holds to any of `from`, as its body spells it. */
+function linkInto(markdown: string, from: readonly string[]): string | null {
+  const wanted = new Set(from.map(addressKey));
+  for (const match of markdown.matchAll(/\]\(([^)\s]+)\)/g)) {
+    const href = match[1];
+    if (href !== undefined && wanted.has(addressKey(href))) return href;
+  }
+  return null;
+}
+
+/**
+ * A page that moved (SPEC §7, issue 1487): the live pages that link its old
+ * address, each planned a `link` refresh whose new version links `to`,
+ * named `title`. A page the customer edited, whose refresh they stopped, or
+ * younger than the floor is not planned. Pure.
+ */
+export function movedLinkCandidates(
+  pages: readonly OwnLivePage[],
+  moved: { from: readonly string[]; to: string; title: string },
+  at: Date
+): Candidate[] {
+  return pages.flatMap((page): Candidate[] => {
+    if (addressKey(page.url) === addressKey(moved.to) || page.row.targetQuery === null) return [];
+    if (page.edited === true || page.stopped === true) return [];
+    if (at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * DAY_MS) return [];
+    const replaces = linkInto(page.markdown ?? "", moved.from);
+    return replaces === null ? [] : [refreshOf(page, "link", at, { url: moved.to, title: moved.title, replaces })];
+  });
+}
+
+/** Plans `movedLinkCandidates` for one site. Returns how many rows it
+ *  added; a row already open for a page adds nothing. It never throws. */
+export async function planMovedLinks(a: { siteId: string; from: readonly string[]; to: string; title: string; at: Date }): Promise<number> {
+  try {
+    const store = opportunityStore();
+    if (store.refreshInputs === undefined) return 0;
+    const { pages } = await store.refreshInputs(a.siteId);
+    const stopped = await stoppedRefreshes(a.siteId);
+    const candidates = movedLinkCandidates(
+      pages.map((page) => ({ ...page, stopped: stopped.has(addressKey(page.url)) })),
+      a,
+      a.at
+    );
+    if (candidates.length === 0) return 0;
+    const { created } = await persist({ candidates });
+    return created.length;
+  } catch (error) {
+    console.error(JSON.stringify({ event: "moved_link_plan_failed", siteId: a.siteId, message: String(error) }));
     return 0;
   }
 }

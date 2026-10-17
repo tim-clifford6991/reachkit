@@ -654,6 +654,24 @@ export async function recheckLivePages(now: Date): Promise<{ readonly withdrawn:
   }
 }
 
+// ── A retargeted page's move, finished — SPEC §7, issue 1487.
+//
+// Each hour, a live hosted retarget still at its old address is recorded at
+// the address its new search names, the versions left at the old address
+// leave through the state machine, and the pages that link it are planned
+// a link refresh. 0¢. A read that fails moves nothing: the next tick reads
+// again.
+
+export async function repairMovedPages(now: Date): Promise<{ readonly moved: number }> {
+  try {
+    const { repairMoves } = await import("@/lib/publish/attempt/move");
+    return await repairMoves({ now });
+  } catch (error) {
+    console.log(JSON.stringify({ event: "hosted_move_repair_failed", error: error instanceof Error ? error.message : "unknown" }));
+    return { moved: 0 };
+  }
+}
+
 export async function duePublishRetries(now: Date): Promise<readonly { readonly draftId: string; readonly destinationId: string }[]> {
   const { dueRetries } = await import("@/lib/publish/attempt/due");
   return dueRetries(now);

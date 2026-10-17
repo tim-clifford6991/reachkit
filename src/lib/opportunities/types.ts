@@ -119,8 +119,10 @@ export type Shortfall =
       cause: RefreshCause;
       since: Measured<Date>;
       /** SPEC §7 (2026-10-10, issue 1391): the newer live page this refresh
-       *  links to. Present where `cause` is `link`, and only there. */
-      link?: { url: string; title: string };
+       *  links to. Present where `cause` is `link`, and only there.
+       *  `replaces` (issue 1487) is the address that page moved from, which
+       *  this page links: the update points that link at `url`. */
+      link?: { url: string; title: string; replaces?: string };
     }
   /** SPEC §7 (D53, issue 1268): one of ReachKit's own live pages is rewritten
    *  for a new search, at its own address. The row's `targetQuery` is the new
