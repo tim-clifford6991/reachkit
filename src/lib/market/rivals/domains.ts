@@ -175,7 +175,11 @@ const ARTICLE_WORD = /(^|[-_])(best|top-?\d+|alternatives?|vs|versus|reviews?|co
  *  Leeds", "Top 5 plumbers"), a dated one ("Best Email Clients of 2026"),
  *  or a directory's "Reviews & Comparison". A business's own "Best Plumber
  *  in Austin" is not one. */
-const LIST_TITLE = /(^|\s)(top\s*\d+|\d+\s+(best|top|great|favourite|favorite))\b|\b(best|top)\b.*\b20\d\d\b|\breviews?\s*(&|and)\s*comparisons?\b/i;
+const LIST_TITLE =
+  /(^|\s)(top\s*\d+|\d+\s+(best|top|great|favourite|favorite))\b|\b(best|top)\b.*\b20\d\d\b|\breviews?\s*(&|and)\s*comparisons?\b|^\s*\d+\s+(?:[\w-]+\s+){0,5}(tools|apps|software|platforms|services|solutions|options|companies|providers|builders|alternatives)\b/i;
+/** An address segment that ranks or weighs others: "best-crm-app",
+ *  "top-10-…", "…-alternatives", "x-vs-y", "…-reviews" (issue 1476). */
+const ROUNDUP_WORD = /(^|[-_])(best|top-?\d+|alternatives?|vs|versus|compared|comparison|reviews?)($|[-_.])/;
 
 /** Whether an address is an article page (issue 1417): a domain cited for
  *  one is cited as a publisher of a list, not recommended as a product. A
@@ -194,6 +198,35 @@ export function isArticleUrl(url: string): boolean {
     segments.some((segment) => ARTICLE_SECTION.test(segment) || ARTICLE_WORD.test(segment)) ||
     segments.slice(0, -1).some((segment) => segment === "software")
   );
+}
+
+/** Whether a page ranks or weighs other businesses (issue 1476): its title
+ *  is a list of others, or its address's last segment a "best", "top ten",
+ *  "alternatives", "vs" or "reviews" page. A guide or an explainer is not
+ *  one: a business explains its own market (issue 1468). A row whose read
+ *  carried neither is not known to be one. */
+export function isRoundupPage(page: { url?: string; title?: string }): boolean {
+  if (page.title !== undefined && LIST_TITLE.test(page.title)) return true;
+  if (page.url === undefined) return false;
+  let segments: string[];
+  try {
+    segments = new URL(page.url).pathname.toLowerCase().split("/").filter(Boolean);
+  } catch {
+    return false;
+  }
+  const last = segments.at(-1);
+  return last !== undefined && ROUNDUP_WORD.test(last);
+}
+
+/** One address as two reads of it compare: no scheme, no `www.`, no query,
+ *  no trailing slash, lower case. `null` where it does not parse. */
+export function pageKey(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.hostname.replace(/^www\./, "")}${parsed.pathname.replace(/\/+$/, "")}`.toLowerCase();
+  } catch {
+    return null;
+  }
 }
 
 /** A title that explains a subject rather than offers something: "What is

@@ -352,3 +352,27 @@ describe("issue 1468 — a software directory's category page is no rival", () =
     expect(sources).toContain("sourceforge.net");
   });
 });
+
+describe("issue 1476 — an address a top ten shows as a list of others is cited as a list", () => {
+  it("a domain cited for a page that ranks others is a source; a maker cited for its own page stays", () => {
+    const list = "https://www.tradechamber.org/co/run/finance/free-accounting-tools";
+    const { rivals, sources } = deriveRivals({
+      serps: [
+        {
+          organic: [
+            { position: 1, domain: "www.tradechamber.org", url: list, title: "Best Free Accounting Software for Small Businesses in 2026" },
+            { position: 2, domain: "ledgerbooks.com", url: "https://ledgerbooks.com/", title: "Ledger: accounting software" },
+          ],
+          aiOverview: { present: true, referenceDomains: ["www.tradechamber.org", "ledgerbooks.com"], referenceUrls: [list, "https://ledgerbooks.com/pricing"] },
+        },
+        {
+          organic: [{ position: 1, domain: "ledgerbooks.com", url: "https://ledgerbooks.com/invoicing", title: "Invoicing" }],
+          aiOverview: { present: true, referenceDomains: ["www.tradechamber.org"], referenceUrls: [list] },
+        },
+      ],
+      ownDomain: "customer.com",
+    });
+    expect(rivals.map((r) => r.domain)).toEqual(["ledgerbooks.com"]);
+    expect(sources).toContain("tradechamber.org");
+  });
+});
