@@ -31,7 +31,7 @@ import { PAGE_BLOCKS } from "@/lib/config/constants";
 import { answerBoxOf } from "../rules/blocks";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "../rules/people";
 import { sentenceKey } from "../rules/prose";
-import { factPageKeys, unsourcedRivalFigure } from "../rules/rivals";
+import { checkRivalNegative, deniedRivals, factPageKeys, namedRivals, unsourcedRivalFigure, type NamedRival } from "../rules/rivals";
 import {
   blocksOf,
   hasLink,
@@ -52,6 +52,9 @@ export const MECHANICAL_RULES: readonly HardRule[] = Object.freeze([
   // Issue 1135: a rival's figure left without its page is linked to the
   // fact's page that states it. Nothing is dropped.
   "rival_source",
+  // Issue 1485: a sentence that denies a rival something no source says is
+  // dropped. The FAQ is the fix call's.
+  "rival_negative",
   // Issue 1390: a sentence said a third time is dropped. The rest of what
   // the prose check counts takes a writer, and goes to the fix call.
   "plain_prose",
@@ -84,6 +87,8 @@ export interface RepairInputs {
   sources: readonly { url: string; text: string }[];
   /** The rivals recorded for the site, for the rival-figure repair. */
   rivals?: readonly string[];
+  /** The same rivals with their market names (issue 1485). */
+  rivalsNamed?: readonly NamedRival[];
 }
 
 /** The block markers a sentence edit keeps: a quote, a heading, a list item. */
@@ -280,6 +285,12 @@ export function repairMechanical(markdown: string, rules: readonly HardRule[], i
       out = repairNumerals(out, inputs);
     } else if (rule === "rival_source") {
       out = repairRivalFigures(out, inputs);
+    } else if (rule === "rival_negative") {
+      const rivals = inputs.rivalsNamed ?? namedRivals(inputs.rivals ?? [], null);
+      // The rule decides which: a sentence it still fails handed alone goes.
+      out = mapSentences(out, (piece) =>
+        deniedRivals(wordsOf(piece), rivals).length > 0 && checkRivalNegative({ markdown: piece, rivals, facts: inputs.brief.marketFacts }) !== null ? null : piece
+      );
     } else if (rule === "plain_prose") {
       out = dropRepeats(out);
     } else {
@@ -319,7 +330,11 @@ function sentencesFor(
         .filter((piece) => untraceable(piece, traceable).length > 0)
         .map(wordsOf);
     }
+    case "rival_negative":
+      return failure.detail !== undefined && failure.detail.rule === "rival_negative" ? [failure.detail.sentence] : [];
     case "rival_source": {
+      const said = failure.detail !== undefined && failure.detail.rule === "rival_source" ? failure.detail.sentence : undefined;
+      if (said !== undefined) return [said];
       const figure = failure.detail !== undefined && "figure" in failure.detail ? failure.detail.figure : null;
       if (figure === null) return [];
       return sentences.filter((s) => !s.hasLink && numeralRe(figure).test(s.text)).map((s) => s.text);
@@ -327,7 +342,7 @@ function sentencesFor(
     case "no_placeholder_cell":
       return failure.detail !== undefined && "cell" in failure.detail ? [failure.detail.cell] : [];
     case "no_demo_text":
-      return failure.detail !== undefined && "sentence" in failure.detail ? [failure.detail.sentence] : [];
+      return failure.detail !== undefined && failure.detail.rule === "no_demo_text" ? [failure.detail.sentence] : [];
     case "distinct_headings":
       return failure.detail !== undefined && "headings" in failure.detail ? failure.detail.headings : [];
     case "do_not_claim":

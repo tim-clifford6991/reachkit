@@ -1,7 +1,7 @@
 // tests/business/understanding.test.ts — issue 1454: one reading of a
 // business for every surface, the customer's word first.
 import { describe, expect, it } from "vitest";
-import { profileWithEdits, understandBusiness } from "../../src/lib/business/understanding.ts";
+import { profileOfReport, profileWithEdits, understandBusiness } from "../../src/lib/business/understanding.ts";
 import type { Profile } from "../../src/lib/market/questions/profile-types.ts";
 import type { MarketConclusion, StoredMarket } from "../../src/lib/market/infer/types.ts";
 
@@ -90,5 +90,45 @@ describe("a paying site: the customer's word, then the paid pass, then the scan"
     expect(edited.audienceTerms).toEqual(["homeowners", "property managers"]);
     expect(edited.vocabulary).toEqual(["plumber", "drain"]);
     expect(edited.job).toBe("fix leaks");
+  });
+});
+
+describe("a stored field that names nothing (issue 1479)", () => {
+  // gusto.com's free report printed "What you sell: <UNKNOWN>"; a profile
+  // read off a protection's page carried its vendor's name.
+  const stored = (profile: Profile, domain = "gusto.com") => ({ domain, market: { kind: "measured", value: { profile } } });
+
+  it("a placeholder is never what it sells, who buys, or its name", () => {
+    const profile = profileOfReport(
+      stored({
+        ...PROFILE,
+        category: "<UNKNOWN>",
+        job: "N/A",
+        audienceTerms: ["<UNKNOWN>", "small businesses"],
+        brandTokens: ["<UNKNOWN>"],
+        offerings: [
+          { name: "<UNKNOWN>", category: "<UNKNOWN>", weight: 0.5 },
+          { name: "Payroll", category: "payroll software", weight: 0.5 },
+        ],
+      })
+    )!;
+    const u = understandBusiness({ domain: "gusto.com", profile, locale: US });
+    expect(JSON.stringify(u)).not.toMatch(/UNKNOWN|N\/A/);
+    expect(u.name).toBe("Gusto");
+    expect(u.sells).toEqual([{ name: "Payroll", category: "payroll software", weight: 1 }]);
+    expect(u.buyers).toEqual(["small businesses"]);
+    expect(u.job).toBeNull();
+  });
+
+  it("a protection page's words are no name or line, except on the vendor's own site", () => {
+    const profile = { ...PROFILE, category: "Just a moment...", brandTokens: ["Cloudflare"], offerings: undefined };
+    const sage = understandBusiness({ domain: "sage.com", profile: profileOfReport(stored(profile, "sage.com"))!, locale: US });
+    expect(sage.name).toBe("Sage");
+    expect(sage.sells).toEqual([]);
+    expect(profileOfReport(stored(profile, "cloudflare.com"))!.brandTokens).toEqual(["Cloudflare"]);
+  });
+
+  it("a clean profile is read as stored", () => {
+    expect(profileOfReport(stored(PROFILE, "austinplumbery.com"))).toBe(PROFILE);
   });
 });

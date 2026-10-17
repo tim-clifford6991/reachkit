@@ -531,6 +531,10 @@ export const DRAFT_COPY = Object.freeze({
     "Your business is in the comparison and does not rank itself first",
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
+  "draft.checks.rule.rival-negative": [
+    "Nothing a competitor lacks unless a source says so",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-17 · issue 1485 · drafted" },
+  ],
   "draft.checks.rule.no-hidden-text": [
     "No hidden text",
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },

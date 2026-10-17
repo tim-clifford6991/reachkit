@@ -56,6 +56,8 @@ import { answerBoxWords } from "../rules/blocks";
 import { proseNotes } from "../rules/prose";
 import { linksOf, renderOf } from "../rules/text";
 import { pickTitle, specificOnly, titleNotes, type TitleCandidate } from "../rules/title";
+import { RIVAL_SCOPE_VERSION } from "../live-recheck";
+import { namedRivals } from "../rules/rivals";
 import { HARD_RULES, type GroundedFact, type HardRule, type RuleFailure, type SiteRuleInputs } from "../rules/types";
 import { generateStore, type DraftRow } from "../store";
 import { TEMPLATES, type PackNeed } from "../templates";
@@ -65,7 +67,7 @@ import { buildComparisonSet } from "./comparison";
 import { layoutPage, withClosing, type LaidPage } from "./compose";
 import { closeElsewhere } from "./elsewhere";
 import type { SourcedFact } from "./grounding";
-import { packStatements, type ContextPack } from "./pack";
+import { packStatements, type ContextPack, type PackClaim } from "./pack";
 import { fixNotes, repairable, repairMechanical, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
 import { comparisonTable, withTable } from "./table";
@@ -339,10 +341,15 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
         url: fact.url,
       })),
       // Issue 1135: the market facts the page was handed.
-      marketFacts: pack.claims.map((claim) => ({ passage: claim.passage, url: claim.url, title: claim.title, readAt: claim.readAt })),
+      // Issue 1485: with the rival it is from or about and the plan it is
+      // true of, so a live page can be re-checked from its own row.
+      marketFacts: pack.claims.map((claim) => ({ passage: claim.passage, url: claim.url, title: claim.title, readAt: claim.readAt, ...scopeOf(claim) })),
       // Issue 1397: how many rules stage 4 holds this page to, as the list
       // stood when it was written. The published page states the number.
       rulesChecked: HARD_RULES.length,
+      // Issue 1485: the rival rules were asked of this page as it was
+      // written, so the live re-check does not read it again.
+      rivalScope: RIVAL_SCOPE_VERSION,
       // Issue 1391: the pages code chose for this page to link, each with
       // why — what the draft screen's *Links on this page* reads.
       links: a.links.map((link) => ({ url: link.url, label: link.label, source: link.source, why: link.why ?? null })),
@@ -366,8 +373,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   const briefRead = {
     facts: passages,
     queries: searches,
-    marketFacts: pack.claims.map((claim) => ({ url: claim.url, passage: claim.passage })),
+    marketFacts: pack.claims.map((claim) => ({ url: claim.url, passage: claim.passage, ...scopeOf(claim) })),
   };
+  const rivalsNamed = namedRivals(a.site.rivals, pack.business.market);
   const battery = (candidate: Finished, markdown: string, fit?: BatteryOutcome["fit"], settled = false): Promise<BatteryOutcome> =>
     runHardRules(c, {
       ...(fit === undefined ? {} : { fit }),
@@ -398,6 +406,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       // D61: a Q&A's questions are each their own.
       distinctHeadings: pack.type === "qa",
       heading: candidate.laid.body.heading,
+      rivalsNamed,
       ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }),
       // Issue 1390: how the page reads. A passage stated word for word is
       // not the writer's, and the page's own subject may be said as often
@@ -428,6 +437,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
             ...pack.claims.map((claim) => ({ url: claim.url, text: claim.passage })),
           ],
           rivals: a.site.rivals,
+          rivalsNamed,
         }),
         cited
       );
@@ -625,4 +635,15 @@ async function lostFact(siteId: string, row: DraftRow): Promise<GenerateOutcome>
 function stepFailed(siteId: string, step: PipelineStep, draftId: string | undefined): GenerateOutcome {
   logRun({ siteId, step, outcome: "step_failed" });
   return { ok: false, reason: "step_failed", draftId: draftId ?? null, step };
+}
+
+/** What a market fact says of a rival beyond its words (issue 1485): its
+ *  kind, the rival it is from or about, and the plan it is true of. */
+function scopeOf(claim: PackClaim): { kind: string; product?: string; about?: string; plan?: string | null } {
+  return {
+    kind: claim.kind,
+    ...(claim.product === undefined ? {} : { product: claim.product }),
+    ...(claim.about === undefined ? {} : { about: claim.about }),
+    ...(claim.plan === undefined ? {} : { plan: claim.plan }),
+  };
 }

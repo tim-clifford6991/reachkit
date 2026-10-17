@@ -33,15 +33,22 @@
 // it — a title, a declared name, an image's `alt` — so "HubSpot", never
 // "Hubspot".
 //
-// **The same rule reads a stored name** (`brandName([stored], domain,
-// [the stored home title])`), so a row written before this rule shows its
-// brand without a re-scan.
+// **The same rule reads a stored name** (`storedSiteName`), so a row
+// written before this rule shows its brand without a re-scan. It is the
+// one reader of `site_profiles.site_name` (issue 1479); a raw read anywhere
+// else is a lint error.
+//
+// **A placeholder or a protection's page is no name, from any source**
+// (issue 1479): `<UNKNOWN>`, "Just a moment...", "Cloudflare" on a site
+// that is not Cloudflare's. It is passed over like a call to action.
 //
 // Deterministic and total: any string answers, and a document that names
 // itself nowhere answers `null` rather than a guess.
 import { domainToUnicode } from "node:url";
 import { parse } from "node-html-parser";
 import { parse as pslParse } from "psl";
+import { isProtectionName } from "@/lib/measure/challenge";
+import { isPlaceholder } from "@/lib/measure/placeholder";
 
 /** What a title template puts between a page and a brand: a spaced
  *  hyphen or dash, a middot or bullet, a pipe, a colon before a space.
@@ -202,7 +209,7 @@ export function brandName(
   mentions: readonly (string | null | undefined)[] = [],
 ): string | null {
   const lines = (texts: readonly (string | null | undefined)[]) =>
-    texts.map((text) => oneLine(text ?? "")).filter((text) => text !== "");
+    texts.map((text) => oneLine(text ?? "")).filter((text) => text !== "" && !noName(text, domain));
   const written = lines(sources);
   if (written.length === 0) return null;
   const label = letters(labelOf(domain));
@@ -214,6 +221,38 @@ export function brandName(
     break;
   }
   return asWritten([...written, ...lines(mentions)], label, plain) ?? plain;
+}
+
+/** A text that stands for no name: a placeholder or the name a
+ *  protection's page gives the site it stands in front of. */
+function noName(text: string, domain: string): boolean {
+  return isPlaceholder(text) || isProtectionName(text, domain);
+}
+
+/**
+ * The name a stored `site_profiles` row gives its site, read by the rule
+ * above with the row's stored home title as how the site cases it. The one
+ * reader of the column: the gallery, Settings, the prompts, the AI answers
+ * read for the site, the re-score and the hosted blog all ask it. `null`
+ * where the row stores no name at all.
+ */
+export function storedSiteName(row: { domain: string; site_name: string | null }, homeTitle?: string | null): string | null {
+  return brandName([row.site_name], row.domain, [homeTitle]);
+}
+
+/**
+ * The name the re-score writes over a stored one (issue 1479): the name the
+ * row reads as, where the column still holds something else — a whole page
+ * title, a call to action, a placeholder or a protection page's name.
+ * `null` where the stored name already reads as itself.
+ */
+export function rewrittenSiteName(
+  row: { domain: string; site_name: string | null },
+  homeTitle?: string | null,
+): { from: string; to: string | null } | null {
+  if (row.site_name === null) return null;
+  const to = storedSiteName(row, homeTitle);
+  return to === row.site_name ? null : { from: row.site_name, to };
 }
 
 function schemaNames(node: unknown, found: string[]): void {
