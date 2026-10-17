@@ -269,6 +269,17 @@ describe("what waits on the customer", () => {
     expect(facts.waiting).toBe(2);
   });
 
+  it("issue 1477: a page the writing stopped waits on nobody; one that could not be delivered still does", async () => {
+    const rested = (reason: string) => [{ from: "generating", to: "needs_attention", reason }];
+    rows.set("drafts", [
+      { id: "d1", site_id: "site-1", state: "needs_attention", scheduled_for: null, transitions: rested("step_failed:pack:buyer_questions,facts_on_topic") },
+      { id: "d2", site_id: "site-1", state: "needs_attention", scheduled_for: null, transitions: rested("rules:honest_row") },
+      { id: "d3", site_id: "site-1", state: "needs_attention", scheduled_for: null, transitions: rested("retries_exhausted") },
+    ]);
+    const facts = await readShellFacts(SITE);
+    expect(facts.waiting).toBe(1);
+  });
+
   it("another site's drafts are never counted", async () => {
     rows.set("drafts", [
       { id: "d1", site_id: "site-other", state: "in_review", scheduled_for: null },

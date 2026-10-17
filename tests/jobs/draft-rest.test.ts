@@ -119,6 +119,7 @@ beforeEach(async () => {
   llmMock.mockReset();
   fixtures.packAnswer.missing = [];
   fixtures.packAnswer.short = false;
+  delete fixtures.packAnswer.missingFor;
   draftReadyMock.mockReset();
   draftReadyMock.mockResolvedValue({ sent: true });
   readMeasuredTextMock.mockResolvedValue([
@@ -426,6 +427,39 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     await draftGenerate.run({ data: {}, now: EVENING });
     expect(llmMock).not.toHaveBeenCalled();
     expect(db.rows("drafts")).toHaveLength(2);
+  });
+
+  it("issue 1477: two topics whose packs are short do not end the day while a ready topic is left", async () => {
+    await secondTopic();
+    const third = await opportunityDoubles.memoryStore(opportunities).insert({
+      site_id: fixtures.SITE_ID,
+      scan_id: fixtures.SCAN_ID,
+      type: fixtures.opportunity().type,
+      family: fixtures.opportunity().family,
+      target_query: "project management software for startups",
+      target_ref: "project-management-software-for-startups",
+      proposed_slug: "project-management-software-for-startups",
+      title: "Which project management software suits a startup?",
+      volume: 90,
+      evidence: { ...fixtures.opportunity().evidence, query: "project management software for startups" } as never,
+      acceptance: { form: "top20", query: "project management software for startups" },
+      fit_band: fixtures.opportunity().fitBand,
+      effort: fixtures.opportunity().effort,
+    });
+    if (third.outcome !== "created") throw new Error("the third opportunity was refused");
+    for (const row of opportunities.rows) row.ready = true;
+    // reachkit.app, 17 October: the two best topics' packs held too few
+    // buyer questions, and nothing was written for either.
+    fixtures.packAnswer.missingFor = (query) => (query === "project management software for startups" ? [] : ["buyer_questions"]);
+    modelWrites(fixtures.CLEAN_MARKDOWN, "plans");
+
+    expect(await draftGenerate.run({ data: {}, now: EVENING })).toEqual({ outcome: "ran", subjectId: null });
+    // The two short packs cost no write call; the third topic's page is the day's.
+    expect(llmMock).toHaveBeenCalledTimes(1);
+    const drafts = db.rows("drafts");
+    const written = drafts.find((row) => row.state === "in_review");
+    expect(written).toMatchObject({ scheduled_for: "2026-09-08", opportunity_id: third.row.id });
+    expect(drafts.filter((row) => row.state === "needs_attention").map((row) => row.scheduled_for)).toEqual([null, null]);
   });
 
   it("Write it again on a stopped draft that gave up its date puts it in review on a date of its own", async () => {

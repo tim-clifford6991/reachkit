@@ -1,0 +1,554 @@
+{
+  "about": "reachkit.app's two Q&A packs of 2026-10-17 07:00Z (drafts 86083a2b 'peec ai alternatives', a9ac66a2 'profound vs otterly'), from stored rows: the market in force, a sample of the business facts and knowledge base the packs held, rival claims they held, and the People-also-ask and measured related searches the research step stored (fetches 07:00-07:02Z; the peec pack's own SERP had none, so its are the four borrowed market terms'). Issue 1477.",
+  "market": {
+    "job": "Understand where AI and search send buyers, then write pages to rank in those results",
+    "kind": "software",
+    "buyer": "B2B SaaS and software companies seeking to be discovered by buyers researching solutions",
+    "terms": [
+      {
+        "term": "generative engine optimization",
+        "volume": 4400
+      },
+      {
+        "term": "answer engine optimization",
+        "volume": 2400
+      },
+      {
+        "term": "AI search visibility",
+        "volume": 390
+      },
+      {
+        "term": "GEO software",
+        "volume": 170,
+        "polluted": true
+      },
+      {
+        "term": "AEO software",
+        "volume": 110
+      },
+      {
+        "term": "AI citation tracking",
+        "volume": 0
+      },
+      {
+        "term": "AI answer monitoring",
+        "volume": 0
+      }
+    ],
+    "termsAt": "2026-10-06T11:21:17.905Z",
+    "rivals": [
+      {
+        "name": "Profound",
+        "basis": "ai_answer",
+        "domain": "tryprofound.com",
+        "reason": "Tracks brand visibility across AI answers.",
+        "volume": 6600,
+        "searchNames": [
+          "profound ai"
+        ]
+      },
+      {
+        "name": "Peec AI",
+        "basis": "ai_answer",
+        "domain": "peec.ai",
+        "reason": "Tracks how often a brand appears in AI engines.",
+        "volume": 2400,
+        "searchNames": [
+          "peec ai"
+        ]
+      },
+      {
+        "name": "Otterly",
+        "basis": "ai_answer",
+        "domain": "otterly.ai",
+        "reason": "Monitors brand visibility across AI search.",
+        "volume": 720,
+        "searchNames": [
+          "otterly ai"
+        ]
+      },
+      {
+        "name": "Omniscient",
+        "basis": "same_job",
+        "domain": "beomniscient.com",
+        "reason": "GEO platform.",
+        "volume": 590,
+        "searchNames": [
+          "omniscient digital"
+        ]
+      },
+      {
+        "name": "Brandi",
+        "basis": "same_job",
+        "domain": "mybrandi.ai",
+        "reason": "AI visibility platform.",
+        "volume": 260,
+        "searchNames": [
+          "brandi ai"
+        ]
+      }
+    ],
+    "category": "AI discovery monitoring and content",
+    "synonyms": [
+      "AI answer visibility",
+      "search and AI ranking",
+      "buyer discovery tracking"
+    ],
+    "searchTerm": "generative engine optimization",
+    "notOurMarket": [
+      "SEO content writing software",
+      "General AI writing assistants",
+      "SEO tools and analytics",
+      "Content management systems",
+      "Copywriting software"
+    ],
+    "categoryReason": "Measuring where AI and search send buyers, then writing to change that.",
+    "differentiators": [
+      "Writes one page a day automatically to close the gap"
+    ]
+  },
+  "facts": [
+    "We run 12 searches in Google that buyers in your market make, and record who is on the first page of each.",
+    "ReachKit is built by Tim in Berlin, Germany.",
+    "A page published for your site every day, new or updated, and your market re-measured every week.",
+    "12 Google searches and 25 questions put to AI.",
+    "A page written and published for your site every day, your market re-measured every week.",
+    "See what AI tells buyers about your market — and write your way in.",
+    "ReachKit measured reachkit.app on 12 October 2026 and gave it a Visibility Score of 14 out of 100.",
+    "Every Monday we ask Google AI Mode and ChatGPT the 25 questions a buyer in your market would ask.",
+    "The company that operates it is named on the imprint.",
+    "Your site is asked for after — or confirmed, if you came from a report.",
+    "Up to 5, from who shows up for your searches.",
+    "A free scan shows where AI answers and Google search send buyers to your rivals instead of you.",
+    "Every filled row is a rival being recommended.",
+    "On 12 October 2026, AI answers mentioned reachkit.app for 0 of the 12 buyer searches they answered in ReachKit's measurement.",
+    "We ask each one 2 times, because AI answers change from one run to the next.",
+    "ReachKit writes its own blog the same way.",
+    "We put about 25 questions your buyers ask to Google AI Mode and ChatGPT every week, twice each, and show how often they name you and which rivals they name instead.",
+    "Then ReachKit writes one page a day to change that.",
+    "On 12 October 2026, AI answers linked to seranking.com for 2 of the 12 buyer searches they answered in ReachKit's measurement of reachkit.app.",
+    "From that we choose up to 10 search terms for your market and look up how often each one is searched.",
+    "Buyers now ask ChatGPT and Google’s AI what to use, and the answer names a handful of companies.",
+    "ReachKit is €49 a month, VAT included, when you want the pages written.",
+    "On 12 October 2026, AI answers linked to alexbirkett.com for 2 of the 12 buyer searches they answered in ReachKit's measurement of reachkit.app.",
+    "The first 2 places go to the companies that hold the most first-page results on your searches.",
+    "A small business cannot see whether it is one of them, and has no time to publish a page every day to change that.",
+    "FreeEvery scan comes with your first page, proposed and free — see it at the end of your report.",
+    "If yours isn’t one of them, that buyer never meets you — and nothing on your side tells you it happened.",
+    "On 12 October 2026, AI answers linked to hubspot.com for 2 of the 12 buyer searches they answered in ReachKit's measurement of reachkit.app.",
+    "The others are brands people search for at least 100 times a month.",
+    "ReachKit measures where you stand every week and writes the pages for you.",
+    "ReachKit's measurement of reachkit.app on 12 October 2026 read Google's first page and the answers of Google AI Overview; it does not measure Perplexity.",
+    "Facts about the market come from the top 3 results for the search and from the pages of up to 4 rivals.",
+    "Invent people, reviews, tests or numbers.",
+    "ReachKit finds the questions your market asks that name rivals and not you, writes a page that answers each one from facts on your own site, and publishes it on your schedule.",
+    "A page cites at most 2 studies, and no statistic older than 3 years.",
+    "Every figure on a page matches a source, and a page that fails its checks twice is not published.",
+    "Then ReachKit publishes a page every day, new or updated, to change that.",
+    "Every page waits a day for you to read it — or stop it — before it goes live.",
+    "A new page has to add at least 3 things the top results do not say.",
+    "Something we could not measure is shown as not measured, never as zero."
+  ],
+  "knowledge": {
+    "proof": [],
+    "byline": "Tim, Reachkit Founder based in Berlin, Germany",
+    "places": [],
+    "audience": [
+      {
+        "from": "founder",
+        "text": "Founders and Business Owners"
+      }
+    ],
+    "problems": [
+      {
+        "from": "https://reachkit.app/",
+        "text": "Competitors are being found by AI and Google search"
+      },
+      {
+        "from": "https://reachkit.app/",
+        "text": "Buyers ask ChatGPT and Google's AI what to use and don't find you"
+      },
+      {
+        "from": "https://reachkit.app/",
+        "text": "Not named in AI answers"
+      },
+      {
+        "from": "https://reachkit.app/",
+        "text": "Don't rank on Google for searches your buyers make"
+      },
+      {
+        "from": "https://reachkit.app/",
+        "text": "Blocked AI readers, missing titles, no sitemap, slow pages"
+      }
+    ],
+    "offerings": [
+      {
+        "from": "https://reachkit.app/",
+        "name": "Free scan",
+        "uses": [
+          "See what AI tells buyers about your market",
+          "Understand competitor positioning in AI answers",
+          "Identify technical issues holding you back"
+        ],
+        "prices": [
+          "free"
+        ],
+        "features": [
+          "Shows where AI answers and Google search send buyers to rivals instead of you",
+          "Shows how often AI names you and which rivals they name instead",
+          "Finds searches your buyers make that rivals rank for and you don't",
+          "Shows blocked AI readers, missing titles, no sitemap, slow pages",
+          "Includes first page proposed and free"
+        ]
+      },
+      {
+        "from": "https://reachkit.app/",
+        "name": "ReachKit",
+        "uses": [
+          "Get named in AI answers",
+          "Rank on Google",
+          "Fix what holds you back"
+        ],
+        "prices": [
+          "€49 a month, VAT included"
+        ],
+        "features": [
+          "Writes one page a day",
+          "Content written from facts on your own site, in your voice, and published on your domain",
+          "Every page waits a day for you to read it or stop it before it goes live",
+          "Shows every Monday what moved"
+        ]
+      },
+      {
+        "from": "https://reachkit.app/pricing",
+        "name": "One plan. One page a day.",
+        "uses": [],
+        "prices": [
+          "€49 a month, VAT included"
+        ],
+        "features": [
+          "1 page a day, written and published for you",
+          "Weekly re-measure of your whole market",
+          "Weekly movement email",
+          "24 hours to stop any page before it goes live",
+          "Cancel in one click, yourself"
+        ]
+      }
+    ],
+    "questions": [
+      {
+        "from": "founder",
+        "text": "How does SEO work? How can I get Ai to recommend my business? SEO and GEO take too much time for me to do myself"
+      }
+    ],
+    "integrations": [],
+    "differentiators": [
+      {
+        "from": "founder",
+        "text": "Automation, Competitor Analysis, Correct Sizing for your business, Intelligent Daily Posts, Business Knowledge Bade",
+        "rival": null
+      },
+      {
+        "from": "https://reachkit.app/",
+        "text": "ReachKit puts about 25 questions your buyers ask to Google AI Mode and ChatGPT every week, twice each, and shows how often they name you and which rivals they name instead.",
+        "rival": null
+      },
+      {
+        "from": "https://reachkit.app/",
+        "text": "Content is written from facts on your own site, in your voice, and published on your domain.",
+        "rival": null
+      },
+      {
+        "from": "https://reachkit.app/",
+        "text": "Every page waits a day for you to read it or stop it before it goes live.",
+        "rival": null
+      }
+    ]
+  },
+  "claims": {
+    "peec ai alternatives": [
+      {
+        "url": "https://www.tryprofound.com/pricing",
+        "kind": "rival_features",
+        "product": "tryprofound.com",
+        "passage": "Limited AI Marketer credits 50 prompts run daily for 7 days"
+      },
+      {
+        "url": "https://www.tryprofound.com/features",
+        "kind": "rival_features",
+        "product": "tryprofound.com",
+        "passage": "Profound gives you the visibility, analytics, and content tools to show up where it counts: inside the AI conversations your customers are already having."
+      },
+      {
+        "url": "https://peec.ai/pricing",
+        "kind": "rival_features",
+        "product": "peec.ai",
+        "passage": "50 prompts Choose 3 models Unlimited users Daily tracking frequency 1 project"
+      },
+      {
+        "url": "https://peec.ai/product/brand-perception",
+        "kind": "rival_features",
+        "product": "peec.ai",
+        "passage": "Peec breaks down how AI describes you, and points to the sources shaping it."
+      },
+      {
+        "url": "https://otterly.ai/pricing",
+        "kind": "rival_pricing",
+        "product": "otterly.ai",
+        "passage": "Lite $ 29 /month For solo marketers, and small teams"
+      },
+      {
+        "url": "https://otterly.ai/features",
+        "kind": "rival_pricing",
+        "product": "otterly.ai",
+        "passage": "Pricing starts at $29/month."
+      },
+      {
+        "url": "https://www.tryprofound.com/pricing",
+        "kind": "rival_features",
+        "product": "tryprofound.com",
+        "passage": "AI Marketer runs on credits"
+      },
+      {
+        "url": "https://peec.ai/pricing",
+        "kind": "rival_features",
+        "product": "peec.ai",
+        "passage": "150 prompts Choose 3 models Unlimited users Daily tracking frequency 2 projects"
+      },
+      {
+        "url": "https://peec.ai/product/brand-perception",
+        "kind": "rival_features",
+        "product": "peec.ai",
+        "passage": "Peec reviews the claims models make against your own facts and helps you track down the sources behind them."
+      },
+      {
+        "url": "https://otterly.ai/pricing",
+        "kind": "rival_pricing",
+        "product": "otterly.ai",
+        "passage": "Standard $ 189 /month For SMEs and small marketing teams"
+      },
+      {
+        "url": "https://otterly.ai/features",
+        "kind": "rival_features",
+        "product": "otterly.ai",
+        "passage": "Tracks all 7 major AI search engines."
+      },
+      {
+        "url": "https://www.tryprofound.com/pricing",
+        "kind": "rival_features",
+        "product": "tryprofound.com",
+        "passage": "Up to 9 Answer Engines tracked"
+      },
+      {
+        "url": "https://peec.ai/pricing",
+        "kind": "rival_features",
+        "product": "peec.ai",
+        "passage": "350 prompts Choose 3 models Unlimited users Daily tracking frequency 5 projects"
+      },
+      {
+        "url": "https://peec.ai/product/brand-perception",
+        "kind": "rival_features",
+        "product": "peec.ai",
+        "passage": "Metrics like brand mentions, impressions, and sentiment are hard to track - which is why Peec AI is so powerful: it shows how LLMs are framing our brand."
+      },
+      {
+        "url": "https://otterly.ai/pricing",
+        "kind": "rival_pricing",
+        "product": "otterly.ai",
+        "passage": "Premium $ 489 /month For mid-sized companies & agencies"
+      },
+      {
+        "url": "https://www.tryprofound.com/pricing",
+        "kind": "rival_features",
+        "product": "tryprofound.com",
+        "passage": "The self-serve Agency Growth plan comes with 400 credits per month per client workspace."
+      },
+      {
+        "url": "https://peec.ai/pricing",
+        "kind": "rival_features",
+        "product": "peec.ai",
+        "passage": "Fully customizable prompt tracking Choose from all models Daily or weekly tracking frequency Unlimited projects"
+      },
+      {
+        "url": "https://otterly.ai/pricing",
+        "kind": "rival_pricing",
+        "product": "otterly.ai",
+        "passage": "Enterprise Custom Starting from 1,000 search prompts"
+      },
+      {
+        "url": "https://www.tryprofound.com/pricing",
+        "kind": "rival_features",
+        "product": "tryprofound.com",
+        "passage": "Simpler agents with fewer steps use fewer credits, while more complex, multi-step agents use more."
+      }
+    ],
+    "profound vs otterly": [
+      {
+        "url": "https://www.tryprofound.com/pricing",
+        "kind": "rival_features",
+        "product": "tryprofound.com",
+        "passage": "Limited AI Marketer credits"
+      },
+      {
+        "url": "https://peec.ai/product/brand-perception",
+        "kind": "rival_features",
+        "product": "peec.ai",
+        "passage": "Peec breaks down how AI describes you, and points to the sources shaping it."
+      },
+      {
+        "url": "https://otterly.ai/features",
+        "kind": "rival_pricing",
+        "product": "otterly.ai",
+        "passage": "Pricing starts at $29/month."
+      },
+      {
+        "url": "https://www.tryprofound.com/pricing",
+        "kind": "rival_features",
+        "product": "tryprofound.com",
+        "passage": "50 prompts run daily for 7 days"
+      },
+      {
+        "url": "https://peec.ai/product/brand-perception",
+        "kind": "rival_features",
+        "product": "peec.ai",
+        "passage": "Peec reviews the claims models make against your own facts and helps you track down the sources behind them."
+      },
+      {
+        "url": "https://otterly.ai/features",
+        "kind": "rival_features",
+        "product": "otterly.ai",
+        "passage": "Tracks all 7 major AI search engines."
+      },
+      {
+        "url": "https://www.tryprofound.com/pricing",
+        "kind": "rival_pricing",
+        "product": "tryprofound.com",
+        "passage": "Custom Tailored packages"
+      },
+      {
+        "url": "https://peec.ai/product/brand-perception",
+        "kind": "rival_features",
+        "product": "peec.ai",
+        "passage": "Metrics like brand mentions, impressions, and sentiment are hard to track - which is why Peec AI is so powerful: it shows how LLMs are framing our brand."
+      },
+      {
+        "url": "https://otterly.ai/features",
+        "kind": "rival_features",
+        "product": "otterly.ai",
+        "passage": "Monitors 65+ countries and languages"
+      },
+      {
+        "url": "https://www.tryprofound.com/pricing",
+        "kind": "rival_features",
+        "product": "tryprofound.com",
+        "passage": "AI Marketer runs on credits"
+      },
+      {
+        "url": "https://www.tryprofound.com/pricing",
+        "kind": "rival_features",
+        "product": "tryprofound.com",
+        "passage": "Up to 9 Answer Engines tracked"
+      }
+    ]
+  },
+  "asked": {
+    "profound vs otterly": {
+      "peopleAlsoAsk": [
+        "What are the best AI search monitoring tools?",
+        "What kind of company is profound?",
+        "Is Seo dead now with AI?",
+        "What are some alternatives to Otter AI?"
+      ],
+      "related": [
+        {
+          "search": "otterly ai",
+          "volume": 880
+        },
+        {
+          "search": "otterly meaning",
+          "volume": 50
+        },
+        {
+          "search": "profound ai",
+          "volume": 6600
+        },
+        {
+          "search": "profound ai competitors",
+          "volume": 70
+        },
+        {
+          "search": "profound ai reviews",
+          "volume": 30
+        },
+        {
+          "search": "profound alternative word",
+          "volume": 10
+        }
+      ]
+    },
+    "peec ai alternatives": {
+      "peopleAlsoAsk": [
+        "Is SEO dead now with AI?",
+        "What is the best tool for generative engine optimization?",
+        "Is SEO difficult to learn?",
+        "Is GEO better than SEO?",
+        "How to answer engine optimization?",
+        "What is AEO vs SEO?",
+        "What's the best answer engine optimization tool?",
+        "Which search engine has AI?",
+        "How do I turn off AI Mode on my search?",
+        "How do I check my AI visibility?",
+        "How do you optimise for AI search?",
+        "What is AEO in medical terms?",
+        "What are the key differences between traditional SEO and AI SEO?",
+        "What does AEO certification mean?",
+        "What industry is AEO in?"
+      ],
+      "related": [
+        {
+          "search": "answer engine optimization course",
+          "volume": 30
+        },
+        {
+          "search": "answer engine optimization examples",
+          "volume": 40
+        },
+        {
+          "search": "generative engine optimization course",
+          "volume": 90
+        },
+        {
+          "search": "generative engine optimization course free",
+          "volume": 20
+        },
+        {
+          "search": "generative engine optimization github",
+          "volume": 10
+        },
+        {
+          "search": "generative engine optimization pdf",
+          "volume": 10
+        },
+        {
+          "search": "generative engine optimization reddit",
+          "volume": 20
+        },
+        {
+          "search": "generative engine optimization strategies",
+          "volume": 90
+        },
+        {
+          "search": "generative engine optimization tools",
+          "volume": 720
+        }
+      ]
+    }
+  },
+  "promises": [
+    "A free scan shows where AI answers and Google search send buyers to your rivals",
+    "ReachKit publishes a page every day, new or updated, to change that",
+    "Pages are written with Claude, an AI model, from your own site",
+    "A page every day, new or updated, published for you"
+  ],
+  "job": "Get your business named in AI answers and ranked for searches your competitors own"
+}
