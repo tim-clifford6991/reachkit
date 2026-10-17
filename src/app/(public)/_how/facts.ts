@@ -35,6 +35,7 @@ export type CheckLine = (typeof CHECK_LINES)[number];
 export const CHECK_LINE_OF: Readonly<Record<HardRule, CheckLine>> = {
   grounding: "sources",
   rival_source: "sources",
+  rival_negative: "honest",
   traceable_numerals: "sources",
   no_invented_people: "invented",
   no_unsourced_testimonial: "invented",

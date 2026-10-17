@@ -359,8 +359,8 @@ describe("the research step reads the market's pages and keeps only what they sa
     const page = { url: "https://study.example/r", title: "Study", text, readAt: TODAY.toISOString(), kind: "study" as const };
     const kept = admittedClaims(
       [
-        { page: 1, quote: "In 2021, 41% of teams used a project tool.", year: null, about: "other" },
-        { page: 1, quote: "The company was founded in 2015 in Berlin by two engineers.", year: null, about: "other" },
+        { page: 1, quote: "In 2021, 41% of teams used a project tool.", year: null, about: "other", plan: null, rival: null },
+        { page: 1, quote: "The company was founded in 2015 in Berlin by two engineers.", year: null, about: "other", plan: null, rival: null },
       ],
       [page],
       TODAY

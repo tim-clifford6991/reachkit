@@ -58,6 +58,12 @@ export interface PackClaim {
   readAt: string;
   kind: MarketFact["kind"];
   product?: string;
+  /** Issue 1485: the plan or tier of `product` the claim is true of, as its
+   *  own page names it; `null`, true of the product as a whole. Absent on a
+   *  claim not read off a rival's own page, and on a pack built before. */
+  plan?: string | null;
+  /** Issue 1485: the rival a claim read off someone else's page is about. */
+  about?: string;
   publishedAt?: string;
   /** Who published a `recent` page, as the news search names it (D48). */
   source?: string;
@@ -608,6 +614,8 @@ export function buildPack(a: PackInputs): ContextPack {
     readAt: fact.readAt.toISOString(),
     kind: fact.kind,
     ...(fact.product === undefined ? {} : { product: fact.product }),
+    ...(fact.plan === undefined ? {} : { plan: fact.plan }),
+    ...(fact.about === undefined ? {} : { about: fact.about }),
     ...(fact.publishedAt === undefined ? {} : { publishedAt: fact.publishedAt }),
     ...(fact.source === undefined ? {} : { source: fact.source }),
   }));
