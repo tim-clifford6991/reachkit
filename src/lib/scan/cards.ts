@@ -1,25 +1,3 @@
-/** The reach a stored report holds (issue 1468): the town it measured in,
- *  its profile read, and its home page's structured data. */
-export function reachOfReport(r: {
-  locale?: { place?: unknown } | null;
-  market: Measured<{ profile: { town?: string; offeringType?: string; category?: string | null } }>;
-  onPage: Measured<{ schemaTypes: readonly string[] }>;
-}): NonNullable<Parameters<typeof cardsOf>[0]["reach"]> {
-  const profile = r.market.kind === "unmeasured" ? null : r.market.value.profile;
-  return {
-    measuredInTown: r.locale?.place !== undefined,
-    profile:
-      profile === null
-        ? null
-        : {
-            ...(profile.town === undefined ? {} : { town: profile.town }),
-            ...(profile.offeringType === undefined ? {} : { offeringType: profile.offeringType }),
-            ...(typeof profile.category === "string" ? { category: profile.category } : {}),
-          },
-    schemaTypes: r.onPage.kind === "unmeasured" ? [] : r.onPage.value.schemaTypes,
-  };
-}
-
 // src/lib/scan/cards.ts — the rivals, the two cards and the coherence
 // verdict, counted over SERPs a pass already holds (§6.6's "zero extra
 // cost").
@@ -32,10 +10,51 @@ import { checkCoherence, type CoherenceVerdict } from "@/lib/market/coherence/ch
 import { buildAiAnswersCard, type AiAnswersCard, type BatteryAnswers } from "@/lib/market/questions/matrix";
 import type { RivalSizeBand } from "@/lib/market/rivals/band";
 import { deriveRivals, type RivalCandidate } from "@/lib/market/rivals/derive";
-import { readsLocal } from "@/lib/market/rivals/reach";
+import { profileTown, readsLocal, type ReachProfile } from "@/lib/market/rivals/reach";
 import { buildPresenceCard, type PresenceCard } from "@/lib/market/rivals/presence";
 import type { MarketSerp, QuestionView, SelectedSearchView } from "@/lib/market/views";
 import type { Measured } from "@/lib/measure/measured";
+
+type StoredReachProfile = { town?: string; offeringType?: string; category?: string | null; reach?: unknown; kind?: unknown };
+
+/**
+ * Whether the town a stored report measured in is still its market (issue
+ * 1480). A free pass's town (`placeFrom`) stands while its profile still
+ * reads a town it sells in (`profileTown`); one read as selling beyond a
+ * town, or as software, has none and is scored as the national market it
+ * is. A paid pass's place was held to the site's evidence when it was
+ * settled, and stands.
+ */
+export function placeStands(r: { locale?: { place?: unknown; placeFrom?: unknown } | null; profile: ReachProfile | null }): boolean {
+  if (r.locale?.place === undefined) return false;
+  if (r.locale.placeFrom === undefined || r.profile === null) return true;
+  return profileTown(r.profile) !== "";
+}
+
+/** The reach a stored report holds (issue 1468): the town it measured in,
+ *  its profile read, and its home page's structured data. */
+export function reachOfReport(r: {
+  locale?: { place?: unknown; placeFrom?: unknown } | null;
+  market: Measured<{ profile: StoredReachProfile }>;
+  onPage: Measured<{ schemaTypes: readonly string[] }>;
+}): NonNullable<Parameters<typeof cardsOf>[0]["reach"]> {
+  const profile = r.market.kind === "unmeasured" ? null : reachProfileOf(r.market.value.profile);
+  return {
+    measuredInTown: placeStands({ ...(r.locale === undefined ? {} : { locale: r.locale }), profile }),
+    profile,
+    schemaTypes: r.onPage.kind === "unmeasured" ? [] : r.onPage.value.schemaTypes,
+  };
+}
+
+function reachProfileOf(profile: StoredReachProfile): ReachProfile {
+  return {
+    ...(profile.town === undefined ? {} : { town: profile.town }),
+    ...(profile.offeringType === undefined ? {} : { offeringType: profile.offeringType }),
+    ...(typeof profile.category === "string" ? { category: profile.category } : {}),
+    ...(profile.reach === undefined ? {} : { reach: profile.reach }),
+    ...(profile.kind === undefined ? {} : { kind: profile.kind }),
+  };
+}
 
 export interface Cards {
   rivals: RivalCandidate[];

@@ -585,3 +585,30 @@ describe("issue 1481: a deploy that changes how a scan is read is followed by a 
     expect(runs).toEqual([]);
   });
 });
+
+describe("issue 1480: a free scan's town its profile reads as no market of its own is dropped at 0¢", () => {
+  // gusto.com's stored scan, with close.com's place and profile as stored on
+  // 16 October: a CRM read as software, sold internationally, that measured
+  // in Austin off the town its footer gave.
+  const withPlace = (profile: Record<string, unknown>): StoredScanRow => {
+    const s = fixture("gusto.com");
+    const report = structuredClone(s.report) as Record<string, unknown> & { market: { value: { profile: Record<string, unknown> } } };
+    report.locale = { country: "US", language: "en", place: { name: "Austin", region: "Texas", location: "Austin,Texas,United States" }, placeFrom: "page_text" };
+    report.market.value.profile = { ...report.market.value.profile, category: "sales CRM software", ...profile };
+    return { ...s, domain: "gusto.com", report, md5: md5(report), siteId: null, isCurrent: false };
+  };
+  const localeChange = (row: StoredScanRow): unknown => {
+    const result = rescoreRow(row, []);
+    if (!("result" in result)) throw new Error(result.because);
+    return result.result.changes.find((change) => change.path.join(".") === "locale")?.value;
+  };
+
+  it("software sold internationally is measured in its country, and nothing is bought", () => {
+    const change = localeChange(withPlace({ kind: "software", reach: "international", town: "Austin, Texas" }));
+    expect(change).toEqual({ country: "US", language: "en" });
+  });
+
+  it("a plumber whose profile reads Austin keeps it", () => {
+    expect(localeChange(withPlace({ kind: "local-service", reach: "local", town: "Austin, Texas", category: "plumber" }))).toBeUndefined();
+  });
+});

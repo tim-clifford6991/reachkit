@@ -161,11 +161,27 @@ function beforeIssue1454(input: string): string {
   }
 }
 
+/** Issue 1480 reworded the profile's town field. A recording made before it
+ *  is read under the wording it was recorded with. */
+const TOWN_BEFORE_1480 =
+  "one string: the one town or city whose customers the business serves in person, as the pages say it (an address in the footer or contact block, \"based in\", \"serving\"), with its state or region after a comma where the pages give one; \"\" where the pages name none or the business sells across a country or online";
+
+function beforeIssue1480(input: string): string {
+  try {
+    const parsed = JSON.parse(input) as { fields?: Record<string, unknown> };
+    if (parsed.fields === undefined || !("town" in parsed.fields)) return input;
+    return JSON.stringify({ ...parsed, fields: { ...parsed.fields, town: TOWN_BEFORE_1480 } });
+  } catch {
+    return input;
+  }
+}
+
 export function modelAnswer(recording: Recording, request: { messages: { content: string }[] }): ModelEntry["response"] {
   const key = modelKey(request.messages[0]?.content ?? "");
   const held =
     recording.model.find((entry) => entry.key === key) ??
-    recording.model.find((entry) => entry.key === modelKey(beforeIssue1454(request.messages[0]?.content ?? "")));
+    recording.model.find((entry) => entry.key === modelKey(beforeIssue1454(beforeIssue1480(request.messages[0]?.content ?? "")))) ??
+    recording.model.find((entry) => entry.key === modelKey(beforeIssue1480(request.messages[0]?.content ?? "")));
   if (held !== undefined) return held.response;
   if (!RECORDING) throw new Error(`recorded.ts: ${recording.domain}.json holds no model answer for input ${key}.`);
   const message = post("https://api.anthropic.com/v1/messages", [`x-api-key: ${keysOf().anthropic}`, "anthropic-version: 2023-06-01"], request) as ModelEntry["response"];

@@ -816,6 +816,10 @@ export const REPORT_COPY = Object.freeze({
   // English (D66). Drafted (#759).
   "report.measurement.in": ["Measured in Google {country}, in {language}.", { slots: { country: "text", language: "text" }, fixedBy: "SPEC §6 · D66 · issue 1311" }],
   // The measurement line of a report measured in the town its site serves
-  // (D67, owner ruling 2026-10-15). Drafted (#759).
-  "report.measurement.place": ["Measured in Google, {place}, in {language}.", { slots: { place: "text", language: "text" }, fixedBy: "SPEC §6 · D67 · issue 1441" }],
+  // (D67, owner ruling 2026-10-15). The search vendor gives volumes by
+  // country only, so the line says so (issue 1480). Drafted (#759).
+  "report.measurement.place": [
+    "Measured in Google, {place}, in {language}. Search volumes are for all of {country}.",
+    { slots: { place: "text", language: "text", country: "text" }, fixedBy: "SPEC §6 · D67 · issue 1480" },
+  ],
 }) satisfies CopyPartition;

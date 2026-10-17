@@ -240,7 +240,8 @@ function MeasuredInLine(p: { report: StoredReport }): React.JSX.Element | null {
 }
 
 /** SPEC §2's measurement line for a report measured outside US Google in
- *  English (D66), or in the town its site serves (D67, issue 1441); `null`
+ *  English (D66), or in the town its site serves (D67, issue 1441), whose
+ *  search volumes are the country's (issue 1480); `null`
  *  for one measured in the United States in English, whose line is
  *  unchanged. */
 function measurementLine(report: StoredReport): string | null {
@@ -252,6 +253,7 @@ function measurementLine(report: StoredReport): string | null {
     return copy("report.measurement.place", {
       place,
       language: new Intl.DisplayNames(tag, { type: "language" }).of(measured.language) ?? measured.language,
+      country: new Intl.DisplayNames(tag, { type: "region" }).of(measured.country) ?? measured.country,
     });
   }
   if (measured.country === "US" && measured.language === "en") return null;

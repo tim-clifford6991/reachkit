@@ -8,24 +8,42 @@
 //
 // Pure: it reads the bytes it is handed. No fetch, no model call, no clock.
 import { parse } from "node-html-parser";
-import { COUNTRIES, resolveLocale, type Country, type LocaleReading, type ResolvedLocale } from "./locales";
+import { COUNTRIES, homeLanguageOf, resolveLocale, type Country, type LocaleReading, type ResolvedLocale } from "./locales";
 
 /** Country endings sold as generic names: they say nothing of where a
- *  business is. */
+ *  business is (issue 1480: nifty.pm is project software, not St Pierre and
+ *  Miquelon). The page's other signals still say where it is. */
 const GENERIC_CC_TLDS: ReadonlySet<string> = new Set([
   "ai", "io", "co", "me", "tv", "cc", "fm", "ly", "gg", "to", "sh", "so", "im", "la", "ws", "vc", "eu",
+  "pm", "am", "gl", "md", "ms", "nu", "st", "tk", "cx", "ag", "bz",
 ]);
+
+/** ISO 3166-1's two-letter codes, which is every country ending but `.uk`
+ *  (Britain's code is GB). An ending that is no country's (`.ac`, `.su`)
+ *  names none. */
+const ISO_COUNTRIES: ReadonlySet<string> = new Set(
+  (
+    "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ " +
+    "CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR " +
+    "GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP " +
+    "KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT " +
+    "MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW " +
+    "SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG " +
+    "UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW"
+  ).split(" ")
+);
 
 const TLD_COUNTRY: ReadonlyMap<string, string> = new Map(
   (Object.keys(COUNTRIES) as Country[]).flatMap((country) => COUNTRIES[country].tlds.map((tld) => [tld, country] as const))
 );
 
 /** The country an address's ending names: `.de`, `.co.uk`, `.com.au`. A
- *  generic ending names none; another country's two letters name it. */
+ *  generic ending names none; any other country's ending names it. */
 export function countryOfDomain(domain: string): string | null {
   const tld = domain.toLowerCase().replace(/\.$/, "").split(".").pop() ?? "";
   if (!/^[a-z]{2}$/.test(tld) || GENERIC_CC_TLDS.has(tld)) return null;
-  return TLD_COUNTRY.get(tld) ?? tld.toUpperCase();
+  const country = TLD_COUNTRY.get(tld) ?? tld.toUpperCase();
+  return ISO_COUNTRIES.has(country) ? country : null;
 }
 
 /** `de-AT` → German, Austria. `en` → English, no country. */
@@ -126,17 +144,26 @@ export function languageOfText(text: string): string | null {
   return second === undefined || first[1] >= 3 * second[1] ? first[0] : null;
 }
 
-/** `addressCountry` out of the page's structured data: the one place a
- *  site states its country as a field. */
-function countryOfStructuredData(html: string): string | null {
-  const match = /"addressCountry"\s*:\s*(?:"([^"]{2,40})"|\{[^}]*?"name"\s*:\s*"([^"]{2,40})")/i.exec(html);
-  const value = (match?.[1] ?? match?.[2] ?? "").trim();
-  if (value === "") return null;
+/** A structured `addressCountry` as a country code. */
+function countryOfStated(value: string): string | null {
   if (/^[A-Za-z]{2}$/.test(value)) return value.toUpperCase() === "UK" ? "GB" : value.toUpperCase();
   for (const country of Object.keys(COUNTRIES) as Country[]) {
     if (COUNTRIES[country].names.some((name) => name.toLowerCase() === value.toLowerCase())) return country;
   }
   return null;
+}
+
+/** `addressCountry` out of the page's structured data: the one place a
+ *  site states its country as a field. A firm that lists offices in several
+ *  countries states none of them as its own (issue 1480: stripe.com lists
+ *  24, Singapore first, and was measured in Australia for it). */
+function countryOfStructuredData(html: string): string | null {
+  const stated = new Set<string>();
+  for (const match of html.matchAll(/"addressCountry"\s*:\s*(?:"([^"]{2,40})"|\{[^}]*?"name"\s*:\s*"([^"]{2,40})")/gi)) {
+    const country = countryOfStated((match[1] ?? match[2] ?? "").trim());
+    if (country !== null) stated.add(country);
+  }
+  return stated.size === 1 ? [...stated][0]! : null;
 }
 
 /**
@@ -145,6 +172,11 @@ function countryOfStructuredData(html: string): string | null {
  * prefix, the address, the region of `<html lang>`, the currency. The
  * language is the one the page's own words are in, where they say; else
  * `<html lang>`'s. Many sites leave `lang` at their builder's "en-US".
+ *
+ * After the domain, a country is read in the page's language (issue 1480):
+ * an office in a country whose sites are written in another language says
+ * where the firm is, not where the buyers it writes for are: monday.com's
+ * English page states an address in Israel, and typeform.com's one in Spain.
  *
  * `html` is `null` where the home page was not read: the address alone is
  * read then.
@@ -160,15 +192,20 @@ export function readLocaleSignals(a: { domain: string; html: string | null }): L
 
   // A `lang` the page's own words contradict says nothing of its country either.
   const written = languageOfText(text);
+  const language = written ?? lang.language;
   const langHolds = written === null || written === lang.language;
+  const inLanguage = (country: string | null): string | null => {
+    const home = country === null ? null : homeLanguageOf(country);
+    return language === null || home === null || home === language ? country : null;
+  };
   const country =
     fromDomain ??
-    countryOfStructuredData(a.html) ??
-    countryOfPhone(`${telephones} ${text}`) ??
-    countryOfAddress(text) ??
+    inLanguage(countryOfStructuredData(a.html)) ??
+    inLanguage(countryOfPhone(`${telephones} ${text}`)) ??
+    inLanguage(countryOfAddress(text)) ??
     (langHolds ? lang.country : null) ??
-    countryOfCurrency(text);
-  return { country, language: written ?? lang.language };
+    inLanguage(countryOfCurrency(text));
+  return { country, language };
 }
 
 /** The supported locale a site is measured in, read from its address and

@@ -50,6 +50,11 @@ describe("the profile names every line the business sells", () => {
     expect(profile.offerings).toEqual([{ name: "coffee shop", category: "coffee shop", weight: 1 }]);
   });
 
+  it("issue 1480: software keeps no town, whatever reach the model gave", () => {
+    expect(normaliseProfile({ ...ANSWER, category: "sales CRM software", town: "Austin, Texas", kind: "software" }).town).toBe("");
+    expect(normaliseProfile({ ...ANSWER, category: "sales CRM software", town: "Austin, Texas", kind: "software", reach: "local" }).town).toBe("");
+  });
+
   it("a placeholder line is dropped and a placeholder category is no category", () => {
     const profile = normaliseProfile({
       ...ANSWER,

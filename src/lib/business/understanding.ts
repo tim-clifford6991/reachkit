@@ -24,6 +24,7 @@ import type { BusinessUnderstanding, UnderstandingEdits } from "./types";
 
 export type { BusinessUnderstanding, UnderstandingEdits };
 import { offeringsOf } from "@/lib/market/questions/offerings";
+import { profileTown } from "@/lib/market/rivals/reach";
 import { brandName, domainBrand } from "@/lib/site-profile/site-name";
 import { isProtectionName } from "@/lib/measure/challenge";
 import { isPlaceholder, withoutPlaceholders } from "@/lib/measure/placeholder";
@@ -64,7 +65,7 @@ export function understandBusiness(a: {
   // the scan measured in; then the profile's reach and town.
   const area = a.market?.area;
   const servedPlace = area !== undefined ? area.place : current?.serves ?? null;
-  const town = profile?.town?.trim() ?? "";
+  const town = (profile === null ? undefined : profileTown(profile)) ?? "";
   const place = servedPlace ?? a.locale.place ?? (town === "" ? null : { name: town });
   const reach: Reach | null =
     place !== null ? "local" : area !== undefined || current?.serves === null ? nonLocal(profile?.reach) : profile?.reach ?? null;
