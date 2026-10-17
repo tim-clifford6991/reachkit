@@ -43,6 +43,7 @@ export default function AccountError(): React.JSX.Element {
     <ErrorScreen
       line={<p>{copy(LINE)}</p>}
       action={
+        // eslint-disable-next-line local/no-plain-app-link -- the error boundary clears only on a full load
         <a href={OVERVIEW} className="btn btn-ghost">
           <ArrowLeft size={20} strokeWidth={1.75} aria-hidden />
           {copy("chrome.back-to-overview")}

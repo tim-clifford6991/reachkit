@@ -24,6 +24,7 @@
 // words is closed and short, so the cell grows to hold the longest of them
 // and the row grows with it — docs/DESIGN.md's "the box changes".
 import type React from "react";
+import Link from "next/link";
 import { Calendar, Info } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { BroaderTry } from "../_shell/CategoryChoice";
@@ -96,9 +97,9 @@ export function WeekModule(p: {
             <Calendar aria-hidden size={20} strokeWidth={1.75} />
             {title}
           </h2>
-          <a className="btn btn-ghost btn-sm" href={p.week.calendarHref}>
+          <Link className="btn btn-ghost btn-sm" href={p.week.calendarHref} prefetch={true}>
             {copy("overview.week.calendar-link")}
-          </a>
+          </Link>
         </div>
         <ol className="grid grid-cols-7 gap-1 sm:gap-2" aria-label={title}>
           {p.week.days.map((day) => {

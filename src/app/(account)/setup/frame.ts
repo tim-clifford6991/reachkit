@@ -51,3 +51,12 @@ export const BAR_ACTIONS = "flex min-w-0 flex-wrap items-center justify-between 
 
 /** The quiet ink of a line that explains. */
 export const QUIET = "text-sm text-base-content/70";
+
+/** The regions the layout gate measures twice — on the first paint and
+ *  once the step has arrived — at 390 and 1280 (issue 1484,
+ *  `tests/ui/layout/skeletons.test.ts`). */
+export const REGION = {
+  steps: "setup-steps",
+  columns: "setup-columns",
+  bar: "setup-bar",
+} as const;

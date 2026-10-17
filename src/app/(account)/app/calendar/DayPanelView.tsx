@@ -34,6 +34,7 @@
 "use client";
 
 import type React from "react";
+import Link from "next/link";
 import { useOptimistic, useState, useTransition } from "react";
 import { X } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -179,16 +180,31 @@ function DayActions(p: {
     <div className="grid grid-cols-2 gap-2" data-testid="day-actions">
       {actions.map((action) => {
         if (action.kind === "link") {
-          const leavesTheProduct = action.key === "calendar.action.view-live-page";
+          // The live page leaves the product, so it is a plain link; the
+          // draft and Settings are screens of the app (SPEC §4, issue 1341).
+          if (action.key === "calendar.action.view-live-page") {
+            return (
+              // eslint-disable-next-line local/no-plain-app-link -- the customer's live page, not a screen of the app
+              <a
+                key={action.key}
+                href={action.href}
+                className="btn btn-sm col-span-2 btn-soft btn-primary"
+                data-testid={`day-action-${action.key}`}
+              >
+                {copy(action.key)}
+              </a>
+            );
+          }
           return (
-            <a
+            <Link
               key={action.key}
               href={action.href}
-              className={`btn btn-sm col-span-2 ${leavesTheProduct ? "btn-soft btn-primary" : "btn-primary"}`}
+              prefetch={true}
+              className="btn btn-sm col-span-2 btn-primary"
               data-testid={`day-action-${action.key}`}
             >
               {copy(action.key)}
-            </a>
+            </Link>
           );
         }
         const stop = action.command === "veto" || action.command === "skip";

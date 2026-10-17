@@ -28,6 +28,7 @@
 "use client";
 
 import type React from "react";
+import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight, Check, Circle } from "lucide-react";
 import { Surface } from "@/ui/layout";
@@ -169,13 +170,13 @@ export function ConnectScreen(p: {
           which one it is. */}
       <footer className="sticky bottom-0 border-t border-base-300 bg-base-100">
         <div className="mx-auto flex min-w-0 max-w-5xl flex-wrap items-center justify-between gap-3 p-4">
-          <a className="btn btn-ghost" href={APP_PATH} data-testid="setup-connect-later-action">
+          <Link className="btn btn-ghost" href={APP_PATH} prefetch={true} data-testid="setup-connect-later-action">
             {copy("setup.connect.later")}
-          </a>
-          <a className="btn btn-primary" href={APP_PATH} data-testid="setup-connect-done">
+          </Link>
+          <Link className="btn btn-primary" href={APP_PATH} prefetch={true} data-testid="setup-connect-done">
             {copy(live ? "setup.connect.onward.live" : "setup.connect.onward")}
             <ArrowRight {...ICON} size={16} />
-          </a>
+          </Link>
         </div>
       </footer>
     </div>

@@ -34,6 +34,7 @@ import {
   TRUNCATION_ALLOWLIST,
   type Offender,
 } from "./checks";
+import { BAND_MIN } from "@/ui/layout/bands";
 import { enumerateRoutes, PUBLISHED_HOST_FIXTURES, type EnumeratedRoute } from "./routes";
 
 /**
@@ -50,6 +51,25 @@ import { enumerateRoutes, PUBLISHED_HOST_FIXTURES, type EnumeratedRoute } from "
  * happen to overlap.
  */
 export const NO_OVERFLOW_WIDTHS: readonly [number, number, number] = [390, 768, 1280];
+
+/**
+ * One more width for the app shell, between `md` and `lg` (issue 1484).
+ *
+ * From 768 to 1023 an `/app` screen wears the phone shell — the top bar and
+ * the dock — around content that has room for more than a phone's column
+ * (SPEC §7, 2026-10-08, issue 1340). 768 is the narrow end of that band;
+ * this is its wide end, the last pixel before the desktop shell, read from
+ * the ladder rather than typed.
+ */
+export const APP_SHELL_MD_LG_WIDTH = BAND_MIN.medium - 1;
+
+/** The widths a route is swept at: the three, and the app shell's fourth
+ *  for an `/app` address. */
+export function noOverflowWidthsFor(routePath: string): readonly number[] {
+  return routePath === "/app" || routePath.startsWith("/app/")
+    ? [...NO_OVERFLOW_WIDTHS, APP_SHELL_MD_LG_WIDTH]
+    : NO_OVERFLOW_WIDTHS;
+}
 
 /** Both, always — the ruling says "in light and dark", and dark is not a
  *  second palette but the same `reachkit` theme's dark values

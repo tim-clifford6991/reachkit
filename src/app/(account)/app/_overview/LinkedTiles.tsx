@@ -21,9 +21,11 @@
 // figure is never clamped — the box changes instead (docs/DESIGN.md's
 // no-overflow rule).
 import type React from "react";
+import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { ARROW_NUDGE, CARD_LIFT } from "@/ui/lift";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { REGION, TILES } from "./frame";
 import { LIMITING_LINES, SCORE_BANDS, type ShownFactor } from "@/lib/presentation/bands";
 import { CONTENT_RECENT_WEEKS } from "@/lib/config/constants";
 import type { Measured } from "@/lib/measure/measured";
@@ -124,13 +126,14 @@ function Tile(p: {
       {body}
     </section>
   ) : (
-    <a
+    <Link
       href={p.href}
+      prefetch={true}
       className={`card card-border min-w-0 bg-base-100 hover:border-primary ${CARD_LIFT}`}
       data-testid={p.testId}
     >
       {body}
-    </a>
+    </Link>
   );
 }
 
@@ -151,7 +154,7 @@ export function LinkedTiles(p: {
   const gap = p.biggestGap === null ? null : LIMITING_LINES[p.biggestGap];
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      <div className="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-4" data-testid="overview-tiles">
+      <div className={TILES} data-testid="overview-tiles" data-frame={REGION.tiles}>
         <ScoreTile score={p.score} firstScan={firstScan} />
         <GoogleTile google={p.google} firstScan={firstScan} />
         <AiTile prompts={p.prompts} firstScan={firstScan} />

@@ -11,6 +11,7 @@
 // 858): the far ones share one secondary line and REQ-096 c6's one link to
 // the competitors card, below the reachable rows — both or neither.
 import type React from "react";
+import Link from "next/link";
 import { Users } from "lucide-react";
 import { RivalSparkline } from "@/ui/charts";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -69,12 +70,13 @@ function Leaders(p: {
             320px this sentence stood 8px past the row it wraps in (#1040).
             `max-w-full` holds it to the row and `h-auto` lets it take the
             second line — the shape `CategoryChoice` gives its own. */}
-        <a
+        <Link
           href={SWAP_HREF[swap.destination]}
+          prefetch={true}
           className="btn btn-ghost btn-sm h-auto min-h-8 max-w-full py-1"
         >
           {control}
-        </a>
+        </Link>
       </div>
     </div>
   );

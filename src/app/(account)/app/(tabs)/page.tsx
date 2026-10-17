@@ -49,6 +49,7 @@ import { WeekWaiting } from "../_overview/WeekWaiting";
 import { DoneThisWeek } from "../_overview/DoneThisWeek";
 import { ProcessTimeline } from "../_shell/ProcessTimeline";
 import { WhatWeRead } from "@/app/_business/WhatWeRead";
+import { OVERVIEW, REGION, WEEK_ROW } from "../_overview/frame";
 
 /** /app's own `<title>` (#945). Without it this screen announced
  *  nothing at all — the `(account)` layout's fallback is the floor, not
@@ -129,7 +130,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   if (lastLive !== null) headNotes.push({ testId: "overview-head-note", line: lastLive });
 
   return (
-    <div className="flex min-w-0 flex-col gap-6" data-testid="overview">
+    <div className={OVERVIEW} data-testid="overview">
       {/* The core data opens the screen (owner 2026-10-15, issue 1457);
           what autopilot is doing, and everything else, is under it. */}
       <LinkedTiles
@@ -162,7 +163,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
       {/* The week takes the wider of the two columns: seven day cells each
           hold a stage word, and an even split leaves them narrow enough to
           break one. Needs-you is a short list beside it. */}
-      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div className={WEEK_ROW} data-frame={REGION.week}>
         {/* **Skeletons for the week while the pass runs** (SPEC §4,
             2026-09-20; issue 912). Before the pass ends there is no week to
             state: the days are not planned and the numbers are not measured,

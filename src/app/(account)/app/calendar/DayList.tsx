@@ -43,6 +43,7 @@ import { CardNumber, StageMark, UpdateMark, cardLineFor, pageShownBy } from "./D
 import { cardLabel, shortCauseFor } from "./card-lines";
 import { dayNumberOf } from "./day-number";
 import { dayNumber, weekdayShort, type DayKey } from "./dates";
+import { DAY_ROW, REGION, WEEK_LIST } from "./frame";
 import type { DayCell } from "./month";
 import type { StageFilter } from "./stages";
 
@@ -53,7 +54,7 @@ export function DayList(p: {
   onSelect: (day: DayKey) => void;
 }): React.JSX.Element {
   return (
-    <ul className="list bg-base-100 rounded-box border border-base-200" data-testid="calendar-list">
+    <ul className={WEEK_LIST} data-testid="calendar-list" data-frame={REGION.week}>
       {p.cells.map((cell) => {
         const page = pageShownBy(cell, p.filter);
         const line = cardLineFor(cell, p.filter);
@@ -69,7 +70,7 @@ export function DayList(p: {
               // is never clamped — so a longer one widens its own column
               // and takes the room from the title, which clamps, rather
               // than running past the row's edge.
-              className={`list-row grid min-h-16 w-full min-w-0 grid-cols-[2.25rem_minmax(0,1fr)_minmax(4rem,auto)] items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+              className={`${DAY_ROW} text-left transition-colors ${
                 open ? "bg-primary/5" : ""
               }`}
               data-testid={`calendar-day-${cell.day}`}

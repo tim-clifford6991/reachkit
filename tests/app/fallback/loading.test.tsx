@@ -12,7 +12,7 @@
 // addresses; there are seven files now, one per route, and the block below
 // enumerates every one of them so an eighth route added without a waiting
 // state of its own is a failure here rather than a blank screen on a phone.
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { COPY } from "../../../src/lib/presentation/copy";
@@ -128,17 +128,30 @@ describe("Plan waits in the shape of the Plan that arrives (issue 1320)", () => 
     expect(part("month-switcher-skeleton")).toContain("skeleton");
   });
 
-  it("is this week's seven days below lg and the month grid from it (issue 1340)", () => {
-    // The loaded screen's own media queries (`CalendarView`): the list is
-    // `lg:hidden`, the grid `hidden lg:block`.
-    expect(part("plan-skeleton-list")).toContain("lg:hidden");
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("is this week's list below lg and the month grid from it (issue 1340)", () => {
+    // The loaded screen's own media queries (`CalendarView`, through
+    // `frame.ts`): the list is `lg:hidden`, the grid `hidden lg:block`.
+    expect(PLAN).toMatch(/class="lg:hidden"><div class="list [^"]*" data-testid="plan-skeleton-list"/);
     expect(part("plan-skeleton-grid")).toMatch(/\bhidden\b.*lg:block/);
     expect(PLAN).not.toContain("grid-cols-7");
-    // A week of rows, not a month of them, and no switcher for a month
-    // that is not on screen.
-    expect(occurrences(PLAN, "list-row")).toBe(7);
+    // No switcher for a month that is not on screen.
     expect(part("month-switcher-skeleton")).toMatch(/\bhidden\b.*lg:block/);
     // The day panel has a place wherever the loaded screen opens one.
     expect(part("plan-skeleton-panel")).toMatch(/\bhidden\b.*lg:flex/);
+  });
+
+  it("draws as many days as the list that arrives, not a fixed seven (issue 1484)", () => {
+    // SPEC §7 (2026-10-08): Monday of this week through the plan horizon.
+    // On Thursday 2026-10-08 that is Monday the 5th through Wednesday the
+    // 14th — ten days, as `DayList` draws them.
+    vi.useFakeTimers({ now: new Date("2026-10-08T12:00:00Z"), toFake: ["Date"] });
+    expect(occurrences(html(CalendarLoading), "list-row")).toBe(10);
+    // And on a Monday, the seven of the coming week.
+    vi.setSystemTime(new Date("2026-10-12T12:00:00Z"));
+    expect(occurrences(html(CalendarLoading), "list-row")).toBe(7);
   });
 });

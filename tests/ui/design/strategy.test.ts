@@ -1,18 +1,55 @@
-// tests/ui/design/strategy.test.ts — owner 2026-10-15, #1463.
+// tests/ui/design/strategy.test.ts — owner 2026-10-15, #1463; issue 1484.
 //
 // The strategy half of a screen change. Layout and axe stay on the
-// `no overflow · axe` gate. This file holds the two rules that are sentences
-// in the copy registry: a title is at most six words with no em-dash, and a
-// retired name does not come back. docs/DESIGN.md names this file. The
-// trailing "· ReachKit" on a meta title is the brand, not a seventh word.
+// `no overflow · axe` gate. This file holds the two rules that are sentences:
+// a title is at most six words with no em-dash, and a retired name does not
+// come back. docs/DESIGN.md names this file. The trailing "· ReachKit" on a
+// meta title is the brand, not a seventh word.
+//
+// A retired name is looked for wherever a customer reads one (issue 1484):
+// the copy registry, the text written straight into JSX under `src/app`,
+// `src/ui` and the mail shell, and the sentences of the mail code. A `{slot}`
+// is a value, not a word, so it is never read as one.
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { read, SRC_DIR, walkFiles } from "./vocabulary";
 
 const KEYS = path.resolve(import.meta.dirname, "../../../src/lib/presentation/copy/keys");
 const ENTRY_RE = /"([\w$.-]+)"\s*:\s*\[\s*"((?:[^"\\]|\\.)*)"/g;
 const TITLE_KEY = /\.(title|heading|subject)$/;
-const RETIRED = ["AI Visibility", "Measure again", "re-measure", "top ten", "top 20"];
+
+/** Each retired name, and the pattern that finds it. The last five are the
+ *  2026-10-15 vocabulary (SPEC §0, #1444): Visibility Score, Readiness,
+ *  Content and competitors replaced them. */
+const RETIRED: readonly { name: string; pattern: RegExp }[] = [
+  { name: "AI Visibility", pattern: /\bAI Visibility\b/i },
+  { name: "Measure again", pattern: /\bMeasure again\b/i },
+  { name: "re-measure", pattern: /\bre-measure/i },
+  { name: "top ten", pattern: /\btop ten\b/i },
+  { name: "top 20", pattern: /\btop 20\b/i },
+  { name: "Discoverability Score", pattern: /\bDiscoverability Score\b/i },
+  { name: "findability", pattern: /\bfindability\b/i },
+  { name: "Foundations", pattern: /\bFoundations\b/i },
+  { name: "Answerability", pattern: /\bAnswerability\b/i },
+  { name: "rival(s)", pattern: /\brivals?\b/i },
+];
+
+/** The attributes whose value a customer reads or hears. */
+const READ_ATTRIBUTES = new Set(["alt", "aria-label", "aria-description", "label", "placeholder", "title"]);
+
+/** Where JSX is customer text: the screens, the shared UI, the mail. */
+const JSX_ROOTS = ["src/app", "src/ui", "src/lib/mail"] as const;
+
+/** The mail code whose string literals are sentences. Outside the copy
+ *  registry a mail sentence is written here or nowhere. */
+const MAIL_ROOT = "src/lib/mail";
+
+interface Text {
+  where: string;
+  text: string;
+}
 
 function entries(): { key: string; sentence: string }[] {
   const out: { key: string; sentence: string }[] = [];
@@ -31,8 +68,70 @@ function entries(): { key: string; sentence: string }[] {
 
 function titleWords(sentence: string): { dash: boolean; words: string[] } {
   const core = sentence.replace(/\s*[·|]\s*ReachKit\s*$/u, "");
-  return { dash: core.includes("\u2014"), words: core.split(/\s+/).filter(Boolean) };
+  return { dash: core.includes("—"), words: core.split(/\s+/).filter(Boolean) };
 }
+
+function retiredIn(text: string): string | undefined {
+  const words = text.replace(/\{[\w$.-]+\}/g, " ");
+  return RETIRED.find((retired) => retired.pattern.test(words))?.name;
+}
+
+function parse(rel: string): ts.SourceFile {
+  const kind = rel.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  return ts.createSourceFile(rel, read(rel), ts.ScriptTarget.Latest, true, kind);
+}
+
+function lineOf(file: ts.SourceFile, node: ts.Node): string {
+  return `${file.fileName}:${file.getLineAndCharacterOfPosition(node.getStart(file)).line + 1}`;
+}
+
+/** A string literal's text, or a template's literal parts. */
+function literalText(node: ts.Node): string | undefined {
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
+  if (ts.isTemplateExpression(node)) return [node.head.text, ...node.templateSpans.map((span) => span.literal.text)].join(" ");
+  return undefined;
+}
+
+/** The text a JSX tree writes: its text nodes, the literals it renders as
+ *  children, and the attributes a customer reads. */
+function jsxTexts(rel: string): Text[] {
+  const file = parse(rel);
+  const out: Text[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isJsxText(node)) {
+      const text = node.text.replace(/\s+/g, " ").trim();
+      if (text !== "") out.push({ where: lineOf(file, node), text });
+    } else if (ts.isJsxExpression(node) && node.expression !== undefined && !ts.isJsxAttribute(node.parent)) {
+      const text = literalText(node.expression);
+      if (text !== undefined) out.push({ where: lineOf(file, node), text });
+    } else if (ts.isJsxAttribute(node) && READ_ATTRIBUTES.has(node.name.getText(file)) && node.initializer !== undefined) {
+      const value = ts.isJsxExpression(node.initializer) ? node.initializer.expression : node.initializer;
+      const text = value === undefined ? undefined : literalText(value);
+      if (text !== undefined) out.push({ where: lineOf(file, node), text });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(file);
+  return out;
+}
+
+/** The sentences mail code writes outside the registry: every literal with
+ *  a space in it. A key, an address or an identifier has none. */
+function mailSentences(rel: string): Text[] {
+  const file = parse(rel);
+  const out: Text[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return;
+    const text = literalText(node);
+    if (text !== undefined && /\s/.test(text.trim())) out.push({ where: lineOf(file, node), text });
+    ts.forEachChild(node, visit);
+  };
+  visit(file);
+  return out;
+}
+
+const REPO_ROOT = path.resolve(SRC_DIR, "..");
+const under = (root: string, keep: (rel: string) => boolean): string[] => walkFiles(path.join(REPO_ROOT, root), keep);
 
 describe("UI strategy: titles and retired names (#1463)", () => {
   const copy = entries();
@@ -53,8 +152,28 @@ describe("UI strategy: titles and retired names (#1463)", () => {
 
   it("customer copy does not use a retired name", () => {
     const offenders = copy.flatMap((entry) => {
-      const hit = RETIRED.find((name) => entry.sentence.toLowerCase().includes(name.toLowerCase()));
+      const hit = retiredIn(entry.sentence);
       return hit ? [`${entry.key} uses "${hit}": ${entry.sentence}`] : [];
+    });
+    expect(offenders).toEqual([]);
+  });
+
+  it("text written into JSX does not use a retired name (issue 1484)", () => {
+    const files = JSX_ROOTS.flatMap((root) => under(root, (rel) => rel.endsWith(".tsx")));
+    expect(files.length).toBeGreaterThan(100);
+    const offenders = files.flatMap(jsxTexts).flatMap(({ where, text }) => {
+      const hit = retiredIn(text);
+      return hit ? [`${where} uses "${hit}": ${text}`] : [];
+    });
+    expect(offenders).toEqual([]);
+  });
+
+  it("a sentence in the mail code does not use a retired name (issue 1484)", () => {
+    const files = under(MAIL_ROOT, (rel) => /\.tsx?$/.test(rel));
+    expect(files.some((rel) => rel.startsWith(`${MAIL_ROOT}/templates/`))).toBe(true);
+    const offenders = files.flatMap(mailSentences).flatMap(({ where, text }) => {
+      const hit = retiredIn(text);
+      return hit ? [`${where} uses "${hit}": ${text}`] : [];
     });
     expect(offenders).toEqual([]);
   });

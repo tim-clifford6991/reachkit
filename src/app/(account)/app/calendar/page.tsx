@@ -38,10 +38,11 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
-import { PlanSkeleton } from "../_shell/skeletons";
 import { CalendarView } from "./CalendarView";
 import { PlanHead } from "./PlanHead";
 import { PlanNumbers } from "./PlanNumbers";
+import { PlanSkeleton } from "./PlanSkeleton";
+import { PLAN } from "./frame";
 import { addMonths, monthNameOnly, monthShortLabel } from "./dates";
 import { currentCalendarSite, parseMonth, readMonth, readStalledWeek, readSupplyNotice, readWeek } from "./provider";
 import { stalledLine, supplyLine } from "./supply";
@@ -85,7 +86,7 @@ export default async function CalendarPage({
   const plannedNote = writtenLine("calendar.footnote.planned");
   const supplyNote = writtenLine("calendar.footnote.supply");
   return (
-    <div className="flex min-w-0 flex-col gap-4">
+    <div className={PLAN}>
       <PlanHead>
         {/* One grouped control (issue 1071, board R12-5-Plan): the month
             between its two neighbours, and *Today* after a hairline. From
@@ -161,7 +162,7 @@ export default async function CalendarPage({
           {stalledStatement}
         </p>
       )}
-      <Suspense fallback={<PlanSkeleton />}>
+      <Suspense fallback={<PlanSkeleton rows={week.cells.length} />}>
         <CalendarView model={model} week={week} />
       </Suspense>
 

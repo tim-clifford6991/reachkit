@@ -9,22 +9,26 @@
 // is the request's. Nothing stands in for the
 // statement of supply: most accounts have none, and a box for a line that
 // does not arrive is a screen that jumps.
+//
+// Every region is `frame.ts`'s (issue 1484). The week below `lg` is as many
+// rows as the list that arrives: Monday through the plan horizon, counted
+// from today. The site's zone is a read, so today is UTC's here, which is
+// the site's own day except in the hours either side of midnight.
 import type React from "react";
-import { PlanSkeleton, TilesSkeleton } from "../_shell/skeletons";
+import { TilesSkeleton } from "../_shell/skeletons";
+import { dayKeyOf } from "./dates";
+import { NUMBERS, PLAN, REGION, weekRows } from "./frame";
 import { PlanHead } from "./PlanHead";
-
-/** The numbers' own grid (`PlanNumbers.tsx`; SPEC §7, 2026-10-09, issue
- *  1364). */
-const NUMBERS_GRID = "grid-cols-2 gap-3 lg:grid-cols-4";
+import { PlanSkeleton } from "./PlanSkeleton";
 
 export default function CalendarLoading(): React.JSX.Element {
   return (
-    <div className="flex min-w-0 flex-col gap-4" data-testid="calendar-waiting">
+    <div className={PLAN} data-testid="calendar-waiting">
       <PlanHead>
         <div className="skeleton rounded-field hidden h-8 w-58 lg:block" aria-hidden data-testid="month-switcher-skeleton" />
       </PlanHead>
-      <TilesSkeleton count={4} grid={NUMBERS_GRID} />
-      <PlanSkeleton />
+      <TilesSkeleton count={4} grid={NUMBERS} frame={REGION.numbers} />
+      <PlanSkeleton rows={weekRows(dayKeyOf(new Date(), "UTC"))} />
     </div>
   );
 }
