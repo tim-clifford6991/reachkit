@@ -132,10 +132,14 @@ export const writeLeadPage: DraftWriter = async (a) => {
   // questions and the domain's passages can hold. A lead's page is held to
   // what its template asks of the pack, never to what a new page must add:
   // nothing was read to compare it with.
+  // Issue 1486: a how-to is built from outside sources, which a lead's pack
+  // never holds, so its page is the Q&A. That Q&A is held to every need but
+  // those sources — the paid page's, read by research a lead is not bought.
+  const lacks = (built: ReturnType<typeof packOf>) => (built.type === "qa" ? built.missing.filter((need) => need !== "outside_sources") : built.missing);
   const first = packOf(decided);
-  const pack = first.missing.length === 0 || decided === "qa" ? first : packOf("qa");
-  if (pack.missing.length > 0) {
-    log({ leadId: a.leadId, outcome: "pack_short", type: pack.type, missing: pack.missing.join(",") });
+  const pack = lacks(first).length === 0 || decided === "qa" ? first : packOf("qa");
+  if (lacks(pack).length > 0) {
+    log({ leadId: a.leadId, outcome: "pack_short", type: pack.type, missing: lacks(pack).join(",") });
     return REFUSED;
   }
   const type = pack.type;

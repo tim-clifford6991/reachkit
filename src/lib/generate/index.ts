@@ -61,7 +61,7 @@ import {
 import { urlKey, type LinkTarget } from "./links/select";
 import { generateDraft, targetSearches, type GenerateOutcome } from "./pipeline";
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
-import { buildPack, questionsHeld, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
+import { buildPack, builtFromOutside, questionsHeld, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
 import { generatePageFix } from "./pipeline/page-fix";
 import type { FixNote } from "./pipeline/repair";
 import { NO_RESEARCH, researchMarket, type MarketResearch } from "./pipeline/research";
@@ -562,6 +562,9 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
           // Issue 1390: every page that is researched reads what buyers
           // ask beside its target, for its headings.
           questions: true,
+          // Issue 1486: a how-to or a Q&A is built from cited outside facts,
+          // so its one search reads the target's own guidance.
+          guidance: builtFromOutside(type),
           borrow: { terms: marketSearches(writingFor), held: (research) => questionsHeld(packOf(research)) },
           ...(type === "insights"
             ? { recent: { searches: [category === "" ? (targetSearches(o)[0] ?? "") : category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } }

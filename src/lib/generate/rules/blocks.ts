@@ -39,6 +39,9 @@ export type RequiredBlock =
   | "section_opening"
   | "table"
   | "steps"
+  /** Issue 1486: more of a how-to's steps are the business's own than its
+   *  template allows. */
+  | "own_steps"
   | "dated_sources"
   | "verdict"
   | "business_section"
@@ -62,6 +65,9 @@ export interface BlockRuleInputs {
   /** A listicle's rivals, as its table names them (D52, issue 1267): the
    *  verdict names one. Absent, the verdict is not read. */
   rivals?: readonly string[];
+  /** The business's name: a step that names it, or links its own site, is
+   *  the business's own (issue 1486). */
+  businessName?: string | null;
 }
 
 /** A prompt's label for a fact — `[F7]`, `[M39]`, `[F7, F8]` — which is the
@@ -175,6 +181,16 @@ function linksOwnSite(raw: string, domain: string): boolean {
   });
 }
 
+/** A step is the business's own where it links the business's site or says
+ *  its name, or its domain's own label ("acme" of acme.com), as a word. */
+function namesBusiness(raw: string, blocks: BlockRuleInputs): boolean {
+  if (linksOwnSite(raw, blocks.domain)) return true;
+  const said = ` ${raw.toLowerCase().replace(/\]\([^)]*\)/g, "]").replace(/[^\p{L}\p{N}]+/gu, " ")} `;
+  const label = blocks.domain.replace(/^www\./, "").split(".")[0]?.toLowerCase() ?? "";
+  const name = (blocks.businessName ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  return [name, label].some((word) => word.length > 2 && said.includes(` ${word} `));
+}
+
 /** The first required block the page lacks, or `null` where it has all. */
 export function missingBlock(a: { markdown: string; title: string; blocks: BlockRuleInputs }): RequiredBlock | null {
   const { markdown, blocks } = a;
@@ -230,8 +246,10 @@ export function missingBlock(a: { markdown: string; title: string; blocks: Block
     const steps = keyed
       .filter((section) => template.sections.find((slot) => slot.key === section.key)?.block === "steps")
       .flatMap((section) => section.blocks)
-      .filter((block) => NUMBERED_RE.test(block.raw)).length;
-    if (steps < template.blocks.steps.min || steps > template.blocks.steps.max) return "steps";
+      .filter((block) => NUMBERED_RE.test(block.raw));
+    if (steps.length < template.blocks.steps.min || steps.length > template.blocks.steps.max) return "steps";
+    const own = template.blocks.steps.own;
+    if (own !== undefined && steps.filter((step) => namesBusiness(step.raw, blocks)).length > own) return "own_steps";
   }
   if (template.blocks.datedSources === true) {
     const repeated = new Set(template.sections.filter((slot) => slot.repeat !== undefined).map((slot) => slot.key));

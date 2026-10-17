@@ -5,6 +5,9 @@
 // market facts are read here, at writing time, from public pages: the
 // target's top results out of the stored top ten, each named rival's **own**
 // pricing and feature pages, and at most two studies found by one search.
+// A how-to or a Q&A (issue 1486) spends that one search on the target's own
+// guidance instead, and a result whose address is a platform's or an
+// authority's own documentation is read first, as a `primary` source.
 // *Current insights* (D48, issue 1259) buys a search of the news in place of
 // the studies: what the market's category and its synonyms published inside
 // 30 days, each result with the date the search gives it and its source.
@@ -67,7 +70,7 @@ import { keywordOverview, serpNews, serpOrganic } from "@/lib/vendors/dataforseo
 /** The `fetches.source` of every public page this step reads. */
 export const RESEARCH_READ_SOURCE = "generate.research.read";
 
-export type MarketPageKind = "top_result" | "rival_pricing" | "rival_features" | "study" | "recent";
+export type MarketPageKind = "top_result" | "rival_pricing" | "rival_features" | "study" | "primary" | "recent";
 
 /** One claim read off a public page, word for word. */
 export interface MarketFact {
@@ -296,6 +299,33 @@ async function sitemapOf(domain: string): Promise<string[]> {
   const children = locs(first.html).filter((url) => hostOf(url) === host).slice(0, RESEARCH.sitemaps);
   const read = await Promise.all(children.map(fetchBody));
   return read.flatMap((child) => (child === null ? [] : locs(child.html))).slice(0, RESEARCH.sitemapUrls);
+}
+
+// Issue 1486: what an address says about who wrote the page. A government's
+// or an intergovernmental body's own host, or a host or first path segment
+// that names documentation, help or support — Google's Search Central, a
+// boiler maker's help centre, a regulator's guidance. Read off the address
+// alone, for every kind of business, and judged by no model.
+const AUTHORITY_HOST_RE =
+  /(?:^|\.)(?:gov(?:\.[a-z]{2})?|gouv\.[a-z]{2}|gob\.[a-z]{2}|govt\.[a-z]{2}|gv\.at|admin\.ch|bund\.de|europa\.eu|gc\.ca|canada\.ca|nhs\.uk|int)$/;
+const DOCS_LABEL_RE = /^(?:docs|developers?|support|help|learn|kb|documentation)$/;
+const DOCS_SEGMENT_RE = /^(?:docs|documentation|help|support|developers?|kb|hc|knowledge-base|guidelines|guidance)$/;
+
+/** Whether an address is a platform's or an authority's own documentation
+ *  (issue 1486): a `primary` source. A rival's own help page is not one — a
+ *  rival is read for what it sells, never as the authority on a task. */
+export function primaryAddress(url: string, rivals: readonly string[] = []): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  const host = hostOf(url);
+  if (host === "" || rivals.some((rival) => sameSite(host, rival))) return false;
+  if (AUTHORITY_HOST_RE.test(host)) return true;
+  if (DOCS_LABEL_RE.test(host.split(".")[0] ?? "")) return true;
+  return DOCS_SEGMENT_RE.test(parsed.pathname.split("/").filter(Boolean)[0]?.toLowerCase() ?? "");
 }
 
 /** The stored top ten of the search the page targets, where the pass that
@@ -644,6 +674,11 @@ export async function researchMarket(
     /** A Q&A, or a comparison that may be written as one (D47): what buyers
      *  ask about the target is read too (D61). */
     questions?: boolean;
+    /** A page built from cited outside facts (issue 1486): the one search
+     *  looks for the target's own guidance in place of studies, and a
+     *  result that is a platform's or an authority's documentation is read
+     *  first, as a `primary` source. */
+    guidance?: boolean;
     /** D62: where the target's own SERP leaves the Q&A short, the market's
      *  searched terms are read for more — `terms` in the order they are
      *  read, and `held`, what a pack built from this research holds. */
@@ -678,15 +713,17 @@ export async function researchMarket(
     )
   ).flat();
 
-  // 2. The one search for studies, and the two it finds that are nobody's
-  //    sales page.
+  // 2. The one search for studies — or, on a page built from outside facts,
+  //    for the target's guidance — and the two it finds that are nobody's
+  //    sales page, a primary source first.
   const taken = new Set(topTen);
   const recent = a.recent === undefined ? null : await recentPages(c, { ...a, recent: a.recent }, notOurs, taken);
   const found: (ReadPage & Wanted)[] = recent === null ? [] : [...recent.pages];
   if (a.recent === undefined && !c.capHit()) {
     const studyUrls: string[] = [];
+    const language = languagePack(a.locale.language);
     const serp = await serpOrganic(c, {
-      query: languagePack(a.locale.language).studySearch(target),
+      query: a.guidance === true ? language.guidanceSearch(target) : language.studySearch(target),
       locale: a.locale,
       mode: "live",
       loadAsyncAiOverview: false,
@@ -700,8 +737,16 @@ export async function researchMarket(
         studyUrls.push(row.url);
       }
     }
-    const studyReads = await Promise.all(studyUrls.slice(0, RESEARCH.studies * 2).map(fetchPage));
-    found.push(...studyReads.filter((read) => read !== null).slice(0, RESEARCH.studies).map((read) => ({ ...read.page, kind: "study" as const })));
+    // A primary source leads, in the search's own order otherwise.
+    const primary = (url: string): boolean => a.guidance === true && primaryAddress(url, rivalDomains);
+    const ordered = [...studyUrls.filter(primary), ...studyUrls.filter((url) => !primary(url))];
+    const studyReads = await Promise.all(ordered.slice(0, RESEARCH.studies * 2).map(fetchPage));
+    found.push(
+      ...studyReads
+        .filter((read) => read !== null)
+        .slice(0, RESEARCH.studies)
+        .map((read) => ({ ...read.page, kind: primary(read.page.url) ? ("primary" as const) : ("study" as const) }))
+    );
   }
 
   // 2b. A Q&A's questions (D61), bought before the claim calls so a ceiling
@@ -712,9 +757,12 @@ export async function researchMarket(
   // written from, and the claim calls read the first pages only.
   const prefetched: (ReadPage & Wanted)[] = [
     ...(a.recent === undefined ? [] : found),
+    // Issue 1486: a primary source is read before the top results, so its
+    // claims lead the pack.
+    ...found.filter((page) => page.kind === "primary"),
     ...topReads.filter((read) => read !== null).slice(0, RESEARCH.topResults).map((read) => ({ ...read.page, kind: "top_result" as const })),
     ...rivalReads.flatMap((row) => (row.read === null ? [] : [{ ...row.read.page, kind: row.kind, product: row.domain }])),
-    ...(a.recent === undefined ? found : []),
+    ...(a.recent === undefined ? found.filter((page) => page.kind !== "primary") : []),
   ];
 
   // 3. The ledger, one row at a time. A page already read inside the window
@@ -797,6 +845,7 @@ export async function researchMarket(
     topResults: pages.filter((page) => page.kind === "top_result").length,
     rivalPages: pages.filter((page) => page.kind === "rival_pricing" || page.kind === "rival_features").length,
     studies: pages.filter((page) => page.kind === "study").length,
+    primary: pages.filter((page) => page.kind === "primary").length,
     recent: pages.filter((page) => page.kind === "recent").length,
     newsOffMarket: recent === null ? null : recent.news.filter((result) => !result.onMarket).length,
     facts: ordered.length,

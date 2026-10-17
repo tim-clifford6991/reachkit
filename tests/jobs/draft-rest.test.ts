@@ -448,9 +448,10 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     });
     if (third.outcome !== "created") throw new Error("the third opportunity was refused");
     for (const row of opportunities.rows) row.ready = true;
-    // reachkit.app, 17 October: the two best topics' packs held too few
-    // buyer questions, and nothing was written for either.
-    fixtures.packAnswer.missingFor = (query) => (query === "project management software for startups" ? [] : ["buyer_questions"]);
+    // reachkit.app, 17 October, and issue 1486's short how-to: nothing was
+    // written for either.
+    const first = fixtures.opportunity().targetQuery;
+    fixtures.packAnswer.missingFor = (query) => (query === "project management software for startups" ? [] : query === first ? ["buyer_questions"] : ["outside_sources"]);
     modelWrites(fixtures.CLEAN_MARKDOWN, "plans");
 
     expect(await draftGenerate.run({ data: {}, now: EVENING })).toEqual({ outcome: "ran", subjectId: null });

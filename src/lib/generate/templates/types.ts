@@ -34,6 +34,10 @@ export type PackRequirement =
   | { need: "difference" }
   /** `min` business facts or more, one at least in the target's words. */
   | { need: "facts_on_topic"; min: number }
+  /** Claims read off `min` distinct public pages or more (issue 1486): what
+   *  a page built from cited outside facts is built from. The page's body
+   *  then links that many (`cites_market`). */
+  | { need: "outside_sources"; min: number }
   /** A product page of the customer's to link. */
   | { need: "product_page" }
   /** The site's latest complete pass with `min` measured questions. */
@@ -63,8 +67,9 @@ export interface Template {
   blocks: {
     /** A comparison table: the customer's row and this many rivals. */
     table?: { rivals: number };
-    /** A numbered list of this many steps. */
-    steps?: { min: number; max: number };
+    /** A numbered list of this many steps, at most `own` of them the
+     *  business's own (issue 1486). Absent `own`, any may be. */
+    steps?: { min: number; max: number; own?: number };
     /** Buyer questions stored beside the page. `null`: the page's own
      *  questions are its FAQ data and it stores no others. */
     faq: { min: number; max: number } | null;
