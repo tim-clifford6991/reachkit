@@ -636,6 +636,24 @@ export async function publishDue(a: {
 // `now` comes from the tick, which is what makes due-ness testable without
 // a scheduler.
 
+// ── The live pages, re-checked against the rival rules — SPEC §7, issue 1485.
+//
+// Each hour, before any page is attempted, a live page written before the
+// rival rules is read again from its own row at 0¢, and one that fails is
+// withdrawn through `unpublish()`. A read that fails withdraws nothing and
+// stops nothing: the next tick reads again.
+
+export async function recheckLivePages(now: Date): Promise<{ readonly withdrawn: number }> {
+  try {
+    const { withdrawFailingPages } = await import("@/lib/generate/live-recheck");
+    const outcome = await withdrawFailingPages({ now });
+    return { withdrawn: outcome.withdrawn.length };
+  } catch (error) {
+    console.log(JSON.stringify({ event: "live_rival_recheck_failed", error: error instanceof Error ? error.message : "unknown" }));
+    return { withdrawn: 0 };
+  }
+}
+
 export async function duePublishRetries(now: Date): Promise<readonly { readonly draftId: string; readonly destinationId: string }[]> {
   const { dueRetries } = await import("@/lib/publish/attempt/due");
   return dueRetries(now);

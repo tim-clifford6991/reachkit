@@ -38,6 +38,9 @@ import type { TitleFault } from "./title";
 export type HardRule =
   | "grounding"
   | "rival_source"
+  /** SPEC §7 (issue 1485): no "X has no / doesn't / lacks Y" about a rival
+   *  unless a stored source says so (`./rivals.ts`). */
+  | "rival_negative"
   | "no_invented_people"
   | "no_unsourced_testimonial"
   /** SPEC §7 (D20, issue 1136): on a market comparison the business is in
@@ -82,6 +85,7 @@ export type HardRule =
 export const HARD_RULES: readonly HardRule[] = Object.freeze([
   "grounding",
   "rival_source",
+  "rival_negative",
   "no_invented_people",
   "no_unsourced_testimonial",
   "honest_row",
@@ -168,7 +172,13 @@ export interface RuleFailure {
     /** The page's own sentences that claim a fit, as written. */
     | { rule: "fit_claim"; sentences: string[] }
     /** The numeral as it appears in the draft. */
-    | { rule: "rival_source"; figure: string }
+    /** The numeral as it appears in the draft; since issue 1485, also what
+     *  the sentence got wrong about the rival's source — a third party's
+     *  page where the rival's own was read, or a claim without its plan —
+     *  and the page's own sentence. */
+    | { rule: "rival_source"; figure: string; fault?: "third_party" | "plan"; sentence?: string }
+    /** The page's own sentence that denies a rival something. */
+    | { rule: "rival_negative"; sentence: string }
     | { rule: "traceable_numerals"; figure: string }
     /** Which block the page lacks — a handle, never a sentence. */
     | { rule: "required_blocks"; block: RequiredBlock }

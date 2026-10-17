@@ -52,6 +52,7 @@ export const CHECKS: Readonly<Record<HardRule, { group: CheckGroup; key: CopyKey
   do_not_claim: { group: "honesty", key: "draft.checks.rule.do-not-claim" },
   fit_claim: { group: "honesty", key: "draft.checks.rule.fit-claim" },
   honest_row: { group: "honesty", key: "draft.checks.rule.honest-row" },
+  rival_negative: { group: "honesty", key: "draft.checks.rule.rival-negative" },
   no_hidden_text: { group: "honesty", key: "draft.checks.rule.no-hidden-text" },
   no_machine_address: { group: "honesty", key: "draft.checks.rule.no-machine-address" },
   near_duplicate: { group: "structure", key: "draft.checks.rule.near-duplicate" },

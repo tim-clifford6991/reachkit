@@ -33,7 +33,21 @@ export interface BriefRuleInputs {
   /** The market facts the brief selected, each with the public page it was
    *  read from (SPEC §7, 2026-09-29; issue 1135). Absent on a page written
    *  before the research step, whose rules read as they did then. */
-  marketFacts?: readonly { url: string; passage: string }[];
+  marketFacts?: readonly MarketFactRead[];
+}
+
+/** One market fact as the rules read it. `product` is the rival whose own
+ *  page it was read from; `about`, the rival a claim read off someone
+ *  else's page is about; `plan`, the plan or tier the rival's own page
+ *  names it under — `null` where it is true of the product as a whole, and
+ *  absent on a fact recorded before plans were (issue 1485). */
+export interface MarketFactRead {
+  url: string;
+  passage: string;
+  kind?: string;
+  product?: string;
+  about?: string;
+  plan?: string | null;
 }
 
 /** Every passage the page was handed, from either pool. */

@@ -45,6 +45,8 @@ function engineDouble(): Record<string, unknown> {
     alertMissingDrafts: record("alertMissingDrafts", 0),
     publishApproved: record("publishApproved", done),
     publishDue: record("publishDue", done),
+    // Issue 1485: the live pages are read again first.
+    recheckLivePages: record("recheckLivePages", { withdrawn: 0 }),
     duePublishRetries: record("duePublishRetries", [{ draftId: "d1", destinationId: "dest-1" }]),
     // SPEC §7's window end rides the same tick (issue 709).
     duePublishApprovals: record("duePublishApprovals", []),
@@ -333,6 +335,7 @@ describe("publish/execute and publish/verify", () => {
     expect(job.idempotencyKey).toEqual([]);
     const outcome = await job.run({ data: {}, now: MONDAY_0600_UTC });
     expect(calls).toEqual([
+      { fn: "recheckLivePages", arg: MONDAY_0600_UTC },
       { fn: "duePublishRetries", arg: MONDAY_0600_UTC },
       { fn: "duePublishApprovals", arg: MONDAY_0600_UTC },
       { fn: "publishApproved", arg: { draftId: "d1", destinationId: "dest-1" } },
@@ -363,6 +366,13 @@ describe("publish/execute and publish/verify", () => {
     const outcome = await job.run({ data: {}, now: MONDAY_0600_UTC });
     expect(outcome).toEqual({ outcome: "skipped", subjectId: null, reason: "not-due" });
     expect(calls.some((c) => c.fn === "publishApproved")).toBe(false);
+  });
+
+  it("an hour that withdrew a live page has run, though no retry was due (issue 1485)", async () => {
+    results.set("duePublishRetries", []);
+    results.set("recheckLivePages", { withdrawn: 1 });
+    const job = await definition("publish/retry");
+    expect(await job.run({ data: {}, now: MONDAY_0600_UTC })).toEqual({ outcome: "ran", subjectId: null });
   });
 
   it("publish/verify calls verifyLive once, keyed by the publication", async () => {

@@ -51,6 +51,7 @@ async function load() {
   }));
   vi.doMock("@/jobs/engine", async (importOriginal) => ({
     ...(await importOriginal<typeof import("@/jobs/engine")>()),
+    recheckLivePages: async () => ({ withdrawn: 0 }),
     duePublishRetries: async () => [],
     duePublishApprovals: async () => [],
   }));

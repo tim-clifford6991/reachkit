@@ -27,6 +27,10 @@
 //   * **the table is dated** (owner, D52; issue 1267): a line under it says
 //     when the prices were last checked — the day the oldest of the rivals'
 //     pages it stands on was read (`readAt`), so the date holds for every row;
+//   * **a cell names its tier** (issue 1485): a rival's claim its own page
+//     states of one plan — a free trial, a starter tier — is shown under
+//     that plan's name, and *What it does* prefers a claim true of every
+//     plan, so no row passes one plan's limits off as the product;
 //   * **two rivals are always kept.** Fewer than two with a fact to set
 //     beside the business is no comparison: `null`, and the page is written
 //     as a Q&A (`./pack.ts`).
@@ -48,6 +52,8 @@ const HEADER = { pricing: "body.table.pricing", does: "body.table.does" } as con
 interface Cell {
   text: string;
   url: string | null;
+  /** The plan the cell is true of, where its page names one (issue 1485). */
+  plan?: string;
 }
 
 interface Option {
@@ -95,9 +101,11 @@ const isUrl = (text: string): boolean => /^https?:\/\//.test(text);
 
 /** A value a table can hold: said in words, and not words that say a value
  *  is missing. */
-function cell(text: string | undefined, url: string | null): Cell | undefined {
+function cell(text: string | undefined, url: string | null, plan?: string | null): Cell | undefined {
   const words = (text ?? "").replace(/\s+/g, " ").trim();
-  return words === "" || isPlaceholderCell(words) ? undefined : { text: words, url };
+  if (words === "" || isPlaceholderCell(words)) return undefined;
+  const named = (plan ?? "").replace(/\s+/g, " ").trim();
+  return named === "" ? { text: words, url } : { text: words, url, plan: named };
 }
 
 /** The business's own row, from its knowledge base and its own passages. */
@@ -147,14 +155,22 @@ function rivalOption(pack: TablePack, domain: string): Option {
   const name = rivalName(pack, domain).toLowerCase();
   const features = claims.filter((claim) => claim.kind === CLAIM_KIND.does);
   const described = features.filter((claim) => !PRICE_PAGE_RE.test(claim.url));
-  const does = described.find((claim) => claim.passage.toLowerCase().includes(name)) ?? described[0] ?? features[0];
+  // Issue 1485: a claim true of every plan before one plan's.
+  const whole = (each: readonly typeof claims[number][]) => each.filter((claim) => (claim.plan ?? null) === null);
+  const does =
+    whole(described).find((claim) => claim.passage.toLowerCase().includes(name)) ??
+    whole(described)[0] ??
+    whole(features)[0] ??
+    described.find((claim) => claim.passage.toLowerCase().includes(name)) ??
+    described[0] ??
+    features[0];
   return {
     name: rivalName(pack, domain),
     own: false,
     readAt: claims.map((claim) => claim.readAt),
     cells: {
-      pricing: priced !== undefined ? cell(priced.passage, priced.url) : custom !== undefined ? cell(say(pack, "body.table.custom"), custom.url) : undefined,
-      does: cell(does?.passage, does?.url ?? null),
+      pricing: priced !== undefined ? cell(priced.passage, priced.url, priced.plan) : custom !== undefined ? cell(say(pack, "body.table.custom"), custom.url) : undefined,
+      does: cell(does?.passage, does?.url ?? null, does?.plan),
     },
   };
 }
@@ -163,7 +179,11 @@ function rivalOption(pack: TablePack, domain: string): Option {
  *  parser would read as structure, linked to the page they were read from. */
 function written(held: Cell): string {
   const text = held.text.replace(/[[\]]/g, "").replace(/\|/g, "/");
-  return held.url === null ? text : `[${text}](${held.url.replace(/\(/g, "%28").replace(/\)/g, "%29").replace(/\s/g, "%20")})`;
+  const linked = held.url === null ? text : `[${text}](${held.url.replace(/\(/g, "%28").replace(/\)/g, "%29").replace(/\s/g, "%20")})`;
+  // Issue 1485: the tier the cell shows, in its page's own words, where the
+  // claim does not already say it.
+  const plan = held.plan?.replace(/[[\]|]/g, "");
+  return plan === undefined || text.toLowerCase().includes(plan.toLowerCase()) ? linked : `${plan}: ${linked}`;
 }
 
 /**

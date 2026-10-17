@@ -79,6 +79,12 @@ export interface MarketFact {
   kind: MarketPageKind;
   /** The rival whose own page this is, where it is one. */
   product?: string;
+  /** Issue 1485: on a rival's own page, the plan or tier the claim is true
+   *  of, word for word as the page names it — `null` where it is true of
+   *  the product as a whole. A free trial is a plan. */
+  plan?: string | null;
+  /** Issue 1485: on any other page, the rival the claim is about. */
+  about?: string;
   /** The day a `recent` page was published (D42, *current insights*): the
    *  page's own markup where it states one, else the news search's date for
    *  it (D48). Never guessed. */
@@ -312,6 +318,12 @@ const CLAIMS_SCHEMA = z.strictObject({
       /** What the claim states (D56): the price of the page's own product,
        *  what that product does, or neither. */
       about: z.enum(["price", "product", "other"]),
+      /** Issue 1485: the plan or tier the claim belongs to, as the page
+       *  names it, or null where it is true of every plan. */
+      plan: z.string().nullable(),
+      /** Issue 1485: the domain of the one of `rivals` the claim is about,
+       *  or null. */
+      rival: z.string().nullable(),
     })
   ),
 });
@@ -341,7 +353,8 @@ const RIVAL_KIND = { price: "rival_pricing", product: "rival_features" } as cons
 export function admittedClaims(
   claims: readonly z.infer<typeof CLAIMS_SCHEMA>["claims"][number][],
   pages: readonly (ReadPage & Wanted)[],
-  today: Date
+  today: Date,
+  rivals: readonly string[] = []
 ): MarketFact[] {
   const floor = today.getUTCFullYear() - RESEARCH.statisticMaxAgeYears;
   const out: MarketFact[] = [];
@@ -356,6 +369,11 @@ export function admittedClaims(
     if (out.some((fact) => fact.passage === passage)) continue;
     const kind = page.product === undefined ? page.kind : claim.about === "other" ? undefined : RIVAL_KIND[claim.about];
     if (kind === undefined) continue;
+    // Issue 1485: a plan is the page's own words, or the claim is not kept —
+    // a plan the page does not name is one nobody can check.
+    const plan = (claim.plan ?? null) === null ? null : squash(claim.plan!);
+    if (page.product !== undefined && plan !== null && (plan === "" || !squash(page.text).toLowerCase().includes(plan.toLowerCase()))) continue;
+    const about = page.product === undefined ? aboutRival(passage, claim.rival ?? null, rivals) : undefined;
     const held = perPage.get(page.url) ?? 0;
     if (held >= RESEARCH.claimsPerPage) continue;
     perPage.set(page.url, held + 1);
@@ -365,12 +383,38 @@ export function admittedClaims(
       readAt: new Date(page.readAt),
       passage,
       kind,
-      ...(page.product === undefined ? {} : { product: page.product }),
+      ...(page.product === undefined ? {} : { product: page.product, plan }),
+      ...(about === undefined ? {} : { about }),
       ...(page.publishedAt === undefined ? {} : { publishedAt: page.publishedAt }),
       ...(page.source === undefined ? {} : { source: page.source }),
     });
   }
   return out;
+}
+
+/** The rival a claim read off someone else's page is about: the one the
+ *  call named, where it is one of `rivals`, else one the passage names by
+ *  its domain or its domain's label. */
+function aboutRival(passage: string, named: string | null, rivals: readonly string[]): string | undefined {
+  const domain = named?.trim().toLowerCase().replace(/^www\./, "");
+  if (domain !== undefined && rivals.includes(domain)) return domain;
+  const text = passage.toLowerCase();
+  return rivals.find((rival) => {
+    const label = rival.split(".")[0] ?? "";
+    return text.includes(rival) || (label.length > 2 && new RegExp(`(?<![a-z0-9])${label}(?![a-z0-9])`).test(text));
+  });
+}
+
+/**
+ * Issue 1485: **a rival's own page outranks a third party's** for a claim
+ * about that rival. Where a rival's own pages yielded a claim, what another
+ * page says about it — a reviewer's "$99", a listicle's plan names — is not
+ * kept. Where its own pages yielded nothing, a third party's claim stays,
+ * cited to that third party.
+ */
+export function ownPagesFirst(facts: readonly MarketFact[]): MarketFact[] {
+  const own = new Set(facts.flatMap((fact) => (fact.product === undefined ? [] : [fact.product])));
+  return facts.filter((fact) => fact.product !== undefined || fact.about === undefined || !own.has(fact.about));
 }
 
 /** One claim from each page in turn, so no page is the whole pool. */
@@ -707,20 +751,25 @@ export async function researchMarket(
           `${RESEARCH.claimsPerPage} a page, each one or two sentences copied exactly, character for ` +
           "character — never paraphrase, never join text from two places. On a pricing page copy each " +
           "plan's name with its price. Skip menus, cookie notices, author biographies and calls to action. " +
-          "For a statistic give the year its data is from; otherwise null. Say what each claim is `about`: " +
+          "For a statistic give the year its data is from; otherwise null. Give each claim's `plan`: the name " +
+          "of the plan, tier or trial it belongs to, copied as the page writes it (\"Free trial\", \"Starter\", " +
+          "\"Enterprise\"), or null only where it is true of every plan. On a pricing page a limit, an engine " +
+          "list or an allowance listed under one plan belongs to that plan. Give each claim's `rival`: the " +
+          "domain of the one of `rivals` it is about, or null. Say what each claim is `about`: " +
           "`price` where it states what the product whose page it is on costs, or how it is priced; `product` " +
           "where it says what that product does, includes or limits; `other` for anything else — a customer " +
           "count, a slogan, a statistic about the market or about another company's product.",
         search: target,
+        rivals: rivalDomains,
         today: a.today.toISOString().slice(0, 10),
         pages: batch.map((page, index) => ({ page: index + 1, url: page.url, text: page.text })),
       },
     });
     if (answer.kind === "unmeasured") continue;
-    facts.push(...admittedClaims(answer.value.claims, batch, a.today));
+    facts.push(...admittedClaims(answer.value.claims, batch, a.today, rivalDomains));
   }
 
-  const ordered = inTurn(facts, pages);
+  const ordered = inTurn(ownPagesFirst(facts), pages);
   const products = rivalDomains
     .map((domain) => ({
       domain,

@@ -61,6 +61,10 @@ function engineDouble(): Record<string, unknown> {
     noticeBrokenDestination: ran,
     publishApproved: ran,
     publishDue: ran,
+    recheckLivePages: async () => {
+      engineCalls.count += 1;
+      return { withdrawn: 0 };
+    },
     duePublishRetries: async () => {
       engineCalls.count += 1;
       return [{ draftId: "d1", destinationId: "dest-1" }];

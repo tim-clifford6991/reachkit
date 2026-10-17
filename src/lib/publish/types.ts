@@ -41,7 +41,7 @@ export type State =
  *  only to the customer arm. */
 export type Actor =
   | { kind: "customer"; userId: string }
-  | { kind: "system"; job: "draft/generate" | "publish/execute" | "publish/verify" };
+  | { kind: "system"; job: "draft/generate" | "publish/execute" | "publish/verify" | "content/recheck" };
 
 /** One entry of `drafts.transitions`. Append-only: `transition()` adds one
  *  per move and nothing rewrites an earlier one. No surface renders these. */
