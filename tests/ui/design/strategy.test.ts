@@ -20,7 +20,10 @@ function entries(): { key: string; sentence: string }[] {
     if (!name.endsWith(".ts")) continue;
     const text = readFileSync(path.join(KEYS, name), "utf8");
     for (const match of text.matchAll(ENTRY_RE)) {
-      out.push({ key: match[1], sentence: JSON.parse(`"${match[2]}"`) });
+      const key = match[1];
+      const raw = match[2];
+      if (key === undefined || raw === undefined) continue;
+      out.push({ key, sentence: JSON.parse(`"${raw}"`) });
     }
   }
   return out;
