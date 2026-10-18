@@ -26,6 +26,7 @@ import type {
   HealthReason,
   Publication,
   RenderedPage,
+  RestoreResult,
   UnpublishResult,
 } from "../../types";
 import { liveUrlOnHost } from "./address";
@@ -165,6 +166,15 @@ export const HOSTED_ADAPTER: DestinationAdapter = Object.freeze({
   async unpublish(pub: Publication): Promise<UnpublishResult> {
     invalidateHosted({ siteId: pub.siteId, publicationId: pub.id });
     return { ok: true, outcome: "removed" };
+  },
+
+  /** The customer's put-back (issue 1532): the row is the page, so the
+   *  address serves it again the moment `putBack()` clears the row's
+   *  `unpublished_at`; this clears the two tags so the 410 is not served
+   *  from the cache. */
+  async restore(pub: Publication): Promise<RestoreResult> {
+    invalidateHosted({ siteId: pub.siteId, publicationId: pub.id });
+    return { ok: true };
   },
 
   /**

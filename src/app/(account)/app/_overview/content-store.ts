@@ -7,6 +7,7 @@ import type { PublishedPage } from "./content";
 
 interface PublicationRow {
   id: string;
+  draft_id?: string | null;
   live_url: string | null;
   published_at: string | null;
   unpublished_at: string | null;
@@ -33,7 +34,7 @@ export async function readPublishedPages(siteId: string): Promise<readonly Publi
   try {
     read = await (dbAdmin() as unknown as MinimalClient)
       .from("publications")
-      .select("id, live_url, published_at, unpublished_at, drafts(title)")
+      .select("id, draft_id, live_url, published_at, unpublished_at, drafts(title)")
       .eq("site_id", siteId)
       .not("published_at", "is", null);
   } catch {
@@ -48,7 +49,7 @@ export async function readPublishedPages(siteId: string): Promise<readonly Publi
     // neither cannot be listed, so it is counted nowhere.
     const title = row.drafts?.title?.trim() || row.live_url || "";
     if (Number.isNaN(publishedAt.getTime()) || title === "") continue;
-    pages.push({ id: row.id, title, url: row.live_url, publishedAt });
+    pages.push({ id: row.id, title, url: row.live_url, publishedAt, ...(typeof row.draft_id === "string" ? { draftId: row.draft_id } : {}) });
   }
   return pages;
 }

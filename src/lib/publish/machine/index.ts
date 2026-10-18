@@ -1,14 +1,14 @@
 // BUILD §9 — `transition()`, the only mover of state.
 //
 // Nothing else in the product writes `drafts.state`. Every move goes
-// through here, is checked against the fifteen edges, and is recorded — the
+// through here, is checked against the seventeen edges, and is recorded — the
 // state change and the record are **one statement** (`publish_transition`,
 // `supabase/migrations/20260906120100_drafts_publishing.sql`), so a state
 // that moved without a record is not a bug this code could have but a
 // write Postgres cannot perform.
 //
 // Order, and it matters:
-//   1. membership — a move outside the fifteen writes nothing at all;
+//   1. membership — a move outside the seventeen writes nothing at all;
 //   2. the named guards, in list order, lazily, first failure wins;
 //   3. the update-and-append, conditional on the state still being the one
 //      that was checked (an optimistic lock, so two concurrent movers
@@ -89,7 +89,7 @@ export async function transition(
   if (draft === null) {
     // No row is not a refusal of a move — there is no page to move and no
     // state to report. `planned` would be a guess; the caller is told the
-    // move was not one of the fifteen for a page that does not exist.
+    // move was not one of the seventeen for a page that does not exist.
     return { ok: false, refused: "not_a_transition", state: to };
   }
 

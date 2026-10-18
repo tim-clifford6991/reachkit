@@ -77,9 +77,9 @@ describe("every move outside the fifteen is refused with the state unchanged", (
   const members = new Set(TRANSITIONS.map(([f, t]) => `${f}→${t}`));
   const nonMembers = pairs.filter(([f, t]) => !members.has(`${f}→${t}`));
 
-  it("all 100 ordered pairs are accounted for: 16 members, 84 not", () => {
+  it("all 100 ordered pairs are accounted for: 17 members, 83 not", () => {
     expect(pairs.length).toBe(100);
-    expect(nonMembers.length).toBe(84);
+    expect(nonMembers.length).toBe(83);
   });
 
   it.each(nonMembers)("%s → %s is refused as not_a_transition", async (from, to) => {
@@ -92,7 +92,7 @@ describe("every move outside the fifteen is refused with the state unchanged", (
   });
 });
 
-describe("no move leaves skipped or unpublished", () => {
+describe("no move leaves skipped, nor unpublished without the customer's own take-down", () => {
   it.each(["skipped", "unpublished"] as const)(
     "%s is the source of no move that succeeds",
     async (terminal) => {
@@ -104,6 +104,43 @@ describe("no move leaves skipped or unpublished", () => {
       }
     }
   );
+});
+
+describe("put back (issue 1532): only the customer, only after their own take-down, only for 7 days", () => {
+  const takenDown = (at: Date, over: Partial<TransitionRecord> = {}): TransitionRecord => ({
+    from: "published",
+    to: "unpublished",
+    actor: CUSTOMER,
+    reason: "take_down",
+    at: at.toISOString(),
+    ...over,
+  });
+  const DAY = 86_400_000;
+
+  it("the customer puts back a page they took down six days ago", async () => {
+    seedDraft("unpublished", { transitions: [takenDown(new Date(AT.getTime() - 6 * DAY))] });
+    const result = await transition("d1", "published", CUSTOMER, { at: AT, reason: "put_back" });
+    expect(result).toEqual({ ok: true, state: "published" });
+    expect((draftRow().transitions as TransitionRecord[]).map((move) => move.reason)).toEqual(["take_down", "put_back"]);
+  });
+
+  it("the system never puts a page back", async () => {
+    seedDraft("unpublished", { transitions: [takenDown(new Date(AT.getTime() - DAY))] });
+    const result = await transition("d1", "published", SYSTEM, { at: AT });
+    expect(result).toEqual({ ok: false, refused: "guard", failedGuard: "customer_initiated", state: "unpublished" });
+  });
+
+  it("not after 7 days, and not after a take-down that was not the customer's own", async () => {
+    for (const record of [
+      takenDown(new Date(AT.getTime() - 7 * DAY)),
+      takenDown(new Date(AT.getTime() - DAY), { reason: "unpublish" }),
+      takenDown(new Date(AT.getTime() - DAY), { actor: { kind: "system", job: "content/recheck" } }),
+    ]) {
+      seedDraft("unpublished", { transitions: [record] });
+      const result = await transition("d1", "published", CUSTOMER, { at: AT });
+      expect(result).toEqual({ ok: false, refused: "guard", failedGuard: "put_back_window", state: "unpublished" });
+    }
+  });
 });
 
 describe("a move that is one of the fifteen moves the page and records it", () => {

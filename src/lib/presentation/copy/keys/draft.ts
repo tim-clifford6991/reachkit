@@ -933,4 +933,36 @@ export const DRAFT_COPY = Object.freeze({
     "From market research",
     { slots: {}, fixedBy: "SPEC §4 2026-10-10 · issue 1395 (drafted)" },
   ],
+
+  // SPEC §7 (issue 1532) — a live page the customer takes down, on Plan and
+  // on the page's own screen, and puts back inside its window. Every
+  // sentence is drafted for the owner.
+  "draft.action.take-down": ["Take down", { slots: {}, fixedBy: "issue 1532 (drafted)" }],
+  "draft.take-down.question": [
+    "Take this page off your site? Its address stops answering, and you can put it back for {days} days.",
+    { slots: { days: "text" }, fixedBy: "issue 1532 (drafted)" },
+  ],
+  "draft.take-down.confirm": ["Take it down", { slots: {}, fixedBy: "issue 1532 (drafted)" }],
+  "draft.take-down.keep": ["Keep it live", { slots: {}, fixedBy: "issue 1532 (drafted)" }],
+  "draft.take-down.done": [
+    "The page is down. You can put it back for {days} days.",
+    { slots: { days: "text" }, fixedBy: "issue 1532 (drafted)" },
+  ],
+  "draft.take-down.refused": [
+    "The page could not be taken down. Try again in a minute.",
+    { slots: {}, fixedBy: "issue 1532 (drafted)" },
+  ],
+  "draft.action.put-back": ["Put back", { slots: {}, fixedBy: "issue 1532 (drafted)" }],
+  "draft.put-back.until": [
+    "You took this page down. You can put it back until {date}.",
+    { slots: { date: "text" }, fixedBy: "issue 1532 (drafted)" },
+  ],
+  "draft.put-back.done": [
+    "The page is live again at the same address.",
+    { slots: {}, fixedBy: "issue 1532 (drafted)" },
+  ],
+  "draft.put-back.refused": [
+    "The page could not be put back. Try again in a minute.",
+    { slots: {}, fixedBy: "issue 1532 (drafted)" },
+  ],
 }) satisfies CopyPartition;

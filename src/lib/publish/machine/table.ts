@@ -6,8 +6,9 @@
 //                               ↓ veto                  ↓ fail
 //                            skipped            failed → retry ×3 → needs_attention
 //     published → unpublished (always available)
+//     unpublished → published (the customer's put-back, issue 1532)
 //
-// Sixteen edges, ten states, two terminal. The table is data and nothing
+// Seventeen edges, ten states, one terminal. The table is data and nothing
 // else — no function, no clock, no row read — so it can be asserted member
 // by member without a database. `transition()` (`./index.ts`) is the only
 // thing that moves a page along it.
@@ -30,9 +31,9 @@ export const STATES: readonly State[] = Object.freeze([
 ] as const);
 
 /**
- * The sixteen edges, transcribed — not derived, not sorted, not generated.
+ * The seventeen edges, transcribed — not derived, not sorted, not generated.
  *
- * Six are implied by §9's prose rather than drawn by its diagram, and each
+ * Seven are implied by §9's prose rather than drawn by its diagram, and each
  * is stated with its source:
  *
  *  - `planned → skipped` — §9's draft-by-default: the customer may stop a
@@ -51,10 +52,16 @@ export const STATES: readonly State[] = Object.freeze([
  *  - `needs_attention → in_review` — SPEC §7 (#833, #1180): the founder
  *    fixes a page the rules stopped, and a save that passes every hard rule
  *    takes it into review with a fresh veto window.
+ *  - `unpublished → published` — SPEC §7 (issue 1532): the customer puts
+ *    back a page they took down themselves, the same version at the same
+ *    address, inside `TAKE_DOWN.PUT_BACK_DAYS`. Only the customer, and only
+ *    after their own take-down (`put_back_window`): a page the system or
+ *    *unpublish everything* took down, or one taken down longer ago, has no
+ *    way back.
  *
- * There is no edge back out of `skipped` or `unpublished`, and none into
- * `planned`: a page the customer stopped or took down is never returned to
- * a destination by any later attempt.
+ * There is no edge back out of `skipped`, and none into `planned`: a page
+ * the customer stopped is never returned to a destination by any later
+ * attempt, and no attempt ever leaves `unpublished`.
  */
 export const TRANSITIONS: readonly (readonly [State, State])[] = Object.freeze([
   Object.freeze(["planned", "generating"] as const),
@@ -73,18 +80,19 @@ export const TRANSITIONS: readonly (readonly [State, State])[] = Object.freeze([
   Object.freeze(["needs_attention", "skipped"] as const),
   Object.freeze(["needs_attention", "in_review"] as const),
   Object.freeze(["published", "unpublished"] as const),
+  Object.freeze(["unpublished", "published"] as const),
 ] as const);
 
-/** The two states no edge leaves. Written once and asserted against
+/** The one state no edge leaves. Written once and asserted against
  *  `TRANSITIONS` rather than maintained as a second list. */
-export const TERMINAL: readonly State[] = Object.freeze(["skipped", "unpublished"] as const);
+export const TERMINAL: readonly State[] = Object.freeze(["skipped"] as const);
 
-/** Why a move was refused. Two members: the move is not one of the sixteen,
+/** Why a move was refused. Two members: the move is not one of the seventeen,
  *  or it is and a named guard said no. A refusal is never an exception and
  *  never leaves the page somewhere else. */
 export type Refusal = "not_a_transition" | "guard";
 
-/** The ten named guards. A guard is a condition on an *edge*, evaluated
+/** The eleven named guards. A guard is a condition on an *edge*, evaluated
  *  in list order; the first that fails names itself in the refusal. */
 export type GuardId =
   /** every edge whose target is `publishing`: only a draft whose text as
@@ -127,7 +135,10 @@ export type GuardId =
   /** every edge whose target is `publishing`. */
   | "within_ceilings"
   /** every edge whose target is `publishing`. */
-  | "destination_working";
+  | "destination_working"
+  /** unpublished → published (issue 1532): the page's last move is its
+   *  customer's own take-down, inside `TAKE_DOWN.PUT_BACK_DAYS`. */
+  | "put_back_window";
 
 /** The key an edge is looked up under. One spelling, written once, so the
  *  table and every lookup cannot disagree. */
@@ -136,7 +147,7 @@ export function edgeKey(from: State, to: State): string {
 }
 
 /**
- * Is this pair one of the sixteen? The one membership question about the
+ * Is this pair one of the seventeen? The one membership question about the
  * table, answered here beside it rather than at each caller — and answered
  * in the leaf that reaches nothing, so a surface may ask it without
  * pulling `transition()`'s database in behind the answer.
@@ -147,7 +158,7 @@ export function isTransition(from: State, to: State): boolean {
 
 /**
  * The guards each edge carries, keyed `'from→to'`. An absent key means no
- * guard: the move is open the moment it is one of the sixteen.
+ * guard: the move is open the moment it is one of the seventeen.
  *
  * Every edge whose target is `publishing` carries the same five ambient
  * guards — ReachKit's own stop, the outstanding claim re-check, the switch,
@@ -211,6 +222,10 @@ export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freez
     "never_entered_review",
     "customer_initiated",
     "draft_passed_hard_rules",
+  ] as const),
+  [edgeKey("unpublished", "published")]: Object.freeze([
+    "customer_initiated",
+    "put_back_window",
   ] as const),
 });
 

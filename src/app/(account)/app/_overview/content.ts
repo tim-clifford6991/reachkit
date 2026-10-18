@@ -15,6 +15,8 @@ export interface PublishedPage {
   /** The address it is live at, where the publish recorded one. */
   url: string | null;
   publishedAt: Date;
+  /** The draft it is a version of, which *Take down* acts on (issue 1532). */
+  draftId?: string;
 }
 
 export interface PublishedRead {

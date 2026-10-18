@@ -60,6 +60,7 @@ import {
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
 import { pageRecordFor } from "@/lib/publish/record";
+import { takeDownStanding } from "@/lib/publish/take-down/standing";
 import { needsYouOf } from "@/lib/publish/record/needs-you";
 import { askedAs, doneWhen } from "../../calendar/store";
 import type { Choice } from "@/lib/opportunities/derive/explain";
@@ -508,6 +509,12 @@ export async function readDraftRow(a: {
   const lastSaved = stringAt(row.meta, "last_saved_at");
   // One clock read for the screen: every fact's age is as of this read.
   const at = clock();
+  // What became of this page (#217). One further read, made only once
+  // the row above has proved this account owns the draft — asking first
+  // would answer about a page the caller may not see. `pageRecordFor`
+  // is the one read behind every surface that states a page's standing;
+  // nothing here re-derives liveness from a column.
+  const record = await pageRecordFor(a.draftId);
   const { pack } = packAt(row.meta, at);
 
   return {
@@ -560,12 +567,14 @@ export async function readDraftRow(a: {
         ? new Date(row.veto_deadline)
         : null,
     lastSavedAt: lastSaved === null ? null : new Date(lastSaved),
-    // What became of this page (#217). One further read, made only once
-    // the row above has proved this account owns the draft — asking first
-    // would answer about a page the caller may not see. `pageRecordFor`
-    // is the one read behind every surface that states a page's standing;
-    // nothing here re-derives liveness from a column.
-    record: await pageRecordFor(a.draftId),
+    record,
+    takeDown: takeDownStanding({
+      state: row.state as State,
+      transitions: row.transitions,
+      live: record?.address.offered === true,
+      unpublishOutcome: record?.unpublishOutcome ?? null,
+      now: at,
+    }),
     recordedChecks: recordedChecks(row.rule_failures, readRecordedRun(row.meta)),
     rulesFailed: rulesFailedOf(row.rule_failures),
     // Read after the row above proved this account owns the draft, like the
