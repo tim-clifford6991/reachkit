@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { publicMetadata } from "../../_seo/metadata";
+import { JsonLd, articleSchemas, homeCrumb } from "../../_seo/structured";
 import { ANSWERS, answerOf } from "../../_library";
 import { BODY, CARD, LibraryPage, ScanCta, Sources, TextCard } from "../../_library/parts";
 
@@ -40,6 +41,16 @@ export default async function AnswerPage({ params }: Params): Promise<React.JSX.
 
   return (
     <LibraryPage testId={PAGE_TEST_ID} eyebrow={EYEBROW} title={a.title}>
+      {/* Issue 1512: the date the page prints. It has no index, so the
+          trail is home and the page. */}
+      <JsonLd
+        blocks={articleSchemas({
+          path: `/answers/${a.slug}`,
+          headline: a.title,
+          modified: a.checked,
+          trail: [homeCrumb()],
+        })}
+      />
       {a.answer.map((text, i) => (
         <p key={text} className={i === 0 ? "text-lg" : undefined}>
           {text}

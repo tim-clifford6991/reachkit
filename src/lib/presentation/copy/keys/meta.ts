@@ -112,6 +112,8 @@ export const META_COPY = Object.freeze({
   "meta.veto.description": ["A page ReachKit wrote for your site is waiting to publish. Stop it here in one step, or do nothing and it goes live as planned.", { slots: {}, fixedBy: "issue 326" }],
   "meta.optout.title": ["Opted out · ReachKit", { slots: {}, fixedBy: "issue 326" }],
   "meta.optout.description": ["This link stops every follow-up email from ReachKit to your address. The page you asked for stays yours.", { slots: {}, fixedBy: "issue 326" }],
+  // Issue 1512: the 404 had no `<title>`. Next reads no `metadata` from a `not-found.tsx`, so the screen renders this one itself.
+  "meta.notfound.title": ["Page not found · ReachKit", { slots: {}, fixedBy: "issue 1512 · drafted" }],
 
   /* ── The two generated share images ───────────────────────────────────
      `og:image:alt`. Not decoration: it is what a screen reader announces of

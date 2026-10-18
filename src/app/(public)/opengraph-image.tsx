@@ -1,13 +1,11 @@
 // BUILD §3 — the share image every public route unfurls as.
 // src/app/(public)/opengraph-image.tsx — issue #326
 //
-// One picture for the whole group. Next resolves file-based metadata down
-// the segment tree, so this file gives `/`, `/pricing`, `/signin`, the
-// three legal pages and the two token pages an `og:image` — and, because
-// `resolve-metadata.js` fills a `twitter` block's images from the resolved
-// Open Graph ones, a `twitter:image` too — with no per-route edit. Same
-// reason the header and footer live in the group layout; and
-// `scan/[domain]/opengraph-image.tsx` overrides it for the one route that
+// One picture for the whole group. As a file it reaches `/` alone: Next
+// merges `openGraph` shallowly, so a route's own block replaces the image a
+// parent resolved (issue 1512). Every other public route names the same
+// drawing at its fixed address, `/share-card` (`_seo/metadata.ts`), and
+// `scan/[domain]/opengraph-image.tsx` overrides both for the one route that
 // has a number to show.
 //
 // **It is inside the group on purpose.** A file at the `src/app/` root

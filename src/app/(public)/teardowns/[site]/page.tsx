@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { publicMetadata } from "../../_seo/metadata";
+import { JsonLd, articleSchemas, homeCrumb } from "../../_seo/structured";
 import { TEARDOWNS, longDate, teardownOf } from "../../_library";
 import { BackLink, BODY, CARD, LibraryPage, ScanCta, Sources, TextCard } from "../../_library/parts";
 
@@ -41,6 +42,16 @@ export default async function TeardownPage({ params }: Params): Promise<React.JS
 
   return (
     <LibraryPage testId={PAGE_TEST_ID} eyebrow={EYEBROW} title={t.title}>
+      {/* Issue 1512: the two dates the page prints, and the links it draws. */}
+      <JsonLd
+        blocks={articleSchemas({
+          path: `${INDEX}/${t.slug}`,
+          headline: t.title,
+          published: t.written,
+          modified: t.revised,
+          trail: [homeCrumb(), { name: copy("chrome.nav.teardowns"), path: INDEX }],
+        })}
+      />
       <p className="text-base-content/70 font-mono text-xs">
         {copy("teardowns.item.dates", { written: longDate(t.written), revised: longDate(t.revised) })}
       </p>

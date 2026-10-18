@@ -10,6 +10,7 @@ import { Check, X } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { publicMetadata } from "../../_seo/metadata";
+import { JsonLd, articleSchemas, homeCrumb } from "../../_seo/structured";
 import { COMPARISONS, comparisonOf, type Cell } from "../../_library";
 import { BackLink, BODY, CARD, LIST, LibraryPage, ScanCta, Sources, TextCard } from "../../_library/parts";
 
@@ -65,6 +66,15 @@ export default async function ComparisonPage({ params }: Params): Promise<React.
 
   return (
     <LibraryPage testId={PAGE_TEST_ID} eyebrow={EYEBROW} title={c.title}>
+      {/* Issue 1512: the date the page prints, and the links it draws. */}
+      <JsonLd
+        blocks={articleSchemas({
+          path: `${INDEX}/${c.slug}`,
+          headline: c.title,
+          modified: c.checked,
+          trail: [homeCrumb(), { name: copy("chrome.nav.compare"), path: INDEX }],
+        })}
+      />
       <p className="text-lg">{c.intro}</p>
       <TextCard heading={c.theirs.heading} paragraphs={c.theirs.paragraphs} />
       <TextCard heading={c.ours.heading} paragraphs={c.ours.paragraphs} />
