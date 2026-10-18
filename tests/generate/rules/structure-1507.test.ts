@@ -14,7 +14,7 @@ import { REPAIRED_IN_CODE, repairStructure, structureDefects } from "../../../sr
 import { renderOf } from "../../../src/lib/generate/rules/text";
 import { checkTitle, descriptionFiguresMissing, type TitleRuleInputs } from "../../../src/lib/generate/rules/title";
 import { TEMPLATES } from "../../../src/lib/generate/templates";
-import { refreshCauseOf, structureCandidates, type OwnLivePage } from "../../../src/lib/opportunities/refresh";
+import { refreshCandidates, refreshCauseOf, structureCandidates, type OwnLivePage } from "../../../src/lib/opportunities/refresh";
 import type { Opportunity } from "../../../src/lib/opportunities/types";
 
 /** Every page production published, as its row stored it on 2026-10-18. */
@@ -211,5 +211,12 @@ describe("7. the live pages, read again and repaired through a refresh", () => {
     // A page the customer edited, whose refresh they stopped, or under the floor is left alone.
     expect(structureCandidates([own(A, { edited: true }), own(B, { stopped: true }), own(D, { publishedAt: new Date("2026-10-20T07:00:00Z") })], AT)).toEqual([]);
     expect(refreshCauseOf(own(A, { edited: true }), { siteText: [], market: [] }, AT)).toBeNull();
+  });
+
+  it("a page its customer took down and put back is theirs: the hourly re-check and the refresh planner leave it (issue 1532)", () => {
+    const back = [A, B, D].map((page) => own(page, { takenDown: true }));
+    expect(structureCandidates(back, AT)).toEqual([]);
+    expect(refreshCandidates(back, { siteText: [], market: [] }, AT)).toEqual([]);
+    expect(refreshCandidates([own(A)], { siteText: [], market: [] }, AT)).toHaveLength(1);
   });
 });

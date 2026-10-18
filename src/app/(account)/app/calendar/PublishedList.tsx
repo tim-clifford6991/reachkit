@@ -4,12 +4,14 @@
 // The tile and this list read the one selector (`../_overview/content.ts`),
 // so the total is this list's length and "in the last 4 weeks" is its
 // marked rows. A daisyUI card and a plain list; titles wrap, nothing is
-// clamped.
+// clamped. Each live page carries *Take down* (issue 1532).
 import type React from "react";
 import { CONTENT_RECENT_WEEKS } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { formatCount, formatDate } from "../_shell/format";
 import type { ContentModel } from "../_overview/content";
+import { TakeDownControl } from "./TakeDown";
+import { takeDownWords } from "./take-down-words";
 
 /** The anchor Overview's Content tile opens. */
 export const PUBLISHED_ID = "published";
@@ -17,6 +19,7 @@ export const PUBLISHED_ID = "published";
 export function PublishedList(p: { content: ContentModel | null; timeZone: string }): React.JSX.Element | null {
   if (p.content === null) return null;
   const recent = new Set(p.content.recent.map((page) => page.id));
+  const words = takeDownWords();
   return (
     <section
       id={PUBLISHED_ID}
@@ -51,7 +54,12 @@ export function PublishedList(p: { content: ContentModel | null; timeZone: strin
                       {page.title}
                     </a>
                   )}
-                  <span className="num text-xs text-base-content/70">{formatDate(page.publishedAt, p.timeZone)}</span>
+                  <span className="flex min-w-0 flex-wrap items-center gap-2">
+                    <span className="num text-xs text-base-content/70">{formatDate(page.publishedAt, p.timeZone)}</span>
+                    {page.draftId === undefined || page.url === null ? null : (
+                      <TakeDownControl draftId={page.draftId} mode="take_down" words={words} />
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>

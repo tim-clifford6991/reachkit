@@ -55,6 +55,10 @@
 // repaired (`repairStructure`), so the new version is the page as it stands,
 // mended; the row is never edited in place (ADR-080). The floor stands.
 //
+// **A page its customer took down** (SPEC §7, issue 1532) is theirs from
+// then on, put back or not: no cause plans a refresh of it, and it gains no
+// link refresh. While it is down it is not live and is read by none of this.
+//
 // Nothing is bought and no model is asked. The partial unique index keeps
 // one open or queued refresh a page.
 import { CROSS_LINKS, EFFORT_BY_TYPE, INTENT_UNMET_WEEKS, PACE, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
@@ -63,6 +67,7 @@ import { withheldReportPassages } from "@/lib/generate/pipeline/report-scope";
 import { withheldMeasurements } from "@/lib/generate/rules/brief";
 import { ownMeasurementIn } from "@/lib/generate/rules/figures";
 import { storedStructure, structureDefects, type StructureDefect } from "@/lib/generate/rules/structure";
+import { takenDownByCustomer } from "@/lib/publish/take-down/standing";
 import { measured } from "@/lib/measure/measured";
 import type { Candidate } from "./derive/candidate";
 import { persist } from "./derive/persist";
@@ -109,6 +114,9 @@ export interface OwnLivePage {
   /** Issue 1507: what this version breaks of the consistency rules, where
    *  the customer did not edit it. Absent reads as nothing. */
   structure?: readonly StructureDefect[];
+  /** Issue 1532: the customer took this page down and put it back. Absent
+   *  reads as not so. */
+  takenDown?: boolean;
 }
 
 export interface RefreshPools {
@@ -185,6 +193,15 @@ function addressKey(url: string): string {
  * is not near at all.
  */
 export function linkBackCandidates(pages: readonly OwnLivePage[], freshUrl: string, at: Date): Candidate[] {
+  return linkBacksAmong(pages, freshUrl, at).filter((candidate) => !takenDownAt(pages, candidate.targetRef));
+}
+
+/** Whether the page at `url` is one its customer took down (issue 1532). */
+function takenDownAt(pages: readonly OwnLivePage[], url: string | null): boolean {
+  return url !== null && pages.some((page) => page.takenDown === true && addressKey(page.url) === addressKey(url));
+}
+
+function linkBacksAmong(pages: readonly OwnLivePage[], freshUrl: string, at: Date): Candidate[] {
   const fresh = pages.find((page) => addressKey(page.url) === addressKey(freshUrl));
   // A page going live for the first time: a refresh of an old page is not news
   // its neighbours owe a link to.
@@ -274,6 +291,7 @@ function refreshOf(page: Pick<OwnLivePage, "url" | "publishedAt" | "row"> & Part
 export function refreshCandidates(pages: readonly OwnLivePage[], pools: RefreshPools, at: Date): Candidate[] {
   return pages.flatMap((page): Candidate[] => {
     const { row } = page;
+    if (page.takenDown === true) return [];
     const cause = refreshCauseOf(page, pools, at);
     if (cause === null || row.targetQuery === null) return [];
     // SPEC §6 (D60, issue 1288): an unmet page whose own search has no
@@ -301,6 +319,7 @@ interface PublicationRow {
     title?: string | null;
     body_md?: string | null;
     meta: Record<string, unknown> | null;
+    transitions?: unknown;
     opportunities: OpportunityRow | null;
   } | null;
 }
@@ -331,7 +350,7 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
   const client = untyped();
   const live = await client
     .from<PublicationRow>("publications")
-    .select(`id, live_url, published_at, drafts(title, body_md, meta, opportunities(${COLUMNS}))`)
+    .select(`id, live_url, published_at, drafts(title, body_md, meta, transitions, opportunities(${COLUMNS}))`)
     .eq("site_id", siteId)
     .not("published_at", "is", null)
     .not("live_url", "is", null)
@@ -388,6 +407,7 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
       // `generate/edit.ts` stamps the first save a customer makes.
       edited: typeof meta.first_edited_at === "string",
       ownFigures: statesOwnFigures(meta, publication.drafts?.body_md ?? ""),
+      takenDown: takenDownByCustomer(publication.drafts?.transitions),
       structure: structureDefects(
         storedStructure({
           markdown: publication.drafts?.body_md ?? "",
@@ -524,7 +544,7 @@ export function movedLinkCandidates(
 ): Candidate[] {
   return pages.flatMap((page): Candidate[] => {
     if (addressKey(page.url) === addressKey(moved.to) || page.row.targetQuery === null) return [];
-    if (page.edited === true || page.stopped === true) return [];
+    if (page.edited === true || page.stopped === true || page.takenDown === true) return [];
     if (at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * DAY_MS) return [];
     const replaces = linkInto(page.markdown ?? "", moved.from);
     return replaces === null ? [] : [refreshOf(page, "link", at, { url: moved.to, title: moved.title, replaces })];
@@ -561,7 +581,7 @@ export async function planMovedLinks(a: { siteId: string; from: readonly string[
  */
 export function structureCandidates(pages: readonly OwnLivePage[], at: Date): Candidate[] {
   return pages.flatMap((page): Candidate[] => {
-    if (page.row.targetQuery === null || page.edited === true || page.stopped === true) return [];
+    if (page.row.targetQuery === null || page.edited === true || page.stopped === true || page.takenDown === true) return [];
     if ((page.structure ?? []).length === 0) return [];
     if (at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * DAY_MS) return [];
     return [refreshOf(page, "structure", at)];

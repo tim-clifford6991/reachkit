@@ -146,6 +146,9 @@ export interface DeliveryResult {
  *  that reaches the site, and `named_for_removal` is the arm with no
  *  members — held open against a page ReachKit created but did not make
  *  live. Not one of the five is deleted. */
+/** What a put-back's write at the destination answered (issue 1532). */
+export type RestoreResult = { ok: true } | { ok: false; reason: FailureReason };
+
 export type UnpublishResult =
   | { ok: true; outcome: "removed" }
   | { ok: true; outcome: "returned_to_draft" }
@@ -426,6 +429,13 @@ export interface DestinationAdapter {
    *  there, and whether the site answered at all, are facts only this call
    *  can learn. */
   unpublish(pub: Publication, cfg: DestinationConfig): Promise<UnpublishResult>;
+  /** SPEC §7 (issue 1532): the customer's put-back of a page their own
+   *  take-down left `removed` — the same version at the same address. The
+   *  hosted row is the page, so this clears the cache. Optional, and absent
+   *  at WordPress: a call that sets a post to `publish` is what ADR-084
+   *  Decision 1 rules out of its client, so a post returned to draft is not
+   *  put back until the owner rules on it. */
+  restore?(pub: Publication, cfg: DestinationConfig): Promise<RestoreResult>;
   /** What this destination's own end can be seen to be, right now.
    *
    *  It returns the **reason** as well as the state, because the adapter

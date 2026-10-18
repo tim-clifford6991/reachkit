@@ -1,8 +1,8 @@
 // tests/publish/machine/table.test.ts — BUILD §9's transition table.
 //
 // The table is data, so these are property assertions over it rather than
-// behavioural ones: the ten states, the fifteen edges member by member, the
-// two terminal states derived rather than restated, and the coupling
+// behavioural ones: the ten states, the seventeen edges member by member,
+// the one terminal state derived rather than restated, and the coupling
 // between `GUARDS` and `TRANSITIONS` that keeps a guard from being named on
 // an edge that does not exist.
 //
@@ -25,6 +25,7 @@ import type { State } from "@/lib/publish/types";
  *                             ↓ veto                  ↓ fail
  *                          skipped            failed → retry ×3 → needs_attention
  *   published → unpublished (always available)
+ *   unpublished → published (the customer's put-back, issue 1532)
  */
 const EDGES: [State, State][] = [
   ["planned", "generating"],
@@ -43,6 +44,7 @@ const EDGES: [State, State][] = [
   ["needs_attention", "skipped"],
   ["needs_attention", "in_review"],
   ["published", "unpublished"],
+  ["unpublished", "published"],
 ];
 
 describe("STATES is exactly §9's ten", () => {
@@ -68,13 +70,13 @@ describe("STATES is exactly §9's ten", () => {
   });
 });
 
-describe("TRANSITIONS is exactly the sixteen", () => {
+describe("TRANSITIONS is exactly the seventeen", () => {
   it.each(EDGES)("%s → %s is a member", (from, to) => {
     expect(TRANSITIONS.some(([f, t]) => f === from && t === to)).toBe(true);
   });
 
-  it("there is no seventeenth edge", () => {
-    expect(TRANSITIONS.length).toBe(16);
+  it("there is no eighteenth edge", () => {
+    expect(TRANSITIONS.length).toBe(17);
     for (const [from, to] of TRANSITIONS) {
       expect(EDGES.some(([f, t]) => f === from && t === to)).toBe(true);
     }
@@ -97,14 +99,14 @@ describe("TRANSITIONS is exactly the sixteen", () => {
   });
 });
 
-describe("skipped and unpublished are the only states from which no change is possible", () => {
+describe("skipped is the only state from which no change is possible", () => {
   it("TERMINAL is exactly the set of states that are the source of no edge — derived, not a second list", () => {
     const sources = new Set(TRANSITIONS.map(([from]) => from));
     const stranded = STATES.filter((state) => !sources.has(state));
     expect([...stranded].sort()).toEqual([...TERMINAL].sort());
   });
 
-  it("neither terminal state is the source of any edge, so a page the customer stopped never goes to a destination", () => {
+  it("the terminal state is the source of no edge, so a page the customer stopped never goes to a destination", () => {
     for (const state of TERMINAL) {
       expect(TRANSITIONS.some(([from]) => from === state)).toBe(false);
     }
@@ -135,20 +137,21 @@ describe("GUARDS names guards only on edges that exist", () => {
     "publishing_switch_on",
     "within_ceilings",
     "destination_working",
+    "put_back_window",
   ];
 
-  it("every key of GUARDS is one of the fifteen edges", () => {
+  it("every key of GUARDS is one of the seventeen edges", () => {
     const edges = new Set(TRANSITIONS.map(([from, to]) => edgeKey(from, to)));
     for (const key of Object.keys(GUARDS)) expect(edges.has(key)).toBe(true);
   });
 
-  it("every guard named in GUARDS is one of the ten", () => {
+  it("every guard named in GUARDS is one of the eleven", () => {
     for (const guards of Object.values(GUARDS)) {
       for (const guard of guards) expect(NAMED).toContain(guard);
     }
   });
 
-  it("every one of the ten is actually placed on an edge — a guard on no edge is a guard that never runs", () => {
+  it("every one of the eleven is actually placed on an edge — a guard on no edge is a guard that never runs", () => {
     const placed = new Set(Object.values(GUARDS).flatMap((g) => [...g]));
     for (const guard of NAMED) expect(placed.has(guard), guard).toBe(true);
   });
@@ -208,6 +211,10 @@ describe("GUARDS names guards only on edges that exist", () => {
     }
   });
 
+  it("unpublished → published is open only to a customer, and only inside the put-back window (issue 1532)", () => {
+    expect(GUARDS[edgeKey("unpublished", "published")]).toEqual(["customer_initiated", "put_back_window"]);
+  });
+
   it("approved → publishing carries the telling, so no page publishes on a pair the customer was never told about", () => {
     expect(GUARDS[edgeKey("approved", "publishing")]).toContain("customer_told");
   });
@@ -225,7 +232,7 @@ describe("isTransition answers membership, and answers it from the table", () =>
   // in behind the answer — the calendar's day panel is a client component
   // and does exactly that.
 
-  it("is true for each of the fifteen and false for every other pair", () => {
+  it("is true for each of the seventeen and false for every other pair", () => {
     for (const from of STATES) {
       for (const to of STATES) {
         expect(isTransition(from, to), edgeKey(from, to)).toBe(

@@ -252,6 +252,28 @@ describe("what the run reads", () => {
     ]);
   });
 
+  it("a page its customer took down and put back is theirs and never read (issue 1532)", () => {
+    const customer = { kind: "customer", userId: "u1" };
+    const transitions = [
+      { from: "published", to: "unpublished", actor: customer, reason: "take_down", at: "2026-10-12T09:00:00Z" },
+      { from: "unpublished", to: "published", actor: customer, reason: "put_back", at: "2026-10-13T09:00:00Z" },
+    ];
+    const row = (id: string, url: string, moves: unknown[]) => ({
+      id,
+      draft_id: `draft-${id}`,
+      destination: "hosted",
+      live_url: url,
+      published_at: "2026-10-03T07:00:00Z",
+      site_id: "site",
+      drafts: { meta: {}, transitions: moves, opportunities: stored.pages[0]!.row },
+    });
+    const read = liveAddressesOf(
+      [row("a", "https://content.example/a", transitions), row("b", "https://content.example/b", [])],
+      (stored) => readOpportunity(stored as OpportunityRow)
+    );
+    expect(read.map((address) => address.liveUrl)).toEqual(["https://content.example/b"]);
+  });
+
   it("a stored ranked keyword keeps a page only within the top 30, at its own address", () => {
     const url = "https://reachkit.app/blog/x";
     expect(rankedWithin([{ url: "https://www.reachkit.app/blog/x/", position: 30 }], url)).toBe(true);

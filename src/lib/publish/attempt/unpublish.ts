@@ -53,6 +53,12 @@ export interface UnpublishArgs {
   /** How the change is announced (`../destinations/hosted/announce.ts`).
    *  Injected so a suite answers for the network. */
   announce?: AnnounceSend;
+  /** The reason the move is recorded under; `unpublish` unless named. The
+   *  customer's take-down is `take_down` (issue 1532). */
+  reason?: string;
+  /** `false` where another version at the same address announces it: one
+   *  request an address (issue 1511). */
+  announceAddress?: boolean;
 }
 
 interface PublicationRow {
@@ -101,13 +107,13 @@ export async function unpublish(a: UnpublishArgs): Promise<UnpublishResult> {
   await transition(a.draftId, "unpublished", a.by, {
     at,
     ...(a.deps === undefined ? {} : { deps: a.deps }),
-    reason: "unpublish",
+    reason: a.reason ?? "unpublish",
   });
 
   // SPEC §7 (2026-10-18, issue 1511): the address that now answers 410 is
   // announced once, so search engines drop it. Hosted only; never a reason
   // the stop is not taken.
-  if (destination === "hosted" && row.live_url !== null) {
+  if (destination === "hosted" && row.live_url !== null && a.announceAddress !== false) {
     const { announceHosted } = await import("../destinations/hosted/announce");
     await announceHosted({ siteId: row.site_id, urls: [row.live_url], ...(a.announce === undefined ? {} : { send: a.announce }) });
   }

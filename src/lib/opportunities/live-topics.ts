@@ -43,7 +43,8 @@
 //     (`withoutLinksTo`, at render).
 //
 // A page is never corrected by a direct row edit (ADR-080), and a page the
-// customer edited is theirs and never read here. Nothing records a visitor
+// customer edited, or took down and put back (issue 1532), is theirs and
+// never read here. Nothing records a visitor
 // from anywhere but an answer engine (`publication_reads` holds those
 // only), so a non-search referrer is never on file.
 import { REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
@@ -54,6 +55,7 @@ import { freshTopTen, OTHER_KIND_TOP_TEN, otherKindTopTen, type KindOfBusiness, 
 import type { IntentPrompt } from "./intent";
 import { comparisonWithoutAsking } from "./readiness";
 import { isRetarget, type Opportunity } from "./types";
+import { takenDownByCustomer } from "@/lib/publish/take-down/standing";
 
 /** How old an address must be before topic rules alone may retire it, where
  *  no verdict has yet judged it. Drafted (the SEO master review of
@@ -306,7 +308,7 @@ export interface LiveRow {
   live_url: string | null;
   published_at: string;
   site_id: string;
-  drafts: { meta: unknown; opportunities: unknown } | null;
+  drafts: { meta: unknown; transitions?: unknown; opportunities: unknown } | null;
 }
 
 /** One address's live versions, newest first, with the row its newest was
@@ -322,7 +324,7 @@ export interface LiveAddress {
  * The addresses the run reads: each with its live versions, newest first.
  * A page the customer edited is theirs (`edit.ts` stamps
  * `meta.first_edited_at` on the first save) and is left out, as is a page
- * with no row. Pure.
+ * they took down and put back (issue 1532) and a page with no row. Pure.
  */
 export function liveAddressesOf(rows: readonly LiveRow[], read: (row: unknown) => Opportunity): LiveAddress[] {
   const byUrl = new Map<string, LiveRow[]>();
@@ -337,6 +339,7 @@ export function liveAddressesOf(rows: readonly LiveRow[], read: (row: unknown) =
     const meta = (newest.drafts?.meta ?? {}) as Record<string, unknown>;
     const stored = newest.drafts?.opportunities;
     if (typeof meta.first_edited_at === "string" || stored == null || Array.isArray(stored)) continue;
+    if (takenDownByCustomer(newest.drafts?.transitions)) continue;
     out.push({ siteId: newest.site_id, liveUrl, versions, opportunity: read(stored) });
   }
   return out;
@@ -364,7 +367,7 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
       const db = publishDb();
       const live = await db
         .from<LiveRow>("publications")
-        .select(`id, draft_id, destination, live_url, published_at, site_id, drafts(meta, opportunities(${COLUMNS}))`)
+        .select(`id, draft_id, destination, live_url, published_at, site_id, drafts(meta, transitions, opportunities(${COLUMNS}))`)
         .not("published_at", "is", null)
         .is("unpublished_at", null);
       if (live.error !== null || live.data === null) throw new Error(`live-topics: reading publications: ${live.error?.message ?? "no rows"}`);

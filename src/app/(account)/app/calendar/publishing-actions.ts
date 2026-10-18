@@ -111,3 +111,33 @@ export async function vetoDraft(draftId: string): Promise<string | null> {
 export async function regenerateDraft(draftId: string): Promise<string | null> {
   return move(draftId, "generating");
 }
+
+/**
+ * SPEC §7 (issue 1532): **Take down** a live page — `unpublish()` with this
+ * customer as actor, every live version at its address — and **Put back**
+ * one inside its window, through §9's `unpublished → published`. The same
+ * ownership proof as every write above; the refusal is the engine's word.
+ */
+async function pageWrite(
+  draftId: string,
+  write: (a: { draftId: string; userId: string }) => Promise<{ ok: true } | { ok: false; refused: string }>
+): Promise<string | null> {
+  const account = await requireAppAccount();
+  const { siteOwnsDraft } = await import("../_session/store");
+  if (!(await siteOwnsDraft(account.siteId, draftId))) return NOT_YOUR_PAGE;
+  const result = await write({ draftId, userId: account.userId });
+  if (!result.ok) return result.refused;
+  revalidatePath(DESTINATION_HREF.calendar);
+  revalidatePath(`/app/draft/${draftId}`);
+  return null;
+}
+
+export async function takeDownDraft(draftId: string): Promise<string | null> {
+  const { takeDown } = await import("@/lib/publish/attempt/take-down");
+  return pageWrite(draftId, takeDown);
+}
+
+export async function putBackDraft(draftId: string): Promise<string | null> {
+  const { putBack } = await import("@/lib/publish/attempt/take-down");
+  return pageWrite(draftId, putBack);
+}

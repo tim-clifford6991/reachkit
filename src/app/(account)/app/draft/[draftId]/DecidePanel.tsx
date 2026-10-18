@@ -47,13 +47,15 @@ import type React from "react";
 import { useSyncExternalStore } from "react";
 import { Check, Info, LoaderCircle, Minus, Pencil, CircleStop, RotateCcw, X } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
-import { formatDateTime } from "../../_shell/format";
+import { formatDate, formatDateTime } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
 import { draftActionsFor, type DraftCommand } from "./actions";
 import { CHECK_GROUPS, checkList, type CheckRow, type CheckStatus } from "./checks";
 import type { RecordedChecks } from "@/lib/generate/rules/types";
 import { CopyOut } from "./CopyOut";
 import type { State } from "../../calendar/stages";
+import { TakeDownControl } from "../../calendar/TakeDown";
+import { putBackWords, takeDownWords } from "../../calendar/take-down-words";
 import type { ClaimState, DraftView } from "./model";
 import { SHAPE } from "./shape";
 
@@ -306,6 +308,23 @@ export function DecidePanel(p: {
                     {copy(action.key)}
                   </button>
                                 ),
+              )}
+            </div>
+          )}
+
+          {/* SPEC §7 (issue 1532): a live page can be taken down, and put
+              back inside its window. */}
+          {view.takeDown === null ? null : (
+            <div className="flex min-w-0 flex-col gap-2" data-testid="draft-take-down">
+              {view.takeDown.kind === "put_back" ? (
+                <p className="min-w-0 text-xs text-base-content/70 wrap-anywhere">
+                  {copy("draft.put-back.until", { date: formatDate(view.takeDown.until, view.timeZone) })}
+                </p>
+              ) : null}
+              {view.takeDown.kind === "put_back" ? (
+                <TakeDownControl draftId={view.draftId} mode="put_back" words={putBackWords()} />
+              ) : (
+                <TakeDownControl draftId={view.draftId} mode="take_down" words={takeDownWords()} />
               )}
             </div>
           )}

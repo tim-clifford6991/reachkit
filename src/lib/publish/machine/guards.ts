@@ -1,4 +1,4 @@
-// BUILD §9 — the ten named guards, one function each.
+// BUILD §9 — the eleven named guards, one function each.
 //
 // A guard answers one question about one edge and delegates every fact it
 // does not own: the switch and ReachKit's own stop are `switch/index.ts`'s,
@@ -17,6 +17,7 @@ import { isPublishingOn, reachKitStopped } from "../switch";
 import { ceilingRoom } from "../ceilings";
 import { destinationWorking } from "../destinations";
 import { PUBLISHABLE_RULE } from "../publishable/rule";
+import { canPutBack } from "../take-down/standing";
 import type { GuardId } from "./table";
 
 /** The draft as the machine reads it: the view the rules take, plus the two
@@ -142,6 +143,10 @@ export const GUARD_FNS: Readonly<Record<GuardId, (c: GuardContext) => Promise<bo
 
     async customer_initiated(c: GuardContext): Promise<boolean> {
       return c.by.kind === "customer";
+    },
+
+    async put_back_window(c: GuardContext): Promise<boolean> {
+      return canPutBack(c.draft.transitions, c.at);
     },
 
     async publishable_and_due(c: GuardContext): Promise<boolean> {

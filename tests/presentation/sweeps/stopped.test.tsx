@@ -366,8 +366,16 @@ describe("REQ-092 c5 — prepared pages survive the stop, and none is dropped or
     // into `publishing` carries the stop. `skipped` is reachable only from
     // `planned`, `in_review` and `needs_attention` — the customer's own
     // veto and skip — and no stop takes one.
+    //
+    // 2026-10-18, issue 1532: `unpublished → published` is the customer's
+    // put-back of a page they took down themselves — a separate action from
+    // a stop (REQ-092). It is not on the stop path: no held state reaches
+    // `unpublished` without first being published, and the edge is open to
+    // the customer alone (`customer_initiated`, `put_back_window`), so no
+    // stop and no system job can take it.
     const intoPublished = TRANSITIONS.filter(([, to]) => to === "published").map(([from]) => from);
-    expect(intoPublished).toEqual(["publishing"]);
+    expect(intoPublished).toEqual(["publishing", "unpublished"]);
+    expect(GUARDS[edgeKey("unpublished", "published")]).toEqual(["customer_initiated", "put_back_window"]);
     for (const [from, to] of TRANSITIONS.filter(([, t]) => t === "publishing")) {
       expect(GUARDS[edgeKey(from, to)]).toContain("reachkit_not_stopped");
     }
