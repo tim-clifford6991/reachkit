@@ -16,7 +16,7 @@
 // the response is ever logged. The ceiling is read before each call; a call
 // the page cannot afford is `not_attempted`, never a rule that failed.
 import { z } from "zod";
-import { PAGE_BLOCKS, TITLE, VOICE } from "@/lib/config/constants";
+import { PAGE_BLOCKS, RESEARCH, TITLE, VOICE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import type { Tier } from "@/lib/llm/tiers";
@@ -164,6 +164,11 @@ const BUILT_TABLE_RULE =
 const COUNTED_OPTIONS_RULE =
   "`options` are the options this page counts, this business first, and no others: write one `option` section for each, in that order, and never one for a product `options` does not hold. A number in the title or the page that counts the options is exactly how many `options` holds, and `which_to_choose` chooses among them only. Where `alternativesTo` names a product, the page lists alternatives to it: its row in `table` is marked as the one compared against, the `baseline` section says what it offers, and it is never counted, written as an `option` or chosen in the verdict. Where `alternativesTo` is null, write no `baseline` section.";
 
+/** Issue 1508: a listicle that counts fewer options than the pages it
+ *  competes with says why, in its method section. Model-facing. */
+const fewOptionsRule = (count: number): string =>
+  `Only ${count} options qualified. In \`how_we_compared\`, say so in one plain sentence: an option is listed only where its own pricing or product page stated a fact, and only where it sells what this market buys, so the other products searchers see named were left out. Never name a product \`options\` does not hold.`;
+
 /** SPEC §7 (owner, 2026-10-10; issue 1390): a section is headed by the
  *  question buyers were seen to ask, where the pack holds one it answers. */
 const ASKED_HEADINGS_RULE =
@@ -242,6 +247,7 @@ function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<s
       ...(a.pack.voice === undefined ? [] : voiceRules(a.pack.voice)),
       ...(a.pack.type === "qa" || a.pack.type === "update" || a.pack.questions.length === 0 ? [] : [ASKED_HEADINGS_RULE]),
       ...(table === null ? [WRITTEN_TABLE_RULE] : [BUILT_TABLE_RULE, COUNTED_OPTIONS_RULE]),
+      ...(table !== null && table.options.length < RESEARCH.optionsAim ? [fewOptionsRule(table.options.length)] : []),
       ...languageRules(a.pack.locale?.language ?? "en"),
     ],
     ...extra,

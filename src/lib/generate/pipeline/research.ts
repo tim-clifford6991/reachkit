@@ -52,15 +52,17 @@
 // step with what it has. *Current insights* pays for one more small call, the
 // judgement of its news results.
 //
-// **A page that compares options reads more of them** (issue 1508). Its
-// options are the rivals in force and the products named on two or more of
-// the top results it reads, by a link whose words spell the product's own
-// domain, up to `RESEARCH.options` with the business; a listing site or a
-// platform is no product. On a search shaped "{X} alternatives", in any
-// supported language, X is the page's baseline: its own pages are read, and
-// it is not one of the options. Each is still kept only where its own page
-// yields a claim. The pages are free reads, and the claims stay in the same
-// calls: each product's first page is read before any product's second.
+// **A page that compares options reads more than its rivals in force**
+// (issue 1508). Its options are the rivals in force and the products named
+// on two or more of the top results it already read, by a link whose words
+// spell the product's own domain; a listing site or a platform is no
+// product, and one is an option only where its own pages are of the
+// market's category and, for a local business, name its place. On a search
+// shaped "{X} alternatives", in any supported language, X is the page's
+// baseline: its own pages are read, and it is not one of the options. Each
+// is still kept only where its own page yields a claim, and the own pages
+// of at most `RESEARCH.rivals` products are handed to the claim calls, each
+// product's first page before any product's second.
 //
 // **Research never stops a page.** A site whose market yields no readable
 // page is written from its business facts alone, as before this step.
@@ -73,7 +75,8 @@ import { visibleText } from "@/lib/measure/parse";
 import type { StoredReport } from "@/lib/scan/report";
 import type { WritingMarket } from "../voice/market";
 import { languagePack, pagePathAlternation, SHAPES } from "@/lib/locale/language";
-import { brandOf } from "@/lib/market/questions/select";
+import { brandOf, GENERIC_TOKENS } from "@/lib/market/questions/select";
+import { topicWords } from "@/lib/opportunities/intent";
 import { isPlatformDomain, nameLetters, registrableDomain } from "@/lib/market/rivals/domains";
 import type { Locale } from "@/lib/locale/locales";
 import type { NewsRow } from "@/lib/vendors/dataforseo/types";
@@ -769,10 +772,14 @@ export async function researchMarket(
      *  it names them: what an alternatives search is read against. */
     rivalNames?: readonly { domain: string; name: string | null }[];
     /** Issue 1508: a page that compares options. Its options are the rivals
-     *  in force and the products its top results name, up to
-     *  `RESEARCH.options`, and an alternatives search's product is read as
+     *  in force and the products its top results name, inside
+     *  `RESEARCH.rivals`, and an alternatives search's product is read as
      *  its baseline. */
     options?: boolean;
+    /** Issue 1508: the market's category and its synonyms (D49). A product
+     *  the results name is an option only where its own pages share a word
+     *  with them. */
+    marketWords?: readonly string[];
     today: Date;
     /** *Current insights* (D42, D48): in place of the studies, the news is
      *  searched for each of `searches` — the market's category, then its
@@ -808,23 +815,28 @@ export async function researchMarket(
     const named = RIVAL_PAGE_KINDS.map((kind) => ({ kind, url: rivalPage(kind, domain, home, sitemap) }));
     // One page that is both is read once.
     const wanted = named.filter((page, index) => page.url !== null && named.findIndex((other) => other.url === page.url) === index);
-    return Promise.all(wanted.map(async (page) => ({ domain, kind: page.kind, read: await fetchPage(page.url!) })));
+    const rows = await Promise.all(wanted.map(async (page) => ({ domain, kind: page.kind, read: await fetchPage(page.url!) })));
+    return { domain, home: home === null ? "" : visibleText(home.html), rows };
   };
+  const same = (left: string, right: string): boolean => sameSite(left, right) || sameSite(right, left);
 
   // 1. The network, in parallel: the top results in order until enough are
   //    readable, and each rival's two pages. A page that compares options
-  //    reads the products its top results name once they are read.
+  //    then reads the products its top results name.
   const topTen = storedTopTen(a.report, a.searches).filter(notOurs);
-  const first = a.options === true ? inForce.slice(0, RESEARCH.options - 1) : inForce.slice(0, RESEARCH.rivals);
+  const first = inForce.slice(0, RESEARCH.rivals);
   const [topReads, firstReads] = await Promise.all([
     Promise.all(topTen.slice(0, RESEARCH.topResults * 2).map(fetchPage)),
     Promise.all(first.map(readRival)),
   ]);
-  const readable = topReads.filter((read) => read !== null).slice(0, RESEARCH.topResults);
-  const named = a.options === true ? namedProducts(readable.map((read) => ({ url: read.page.url, html: read.html })), own) : [];
+  const readable = topReads.filter((read) => read !== null);
+  // Issue 1508: the products named on the top results already read, up to
+  // `namedFrom` of them; the claim calls still read `topResults`.
+  const named =
+    a.options === true ? namedProducts(readable.slice(0, RESEARCH.namedFrom).map((read) => ({ url: read.page.url, html: read.html })), own) : [];
   const names = new Map<string, string>(named.map((product) => [product.domain, product.name]));
-  // Issue 1508: the product an alternatives search is about — a rival in
-  // force, a product the results name, or a site of the top ten.
+  // The product an alternatives search is about — a rival in force, a
+  // product the results name, or a site of the top ten.
   const baseline =
     a.options === true
       ? alternativesSubject(target, [
@@ -836,17 +848,33 @@ export async function researchMarket(
           }),
         ])
       : null;
-  const known = (domain: string): boolean => first.some((rival) => sameSite(domain, rival) || sameSite(rival, domain));
-  const others = [...inForce, ...named.map((product) => product.domain)].filter(
-    (domain, index, all) => domain !== baseline && all.findIndex((other) => sameSite(domain, other) || sameSite(other, domain)) === index
+  // A product the results name, beside the rivals in force, read to judge
+  // whether it is an option at all. Its reads are free.
+  const onResults = named.map((product) => product.domain).filter((domain) => domain !== baseline && !inForce.some((rival) => same(domain, rival)));
+  const spare = onResults.slice(0, RESEARCH.rivals);
+  const moreReads = await Promise.all(
+    [...(baseline === null || first.some((rival) => same(rival, baseline)) ? [] : [baseline]), ...spare].map(readRival)
   );
-  const rivalDomains = [
-    ...(baseline === null ? [] : [baseline]),
-    ...others.slice(0, a.options === true ? RESEARCH.options - 1 : RESEARCH.rivals),
-  ];
-  const moreReads = await Promise.all(rivalDomains.filter((domain) => !known(domain)).map(readRival));
-  const byDomain = new Map([...firstReads, ...moreReads].map((reads) => [reads[0]?.domain, reads] as const));
-  const rivalRows = rivalDomains.map((domain) => byDomain.get(domain) ?? []);
+  const byDomain = new Map([...firstReads, ...moreReads].map((read) => [read.domain, read] as const));
+  // Issue 1508: a product found on the results is an option only where its
+  // own pages are of the market's category (D49) and, for a business that
+  // serves one place (D67), name that place. A rival in force was chosen
+  // for both already; the baseline is what the page is about.
+  const category = new Set((a.marketWords ?? []).flatMap((words) => [...topicWords(words)]).filter((word) => !GENERIC_TOKENS.has(word)));
+  const place = [a.locale.place?.name, a.locale.place?.region].flatMap((name) => (name === undefined || name.trim() === "" ? [] : [name.toLowerCase()]));
+  const fits = (domain: string): boolean => {
+    const read = byDomain.get(domain);
+    if (read === undefined) return false;
+    const text = [read.home, ...read.rows.map((row) => row.read?.page.text ?? "")].join(" ");
+    const said = topicWords(text);
+    const lower = text.toLowerCase();
+    return (category.size === 0 || [...category].some((word) => said.has(word))) && (place.length === 0 || place.some((name) => lower.includes(name)));
+  };
+  const others = [...first.filter((domain) => domain !== baseline), ...spare.filter(fits)];
+  // The bound (#1135, held at four by issue 1508 until the owner rules):
+  // the own pages of at most `RESEARCH.rivals` products, the baseline first.
+  const rivalDomains = [...(baseline === null ? [] : [baseline]), ...others].slice(0, RESEARCH.rivals);
+  const rivalRows = rivalDomains.map((domain) => byDomain.get(domain)?.rows ?? []);
   // Each product's first page before any product's second, so the claim
   // calls reach every option (issue 1508).
   const rivalReads = a.options === true ? [0, 1].flatMap((at) => rivalRows.flatMap((rows) => (rows[at] === undefined ? [] : [rows[at]]))) : rivalRows.flat();

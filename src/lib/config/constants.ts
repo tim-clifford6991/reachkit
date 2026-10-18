@@ -2014,13 +2014,19 @@ export const RESEARCH = Object.freeze({
   topResults: 3,
   /** The named rivals whose own pricing and feature pages are read. */
   rivals: 4,
-  /** Issue 1508 (drafted default): a page that compares options counts at
-   *  most this many, the business among them, so it reads the own pages of
-   *  `options - 1` rivals, and of the product an alternatives page is about
-   *  beside them. A rival here is one in force or a product named on
-   *  `namedOn` of the top results read. */
-  options: 8,
+  /** Issue 1508: the products a listicle's options may be found among are
+   *  the ones named on `namedOn` of the first `namedFrom` top results
+   *  already read (the claim calls still read `topResults`). `rivals`
+   *  above stays the bound on the own pages read, the baseline among them:
+   *  raising it to eight costs a site about 0.23¢ a page read, per page
+   *  written, and waits for the owner's ruling on #1135. */
+  namedFrom: 5,
   namedOn: 2,
+  /** Issue 1508 (drafted default): a listicle counts at least `optionsMin`
+   *  options, the business among them, or it is not written that day (D26);
+   *  under `optionsAim` its method section says why only those qualified. */
+  optionsMin: 4,
+  optionsAim: 5,
   /** D56 (issue 1282): a rival's pages are found in its own sitemap — at
    *  most this many addresses of it, from this many sitemaps of an index. */
   sitemaps: 3,

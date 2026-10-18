@@ -574,6 +574,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
           // and an alternatives search's product is its baseline.
           rivalNames: namedRivals(site.rivals, writingFor.market),
           options: type === "listicle",
+          marketWords: [category, ...writingFor.synonyms],
           today: new Date(),
           // Issue 1390: every page that is researched reads what buyers
           // ask beside its target, for its headings.

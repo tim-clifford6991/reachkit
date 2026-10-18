@@ -1,4 +1,5 @@
 // SPEC §7 (D42, 1) — listicle / comparison.
+import { RESEARCH } from "@/lib/config/constants";
 import type { Template } from "./types";
 
 export const listicle: Template = {
@@ -48,5 +49,6 @@ export const listicle: Template = {
   blocks: { table: { rivals: 2 }, faq: { min: 3, max: 6 } },
   length: { floor: 1500, ceiling: 2500 },
   research: true,
-  packMustHold: [{ need: "options", min: 3 }, { need: "own_price" }, { need: "difference" }],
+  // Issue 1508: at least four counted options, the business among them.
+  packMustHold: [{ need: "options", min: RESEARCH.optionsMin }, { need: "own_price" }, { need: "difference" }],
 };

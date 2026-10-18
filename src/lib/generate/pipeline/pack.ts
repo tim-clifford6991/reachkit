@@ -710,7 +710,12 @@ export function buildPack(a: PackInputs): ContextPack {
   // SPEC §7 (owner, D47): a comparison with fewer than two rivals that have
   // facts is written as a Q&A, from the same reads. A business with no price
   // of its own is not that case: the page stops and asks for it, as before.
-  if (a.type === "listicle" && missing.includes("options") && !missing.includes("own_price")) return buildPack({ ...a, type: "qa" });
+  // Issue 1508: two rivals or more but fewer than `RESEARCH.optionsMin`
+  // counted options is a comparison not ready yet: it stays short, and the
+  // day goes to the next topic (D26).
+  const table = TEMPLATES.listicle.blocks.table;
+  const noComparison = table !== undefined && comparisonTable(pack, table.rivals) === null;
+  if (a.type === "listicle" && missing.includes("options") && !missing.includes("own_price") && noComparison) return buildPack({ ...a, type: "qa" });
   return { ...pack, missing };
 }
 
