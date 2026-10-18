@@ -2858,6 +2858,7 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
         linked: reading.linked,
         ownUrls: reading.ownUrls,
         rivals: reading.rivals,
+        ...(reading.alternatives.length === 0 ? {} : { alternatives: reading.alternatives }),
         namesABrand: reading.namesABrand,
       });
       if (prompt.kind !== "branded" && prompt.kind !== "comparison" && !evidence.has(prompt.id)) {
@@ -2907,6 +2908,7 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
           linked: answer.linked,
           ownUrls: answer.ownUrls,
           rivals: answer.rivals,
+          ...(answer.alternatives === undefined ? {} : { alternatives: answer.alternatives }),
         })),
     };
     for (const [id, answer] of evidence) if (kept.has(id)) sections.marketPrompts.push(answer);

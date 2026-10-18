@@ -45,10 +45,14 @@ describe("a \"vs\" between products is ready only with measured demand (conditio
     expect(opportunityReady(rowOf("B"), CTX)).toBe("no_intent");
   });
 
-  it("a rival against a rival, unmeasured: ready only where a tracked prompt names one of them", () => {
+  it("a rival against a rival, unmeasured: ready only where a tracked prompt about it was answered naming both (issue 1520)", () => {
     expect(opportunityReady(versus("rankscale vs temso"), CTX)).toBe("no_intent");
-    expect(opportunityReady(versus("profound vs otterly"), CTX)).toBeNull();
-    expect(opportunityReady(versus("profound vs otterly"), { ...CTX, prompts: stored.prompts.slice(0, 2) })).toBe("no_intent");
+    // The prompt "How does Profound compare with Peec AI…" names both; that alone is no longer demand.
+    expect(opportunityReady(versus("profound vs peec ai"), CTX)).toBe("no_intent");
+    const answer = (rivals: string[]) => [{ promptId: "cd9577b2", named: false, linked: false, rivals }];
+    expect(opportunityReady(versus("profound vs peec ai"), { ...CTX, answers: answer(["tryprofound.com", "peec.ai"]) })).toBeNull();
+    expect(opportunityReady(versus("profound vs peec ai"), { ...CTX, answers: answer(["tryprofound.com"]) })).toBe("no_intent");
+    expect(opportunityReady(versus("profound vs peec ai"), { ...CTX, prompts: stored.prompts.slice(0, 2), answers: answer(["tryprofound.com", "peec.ai"]) })).toBe("no_intent");
   });
 
   it("a measured volume above zero makes it ready; a zero does not", () => {

@@ -68,7 +68,7 @@ import { suppressionOf, verdictReason, type Suppression } from "./suppression";
 import { hasGoal, intentFor, type IntentPrompt } from "./intent";
 import type { KnownMatch } from "@/lib/known-content/types";
 import { queryKey } from "./cluster";
-import { comparisonBrands, comparisonUnasked, type AskedBeside, type ComparisonBrands } from "./derive/topics";
+import { comparisonBrands, comparisonUnasked, composedSearch, type AskedBeside, type ComparisonBrands, type MeasuredAnswer } from "./derive/topics";
 import { freshTopTen, otherKindTopTen, OTHER_KIND_TOP_TEN, type KindOfBusiness, type TopTenRead, type TopTenRow } from "./derive/top-ten-kind";
 import type { Opportunity, UnreadyReason } from "./types";
 
@@ -105,6 +105,12 @@ export interface ReadinessContext {
   /** Issue 1506: what buyers were seen asking beside the market's searches
    *  (D62's store). Absent reads none. */
   asked?: readonly AskedBeside[];
+  /** Issue 1520: the newest measured answers to the tracked prompts.
+   *  Absent reads none. */
+  answers?: readonly MeasuredAnswer[];
+  /** Issue 1520: whether a search is one ReachKit composed from the market
+   *  in force. Absent reads only the row's own mark. */
+  composed?: (query: string) => boolean;
   /** Issue 1506: the stored top ten for a row's search, `null` where none
    *  was stored, and the business it is read against. */
   topTen?: (o: Opportunity) => readonly TopTenRow[] | null;
@@ -124,11 +130,21 @@ function volumeOf(o: Opportunity): number {
   return o.volume === null || o.volume.kind === "unmeasured" ? 0 : o.volume.value;
 }
 
-/** Issue 1506: a "vs" between products that nothing measured anyone asking
+/** Issue 1506, as issue 1520 amended it: a comparison, alternatives or
+ *  composed search that nothing observed anyone asking
  *  (`comparisonUnasked`). The answer a row was found in counts where it
- *  named one of its rivals: an Earn row's AI answer, or an `ai_gap` row's. */
-export function comparisonWithoutAsking(o: Opportunity, ctx: Pick<ReadinessContext, "brands" | "prompts" | "asked">): boolean {
+ *  named one of its rivals: an Earn row's AI answer, or an `ai_gap` row's.
+ *  A topic buyers were seen asking (issue 1519) is observed. A composed
+ *  search is a Write row's: an update is of a page that exists. */
+export function comparisonWithoutAsking(
+  o: Opportunity,
+  ctx: Pick<ReadinessContext, "brands" | "prompts" | "asked" | "answers" | "composed">
+): boolean {
   if (ctx.brands === undefined) return false;
+  if (o.evidence.family === "write" && o.evidence.askedBeside !== undefined) return false;
+  const query = o.targetQuery ?? "";
+  const composed =
+    o.family === "write" && ((o.evidence.family === "write" && o.evidence.composed === true) || ctx.composed?.(query) === true);
   const answeredRival =
     o.evidence.family === "earn" && o.evidence.source.surface === "ai_answer"
       ? o.evidence.rival.domain
@@ -136,12 +152,14 @@ export function comparisonWithoutAsking(o: Opportunity, ctx: Pick<ReadinessConte
         ? o.evidence.rival.domain
         : null;
   return comparisonUnasked({
-    query: o.targetQuery ?? "",
+    query,
     volume: volumeOf(o),
     brands: ctx.brands,
     prompts: ctx.prompts ?? [],
+    answers: ctx.answers ?? [],
     answeredRival,
     asked: ctx.asked ?? [],
+    composed,
   });
 }
 
@@ -384,6 +402,8 @@ export async function assessReadiness(
     prompts,
     brands: comparisonBrands({ report, market }),
     asked,
+    answers: report?.prompts?.answers ?? [],
+    composed: (query) => composedSearch(query, market),
     topTen: (o) => (o.targetQuery === null ? null : freshTopTen(topTens.get(queryKey(o.targetQuery)), now)),
     business: market === null ? null : { kind: market.kind ?? null, serves: market.serves ?? null },
   };

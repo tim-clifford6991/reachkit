@@ -618,6 +618,10 @@ export interface PromptAnswer {
   linked: boolean;
   ownUrls: readonly string[];
   rivals: readonly string[];
+  /** The addresses it cited that hold "alternative" (issue 1520): what
+   *  says buyers asking it were shown a rival's alternatives. Absent where
+   *  it cited none, and on every answer stored before. */
+  alternatives?: readonly string[];
 }
 
 /** One weekly pass's tracked prompts (SPEC §6, D19, #1162). */

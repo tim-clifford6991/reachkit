@@ -7,7 +7,7 @@
 // nothing is bought.
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { checkAskedTopics, checkComparisonDemand, checkSite, panelTopicOf, countPageQuestions, defectsByKind, isRealQuestion, saidOf, type CheckResult, type SiteResult } from "../../scripts/panel/checks";
+import { checkAskedTopics, checkComparisonDemand, checkObservedDemand, checkSite, panelTopicOf, countPageQuestions, defectsByKind, isRealQuestion, saidOf, type CheckResult, type SiteResult } from "../../scripts/panel/checks";
 
 const plumber: SiteResult = {
   site: { domain: "northside-plumbing.example", kind: "local service (plumber)", country: "US", language: "en", market: ["plumb"], why: "fixture" },
@@ -92,16 +92,16 @@ describe("npm run panel — a pass held to what the business is", () => {
     const checks = checkSite(plumber);
 
     // The last is the tracked prompts: this fixture is a run stored before
-    // their kind was recorded (D69), which a person reads. So is the tenth:
-    // it did not count its SERPs' questions (issue 1519).
-    expect(verdicts(checks)).toEqual(["pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "review", "pass", "review"]);
+    // their kind was recorded (D69), which a person reads. So is the
+    // eleventh: it did not count its SERPs' questions (issue 1519).
+    expect(verdicts(checks)).toEqual(["pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "review", "pass", "review"]);
   });
 
   it("fails a German bakery read as an American software company, and says what is wrong", () => {
     const checks = checkSite(bakery);
     const by = Object.fromEntries(checks.map((check) => [check.check, check]));
 
-    expect(verdicts(checks)).toEqual(["fail", "fail", "fail", "fail", "fail", "fail", "fail", "fail", "pass", "review", "pass", "review"]);
+    expect(verdicts(checks)).toEqual(["fail", "fail", "fail", "fail", "fail", "fail", "fail", "fail", "pass", "pass", "review", "pass", "review"]);
     expect(by["the category is specific, and is the business's own"]!.detail).toContain("names no market");
     expect(by["the terms are in the site's own language and country"]!.detail).toContain("a de site in Germany was read in United States / en");
     expect(by["3–5 rivals, none a listing, each with demand or seen by the pass"]!.items).toEqual([
@@ -336,13 +336,28 @@ describe("issue 1506: a ready \"vs\" between products has measured demand, on ev
     expect([...heldIn].sort()).toEqual(["creator", "hospitality", "local-service", "professional-services", "shop", "software"]);
   });
 
-  it("a comparison of the business with a rival, unmeasured, is held unless a tracked prompt names the rival", () => {
+  it("issue 1520: each run passes, and a rival's alternatives or a composed search nobody was seen asking is held back for every kind", () => {
+    const failed = results
+      .map(({ file, result }) => ({ file, domain: result.site.domain, check: checkObservedDemand(result) }))
+      .filter(({ check }) => check.verdict !== "pass");
+    expect(failed).toEqual([]);
+    const heldIn = new Set(
+      results.filter(({ result }) => checkObservedDemand(result).items.length > 0).flatMap(({ result }) => result.site.kinds ?? [])
+    );
+    expect([...heldIn].sort()).toEqual(["creator", "hospitality", "local-service", "professional-services", "shop", "software"]);
+    const wesbos = results.find(({ file, result }) => file === "2026-10-12-1414.json" && result.site.domain === "wesbos.com")!;
+    expect(checkObservedDemand(wesbos.result).items).toContain("javascript tutorial pricing — held back: composed, and nobody was seen asking it");
+  });
+
+  it("a comparison of the business with a rival, unmeasured, is held even where a tracked prompt names the rival (issue 1520)", () => {
     const topic = { query: "northside plumbing vs radiant plumbing", status: "open", type: "comparison_page", fit: 3, volume: null, ready: true };
-    expect(checkComparisonDemand({ ...plumber, topics: [topic], prompts: [] }).items).toEqual([
-      "northside plumbing vs radiant plumbing — held back: no measured volume and no prompt names its rival",
-    ]);
+    const held = ["northside plumbing vs radiant plumbing — held back: no measured volume and no measured answer names both sides"];
+    expect(checkComparisonDemand({ ...plumber, topics: [topic], prompts: [] }).items).toEqual(held);
+    // A first pass asks no tracked prompt, so a stored run holds no answer to name both sides.
     const prompt = { kind: "comparison", text: "Is Radiant Plumbing better than other plumbers in Austin?" };
-    expect(checkComparisonDemand({ ...plumber, topics: [topic], prompts: [prompt] })).toMatchObject({ verdict: "pass", items: [] });
+    expect(checkComparisonDemand({ ...plumber, topics: [topic], prompts: [prompt] })).toMatchObject({ verdict: "pass", items: held });
+    // Buyers seen asking it beside the market's searches are demand.
+    expect(checkComparisonDemand({ ...plumber, topics: [{ ...topic, asked: true }], prompts: [] })).toMatchObject({ verdict: "pass" });
   });
 });
 
@@ -378,7 +393,7 @@ describe("issue 1519: where the SERPs ask, three answering topics are ready", ()
 
   it("the panel keeps each stored topic's readiness reason and whether buyers were seen asking it", () => {
     const row = { target_query: "how to bleed a radiator", status: "open", type: "keyword_page", business_fit: 3, volume: null, ready: false, unready_reason: "no_grounding_fact", evidence: { family: "write", askedBeside: { term: "radiator repair", serpAt: "2026-10-18T00:00:00.000Z" } } };
-    expect(panelTopicOf(row)).toEqual({ query: "how to bleed a radiator", status: "open", type: "keyword_page", fit: 3, volume: null, ready: false, unreadyReason: "no_grounding_fact", asked: true });
+    expect(panelTopicOf(row)).toEqual({ query: "how to bleed a radiator", status: "open", type: "keyword_page", fit: 3, volume: null, ready: false, unreadyReason: "no_grounding_fact", asked: true, composed: false });
     expect(panelTopicOf({ ...row, ready: true, unready_reason: null, evidence: { family: "write" } })).toMatchObject({ unreadyReason: null, asked: false });
     expect(panelTopicOf({ ...row, target_query: null })).toBeNull();
   });

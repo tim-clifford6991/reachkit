@@ -23,14 +23,14 @@
 // search at fit 3 is a write target even below the volume floor, including
 // zero-volume problem and product-anchored searches" (owner, 2026-10-03).
 import { PRICE_FILLER, SHAPES, languagePack } from "@/lib/locale/language";
-import type { Language } from "@/lib/locale/locales";
+import { LANGUAGES, type Language } from "@/lib/locale/locales";
 import { ASKED_TOPICS, EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
 import { comparisonsOf, ownSearched, searched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
-import { brandOf, classifyIntent, ownBrandTokens } from "@/lib/market/questions/select";
+import { brandOf, classifyIntent, ownBrandTokens, stemKey } from "@/lib/market/questions/select";
 import { malformedSearch } from "@/lib/market/questions/well-formed";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
-import type { StoredReport } from "@/lib/scan/report";
+import type { PromptAnswer, StoredReport } from "@/lib/scan/report";
 import { queryKey } from "../cluster";
 import { FAMILY_OF, type Evidence, type OpportunityType, type TopicSource } from "../types";
 import { demandBand } from "../winnability/band";
@@ -260,6 +260,9 @@ export interface ProposedTopic {
   /** Where buyers were seen asking it (issue 1519): the search whose SERP
    *  showed it and when that SERP was bought. */
   asked?: { term: string; serpAt: Date };
+  /** Issue 1520: a search ReachKit composed from the market's own words
+   *  (`composedSearches`), not one anyone was seen typing. */
+  composed?: true;
 }
 
 /** A phrase from the market as a search would carry it: one line, no closing
@@ -294,6 +297,9 @@ export interface ComparisonBrands {
   own: readonly string[];
   rivals: readonly string[];
   others: readonly string[];
+  /** Each rival's name, as `rivals` holds it, to the domain a measured
+   *  answer names it by (issue 1520). Absent reads no answer as naming one. */
+  domains?: Readonly<Record<string, string>>;
 }
 
 export function comparisonBrands(a: { report: StoredReport | null; market: MarketConclusion | null }): ComparisonBrands {
@@ -307,7 +313,13 @@ export function comparisonBrands(a: { report: StoredReport | null; market: Marke
   for (const rival of a.market?.rivals ?? []) for (const name of rival.searchNames ?? []) rivals.push(normalise(name));
   const known = new Set([...own, ...rivals]);
   const others = Object.keys(a.market?.demand?.brands ?? {}).map(normalise).filter((b) => b.length > 2 && !known.has(b));
-  return { own, rivals, others };
+  const domains: Record<string, string> = {};
+  const read = a.report === null || a.report.rivals.kind === "unmeasured" ? [] : a.report.rivals.value;
+  for (const rival of read) domains[normalise(brandOf(rival.domain))] = rival.domain;
+  for (const rival of a.market?.rivals ?? []) {
+    for (const name of [rival.name, brandOf(rival.domain), ...(rival.searchNames ?? [])]) domains[normalise(name)] = rival.domain;
+  }
+  return { own, rivals, others, domains };
 }
 
 /**
@@ -315,13 +327,26 @@ export function comparisonBrands(a: { report: StoredReport | null; market: Marke
  * `null` where it is not a "vs" between products: no "vs" at all, or one
  * between two category terms ("aeo vs geo"), which names none.
  */
-export function brandVersus(query: string, brands: ComparisonBrands): { own: boolean; rivals: string[] } | null {
+export function brandVersus(query: string, brands: ComparisonBrands): { own: boolean; rivals: string[]; others: string[] } | null {
   const text = normalise(query);
   if (!SHAPES.versus.test(text)) return null;
   const own = names(text, brands.own);
   const rivals = brands.rivals.filter((rival) => names(text, [rival]));
-  if (!own && rivals.length === 0 && !names(text, brands.others)) return null;
-  return { own, rivals };
+  const others = brands.others.filter((other) => !brands.own.includes(other) && names(text, [other]));
+  if (!own && rivals.length === 0 && others.length === 0) return null;
+  return { own, rivals, others };
+}
+
+/** The products whose alternatives a search asks for (issue 1520): "{rival}
+ *  alternatives", in any supported language, naming a rival or another
+ *  product a pass read a brand volume for. `null` for every other search,
+ *  a "vs" included. */
+export function alternativesOf(query: string, brands: ComparisonBrands): { rivals: string[]; others: string[] } | null {
+  const text = normalise(query);
+  if (!SHAPES.alternatives.test(text) || SHAPES.versus.test(text)) return null;
+  const rivals = brands.rivals.filter((rival) => names(text, [rival]));
+  const others = brands.others.filter((other) => !brands.own.includes(other) && names(text, [other]));
+  return rivals.length === 0 && others.length === 0 ? null : { rivals, others };
 }
 
 /** Whether `text` names `brand`, as these rules compare names. */
@@ -407,28 +432,109 @@ export function askedBesideTerms(query: string, asked: readonly AskedBeside[]): 
   });
 }
 
+/** One measured answer to a tracked prompt, as the demand rules read it
+ *  (issue 1520). */
+export type MeasuredAnswer = Pick<PromptAnswer, "promptId" | "named" | "linked" | "rivals" | "alternatives">;
+
 /**
- * SPEC §6 (issue 1506): a "vs" between products that nothing measured
- * anyone asking — its volume is not above zero, no tracked prompt names one
- * of its rivals, the AI answer it was found in (`answeredRival`, a rival's
- * domain) named none of them, and buyers were not seen asking it beside the
- * market's searches (`asked`, 0¢). A "vs" between two category terms, or
- * any other search, is not one. Pure.
+ * SPEC §6 (issue 1506, as issue 1520 amended it): a comparison,
+ * alternatives or composed search that nothing observed anyone asking.
+ * Each is observed where its volume is above zero, or where buyers were
+ * seen asking it beside the market's searches (`asked`, 0¢). Beyond that:
+ *
+ *   - a "vs" between products, where the AI answer it was found in
+ *     (`answeredRival`, a rival's domain) named one of its rivals, or a
+ *     tracked prompt that names one of them was answered, in a measured
+ *     answer, by one naming every side;
+ *   - "{rival} alternatives", where a measured answer named the rival and
+ *     cited an address that holds "alternative";
+ *   - a search ReachKit composed (`composed`), by nothing more.
+ *
+ * A "vs" between two category terms, or any other search, is not one. Pure.
  */
 export function comparisonUnasked(a: {
   query: string;
   volume: number;
   brands: ComparisonBrands;
-  prompts: readonly { text: string }[];
+  prompts: readonly { id?: string; text: string }[];
+  /** The newest measured answers to the tracked prompts. Absent reads none. */
+  answers?: readonly MeasuredAnswer[];
   answeredRival?: string | null;
   asked?: readonly AskedBeside[];
+  composed?: boolean;
 }): boolean {
   const versus = brandVersus(a.query, a.brands);
-  if (versus === null || a.volume > 0) return false;
-  const named = (text: string) => versus.rivals.some((rival) => namesBrand(text, rival));
-  if (a.answeredRival != null && named(brandOf(a.answeredRival))) return false;
+  const alternatives = versus === null ? alternativesOf(a.query, a.brands) : null;
+  if ((versus === null && alternatives === null && a.composed !== true) || a.volume > 0) return false;
   if (askedBesideTerms(a.query, a.asked ?? [])) return false;
-  return !a.prompts.some((prompt) => named(prompt.text));
+  const answers = a.answers ?? [];
+  const domainOf = (name: string): string | null => a.brands.domains?.[normalise(name)] ?? null;
+  if (versus !== null) {
+    const named = (text: string) => versus.rivals.some((rival) => namesBrand(text, rival));
+    if (a.answeredRival != null && named(brandOf(a.answeredRival))) return false;
+    // A product no answer can name — one that is not a rival — is a side no
+    // answer attests.
+    const sides = new Set(versus.rivals.map(domainOf));
+    if (versus.others.length > 0 || sides.has(null) || sides.size + (versus.own ? 1 : 0) < 2) return true;
+    const everySide = (answer: MeasuredAnswer) =>
+      (!versus.own || answer.named || answer.linked) && [...sides].every((domain) => answer.rivals.includes(domain!));
+    return !a.prompts.some(
+      (prompt) => named(prompt.text) && answers.some((answer) => answer.promptId === prompt.id && everySide(answer))
+    );
+  }
+  if (alternatives !== null) {
+    const domains = alternatives.rivals.map(domainOf);
+    if (alternatives.others.length > 0 || domains.includes(null)) return true;
+    return !answers.some(
+      (answer) => (answer.alternatives ?? []).length > 0 && domains.every((domain) => answer.rivals.includes(domain!))
+    );
+  }
+  return true;
+}
+
+/**
+ * The searches a pass composes from the market's own words, in `language`
+ * (issue 1520): the category and each synonym for its buyer and with its
+ * price, the category against each thing it is not, and the job as a how.
+ * They are ReachKit's words until someone is seen asking them.
+ */
+export function composedSearches(
+  market: Pick<MarketConclusion, "category" | "synonyms" | "buyer" | "job" | "notOurMarket">,
+  language: Language
+): { query: string; source: "product" | "problem" }[] {
+  const pack = languagePack(language);
+  const out: { query: string; source: "product" | "problem" }[] = [];
+  const category = phrase(market.category, 6);
+  const namesOfMarket = [category, ...market.synonyms.map((synonym) => phrase(synonym, 6))].filter(
+    (name): name is string => name !== null
+  );
+  const buyer = phrase(market.buyer, 8);
+  const job = phrase(market.job, 9);
+  for (const name of namesOfMarket) {
+    if (buyer !== null) out.push({ query: pack.forBuyerSearch(name, buyer), source: "product" });
+    out.push({ query: pack.priceSearch(name), source: "product" });
+  }
+  if (category !== null) {
+    for (const contrast of market.notOurMarket) {
+      const other = phrase(contrast, 5);
+      if (other !== null) out.push({ query: pack.versusSearch(category, other), source: "product" });
+    }
+  }
+  if (job !== null) out.push({ query: pack.jobSearch(job), source: "problem" });
+  return out;
+}
+
+/** Whether `query` is one of the market's composed searches in any
+ *  supported language, a plural read as its singular (`stemKey`). */
+export function composedSearch(
+  query: string,
+  market: Pick<MarketConclusion, "category" | "synonyms" | "buyer" | "job" | "notOurMarket"> | null
+): boolean {
+  if (market === null) return false;
+  return (Object.keys(LANGUAGES) as Language[]).some((language) => {
+    const key = stemKey(query, language);
+    return key !== "" && composedSearches(market, language).some((composed) => stemKey(composed.query, language) === key);
+  });
 }
 
 /**
@@ -458,6 +564,10 @@ export function proposedTopics(a: {
    *  (`askedTopics`, issue 1519), after the market's own names and before
    *  the market set it read. Absent reads as none. */
   asked?: readonly AskedTopic[];
+  /** The SERPs buyers were seen asking beside (`AskedBeside`), which a
+   *  rival's alternatives need for a business that serves one place (issue
+   *  1520). Absent reads none. */
+  seen?: readonly AskedBeside[];
 }): ProposedTopic[] {
   const { own, rivals } = brandsOf(a);
   const brands = [...own, ...rivals];
@@ -473,7 +583,7 @@ export function proposedTopics(a: {
   for (const [search, volume] of Object.entries(a.market?.demand?.searches ?? {})) {
     if (volume > 0 && !volumes.has(queryKey(search))) volumes.set(queryKey(search), volume);
   }
-  const add = (query: string, source: ProposedTopic["source"], rival: string | null, asked?: ProposedTopic["asked"]): void => {
+  const add = (query: string, source: ProposedTopic["source"], rival: string | null, more: Pick<ProposedTopic, "asked" | "composed"> = {}): void => {
     const key = queryKey(query);
     if (key === "" || seen.has(key) || out.length >= a.max) return;
     if (rivalBrandOnly(key, { market: a.market, own, rivals })) return;
@@ -483,22 +593,30 @@ export function proposedTopics(a: {
     // pass read demand for the search itself.
     if (!volumes.has(key) && comparisonWithoutDemand(key, { market: a.market, own })) return;
     seen.add(key);
-    out.push({ query: key, source, volume: volumes.get(key) ?? null, rival, ...(asked === undefined ? {} : { asked }) });
+    out.push({ query: key, source, volume: volumes.get(key) ?? null, rival, ...more });
   };
 
   for (const comparison of a.comparisons ?? []) add(comparison.query, "product", comparison.rival);
 
   const market = a.market;
   const language = a.language ?? "en";
-  const pack = languagePack(language);
   if (market !== null) {
     const product = own[0] ?? null;
-    const category = phrase(market.category, 6);
-    const namesOfMarket = [category, ...market.synonyms.map((synonym) => phrase(synonym, 6))].filter(
-      (name): name is string => name !== null
-    );
-    const buyer = phrase(market.buyer, 8);
-    const job = phrase(market.job, 9);
+    // Issue 1520: a business that serves one place is offered a rival's
+    // alternatives only where buyers were seen asking for them — its
+    // rivals' names are what buyers type to reach those rivals.
+    const compared = comparisonBrands({ report: a.report, market });
+    const unasked = (query: string): boolean =>
+      market.serves != null &&
+      alternativesOf(query, compared) !== null &&
+      comparisonUnasked({
+        query,
+        volume: volumes.get(queryKey(query)) ?? 0,
+        brands: compared,
+        prompts: a.report.prompts?.asked ?? [],
+        answers: a.report.prompts?.answers ?? [],
+        asked: a.seen ?? [],
+      });
 
     // Anchored on the product: a searched rival's alternatives, the
     // product against each rival where its own brand is searched — else the
@@ -506,23 +624,14 @@ export function proposedTopics(a: {
     // buyer, its price, and what it is not.
     // D50's comparisons, by the one derivation the pass read volumes for (D64).
     for (const comparison of comparisonsOf({ rivals: market.rivals, product, ownSearched: ownSearched(market), searchedOnly: true, language })) {
-      add(comparison.query, "product", comparison.rival);
+      if (!unasked(comparison.query)) add(comparison.query, "product", comparison.rival);
     }
     for (const search of a.written ?? []) add(search, sourceOf(search, { brands }), null);
-    // The market's own names. They are the vendor's words until the pass's
-    // "would a buyer search this?" check says a buyer types them.
-    for (const name of namesOfMarket) {
-      if (buyer !== null) add(pack.forBuyerSearch(name, buyer), "product", null);
-      add(pack.priceSearch(name), "product", null);
-    }
-    if (category !== null) {
-      for (const contrast of market.notOurMarket) {
-        const other = phrase(contrast, 5);
-        if (other !== null) add(pack.versusSearch(category, other), "product", null);
-      }
-    }
-    // The problem the product is hired for.
-    if (job !== null) add(pack.jobSearch(job), "problem", null);
+    // The market's own names, what it is not, and the problem the product is
+    // hired for. They are the vendor's words until the pass's "would a buyer
+    // search this?" check says a buyer types them, and composed (issue 1520)
+    // until someone is seen asking them.
+    for (const composed of composedSearches(market, language)) add(composed.query, composed.source, null, { composed: true });
   }
 
   // Issue 1519: what buyers were seen asking beside the site's searches —
@@ -531,7 +640,7 @@ export function proposedTopics(a: {
   for (const topic of a.asked ?? []) {
     if (noLongerRelevant(topic.query, { market: a.market, own }) !== null) continue;
     if (names(normalise(topic.query), rivals) && SHAPES.wordSense.test(normalise(topic.query))) continue;
-    add(topic.query, sourceOf(topic.query, { brands }), null, { term: topic.term, serpAt: topic.serpAt });
+    add(topic.query, sourceOf(topic.query, { brands }), null, { asked: { term: topic.term, serpAt: topic.serpAt } });
   }
 
   // What the pass read and did not ask: its market set, largest first, at
@@ -589,6 +698,7 @@ export function candidateFor(
       position: unmeasured<number>("not_attempted", at),
     },
     ...(topic.asked === undefined ? {} : { askedBeside: topic.asked }),
+    ...(topic.composed === undefined ? {} : { composed: true as const }),
   };
   return {
     siteId: a.siteId,

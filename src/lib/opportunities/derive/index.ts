@@ -243,7 +243,8 @@ export async function deriveOpportunities(
   // SPEC §6 (issue 1519): what buyers were seen asking beside the site's
   // searches — this report's SERPs and D62's store — at 0¢.
   const stored = store.askedBeside === undefined ? [] : await store.askedBeside(a.siteId, ASKED_TOPICS.maxAgeDays).catch(() => []);
-  const asked = askedTopics([...askedOfReport(a.report), ...stored], a.report.verdict.measuredAt);
+  const seen = [...askedOfReport(a.report), ...stored];
+  const asked = askedTopics(seen, a.report.verdict.measuredAt);
   const offered = proposedTopics({
     report: a.report,
     market,
@@ -254,6 +255,7 @@ export async function deriveOpportunities(
     written,
     language: locale.language,
     asked,
+    seen,
   });
 
   // SPEC §6 (2026-10-03, issue 1208): "would a buyer search this?" — one
