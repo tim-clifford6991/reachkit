@@ -23,10 +23,11 @@ import { readFaq, type FaqEntry } from "../../render/faq";
 import { publishDb } from "../../db";
 import { liveUrlOnHost } from "./address";
 import { hostFor } from "./label";
-
-export { readFaq, type FaqEntry } from "../../render/faq";
+import { addressOf, type HostedAddress } from "./moved";
 import type { HostedOwnPages } from "./own-page";
 import { storedSiteName } from "@/lib/site-profile/site-name";
+
+export { readFaq, type FaqEntry } from "../../render/faq";
 
 /** A site, as the edge sees it: an id and the domain that resolved to it.
  *  There is nothing about its owner on this shape. */
@@ -460,34 +461,24 @@ export async function livePageBySlug(
   return pages.find((page) => page.slug === slug) ?? null;
 }
 
-/** What one address on a site's host is: serving a page now, retired from
- *  serving one, or neither. */
-export type HostedAddressState = "live" | "retired" | "none";
-
-/** The address's state, and the publication it serves where it is live. */
-export interface HostedAddress {
-  state: HostedAddressState;
-  publicationId: string | null;
-}
+export type { HostedAddress, HostedAddressState } from "./moved";
 
 const NO_ADDRESS: HostedAddress = Object.freeze({ state: "none", publicationId: null });
 
 /**
- * Whether this site serves a page at this slug, served one and has
- * stopped, or neither — the 410's own fact, in one read.
+ * Whether this site serves a page at this slug, moved it to another, served
+ * one and has stopped, or neither — the 301's and the 410's own facts, in
+ * one read.
  *
  * **One narrow read, because it runs before routing on every request to a
- * customer's host** (issue 1194). It selects four short columns and no
- * relationship, so it costs one round trip however long the site's pages
- * are. The read it replaced was the whole page list, bodies and all,
- * followed by a second query, and on a cold function the pair outlasted
- * the caller's deadline — a taken-down address then answered 404.
+ * customer's host** (issue 1194). It selects four short columns and the
+ * address each row updates, so it costs one round trip however long the
+ * site's pages are. The read it replaced was the whole page list, bodies
+ * and all, followed by a second query, and on a cold function the pair
+ * outlasted the caller's deadline — a taken-down address then answered 404.
  *
- * **Live comes first**, by `livePagesForSite`'s own predicate: a slug that
- * was unpublished and later published again is live, and the `unpublished`
- * rows behind it are history. `retired` is `unpublished_at` and nothing
- * else: an address that never served a page is `none` — a 404, and
- * answering 410 for it would be a claim about a page that never existed.
+ * What each state means is `addressOf`'s (`./moved.ts`): live first, then
+ * moved (issue 1487), then retired, else none.
  *
  * **A live address names its publication** (issue 1242): the middleware
  * counts an answer engine's read against it, and this is the only read it
@@ -502,18 +493,25 @@ export async function hostedAddress(siteId: string, slug: string): Promise<Hoste
       live_url: string | null;
       published_at: string | null;
       unpublished_at: string | null;
+      drafts: { opportunities: { family: string | null; target_ref: string | null } | null } | null;
     }>("publications")
-    .select("id, live_url, published_at, unpublished_at")
+    .select("id, live_url, published_at, unpublished_at, drafts(opportunities(family, target_ref))")
     .eq("site_id", siteId)
     .eq("destination", "hosted");
   if (error !== null || data === null) return NO_ADDRESS;
-  let retired = false;
-  for (const row of data) {
-    if (row.live_url === null || slugOf(row.live_url) !== slug) continue;
-    if (row.unpublished_at !== null) retired = true;
-    else if (row.published_at !== null) return { state: "live", publicationId: row.id };
-  }
-  return retired ? { state: "retired", publicationId: null } : NO_ADDRESS;
+  return addressOf(
+    data.map((row) => {
+      const opportunity = row.drafts?.opportunities ?? null;
+      return {
+        id: row.id,
+        live_url: row.live_url,
+        published_at: row.published_at,
+        unpublished_at: row.unpublished_at,
+        updates: opportunity?.family === "improve" ? (opportunity.target_ref ?? null) : null,
+      };
+    }),
+    slug
+  );
 }
 
 /**

@@ -39,7 +39,7 @@ import { bodyWords } from "@/lib/generate/length";
 import { clusterLinkTargets, siteLinkTargets } from "@/lib/generate/links/select";
 import { generateDraft, targetSearches, type GenerateOutcome } from "@/lib/generate/pipeline";
 import { allowedFacts, readAllFacts } from "@/lib/generate/pipeline/grounding";
-import { buildPack, questionsHeld, type ContextPack } from "@/lib/generate/pipeline/pack";
+import { buildPack, builtFromOutside, questionsHeld, type ContextPack } from "@/lib/generate/pipeline/pack";
 import { NO_RESEARCH, researchMarket, type MarketResearch } from "@/lib/generate/pipeline/research";
 import { readRecordedRules, readRecordedVerdict } from "@/lib/generate/record";
 import { HARD_RULES } from "@/lib/generate/rules/types";
@@ -338,6 +338,8 @@ export async function main(opts: Options): Promise<number> {
             // Issue 1390: every page that is researched reads what buyers
           // ask beside its target, for its headings.
           questions: true,
+            // Issue 1486: a how-to or a Q&A reads the target's own guidance.
+            guidance: builtFromOutside(type),
             borrow: { terms: marketSearches(writingFor), held: (found) => questionsHeld(packOf(found)) },
             ...(type === "insights" ? { recent: { searches: [category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } } : {}),
           });

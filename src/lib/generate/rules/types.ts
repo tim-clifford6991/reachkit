@@ -75,6 +75,10 @@ export type HardRule =
    *  machine-written — its dashes, its repeats, its list labels, its
    *  sentence lengths and its turns of phrase (`./prose.ts`). */
   | "plain_prose"
+  /** SPEC §7 (2026-10-17, issue 1486): a how-to or a Q&A links at least
+   *  `CITES_MARKET.min` of the public pages its pack read claims off
+   *  (`./cites.ts`). */
+  | "cites_market"
   /** SPEC §7 (issue 1136; D44): no claim that the business serves a case the
    *  knowledge base does not support (`../claims/fit.ts`). */
   | "fit_claim"
@@ -102,6 +106,7 @@ export const HARD_RULES: readonly HardRule[] = Object.freeze([
   "distinct_headings",
   "title",
   "plain_prose",
+  "cites_market",
   "fit_claim",
   "do_not_claim",
 ] as const);
@@ -115,6 +120,7 @@ export const SWITCHED_RULES: readonly HardRule[] = Object.freeze([
   "distinct_headings",
   "title",
   "plain_prose",
+  "cites_market",
   "fit_claim",
   "do_not_claim",
 ] as const);
@@ -192,7 +198,10 @@ export interface RuleFailure {
     | { rule: "title"; faults: TitleFault[] }
     /** Each habit the page has too much of: a handle, a count and the
      *  page's own words. */
-    | { rule: "plain_prose"; faults: ProseFault[] };
+    | { rule: "plain_prose"; faults: ProseFault[] }
+    /** How many of the pack's claim pages the body links, and how many it
+     *  must. */
+    | { rule: "cites_market"; cited: number; min: number };
 }
 
 /** Every site-scoped input the battery is called with — the **raw stored**

@@ -557,6 +557,10 @@ export const DRAFT_COPY = Object.freeze({
     "Every section this kind of page needs is there",
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },
   ],
+  "draft.checks.rule.cites-market": [
+    "Links the outside sources it is built from",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-17 · issue 1486 · drafted" },
+  ],
   "draft.checks.rule.distinct-headings": [
     "Each heading asks a different question",
     { slots: {}, fixedBy: "SPEC §7 2026-10-10 · issue 1394 · drafted" },

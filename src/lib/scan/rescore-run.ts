@@ -35,6 +35,7 @@ import {
   type StoredAnswer,
 } from "./rescore";
 import type { ScanStatus } from "./store";
+import { asksByItself, heldBecause, nextStep, type RunRecord, type ScoreMove } from "./derivation";
 
 /** A `scans` row as stored, with its report's checksum. */
 export interface StoredScanRow {
@@ -119,6 +120,8 @@ export interface RescoreOptions {
   apply: boolean;
   /** The deployed commit. */
   version: string;
+  /** The deployed derivation (issue 1481); `null` where the build carried none. */
+  derivation?: string | null;
   at: Date;
 }
 
@@ -132,6 +135,13 @@ export interface RescoreAnswer {
   scansWritten: number;
   /** Apply only: scans whose report changed after it was read. */
   scansLeft: number;
+  /** Stored scans this build could not read. */
+  scansUnreadable: number;
+  /** The scans that still read differently from the deployed code after
+   *  this run: every one a dry run would move, the ones an apply left. */
+  stale: readonly string[];
+  /** Every score the run moves, for the guard (issue 1481). */
+  scoreMoves: readonly ScoreMove[];
   summary: string;
 }
 
@@ -536,19 +546,27 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
     for (const name of renamed) if (await store.writeProfileName(name)) written.names += 1;
   }
 
+  const scoreOf = (m: RescoredMembers): number | null =>
+    m.verdict.scoreAndBand.kind === "unmeasured" ? null : m.verdict.scoreAndBand.value.score;
   return {
     scansRead: rows.length + unreadable.length,
     scansChanged: rows.filter(moves).length,
     sitesMoved: movedSites.length + renamed.length,
     scansWritten: written?.scans ?? 0,
     scansLeft: written?.left.length ?? 0,
+    scansUnreadable: unreadable.length,
+    stale: written === null ? rows.filter(moves).map((row) => row.scan.id) : written.left,
+    scoreMoves: rows
+      .map((row) => ({ domain: row.scan.domain, before: scoreOf(row.result.before), after: scoreOf(row.result.after) }))
+      .filter((m) => m.before !== m.after),
     summary: quietly(() => summaryOf({ o, rows, unreadable, sites, movedSites, profiles, renamed, written })),
   };
 }
 
 // ── The request ─────────────────────────────────────────────────────────
 
-/** A `rescore_runs` row the master session inserted, claimed by this run. */
+/** A `rescore_runs` row the master session inserted, or the tick asked for
+ *  itself (issue 1481), claimed by this run. */
 export interface RescoreRequest {
   id: string;
   mode: "dry" | "apply";
@@ -558,8 +576,12 @@ export interface RescoreQueue {
   /** The oldest request not yet started, marked started; `null` where none
    *  waits or another tick claimed it first. */
   claim(at: Date): Promise<RescoreRequest | null>;
-  answer(id: string, answer: RescoreAnswer, o: RescoreOptions): Promise<void>;
-  failed(id: string, error: string, at: Date): Promise<void>;
+  /** Every run so far, oldest first. */
+  runs(): Promise<readonly RunRecord[]>;
+  /** A request the tick asks for itself (`auto`). */
+  ask(mode: RescoreRequest["mode"], at: Date): Promise<void>;
+  answer(id: string, answer: RescoreAnswer & { held: string | null }, o: RescoreOptions): Promise<void>;
+  failed(id: string, error: string, o: Pick<RescoreOptions, "at" | "derivation">): Promise<void>;
 }
 
 /** Answers one claimed request. A failure is written to its row, then
@@ -568,20 +590,47 @@ export async function answerRequest(
   request: RescoreRequest,
   o: Omit<RescoreOptions, "apply">,
   db: RescoreQueue & RescoreStore = databaseRescore()
-): Promise<Omit<RescoreAnswer, "summary">> {
+): Promise<Pick<RescoreAnswer, "scansRead" | "scansChanged" | "sitesMoved" | "scansWritten" | "scansLeft">> {
   const options: RescoreOptions = { ...o, apply: request.mode === "apply" };
   try {
+    const runs = await db.runs();
     const answer = await rescoreStored(db, options);
-    await db.answer(request.id, answer, options);
+    const before = runs.filter((r) => r.finishedAt !== null && r.error === null && r.unreadable !== null).at(-1);
+    const held =
+      request.mode === "apply"
+        ? null
+        : heldBecause({
+            moves: answer.scoreMoves,
+            unreadable: answer.scansUnreadable,
+            unreadableBefore: before?.unreadable ?? null,
+            afterApply: runs.some((r) => r.mode === "apply" && r.derivation === (o.derivation ?? null) && r.finishedAt !== null && r.error === null),
+            changed: answer.scansChanged,
+          });
+    await db.answer(request.id, { ...answer, held }, options);
     // The step's answer is stored between invocations: the counts, not the table.
     return { scansRead: answer.scansRead, scansChanged: answer.scansChanged, sitesMoved: answer.sitesMoved, scansWritten: answer.scansWritten, scansLeft: answer.scansLeft };
   } catch (error) {
-    await db.failed(request.id, error instanceof Error ? error.message : String(error), o.at).catch(() => undefined);
+    await db.failed(request.id, error instanceof Error ? error.message : String(error), o).catch(() => undefined);
     throw error;
   }
 }
 
-export async function claimRequest(at: Date, db: RescoreQueue = databaseRescore()): Promise<RescoreRequest | null> {
+/** The request this tick answers: the oldest one waiting, or, where none
+ *  waits and production's deployed derivation is not settled, the next step
+ *  the tick asks for itself (issue 1481). `held` where the guard, a check or
+ *  a failure stopped it: nothing is asked, and the tick says so. */
+export async function claimRequest(
+  at: Date,
+  derivation: string | null,
+  db: RescoreQueue = databaseRescore(),
+  byItself: boolean = asksByItself()
+): Promise<RescoreRequest | { held: string } | null> {
+  const waiting = await db.claim(at);
+  if (waiting !== null || derivation === null || !byItself) return waiting;
+  const next = nextStep(await db.runs(), derivation);
+  if ("held" in next) return next;
+  if (!("ask" in next)) return null;
+  await db.ask(next.ask, at);
   return db.claim(at);
 }
 
@@ -596,6 +645,7 @@ interface MinimalResult<T> {
 interface MinimalQuery<T> extends PromiseLike<MinimalResult<T[]>> {
   select(columns: string): MinimalQuery<T>;
   update(values: Record<string, unknown>): MinimalQuery<T>;
+  insert(values: Record<string, unknown>): MinimalQuery<T>;
   eq(column: string, value: unknown): MinimalQuery<T>;
   in(column: string, values: readonly unknown[]): MinimalQuery<T>;
   is(column: string, value: null): MinimalQuery<T>;
@@ -756,6 +806,38 @@ export function databaseRescore(): RescoreQueue & RescoreStore {
       );
       return claimed?.[0] ?? null;
     },
+    async runs() {
+      const rows = checked(
+        await (await client())
+          .from<{
+            mode: RescoreRequest["mode"];
+            derivation: string | null;
+            requested_at: string;
+            finished_at: string | null;
+            error: string | null;
+            held: string | null;
+            scans_changed: number | null;
+            sites_moved: number | null;
+            scans_unreadable: number | null;
+          }>("rescore_runs")
+          .select("mode, derivation, requested_at, finished_at, error, held, scans_changed, sites_moved, scans_unreadable")
+          .order("requested_at", { ascending: true })
+      );
+      return (rows ?? []).map((r) => ({
+        mode: r.mode,
+        derivation: r.derivation,
+        requestedAt: r.requested_at,
+        finishedAt: r.finished_at,
+        error: r.error,
+        held: r.held,
+        scansChanged: r.scans_changed,
+        sitesMoved: r.sites_moved,
+        unreadable: r.scans_unreadable,
+      }));
+    },
+    async ask(mode, at) {
+      checked(await (await client()).from("rescore_runs").insert({ mode, auto: true, requested_at: at.toISOString() }));
+    },
     async answer(id, answer, o) {
       checked(
         await (await client())
@@ -768,14 +850,23 @@ export function databaseRescore(): RescoreQueue & RescoreStore {
             sites_moved: answer.sitesMoved,
             scans_written: answer.scansWritten,
             scans_left: answer.scansLeft,
-            summary: answer.summary,
+            scans_unreadable: answer.scansUnreadable,
+            stale_scans: answer.stale,
+            derivation: o.derivation ?? null,
+            held: answer.held,
+            summary: answer.held === null ? answer.summary : `**Held:** ${answer.held}. Nothing is asked after it.\n\n${answer.summary}`,
             error: null,
           })
           .eq("id", id)
       );
     },
-    async failed(id, error, at) {
-      checked(await (await client()).from("rescore_runs").update({ finished_at: at.toISOString(), error }).eq("id", id));
+    async failed(id, error, o) {
+      checked(
+        await (await client())
+          .from("rescore_runs")
+          .update({ finished_at: o.at.toISOString(), error, derivation: o.derivation ?? null })
+          .eq("id", id)
+      );
     },
   };
 }

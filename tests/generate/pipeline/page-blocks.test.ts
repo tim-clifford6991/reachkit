@@ -4,6 +4,8 @@
 // what a page never says is cut in code, and `required_blocks` stops a page
 // that lacks one of its template's blocks.
 import "../env";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { layoutPage, sentenceCase, tidy, tidyText, withClosing } from "../../../src/lib/generate/pipeline/compose";
 import { applyLinks } from "../../../src/lib/generate/links/apply";
@@ -15,10 +17,10 @@ import { CLEAN_MARKDOWN, GROUNDED, pageParts, prose } from "../fixtures";
 
 const TIDY = { facts: [GROUNDED.passage], promises: [], queries: ["which plan fits a small team"], names: ["Acme"] };
 
-function page(parts: PageParts = pageParts(), template: Template = TEMPLATES.qa) {
+function page(parts: PageParts = pageParts(), template: Template = TEMPLATES.qa, business: { domain?: string; businessName?: string } = {}) {
   const laid = layoutPage(parts, template, TIDY);
   const markdown = withClosing(laid.body.bodyMarkdown, laid.closing, "https://example.com/");
-  const blocks = { template, sections: laid.sections, length: lengthRangeFor(template), faq: laid.faq, domain: "example.com" };
+  const blocks = { template, sections: laid.sections, length: lengthRangeFor(template), faq: laid.faq, domain: "example.com", ...business };
   return { ...laid, markdown, blocks, missing: (changed = markdown) => missingBlock({ markdown: changed, title: "A title", blocks }) };
 }
 
@@ -168,9 +170,10 @@ describe("required_blocks — the first block a generated page lacks", () => {
     expect(page({ ...parts, sections: parts.sections.slice(3) }).missing()).toBe("sections");
   });
 
-  /** A how-to with `count` numbered steps, long enough for its floor. */
-  function howTo(count: number) {
-    const steps = Array.from({ length: count }, (_, index) => `${index + 1}. ${prose("steps", index, 1)}`).join("\n");
+  /** A how-to with `count` numbered steps, long enough for its floor — or
+   *  with the steps given, as a page wrote them. */
+  function howTo(count: number, written?: readonly string[], business: { domain?: string; businessName?: string } = {}) {
+    const steps = (written ?? Array.from({ length: count }, (_, index) => `${index + 1}. ${prose("steps", index, 1)}`)).join("\n");
     const section = (key: string, nth: string, body: string) => ({ key, heading: `Steps: what is the ${nth} thing to do?`, body });
     return page(
       pageParts(CLEAN_MARKDOWN, {
@@ -183,13 +186,23 @@ describe("required_blocks — the first block a generated page lacks", () => {
         ],
         faq: ["first", "second", "third"].map((nth) => ({ question: `What is the ${nth} thing to ask?`, answer: "Count the seats." })),
       }),
-      TEMPLATES.how_to
+      TEMPLATES.how_to,
+      business
     );
   }
 
   it("a how-to with two steps is stopped for its steps, and one with three is not", () => {
     expect(howTo(2).missing()).toBe("steps");
     expect(howTo(3).missing()).toBeNull();
+  });
+
+  it("issue 1486: page D's stored steps, three naming the business, are stopped; one of the business's own is not", () => {
+    const live = readFileSync(path.resolve(__dirname, "../../../scripts/eval-content/prose/live/how-to-rank-in-ai-overview.md"), "utf8");
+    const stored = live.split("\n").filter((line) => /^\d+\. /.test(line));
+    const reachkit = { domain: "example.com", businessName: "ReachKit" };
+    expect(howTo(0, stored, reachkit).missing()).toBe("own_steps");
+    const task = [...Array.from({ length: 4 }, (_, index) => `${index + 1}. ${prose("steps", index, 1)}`), `5. ${stored[1]!.slice(3)}`];
+    expect(howTo(0, task, reachkit).missing()).toBeNull();
   });
 
   it("a Sources list is the one heading that is not a question", () => {

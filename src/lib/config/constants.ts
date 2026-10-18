@@ -146,6 +146,17 @@ export const USD_PER_EUR = Object.freeze({
   source: "ECB euro foreign exchange reference rate",
 } as const);
 
+/** D34's testing budget (`docs/PROCESS.md`, *Testing budget*), in euros: two a
+ *  day across all live testing, judged on what the vendors billed where it
+ *  is known, with a warning at one and a half. Read by `npm run costs` and the
+ *  owner's cost page (issue 1478). */
+export const TEST_DAY_EUR = Object.freeze({ cap: 2, warn: 1.5 } as const);
+
+/** What one site's month brings in, in euro cents, net of sales tax:
+ *  `PRICE_EUR_CENTS` with 21% tax taken out (issue 1478). The owner's cost
+ *  page sets each site's monthly cost against it. */
+export const PLAN_NET_EUR_CENTS = 4050 as const;
+
 /** Per-token model prices, cents per million tokens. `haiku` is BP-005
  *  `## Public interface`, transcribed verbatim (rule 1.2 — data, not a
  *  chosen parameter): `haiku: { inCentsPerM: 100; outCentsPerM: 500 }`.
@@ -1168,6 +1179,15 @@ export const SCORING = Object.freeze({                    // BP-010 d2 · BUILD 
   answerabilityFloor: 1,
 } as const);
 
+/** The guard an automatic re-score's dry run must hold before the tick asks
+ *  for the apply (SPEC §2, issue 1481; drafted default, the owner may correct
+ *  it). A score that moves further than this, or a scored scan that loses its
+ *  number, is a move nobody expected; the dry run is held for the master
+ *  session to read, and nothing is written. */
+export const RESCORE_GUARD = Object.freeze({
+  maxScoreMove: 15,
+} as const);
+
 export const GENERATION = Object.freeze({
   duplicateThreshold: 0.85, regenerations: 1,
 } as const);
@@ -2058,6 +2078,14 @@ export const ADDS = Object.freeze({
   siteWords: 3000,
   updateMin: 0.3,
 } as const);
+
+/** SPEC §7 (2026-10-17, issue 1486; drafted default the owner may correct):
+ *  a how-to or a Q&A is built from cited outside facts. Its pack holds claims
+ *  from at least `min` distinct public pages, and its body links at least
+ *  that many of them (`cites_market`). Two, as the content review of
+ *  17 October measured: page D's pack held 24 claims from six pages, and its
+ *  body linked none. */
+export const CITES_MARKET = Object.freeze({ min: 2 } as const);
 
 /** §7's Improve trigger, transcribed: "Customer ranks 4–30, page thin".
  *  The band is inclusive at both ends. The bought SERP is a top ten

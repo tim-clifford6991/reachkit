@@ -47,6 +47,9 @@ export function Waiting(p: {
   children: React.ReactNode;
   className?: string;
   testId: string;
+  /** The region of the loaded screen this one stands for, which the
+   *  layout gate measures in both (issue 1484). */
+  frame?: string;
 }): React.JSX.Element {
   // The Suspense reveal (#1065): when the boundary resolves, this leaves
   // and the page crossfades to what arrived.
@@ -58,6 +61,7 @@ export function Waiting(p: {
         aria-busy="true"
         data-waiting=""
         data-testid={p.testId}
+        data-frame={p.frame}
       >
         {p.children}
       </div>
@@ -108,11 +112,12 @@ export function TopBarSkeleton(): React.JSX.Element {
 // ── a screen's own shapes ───────────────────────────────────────────────
 
 /** A stat tile: eyebrow, number, trend. The three tiles a row draws.
- *  `grid` is the arriving row's own grid where it is not the default one. */
-export function TilesSkeleton(p: { count?: number; grid?: string }): React.JSX.Element {
+ *  `grid` is the arriving row's own grid class, read from that screen's
+ *  frame, and `frame` its region's name. */
+export function TilesSkeleton(p: { count?: number; grid?: string; frame?: string }): React.JSX.Element {
   const count = p.count ?? 3;
   return (
-    <Waiting className={`grid min-w-0 ${p.grid ?? "gap-4 sm:grid-cols-2 lg:grid-cols-3"}`} testId="tiles-skeleton">
+    <Waiting className={p.grid ?? "grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3"} testId="tiles-skeleton" frame={p.frame}>
       {Array.from({ length: count }, (_, at) => (
         <div key={at} className="card card-border bg-base-100 min-w-0">
           <div className="card-body min-w-0 gap-3">
@@ -157,99 +162,6 @@ export function TableSkeleton(p: { testId: string; rows?: number }): React.JSX.E
         {Array.from({ length: rows }, (_, at) => (
           <Box key={at} className="h-6 w-full" />
         ))}
-      </div>
-    </Waiting>
-  );
-}
-
-/**
- * Plan below its head: the stage filters with their one note, Plan in the
- * two shapes `calendar/CalendarView.tsx` draws it in, and the day panel.
- *
- * The classes that decide a box are that file's own — the row the filters
- * wrap in, the card around the grid from `lg`, the list below it, the
- * `20rem` column the panel takes from `xl` — so the same media queries
- * choose the same shape here that they choose when Plan lands. A day in
- * the grid is `DayCard`'s fixed `h-26`; a day in the list is `DayList`'s
- * three tracks at its `min-h-16`.
- *
- * Below `lg` it is seven rows (SPEC §7, 2026-10-08, issue 1340): the list
- * is this week, Monday through Sunday, whatever the date. From `lg` it is
- * five weeks, because a route's waiting state is not told which month was
- * asked for: most months are five rows, and the row a longer one adds is
- * below everything else on the screen.
- */
-export function PlanSkeleton(): React.JSX.Element {
-  return (
-    <Waiting className="flex min-w-0 flex-col gap-4" testId="plan-skeleton">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <div className="flex min-w-0 flex-wrap gap-2">
-          {["w-15", "w-20", "w-29", "w-28", "w-25", "w-28"].map((width, at) => (
-            <Box key={at} className={`h-8 rounded-full ${width}`} />
-          ))}
-        </div>
-        <Box className="h-4 w-82 max-w-full" />
-      </div>
-
-      <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="min-w-0">
-          <div className="card card-border bg-base-100 hidden p-2 lg:block" data-testid="plan-skeleton-grid">
-            {/* A table with `MonthGrid`'s own classes, so a row here is a
-                row there by the same arithmetic rather than by a number
-                copied from it. */}
-            <table className="w-full table-fixed border-separate border-spacing-1" aria-hidden>
-              <thead>
-                <tr>
-                  {Array.from({ length: 7 }, (_, at) => (
-                    <th key={at} className="eyebrow pb-1 text-center">
-                      <span className="skeleton inline-block h-3 w-8 align-middle" aria-hidden />
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {Array.from({ length: 5 }, (_, week) => (
-                  <tr key={week}>
-                    {Array.from({ length: 7 }, (_, at) => (
-                      <td key={at} className="p-0 align-top">
-                        <Box className="rounded-box h-26 w-full" />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div
-            className="list bg-base-100 rounded-box border border-base-200 lg:hidden"
-            data-testid="plan-skeleton-list"
-          >
-            {Array.from({ length: 7 }, (_, at) => (
-              <div
-                key={at}
-                className="list-row grid min-h-16 w-full min-w-0 grid-cols-[2.25rem_minmax(0,1fr)_minmax(4rem,auto)] items-center gap-3 px-4 py-2.5"
-              >
-                <Box className="h-9 w-full" />
-                <Box className="h-4 w-3/4" />
-                <Box className="ms-auto h-4 w-10" />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* The day panel's place: under the month from `lg`, beside it from
-            `xl`. Below `lg` an unopened Plan has no panel, so nor has this. */}
-        <div className="card card-border bg-base-100 hidden min-w-0 lg:flex" data-testid="plan-skeleton-panel">
-          <div className="card-body min-w-0 gap-3 p-4">
-            <Box className="h-8 w-full" />
-            <Box className="h-6 w-4/5" />
-            <Box className="h-5 w-24" />
-            <Box className="h-4 w-full" />
-            <Box className="h-4 w-full" />
-            <Box className="h-4 w-2/3" />
-            <Box className="h-8 w-full" />
-          </div>
-        </div>
       </div>
     </Waiting>
   );

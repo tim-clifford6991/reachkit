@@ -33,6 +33,12 @@
 // whose access ended are `gone`. A host that moved away resolves to no
 // site, so it is `page` — the uncached route, which answers 404.
 //
+// **A page that moved answers 301** (SPEC §7, 2026-10-17, issue 1487). A
+// retarget publishes at the address its new search names, and the old one
+// redirects there — on the host that resolved, composed now, so a host that
+// moved under the site still answers 404 by the rule above (#888) and a
+// redirect never leaves the site's own host.
+//
 // **It fails towards rendering.** A read that throws yields `page`: the
 // uncached route resolves the Host again for itself and answers 404 when
 // it cannot find a page. A 410 asserts that a page was taken down; it is
@@ -51,7 +57,16 @@ export interface LiveAnswer {
   publicationId: string;
 }
 
-export type HostedAnswer = "gone" | "page" | LiveAnswer;
+/** SPEC §7 (2026-10-17, issue 1487): a page that moved, by a retarget, to
+ *  another address on the same host. Answered 301 there. */
+export interface MovedAnswer {
+  kind: "moved";
+  /** The host that resolved — the move never leaves it (#888). */
+  host: string;
+  slug: string;
+}
+
+export type HostedAnswer = "gone" | "page" | LiveAnswer | MovedAnswer;
 
 /** The single path segment that names a page, or `null` — `content.{domain}
  *  /a/b` is not a deeper page, it is not a page at all. */
@@ -73,6 +88,7 @@ export async function hostedAnswer(host: string, pathname: string): Promise<Host
 
     const address = await hostedAddress(disposition.siteId, slug);
     if (address.state === "retired") return "gone";
+    if (address.state === "moved") return { kind: "moved", host: disposition.host, slug: address.slug };
     if (address.state !== "live" || address.publicationId === null) return "page";
     return {
       kind: "live",

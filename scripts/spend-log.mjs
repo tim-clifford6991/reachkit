@@ -21,6 +21,11 @@
 // from before 2026-10-11. `scripts/costs/report.ts` reads this log for
 // `npm run costs`.
 //
+// `domain` (issue 1478) is the site the call was made for, where the script
+// knows it, so box spend can be told apart by site like production's:
+//
+//   {"at":"…","issue":"1478","script":"panel","source":"serp/google/organic","cents":0.2,"billed":0.2,"domain":"austinplumbery.com"}
+//
 // Plain JavaScript, because the `.mjs` scripts run on this box's Node, which
 // has no type stripping, and the Vite-loaded TypeScript imports it too.
 import { execFileSync } from "node:child_process";
@@ -58,9 +63,9 @@ export function issueOrBranch() {
  * Off the box (no `/root/ops/reachkit`) and under a test runner nothing is
  * written unless `RK_SPEND_LOG` names a file.
  *
- * @param {{ script: string, source: string, cents: number, billed?: number | undefined, at?: Date }} call
+ * @param {{ script: string, source: string, cents: number, billed?: number | undefined, domain?: string | undefined, at?: Date }} call
  */
-export function appendSpend({ script, source, cents, billed, at = new Date() }) {
+export function appendSpend({ script, source, cents, billed, domain, at = new Date() }) {
   const charged = typeof billed === "number" && Number.isFinite(billed) ? billed : undefined;
   if (!(cents > 0) && !(charged > 0)) return;
   const file = spendLogPath();
@@ -69,7 +74,7 @@ export function appendSpend({ script, source, cents, billed, at = new Date() }) 
   try {
     appendFileSync(
       file,
-      `${JSON.stringify({ at: at.toISOString(), issue: issueOrBranch(), script, source, cents: round(cents > 0 ? cents : 0), ...(charged === undefined ? {} : { billed: round(charged) }) })}\n`
+      `${JSON.stringify({ at: at.toISOString(), issue: issueOrBranch(), script, source, cents: round(cents > 0 ? cents : 0), ...(charged === undefined ? {} : { billed: round(charged) }), ...(typeof domain === "string" && domain !== "" ? { domain } : {}) })}\n`
     );
   } catch (error) {
     console.error(`spend log: could not append to ${file} (${String(error?.message ?? error)}); ${cents}¢ by ${script} is unrecorded.`);
@@ -77,7 +82,7 @@ export function appendSpend({ script, source, cents, billed, at = new Date() }) 
 }
 
 /** The log's rows. A line that is not a spend row is skipped, never fatal.
- *  `billed` is `null` on a line that carries none. */
+ *  `billed` and `domain` are `null` on a line that carries none. */
 export function readSpend(file = spendLogPath()) {
   if (!existsSync(file)) return [];
   const rows = [];
@@ -93,6 +98,7 @@ export function readSpend(file = spendLogPath()) {
           source: String(row.source ?? "unknown"),
           cents: row.cents,
           billed: typeof row.billed === "number" && Number.isFinite(row.billed) ? row.billed : null,
+          domain: typeof row.domain === "string" ? row.domain : null,
         });
       }
     } catch {

@@ -38,6 +38,12 @@ vi.mock("@/lib/publish/publishable", () => ({
   redeemVetoLink: async () => ({ ok: false, reason: "unknown" }),
 }));
 
+// Issue 1478: the owner's cost page asks the database whose address the
+// account is, which these sweeps cannot reach; the reserved account is
+// let in so the page itself is swept, and its read answers the
+// unreadable arm.
+vi.mock("@/app/(account)/app/costs/owner", () => ({ isOwner: async () => true }));
+
 vi.mock("next/navigation", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return { ...actual, usePathname: () => "/app", useRouter: () => ({ push: vi.fn() }) };

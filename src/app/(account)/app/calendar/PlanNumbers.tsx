@@ -17,6 +17,7 @@ import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import { STAGE_FILTER_COPY_KEY, type Stage } from "./stages";
 import type { MonthModel } from "./month";
+import { NUMBERS, REGION } from "./frame";
 
 /** The four stages a page moves through on its way out. *Needs you* is an
  *  exception and not a stage of the plan; it stays on its chip. */
@@ -37,7 +38,7 @@ export function PlanNumbers(p: {
   const inMonth = copy("calendar.numbers.month", { month: p.month });
   const inWeek = copy("calendar.numbers.week");
   return (
-    <div className="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-4" data-testid="plan-numbers">
+    <div className={NUMBERS} data-testid="plan-numbers" data-frame={REGION.numbers}>
       {SHOWN.map((stage) => (
         <div key={stage} className="card card-border min-w-0 bg-base-100" data-testid={`plan-number-${stage}`}>
           <div className="card-body gap-2 p-4">

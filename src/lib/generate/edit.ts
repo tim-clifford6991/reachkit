@@ -230,7 +230,7 @@ async function recheck(
   // stays held until a save can run it.
   if (site === null || report === null) return null;
 
-  return withDraftCost({ scanId: report.scanId }, async (cost) => {
+  return withDraftCost({ scanId: report.scanId, draftId: a.draftId }, async (cost) => {
     if (isFix) {
       // A metadata-only fix has no body; the claim check over what it
       // changes is the one rule it has (`pipeline/page-fix.ts`).

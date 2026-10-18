@@ -9,22 +9,28 @@
 // is the request's. Nothing stands in for the
 // statement of supply: most accounts have none, and a box for a line that
 // does not arrive is a screen that jumps.
+//
+// Every region is `frame.ts`'s (issue 1484). The week below `lg` is as many
+// rows as the list that arrives: Monday through the plan horizon, counted
+// from the screen's own today (`planToday`) — the fixture's day for the
+// reserved fixture account, the site's zone for every other. The account
+// is the `/app` layout's, already read before this draws.
 import type React from "react";
-import { PlanSkeleton, TilesSkeleton } from "../_shell/skeletons";
+import { TilesSkeleton } from "../_shell/skeletons";
+import { NUMBERS, PLAN, REGION, weekRows } from "./frame";
 import { PlanHead } from "./PlanHead";
+import { PlanSkeleton } from "./PlanSkeleton";
+import { planToday } from "./provider";
 
-/** The numbers' own grid (`PlanNumbers.tsx`; SPEC §7, 2026-10-09, issue
- *  1364). */
-const NUMBERS_GRID = "grid-cols-2 gap-3 lg:grid-cols-4";
-
-export default function CalendarLoading(): React.JSX.Element {
+export default async function CalendarLoading(): Promise<React.JSX.Element> {
+  const rows = weekRows(await planToday());
   return (
-    <div className="flex min-w-0 flex-col gap-4" data-testid="calendar-waiting">
+    <div className={PLAN} data-testid="calendar-waiting">
       <PlanHead>
         <div className="skeleton rounded-field hidden h-8 w-58 lg:block" aria-hidden data-testid="month-switcher-skeleton" />
       </PlanHead>
-      <TilesSkeleton count={4} grid={NUMBERS_GRID} />
-      <PlanSkeleton />
+      <TilesSkeleton count={4} grid={NUMBERS} frame={REGION.numbers} />
+      <PlanSkeleton rows={rows} />
     </div>
   );
 }

@@ -125,7 +125,7 @@ import { advanceCorrectionState, readCorrectionFacts, registerCorrectionRunner }
 import { parseDomain, type CanonicalDomain } from "./domain";
 import { marketTooSmall, stoppedOnCeiling } from "./market-floor";
 import { pageQuestionCandidates, pageQuestionMisses } from "./page-questions";
-import { RETRY_STAGE, readSpentCents, registerRetryRunner, type RetryPart } from "./retry";
+import { RETRY_STAGE, carrySpentCents, readSpentCents, registerRetryRunner, type RetryPart } from "./retry";
 import { searchFootprintOf, type ThinFootprint } from "./search-footprint";
 import {
   PROMPT_ENGINES,
@@ -1030,6 +1030,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     // "inside the same budget" is: one 12¢ purse across the original pass
     // and every retry of it, counted by the one cap every paid call reads.
     priorCents = await readSpentCents(a.retryOf.scanId);
+    await carrySpentCents(scanId, priorCents);
     retried = await readScanReport(a.retryOf.scanId);
     if (retried === null) {
       logPass({ scanId, tier: a.tier, stoppedReason: "failed", status: "failed", because: "retry_report_unreadable" });

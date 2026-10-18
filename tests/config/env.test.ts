@@ -68,6 +68,9 @@ const BINDING_NAMES = [
   // Issue 762 — the one vercel.app host served as a hosted blog, for
   // testing. Optional: no process needs it.
   "HOSTED_TEST_HOST",
+  // Issue 1478 — reads Anthropic's cost report. Optional: without it AI
+  // spend is shown as estimated.
+  "ANTHROPIC_ADMIN_KEY",
 ] as const;
 
 /** Issue #315's pair, named once here. */
@@ -93,7 +96,8 @@ const NO_DEFAULT_BINDING_NAMES = BINDING_NAMES.filter(
     !(JOBS_BINDING_NAMES as readonly string[]).includes(name) &&
     !(DOMAIN_BINDING_NAMES as readonly string[]).includes(name) &&
     !(ANALYTICS_BINDING_NAMES as readonly string[]).includes(name) &&
-    name !== "HOSTED_TEST_HOST"
+    name !== "HOSTED_TEST_HOST" &&
+    name !== "ANTHROPIC_ADMIN_KEY"
 );
 
 // WO-005 file plan's closed set of server-only bindings, moved onto 6a.
@@ -114,6 +118,8 @@ const SERVER_ONLY_NAMES = [
   // Issue 336: an ingestion key writes events; a browser bundle holds none.
   // `POSTHOG_HOST` is an address, not a secret.
   "POSTHOG_API_KEY",
+  // Issue 1478: an admin key reads the organisation's billing.
+  "ANTHROPIC_ADMIN_KEY",
 ] as const;
 
 // A complete, validly-shaped set of bindings. Values are fixtures, never
@@ -145,6 +151,7 @@ const VALID_ENV: Record<(typeof BINDING_NAMES)[number], string> = {
   POSTHOG_API_KEY: "phc_fixture",
   POSTHOG_HOST: "https://eu.i.posthog.com",
   HOSTED_TEST_HOST: "reachkit-git-main-fixture.vercel.app",
+  ANTHROPIC_ADMIN_KEY: "sk-ant-admin-fixture",
 };
 
 const ORIGINAL_ENV = { ...process.env };

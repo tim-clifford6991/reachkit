@@ -507,8 +507,10 @@ describe("§7 (2026-09-12) — the page links into the customer's own site and t
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
     // No page was chosen, so none is appended: the page ends on its closing
-    // line, which points at the site itself.
-    expect(row?.body_md?.endsWith("[Count your seats before you choose a plan.](https://example.com/)")).toBe(true);
+    // line, then the outside pages it cites (issue 1486).
+    const [body, sources] = (row?.body_md ?? "").split("\n\n## Sources\n\n");
+    expect(body?.endsWith("[Count your seats before you choose a plan.](https://example.com/)")).toBe(true);
+    expect(sources?.split("\n").filter(Boolean)).toHaveLength(2);
   });
 });
 

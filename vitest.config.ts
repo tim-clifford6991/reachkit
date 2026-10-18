@@ -59,6 +59,9 @@ const LIVE_SCHEMA_TESTS = [
   // Issue 1483: no `public` function a session can execute unless
   // allow-listed, the closed default, and every policy's `(select auth.uid())`.
   "tests/db/function-privileges.test.ts",
+  // Issue 1478: every ledger row's site, activity, draft and outcome, the
+  // roll-ups derived from the ledger, `vendor_days` and `cost_site_day`.
+  "tests/costs/attribution-schema.test.ts",
 ];
 
 export default defineConfig({

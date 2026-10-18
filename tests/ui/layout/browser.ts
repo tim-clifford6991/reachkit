@@ -38,6 +38,7 @@ import {
   seedLiveAccount,
   seedSetupAccount,
   seedFreeScans,
+  seedLedger,
   seedWeekZeroAccount,
   SETUP_ACCOUNT,
   waitForSchemaCache,
@@ -210,6 +211,7 @@ export default async function setup(): Promise<() => Promise<void>> {
   seedSetupAccount();
   seedWeekZeroAccount();
   seedFreeScans();
+  seedLedger();
   // The customer the hosted edge serves (#418). No cookie is minted for it
   // and none is wanted: `/hosted-page/{slug}` answers a stranger on a
   // stranger's domain with no session at all, so the only thing this
@@ -403,11 +405,18 @@ function settleOnNavigation(page: Page): void {
  *  instead lets the sweep *navigate* to `http://content.example.com:{port}`
  *  and have the browser send that Host itself — the real header, on the
  *  real request, rather than one bolted on afterwards. It affects nothing
- *  else: this browser only ever visits the local server. */
+ *  else: this browser only ever visits the local server.
+ *
+ *  **`firstPaint`** opens the page with no client runtime and does not
+ *  settle it (issue 1484). React's streamed HTML swaps a `loading.tsx`
+ *  skeleton for the screen with an inline script, so with scripts off the
+ *  document keeps the skeleton the customer sees first, laid out by the
+ *  same stylesheet — which is the one way to measure a wait rather than
+ *  race it. */
 export async function withPage<T>(
   width: number,
   fn: (page: Page) => Promise<T>,
-  options: { extraHTTPHeaders?: Record<string, string> } = {}
+  options: { extraHTTPHeaders?: Record<string, string>; firstPaint?: boolean } = {}
 ): Promise<T> {
   let browser;
   try {
@@ -428,10 +437,11 @@ export async function withPage<T>(
       // motion (#1065): nothing rises, pulses or draws over time, so a box
       // is measured where it rests, and a chart is its final series.
       reducedMotion: "reduce",
+      javaScriptEnabled: options.firstPaint !== true,
     });
     try {
       const page = await context.newPage();
-      settleOnNavigation(page);
+      if (options.firstPaint !== true) settleOnNavigation(page);
       return await fn(page);
     } finally {
       await context.close();

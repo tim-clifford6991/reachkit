@@ -30,6 +30,7 @@ import {
   QUESTION,
   QUESTION_HEAD,
   QUIET,
+  REGION,
   SETUP_ARMS,
   STEPS,
 } from "./frame";
@@ -42,7 +43,7 @@ export function SetupSkeleton(): React.JSX.Element {
         <div className={BODY}>
           {/* daisyUI's own `steps`, so the five columns and their height
               are the indicator's; which step is current is not known yet. */}
-          <ul className={STEPS} aria-hidden>
+          <ul className={STEPS} aria-hidden data-frame={REGION.steps}>
             {SETUP_STEPS.map((id) => (
               <li key={id} className="step">
                 <Box className="h-4 w-12" />
@@ -50,7 +51,7 @@ export function SetupSkeleton(): React.JSX.Element {
             ))}
           </ul>
 
-          <div className={COLUMNS}>
+          <div className={COLUMNS} data-frame={REGION.columns}>
             <div className={QUESTION}>
               <div className={QUESTION_HEAD}>
                 <Box className="h-7 w-2/3" />
@@ -71,7 +72,7 @@ export function SetupSkeleton(): React.JSX.Element {
       </Surface>
 
       <footer className={BAR}>
-        <div className={BAR_INNER}>
+        <div className={BAR_INNER} data-frame={REGION.bar}>
           <div className={BAR_ACTIONS}>
             <Box className="h-10 w-24" />
             <Box className="h-10 w-28" />

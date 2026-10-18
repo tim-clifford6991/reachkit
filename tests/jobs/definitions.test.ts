@@ -47,6 +47,8 @@ function engineDouble(): Record<string, unknown> {
     publishDue: record("publishDue", done),
     // Issue 1485: the live pages are read again first.
     recheckLivePages: record("recheckLivePages", { withdrawn: 0 }),
+    // Issue 1487: then any retarget's move is finished.
+    repairMovedPages: record("repairMovedPages", { moved: 0 }),
     duePublishRetries: record("duePublishRetries", [{ draftId: "d1", destinationId: "dest-1" }]),
     // SPEC §7's window end rides the same tick (issue 709).
     duePublishApprovals: record("duePublishApprovals", []),
@@ -102,6 +104,7 @@ async function load(): Promise<readonly JobDefinition[]> {
     sitesWithoutDeepPass: async () => [],
     deepPassDomain: async () => null,
   }));
+  vi.doMock("@/lib/costs/vendor-days", () => ({ vendorDaysDue: async () => [], readVendorDay: async () => ({ done: true }) }));
   const { jobs } = await import("@/jobs");
   return jobs;
 }
@@ -124,6 +127,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.doUnmock("@/jobs/engine");
   vi.doUnmock("@/lib/scan/deep/backstop");
+  vi.doUnmock("@/lib/costs/vendor-days");
   vi.unstubAllEnvs();
   vi.resetModules();
   vi.restoreAllMocks();
@@ -336,6 +340,7 @@ describe("publish/execute and publish/verify", () => {
     const outcome = await job.run({ data: {}, now: MONDAY_0600_UTC });
     expect(calls).toEqual([
       { fn: "recheckLivePages", arg: MONDAY_0600_UTC },
+      { fn: "repairMovedPages", arg: MONDAY_0600_UTC },
       { fn: "duePublishRetries", arg: MONDAY_0600_UTC },
       { fn: "duePublishApprovals", arg: MONDAY_0600_UTC },
       { fn: "publishApproved", arg: { draftId: "d1", destinationId: "dest-1" } },
@@ -524,6 +529,15 @@ describe("scan/rescore — a request the master session wrote, answered by the d
       { fn: "claimRescore", arg: EVENING_UTC },
       { fn: "answerRescore", arg: { request, now: EVENING_UTC } },
     ]);
+  });
+});
+
+describe("scan/rescore — a re-score the guard held fails every tick until it moves on (issue 1481)", () => {
+  it("is degraded at `rescore-held`, and answers nothing", async () => {
+    results.set("claimRescore", { held: "zapier.com moves 20 points (27 → 47), more than 15" });
+    const job = await definition("scan/rescore");
+    await expect(job.run({ data: {}, now: EVENING_UTC })).resolves.toEqual({ outcome: "degraded", subjectId: null, step: "rescore-held" });
+    expect(calls.map((c) => c.fn)).toEqual(["claimRescore"]);
   });
 });
 
@@ -812,6 +826,7 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
       sitesWithoutDeepPass: async () => [],
       deepPassDomain: async () => null,
     }));
+    vi.doMock("@/lib/costs/vendor-days", () => ({ vendorDaysDue: async () => [], readVendorDay: async () => ({ done: true }) }));
     // SPEC §8's retention sequence (issue #569), stood in with nothing due.
     vi.doMock("@/lib/mail/retention", () => ({
       accountsDueInactivity: async () => [],

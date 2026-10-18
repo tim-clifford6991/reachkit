@@ -55,6 +55,7 @@ import { StageFilter } from "./StageFilter";
 import { DayPanelView } from "./DayPanelView";
 import { MonthGrid } from "./MonthGrid";
 import { DayList } from "./DayList";
+import { BODY, FILTERS, MONTH_CARD, REGION, WEEK_SHOWN } from "./frame";
 import type { DayKey } from "./dates";
 import type { StageFilter as StageFilterId } from "./stages";
 import { cellFor, type MonthModel, type WeekModel } from "./month";
@@ -101,18 +102,18 @@ export function CalendarView(p: { model: MonthModel; week: WeekModel }): React.J
           what the number on a live card is. Not a supply statement and
           never a second one — §7 (issue 857) states supply once, at the
           top of the screen. */}
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div className={FILTERS}>
         <StageFilter counts={p.model.counts} weekCounts={p.week.counts} selected={filter} onSelect={setFilter} />
         <p className="text-xs opacity-70" data-testid="calendar-live-number-note">
           {copy("calendar.note.live-number")}
         </p>
       </div>
 
-      <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className={BODY} data-frame={REGION.body}>
         <div className="min-w-0">
           {/* The month from `lg`, in one card so its flat empty days read
               against white; this week as a list below it. */}
-          <div className="card card-border bg-base-100 hidden p-2 lg:block">
+          <div className={MONTH_CARD}>
             <MonthGrid
               model={p.model}
               filter={filter}
@@ -120,7 +121,7 @@ export function CalendarView(p: { model: MonthModel; week: WeekModel }): React.J
               onSelect={(next) => openDay(next)}
             />
           </div>
-          <div className="lg:hidden">
+          <div className={WEEK_SHOWN}>
             <DayList
               cells={p.week.cells}
               filter={filter}

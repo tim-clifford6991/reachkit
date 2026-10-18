@@ -12,6 +12,8 @@ vi.mock("@/lib/scan/removal", () => ({ isDomainRemoved: async () => false }));
 const sites = new Map<string, string>();
 const live = new Map<string, string[]>();
 const everLive = new Map<string, string[]>();
+/** Issue 1487: a slug that moved, by site, to the slug it lives at now. */
+const moved = new Map<string, Map<string, string>>();
 const serving = new Map<string, { serve: boolean; because?: string }>();
 /** How long the address read takes — nothing, unless a test says otherwise. */
 const addressRead = { wait: async (): Promise<void> => {} };
@@ -41,6 +43,8 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
       if ((live.get(siteId) ?? []).includes(slug)) {
         return { state: "live", publicationId: `pub-${slug}` };
       }
+      const to = moved.get(siteId)?.get(slug);
+      if (to !== undefined) return { state: "moved", publicationId: `pub-${to}`, slug: to };
       const state = (everLive.get(siteId) ?? []).includes(slug) ? "retired" : "none";
       return { state, publicationId: null };
     },
@@ -67,11 +71,21 @@ beforeEach(() => {
   sites.clear();
   live.clear();
   everLive.clear();
+  moved.clear();
   serving.clear();
   addressRead.wait = async () => {};
   sites.set("example.com", "site-1");
   live.set("site-1", ["a-page"]);
   everLive.set("site-1", ["taken-down"]);
+});
+
+describe("issue 1487 — a retargeted page's old address", () => {
+  it("answers 301 to the page's new address, on the host it was asked on", async () => {
+    moved.set("site-1", new Map([["old-topic", "a-page"]]));
+    const response = await middleware(requestTo("/old-topic", "content.example.com"));
+    expect(response.status).toBe(301);
+    expect(response.headers.get("location")).toBe("https://content.example.com/a-page");
+  });
 });
 
 describe("every path on a customer's own domain lands in the hosted group", () => {

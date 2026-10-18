@@ -76,7 +76,8 @@ describe("SPEC §4 — every part of the Overview tab opens the tab behind it", 
       ["overview-tile-google", "search"],
       ["overview-tile-ai", "ai_answers"],
     ] as const) {
-      const tile = new RegExp(`<a[^>]*href="${TAB_HREF[tab]}[?#][^"]*"[^>]*data-testid="${testId}"`);
+      // Either attribute order: `next/link` writes `href` last (issue 1484).
+      const tile = new RegExp(`<a(?=[^>]*href="${TAB_HREF[tab]}[?#][^"]*")(?=[^>]*data-testid="${testId}")[^>]*>`);
       expect(html, `${testId} does not open ${TAB_HREF[tab]}`).toMatch(tile);
     }
   });

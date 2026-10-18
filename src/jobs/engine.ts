@@ -424,28 +424,41 @@ export async function sendMarketDigest(weekStart: string): Promise<EngineResult>
   return (await send(weekStart, new Date())) ? { done: true } : { degraded: "market-digest-not-sent" };
 }
 
-// ── The re-score — issue 1433, built.
+// ── The re-score — issues 1433 and 1481, built.
 //
-// The master session asks for one with a `rescore_runs` row; the tick claims
-// it and `src/lib/scan/rescore-run.ts` answers it on the same row. Imported
+// The master session may ask for one with a `rescore_runs` row; where none
+// waits, production's tick asks the next step for its deployed derivation
+// itself. `src/lib/scan/rescore-run.ts` answers it on the same row. Imported
 // at the call: the module reaches `@/lib/db`.
 
 import type { RescoreRequest } from "@/lib/scan/rescore-run";
 export type { RescoreRequest };
 
-/** The oldest re-score asked for and not yet started, now marked started. */
-export async function claimRescore(now: Date): Promise<RescoreRequest | null> {
-  const { claimRequest } = await import("@/lib/scan/rescore-run");
-  return claimRequest(now);
+/** The oldest re-score asked for and not yet started, now marked started —
+ *  or the one the tick asked for itself; `held` where the guard stopped it. */
+export async function claimRescore(now: Date): Promise<RescoreRequest | { held: string } | null> {
+  const [{ claimRequest }, { deployedDerivation }] = await Promise.all([
+    import("@/lib/scan/rescore-run"),
+    import("@/lib/scan/derivation"),
+  ]);
+  return claimRequest(now, deployedDerivation());
 }
 
-/** Answers it with the deployed code: `rescoredBy` is the deployed commit. */
+/** Answers it with the deployed code: `rescoredBy` is the deployed commit,
+ *  and the run records the deployed derivation. */
 export async function answerRescore(a: {
   readonly request: RescoreRequest;
   readonly now: Date;
 }): Promise<EngineResult> {
-  const { answerRequest } = await import("@/lib/scan/rescore-run");
-  await answerRequest(a.request, { version: (process.env.VERCEL_GIT_COMMIT_SHA ?? "unknown").slice(0, 7), at: a.now });
+  const [{ answerRequest }, { deployedDerivation }] = await Promise.all([
+    import("@/lib/scan/rescore-run"),
+    import("@/lib/scan/derivation"),
+  ]);
+  await answerRequest(a.request, {
+    version: (process.env.VERCEL_GIT_COMMIT_SHA ?? "unknown").slice(0, 7),
+    derivation: deployedDerivation(),
+    at: a.now,
+  });
   return { done: true };
 }
 
@@ -651,6 +664,24 @@ export async function recheckLivePages(now: Date): Promise<{ readonly withdrawn:
   } catch (error) {
     console.log(JSON.stringify({ event: "live_rival_recheck_failed", error: error instanceof Error ? error.message : "unknown" }));
     return { withdrawn: 0 };
+  }
+}
+
+// ── A retargeted page's move, finished — SPEC §7, issue 1487.
+//
+// Each hour, a live hosted retarget still at its old address is recorded at
+// the address its new search names, the versions left at the old address
+// leave through the state machine, and the pages that link it are planned
+// a link refresh. 0¢. A read that fails moves nothing: the next tick reads
+// again.
+
+export async function repairMovedPages(now: Date): Promise<{ readonly moved: number }> {
+  try {
+    const { repairMoves } = await import("@/lib/publish/attempt/move");
+    return await repairMoves({ now });
+  } catch (error) {
+    console.log(JSON.stringify({ event: "hosted_move_repair_failed", error: error instanceof Error ? error.message : "unknown" }));
+    return { moved: 0 };
   }
 }
 

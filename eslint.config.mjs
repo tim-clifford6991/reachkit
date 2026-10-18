@@ -3,7 +3,7 @@
 // Flat config extending `next/core-web-vitals` + `@typescript-eslint`.
 // BP-001 decision 2: "`eslint.config.mjs` is where the corpus's
 // cross-module lint invariants land," and this node is answerable for
-// them. Five project rules below, each with a comment naming its source.
+// them. Seven project rules below, each with a comment naming its source.
 //
 // ADR-050's other half is not recast here (WO-001 step 3, verbatim):
 // "'Computes no access predicate' is not a lexical property an import rule
@@ -65,6 +65,72 @@ function callFenceRule(name, message) {
   };
 }
 
+/**
+ * A plain `<a>` to an address of the app (SPEC §4, 2026-10-08, issue 1341;
+ * issue 1484). An in-app link is `next/link` with `prefetch`, so the shell
+ * stays mounted and the next screen is already loaded.
+ * `@next/next/no-html-link-for-pages` reads a literal `href` only, and this
+ * product's in-app addresses are constants and model fields, so this rule
+ * also follows a `const` to its literal. Under `(account)` it also treats a
+ * name ending in `href` as an in-app address (option `names`) — that
+ * surface's convention, beside `url` for a page that leaves it; a public
+ * screen's `href` fields are anchors and sources. A link that must be a
+ * full load says so with a disable comment and its reason.
+ */
+const APP_ADDRESS = /^\/app(?:[/?#]|$)/;
+
+function hrefText(node, scope) {
+  if (node.type === "Literal") return typeof node.value === "string" ? node.value : undefined;
+  if (node.type === "TemplateLiteral") return node.quasis[0]?.value.cooked ?? undefined;
+  if (node.type === "Identifier") {
+    for (let at = scope; at; at = at.upper) {
+      const variable = at.set.get(node.name);
+      if (!variable) continue;
+      const def = variable.defs[0];
+      const init = def?.node.type === "VariableDeclarator" && def.parent?.kind === "const" ? def.node.init : null;
+      return init ? hrefText(init, at) : undefined;
+    }
+  }
+  return undefined;
+}
+
+function hrefName(node) {
+  if (node.type === "Identifier") return node.name;
+  if (node.type === "MemberExpression") {
+    if (!node.computed && node.property.type === "Identifier") return node.property.name;
+    return hrefName(node.object);
+  }
+  return undefined;
+}
+
+const noPlainAppLink = {
+  meta: {
+    type: "problem",
+    docs: { description: "An in-app link is next/link with prefetch (SPEC §4, issue 1341)." },
+    schema: [{ type: "object", properties: { names: { type: "boolean" } }, additionalProperties: false }],
+  },
+  create(context) {
+    const names = context.options[0]?.names === true;
+    return {
+      JSXOpeningElement(node) {
+        if (node.name.type !== "JSXIdentifier" || node.name.name !== "a") return;
+        const href = node.attributes.find((a) => a.type === "JSXAttribute" && a.name.name === "href");
+        const value = href?.value?.type === "JSXExpressionContainer" ? href.value.expression : href?.value;
+        if (!value) return;
+        const text = hrefText(value, context.sourceCode.getScope(value));
+        const inApp = text !== undefined ? APP_ADDRESS.test(text) : names && /href$/i.test(hrefName(value) ?? "");
+        if (inApp) {
+          context.report({
+            node,
+            message:
+              "SPEC §4 (2026-10-08, issue 1341): a link to a screen of the app is next/link with prefetch={true}, not a plain <a>.",
+          });
+        }
+      },
+    };
+  },
+};
+
 // Exported (not just used below) so tests/app/lint-rules.test.ts and
 // tests/egress/policy.test.ts can be pointed at the exact rule objects this
 // file defines, without needing a second copy of the invariant text.
@@ -113,6 +179,17 @@ export const localImportRules = {
       "fetch",
       "BP-006: a fetch( call anywhere under src/lib/ that is not src/lib/egress/** (the audited boundary) or src/lib/vendors/** (BP-008's vendor client) is a lint error — route it through safeFetch()."
     ),
+
+    // (f) SPEC §6 (owner, 2026-10-15, issue 1443): screens and mail are
+    // English. `copyIn` is the reader for the customer's own pages; app and
+    // mail code read `copy()` (issue 1484).
+    "no-copy-in-for-ui": importFenceRule(
+      (spec) => spec === "@/lib/presentation/copy/translated" || spec.endsWith("/copy/translated") || spec.endsWith("/copy/translated.ts"),
+      "SPEC §6 (issue 1443): app and mail text is English — use copy(), not copyIn() from @/lib/presentation/copy/translated."
+    ),
+
+    // (g) SPEC §4 (2026-10-08, issue 1341): an in-app link is next/link.
+    "no-plain-app-link": noPlainAppLink,
   },
 };
 
@@ -154,7 +231,25 @@ export default tseslint.config(
     rules: { "local/no-fetch-outside-egress": "error" },
   },
   {
-    // (f) Issue 1479: a stored site name is read by the name rule, never
+    // (f) — scoped to the screens and the mail.
+    files: ["src/app/**/*.{ts,tsx}", "src/lib/mail/**/*.{ts,tsx}"],
+    plugins: { local: localImportRules },
+    rules: { "local/no-copy-in-for-ui": "error" },
+  },
+  {
+    // (g) — every screen and the shared UI read a literal address; the
+    // account screens also read a name ending in `href`.
+    files: ["src/app/**/*.tsx", "src/ui/**/*.tsx"],
+    plugins: { local: localImportRules },
+    rules: { "local/no-plain-app-link": "error" },
+  },
+  {
+    files: ["src/app/(account)/**/*.tsx"],
+    plugins: { local: localImportRules },
+    rules: { "local/no-plain-app-link": ["error", { names: true }] },
+  },
+  {
+    // (h) Issue 1479: a stored site name is read by the name rule, never
     // as the column holds it — `storedSiteName` in src/lib/site-profile/ is
     // its one reader. A placeholder, a protection page's name or a call to
     // action was shown and counted as naming the business.

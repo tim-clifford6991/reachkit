@@ -51,7 +51,7 @@ import { CAPS } from "@/lib/config/constants";
 import { now } from "@/lib/config/now";
 import { readCache } from "./cache";
 import { openDayLedger, openSiteDayLedger, type SiteDayLedger } from "./daily";
-import { writeFetchRow } from "./ledger";
+import { nameDraftOnRows, writeFetchRow } from "./ledger";
 import { isFetchRefusal, isVendorFailure } from "./refusal";
 export {
   isFetchRefusal,
@@ -153,6 +153,15 @@ export interface CostContext {
   capHit(): boolean;
   spentCents(): number;
   degraded(): boolean;
+
+  /** Issue 1478: the draft this context's calls are for, once it has a row.
+   *  The calls made since the context opened, or since the last `null`,
+   *  that name no draft are named for it, and so is every call after it, so
+   *  `drafts.cost_cents` is the ledger's sum over the draft. `null` starts
+   *  the next page, which has no row yet: one day's context may try a
+   *  second topic. Present on a draft's context (`rollUp: "none"`); a
+   *  stand-in context may leave it out. */
+  forDraft?(draftId: string | null): Promise<void>;
 }
 
 /** `console.warn` is this seam's own log channel for the one invariant it
@@ -206,6 +215,9 @@ export async function withCostContext<T>(
      *  `cost_cents` is every paid call made against it, not only this
      *  context's. `rollUp: "add"` reads it from the row instead. */
     priorCents?: number;
+    /** Issue 1478: the draft this context spends for, where it already has
+     *  a row — an edit, or a rewrite of the date's row. */
+    draftId?: string;
   },
   body: (cost: CostContext) => Promise<T>
 ): Promise<T> {
@@ -237,6 +249,14 @@ export async function withCostContext<T>(
   const site: SiteDayLedger | null =
     row.siteId === null ? null : await openSiteDayLedger(row.siteId, now());
   let capHitLogged = false;
+  // Issue 1478: a context that writes no roll-up is a draft's (`withDraftCost`,
+  // and the free lead's page), and its calls say so on their rows, with the
+  // draft once there is one. Every other context's activity is the scan's,
+  // which the database reads.
+  const isDraft = ctx.rollUp === "none";
+  let draftId = ctx.draftId;
+  /** This context's rows written while no draft was named. */
+  let unnamed: string[] = [];
 
   function refuse(reason: CapReason, source: string, ceilingCents: number): { skipped: "cap" } {
     isDegraded = true;
@@ -372,7 +392,10 @@ export async function withCostContext<T>(
         }
 
         const billedCents = call.billedCents?.();
+        const rowId = crypto.randomUUID();
+        const namedDraft = draftId;
         await writeFetchRow({
+          id: rowId,
           scanId: ctx.scanId,
           source: call.source,
           cacheKey: call.cacheKey,
@@ -382,7 +405,14 @@ export async function withCostContext<T>(
           payload,
           durationMs: Date.now() - startedMs,
           ...(billedCents === undefined ? {} : { billedCents }),
+          ...(isDraft ? { activity: "draft" as const } : {}),
+          ...(isDraft && namedDraft !== undefined ? { draftId: namedDraft } : {}),
         });
+        if (isDraft && namedDraft === undefined) {
+          // The draft may have been named while this row was being written.
+          if (draftId === undefined) unnamed.push(rowId);
+          else await nameDraftOnRows([rowId], draftId);
+        }
         ledgeredCents += settledCents;
         // The day's total moves by what was actually ledgered, and `add`
         // publishes the crossing if this is the call that made one. The
@@ -411,6 +441,18 @@ export async function withCostContext<T>(
     degraded(): boolean {
       return isDegraded;
     },
+
+    ...(isDraft
+      ? {
+          async forDraft(id: string | null): Promise<void> {
+            draftId = id ?? undefined;
+            if (id === null) return;
+            const rows = unnamed;
+            unnamed = [];
+            await nameDraftOnRows(rows, id);
+          },
+        }
+      : {}),
   };
 
   // Money already spent inside `body` is kept regardless of how `body`
@@ -432,6 +474,11 @@ export async function withCostContext<T>(
 
   if (ctx.rollUp === "none") return result;
 
+  // Issue 1478: the database replaces the `cost_cents` written here with
+  // the ledger's own sum over the row (`scans_cost_from_ledger`), so a call
+  // still in flight at this close cannot leave the two disagreeing. The
+  // figure is still written: it is the roll-up on a database the migration
+  // has not reached.
   const { error } = await dbAdmin()
     .from("scans")
     .update(

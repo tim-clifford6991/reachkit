@@ -49,6 +49,8 @@ import type {
   RenderedPage,
 } from "../types";
 import { checkPageLinks, type AskAddress } from "../links/live";
+import { slugify } from "@/lib/opportunities/derive/candidate";
+import { isRetarget, type Evidence } from "@/lib/opportunities/types";
 import { claim, type HeldBy } from "./claim";
 
 export type { FailureReason } from "../types";
@@ -197,6 +199,16 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
     })
     .eq("id", claimed.publicationId);
 
+  // SPEC §7 (2026-10-17, issue 1487): a page that moved leaves its old
+  // address, which answers 301 to this one, and the pages that linked the
+  // old address are planned an update that links this one by its new name.
+  // Only where the destination did publish elsewhere: WordPress keeps the
+  // post's own address.
+  if (page.moveTo !== undefined && page.updateOf !== undefined && liveUrl !== null && liveUrl.endsWith(`/${page.moveTo}`)) {
+    const { moveAddress } = await import("./move");
+    await moveAddress({ from: page.updateOf, to: { publicationId: claimed.publicationId, url: liveUrl }, at, by: a.by });
+  }
+
   await transition(a.draftId, "published", a.by, {
     at,
     ...(a.deps === undefined ? {} : { deps: a.deps }),
@@ -311,6 +323,8 @@ interface DraftPageRow {
     type?: string | null;
     proposed_slug?: string | null;
     target_ref?: string | null;
+    target_query?: string | null;
+    evidence?: Evidence | null;
   } | null;
 }
 
@@ -366,7 +380,7 @@ async function siteOf(row: DraftPageRow): Promise<Pick<RenderedPage, "site">> {
 async function renderedPage(draftId: string): Promise<RenderedPage | null> {
   const { data, error } = await publishDb()
     .from<DraftPageRow>("drafts")
-    .select("site_id, title, body_md, attribution, meta, sites(domain), opportunities(family, type, proposed_slug, target_ref)")
+    .select("site_id, title, body_md, attribution, meta, sites(domain), opportunities(family, type, proposed_slug, target_ref, target_query, evidence)")
     .eq("id", draftId)
     .single();
   if (error !== null || data === null) return null;
@@ -398,7 +412,12 @@ async function renderedPage(draftId: string): Promise<RenderedPage | null> {
     // derived may name a host that has since moved (issue 1182), and the
     // adapter refuses an address that is not on the site's host.
     const updateOf = (await storedAddressesNow(data.site_id))(stored);
-    return { ...page, slug: slugOfUrl(updateOf) ?? "", updateOf };
+    const slug = slugOfUrl(updateOf) ?? "";
+    // SPEC §7 (2026-10-17, issue 1487): a retarget changes what the page is
+    // about, so its address says the new search, as a new page's does. A
+    // refresh keeps its search and so keeps its address.
+    const moveTo = isRetarget(opportunity) ? slugify(opportunity.target_query ?? "") : "";
+    return { ...page, slug, updateOf, ...(moveTo === "" || moveTo === slug ? {} : { moveTo }) };
   }
 
   const slug = opportunity?.proposed_slug;

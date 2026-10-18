@@ -151,6 +151,9 @@ export interface LanguagePack {
   jobSearch(job: string): string;
   /** The search that finds studies about a target. */
   studySearch(target: string): string;
+  /** The search that finds a target's own guidance: the platform's or the
+   *  authority's documentation of the task (issue 1486). */
+  guidanceSearch(target: string): string;
 
   // ── Questions and prompts ───────────────────────────────────────────────
   /** A search as the question a buyer would ask, by its shape. Total. */

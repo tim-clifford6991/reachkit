@@ -73,6 +73,11 @@ const PURGE_ORDER: readonly {
   { table: "publication_reads", column: "publication_id", from: "publicationIds" },
   // The page records: what went live, where, and when it came down.
   { table: "publications", column: "site_id", from: "siteIds" },
+  // The ledger-cache-raw-store in one: every byte fetched for a measurement
+  // of this customer's pages. Before the pages, because a draft's calls name
+  // its row (issue 1478); every one of them is keyed to one of this site's
+  // scans.
+  { table: "fetches", column: "scan_id", from: "scanIds" },
   // The pages themselves — body and `grounded_fact` alike. REQ-050 c1 keeps
   // a grounding passage "unchanged from then on"; its retention ends here,
   // and it ends because the row goes, not because a column is blanked.
@@ -80,9 +85,6 @@ const PURGE_ORDER: readonly {
   { table: "opportunities", column: "site_id", from: "siteIds" },
   // A lead captured against one of this site's own scans.
   { table: "leads", column: "scan_id", from: "scanIds" },
-  // The ledger-cache-raw-store in one: every byte fetched for a measurement
-  // of this customer's pages.
-  { table: "fetches", column: "scan_id", from: "scanIds" },
   { table: "scans", column: "site_id", from: "siteIds" },
   // How each draft day ended and why, and when the owner was told a day had
   // no page (issue 1455). No cascade (ADR-051 point 7), so it goes here,

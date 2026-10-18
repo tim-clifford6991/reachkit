@@ -62,7 +62,7 @@ describe("the outcome names the rules it asked (issue 1394)", () => {
     const outcome = await run(CLEAN_MARKDOWN);
     // An answer page handed no blocks, no title rule, no demo phrases, no
     // knowledge base and an empty never-claim list.
-    for (const rule of ["honest_row", "required_blocks", "title", "no_demo_text", "distinct_headings", "fit_claim", "do_not_claim"]) {
+    for (const rule of ["honest_row", "required_blocks", "title", "no_demo_text", "distinct_headings", "cites_market", "fit_claim", "do_not_claim"]) {
       expect(outcome.asked, rule).not.toContain(rule);
     }
     expect(outcome.asked).toEqual(expect.arrayContaining(["grounding", "near_duplicate", "traceable_numerals"]));

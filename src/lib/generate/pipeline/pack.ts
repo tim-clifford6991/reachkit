@@ -89,8 +89,10 @@ export interface PackLivePage {
   /** Why it is refreshed (issue 1139), as the row records it. */
   why: string | null;
   /** Issue 1391: the newer live page this refresh adds one sentence linking
-   *  to. Present on a refresh planned for that, and only there. */
-  linkTo?: { url: string; title: string };
+   *  to. Present on a refresh planned for that, and only there. Issue
+   *  1487: `replaces` is the old address of a page that moved, which the
+   *  live page links; code has already pointed that link at `url`. */
+  linkTo?: { url: string; title: string; replaces?: string };
   /** Issue 1490: the report sentences the live page's own pack held, where
    *  it was not a research page. The refresh may state none of their
    *  measurements. Absent reads as none. */
@@ -446,18 +448,23 @@ function buyerQuestions(a: {
  * What a new page adds (SPEC §7, D12; a check over the pack since D41): the
  * pack's facts whose words are on none of the top results the research step
  * read. A business fact is the customer's own; a market claim counts where
- * it was read off a rival's own page or a study, never off a top result.
+ * it was read off a rival's own page, a study or a primary source, never off
+ * a top result. On a page built from outside facts (issue 1486) the report's
+ * own measurements are not information gain: a site's score says nothing
+ * about the reader's task.
  */
 export function packAdds(a: {
   facts: readonly PackFact[];
   claims: readonly PackClaim[];
   topResults: readonly { url: string; text: string }[];
   newPage: boolean;
+  /** Whether the report's measurements count (issue 1163). Absent, they do. */
+  reportCounts?: boolean;
 }): AddsRecord {
   const top = a.topResults.map((result) => fold(result.text));
   const absent = (passage: string): boolean => !top.some((text) => text.includes(fold(passage)));
   const claims: AddedClaim[] = [
-    ...a.facts.filter((fact) => absent(fact.passage)).map((fact) => ({ claim: fact.passage, business: true })),
+    ...a.facts.filter((fact) => absent(fact.passage) && (a.reportCounts !== false || fact.report !== true)).map((fact) => ({ claim: fact.passage, business: true })),
     ...a.claims
       .filter((claim) => claim.kind !== "top_result" && absent(claim.passage))
       .map((claim) => ({ claim: claim.passage, business: false })),
@@ -512,6 +519,11 @@ function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">,
       const held = [...pack.facts.map((fact) => fact.passage), ...knowledgeTexts(knowledge)];
       return held.length >= requirement.min && held.some((text) => shares(ownTopicWords(pack), text));
     }
+    case "outside_sources":
+      // Issue 1486: claims off that many public pages. The research step
+      // reads none of the customer's own, and `neverASource` took out the
+      // pages no page may cite.
+      return new Set(pack.claims.map((claim) => claim.url)).size >= requirement.min;
     case "product_page":
       return pack.links.some((link) => link.purpose === "product" || link.purpose === "features" || link.purpose === "pricing");
     case "measured_questions":
@@ -535,10 +547,18 @@ function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">,
       const fresh = [...pack.facts, ...pack.claims].filter((fact) => !live.includes(fold(fact.passage)));
       // Issue 1391: a newer page of the site the live one does not link is
       // what is new to say on a refresh planned to link it.
-      const newer = pack.live.linkTo !== undefined && !pack.live.markdown.includes(pack.live.linkTo.url) ? 1 : 0;
+      // Issue 1487: a link moved to a page's new address is what is new.
+      const linkTo = pack.live.linkTo;
+      const newer = linkTo !== undefined && (linkTo.replaces !== undefined || !pack.live.markdown.includes(linkTo.url)) ? 1 : 0;
       return fresh.length + newer >= requirement.min;
     }
   }
+}
+
+/** Whether a type's page is built from cited outside facts (issue 1486):
+ *  its template asks its pack for outside sources. A how-to and a Q&A. */
+export function builtFromOutside(type: ContentType): boolean {
+  return TEMPLATES[type].packMustHold.some((requirement) => requirement.need === "outside_sources");
 }
 
 /** What the template asks of the pack that it does not hold, by handle. */
@@ -674,7 +694,13 @@ export function buildPack(a: PackInputs): ContextPack {
     }),
     measurements: a.type === "research" ? measurementsOf(a.report) : null,
     live: a.live ?? null,
-    adds: packAdds({ facts, claims, topResults: a.research.topResults ?? [], newPage: newPage && a.type !== "update" }),
+    adds: packAdds({
+      facts,
+      claims,
+      topResults: a.research.topResults ?? [],
+      newPage: newPage && a.type !== "update",
+      reportCounts: !builtFromOutside(a.type),
+    }),
   };
   const missing = missingFrom(pack, a.previousResearch ?? null);
   // SPEC §7 (owner, D47): a comparison with fewer than two rivals that have

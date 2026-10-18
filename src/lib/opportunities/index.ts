@@ -38,7 +38,7 @@ export {
 
 export { rankScore } from "./rank/score";
 export { rankOpen } from "./rank/open";
-export { planLinkBacks, planRefreshes } from "./refresh";
+export { planLinkBacks, planMovedLinks, planRefreshes } from "./refresh";
 export { assessFixPages, fixPageReadiness, type FixDelivery } from "./fix-page";
 export { assessReadiness, opportunityReady, ownRanksFrom, type ReadinessContext } from "./readiness";
 export { canonicalUrl, clusterKey, collapse, comparePrecedence } from "./cluster";

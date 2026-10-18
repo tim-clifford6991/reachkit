@@ -16,6 +16,7 @@
 // empty list is a success state, not a blank — and a quiet one (SPEC §4
 // 2026-09-24, #1070): a tick and one line, never a green alert.
 import type React from "react";
+import Link from "next/link";
 import { Bell, Check, FileText, Globe, Plug, Wrench } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
@@ -72,9 +73,9 @@ function Panel(p: { alert: Alert }): React.JSX.Element | null {
             line under the contrast floor. */}
         <p className="text-xs">{line}</p>
       </div>
-      <a className={drawn.cta} href={p.alert.href}>
+      <Link className={drawn.cta} href={p.alert.href} prefetch={true}>
         {cta}
-      </a>
+      </Link>
     </div>
   );
 }

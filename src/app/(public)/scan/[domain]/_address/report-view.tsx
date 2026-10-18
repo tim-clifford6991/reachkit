@@ -187,6 +187,21 @@ function FinishingReadsLine(p: { report: StoredReport }): React.JSX.Element | nu
 }
 
 /**
+ * SPEC §2 (issue 1481): a report the deployed code would read differently,
+ * and that the re-score has not rewritten yet, says when it was read and
+ * that the reading has changed since. Never silently stale.
+ */
+function ReadsDifferentlyLine(p: { report: StoredReport; shown: boolean }): React.JSX.Element | null {
+  if (!p.shown) return null;
+  const readOn = formatMeasuredOn(new Date(p.report.rescoredAt ?? p.report.verdict.measuredAt));
+  return (
+    <p className="col-span-full text-sm text-base-content/70" data-testid="report-reads-differently">
+      {copy("report.reads-differently", { date: readOn })}
+    </p>
+  );
+}
+
+/**
  * SPEC §6 (owner D66, issue 1311): where the site said a country or a
  * language ReachKit does not measure yet, the report was measured in the
  * nearest supported country in English, and says so in one line. Nothing is
@@ -330,6 +345,7 @@ export function ReportView(p: {
     notice: AddressNotice | null;
     control: AddressControl;
     correction: CorrectionOffer;
+    readsDifferently?: boolean;
   };
   checkoutRefused?: boolean;
 }): React.JSX.Element {
@@ -405,6 +421,7 @@ export function ReportView(p: {
         <MeasuredInLine report={report} />
         <MarketFromSearchLine report={report} />
         <FinishingReadsLine report={report} />
+        <ReadsDifferentlyLine report={report} shown={p.state.readsDifferently === true} />
         <div className="col-span-full">
           {/* SPEC §2's measurement line is in the card, beside the date
               (#1068). */}

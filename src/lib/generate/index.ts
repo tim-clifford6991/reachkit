@@ -58,10 +58,11 @@ import {
   knownLinkTargets as knownContentTargets,
   siteLinkTargets,
 } from "./links/select";
+import { withMovedLink } from "./links/moved";
 import { urlKey, type LinkTarget } from "./links/select";
 import { generateDraft, targetSearches, type GenerateOutcome } from "./pipeline";
 import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from "./pipeline/grounding";
-import { buildPack, questionsHeld, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
+import { buildPack, builtFromOutside, questionsHeld, readPack, type ContextPack, type PackLivePage, type PackMeasurements } from "./pipeline/pack";
 import { generatePageFix } from "./pipeline/page-fix";
 import type { FixNote } from "./pipeline/repair";
 import { NO_RESEARCH, researchMarket, type MarketResearch } from "./pipeline/research";
@@ -167,7 +168,9 @@ export async function generateDayPage(a: {
       let written = 0;
       for (let topic = 1; ; topic++) {
         const page = { siteId: a.siteId, site, report, opportunity, publishDate: a.publishDate };
-        // Each row carries what its own page cost, not the day's.
+        // Each row carries what its own page cost, not the day's, and its
+        // own calls (issue 1478): a second topic is a page with no row yet.
+        if (topic > 1) await cost.forDraft?.(null);
         const own = sinceNow(cost);
         // A fix is a metadata-only update: one call, no regeneration loop —
         // the only rule it can fail is the customer's own do-not-claim list,
@@ -267,7 +270,7 @@ export async function regenerateRestarted(a: {
   const opportunity = writtenAs === "qa" && contentTypeOf(found) === "listicle" ? { ...found, writeAs: "qa" as const } : found;
 
   const page = { siteId: a.siteId, site, report, opportunity, publishDate: row.scheduled_for, draftId: row.id };
-  const outcome = await withDraftCost({ scanId: report.scanId }, (cost) =>
+  const outcome = await withDraftCost({ scanId: report.scanId, draftId: row.id }, (cost) =>
     opportunity.type === "fix_page" ? fixPage(page, cost) : writePage({ ...page, attempts: 1 }, cost)
   );
   await settle(outcome, opportunity.id, a.now ?? new Date(), site.domain);
@@ -410,10 +413,16 @@ async function livePageOf(
   if (markdown.trim() === "") return null;
   const evidence = opportunity.evidence as { shortfall?: { kind?: unknown } } | undefined;
   const linkTo = linkBackOf(opportunity);
+  // Issue 1487: a link to a page that moved is pointed at its new address in
+  // code, by the name the row records; the writer returns the page as it is.
+  const moved =
+    linkTo?.replaces === undefined
+      ? markdown
+      : withMovedLink(markdown, { from: (href) => href === linkTo.replaces, to: linkTo.url, text: linkTo.title }).markdown;
   return {
     url,
     title,
-    markdown,
+    markdown: moved,
     why: typeof evidence?.shortfall?.kind === "string" ? evidence.shortfall.kind : null,
     ...(linkTo === null ? {} : { linkTo }),
     ...(ours?.reportPassages === undefined ? {} : { reportPassages: ours.reportPassages }),
@@ -422,10 +431,11 @@ async function livePageOf(
 
 /** SPEC §7 (2026-10-10, issue 1391): the newer live page a refresh planned
  *  for `link` adds a link to, as its row records it. */
-function linkBackOf(opportunity: Opportunity): { url: string; title: string } | null {
-  const shortfall = (opportunity.evidence as { shortfall?: { cause?: unknown; link?: { url?: unknown; title?: unknown } } } | undefined)?.shortfall;
+function linkBackOf(opportunity: Opportunity): { url: string; title: string; replaces?: string } | null {
+  const shortfall = (opportunity.evidence as { shortfall?: { cause?: unknown; link?: { url?: unknown; title?: unknown; replaces?: unknown } } } | undefined)?.shortfall;
   const link = shortfall?.cause === "link" ? shortfall.link : undefined;
-  return typeof link?.url === "string" && typeof link.title === "string" ? { url: link.url, title: link.title } : null;
+  if (typeof link?.url !== "string" || typeof link.title !== "string") return null;
+  return { url: link.url, title: link.title, ...(typeof link.replaces === "string" ? { replaces: link.replaces } : {}) };
 }
 
 async function writePage(a: PageInput & { attempts: number; startedAt?: number }, cost: CostContext): Promise<DayPageOutcome> {
@@ -563,6 +573,9 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
           // Issue 1390: every page that is researched reads what buyers
           // ask beside its target, for its headings.
           questions: true,
+          // Issue 1486: a how-to or a Q&A is built from cited outside facts,
+          // so its one search reads the target's own guidance.
+          guidance: builtFromOutside(type),
           borrow: { terms: marketSearches(writingFor), held: (research) => questionsHeld(packOf(research)) },
           ...(type === "insights"
             ? { recent: { searches: [category === "" ? (targetSearches(o)[0] ?? "") : category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } }

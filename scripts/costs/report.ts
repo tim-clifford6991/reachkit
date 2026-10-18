@@ -17,11 +17,12 @@
 //
 // Pure: it reads no file and calls nothing. `scripts/costs.mjs` hands it the
 // rows.
-import { USD_PER_EUR } from "@/lib/config/constants";
+import { TEST_DAY_EUR, USD_PER_EUR } from "@/lib/config/constants";
 
-/** D34: €2 a day across all live testing, and where the warning starts. */
-export const DAY_CAP_EUR = 2;
-export const DAY_WARN_EUR = 1.5;
+/** D34: €2 a day across all live testing, and where the warning starts —
+ *  the pin the owner's cost page reads too (issue 1478). */
+export const DAY_CAP_EUR = TEST_DAY_EUR.cap;
+export const DAY_WARN_EUR = TEST_DAY_EUR.warn;
 /** Billed and recorded are warned about past either of these (issue 1408). */
 const GAP_SHARE = 0.1;
 const GAP_CENTS = 10;

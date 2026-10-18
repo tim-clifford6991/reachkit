@@ -214,6 +214,7 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   eq(column: string, value: string): MinimalQueryBuilder<T>;
   is(column: string, value: boolean): MinimalQueryBuilder<T>;
   limit(n: number): MinimalQueryBuilder<T>;
+  update(values: object): MinimalQueryBuilder<T>;
 }
 
 interface MinimalClient {
@@ -260,6 +261,23 @@ export async function readSpentCents(scanId: string): Promise<number> {
   if (error) throw new Error(error.message);
   const spent = Number(data?.[0]?.cost_cents);
   return Number.isFinite(spent) ? spent : CAPS.FREE_C;
+}
+
+/**
+ * Issue 1478: the retried row's spend, carried on the retry's own row.
+ *
+ * The retry's `cost_cents` is the ledger's sum over its own calls plus what
+ * it carries (`scans_cost_from_ledger`), so the next retry of the same
+ * report reads the whole purse. A database the migration has not reached
+ * has no column to carry it in, and the pass's own close writes the total.
+ */
+export async function carrySpentCents(scanId: string, cents: number): Promise<void> {
+  if (!(cents > 0)) return;
+  const { error } = await untyped(dbAdmin())
+    .from<CurrentScanRow>("scans")
+    .update({ carried_cents: cents })
+    .eq("id", scanId);
+  if (error !== null && !error.message.includes("carried_cents")) throw new Error(error.message);
 }
 
 /**

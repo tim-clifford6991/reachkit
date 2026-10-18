@@ -65,6 +65,10 @@ function engineDouble(): Record<string, unknown> {
       engineCalls.count += 1;
       return { withdrawn: 0 };
     },
+    repairMovedPages: async () => {
+      engineCalls.count += 1;
+      return { moved: 0 };
+    },
     duePublishRetries: async () => {
       engineCalls.count += 1;
       return [{ draftId: "d1", destinationId: "dest-1" }];
@@ -148,6 +152,7 @@ async function invoke(id: JobId, killSwitch: boolean) {
     sitesWithoutDeepPass: async () => [],
     deepPassDomain: async () => null,
   }));
+  vi.doMock("@/lib/costs/vendor-days", () => ({ vendorDaysDue: async () => [], readVendorDay: async () => ({ done: true }) }));
   const { jobs } = await import("@/jobs");
   const { runJob } = await import("@/jobs/run");
   const definition = jobs.find((j: JobDefinition) => j.id === id);

@@ -540,7 +540,8 @@ row. The row is stored at business fit 3: the target is the operator's choice, a
 it (#1285). No row returned means the address is not a live page of ours. A unique violation means the
 page already has that update open or queued. The next generation run records the row's readiness
 and ranks it with the site's other topics; nothing publishes until that day's page is written. The
-page is written as the new search's own type and replaces the live text at the same address.
+page is written as the new search's own type and published at the address the new search names;
+the old address answers 301 to it, and each site page that linked it is planned a link refresh to the new one (issue 1487).
 
 ### Checking a stored pass again
 
@@ -569,17 +570,45 @@ pass's own log lines.
 
 ### Re-scoring every stored scan
 
-After **every deploy that changes scoring, rivals or markets**, the master session re-scores the
-stored scans (owner, 2026-10-14, issue 1426; SPEC §2): a dry run, then an apply. It costs 0¢. It
-runs in production as the `scan/rescore` job (issue 1433), with the deployed code, reading the rows
+After **every deploy that changes scoring, rivals or markets**, every stored scan is re-scored
+(owner, 2026-10-14, issue 1426; SPEC §2): a dry run, then an apply. It costs 0¢. It runs in
+production as the `scan/rescore` job (issue 1433), with the deployed code, reading the rows
 themselves. It asks no model, and the network is refused while each scan is scored. Nothing is
 exported, and no change is typed back through the connector.
+
+**Nobody asks for it (issue 1481).** The build stamps the deployment with its derivation
+(`RK_DERIVATION`, from `scripts/derivation.mjs`: a fingerprint of the files under `src/lib` the
+re-score reads a scan with; `node scripts/derivation.mjs --files` lists them). Production's tick,
+every 15 minutes, finds no run at the deployed derivation and asks a dry run itself
+(`auto = true`). A dry run that moves nothing settles it. Where the dry run's guard holds
+(`RESCORE_GUARD` in `src/lib/config/constants.ts`: no score moves more than 15 points, no scored
+scan loses its number, no more unreadable scans than the run before), the next tick asks the
+apply, and the tick after it a dry run that checks the apply. A deploy whose fingerprint did not
+change asks nothing. Dev's ticks never ask: it reads the same database with newer code.
+
+Where it stands at the deployed derivation:
+
+```sql
+select requested_at, mode, auto, derivation, finished_at, scans_changed, scans_left,
+       scans_unreadable, held, error, cardinality(stale_scans) as stale
+from rescore_runs order by requested_at desc limit 6;
+```
+
+**A held run.** `held` says why the guard stopped the apply, or that the check still found scans
+moving after it; `error` says a run failed. Nothing more is asked at that derivation, and every
+tick records `scan/rescore` as `degraded` at `rescore-held` in `job_runs` until it moves on. Each
+public report in `stale_scans` says when it was read and that the reading has changed since. Read
+the summary (step 2 below). If the moves are the change you meant, ask the apply by hand (step 3);
+the tick then asks the check itself. If they are not, the fix is a code change, and its deploy is a
+new derivation that starts over.
+
+To ask by hand, as before:
 
 1. **Ask for a dry run** through the Supabase connector:
    `insert into rescore_runs (mode) values ('dry') returning id;`. The job ticks every 15 minutes,
    claims the oldest request not yet started, and answers it on the same row.
 2. **Read the summary**: `select finished_at, rescored_by, scans_read, scans_changed, sites_moved,
-   error, summary from rescore_runs where id = '<id>';`. `finished_at` is null while it runs.
+   held, error, summary from rescore_runs where id = '<id>';`. `finished_at` is null while it runs.
    `rescored_by` is the deployed commit. `summary` is a markdown table with one row per scan:
    score with its range and confidence (issue 1439), band, the three factors, the limiting factor, the rivals and the status, before → after.
    Then come the totals, what could not be fully recomputed and why, the site rival sets that move,
@@ -882,8 +911,9 @@ Only an app URL whose host is `localhost`, `127.0.0.1` or `[::1]` is not.
 ## 8. The cost ledger
 
 Every vendor and model call goes through the seam in `src/lib/costs/`, and every call that
-actually spent writes one row to **`fetches`**. That table is the source of truth for spend;
-`scans.cost_cents` is a cached roll-up of it.
+actually spent writes one row to **`fetches`**. That table is the source of truth for spend.
+`scans.cost_cents` and `drafts.cost_cents` are its roll-ups, and the database computes them
+(issue 1478): whatever a process writes there is replaced by the ledger's sum.
 
 `fetches` — `supabase/migrations/20260903080000_fetches.sql`:
 
@@ -895,11 +925,19 @@ actually spent writes one row to **`fetches`**. That table is the source of trut
 | `reserved_cents` | what the cap was checked against |
 | `cost_cents` | what it settled at, from our own price list |
 | `billed_cents` | what the vendor says it charged for the call, read from its response (#1408). Null where the response carried no charge: a model call, an own-page read, a timeout, and every row before 2026-10-11 |
+| `site_id` | the scan's site, filled on insert (issue 1478). Null for a free scan |
+| `activity` | why: `free_scan`, `onboarding`, `weekly`, `draft`, `rescore` (a deep pass after the site's first), `smoke`, `test` (a reserved example domain) or `box`. Filled on insert from the scan; a draft's cost context writes `draft` |
+| `draft_id` | the draft the call was made for, named once the draft has a row |
+| `outcome` | `ok`, `failed` or `timeout`, read from the stored payload on insert |
 | `created_at` | when |
 
 RLS is on with no policy — default-deny — so it is reachable only through `dbAdmin()`. **No cost
-figure is ever rendered to a customer**, and there is no `site_id`: a site is reached through
-`scans.site_id`.
+figure is ever rendered to a customer.** Migration `20261017130000_fetches_attribution.sql`
+(issue 1478) added the four attribution columns, filled them for every older row at 0¢, and
+added the roll-up triggers: `scans.cost_cents = carried_cents + Σ cost_cents` over the scan's
+rows that are not a draft's, `drafts.cost_cents = carried_cents + Σ cost_cents` over the draft's.
+`carried_cents` is what a retry carries from the report it retries, and on a draft written before
+2026-10-17 the part of its figure no row could be matched to.
 
 ### The caps
 
@@ -939,6 +977,22 @@ select smoke, count(*) as scans, sum(cost_cents) as cents
   from scans
  where tier = 'free' and created_at >= now() - interval '7 days'
  group by 1;
+```
+
+**The owner's page is `/app/costs`** (issue 1478), signed in at one of `OWNER_EMAILS`; every
+other account gets the 404, and it is not in the navigation. It reads `cost_site_day` and
+`vendor_days` for the seven UTC days to today: each site's and each segment's week (free,
+smoke, test, box), estimated beside billed, with its month at that pace against €40.50 net; each
+site each day; the week by activity with its failed and timed-out calls; each vendor-day's
+recorded spend beside the vendor's own bill, and the gap; and each day against D34's €2, judged
+on billed spend where known. `cost_site_day` is the ledger grouped by UTC day, site or segment,
+vendor and activity; a free scan's rows count for the site provisioned from it:
+
+```sql
+-- the week by site or segment, estimated beside billed
+select coalesce(site_id::text, segment) as who, sum(estimated_cents), sum(billed_cents),
+       sum(billed_calls) as priced, sum(calls) as calls, sum(judged_cents)
+  from cost_site_day where day >= current_date - 6 group by 1 order by 6 desc;
 ```
 
 For anything the digest does not say, read the ledger in the Supabase SQL editor. The only other
@@ -1093,6 +1147,25 @@ select coalesce(jsonb_agg(d), '[]'::jsonb) from (
 
 Other flags: `--stored` takes no fresh reading, and `--log`, `--snapshots` and `--env-file`
 name other files.
+
+**Each day, stored: `vendor_days`** (issue 1478). One row per vendor per UTC day, `kind` `usage`,
+`fixed` (one a month, `day` its first) or `box` (one per day, vendor and `domain`). `billed_cents`
+is in cents of `currency`, null where nothing reported it, never 0. `account/maintenance` writes it
+on every tick until the day's row exists (`src/jobs/vendor-days.ts`, `src/lib/costs/vendor-days.ts`),
+and every reading is free:
+
+- *DataForSEO*: the balance and deposits at the day's first tick; the day before gets its bill,
+  the fall between the two openings with deposits added back.
+- *Anthropic*: the cost report for the last eight days, closed days only, when the deployment
+  holds `ANTHROPIC_ADMIN_KEY`. Without it the page says AI spend is estimated.
+- *Fixed*: on the first tick of a month, last month's Stripe fees from its balance transactions
+  (euro cents), and a row with no figure for Vercel, Supabase, the job platform and Resend, which
+  report no bill the product can read. A figure learned elsewhere is written into that row by hand
+  in the SQL editor.
+- *Box*: `scripts/vendor-snapshot.mjs` writes the spend log's last eight days as `box` rows when
+  `.env.local` holds a real `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; the box's are
+  placeholders today, so it says `no database key` and box spend stays in the spend log, which now
+  carries each line's `domain` where the script knows it.
 
 ---
 
