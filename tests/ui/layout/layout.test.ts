@@ -165,17 +165,25 @@ describe(`layout sweep — ${routes.length} route(s) × ${widths().length} width
   // One case per route (#1018). The zero-route tree is stated by the count
   // assertion above, which is where "nothing to check today" belongs now
   // that a route is a case rather than a turn of a loop.
+  //
+  // Issue 1510 rides the same page load: no href on the route is the source
+  // of a function or an error. A constant a server component read from a
+  // `"use client"` module printed `/#function(){throw Error(…` into the
+  // public header's links, and only a built page shows it.
   for (const route of routes) {
     it(
-      `${route.path} renders exactly one [data-surface] root`,
+      `${route.path} renders exactly one [data-surface] root, and no href is a server error`,
       async () => {
-        const count = await withPage(
+        const { count, brokenHrefs } = await withPage(
           BAND_MIN.compact,
           async (page) => {
             await page.goto(urlFor(route));
-            return page.evaluate(
-              () => document.querySelectorAll("[data-surface]").length,
-            );
+            return page.evaluate(() => ({
+              count: document.querySelectorAll("[data-surface]").length,
+              brokenHrefs: [...document.querySelectorAll("[href]")]
+                .map((el) => el.getAttribute("href") ?? "")
+                .filter((href) => href.includes("function(") || href.includes("Error(")),
+            }));
           },
           headersFor(route),
         );
@@ -183,6 +191,7 @@ describe(`layout sweep — ${routes.length} route(s) × ${widths().length} width
           count,
           `${route.path} must render exactly one [data-surface] root`,
         ).toBe(1);
+        expect(brokenHrefs, `${route.path}: an href holds a function or an error`).toEqual([]);
       },
       PER_ROUTE_BROWSER_MS,
     );

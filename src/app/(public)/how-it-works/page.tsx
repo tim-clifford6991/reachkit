@@ -20,7 +20,7 @@ import { ArrowRight } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { OnThisPage } from "../_legal/LegalPage";
-import { FIELD_SECTION_ID } from "../_landing/FieldCta";
+import { FIELD_SECTION_ID } from "../_landing/sections";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
 import { CHECK_LINES, CHECK_LINE_COPY, ENGINES_NAMED, HOW_FACTS as F, checksIn } from "../_how/facts";

@@ -142,6 +142,9 @@ export interface ContextPack {
   claims: PackClaim[];
   /** The rivals whose own pages yielded a claim. */
   products: ResearchedProduct[];
+  /** Issue 1508: on a page of alternatives to one product, its domain. It
+   *  has a row in the table, marked, and is not one of the options. */
+  baseline?: string;
   /** *Current insights* (issue 1262): each dated news result that was read,
    *  and whether it was judged to be about the market. Only one that was has
    *  a claim in `claims`. */
@@ -682,6 +685,7 @@ export function buildPack(a: PackInputs): ContextPack {
     facts,
     claims,
     products,
+    ...(a.research.baseline === undefined || a.type !== "listicle" ? {} : { baseline: a.research.baseline }),
     ...(a.research.news === undefined ? {} : { news: a.research.news }),
     pages: a.sitePages.filter((page) => typeof page.url !== "string" || !neverASource(page.url)).slice(0, PACK.pages),
     links: a.links.filter((link) => !neverASource(link.url)).map((link) => ({ url: link.url, label: link.label, purpose: link.source === "site" ? link.purpose : null })),
@@ -721,7 +725,12 @@ export function buildPack(a: PackInputs): ContextPack {
   // SPEC §7 (owner, D47): a comparison with fewer than two rivals that have
   // facts is written as a Q&A, from the same reads. A business with no price
   // of its own is not that case: the page stops and asks for it, as before.
-  if (a.type === "listicle" && missing.includes("options") && !missing.includes("own_price")) return buildPack({ ...a, type: "qa" });
+  // Issue 1508: two rivals or more but fewer than `RESEARCH.optionsMin`
+  // counted options is a comparison not ready yet: it stays short, and the
+  // day goes to the next topic (D26).
+  const table = TEMPLATES.listicle.blocks.table;
+  const noComparison = table !== undefined && comparisonTable(pack, table.rivals) === null;
+  if (a.type === "listicle" && missing.includes("options") && !missing.includes("own_price") && noComparison) return buildPack({ ...a, type: "qa" });
   return { ...pack, missing };
 }
 

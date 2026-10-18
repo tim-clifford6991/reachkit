@@ -39,6 +39,11 @@
 //     and no trope: "how to unlock a phone" may be titled with "unlock".
 //   * **Token overlap** is the share of the two titles' words they have in
 //     common (Jaccard), the measure `./similarity.ts` uses for a page.
+//   * **The count** (issue 1508): on a page that counts options, a bare
+//     whole number among the title's first three words ("7 Squarespace
+//     alternatives", "Top 5 …", "Die 5 besten …") is how many it counts.
+//     It must be the options the page counts, the baseline of an
+//     alternatives page not among them.
 //
 // Deterministic, no I/O. A failure carries handles, never a sentence.
 import { languagePack } from "@/lib/locale/language";
@@ -58,6 +63,7 @@ export type TitleFault =
   | "year"
   | "banned"
   | "overlap"
+  | "count"
   | "heading"
   | "description"
   /** Issue 1507: the description states a figure the body does not. */
@@ -93,6 +99,9 @@ export interface TitleRuleInputs {
   /** Set once the page has had its fix call: a title that lacks only its
    *  specific then goes on (ruling 2026-10-11). */
   settled?: boolean;
+  /** Issue 1508: the options a comparison counts, the business among them
+   *  and an alternatives page's baseline not. Absent on any other page. */
+  options?: number;
 }
 
 const YEAR_RE = /\b(?:19|20)\d\d\b/g;
@@ -208,6 +217,17 @@ export function closestTitle(title: string, titles: readonly string[]): string |
   return titles.find((other) => titleOverlap(title, other) >= TITLE.overlapMax) ?? null;
 }
 
+/** The number a title counts its options by (issue 1508): a bare whole
+ *  number among its first three words, else `null`. A year, a price and a
+ *  share are not one. */
+export function countedIn(title: string): number | null {
+  for (const word of title.trim().split(/\s+/).slice(0, 3)) {
+    const bare = /^(\d{1,2})[.:,]?$/.exec(word);
+    if (bare !== null) return Number(bare[1]);
+  }
+  return null;
+}
+
 /** What a title's own words fail. The H1 is held to the same. */
 function wordingFaults(title: string, a: TitleRuleInputs): TitleFault[] {
   const chars = [...title.trim()].length;
@@ -221,6 +241,7 @@ function wordingFaults(title: string, a: TitleRuleInputs): TitleFault[] {
     yearMisplaced(title, a) && "year",
     hasBanned(title, a) && "banned",
     closestTitle(title, a.titles) !== null && "overlap",
+    a.options !== undefined && countedIn(title) !== null && countedIn(title) !== a.options && "count",
   ];
   return faults.filter((fault) => fault !== false);
 }
@@ -361,6 +382,7 @@ export function titleNotes(title: string, a: TitleRuleInputs, faults: readonly T
       : "title: a page of this type carries no year in its title",
     banned: `title: it must not use ${pack.title.banned.map((phrase) => `"${phrase}"`).join(", ")}, a filler verb or stock phrase like ${pack.title.tropeSamples.map((phrase) => `"${phrase}"`).join(", ")}, two things joined by "and" after "How to", a square bracket, a pipe, or the same word twice`,
     overlap: `title: it reads almost the same as this site's page "${close ?? ""}"; lead with what this page has that one does not`,
+    count: `title: it counts ${countedIn(title) ?? 0} options and the page counts ${a.options ?? 0}: state ${a.options ?? 0}, the number \`options\` holds, or no count`,
     heading: "heading: the H1 is the title itself",
     description: `description: it has ${[...a.description.trim()].length} characters and must have ${TITLE.description.min} to ${TITLE.description.max}, opening with the answer`,
     description_figures: `description: every figure it states is one the body states; ${descriptionFiguresMissing(a.description, markdown, figureReading(a))

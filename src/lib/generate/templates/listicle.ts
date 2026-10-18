@@ -1,4 +1,5 @@
 // SPEC §7 (D42, 1) — listicle / comparison.
+import { RESEARCH } from "@/lib/config/constants";
 import type { Template } from "./types";
 
 export const listicle: Template = {
@@ -25,20 +26,29 @@ export const listicle: Template = {
       key: "how_we_compared",
       task: "Say in a few sentences how these options were compared: from each option's own pricing and product pages, read on the dates the sources list gives, and on the criteria above. Say plainly that the products were not tried or tested. This section is short and may run under the length asked of the others.",
     },
+    // Issue 1508: on a page of alternatives to one product, that product is
+    // the baseline. It has this section and no `option`.
+    {
+      key: "baseline",
+      task: "Only where `alternativesTo` names a product: what that product offers, from the claims its own page gave, so the reader knows what the options are measured against. On any other page leave this section out.",
+      repeat: { min: 0, max: 1 },
+      when: "alternatives",
+    },
     {
       key: "option",
-      task: "One option: what it does, its price, who it suits, and one limit — each from a fact about that product.",
-      repeat: { min: 3, max: 6 },
+      task: "One of `options`: what it does, its price, who it suits, and one limit — each from a fact about that product.",
+      repeat: { min: 3, max: 8 },
     },
     // D52: the verdict is honest about where the business is not the pick.
     {
       key: "which_to_choose",
-      task: "The verdict: say which option to choose for which case, and name at least one case where a rival, by its name, is the better pick than this business — from a fact about that rival.",
+      task: "The verdict: say which of `options` to choose for which case, and name at least one case where a rival among them, by its name, is the better pick than this business — from a fact about that rival.",
     },
     { key: "business", task: "Say how this business itself handles the question, from its facts, linking its product and pricing pages." },
   ],
   blocks: { table: { rivals: 2 }, faq: { min: 3, max: 6 } },
   length: { floor: 1500, ceiling: 2500 },
   research: true,
-  packMustHold: [{ need: "options", min: 3 }, { need: "own_price" }, { need: "difference" }],
+  // Issue 1508: at least four counted options, the business among them.
+  packMustHold: [{ need: "options", min: RESEARCH.optionsMin }, { need: "own_price" }, { need: "difference" }],
 };

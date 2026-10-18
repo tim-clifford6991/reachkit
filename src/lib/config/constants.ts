@@ -2021,6 +2021,20 @@ export const RESEARCH = Object.freeze({
   topResults: 3,
   /** The named rivals whose own pricing and feature pages are read. */
   rivals: 4,
+  /** Owner, 2026-10-18 (issue 1508, amends #1135): a listicle reads the
+   *  own pages of up to this many products, an alternatives page's subject
+   *  among them. Every other page keeps `rivals`. */
+  options: 8,
+  /** Issue 1508: the products a listicle's options may be found among are
+   *  the ones named on `namedOn` of the first `namedFrom` top results
+   *  already read (the claim calls still read `topResults`). */
+  namedFrom: 5,
+  namedOn: 2,
+  /** Issue 1508 (drafted default): a listicle counts at least `optionsMin`
+   *  options, the business among them, or it is not written that day (D26);
+   *  under `optionsAim` its method section says why only those qualified. */
+  optionsMin: 4,
+  optionsAim: 5,
   /** D56 (issue 1282): a rival's pages are found in its own sitemap — at
    *  most this many addresses of it, from this many sitemaps of an index. */
   sitemaps: 3,

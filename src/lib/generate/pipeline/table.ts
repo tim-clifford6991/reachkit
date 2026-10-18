@@ -31,6 +31,10 @@
 //     states of one plan — a free trial, a starter tier — is shown under
 //     that plan's name, and *What it does* prefers a claim true of every
 //     plan, so no row passes one plan's limits off as the product;
+//   * **an alternatives page's subject is its baseline** (issue 1508): on a
+//     page of alternatives to one product, that product's row stands under
+//     the business's, marked as the one compared against, and it is not
+//     one of the options the page counts;
 //   * **two rivals are always kept.** Fewer than two with a fact to set
 //     beside the business is no comparison: `null`, and the page is written
 //     as a Q&A (`./pack.ts`).
@@ -59,6 +63,8 @@ interface Cell {
 interface Option {
   name: string;
   own: boolean;
+  /** The product an alternatives page is about (issue 1508). */
+  baseline?: boolean;
   /** When this option's pages were read; the business's own row has none. */
   readAt: string[];
   cells: Partial<Record<Criterion, Cell>>;
@@ -71,11 +77,15 @@ export interface ComparisonTable {
   /** The line beside it where the prices are in more than one currency
    *  (D56), else `null`. */
   currencies: string | null;
-  /** The options' names, the business first. */
+  /** The options' names, the business first: what the page counts. The
+   *  baseline is not one of them. */
   options: string[];
+  /** Issue 1508: the name of the product the page lists alternatives to,
+   *  where its own page gave its row; else `null`. */
+  baseline: string | null;
 }
 
-type TablePack = Pick<ContextPack, "business" | "profile" | "facts" | "claims" | "products" | "builtAt"> & Pick<Partial<ContextPack>, "locale">;
+type TablePack = Pick<ContextPack, "business" | "profile" | "facts" | "claims" | "products" | "builtAt"> & Pick<Partial<ContextPack>, "locale" | "baseline">;
 
 /** The table's own labels, in the page's language (D66). */
 function say(pack: TablePack, key: CopyKey, vars?: Record<string, string | number>): string {
@@ -130,13 +140,15 @@ function ownOption(pack: TablePack): Option {
   };
 }
 
-/** How the site's market names a rival, else its domain. */
-function rivalName(pack: TablePack, domain: string): string {
+/** How the site's market names a rival, else how the top results that
+ *  named it do (issue 1508), else its domain. */
+export function rivalName(pack: Pick<ContextPack, "business" | "products">, domain: string): string {
   const rivals = (pack.business.market as { rivals?: unknown } | null)?.rivals;
   const named = Array.isArray(rivals)
     ? (rivals as { name?: unknown; domain?: unknown }[]).find((rival) => rival?.domain === domain && typeof rival.name === "string")
     : undefined;
-  return typeof named?.name === "string" && named.name.trim() !== "" ? named.name.trim() : domain;
+  if (typeof named?.name === "string" && named.name.trim() !== "") return named.name.trim();
+  return pack.products.find((product) => product.domain === domain)?.name?.trim() || domain;
 }
 
 function rivalOption(pack: TablePack, domain: string): Option {
@@ -192,7 +204,13 @@ function written(held: Cell): string {
  * rivals with one.
  */
 export function comparisonTable(pack: TablePack, minRivals: number): ComparisonTable | null {
-  let options = [ownOption(pack), ...pack.products.map((product) => rivalOption(pack, product.domain))];
+  // Issue 1508: the baseline stands under the business, and is no option.
+  const baseline = pack.products.find((product) => product.domain === pack.baseline);
+  let options = [
+    ownOption(pack),
+    ...(baseline === undefined ? [] : [{ ...rivalOption(pack, baseline.domain), baseline: true }]),
+    ...pack.products.filter((product) => product !== baseline).map((product) => rivalOption(pack, product.domain)),
+  ];
   let criteria = [...CRITERIA];
   // A criterion most options lack goes; then an option left with nothing to
   // say goes; until neither changes.
@@ -203,7 +221,8 @@ export function comparisonTable(pack: TablePack, minRivals: number): ComparisonT
     criteria = kept;
     options = filled;
   }
-  if (criteria.length === 0 || options[0]?.own !== true || options.length - 1 < minRivals) return null;
+  const counted = options.filter((option) => option.baseline !== true);
+  if (criteria.length === 0 || options[0]?.own !== true || counted.length - 1 < minRivals) return null;
 
   const whole = options.every((option) => criteria.every((criterion) => option.cells[criterion] !== undefined));
   const row = (cells: readonly string[]): string => `| ${cells.join(" | ")} |`;
@@ -214,7 +233,7 @@ export function comparisonTable(pack: TablePack, minRivals: number): ComparisonT
       return value === undefined ? [] : [{ criterion, value }];
     });
     return row([
-      option.name.replace(/\|/g, "/"),
+      (option.baseline === true ? say(pack, "body.table.baseline", { name: option.name }) : option.name).replace(/\|/g, "/"),
       // Every criterion a column, or — where an option lacks one — one cell
       // an option, each saying which criteria it states.
       ...(whole ? held.map((each) => written(each.value)) : [held.map((each) => `${say(pack, HEADER[each.criterion])}: ${written(each.value)}`).join(" · ")]),
@@ -232,7 +251,8 @@ export function comparisonTable(pack: TablePack, minRivals: number): ComparisonT
     markdown,
     checked: say(pack, "body.table.checked", { date: dayOf(pack, new Date(oldest)) }),
     currencies: currencies.size > 1 ? say(pack, "body.table.currencies") : null,
-    options: options.map((option) => option.name),
+    options: counted.map((option) => option.name),
+    baseline: options.find((option) => option.baseline === true)?.name ?? null,
   };
 }
 

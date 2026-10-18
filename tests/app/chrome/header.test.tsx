@@ -74,6 +74,26 @@ vi.mock("@/app/(public)/_chrome/canonical", () => {
   };
 });
 
+/** The landing's client leaf, as a Server Component receives it (issue
+ *  1510). Next hands a server module each export of a `"use client"` module
+ *  as a client reference: a component still renders, but anything else is a
+ *  function that throws when read, and a jsdom-free `renderToStaticMarkup`
+ *  never sees that boundary on its own. So every export that is not a
+ *  function becomes one that throws, as on the server. */
+vi.mock("@/app/(public)/_landing/FieldCta", async (importOriginal) => {
+  const real = await importOriginal<Record<string, unknown>>();
+  return Object.fromEntries(
+    Object.entries(real).map(([name, value]) => [
+      name,
+      typeof value === "function"
+        ? value
+        : function () {
+            throw new Error(`Attempted to call ${name}() from the server but ${name} is on the client.`);
+          },
+    ]),
+  );
+});
+
 function markup(path: string): string {
   pathname = path;
   return renderToStaticMarkup(<Header />);
@@ -165,6 +185,16 @@ describe("SPEC §1, 2026-09-24 (#1066) — the banner and the nav", () => {
       'data-theme-choice="dark"',
     ]);
     expect(html).not.toContain('data-testid="theme-toggle"');
+  });
+
+  it("issue 1510 — the two section links are /#why and /#how, in the bar and in the drawer", () => {
+    const html = markup(ELSEWHERE);
+    for (const part of [withoutDrawer(html), drawer(html)]) {
+      const hrefs = [...part.matchAll(/href="(\/#[^"]*)"/g)].map((m) => m[1]);
+      expect(hrefs).toContain("/#why");
+      expect(hrefs).toContain("/#how");
+      expect(hrefs.filter((h) => !["/#why", "/#how", "/#landing-field"].includes(h ?? ""))).toEqual([]);
+    }
   });
 
   it("the drawer holds every link, the switch and Sign in, and Start free stays in the bar", () => {

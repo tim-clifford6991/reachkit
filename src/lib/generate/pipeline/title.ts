@@ -10,6 +10,8 @@ import { TITLE } from "@/lib/config/constants";
 import { brandOf } from "@/lib/market/questions/select";
 import { addedNames, asksQuestion, withoutSerials, type TitleRuleInputs } from "../rules/title";
 import { packStatements, type ContextPack } from "./pack";
+import { comparisonTable } from "./table";
+import { TEMPLATES } from "../templates";
 
 /** The market as the pack carries it (`sites.market`), read defensively:
  *  `searchTerm` is D49's, on a market concluded since it was built, and
@@ -40,6 +42,10 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
   const counts = new Map<string, number>();
   for (const section of page.sections ?? []) counts.set(section.key, (counts.get(section.key) ?? 0) + 1);
   const listed = (page.sections ?? []).flatMap((section) => (section.items === undefined ? [] : [section.items]));
+  // Issue 1508: what a comparison counts is its table's options, never its
+  // baseline.
+  const rivalsMin = TEMPLATES[pack.type].blocks.table?.rivals;
+  const options = pack.type === "listicle" && rivalsMin !== undefined ? comparisonTable(pack, rivalsMin)?.options.length : undefined;
   return {
     type: pack.type,
     terms: [...new Set([...searches, pack.target.question])],
@@ -54,12 +60,13 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
       ...pack.claims.map((claim) => claim.passage),
       ...packStatements(pack),
       ...pack.target.searches,
-      [...counts.values(), ...listed, pack.questions.length].filter((count) => count > 1).join(" "),
+      [...counts.values(), ...listed, pack.questions.length, options ?? 0].filter((count) => count > 1).join(" "),
     ].join("\n"),
     year: new Date(pack.builtAt).getUTCFullYear(),
     titles: pack.pages.flatMap((each) => text(each.title)),
     description: page.description,
     ...(pack.locale === undefined ? {} : { language }),
+    ...(options === undefined ? {} : { options }),
   };
 }
 

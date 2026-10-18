@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { FIELD_SECTION_ID } from "../_landing/FieldCta";
+import { FIELD_SECTION_ID } from "../_landing/sections";
 import { longDate, type Source } from ".";
 
 /** Attribute values, never sentences (the copy sweep). */
