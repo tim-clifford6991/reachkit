@@ -21,18 +21,25 @@ type StoredReachProfile = { town?: string; offeringType?: string; category?: str
  * Whether the town a stored report measured in is still its market (issue
  * 1480). A free pass's town (`placeFrom`) stands while its profile still
  * reads a town it sells in (`profileTown`); one read as selling beyond a
- * town, or as software, has none and is scored as the national market it
- * is. A paid pass's place was held to the site's evidence when it was
- * settled, and stands.
+ * town, or as software, has none, and a new pass measures it nationally. A
+ * paid pass's place was held to the site's evidence when it was settled,
+ * and stands. Where it does not stand, the stored searches were still bought
+ * there (issue 1504), so the report is read in that town until it is
+ * scanned again, and the re-score lists it as stale.
  */
-export function placeStands(r: { locale?: { place?: unknown; placeFrom?: unknown } | null; profile: ReachProfile | null }): boolean {
+export function placeStands(r: {
+  locale?: { place?: unknown; placeFrom?: unknown } | null;
+  market: Measured<{ profile: StoredReachProfile }>;
+}): boolean {
   if (r.locale?.place === undefined) return false;
-  if (r.locale.placeFrom === undefined || r.profile === null) return true;
-  return profileTown(r.profile) !== "";
+  const profile = r.market.kind === "unmeasured" ? null : reachProfileOf(r.market.value.profile);
+  if (r.locale.placeFrom === undefined || profile === null) return true;
+  return profileTown(profile) !== "";
 }
 
-/** The reach a stored report holds (issue 1468): the town it measured in,
- *  its profile read, and its home page's structured data. */
+/** The reach a stored report holds (issue 1468): the town its searches were
+ *  bought in, as a new pass reads its own (issue 1504), its profile read,
+ *  and its home page's structured data. */
 export function reachOfReport(r: {
   locale?: { place?: unknown; placeFrom?: unknown } | null;
   market: Measured<{ profile: StoredReachProfile }>;
@@ -40,7 +47,7 @@ export function reachOfReport(r: {
 }): NonNullable<Parameters<typeof cardsOf>[0]["reach"]> {
   const profile = r.market.kind === "unmeasured" ? null : reachProfileOf(r.market.value.profile);
   return {
-    measuredInTown: placeStands({ ...(r.locale === undefined ? {} : { locale: r.locale }), profile }),
+    measuredInTown: r.locale?.place !== undefined,
     profile,
     schemaTypes: r.onPage.kind === "unmeasured" ? [] : r.onPage.value.schemaTypes,
   };

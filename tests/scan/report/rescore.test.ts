@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { offline } from "../../../src/lib/egress/offline";
-import { KEPT_NO_OVERVIEW_TEXT, rehomeSite } from "../../../src/lib/scan/rescore";
+import { KEPT_NO_OVERVIEW_TEXT, KEPT_TOWN_BOUGHT, rehomeSite } from "../../../src/lib/scan/rescore";
 import {
   answerRequest,
   claimRequest,
@@ -586,29 +586,45 @@ describe("issue 1481: a deploy that changes how a scan is read is followed by a 
   });
 });
 
-describe("issue 1480: a free scan's town its profile reads as no market of its own is dropped at 0¢", () => {
+describe("issue 1504: a free scan's town its profile no longer reads stands where its searches were bought, and is stale", () => {
   // gusto.com's stored scan, with close.com's place and profile as stored on
-  // 16 October: a CRM read as software, sold internationally, that measured
-  // in Austin off the town its footer gave.
-  const withPlace = (profile: Record<string, unknown>): StoredScanRow => {
+  // 16 October: a CRM read as software, sold internationally, whose
+  // searches were bought in Austin off the town its footer gave.
+  const withPlace = (profile: Record<string, unknown>): FixtureScan => {
     const s = fixture("gusto.com");
     const report = structuredClone(s.report) as Record<string, unknown> & { market: { value: { profile: Record<string, unknown> } } };
     report.locale = { country: "US", language: "en", place: { name: "Austin", region: "Texas", location: "Austin,Texas,United States" }, placeFrom: "page_text" };
     report.market.value.profile = { ...report.market.value.profile, category: "sales CRM software", ...profile };
-    return { ...s, domain: "gusto.com", report, md5: md5(report), siteId: null, isCurrent: false };
+    return { ...s, report };
   };
-  const localeChange = (row: StoredScanRow): unknown => {
-    const result = rescoreRow(row, []);
+  const close = withPlace({ kind: "software", reach: "international", town: "Austin, Texas" });
+  const plumber = withPlace({ kind: "local-service", reach: "local", town: "Austin, Texas", category: "plumber" });
+  const rescored = (s: FixtureScan) => {
+    const result = rescoreRow({ ...s, domain: "gusto.com", md5: md5(s.report), report: structuredClone(s.report), siteId: null, isCurrent: false }, []);
     if (!("result" in result)) throw new Error(result.because);
-    return result.result.changes.find((change) => change.path.join(".") === "locale")?.value;
+    return result.result;
   };
 
-  it("software sold internationally is measured in its country, and nothing is bought", () => {
-    const change = localeChange(withPlace({ kind: "software", reach: "international", town: "Austin, Texas" }));
-    expect(change).toEqual({ country: "US", language: "en" });
+  it("software sold internationally keeps its town and the rivals read there, and is stale", () => {
+    const result = rescored(close);
+    expect(result.changes.find((change) => change.path[0] === "locale")).toBeUndefined();
+    expect(result.after.rivals).toEqual(rescored(plumber).after.rivals);
+    expect(result.stale).toBe(true);
+    expect(result.kept).toContain(KEPT_TOWN_BOUGHT);
   });
 
-  it("a plumber whose profile reads Austin keeps it", () => {
-    expect(localeChange(withPlace({ kind: "local-service", reach: "local", town: "Austin, Texas", category: "plumber" }))).toBeUndefined();
+  it("a plumber whose profile reads Austin keeps it, and is not stale", () => {
+    const result = rescored(plumber);
+    expect(result.changes.find((change) => change.path[0] === "locale")).toBeUndefined();
+    expect(result.stale).toBe(false);
+  });
+
+  it("the run lists it stale after the apply, though nothing is left to write", async () => {
+    const db = storeOf([close]);
+    expect((await rescoreStored(db.store, apply)).stale).toEqual([close.id]);
+    const check = await rescoreStored(db.store, dry);
+    expect(check.scansChanged).toBe(0);
+    expect(check.stale).toEqual([close.id]);
+    expect((db.rows.get(close.id)!.report as { locale: unknown }).locale).toEqual(close.report.locale);
   });
 });

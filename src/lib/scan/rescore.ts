@@ -37,7 +37,7 @@ import type { Profile } from "@/lib/market/questions/profile-types";
 import type { PresenceCard } from "@/lib/market/rivals/presence";
 import type { MarketSerp, QuestionView } from "@/lib/market/views";
 import { AI_ANSWER_SOURCES, type RankedRow } from "@/lib/vendors/dataforseo/types";
-import { cardsOf, reachOfReport } from "./cards";
+import { cardsOf, placeStands, reachOfReport } from "./cards";
 import { readAsProtection, unreadByProtection } from "./challenged";
 import { marketEvidence, type EvidenceReport } from "./market-evidence";
 import type { AnswerCell, EngineCell, StoredReport } from "./report";
@@ -156,6 +156,10 @@ export interface Rescored {
   status: ScanStatus;
   /** What stands as stored on this scan, and why. */
   kept: readonly string[];
+  /** The current code reads this scan's market elsewhere than its stored
+   *  searches were bought (issue 1504): it stands as stored, and the run
+   *  lists it as stale until it is scanned again. */
+  stale: boolean;
   /** What the stored profile gains of the business's reading (issue 1470):
    *  empty where it holds it all, or nothing stored decides the rest. */
   reading: Retrofit;
@@ -254,6 +258,8 @@ function cardsAfter(
  *  text, and of a battery answer whose text is no longer stored. */
 export const KEPT_NO_OVERVIEW_TEXT = "AI presence: its AI Overviews were stored without their text, so a brand they name only in words is not counted";
 export const KEPT_NO_ANSWER_TEXT = "AI answers: an AI Mode or ChatGPT answer's text is not stored under this scan, so whether it names the site stands as read";
+/** Issue 1504: a free scan's town its profile no longer reads as its market. */
+export const KEPT_TOWN_BOUGHT = "town: its searches were bought in a town its profile no longer reads as its market, so its place and rivals stand until its next scan";
 
 /** A battery engine's answered cell, its `named` read again from the text
  *  `fetches` kept under this scan for that search; as stored where none is. */
@@ -347,16 +353,18 @@ export function rescoreScan(scan: RescoreScan): Rescored {
     ...(presence === undefined ? {} : { presence }),
   });
 
-  // The profile as this re-score completes it (issue 1470), and the town
-  // that profile still sells in (issue 1480): a free scan's town its
-  // profile reads as no market of its own is dropped, and its rivals are
-  // read as a national market's, from the same stored searches.
+  // The profile as this re-score completes it (issue 1470). A free scan's
+  // town that profile reads as no market of its own (issue 1480) still
+  // stands: its searches were bought there and are read as they were, and
+  // the scan is stale until its next pass measures it nationally (issue
+  // 1504), as a stored country stands.
   const profile = clearedProfileOf(r);
   const reading = readingOf(r, profile, scan.market ?? null);
   const read = withReading(r, profile, reading);
-  const placed: RescoreReport = read.locale?.place !== undefined && !reachOfReport(read).measuredInTown ? { ...read, locale: withoutPlace(read.locale) } : read;
+  const stale = read.locale?.place !== undefined && !placeStands(read);
+  if (stale) kept.push(KEPT_TOWN_BOUGHT);
 
-  let after: RescoredMembers = { ...membersOf(r), verdict, ...cardsAfter(placed, scan, kept) };
+  let after: RescoredMembers = { ...membersOf(r), verdict, ...cardsAfter(read, scan, kept) };
 
   // A home read that was a protection's page is no reading of the site
   // (issue 1383): the report says what a new scan of it would say.
@@ -370,14 +378,14 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   }
 
   const before = membersOf(r);
-  const changes = [...changesOf(before, after), ...profileChanges(r, profile, reading), ...(placed.locale === r.locale ? [] : [{ path: ["locale"], value: placed.locale }])];
+  const changes = [...changesOf(before, after), ...profileChanges(r, profile, reading)];
   // A new date is a change though `same` reads past dates: the whole
   // verdict is written again, every member of it carrying that date.
   if (at.getTime() !== new Date(r.verdict.measuredAt).getTime() && !changes.some((c) => c.path.length === 1 && c.path[0] === "verdict")) {
     changes.unshift({ path: ["verdict"], value: after.verdict });
   }
   const score = after.verdict.scoreAndBand.kind === "unmeasured" ? null : after.verdict.scoreAndBand.value.score;
-  return { before, after, changes, drivers, score, status: statusAfter(scan.status, before.verdict, after.verdict), kept, reading };
+  return { before, after, changes, drivers, score, status: statusAfter(scan.status, before.verdict, after.verdict), kept, stale, reading };
 }
 
 /** The date the report wears: the scan's start (issue 1392). A stored date
@@ -420,14 +428,6 @@ function withReading(r: RescoreReport, profile: Record<string, unknown> | null, 
   if (r.market.kind === "unmeasured" || profile === null) return r;
   if (profile === r.market.value.profile && Object.keys(reading).length === 0) return r;
   return { ...r, market: { ...r.market, value: { ...r.market.value, profile: { ...profile, ...reading } as typeof r.market.value.profile } } };
-}
-
-/** A stored locale measured in its country, with no town. */
-function withoutPlace(locale: NonNullable<RescoreReport["locale"]>): NonNullable<RescoreReport["locale"]> {
-  const country = { ...locale };
-  delete country.place;
-  delete country.placeFrom;
-  return country;
 }
 
 /** The profile's new members, each written at its own path; a profile that
