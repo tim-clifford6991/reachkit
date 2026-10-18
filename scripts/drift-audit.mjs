@@ -1,14 +1,24 @@
 #!/usr/bin/env node
-// Deterministic drift audit: docs/SPEC.md ↔ src ↔ tests. It reads files and
-// compares them; it has no opinions and never reads the clock.
+// Deterministic drift audit: docs/SPEC.md and its dated rulings under
+// docs/spec/decisions/ ↔ src ↔ tests. It reads files and compares them; it
+// has no opinions and never reads the clock.
 // Exit 1 on a hard finding, or on any non-OK row under --strict.
+// --root <dir> audits another checkout.
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
+import { readDecisions, specSections } from "./spec-decisions.mjs";
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+const rootAt = process.argv.indexOf("--root");
+const ROOT = rootAt > 0
+  ? path.resolve(process.argv[rootAt + 1])
+  : path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const strict = process.argv.includes("--strict");
-const read = (p) => readFileSync(path.join(ROOT, p), "utf8");
-const spec = read("docs/SPEC.md");
+const read = (p) => (existsSync(path.join(ROOT, p)) ? readFileSync(path.join(ROOT, p), "utf8") : null);
+const spec = read("docs/SPEC.md") ?? "";
+// Owner 2026-10-18, #1525: a dated ruling is its own file. Every reader of
+// the spec reads SPEC.md and those files as one text, each named by its file.
+const decisions = readDecisions(ROOT);
+const sources = [{ file: "docs/SPEC.md", text: spec }, ...decisions.map((d) => ({ file: d.file, text: d.body }))];
 
 function walk(dir, pred, out = []) {
   const abs = path.join(ROOT, dir);
@@ -49,12 +59,14 @@ for (const f of walk("src/lib/presentation/copy/keys", (f) => f.endsWith(".ts"))
 }
 
 const SPEC_COPY_RE = /`([\w$-]+(?:\.[\w$-]+)+)`\s*=\s*"([^"]+)"/g;
-for (const m of spec.matchAll(SPEC_COPY_RE)) {
-  const [key, quoted] = [m[1], m[2]];
-  const held = registry.get(key);
-  if (!held) add("copy", "MISSING", key, "quoted in docs/SPEC.md, no partition under src/lib/presentation/copy/keys/ declares it");
-  else if (plain(held.text) !== plain(quoted)) add("copy", "MISMATCH", key, `SPEC quotes "${quoted}" · ${held.file} holds "${held.text}"`);
-  else add("copy", "OK", key, held.file);
+for (const { file, text } of sources) {
+  for (const m of text.matchAll(SPEC_COPY_RE)) {
+    const [key, quoted] = [m[1], m[2]];
+    const held = registry.get(key);
+    if (!held) add("copy", "MISSING", key, `quoted in ${file}, no partition under src/lib/presentation/copy/keys/ declares it`);
+    else if (plain(held.text) !== plain(quoted)) add("copy", "MISMATCH", key, `${file} quotes "${quoted}" · ${held.file} holds "${held.text}"`);
+    else add("copy", "OK", key, held.file);
+  }
 }
 
 // -------------------------------------------------------------------- routes
@@ -70,10 +82,13 @@ const toRoute = (f) =>
     .replace(/\[([^\]]+)\]/g, "{$1}")) || "/";
 
 const routes = new Set(walk("src/app", (f) => /\/(page|route)\.tsx?$/.test(f)).map(toRoute));
-const specRoutes = [...new Set([...spec.matchAll(/`(\/[^`\s]*)`/g)].map((m) => m[1]))].sort();
-for (const r of specRoutes) {
-  if (routes.has(r)) add("routes", "OK", r, "named in docs/SPEC.md, present in src/app");
-  else add("routes", "MISSING", r, "named in docs/SPEC.md, no page or route file in src/app maps to it");
+const specRoutes = new Map();
+for (const { file, text } of sources) {
+  for (const m of text.matchAll(/`(\/[^`\s]*)`/g)) if (!specRoutes.has(m[1])) specRoutes.set(m[1], file);
+}
+for (const [r, file] of [...specRoutes].sort(([a], [b]) => a.localeCompare(b))) {
+  if (routes.has(r)) add("routes", "OK", r, `named in ${file}, present in src/app`);
+  else add("routes", "MISSING", r, `named in ${file}, no page or route file in src/app maps to it`);
 }
 
 // ------------------------------------------------------------------ journeys
@@ -104,14 +119,22 @@ const isRealDate = (y, m, d) => {
   return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
 };
 
-const markers = [...spec.matchAll(/\((\d{4})-(\d{2})-(\d{2})\)/g)];
+const markers = sources.flatMap(({ text }) => [...text.matchAll(/\((\d{4})-(\d{2})-(\d{2})\)/g)]);
 const bad = new Set();
 for (const m of markers) {
   if (!isRealDate(+m[1], +m[2], +m[3])) bad.add(`${m[1]}-${m[2]}-${m[3]}`);
 }
-for (const date of [...bad].sort()) add("rulings", "MALFORMED", date, "dated ruling marker in docs/SPEC.md is not a real calendar date", true);
+for (const date of [...bad].sort()) add("rulings", "MALFORMED", date, "dated ruling marker in docs/SPEC.md or a decision file is not a real calendar date", true);
 const dates = new Set(markers.map((m) => `${m[1]}-${m[2]}-${m[3]}`));
 add("rulings", "OK", "docs/SPEC.md", `${markers.length} dated ruling marker(s), ${dates.size} distinct date(s), ${bad.size} malformed`);
+
+// A decision file names a real date, its issue, and a section SPEC.md has.
+const sectionIds = new Set(specSections(spec).map((s) => s.id));
+for (const d of decisions) {
+  if (d.problems.length) add("rulings", "MALFORMED", d.file, d.problems.join("; "), true);
+  else if (!sectionIds.has(d.section)) add("rulings", "MISSING", d.file, `section ${d.section} is not a heading of docs/SPEC.md`, true);
+  else add("rulings", "OK", d.file, `${d.section}, #${d.issue}`);
+}
 
 // ----------------------------------------------------------------- coherence
 // Owner 2026-10-15, #1463. The registry lives in docs/PROCESS.md Coherence.

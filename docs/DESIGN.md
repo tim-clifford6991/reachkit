@@ -89,7 +89,7 @@ The owner looks at `dev.reachkit.app` for taste: voice, and an asset only the ow
 
 - 2026-09-25  **A board says what a screen holds, not how many pixels it is** (owner, #1110). It lists the sections, their order and their wording. Its render is not a done-when and not a merge gate; a difference of pixels is not a defect. Build it with the classes above; never match its pixels or copy its markup.
 
-Each board is `docs/design/boards/<id>/<id>.dc.html` with its `.jpg` render. The files keep their round ids so links hold; the work is named by the screen. Where a board and a dated line in `docs/SPEC.md` disagree, the SPEC line wins and the board is not redrawn — today that is *AI answers*, whose two cards (#1004) sit beneath the grid and whose fourth mark reads *links / names* (#953). Changing a screen's board is an owner decision and a dated SPEC line.
+Each board is `docs/design/boards/<id>/<id>.dc.html` with its `.jpg` render. The files keep their round ids so links hold; the work is named by the screen. Where a board and a dated line in `docs/SPEC.md` disagree, the SPEC line wins and the board is not redrawn — today that is *AI answers*, whose two cards (#1004) sit beneath the grid and whose fourth mark reads *links / names* (#953). Changing a screen's board is an owner decision and a dated SPEC ruling, written as a file under `docs/spec/decisions/`.
 
 | Screen | Route | Board |
 |---|---|---|

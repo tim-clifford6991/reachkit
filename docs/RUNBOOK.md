@@ -10,7 +10,8 @@ by the running app.
 
 How a change reaches `main` is `docs/PROCESS.md`: the four gates (`typecheck · lint · unit`,
 `audit`, `schema · RLS`, `no overflow · axe`), then `gh pr merge --squash --delete-branch`
-(or the GitHub UI). A documentation-only pull request merges on a green `audit` alone.
+(or the GitHub UI). A documentation-only pull request merges on a green `audit` alone; the
+browser gate reports success with a reason wherever no screen can change.
 This page starts after the merge.
 
 2026-10-08  **The guard watches the box** (owner, #1348). `rk-guard` reports low memory,
@@ -89,7 +90,11 @@ Owner, 2026-09-25 (#1113); the rules are in `docs/PROCESS.md` Gates. The light j
 changed`, `typecheck · lint · unit`, `schema · RLS` and `audit` — take their runner from the
 repository variable `CI_LIGHT_RUNNER`. Unset, they run GitHub-hosted and in parallel. Set to
 `["self-hosted","reachkit-light"]`, they run on the box's second runner. The browser job always
-runs on `reachkit-box` (label `reachkit`), the only runner that takes it.
+runs on `reachkit-box` (label `reachkit`), the only runner that takes it, when the pull request
+can change a screen. Where it cannot (`scripts/ci-changes.mjs`), the browser job is a light job
+that prints its reason and passes, and `Layout nightly` (`.github/workflows/layout-nightly.yml`)
+sweeps `main` on `reachkit-box` at 02:41 UTC and opens or comments on one issue titled
+`[layout] nightly sweep on main is red` when it fails (owner, 2026-10-18, #1525).
 
 | Do | Command |
 |---|---|

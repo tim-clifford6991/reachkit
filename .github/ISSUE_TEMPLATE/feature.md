@@ -20,7 +20,7 @@ labels: feature
 <!-- SPEC sections and open issues read. What was left alone, and why. -->
 
 ## SPEC
-<!-- `docs/SPEC.md` section, or "bug in already-specified behaviour — no docs edit". -->
+<!-- `docs/SPEC.md` section (its rulings include `docs/spec/decisions/`), or "bug in already-specified behaviour — no docs edit". -->
 
 ## Done when
 <!-- Observable on the live site, and the check that fails if it breaks. -->
