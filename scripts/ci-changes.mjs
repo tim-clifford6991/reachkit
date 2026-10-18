@@ -19,6 +19,13 @@ const UI = [
   /^src\/components\//,
   /^src\/ui\//,
   /^src\/lib\/presentation\//,
+  // The src/lib modules whose output a screen puts on the page as it is: the
+  // markdown, FAQ, byline and sources renderers, the hosted destination's
+  // markup and JSON-LD, the templates that shape a page's body, and the mark.
+  /^src\/lib\/publish\/render\//,
+  /^src\/lib\/publish\/destinations\/hosted\//,
+  /^src\/lib\/generate\/templates\//,
+  /^src\/lib\/brand\//,
   /^src\/(middleware|proxy)\.ts$/,
   /\.css$/,
   /^public\//,

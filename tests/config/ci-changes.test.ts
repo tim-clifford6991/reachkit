@@ -20,6 +20,7 @@ describe("what a pull request changed", () => {
     ["a content-only diff", ["src/lib/generate/brief.ts", "tests/generate/brief.test.ts"]],
     ["a job", ["src/jobs/engine.ts", "tests/jobs/engine.test.ts"]],
     ["a script", ["scripts/costs.mjs"]],
+    ["the WordPress destination", ["src/lib/publish/destinations/wordpress/adapter.ts"]],
   ])("%s runs the code gates and skips the sweep", (_, files) => {
     expect(changes(...files)).toEqual({ status: 0, code: "true", ui: "false" });
   });
@@ -27,6 +28,10 @@ describe("what a pull request changed", () => {
   it.each([
     ["a hosted page", "src/app/(hosted)/[...slug]/page.tsx"],
     ["a presentation module", "src/lib/presentation/copy/keys/app.ts"],
+    ["the markdown renderer", "src/lib/publish/render/markdown.ts"],
+    ["the hosted destination", "src/lib/publish/destinations/hosted/index.ts"],
+    ["a page template", "src/lib/generate/templates/how-to.ts"],
+    ["the mark", "src/lib/brand/mark.ts"],
     ["a stylesheet", "src/ui/theme.css"],
     ["the middleware", "src/middleware.ts"],
     ["the lockfile", "package-lock.json"],
