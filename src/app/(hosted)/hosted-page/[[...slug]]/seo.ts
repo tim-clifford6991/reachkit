@@ -132,11 +132,13 @@ function publisherOf(business: HostedBusiness, origin: string): Record<string, u
   };
 }
 
-/** `BlogPosting`, on every article: what the page is, from what it states. */
+/** `BlogPosting`, on every article: what the page is, from what it states.
+ *  It carries no `description`: the meta description is written for a
+ *  search result and the page does not print it, so stating it here would
+ *  be text the reader cannot see (SPEC §7, 2026-10-17, issue 1489). */
 export function blogPostingSchema(a: {
   page: HostedPage;
   canonical: string;
-  description: string | undefined;
   business: HostedBusiness;
 }): string {
   const origin = originOf(a.canonical);
@@ -146,7 +148,6 @@ export function blogPostingSchema(a: {
     "@id": `${a.canonical}#article`,
     // The heading a reader sees (D51); the `<title>` is the search form.
     headline: a.page.heading ?? a.page.title,
-    ...(a.description === undefined ? {} : { description: a.description }),
     url: a.canonical,
     mainEntityOfPage: a.canonical,
     // The dates the page itself prints (SPEC §7, 2026-09-29).

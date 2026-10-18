@@ -10,8 +10,10 @@ import {
   rescoreRow,
   rescoreStored,
   type RescoreStore,
+  type ProfileNameWrite,
   type ScanWrite,
   type SiteWrite,
+  type StoredProfileName,
   type StoredRead,
   type StoredScanRow,
   type StoredSiteRow,
@@ -39,7 +41,7 @@ const md5 = (report: unknown): string => createHash("md5").update(JSON.stringify
 
 /** The database as the job reads and writes it: `rescore_scan`'s guard and
  *  its path-level rewrite, applied to rows held here. */
-function storeOf(scans: readonly FixtureScan[], sites: StoredSiteRow[] = []) {
+function storeOf(scans: readonly FixtureScan[], sites: StoredSiteRow[] = [], profiles: StoredProfileName[] = []) {
   const rows = new Map<string, StoredScanRow>();
   const reads = new Map<string, StoredRead[]>();
   for (const s of scans) {
@@ -53,11 +55,12 @@ function storeOf(scans: readonly FixtureScan[], sites: StoredSiteRow[] = []) {
   }
   const written: ScanWrite[] = [];
   const sitesWritten: SiteWrite[] = [];
+  const namesWritten: ProfileNameWrite[] = [];
   const store: RescoreStore = {
     scans: async () => [...rows.values()].map((r) => structuredClone(r)),
     homeReads: async (domain) => reads.get(domain) ?? [],
     sites: async () => sites,
-    profiles: async () => [],
+    profiles: async () => profiles.map((p) => ({ ...p })),
     answers: async () => [],
     async writeScan(w) {
       const row = rows.get(w.id)!;
@@ -77,8 +80,15 @@ function storeOf(scans: readonly FixtureScan[], sites: StoredSiteRow[] = []) {
     async writeSite(w) {
       sitesWritten.push(w);
     },
+    async writeProfileName(w) {
+      const row = profiles.find((p) => p.domain === w.domain);
+      if (row === undefined || row.site_name !== w.from) return false;
+      row.site_name = w.to;
+      namesWritten.push(w);
+      return true;
+    },
   };
-  return { store, rows, written, sitesWritten };
+  return { store, rows, written, sitesWritten, namesWritten };
 }
 
 const at = new Date("2026-10-14T12:00:00Z");
@@ -117,6 +127,82 @@ describe("gusto.com's scan of 8 October (issue 1418): measured off Cloudflare's 
     const answer = await rescoreStored(store, apply);
     expect(answer).toMatchObject({ scansWritten: 0, scansLeft: 1 });
     expect(answer.summary).toContain("left alone because the report changed after it was read: 1 — ee251330");
+  });
+});
+
+describe("stored placeholders, names and dates, read again at 0¢ (issue 1479)", () => {
+  it("gusto.com's stored category <UNKNOWN> is written as none, and a second apply changes nothing", async () => {
+    const db = storeOf([fixture("gusto.com")]);
+    await rescoreStored(db.store, apply);
+    const profile = db.written[0]!.changes.find((c) => c.path.join(".") === "market.value.profile");
+    expect(profile?.value).toEqual({ category: "" });
+    // Only the replaced report, kept under `previous`, still holds it.
+    expect((db.rows.get(fixture("gusto.com").id)!.report as { market: unknown }).market).toMatchObject({ value: { profile: { category: "" } } });
+    expect(await rescoreStored(db.store, apply)).toMatchObject({ scansChanged: 0, scansWritten: 0 });
+  });
+
+  it("a report dated by a cached page read wears its scan's date", async () => {
+    // sage.com's of 10 October 22:52 showed Oct 9, the home read's date (issue 1392).
+    const zapier = fixture("zapier.com");
+    const verdict = zapier.report.verdict as Record<string, unknown>;
+    const cached: FixtureScan = { ...zapier, report: { ...zapier.report, verdict: { ...verdict, measuredAt: "2026-10-05T09:00:00.000Z" } } };
+    const db = storeOf([cached]);
+    const answer = await rescoreStored(db.store, apply);
+    expect(answer.scansWritten).toBe(1);
+    const written = db.written[0]!.changes.find((c) => c.path.join(".") === "verdict")!.value as { measuredAt: Date };
+    expect(new Date(written.measuredAt).toISOString()).toBe(new Date(zapier.createdAt).toISOString());
+    expect(new Date(db.written[0]!.drivers.foundations.at).toISOString()).toBe(new Date(zapier.createdAt).toISOString());
+    expect(await rescoreStored(db.store, apply)).toMatchObject({ scansChanged: 0, scansWritten: 0 });
+  });
+
+  it("a report dated at or after its scan keeps its date", async () => {
+    const db = storeOf([fixture("zapier.com")]);
+    await rescoreStored(db.store, apply);
+    const verdict = db.written[0]?.changes.find((c) => c.path.join(".") === "verdict")?.value as { measuredAt: Date } | undefined;
+    expect(new Date(verdict!.measuredAt).toISOString()).toBe("2026-10-06T03:43:51.829Z");
+  });
+
+  // What production stored for these, as the audits of 2026-10-17 read them.
+  const profiles = (): StoredProfileName[] => [
+    { domain: "hotjar.com", site_name: "Sign up for free", home_title: "Hotjar: Website Heatmaps & Behavior Analytics Tools" },
+    { domain: "deel.com", site_name: "HRIS", home_title: "Global Payroll & Compliance | HRIS" },
+    { domain: "sage.com", site_name: "Cloudflare", home_title: "Attention Required! | Cloudflare" },
+    { domain: "freshworks.com", site_name: "Just a moment...", home_title: "Just a moment..." },
+    { domain: "example.com", site_name: "<UNKNOWN>", home_title: null },
+    { domain: "paddle.com", site_name: "Paddle - Subscriptions, Payments & Tax Compliance for SaaS & Mobile Apps", home_title: null },
+    { domain: "hubspot.com", site_name: "Hubspot", home_title: "HubSpot | Software & Tools for your Business - Homepage" },
+    { domain: "reachkit.app", site_name: "ReachKit", home_title: "ReachKit" },
+    { domain: "cloudflare.com", site_name: "Cloudflare", home_title: "Connect, protect, and build everywhere | Cloudflare" },
+    { domain: "nifty.pm", site_name: null, home_title: null },
+  ];
+
+  it("every stored name that is no name is written as the name rule reads it, and counted as a site that moves", async () => {
+    const db = storeOf([], [], profiles());
+    const dryRun = await rescoreStored(db.store, dry);
+    expect(dryRun.sitesMoved).toBe(7);
+    expect(db.namesWritten).toEqual([]);
+    expect(dryRun.summary).toContain('deel.com "HRIS" → "Deel"');
+
+    const answer = await rescoreStored(db.store, apply);
+    expect(answer.sitesMoved).toBe(7);
+    expect(Object.fromEntries(db.namesWritten.map((w) => [w.domain, w.to]))).toEqual({
+      "hotjar.com": "Hotjar",
+      "deel.com": "Deel",
+      "sage.com": null,
+      "freshworks.com": null,
+      "example.com": null,
+      "paddle.com": "Paddle",
+      "hubspot.com": "HubSpot",
+    });
+    expect(answer.summary).toContain("7 written");
+    expect(await rescoreStored(db.store, apply)).toMatchObject({ sitesMoved: 0 });
+  });
+
+  it("a name written since it was read is left alone", async () => {
+    const db = storeOf([], [], profiles());
+    const store: RescoreStore = { ...db.store, writeProfileName: async () => false };
+    const answer = await rescoreStored(store, apply);
+    expect(answer.summary).toContain("0 written");
   });
 });
 

@@ -40,6 +40,7 @@ import { Surface } from "@/ui/layout";
 import { resolveHost } from "../../resolve-host";
 import { AboutCard, HostedFooter, HostedHeader, INDEX_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
 import { bylineLine } from "@/lib/publish/render/byline";
+import { withFaq, type FaqEntry } from "@/lib/publish/render/faq";
 import { isSourcesHeading, madeLine } from "@/lib/publish/render/made";
 import { writeDate } from "./present";
 import { articleMetadata, blogPostingSchema, breadcrumbSchema, jsonLd } from "./seo";
@@ -119,14 +120,17 @@ function descriptionOf(page: HostedPage): string | undefined {
   return `${(space > 0 ? cut.slice(0, space) : cut).trimEnd()}…`;
 }
 
-/** `FAQPage` from the stored section, or nothing at all. */
-function faqSchema(page: HostedPage, canonical: string): string | null {
-  if (page.faq.length === 0) return null;
+/** `FAQPage` from the questions the page draws (SPEC §7, 2026-10-17,
+ *  issue 1489), or nothing at all: `withFaq`'s pairs are the visible text
+ *  of the blocks the body renders, so the data states nothing the reader
+ *  cannot see. */
+function faqSchema(shown: readonly FaqEntry[], canonical: string): string | null {
+  if (shown.length === 0) return null;
   return jsonLd({
     "@context": "https://schema.org",
     "@type": "FAQPage",
     "@id": `${canonical}#faq`,
-    mainEntity: page.faq.map((entry) => ({
+    mainEntity: shown.map((entry) => ({
       "@type": "Question",
       name: entry.question,
       acceptedAnswer: { "@type": "Answer", text: entry.answer },
@@ -229,22 +233,27 @@ export function articleHead(resolved: Resolved): Metadata {
 
 export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.Element {
   const { page, canonical, others, business } = resolved;
-  // What the page says about itself as data: always the posting and the
-  // breadcrumb, and the questions only where the page has them.
-  const faq = faqSchema(page, canonical);
-  const dataBlocks = [
-    blogPostingSchema({ page, canonical, business, description: descriptionOf(page) }),
-    breadcrumbSchema({ page, canonical, business }),
-    ...(faq === null ? [] : [faq]),
-  ];
   // The one Markdown renderer (`markdown.ts`), which escapes every text
   // node on the way out — so a body cannot introduce markup and this
   // string is safe to set as HTML by construction rather than by a
   // sanitiser someone has to remember to call. A second renderer here is
   // exactly what that module's header forbids.
-  const levelled = headingsUnderTitle(
-    withoutRepeatedTitle(withoutRepeatedTitle(labelledIn(parseMarkdown(page.bodyMd), copy), page.title), page.heading ?? page.title)
+  // The buyer questions are drawn before the levels are set, so their
+  // section sits at the body's own top level (SPEC §7, 2026-10-17).
+  const asked = withFaq(
+    withoutRepeatedTitle(withoutRepeatedTitle(labelledIn(parseMarkdown(page.bodyMd), copy), page.title), page.heading ?? page.title),
+    page.faq,
+    copy
   );
+  const levelled = headingsUnderTitle(asked.blocks);
+  // What the page says about itself as data: always the posting and the
+  // breadcrumb, and the questions only where the page draws them.
+  const faq = faqSchema(asked.faq, canonical);
+  const dataBlocks = [
+    blogPostingSchema({ page, canonical, business }),
+    breadcrumbSchema({ page, canonical, business }),
+    ...(faq === null ? [] : [faq]),
+  ];
   const grounded = page.grounded;
   // The mark first, the ids after: an id is minted from a heading's words
   // and the mark changes none of them.

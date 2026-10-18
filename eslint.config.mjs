@@ -154,6 +154,23 @@ export default tseslint.config(
     rules: { "local/no-fetch-outside-egress": "error" },
   },
   {
+    // (f) Issue 1479: a stored site name is read by the name rule, never
+    // as the column holds it — `storedSiteName` in src/lib/site-profile/ is
+    // its one reader. A placeholder, a protection page's name or a call to
+    // action was shown and counted as naming the business.
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/lib/site-profile/**"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "MemberExpression[property.name='site_name'], ObjectPattern > Property[key.name='site_name']",
+          message: "Issue 1479: read site_profiles.site_name through storedSiteName (src/lib/site-profile/site-name.ts), never raw.",
+        },
+      ],
+    },
+  },
+  {
     ignores: [".next/**", "node_modules/**", "coverage/**", "src/**/*.generated.ts"],
   }
 );
