@@ -66,6 +66,7 @@ import { buildPack, builtFromOutside, questionsHeld, readPack, type ContextPack,
 import { generatePageFix } from "./pipeline/page-fix";
 import type { FixNote } from "./pipeline/repair";
 import { NO_RESEARCH, researchMarket, type MarketResearch } from "./pipeline/research";
+import { namedRivals } from "./rules/rivals";
 import { TEMPLATES } from "./templates";
 import { marketSearches, writingMarket } from "./voice/market";
 import { DraftDateTaken, generateStore, type RestartedDraft, type SiteFacts } from "./store";
@@ -569,6 +570,11 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
           searches: targetSearches(o),
           report,
           rivals: site.rivals,
+          // Issue 1508: a listicle counts the options its top results name,
+          // and an alternatives search's product is its baseline.
+          rivalNames: namedRivals(site.rivals, writingFor.market),
+          options: type === "listicle",
+          marketWords: [category, ...writingFor.synonyms],
           today: new Date(),
           // Issue 1390: every page that is researched reads what buyers
           // ask beside its target, for its headings.

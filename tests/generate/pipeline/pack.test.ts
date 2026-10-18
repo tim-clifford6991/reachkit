@@ -40,7 +40,10 @@ const claimOf = (domain: string) => ({
   kind: "rival_pricing" as const,
   product: domain,
 });
-const RESEARCHED = { facts: [claimOf("rival.example"), claimOf("other.example")], products: [rival("rival.example"), rival("other.example")] };
+const RESEARCHED = {
+  facts: [claimOf("rival.example"), claimOf("other.example"), claimOf("third.example")],
+  products: [rival("rival.example"), rival("other.example"), rival("third.example")],
+};
 
 function inputs(over: Partial<PackInputs> = {}): PackInputs {
   return {
@@ -62,7 +65,12 @@ function inputs(over: Partial<PackInputs> = {}): PackInputs {
 }
 
 describe("a pack is held against what its template must hold", () => {
-  it("a comparison with two researched rivals, the business's price and a point of difference is short of nothing", () => {
+  it("issue 1508: two rivals are three options, fewer than four — a comparison not ready yet, never a Q&A, so the day goes to the next topic", () => {
+    const two = buildPack(inputs({ research: { facts: RESEARCHED.facts.slice(0, 2), products: RESEARCHED.products.slice(0, 2) } }));
+    expect(two).toMatchObject({ type: "listicle", missing: ["options"] });
+  });
+
+  it("a comparison with three researched rivals, the business's price and a point of difference is short of nothing", () => {
     const pack = buildPack(inputs());
     expect(pack.missing).toEqual([]);
     expect(pack).toMatchObject({ type: "listicle", neverClaim: ["HIPAA compliant"], facts: [{ passage: GROUNDED.passage }] });

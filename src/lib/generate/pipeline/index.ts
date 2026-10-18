@@ -420,7 +420,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
         faq: candidate.laid.faq,
         domain: a.site.domain,
         // D52: the rivals the verdict may name as the better pick.
+        // Issue 1508: never the baseline, which no verdict may choose.
         ...(table === null ? {} : { rivals: table.options.slice(1) }),
+        ...(table?.baseline == null ? {} : { baseline: table.baseline }),
         // Issue 1486: a step that names the business is its own.
         businessName: a.site.businessName,
       },

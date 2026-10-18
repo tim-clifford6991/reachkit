@@ -855,6 +855,13 @@ export const DRAFT_COPY = Object.freeze({
     "Prices are shown in the currency each vendor publishes; none is converted.",
     { slots: {}, fixedBy: "SPEC §7 (D56) · issue 1282 · drafted" },
   ],
+  // Issue 1508 (SPEC §7, 2026-10-18): the row of the product an alternatives
+  // page lists alternatives to. It is compared against and is not counted.
+  // Drafted; the owner corrects the wording.
+  "body.table.baseline": [
+    "{name} (for comparison)",
+    { slots: { name: "text" }, fixedBy: "SPEC §7 (2026-10-18) · issue 1508 · drafted" },
+  ],
   // The report's measurements, stated as facts a page may quote (SPEC §7,
   // 2026-10-03, issue 1163). Each is composed from stored figures only and
   // is sourced to the report's own address. Drafted; the owner corrects
