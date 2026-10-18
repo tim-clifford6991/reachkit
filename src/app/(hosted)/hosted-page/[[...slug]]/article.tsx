@@ -27,6 +27,7 @@ import {
   parseMarkdown,
   toHtml,
   withHeadingIds,
+  withLinksMoved,
   withoutLinksTo,
   type Block,
   type HeadingEntry,
@@ -38,6 +39,7 @@ import {
   type HostedPage,
 } from "@/lib/publish/destinations/hosted";
 import { slugOf } from "@/lib/publish/destinations/hosted/moved";
+import { movedSlugsForSite } from "@/lib/publish/destinations/hosted/store";
 import { topicSimilarity } from "@/lib/known-content/similarity";
 import { Surface } from "@/ui/layout";
 import { resolveHost } from "../../resolve-host";
@@ -57,6 +59,10 @@ export interface Resolved {
   /** The slugs of this host that answer 410 (issue 1506): a link to one is
    *  unwrapped. Absent reads as none. */
   retired?: ReadonlySet<string>;
+  /** The slugs of this host that answer 301, with the slug each answers with
+   *  now (issue 1511): a link to one is drawn at that address. Absent reads
+   *  as none. */
+  moved?: ReadonlyMap<string, string>;
 }
 
 /** The business a resolved host belongs to, as its pages draw it. */
@@ -90,6 +96,7 @@ export const loadArticle = cache(async (host: string, slug: string): Promise<Res
     others: pages.filter((candidate) => candidate !== page),
     business: await businessOf(disposition),
     retired: await retiredSlugsForSite(disposition.siteId),
+    moved: await movedSlugsForSite(disposition.siteId),
     // Always the customer's own domain, and always the page's own address:
     // the store composed it from the host that resolved (`liveUrlOnHost`,
     // which `liveUrlFor` is itself written in terms of), so the canonical,
@@ -251,6 +258,22 @@ function retiredHere(href: string, canonical: string, retired: ReadonlySet<strin
   }
 }
 
+/** Where `href` answers now, when it is an address of the page's own host
+ *  that moved (issue 1511); `null` for every other link. */
+function movedHere(href: string, canonical: string, moved: ReadonlyMap<string, string> | undefined): string | null {
+  if (moved === undefined || moved.size === 0) return null;
+  try {
+    const target = new URL(href, canonical);
+    const host = new URL(canonical).host;
+    if (target.host !== host) return null;
+    const slug = slugOf(target.href);
+    const to = slug === null ? undefined : moved.get(slug);
+    return to === undefined ? null : `https://${host}/${to}`;
+  } catch {
+    return null;
+  }
+}
+
 export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.Element {
   const { page, canonical, others, business } = resolved;
   // The one Markdown renderer (`markdown.ts`), which escapes every text
@@ -266,8 +289,12 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
     copy
   );
   // A link to a page of this host that was taken down is unwrapped, its
-  // words kept (issue 1506).
-  const levelled = withoutLinksTo(headingsUnderTitle(asked.blocks), (href) => retiredHere(href, canonical, resolved.retired));
+  // words kept (issue 1506); one to a page that moved is drawn at the page's
+  // address now (issue 1511), so no link waits on a redirect.
+  const levelled = withLinksMoved(
+    withoutLinksTo(headingsUnderTitle(asked.blocks), (href) => retiredHere(href, canonical, resolved.retired)),
+    (href) => movedHere(href, canonical, resolved.moved)
+  );
   // What the page says about itself as data: always the posting and the
   // breadcrumb, and the questions only where the page draws them.
   const faq = faqSchema(asked.faq, canonical);

@@ -1399,4 +1399,19 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.costs.vendor.jobs": ["Job platform", { slots: {}, fixedBy: "SPEC §6 2026-10-17 · issue 1478 (drafted)" }],
   "overview.costs.vendor.resend": ["Resend", { slots: {}, fixedBy: "SPEC §6 2026-10-17 · issue 1478 (drafted)" }],
   "overview.costs.vendor.stripe": ["Stripe fees", { slots: {}, fixedBy: "SPEC §6 2026-10-17 · issue 1478 (drafted)" }],
+  // SPEC §7 (2026-10-18, issue 1511): the main-site link, an optional finding
+  // and never a needs-you item. Drafted (#759); the owner may correct it.
+  "overview.main-link.title": ["Link your site to your articles", { slots: {}, fixedBy: "SPEC §7 2026-10-18 · issue 1511 (drafted)" }],
+  "overview.main-link.not-linked": [
+    "No page of your site links to your articles at {host} yet. One link, in your menu or footer, tells search engines the two are one business.",
+    { slots: { host: "text" }, fixedBy: "SPEC §7 2026-10-18 · issue 1511 (drafted)" },
+  ],
+  "overview.main-link.not-followed": [
+    "Your site links to your articles at {host}, but the link asks search engines not to follow it. Swap it for this one.",
+    { slots: { host: "text" }, fixedBy: "SPEC §7 2026-10-18 · issue 1511 (drafted)" },
+  ],
+  "overview.main-link.optional": [
+    "Optional. Publishing goes on either way, and this goes away once the link is found.",
+    { slots: {}, fixedBy: "SPEC §7 2026-10-18 · issue 1511 (drafted)" },
+  ],
 }) satisfies CopyPartition;

@@ -539,6 +539,48 @@ export function markPassage(
   return { blocks: out, marked: done.hit };
 }
 
+// ── links to a moved address ────────────────────────────────────────────
+
+function redirectInline(nodes: readonly Inline[], finalOf: (href: string) => string | null): Inline[] {
+  return nodes.map((node) => {
+    if (node.kind === "link") return { ...node, href: finalOf(node.href) ?? node.href, children: redirectInline(node.children, finalOf) };
+    if (node.kind === "strong" || node.kind === "em" || node.kind === "mark") return { ...node, children: redirectInline(node.children, finalOf) };
+    return node;
+  });
+}
+
+function redirectBlock(block: Block, finalOf: (href: string) => string | null): Block {
+  switch (block.kind) {
+    case "list":
+      return { ...block, items: block.items.map((item) => redirectInline(item, finalOf)) };
+    case "table":
+      return {
+        ...block,
+        head: block.head.map((cell) => redirectInline(cell, finalOf)),
+        rows: block.rows.map((row) => row.map((cell) => redirectInline(cell, finalOf))),
+      };
+    case "answer":
+    case "takeaways":
+      return { ...block, children: block.children.map((child) => redirectBlock(child, finalOf)) };
+    case "code":
+    case "rule":
+    case "guides":
+      return block;
+    default:
+      return { ...block, children: redirectInline(block.children, finalOf) };
+  }
+}
+
+/**
+ * SPEC §7 (2026-10-18, issue 1511): a link to an address that moved is drawn
+ * at the address it answers with now, by `finalOf` (`null` keeps it). Done
+ * at render: the stored body is not edited (ADR-080), the page's dates do
+ * not move, and the `link` refresh still follows.
+ */
+export function withLinksMoved(blocks: readonly Block[], finalOf: (href: string) => string | null): Block[] {
+  return blocks.map((block) => redirectBlock(block, finalOf));
+}
+
 // ── links to a retired address ──────────────────────────────────────────
 
 function unlinkInline(nodes: readonly Inline[], gone: (href: string) => boolean): Inline[] {

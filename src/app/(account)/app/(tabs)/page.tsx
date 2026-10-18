@@ -49,6 +49,7 @@ import { WeekWaiting } from "../_overview/WeekWaiting";
 import { DoneThisWeek } from "../_overview/DoneThisWeek";
 import { ProcessTimeline } from "../_shell/ProcessTimeline";
 import { WhatWeRead } from "@/app/_business/WhatWeRead";
+import { MainSiteLink } from "../_overview/MainSiteLink";
 import { OVERVIEW, REGION, WEEK_ROW } from "../_overview/frame";
 
 /** /app's own `<title>` (#945). Without it this screen announced
@@ -64,7 +65,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   // the shell's own request-cached provider rather than restated here: two
   // readers of a customer's time zone is how two parts of one screen come to
   // state two different days.
-  const [shell, overview, onboarding, prompts, google, published, done, understanding] = await Promise.all([
+  const [shell, overview, onboarding, prompts, google, published, done, understanding, mainLink] = await Promise.all([
     readShell(),
     readOverview(),
     readOnboarding(),
@@ -87,6 +88,12 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
     // and the rest of Overview stands.
     import("../_overview/understanding-provider")
       .then((provider) => provider.readUnderstanding())
+      .catch(() => null),
+    // Issue 1511: whether the main site links the articles — an optional
+    // finding, read from the stored scan; where it cannot be read it is not
+    // drawn.
+    import("../_overview/main-link-provider")
+      .then((provider) => provider.readMainSiteLink())
       .catch(() => null),
   ]);
   // issue 784: the founder's reason when the pass released them short — what the
@@ -188,6 +195,10 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
       {/* Issue 1454: what ReachKit read of the business, and where the
           customer corrects it. */}
       {understanding === null ? null : <WhatWeRead understanding={understanding} editHref={BUSINESS_SETTINGS} />}
+
+      {/* Issue 1511: the main site's link to the articles, said once and
+          optional; gone once the scan finds the link. */}
+      {mainLink === null ? null : <MainSiteLink finding={mainLink} />}
 
       {/* While the first pass runs there is no week to report, so the
           screen says what the pass is working through instead (SPEC §4,

@@ -705,3 +705,35 @@ describe("crawlSite — an error or rate-limit answer is no home page", () => {
     expect(out.pages.map((p) => p.title)).toEqual(["Tattly"]);
   });
 });
+
+describe("ReachKit's own hosts are recorded, never read (issue 1511)", () => {
+  const home = page(
+    "Home",
+    [
+      '<a href="https://content.example.com/">Articles</a>',
+      '<a href="https://content.example.com/a-guide" rel="nofollow noopener">A guide</a>',
+      '<a href="/pricing">Pricing</a>',
+    ].join("")
+  );
+  const documents = {
+    "https://example.com/pricing": ok("https://example.com/pricing", page("Pricing")),
+    "https://content.example.com/": ok("https://content.example.com/", page("Articles")),
+    "https://content.example.com/a-guide": ok("https://content.example.com/a-guide", page("A guide")),
+  };
+
+  it("spends none of the site's pages on them, and keeps the links to them with their rel", async () => {
+    const ports = fakePorts(documents);
+    const out = await crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [], skipHosts: new Set(["content.example.com"]) },
+      ports
+    );
+
+    expect(ports.fetched.filter((url) => url.includes("content.example.com"))).toEqual([]);
+    expect(out.pages.map((row) => row.url)).toEqual([HOME, "https://example.com/pricing"]);
+    expect(out.pages[0]?.links).toEqual(
+      expect.arrayContaining(["https://content.example.com/", "https://content.example.com/a-guide"])
+    );
+    expect(out.pages[0]?.unfollowed).toEqual(["https://content.example.com/a-guide"]);
+  });
+});

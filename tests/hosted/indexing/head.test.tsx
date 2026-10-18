@@ -19,11 +19,12 @@ import { readPageFacts } from "@/lib/site-issues/facts";
 
 applyEnvFixture();
 
-const state: { host: string; page: unknown; logoType: string | null; line: string | null } = {
+const state: { host: string; page: unknown; logoType: string | null; line: string | null; mainSite: unknown } = {
   host: "content.example.com",
   page: null,
   logoType: null,
   line: null,
+  mainSite: null,
 };
 
 vi.mock("next/headers", () => ({
@@ -57,6 +58,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
       name: a.domain,
       logoType: state.logoType,
       line: state.line,
+      mainSite: state.mainSite,
     }),
     hostedAddress: async () => ({ state: "none", publicationId: null }),
   };
@@ -104,6 +106,7 @@ beforeEach(() => {
   state.host = "content.example.com";
   state.logoType = null;
   state.line = null;
+  state.mainSite = null;
   state.page = livePage([{ question: "How long does it take?", answer: "Under an hour." }]);
 });
 
@@ -163,9 +166,9 @@ describe("issue 697 — every page describes itself in structured data", () => {
       inLanguage: "en-US",
       image: "https://content.example.com/share.img/a-page",
       // No recorded byline: the page prints the business's name, and the
-      // business is its author.
-      author: { "@type": "Organization", name: "example.com", url: "https://example.com/" },
-      publisher: { "@type": "Organization", name: "example.com", url: "https://example.com/" },
+      // business is its author — one Organization with the publisher (issue 1511).
+      author: { "@type": "Organization", "@id": "https://example.com/#organization", name: "example.com", url: "https://example.com/" },
+      publisher: { "@type": "Organization", "@id": "https://example.com/#organization", name: "example.com", url: "https://example.com/" },
     });
   });
 
@@ -569,3 +572,65 @@ function schemaOf(html: string, type: string): Record<string, unknown> {
   }
   throw new Error(`no ${type} JSON-LD block in the rendered page`);
 }
+
+describe("issue 1511 — the content host and the main site are one business", () => {
+  /** What the scan read of a main site whose home is a `www.` language path
+   *  and whose JSON-LD (Yoast) declares its Organization. */
+  const DECLARED = {
+    home: "https://www.example.com/de/",
+    organization: { id: "https://www.example.com/#organization", name: null, logo: "https://www.example.com/logo.png" },
+    sameAs: ["https://www.linkedin.com/company/example", "https://www.instagram.com/example"],
+    links: [],
+  };
+
+  it("with no reading, the Organization is `{domain}/#organization` at the bare domain", async () => {
+    const publisher = schemaOf(await render(), "BlogPosting").publisher as Record<string, unknown>;
+    expect(publisher["@id"]).toBe("https://example.com/#organization");
+    expect(publisher.url).toBe("https://example.com/");
+    expect(publisher).not.toHaveProperty("sameAs");
+  });
+
+  it("`url` is the canonical home, `@id` the main site's own, its logo, and only the profiles it links", async () => {
+    state.mainSite = DECLARED;
+    state.logoType = "image/png";
+    const publisher = schemaOf(await render(), "BlogPosting").publisher as Record<string, unknown>;
+    expect(publisher).toEqual({
+      "@type": "Organization",
+      "@id": "https://www.example.com/#organization",
+      name: "example.com",
+      url: "https://www.example.com/de/",
+      logo: { "@type": "ImageObject", url: "https://www.example.com/logo.png" },
+      sameAs: ["https://www.linkedin.com/company/example", "https://www.instagram.com/example"],
+    });
+  });
+
+  it("a page authored by the business is the same Organization", async () => {
+    state.mainSite = DECLARED;
+    expect(schemaOf(await render(), "BlogPosting").author).toMatchObject({
+      "@type": "Organization",
+      "@id": "https://www.example.com/#organization",
+      url: "https://www.example.com/de/",
+    });
+  });
+
+  it("without a declared `@id`, it is `{home}#organization`", async () => {
+    state.mainSite = { ...DECLARED, organization: { id: null, name: null, logo: null } };
+    const publisher = schemaOf(await render(), "BlogPosting").publisher as Record<string, unknown>;
+    expect(publisher["@id"]).toBe("https://www.example.com/de/#organization");
+    expect(publisher).not.toHaveProperty("logo");
+  });
+
+  it("the header button, the about card, breadcrumb item 1 and a plain footer link all go to that home", async () => {
+    state.mainSite = DECLARED;
+    const html = await render();
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const list = schemaOf(html, "BreadcrumbList").itemListElement as { item: string }[];
+    expect(list[0]?.item).toBe("https://www.example.com/de/");
+    expect(doc.querySelector("header a.btn")?.getAttribute("href")).toBe("https://www.example.com/de/");
+    expect(doc.querySelector("aside a.btn")?.getAttribute("href")).toBe("https://www.example.com/de/");
+    const footer = doc.querySelector("footer a");
+    expect(footer?.getAttribute("href")).toBe("https://www.example.com/de/");
+    expect(footer?.textContent).toBe("example.com");
+    expect(html).not.toContain('href="https://example.com/"');
+  });
+});

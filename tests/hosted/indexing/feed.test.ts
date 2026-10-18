@@ -144,3 +144,11 @@ describe("issue 1141 — the feed at /rss.xml", () => {
     expect((await get("content.example.com")).status).toBe(404);
   });
 });
+
+describe("the feed names a WebSub hub (issue 1511)", () => {
+  it("declares Google's public hub, which each change pings", async () => {
+    const doc = new DOMParser().parseFromString(await (await get("content.example.com")).text(), "application/xml");
+    const hubs = Array.from(doc.getElementsByTagName("atom:link")).filter((link) => link.getAttribute("rel") === "hub");
+    expect(hubs.map((link) => link.getAttribute("href"))).toEqual(["https://pubsubhubbub.appspot.com/"]);
+  });
+});

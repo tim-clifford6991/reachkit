@@ -22,6 +22,7 @@ import {
   renderMarkdownHtml,
   toHtml,
   withHeadingIds,
+  withLinksMoved,
   withoutLinksTo,
   type HtmlClasses,
 } from "@/lib/publish/render/markdown";
@@ -366,5 +367,28 @@ describe("a link to an address that answers 410 shows its words without the link
     expect(html).toContain('href="https://content.example.com/guide"');
     expect(html).toContain("<strong>bold old</strong>");
     expect(html).toContain("<td>here</td>");
+  });
+});
+
+describe("a link to an address that moved is drawn at its address now (issue 1511)", () => {
+  const OLD = "https://content.example.com/tools-to-track-ai";
+  const NEW = "https://content.example.com/how-to-rank-on-chatgpt";
+  const finalOf = (href: string) => (href === OLD ? NEW : null);
+
+  it("in a paragraph, a list, a table, a box and inside emphasis; every other link stays", () => {
+    const body = [
+      `See [the old guide](${OLD}) and [pricing](https://example.com/pricing).`,
+      "",
+      `- **[bold old](${OLD})**`,
+      "",
+      "| Page | Link |",
+      "| --- | --- |",
+      `| Old | [here](${OLD}) |`,
+    ].join("\n");
+    const html = toHtml(withLinksMoved(parseMarkdown(body), finalOf)).replace(CLASS_ATTR, "");
+    expect(html).not.toContain(OLD);
+    expect(html.match(new RegExp(`href="${NEW}"`, "g"))).toHaveLength(3);
+    expect(html).toContain('href="https://example.com/pricing"');
+    expect(html).toContain("the old guide");
   });
 });
