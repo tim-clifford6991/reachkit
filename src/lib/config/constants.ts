@@ -2014,12 +2014,13 @@ export const RESEARCH = Object.freeze({
   topResults: 3,
   /** The named rivals whose own pricing and feature pages are read. */
   rivals: 4,
+  /** Owner, 2026-10-18 (issue 1508, amends #1135): a listicle reads the
+   *  own pages of up to this many products, an alternatives page's subject
+   *  among them. Every other page keeps `rivals`. */
+  options: 8,
   /** Issue 1508: the products a listicle's options may be found among are
    *  the ones named on `namedOn` of the first `namedFrom` top results
-   *  already read (the claim calls still read `topResults`). `rivals`
-   *  above stays the bound on the own pages read, the baseline among them:
-   *  raising it to eight costs a site about 0.23¢ a page read, per page
-   *  written, and waits for the owner's ruling on #1135. */
+   *  already read (the claim calls still read `topResults`). */
   namedFrom: 5,
   namedOn: 2,
   /** Issue 1508 (drafted default): a listicle counts at least `optionsMin`

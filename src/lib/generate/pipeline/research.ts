@@ -61,8 +61,9 @@
 // shaped "{X} alternatives", in any supported language, X is the page's
 // baseline: its own pages are read, and it is not one of the options. Each
 // is still kept only where its own page yields a claim, and the own pages
-// of at most `RESEARCH.rivals` products are handed to the claim calls, each
-// product's first page before any product's second.
+// of at most `RESEARCH.options` products (owner, 2026-10-18; four on any
+// other page) are handed to the claim calls, each product's first page
+// before any product's second.
 //
 // **Research never stops a page.** A site whose market yields no readable
 // page is written from its business facts alone, as before this step.
@@ -773,7 +774,7 @@ export async function researchMarket(
     rivalNames?: readonly { domain: string; name: string | null }[];
     /** Issue 1508: a page that compares options. Its options are the rivals
      *  in force and the products its top results name, inside
-     *  `RESEARCH.rivals`, and an alternatives search's product is read as
+     *  `RESEARCH.options`, and an alternatives search's product is read as
      *  its baseline. */
     options?: boolean;
     /** Issue 1508: the market's category and its synonyms (D49). A product
@@ -824,7 +825,10 @@ export async function researchMarket(
   //    readable, and each rival's two pages. A page that compares options
   //    then reads the products its top results name.
   const topTen = storedTopTen(a.report, a.searches).filter(notOurs);
-  const first = inForce.slice(0, RESEARCH.rivals);
+  // The own pages read (#1135): eight products on a listicle (owner, issue
+  // 1508), four on any other page.
+  const bound = a.options === true ? RESEARCH.options : RESEARCH.rivals;
+  const first = inForce.slice(0, bound);
   const [topReads, firstReads] = await Promise.all([
     Promise.all(topTen.slice(0, RESEARCH.topResults * 2).map(fetchPage)),
     Promise.all(first.map(readRival)),
@@ -851,7 +855,7 @@ export async function researchMarket(
   // A product the results name, beside the rivals in force, read to judge
   // whether it is an option at all. Its reads are free.
   const onResults = named.map((product) => product.domain).filter((domain) => domain !== baseline && !inForce.some((rival) => same(domain, rival)));
-  const spare = onResults.slice(0, RESEARCH.rivals);
+  const spare = onResults.slice(0, bound);
   const moreReads = await Promise.all(
     [...(baseline === null || first.some((rival) => same(rival, baseline)) ? [] : [baseline]), ...spare].map(readRival)
   );
@@ -871,9 +875,8 @@ export async function researchMarket(
     return (category.size === 0 || [...category].some((word) => said.has(word))) && (place.length === 0 || place.some((name) => lower.includes(name)));
   };
   const others = [...first.filter((domain) => domain !== baseline), ...spare.filter(fits)];
-  // The bound (#1135, held at four by issue 1508 until the owner rules):
-  // the own pages of at most `RESEARCH.rivals` products, the baseline first.
-  const rivalDomains = [...(baseline === null ? [] : [baseline]), ...others].slice(0, RESEARCH.rivals);
+  // The own pages of at most `bound` products, the baseline first.
+  const rivalDomains = [...(baseline === null ? [] : [baseline]), ...others].slice(0, bound);
   const rivalRows = rivalDomains.map((domain) => byDomain.get(domain)?.rows ?? []);
   // Each product's first page before any product's second, so the claim
   // calls reach every option (issue 1508).

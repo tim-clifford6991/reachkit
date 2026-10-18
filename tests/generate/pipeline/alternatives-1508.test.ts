@@ -100,14 +100,20 @@ const PANEL: Case[] = [
     named: [
       { domain: "rankscale.ai", name: "Rankscale", on: [1, 2, 3, 4] },
       { domain: "peec.ai", name: "Peec AI", on: [0, 1, 2] },
+      { domain: "seranking.com", name: "SE Ranking", on: [1, 2] },
+      { domain: "scrunch.com", name: "Scrunch", on: [1, 4] },
+      { domain: "jasper.ai", name: "Jasper", on: [1, 2], says: "Jasper writes blog posts and ads for marketing teams." },
+      { domain: "ahrefs.com", name: "Ahrefs", on: [2, 3] },
       // Named only on the fourth and fifth results: found because the five
       // results already read are all looked at.
       { domain: "otterly.ai", name: "Otterly", on: [3, 4] },
-      { domain: "jasper.ai", name: "Jasper", on: [1, 2], says: "Jasper writes blog posts and ads for marketing teams." },
+      { domain: "semrush.com", name: "Semrush", on: [3, 4] },
+      { domain: "searchable.com", name: "Searchable", on: [3, 4] },
       { domain: "airops.com", name: "AirOps", on: [1] },
     ],
-    expected: ["tryprofound.com", "rankscale.ai", "peec.ai", "otterly.ai"],
-    never: { "jasper.ai": "another market", "airops.com": "one result only" },
+    // The bound of eight own pages: the baseline and seven options.
+    expected: ["tryprofound.com", "rankscale.ai", "peec.ai", "seranking.com", "scrunch.com", "ahrefs.com", "otterly.ai", "semrush.com"],
+    never: { "jasper.ai": "another market", "airops.com": "one result only", "searchable.com": "past the bound" },
   },
   {
     kind: "a firm, against a property portal",
@@ -124,9 +130,8 @@ const PANEL: Case[] = [
       { domain: "openrent.co.uk", name: "OpenRent", on: [2, 3] },
       { domain: "boomin.com", name: "Boomin", on: [4] },
     ],
-    // OpenRent fits, and is past the bound of four own pages.
-    expected: ["rightmove.co.uk", "purplebricks.co.uk", "zoopla.co.uk", "onthemarket.com"],
-    never: { "canva.com": "another market", "boomin.com": "one result only", "openrent.co.uk": "past the bound" },
+    expected: ["rightmove.co.uk", "purplebricks.co.uk", "zoopla.co.uk", "onthemarket.com", "openrent.co.uk"],
+    never: { "canva.com": "another market", "boomin.com": "one result only" },
   },
   {
     kind: "a shop, searched in German",
@@ -140,10 +145,12 @@ const PANEL: Case[] = [
       { domain: "bosch-professional.com", name: "Bosch Professional", on: [1, 2, 3] },
       { domain: "obi.de", name: "OBI", on: [1, 2], says: "OBI ist Ihr Baumarkt für Garten und Wohnen." },
       { domain: "makita.de", name: "Makita", on: [1, 2] },
+      { domain: "festool.de", name: "Festool", on: [1, 4] },
       { domain: "dewalt.de", name: "DeWalt", on: [2, 3] },
+      { domain: "metabo.com", name: "Metabo", on: [3, 4] },
       { domain: "einhell.de", name: "Einhell", on: [3] },
     ],
-    expected: ["hilti.de", "bosch-professional.com", "makita.de", "dewalt.de"],
+    expected: ["hilti.de", "bosch-professional.com", "makita.de", "festool.de", "dewalt.de", "metabo.com"],
     never: { "obi.de": "another market", "einhell.de": "one result only" },
   },
   {
@@ -206,10 +213,10 @@ const PANEL: Case[] = [
       { domain: "squarespace.com", name: "Squarespace", on: [1, 2, 3] },
       { domain: "webflow.com", name: "Webflow", on: [1, 2] },
       { domain: "framer.com", name: "Framer", on: [2, 3] },
-      { domain: "carrd.co", name: "Carrd", on: [3, 4] },
+      { domain: "hostinger.com", name: "Hostinger", on: [3, 4] },
     ],
-    expected: ["wix.com", "squarespace.com", "webflow.com", "framer.com"],
-    never: { "carrd.co": "past the bound" },
+    expected: ["wix.com", "squarespace.com", "webflow.com", "framer.com", "hostinger.com"],
+    never: {},
   },
 ];
 
@@ -369,13 +376,17 @@ describe.each(PANEL)("$kind", (each) => {
     for (const never of [...Object.keys(each.never), "g2.com", "twitter.com", "bestpicks.com", "writesonic.com", each.business.domain]) {
       expect(domains).not.toContain(never);
     }
-    // The bound stays at four own pages (#1135) until the owner rules.
-    expect(domains.length).toBeLessThanOrEqual(RESEARCH.rivals);
+    // The bound: eight own pages on a listicle (owner, 2026-10-18).
+    expect(domains.length).toBeLessThanOrEqual(RESEARCH.options);
     // The claims stay in the step's own calls, and each product's own page
     // reached one of them, with a claim from it.
     expect(llmMock.mock.calls.length).toBeLessThanOrEqual(RESEARCH.calls);
     const handed = llmMock.mock.calls.flatMap((call) => (call[1] as { input: { pages: { url: string }[] } }).input.pages.map((page) => page.url));
     for (const domain of domains) expect(handed).toContain(`https://${domain}/pricing`);
+    // What the claim calls are handed: the three top results and one own
+    // page a product (no study is found here). The cost delta of the bound
+    // is these pages (issue 1508's PR).
+    expect(handed).toHaveLength(RESEARCH.topResults + each.expected.length);
     for (const product of found.products) expect(found.facts.some((fact) => fact.product === product.domain)).toBe(true);
   });
 
