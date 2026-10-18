@@ -25,8 +25,8 @@
 //
 // One case per attack shape the issue names, plus the two values that do
 // **not** go through the body renderer at all — the title and the
-// description, which land in the head, in the `<h1>` and inside the
-// `application/ld+json` block, and are model-written too.
+// description, which land in the head, in the `<h1>` and (the title)
+// inside the `application/ld+json` block, and are model-written too.
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
@@ -339,8 +339,10 @@ describe("the title and the description are model-written too, and land inert", 
     const metadata = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
     expect(metadata.description).toBe('"><script>alert(1)</script>');
 
+    // The page does not print it, so since issue 1489 no JSON-LD restates
+    // it either: it lands in the head and nowhere in the body.
     const { html, doc } = await served();
     expect(active(doc)).toEqual([]);
-    expect(html).toContain('\\u003cscript>alert(1)\\u003c/script>');
+    expect(html).not.toContain("alert(1)");
   });
 });

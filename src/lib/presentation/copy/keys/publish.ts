@@ -420,6 +420,11 @@ export const PUBLISH_COPY = Object.freeze({
   // an eyebrow like the one above. Drafted under #759's ruling (issue 1137);
   // the owner corrects it.
   "body.takeaways.heading": ["Key takeaways", { slots: {}, fixedBy: "issue 1137" }],
+  // SPEC §7 (owner, 2026-10-17, issue 1489): the heading over the buyer
+  // questions code draws above the sources list. A heading, not an
+  // eyebrow: the section is part of the page's outline. Drafted under
+  // #759's ruling; the owner corrects it.
+  "body.faq.heading": ["Questions buyers ask", { slots: {}, fixedBy: "issue 1489 · drafted" }],
   // The name the table's own scrolling box carries (owner, PR #973). It is
   // a **landmark label**, not a caption: a box that scrolls has to be
   // reachable from a keyboard (axe `scrollable-region-focusable`, the rule

@@ -155,7 +155,6 @@ describe("issue 697 — every page describes itself in structured data", () => {
       "@type": "BlogPosting",
       "@id": "https://content.example.com/a-page#article",
       headline: "The best onboarding tools",
-      description: "Which onboarding tools small teams pick, and why.",
       url: "https://content.example.com/a-page",
       mainEntityOfPage: "https://content.example.com/a-page",
       datePublished: "2026-09-01T09:00:00.000Z",
@@ -220,6 +219,25 @@ describe("REQ-059 c3 — FAQPage exactly where the data is, and nowhere else", (
     state.page = livePage([{ question: "Q?", answer: "A." }]);
     const schema = schemaOf(await render(), "FAQPage") as { mainEntity: unknown[] };
     expect(schema.mainEntity).toHaveLength(1);
+  });
+
+  it("the stored questions are drawn on the page, above its sources (issue 1489)", async () => {
+    state.page = { ...(livePage([{ question: "How long does it take?", answer: "Under an hour." }]) as object), bodyMd: "One paragraph.\n\n## A heading\n\nAnother paragraph.\n\n## Sources\n\n- [Guide](https://example.org/source)" };
+    const html = await render();
+    expect(html).toMatch(/<h2[^>]*>Questions buyers ask<\/h2>\s*<h3[^>]*>How long does it take\?<\/h3>\s*<p[^>]*>Under an hour\.<\/p>\s*<h2[^>]*>Sources<\/h2>/);
+  });
+
+  it("a question the body already asks as a heading is not drawn twice, and its data is the paragraph under it", async () => {
+    state.page = {
+      ...(livePage([{ question: "How long does it take?", answer: "Under an hour, stored." }]) as object),
+      bodyMd: "One paragraph.\n\n## How long does it take?\n\nUnder an hour with **one** person.",
+    };
+    const html = await render();
+    expect(html).not.toContain("Questions buyers ask");
+    expect(html.match(/How long does it take\?/g)).toHaveLength(2); // the heading, the data
+    expect((schemaOf(html, "FAQPage") as { mainEntity: unknown[] }).mainEntity).toEqual([
+      { "@type": "Question", name: "How long does it take?", acceptedAnswer: { "@type": "Answer", text: "Under an hour with one person." } },
+    ]);
   });
 
   it("a `<` in a stored answer cannot break out of the script element", async () => {
@@ -486,6 +504,61 @@ describe("issue 1141 — a shared link draws a card, and the head names the feed
       expect(JSON.stringify(metadata).toLowerCase()).not.toContain("reachkit");
     }
   });
+});
+
+/** Every value in a JSON-LD tree that states text to a reader: not an
+ *  address, a date, a language tag or a schema keyword. */
+function statedText(node: unknown, key = ""): string[] {
+  if (Array.isArray(node)) return node.flatMap((each) => statedText(each, key));
+  if (typeof node === "object" && node !== null) {
+    return Object.entries(node).flatMap(([k, v]) => (k.startsWith("@") || k === "inLanguage" ? [] : statedText(v, k)));
+  }
+  if (typeof node !== "string") return [];
+  if (/^https?:\/\//.test(node) || /^\d{4}-\d{2}-\d{2}T/.test(node)) return [];
+  return [node];
+}
+
+/** The text a reader sees: the page without its scripts. */
+function visibleText(html: string): string {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  doc.querySelectorAll("script").forEach((script) => script.remove());
+  return (doc.body.textContent ?? "").replace(/\s+/g, " ");
+}
+
+describe("issue 1489 — every JSON-LD field states only text the page shows", () => {
+  const pages: Record<string, () => unknown> = {
+    "stored questions, a markdown answer and a sources list": () => ({
+      ...(livePage([
+        { question: "How long does it take?", answer: "Under an hour, see [pricing](https://example.com/pricing)." },
+        { question: "Does it need an engineer?", answer: "No. A **non-engineer** ships the first flow." },
+      ]) as object),
+      bodyMd: "One paragraph.\n\n## A heading\n\nAnother paragraph.\n\n## Sources\n\n- [Guide](https://example.org/source)",
+    }),
+    "a Q&A page whose questions are its headings": () => ({
+      ...(livePage([{ question: "How long does it take?", answer: "Stored, and not what the page shows." }]) as object),
+      bodyMd: "## How long does it take?\n\nUnder an hour with **one** person.\n\n## What does it cost?\n\nFrom $29 a month.",
+    }),
+    "a founder's byline with a place, and a heading apart from the title": () => ({
+      ...(livePage([{ question: "Q?", answer: "A." }]) as object),
+      heading: "Which onboarding tool fits a small team?",
+      byline: "Tim, Reachkit Founder based in Berlin, Germany",
+    }),
+  };
+
+  for (const [name, page] of Object.entries(pages)) {
+    it(name, async () => {
+      state.page = page();
+      const html = await render();
+      const shown = visibleText(html);
+      const blocks = [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map(
+        (match) => JSON.parse(match[1] ?? "") as unknown
+      );
+      expect(blocks.length).toBeGreaterThan(0);
+      const stated = blocks.flatMap((block) => statedText(block));
+      expect(stated.length).toBeGreaterThan(0);
+      expect(stated.filter((text) => !shown.includes(text.replace(/\s+/g, " ")))).toEqual([]);
+    });
+  }
 });
 
 function schemaOf(html: string, type: string): Record<string, unknown> {

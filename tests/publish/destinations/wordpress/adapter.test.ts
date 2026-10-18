@@ -457,6 +457,13 @@ describe("issue #158 — the body leaves as HTML, at one point, through the one 
     );
   });
 
+  it("a page's buyer questions are drawn in the post, above its sources, as the hosted page draws them (issue 1489)", async () => {
+    const meta = { faq: [{ question: "How hot does a kiln get?", answer: "About 1222C at cone 6." }] };
+    await WORDPRESS_ADAPTER.deliver({ ...PAGE, meta, bodyMd: `${PAGE.bodyMd}\n\n## Sources\n\n- [Guild](https://example.com/guild)` }, CFG, "draft-1");
+    const created = postWrites()[0]!.body as { content: string };
+    expect(created.content).toMatch(/<h2>Questions buyers ask<\/h2>\n<h3>How hot does a kiln get\?<\/h3>\n<p>About 1222C at cone 6\.<\/p>\n<h2>Sources<\/h2>/);
+  });
+
   it("**no raw HTML reaches the customer's site**: markup in a body is escaped, never passed through", async () => {
     const nasty = {
       ...PAGE,

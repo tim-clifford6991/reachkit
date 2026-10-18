@@ -21,6 +21,7 @@ export const PAGE_COPY_DE = {
   "body.table.currencies": "Die Preise stehen in der Währung, in der jeder Anbieter sie veröffentlicht; keiner wurde umgerechnet.",
   "body.answer.heading": "Die kurze Antwort",
   "body.takeaways.heading": "Das Wichtigste in Kürze",
+  "body.faq.heading": "Fragen, die Käufer stellen",
   "body.table.label": "Tabelle – seitlich scrollen, um alle Spalten zu sehen",
   "body.guides.heading": "Weitere Ratgeber von {publisher}",
 

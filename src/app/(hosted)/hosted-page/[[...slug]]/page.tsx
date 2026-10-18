@@ -26,11 +26,13 @@
 // in the world, against "a crawler that runs no scripts"; this file is
 // where it is true at the source.
 //
-// **`FAQPage` is emitted from `drafts.meta.faq` and never from parsing the
-// body** (the archived BP-047 decision 2). A heading heuristic that is
-// wrong emits schema claiming a question-and-answer section that is not
-// there — a structured false statement on the customer's own domain. An
-// absent or empty section emits no `FAQPage` at all, never an empty one.
+// **`FAQPage` restates the questions the page draws, and only those**
+// (SPEC §7, owner, 2026-10-17, issue 1489). `drafts.meta.faq` is drawn as a
+// visible section above the sources list by `render/faq.ts`, and the data
+// is built from the text of those very blocks — never from a guess at the
+// body's headings (the archived BP-047 decision 2), and never from a
+// question the reader cannot see. An absent or empty section draws nothing
+// and emits no `FAQPage` at all, never an empty one.
 //
 // **Every page describes itself** (issue 697). §9's crawl flags a page with
 // no meta description and a page with no structured data, and a hosted page
