@@ -12,23 +12,25 @@
 //
 // Every region is `frame.ts`'s (issue 1484). The week below `lg` is as many
 // rows as the list that arrives: Monday through the plan horizon, counted
-// from today. The site's zone is a read, so today is UTC's here, which is
-// the site's own day except in the hours either side of midnight.
+// from the screen's own today (`planToday`) — the fixture's day for the
+// reserved fixture account, the site's zone for every other. The account
+// is the `/app` layout's, already read before this draws.
 import type React from "react";
 import { TilesSkeleton } from "../_shell/skeletons";
-import { dayKeyOf } from "./dates";
 import { NUMBERS, PLAN, REGION, weekRows } from "./frame";
 import { PlanHead } from "./PlanHead";
 import { PlanSkeleton } from "./PlanSkeleton";
+import { planToday } from "./provider";
 
-export default function CalendarLoading(): React.JSX.Element {
+export default async function CalendarLoading(): Promise<React.JSX.Element> {
+  const rows = weekRows(await planToday());
   return (
     <div className={PLAN} data-testid="calendar-waiting">
       <PlanHead>
         <div className="skeleton rounded-field hidden h-8 w-58 lg:block" aria-hidden data-testid="month-switcher-skeleton" />
       </PlanHead>
       <TilesSkeleton count={4} grid={NUMBERS} frame={REGION.numbers} />
-      <PlanSkeleton rows={weekRows(dayKeyOf(new Date(), "UTC"))} />
+      <PlanSkeleton rows={rows} />
     </div>
   );
 }

@@ -287,7 +287,12 @@ function Panel(p: {
       // the same answer a `textarea` and an `overflow-x-auto` table give,
       // and the proof measures that neither the fixture's longest day nor
       // the owner's stress case reaches it.
-      className={`card card-border bg-base-100 fixed inset-x-2 bottom-[calc(80px+env(safe-area-inset-bottom,0px))] z-30 max-h-[calc(100dvh-104px)] min-w-0 overflow-y-auto shadow-2xl lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:shadow-none xl:sticky xl:top-6 ${
+      //
+      // The sheet's insets end at `lg`: a sticky box obeys `left`, `right`
+      // and `bottom` too, and the sheet's `0.5rem` sides pulled the card 8px
+      // off its column into the gap from `xl` (issue 1484). `xl:top-6` is
+      // the one inset the sticky card keeps.
+      className={`card card-border bg-base-100 fixed inset-x-2 bottom-[calc(80px+env(safe-area-inset-bottom,0px))] z-30 max-h-[calc(100dvh-104px)] min-w-0 overflow-y-auto shadow-2xl lg:static lg:inset-auto lg:z-auto lg:max-h-none lg:overflow-visible lg:shadow-none xl:sticky xl:top-6 ${
         p.hiddenOnPhone ? "hidden lg:flex" : ""
       }`}
       data-testid="day-panel"

@@ -22,10 +22,10 @@
 // decides. A region one document draws and the other does not is a
 // mismatch too.
 //
-// Plan's list counts this week from today. The skeleton cannot read the
-// site's zone, so it counts from UTC's today (`calendar/loading.tsx`); a run
-// in the hours either side of midnight in the seeded site's zone can see one
-// row more or less, and says so by name.
+// Plan's list counts this week from today, and the skeleton counts it from
+// the same day the screen does (`planToday` in `calendar/provider.ts`) —
+// for the account signed in here that is the fixture's frozen day, not the
+// clock's.
 import { describe, expect, it } from "vitest";
 import { getAccountCookie, getBaseURL, getSetupAccountCookie, withPage } from "./browser";
 import { NO_OVERFLOW_WIDTHS } from "./no-overflow";
