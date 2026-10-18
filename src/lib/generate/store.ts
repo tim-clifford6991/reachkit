@@ -28,7 +28,7 @@ import type { StoredMarket } from "@/lib/market/infer/types";
 import { readSiteProfile } from "@/lib/site-profile/store";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import type { ClusterPage } from "./links/select";
-import { withheldReportPassages } from "./pipeline/report-facts";
+import { withheldReportPassages } from "./pipeline/report-scope";
 
 /** The `drafts` row, as §10 and this issue's two migrations leave it. */
 export interface DraftRow {

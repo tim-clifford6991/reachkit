@@ -45,7 +45,7 @@
 // one open or queued refresh a page.
 import { CROSS_LINKS, EFFORT_BY_TYPE, INTENT_UNMET_WEEKS, PACE, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { linkWords, sameWord } from "@/lib/generate/links/text";
-import { withheldReportPassages } from "@/lib/generate/pipeline/report-facts";
+import { withheldReportPassages } from "@/lib/generate/pipeline/report-scope";
 import { withheldMeasurements } from "@/lib/generate/rules/brief";
 import { ownMeasurementIn } from "@/lib/generate/rules/figures";
 import { measured } from "@/lib/measure/measured";

@@ -67,7 +67,7 @@ import { buildComparisonSet } from "./comparison";
 import { layoutPage, withClosing, type LaidPage } from "./compose";
 import { closeElsewhere } from "./elsewhere";
 import type { SourcedFact } from "./grounding";
-import { reportFactsAllowed } from "./report-facts";
+import { reportFactsAllowed } from "./report-scope";
 import { packStatements, type ContextPack, type PackClaim } from "./pack";
 import { fixNotes, repairable, repairMechanical, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";

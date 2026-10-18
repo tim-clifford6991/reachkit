@@ -41,7 +41,7 @@ import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import { chooseVoice, type PageVoice, type WritingVoice } from "../voice/register";
 import type { SourcedFact } from "./grounding";
 import type { BuyersAsk, JudgedResult, MarketFact, MarketResearch, QuestionsHeld, ResearchedProduct } from "./research";
-import { reportFactsAllowed } from "./report-facts";
+import { reportFactsAllowed } from "./report-scope";
 import { comparisonTable } from "./table";
 
 export interface PackFact {
