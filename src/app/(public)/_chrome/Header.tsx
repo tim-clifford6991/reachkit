@@ -46,7 +46,7 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { Brand } from "@/app/_brand/Brand";
 import { ThemeSwitch } from "@/app/_theme/ThemeSwitch";
 import { themeNames } from "@/app/_theme/names";
-import { HOW_SECTION_ID, WHY_SECTION_ID } from "../_landing/FieldCta";
+import { HOW_SECTION_ID, WHY_SECTION_ID } from "../_landing/sections";
 import { BannerDismiss, BannerLink, DrawerLinks, HeaderCopyLink, HeaderCta } from "./HeaderArm";
 import type { AppEntry } from "./session";
 
