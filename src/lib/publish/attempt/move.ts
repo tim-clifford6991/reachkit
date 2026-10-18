@@ -79,10 +79,16 @@ export async function moveAddress(a: {
     if (rows.error !== null || rows.data === null) throw new Error(rows.error?.message ?? "no rows");
     const left = rows.data.filter((row) => row.id !== a.to.publicationId && isLive(row) && slugOf(row.live_url ?? "") === fromSlug);
     for (const row of left) {
-      await publishDb()
+      const written = await publishDb()
         .from<{ id: string }>("publications")
         .update({ unpublished_at: a.at.toISOString(), ...(a.merge === true ? { merged_into: a.to.publicationId } : {}) })
         .eq("id", row.id);
+      // A row that could not be written stays live, and its draft with it:
+      // the two leave together or not at all.
+      if (written.error !== null && written.error !== undefined) {
+        console.error(JSON.stringify({ event: "hosted_move_row_refused", publicationId: row.id, message: written.error.message }));
+        continue;
+      }
       const moved = await transition(row.draft_id, "unpublished", a.by, { at: a.at, reason: "moved" });
       if (!moved.ok) {
         console.error(JSON.stringify({ event: "hosted_move_transition_refused", draftId: row.draft_id, refused: moved.refused, state: moved.state }));

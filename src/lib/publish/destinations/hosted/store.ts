@@ -494,18 +494,20 @@ export async function hostedAddress(siteId: string, slug: string): Promise<Hoste
 /** Every hosted publication of a site, as `addressOf` reads them; `null`
  *  where the read failed. */
 async function addressRows(siteId: string): Promise<AddressRow[] | null> {
-  const { data, error } = await publishDb()
-    .from<{
-      id: string;
-      live_url: string | null;
-      published_at: string | null;
-      unpublished_at: string | null;
-      merged_into: string | null;
-      drafts: { opportunities: { family: string | null; target_ref: string | null } | null } | null;
-    }>("publications")
-    .select("id, live_url, published_at, unpublished_at, merged_into, drafts(opportunities(family, target_ref))")
-    .eq("site_id", siteId)
-    .eq("destination", "hosted");
+  type Row = {
+    id: string;
+    live_url: string | null;
+    published_at: string | null;
+    unpublished_at: string | null;
+    merged_into?: string | null;
+    drafts: { opportunities: { family: string | null; target_ref: string | null } | null } | null;
+  };
+  const read = (columns: string) =>
+    publishDb().from<Row>("publications").select(columns).eq("site_id", siteId).eq("destination", "hosted");
+  let { data, error } = await read("id, live_url, published_at, unpublished_at, merged_into, drafts(opportunities(family, target_ref))");
+  // Until `merged_into` is applied (issue 1506's migration, after the
+  // deploy), the read without it answers as before: no address is merged.
+  if (error !== null) ({ data, error } = await read("id, live_url, published_at, unpublished_at, drafts(opportunities(family, target_ref))"));
   if (error !== null || data === null) return null;
   return data.map((row) => {
     const opportunity = row.drafts?.opportunities ?? null;
