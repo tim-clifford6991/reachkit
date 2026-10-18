@@ -24,8 +24,22 @@ export interface HostedBusiness extends HostedIdentity {
   domain: string;
 }
 
+/** The main site's home: the canonical one the scan read (issue 1511) —
+ *  after its redirects, a `www.` or a language path where the site has one —
+ *  else the bare domain. The one address every link back to the main site
+ *  uses: the header button, the about card, the breadcrumb, the footer and
+ *  the Organization's `url`. */
 export function mainSiteOf(business: HostedBusiness): string {
-  return `https://${business.domain}/`;
+  return business.mainSite?.home ?? `https://${business.domain}/`;
+}
+
+/** How the footer names the main site: its host, without `www.`. */
+function mainSiteName(business: HostedBusiness): string {
+  try {
+    return new URL(mainSiteOf(business)).hostname.replace(/^www\./, "");
+  } catch {
+    return business.domain;
+  }
 }
 
 
@@ -95,8 +109,13 @@ export function AboutCard({ business }: { business: HostedBusiness }): React.JSX
 export function HostedFooter({ business }: { business: HostedBusiness }): React.JSX.Element {
   return (
     <footer className="border-base-300 border-t">
-      <div className="mx-auto w-full max-w-5xl px-4 py-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-6">
         <span className={QUIET_LINE}>{copy("hosted.footer", { publisher: business.name })}</span>
+        {/* Issue 1511: a plain link back to the main site, so the two hosts
+            read as one business. */}
+        <a href={mainSiteOf(business)} className="link link-hover text-base-content/70 min-w-0 font-mono text-sm break-all">
+          {mainSiteName(business)}
+        </a>
       </div>
     </footer>
   );

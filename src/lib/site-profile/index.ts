@@ -40,11 +40,14 @@ import { crawlSite, type CrawlOutcome } from "./crawl";
 import { derivePurpose } from "./purpose";
 import { brandName, imageAlts, publishedNames } from "./site-name";
 import { deriveVoice } from "./summary";
-import { writeSiteLogo, writeSiteProfile } from "./store";
+import { writeMainSite, writeSiteLogo, writeSiteProfile } from "./store";
+import { readMainSite } from "./main-site";
+import type { OurPages } from "@/lib/known-content/ours";
 import { captureLogo } from "./logo";
 import type { InventoryRow, SiteProfile } from "./types";
 
-export { readSiteProfile, writeSiteProfile, adoptVoiceText, saveVoiceText, saveWritingVoice, readSiteLogo } from "./store";
+export { readSiteProfile, writeSiteProfile, adoptVoiceText, saveVoiceText, saveWritingVoice, readSiteLogo, readMainSite } from "./store";
+export type { MainSite, MainSiteLink } from "./main-site-row";
 export { captureLogo, logoCandidates, sniffLogo, type SiteLogo } from "./logo";
 export { deriveVoice, type SiteReading } from "./summary";
 export { derivePurpose } from "./purpose";
@@ -84,16 +87,24 @@ interface ProfileArgs {
   locale?: Locale;
 }
 
-/** The crawled pages minus the ones ReachKit wrote, or `null` where which
- *  are ours could not be read. */
-async function customerPages<P extends { url: string }>(domain: string, pages: readonly P[]): Promise<P[] | null> {
+/** The pages ReachKit wrote on this domain, or `null` where they could not
+ *  be read. */
+async function oursOn(domain: string): Promise<OurPages | null> {
   try {
-    const { readOurPages, withoutOurPages } = await import("@/lib/known-content/ours");
-    return withoutOurPages(pages, await readOurPages({ domain }));
+    const { readOurPages } = await import("@/lib/known-content/ours");
+    return await readOurPages({ domain });
   } catch (error) {
     console.log(JSON.stringify({ event: "site_voice_unread", domain, because: String(error) }));
     return null;
   }
+}
+
+/** The crawled pages minus the ones ReachKit wrote, or `null` where which
+ *  are ours could not be read. */
+async function customerPages<P extends { url: string }>(ours: OurPages | null, pages: readonly P[]): Promise<P[] | null> {
+  if (ours === null) return null;
+  const { withoutOurPages } = await import("@/lib/known-content/ours");
+  return withoutOurPages(pages, ours);
 }
 
 /**
@@ -105,11 +116,15 @@ export async function buildSiteProfileWithCrawl(
   c: CostContext,
   a: ProfileArgs
 ): Promise<{ profile: SiteProfile | null; crawl: CrawlOutcome }> {
+  // Issue 1511: the hosts ReachKit serves pages at are ours, so the crawl
+  // records links to them and does not spend the site's pages reading them.
+  const ours = await oursOn(a.domain);
   const crawl = await crawlSite(c, {
     domain: a.domain,
     homeUrl: a.homeUrl,
     homeHtml: a.homeHtml ?? "",
     sitemaps: a.sitemaps,
+    ...(ours === null ? {} : { skipHosts: ours.hosts }),
   });
 
   // Nothing read is nothing stored. Not an empty profile: an inventory of
@@ -140,7 +155,7 @@ export async function buildSiteProfileWithCrawl(
   const reading =
     tier === "free"
       ? null
-      : await customerPages(a.domain, crawl.pages).then((pages) =>
+      : await customerPages(ours, crawl.pages).then((pages) =>
           pages === null || pages.length === 0
             ? null
             : deriveVoice(c, { domain: a.domain, pages, tier, ...(a.locale === undefined ? {} : { locale: a.locale }) })
@@ -168,6 +183,22 @@ export async function buildSiteProfileWithCrawl(
   };
 
   await writeSiteProfile(profile);
+
+  // Issue 1511: what ties the content host to the main site — its canonical
+  // home, its own Organization, the profiles it links and whether its own
+  // pages link the content host — off what this pass already read. A write
+  // that fails is not the profile's failure.
+  const home = crawl.pages[0];
+  if (home !== undefined) {
+    try {
+      await writeMainSite(
+        a.domain,
+        readMainSite({ domain: a.domain, homeUrl: home.url, homeHtml: crawl.homeHtml ?? a.homeHtml, pages: crawl.pages, ours })
+      );
+    } catch (error) {
+      console.log(JSON.stringify({ event: "site_main_unstored", because: error instanceof Error ? error.message : String(error) }));
+    }
+  }
 
   // The site's own mark for the gallery and the landing's strip (#1069),
   // read off the same home document: 0¢ and inside `SITE_LOGO.BUDGET_MS`.

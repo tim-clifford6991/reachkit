@@ -109,7 +109,7 @@ export function personOf(byline: string): { name: string; jobTitle: string | nul
 function authorOf(byline: string | null, business: HostedBusiness): Record<string, unknown> {
   const said = byline?.trim() ?? "";
   if (said === "" || said === business.name || said === business.domain) {
-    return { "@type": "Organization", name: business.name, url: mainSiteOf(business) };
+    return { "@type": "Organization", "@id": organizationIdOf(business), name: business.name, url: mainSiteOf(business) };
   }
   const person = personOf(said);
   return {
@@ -120,15 +120,31 @@ function authorOf(byline: string | null, business: HostedBusiness): Record<strin
   };
 }
 
-/** The business in the header, with its logo where one is kept. */
+/** The business's one entity (SPEC §7, 2026-10-18, issue 1511): the `@id`
+ *  the main site's own markup declares, else `{home}#organization`, so the
+ *  content host and the main site name one Organization. */
+export function organizationIdOf(business: HostedBusiness): string {
+  return business.mainSite?.organization.id ?? `${mainSiteOf(business)}#organization`;
+}
+
+/** The business in the header, as the main site states it: its `@id`, its
+ *  canonical home, its own logo where its markup names one (else the kept
+ *  logo), and the profiles the main site itself links to — never one it
+ *  does not. */
 function publisherOf(business: HostedBusiness, origin: string): Record<string, unknown> {
+  const declaredLogo = business.mainSite?.organization.logo ?? null;
+  const sameAs = business.mainSite?.sameAs ?? [];
   return {
     "@type": "Organization",
+    "@id": organizationIdOf(business),
     name: business.name,
     url: mainSiteOf(business),
-    ...(business.logoType === null
-      ? {}
-      : { logo: { "@type": "ImageObject", url: `${origin}${LOGO_PATH}` } }),
+    ...(declaredLogo !== null
+      ? { logo: { "@type": "ImageObject", url: declaredLogo } }
+      : business.logoType === null
+        ? {}
+        : { logo: { "@type": "ImageObject", url: `${origin}${LOGO_PATH}` } }),
+    ...(sameAs.length === 0 ? {} : { sameAs: [...sameAs] }),
   };
 }
 

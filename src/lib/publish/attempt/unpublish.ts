@@ -35,6 +35,7 @@ import { destinationOf, withConfig } from "../destinations";
 import { NoConfigError } from "../destinations/config";
 import type { GuardDeps } from "../machine";
 import { transition } from "../machine";
+import type { AnnounceSend } from "../destinations/hosted/announce";
 import type {
   Actor,
   DestinationAdapter,
@@ -49,6 +50,9 @@ export interface UnpublishArgs {
   at?: Date;
   deps?: GuardDeps;
   adapterFor?: (destination: DestinationKind) => DestinationAdapter | null;
+  /** How the change is announced (`../destinations/hosted/announce.ts`).
+   *  Injected so a suite answers for the network. */
+  announce?: AnnounceSend;
 }
 
 interface PublicationRow {
@@ -99,6 +103,14 @@ export async function unpublish(a: UnpublishArgs): Promise<UnpublishResult> {
     ...(a.deps === undefined ? {} : { deps: a.deps }),
     reason: "unpublish",
   });
+
+  // SPEC §7 (2026-10-18, issue 1511): the address that now answers 410 is
+  // announced once, so search engines drop it. Hosted only; never a reason
+  // the stop is not taken.
+  if (destination === "hosted" && row.live_url !== null) {
+    const { announceHosted } = await import("../destinations/hosted/announce");
+    await announceHosted({ siteId: row.site_id, urls: [row.live_url], ...(a.announce === undefined ? {} : { send: a.announce }) });
+  }
 
   return result;
 }

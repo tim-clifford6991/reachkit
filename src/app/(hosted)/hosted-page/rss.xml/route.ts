@@ -14,12 +14,18 @@
 // **Never cached**, for the sitemap's reason: a page taken down leaves this
 // document when its row changes, not after a TTL.
 //
+// **It names a WebSub hub** (SPEC §7, 2026-10-18, issue 1511): Google's
+// public one, which each publish, update and unpublish pings
+// (`publish/destinations/hosted/announce.ts`), so a subscriber hears of a
+// change without polling.
+//
 // The document is the `feed` package's, not ours. It names no generator:
 // nothing on a customer's host names what wrote it.
 import { Feed } from "feed";
 import { now } from "@/lib/config/now";
 import { copy } from "@/lib/presentation/copy";
 import { hostedIdentity, livePagesForSite } from "@/lib/publish/destinations/hosted";
+import { WEBSUB_HUB } from "@/lib/publish/destinations/hosted/announce";
 import { resolveHost } from "../../resolve-host";
 import { PAGE_LOCALE } from "../[[...slug]]/present";
 import { FEED_PATH, indexDescription, indexTitle } from "../[[...slug]]/seo";
@@ -54,6 +60,7 @@ export async function GET(request: Request): Promise<Response> {
     updated: pages[0]?.publishedAt ?? now(),
     generator: false,
     feedLinks: { rss: `https://${disposition.host}${FEED_PATH}` },
+    hub: WEBSUB_HUB,
   });
   for (const page of pages.slice(0, FEED_ITEMS)) {
     feed.addItem({

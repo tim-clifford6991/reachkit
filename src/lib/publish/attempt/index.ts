@@ -52,6 +52,7 @@ import { checkPageLinks, type AskAddress } from "../links/live";
 import { slugify } from "@/lib/opportunities/derive/candidate";
 import { isRetarget, type Evidence } from "@/lib/opportunities/types";
 import { claim, type HeldBy } from "./claim";
+import type { AnnounceSend } from "../destinations/hosted/announce";
 
 export type { FailureReason } from "../types";
 
@@ -93,6 +94,10 @@ export interface PublishArgs {
    *  without a destination, and so #49 and #54 supply their adapters by
    *  registering them rather than by editing this file. */
   adapterFor?: (kind: DestinationKind) => DestinationAdapter | null;
+  /** How the change is announced to IndexNow and the WebSub hub
+   *  (`../destinations/hosted/announce.ts`). Injected so a suite answers
+   *  for the network; the engine passes none. */
+  announce?: AnnounceSend;
   /** How the live check asks an address (`../links/live.ts`). Injected so a
    *  suite answers for the network; the engine passes none. */
   askAddress?: AskAddress;
@@ -214,6 +219,14 @@ export async function publish(a: PublishArgs): Promise<PublishResult> {
     ...(a.deps === undefined ? {} : { deps: a.deps }),
     reason: "delivered",
   });
+
+  // SPEC §7 (2026-10-18, issue 1511): search engines are told, once, which
+  // addresses this delivery changed — a move's old address with its new one.
+  // Hosted only; it never fails the delivery.
+  if (a.destination === "hosted" && liveUrl !== null) {
+    const { announceForDraft } = await import("../destinations/hosted/announce");
+    await announceForDraft({ draftId: a.draftId, urls: page.updateOf === undefined ? [liveUrl] : [page.updateOf, liveUrl], ...(a.announce === undefined ? {} : { send: a.announce }) });
+  }
 
   return {
     ok: true,

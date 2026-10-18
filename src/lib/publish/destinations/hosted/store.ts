@@ -26,6 +26,7 @@ import { hostFor } from "./label";
 import { addressOf, slugOf as addressSlug, type AddressRow, type HostedAddress } from "./moved";
 import type { HostedOwnPages } from "./own-page";
 import { storedSiteName } from "@/lib/site-profile/site-name";
+import { mainSiteOf, type MainSite } from "@/lib/site-profile/main-site-row";
 
 export { readFaq, type FaqEntry } from "../../render/faq";
 
@@ -323,6 +324,10 @@ export interface HostedIdentity {
   logoType: string | null;
   /** One line saying what the business does, or `null` where none is held. */
   line: string | null;
+  /** What the scan read of the main site (issue 1511): its canonical home,
+   *  its own Organization and the profiles it links. Absent or `null` where
+   *  no pass kept one, and the pages then link the bare domain. */
+  mainSite?: MainSite | null;
 }
 
 interface IdentityRow {
@@ -353,7 +358,7 @@ export async function hostedIdentity(a: { siteId: string; domain: string }): Pro
   const fallback: HostedIdentity = { name: a.domain, logoType: null, line: null };
   try {
     const { readBusinessEdits } = await import("@/lib/site-profile/business/edits");
-    const [profile, site, edits] = await Promise.all([
+    const [profile, site, edits, mainSite] = await Promise.all([
       publishDb()
         .from<IdentityRow>("site_profiles")
         .select("domain, site_name, home_title:inventory->0->>title, logo_type, claims")
@@ -361,6 +366,13 @@ export async function hostedIdentity(a: { siteId: string; domain: string }): Pro
         .limit(1),
       publishDb().from<{ market: unknown }>("sites").select("market").eq("id", a.siteId).limit(1),
       readBusinessEdits(a.siteId).catch(() => null),
+      // Its own read: until issue 1511's column is applied, it is none and
+      // the identity above still stands.
+      Promise.resolve(
+        publishDb().from<{ main_site: unknown }>("site_profiles").select("main_site").eq("domain", a.domain).limit(1)
+      )
+        .then((read) => (read.error === null ? mainSiteOf(read.data?.[0]?.main_site ?? null) : null))
+        .catch(() => null),
     ]);
     const row = profile.data?.[0];
     const claim = Array.isArray(row?.claims)
@@ -368,9 +380,13 @@ export async function hostedIdentity(a: { siteId: string; domain: string }): Pro
       : undefined;
     const job = emptyToNull(edits?.job ?? null) ?? marketJobOf(site.data?.[0]?.market);
     return {
-      name: (row === undefined ? null : storedSiteName(row, row.home_title)) ?? a.domain,
+      // Issue 1511: the name the main site's own Organization markup gives
+      // itself, where it gives one, so the page and its markup never
+      // contradict the main site; else the stored brand.
+      name: mainSite?.organization.name ?? (row === undefined ? null : storedSiteName(row, row.home_title)) ?? a.domain,
       logoType: emptyToNull(row?.logo_type ?? null),
       line: job ?? emptyToNull(claim ?? null),
+      ...(mainSite === null ? {} : { mainSite }),
     };
   } catch {
     return fallback;
@@ -533,6 +549,30 @@ export async function retiredSlugsForSite(siteId: string): Promise<ReadonlySet<s
   if (rows === null) return new Set();
   const slugs = new Set(rows.flatMap((row) => (row.live_url === null ? [] : [addressSlug(row.live_url)])).filter((slug): slug is string => slug !== null));
   return new Set([...slugs].filter((slug) => addressOf(rows, slug).state === "retired"));
+}
+
+/**
+ * The slugs of a site's host that answer 301, each with the slug it answers
+ * with now (SPEC §7, 2026-10-18, issue 1511): a link to a moved address is
+ * drawn at the page's final one, so no page links a redirect while the
+ * `link` refresh is still weeks away. By `addressOf`'s own reading, the
+ * same one the middleware's 301 makes. A read that fails is none, and never
+ * throws: the link is then drawn as it was written, which still redirects.
+ */
+export async function movedSlugsForSite(siteId: string): Promise<ReadonlyMap<string, string>> {
+  try {
+    const rows = await addressRows(siteId);
+    if (rows === null) return new Map();
+    const slugs = new Set(rows.flatMap((row) => [row.live_url, row.updates]).map((url) => (url === null ? null : addressSlug(url))).filter((slug): slug is string => slug !== null));
+    const moved = new Map<string, string>();
+    for (const slug of slugs) {
+      const address = addressOf(rows, slug);
+      if (address.state === "moved" && address.slug !== slug) moved.set(slug, address.slug);
+    }
+    return moved;
+  } catch {
+    return new Map();
+  }
 }
 
 /**

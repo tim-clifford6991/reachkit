@@ -98,6 +98,10 @@ export interface CrawledPage {
   /** The in-scope pages this page links to, as crawl identities
    *  (`dedupeKey`), once each. */
   links: readonly string[];
+  /** Those of `links` this page reaches only through an anchor whose `rel`
+   *  asks search engines not to follow it (`nofollow`, `sponsored`, `ugc`;
+   *  issue 1511). Absent reads as none. */
+  unfollowed?: readonly string[];
   /** How long this crawl's own fetch of the document took, or `null` where
    *  no fetch was timed (a document handed over or served from the cache). */
   fetchMs: number | null;
@@ -167,6 +171,18 @@ const HREF_RE = /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
 const ASSET_EXTENSION_RE =
   /\.(?:jpe?g|png|gif|svg|webp|avif|ico|bmp|tiff?|css|js|mjs|json|xml|rss|atom|pdf|zip|gz|tar|rar|7z|mp[34]|m4[av]|wav|ogg|webm|mov|avi|woff2?|ttf|otf|eot|docx?|xlsx?|pptx?|csv|dmg|exe|apk)$/i;
 
+export interface CrawlArgs {
+  domain: string;
+  homeUrl: string;
+  homeHtml: string | null;
+  sitemaps: readonly string[];
+  /** Hosts this crawl records links to and never reads (issue 1511): the
+   *  hosts ReachKit serves pages at (`known-content/ours.ts`, without
+   *  `www.`). Their pages are ours, so they do not spend the site's page
+   *  budget. */
+  skipHosts?: ReadonlySet<string>;
+}
+
 /**
  * Reads up to `SITE_PROFILE.MAX_PAGES` pages of one site, once.
  *
@@ -177,7 +193,7 @@ const ASSET_EXTENSION_RE =
  */
 export async function crawlSite(
   c: CostContext,
-  a: { domain: string; homeUrl: string; homeHtml: string | null; sitemaps: readonly string[] },
+  a: CrawlArgs,
   ports: CrawlPorts = DEFAULT_PORTS
 ): Promise<CrawlOutcome> {
   const reader = new BoundedReader(ports, Date.now() + SITE_PROFILE.CRAWL_MS);
@@ -188,11 +204,7 @@ export async function crawlSite(
   }
 }
 
-async function crawl(
-  c: CostContext,
-  a: { domain: string; homeUrl: string; homeHtml: string | null; sitemaps: readonly string[] },
-  reader: BoundedReader
-): Promise<CrawlOutcome> {
+async function crawl(c: CostContext, a: CrawlArgs, reader: BoundedReader): Promise<CrawlOutcome> {
   const site = registrableDomain(a.domain);
 
   const seen = new Set<string>();
@@ -266,7 +278,7 @@ async function crawl(
   };
   const enqueue = (raw: string, from: string): void => {
     const url = inScopeUrl(raw, from, site);
-    if (url === null) return;
+    if (url === null || skipped(url, a.skipHosts)) return;
     const key = dedupeKey(url);
     if (key === null || seen.has(key)) return;
     seen.add(key);
@@ -728,14 +740,35 @@ function locElements(xml: string): readonly string[] {
 /** Anchor `href`s, in document order, raw. Scope is decided by the caller
  *  so one rule serves sitemap entries and links alike. */
 function anchorHrefs(html: string): readonly string[] {
-  const out: string[] = [];
+  return anchorsOf(html).map((anchor) => anchor.href);
+}
+
+/** A `rel` that asks search engines not to follow the link. */
+const UNFOLLOWED_REL_RE = /(?:^|\s)(?:nofollow|sponsored|ugc)(?:\s|$)/i;
+
+/** Every anchor's address, and whether its `rel` lets a search engine
+ *  follow it. */
+function anchorsOf(html: string): readonly { href: string; followed: boolean }[] {
+  const out: { href: string; followed: boolean }[] = [];
   ANCHOR_HREF_RE.lastIndex = 0;
   let match: RegExpExecArray | null;
   while ((match = ANCHOR_HREF_RE.exec(html)) !== null) {
     const href = (match[1] ?? match[2] ?? "").trim();
-    if (href.length > 0) out.push(decodeEntities(href));
+    if (href.length === 0) continue;
+    const rel = REL_RE.exec(match[0]);
+    out.push({ href: decodeEntities(href), followed: !UNFOLLOWED_REL_RE.test(rel?.[1] ?? rel?.[2] ?? rel?.[3] ?? "") });
   }
   return out;
+}
+
+/** Whether `url` stands on a host the crawl records and never reads. */
+function skipped(url: string, hosts: ReadonlySet<string> | undefined): boolean {
+  if (hosts === undefined || hosts.size === 0) return false;
+  try {
+    return hosts.has(new URL(url).hostname.toLowerCase().replace(/^www\./, ""));
+  } catch {
+    return false;
+  }
 }
 
 /** An address this crawl may read: absolute, http(s), on the customer's
@@ -843,7 +876,7 @@ function aliasOf(url: string, html: string, site: string | null): { alias: false
 /** One read page, parsed. Never throws: a document that carries no title
  *  and no `h1` yields empty strings, which is the truth about it. */
 function pageOf(url: string, html: string, site: string | null, fetchMs: number | null): CrawledPage {
-  const links = linksOf(url, html, site);
+  const { links, unfollowed } = linkSets(url, html, site);
   return {
     url,
     title: firstText(html, TITLE_RE),
@@ -851,20 +884,30 @@ function pageOf(url: string, html: string, site: string | null, fetchMs: number 
     text: proseText(html).slice(0, SITE_PROFILE.PAGE_SAMPLE_CHARS),
     facts: readPageFacts(url, html),
     links,
+    ...(unfollowed.length === 0 ? {} : { unfollowed }),
     fetchMs,
   };
 }
 
 function linksOf(url: string, html: string, site: string | null): string[] {
+  return linkSets(url, html, site).links;
+}
+
+/** The pages a document links to, and those it links only through an
+ *  anchor search engines are asked not to follow. */
+function linkSets(url: string, html: string, site: string | null): { links: string[]; unfollowed: string[] } {
   const links = new Set<string>();
-  for (const href of anchorHrefs(html)) {
-    const target = inScopeUrl(href, url, site);
+  const followed = new Set<string>();
+  for (const anchor of anchorsOf(html)) {
+    const target = inScopeUrl(anchor.href, url, site);
     const key = target === null ? null : dedupeKey(target);
-    if (key !== null) links.add(key);
+    if (key === null) continue;
+    links.add(key);
+    if (anchor.followed) followed.add(key);
   }
   const own = dedupeKey(url);
   if (own !== null) links.delete(own);
-  return [...links];
+  return { links: [...links], unfollowed: [...links].filter((key) => !followed.has(key)) };
 }
 
 /** The pages of `domain` a document links to, as crawl identities, once

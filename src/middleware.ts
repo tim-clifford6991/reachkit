@@ -411,6 +411,12 @@ const HOSTED_LIVE_SEGMENT = "hosted-live";
  *  therefore served where they stand, not rewritten. */
 const HOSTED_DOCUMENT_PATHS: readonly string[] = ["/robots.txt", "/sitemap.xml"];
 
+/** The IndexNow key file at a customer host's root (issue 1511): rewritten
+ *  to the route that answers it, before the address read a page needs. The
+ *  route says whether the name is this site's key. */
+const INDEXNOW_KEY_FILE = /^\/([0-9a-f]{32})\.txt$/;
+const HOSTED_INDEXNOW_PREFIX = `${HOSTED_PAGE_PREFIX}/indexnow`;
+
 /** The one test host named by `HOSTED_TEST_HOST` (issue 762), or the empty
  *  string, which matches nothing. Exact and lower-cased — never a suffix,
  *  never a pattern, never a second host.
@@ -524,6 +530,13 @@ async function hostedRewrite(
   const { pathname } = req.nextUrl;
   if (isNextInternal(pathname)) return null;
   if (HOSTED_DOCUMENT_PATHS.includes(pathname)) return null;
+
+  const keyFile = INDEXNOW_KEY_FILE.exec(pathname);
+  if (keyFile !== null) {
+    const destination = req.nextUrl.clone();
+    destination.pathname = `${HOSTED_INDEXNOW_PREFIX}/${keyFile[1]}`;
+    return { response: NextResponse.rewrite(destination, { request: { headers: forwarded } }), scriptFree: false };
+  }
 
   let answer: HostedAnswer = "page";
   try {

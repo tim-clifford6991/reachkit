@@ -10,23 +10,25 @@ import { applyEnvFixture } from "../mail/env-fixture";
 
 applyEnvFixture();
 
-const { crawlMock, voiceMock, writeMock } = vi.hoisted(() => ({
+const { crawlMock, voiceMock, writeMock, mainSiteMock } = vi.hoisted(() => ({
   crawlMock: vi.fn(),
   voiceMock: vi.fn(),
   writeMock: vi.fn(),
+  mainSiteMock: vi.fn(),
 }));
 
 vi.mock("../../src/lib/site-profile/crawl", () => ({ crawlSite: crawlMock }));
 vi.mock("../../src/lib/site-profile/summary", () => ({ deriveVoice: voiceMock }));
 vi.mock("../../src/lib/site-profile/store", () => ({
   writeSiteProfile: writeMock,
+  writeMainSite: mainSiteMock,
   readSiteProfile: vi.fn(),
   adoptVoiceText: vi.fn(),
   saveVoiceText: vi.fn(),
 }));
 
 /** The pages ReachKit wrote on the domain (issue 1456); the rule is its own. */
-const ours = { url: null as string | null };
+const ours = { url: null as string | null, host: null as string | null };
 vi.mock("@/lib/known-content/ours", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/known-content/ours")>();
   return {
@@ -34,7 +36,7 @@ vi.mock("@/lib/known-content/ours", async (importOriginal) => {
     readOurPages: async () =>
       ours.url === null
         ? actual.NO_PAGES_OF_OURS
-        : { addresses: new Set([actual.addressKey(ours.url) ?? ""]), hosts: new Set<string>() },
+        : { addresses: new Set([actual.addressKey(ours.url) ?? ""]), hosts: new Set<string>(ours.host === null ? [] : [ours.host]) },
   };
 });
 
@@ -87,8 +89,47 @@ beforeEach(() => {
   crawlMock.mockReset();
   voiceMock.mockReset();
   writeMock.mockReset();
+  mainSiteMock.mockReset();
   vi.spyOn(console, "log").mockImplementation(() => {});
   ours.url = null;
+  ours.host = null;
+});
+
+describe("issue 1511 — each pass records whether the main site links the content host", () => {
+  it("the crawl skips ReachKit's host, and the reading counts only the site's own pages", async () => {
+    ours.url = `https://${DOMAIN}/blog/ours`;
+    ours.host = `content.${DOMAIN}`;
+    const read = crawled(["/", "/pricing", "/blog/ours"]);
+    crawlMock.mockResolvedValueOnce({
+      ...read,
+      homeHtml: '<html><head><link rel="canonical" href="https://www.example.com/"></head></html>',
+      pages: read.pages.map((page) => ({
+        ...page,
+        links: page.url.endsWith("/blog/ours") ? [`https://content.${DOMAIN}/`] : [],
+      })),
+    });
+
+    await buildSiteProfile({} as never, FREE);
+
+    expect((crawlMock.mock.calls[0]?.[1] as { skipHosts?: Set<string> }).skipHosts).toEqual(new Set([`content.${DOMAIN}`]));
+    expect(mainSiteMock).toHaveBeenCalledTimes(1);
+    expect(mainSiteMock.mock.calls[0]?.[0]).toBe(DOMAIN);
+    expect(mainSiteMock.mock.calls[0]?.[1]).toMatchObject({
+      home: "https://www.example.com/",
+      links: [{ host: `content.${DOMAIN}`, state: "not_linked" }],
+    });
+  });
+
+  it("a main-site reading that cannot be stored leaves the profile stored", async () => {
+    crawlMock.mockResolvedValueOnce(crawled(["/"]));
+    mainSiteMock.mockRejectedValueOnce(new Error("column main_site does not exist"));
+
+    const profile = await buildSiteProfile({} as never, FREE);
+
+    expect(mainSiteMock).toHaveBeenCalledTimes(1);
+    expect(profile?.pagesRead).toBe(1);
+    expect(writeMock).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("issue 1456 — the claims, products and voice are read off the customer's own pages", () => {

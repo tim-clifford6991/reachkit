@@ -24,6 +24,7 @@ import { dbAdmin } from "@/lib/db";
 import type { InventoryRow, SiteProfile, VoiceSummary } from "./types";
 import { LOGO_TYPES, type LogoType, type SiteLogo } from "./logo";
 import { storedSiteName } from "./site-name";
+import { mainSiteOf, type MainSite } from "./main-site-row";
 
 /** The generated `Database` type carries neither `site_profiles` nor
  *  `sites.voice_edited_at` — the same narrow cast
@@ -256,4 +257,32 @@ export async function readSiteLogo(domain: string): Promise<{ bytes: Buffer; typ
   const type = LOGO_TYPES.find((t) => t === row.logo_type);
   if (type === undefined || !row.logo_image.startsWith("\\x")) return null;
   return { bytes: Buffer.from(row.logo_image.slice(2), "hex"), type };
+}
+
+/** What the scan read of the main site (issue 1511), written beside the
+ *  profile it was read with. Its own statement, as the logo is: a pass whose
+ *  write of it fails still keeps the profile. */
+export async function writeMainSite(domain: string, mainSite: MainSite): Promise<void> {
+  const { error } = await untyped()
+    .from<ProfileRow>("site_profiles")
+    .update({ main_site: mainSite })
+    .eq("domain", domain);
+  if (error) throw new Error(`site profile: could not write the main site of ${domain}: ${error.message}`);
+}
+
+/** The stored reading of one domain's main site, or `null` where no pass
+ *  kept one or it cannot be read. Never throws: every reader has a way to
+ *  draw without it. */
+export async function readMainSite(domain: string): Promise<MainSite | null> {
+  try {
+    const { data, error } = await untyped()
+      .from<{ main_site: unknown }>("site_profiles")
+      .select("main_site")
+      .eq("domain", domain)
+      .limit(1);
+    if (error) return null;
+    return mainSiteOf(data?.[0]?.main_site ?? null);
+  } catch {
+    return null;
+  }
 }
