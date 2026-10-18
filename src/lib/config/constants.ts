@@ -1168,6 +1168,15 @@ export const SCORING = Object.freeze({                    // BP-010 d2 · BUILD 
   answerabilityFloor: 1,
 } as const);
 
+/** The guard an automatic re-score's dry run must hold before the tick asks
+ *  for the apply (SPEC §2, issue 1481; drafted default, the owner may correct
+ *  it). A score that moves further than this, or a scored scan that loses its
+ *  number, is a move nobody expected; the dry run is held for the master
+ *  session to read, and nothing is written. */
+export const RESCORE_GUARD = Object.freeze({
+  maxScoreMove: 15,
+} as const);
+
 export const GENERATION = Object.freeze({
   duplicateThreshold: 0.85, regenerations: 1,
 } as const);

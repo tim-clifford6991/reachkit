@@ -126,6 +126,29 @@ describe("SPEC §2 (issue 1440) — while the unread searches are read, the repo
   });
 });
 
+describe("SPEC §2 (issue 1481) — a report the deployed code reads differently is never silently stale", () => {
+  const stale = (report: StoredReport, readsDifferently?: boolean): string =>
+    renderToStaticMarkup(
+      React.createElement(ReportView, {
+        state: { report, notice: null, control: { kind: "none" }, correction: { offered: true, as: "first" }, readsDifferently },
+      })
+    );
+
+  it("says when it was read and that the reading has changed since, once", () => {
+    const html = stale(FIXTURE_REPORT, true);
+    expect(count(html, "report.reads-differently(")).toBe(1);
+    const readOn = FIXTURE_REPORT.verdict.measuredAt.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    expect(html).toContain(`report.reads-differently(${readOn})`);
+  });
+
+  it("dates a re-scored report by its re-score, and says nothing where the reading has not changed", () => {
+    const rescoredAt = new Date("2026-10-16T09:00:00Z");
+    expect(stale({ ...FIXTURE_REPORT, rescoredAt }, true)).toContain("report.reads-differently(Oct 16, 2026)");
+    expect(stale(FIXTURE_REPORT, false)).not.toContain("report.reads-differently");
+    expect(stale(FIXTURE_REPORT)).not.toContain("report.reads-differently");
+  });
+});
+
 describe("REQ-004 c1 — the verdict strip names the score, its band, the domain and the date", () => {
   const html = render(FIXTURE_REPORT);
 

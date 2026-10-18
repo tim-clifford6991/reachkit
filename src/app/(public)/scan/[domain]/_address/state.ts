@@ -117,4 +117,7 @@ export type AddressState =
       /** Whether the header's "Not your market?" correction is on offer
        *  for this report, decided once against the visit's clock (#786). */
       correction: CorrectionOffer;
+      /** SPEC §2 (issue 1481): the deployed code reads this scan
+       *  differently and it has not been re-scored yet. Absent is false. */
+      readsDifferently?: boolean;
     };

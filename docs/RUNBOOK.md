@@ -570,17 +570,45 @@ pass's own log lines.
 
 ### Re-scoring every stored scan
 
-After **every deploy that changes scoring, rivals or markets**, the master session re-scores the
-stored scans (owner, 2026-10-14, issue 1426; SPEC §2): a dry run, then an apply. It costs 0¢. It
-runs in production as the `scan/rescore` job (issue 1433), with the deployed code, reading the rows
+After **every deploy that changes scoring, rivals or markets**, every stored scan is re-scored
+(owner, 2026-10-14, issue 1426; SPEC §2): a dry run, then an apply. It costs 0¢. It runs in
+production as the `scan/rescore` job (issue 1433), with the deployed code, reading the rows
 themselves. It asks no model, and the network is refused while each scan is scored. Nothing is
 exported, and no change is typed back through the connector.
+
+**Nobody asks for it (issue 1481).** The build stamps the deployment with its derivation
+(`RK_DERIVATION`, from `scripts/derivation.mjs`: a fingerprint of the files under `src/lib` the
+re-score reads a scan with; `node scripts/derivation.mjs --files` lists them). Production's tick,
+every 15 minutes, finds no run at the deployed derivation and asks a dry run itself
+(`auto = true`). A dry run that moves nothing settles it. Where the dry run's guard holds
+(`RESCORE_GUARD` in `src/lib/config/constants.ts`: no score moves more than 15 points, no scored
+scan loses its number, no more unreadable scans than the run before), the next tick asks the
+apply, and the tick after it a dry run that checks the apply. A deploy whose fingerprint did not
+change asks nothing. Dev's ticks never ask: it reads the same database with newer code.
+
+Where it stands at the deployed derivation:
+
+```sql
+select requested_at, mode, auto, derivation, finished_at, scans_changed, scans_left,
+       scans_unreadable, held, error, cardinality(stale_scans) as stale
+from rescore_runs order by requested_at desc limit 6;
+```
+
+**A held run.** `held` says why the guard stopped the apply, or that the check still found scans
+moving after it; `error` says a run failed. Nothing more is asked at that derivation, and every
+tick records `scan/rescore` as `degraded` at `rescore-held` in `job_runs` until it moves on. Each
+public report in `stale_scans` says when it was read and that the reading has changed since. Read
+the summary (step 2 below). If the moves are the change you meant, ask the apply by hand (step 3);
+the tick then asks the check itself. If they are not, the fix is a code change, and its deploy is a
+new derivation that starts over.
+
+To ask by hand, as before:
 
 1. **Ask for a dry run** through the Supabase connector:
    `insert into rescore_runs (mode) values ('dry') returning id;`. The job ticks every 15 minutes,
    claims the oldest request not yet started, and answers it on the same row.
 2. **Read the summary**: `select finished_at, rescored_by, scans_read, scans_changed, sites_moved,
-   error, summary from rescore_runs where id = '<id>';`. `finished_at` is null while it runs.
+   held, error, summary from rescore_runs where id = '<id>';`. `finished_at` is null while it runs.
    `rescored_by` is the deployed commit. `summary` is a markdown table with one row per scan:
    score with its range and confidence (issue 1439), band, the three factors, the limiting factor, the rivals and the status, before → after.
    Then come the totals, what could not be fully recomputed and why, the site rival sets that move,
