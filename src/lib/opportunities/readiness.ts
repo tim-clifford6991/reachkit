@@ -36,6 +36,16 @@
 // the last time, or skipped, is `resting` until its `restUntil` — whatever
 // else is true of it (`isResting`, read by both assessments).
 //
+// And SPEC §6's topics with demand (issue 1506): a "vs" that sets products
+// against each other — the business against a rival, or two rivals — is
+// `no_intent` unless its search has a measured volume above zero, a
+// measured AI answer names one of its rivals — a tracked prompt that names
+// one, or the answer the row was found in — or buyers were seen asking it
+// beside the market's searches (D62's store). And a row whose stored top
+// ten, at most 30 days old, holds six or more results of another kind of
+// business than this one is `low_fit` (`derive/top-ten-kind.ts`), as a fit
+// below the gate is.
+//
 // The Fix family keeps its own predicate (`fixPageReadiness`): its readiness
 // is a question about the destination, not about the market.
 import { SHAPES } from "@/lib/locale/language";
@@ -53,6 +63,9 @@ import { NO_EARN_GROUNDING, type EarnGrounding } from "./earn-grounding";
 import { suppressionOf, verdictReason, type Suppression } from "./suppression";
 import { hasGoal, intentFor, type IntentPrompt } from "./intent";
 import type { KnownMatch } from "@/lib/known-content/types";
+import { queryKey } from "./cluster";
+import { comparisonBrands, comparisonUnasked, type AskedBeside, type ComparisonBrands } from "./derive/topics";
+import { freshTopTen, otherKindTopTen, OTHER_KIND_TOP_TEN, type KindOfBusiness, type TopTenRead, type TopTenRow } from "./derive/top-ten-kind";
 import type { Opportunity, UnreadyReason } from "./types";
 
 export interface ReadinessContext {
@@ -82,6 +95,16 @@ export interface ReadinessContext {
    *  or empty where it has no set yet — its first weekly pass builds one —
    *  and then no topic is held for lacking a prompt. */
   prompts?: readonly IntentPrompt[];
+  /** Issue 1506: the names a "vs" search is read by. Absent reads no search
+   *  as one between products. */
+  brands?: ComparisonBrands;
+  /** Issue 1506: what buyers were seen asking beside the market's searches
+   *  (D62's store). Absent reads none. */
+  asked?: readonly AskedBeside[];
+  /** Issue 1506: the stored top ten for a row's search, `null` where none
+   *  was stored, and the business it is read against. */
+  topTen?: (o: Opportunity) => readonly TopTenRow[] | null;
+  business?: KindOfBusiness | null;
 }
 
 /** SPEC §6's commercial and transactional searches, in §6.7's classifier's
@@ -95,6 +118,27 @@ const FORMAT_WORDS = SHAPES.format;
 
 function volumeOf(o: Opportunity): number {
   return o.volume === null || o.volume.kind === "unmeasured" ? 0 : o.volume.value;
+}
+
+/** Issue 1506: a "vs" between products that nothing measured anyone asking
+ *  (`comparisonUnasked`). The answer a row was found in counts where it
+ *  named one of its rivals: an Earn row's AI answer, or an `ai_gap` row's. */
+export function comparisonWithoutAsking(o: Opportunity, ctx: Pick<ReadinessContext, "brands" | "prompts" | "asked">): boolean {
+  if (ctx.brands === undefined) return false;
+  const answeredRival =
+    o.evidence.family === "earn" && o.evidence.source.surface === "ai_answer"
+      ? o.evidence.rival.domain
+      : o.source === "ai_gap" && "rival" in o.evidence
+        ? o.evidence.rival.domain
+        : null;
+  return comparisonUnasked({
+    query: o.targetQuery ?? "",
+    volume: volumeOf(o),
+    brands: ctx.brands,
+    prompts: ctx.prompts ?? [],
+    answeredRival,
+    asked: ctx.asked ?? [],
+  });
 }
 
 /**
@@ -117,10 +161,14 @@ export function opportunityReady(o: Opportunity, ctx: ReadinessContext): Unready
   // target the business is not the answer to is never a day of supply.
   const fit = o.businessFit ?? null;
   if (o.family !== "fix" && fit !== null && fit < TOPIC_FIT.gate) return "low_fit";
+  // Issue 1506: the same reason where the stored top ten says it.
+  const topTen = o.family === "fix" ? null : (ctx.topTen?.(o) ?? null);
+  if (topTen !== null && otherKindTopTen(topTen, ctx.business ?? null) !== null) return "low_fit";
   if (!ctx.grounded) return "no_grounding_fact";
   if (o.evidence.family === "earn" && !ctx.earnGrounding[o.evidence.asset]) return "no_grounding_fact";
 
   const query = o.targetQuery ?? "";
+  if (o.family !== "fix" && comparisonWithoutAsking(o, ctx)) return "no_intent";
   if (o.type === "keyword_page") {
     const intent = ctx.profile === null ? null : classifyIntent(query, ctx.profile);
     // The band the keyword gate asks for is `winnable` — tighter than the
@@ -296,12 +344,17 @@ export async function assessReadiness(
   const rows = await store.openRankable(siteId);
   if (rows.length === 0) return { ready: 0, unready: 0 };
 
-  const [verdicts, report, profile, grounded, prompts] = await Promise.all([
+  const [verdicts, report, profile, grounded, prompts, market, topTens, asked] = await Promise.all([
     store.notWorkingVerdicts(siteId),
     store.currentReport(siteId),
     store.profileForSite(siteId),
     store.hasGroundingFact(siteId),
     store.trackedPrompts === undefined ? [] : store.trackedPrompts(siteId),
+    store.marketFor(siteId).then((read) => read.market).catch(() => null),
+    store.topTenRows === undefined
+      ? new Map<string, TopTenRead>()
+      : store.topTenRows([...new Set(rows.map((row) => row.scan_id))]),
+    store.askedBeside === undefined ? [] : store.askedBeside(siteId, OTHER_KIND_TOP_TEN.maxAgeDays).catch(() => []),
   ]);
   // Read only where there is an Earn row to answer: it re-reads the site's
   // measured pages and its profile, which nothing else here needs.
@@ -323,6 +376,10 @@ export async function assessReadiness(
     canUpdate: canUpdateFrom(ownPages),
     coveredBy: (o) => covered.get(o.id) ?? null,
     prompts,
+    brands: comparisonBrands({ report, market }),
+    asked,
+    topTen: (o) => (o.targetQuery === null ? null : freshTopTen(topTens.get(queryKey(o.targetQuery)), now)),
+    business: market === null ? null : { kind: market.kind ?? null, serves: market.serves ?? null },
   };
 
   // Issue 884: the row's band is brought up to today's law before its

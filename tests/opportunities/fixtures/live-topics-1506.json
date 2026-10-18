@@ -1,0 +1,510 @@
+{
+  "_source": "Production rows of 2026-10-18 for reachkit.app (site 0bbcc532), read SELECT-only: the four live publications with the opportunity each was written for, sites.market.current (kind, serves, rivals, demand.brands), the tracked prompts that are not branded (two category prompts and the four comparison prompts), and each page's stored top ten from the scan that found it, each page's signals since it went live (page_verdicts, publication_reads of kind answer_fetch or referral, and the scans' stored ranked keywords at its address), and the one open retarget: D53's rewrite of page A. Pages A and B are issue 1506's.",
+  "market": {
+    "kind": "software",
+    "serves": null,
+    "rivals": [
+      {
+        "name": "Profound",
+        "domain": "tryprofound.com"
+      },
+      {
+        "name": "Peec AI",
+        "domain": "peec.ai"
+      },
+      {
+        "name": "Otterly",
+        "domain": "otterly.ai"
+      },
+      {
+        "name": "Omniscient",
+        "domain": "beomniscient.com"
+      },
+      {
+        "name": "Brandi",
+        "domain": "mybrandi.ai"
+      }
+    ],
+    "demand": {
+      "brands": {
+        "dooza": 0,
+        "temso": 30,
+        "brandi": 22200,
+        "geopta": 0,
+        "maxaeo": 0,
+        "otterly": 880,
+        "peec ai": 2400,
+        "dooza ai": 0,
+        "reachkit": 0,
+        "temso ai": 0,
+        "brandi ai": 260,
+        "llm pulse": 0,
+        "rankscale": 480,
+        "aeo engine": 70,
+        "analyze ai": 590,
+        "otterly ai": 720,
+        "tracemetry": 0,
+        "leadjourney": 0,
+        "llmpulse ai": 0,
+        "profound ai": 6600,
+        "rankscale ai": 90,
+        "the seo agent": 0,
+        "discovered labs": 0,
+        "omniscient digital": 590
+      }
+    }
+  },
+  "own": [
+    "reachkit"
+  ],
+  "prompts": [
+    {
+      "id": "27b664f3",
+      "text": "What are the best generative engine optimization tools right now, and what is each one good at?"
+    },
+    {
+      "id": "91dd7b50",
+      "text": "Which answer engine optimization platforms do people actually recommend this year?"
+    },
+    {
+      "id": "cd9577b2",
+      "text": "How does Profound compare with Peec AI for generative engine optimization?"
+    },
+    {
+      "id": "8089172d",
+      "text": "What are the best alternatives to Profound for founders and business owners?"
+    },
+    {
+      "id": "41bb898a",
+      "text": "Peec AI or Otterly: which is the better choice for generative engine optimization?"
+    },
+    {
+      "id": "a32d354e",
+      "text": "Which is better value for generative engine optimization: Profound, Peec AI or Otterly?"
+    }
+  ],
+  "pages": [
+    {
+      "name": "A",
+      "draft_id": "d28e1ac9-6c53-44c3-813e-b984b0faff44",
+      "live_url": "https://content.reachkit.app/best-answer-engine-optimization-services-for-ai-visibility",
+      "row": {
+        "id": "f8f74434-0ee9-4ec2-9448-2ec0a0cc4f1b",
+        "type": "listed_page",
+        "ready": true,
+        "title": "Best Answer Engine Optimization Services for AI Visibility",
+        "effort": 0.7,
+        "family": "earn",
+        "source": null,
+        "status": "queued",
+        "volume": 20,
+        "scan_id": "2415236e-1f43-4a0b-bd25-62c4761467a8",
+        "site_id": "0bbcc532-e420-447c-9e81-f05ccbda27ff",
+        "evidence": {
+          "asset": "comparison_table",
+          "query": "best answer engine optimization services for ai visibility",
+          "rival": {
+            "domain": "elsner.com"
+          },
+          "family": "earn",
+          "source": {
+            "ref": "linkedin.com",
+            "surface": "search_result"
+          },
+          "target": {
+            "ceiling": 36,
+            "engines": [
+              {
+                "engine": "ai_overview",
+                "standing": "names_others"
+              },
+              {
+                "engine": "ai_mode",
+                "standing": "names_others"
+              },
+              {
+                "engine": "chatgpt",
+                "standing": "names_others"
+              }
+            ],
+            "difficulty": {
+              "at": "2026-09-28T04:01:33.636Z",
+              "kind": "measured",
+              "value": 12
+            }
+          },
+          "volume": {
+            "at": "2026-09-28T04:01:33.636Z",
+            "kind": "measured",
+            "value": 20
+          }
+        },
+        "fit_band": "winnable",
+        "page_type": null,
+        "acceptance": {
+          "form": "top20",
+          "query": "best answer engine optimization services for ai visibility"
+        },
+        "created_at": "2026-10-02T22:57:48.174868+00:00",
+        "rest_until": null,
+        "target_ref": "best-answer-engine-optimization-services-for-ai-visibility",
+        "cluster_key": "ai answer best engine optimization service visibility",
+        "business_fit": null,
+        "target_query": "best answer engine optimization services for ai visibility",
+        "proposed_slug": "best-answer-engine-optimization-services-for-ai-visibility",
+        "unready_reason": null,
+        "absorbed_queries": [
+          "aeo engine alternatives",
+          "best answer optimization tools for ai visibility",
+          "maxaeo alternatives"
+        ]
+      },
+      "signals": {
+        "published_at": "2026-10-03T07:00:20.323Z",
+        "verdicts": [
+          "too_early",
+          "too_early"
+        ],
+        "reads": 0,
+        "ranked": []
+      },
+      "publication_id": "ba67bb7e-39a2-4208-966d-b5da6af1f58e",
+      "destination": "hosted"
+    },
+    {
+      "name": "B",
+      "draft_id": "b271a650-45a7-4122-8dee-34a4d4b77cb6",
+      "live_url": "https://content.reachkit.app/reachkit-vs-aeo-engine",
+      "row": {
+        "id": "626e405a-446c-4bb9-a419-2bda9178126d",
+        "type": "comparison_page",
+        "ready": true,
+        "title": "ReachKit vs AEO Engine: which closes your AI visibility gap faster",
+        "effort": 0.6,
+        "family": "write",
+        "source": "product",
+        "status": "queued",
+        "volume": null,
+        "scan_id": "20b8b351-fa18-407e-84b2-c734af440dbe",
+        "site_id": "0bbcc532-e420-447c-9e81-f05ccbda27ff",
+        "evidence": {
+          "query": "reachkit vs aeo engine",
+          "rival": {
+            "url": {
+              "at": "2026-09-28T04:01:33.636Z",
+              "kind": "unmeasured",
+              "reason": "not_attempted"
+            },
+            "domain": "aeoengine.ai",
+            "position": {
+              "at": "2026-09-28T04:01:33.636Z",
+              "kind": "unmeasured",
+              "reason": "not_attempted"
+            }
+          },
+          "family": "write",
+          "volume": {
+            "at": "2026-09-28T04:01:33.636Z",
+            "kind": "unmeasured",
+            "reason": "not_attempted"
+          }
+        },
+        "fit_band": "winnable",
+        "page_type": "product",
+        "acceptance": {
+          "form": "top20",
+          "query": "reachkit vs aeo engine"
+        },
+        "created_at": "2026-10-04T23:33:56.658084+00:00",
+        "rest_until": null,
+        "target_ref": "reachkit-vs-aeo-engine",
+        "cluster_key": "aeo engine vs",
+        "business_fit": 3,
+        "target_query": "reachkit vs aeo engine",
+        "proposed_slug": "reachkit-vs-aeo-engine",
+        "unready_reason": null,
+        "absorbed_queries": [
+          "reachkit vs maxaeo",
+          "reachkit vs meltwater"
+        ]
+      },
+      "signals": {
+        "published_at": "2026-10-05T07:00:04.910Z",
+        "verdicts": [
+          "too_early"
+        ],
+        "reads": 0,
+        "ranked": []
+      },
+      "publication_id": "9fc0d3fb-6e70-4a5e-9ac1-b5ec43510253",
+      "destination": "hosted"
+    },
+    {
+      "name": "C",
+      "draft_id": "d6791892-f775-4904-be21-ec80fbeed256",
+      "live_url": "https://content.reachkit.app/how-to-rank-on-chatgpt",
+      "row": {
+        "id": "b1cf40f2-9717-488d-a282-4715985d702d",
+        "type": "refresh_page",
+        "ready": true,
+        "title": null,
+        "effort": 0.3,
+        "family": "improve",
+        "source": null,
+        "status": "done",
+        "volume": 140,
+        "scan_id": "20b8b351-fa18-407e-84b2-c734af440dbe",
+        "site_id": "0bbcc532-e420-447c-9e81-f05ccbda27ff",
+        "evidence": {
+          "query": "how to rank on chatgpt",
+          "family": "improve",
+          "volume": {
+            "at": "2026-10-07T09:35:26.642Z",
+            "kind": "measured",
+            "value": 140
+          },
+          "pageUrl": "https://content.reachkit.app/tools-to-track-where-ai-sends-potential-customers",
+          "shortfall": {
+            "kind": "retarget"
+          }
+        },
+        "fit_band": "winnable",
+        "page_type": "answer",
+        "acceptance": {
+          "form": "top20",
+          "query": "how to rank on chatgpt"
+        },
+        "created_at": "2026-10-07T09:35:33.854175+00:00",
+        "rest_until": null,
+        "target_ref": "https://content.reachkit.app/tools-to-track-where-ai-sends-potential-customers",
+        "cluster_key": null,
+        "business_fit": 3,
+        "target_query": "how to rank on chatgpt",
+        "proposed_slug": null,
+        "unready_reason": null,
+        "absorbed_queries": []
+      },
+      "signals": {
+        "published_at": "2026-10-09T07:00:28.476Z",
+        "verdicts": [
+          "too_early"
+        ],
+        "reads": 0,
+        "ranked": []
+      },
+      "publication_id": "1fa55786-f869-4e3a-bf1a-7efd3c5fa972",
+      "destination": "hosted"
+    },
+    {
+      "name": "D",
+      "draft_id": "288b4adb-077b-495a-9318-58066290c7e4",
+      "live_url": "https://content.reachkit.app/how-to-rank-in-ai-overview",
+      "row": {
+        "id": "04e5a3a7-0d1c-48b1-990b-718895ab0000",
+        "type": "listed_page",
+        "ready": true,
+        "title": "How to get named in AI Overviews — and measure it weekly",
+        "effort": 0.7,
+        "family": "earn",
+        "source": "problem",
+        "status": "queued",
+        "volume": 260,
+        "scan_id": "d4bb3740-b35a-4144-adaf-1bbd5063a3ed",
+        "site_id": "0bbcc532-e420-447c-9e81-f05ccbda27ff",
+        "evidence": {
+          "asset": "original_data_page",
+          "query": "how to rank in ai overview",
+          "rival": {
+            "domain": "seocrawl.ai"
+          },
+          "family": "earn",
+          "source": {
+            "ref": "linkedin.com",
+            "surface": "ai_answer"
+          },
+          "target": {
+            "ceiling": 36,
+            "engines": [
+              {
+                "engine": "ai_overview",
+                "standing": "names_others"
+              },
+              {
+                "engine": "ai_mode",
+                "standing": "unmeasured"
+              },
+              {
+                "engine": "chatgpt",
+                "standing": "names_others"
+              }
+            ],
+            "difficulty": {
+              "at": "2026-10-05T04:00:32.367Z",
+              "kind": "measured",
+              "value": 20
+            }
+          },
+          "volume": {
+            "at": "2026-10-05T04:00:32.367Z",
+            "kind": "measured",
+            "value": 260
+          }
+        },
+        "fit_band": "reach",
+        "page_type": "product",
+        "acceptance": {
+          "form": "named_on",
+          "question": "How do I get my content to show up in AI overviews?"
+        },
+        "created_at": "2026-10-07T11:33:17.387158+00:00",
+        "rest_until": null,
+        "target_ref": "how-to-rank-in-ai-overview",
+        "cluster_key": "ai how overview rank",
+        "business_fit": 2,
+        "target_query": "how to rank in ai overview",
+        "proposed_slug": "how-to-rank-in-ai-overview",
+        "unready_reason": null,
+        "absorbed_queries": [
+          "ai ranking tools",
+          "ai seo ranking"
+        ]
+      },
+      "signals": {
+        "published_at": "2026-10-10T07:00:43.503Z",
+        "verdicts": [
+          "too_early"
+        ],
+        "reads": 0,
+        "ranked": []
+      },
+      "publication_id": "cb5ac686-4dd7-4a86-a431-aad2ee2e8a12",
+      "destination": "hosted"
+    }
+  ],
+  "topTens": {
+    "best answer engine optimization services for ai visibility": [
+      {
+        "domain": "www.elsner.com",
+        "title": "Top Answer Engine Optimization (AEO) Companies for 2026"
+      },
+      {
+        "domain": "scandiweb.com",
+        "title": "AI search optimization services | AEO agency"
+      },
+      {
+        "domain": "writesonic.com",
+        "title": "13 Best Answer Engine Optimization (AEO) Tools in 2026"
+      },
+      {
+        "domain": "searchengineland.com",
+        "title": "Answer engine optimization: 6 AI models you should ..."
+      },
+      {
+        "domain": "www.linkedin.com",
+        "title": "Top 10 Best Answer Engine Optimization (AEO) Agencies ..."
+      },
+      {
+        "domain": "www.meltwater.com",
+        "title": "Top 6 Answer Engine Optimization (AEO) Tools 2026"
+      },
+      {
+        "domain": "aeoengine.ai",
+        "title": "AEO Engine: The AI SEO Agency That Wins Brands AI Citations"
+      },
+      {
+        "domain": "maxaeo.ai",
+        "title": "Top Answer Engine Optimization Services for the AI Industry"
+      },
+      {
+        "domain": "nogood.io",
+        "title": "Best Answer Engine Optimization (AEO) Agencies In 2026"
+      }
+    ],
+    "how to rank in ai overview": [
+      {
+        "url": "https://www.linkedin.com/posts/kashmala-malik_6-simple-steps-to-rank-in-google-ai-overviews-activity-7387839239725481984-UcVe",
+        "title": "How to Rank in Google AI Overviews: 6 Simple Steps",
+        "domain": "www.linkedin.com"
+      },
+      {
+        "url": "https://elearningindustry.com/advertise/elearning-marketing-resources/blog/best-rank-tracking-tools-to-monitor-google-chatgpt-and-ai-overview-mentions",
+        "title": "Best Rank Tracking Tools To Monitor Google, ChatGPT, ...",
+        "domain": "elearningindustry.com"
+      },
+      {
+        "url": "https://www.seoptimer.com/blog/optimize-for-ai-overviews/",
+        "title": "How to Rank in AI Overviews (with Insights from Top SEO ...",
+        "domain": "www.seoptimer.com"
+      },
+      {
+        "url": "https://www.singlegrain.com/search-everywhere-optimization/google-ai-overviews-the-ultimate-guide-to-ranking-in-2025/",
+        "title": "Google AI Overviews: The Ultimate Guide to Ranking in 2025",
+        "domain": "www.singlegrain.com"
+      },
+      {
+        "url": "https://www.reddit.com/r/content_marketing/comments/1vki53e/your_page_ranks_top_5_but_isnt_cited_in_the_ai/",
+        "title": "Your page ranks top 5 but isn't cited in the AI Overview. ...",
+        "domain": "www.reddit.com"
+      },
+      {
+        "url": "https://www.vazoola.com/resources/ai-overview-link-building",
+        "title": "6 Ways to Rank in AI Overview Search Results",
+        "domain": "www.vazoola.com"
+      },
+      {
+        "url": "https://www.quora.com/How-do-I-rank-in-Google-s-AI-Overview-SEO-in-2025",
+        "title": "How do I rank in Google's AI Overview SEO in 2025?",
+        "domain": "www.quora.com"
+      },
+      {
+        "url": "https://floatingchip.com/rank-on-google-ai-overviews/",
+        "title": "How to Rank on Google AI Overviews Effectively",
+        "domain": "floatingchip.com"
+      }
+    ]
+  },
+  "domain": "reachkit.app",
+  "open": [
+    {
+      "id": "460f54a1-5947-4f16-9d59-954e8d8ec972",
+      "type": "refresh_page",
+      "ready": true,
+      "title": null,
+      "effort": 0.3,
+      "family": "improve",
+      "source": "best_x",
+      "status": "open",
+      "volume": null,
+      "scan_id": "2415236e-1f43-4a0b-bd25-62c4761467a8",
+      "site_id": "0bbcc532-e420-447c-9e81-f05ccbda27ff",
+      "evidence": {
+        "query": "best AI visibility tools for small businesses",
+        "family": "improve",
+        "volume": {
+          "at": "2026-10-06T00:55:58.307Z",
+          "kind": "unmeasured",
+          "reason": "not_attempted"
+        },
+        "pageUrl": "https://content.reachkit.app/best-answer-engine-optimization-services-for-ai-visibility",
+        "shortfall": {
+          "kind": "retarget"
+        }
+      },
+      "fit_band": "winnable",
+      "page_type": "market_comparison",
+      "acceptance": {
+        "form": "top20",
+        "query": "best AI visibility tools for small businesses"
+      },
+      "created_at": "2026-10-06T00:56:05.340418+00:00",
+      "rest_until": null,
+      "target_ref": "https://content.reachkit.app/best-answer-engine-optimization-services-for-ai-visibility",
+      "cluster_key": null,
+      "business_fit": 3,
+      "target_query": "best AI visibility tools for small businesses",
+      "proposed_slug": null,
+      "unready_reason": null,
+      "absorbed_queries": []
+    }
+  ]
+}

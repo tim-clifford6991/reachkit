@@ -43,6 +43,12 @@ export interface ShapeWords {
   format: string;
   /** A question about price inside a sentence. */
   asksPrice: string;
+  /** A result that sells a service by the engagement: an agency, a
+   *  consultancy, a list of either (issue 1506). */
+  agency: string;
+  /** A question about a word itself — its meaning, a synonym, how it is
+   *  said (issue 1506): another sense than a product's name. */
+  wordSense: string;
 }
 
 /** The tracked buyer prompts' wording (SPEC §6, D19), one language's. Each

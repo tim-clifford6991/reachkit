@@ -8,7 +8,7 @@
 // a person to read, never passed.
 //
 // Plain data only: no database, no network, and of the product only its
-// types, its pinned bounds and one pure rule, so the checks are tested on
+// types, its pinned bounds and its pure rules, so the checks are tested on
 // fixtures.
 import { KNOWLEDGE_BASE } from "@/lib/config/constants";
 import type { MarketConclusion } from "@/lib/market/infer/types";
@@ -16,6 +16,8 @@ import { isListingHost } from "@/lib/market/rivals/domains";
 import { malformedSearch, type Malformed } from "@/lib/market/questions/well-formed";
 import { prose } from "@/lib/measure/prose";
 import { isReadForFacts } from "@/lib/site-profile/knowledge/priority";
+import { brandOf } from "@/lib/market/questions/select";
+import { comparisonBrands, comparisonUnasked } from "@/lib/opportunities/derive/topics";
 
 export interface PanelSite {
   domain: string;
@@ -402,6 +404,49 @@ export function checkTopics(r: SiteResult): CheckResult {
   return { check, verdict: "review", detail: `${unknown.length} of ${open.length} open at fit 0 or 1, readiness not recorded`, items: [...unknown, ...result.items] };
 }
 
+/** Lower case with punctuation as spaces, accents folded: how a name is
+ *  found in a search here, apart from the product's own reading. */
+function plain(text: string): string {
+  return ` ${text.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim()} `;
+}
+
+/**
+ * Issue 1506: a "vs" that sets the business or one of its rivals against
+ * another product is ready only with measured demand — a volume above zero,
+ * or a tracked prompt that names one of its rivals. The product's own rule
+ * (`comparisonUnasked`) is applied to every open topic the pass left ready,
+ * since a stored run kept the readiness of its day; the check fails where a
+ * topic that names the business or a rival by its plain name, with no
+ * demand, would still be left ready — a comparison the rule did not read as
+ * one. What the rule holds back is listed.
+ */
+export function checkComparisonDemand(r: SiteResult): CheckResult {
+  const check = "a ready \"vs\" between products has measured demand";
+  const own = [r.siteName ?? "", brandOf(r.site.domain)].filter((name) => name.trim().length > 2);
+  const rivals = (r.market?.rivals ?? []).map((rival) => rival.name).filter((name) => name.trim().length > 2);
+  const brands = (() => {
+    const read = comparisonBrands({ report: null, market: r.market });
+    return { ...read, own: [...new Set([...read.own, ...own.map((name) => plain(name).trim())])] };
+  })();
+  const prompts = (r.prompts ?? []).map((prompt) => ({ text: prompt.text }));
+  const versus = /(^| )(vs|versus|im vergleich zu)( |$)/u;
+  const comparisons = r.topics.filter(
+    (topic) => topic.status === "open" && topic.ready !== false && versus.test(plain(topic.query)) && !((topic.volume ?? 0) > 0)
+  );
+  const held: string[] = [];
+  const missed: string[] = [];
+  for (const topic of comparisons) {
+    const text = plain(topic.query);
+    const named = rivals.filter((rival) => text.includes(plain(rival)));
+    if (!own.some((name) => text.includes(plain(name))) && named.length === 0) continue;
+    const asked = prompts.some((prompt) => named.some((rival) => plain(prompt.text).includes(plain(rival))));
+    if (comparisonUnasked({ query: topic.query, volume: topic.volume ?? 0, brands, prompts })) held.push(`${topic.query} — held back: no measured volume and no prompt names its rival`);
+    else if (!asked) missed.push(`${topic.query} — no measured volume and no prompt names its rival, and the rule leaves it ready`);
+  }
+  if (missed.length > 0) return { check, verdict: "fail", detail: `${missed.length} of ${comparisons.length} unmeasured comparisons left ready`, items: [...missed, ...held] };
+  return { check, verdict: "pass", detail: `${held.length} of ${comparisons.length} unmeasured comparisons held back`, items: held };
+}
+
 // ── 5. The knowledge base's questions ──────────────────────────────────────
 
 const ASKS_RE =
@@ -599,7 +644,7 @@ export function checkSpend(r: SiteResult): CheckResult {
 
 export function checkSite(r: SiteResult): CheckResult[] {
   const place = checkPlace(r);
-  return [checkCategory(r), checkSearchTerm(r), checkLocale(r), checkRivals(r), checkSearches(r), checkQuestions(r), checkAudience(r), checkTopics(r), checkSpend(r), checkPrompts(r), ...(place === null ? [] : [place])];
+  return [checkCategory(r), checkSearchTerm(r), checkLocale(r), checkRivals(r), checkSearches(r), checkQuestions(r), checkAudience(r), checkTopics(r), checkComparisonDemand(r), checkSpend(r), checkPrompts(r), ...(place === null ? [] : [place])];
 }
 
 /** A defect kind and the sites it affects, for the run's summary. */

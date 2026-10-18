@@ -656,15 +656,31 @@ export async function publishDue(a: {
 // withdrawn through `unpublish()`. A read that fails withdraws nothing and
 // stops nothing: the next tick reads again.
 
+//
+// Issue 1506: in the same tick, each live page the customer has not edited
+// is read against the topic rules — a "vs" needs measured demand, and a top
+// ten of another kind of business is not the business's market. One that
+// fails is retargeted to a ready topic in its cluster, kept and refreshed
+// where it already earns anything or its host is unmeasured, or withdrawn.
+// Each half reads and fails on its own.
+
 export async function recheckLivePages(now: Date): Promise<{ readonly withdrawn: number }> {
+  let withdrawn = 0;
   try {
     const { withdrawFailingPages } = await import("@/lib/generate/live-recheck");
     const outcome = await withdrawFailingPages({ now });
-    return { withdrawn: outcome.withdrawn.length };
+    withdrawn += outcome.withdrawn.length;
   } catch (error) {
     console.log(JSON.stringify({ event: "live_rival_recheck_failed", error: error instanceof Error ? error.message : "unknown" }));
-    return { withdrawn: 0 };
   }
+  try {
+    const { retireOffTopicPages } = await import("@/lib/opportunities/live-topics");
+    const outcome = await retireOffTopicPages({ now });
+    withdrawn += outcome.withdrawn.length + outcome.retargeted.length;
+  } catch (error) {
+    console.log(JSON.stringify({ event: "live_topic_recheck_failed", error: error instanceof Error ? error.message : "unknown" }));
+  }
+  return { withdrawn };
 }
 
 // ── A retargeted page's move, finished — SPEC §7, issue 1487.

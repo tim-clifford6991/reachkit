@@ -27,14 +27,17 @@ import {
   parseMarkdown,
   toHtml,
   withHeadingIds,
+  withoutLinksTo,
   type Block,
   type HeadingEntry,
 } from "@/lib/publish/render/markdown";
 import {
   hostedIdentity,
   livePagesForSite,
+  retiredSlugsForSite,
   type HostedPage,
 } from "@/lib/publish/destinations/hosted";
+import { slugOf } from "@/lib/publish/destinations/hosted/moved";
 import { topicSimilarity } from "@/lib/known-content/similarity";
 import { Surface } from "@/ui/layout";
 import { resolveHost } from "../../resolve-host";
@@ -51,6 +54,9 @@ export interface Resolved {
   /** The site's other live pages, newest first. */
   others: HostedPage[];
   business: HostedBusiness;
+  /** The slugs of this host that answer 410 (issue 1506): a link to one is
+   *  unwrapped. Absent reads as none. */
+  retired?: ReadonlySet<string>;
 }
 
 /** The business a resolved host belongs to, as its pages draw it. */
@@ -83,6 +89,7 @@ export const loadArticle = cache(async (host: string, slug: string): Promise<Res
     page,
     others: pages.filter((candidate) => candidate !== page),
     business: await businessOf(disposition),
+    retired: await retiredSlugsForSite(disposition.siteId),
     // Always the customer's own domain, and always the page's own address:
     // the store composed it from the host that resolved (`liveUrlOnHost`,
     // which `liveUrlFor` is itself written in terms of), so the canonical,
@@ -231,6 +238,19 @@ export function articleHead(resolved: Resolved): Metadata {
   return articleMetadata({ ...resolved, description: descriptionOf(resolved.page) });
 }
 
+/** Whether `href` is an address of the page's own host that answers 410. */
+function retiredHere(href: string, canonical: string, retired: ReadonlySet<string> | undefined): boolean {
+  if (retired === undefined || retired.size === 0) return false;
+  try {
+    const target = new URL(href, canonical);
+    if (target.host !== new URL(canonical).host) return false;
+    const slug = slugOf(target.href);
+    return slug !== null && retired.has(slug);
+  } catch {
+    return false;
+  }
+}
+
 export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.Element {
   const { page, canonical, others, business } = resolved;
   // The one Markdown renderer (`markdown.ts`), which escapes every text
@@ -245,7 +265,9 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
     page.faq,
     copy
   );
-  const levelled = headingsUnderTitle(asked.blocks);
+  // A link to a page of this host that was taken down is unwrapped, its
+  // words kept (issue 1506).
+  const levelled = withoutLinksTo(headingsUnderTitle(asked.blocks), (href) => retiredHere(href, canonical, resolved.retired));
   // What the page says about itself as data: always the posting and the
   // breadcrumb, and the questions only where the page draws them.
   const faq = faqSchema(asked.faq, canonical);

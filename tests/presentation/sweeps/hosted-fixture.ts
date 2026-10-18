@@ -94,6 +94,7 @@ export async function hostedModuleMock(
 ): Promise<Record<string, unknown>> {
   return {
     ...actual,
+    retiredSlugsForSite: async () => new Set<string>(),
     hostedSiteForDomain: async (domain: string) =>
       domain === HOSTED_SWEEP_DOMAIN
         ? {

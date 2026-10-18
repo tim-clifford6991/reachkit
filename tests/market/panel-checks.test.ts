@@ -5,8 +5,9 @@
 // business. Driven on two fixture results — a local plumber the pass read
 // well, and a German bakery it read as an American software company — so
 // nothing is bought.
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { checkSite, countPageQuestions, defectsByKind, isRealQuestion, saidOf, type CheckResult, type SiteResult } from "../../scripts/panel/checks";
+import { checkComparisonDemand, checkSite, countPageQuestions, defectsByKind, isRealQuestion, saidOf, type CheckResult, type SiteResult } from "../../scripts/panel/checks";
 
 const plumber: SiteResult = {
   site: { domain: "northside-plumbing.example", kind: "local service (plumber)", country: "US", language: "en", market: ["plumb"], why: "fixture" },
@@ -92,14 +93,14 @@ describe("npm run panel — a pass held to what the business is", () => {
 
     // The last is the tracked prompts: this fixture is a run stored before
     // their kind was recorded (D69), which a person reads.
-    expect(verdicts(checks)).toEqual(["pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "review"]);
+    expect(verdicts(checks)).toEqual(["pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "review"]);
   });
 
   it("fails a German bakery read as an American software company, and says what is wrong", () => {
     const checks = checkSite(bakery);
     const by = Object.fromEntries(checks.map((check) => [check.check, check]));
 
-    expect(verdicts(checks)).toEqual(["fail", "fail", "fail", "fail", "fail", "fail", "fail", "fail", "pass", "review"]);
+    expect(verdicts(checks)).toEqual(["fail", "fail", "fail", "fail", "fail", "fail", "fail", "fail", "pass", "pass", "review"]);
     expect(by["the category is specific, and is the business's own"]!.detail).toContain("names no market");
     expect(by["the terms are in the site's own language and country"]!.detail).toContain("a de site in Germany was read in United States / en");
     expect(by["3–5 rivals, none a listing, each with demand or seen by the pass"]!.items).toEqual([
@@ -302,5 +303,44 @@ describe("npm run panel — a pass held to what the business is", () => {
   it("knows a buyer's question from a heading, in English and German", () => {
     expect(["How long does a filling take?", "Wie lange dauert eine Lieferung", "Is parking available"].every(isRealQuestion)).toBe(true);
     expect(["Pricing", "Our services", "Häufige Fragen", "Why us?"].some(isRealQuestion)).toBe(false);
+  });
+});
+
+describe("issue 1506: a ready \"vs\" between products has measured demand, on every stored panel run", () => {
+  const panel: SiteResult["site"][] = JSON.parse(readFileSync("docs/walk/panel/sites.json", "utf8")).sites;
+  // Every stored run, the dated ones `--recheck --date` cannot reach
+  // included: the six kinds of business, in English and in German.
+  const runs = readdirSync("docs/walk/panel").filter((file) => /^2026-\d\d-\d\d(-\d+)?\.json$/.test(file));
+  const results = runs.flatMap((file) =>
+    (JSON.parse(readFileSync(`docs/walk/panel/${file}`, "utf8")).sites as (SiteResult & { site: { domain: string } })[]).flatMap((held) => {
+      const site = panel.find((entry) => entry.domain === held.site.domain);
+      return site === undefined ? [] : [{ file, result: { ...held, site } as SiteResult }];
+    })
+  );
+
+  it("covers the six kinds, and a German site", () => {
+    const kinds = new Set(results.flatMap(({ result }) => result.site.kinds ?? []));
+    expect([...kinds].sort()).toEqual(["creator", "hospitality", "local-service", "professional-services", "shop", "software"]);
+    expect(results.some(({ result }) => result.site.language === "de")).toBe(true);
+  });
+
+  it("each run passes, and the comparisons nobody was measured asking are held back for every kind that had one", () => {
+    const failed = results
+      .map(({ file, result }) => ({ file, domain: result.site.domain, check: checkComparisonDemand(result) }))
+      .filter(({ check }) => check.verdict !== "pass");
+    expect(failed).toEqual([]);
+    const heldIn = new Set(
+      results.filter(({ result }) => checkComparisonDemand(result).items.length > 0).flatMap(({ result }) => result.site.kinds ?? [])
+    );
+    expect([...heldIn].sort()).toEqual(["creator", "hospitality", "local-service", "professional-services", "shop", "software"]);
+  });
+
+  it("a comparison of the business with a rival, unmeasured, is held unless a tracked prompt names the rival", () => {
+    const topic = { query: "northside plumbing vs radiant plumbing", status: "open", type: "comparison_page", fit: 3, volume: null, ready: true };
+    expect(checkComparisonDemand({ ...plumber, topics: [topic], prompts: [] }).items).toEqual([
+      "northside plumbing vs radiant plumbing — held back: no measured volume and no prompt names its rival",
+    ]);
+    const prompt = { kind: "comparison", text: "Is Radiant Plumbing better than other plumbers in Austin?" };
+    expect(checkComparisonDemand({ ...plumber, topics: [topic], prompts: [prompt] })).toMatchObject({ verdict: "pass", items: [] });
   });
 });
