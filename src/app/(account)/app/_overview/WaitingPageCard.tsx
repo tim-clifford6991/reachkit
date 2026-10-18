@@ -20,6 +20,7 @@
 // under them below it; the title is clamped to one line in a box that holds
 // its own text (docs/DESIGN.md: a label that can grow is clamped).
 import type React from "react";
+import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { formatDateTime } from "../_shell/format";
@@ -99,10 +100,10 @@ export function WaitingPageCard(p: {
         </div>
 
         <div className="flex min-w-0 shrink-0 flex-wrap items-start gap-3">
-          <a className="btn btn-primary" href={page.href} data-testid="overview-waiting-read">
+          <Link className="btn btn-primary" href={page.href} prefetch={true} data-testid="overview-waiting-read">
             <BookOpen size={20} strokeWidth={1.75} aria-hidden />
             {copy(READ_ACTION)}
-          </a>
+          </Link>
           <StopThisPage draftId={page.draftId} />
         </div>
       </div>

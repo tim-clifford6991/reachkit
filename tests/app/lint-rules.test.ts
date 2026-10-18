@@ -146,3 +146,57 @@ describe("ADR-050 / BP-001 decision 2 — nothing outside src/lib/account/billin
     expect(result.messages).toEqual([]);
   }, ESLINT_BOOT_MS);
 });
+
+describe("SPEC §6 (issue 1443) — app and mail code read copy(), never copyIn()", () => {
+  it("reports an app screen importing the translated reader", async () => {
+    const result = await lint(
+      "import { copyIn } from '@/lib/presentation/copy/translated';\nexport const say = copyIn;\n",
+      "src/app/(account)/app/settings/uses-copy-in.ts"
+    );
+    expect(messages(result).some((m) => m.includes("issue 1443"))).toBe(true);
+  }, ESLINT_BOOT_MS);
+
+  it("reports mail code importing it, and leaves the customer's own pages alone", async () => {
+    const source = "import { copyIn } from '@/lib/presentation/copy/translated';\nexport const say = copyIn;\n";
+    const mail = await lint(source, "src/lib/mail/templates/weekly/uses-copy-in.ts");
+    expect(messages(mail).some((m) => m.includes("issue 1443"))).toBe(true);
+    const page = await lint(source, "src/lib/generate/pipeline/uses-copy-in.ts");
+    expect(messages(page).some((m) => m.includes("issue 1443"))).toBe(false);
+  }, ESLINT_BOOT_MS);
+});
+
+describe("SPEC §4 (2026-10-08, issue 1341) — a link to an app screen is next/link", () => {
+  const ISSUE = "issue 1341";
+
+  it("reports a plain <a> whose address is an /app literal or a const holding one", async () => {
+    const literal = await lint(
+      'export const A = () => <a href="/app/settings">x</a>;\n',
+      "src/app/(public)/plain-app-link.tsx"
+    );
+    expect(messages(literal).some((m) => m.includes(ISSUE))).toBe(true);
+    const constant = await lint(
+      'const PLAN = `/app/calendar`;\nexport const A = () => <a href={PLAN}>x</a>;\n',
+      "src/ui/plain-app-link.tsx"
+    );
+    expect(messages(constant).some((m) => m.includes(ISSUE))).toBe(true);
+  }, ESLINT_BOOT_MS);
+
+  it("reports an account screen's <a> whose address is a field named href", async () => {
+    const result = await lint(
+      "export const A = (p: { alert: { href: string } }) => <a href={p.alert.href}>x</a>;\n",
+      "src/app/(account)/app/_overview/plain-app-link.tsx"
+    );
+    expect(messages(result).some((m) => m.includes(ISSUE))).toBe(true);
+  }, ESLINT_BOOT_MS);
+
+  it("leaves next/link, an anchor, a source and a public href field alone", async () => {
+    const result = await lint(
+      "import Link from 'next/link';\n" +
+        "export const A = (p: { url: string; link: { href: string } }) => (\n" +
+        '  <>\n    <Link href="/app" prefetch={true}>x</Link>\n    <a href="#method">x</a>\n    <a href={p.url}>x</a>\n    <a href={p.link.href}>x</a>\n  </>\n' +
+        ");\n",
+      "src/app/(public)/scan/links.tsx"
+    );
+    expect(messages(result).some((m) => m.includes(ISSUE))).toBe(false);
+  }, ESLINT_BOOT_MS);
+});

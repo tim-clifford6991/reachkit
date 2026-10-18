@@ -106,11 +106,20 @@ export const currentCalendarSite = cache(
  * facts would be a calendar of empty dates.
  */
 export async function currentMonth(): Promise<MonthKey> {
+  return monthOf(await planToday());
+}
+
+/**
+ * The site-local today Plan is drawn for: the fixture's own day for the
+ * reserved fixture account, the clock in the site's zone for every other.
+ * It is the `today` `readMonth` assembles, so `loading.tsx` counts the
+ * week from the same day the screen that replaces it does (issue 1484).
+ * The account is the layout's, already read, so the wait asks nothing new.
+ */
+export async function planToday(): Promise<DayKey> {
   const site = await currentCalendarSite();
-  if (site === null) {
-    return monthOf(dayKeyOf(FIXTURE_CALENDAR_FACTS.now, FIXTURE_CALENDAR_FACTS.timeZone));
-  }
-  return monthOf(dayKeyOf(clock(), site.timeZone));
+  if (site === null) return dayKeyOf(FIXTURE_CALENDAR_FACTS.now, FIXTURE_CALENDAR_FACTS.timeZone);
+  return dayKeyOf(clock(), site.timeZone);
 }
 
 /** `YYYY-MM` or nothing. A query string is customer-supplied input and is

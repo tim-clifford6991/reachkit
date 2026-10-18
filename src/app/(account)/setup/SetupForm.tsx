@@ -71,6 +71,7 @@ import {
   QUESTION,
   QUESTION_HEAD,
   QUIET,
+  REGION,
   SETUP_ARMS,
   STEPS,
 } from "./frame";
@@ -408,7 +409,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         <main className={BODY} data-testid="setup-form" data-step={step}>
           {/* SPEC §5 (2026-09-20) and docs/DESIGN.md: a daisyUI `steps` with
               one-word labels, five equal columns at every width. */}
-          <ul className={STEPS} data-testid="setup-steps" data-current={step}>
+          <ul className={STEPS} data-testid="setup-steps" data-current={step} data-frame={REGION.steps}>
             {SETUP_STEPS.map((id, index) => {
               const done = index < at;
               const current = index === at;
@@ -442,7 +443,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               the step change rises in — the column is keyed on the step, so
               each step mounts fresh (as its own card always did) and takes
               `animate-rise` once. Reduced motion draws it in place. */}
-          <div className={COLUMNS}>
+          <div className={COLUMNS} data-frame={REGION.columns}>
             <div key={step} className={`${QUESTION} motion-safe:animate-rise`}>
               <div className={QUESTION_HEAD}>
                 <h1 className="text-xl font-semibold wrap-anywhere">{copy(STEP_QUESTION[step])}</h1>
@@ -564,7 +565,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
           every sense: the step's two controls and the standing line under
           them. The element changes; nothing it draws does. */}
       <footer className={BAR}>
-        <div className={BAR_INNER}>
+        <div className={BAR_INNER} data-frame={REGION.bar}>
           <div className={BAR_ACTIONS}>
             <button
               type="button"

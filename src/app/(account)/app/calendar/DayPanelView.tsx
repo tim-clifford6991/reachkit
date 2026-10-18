@@ -34,6 +34,7 @@
 "use client";
 
 import type React from "react";
+import Link from "next/link";
 import { useOptimistic, useState, useTransition } from "react";
 import { X } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -179,16 +180,31 @@ function DayActions(p: {
     <div className="grid grid-cols-2 gap-2" data-testid="day-actions">
       {actions.map((action) => {
         if (action.kind === "link") {
-          const leavesTheProduct = action.key === "calendar.action.view-live-page";
+          // The live page leaves the product, so it is a plain link; the
+          // draft and Settings are screens of the app (SPEC §4, issue 1341).
+          if (action.key === "calendar.action.view-live-page") {
+            return (
+              // eslint-disable-next-line local/no-plain-app-link -- the customer's live page, not a screen of the app
+              <a
+                key={action.key}
+                href={action.href}
+                className="btn btn-sm col-span-2 btn-soft btn-primary"
+                data-testid={`day-action-${action.key}`}
+              >
+                {copy(action.key)}
+              </a>
+            );
+          }
           return (
-            <a
+            <Link
               key={action.key}
               href={action.href}
-              className={`btn btn-sm col-span-2 ${leavesTheProduct ? "btn-soft btn-primary" : "btn-primary"}`}
+              prefetch={true}
+              className="btn btn-sm col-span-2 btn-primary"
               data-testid={`day-action-${action.key}`}
             >
               {copy(action.key)}
-            </a>
+            </Link>
           );
         }
         const stop = action.command === "veto" || action.command === "skip";
@@ -271,7 +287,12 @@ function Panel(p: {
       // the same answer a `textarea` and an `overflow-x-auto` table give,
       // and the proof measures that neither the fixture's longest day nor
       // the owner's stress case reaches it.
-      className={`card card-border bg-base-100 fixed inset-x-2 bottom-[calc(80px+env(safe-area-inset-bottom,0px))] z-30 max-h-[calc(100dvh-104px)] min-w-0 overflow-y-auto shadow-2xl lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:shadow-none xl:sticky xl:top-6 ${
+      //
+      // The sheet's insets end at `lg`: a sticky box obeys `left`, `right`
+      // and `bottom` too, and the sheet's `0.5rem` sides pulled the card 8px
+      // off its column into the gap from `xl` (issue 1484). `xl:top-6` is
+      // the one inset the sticky card keeps.
+      className={`card card-border bg-base-100 fixed inset-x-2 bottom-[calc(80px+env(safe-area-inset-bottom,0px))] z-30 max-h-[calc(100dvh-104px)] min-w-0 overflow-y-auto shadow-2xl lg:static lg:inset-auto lg:z-auto lg:max-h-none lg:overflow-visible lg:shadow-none xl:sticky xl:top-6 ${
         p.hiddenOnPhone ? "hidden lg:flex" : ""
       }`}
       data-testid="day-panel"

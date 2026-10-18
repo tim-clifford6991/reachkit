@@ -45,6 +45,7 @@ import {
 } from "./checks";
 import { getAccountCookie, getBaseURL, getSetupAccountCookie, withPage } from "./browser";
 import {
+  APP_SHELL_MD_LG_WIDTH,
   axeOffenders,
   checkChartsResponsive,
   checkFixedBoxesFitViewport,
@@ -59,6 +60,7 @@ import {
   NO_OVERFLOW_THEMES,
   NO_OVERFLOW_WIDTHS,
   noOverflowRoutes,
+  noOverflowWidthsFor,
   RECHARTS_CLASS,
   settleForMeasurement,
 } from "./no-overflow";
@@ -73,7 +75,7 @@ const routes = noOverflowRoutes(APP_ROOT, {
 
 console.log(
   `tests/ui/layout/no-overflow.test.ts: ${routes.length} route(s) × ` +
-    `${NO_OVERFLOW_WIDTHS.length} width(s) × ${NO_OVERFLOW_THEMES.length} theme(s)`,
+    `${NO_OVERFLOW_WIDTHS.length} width(s) (and /app at ${APP_SHELL_MD_LG_WIDTH}px) × ${NO_OVERFLOW_THEMES.length} theme(s)`,
 );
 
 /** One browser launch, two navigations, two axe runs and three checks on
@@ -174,7 +176,7 @@ async function reportOn(
  *  the last one. */
 const stillThere = new Set<number>();
 
-describe(`no overflow, no clipping, axe clean — ${routes.length} route(s) × ${NO_OVERFLOW_WIDTHS.length} width(s) × ${NO_OVERFLOW_THEMES.length} theme(s)`, () => {
+describe(`no overflow, no clipping, axe clean — ${routes.length} route(s) × ${NO_OVERFLOW_WIDTHS.length} width(s) (and /app at ${APP_SHELL_MD_LG_WIDTH}px) × ${NO_OVERFLOW_THEMES.length} theme(s)`, () => {
   it("states what it swept, explicitly, and sweeps the tree rather than a list of its own (rule 5.5)", () => {
     // The premise, as an assertion: this gate is in scope for a screen added
     // later because it asks `routes.ts`, exactly as the two sweeps beside it
@@ -210,7 +212,9 @@ describe(`no overflow, no clipping, axe clean — ${routes.length} route(s) × $
   );
 
   for (const route of routes) {
-    for (const width of NO_OVERFLOW_WIDTHS) {
+    // An `/app` screen is swept once more between `md` and `lg`, where it
+    // wears the phone shell (issue 1484, `noOverflowWidthsFor`).
+    for (const width of noOverflowWidthsFor(route.path)) {
       it(
         `${route.path} @ ${width}px, light and dark`,
         async () => {
