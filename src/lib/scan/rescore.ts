@@ -347,7 +347,16 @@ export function rescoreScan(scan: RescoreScan): Rescored {
     ...(presence === undefined ? {} : { presence }),
   });
 
-  let after: RescoredMembers = { ...membersOf(r), verdict, ...cardsAfter(r, scan, kept) };
+  // The profile as this re-score completes it (issue 1470), and the town
+  // that profile still sells in (issue 1480): a free scan's town its
+  // profile reads as no market of its own is dropped, and its rivals are
+  // read as a national market's, from the same stored searches.
+  const profile = clearedProfileOf(r);
+  const reading = readingOf(r, profile, scan.market ?? null);
+  const read = withReading(r, profile, reading);
+  const placed: RescoreReport = read.locale?.place !== undefined && !reachOfReport(read).measuredInTown ? { ...read, locale: withoutPlace(read.locale) } : read;
+
+  let after: RescoredMembers = { ...membersOf(r), verdict, ...cardsAfter(placed, scan, kept) };
 
   // A home read that was a protection's page is no reading of the site
   // (issue 1383): the report says what a new scan of it would say.
@@ -361,9 +370,7 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   }
 
   const before = membersOf(r);
-  const profile = clearedProfileOf(r);
-  const reading = readingOf(r, profile, scan.market ?? null);
-  const changes = [...changesOf(before, after), ...profileChanges(r, profile, reading)];
+  const changes = [...changesOf(before, after), ...profileChanges(r, profile, reading), ...(placed.locale === r.locale ? [] : [{ path: ["locale"], value: placed.locale }])];
   // A new date is a change though `same` reads past dates: the whole
   // verdict is written again, every member of it carrying that date.
   if (at.getTime() !== new Date(r.verdict.measuredAt).getTime() && !changes.some((c) => c.path.length === 1 && c.path[0] === "verdict")) {
@@ -401,11 +408,26 @@ function readingOf(r: RescoreReport, profile: Record<string, unknown> | null, ma
   for (const serp of r.serps) if (serp.kind !== "unmeasured") serps.push(serp.value);
   return retrofitReading({
     profile,
-    measuredInTown: r.locale?.place !== undefined,
+    measuredInTown: reachOfReport(r).measuredInTown,
     schemaTypes: r.onPage.kind === "unmeasured" ? [] : r.onPage.value.schemaTypes,
     serps,
     market,
   });
+}
+
+/** The report with its cleared profile completed by `reading`. */
+function withReading(r: RescoreReport, profile: Record<string, unknown> | null, reading: Retrofit): RescoreReport {
+  if (r.market.kind === "unmeasured" || profile === null) return r;
+  if (profile === r.market.value.profile && Object.keys(reading).length === 0) return r;
+  return { ...r, market: { ...r.market, value: { ...r.market.value, profile: { ...profile, ...reading } as typeof r.market.value.profile } } };
+}
+
+/** A stored locale measured in its country, with no town. */
+function withoutPlace(locale: NonNullable<RescoreReport["locale"]>): NonNullable<RescoreReport["locale"]> {
+  const country = { ...locale };
+  delete country.place;
+  delete country.placeFrom;
+  return country;
 }
 
 /** The profile's new members, each written at its own path; a profile that

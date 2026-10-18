@@ -99,3 +99,39 @@ describe("reading a site's country and language", () => {
     expect(localeOf("CH", "de")).toEqual({ country: "CH", language: "de" });
   });
 });
+
+describe("issue 1480 — a site's country follows its domain and language before an office it mentions", () => {
+  const offices = (countries: string[]): string =>
+    `<script type="application/ld+json">{"@type":"Organization","location":[${countries
+      .map((c) => `{"@type":"Place","address":{"@type":"PostalAddress","addressCountry":"${c}"}}`)
+      .join(",")}]}</script>`;
+
+  it("stripe.com: offices in many countries, Singapore first, say nothing; its own page says the United States", () => {
+    const html = page({ lang: "en-US", head: offices(["SG", "US", "GB", "AU", "DE", "JP"]), body: `${ENGLISH}<footer><p>United States</p></footer>` });
+    expect(readLocale({ domain: "stripe.com", html })).toEqual({ locale: { country: "US", language: "en" }, fellBack: null });
+  });
+
+  it("an English page whose one office is in a country written in another language is read by its language", () => {
+    expect(readLocale({ domain: "monday.com", html: page({ lang: "en", head: offices(["IL"]), body: ENGLISH }) })).toEqual({ locale: { country: "US", language: "en" }, fellBack: null });
+    expect(readLocale({ domain: "typeform.com", html: page({ lang: "en", head: offices(["ES"]), body: ENGLISH }) }).locale.country).toBe("US");
+  });
+
+  it("an office in the page's own language still names the country, in English and in German", () => {
+    expect(readLocale({ domain: "smilestudio.com", html: page({ lang: "en", head: offices(["AU"]), body: ENGLISH }) }).locale.country).toBe("AU");
+    expect(readLocale({ domain: "praxis-beispiel.com", html: page({ lang: "de", head: offices(["CH"]), body: GERMAN }) }).locale).toEqual({ country: "CH", language: "de" });
+    expect(readLocale({ domain: "kiwi-plumbing.com", html: page({ lang: "en", head: offices(["NZ"]), body: ENGLISH }) }).fellBack).toEqual({ country: "NZ", language: null });
+  });
+
+  it("nifty.pm and the other endings sold as names name no country; a country's own ending names it", () => {
+    for (const domain of ["nifty.pm", "linear.io", "perplexity.ai", "angel.co", "about.me", "twitch.tv", "example.gl", "example.md"]) {
+      expect(readLocaleSignals({ domain, html: null }).country).toBeNull();
+    }
+    expect(readLocale({ domain: "nifty.pm", html: page({ lang: "en", body: ENGLISH }) }).locale).toEqual({ country: "US", language: "en" });
+    expect(readLocaleSignals({ domain: "example.fr", html: null }).country).toBe("FR");
+    expect(readLocaleSignals({ domain: "example.co.nz", html: null }).country).toBe("NZ");
+    expect(readLocaleSignals({ domain: "example.uk", html: null }).country).toBe("GB");
+    // Endings that are no ISO country's.
+    expect(readLocaleSignals({ domain: "example.ac", html: null }).country).toBeNull();
+    expect(readLocaleSignals({ domain: "example.su", html: null }).country).toBeNull();
+  });
+});

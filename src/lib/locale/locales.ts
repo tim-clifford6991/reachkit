@@ -131,8 +131,17 @@ const NEAREST_ENGLISH: Readonly<Record<string, Country>> = Object.freeze({
  *  and nothing says its country. */
 const LANGUAGE_HOME: Readonly<Record<string, string>> = Object.freeze({
   de: "DE", fr: "FR", es: "ES", it: "IT", nl: "NL", pt: "PT", sv: "SE", da: "DK", nb: "NO", no: "NO", fi: "FI",
-  pl: "PL", cs: "CZ", el: "GR", hu: "HU", ro: "RO", tr: "TR", ja: "JP", ko: "KR", zh: "CN", hi: "IN", id: "ID",
+  pl: "PL", cs: "CZ", el: "GR", hu: "HU", ro: "RO", tr: "TR", ja: "JP", ko: "KR", zh: "CN", hi: "IN", id: "ID", he: "IL",
 });
+
+/** The language a country's own sites are written in, where that is known:
+ *  a supported country's row, else the language whose home it is. India
+ *  writes in English as much as in Hindi, so it is not read either way. */
+export function homeLanguageOf(country: string): string | null {
+  if (isCountry(country)) return COUNTRIES[country].language;
+  if (country === "IN") return null;
+  return Object.entries(LANGUAGE_HOME).find(([, home]) => home === country)?.[0] ?? null;
+}
 
 /** What a home page says of itself, before it is held to the list: any
  *  ISO country and any language, or `null` where nothing said. */

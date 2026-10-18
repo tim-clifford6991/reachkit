@@ -114,6 +114,9 @@ const EVERY_STAGE = [
   "scoring:done",
 ];
 
+/** A home page that gives its town: an address in Leeds. */
+const LEEDS_HOME: DomainMeasurement["text"] = { home: "Onboarding for product teams.\n12 Park Row, Leeds LS1 5HD", pricing: null };
+
 function measurement(over: Partial<DomainMeasurement> = {}): DomainMeasurement {
   return {
     drivers: {
@@ -305,7 +308,7 @@ describe("the six stages", () => {
     });
 
     it("issue 1441 — with no town in the structured data, the town the profile read off the page, once the list holds it", async () => {
-      measureDomain.mockResolvedValue(measurement({ locale: GB }));
+      measureDomain.mockResolvedValue(measurement({ locale: GB, text: LEEDS_HOME }));
       deriveProfile.mockResolvedValue(measured({ ...PROFILE, town: "Leeds, West Yorkshire" }, AT));
       placeLocation.mockResolvedValue({ location: LEEDS });
       await runScan({ domain: DOMAIN, tier: "free" });
@@ -321,7 +324,7 @@ describe("the six stages", () => {
 
     it("issues 1441 and 1450 — where the suggestions did not answer, the searches chosen from the ranked pool are asked of the town", async () => {
       const rows = KEYWORDS.slice(0, 6).map((keyword, i) => ({ keyword, position: 15 + i, searchVolume: 250, url: `https://${DOMAIN}/` }));
-      measureDomain.mockResolvedValue(measurement({ locale: GB, ownRanked: measured(rows.length, AT), ownRankedRows: rows }));
+      measureDomain.mockResolvedValue(measurement({ locale: GB, text: LEEDS_HOME, ownRanked: measured(rows.length, AT), ownRankedRows: rows }));
       deriveProfile.mockResolvedValue(measured({ ...PROFILE, town: "Leeds" }, AT));
       deriveMarketSet.mockResolvedValue(unmeasured("undeterminable", AT));
       placeLocation.mockResolvedValue({ location: LEEDS });
@@ -333,6 +336,22 @@ describe("the six stages", () => {
       expect(report.locale).toEqual({ ...GB, place: { name: "Leeds", location: LEEDS }, placeFrom: "page_text" });
       if (report.market.kind === "unmeasured") throw new Error("no market was read");
       expect(report.market.value.suggestionsUnread).toBe("undeterminable");
+    });
+
+    it("issue 1480 — a town the profile names that the page does not say it serves is dropped, by the paid path's rule", async () => {
+      measureDomain.mockResolvedValue(measurement({ locale: GB }));
+      deriveProfile.mockResolvedValue(measured({ ...PROFILE, town: "Leeds, West Yorkshire" }, AT));
+      placeLocation.mockResolvedValue({ location: LEEDS });
+      await runScan({ domain: DOMAIN, tier: "free" });
+      expect(storedReport().locale).toEqual(GB);
+    });
+
+    it("issue 1480 — software whose footer gives its town is measured across its country", async () => {
+      measureDomain.mockResolvedValue(measurement({ locale: GB, text: LEEDS_HOME }));
+      deriveProfile.mockResolvedValue(measured({ ...PROFILE, town: "Leeds, West Yorkshire", kind: "software" }, AT));
+      placeLocation.mockResolvedValue({ location: LEEDS });
+      await runScan({ domain: DOMAIN, tier: "free" });
+      expect(storedReport().locale).toEqual(GB);
     });
 
     it("issue 1441 — a town the profile names that the list does not hold in the country is dropped", async () => {

@@ -7,6 +7,10 @@
 // or forms company is shown a map on some of its searches too.
 //
 // Pure: no I/O, no clock. It reads what a pass, or a stored report, holds.
+import type { Place } from "@/lib/locale/locales";
+import type { PlaceSignals } from "@/lib/locale/place";
+import { servingEvidence, type ServingPage } from "@/lib/locale/serving";
+import { BUSINESS_KINDS, isBusinessKind } from "../kinds";
 import type { MarketSerp } from "../views";
 
 /** What the free pass's profile read says of the business, as far as reach
@@ -16,6 +20,62 @@ export interface ReachProfile {
   town?: string;
   offeringType?: string;
   category?: string;
+  /** How far it sells and what kind of business it is, where the profile
+   *  read them (issue 1454). */
+  reach?: unknown;
+  kind?: unknown;
+}
+
+/**
+ * The town a profile read, where it is the business's market (issue 1480):
+ * none for a business the profile reads as selling across a country or
+ * beyond, or as software or teaching, which are bought from anywhere.
+ * close.com, a CRM, read "Austin, Texas" off its footer and was stored as
+ * local to Austin. `undefined` on a profile read before the town was asked.
+ */
+export function profileTown(profile: ReachProfile): string | undefined {
+  if (profile.town === undefined) return undefined;
+  const town = profile.town.trim();
+  if (profile.reach !== undefined && profile.reach !== "local") return "";
+  if (isBusinessKind(profile.kind) && !BUSINESS_KINDS[profile.kind].placed) return "";
+  return town;
+}
+
+function inPersonType(type: string | undefined): boolean {
+  return type !== undefined && IN_PERSON_TYPE.test(type.toLowerCase());
+}
+
+/**
+ * Whether a free pass measures in `place` (issue 1480): by the rule a paid
+ * pass holds its place to (`servingEvidence`, issue 1370), so the two read
+ * one place for one site. A business the profile reads as selling beyond
+ * one town, or as software, has none. Otherwise the site has to say it
+ * serves the place: an area it lists as served, a page or a sentence that
+ * says the service with the place, or a kind carried out in person and the
+ * place named at all. An address in a footer is where a business is, not
+ * whom it serves. A profile that read no kind keeps the town it named.
+ */
+export function townHolds(a: {
+  place: Place;
+  profile: ReachProfile & { offerings?: readonly { category: string }[] };
+  stated?: PlaceSignals;
+  /** The home page as the free pass read it. */
+  home: ServingPage | null;
+}): boolean {
+  const { profile } = a;
+  if (profileTown({ ...profile, town: a.place.name }) === "") return false;
+  const service = [profile.category ?? "", ...(profile.offerings ?? []).map((o) => o.category)].filter((name) => name.trim() !== "");
+  const inPerson = !isBusinessKind(profile.kind) || BUSINESS_KINDS[profile.kind].inPerson || inPersonType(a.stated?.type);
+  return (
+    servingEvidence({
+      place: a.place,
+      ...(a.stated === undefined ? {} : { stated: a.stated }),
+      pages: a.home === null ? [] : [a.home],
+      service,
+      localPack: false,
+      inPerson,
+    }) !== null
+  );
 }
 
 /** schema.org's types for a business carried out in person, where it is,
@@ -45,8 +105,9 @@ const IN_PERSON_OFFERING = new RegExp(
 /**
  * Whether the market is local (owner, 2026-10-16, issue 1468). In order:
  *
- * 1. A pass measured in a town, a profile that read a town, or structured
- *    data of a business carried out in person: local.
+ * 1. A pass measured in a town, a profile that read a town it sells in
+ *    (`profileTown`), or structured data of a business carried out in
+ *    person: local.
  * 2. A profile that read no town: national, whatever the map shows.
  * 3. A report stored before the profile asked for a town: local only where
  *    the profile reads the business as one carried out or sold in person,
@@ -63,9 +124,9 @@ export function readsLocal(a: {
   serps: readonly MarketSerp[];
 }): boolean {
   if (a.measuredInTown) return true;
-  const town = a.profile?.town;
-  if (town !== undefined && town.trim() !== "") return true;
-  if (a.schemaTypes.some((type) => IN_PERSON_TYPE.test(type.toLowerCase()))) return true;
+  const town = a.profile === null ? undefined : profileTown(a.profile);
+  if (town !== undefined && town !== "") return true;
+  if (a.schemaTypes.some((type) => inPersonType(type))) return true;
   if (a.profile === null || town !== undefined) return false;
   const offering = `${a.profile.offeringType ?? ""} ${a.profile.category ?? ""}`;
   if (ONLINE_OFFERING.test(offering) || !IN_PERSON_OFFERING.test(offering)) return false;

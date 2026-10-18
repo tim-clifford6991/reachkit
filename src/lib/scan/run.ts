@@ -87,6 +87,7 @@ import { marketSeeds, measuredMarketOf, unjudged } from "@/lib/market/questions/
 import { serpDomainsToSize } from "@/lib/market/rivals/candidates";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
 import type { PresenceCard } from "@/lib/market/rivals/presence";
+import { townHolds } from "@/lib/market/rivals/reach";
 import { sizeRivals, type RivalSize } from "@/lib/market/rivals/size";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
@@ -1336,15 +1337,14 @@ function inPlace(sections: Sections, placed: PassPlace): void {
   sections.placeFrom = placed.from;
 }
 
-/** The pass measures in its country again (issue 1454): the town `inPlace`
- *  set is not this business's market. */
+/** The pass measures in its country again (issues 1454, 1480): the town
+ *  `inPlace` set is not this business's market. */
 function outOfPlace(sections: Sections): void {
   if (sections.measurement === null) return;
   const locale: Locale = { ...sections.measurement.locale };
   delete locale.place;
   sections.measurement = { ...sections.measurement, locale };
   sections.placeFrom = null;
-  console.log(JSON.stringify({ event: "free_place_dropped", because: "reach" }));
 }
 
 /** How long a free pass waits for the search vendor's list of cities: it
@@ -1399,6 +1399,19 @@ async function statedPlaceOfPass(m: DomainMeasurement): Promise<PassPlace | null
     }
   }
   return null;
+}
+
+/** Whether a free pass measures in `place` (issue 1480): `townHolds` over
+ *  the profile and the home page the pass read, the paid path's rule. */
+function holdsTown(place: Place, profile: Profile, m: DomainMeasurement, domain: string): boolean {
+  const held = townHolds({
+    place,
+    profile,
+    ...(m.stated === undefined ? {} : { stated: m.stated }),
+    home: m.text.home === null ? null : { url: `https://${domain}/`, title: "", text: m.text.home },
+  });
+  if (!held) console.log(JSON.stringify({ event: "free_place_dropped", because: "not_served" }));
+  return held;
 }
 
 /** The town the profile call read off the home page's own words (rule 4 of
@@ -2104,12 +2117,14 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   // report keeps the profile as read.
   const selecting = a.siteId !== undefined && a.concludesMarket === true ? await withFounderEdits(a.siteId, profile.value) : profile.value;
   if (abandoned()) return;
-  // Issue 1454: a town is the market of a business that sells locally. One
-  // the profile reads as selling across its country or beyond is measured
-  // there, whatever address its home page states (hubspot.com states
-  // Cambridge, MA, and was asked one search of it). Nothing has been bought
-  // in the town yet: the place is first read by the seeds below.
-  if (a.concludesMarket !== true && sections.placeFrom !== null && selecting.reach !== undefined && selecting.reach !== "local") {
+  // Issues 1454 and 1480: a town is the market of a business that sells
+  // there, by the rule a paid pass holds its place to. One the profile
+  // reads as selling across its country or beyond, or as software, is
+  // measured there, whatever address its home page states (hubspot.com
+  // states Cambridge, MA, and was asked one search of it). Nothing has been
+  // bought in the town yet: the place is first read by the seeds below.
+  const placedIn = sections.measurement?.locale.place;
+  if (a.concludesMarket !== true && sections.placeFrom !== null && placedIn !== undefined && !holdsTown(placedIn, selecting, measurement, a.domain)) {
     outOfPlace(sections);
   }
 
@@ -2161,7 +2176,7 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   if (a.parameters.measuresStatedPlace && a.concludesMarket !== true && sections.measurement !== null && localeOfPass(a).place === undefined) {
     const fromPage = await townFromPage(selecting.town, sections.measurement);
     if (abandoned()) return;
-    if (fromPage !== null) inPlace(sections, fromPage);
+    if (fromPage !== null && holdsTown(fromPage.place, selecting, measurement, a.domain)) inPlace(sections, fromPage);
   }
 
   // SPEC §6 thin markets (#778): the first seed is the one every pass buys.

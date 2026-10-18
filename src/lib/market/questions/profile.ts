@@ -29,6 +29,7 @@ import { isPlaceholder, withoutPlaceholders } from "@/lib/measure/placeholder";
 import { PROFILE_INPUT_MAX_CHARS, PROFILE_LIST_BOUNDS } from "@/lib/config/constants";
 import { llm } from "@/lib/llm";
 import { BUSINESS_KIND_NAMES, isBusinessKind } from "@/lib/market/kinds";
+import { profileTown } from "@/lib/market/rivals/reach";
 import { REACHES, type Offering, type Profile, type Reach } from "./profile-types";
 
 export { REACHES, type Offering, type Profile, type Reach };
@@ -155,7 +156,7 @@ export const PROFILE_FIELDS: Readonly<Record<Exclude<keyof Profile, "language">,
   vocabulary: listOf(PROFILE_LIST_BOUNDS.vocabulary, "the words and phrases a buyer uses for this kind of product"),
   brandTokens: listOf(PROFILE_LIST_BOUNDS.brandTokens, "the business's own brand and product names"),
   town:
-    "one string: the one town or city whose customers the business serves in person, as the pages say it (an address in the footer or contact block, \"based in\", \"serving\"), with its state or region after a comma where the pages give one; \"\" where the pages name none or the business sells across a country or online",
+    "one string: the one town or city whose customers the business serves in person, as the pages say it (\"serving\", the service with the town, a venue's or trade's address), with its state or region after a comma where the pages give one; \"\" where the pages name none, or it sells across a country or online, or the town is only an office address",
   offerings:
     `at most ${PROFILE_LIST_BOUNDS.offerings.max} objects { name, category, weight }, one for each distinct line the business sells, the biggest first: ` +
     "`name` as the site calls it, `category` that line in the words a buyer types into Google (the first one's is `category`), " +
@@ -282,9 +283,9 @@ export function deriveProfile(
  *   category is what the first seed is bought on, so the first offering
  *   is always that line.
  * - A kind or a reach the model could not place is absent.
- * - A town is kept only for a business that sells locally: a national or
- *   international business is measured across its country, whatever
- *   address its footer carries.
+ * - A town is kept only for a business that sells locally (`profileTown`,
+ *   issue 1480): a national or international business, and software, are
+ *   measured across their country, whatever address the footer carries.
  */
 export function normaliseProfile(answer: ProfileAnswer): Profile {
   const { offerings: answered, kind, reach, ...rest } = answer;
@@ -297,7 +298,7 @@ export function normaliseProfile(answer: ProfileAnswer): Profile {
     ...(offerings.length === 0 ? {} : { offerings }),
     ...(isBusinessKind(kind) ? { kind } : {}),
     ...(reachOf === undefined ? {} : { reach: reachOf }),
-    ...(rest.town !== undefined && reachOf !== undefined && reachOf !== "local" ? { town: "" } : {}),
+    ...(rest.town === undefined ? {} : { town: profileTown({ town: rest.town, reach: reachOf, kind }) ?? "" }),
   });
 }
 

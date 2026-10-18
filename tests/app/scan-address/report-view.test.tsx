@@ -84,12 +84,12 @@ describe("SPEC §6, D66 (issue 1311) — the report says where it was measured",
     expect(html).not.toContain("report.locale.fell-back");
   });
 
-  it("D67, issue 1441 — a report measured in the town its site serves names the town", () => {
+  it("D67, issues 1441 and 1480 — a report measured in the town its site serves names the town, and says its volumes are the country's", () => {
     const html = render({ ...FIXTURE_REPORT, locale: { country: "GB", language: "en", place: { name: "Leeds", location: "Leeds,West Yorkshire,England,United Kingdom" } } });
-    expect(html).toContain("report.measurement.place(Leeds|English)");
+    expect(html).toContain("report.measurement.place(Leeds|English|United Kingdom)");
     expect(html).not.toContain("report.measurement.in");
     const us = render({ ...FIXTURE_REPORT, locale: { country: "US", language: "en", place: { name: "Austin", region: "TX" } } });
-    expect(us).toContain("report.measurement.place(Austin|English)");
+    expect(us).toContain("report.measurement.place(Austin|English|United States)");
   });
 
   it("a site in a country and language that are not measured is told so in one line", () => {
