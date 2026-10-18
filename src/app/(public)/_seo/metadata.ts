@@ -34,19 +34,27 @@
 // `next.config.ts` still carries the `X-Robots-Tag` half for those two
 // paths — neither half is enough alone (ADR-002, REQ-001 c8).
 //
-// **The share image is not named here.** `opengraph-image.tsx` beside the
-// public group, and the report's own beside its page, are Next's
-// file-based metadata: it has higher priority than this object and is
-// resolved against `metadataBase`, so naming an image here would be a
-// second declaration that the file convention would then override. The
-// Twitter card carries no image either, for a different reason — Next
-// fills `twitter.images` from the resolved Open Graph images when a
-// `twitter` block declares none (`resolve-metadata.js`), so the one file
-// serves both cards.
+// **The share image is named here** (issue 1512). Next merges metadata
+// shallowly: an `openGraph` object a page declares replaces the one a
+// parent segment resolved, file-based image included, so the group's
+// `opengraph-image.tsx` reached `/` alone and every other route shipped an
+// Open Graph block with no image. Each route therefore names the group's
+// card at its fixed address (`/share-card`, the same drawing). A segment
+// with a file-based image of its own — `/`, and the report beside its page
+// — still wins, because the file convention takes priority over this
+// object. The Twitter card names no image: Next fills `twitter.images`
+// from the resolved Open Graph ones when a `twitter` block declares none
+// (`resolve-metadata.js`), so one image serves both cards.
+//
+// **The brand is said once.** An article whose own title already names
+// ReachKit ("ReachKit vs Ahrefs") is not given the `· ReachKit` suffix
+// again (issue 1512).
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { PUBLIC_ORIGIN, canonicalUrl } from "../_chrome/canonical";
 import type { PublicRouteSeo } from "./routes";
+import { OG_CONTENT_TYPE, OG_SIZE } from "./og-card";
+import { SHARE_CARD_PATH } from "./structured";
 
 /** The base every relative metadata URL — the generated share images
  *  included — is resolved against. Absent where no origin is bound, which
@@ -74,7 +82,9 @@ export function publicMetadata(a: {
   path: string;
   vars?: Record<string, string>;
 }): Metadata {
-  const title = copy(a.seo.title, a.vars);
+  const own = a.vars?.title;
+  const title =
+    own !== undefined && own.includes(copy("chrome.wordmark")) ? own : copy(a.seo.title, a.vars);
   const description = copy(a.seo.description, a.vars);
   // A route *pattern* is not an address, so it gets no canonical: the two
   // token routes and the report's malformed arm pass their row's `{param}`
@@ -94,6 +104,7 @@ export function publicMetadata(a: {
       title,
       description,
       ...(canonical === null ? {} : { url: canonical }),
+      images: [{ url: SHARE_CARD_PATH, ...OG_SIZE, type: OG_CONTENT_TYPE, alt: copy("meta.og.alt") }],
     },
     // One card type across the product: every public route has a share
     // image (the group's, or the report's own), and `summary` would crop

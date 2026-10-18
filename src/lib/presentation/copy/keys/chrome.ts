@@ -326,6 +326,10 @@ export const CHROME_COPY = Object.freeze({
   "chrome.nav.compare": ["Compare", { slots: {}, fixedBy: "issue 1458 · drafted" }],
   "chrome.nav.tools": ["Free tools", { slots: {}, fixedBy: "issue 1458 · drafted" }],
   "chrome.nav.teardowns": ["Teardowns", { slots: {}, fixedBy: "issue 1458 · drafted" }],
+  // Issue 1512: ReachKit's own published articles, on its content host, linked from the footer and the landing.
+  "chrome.nav.articles": ["Articles", { slots: {}, fixedBy: "issue 1512 · drafted" }],
+  "landing.articles.heading": ["Latest articles", { slots: {}, fixedBy: "issue 1512 · drafted" }],
+  "landing.articles.all": ["All articles", { slots: {}, fixedBy: "issue 1512 · drafted" }],
   "library.sources": ["Sources", { slots: {}, fixedBy: "issue 1458 · drafted" }],
   "library.checked": ["Facts checked on {date}.", { slots: { date: "text" }, fixedBy: "issue 1458 · drafted" }],
   "compare.eyebrow": ["Compare", { slots: {}, fixedBy: "issue 1458 · drafted" }],

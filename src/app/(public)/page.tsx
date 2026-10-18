@@ -16,7 +16,9 @@
 //      where the empty *See it work* frame stood, linked to `/how-it-works`;
 //   4. *Why you should care* — four features (`Features.tsx`);
 //   5. *What to do next* — three step cards with their times;
-//   6. the closing band, whose one button returns to the field.
+//   6. the newest three articles ReachKit published (issue 1512), where
+//      any are stored;
+//   7. the closing band, whose one button returns to the field.
 //
 // One solid button per section (DESIGN, the calm layer, #1063): the hero's
 // Scan and the closing band's button. The eight steps' link is soft.
@@ -40,10 +42,12 @@ import { InsideReachKit } from "./_landing/InsideReachKit";
 import { Features } from "./_landing/Features";
 import { RecentlyScanned, RecentlyScannedSkeleton } from "./_landing/RecentlyScanned";
 import { FieldCta } from "./_landing/FieldCta";
+import { LatestArticles } from "./_landing/LatestArticles";
 import { FIELD_SECTION_ID, HOW_SECTION_ID, WHY_SECTION_ID } from "./_landing/sections";
 import { HOW_FACTS } from "./_how/facts";
 import { PUBLIC_ROUTE_SEO } from "./_seo/routes";
 import { staticMetadata } from "./_seo/metadata";
+import { JsonLd, homeSchemas } from "./_seo/structured";
 
 type LandingSearchParams = { problem?: string; value?: string };
 
@@ -101,6 +105,9 @@ export default function LandingPage(props: {
       }}
     >
       <main className="flex flex-col">
+        {/* Issue 1512: who ReachKit is and the site it publishes, in the
+            words the header already shows. */}
+        <JsonLd blocks={homeSchemas()} />
         {/* ══ HERO ══ Two columns at the same height (SPEC §1, 2026-09-24):
             the grid stretches both, and the preview fills its column. */}
         <section id={FIELD_SECTION_ID} className="scroll-mt-20 pt-12 pb-10 lg:pt-16 lg:pb-8">
@@ -208,6 +215,13 @@ export default function LandingPage(props: {
             </ol>
           </div>
         </section>
+
+        {/* ══ LATEST ARTICLES ══ Issue 1512: the newest three ReachKit
+            published on its own content host, read from the stored rows.
+            No article stored, no band. */}
+        <Suspense fallback={null}>
+          <LatestArticles />
+        </Suspense>
 
         {/* ══ THE CLOSING BAND ══ A tinted card on the ground, in no band of
             its own. The hero's own action, stated again: its button brings

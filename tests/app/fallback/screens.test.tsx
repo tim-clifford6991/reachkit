@@ -256,8 +256,12 @@ describe("S8 — the root 404, the one an unmatched address reaches (#405)", () 
 
   it("is the (public) 404 itself, not a second composition of S8's keys", () => {
     // The strongest form of "these two cannot drift": the public arm's
-    // whole markup stands inside the root one, unchanged.
-    expect(stableIds(markup)).toContain(stableIds(html(PublicNotFound)));
+    // whole markup stands inside the root one, unchanged. Its `<title>`
+    // (issue 1512) is hoisted out of the body, so it is compared apart.
+    const title = /<title>.*?<\/title>/;
+    const own = stableIds(html(PublicNotFound));
+    expect(markup).toContain(own.match(title)?.[0]);
+    expect(stableIds(markup).replace(title, "")).toContain(own.replace(title, ""));
   });
 
   it("still has exactly one Surface, with the chrome outside it", () => {

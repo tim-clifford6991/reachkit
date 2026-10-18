@@ -28,25 +28,32 @@ const ADDRESS: CopyKey = "chrome.notfound.address";
 /** The board's own first line (#936). */
 const WHY: CopyKey = "chrome.notfound.line.why";
 
+/** Issue 1512: Next reads no `metadata` export from a `not-found.tsx`, so
+ *  the screen names its own `<title>`, which React places in the head. */
+const TITLE: CopyKey = "meta.notfound.title";
+
 /** A test hook, never a sentence — bound to a name for the same reason
  *  every other test id in `src/app/**` is (ADR-010 point 1). */
 const TEST_ID = "public-not-found";
 
 export default function PublicNotFound(): React.JSX.Element {
   return (
-    <NotFoundScreen
-      line={
-        <>
-          {/* #936: what probably happened, then where reports live. Two
-              lines is what the quiet shape allows, and the second is the
-              one S8 wrote — a visitor who mistyped a report address is
-              still being told the shape of a right one. */}
-          <p>{copy(WHY)}</p>
-          <AddressLine copyKey={LINE} address={copy(ADDRESS)} />
-        </>
-      }
-      action={<ScanForm words={scanFormWords(copy("chrome.notfound.cta"))} />}
-      testId={TEST_ID}
-    />
+    <>
+      <title>{copy(TITLE)}</title>
+      <NotFoundScreen
+        line={
+          <>
+            {/* #936: what probably happened, then where reports live. Two
+                lines is what the quiet shape allows, and the second is the
+                one S8 wrote — a visitor who mistyped a report address is
+                still being told the shape of a right one. */}
+            <p>{copy(WHY)}</p>
+            <AddressLine copyKey={LINE} address={copy(ADDRESS)} />
+          </>
+        }
+        action={<ScanForm words={scanFormWords(copy("chrome.notfound.cta"))} />}
+        testId={TEST_ID}
+      />
+    </>
   );
 }

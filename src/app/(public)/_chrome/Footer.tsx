@@ -13,9 +13,11 @@
 // `footer-title` and every pixel it draws, and takes the duplicate out of
 // the document outline.
 import type React from "react";
+import { Suspense } from "react";
 import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
 import { Brand } from "@/app/_brand/Brand";
+import { readOwnArticles } from "./own-articles";
 
 const LEGAL: readonly { href: string; key: "legal.privacy.title" | "legal.terms.title" | "legal.imprint.title" }[] = [
   { href: "/privacy", key: "legal.privacy.title" },
@@ -28,6 +30,19 @@ const LEARN: readonly { href: string; key: "chrome.nav.compare" | "chrome.nav.to
   { href: "/tools", key: "chrome.nav.tools" },
   { href: "/teardowns", key: "chrome.nav.teardowns" },
 ];
+
+/** Issue 1512: the index of the articles ReachKit publishes on its own
+ *  content host, as a plain link off this site. Drawn only where the stored
+ *  rows name one, and streamed, so no public page waits on the read. */
+async function ArticlesLink(): Promise<React.JSX.Element | null> {
+  const own = await readOwnArticles();
+  if (own === null) return null;
+  return (
+    <a href={own.index} className="link link-hover">
+      {copy("chrome.nav.articles")}
+    </a>
+  );
+}
 
 export function Footer(): React.JSX.Element {
   return (
@@ -73,6 +88,9 @@ export function Footer(): React.JSX.Element {
               {copy(link.key)}
             </Link>
           ))}
+          <Suspense fallback={null}>
+            <ArticlesLink />
+          </Suspense>
         </nav>
 
         <nav aria-label={copy("chrome.footer.legal")}>
