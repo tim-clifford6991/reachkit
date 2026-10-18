@@ -654,12 +654,18 @@ export async function publishDue(a: {
 // Each hour, before any page is attempted, a live page written before the
 // rival rules is read again from its own row at 0¢, and one that fails is
 // withdrawn through `unpublish()`. A read that fails withdraws nothing and
-// stops nothing: the next tick reads again.
+// stops nothing: the next tick reads again. Then (issue 1507) each live page
+// of ours that breaks a consistency rule is planned a refresh, 0¢.
 
 export async function recheckLivePages(now: Date): Promise<{ readonly withdrawn: number }> {
   try {
     const { withdrawFailingPages } = await import("@/lib/generate/live-recheck");
     const outcome = await withdrawFailingPages({ now });
+    // Issue 1507: a live page that breaks a consistency rule is planned a
+    // refresh, written from its text with what code can repair repaired.
+    const { planStructureRefreshesEverywhere } = await import("@/lib/opportunities/refresh");
+    const planned = await planStructureRefreshesEverywhere({ at: now });
+    console.log(JSON.stringify({ event: "live_structure_recheck", planned }));
     return { withdrawn: outcome.withdrawn.length };
   } catch (error) {
     console.log(JSON.stringify({ event: "live_rival_recheck_failed", error: error instanceof Error ? error.message : "unknown" }));

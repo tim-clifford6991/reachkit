@@ -118,6 +118,9 @@ export interface LanguagePack {
   /** Whether a word of a search is one of the words the business is known
    *  by. German joins words, so a part of a compound counts there. */
   supports(token: string, support: ReadonlySet<string>): boolean;
+  /** The numbers written as words, each at its own value: "five" is 5
+   *  (issue 1507, a figure compared with the body). */
+  numberWords: readonly string[];
 
   /** What a page title is checked by (SPEC §7, D51). */
   title: {

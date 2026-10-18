@@ -45,11 +45,23 @@ import { languagePack } from "@/lib/locale/language";
 import type { Language } from "@/lib/locale/locales";
 import { TITLE } from "@/lib/config/constants";
 import type { ContentType } from "@/lib/opportunities/content-type";
-import { numeralsOf } from "./figures";
+import { figuresOf, numeralsOf, REGISTER_FLOOR, valuesStated } from "./figures";
+import { renderOf } from "./text";
 import type { RuleFailure } from "./types";
 
 /** What a title or its description failed, by handle. */
-export type TitleFault = "length" | "term" | "specific" | "question" | "year" | "banned" | "overlap" | "heading" | "description";
+export type TitleFault =
+  | "length"
+  | "term"
+  | "specific"
+  | "question"
+  | "year"
+  | "banned"
+  | "overlap"
+  | "heading"
+  | "description"
+  /** Issue 1507: the description states a figure the body does not. */
+  | "description_figures";
 
 export interface TitleRuleInputs {
   type: ContentType;
@@ -213,25 +225,71 @@ function wordingFaults(title: string, a: TitleRuleInputs): TitleFault[] {
   return faults.filter((fault) => fault !== false);
 }
 
+/**
+ * The figures a meta description states that the body does not (issue 1507:
+ * a description said "$1,597", AEO Engine's price, on a page that never
+ * did). Both are read in the page's language (D66), so "1.597 €" is 1597 on
+ * a German page and "five" is 5. A year passes where it is the page's own —
+ * the year it was published or updated. A single digit with no currency or
+ * percent beside it is a count the page sets out, not a figure it states.
+ */
+export function descriptionFiguresMissing(
+  description: string,
+  markdown: string,
+  a: { language?: Language; years?: readonly number[] } = {}
+): string[] {
+  const language = a.language ?? "en";
+  const body = valuesStated(renderOf(markdown), language, languagePack(language).numberWords);
+  const years = new Set((a.years ?? []).map(String));
+  return figuresOf(description, language)
+    .filter((figure) => {
+      if (/^(?:19|20)\d\d$/.test(figure.raw) && years.has(figure.raw)) return false;
+      if (figure.values.some((value) => Number(value) >= REGISTER_FLOOR)) return true;
+      const before = description.slice(0, figure.at);
+      const after = description.slice(figure.at + figure.raw.length);
+      return /[$€£¥]\s*$/u.test(before) || /^\s*[%€$£¥]/u.test(after);
+    })
+    .filter((figure) => !figure.values.some((value) => body.has(value)))
+    .map((figure) => figure.raw);
+}
+
+/** How a page's figures are read: its language, and its own year. */
+const figureReading = (a: TitleRuleInputs): { language: Language; years: number[] } => ({ language: languageOf(a), years: [a.year] });
+
 /** What the title, the H1 and the description fail, in a fixed order. The
  *  H1 is the title: another wording passes only where it is the title's near
  *  twin and holds every rule the title holds. */
-export function titleFaults(title: string, a: TitleRuleInputs, heading: string = title): TitleFault[] {
+export function titleFaults(title: string, a: TitleRuleInputs, heading: string = title, markdown?: string): TitleFault[] {
   const description = [...a.description.trim()].length;
   const apart = heading.trim() !== title.trim() && (titleOverlap(heading, title) < TITLE.headingMin || wordingFaults(heading, a).length > 0);
   return [
     ...wordingFaults(title, a),
     ...(apart ? (["heading"] as const) : []),
     ...(description < TITLE.description.min || description > TITLE.description.max ? (["description"] as const) : []),
+    ...(markdown !== undefined && descriptionFiguresMissing(a.description, markdown, figureReading(a)).length > 0 ? (["description_figures"] as const) : []),
   ];
 }
 
 /** Whether a title lacks its specific and nothing else. */
 export const specificOnly = (faults: readonly TitleFault[]): boolean => faults.length === 1 && faults[0] === "specific";
 
-export function checkTitle(a: { title: string; heading?: string; rule: TitleRuleInputs | null }): RuleFailure | null {
-  if (a.rule === null || a.rule.type === "update") return null;
-  const all = titleFaults(a.title, a.rule, a.heading);
+export function checkTitle(a: {
+  title: string;
+  heading?: string;
+  rule: TitleRuleInputs | null;
+  /** The body the description is held to (issue 1507). Absent, its figures
+   *  are not read. */
+  markdown?: string;
+}): RuleFailure | null {
+  if (a.rule === null) return null;
+  // An update keeps the live page's title, and writes a new description:
+  // that description's figures are the body's all the same.
+  if (a.rule.type === "update") {
+    return a.markdown !== undefined && descriptionFiguresMissing(a.rule.description, a.markdown, figureReading(a.rule)).length > 0
+      ? { rule: "title", detail: { rule: "title", faults: ["description_figures"] } }
+      : null;
+  }
+  const all = titleFaults(a.title, a.rule, a.heading, a.markdown);
   // The specific is tried for and never stops a page on its own.
   const faults = a.rule.settled === true && specificOnly(all) ? [] : all;
   return faults.length === 0 ? null : { rule: "title", detail: { rule: "title", faults } };
@@ -290,7 +348,7 @@ export function pickTitle(proposed: readonly string[], a: TitleRuleInputs): { ch
 }
 
 /** What the one fix call is told of each fault. Model-facing, never shown. */
-export function titleNotes(title: string, a: TitleRuleInputs, faults: readonly TitleFault[]): string[] {
+export function titleNotes(title: string, a: TitleRuleInputs, faults: readonly TitleFault[], markdown = ""): string[] {
   const close = closestTitle(title, a.titles);
   const pack = languagePack(languageOf(a));
   const said: Record<TitleFault, string> = {
@@ -305,6 +363,9 @@ export function titleNotes(title: string, a: TitleRuleInputs, faults: readonly T
     overlap: `title: it reads almost the same as this site's page "${close ?? ""}"; lead with what this page has that one does not`,
     heading: "heading: the H1 is the title itself",
     description: `description: it has ${[...a.description.trim()].length} characters and must have ${TITLE.description.min} to ${TITLE.description.max}, opening with the answer`,
+    description_figures: `description: every figure it states is one the body states; ${descriptionFiguresMissing(a.description, markdown, figureReading(a))
+      .map((figure) => `"${figure}"`)
+      .join(", ")} is not in the body`,
   };
   return faults.map((fault) => said[fault]);
 }

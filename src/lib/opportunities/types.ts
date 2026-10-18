@@ -123,6 +123,9 @@ export type Shortfall =
        *  `replaces` (issue 1487) is the address that page moved from, which
        *  this page links: the update points that link at `url`. */
       link?: { url: string; title: string; replaces?: string };
+      /** Issue 1507: what the live page breaks of the consistency rules,
+       *  by handle. Present where `cause` is `structure`, and only there. */
+      defects?: string[];
     }
   /** SPEC §7 (D53, issue 1268): one of ReachKit's own live pages is rewritten
    *  for a new search, at its own address. The row's `targetQuery` is the new
@@ -133,8 +136,9 @@ export type Shortfall =
 /** Why a live page of ours is due: its version is 90 days old, the Monday
  *  verdict found it in a worse place, a pool holds a fact newer than it,
  *  eight weekly verdicts found it neither ranking nor cited (D60, issue 1288),
- *  or a newer related page went live that it does not link (issue 1391). */
-export type RefreshCause = "aged" | "lost_position" | "newer_fact" | "unmet" | "link" | "own_figures";
+ *  a newer related page went live that it does not link (issue 1391), or it
+ *  breaks a consistency rule of issue 1507 (`structure`). */
+export type RefreshCause = "aged" | "lost_position" | "newer_fact" | "unmet" | "link" | "own_figures" | "structure";
 
 /** §7's Fix trigger — "any access gate fails" — as the closed set of gates
  *  the measurement engine can actually report. A sixth barrier is a change

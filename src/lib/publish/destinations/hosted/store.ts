@@ -297,8 +297,8 @@ function toPage(row: PublicationRow, host: string): HostedPage | null {
       timeZone: emptyToNull(row.sites?.timezone ?? null),
     },
     byline: emptyToNull(draft.attribution ?? null),
-    publishedAt: new Date(row.published_at),
-    firstPublishedAt: new Date(row.published_at),
+    publishedAt: datedAt(draft.meta) ?? new Date(row.published_at),
+    firstPublishedAt: datedAt(draft.meta) ?? new Date(row.published_at),
     liveUrl,
     record: {
       opportunityId: opportunity.id,
@@ -387,6 +387,18 @@ export function readDescription(meta: Record<string, unknown> | null): string | 
 }
 
 /** `drafts.meta.heading`, read the same way. */
+/** The date a mended version keeps (SPEC §7, issue 1507): a version that
+ *  only repaired its predecessor in code — a list counted again, a repeated
+ *  link gone — is dated as that predecessor, so its updated date, its
+ *  `dateModified` and its sitemap `lastmod` do not move. `null` for every
+ *  other version, which is dated when it went live. */
+function datedAt(meta: Record<string, unknown> | null): Date | null {
+  const raw = meta?.datedAs;
+  if (typeof raw !== "string") return null;
+  const at = new Date(raw);
+  return Number.isNaN(at.getTime()) ? null : at;
+}
+
 function readHeading(meta: Record<string, unknown> | null): string | null {
   const raw = meta?.heading;
   if (typeof raw !== "string") return null;

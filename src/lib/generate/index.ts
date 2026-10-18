@@ -50,8 +50,10 @@ import type { KnownPage } from "@/lib/known-content/types";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { intentFor } from "@/lib/opportunities/intent";
 import { withDraftCost } from "./cost";
-import { readRecordedRules } from "./record";
+import { readRecordedRules, recordedVerdictValue } from "./record";
 import type { SiteRuleInputs } from "./rules/types";
+import { mendedInCode, repairStructure } from "./rules/structure";
+import { claimCheck } from "./claims/check";
 import { confirmedForWriting } from "./voice/confirmed";
 import {
   clusterLinkTargets,
@@ -178,7 +180,9 @@ export async function generateDayPage(a: {
         const outcome =
           opportunity.type === "fix_page"
             ? await fixPage(page, own)
-            : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS, startedAt: topic === 1 ? startedAt : Date.now() }, own);
+            : mendable(opportunity)
+              ? await mendPage(page)
+              : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS, startedAt: topic === 1 ? startedAt : Date.now() }, own);
         await settle(outcome, opportunity.id, now, site.domain);
 
         // SPEC §7 (D26, issue 1179): a stopped draft does not cost its day.
@@ -396,6 +400,57 @@ async function fixPage(a: PageInput, cost: CostContext): Promise<DayPageOutcome>
   return { ok: false, because: "rules", draftId: fixed.draftId, attempts: fixed.attempt };
 }
 
+/** SPEC §7 (issue 1507): a refresh planned for the consistency rules alone,
+ *  each of whose defects code repairs. */
+function mendable(opportunity: Opportunity): boolean {
+  const shortfall = (opportunity.evidence as { shortfall?: { cause?: unknown; defects?: unknown } } | undefined)?.shortfall;
+  return (
+    opportunity.type === "refresh_page" &&
+    shortfall?.cause === "structure" &&
+    Array.isArray(shortfall.defects) &&
+    mendedInCode(shortfall.defects.filter((defect): defect is string => typeof defect === "string"))
+  );
+}
+
+/**
+ * The live page mended (SPEC §7, issue 1507): a new version of its own text
+ * with what code repairs repaired — a list counted again, a repeated link
+ * gone, a stray bracket removed — and nothing written. No model is asked:
+ * 0¢. It is a new version through the refresh path, never an edit of the
+ * live row (ADR-080), and it is dated as the version it mends (`datedAs`):
+ * a renumbered list is not a change of what the page says, so its updated
+ * date, `dateModified` and `lastmod` stay. It enters review as every page
+ * does, its claim checked against the customer's list.
+ */
+async function mendPage(a: PageInput): Promise<DayPageOutcome> {
+  const store = generateStore();
+  const live = (await store.liveVersionAt?.(a.siteId, a.opportunity.targetRef)) ?? null;
+  if (live === null) return { ok: false, because: "step_failed", draftId: a.draftId ?? null, step: "mend" };
+  const meta = (typeof live.draft.meta === "object" && live.draft.meta !== null ? live.draft.meta : {}) as Record<string, unknown>;
+  const title = live.draft.title ?? "";
+  const body = repairStructure(live.draft.body_md ?? "", { title });
+  // Mended since it was planned: there is nothing to publish.
+  if (body === (live.draft.body_md ?? "")) return { ok: false, because: "step_failed", draftId: a.draftId ?? null, step: "mend" };
+  const datedAs = typeof meta.datedAs === "string" ? meta.datedAs : live.publishedAt.toISOString();
+  const draftId = await store.insertDraft({
+    site_id: a.siteId,
+    opportunity_id: a.opportunity.id,
+    state: "generating",
+    title: live.draft.title,
+    body_md: body,
+    grounded_fact: live.draft.grounded_fact,
+    attribution: live.draft.attribution,
+    scheduled_for: a.publishDate,
+    cost_cents: 0,
+    meta: { ...meta, datedAs, mendOf: live.draft.id },
+  });
+  const claim = claimCheck({ text: [title, body].join("\n"), list: a.site.doNotClaim });
+  const passed = claim.state === "passed";
+  await store.patchDraft(draftId, { claim_check: recordedVerdictValue(claim), rule_failures: [], cost_cents: 0, hard_rules_passed: passed });
+  console.log(JSON.stringify({ event: "page_mended", siteId: a.siteId, draftId, mendOf: live.draft.id, passed }));
+  return passed ? { ok: true, draftId } : { ok: false, because: "rules", draftId, attempts: 1 };
+}
+
 /** The page an update refreshes, as the pack holds it: ReachKit's own page
  *  as it was written, else the site's own page as the measurement read it. */
 async function livePageOf(
@@ -409,7 +464,12 @@ async function livePageOf(
   const listed = known.find((page) => page.url !== null && urlKey(page.url) === key);
   const title = listed?.title ?? opportunity.title ?? "";
   const ours = title === "" ? undefined : (await generateStore().publishedPages(a.siteId)).find((page) => page.title === title);
-  const markdown = ours?.markdown ?? facts.find((sourced) => urlKey(sourced.fact.url) === key)?.sourceText ?? "";
+  // Issue 1507: a page of ours is refreshed from its text with what code can
+  // repair of the consistency rules already repaired — never edited live.
+  const markdown =
+    (ours === undefined ? undefined : repairStructure(ours.markdown, { title: ours.title })) ??
+    facts.find((sourced) => urlKey(sourced.fact.url) === key)?.sourceText ??
+    "";
   if (markdown.trim() === "") return null;
   const evidence = opportunity.evidence as { shortfall?: { kind?: unknown } } | undefined;
   const linkTo = linkBackOf(opportunity);

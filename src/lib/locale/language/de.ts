@@ -132,6 +132,7 @@ export const DE: LanguagePack = {
     ).split(" "),
   },
   stem,
+  numberWords: "null eins zwei drei vier fünf sechs sieben acht neun zehn elf zwölf".split(" "),
   title: {
     filler: new Set(
       ("der die das den dem des ein eine einen einem einer und oder aber für mit ohne von vom zu zum zur in im an am auf aus bei nach " +
