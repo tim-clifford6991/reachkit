@@ -303,7 +303,7 @@ export async function deriveOpportunities(
     .filter((row) => (row.businessFit ?? null) === null)
     .slice(0, HELD_ROWS_JUDGED);
   const sourceFor = (row: { targetQuery: string | null; source?: Candidate["source"] }) =>
-    row.source ?? sourceOf(row.targetQuery ?? "", { brands });
+    row.source ?? sourceOf(row.targetQuery ?? "", { brands, products: Object.keys(market?.demand?.brands ?? {}) });
   const searches: FitSearch[] = [
     ...judgedHere.map((candidate) => ({ query: candidate.targetQuery!, source: sourceFor(candidate) })),
     ...unjudged.map((row) => ({ query: row.targetQuery!, source: sourceFor(row) })),

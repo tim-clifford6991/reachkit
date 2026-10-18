@@ -26,7 +26,6 @@
 import { PAGE_BLOCKS } from "@/lib/config/constants";
 import { bodyWords, sectionWords, type LengthRange } from "../length";
 import type { Template } from "../templates";
-import { resembles } from "../links/text";
 import { hasLink, headingKey, sourceBlocksOf, type SourceBlock } from "./text";
 import type { RuleFailure } from "./types";
 
@@ -145,15 +144,18 @@ export function bodyH1s(markdown: string): string[] {
 /** The body's headings that repeat the page's title or its short-answer
  *  box (SPEC §7, 2026-09-29; issue 1507): the title is the page's one H1,
  *  printed above the body, and the box is its answer — a heading that says
- *  either again says it twice. Read as the title is: case, spacing and the
- *  closing stop aside, or most of the words the same. */
+ *  either again says it twice. Read as the renderer reads the title: the
+ *  same words, case, spacing and the closing stop aside. A question that
+ *  shares the title's words ("Which bookkeeping software for therapists?"
+ *  under "Bookkeeping software for therapists: …") is a section, not a
+ *  repeat. */
 export function repeatedHeadings(markdown: string, title: string): string[] {
   const box = answerBoxOf(markdown);
   const said = [title, ...(box === null ? [] : [box.split(/(?<=[.!?])\s+/)[0] ?? ""])].filter((text) => text.trim() !== "");
   return proseLines(markdown).flatMap(({ line, code }) => {
     const heading = code ? null : HEADING_RE.exec(line)?.[2]?.trim();
     if (heading === undefined || heading === null || heading === "") return [];
-    return said.some((text) => headingKey(text) === headingKey(heading) || resembles(heading, text)) ? [heading] : [];
+    return said.some((text) => headingKey(text) === headingKey(heading)) ? [heading] : [];
   });
 }
 

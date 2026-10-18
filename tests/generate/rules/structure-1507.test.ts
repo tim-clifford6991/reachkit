@@ -161,6 +161,8 @@ describe("6. body_md holds no H1, the rendered page has exactly one, and no head
     const fixed = repairStructure(page, { title: "Boiler servicing in Leeds" });
     expect(fixed).toContain("We come within the week.\n\nThe price includes parts.");
     expect(fixed.match(/^## .*/gm)).toEqual(["## What does it include?"]);
+    // A question in the title's words is a section, not a repeat.
+    expect(repeatedHeadings("## Which boiler servicing in Leeds?\n\nBook it.", "Boiler servicing in Leeds: £85, parts included")).toEqual([]);
   });
 });
 

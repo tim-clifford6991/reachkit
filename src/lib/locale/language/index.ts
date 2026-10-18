@@ -65,6 +65,8 @@ export const SHAPES = Object.freeze({
   documentation: pattern(atStart("documentationStart"), anywhere("documentation")),
   format: new RegExp(anywhere("format"), "iu"),
   asksPrice: new RegExp(anywhere("asksPrice"), "iu"),
+  agency: new RegExp(anywhere("agency"), "iu"),
+  wordSense: new RegExp(anywhere("wordSense"), "iu"),
 });
 
 /** Every language's price words and price filler, for the code that reads a

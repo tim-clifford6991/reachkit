@@ -31,6 +31,7 @@ vi.mock("@/lib/publish/destinations/hosted", () => ({
     return found === undefined ? null : { ...found, host };
   },
   tags: { site: (s: string) => `hosted:site:${s}`, page: (p: string) => `hosted:page:${p}` },
+  retiredSlugsForSite: async () => new Set<string>(),
 }));
 
 vi.mock("@/lib/account/billing", () => ({

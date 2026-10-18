@@ -115,7 +115,14 @@ function byScore(
  *  1455: reachkit.app published nothing for days because every topic it
  *  held was a comparison): the best of them is written as a Q&A of its
  *  buyer question, which answers it without ranking the business, and the
- *  day counts as a Q&A. */
+ *  day counts as a Q&A.
+ *
+ *  **Pages that answer** (SPEC §7, issue 1506): of the site's last
+ *  `NON_COMMERCIAL_OF` new pages, refreshes not counted, at least
+ *  `NON_COMMERCIAL_MIN` are Q&As, how-tos or documentation where one is
+ *  ready. A day whose six new pages before it already hold the rest in
+ *  other pages takes one of them, after the update and the pace and before
+ *  the count and the turn of kinds. */
 export function orderRanked(
   scored: readonly { opportunity: Opportunity; score: number }[],
   rotation: {
@@ -154,9 +161,31 @@ export function orderRanked(
     const paced = window.filter((page) => page.kind !== "update").length >= PACE.NEW_PAGES_PER_WEEK;
     // D52: a listicle or comparison includes the business, by its template.
     const capped = (entry: Entry) => kindOf(entry) === "listicle" && held("listicle") >= CONTENT_MIX.SELF_PROMOTING_MAX;
+    // Issue 1506 (as the SEO master review of 2026-10-18 reads it): of the
+    // site's last seven new pages, refreshes not counted, at least three
+    // answer. Once the six before today leave no room, the day takes a page
+    // that answers where one is ready — after the update and the pace,
+    // ahead of the turn of kinds, never ahead of the topic's rotation, and
+    // it never empties a day. Owed only then, so the best page still goes
+    // first.
+    const answers = (kind: ContentType | null) => (CONTENT_MIX.NON_COMMERCIAL_TYPES as readonly string[]).includes(kind ?? "");
+    const lastNew = placed
+      .filter((page) => page.day < day && page.kind !== "update")
+      .sort((x, y) => x.day - y.day)
+      .slice(-(CONTENT_MIX.NON_COMMERCIAL_OF - 1));
+    const owed =
+      lastNew.filter((page) => !answers(page.kind)).length >= CONTENT_MIX.NON_COMMERCIAL_OF - CONTENT_MIX.NON_COMMERCIAL_MIN;
+    const answering = (entry: Entry) => answers(kindOf(entry));
     const tiers: ((entry: Entry) => boolean)[] = [
       ...(updateDue ? [(entry: Entry) => fresh(entry) && isUpdate(entry)] : []),
       ...(paced ? [(entry: Entry) => fresh(entry) && own(entry), own, (entry: Entry) => fresh(entry) && isUpdate(entry), isUpdate] : []),
+      ...(owed
+        ? [
+            (entry: Entry) => fresh(entry) && answering(entry) && turns(entry) && room(entry),
+            (entry: Entry) => fresh(entry) && answering(entry) && room(entry),
+            (entry: Entry) => fresh(entry) && answering(entry),
+          ]
+        : []),
       (entry) => fresh(entry) && turns(entry) && room(entry),
       (entry) => fresh(entry) && turns(entry),
       fresh,

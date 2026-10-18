@@ -306,6 +306,18 @@ function namesRival(question: string, rival: NamedRival): boolean {
   return (name.length > 0 && name.every((word) => said.has(word))) || said.has(brandOf(rival.domain));
 }
 
+/**
+ * A question that says a rival's name in another sense of the word (issue
+ * 1506): "Profound alternative word?" asks for a synonym, not for a rival
+ * to Profound. It names a rival and asks about the word itself — its
+ * meaning, a synonym, how it is said — in any language's words
+ * (`SHAPES.wordSense`). Not a buyer question, whatever the market.
+ */
+function otherSenseOfRival(question: string, rivals: readonly NamedRival[]): boolean {
+  if (!rivals.some((rival) => namesRival(question, rival))) return false;
+  return SHAPES.wordSense.test(question.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim());
+}
+
 /** The fewest words a related search has to be read as a question (D61). */
 const RELATED_MIN_WORDS = 3;
 
@@ -403,9 +415,11 @@ function buyerQuestions(a: {
   ]) {
     if (!rivals.some((known) => known.domain === rival.domain)) rivals.push(rival);
   }
+  const buyerAsks = (text: string) => !otherSenseOfRival(text, rivals);
   const measured = (a.report.questions.kind === "unmeasured" ? [] : a.report.questions.value)
     .filter((question) => onMarket({ text: question.text, search: question.search.keyword }, a.market))
-    .map((question) => question.text);
+    .map((question) => question.text)
+    .filter(buyerAsks);
   // A related search is a search, not a sentence: it is worded as the
   // question it asks, the way a measured search is (`templateQuestion`).
   // One of a word or two is a name or a topic ("hubspot", "apollo ai"), which
@@ -418,7 +432,8 @@ function buyerQuestions(a: {
   // a measured question is.
   const seen = [...(a.asked?.peopleAlsoAsk ?? []).map((text) => ({ text, search: "" })), ...related]
     .filter((question) => onMarket(question, a.market))
-    .map((question) => question.text);
+    .map((question) => question.text)
+    .filter(buyerAsks);
   // SPEC §6 (D49, issue 1270): a label of the market nobody searches is
   // never printed.
   const flat = (text: string): string => ` ${text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim()} `;

@@ -36,6 +36,7 @@ const state: {
 
 vi.mock("@/lib/publish/destinations/hosted", () => ({
   tags: { site: (s: string) => `hosted:site:${s}`, page: (p: string) => `hosted:page:${p}` },
+  retiredSlugsForSite: async () => new Set<string>(),
   hostedSiteForDomain: async (domain: string) =>
     domain === "example.com" ? { siteId: "site-1", domain, host: `content.${domain}` } : null,
   hostedSiteForHostname: async () => null,
