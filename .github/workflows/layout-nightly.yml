@@ -1,0 +1,53 @@
+# The whole `layout` project on `main`, every night (owner, 2026-10-18,
+# #1525). `no overflow · axe` sweeps a pull request only where a path can
+# change a screen (`scripts/ci-changes.mjs`); this run is the net under that
+# skip, for a screen changed by a path the list does not name. It is not a
+# merge gate and nothing waits on it: a red run opens one issue titled
+# `[layout] nightly sweep on main is red`, or comments on the open one, and
+# an engineer starts from that issue.
+#
+# It is the gate's own project (`npm run test:layout`), not the full matrix
+# retired by #1029. It runs on `reachkit`, the one browser runner (#1035), at
+# an hour when no pull request is waiting for it.
+name: Layout nightly
+
+on:
+  schedule:
+    - cron: "41 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: layout-nightly
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    name: nightly layout sweep on main
+    runs-on: [self-hosted, reachkit]
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: ./.github/actions/layout-suite
+      - name: every screen, hydrated — no overflow, axe, the five checks
+        run: npm run test:layout
+      - if: always()
+        uses: ./.github/actions/db-substrate-down
+      - name: open or comment on the [layout] issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="[layout] nightly sweep on main is red"
+          body="The nightly sweep of main ($(git rev-parse --short HEAD)) failed: $RUN_URL. Every failure in the log names an element, a screen, a width and a theme."
+          open=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi

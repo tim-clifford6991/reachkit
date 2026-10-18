@@ -1,9 +1,13 @@
 # Required on main: typecheck · lint · unit, audit, schema · RLS, and — since
 # the owner's ruling of 2026-09-21 closing #910 — no overflow · axe.
-# Every job here reports on every pull request. Nothing runs only on `main`:
-# a check whose findings arrive after the merge is a check nobody can act on,
-# which is how the two browser jobs this one absorbed came to be red for days
-# without anybody seeing it (#976). No pixel baseline blocks a merge, and none
+# Every job here reports on every pull request. Since the owner's ruling of
+# 2026-10-18 (#1525) a report may be success with a reason: `no overflow ·
+# axe` runs the sweep only where a screen can change, and otherwise passes
+# with one line that says why. Nothing that can change a screen merges
+# unswept: a check whose findings arrive after the merge is a check nobody
+# can act on, which is how the two browser jobs this one absorbed came to be
+# red for days without anybody seeing it (#976). The nightly sweep of `main`
+# (`layout-nightly.yml`) is a net under the skip, not a gate. No pixel baseline blocks a merge, and none
 # is kept (docs/DESIGN.md, docs/PROCESS.md). Nor does anything run again on
 # the push to `main` a merge makes: those jobs already ran on the pull request,
 # and a result that arrives after the merge cannot stop it (2026-09-24, #1052).
@@ -46,12 +50,21 @@ jobs:
   # base branch as the pull request would land on it. A run that is not a
   # pull request, and a filter that fails, run everything too: the jobs
   # below skip only on an explicit `false`.
+  #
+  # **Where a screen can change** (owner, 2026-10-18, #1525). The second
+  # output, `ui`, is true where a path can change what a screen renders or
+  # how the sweep measures it: `src/app`, `src/components`, `src/ui`,
+  # `src/lib/presentation`, the middleware, any stylesheet, `public/`,
+  # `tests/ui`, `package*.json`, `next.config.*`, and the sweep itself (its
+  # vitest config, migrations and substrate, its actions, this file). Both
+  # lists are `scripts/ci-changes.mjs`, which prints why each path counts.
   changes:
     name: what changed
     runs-on: ${{ fromJSON(vars.CI_LIGHT_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 5
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      ui: ${{ steps.filter.outputs.ui }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,23 +74,9 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           if [ "$EVENT" != pull_request ]; then
-            echo "code=true" >> "$GITHUB_OUTPUT"; exit 0
+            printf 'code=true\nui=true\n' >> "$GITHUB_OUTPUT"; exit 0
           fi
-          files=$(git diff --name-only HEAD^1 HEAD)
-          code=false
-          [ -z "$files" ] && code=true
-          while IFS= read -r f; do
-            [ -z "$f" ] && continue
-            case "$f" in
-              src/*|tests/*|supabase/*|.github/*|scripts/*) kind=code ;;
-              docs/*|*.md) kind=docs ;;
-              *) kind=code ;;
-            esac
-            echo "$kind  $f"
-            [ "$kind" = code ] && code=true
-          done <<< "$files"
-          echo "code=$code"
-          echo "code=$code" >> "$GITHUB_OUTPUT"
+          git diff --name-only HEAD^1 HEAD | node scripts/ci-changes.mjs
 
   check:
     name: typecheck · lint · unit
@@ -99,8 +98,10 @@ jobs:
   no-overflow:
     name: no overflow · axe (390 / 768 / 1280, light and dark)
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
-    runs-on: [self-hosted, reachkit]
+    if: ${{ !cancelled() }}
+    # Where no screen can change it is a light job that says so and passes,
+    # so it never waits for the one browser runner to print that line.
+    runs-on: ${{ needs.changes.outputs.ui == 'false' && fromJSON(vars.CI_LIGHT_RUNNER || '"ubuntu-latest"') || fromJSON('["self-hosted","reachkit"]') }}
     timeout-minutes: 45
     # **The fourth merge gate** (owner's ruling of 2026-09-21, closing #910;
     # `docs/PROCESS.md`'s Gates table is where it is written down), and the
@@ -123,14 +124,30 @@ jobs:
     # applying the migrations and seeding the four accounts, and
     # `tests/ui/layout/auth-stub.ts` answering `getUser()` — the substrate
     # has no GoTrue. Nothing reaches a vendor.
+    #
+    # **Where no screen can change** (owner, 2026-10-18, #1525, amending
+    # #910's "every job reports on every pull request"). It still reports on
+    # every pull request: where `ui` is false it succeeds with one reason
+    # line and runs nothing. Any path that can change a screen runs the
+    # whole sweep, as before. `layout-nightly.yml` sweeps `main` every night
+    # and opens an issue when it is red.
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/layout-suite
+      - name: no screen can change — the sweep is not needed
+        if: ${{ needs.changes.outputs.ui == 'false' }}
+        run: |
+          line="No path in this pull request can change a screen (scripts/ci-changes.mjs, owner 2026-10-18, #1525). The sweep did not run; the nightly run on main sweeps every screen."
+          echo "$line"
+          echo "$line" >> "$GITHUB_STEP_SUMMARY"
+      - if: ${{ needs.changes.outputs.ui != 'false' }}
+        uses: actions/checkout@v4
+      - if: ${{ needs.changes.outputs.ui != 'false' }}
+        uses: ./.github/actions/layout-suite
       # The whole `layout` project, the landing's script budget included
       # (#988).
       - name: every screen, hydrated — no overflow, axe, the five checks
+        if: ${{ needs.changes.outputs.ui != 'false' }}
         run: npm run test:layout
-      - if: always()
+      - if: ${{ always() && needs.changes.outputs.ui != 'false' }}
         uses: ./.github/actions/db-substrate-down
 
   db:
