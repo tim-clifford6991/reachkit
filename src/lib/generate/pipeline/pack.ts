@@ -142,6 +142,9 @@ export interface ContextPack {
   claims: PackClaim[];
   /** The rivals whose own pages yielded a claim. */
   products: ResearchedProduct[];
+  /** Issue 1508: on a page of alternatives to one product, its domain. It
+   *  has a row in the table, marked, and is not one of the options. */
+  baseline?: string;
   /** *Current insights* (issue 1262): each dated news result that was read,
    *  and whether it was judged to be about the market. Only one that was has
    *  a claim in `claims`. */
@@ -667,6 +670,7 @@ export function buildPack(a: PackInputs): ContextPack {
     facts,
     claims,
     products,
+    ...(a.research.baseline === undefined || a.type !== "listicle" ? {} : { baseline: a.research.baseline }),
     ...(a.research.news === undefined ? {} : { news: a.research.news }),
     pages: a.sitePages.filter((page) => typeof page.url !== "string" || !neverASource(page.url)).slice(0, PACK.pages),
     links: a.links.filter((link) => !neverASource(link.url)).map((link) => ({ url: link.url, label: link.label, purpose: link.source === "site" ? link.purpose : null })),

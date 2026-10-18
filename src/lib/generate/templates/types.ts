@@ -19,6 +19,9 @@ export interface TemplateSection {
   repeat?: { min: number; max: number };
   /** The block the section must hold beside its opening paragraph. */
   block?: "table" | "steps";
+  /** Issue 1508: a section the page carries once where it lists the
+   *  alternatives to one product, and never otherwise. */
+  when?: "alternatives";
 }
 
 /** One thing the context pack must hold. Each is checked in code

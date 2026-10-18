@@ -19,6 +19,7 @@ export const PAGE_COPY_DE = {
   "body.table.checked": "Preise zuletzt geprüft am {date}.",
   "body.table.custom": "Preis auf Anfrage",
   "body.table.currencies": "Die Preise stehen in der Währung, in der jeder Anbieter sie veröffentlicht; keiner wurde umgerechnet.",
+  "body.table.baseline": "{name} (zum Vergleich)",
   "body.answer.heading": "Die kurze Antwort",
   "body.takeaways.heading": "Das Wichtigste in Kürze",
   "body.faq.heading": "Fragen, die Käufer stellen",

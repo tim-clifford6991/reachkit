@@ -65,6 +65,10 @@ export interface BlockRuleInputs {
   /** A listicle's rivals, as its table names them (D52, issue 1267): the
    *  verdict names one. Absent, the verdict is not read. */
   rivals?: readonly string[];
+  /** Issue 1508: the product a page of alternatives is about, where its
+   *  table has its row. The page then carries its section once; never
+   *  otherwise. It is not among `rivals`. */
+  baseline?: string;
   /** The business's name: a step that names it, or links its own site, is
    *  the business's own (issue 1486). */
   businessName?: string | null;
@@ -222,7 +226,9 @@ export function missingBlock(a: { markdown: string; title: string; blocks: Block
       at++;
       count++;
     }
-    if (count < (slot.repeat?.min ?? 1) || count > (slot.repeat?.max ?? 1)) return "sections";
+    // Issue 1508: the baseline's section is the page's where it has one.
+    const range = slot.when === "alternatives" ? (blocks.baseline === undefined ? { min: 0, max: 0 } : { min: 1, max: 1 }) : slot.repeat;
+    if (count < (range?.min ?? 1) || count > (range?.max ?? 1)) return "sections";
   }
   if (at !== blocks.sections.length) return "sections";
   // H2 then H3, in order: nothing above an H2, nothing below an H3.

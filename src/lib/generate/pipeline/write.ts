@@ -160,6 +160,10 @@ const WRITTEN_TABLE_RULE =
 const BUILT_TABLE_RULE =
   "`table` is this page's comparison table, built from `pack` and placed in the at-a-glance section as it is: it is the table `honesty` and `template.blocks` ask for. Write no table anywhere on the page, and say nothing of an option that `table` or `pack` does not carry. Where an option's row leaves a criterion out, `pack` holds no fact for it: never guess the value, and never write that it is missing.";
 
+/** Issue 1508: what a listicle counts. Model-facing, never shown. */
+const COUNTED_OPTIONS_RULE =
+  "`options` are the options this page counts, this business first, and no others: write one `option` section for each, in that order, and never one for a product `options` does not hold. A number in the title or the page that counts the options is exactly how many `options` holds, and `which_to_choose` chooses among them only. Where `alternativesTo` names a product, the page lists alternatives to it: its row in `table` is marked as the one compared against, the `baseline` section says what it offers, and it is never counted, written as an `option` or chosen in the verdict. Where `alternativesTo` is null, write no `baseline` section.";
+
 /** SPEC §7 (owner, 2026-10-10; issue 1390): a section is headed by the
  *  question buyers were seen to ask, where the pack holds one it answers. */
 const ASKED_HEADINGS_RULE =
@@ -229,7 +233,7 @@ function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<s
     voice: a.pack.business.voice,
     pack: a.pack,
     titleRules: titleBrief(a.pack),
-    ...(table === null ? {} : { table: table.markdown }),
+    ...(table === null ? {} : { table: table.markdown, options: table.options, alternativesTo: table.baseline }),
     // Issue 1390: the habits stage 4 counts, so the page is asked not to
     // write what it would be stopped for.
     avoid: AVOID_LIST,
@@ -237,7 +241,7 @@ function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<s
       ...HOUSE_RULES,
       ...(a.pack.voice === undefined ? [] : voiceRules(a.pack.voice)),
       ...(a.pack.type === "qa" || a.pack.type === "update" || a.pack.questions.length === 0 ? [] : [ASKED_HEADINGS_RULE]),
-      table === null ? WRITTEN_TABLE_RULE : BUILT_TABLE_RULE,
+      ...(table === null ? [WRITTEN_TABLE_RULE] : [BUILT_TABLE_RULE, COUNTED_OPTIONS_RULE]),
       ...languageRules(a.pack.locale?.language ?? "en"),
     ],
     ...extra,

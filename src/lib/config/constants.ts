@@ -2014,6 +2014,13 @@ export const RESEARCH = Object.freeze({
   topResults: 3,
   /** The named rivals whose own pricing and feature pages are read. */
   rivals: 4,
+  /** Issue 1508 (drafted default): a page that compares options counts at
+   *  most this many, the business among them, so it reads the own pages of
+   *  `options - 1` rivals, and of the product an alternatives page is about
+   *  beside them. A rival here is one in force or a product named on
+   *  `namedOn` of the top results read. */
+  options: 8,
+  namedOn: 2,
   /** D56 (issue 1282): a rival's pages are found in its own sitemap — at
    *  most this many addresses of it, from this many sitemaps of an index. */
   sitemaps: 3,
