@@ -65,6 +65,10 @@ function engineDouble(): Record<string, unknown> {
       engineCalls.count += 1;
       return { withdrawn: 0 };
     },
+    repairMovedPages: async () => {
+      engineCalls.count += 1;
+      return { moved: 0 };
+    },
     duePublishRetries: async () => {
       engineCalls.count += 1;
       return [{ draftId: "d1", destinationId: "dest-1" }];

@@ -46,7 +46,11 @@
 // **It first re-reads the live pages** (SPEC §7, issue 1485): a page written
 // before the rival rules that fails them is withdrawn before anything is
 // attempted. 0¢, and a tick that withdraws a page has run.
-import { duePublishApprovals, duePublishRetries, publishApproved, recheckLivePages } from "@/jobs/engine";
+//
+// **Then it finishes any retarget's move** (SPEC §7, issue 1487): a hosted
+// page whose new search names another address is moved there, and its old
+// address answers 301. 0¢, and a tick that moves a page has run.
+import { duePublishApprovals, duePublishRetries, publishApproved, recheckLivePages, repairMovedPages } from "@/jobs/engine";
 import { fanOut, settle } from "./fan-out";
 import type { JobDefinition, Outcome } from "./types";
 
@@ -65,6 +69,7 @@ export const publishRetry: JobDefinition = {
   idempotencyKey: [],
   async run(input): Promise<Outcome> {
     const { withdrawn } = await recheckLivePages(input.now);
+    const { moved } = await repairMovedPages(input.now);
     const retries = await duePublishRetries(input.now);
     const approvals = await duePublishApprovals(input.now);
     // One attempt per page per tick: a page is in `failed` or waiting on its
@@ -74,7 +79,7 @@ export const publishRetry: JobDefinition = {
     // An hour with nothing due is the ordinary case and is recorded as
     // such — never as a run, which would make the observability line say
     // work happened on every hour of every day.
-    if (due.length === 0) return withdrawn > 0 ? { outcome: "ran", subjectId: null } : { outcome: "skipped", subjectId: null, reason: "not-due" };
+    if (due.length === 0) return withdrawn + moved > 0 ? { outcome: "ran", subjectId: null } : { outcome: "skipped", subjectId: null, reason: "not-due" };
 
     const results = await fanOut(due, (page) => publishApproved(page));
     return settle(results, null);

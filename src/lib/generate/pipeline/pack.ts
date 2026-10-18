@@ -88,8 +88,10 @@ export interface PackLivePage {
   /** Why it is refreshed (issue 1139), as the row records it. */
   why: string | null;
   /** Issue 1391: the newer live page this refresh adds one sentence linking
-   *  to. Present on a refresh planned for that, and only there. */
-  linkTo?: { url: string; title: string };
+   *  to. Present on a refresh planned for that, and only there. Issue
+   *  1487: `replaces` is the old address of a page that moved, which the
+   *  live page links; code has already pointed that link at `url`. */
+  linkTo?: { url: string; title: string; replaces?: string };
 }
 
 /** One fact the pack holds that the top results do not state (D12). */
@@ -540,7 +542,9 @@ function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">,
       const fresh = [...pack.facts, ...pack.claims].filter((fact) => !live.includes(fold(fact.passage)));
       // Issue 1391: a newer page of the site the live one does not link is
       // what is new to say on a refresh planned to link it.
-      const newer = pack.live.linkTo !== undefined && !pack.live.markdown.includes(pack.live.linkTo.url) ? 1 : 0;
+      // Issue 1487: a link moved to a page's new address is what is new.
+      const linkTo = pack.live.linkTo;
+      const newer = linkTo !== undefined && (linkTo.replaces !== undefined || !pack.live.markdown.includes(linkTo.url)) ? 1 : 0;
       return fresh.length + newer >= requirement.min;
     }
   }

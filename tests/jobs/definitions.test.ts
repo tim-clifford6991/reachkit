@@ -47,6 +47,8 @@ function engineDouble(): Record<string, unknown> {
     publishDue: record("publishDue", done),
     // Issue 1485: the live pages are read again first.
     recheckLivePages: record("recheckLivePages", { withdrawn: 0 }),
+    // Issue 1487: then any retarget's move is finished.
+    repairMovedPages: record("repairMovedPages", { moved: 0 }),
     duePublishRetries: record("duePublishRetries", [{ draftId: "d1", destinationId: "dest-1" }]),
     // SPEC §7's window end rides the same tick (issue 709).
     duePublishApprovals: record("duePublishApprovals", []),
@@ -336,6 +338,7 @@ describe("publish/execute and publish/verify", () => {
     const outcome = await job.run({ data: {}, now: MONDAY_0600_UTC });
     expect(calls).toEqual([
       { fn: "recheckLivePages", arg: MONDAY_0600_UTC },
+      { fn: "repairMovedPages", arg: MONDAY_0600_UTC },
       { fn: "duePublishRetries", arg: MONDAY_0600_UTC },
       { fn: "duePublishApprovals", arg: MONDAY_0600_UTC },
       { fn: "publishApproved", arg: { draftId: "d1", destinationId: "dest-1" } },
