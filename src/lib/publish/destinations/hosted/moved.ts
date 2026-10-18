@@ -22,6 +22,9 @@ export interface AddressRow {
   /** The address this publication updates, where it is an update of one of
    *  the site's pages (`opportunities.target_ref` of an Improve row). */
   updates: string | null;
+  /** The publication this one was merged into (issue 1506): its address
+   *  answers with that page. Absent reads as none. */
+  merged_into?: string | null;
 }
 
 /** What one address on a site's host is: serving a page now, moved to
@@ -58,10 +61,15 @@ const MOVES_FOLLOWED = 8;
  * this address from another one, followed to the address it lives at now —
  * a page moved twice answers its newest address in one hop. A move whose
  * page was later taken down is not a move: the old address is `retired`,
- * as it would be had the page never moved. `none` is an address that never
- * served a page.
+ * as it would be had the page never moved. Then **merged** (issue 1506):
+ * an address whose page went into another answers with that page. `none`
+ * is an address that never served a page.
  */
 export function addressOf(rows: readonly AddressRow[], slug: string): HostedAddress {
+  return addressAt(rows, slug, 0);
+}
+
+function addressAt(rows: readonly AddressRow[], slug: string, depth: number): HostedAddress {
   const liveAt = (at: string): AddressRow | undefined =>
     rows.find(
       (row) => row.live_url !== null && slugOf(row.live_url) === at && row.published_at !== null && (row.unpublished_at ?? null) === null
@@ -90,6 +98,20 @@ export function addressOf(rows: readonly AddressRow[], slug: string): HostedAddr
     at = to;
     const there = liveAt(to);
     if (there !== undefined) return { state: "moved", publicationId: there.id, slug: to };
+  }
+
+  // Issue 1506: an address merged into another page answers with that page,
+  // wherever it lives now — moved on, or itself merged. A merge whose page
+  // was later taken down is not one: the address is retired.
+  const merged = rows
+    .filter((row) => row.live_url !== null && slugOf(row.live_url) === slug && (row.merged_into ?? null) !== null)
+    .sort((x, y) => (y.published_at ?? "").localeCompare(x.published_at ?? ""))[0];
+  const into = merged === undefined ? undefined : rows.find((row) => row.id === merged.merged_into);
+  const intoSlug = into?.live_url == null ? null : slugOf(into.live_url);
+  if (intoSlug !== null && intoSlug !== slug && depth < MOVES_FOLLOWED) {
+    const there = addressAt(rows, intoSlug, depth + 1);
+    if (there.state === "live" && there.publicationId !== null) return { state: "moved", publicationId: there.publicationId, slug: intoSlug };
+    if (there.state === "moved") return there;
   }
 
   const retired = rows.some(

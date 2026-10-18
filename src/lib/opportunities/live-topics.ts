@@ -27,14 +27,20 @@
 //     planned as a refresh; so is every page on a host the weekly
 //     measurement cannot see (issue 316), since a page there could rank
 //     unseen — never retire blind;
-//   - where it would be withdrawn and another live page of the site is in
-//     its cluster, or another live page already targets the topic it would
-//     be retargeted to, it is a 301 to that page. No store yet records a
-//     301 to another page, so such a page stays live and is named in the
-//     run's report; it never answers 410 while a page is that close;
+//   - is merged into another live page of the site — its address answering
+//     301 there (`merged_into`, through the move of issue 1487, whose link
+//     refresh repoints the pages that linked it) — where another live page
+//     of its cluster now passes the topic rules (owner, 2026-10-18: B "stays
+//     until a D50 comparison replaces it, then 301s to it"), where another
+//     live page already targets the topic it would be retargeted to (one
+//     page a search), or where it would be withdrawn and another live page
+//     is in its cluster. A page on the customer's own host (WordPress) has
+//     no 301 of ours: it stays live and is named in the run's report;
 //   - and otherwise is withdrawn through `unpublish()` by the system actor
 //     `content/recheck`, every live version at its address, and a hosted
-//     address then answers 410 (issue 1458).
+//     address then answers 410 (issue 1458). A live page of the site that
+//     links it shows the link's words without the link from then on
+//     (`withoutLinksTo`, at render).
 //
 // A page is never corrected by a direct row edit (ADR-080), and a page the
 // customer edited is theirs and never read here. Nothing records a visitor
@@ -77,6 +83,10 @@ export interface LiveSignals {
 /** One live page, with the row it was written for. */
 export interface LiveTopicPage {
   draftId: string;
+  /** The publication the address serves. */
+  publicationId: string;
+  /** On ReachKit's hosted blog, whose addresses answer 301 and 410. */
+  hosted: boolean;
   liveUrl: string;
   opportunity: Opportunity;
   signals: LiveSignals;
@@ -114,8 +124,8 @@ export type LiveTopicVerdict =
   | { kind: "waits"; failure: LiveTopicFailure }
   /** Kept for what it already earns, and planned as a refresh. */
   | { kind: "refresh"; failure: LiveTopicFailure; signals: readonly KeepSignal[] }
-  /** Another live page is the one this would 301 to. */
-  | { kind: "redirect"; failure: LiveTopicFailure; into: string }
+  /** Merged into another live page, its address answering 301 there. */
+  | { kind: "redirect"; failure: LiveTopicFailure; into: string; why: "replaced" | "same_search" | "closest" }
   | { kind: "withdraw"; failure: LiveTopicFailure };
 
 /** Why the page's topic would not be chosen today, or `null` where it would.
@@ -174,23 +184,35 @@ export function liveTopicVerdict(page: LiveTopicPage, site: LiveTopicSite, now: 
     // One page a search: where another live page already targets it, this
     // one is merged into that page rather than made a second.
     const holder = others.find((other) => queryKey(other.opportunity.targetQuery ?? "") === queryKey(to.targetQuery ?? ""));
-    return holder === undefined ? { kind: "retarget", failure, to } : { kind: "redirect", failure, into: holder.liveUrl };
+    return holder === undefined ? { kind: "retarget", failure, to } : { kind: "redirect", failure, into: holder.liveUrl, why: "same_search" };
   }
+  // A page of its cluster that passes the topic rules has replaced it.
+  const sameCluster = cluster === null ? [] : others.filter((other) => other.opportunity.clusterKey === cluster);
+  const replacement = sameCluster.find((other) => liveTopicFailure(other, site) === null);
+  if (replacement !== undefined) return { kind: "redirect", failure, into: replacement.liveUrl, why: "replaced" };
   const judged = page.signals.verdicts.some((verdict) => verdict !== "too_early");
   if (!judged && now.getTime() - page.signals.firstLive.getTime() < RETIRE_MIN_AGE_DAYS * DAY_MS) return { kind: "waits", failure };
   const signals = keepSignals(page, site);
   if (signals.length > 0) return { kind: "refresh", failure, signals };
-  const close = cluster === null ? undefined : others.find((other) => other.opportunity.clusterKey === cluster);
-  return close === undefined ? { kind: "withdraw", failure } : { kind: "redirect", failure, into: close.liveUrl };
+  const close = sameCluster[0];
+  return close === undefined ? { kind: "withdraw", failure } : { kind: "redirect", failure, into: close.liveUrl, why: "closest" };
 }
 
 export interface LiveTopicOutcome {
   checked: number;
   /** Every page that failed, with what was done or would be done, for the
    *  run's report. */
-  failed: { liveUrl: string; verdict: LiveTopicVerdict["kind"]; rule: LiveTopicFailure["rule"]; signals?: readonly KeepSignal[]; into?: string }[];
+  failed: {
+    liveUrl: string;
+    verdict: LiveTopicVerdict["kind"];
+    rule: LiveTopicFailure["rule"];
+    signals?: readonly KeepSignal[];
+    into?: string;
+    why?: "replaced" | "same_search" | "closest";
+  }[];
   withdrawn: { draftId: string; liveUrl: string; rule: LiveTopicFailure["rule"] }[];
   retargeted: { liveUrl: string; to: string }[];
+  merged: { liveUrl: string; into: string }[];
   refreshed: string[];
   /** A page whose withdrawal, retarget or refresh did not complete: read
    *  again on the next tick. */
@@ -203,6 +225,8 @@ export interface LiveTopicDeps {
   retarget: (page: LiveTopicPage, to: Opportunity, at: Date) => Promise<boolean>;
   /** Plans a refresh of the live page. */
   refresh: (page: LiveTopicPage, at: Date) => Promise<boolean>;
+  /** Merges the hosted page into another, its address answering 301. */
+  merge: (page: LiveTopicPage, into: LiveTopicPage, at: Date) => Promise<boolean>;
   withdraw: (draftId: string, at: Date) => Promise<boolean>;
 }
 
@@ -212,7 +236,7 @@ export interface LiveTopicDeps {
 export async function retireOffTopicPages(a: { now: Date; deps?: LiveTopicDeps; dry?: boolean }): Promise<LiveTopicOutcome> {
   const deps = a.deps ?? (await defaultDeps());
   const sites = await deps.sites();
-  const outcome: LiveTopicOutcome = { checked: 0, failed: [], withdrawn: [], retargeted: [], refreshed: [], stillLive: [] };
+  const outcome: LiveTopicOutcome = { checked: 0, failed: [], withdrawn: [], retargeted: [], merged: [], refreshed: [], stillLive: [] };
   for (const site of sites) {
     for (const page of site.pages) {
       outcome.checked += 1;
@@ -223,7 +247,7 @@ export async function retireOffTopicPages(a: { now: Date; deps?: LiveTopicDeps; 
         verdict: verdict.kind,
         rule: verdict.failure.rule,
         ...(verdict.kind === "refresh" ? { signals: verdict.signals } : {}),
-        ...(verdict.kind === "redirect" ? { into: verdict.into } : {}),
+        ...(verdict.kind === "redirect" ? { into: verdict.into, why: verdict.why } : {}),
       });
       if (a.dry === true) continue;
       if (verdict.kind === "retarget") {
@@ -235,6 +259,12 @@ export async function retireOffTopicPages(a: { now: Date; deps?: LiveTopicDeps; 
         const planned = site.open.some((row) => row.family === "improve" && row.targetRef === page.liveUrl);
         if (!due || planned) continue;
         if (await deps.refresh(page, a.now)) outcome.refreshed.push(page.liveUrl);
+        else outcome.stillLive.push(page.liveUrl);
+      } else if (verdict.kind === "redirect") {
+        const into = site.pages.find((other) => other.liveUrl === verdict.into);
+        // A 301 of ours is a hosted address's; the customer's own host keeps its page.
+        if (into === undefined || !page.hosted || !into.hosted) continue;
+        if (await deps.merge(page, into, a.now)) outcome.merged.push({ liveUrl: page.liveUrl, into: into.liveUrl });
         else outcome.stillLive.push(page.liveUrl);
       } else if (verdict.kind === "withdraw") {
         let down = await deps.withdraw(page.draftId, a.now);
@@ -252,6 +282,7 @@ export async function retireOffTopicPages(a: { now: Date; deps?: LiveTopicDeps; 
       failed: outcome.failed,
       withdrawn: outcome.withdrawn.map((page) => ({ url: page.liveUrl, rule: page.rule })),
       retargeted: outcome.retargeted,
+      merged: outcome.merged,
       refreshed: outcome.refreshed,
       stillLive: outcome.stillLive,
     })
@@ -264,6 +295,7 @@ export async function retireOffTopicPages(a: { now: Date; deps?: LiveTopicDeps; 
 export interface LiveRow {
   id: string;
   draft_id: string;
+  destination: string;
   live_url: string | null;
   published_at: string;
   site_id: string;
@@ -309,6 +341,9 @@ export function rankedWithin(rows: readonly { url: string; position: number }[],
   return rows.some((row) => row.position <= RETIRE_RANKED_WITHIN && canonicalUrl(row.url) === own);
 }
 
+/** The system actor of the live rechecks. */
+const RECHECK = { kind: "system", job: "content/recheck" } as const;
+
 async function defaultDeps(): Promise<LiveTopicDeps> {
   const { publishDb } = await import("@/lib/publish/db");
   const { unpublish } = await import("@/lib/publish/attempt/unpublish");
@@ -322,7 +357,7 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
       const db = publishDb();
       const live = await db
         .from<LiveRow>("publications")
-        .select(`id, draft_id, live_url, published_at, site_id, drafts(meta, opportunities(${COLUMNS}))`)
+        .select(`id, draft_id, destination, live_url, published_at, site_id, drafts(meta, opportunities(${COLUMNS}))`)
         .not("published_at", "is", null)
         .is("unpublished_at", null);
       if (live.error !== null || live.data === null) throw new Error(`live-topics: reading publications: ${live.error?.message ?? "no rows"}`);
@@ -371,6 +406,8 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
           const [newest, ...older] = address.versions;
           return {
             draftId: newest!.draft_id,
+            publicationId: newest!.id,
+            hosted: newest!.destination === "hosted",
             liveUrl: address.liveUrl,
             opportunity: address.opportunity,
             signals: {
@@ -412,8 +449,13 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
       );
       return outcome.outcome === "created";
     },
+    async merge(page, into, at) {
+      const { moveAddress } = await import("@/lib/publish/attempt/move");
+      await moveAddress({ from: page.liveUrl, to: { publicationId: into.publicationId, url: into.liveUrl }, at, by: RECHECK, merge: true });
+      return true;
+    },
     async withdraw(draftId, at) {
-      const result = await unpublish({ draftId, by: { kind: "system", job: "content/recheck" }, at });
+      const result = await unpublish({ draftId, by: RECHECK, at });
       return result.ok;
     },
   };

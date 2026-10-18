@@ -30,6 +30,8 @@ const market = stored.market as unknown as MarketConclusion;
 
 const pages: LiveTopicPage[] = stored.pages.map((page) => ({
   draftId: page.draft_id,
+  publicationId: page.publication_id,
+  hosted: page.destination === "hosted",
   liveUrl: page.live_url,
   opportunity: readOpportunity(page.row as unknown as OpportunityRow),
   signals: {
@@ -84,6 +86,7 @@ describe("the dry report on the stored rows of 18 October: A and B follow D53", 
       retarget: async () => (acted.push("retarget"), true),
       refresh: async () => (acted.push("refresh"), true),
       withdraw: async () => (acted.push("withdraw"), true),
+      merge: async () => (acted.push("merge"), true),
     };
     const report = await retireOffTopicPages({ now: NOW, deps, dry: true });
     expect(report.failed).toEqual([
@@ -95,6 +98,54 @@ describe("the dry report on the stored rows of 18 October: A and B follow D53", 
 
   it("past 90 days B is still never withdrawn on the content host, which the weekly measurement may not see (#316): it is kept and refreshed", () => {
     expect(liveTopicVerdict(page("B"), site(), LATER)).toEqual({ kind: "refresh", failure: { rule: "no_demand" }, signals: ["host_unmeasured"] });
+  });
+});
+
+describe("B stays until a comparison replaces it, then 301s to it (owner, 2026-10-18)", () => {
+  /** A live comparison of the business with a rival people search for, in
+   *  B's cluster: the comparison D53 meant (D50). */
+  const comparison: LiveTopicPage = {
+    ...page("B"),
+    draftId: "comparison",
+    publicationId: "comparison-publication",
+    liveUrl: "https://content.reachkit.app/reachkit-vs-profound",
+    opportunity: { ...page("B").opportunity, id: "comparison-row", targetQuery: "reachkit vs profound" },
+  };
+
+  it("with the comparison live, B is merged into it the day it fails, young or not, hosted or not measured", async () => {
+    const both = site({ pages: [page("B"), comparison] });
+    expect(liveTopicVerdict(page("B"), both, NOW)).toEqual({ kind: "redirect", failure: { rule: "no_demand" }, into: comparison.liveUrl, why: "replaced" });
+    const merged: [string, string][] = [];
+    const outcome = await retireOffTopicPages({
+      now: NOW,
+      deps: {
+        sites: async () => [both],
+        retarget: async () => true,
+        refresh: async () => true,
+        withdraw: async () => true,
+        merge: async (from, into) => (merged.push([from.liveUrl, into.publicationId]), true),
+      },
+    });
+    expect(merged).toEqual([[page("B").liveUrl, "comparison-publication"]]);
+    expect(outcome.merged).toEqual([{ liveUrl: page("B").liveUrl, into: comparison.liveUrl }]);
+    expect(outcome.withdrawn).toEqual([]);
+  });
+
+  it("on the customer's own host there is no 301 of ours: the page stays live and is reported", async () => {
+    const own = { ...page("B"), hosted: false };
+    const merged: string[] = [];
+    const outcome = await retireOffTopicPages({
+      now: NOW,
+      deps: {
+        sites: async () => [site({ pages: [own, { ...comparison, hosted: false }] })],
+        retarget: async () => true,
+        refresh: async () => true,
+        withdraw: async () => true,
+        merge: async (from) => (merged.push(from.liveUrl), true),
+      },
+    });
+    expect(merged).toEqual([]);
+    expect(outcome.failed).toMatchObject([{ liveUrl: own.liveUrl, verdict: "redirect", why: "replaced" }]);
   });
 });
 
@@ -116,9 +167,9 @@ describe("a page is withdrawn only where nothing says it is worth keeping", () =
     expect(liveTopicVerdict(measuredB({ verdicts: ["not_working"] }), on(measuredB()), NOW)).toMatchObject({ kind: "withdraw" });
   });
 
-  it("another live page in its cluster is the 301 it would take, never a 410", () => {
-    const sibling = { ...page("D"), liveUrl: "https://reachkit.app/blog/aeo-engine-vs-maxaeo", opportunity: { ...page("D").opportunity, clusterKey: "aeo engine vs" } };
-    expect(liveTopicVerdict(measuredB(), site({ pages: [measuredB(), sibling] }), LATER)).toMatchObject({ kind: "redirect", into: sibling.liveUrl });
+  it("another live page in its cluster that fails too is the 301 it would take, never a 410", () => {
+    const sibling = { ...measuredB(), liveUrl: "https://reachkit.app/blog/reachkit-vs-maxaeo", opportunity: { ...page("B").opportunity, id: "maxaeo", targetQuery: "reachkit vs maxaeo" } };
+    expect(liveTopicVerdict(measuredB(), site({ pages: [measuredB(), sibling] }), LATER)).toMatchObject({ kind: "redirect", into: sibling.liveUrl, why: "closest" });
   });
 });
 
@@ -130,7 +181,7 @@ describe("a failing page with a ready topic in its cluster is retargeted, once p
     expect(liveTopicVerdict(page("B"), site({ open: [{ ...to, clusterKey: "other" }] }), NOW)).toMatchObject({ kind: "waits" });
     expect(liveTopicVerdict(page("B"), site({ open: [{ ...to, ready: false }] }), NOW)).toMatchObject({ kind: "waits" });
     const holder = { ...page("D"), opportunity: { ...page("D").opportunity, targetQuery: "ReachKit alternatives" } };
-    expect(liveTopicVerdict(page("B"), site({ open: [to], pages: [page("B"), holder] }), NOW)).toMatchObject({ kind: "redirect", into: holder.liveUrl });
+    expect(liveTopicVerdict(page("B"), site({ open: [to], pages: [page("B"), holder] }), NOW)).toMatchObject({ kind: "redirect", into: holder.liveUrl, why: "same_search" });
   });
 });
 
@@ -145,6 +196,7 @@ describe("the hourly run acts through unpublish and the refresh path, never a ro
         retarget: async () => true,
         refresh: async () => true,
         withdraw: async (draftId) => (withdrawn.push(draftId), draftId !== "older-b"),
+        merge: async () => true,
       },
     });
     expect(withdrawn).toEqual([b.draftId, "older-b"]);
@@ -162,6 +214,7 @@ describe("the hourly run acts through unpublish and the refresh path, never a ro
           retarget: async () => true,
           refresh: async (live) => (refreshed.push(live.liveUrl), true),
           withdraw: async () => true,
+          merge: async () => true,
         },
       });
     await run([], LATER);
@@ -177,6 +230,7 @@ describe("what the run reads", () => {
     const live = (id: string, url: string, at: string, meta: Record<string, unknown> = {}) => ({
       id,
       draft_id: `draft-${id}`,
+      destination: "hosted",
       live_url: url,
       published_at: at,
       site_id: "site",

@@ -19,6 +19,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
     liveUrlFor: address.liveUrlFor,
     liveUrlOnHost: address.liveUrlOnHost,
     tags: { site: (s: string) => `hosted:site:${s}`, page: (p: string) => `hosted:page:${p}` },
+    retiredSlugsForSite: async () => new Set<string>(),
     hostedSiteForDomain: async (domain: string) => {
       const id = sites.get(domain);
       return id === undefined ? null : { siteId: id, domain, host: `content.${domain}` };

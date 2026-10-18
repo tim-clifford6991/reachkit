@@ -35,6 +35,8 @@ const APPLIED = [
   "20260907120000_publications_seo.sql",
   // The page's own acceptance test, written at claim (#795).
   "20260916140000_publications_acceptance.sql",
+  // The page a retired address now answers with (issue 1506).
+  "20261018120000_publications_merged_into.sql",
 ];
 
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
@@ -139,6 +141,25 @@ describe("§9's idempotency key is a unique index, not a code path", () => {
         `and (conrelid = 'public.publications'::regclass or confrelid = 'public.publications'::regclass);`
     );
     expect(cascading).toEqual([]);
+  });
+});
+
+describe("a merged address names the page it answers with (issue 1506)", () => {
+  /** A claimed publication's id. */
+  function claimed(): string {
+    const draft = insertDraft();
+    const [row] = psqlRows(
+      `insert into publications (draft_id, site_id, destination, mode) values ('${draft}', '${SITE_ID}', 'hosted', 'autopilot') returning id;`
+    );
+    return row?.[0] ?? "";
+  }
+
+  it("merged_into is a nullable pointer to another publication, set only on a row out of the live set", () => {
+    expect(columnOf("publications", "merged_into")).toEqual(["uuid", "YES", "no default"]);
+    const [into, from] = [claimed(), claimed()];
+    expect(raises(`update publications set merged_into = '${into}' where id = '${from}';`)).toBe(true);
+    expect(raises(`update publications set merged_into = '${from}', unpublished_at = now() where id = '${from}';`)).toBe(true);
+    expect(raises(`update publications set merged_into = '${into}', unpublished_at = now() where id = '${from}';`)).toBe(false);
   });
 });
 

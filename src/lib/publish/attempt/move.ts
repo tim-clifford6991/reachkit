@@ -15,6 +15,10 @@
 //     links the new address by the name `pageName` gives the moved page. No
 //     live page's text is edited in place.
 //
+// A merge (issue 1506) is the same move into a page that already stands at
+// its own address: the topic recheck retires a page into the live page of
+// its cluster, and the rows it leaves name that page (`merged_into`).
+//
 // `repairMoves` runs it each hour for a retarget the move was not written
 // for — one published before issue 1487 at its old address, or one whose
 // move did not complete — and plans the link refresh of a page that was
@@ -49,6 +53,11 @@ export async function moveAddress(a: {
   at: Date;
   /** Who moved it: the actor that published the new version. */
   by: Actor;
+  /** Issue 1506: the old page went into `to`, a page written for its own
+   *  search, rather than being republished there. Nothing updates the old
+   *  address, so each row left there names `to` (`merged_into`) and the
+   *  address answers with it. */
+  merge?: boolean;
 }): Promise<void> {
   try {
     const fromSlug = slugOf(a.from);
@@ -70,7 +79,10 @@ export async function moveAddress(a: {
     if (rows.error !== null || rows.data === null) throw new Error(rows.error?.message ?? "no rows");
     const left = rows.data.filter((row) => row.id !== a.to.publicationId && isLive(row) && slugOf(row.live_url ?? "") === fromSlug);
     for (const row of left) {
-      await publishDb().from<{ id: string }>("publications").update({ unpublished_at: a.at.toISOString() }).eq("id", row.id);
+      await publishDb()
+        .from<{ id: string }>("publications")
+        .update({ unpublished_at: a.at.toISOString(), ...(a.merge === true ? { merged_into: a.to.publicationId } : {}) })
+        .eq("id", row.id);
       const moved = await transition(row.draft_id, "unpublished", a.by, { at: a.at, reason: "moved" });
       if (!moved.ok) {
         console.error(JSON.stringify({ event: "hosted_move_transition_refused", draftId: row.draft_id, refused: moved.refused, state: moved.state }));

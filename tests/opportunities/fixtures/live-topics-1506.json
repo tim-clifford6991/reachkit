@@ -167,7 +167,9 @@
         ],
         "reads": 0,
         "ranked": []
-      }
+      },
+      "publication_id": "ba67bb7e-39a2-4208-966d-b5da6af1f58e",
+      "destination": "hosted"
     },
     {
       "name": "B",
@@ -233,7 +235,9 @@
         ],
         "reads": 0,
         "ranked": []
-      }
+      },
+      "publication_id": "9fc0d3fb-6e70-4a5e-9ac1-b5ec43510253",
+      "destination": "hosted"
     },
     {
       "name": "C",
@@ -287,7 +291,9 @@
         ],
         "reads": 0,
         "ranked": []
-      }
+      },
+      "publication_id": "1fa55786-f869-4e3a-bf1a-7efd3c5fa972",
+      "destination": "hosted"
     },
     {
       "name": "D",
@@ -370,7 +376,9 @@
         ],
         "reads": 0,
         "ranked": []
-      }
+      },
+      "publication_id": "cb5ac686-4dd7-4a86-a431-aad2ee2e8a12",
+      "destination": "hosted"
     }
   ],
   "topTens": {
