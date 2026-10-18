@@ -230,6 +230,10 @@ export type Evidence =
        *  site's stored SERP for `term` showed, bought at `serpAt` — demand
        *  observed, not measured. Absent on every other topic. */
       askedBeside?: { term: string; serpAt: Date };
+      /** Issue 1520: a search ReachKit composed from the market's own
+       *  words, which needs a buyer seen asking it. Absent on every other
+       *  topic, and on a composed one derived before. */
+      composed?: true;
     }
   | {
       family: "improve";

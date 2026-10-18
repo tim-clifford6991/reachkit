@@ -49,7 +49,7 @@
 import { REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { canonicalUrl, queryKey } from "./cluster";
-import { comparisonBrands, type AskedBeside, type ComparisonBrands } from "./derive/topics";
+import { comparisonBrands, composedSearch, type AskedBeside, type ComparisonBrands, type MeasuredAnswer } from "./derive/topics";
 import { freshTopTen, OTHER_KIND_TOP_TEN, otherKindTopTen, type KindOfBusiness, type OtherKind, type TopTenRow } from "./derive/top-ten-kind";
 import type { IntentPrompt } from "./intent";
 import { comparisonWithoutAsking } from "./readiness";
@@ -102,6 +102,12 @@ export interface LiveTopicSite {
   brands: ComparisonBrands;
   prompts: readonly IntentPrompt[];
   asked: readonly AskedBeside[];
+  /** The newest measured answers to the tracked prompts (issue 1520).
+   *  Absent reads none. */
+  answers?: readonly MeasuredAnswer[];
+  /** Whether a search is one ReachKit composed from the market in force
+   *  (issue 1520). Absent reads only the row's own mark. */
+  composed?: (query: string) => boolean;
   business: KindOfBusiness | null;
   /** The stored top ten for a search, at most 30 days old, or `null`. */
   topTen: (query: string) => readonly TopTenRow[] | null;
@@ -134,7 +140,8 @@ export function liveTopicFailure(page: LiveTopicPage, site: LiveTopicSite): Live
   const row = page.opportunity;
   const query = row.targetQuery ?? "";
   if (query.trim() === "") return null;
-  if (comparisonWithoutAsking(row, { brands: site.brands, prompts: site.prompts, asked: site.asked })) return { rule: "no_demand" };
+  const evidence = { brands: site.brands, prompts: site.prompts, asked: site.asked, answers: site.answers, composed: site.composed };
+  if (comparisonWithoutAsking(row, evidence)) return { rule: "no_demand" };
   const topTen = site.topTen(query);
   const other = topTen === null ? null : otherKindTopTen(topTen, site.business);
   return other === null ? null : { rule: "other_kind", kind: other };
@@ -425,6 +432,8 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
           brands: comparisonBrands({ report, market }),
           prompts,
           asked,
+          answers: report?.prompts?.answers ?? [],
+          composed: (query) => composedSearch(query, market),
           business: market === null ? null : { kind: market.kind ?? null, serves: market.serves ?? null },
           topTen: (query) => freshTopTen(topTens.get(queryKey(query)), new Date()),
           open: open.map(readOpportunity),

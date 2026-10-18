@@ -170,6 +170,7 @@ export async function collectLateAnswers(a: {
           linked: reading.linked,
           ownUrls: reading.ownUrls,
           rivals: reading.rivals,
+          ...(reading.alternatives.length === 0 ? {} : { alternatives: reading.alternatives }),
         });
       })
     );

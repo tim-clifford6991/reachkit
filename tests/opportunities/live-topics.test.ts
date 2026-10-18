@@ -21,6 +21,7 @@ import {
 } from "../../src/lib/opportunities/live-topics";
 import { readOpportunity, type OpportunityRow } from "../../src/lib/opportunities/store";
 import type { Opportunity } from "../../src/lib/opportunities/types";
+import { measured } from "../../src/lib/measure/measured";
 import stored from "./fixtures/live-topics-1506.json";
 
 const NOW = new Date("2026-10-18T12:00:00.000Z");
@@ -109,7 +110,9 @@ describe("B stays until a comparison replaces it, then 301s to it (owner, 2026-1
     draftId: "comparison",
     publicationId: "comparison-publication",
     liveUrl: "https://content.reachkit.app/reachkit-vs-profound",
-    opportunity: { ...page("B").opportunity, id: "comparison-row", targetQuery: "reachkit vs profound" },
+    // Searched, so it passes the topic rules (issue 1520: a prompt naming
+    // the rival is no longer demand on its own).
+    opportunity: { ...page("B").opportunity, id: "comparison-row", targetQuery: "reachkit vs profound", volume: measured(90, NOW) },
   };
 
   it("with the comparison live, B is merged into it the day it fails, young or not, hosted or not measured", async () => {

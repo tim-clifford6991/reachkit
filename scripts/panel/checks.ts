@@ -17,7 +17,7 @@ import { malformedSearch, type Malformed } from "@/lib/market/questions/well-for
 import { prose } from "@/lib/measure/prose";
 import { isReadForFacts } from "@/lib/site-profile/knowledge/priority";
 import { brandOf } from "@/lib/market/questions/select";
-import { comparisonBrands, comparisonUnasked } from "@/lib/opportunities/derive/topics";
+import { alternativesOf, comparisonBrands, comparisonUnasked, composedSearch } from "@/lib/opportunities/derive/topics";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
 import type { OpportunityType } from "@/lib/opportunities/types";
 
@@ -67,13 +67,16 @@ export interface PanelTopic {
   /** Whether it is a question or related search buyers were seen asking
    *  beside the site's searches (issue 1519); absent before it. */
   asked?: boolean;
+  /** Whether it is a search ReachKit composed from the market's own words
+   *  (issue 1520); absent before it. */
+  composed?: boolean;
 }
 
 /** One stored `opportunities` row as the panel keeps it, or `null` for a
  *  row with no search (a fix). */
 export function panelTopicOf(row: Readonly<Record<string, unknown>>): PanelTopic | null {
   if (typeof row.target_query !== "string" || row.target_query === "") return null;
-  const evidence = (row.evidence ?? null) as { askedBeside?: unknown } | null;
+  const evidence = (row.evidence ?? null) as { askedBeside?: unknown; composed?: unknown } | null;
   return {
     query: row.target_query,
     status: String(row.status),
@@ -83,6 +86,7 @@ export function panelTopicOf(row: Readonly<Record<string, unknown>>): PanelTopic
     ready: typeof row.ready === "boolean" ? row.ready : null,
     unreadyReason: typeof row.unready_reason === "string" ? row.unready_reason : null,
     asked: evidence?.askedBeside !== undefined && evidence?.askedBeside !== null,
+    composed: evidence?.composed === true,
   };
 }
 
@@ -438,10 +442,20 @@ function plain(text: string): string {
   return ` ${text.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim()} `;
 }
 
+/** The names a stored run's comparisons are read by: the product's own,
+ *  with the business's plain name and domain label beside them. */
+function panelBrands(r: SiteResult): ReturnType<typeof comparisonBrands> {
+  const own = [r.siteName ?? "", brandOf(r.site.domain)].filter((name) => name.trim().length > 2);
+  const read = comparisonBrands({ report: null, market: r.market });
+  return { ...read, own: [...new Set([...read.own, ...own.map((name) => plain(name).trim())])] };
+}
+
 /**
- * Issue 1506: a "vs" that sets the business or one of its rivals against
- * another product is ready only with measured demand — a volume above zero,
- * or a tracked prompt that names one of its rivals. The product's own rule
+ * Issue 1506, as issue 1520 amended it: a "vs" that sets the business or
+ * one of its rivals against another product is ready only with observed
+ * demand — a volume above zero, buyers seen asking it, or a tracked prompt
+ * about it whose measured answer names every side. A first pass asks no
+ * tracked prompts, so a stored run holds no answer. The product's own rule
  * (`comparisonUnasked`) is applied to every open topic the pass left ready,
  * since a stored run kept the readiness of its day; the check fails where a
  * topic that names the business or a rival by its plain name, with no
@@ -452,10 +466,7 @@ export function checkComparisonDemand(r: SiteResult): CheckResult {
   const check = "a ready \"vs\" between products has measured demand";
   const own = [r.siteName ?? "", brandOf(r.site.domain)].filter((name) => name.trim().length > 2);
   const rivals = (r.market?.rivals ?? []).map((rival) => rival.name).filter((name) => name.trim().length > 2);
-  const brands = (() => {
-    const read = comparisonBrands({ report: null, market: r.market });
-    return { ...read, own: [...new Set([...read.own, ...own.map((name) => plain(name).trim())])] };
-  })();
+  const brands = panelBrands(r);
   const prompts = (r.prompts ?? []).map((prompt) => ({ text: prompt.text }));
   const versus = /(^| )(vs|versus|im vergleich zu)( |$)/u;
   const comparisons = r.topics.filter(
@@ -467,12 +478,41 @@ export function checkComparisonDemand(r: SiteResult): CheckResult {
     const text = plain(topic.query);
     const named = rivals.filter((rival) => text.includes(plain(rival)));
     if (!own.some((name) => text.includes(plain(name))) && named.length === 0) continue;
-    const asked = prompts.some((prompt) => named.some((rival) => plain(prompt.text).includes(plain(rival))));
-    if (comparisonUnasked({ query: topic.query, volume: topic.volume ?? 0, brands, prompts })) held.push(`${topic.query} — held back: no measured volume and no prompt names its rival`);
-    else if (!asked) missed.push(`${topic.query} — no measured volume and no prompt names its rival, and the rule leaves it ready`);
+    if (comparisonUnasked({ query: topic.query, volume: topic.volume ?? 0, brands, prompts })) held.push(`${topic.query} — held back: no measured volume and no measured answer names both sides`);
+    else if (topic.asked !== true) missed.push(`${topic.query} — no measured volume and no measured answer names both sides, and the rule leaves it ready`);
   }
   if (missed.length > 0) return { check, verdict: "fail", detail: `${missed.length} of ${comparisons.length} unmeasured comparisons left ready`, items: [...missed, ...held] };
   return { check, verdict: "pass", detail: `${held.length} of ${comparisons.length} unmeasured comparisons held back`, items: held };
+}
+
+/**
+ * Issue 1520: a rival's alternatives, and a search ReachKit composed from
+ * the market's own words, are ready only with observed demand — a volume
+ * above zero or buyers seen asking it (a stored run holds no measured
+ * answer). The product's rule is applied to every open topic the pass left
+ * ready; the check fails where one with no such demand would still be left
+ * ready. What the rule holds back is listed.
+ */
+export function checkObservedDemand(r: SiteResult): CheckResult {
+  const check = "a ready alternatives or composed search was seen asked";
+  const brands = panelBrands(r);
+  const candidates = r.topics
+    .filter((topic) => topic.status === "open" && topic.ready !== false && !((topic.volume ?? 0) > 0) && topic.asked !== true)
+    .map((topic) => ({
+      topic,
+      alternatives: alternativesOf(topic.query, brands) !== null,
+      composed: topic.composed === true || composedSearch(topic.query, r.market),
+    }))
+    .filter((read) => read.alternatives || read.composed);
+  const held: string[] = [];
+  const missed: string[] = [];
+  for (const { topic, alternatives, composed } of candidates) {
+    const what = alternatives ? "a rival's alternatives" : "composed";
+    if (comparisonUnasked({ query: topic.query, volume: topic.volume ?? 0, brands, prompts: [], composed })) held.push(`${topic.query} — held back: ${what}, and nobody was seen asking it`);
+    else missed.push(`${topic.query} — ${what}, nobody was seen asking it, and the rule leaves it ready`);
+  }
+  if (missed.length > 0) return { check, verdict: "fail", detail: `${missed.length} of ${candidates.length} left ready`, items: [...missed, ...held] };
+  return { check, verdict: "pass", detail: `${held.length} of ${candidates.length} held back`, items: held };
 }
 
 /**
@@ -696,7 +736,7 @@ export function checkSpend(r: SiteResult): CheckResult {
 
 export function checkSite(r: SiteResult): CheckResult[] {
   const place = checkPlace(r);
-  return [checkCategory(r), checkSearchTerm(r), checkLocale(r), checkRivals(r), checkSearches(r), checkQuestions(r), checkAudience(r), checkTopics(r), checkComparisonDemand(r), checkAskedTopics(r), checkSpend(r), checkPrompts(r), ...(place === null ? [] : [place])];
+  return [checkCategory(r), checkSearchTerm(r), checkLocale(r), checkRivals(r), checkSearches(r), checkQuestions(r), checkAudience(r), checkTopics(r), checkComparisonDemand(r), checkObservedDemand(r), checkAskedTopics(r), checkSpend(r), checkPrompts(r), ...(place === null ? [] : [place])];
 }
 
 /** A defect kind and the sites it affects, for the run's summary. */

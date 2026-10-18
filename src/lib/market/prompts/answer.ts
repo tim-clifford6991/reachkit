@@ -17,6 +17,9 @@ export interface PromptAnswerReading {
   ownUrls: readonly string[];
   /** The market's rivals the answer named or cited, by domain. */
   rivals: readonly string[];
+  /** The addresses it cited that hold "alternative", in any language the
+   *  word is spelt so ("alternatives", "alternativen") — issue 1520. */
+  alternatives: readonly string[];
   /** The answer named or cited any product at all — D33's pre-check. */
   namesABrand: boolean;
 }
@@ -68,11 +71,15 @@ export function readPromptAnswer(a: {
     if (domain === own || rivals.includes(domain)) continue;
     if (says(a.text, rival.name) || says(a.text, domain) || cited.some((host) => within(host, domain))) rivals.push(domain);
   }
+  const alternatives = [...new Set(a.citedUrls.flatMap((url) => pageOf(url) ?? []))].filter((page) =>
+    /alternativ/u.test(page.toLowerCase())
+  );
   return {
     named,
     linked,
     ownUrls: [...ownUrls],
     rivals,
+    alternatives,
     namesABrand: named || linked || rivals.length > 0 || cited.length > 0,
   };
 }
