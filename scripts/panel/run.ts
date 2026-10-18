@@ -47,11 +47,12 @@ import { verdictOf } from "@/lib/market/rivals/verify";
 import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE } from "@/lib/measure/own-fetch";
 import { runDeepPass, type PassStep } from "@/lib/scan/deep/run";
 import { parseHealth } from "@/lib/scan/health";
-import { readStoredReport } from "@/lib/scan/report";
+import { readStoredReport, type StoredReport } from "@/lib/scan/report";
+import { askedOfReport } from "@/lib/opportunities/derive/topics";
 import { storedKnowledgeOf } from "@/lib/site-profile/knowledge/store";
 import { commitOf, psql, rebuild, waitForSchema } from "../local-run.mjs";
 import { appendSpend } from "../spend-log.mjs";
-import { checkSite, countPageQuestions, defectsByKind, saidOf, type CheckResult, type PanelSite, type SiteResult, type VendorLocale } from "./checks";
+import { checkSite, countPageQuestions, defectsByKind, panelTopicOf, saidOf, type CheckResult, type PanelSite, type SiteResult, type VendorLocale } from "./checks";
 
 export interface Options {
   root: string;
@@ -289,6 +290,13 @@ function questionsOnPages(siteId: string): number | null {
   }
 }
 
+/** How many "People also ask" questions and related searches the pass's own
+ *  SERPs showed (issue 1519). */
+function askedOn(report: StoredReport): NonNullable<SiteResult["asked"]> {
+  const serps = askedOfReport(report);
+  return { peopleAlsoAsk: serps.reduce((sum, serp) => sum + serp.peopleAlsoAsk.length, 0), related: serps.reduce((sum, serp) => sum + serp.related.length, 0) };
+}
+
 /**
  * What a finished pass left in the local database, as the panel's result
  * and its checks. It buys nothing and writes nothing, so a pass whose run
@@ -342,16 +350,8 @@ export async function collect(a: { site: PanelSite; bought: readonly FetchRow[];
     knowledgePages: knowledge.pages.length,
     questions: [...new Set(knowledge.pages.flatMap((page) => page.reading.questions))],
     audience: [...new Set(knowledge.pages.flatMap((page) => page.reading.audience))],
-    topics: stored.topics
-      .filter((row) => typeof row.target_query === "string" && row.target_query !== "")
-      .map((row) => ({
-        query: row.target_query as string,
-        status: String(row.status),
-        type: String(row.type),
-        fit: typeof row.business_fit === "number" ? row.business_fit : null,
-        volume: typeof row.volume === "number" ? row.volume : null,
-        ready: typeof row.ready === "boolean" ? row.ready : null,
-      })),
+    topics: stored.topics.flatMap((row) => panelTopicOf(row) ?? []),
+    ...(report === null ? {} : { asked: askedOn(report) }),
     cents: Object.values(costBySource).reduce((sum, paid) => sum + paid, 0),
     costBySource,
     // D67: where the pass stored the business as serving, and what its own
@@ -460,7 +460,7 @@ function markdown(a: { o: Options; runs: readonly SiteRun[]; notRun: readonly Pa
     out.push(`- **Knowledge-base audience (${result.audience.length}):** ${result.audience.slice(0, 8).join("; ") || "none"}`);
     out.push(`- **Knowledge-base questions (${result.questions.length}):** ${result.questions.slice(0, 12).join(" · ") || "none"}${typeof result.pageQuestions === "number" ? `; the site's own pages ask ${result.pageQuestions}` : ""}`);
     const open = result.topics.filter((topic) => topic.status === "open");
-    out.push(`- **Topics (${open.length} open of ${result.topics.length}):** ${open.map((topic) => `${topic.query} (${topic.type}, ${topic.volume ?? "no volume"}${topic.fit === null ? "" : `, fit ${topic.fit}`}${topic.ready === false ? ", held back" : ""})`).join("; ") || "none"}`);
+    out.push(`- **Topics (${open.length} open of ${result.topics.length}):** ${open.map((topic) => `${topic.query} (${topic.type}, ${topic.volume ?? "no volume"}${topic.fit === null ? "" : `, fit ${topic.fit}`}${topic.ready === false ? `, held back${topic.unreadyReason ? ` (${topic.unreadyReason})` : ""}` : ""})`).join("; ") || "none"}`);
     out.push(`- **Cost:** ${cents(result.cents)} in ${run.seconds}s — ${Object.entries(result.costBySource).sort((x, y) => y[1] - x[1]).map(([source, paid]) => `${source} ${cents(paid)}`).join(", ") || "nothing bought"}${run.evidenceLoaded === 0 ? "" : `; ${run.evidenceLoaded} stored vendor reads loaded`}`);
     const said = saidOf(run.events);
     if (said.length > 0) out.push(`- **The pass said:** ${said.join("; ")}`);
@@ -514,6 +514,7 @@ function storedRuns(file: string, panel: readonly PanelSite[]): { runs: SiteRun[
       ...(rest.area === undefined ? {} : { area: rest.area }),
       ...(rest.resultDomains === undefined ? {} : { resultDomains: rest.resultDomains }),
       ...(rest.prompts === undefined ? {} : { prompts: rest.prompts }),
+      ...(rest.asked === undefined ? {} : { asked: rest.asked }),
     };
     runs.push({ result, checks: checkSite(result), health: health ?? [], events: events ?? [], seconds: seconds ?? 0, evidenceLoaded: evidenceLoaded ?? 0 });
   }

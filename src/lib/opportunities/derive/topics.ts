@@ -13,9 +13,10 @@
 //   `proposedTopics`  the searches a pass proposes beside the twelve it
 //                     measured: the market's own vocabulary — the buyer, the
 //                     job, the synonyms, the not-our-market contrasts and
-//                     the rivals — and the searches the pass read but did
-//                     not ask (its market set, below the volume floor
-//                     included).
+//                     the rivals — what buyers were seen asking beside
+//                     the site's searches (issue 1519) — and the searches
+//                     the pass read but did not ask (its market set, below
+//                     the volume floor included).
 //
 // A proposal is not yet a candidate. The pass's one fit judgement
 // (`derive/fit.ts`) scores it, and only one at fit 3 is written down: "a
@@ -23,7 +24,7 @@
 // zero-volume problem and product-anchored searches" (owner, 2026-10-03).
 import { PRICE_FILLER, SHAPES, languagePack } from "@/lib/locale/language";
 import type { Language } from "@/lib/locale/locales";
-import { EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
+import { ASKED_TOPICS, EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
 import { comparisonsOf, ownSearched, searched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { brandOf, classifyIntent, ownBrandTokens } from "@/lib/market/questions/select";
@@ -256,6 +257,9 @@ export interface ProposedTopic {
   volume: number | null;
   /** The rival the search names, where it names one. */
   rival: string | null;
+  /** Where buyers were seen asking it (issue 1519): the search whose SERP
+   *  showed it and when that SERP was bought. */
+  asked?: { term: string; serpAt: Date };
 }
 
 /** A phrase from the market as a search would carry it: one line, no closing
@@ -332,6 +336,57 @@ export interface AskedBeside {
   term: string;
   peopleAlsoAsk: readonly string[];
   related: readonly string[];
+  /** When the SERP was bought (issue 1519). Absent where the reader did
+   *  not say. */
+  at?: Date;
+}
+
+/** A "People also ask" question or a related search, as a topic (issue
+ *  1519): the search it was seen beside and when that SERP was bought. */
+export interface AskedTopic {
+  query: string;
+  term: string;
+  serpAt: Date;
+}
+
+/** The SERPs the report's own measured searches bought, as what buyers were
+ *  seen asking beside each (issue 1519). Nothing is bought. */
+export function askedOfReport(report: Pick<StoredReport, "questions" | "serps">): AskedBeside[] {
+  if (report.questions.kind === "unmeasured") return [];
+  return report.questions.value.flatMap((question, index) => {
+    const serp = report.serps[index];
+    if (serp === undefined || serp.kind === "unmeasured") return [];
+    return [{ term: question.search.keyword, peopleAlsoAsk: serp.value.peopleAlsoAsk ?? [], related: serp.value.relatedSearches ?? [], at: serp.at }];
+  });
+}
+
+/**
+ * SPEC §6 (issue 1519): the questions and related searches buyers were seen
+ * asking beside the site's searches, as topics: each SERP's "People also
+ * ask" first, one from each SERP in turn so no one search fills the list,
+ * then its related searches the same way. One line each, no closing
+ * punctuation, at most `ASKED_TOPICS.maxWords` words, never the SERP's own
+ * search, distinct, from a SERP no older than `ASKED_TOPICS.maxAgeDays`,
+ * and at most `ASKED_TOPICS.max`. Pure.
+ */
+export function askedTopics(asked: readonly AskedBeside[], now: Date): AskedTopic[] {
+  const since = now.getTime() - ASKED_TOPICS.maxAgeDays * 86_400_000;
+  const fresh = asked.filter((serp) => serp.at === undefined || serp.at.getTime() >= since);
+  const out: AskedTopic[] = [];
+  const seen = new Set(fresh.map((serp) => queryKey(serp.term)));
+  for (const list of [(serp: AskedBeside) => serp.peopleAlsoAsk, (serp: AskedBeside) => serp.related]) {
+    const longest = Math.max(0, ...fresh.map((serp) => list(serp).length));
+    for (let rank = 0; rank < longest; rank += 1) {
+      for (const serp of fresh) {
+        const text = list(serp)[rank];
+        const query = text === undefined ? null : phrase(text, ASKED_TOPICS.maxWords);
+        if (query === null || seen.has(query) || out.length >= ASKED_TOPICS.max) continue;
+        seen.add(query);
+        out.push({ query, term: serp.term, serpAt: serp.at ?? now });
+      }
+    }
+  }
+  return out;
 }
 
 /** Whether `query` is something buyers were seen asking beside another
@@ -399,6 +454,10 @@ export function proposedTopics(a: {
   /** The language the site's searches are in (D66): the searches written
    *  here from the market's own words are written in it. Absent is English. */
   language?: Language;
+  /** What buyers were seen asking beside the site's searches
+   *  (`askedTopics`, issue 1519), after the market's own names and before
+   *  the market set it read. Absent reads as none. */
+  asked?: readonly AskedTopic[];
 }): ProposedTopic[] {
   const { own, rivals } = brandsOf(a);
   const brands = [...own, ...rivals];
@@ -414,7 +473,7 @@ export function proposedTopics(a: {
   for (const [search, volume] of Object.entries(a.market?.demand?.searches ?? {})) {
     if (volume > 0 && !volumes.has(queryKey(search))) volumes.set(queryKey(search), volume);
   }
-  const add = (query: string, source: ProposedTopic["source"], rival: string | null): void => {
+  const add = (query: string, source: ProposedTopic["source"], rival: string | null, asked?: ProposedTopic["asked"]): void => {
     const key = queryKey(query);
     if (key === "" || seen.has(key) || out.length >= a.max) return;
     if (rivalBrandOnly(key, { market: a.market, own, rivals })) return;
@@ -424,7 +483,7 @@ export function proposedTopics(a: {
     // pass read demand for the search itself.
     if (!volumes.has(key) && comparisonWithoutDemand(key, { market: a.market, own })) return;
     seen.add(key);
-    out.push({ query: key, source, volume: volumes.get(key) ?? null, rival });
+    out.push({ query: key, source, volume: volumes.get(key) ?? null, rival, ...(asked === undefined ? {} : { asked }) });
   };
 
   for (const comparison of a.comparisons ?? []) add(comparison.query, "product", comparison.rival);
@@ -464,6 +523,15 @@ export function proposedTopics(a: {
     }
     // The problem the product is hired for.
     if (job !== null) add(pack.jobSearch(job), "problem", null);
+  }
+
+  // Issue 1519: what buyers were seen asking beside the site's searches —
+  // on the market in force (D59), and never a rival's name asked about as a
+  // word (issue 1506).
+  for (const topic of a.asked ?? []) {
+    if (noLongerRelevant(topic.query, { market: a.market, own }) !== null) continue;
+    if (names(normalise(topic.query), rivals) && SHAPES.wordSense.test(normalise(topic.query))) continue;
+    add(topic.query, sourceOf(topic.query, { brands }), null, { term: topic.term, serpAt: topic.serpAt });
   }
 
   // What the pass read and did not ask: its market set, largest first, at
@@ -520,6 +588,7 @@ export function candidateFor(
       url: unmeasured<string>("not_attempted", at),
       position: unmeasured<number>("not_attempted", at),
     },
+    ...(topic.asked === undefined ? {} : { askedBeside: topic.asked }),
   };
   return {
     siteId: a.siteId,

@@ -1290,6 +1290,14 @@ export const TOPIC_FIT = Object.freeze({
   gate: 2, writeAt: 3, topShare: 0.25, topMin: 3, maxCandidates: 80,
 } as const);
 
+/** SPEC §6 *Topics from what buyers were seen asking* (issue 1519): the
+ *  most "People also ask" questions and related searches one pass proposes
+ *  (inside `TOPIC_FIT.maxCandidates`), the words one may run to, and how
+ *  old a stored SERP may be. Drafted; the owner may correct them. */
+export const ASKED_TOPICS = Object.freeze({
+  max: 24, maxWords: 12, maxAgeDays: 30,
+} as const);
+
 export const COHERENCE = Object.freeze({                    // BP-028 · REQ-094 c2 · BUILD §6.7 step 5
   minMeasuredSearches: 3, shareDivisor: 4, minAppearances: 2,
 } as const);

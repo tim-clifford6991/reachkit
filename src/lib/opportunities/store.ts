@@ -621,8 +621,8 @@ export function supabaseOpportunityStore(): OpportunityStore {
     async askedBeside(siteId, days) {
       const since = new Date(Date.now() - days * 86_400_000).toISOString();
       const { data, error } = await untyped()
-        .from<{ cache_key: string; payload: unknown }>("fetches")
-        .select("cache_key, payload")
+        .from<{ cache_key: string; payload: unknown; created_at: string }>("fetches")
+        .select("cache_key, payload, created_at")
         .like("cache_key", `%|site:${siteId}|paa`)
         .gte("created_at", since);
       if (error) throw new Error(`opportunities.askedBeside: ${error.message}`);
@@ -633,7 +633,9 @@ export function supabaseOpportunityStore(): OpportunityStore {
           | undefined;
         const strings = (value: unknown) => (Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);
         const term = row.cache_key.split("|")[0] ?? "";
-        return term === "" ? [] : [{ term, peopleAlsoAsk: strings(serp?.peopleAlsoAsk), related: strings(serp?.relatedSearches) }];
+        return term === ""
+          ? []
+          : [{ term, peopleAlsoAsk: strings(serp?.peopleAlsoAsk), related: strings(serp?.relatedSearches), at: new Date(row.created_at) }];
       });
     },
 

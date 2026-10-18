@@ -10,7 +10,7 @@
 // Plain data only: no database, no network, and of the product only its
 // types, its pinned bounds and its pure rules, so the checks are tested on
 // fixtures.
-import { KNOWLEDGE_BASE } from "@/lib/config/constants";
+import { CONTENT_MIX, KNOWLEDGE_BASE } from "@/lib/config/constants";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { isListingHost } from "@/lib/market/rivals/domains";
 import { malformedSearch, type Malformed } from "@/lib/market/questions/well-formed";
@@ -18,6 +18,8 @@ import { prose } from "@/lib/measure/prose";
 import { isReadForFacts } from "@/lib/site-profile/knowledge/priority";
 import { brandOf } from "@/lib/market/questions/select";
 import { comparisonBrands, comparisonUnasked } from "@/lib/opportunities/derive/topics";
+import { contentTypeOf } from "@/lib/opportunities/content-type";
+import type { OpportunityType } from "@/lib/opportunities/types";
 
 export interface PanelSite {
   domain: string;
@@ -59,6 +61,29 @@ export interface PanelTopic {
   /** Whether the pass left it ready to fill a day; `null` or absent where a
    *  stored result did not record it. */
   ready?: boolean | null;
+  /** Why the pass held it back (`unready_reason`), `null` where it is ready;
+   *  absent where a stored result did not record it (issue 1519). */
+  unreadyReason?: string | null;
+  /** Whether it is a question or related search buyers were seen asking
+   *  beside the site's searches (issue 1519); absent before it. */
+  asked?: boolean;
+}
+
+/** One stored `opportunities` row as the panel keeps it, or `null` for a
+ *  row with no search (a fix). */
+export function panelTopicOf(row: Readonly<Record<string, unknown>>): PanelTopic | null {
+  if (typeof row.target_query !== "string" || row.target_query === "") return null;
+  const evidence = (row.evidence ?? null) as { askedBeside?: unknown } | null;
+  return {
+    query: row.target_query,
+    status: String(row.status),
+    type: String(row.type),
+    fit: typeof row.business_fit === "number" ? row.business_fit : null,
+    volume: typeof row.volume === "number" ? row.volume : null,
+    ready: typeof row.ready === "boolean" ? row.ready : null,
+    unreadyReason: typeof row.unready_reason === "string" ? row.unready_reason : null,
+    asked: evidence?.askedBeside !== undefined && evidence?.askedBeside !== null,
+  };
 }
 
 export interface SiteResult {
@@ -108,6 +133,9 @@ export interface SiteResult {
   /** The tracked prompts the market yields (D69): a first pass asks none,
    *  so they are generated here, at 0¢. Absent on a run stored before D69. */
   prompts?: readonly { kind: string; text: string }[];
+  /** How many "People also ask" questions and related searches the pass's
+   *  own SERPs showed (issue 1519). Absent on a run stored before it. */
+  asked?: { peopleAlsoAsk: number; related: number };
 }
 
 export type Verdict = "pass" | "fail" | "review";
@@ -447,6 +475,30 @@ export function checkComparisonDemand(r: SiteResult): CheckResult {
   return { check, verdict: "pass", detail: `${held.length} of ${comparisons.length} unmeasured comparisons held back`, items: held };
 }
 
+/**
+ * Issue 1519: where the pass's SERPs showed "People also ask", at least
+ * `CONTENT_MIX.NON_COMMERCIAL_MIN` open topics that answer rather than sell
+ * — a Q&A, a how-to or documentation — are left ready. Each such topic held
+ * back is listed with its reason. A run stored before the SERPs' questions
+ * were counted is read by hand.
+ */
+export function checkAskedTopics(r: SiteResult): CheckResult {
+  const check = "where the SERPs ask, three answering topics are ready";
+  const want = CONTENT_MIX.NON_COMMERCIAL_MIN;
+  if (r.asked === undefined) return { check, verdict: "review", detail: "this run did not count its SERPs' questions", items: [] };
+  if (r.asked.peopleAlsoAsk === 0) return { check, verdict: "pass", detail: "its SERPs showed no \"People also ask\"", items: [] };
+  const answering = r.topics.filter((topic) => {
+    const type = contentTypeOf({ type: topic.type as OpportunityType, targetQuery: topic.query });
+    return topic.status === "open" && type !== null && (CONTENT_MIX.NON_COMMERCIAL_TYPES as readonly string[]).includes(type);
+  });
+  const ready = answering.filter((topic) => topic.ready === true);
+  const held = answering
+    .filter((topic) => topic.ready !== true)
+    .map((topic) => `${topic.query} — held back: ${topic.unreadyReason ?? "reason not recorded"}`);
+  const detail = `${ready.length} answering topics ready of ${answering.length}, from ${r.asked.peopleAlsoAsk} "People also ask" questions`;
+  return { check, verdict: ready.length >= want ? "pass" : "fail", detail, items: held };
+}
+
 // ── 5. The knowledge base's questions ──────────────────────────────────────
 
 const ASKS_RE =
@@ -644,7 +696,7 @@ export function checkSpend(r: SiteResult): CheckResult {
 
 export function checkSite(r: SiteResult): CheckResult[] {
   const place = checkPlace(r);
-  return [checkCategory(r), checkSearchTerm(r), checkLocale(r), checkRivals(r), checkSearches(r), checkQuestions(r), checkAudience(r), checkTopics(r), checkComparisonDemand(r), checkSpend(r), checkPrompts(r), ...(place === null ? [] : [place])];
+  return [checkCategory(r), checkSearchTerm(r), checkLocale(r), checkRivals(r), checkSearches(r), checkQuestions(r), checkAudience(r), checkTopics(r), checkComparisonDemand(r), checkAskedTopics(r), checkSpend(r), checkPrompts(r), ...(place === null ? [] : [place])];
 }
 
 /** A defect kind and the sites it affects, for the run's summary. */
