@@ -9,7 +9,8 @@
 //   `market_comparison`  the market compared — a "best X", a "top X", a
 //                        comparison no brand anchors. Favourable framing,
 //                        never a self-ranked "#1 best" (`honest_row`).
-//   `answer`             a question answered.
+//   `answer`             a question answered — "X vs Y" between two
+//                        category terms included (issue 1506).
 //
 // Decided in code from what the row already stores — its type, its search
 // and the source the pass gave it (§6, issue 1134) — never by a model, and
@@ -31,6 +32,7 @@ export const PAGE_TYPES: readonly PageType[] = Object.freeze(["product", "market
  *  found through — an AI-answer gap for "acme alternatives" is still a page
  *  about the product. */
 const ANCHORED_SHAPES = SHAPES.anchored;
+const VERSUS = SHAPES.versus;
 
 /** `null` for a row that writes no new page of ReachKit's: an Improve page
  *  is the customer's own, and a Fix has none. A live page of ours rewritten
@@ -43,6 +45,9 @@ export function pageTypeOf(
   if (o.pageType !== undefined && o.pageType !== null) return o.pageType;
   const source = o.source ?? null;
   if (source === "best_x") return "market_comparison";
+  // Issue 1506: a "vs" between two category terms names no product
+  // (`sourceOf` read it as `category`), so it is a question answered.
+  if (source === "category" && VERSUS.test((o.targetQuery ?? "").toLowerCase())) return "answer";
   if (source === "product" || source === "problem") return "product";
   if (ANCHORED_SHAPES.test((o.targetQuery ?? "").toLowerCase())) return "product";
   return contentTypeOf(o) === "listicle" ? "market_comparison" : "answer";

@@ -39,7 +39,9 @@ import type {
 } from "./types";
 import { OUTSIZED, type PageType } from "./types";
 import { isPausedType } from "./paused";
-import { topTensOf } from "./cluster";
+import { topTenRowsOf, topTensOf } from "./cluster";
+import type { TopTenRead } from "./derive/top-ten-kind";
+import type { AskedBeside } from "./derive/topics";
 import { earnGroundingOf, NO_EARN_GROUNDING, type EarnGrounding } from "./earn-grounding";
 import type { NotWorkingVerdict } from "./suppression";
 
@@ -161,6 +163,14 @@ export interface OpportunityStore {
    *  over an earlier one's (#1131) — what a held row's search is compared
    *  by. Only the questions and SERPs are read, never the whole report. */
   topTens(scanIds: readonly string[]): Promise<ReadonlyMap<string, readonly string[]>>;
+  /** The same top tens with each result's domain, address and title, and
+   *  when the scan bought them (issue 1506). Optional: a store that cannot
+   *  answer reads no top ten, and no row is held for its make-up. */
+  topTenRows?(scanIds: readonly string[]): Promise<ReadonlyMap<string, TopTenRead>>;
+  /** D62's store (issue 1506): the "People also ask" and related searches
+   *  of the SERPs this site's research read, each with its search, bought in
+   *  the last `days`. Optional: a store that cannot answer reads none. */
+  askedBeside?(siteId: string, days: number): Promise<readonly AskedBeside[]>;
   /** Writes a row's cluster and the searches it absorbed. */
   setCluster(opportunityId: string, clusterKey: string, absorbedQueries: readonly string[]): Promise<void>;
   /** The site's current stored report, or `null` where it has no readable
@@ -361,6 +371,8 @@ export interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   is(column: string, value: boolean | null): MinimalQueryBuilder<T>;
   not(column: string, operator: string, value: null): MinimalQueryBuilder<T>;
   in(column: string, values: readonly unknown[]): MinimalQueryBuilder<T>;
+  like(column: string, pattern: string): MinimalQueryBuilder<T>;
+  gte(column: string, value: string): MinimalQueryBuilder<T>;
   order(column: string, options: { ascending: boolean }): MinimalQueryBuilder<T>;
   limit(count: number): MinimalQueryBuilder<T>;
 }
@@ -588,6 +600,41 @@ export function supabaseOpportunityStore(): OpportunityStore {
       if (error) throw new Error(`opportunities.topTens: ${error.message}`);
       for (const report of data ?? []) for (const [query, urls] of topTensOf(report)) topTens.set(query, urls);
       return topTens;
+    },
+
+    async topTenRows(scanIds) {
+      const topTens = new Map<string, TopTenRead>();
+      if (scanIds.length === 0) return topTens;
+      const { data, error } = await untyped()
+        .from<Pick<StoredReport, "questions" | "serps"> & { created_at: string }>("scans")
+        .select("questions:report->questions, serps:report->serps, created_at")
+        .in("id", [...scanIds])
+        .order("created_at", { ascending: true });
+      if (error) throw new Error(`opportunities.topTenRows: ${error.message}`);
+      for (const report of data ?? []) {
+        const at = new Date(report.created_at);
+        for (const [query, rows] of topTenRowsOf(report)) topTens.set(query, { at, rows });
+      }
+      return topTens;
+    },
+
+    async askedBeside(siteId, days) {
+      const since = new Date(Date.now() - days * 86_400_000).toISOString();
+      const { data, error } = await untyped()
+        .from<{ cache_key: string; payload: unknown }>("fetches")
+        .select("cache_key, payload")
+        .like("cache_key", `%|site:${siteId}|paa`)
+        .gte("created_at", since);
+      if (error) throw new Error(`opportunities.askedBeside: ${error.message}`);
+      return (data ?? []).flatMap((row) => {
+        const serp = (Array.isArray(row.payload) ? row.payload[0] : row.payload) as
+          | { peopleAlsoAsk?: unknown; relatedSearches?: unknown }
+          | null
+          | undefined;
+        const strings = (value: unknown) => (Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);
+        const term = row.cache_key.split("|")[0] ?? "";
+        return term === "" ? [] : [{ term, peopleAlsoAsk: strings(serp?.peopleAlsoAsk), related: strings(serp?.relatedSearches) }];
+      });
     },
 
     async setCluster(opportunityId, clusterKey, absorbedQueries) {

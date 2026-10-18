@@ -102,6 +102,9 @@ export const DE: LanguagePack = {
     documentation: "dokumentation|doku|referenz|erklärt|erklärung|bedeutung|leitfaden|ratgeber|funktionen|schnittstellen?",
     format: "vergleich(?:e|en)?|alternativen|integrationen|vorlagen?",
     asksPrice: "kosten|kostet|preise?|teuer|günstig\\p{L}*|billig\\p{L}*|wie viel|wieviel",
+    // Drafted (issue 1506); the owner may correct the lists.
+    agency: "agentur(?:en)?|berater|beratung|beratungen|dienstleister|dienstleistungen?|firmen|unternehmen",
+    wordSense: "synonyme?|gegenteil|anderes wort|wort|wörter|bedeutung|definition|aussprache|duden|kreuzworträtsel",
   },
   stopWords: new Set([
     "der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "einer", "eines",

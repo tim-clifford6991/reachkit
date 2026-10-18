@@ -41,6 +41,10 @@ const BEST_X = SHAPES.best;
 const PRODUCT_SHAPES = SHAPES.product;
 const COMPARISON_SHAPES = SHAPES.comparison;
 const PROBLEM_SHAPES = SHAPES.problem;
+const VERSUS = SHAPES.versus;
+/** A "vs" that also asks for alternatives, a price or an integration is
+ *  anchored on a product by those words. */
+const COMPARISON_ONLY_BY_NAME = new RegExp(`${SHAPES.alternatives.source}|${SHAPES.price.source}`, "u");
 
 /** A search or a name as these rules compare it: lower case, punctuation
  *  to spaces. Its letters stay as they are written (issue 1314): "Zuni
@@ -64,15 +68,21 @@ function names(text: string, brands: readonly string[]): boolean {
  * The source of a search that no answer measured: `product` where it names
  * the site or a rival, or is a comparison, a price or an integration;
  * `best_x` for a category's "best" or "top" list; `problem` for a how, a why
- * or a pain; otherwise `category`.
+ * or a pain; otherwise `category`. A "vs" between two category terms names
+ * no product ("aeo vs geo") and is `category` (issue 1506): it asks what
+ * two things are, and no product is its subject. `products` are the other
+ * products a pass read a brand volume for, which a "vs" may name too.
  */
 export function sourceOf(
   query: string,
-  a: { brands: readonly string[] }
+  a: { brands: readonly string[]; products?: readonly string[] }
 ): Exclude<TopicSource, "ai_gap"> {
   const text = normalise(query);
   if (names(text, a.brands.map(normalise))) return "product";
   if (BEST_X.test(text)) return "best_x";
+  if (VERSUS.test(text) && !COMPARISON_ONLY_BY_NAME.test(text) && !names(text, (a.products ?? []).map(normalise))) {
+    return "category";
+  }
   if (PRODUCT_SHAPES.test(text)) return "product";
   if (PROBLEM_SHAPES.test(text)) return "problem";
   return "category";
@@ -271,6 +281,99 @@ export function brandsOf(a: {
   }
   const clean = (list: string[]) => [...new Set(list.map(normalise).filter((b) => b.length > 2))];
   return { own: clean(own), rivals: clean(rivals) };
+}
+
+/** The names a comparison is read by (issue 1506): the business's own, the
+ *  rivals in force, and every other product a pass read a brand volume for
+ *  (a rival it dropped is still a product). Lower case, as `normalise`. */
+export interface ComparisonBrands {
+  own: readonly string[];
+  rivals: readonly string[];
+  others: readonly string[];
+}
+
+export function comparisonBrands(a: { report: StoredReport | null; market: MarketConclusion | null }): ComparisonBrands {
+  const { own, rivals } =
+    a.report === null
+      ? {
+          own: [],
+          rivals: [...new Set((a.market?.rivals ?? []).flatMap((rival) => [rival.name, brandOf(rival.domain)]).map(normalise).filter((b) => b.length > 2))],
+        }
+      : brandsOf({ report: a.report, market: a.market });
+  for (const rival of a.market?.rivals ?? []) for (const name of rival.searchNames ?? []) rivals.push(normalise(name));
+  const known = new Set([...own, ...rivals]);
+  const others = Object.keys(a.market?.demand?.brands ?? {}).map(normalise).filter((b) => b.length > 2 && !known.has(b));
+  return { own, rivals, others };
+}
+
+/**
+ * The products a "vs" search sets against each other (issue 1506), or
+ * `null` where it is not a "vs" between products: no "vs" at all, or one
+ * between two category terms ("aeo vs geo"), which names none.
+ */
+export function brandVersus(query: string, brands: ComparisonBrands): { own: boolean; rivals: string[] } | null {
+  const text = normalise(query);
+  if (!SHAPES.versus.test(text)) return null;
+  const own = names(text, brands.own);
+  const rivals = brands.rivals.filter((rival) => names(text, [rival]));
+  if (!own && rivals.length === 0 && !names(text, brands.others)) return null;
+  return { own, rivals };
+}
+
+/** Whether `text` names `brand`, as these rules compare names. */
+export function namesBrand(text: string, brand: string): boolean {
+  return names(normalise(text), [normalise(brand)]);
+}
+
+/** One SERP the site's research read for what buyers ask beside it (D61,
+ *  D62's store): its search, its "People also ask" and its related
+ *  searches. */
+export interface AskedBeside {
+  term: string;
+  peopleAlsoAsk: readonly string[];
+  related: readonly string[];
+}
+
+/** Whether `query` is something buyers were seen asking beside another
+ *  search: one of its related searches, or a "People also ask" question
+ *  that holds every word of it but its "vs" (issue 1506; the SEO master
+ *  review of 2026-10-18). The query's own SERP does not count. */
+export function askedBesideTerms(query: string, asked: readonly AskedBeside[]): boolean {
+  const text = normalise(query);
+  const wanted = text.split(" ").filter((word) => word !== "" && !VERSUS.test(word));
+  if (wanted.length === 0) return false;
+  return asked.some((serp) => {
+    if (normalise(serp.term) === text) return false;
+    if (serp.related.some((search) => normalise(search) === text)) return true;
+    return serp.peopleAlsoAsk.some((question) => {
+      const said = new Set(normalise(question).split(" "));
+      return wanted.every((word) => said.has(word));
+    });
+  });
+}
+
+/**
+ * SPEC §6 (issue 1506): a "vs" between products that nothing measured
+ * anyone asking — its volume is not above zero, no tracked prompt names one
+ * of its rivals, the AI answer it was found in (`answeredRival`, a rival's
+ * domain) named none of them, and buyers were not seen asking it beside the
+ * market's searches (`asked`, 0¢). A "vs" between two category terms, or
+ * any other search, is not one. Pure.
+ */
+export function comparisonUnasked(a: {
+  query: string;
+  volume: number;
+  brands: ComparisonBrands;
+  prompts: readonly { text: string }[];
+  answeredRival?: string | null;
+  asked?: readonly AskedBeside[];
+}): boolean {
+  const versus = brandVersus(a.query, a.brands);
+  if (versus === null || a.volume > 0) return false;
+  const named = (text: string) => versus.rivals.some((rival) => namesBrand(text, rival));
+  if (a.answeredRival != null && named(brandOf(a.answeredRival))) return false;
+  if (askedBesideTerms(a.query, a.asked ?? [])) return false;
+  return !a.prompts.some((prompt) => named(prompt.text));
 }
 
 /**
