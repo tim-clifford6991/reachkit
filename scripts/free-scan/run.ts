@@ -326,7 +326,7 @@ async function runSite(domain: string, network: string, refused: string[]): Prom
     const paid = Number(row.cost_cents);
     if (!(paid > 0)) continue;
     costBySource[row.source] = (costBySource[row.source] ?? 0) + paid;
-    appendSpend({ script: "free-scan", source: row.source, cents: paid, billed: row.billed_cents === null ? undefined : Number(row.billed_cents) });
+    appendSpend({ script: "free-scan", source: row.source, cents: paid, billed: row.billed_cents === null ? undefined : Number(row.billed_cents), domain });
   }
   const scan = ran.scanId === null ? null : json<Row | null>(`select to_jsonb(s) from public.scans s where s.id = '${quote(ran.scanId)}';`);
   const events = lines

@@ -43,7 +43,9 @@ runs:
           echo "ANTHROPIC_API_KEY=sk-ant-fixture"
           echo "IP_HASH_SALT=fixture"
           echo "KILL_SWITCH=false"
-          echo "OWNER_EMAILS=owner@example.com"
+          # The sweep's own account is an owner, so `/app/costs` (issue 1478) is
+          # measured as the page, not as its 404.
+          echo "OWNER_EMAILS=owner@example.com,layout-sweep@example.com"
           echo "NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000"
           echo "HOSTED_EDGE_CNAME_TARGET=content.example.com"
         } >> "$GITHUB_ENV"

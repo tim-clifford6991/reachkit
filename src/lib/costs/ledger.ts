@@ -64,6 +64,14 @@ export interface FetchesRow {
    *  a model call, an own-page read, a row from before the column. Never an
    *  estimate: that is `cost_cents`. */
   billed_cents: number | null;
+  /** Issue 1478: whose spend and why. The database fills `site_id`,
+   *  `activity` and `outcome` on insert from the scan and the payload; the
+   *  writer names `activity` only for a draft's calls, and `draft_id` once
+   *  the draft has a row. */
+  site_id: string | null;
+  activity: string;
+  draft_id: string | null;
+  outcome: "ok" | "failed" | "timeout";
   created_at: string;
 }
 
@@ -79,6 +87,8 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   order(column: string, opts: { ascending: boolean }): MinimalQueryBuilder<T>;
   limit(count: number): MinimalQueryBuilder<T>;
   insert<R extends object>(row: R): MinimalQueryBuilder<T>;
+  update<R extends object>(values: R): MinimalQueryBuilder<T>;
+  in(column: string, values: readonly string[]): MinimalQueryBuilder<T>;
 }
 
 interface MinimalClient {
@@ -96,6 +106,9 @@ export function untypedFetches(client: ReturnType<typeof dbAdmin>): MinimalClien
  *  `## Module / boundary`). Called once per call that reached the vendor;
  *  never called for a cache hit, which costs nothing to ledger. */
 export async function writeFetchRow(row: {
+  /** Issue 1478: the row's id, chosen by the writer so a draft's cost
+   *  context can name its earlier rows once the draft has a row. */
+  id?: string;
   scanId: string;
   source: string;
   cacheKey: string;
@@ -107,8 +120,13 @@ export async function writeFetchRow(row: {
   durationMs?: number;
   /** Issue 1408: the vendor's own charge, where its response carried one. */
   billedCents?: number;
+  /** Issue 1478: `draft` for a draft's calls; absent, the database reads
+   *  the activity off the scan. */
+  activity?: "draft";
+  draftId?: string;
 }): Promise<void> {
   const base = {
+    ...(row.id === undefined ? {} : { id: row.id }),
     scan_id: row.scanId,
     source: row.source,
     cache_key: row.cacheKey,
@@ -118,17 +136,42 @@ export async function writeFetchRow(row: {
     payload: storable(row.payload),
     ...(row.durationMs === undefined ? {} : { duration_ms: Math.round(row.durationMs) }),
   };
+  const added = {
+    ...(row.billedCents === undefined ? {} : { billed_cents: row.billedCents }),
+    ...(row.activity === undefined ? {} : { activity: row.activity }),
+    ...(row.draftId === undefined ? {} : { draft_id: row.draftId }),
+  };
   const insert = (values: object) => untypedFetches(dbAdmin()).from<FetchesRow>("fetches").insert(values);
-  let { error } = await (row.billedCents === undefined ? insert(base) : insert({ ...base, billed_cents: row.billedCents }));
-  if (error && row.billedCents !== undefined && lacksBilledColumn(error)) {
-    // The deploy is ahead of the migration (issue 1408): the row is the
-    // ledger and the cache, so it is written without the vendor's figure
-    // rather than lost with it.
-    console.warn(JSON.stringify({ event: "billed_cents_column_missing", source: row.source, billedCents: row.billedCents }));
+  let { error } = await insert({ ...base, ...added });
+  if (error && Object.keys(added).length > 0 && lacksAddedColumn(error)) {
+    // The deploy is ahead of the migration (issues 1408, 1478): the row is
+    // the ledger and the cache, so it is written without the newer columns
+    // rather than lost with them.
+    console.warn(JSON.stringify({ event: "fetches_column_missing", source: row.source, columns: Object.keys(added), message: error.message }));
     ({ error } = await insert(base));
   }
   if (error) {
     throw new Error(`ledger.ts: insert into fetches failed: ${error.message}`);
+  }
+}
+
+/** Issue 1478: names the draft a cost context's earlier rows were spent
+ *  for, once that draft has a row. Never throws: the rows are the ledger
+ *  and stand either way, and a page is not lost because its calls could
+ *  not be named. A database the migration has not reached has no column to
+ *  name them in; anything else is said on the log. */
+export async function nameDraftOnRows(rowIds: readonly string[], draftId: string): Promise<void> {
+  if (rowIds.length === 0) return;
+  try {
+    const { error } = await untypedFetches(dbAdmin())
+      .from<FetchesRow>("fetches")
+      .update({ activity: "draft", draft_id: draftId })
+      .in("id", rowIds);
+    if (error && !lacksAddedColumn(error)) {
+      console.warn(JSON.stringify({ event: "draft_rows_unnamed", draftId, rows: rowIds.length, message: error.message }));
+    }
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "draft_rows_unnamed", draftId, rows: rowIds.length, message: error instanceof Error ? error.message : String(error) }));
   }
 }
 
@@ -143,7 +186,12 @@ function storable(payload: unknown): unknown {
 }
 
 /** PostgREST's answer for a column its schema cache does not hold
- *  (`PGRST204`), or Postgres's own (`42703`). */
-function lacksBilledColumn(error: { message: string; code?: string }): boolean {
-  return (error.code === "PGRST204" || error.code === "42703" || error.code === undefined) && error.message.includes("billed_cents");
+ *  (`PGRST204`), or Postgres's own (`42703`), naming one this module added
+ *  after the table was first applied. */
+const ADDED_COLUMNS = ["billed_cents", "activity", "draft_id"] as const;
+function lacksAddedColumn(error: { message: string; code?: string }): boolean {
+  return (
+    (error.code === "PGRST204" || error.code === "42703" || error.code === undefined) &&
+    ADDED_COLUMNS.some((column) => error.message.includes(column))
+  );
 }

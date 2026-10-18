@@ -175,6 +175,9 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
   "(account)/app/settings/mail/page.tsx": { props: () => ({}), shell: true, async: true },
   "(account)/app/settings/billing/page.tsx": { props: () => ({}), shell: true, async: true },
   "(account)/app/settings/account/page.tsx": { props: () => ({}), shell: true, async: true },
+  // Issue 1478: the owner's cost page reads its own rows, and answers the
+  // 404 to an account that is not an owner's.
+  "(account)/app/costs/page.tsx": { props: () => ({}), shell: true, async: true },
   // The draft view (issue #17, BUILD §4.6). The id is the one the fixture
   // holds in `in_review` — the same value `tests/ui/layout/routes.ts` fills
   // `[draftId]` with, and the arm that renders every part of the screen.

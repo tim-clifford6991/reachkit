@@ -252,7 +252,7 @@ async function runSite(o: Options, site: PanelSite, watch: Watch, quiet: (lines:
   }
 
   const bought = boughtSince(startedAt);
-  for (const row of bought) appendSpend({ script: "panel", source: row.source, cents: Number(row.cost_cents), billed: billedOf(row) });
+  for (const row of bought) appendSpend({ script: "panel", source: row.source, cents: Number(row.cost_cents), billed: billedOf(row), domain: site.domain });
   keepEvidence(o.root, site.domain, loadedRows, bought);
   return collect({ site, bought, locales: [...locales.values()], lines, seconds: Math.round((Date.now() - started) / 1000), evidenceLoaded });
 }

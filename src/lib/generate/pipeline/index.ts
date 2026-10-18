@@ -189,6 +189,8 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   // own. A rewrite stands on the passage its row already records — the
   // trigger refuses any other.
   const existing = a.draftId === undefined ? null : await store.draftById(a.draftId);
+  // Issue 1478: a rewrite's calls are its row's from the first one.
+  if (existing !== null) await c.forDraft?.(existing.id);
   const recorded = existing === null ? null : readRecordedFact(existing.grounded_fact);
   const pinned = recorded === null ? undefined : a.facts.find((sourced) => sourced.fact.passage === recorded.passage);
   if (existing !== null && recorded !== null && pinned === undefined) return lostFact(a.siteId, existing);
@@ -220,7 +222,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       await store.patchDraft(existing.id, row);
       return existing.id;
     }
-    return store.insertDraft({
+    const id = await store.insertDraft({
       ...row,
       site_id: a.siteId,
       opportunity_id: a.opportunity.id,
@@ -228,6 +230,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       attribution: pack.business.byline,
       scheduled_for: a.scheduledFor,
     });
+    // Issue 1478: the calls that wrote it are named for its row.
+    await c.forDraft?.(id);
+    return id;
   };
 
   // 2b. A pack short of what its template asks, or a new page short of what

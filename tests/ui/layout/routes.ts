@@ -209,6 +209,15 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
   /** REFERENCE: S18 — Settings › Account, the danger zone at its foot (#925) */
   "/app/settings/account": "S18",
   /**
+   * REFERENCE: S18 — Settings, the nearest approved screen (issue 1478).
+   *
+   * The owner's cost page is newer than the approved set. It is the same
+   * kind of screen as Settings' tabs: inside the shell, cards of rows. It is
+   * the owner's alone; the sweep's account is an owner in CI
+   * (`.github/actions/layout-suite`), so the page itself is measured.
+   */
+  "/app/costs": "S18",
+  /**
    * REFERENCE: S19 — Hosted page (§S19; REQ-059).
    *
    * The route is swept through **two** hosts (issue #418): the default

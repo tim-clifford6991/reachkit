@@ -35,6 +35,8 @@ vi.mock("@/lib/scan/deep/backstop", () => ({
   sitesWithoutDeepPass: async () => [],
   deepPassDomain: async () => null,
 }));
+// Issue 1478's vendor readings, stood in with nothing due.
+vi.mock("@/lib/costs/vendor-days", () => ({ vendorDaysDue: async () => [], readVendorDay: async () => ({ done: true }) }));
 const dueInactive = vi.fn();
 const nudged = vi.fn();
 vi.mock("@/lib/mail/retention", () => ({

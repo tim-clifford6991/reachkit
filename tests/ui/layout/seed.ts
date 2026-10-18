@@ -640,6 +640,45 @@ export function seedFreeScans(): void {
   });
 }
 
+/**
+ * The ledger the owner's cost page reads (issue 1478): a week of the
+ * reserved account's own calls, a free scan's, and what the vendors billed,
+ * so `/app/costs` is measured with every table holding rows — including a
+ * box line for a domain longer than a phone is wide.
+ */
+export function seedLedger(): void {
+  const [ownScan] = rows(`select id from scans where site_id = '${RESERVED_ACCOUNT.siteId}' order by created_at limit 1;`);
+  const [freeScan] = rows(`select id from scans where tier = 'free' order by created_at limit 1;`);
+  const at = sweepNow().getTime();
+  const calls: string[] = [];
+  for (let day = 0; day < 7; day++) {
+    const when = new Date(at - day * 24 * 60 * 60 * 1000 - 60 * 60 * 1000).toISOString();
+    for (const [scan, source, cents, billed, payload] of [
+      [ownScan, "serp/google/organic", 0.2, 0.2, "{}"],
+      [ownScan, "dataforseo_labs/google/ranked_keywords", 2.4, 2.2, "{}"],
+      [ownScan, "generate.write", 4.1, null, '{"parseOutcome":"success"}'],
+      [freeScan, "serp/google/organic", 0.2, null, '{"vendorFailure":"timeout","endpoint":"serp/google/organic","billed":true}'],
+      [freeScan, "question-phrasing", 0.31, null, '{"parseOutcome":"success"}'],
+    ] as const) {
+      if (scan === undefined) continue;
+      calls.push(
+        `('${scan}', '${source}', 'sweep-${day}-${source}', 1, ${cents}, ${cents}, ${billed ?? "null"}, '${payload}'::jsonb, timestamptz '${when}')`
+      );
+    }
+  }
+  if (calls.length > 0) {
+    sql(`insert into fetches (scan_id, source, cache_key, policy_version, reserved_cents, cost_cents, billed_cents, payload, created_at) values ${calls.join(", ")};`);
+  }
+  const yesterday = new Date(at - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  sql(
+    `insert into vendor_days (vendor, day, kind, domain, billed_cents, currency, estimated_cents, source) values ` +
+      `('dataforseo', '${yesterday}', 'usage', '', 21.4, 'usd', null, 'balance'), ` +
+      `('dataforseo', '${yesterday}', 'box', 'a-very-long-subdomain-for-the-sweep.example-business-name.co.uk', 3.1, 'usd', 3.4, 'spend_log'), ` +
+      `('stripe', '2026-08-01', 'fixed', '', 99, 'eur', null, 'stripe_fees'), ` +
+      `('vercel', '2026-08-01', 'fixed', '', null, 'usd', null, 'not_reported');`
+  );
+}
+
 export function seedSetupAccount(): void {
   const { userId, siteId, domain, timeZone } = SETUP_ACCOUNT;
   const email = EMAIL_OF[userId];

@@ -71,6 +71,8 @@ vi.mock("@/lib/scan/deep/backstop", () => ({
   deepPassDomain: async (siteId: string) => (siteId === "site-gone" ? null : "example.com"),
   deepPassCutShort: (siteId: string) => cutShort(siteId),
 }));
+// Issue 1478's vendor readings, stood in with nothing due.
+vi.mock("@/lib/costs/vendor-days", () => ({ vendorDaysDue: async () => [], readVendorDay: async () => ({ done: true }) }));
 // Issue 855: a pass a ceiling stopped is measured again through issue 837's
 // re-measure, whose own bound and row claim `remeasure.test.ts` drives.
 const remeasure = vi.fn<(a: { siteId: string; domain: string; remeasureOf?: string }) => Promise<unknown>>(

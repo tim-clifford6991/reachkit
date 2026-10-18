@@ -24,12 +24,21 @@ import { withCostContext, type CostContext } from "@/lib/costs";
  *  which is what keeps it out of `constants.ts`. */
 export const DRAFT_POLICY_VERSION = 1;
 
+/** `draftId` where the draft already has a row (issue 1478): an edit, or a
+ *  rewrite of the date's row. A new page names its row with `forDraft` once
+ *  the pipeline has written it. */
 export function withDraftCost<T>(
-  a: { scanId: string },
+  a: { scanId: string; draftId?: string },
   body: (cost: CostContext) => Promise<T>
 ): Promise<T> {
   return withCostContext(
-    { scanId: a.scanId, cap: "DRAFT", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none" },
+    {
+      scanId: a.scanId,
+      cap: "DRAFT",
+      policyVersion: DRAFT_POLICY_VERSION,
+      rollUp: "none",
+      ...(a.draftId === undefined ? {} : { draftId: a.draftId }),
+    },
     body
   );
 }
