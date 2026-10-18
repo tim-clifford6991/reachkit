@@ -81,9 +81,9 @@ import {
 import { NOT_PUBLISHED, reasonFor, succeeded } from "./errors";
 import { bylineHtml } from "../../render/byline";
 import { madeHtml } from "../../render/made";
-import type { Say } from "../../render/markdown";
 import { copyIn } from "@/lib/presentation/copy/translated";
-import { renderMarkdownHtml } from "../../render/markdown";
+import { readFaq, withFaq } from "../../render/faq";
+import { parseMarkdown, toHtml, type Say } from "../../render/markdown";
 import { bodyWithMarker, carriesMarker, markerToken } from "./marks";
 import { detectSeoPlugins, seoMetaFor, seoWrittenIn, type SeoPlugin } from "./seo";
 import { unpublishWordPress } from "./unpublish";
@@ -190,13 +190,15 @@ function descriptionOf(page: RenderedPage): string {
  * paragraph; a page with no recorded name carries none. The dates are in
  * UTC: the adapter holds the site's address, not its zone. After the byline,
  * the note on how the page was made (SPEC §7, 2026-10-11, issue 1397), in
- * the site's language; a page handed no site carries none.
+ * the site's language; a page handed no site carries none. The body carries
+ * the page's buyer questions as the hosted page draws them (SPEC §7,
+ * 2026-10-17, issue 1489), from the same `withFaq`.
  */
 function contentOf(page: RenderedPage, dates: { published: Date; updated: Date | null }): string {
   const site = page.site;
   const say: Say | undefined = site === undefined ? undefined : (key, vars) => copyIn(site.language, key, vars);
   const made = site === undefined ? "" : madeHtml({ meta: page.meta, domain: site.domain, bodyMd: page.bodyMd, ...(say === undefined ? {} : { say }) });
-  return bylineHtml({ byline: page.byline ?? null, ...dates, timeZone: null }) + made + renderMarkdownHtml(page.bodyMd);
+  return bylineHtml({ byline: page.byline ?? null, ...dates, timeZone: null }) + made + toHtml(withFaq(parseMarkdown(page.bodyMd), readFaq(page.meta), say).blocks);
 }
 
 function deliveredAtOf(post: unknown): Date {

@@ -168,3 +168,37 @@ describe("issue 1468 — directories, publishers and namesakes are no rival", ()
     expect(rivalsOf("4192111d")).toEqual(expect.arrayContaining(["atlassian.com", "microsoft.com", "ibm.com"]));
   });
 });
+
+describe("issue 1476 — a page that lists others is a list wherever the AI overview cites it", () => {
+  // The production scans issue 1476 names and its guard rivals, every search
+  // kept, read on 2026-10-17. Their ids repeat some of 1465's, so they are
+  // read from their own file.
+  const NAMED = read("stored-rivals-1476.json") as (StoredScan & { stored: string[] })[];
+  const named = (id: string) => {
+    const found = NAMED.find((s) => s.id === id);
+    if (found === undefined) throw new Error(`no stored scan ${id}`);
+    return derived(found).rivals.map((r) => r.domain);
+  };
+
+  it.each([
+    ["99784fad", "pilot.com", "uschamber.com"],
+    ["df0d8d8a", "sage.com", "uschamber.com"],
+    ["05b1ffe7", "xero.com", "uschamber.com"],
+    ["80f3bdf6", "jotform.com", "websiteplanet.com"],
+    ["b027ef20", "zoho.com", "rockymountaincode.com"],
+  ])("%s %s does not get %s", (id, _domain, publisher) => {
+    expect(named(id)).not.toContain(publisher);
+  });
+
+  it("no genuine rival is lost", () => {
+    expect(named("99784fad")).toEqual(expect.arrayContaining(["intuit.com", "xero.com", "waveapps.com", "sage.com"]));
+    expect(named("618524da")).toEqual(expect.arrayContaining(["klaviyo.com", "activecampaign.com"]));
+    expect(named("b1565f9c")).toEqual(expect.arrayContaining(["ada.cx", "botpress.com"]));
+    expect(named("c87d682f")).toContain("remote.com");
+  });
+
+  it("every other named scan derives the rivals it stored", () => {
+    const moved = new Set(["99784fad", "df0d8d8a", "05b1ffe7", "80f3bdf6", "b027ef20"]);
+    for (const s of NAMED.filter((x) => !moved.has(x.id))) expect(named(s.id), s.id).toEqual(s.stored);
+  });
+});

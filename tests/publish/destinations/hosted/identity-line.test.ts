@@ -46,3 +46,14 @@ describe("D53 — the hosted blog's line is written from the business", () => {
     expect((await hostedIdentity(SITE)).line).toBe("A free scan shows where buyers go.");
   });
 });
+
+describe("issue 1479 — the hosted blog's name is read by the name rule", () => {
+  it("never prints a protection page's name or a placeholder as the business's", async () => {
+    for (const stored of ["Just a moment...", "<UNKNOWN>"]) {
+      db.reset();
+      seed({ job: JOB, reworded: null });
+      db.seed("site_profiles", [{ domain: SITE.domain, site_name: stored, logo_type: null, claims: [] }]);
+      expect((await hostedIdentity(SITE)).name).toBe("reachkit.app");
+    }
+  });
+});

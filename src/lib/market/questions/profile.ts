@@ -25,7 +25,7 @@ import type { Locale } from "@/lib/locale/locales";
 import { z } from "zod";
 import type { CostContext } from "@/lib/costs";
 import type { Measured } from "@/lib/measure/measured";
-import { isPlaceholder } from "@/lib/measure/placeholder";
+import { isPlaceholder, withoutPlaceholders } from "@/lib/measure/placeholder";
 import { PROFILE_INPUT_MAX_CHARS, PROFILE_LIST_BOUNDS } from "@/lib/config/constants";
 import { llm } from "@/lib/llm";
 import { BUSINESS_KIND_NAMES, isBusinessKind } from "@/lib/market/kinds";
@@ -272,9 +272,10 @@ export function deriveProfile(
 /**
  * The model's answer as a `Profile` (issues 1377, 1454). Pure.
  *
- * - A placeholder (`<UNKNOWN>`, "n/a") is no category: it is stored empty,
- *   which every reader already takes as none, and nothing is put in its
- *   place. An offering whose category is a placeholder is dropped.
+ * - A placeholder (`<UNKNOWN>`, "n/a") is no answer, in any field: it is
+ *   stored empty, which every reader already takes as none, and nothing is
+ *   put in its place (issues 1377, 1479). An offering whose category is a
+ *   placeholder is dropped.
  * - The offerings are ordered by weight, the weights made shares of 1, and
  *   two with the same category are one. Where the model's `category` is
  *   not among them it leads them, with the largest weight's share: the
@@ -290,14 +291,14 @@ export function normaliseProfile(answer: ProfileAnswer): Profile {
   const category = isPlaceholder(rest.category) ? "" : rest.category;
   const offerings = normaliseOfferings(category, answered ?? []);
   const reachOf = (REACHES as readonly string[]).includes(reach ?? "") ? (reach as Reach) : undefined;
-  return {
+  return withoutPlaceholders({
     ...rest,
     category,
     ...(offerings.length === 0 ? {} : { offerings }),
     ...(isBusinessKind(kind) ? { kind } : {}),
     ...(reachOf === undefined ? {} : { reach: reachOf }),
     ...(rest.town !== undefined && reachOf !== undefined && reachOf !== "local" ? { town: "" } : {}),
-  };
+  });
 }
 
 function normaliseOfferings(category: string, answered: readonly Offering[]): Offering[] {

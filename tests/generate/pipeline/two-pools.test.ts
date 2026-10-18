@@ -23,7 +23,7 @@ vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 vi.mock("@/lib/egress", () => ({ safeFetch: safeFetchMock }));
 vi.mock("@/lib/vendors/dataforseo", () => ({ serpOrganic: serpMock, serpNews: newsMock, keywordOverview: overviewMock }));
 
-import { admittedClaims, researchMarket, rivalPage } from "../../../src/lib/generate/pipeline/research";
+import { admittedClaims, primaryAddress, researchMarket, rivalPage } from "../../../src/lib/generate/pipeline/research";
 import { repairMechanical } from "../../../src/lib/generate/pipeline/repair";
 import { completeTables, withSources } from "../../../src/lib/generate/pipeline/sources";
 import { checkTraceableNumerals } from "../../../src/lib/generate/rules/brief";
@@ -174,6 +174,29 @@ describe("the research step reads the market's pages and keeps only what they sa
     });
     expect(serpMock).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ query: "best project management software", questions: true }));
     expect(found.asked).toEqual({ peopleAlsoAsk: ["Is free project software any good?"], related: [{ search: "project software free", volume: 320 }] });
+  });
+
+  it("issue 1486: a how-to's one search reads the target's guidance, and the platform's own documentation leads as primary", async () => {
+    const DOCS = "AI Overviews show links to pages that are indexed and eligible to be shown in Google Search with a snippet.";
+    const BLOG = "Most AI Overview citations come from pages that already rank in the top ten results.";
+    const docs = "https://developers.google.com/search/docs/appearance/ai-features";
+    const blog = "https://seo-blog.example/ai-overview-study";
+    const said: Record<string, string> = { [docs]: DOCS, [blog]: BLOG };
+    safeFetchMock.mockImplementation(async (url: string) => (said[url] === undefined ? { ok: false, reason: "status", status: 404, url, readAt: TODAY } : answer(url, said[url]!)));
+    serpMock.mockResolvedValue(measured({ organic: [blog, docs].map((url, index) => ({ position: index + 1, url, domain: new URL(url).hostname, title: url })) }));
+    llmMock.mockImplementation(async (_c: unknown, call: { input: { pages: { page: number; url: string }[] } }) =>
+      measured({ claims: call.input.pages.map((page) => ({ page: page.page, quote: said[page.url]!, year: null, about: "other" as const })) })
+    );
+    const found = await researchMarket(cost(), { locale: { country: "US", language: "en" }, siteId: SITE_ID, domain: "example.com", searches: ["how to rank in ai overview"], report: REPORT, rivals: [], today: TODAY, guidance: true });
+    expect(serpMock.mock.calls.map((call) => call[1].query)).toEqual(["how to rank in ai overview official guidance"]);
+    expect(found.facts.map((fact) => [fact.url, fact.kind])).toEqual([[docs, "primary"], [blog, "study"]]);
+  });
+
+  it("issue 1486: an address is primary by its shape, for every kind of business — never a rival's, never a blog post", () => {
+    const primary = ["https://help.openai.com/en/articles/1", "https://www.gov.uk/building-regulations-approval", "https://www.bundesfinanzministerium.bund.de/faq", "https://boilermaker.example/support/pressure"];
+    expect(primary.filter((url) => !primaryAddress(url))).toEqual([]);
+    expect(["https://seo-blog.example/how-to-rank", "https://plumber.example/blog/unblock"].filter((url) => primaryAddress(url))).toEqual([]);
+    expect(primaryAddress("https://support.rival.example/kb", ["rival.example"])).toBe(false);
   });
 
   describe("a thin SERP borrows People also ask from the market's searched terms (D62)", () => {

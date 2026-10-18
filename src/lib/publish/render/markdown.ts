@@ -96,9 +96,9 @@
 //
 // `:::answer` — the short-answer box — is admitted **from the body**: it
 // wraps the page's own opening answer, claims nothing a reader cannot
-// check, and emits no structured data (`FAQPage` is built from
-// `drafts.meta.faq` and never from the body — the archived BP-047
-// decision 2, unchanged).
+// check, and emits no structured data (`FAQPage` is built from the
+// questions `./faq.ts` draws from `drafts.meta.faq`, never from a guess at
+// the body's headings — the archived BP-047 decision 2, kept).
 //
 // `:::guides` — related guides — is **not**. SPEC §7 (2026-09-20) has the
 // links come from what ReachKit already knows it published, "chosen in

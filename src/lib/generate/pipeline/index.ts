@@ -67,7 +67,7 @@ import { buildComparisonSet } from "./comparison";
 import { layoutPage, withClosing, type LaidPage } from "./compose";
 import { closeElsewhere } from "./elsewhere";
 import type { SourcedFact } from "./grounding";
-import { packStatements, type ContextPack, type PackClaim } from "./pack";
+import { builtFromOutside, packStatements, type ContextPack, type PackClaim } from "./pack";
 import { fixNotes, repairable, repairMechanical, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
 import { comparisonTable, withTable } from "./table";
@@ -368,6 +368,10 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     };
   };
 
+  /** What `cites_market` holds the page to: the template's own count. */
+  const citesMin = template.packMustHold.reduce((most, need) => (need.need === "outside_sources" ? Math.max(most, need.min) : most), 0);
+  const primaryFirst = pack.claims.some((claim) => claim.kind === "primary") ? "a `primary` one first, " : "";
+
   /** Every rule a check of this run failed, before any repair or fix. */
   const broken = new Set<HardRule>();
   let page = finish(written.value);
@@ -406,10 +410,15 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
         domain: a.site.domain,
         // D52: the rivals the verdict may name as the better pick.
         ...(table === null ? {} : { rivals: table.options.slice(1) }),
+        // Issue 1486: a step that names the business is its own.
+        businessName: a.site.businessName,
       },
       titleRule: { ...titleRuleFor(pack, { description: candidate.laid.body.description, sections: candidate.laid.sections }), settled },
       // D61: a Q&A's questions are each their own.
       distinctHeadings: pack.type === "qa",
+      // Issue 1486: a how-to or a Q&A links the outside pages it is built
+      // from.
+      ...(builtFromOutside(pack.type) ? { cites: { claimUrls: pack.claims.map((claim) => claim.url), min: citesMin } } : {}),
       heading: candidate.laid.body.heading,
       rivalsNamed,
       ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }),
@@ -491,6 +500,13 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     return fixNotes(stopped.page.markdown, stopped.outcome.failed, briefRead, a.site, stopped.page.laid.body.title).map((note) => {
       if (note.rule === "required_blocks" && note.sentences.includes("length") && length !== null) {
         return { ...note, sentences: [`length: ${pack.type === "update" ? "the sections have" : "the body has"} ${words} words and must have between ${length.floor} and ${length.ceiling}`] };
+      }
+      if (note.rule === "required_blocks" && note.sentences.includes("own_steps")) {
+        return { ...note, sentences: [`steps: at most ${template.blocks.steps?.own ?? 1} step may be this business's own product or process; every other step is the task as \`pack.claims\` describe it, linking the claim's url`] };
+      }
+      const cites = stopped.outcome.passed ? undefined : stopped.outcome.failed.find((failure) => failure.rule === "cites_market")?.detail;
+      if (note.rule === "cites_market" && cites !== undefined && cites.rule === "cites_market") {
+        return { ...note, sentences: [`sources: the body links ${cites.cited} of the public pages in \`pack.claims\` and must link at least ${cites.min}; state what those pages say, ${primaryFirst}each in a sentence that links its url`] };
       }
       if (note.rule === "required_blocks" && note.sentences.includes("verdict")) {
         return { ...note, sentences: ["verdict: the which-to-choose section must name at least one option of `table` other than this business and say the case where it is the better pick"] };

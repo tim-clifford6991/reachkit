@@ -20,7 +20,7 @@
 // all `./domains`' — one implementation in the product, not two.
 import { BATTERY, RIVAL_SCORE } from "@/lib/config/constants";
 import type { MarketOrganicRow, MarketSerp } from "../views";
-import { isAcademicDomain, isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isListingAddress, isMarketplaceHost, isOwnContentUrl, isOwnDomain, isPlaceTitle, isPlatformDomain, registrableDomain } from "./domains";
+import { isAcademicDomain, isArticleRow, isArticleUrl, isExplainerTitle, isHomeUrl, isListingAddress, isMarketplaceHost, isOwnContentUrl, isOwnDomain, isPlaceTitle, isPlatformDomain, isRoundupPage, pageKey, registrableDomain } from "./domains";
 
 /** `band.ts`'s `RivalSizeBand`, spelled out: the free card's modules name no
  *  sizing module, not even for a type (§6.4, `size.test.ts`). */
@@ -212,6 +212,22 @@ export function deriveRivals(a: {
     return domain;
   };
 
+  // The addresses some top ten shows as a page that ranks or weighs others
+  // (issue 1476): an AI overview citing one cites a list, whatever its
+  // address says ("Best Free Accounting Software … 2026" at
+  // `/co/run/finance/free-accounting-tools-…`).
+  const roundupPages = new Set<string>();
+  for (const serp of a.serps) {
+    for (const row of serp.organic) {
+      const key = row.url === undefined ? null : pageKey(row.url);
+      if (key !== null && isRoundupPage(row)) roundupPages.add(key);
+    }
+  }
+  const isRoundupAddress = (url: string): boolean => {
+    const key = pageKey(url);
+    return (key !== null && roundupPages.has(key)) || isRoundupPage({ url });
+  };
+
   a.serps.forEach((serp, index) => {
     // Issue 1468: in a national market, a search whose top ten is mostly
     // pages of one place each ("Office Space in Merced, CA") looks for
@@ -264,9 +280,11 @@ export function deriveRivals(a: {
     // A domain the overview cites only for articles is cited as a
     // publisher, not recommended as a product (issue 1417).
     const urls = serp.aiOverview.referenceUrls ?? [];
+    // A cited address a top ten shows as a list of others is an article too
+    // (issue 1476).
     const onlyArticles = (domain: string): boolean => {
       const own = urls.filter((url) => registrableDomain(url) === domain);
-      return own.length > 0 && own.every(isArticleUrl);
+      return own.length > 0 && own.every((url) => isArticleUrl(url) || isRoundupAddress(url));
     };
     // The address it cited on this host, where the read kept one: a
     // marketplace's listing is no rival (issue 1465).

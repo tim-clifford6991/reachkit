@@ -37,6 +37,7 @@ export const CHECK_LINE_OF: Readonly<Record<HardRule, CheckLine>> = {
   rival_source: "sources",
   rival_negative: "honest",
   traceable_numerals: "sources",
+  cites_market: "sources",
   no_invented_people: "invented",
   no_unsourced_testimonial: "invented",
   no_invented_test: "invented",

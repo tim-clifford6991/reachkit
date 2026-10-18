@@ -2070,6 +2070,14 @@ export const ADDS = Object.freeze({
   updateMin: 0.3,
 } as const);
 
+/** SPEC §7 (2026-10-17, issue 1486; drafted default the owner may correct):
+ *  a how-to or a Q&A is built from cited outside facts. Its pack holds claims
+ *  from at least `min` distinct public pages, and its body links at least
+ *  that many of them (`cites_market`). Two, as the content review of
+ *  17 October measured: page D's pack held 24 claims from six pages, and its
+ *  body linked none. */
+export const CITES_MARKET = Object.freeze({ min: 2 } as const);
+
 /** §7's Improve trigger, transcribed: "Customer ranks 4–30, page thin".
  *  The band is inclusive at both ends. The bought SERP is a top ten
  *  (`transport.ts` fixes depth 10), so today only 4–10 is observable; the
