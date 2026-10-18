@@ -44,7 +44,7 @@
 // point 3).
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import { intentFor, type IntentPrompt, type PageIntent } from "../intent";
-import { addressOf, evaluateAcceptance } from "./evaluate";
+import { addressOf, evaluateAcceptance, placeOf } from "./evaluate";
 import { weekMeasurementsFrom } from "./measurements";
 import { movementFor } from "./movement";
 import {
@@ -102,6 +102,22 @@ export async function judgeWeek(a: {
   const targets = pages.flatMap((page) => (page.acceptance.form === "top20" ? [page.acceptance.query] : []));
   const measurements = weekMeasurementsFrom({ report: week.report, week: a.week, targets });
 
+  // Issue 1518: the previous place a movement compares with is the page's
+  // own, read again from that week's stored report by the rule this week is
+  // read by. A row written while a page's place was the domain's best is
+  // then compared as the page's, at no cost: the report is stored. One read
+  // per distinct week, never one per page.
+  const previousWeeks = new Set<WeekStart>();
+  for (const page of pages) {
+    const previous = previousMeasurement(byPage.get(page.publicationId) ?? []);
+    if (previous !== null && page.acceptance.form === "top20") previousWeeks.add(previous.week);
+  }
+  const earlier = new Map<WeekStart, WeekMeasurements | null>();
+  for (const previous of previousWeeks) {
+    const stored = await store.weekReport({ siteId: a.siteId, week: previous });
+    earlier.set(previous, stored === null ? null : weekMeasurementsFrom({ report: stored.report, week: previous, targets }));
+  }
+
   // SPEC §6 (D60, issue 1288): each page's intent, against the prompts
   // tracked today. A set that could not be read matches nothing and
   // changes nothing stored.
@@ -116,7 +132,7 @@ export async function judgeWeek(a: {
     if (intent !== null && !sameIntent(intent, page.intent ?? null) && page.draftId != null) {
       await store.recordIntent?.({ draftId: page.draftId, intent });
     }
-    const decided = judgeOne({ page, intent, measurements, week: a.week, priorRows });
+    const decided = judgeOne({ page, intent, measurements, earlier, week: a.week, priorRows });
     standings.push({ publicationId: page.publicationId, standing: decided.standing });
     if (decided.row !== null) {
       rows.push({ ...decided.row, siteId: a.siteId, week: a.week, scanId: week.scanId });
@@ -202,6 +218,9 @@ function judgeOne(a: {
   page: PublishedPage;
   intent: PageIntent | null;
   measurements: WeekMeasurements;
+  /** The measurements of the weeks the page's previous places were taken
+   *  in, `null` where that week's report cannot be read. */
+  earlier: ReadonlyMap<WeekStart, WeekMeasurements | null>;
   week: WeekStart;
   priorRows: readonly VerdictRecord[];
 }): OnePage {
@@ -238,7 +257,12 @@ function judgeOne(a: {
   //    A page with a tracked prompt has a second goal (D60, issue 1288): the
   //    week's answers to that prompt citing it. Either goal is the page
   //    working, so a citation decides a week whose search was not read.
-  const tested = evaluateAcceptance({ acceptance: page.acceptance, week: a.measurements, pageUrl: page.liveUrl });
+  const tested = evaluateAcceptance({
+    acceptance: page.acceptance,
+    week: a.measurements,
+    pageUrl: page.liveUrl,
+    earlierUrls: page.earlierUrls,
+  });
   const citation = citationOf(page, a.intent, a.measurements);
   const cited = citation !== null && citation.cited.kind === "measured";
   const evaluation =
@@ -275,7 +299,7 @@ function judgeOne(a: {
   const movement =
     place === null
       ? null
-      : movementFor({ previous: previousMeasurement(a.priorRows), current: place, week: a.week });
+      : movementFor({ previous: previousPlace(page, a.priorRows, a.earlier), current: place, week: a.week });
   // Both readings, in the one record (D60).
   const measured: PageMeasured | null = place === null || citation === null ? place : { ...place, ai: citation };
 
@@ -328,7 +352,29 @@ function heldCause(page: PublishedPage, week: WeekMeasurements): NotJudgeableCau
  *  target search". */
 function measurementOf(page: PublishedPage, week: WeekMeasurements): Measured<number> | null {
   if (page.acceptance.form !== "top20") return null;
-  return week.positions.get(page.acceptance.query) ?? null;
+  const reading = week.positions.get(page.acceptance.query);
+  return reading === undefined ? null : placeOf(reading, addressesOf(page));
+}
+
+/** Every address a page's rows are counted at: where it answers now, and
+ *  where it answered before (issue 1487). */
+function addressesOf(page: PublishedPage): readonly string[] {
+  return [page.liveUrl, ...(page.earlierUrls ?? [])];
+}
+
+/** The previous recorded place, as this page's own (issue 1518): read again
+ *  from that week's stored report where it can be, else the figure the row
+ *  recorded. */
+function previousPlace(
+  page: PublishedPage,
+  priorRows: readonly VerdictRecord[],
+  earlier: ReadonlyMap<WeekStart, WeekMeasurements | null>
+): { week: WeekStart; value: Measured<number> } | null {
+  const previous = previousMeasurement(priorRows);
+  if (previous === null) return null;
+  const then = earlier.get(previous.week);
+  const place = then === undefined || then === null ? null : measurementOf(page, then);
+  return place === null ? previous : { week: previous.week, value: place };
 }
 
 /** The most recent recorded measurement for this page — the figure the

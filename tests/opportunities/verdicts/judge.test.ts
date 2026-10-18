@@ -12,7 +12,9 @@
 import "../env";
 import { afterEach, describe, expect, it } from "vitest";
 import { judgeWeek } from "../../../src/lib/opportunities/verdicts/judge";
+import { earlierAddresses } from "../../../src/lib/opportunities/verdicts/store";
 import {
+  PAGE_URL,
   PREVIOUS_WEEK,
   WEEK,
   fakeStore,
@@ -23,7 +25,7 @@ import {
   verification,
 } from "./harness";
 import { measured, unmeasured } from "../../../src/lib/measure/measured";
-import { AT, SITE_ID } from "../fixtures";
+import { AT, DOMAIN, SITE_ID, question, reportOf, serp } from "../fixtures";
 
 afterEach(releaseStore);
 
@@ -196,16 +198,17 @@ describe("REQ-063 c6 — the three causes this node supplies, from stored state"
 
 describe("#795 — a page's search is read every week, in the twelve or not", () => {
   const OUTSIDE = { form: "top20", query: "onboarding checklist template" } as const;
+  const CHECKLIST = "https://example.com/checklist";
   const row = (keyword: string, position: number) => ({
     keyword,
     position,
     searchVolume: 20,
-    url: "https://example.com/checklist",
+    url: CHECKLIST,
   });
 
   it("a search that left the twelve is read from the site's own ranked rows", async () => {
     const store = fakeStore({
-      pages: [pageOf({ publicationId: "outside", acceptance: OUTSIDE })],
+      pages: [pageOf({ publicationId: "outside", acceptance: OUTSIDE, liveUrl: CHECKLIST })],
       report: reportWithOwnPlace(3, {
         ownRanked: measured(2, AT),
         ownRankedRows: [row("Onboarding  Checklist Template", 7), row("something else", 4)],
@@ -219,7 +222,7 @@ describe("#795 — a page's search is read every week, in the twelve or not", ()
   it("a site that ranks for it outside the top twenty, or not at all, is judged — never untracked", async () => {
     fakeStore({
       pages: [
-        pageOf({ publicationId: "deep", acceptance: OUTSIDE }),
+        pageOf({ publicationId: "deep", acceptance: OUTSIDE, liveUrl: CHECKLIST }),
         pageOf({ publicationId: "absent", acceptance: { form: "top20", query: "a search the site holds no place on" } }),
       ],
       report: reportWithOwnPlace(3, {
@@ -240,7 +243,7 @@ describe("#795 — a page's search is read every week, in the twelve or not", ()
       { ownRanked: measured(500, AT), ownRankedRows: [row("something else", 4)] },
     ]) {
       const store = fakeStore({
-        pages: [pageOf({ publicationId: "outside", acceptance: OUTSIDE })],
+        pages: [pageOf({ publicationId: "outside", acceptance: OUTSIDE, liveUrl: CHECKLIST })],
         report: reportWithOwnPlace(3, over),
       });
       const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
@@ -255,6 +258,7 @@ describe("REQ-063 c3/c4 — what moved, and over what interval", () => {
   it("a worse place than the previous recorded measurement is carried as a decline", async () => {
     fakeStore({
       report: reportWithOwnPlace(9),
+      reports: { [PREVIOUS_WEEK]: reportWithOwnPlace(3) },
       history: [record({ week: PREVIOUS_WEEK, measured: measured(3, AT) })],
     });
     const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
@@ -288,5 +292,86 @@ describe("idempotency is the unique key, not a guard", () => {
     await judgeWeek({ siteId: SITE_ID, week: "2026-08-31" });
     await judgeWeek({ siteId: SITE_ID, week: "2026-09-01" });
     expect(store.rows.map((row) => row.week)).toEqual(["2026-08-31", "2026-09-01"]);
+  });
+});
+
+describe("issue 1518 — a page's Google verdict is about that page's own address", () => {
+  const SEARCH = "best user onboarding software";
+  const HOME = { position: 3, domain: DOMAIN, url: `https://${DOMAIN}/`, title: "Home" };
+  const ranked = (position: number) => ({ keyword: SEARCH, position, searchVolume: 90, url: PAGE_URL });
+  const weekOf = (organic: readonly (typeof HOME)[], over: Parameters<typeof reportOf>[1] = {}) =>
+    reportOf({ questions: [question()], serps: [serp({ organic: [...organic] })] }, over);
+
+  it("the home page at #3 with the article absent is not_working, and records no place", async () => {
+    const store = fakeStore({ report: weekOf([HOME]) });
+    const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
+    expect(standings[0]?.standing).toMatchObject({ kind: "verdict", verdict: "not_working" });
+    expect(store.inserted[0]?.measured).toMatchObject({ kind: "zero" });
+  });
+
+  it("an article at 14 in the ranked rows only, on one of the twelve, is working at place 14", async () => {
+    const store = fakeStore({
+      report: weekOf([HOME], { ownRanked: measured(2, AT), ownRankedRows: [ranked(14)] }),
+    });
+    const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
+    expect(standings[0]?.standing).toMatchObject({ kind: "verdict", verdict: "working" });
+    expect(store.inserted[0]?.measured).toMatchObject({ kind: "measured", value: 14 });
+  });
+
+  it("the movement compares the page's own places, read again from the previous week's stored report", async () => {
+    const store = fakeStore({
+      report: weekOf([HOME], { ownRanked: measured(1, AT), ownRankedRows: [ranked(12)] }),
+      // The row the previous week wrote holds the domain's best place, 3.
+      history: [record({ week: PREVIOUS_WEEK, measured: measured(3, AT) })],
+      reports: { [PREVIOUS_WEEK]: weekOf([HOME, { position: 8, domain: DOMAIN, url: PAGE_URL, title: "Ours" }]) },
+    });
+    const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
+    expect(standings[0]?.standing).toMatchObject({
+      kind: "verdict",
+      verdict: "working",
+      movement: { from: { kind: "measured", value: 8 }, to: { kind: "measured", value: 12 }, declined: true },
+    });
+    expect(store.inserted[0]?.movement).toMatchObject({ declined: true });
+  });
+
+  it("a row at an address the page answered at before is the page's, on whatever host that was", async () => {
+    // The host the page was published on before its site's host moved
+    // (issue 896): not the site's domain, and still this page.
+    const OLD = "https://pages.earlier-host.example/old-slug";
+    fakeStore({
+      pages: [pageOf({ earlierUrls: [OLD] })],
+      report: weekOf([{ ...HOME, position: 5, domain: "pages.earlier-host.example" as typeof DOMAIN, url: OLD, title: "Old" }]),
+    });
+    const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
+    expect(standings[0]?.standing).toMatchObject({ kind: "verdict", verdict: "working" });
+  });
+});
+
+describe("issue 1518 — the addresses a page answered at before", () => {
+  const row = (id: string, liveUrl: string, from: string | null) => ({
+    id,
+    live_url: liveUrl,
+    drafts: {
+      meta: null,
+      opportunities: { acceptance: null, target_query: null, volume: null, family: from === null ? "write" : "improve", target_ref: from },
+    },
+  });
+
+  it("follows each retarget back through the addresses it moved from, and the host the row recorded", () => {
+    const first = row("p1", "https://content.example.com/first", null);
+    const second = row("p2", "https://content.example.com/second", "https://content.example.com/first/");
+    const third = row("p3", "https://old.example.com/third", "https://content.example.com/second");
+    expect(earlierAddresses(third, [first, second, third], "https://content.example.com/third")).toEqual([
+      "https://old.example.com/third",
+      "https://content.example.com/second",
+      "https://content.example.com/first/",
+    ]);
+  });
+
+  it("a Write row names no earlier address, and an update in place names none", () => {
+    const write = row("w", "https://content.example.com/a", null);
+    const refresh = row("r", "https://content.example.com/a", "https://content.example.com/a");
+    expect(earlierAddresses(write, [write], "https://content.example.com/a")).toEqual([]);
+    expect(earlierAddresses(refresh, [refresh, write], "https://content.example.com/a")).toEqual([]);
   });
 });

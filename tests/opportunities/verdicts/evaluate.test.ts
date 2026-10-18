@@ -9,7 +9,7 @@
 import { describe, expect, it } from "vitest";
 import { evaluateAcceptance as evaluate } from "../../../src/lib/opportunities/verdicts/evaluate";
 import type { Acceptance } from "../../../src/lib/opportunities/types";
-import type { WeekMeasurements } from "../../../src/lib/opportunities/verdicts/types";
+import type { SearchRows, WeekMeasurements } from "../../../src/lib/opportunities/verdicts/types";
 import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured";
 import type { Barrier } from "../../../src/lib/opportunities/types";
 import type { Measured } from "../../../src/lib/measure/measured";
@@ -17,6 +17,11 @@ import { AT, DOMAIN } from "../fixtures";
 
 const WEEK = "2026-08-31";
 const PAGE = `https://${DOMAIN}/guides/p`;
+
+/** A read SERP holding this page at `position`, or not holding it. */
+function serpWith(position: number | null): Measured<SearchRows> {
+  return measured({ serp: position === null ? [] : [{ url: PAGE, position }], ranked: [], complete: true }, AT);
+}
 
 /** Every case here judges the one page. */
 function evaluateAcceptance(a: { acceptance: Acceptance; week: WeekMeasurements; pageUrl?: string }) {
@@ -28,7 +33,7 @@ function week(over: Partial<WeekMeasurements> = {}): WeekMeasurements {
     week: WEEK,
     measuredAt: AT,
     domain: DOMAIN,
-    positions: new Map<string, Measured<number>>(),
+    positions: new Map<string, Measured<SearchRows>>(),
     namesCustomer: new Map<string, Measured<boolean>>(),
     ownPagesCited: new Map<string, Measured<readonly string[]>>(),
     promptCitations: new Map<string, Measured<readonly string[]>>(),
@@ -42,7 +47,7 @@ describe("top20 — the customer's own place for the recorded search", () => {
   it("a measured place decides the test and passes it", () => {
     const out = evaluateAcceptance({
       acceptance: { form: "top20", query: "q" },
-      week: week({ positions: new Map([["q", measured(4, AT)]]) }),
+      week: week({ positions: new Map([["q", serpWith(4)]]) }),
     });
     expect(out).toEqual({ decided: true, passes: true, measuredAt: AT });
   });
@@ -50,7 +55,7 @@ describe("top20 — the customer's own place for the recorded search", () => {
   it("a measured zero — the SERP was read and the customer holds no place — decides it and fails it", () => {
     const out = evaluateAcceptance({
       acceptance: { form: "top20", query: "q" },
-      week: week({ positions: new Map([["q", measuredZero(0, AT)]]) }),
+      week: week({ positions: new Map([["q", serpWith(null)]]) }),
     });
     expect(out).toEqual({ decided: true, passes: false, measuredAt: AT });
   });
@@ -65,7 +70,7 @@ describe("top20 — the customer's own place for the recorded search", () => {
   it("a search still tracked whose SERP the week could not read is not_measured, and is never a cause", () => {
     const out = evaluateAcceptance({
       acceptance: { form: "top20", query: "q" },
-      week: week({ positions: new Map([["q", unmeasured<number>("undeterminable", AT)]]) }),
+      week: week({ positions: new Map([["q", unmeasured<SearchRows>("undeterminable", AT)]]) }),
     });
     // The distinction this whole subsystem exists to keep: one missed
     // request is a week's miss, not a page retired forever.
@@ -122,7 +127,7 @@ describe("named_on — whether this week's AI answer to the page's question cite
     });
     const left = evaluateAcceptance({
       acceptance: { form: "named_on", question: "q" },
-      week: week({ positions: new Map([["q", measured(1, AT)]]) }),
+      week: week({ positions: new Map([["q", serpWith(1)]]) }),
     });
     expect(untracked).toEqual({ decided: false, cause: "search_untracked" });
     expect(left).toEqual({ decided: false, cause: "question_left_set" });
@@ -168,11 +173,11 @@ describe("the three causes this function must never produce", () => {
       for (const present of [false, true]) {
         for (const reading of readings) {
           const key = "q";
-          const positions = new Map<string, Measured<number>>();
+          const positions = new Map<string, Measured<SearchRows>>();
           const namesCustomer = new Map<string, Measured<boolean>>();
           const gatesCleared = new Map<Barrier, Measured<boolean>>();
           if (present) {
-            positions.set(key, reading);
+            positions.set(key, reading.kind === "unmeasured" ? reading : serpWith(reading.kind === "zero" ? null : reading.value));
             namesCustomer.set("p", reading.kind === "unmeasured" ? reading : measured(true, AT));
             gatesCleared.set("noindex", reading.kind === "unmeasured" ? reading : measured(true, AT));
           }

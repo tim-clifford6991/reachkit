@@ -32,6 +32,7 @@ import type { VerifyOutcome } from "@/lib/publish/types";
 import { readStoredCheck } from "@/lib/publish/verify/stored";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import type { Acceptance } from "../types";
+import { addressOf } from "./evaluate";
 import { readIntent, type IntentPrompt, type PageIntent } from "../intent";
 import type { CheckId, Movement, NotJudgeableCause, PageMeasured, Verdict, VerifyNote, WeekStart } from "./types";
 
@@ -78,6 +79,11 @@ export interface PublishedPage {
    *  out from under a live page is a link that 404s. A WordPress page is
    *  on a host this product does not own and keeps its stored address. */
   readonly liveUrl: string;
+  /** The addresses this page answered at before (issue 1487, 1518): the one
+   *  its row recorded where its host has moved since, and each address it
+   *  moved from by a retarget. A row at any of them is this page's place.
+   *  Absent reads as none. */
+  readonly earlierUrls?: readonly string[];
   /** SPEC §6 (D60, issue 1288): what the page is for, as its draft
    *  recorded it. `null` or absent on a page published before intent was
    *  recorded, which the next verdict fills from its opportunity. */
@@ -268,7 +274,13 @@ interface PublicationRow {
   draft_id: string | null;
   drafts: {
     meta: { intent?: unknown } | null;
-    opportunities: { acceptance: unknown; target_query: string | null; volume: number | null } | null;
+    opportunities: {
+      acceptance: unknown;
+      target_query: string | null;
+      volume: number | null;
+      family?: string | null;
+      target_ref?: string | null;
+    } | null;
   } | null;
   sites: { domain: string | null } | null;
 }
@@ -280,6 +292,48 @@ function acceptanceOf(row: PublicationRow): unknown {
   const opportunity = row.drafts?.opportunities;
   const query = opportunity?.target_query?.trim() ?? "";
   return row.acceptance ?? opportunity?.acceptance ?? (query === "" ? null : { form: "top20", query });
+}
+
+/** A chain of moves is followed at most this far, as `moved.ts` follows it. */
+const MOVES_FOLLOWED = 8;
+
+/**
+ * The addresses a page answered at before (issue 1487, 1518), from the
+ * site's publications already read. An Improve row's `target_ref` is the
+ * address the page it updates had; where that is another address, the page
+ * moved from it, and the publication that served it may itself have moved.
+ * An address of the page's own row that differs from where it answers now
+ * is its address before its host moved (issue 896).
+ */
+export function earlierAddresses(
+  row: Pick<PublicationRow, "id" | "live_url" | "drafts">,
+  rows: readonly Pick<PublicationRow, "id" | "live_url" | "drafts">[],
+  liveUrl: string
+): string[] {
+  const now = addressOf(liveUrl);
+  const found: string[] = [];
+  const add = (url: string | null | undefined) => {
+    if (url == null || url === "") return;
+    const at = addressOf(url);
+    if (at !== now && !found.some((held) => addressOf(held) === at)) found.push(url);
+  };
+  add(row.live_url);
+  const seen = new Set([row.id]);
+  let at = row;
+  for (let hop = 0; hop < MOVES_FOLLOWED; hop++) {
+    const opportunity = at.drafts?.opportunities;
+    const from = opportunity?.family === "improve" ? (opportunity.target_ref ?? null) : null;
+    if (from === null) break;
+    add(from);
+    const prior = rows.find(
+      (other) => !seen.has(other.id) && other.live_url !== null && addressOf(other.live_url) === addressOf(from)
+    );
+    if (prior === undefined) break;
+    seen.add(prior.id);
+    add(prior.live_url);
+    at = prior;
+  }
+  return found;
 }
 
 interface VerdictRow {
@@ -317,7 +371,7 @@ export function supabaseVerdictStore(): VerdictStore {
         .from<PublicationRow>("publications")
         .select(
           "id, live_url, destination, published_at, unpublished_at, verify, acceptance, draft_id, " +
-            "drafts(meta, opportunities(acceptance, target_query, volume)), sites(domain)"
+            "drafts(meta, opportunities(acceptance, target_query, volume, family, target_ref)), sites(domain)"
         )
         .eq("site_id", siteId)
         .not("published_at", "is", null)
@@ -342,13 +396,15 @@ export function supabaseVerdictStore(): VerdictStore {
         // invented here.
         if (row.published_at === null || row.live_url === null) continue;
         if (acceptance == null || domain == null) continue;
+        const liveUrl = addressNow({ destination: row.destination, liveUrl: row.live_url });
         pages.push({
           publicationId: row.id,
           acceptance: reviveDates(acceptance) as Acceptance,
           publishedAt: new Date(row.published_at),
           unpublishedAt: row.unpublished_at === null ? null : new Date(row.unpublished_at),
           domain,
-          liveUrl: addressNow({ destination: row.destination, liveUrl: row.live_url }),
+          liveUrl,
+          earlierUrls: earlierAddresses(row, rows, liveUrl),
           verification: readVerification(row.verify),
           intent: readIntent(row.drafts?.meta?.intent),
           draftId: row.draft_id,

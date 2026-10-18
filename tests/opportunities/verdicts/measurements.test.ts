@@ -10,23 +10,27 @@
 import "../env";
 import { afterEach, describe, expect, it } from "vitest";
 import { weekMeasurementsFrom } from "../../../src/lib/opportunities/verdicts/measurements";
-import { unmeasured } from "../../../src/lib/measure/measured";
+import { placeOf } from "../../../src/lib/opportunities/verdicts/evaluate";
+import { measured, unmeasured } from "../../../src/lib/measure/measured";
 import { AT, DOMAIN, question, reportOf, serp } from "../fixtures";
-import { emptyReport, reportWithOwnPlace, releaseStore, WEEK } from "./harness";
+import { emptyReport, PAGE_URL, reportWithOwnPlace, releaseStore, WEEK } from "./harness";
 
 afterEach(releaseStore);
 
-describe("positions — the customer's own place, from the week's own SERPs", () => {
+describe("positions — each search's rows, from which a page takes its own place (issue 1518)", () => {
+  const SEARCH = "best user onboarding software";
+  const placeAt = (report: Parameters<typeof weekMeasurementsFrom>[0]["report"], url = PAGE_URL) => {
+    const reading = weekMeasurementsFrom({ report, week: WEEK }).positions.get(SEARCH);
+    return reading === undefined ? undefined : placeOf(reading, [url]);
+  };
+
   it("a measured place is carried with the rank the SERP recorded", () => {
-    const week = weekMeasurementsFrom({ report: reportWithOwnPlace(4), week: WEEK });
-    const place = week.positions.get("best user onboarding software");
-    expect(place?.kind).toBe("measured");
+    const place = placeAt(reportWithOwnPlace(4));
     expect(place?.kind === "measured" && place.value).toBe(4);
   });
 
-  it("a SERP the week read, with the customer absent, is a measured zero and never a missing measurement", () => {
-    const week = weekMeasurementsFrom({ report: reportWithOwnPlace(null), week: WEEK });
-    expect(week.positions.get("best user onboarding software")?.kind).toBe("zero");
+  it("a SERP the week read, with the page absent, is a measured zero and never a missing measurement", () => {
+    expect(placeAt(reportWithOwnPlace(null))?.kind).toBe("zero");
   });
 
   it("a SERP the week could not read keeps its key, carrying an unmeasured reading", () => {
@@ -37,26 +41,54 @@ describe("positions — the customer's own place, from the week's own SERPs", ()
     // The key is there — the search is still tracked — and the value says
     // the week did not reach it. Dropping the key would say the search
     // left the tracked set, which is terminal.
-    expect(week.positions.has("best user onboarding software")).toBe(true);
-    expect(week.positions.get("best user onboarding software")?.kind).toBe("unmeasured");
+    expect(week.positions.has(SEARCH)).toBe(true);
+    expect(week.positions.get(SEARCH)?.kind).toBe("unmeasured");
   });
 
-  it("the best of several own rows is the place — a page ranking twice holds the higher one", () => {
+  it("the best of the page's own rows is its place — a page ranking twice holds the higher one", () => {
     const report = reportOf({
       questions: [question()],
       serps: [
         serp({
           organic: [
-            { position: 2, domain: DOMAIN, url: `https://${DOMAIN}/b`, title: "Ours, lower" },
-            { position: 7, domain: DOMAIN, url: `https://${DOMAIN}/a`, title: "Ours, deeper" },
+            { position: 2, domain: DOMAIN, url: `${PAGE_URL}/`, title: "Ours, higher" },
+            { position: 7, domain: DOMAIN, url: PAGE_URL, title: "Ours, deeper" },
           ],
         }),
       ],
     });
-    const place = weekMeasurementsFrom({ report, week: WEEK }).positions.get(
-      "best user onboarding software"
-    );
+    const place = placeAt(report);
     expect(place?.kind === "measured" && place.value).toBe(2);
+  });
+
+  it("another page of the same domain is not this page: the home page at #3 places the article nowhere", () => {
+    const report = reportOf({
+      questions: [question()],
+      serps: [serp({ organic: [{ position: 3, domain: DOMAIN, url: `https://${DOMAIN}/`, title: "Home" }] })],
+    });
+    expect(placeAt(report)?.kind).toBe("zero");
+    const home = placeAt(report, `https://www.${DOMAIN}`);
+    expect(home?.kind === "measured" && home.value).toBe(3);
+  });
+
+  it("a page the ten-deep SERP does not hold is read from the ranked rows to depth 20 before it reads as absent", () => {
+    const ranked = (position: number, url = PAGE_URL) => ({ keyword: SEARCH, position, searchVolume: 90, url });
+    const at14 = placeAt(reportWithOwnPlace(null, { ownRanked: measured(2, AT), ownRankedRows: [ranked(14), ranked(2, `https://${DOMAIN}/`)] }));
+    expect(at14?.kind === "measured" && at14.value).toBe(14);
+    expect(placeAt(reportWithOwnPlace(null, { ownRanked: measured(1, AT), ownRankedRows: [ranked(24)] }))?.kind).toBe("zero");
+    // The SERP is the week's own reading of Google, and is read first.
+    const both = placeAt(reportWithOwnPlace(6, { ownRanked: measured(1, AT), ownRankedRows: [ranked(4)] }));
+    expect(both?.kind === "measured" && both.value).toBe(6);
+  });
+
+  it("an earlier address of the same page counts as the page (issue 1487)", () => {
+    const report = reportOf({
+      questions: [question()],
+      serps: [serp({ organic: [{ position: 5, domain: DOMAIN, url: "https://content.example.com/old-slug", title: "Old" }] })],
+    });
+    const reading = weekMeasurementsFrom({ report, week: WEEK }).positions.get(SEARCH);
+    const place = reading === undefined ? undefined : placeOf(reading, [PAGE_URL, "https://content.example.com/old-slug"]);
+    expect(place?.kind === "measured" && place.value).toBe(5);
   });
 });
 
