@@ -539,6 +539,49 @@ export function markPassage(
   return { blocks: out, marked: done.hit };
 }
 
+// ── links to a retired address ──────────────────────────────────────────
+
+function unlinkInline(nodes: readonly Inline[], gone: (href: string) => boolean): Inline[] {
+  return nodes.flatMap((node): Inline[] => {
+    if (node.kind === "link") return gone(node.href) ? unlinkInline(node.children, gone) : [{ ...node, children: unlinkInline(node.children, gone) }];
+    if (node.kind === "strong" || node.kind === "em" || node.kind === "mark") return [{ ...node, children: unlinkInline(node.children, gone) }];
+    return [node];
+  });
+}
+
+function unlinkBlock(block: Block, gone: (href: string) => boolean): Block {
+  switch (block.kind) {
+    case "code":
+    case "rule":
+    case "guides":
+      return block;
+    case "list":
+      return { ...block, items: block.items.map((item) => unlinkInline(item, gone)) };
+    case "table":
+      return {
+        ...block,
+        head: block.head.map((cell) => unlinkInline(cell, gone)),
+        rows: block.rows.map((row) => row.map((cell) => unlinkInline(cell, gone))),
+      };
+    case "answer":
+    case "takeaways":
+      return { ...block, children: block.children.map((child) => unlinkBlock(child, gone)) };
+    default:
+      return { ...block, children: unlinkInline(block.children, gone) };
+  }
+}
+
+/**
+ * SPEC §7 (issue 1506): a link to an address that answers 410 is unwrapped
+ * at render, its words kept — the same treatment the link step gives a
+ * link it cannot stand behind (`generate/links/apply.ts`). No live page's
+ * text is edited (ADR-080): the next version of the page simply has no
+ * link there to unwrap.
+ */
+export function withoutLinksTo(blocks: readonly Block[], gone: (href: string) => boolean): Block[] {
+  return blocks.map((block) => unlinkBlock(block, gone));
+}
+
 // ── serialisation ───────────────────────────────────────────────────────
 
 /** The five characters that can change the meaning of the markup this

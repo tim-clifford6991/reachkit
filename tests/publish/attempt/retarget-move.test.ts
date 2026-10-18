@@ -14,8 +14,8 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 vi.mock("next/cache", () => ({ revalidateTag: () => undefined }));
 
 import { publish } from "@/lib/publish/attempt";
-import { repairMoves } from "@/lib/publish/attempt/move";
-import { hostedAddress, livePagesForSite, slugDescribesTitle } from "@/lib/publish/destinations/hosted";
+import { moveAddress, repairMoves } from "@/lib/publish/attempt/move";
+import { hostedAddress, livePagesForSite, retiredSlugsForSite, slugDescribesTitle } from "@/lib/publish/destinations/hosted";
 import type { GuardDeps } from "@/lib/publish/machine";
 import type { Actor } from "@/lib/publish/types";
 
@@ -244,5 +244,46 @@ describe("a retarget stored at its old address is moved by the hourly repair", (
     ]);
     expect(await repairMoves({ now: AT })).toEqual({ moved: 0 });
     expect(db.rows("publications").find((row) => row.id === "pR")?.live_url).toBe(OLD);
+  });
+});
+
+describe("a page merged into another answers 301 there (issue 1506)", () => {
+  const RECHECK: Actor = { kind: "system", job: "content/recheck" };
+  const INTO = `https://${HOST}/how-to-rank-in-ai-overview`;
+  beforeEach(() => seed("due"));
+
+  async function merge(): Promise<void> {
+    await moveAddress({ from: OLD, to: { publicationId: "pD", url: INTO }, at: AT, by: RECHECK, merge: true });
+  }
+
+  it("the merged address answers 301 to the page it went into, and names it on its row", async () => {
+    await merge();
+    expect(await hostedAddress("s1", "tools-to-track-where-ai-sends-potential-customers")).toMatchObject({
+      state: "moved",
+      publicationId: "pD",
+      slug: "how-to-rank-in-ai-overview",
+    });
+    expect(db.rows("publications").find((row) => row.id === "pC")).toMatchObject({ unpublished_at: AT.toISOString(), merged_into: "pD" });
+    expect(await retiredSlugsForSite("s1")).toEqual(new Set());
+  });
+
+  it("leaves through the state machine, by the recheck, and no live page's text is edited", async () => {
+    await merge();
+    const old = db.rows("drafts").find((row) => row.id === "dC");
+    expect(old?.state).toBe("unpublished");
+    expect(old?.transitions).toEqual([expect.objectContaining({ from: "published", to: "unpublished", reason: "moved" })]);
+    expect(db.rows("drafts").find((row) => row.id === "dD")?.body_md).toContain(OLD);
+  });
+
+  it("answers 410 once the page it went into is itself taken down, and is then a retired address", async () => {
+    await merge();
+    db.seed("publications", db.rows("publications").map((row) => (row.id === "pD" ? { ...row, unpublished_at: AT.toISOString() } : row)));
+    expect(await hostedAddress("s1", "tools-to-track-where-ai-sends-potential-customers")).toMatchObject({ state: "retired" });
+    expect(await retiredSlugsForSite("s1")).toEqual(new Set(["tools-to-track-where-ai-sends-potential-customers", "how-to-rank-in-ai-overview"]));
+  });
+
+  it("a plain move writes no merge", async () => {
+    await moveAddress({ from: OLD, to: { publicationId: "pD", url: INTO }, at: AT, by: RECHECK });
+    expect(db.rows("publications").find((row) => row.id === "pC")?.merged_into ?? null).toBeNull();
   });
 });

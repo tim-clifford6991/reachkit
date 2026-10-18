@@ -269,6 +269,26 @@ describe("a Q&A's questions are on the current market, each with a fact that ans
     expect(marketSearches({ ...MARKET, from: "report", market: null })).toEqual([]);
   });
 
+  it("a question that says a rival's name in another sense of the word is not a buyer question, whatever the market (issue 1506)", () => {
+    // Rivals whose names are words: an English one and a German one.
+    const worded: WritingMarket = {
+      ...MARKET,
+      market: { ...MARKET.market!, rivals: [{ name: "Profound", domain: "tryprofound.com" }, { name: "Wunder", domain: "wunder.example" }] },
+    };
+    const people = asked([
+      "Profound alternative word?",
+      "Profound synonym",
+      "Was ist das Gegenteil von Wunder?",
+      "What are the best alternatives to Profound for project management?",
+      "Is Wunder good for task boards?",
+    ]);
+    const read = { facts: [claimOf("tryprofound.com"), claimOf("wunder.example")], products: [], asked: people };
+    expect(qa({ writingFor: worded, report: reportWith([]), research: read }).questions).toEqual([
+      "What are the best alternatives to Profound for project management?",
+      "Is Wunder good for task boards?",
+    ]);
+  });
+
   it("the knowledge base's own recorded questions are not a source", () => {
     const profile = { ...PROFILE, knowledge: { ...PROFILE.knowledge!, questions: [{ text: "What to do next", from: "https://example.com/" }] } };
     expect(qa({ report: reportWith([]), profile }).questions).toEqual([]);

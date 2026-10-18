@@ -207,8 +207,18 @@ export function linkBackCandidates(pages: readonly OwnLivePage[], freshUrl: stri
     .map(({ page }) => refreshOf(page, "link", at, { url: fresh.url, title: freshTitle }));
 }
 
-/** The refresh of one page, for one cause. */
-function refreshOf(page: OwnLivePage, cause: RefreshCause, at: Date, link?: { url: string; title: string; replaces?: string }): Candidate {
+/** The refresh of one page, for one cause. A live page the topic recheck
+ *  keeps for what it already earns is refreshed this way too (issue 1506). */
+export function refreshOfPage(
+  page: Pick<OwnLivePage, "url" | "publishedAt" | "row">,
+  cause: RefreshCause,
+  at: Date,
+  link?: { url: string; title: string; replaces?: string }
+): Candidate {
+  return refreshOf(page, cause, at, link);
+}
+
+function refreshOf(page: Pick<OwnLivePage, "url" | "publishedAt" | "row">, cause: RefreshCause, at: Date, link?: { url: string; title: string; replaces?: string }): Candidate {
   const { row } = page;
   const query = row.targetQuery ?? "";
   const evidence: Evidence = {

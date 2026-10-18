@@ -23,7 +23,7 @@ import { readFaq, type FaqEntry } from "../../render/faq";
 import { publishDb } from "../../db";
 import { liveUrlOnHost } from "./address";
 import { hostFor } from "./label";
-import { addressOf, type HostedAddress } from "./moved";
+import { addressOf, slugOf as addressSlug, type AddressRow, type HostedAddress } from "./moved";
 import type { HostedOwnPages } from "./own-page";
 import { storedSiteName } from "@/lib/site-profile/site-name";
 
@@ -487,31 +487,52 @@ const NO_ADDRESS: HostedAddress = Object.freeze({ state: "none", publicationId: 
  * **A read that fails is `none`.** No answer is not a takedown.
  */
 export async function hostedAddress(siteId: string, slug: string): Promise<HostedAddress> {
-  const { data, error } = await publishDb()
-    .from<{
-      id: string;
-      live_url: string | null;
-      published_at: string | null;
-      unpublished_at: string | null;
-      drafts: { opportunities: { family: string | null; target_ref: string | null } | null } | null;
-    }>("publications")
-    .select("id, live_url, published_at, unpublished_at, drafts(opportunities(family, target_ref))")
-    .eq("site_id", siteId)
-    .eq("destination", "hosted");
-  if (error !== null || data === null) return NO_ADDRESS;
-  return addressOf(
-    data.map((row) => {
-      const opportunity = row.drafts?.opportunities ?? null;
-      return {
-        id: row.id,
-        live_url: row.live_url,
-        published_at: row.published_at,
-        unpublished_at: row.unpublished_at,
-        updates: opportunity?.family === "improve" ? (opportunity.target_ref ?? null) : null,
-      };
-    }),
-    slug
-  );
+  const rows = await addressRows(siteId);
+  return rows === null ? NO_ADDRESS : addressOf(rows, slug);
+}
+
+/** Every hosted publication of a site, as `addressOf` reads them; `null`
+ *  where the read failed. */
+async function addressRows(siteId: string): Promise<AddressRow[] | null> {
+  type Row = {
+    id: string;
+    live_url: string | null;
+    published_at: string | null;
+    unpublished_at: string | null;
+    merged_into?: string | null;
+    drafts: { opportunities: { family: string | null; target_ref: string | null } | null } | null;
+  };
+  const read = (columns: string) =>
+    publishDb().from<Row>("publications").select(columns).eq("site_id", siteId).eq("destination", "hosted");
+  let { data, error } = await read("id, live_url, published_at, unpublished_at, merged_into, drafts(opportunities(family, target_ref))");
+  // Until `merged_into` is applied (issue 1506's migration, after the
+  // deploy), the read without it answers as before: no address is merged.
+  if (error !== null) ({ data, error } = await read("id, live_url, published_at, unpublished_at, drafts(opportunities(family, target_ref))"));
+  if (error !== null || data === null) return null;
+  return data.map((row) => {
+    const opportunity = row.drafts?.opportunities ?? null;
+    return {
+      id: row.id,
+      live_url: row.live_url,
+      published_at: row.published_at,
+      unpublished_at: row.unpublished_at,
+      updates: opportunity?.family === "improve" ? (opportunity.target_ref ?? null) : null,
+      merged_into: row.merged_into ?? null,
+    };
+  });
+}
+
+/**
+ * The slugs of a site's host that answer 410 (issue 1506): an address that
+ * served a page and now serves none, by `addressOf`'s own reading — moved
+ * and merged addresses answer 301 and are not among them. A read that fails
+ * is none: a link is never unwrapped on a guess.
+ */
+export async function retiredSlugsForSite(siteId: string): Promise<ReadonlySet<string>> {
+  const rows = await addressRows(siteId);
+  if (rows === null) return new Set();
+  const slugs = new Set(rows.flatMap((row) => (row.live_url === null ? [] : [addressSlug(row.live_url)])).filter((slug): slug is string => slug !== null));
+  return new Set([...slugs].filter((slug) => addressOf(rows, slug).state === "retired"));
 }
 
 /**

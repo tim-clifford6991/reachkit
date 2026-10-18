@@ -54,6 +54,7 @@ export {
   livePagesForSite,
   readDescription,
   readFaq,
+  retiredSlugsForSite,
   siteForDraft,
   hostedAddress,
 } from "./store";

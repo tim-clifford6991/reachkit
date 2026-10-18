@@ -1864,6 +1864,13 @@ export const CONTENT_MIX = Object.freeze({
    *  pages may be a listicle or comparison that includes the business. A
    *  topic over it fills no day until the window has room. */
   SELF_PROMOTING_MAX: 1,
+  /** SPEC §7 (issue 1506): the fewest of the site's last `NON_COMMERCIAL_OF`
+   *  new pages (refreshes not counted) that answer rather than sell — a Q&A,
+   *  a how-to or documentation — where a topic of one is ready. Drafted; the
+   *  owner may correct it. */
+  NON_COMMERCIAL_MIN: 3,
+  NON_COMMERCIAL_OF: 7,
+  NON_COMMERCIAL_TYPES: Object.freeze(["qa", "how_to", "documentation"] as const),
   /** How many of the site's own published and planned pages a brief is
    *  handed, newest first. */
   BRIEF_PAGES_MAX: 100,

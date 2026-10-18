@@ -55,6 +55,9 @@ export const EN: LanguagePack = {
     // SPEC §6's four format pages (`FORMAT_PAGE_ALLOWED`) and the owner's "vs".
     format: `(?:${[...FORMAT_PAGE_ALLOWED, "vs", "versus"].join("|")})s?`,
     asksPrice: "costs?|prices?|priced|pricing|how much|value|cheap\\w*|expensive",
+    // Drafted (issue 1506); the owner may correct the lists.
+    agency: "agency|agencies|consultants?|consultancy|consultancies|consulting|services|service providers?|companies|firms?",
+    wordSense: "synonyms?|antonyms?|another word|other words?|word for|words?|meaning|define|definition|pronounce|pronunciation|thesaurus|dictionary|crossword",
   },
   stopWords: new Set([
     "a", "an", "the", "and", "or", "of", "for", "to", "in", "on", "at", "by",

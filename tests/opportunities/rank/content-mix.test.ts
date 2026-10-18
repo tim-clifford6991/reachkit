@@ -178,3 +178,66 @@ describe("the days before are read from the site's own drafted pages", () => {
     expect(orderRanked(supply(), { mix })[0]?.opportunityId).toBe("o14");
   });
 });
+
+describe("pages that answer: at least three of the last seven new pages where one is ready (issue 1506)", () => {
+  const ANSWERS: readonly (ContentType | null)[] = CONTENT_MIX.NON_COMMERCIAL_TYPES;
+
+  it("a week already full of other pages takes the answer, though a comparison scores first", () => {
+    const rows = [
+      opportunity("comparison", "listed_page", "best ai seo software"),
+      opportunity("statistics", "keyword_page", "ai search statistics"),
+      opportunity("how-to", "keyword_page", "how to measure ai mentions"),
+    ].map((o, index) => ({ opportunity: o, score: 1 - index * 0.1 }));
+    const recent = [
+      { day: 95, kind: "research" as const },
+      { day: 96, kind: "insights" as const },
+      { day: 97, kind: "research" as const },
+      { day: 99, kind: "insights" as const },
+    ];
+    expect(orderRanked(rows, { mix: { from: 100, recent } })[0]?.opportunityId).toBe("how-to");
+  });
+
+  it("the count is of new pages, not of days: refreshes between them do not count, and pages older than a week still do", () => {
+    const rows = [
+      opportunity("comparison", "listed_page", "best ai seo software"),
+      opportunity("how-to", "keyword_page", "how to measure ai mentions"),
+    ].map((o, index) => ({ opportunity: o, score: 1 - index * 0.1 }));
+    const recent = [
+      { day: 80, kind: "research" as const },
+      { day: 85, kind: "insights" as const },
+      { day: 90, kind: "research" as const },
+      { day: 96, kind: "insights" as const },
+      { day: 97, kind: "update" as const },
+      { day: 98, kind: "update" as const },
+      { day: 99, kind: "update" as const },
+    ];
+    expect(orderRanked(rows, { mix: { from: 100, recent } })[0]?.opportunityId).toBe("how-to");
+    // Three of the last six new pages answer: the best page goes first.
+    const answered = recent.map((page, index) => (index < 3 ? { ...page, kind: "qa" as const } : page));
+    expect(orderRanked(rows, { mix: { from: 100, recent: answered } })[0]?.opportunityId).toBe("comparison");
+  });
+
+  it("two weeks of reachkit.app's supply hold three answers in every seven new pages", () => {
+    const scored = supply();
+    const byId = new Map(scored.map((entry) => [entry.opportunity.id, entry.opportunity]));
+    const kinds = orderRanked(scored, { mix: { from: 100, recent: [] } })
+      .slice(0, 14)
+      .map((entry) => entry.writeAs ?? contentTypeOf(byId.get(entry.opportunityId)!)!);
+    const newPages = kinds.filter((kind) => kind !== "update");
+    expect(newPages.length).toBeGreaterThan(CONTENT_MIX.NON_COMMERCIAL_OF);
+    for (let start = 0; start + CONTENT_MIX.NON_COMMERCIAL_OF <= newPages.length; start++) {
+      const seven = newPages.slice(start, start + CONTENT_MIX.NON_COMMERCIAL_OF);
+      expect(seven.filter((kind) => ANSWERS.includes(kind)).length, `from page ${start}: ${seven.join(", ")}`).toBeGreaterThanOrEqual(
+        CONTENT_MIX.NON_COMMERCIAL_MIN
+      );
+    }
+  });
+
+  it("a supply with no page that answers still fills every day", () => {
+    const rows = ["best ai seo software", "ai search statistics", "latest ai search trends", "ai visibility research data"].map(
+      (query, index) => ({ opportunity: opportunity(`o${index}`, "keyword_page", query), score: 1 - index * 0.1 })
+    );
+    const recent = [95, 96, 97, 98].map((day) => ({ day, kind: "research" as const }));
+    expect(orderRanked(rows, { mix: { from: 100, recent } })).toHaveLength(rows.length);
+  });
+});

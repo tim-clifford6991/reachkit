@@ -22,6 +22,7 @@ import {
   renderMarkdownHtml,
   toHtml,
   withHeadingIds,
+  withoutLinksTo,
   type HtmlClasses,
 } from "@/lib/publish/render/markdown";
 import { DRAFT_BODY_CLASSES, MARK_CLASS } from "@/app/(account)/app/draft/[draftId]/present";
@@ -342,5 +343,28 @@ describe("SPEC §7 (2026-09-29, issue 1140) — heading ids are minted here, fro
     expect(html).toMatch(/^<h2 id="[\p{L}\p{N}-]+">/u);
     expect(html).not.toContain("<script");
     expect(renderMarkdownHtml("## Plain")).toBe("<h2>Plain</h2>");
+  });
+});
+
+describe("a link to an address that answers 410 shows its words without the link (issue 1506)", () => {
+  const GONE = "https://content.example.com/reachkit-vs-aeo-engine";
+  const gone = (href: string) => href === GONE;
+
+  it("in a paragraph, a list, a table and inside emphasis; every other link stays", () => {
+    const body = [
+      `See [the old comparison](${GONE}) and [the guide](https://content.example.com/guide).`,
+      "",
+      `- **[bold old](${GONE})**`,
+      "",
+      "| Page | Link |",
+      "| --- | --- |",
+      `| Old | [here](${GONE}) |`,
+    ].join("\n");
+    const html = toHtml(withoutLinksTo(parseMarkdown(body), gone)).replace(CLASS_ATTR, "");
+    expect(html).not.toContain(GONE);
+    expect(html).toContain("See the old comparison and");
+    expect(html).toContain('href="https://content.example.com/guide"');
+    expect(html).toContain("<strong>bold old</strong>");
+    expect(html).toContain("<td>here</td>");
   });
 });
