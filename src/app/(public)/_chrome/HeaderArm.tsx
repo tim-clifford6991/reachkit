@@ -23,7 +23,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, X } from "lucide-react";
 import { CopyLink } from "../scan/[domain]/_address/copy-link";
-import { FIELD_SECTION_ID, focusField } from "../_landing/FieldCta";
+import { focusField } from "../_landing/FieldCta";
+import { FIELD_SECTION_ID } from "../_landing/sections";
 import { headerActionFor, type HeaderAction } from "./action";
 import { dismissBanner } from "./banner";
 
