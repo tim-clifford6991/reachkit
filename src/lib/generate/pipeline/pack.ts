@@ -41,6 +41,7 @@ import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import { chooseVoice, type PageVoice, type WritingVoice } from "../voice/register";
 import type { SourcedFact } from "./grounding";
 import type { BuyersAsk, JudgedResult, MarketFact, MarketResearch, QuestionsHeld, ResearchedProduct } from "./research";
+import { reportFactsAllowed } from "./report-scope";
 import { comparisonTable } from "./table";
 
 export interface PackFact {
@@ -92,6 +93,10 @@ export interface PackLivePage {
    *  1487: `replaces` is the old address of a page that moved, which the
    *  live page links; code has already pointed that link at `url`. */
   linkTo?: { url: string; title: string; replaces?: string };
+  /** Issue 1490: the report sentences the live page's own pack held, where
+   *  it was not a research page. The refresh may state none of their
+   *  measurements. Absent reads as none. */
+  reportPassages?: string[];
 }
 
 /** One fact the pack holds that the top results do not state (D12). */
@@ -612,7 +617,9 @@ export function neverASource(url: string): boolean {
 export function buildPack(a: PackInputs): ContextPack {
   const searches = [...(a.opportunity.targetQuery === null ? [] : [a.opportunity.targetQuery]), ...a.opportunity.absorbedQueries];
   const question = searches[0] ?? a.opportunity.title ?? a.opportunity.targetRef;
-  const facts: PackFact[] = a.facts.filter((sourced) => !neverASource(sourced.fact.url)).slice(0, PACK.facts).map((sourced) => ({
+  // Issue 1490: the site's own measurements only on a research page.
+  const allowed = a.facts.filter((sourced) => !neverASource(sourced.fact.url) && (sourced.report !== true || reportFactsAllowed(a.type)));
+  const facts: PackFact[] = allowed.slice(0, PACK.facts).map((sourced) => ({
     passage: sourced.fact.passage,
     url: sourced.fact.url,
     readAt: sourced.fact.readAt.toISOString(),

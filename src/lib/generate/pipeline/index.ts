@@ -67,6 +67,7 @@ import { buildComparisonSet } from "./comparison";
 import { layoutPage, withClosing, type LaidPage } from "./compose";
 import { closeElsewhere } from "./elsewhere";
 import type { SourcedFact } from "./grounding";
+import { reportFactsAllowed } from "./report-scope";
 import { builtFromOutside, packStatements, type ContextPack, type PackClaim } from "./pack";
 import { fixNotes, repairable, repairMechanical, type FixNote, type RepairRecord } from "./repair";
 import { completeTables, withSources } from "./sources";
@@ -383,6 +384,16 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     facts: passages,
     queries: searches,
     marketFacts: pack.claims.map((claim) => ({ url: claim.url, passage: claim.passage, ...scopeOf(claim) })),
+    // Issue 1490: the report's own sentences, withheld from every page that
+    // is not research — a refresh's live page among them.
+    ...(reportFactsAllowed(pack.type)
+      ? {}
+      : {
+          reportPassages: [
+            ...a.facts.filter((sourced) => sourced.report === true).map((sourced) => sourced.fact.passage),
+            ...(pack.live?.reportPassages ?? []),
+          ],
+        }),
   };
   const rivalsNamed = namedRivals(a.site.rivals, pack.business.market);
   const battery = (candidate: Finished, markdown: string, fit?: BatteryOutcome["fit"], settled = false): Promise<BatteryOutcome> =>

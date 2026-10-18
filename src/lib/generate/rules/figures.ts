@@ -34,3 +34,29 @@ export function numeralsOf(sentence: string): Array<{ raw: string; normalised: s
   }
   return out;
 }
+
+// SPEC §7 (owner, 2026-10-17, issue 1490): the site's own measurements are
+// stated only on a research page. A measurement is a pair — "4 of the 12",
+// "18 out of 100", "18/100", "4 von 12" — or a score ("a Visibility Score of
+// 18"), and it is matched as that shape, never as a bare number: a register
+// of every number the report holds read "24-hour" as a leak (issue 1187).
+const PAIR_RE = /(?<![\p{L}\d.,])(\d[\d,]*)\s*(?:\/|out of|of(?: the)?|von(?: den)?)\s*(\d[\d,]*)(?![\d])/giu;
+const SCORE_RE = /\bscore\p{L}*\s+(?:of\s+|von\s+)?(\d+)(?![\d])/giu;
+
+const whole = (raw: string): string => String(Number(raw.replace(/,/g, "")));
+
+/** The measurements a text states, each as `count/total`. A score is out of
+ *  100. */
+export function measurementsIn(text: string): Array<{ raw: string; key: string }> {
+  const out: Array<{ raw: string; key: string }> = [];
+  for (const match of text.matchAll(PAIR_RE)) out.push({ raw: match[0], key: `${whole(match[1]!)}/${whole(match[2]!)}` });
+  for (const match of text.matchAll(SCORE_RE)) out.push({ raw: match[0], key: `${whole(match[1]!)}/100` });
+  return out;
+}
+
+/** The first of `own` — measurements read off the site's report — that a
+ *  sentence states, or `null`. */
+export function ownMeasurementIn(sentence: string, own: ReadonlySet<string>): string | null {
+  if (own.size === 0) return null;
+  return measurementsIn(sentence).find((each) => own.has(each.key))?.raw ?? null;
+}

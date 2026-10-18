@@ -425,6 +425,7 @@ async function livePageOf(
     markdown: moved,
     why: typeof evidence?.shortfall?.kind === "string" ? evidence.shortfall.kind : null,
     ...(linkTo === null ? {} : { linkTo }),
+    ...(ours?.reportPassages === undefined ? {} : { reportPassages: ours.reportPassages }),
   };
 }
 

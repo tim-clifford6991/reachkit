@@ -14,6 +14,15 @@
 // switch one off on Settings › Your business, and the grounding rule
 // re-verifies a recorded passage against this text word for word.
 //
+// **Only on a research page** (SPEC §7, owner 2026-10-17, issue 1490,
+// amending 1163): *"Only on research pages."* A page built on the site's own
+// measurements is a research page, which aggregates them by design; every
+// other type would publish the customer's weakness ("0 of 12", "18/100").
+// `reportFactsAllowed` (in `report-scope.ts`, a leaf with no db) is the one
+// place that decides it: the pack holds these sentences only where it says
+// so, and the numeral rule withholds their measurements from every other
+// page.
+//
 // **Only a complete report, and only what it measured.** A pass that
 // stopped early is not quoted, an unmeasured score yields no score
 // sentence, and a rival no answer cited yields no rival sentence. No figure
