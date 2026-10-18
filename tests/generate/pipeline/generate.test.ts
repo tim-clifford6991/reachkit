@@ -17,6 +17,7 @@ import {
   CLEAN_MARKDOWN,
   FACTS,
   GROUNDED,
+  OUTSIDE_CLAIMS,
   SOURCE_TEXT,
   SITE_ID,
   fakeCost,
@@ -117,10 +118,10 @@ describe("a page that clears every check", () => {
     ];
     const cited = `${CLEAN_MARKDOWN}\n\nRival's Standard plan includes [250 automation runs](https://rival.example/pricing) at $24 per user.`;
     answers(pageParts(cited));
-    const outcome = await run({ pack: pack({ claims }), site: siteInputs({ rivals: ["rival.example"] }) });
+    const outcome = await run({ pack: pack({ claims: [...OUTSIDE_CLAIMS, ...claims] }), site: siteInputs({ rivals: ["rival.example"] }) });
     expect(outcome.ok).toBe(true);
     const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
-    expect(row?.body_md?.endsWith("## Sources\n\n- [Pricing — Rival](https://rival.example/pricing), read on 5 September 2026\n")).toBe(true);
+    expect(row?.body_md).toMatch(/## Sources\n\n- \[Seats and billing\][^\n]*\n- \[Choosing a team plan\][^\n]*\n- \[Pricing — Rival\]\(https:\/\/rival\.example\/pricing\), read on 5 September 2026\n$/);
   });
 });
 

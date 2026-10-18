@@ -26,7 +26,8 @@ import type {
 } from "../../src/lib/generate/store";
 import type { ClusterPage } from "../../src/lib/generate/links/select";
 import type { SourcedFact } from "../../src/lib/generate/pipeline/grounding";
-import type { ContextPack, PackInputs } from "../../src/lib/generate/pipeline/pack";
+import type { ContextPack, PackClaim, PackInputs } from "../../src/lib/generate/pipeline/pack";
+import type { MarketFact } from "../../src/lib/generate/pipeline/research";
 import type { PageParts } from "../../src/lib/generate/pipeline/write";
 import type { PackNeed } from "../../src/lib/generate/templates";
 import type { InventoryRow } from "../../src/lib/site-profile/types";
@@ -287,6 +288,13 @@ export function memoryStore(over: Partial<MemoryStore> = {}): MemoryStore {
 /** The customer's passages as the pipeline is handed them. */
 export const FACTS: SourcedFact[] = [{ fact: GROUNDED, sourceText: SOURCE_TEXT }];
 
+/** Two claims off public pages, which `pageParts` cites: a Q&A is built
+ *  from at least two (issue 1486). */
+export const OUTSIDE_CLAIMS: PackClaim[] = [
+  { url: "https://support.vendor.example/seats", title: "Seats and billing", readAt: AT.toISOString(), passage: "Every member who signs in counts as a seat on the plan.", kind: "primary" },
+  { url: "https://guide.example.org/team-seats", title: "Choosing a team plan", readAt: AT.toISOString(), passage: "Guests who only view boards are usually free of charge.", kind: "top_result" },
+];
+
 /** A Q&A page's pack that is short of nothing: the suites whose subject is
  *  what happens after the pack say what theirs lacks. */
 export function pack(over: Partial<ContextPack> = {}): ContextPack {
@@ -307,7 +315,7 @@ export function pack(over: Partial<ContextPack> = {}): ContextPack {
     profile: null,
     neverClaim: [],
     facts: [{ passage: GROUNDED.passage, url: GROUNDED.url, readAt: AT.toISOString() }],
-    claims: [],
+    claims: OUTSIDE_CLAIMS,
     products: [],
     pages: [],
     links: [],
@@ -344,10 +352,11 @@ export function packStandIn<T extends object>(actual: T): T {
   };
 }
 
-/** The `pipeline/research` module with no public page read: the suites that
- *  use it are about a page written from the business's own facts. */
+/** The `pipeline/research` module with no search bought: only the pages of
+ *  `OUTSIDE_CLAIMS` are read. */
 export function researchStandIn<T extends object>(actual: T): T {
-  return { ...actual, researchMarket: async () => (actual as unknown as { NO_RESEARCH: unknown }).NO_RESEARCH };
+  const facts: MarketFact[] = OUTSIDE_CLAIMS.map((claim) => ({ ...claim, readAt: new Date(claim.readAt) }));
+  return { ...actual, researchMarket: async () => ({ facts, products: [] }) };
 }
 
 /** A short answer inside 40–60 words that names nobody. */
@@ -406,7 +415,7 @@ export function pageParts(first: string = CLEAN_MARKDOWN, over: Partial<PagePart
       {
         key: "business",
         heading: `${t}: how is it handled here?`,
-        body: `${prose(topic, 170, 6)} It is on [the published page](${GROUNDED.url}) for anyone to read.`,
+        body: `${prose(topic, 170, 6)} It is on [the published page](${GROUNDED.url}) for anyone to read. [The vendor's seat help](${OUTSIDE_CLAIMS[0]!.url}) counts each member who signs in, and [a guide to team plans](${OUTSIDE_CLAIMS[1]!.url}) leaves viewers free.`,
       },
     ],
     closing: "Count your seats before you choose a plan.",

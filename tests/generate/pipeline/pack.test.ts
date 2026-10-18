@@ -340,6 +340,32 @@ describe("what a new page adds is counted over the pack (D12)", () => {
   });
 });
 
+describe("issue 1486: a how-to or a Q&A is built from cited outside facts", () => {
+  const outside = (url: string) => ({ url, title: url, readAt: AT, passage: `What ${url} says about the task.`, kind: "top_result" as const });
+  const howTo = (facts: ReturnType<typeof outside>[], over: Partial<PackInputs> = {}) =>
+    buildPack(inputs({ type: "how_to", research: { facts, products: [] }, links: [{ source: "site", url: "https://example.com/product", label: "Product", purpose: "product" }], ...over }));
+
+  it("a how-to of business facts alone, or of one page's claims, is short of outside sources by name; two pages hold", () => {
+    expect(howTo([]).missing).toEqual(["outside_sources"]);
+    expect(howTo([outside("https://guide.example/a"), { ...outside("https://guide.example/a"), passage: "Another line." }]).missing).toEqual(["outside_sources"]);
+    expect(howTo([outside("https://developers.google.com/search/docs"), outside("https://guide.example/a")]).missing).toEqual([]);
+  });
+
+  it("a plumber's how-to is held the same way as a SaaS's", () => {
+    const drains = { fact: { ...GROUNDED, passage: "We clear blocked drains the same day.", url: "https://dalesdrains.example/" }, sourceText: "We clear blocked drains the same day." };
+    const site = { businessName: "Dale's Drains", domain: "dalesdrains.example", doNotClaim: [], rivals: [] };
+    const plumber = (facts: ReturnType<typeof outside>[]) => howTo(facts, { site, profile: null, facts: [drains], opportunity: opportunity({ targetQuery: "how to unblock a drain", targetRef: "unblock", title: null, family: "write" }) });
+    expect(plumber([outside("https://www.gov.uk/drains-sewers"), outside("https://support.drainmaker.example/kb/unblock")]).missing).toEqual([]);
+  });
+
+  it("on these pages the report's own figures add nothing (D12); elsewhere they still do", () => {
+    const figures = ["Two.", "Three."].map((word) => ({ passage: `${word} Named in 0 of 10 answers.`, url: GROUNDED.url, readAt: AT.toISOString(), report: true as const }));
+    const facts = [{ passage: "One flat fee for the whole team.", url: GROUNDED.url, readAt: AT.toISOString() }, ...figures];
+    expect(packAdds({ facts, claims: [], topResults: [], newPage: true, reportCounts: false })).toMatchObject({ claims: [facts[0]].map((fact) => ({ claim: fact!.passage })), short: true });
+    expect(packAdds({ facts, claims: [], topResults: [], newPage: true }).short).toBe(false);
+  });
+});
+
 describe("the pack is read back off the row it was stored with", () => {
   it("a stored pack is returned, and a row written before the pack reads as none", () => {
     const pack = buildPack(inputs());

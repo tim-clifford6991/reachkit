@@ -110,6 +110,7 @@ export const EN: LanguagePack = {
   forBuyerSearch: (name, buyer) => `${name} for ${buyer}`,
   jobSearch: (job) => `how to ${job.length === 0 ? job : job[0]!.toLowerCase() + job.slice(1)}`,
   studySearch: (target) => `${target} statistics study`,
+  guidanceSearch: (target) => `${target} official guidance`,
 
   question(keyword) {
     const text = keyword.toLowerCase().trim().replace(/\s+/g, " ");

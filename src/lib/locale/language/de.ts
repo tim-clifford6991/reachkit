@@ -177,6 +177,7 @@ export const DE: LanguagePack = {
   forBuyerSearch: (name, buyer) => `${name} für ${buyer}`,
   jobSearch: (job) => `wie kann man ${job}`,
   studySearch: (target) => `${target} Statistik Studie`,
+  guidanceSearch: (target) => `${target} offizielle Anleitung`,
 
   question(keyword) {
     const text = keyword.trim().replace(/\s+/g, " ");

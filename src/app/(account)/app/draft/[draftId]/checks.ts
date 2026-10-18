@@ -44,6 +44,7 @@ export const CHECKS: Readonly<Record<HardRule, { group: CheckGroup; key: CopyKey
   grounding: { group: "facts", key: "draft.checks.rule.grounding" },
   traceable_numerals: { group: "facts", key: "draft.checks.rule.traceable-numerals" },
   rival_source: { group: "facts", key: "draft.checks.rule.rival-source" },
+  cites_market: { group: "facts", key: "draft.checks.rule.cites-market" },
   no_invented_test: { group: "facts", key: "draft.checks.rule.no-invented-test" },
   no_invented_provenance: { group: "facts", key: "draft.checks.rule.no-invented-provenance" },
   no_placeholder_cell: { group: "facts", key: "draft.checks.rule.no-placeholder-cell" },
