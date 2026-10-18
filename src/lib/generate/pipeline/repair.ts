@@ -30,7 +30,7 @@ import {
 } from "../rules/brief";
 import { ownMeasurementIn } from "../rules/figures";
 import { PAGE_BLOCKS } from "@/lib/config/constants";
-import { answerBoxOf } from "../rules/blocks";
+import { answerBoxOf, renumberSteps } from "../rules/blocks";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "../rules/people";
 import { sentenceKey } from "../rules/prose";
 import { checkRivalNegative, deniedRivals, factPageKeys, namedRivals, unsourcedRivalFigure, type NamedRival } from "../rules/rivals";
@@ -109,9 +109,10 @@ function escaped(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** The numeral standing alone — not the "12" inside "120" or "1.25". */
+/** The numeral standing alone — not the "12" inside "120" or "1.25", and
+ *  not the "2" glued into "B2B" (issue 1507). */
 function numeralRe(raw: string): RegExp {
-  return new RegExp(`(?<![\\d.,])${escaped(raw)}(?![\\d])`);
+  return new RegExp(`(?<![\\p{L}\\d.,])${escaped(raw)}(?![\\p{L}\\d])`, "u");
 }
 
 interface Edit {
@@ -303,7 +304,8 @@ export function repairMechanical(markdown: string, rules: readonly HardRule[], i
       out = repairFirstBlock(out);
     }
   }
-  return out;
+  // Issue 1507: a step dropped with its sentence leaves no gap in the count.
+  return out === markdown ? out : renumberSteps(out);
 }
 
 function sentencesFor(

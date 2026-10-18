@@ -52,7 +52,7 @@ import type { LinkTarget } from "../links/select";
 import { urlKey } from "../links/select";
 import { recordedRulesValue, recordedRunValue, recordedVerdictValue } from "../record";
 import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
-import { answerBoxWords } from "../rules/blocks";
+import { answerBoxWords, renumberSteps, withoutBrokenLinks } from "../rules/blocks";
 import { proseNotes } from "../rules/prose";
 import { linksOf, renderOf } from "../rules/text";
 import { pickTitle, specificOnly, titleNotes, type TitleCandidate } from "../rules/title";
@@ -313,7 +313,10 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     });
     const own = laid.sections.find((section) => ["business", "next_step", "related"].includes(section.key))?.heading;
     const glance = laid.sections.find((section) => template.sections.find((slot) => slot.key === section.key)?.block === "table")?.heading;
-    const body = table === null ? laid.body.bodyMarkdown : withTable(laid.body.bodyMarkdown, glance, [table.markdown, table.currencies, table.checked].filter((line) => line !== null).join("\n\n"));
+    // Issue 1507: a stray bracket goes and a numbered list counts from 1, in
+    // code, before stage 4 reads the page.
+    const written = renumberSteps(withoutBrokenLinks(laid.body.bodyMarkdown));
+    const body = table === null ? written : withTable(written, glance, [table.markdown, table.currencies, table.checked].filter((line) => line !== null).join("\n\n"));
     const markdown = withSources(
       withClosing(
         completeTables(applyLinks(body, { ...linking, appendUnder: own })),
@@ -527,7 +530,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       const title = stopped.outcome.passed ? undefined : stopped.outcome.failed.find((failure) => failure.rule === "title")?.detail;
       if (note.rule === "title" && title !== undefined && title.rule === "title") {
         const body = stopped.page.laid.body;
-        return { ...note, sentences: titleNotes(body.title, titleRuleFor(pack, { description: body.description, sections: stopped.page.laid.sections }), title.faults) };
+        return { ...note, sentences: titleNotes(body.title, titleRuleFor(pack, { description: body.description, sections: stopped.page.laid.sections }), title.faults, stopped.page.markdown) };
       }
       if (note.rule === "distinct_headings") {
         return { ...note, sentences: [`headings: ${note.sentences.map((heading) => `"${heading}"`).join(" and ")} ask almost the same thing; each section must ask a different question of \`pack.questions\`, in different words`] };

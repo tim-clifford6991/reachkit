@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { layoutPage, sentenceCase, tidy, tidyText, withClosing } from "../../../src/lib/generate/pipeline/compose";
 import { applyLinks } from "../../../src/lib/generate/links/apply";
 import { bodyWords, lengthRangeFor } from "../../../src/lib/generate/length";
-import { answerBoxWords, missingBlock } from "../../../src/lib/generate/rules/blocks";
+import { answerBoxWords, missingBlock, withoutBrokenLinks } from "../../../src/lib/generate/rules/blocks";
 import { TEMPLATES, type Template } from "../../../src/lib/generate/templates";
 import type { PageParts } from "../../../src/lib/generate/pipeline/write";
 import { CLEAN_MARKDOWN, GROUNDED, pageParts, prose } from "../fixtures";
@@ -159,7 +159,7 @@ describe("required_blocks — the first block a generated page lacks", () => {
   });
 
   it("a page under its template's floor is stopped for its length, and one inside it is not", () => {
-    const short = page(pageParts(CLEAN_MARKDOWN, { sections: pageParts().sections.map((s) => ({ ...s, body: s.body.slice(0, 200) })) }));
+    const short = page(pageParts(CLEAN_MARKDOWN, { sections: pageParts().sections.map((s) => ({ ...s, body: withoutBrokenLinks(s.body.slice(0, 200)) })) }));
     expect(bodyWords(short.markdown)).toBeLessThan(short.blocks.length!.floor);
     expect(short.missing()).toBe("length");
         expect(missing()).toBeNull();

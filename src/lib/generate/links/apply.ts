@@ -117,7 +117,7 @@ export function applyLinks(
     linked.add(key);
     return true;
   });
-  if (missing.length === 0 || a.appendMissing === false) return lines.join("\n");
+  if (missing.length === 0 || a.appendMissing === false) return dedupeLinks(lines.join("\n"));
 
   const list = missing.map((target) => `- [${safeLabel(target.label)}](${safeHref(target.url)})`);
   const under = a.appendUnder === undefined ? -1 : lines.findIndex((line) => line.trim() === `## ${a.appendUnder}`);
@@ -127,10 +127,79 @@ export function applyLinks(
     const end = next < 0 ? lines.length : next;
     const before = lines.slice(0, end).join("\n").replace(/\s+$/, "");
     const after = lines.slice(end).join("\n");
-    return `${before}\n\n${list.join("\n")}\n${after === "" ? "" : `\n${after}`}`;
+    return dedupeLinks(`${before}\n\n${list.join("\n")}\n${after === "" ? "" : `\n${after}`}`);
   }
   const body = lines.join("\n").replace(/\s+$/, "");
-  return `${body}\n\n${list.join("\n")}\n`;
+  return dedupeLinks(`${body}\n\n${list.join("\n")}\n`);
+}
+
+/** An address as a page is told apart: host and path, without its query or
+ *  fragment — `/scans?sort=az` is `/scans`. */
+function pageKey(href: string): string {
+  return href.trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, "").replace(/[?#].*$/, "").replace(/\/+$/, "");
+}
+
+const anchorKey = (label: string): string => label.replace(/[*_`]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+
+/** A list item that is one link and nothing else. */
+const LINK_ITEM_RE = /^[ \t]*[-*+][ \t]+\[[^\]\n]*\]\([^)\s]+\)[ \t]*$/;
+
+/** Each link of a body, in order, with whether it repeats one before it. */
+function linkRepeats(markdown: string): { line: number; token: string; repeat: boolean }[] {
+  const anchors = new Map<string, string>();
+  const pages = new Map<string, string>();
+  const out: { line: number; token: string; repeat: boolean }[] = [];
+  let inFence = false;
+  markdown.split("\n").forEach((line, index) => {
+    if (FENCE_RE.test(line)) inFence = !inFence;
+    if (inFence) return;
+    for (const match of line.matchAll(CODE_OR_LINK_RE)) {
+      if (match[1] !== undefined) continue;
+      const anchor = anchorKey(match[2] ?? "");
+      const href = (match[3] ?? "").trim();
+      const page = pageKey(href);
+      // The same words over another page, or one page under a second
+      // address. The same link said twice is one link, and a source named
+      // by its host — how this file names one — may name several pages.
+      const cited = anchor === page.split("/")[0];
+      const repeat =
+        (anchor !== "" && !cited && anchors.has(anchor) && pageKey(anchors.get(anchor)!) !== page) ||
+        (pages.has(page) && pages.get(page) !== href);
+      if (!anchors.has(anchor)) anchors.set(anchor, href);
+      if (!pages.has(page)) pages.set(page, href);
+      out.push({ line: index, token: match[0], repeat });
+    }
+  });
+  return out;
+}
+
+/** Whether a body links one anchor twice, or one page under two addresses
+ *  (issue 1507: four links "Every free scan, in the open." to `/scans` and
+ *  three of its sort orders). */
+export function hasRepeatedLinks(markdown: string): boolean {
+  return linkRepeats(markdown).some((link) => link.repeat);
+}
+
+/**
+ * A body with each repeated link gone: a list item that is only that link
+ * is dropped, and a link inside a sentence is unwrapped to its words. The
+ * first link of each anchor and each page stands. Nothing is written.
+ */
+export function dedupeLinks(markdown: string): string {
+  const repeats = linkRepeats(markdown).filter((link) => link.repeat);
+  if (repeats.length === 0) return markdown;
+  const lines = markdown.split("\n");
+  const dropped = new Set<number>();
+  for (const link of repeats) {
+    const line = lines[link.line]!;
+    if (LINK_ITEM_RE.test(line) && line.includes(link.token)) {
+      dropped.add(link.line);
+      continue;
+    }
+    const label = /^\[([^\]\n]*)\]/.exec(link.token)?.[1] ?? "";
+    lines[link.line] = line.replace(link.token, label);
+  }
+  return lines.filter((_, index) => !dropped.has(index)).join("\n");
 }
 
 /** True where a link's words are the target page's slogan, or that slogan

@@ -147,6 +147,10 @@ export interface GenerateStore {
    *  drafts, for the near-duplicate gate. Site-scoped by predicate: no code
    *  path here takes a site id other than the one it was called with. */
   publishedPages(siteId: string): Promise<StoredPage[]>;
+  /** SPEC §7 (issue 1507): the version live at an address — its row, and
+   *  when it went live — or `null` where none is. A store that holds no
+   *  publications leaves this out, and no page is mended. */
+  liveVersionAt?(siteId: string, url: string): Promise<{ draft: DraftRow; publishedAt: Date } | null>;
   queuedPages(siteId: string, exceptDraftId: string | null): Promise<StoredPage[]>;
   /** SPEC §7 (D13, issue 1144): the text of every draft and live page
    *  written for a site **other** than `siteId` since `since`, newest first,
@@ -382,6 +386,31 @@ export function supabaseGenerateStore(): GenerateStore {
         .in("state", ["published", "unpublished"]);
       if (result.error) throw new Error(`generate/store: read from drafts failed: ${result.error.message}`);
       return (result.data ?? []).map(pageOf);
+    },
+
+    async liveVersionAt(siteId, url) {
+      const live = await untyped()
+        .from<{ draft_id: string; live_url: string | null; published_at: string }>("publications")
+        .select("draft_id, live_url, published_at")
+        .eq("site_id", siteId)
+        .not("published_at", "is", null)
+        .is("unpublished_at", null)
+        .order("published_at", { ascending: false });
+      if (live.error) throw new Error(`generate/store: read from publications failed: ${live.error.message}`);
+      // The address by its path: the host a page answers at may have moved
+      // since it was recorded (issue 888).
+      const pathOf = (address: string): string | null => {
+        try {
+          return new URL(address).pathname.replace(/\/+$/, "");
+        } catch {
+          return null;
+        }
+      };
+      const wanted = pathOf(url);
+      const newest = (live.data ?? []).find((row) => row.live_url !== null && wanted !== null && pathOf(row.live_url) === wanted);
+      if (newest === undefined) return null;
+      const draft = await this.draftById(newest.draft_id);
+      return draft === null ? null : { draft, publishedAt: new Date(newest.published_at) };
     },
 
     async queuedPages(siteId, exceptDraftId) {

@@ -46,6 +46,15 @@
 // sentences, and the numeral rule drops any the live page still carries.
 // The floor stands for this cause as for the others.
 //
+// **Consistency** (SPEC §7, issue 1507): a cause of its own, `structure` — a
+// live page the customer did not edit breaks one of the six rules a new page
+// is held to: a description figure the body lacks, a numbered list with a
+// gap, a repeated link, a link inside a word, broken link markup, an H1 in
+// the body. Planned each hour by the live re-check, not only on Monday. Its
+// refresh is written from the live text with what code can repair already
+// repaired (`repairStructure`), so the new version is the page as it stands,
+// mended; the row is never edited in place (ADR-080). The floor stands.
+//
 // Nothing is bought and no model is asked. The partial unique index keeps
 // one open or queued refresh a page.
 import { CROSS_LINKS, EFFORT_BY_TYPE, INTENT_UNMET_WEEKS, PACE, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
@@ -53,6 +62,7 @@ import { linkWords, sameWord } from "@/lib/generate/links/text";
 import { withheldReportPassages } from "@/lib/generate/pipeline/report-scope";
 import { withheldMeasurements } from "@/lib/generate/rules/brief";
 import { ownMeasurementIn } from "@/lib/generate/rules/figures";
+import { storedStructure, structureDefects, type StructureDefect } from "@/lib/generate/rules/structure";
 import { measured } from "@/lib/measure/measured";
 import type { Candidate } from "./derive/candidate";
 import { persist } from "./derive/persist";
@@ -96,6 +106,9 @@ export interface OwnLivePage {
   /** Issue 1490: this version is not a research page and states one of the
    *  site's own measurements its pack held. Absent reads as not so. */
   ownFigures?: boolean;
+  /** Issue 1507: what this version breaks of the consistency rules, where
+   *  the customer did not edit it. Absent reads as nothing. */
+  structure?: readonly StructureDefect[];
 }
 
 export interface RefreshPools {
@@ -147,7 +160,10 @@ export function refreshCauseOf(page: OwnLivePage, pools: RefreshPools, at: Date)
   if (page.unmet === true) return "unmet";
   if (page.declined) return "lost_position";
   if (hasNewerFact(page, pools)) return "newer_fact";
-  return age >= PACE.REFRESH_AGE_DAYS * DAY_MS ? "aged" : null;
+  if (age >= PACE.REFRESH_AGE_DAYS * DAY_MS) return "aged";
+  // Issue 1507: any refresh starts from the repaired text, so this cause is
+  // named only where no other is due.
+  return (page.structure ?? []).length > 0 && page.edited !== true ? "structure" : null;
 }
 
 /** The address as two addresses are compared: host without `www.`, no
@@ -218,7 +234,7 @@ export function refreshOfPage(
   return refreshOf(page, cause, at, link);
 }
 
-function refreshOf(page: Pick<OwnLivePage, "url" | "publishedAt" | "row">, cause: RefreshCause, at: Date, link?: { url: string; title: string; replaces?: string }): Candidate {
+function refreshOf(page: Pick<OwnLivePage, "url" | "publishedAt" | "row"> & Partial<Pick<OwnLivePage, "structure">>, cause: RefreshCause, at: Date, link?: { url: string; title: string; replaces?: string }): Candidate {
   const { row } = page;
   const query = row.targetQuery ?? "";
   const evidence: Evidence = {
@@ -226,7 +242,13 @@ function refreshOf(page: Pick<OwnLivePage, "url" | "publishedAt" | "row">, cause
     query,
     volume: row.volume ?? measured(0, at),
     pageUrl: page.url,
-    shortfall: { kind: "due", cause, since: measured(page.publishedAt, at), ...(link === undefined ? {} : { link }) },
+    shortfall: {
+      kind: "due",
+      cause,
+      since: measured(page.publishedAt, at),
+      ...(link === undefined ? {} : { link }),
+      ...(cause === "structure" ? { defects: [...(page.structure ?? [])] } : {}),
+    },
     ...("target" in row.evidence && row.evidence.target !== undefined ? { target: row.evidence.target } : {}),
   };
   return {
@@ -350,9 +372,12 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
     // A fix of a page's metadata is not a version of its content.
     if (opportunity.family === "fix") continue;
     const meta = publication.drafts?.meta ?? {};
+    // Issue 1507: a mended version is dated as the one it mended, so a
+    // repair in code does not make a page look newer than its words.
+    const dated = typeof meta.datedAs === "string" ? new Date(meta.datedAs) : null;
     pages.set(url, {
       url,
-      publishedAt: new Date(publication.published_at),
+      publishedAt: dated !== null && !Number.isNaN(dated.getTime()) ? dated : new Date(publication.published_at),
       row: readOpportunity(opportunity),
       declined: declined.get(publication.id) ?? false,
       unmet: unmetAfter(judged.get(publication.id)),
@@ -363,6 +388,14 @@ async function ownLivePages(siteId: string): Promise<OwnLivePage[]> {
       // `generate/edit.ts` stamps the first save a customer makes.
       edited: typeof meta.first_edited_at === "string",
       ownFigures: statesOwnFigures(meta, publication.drafts?.body_md ?? ""),
+      structure: structureDefects(
+        storedStructure({
+          markdown: publication.drafts?.body_md ?? "",
+          title: publication.drafts?.title ?? "",
+          meta,
+          publishedAt: new Date(publication.published_at),
+        })
+      ),
     });
   }
   return [...pages.values()].filter((page) => ours.has(page.url));
@@ -516,6 +549,63 @@ export async function planMovedLinks(a: { siteId: string; from: readonly string[
     return created.length;
   } catch (error) {
     console.error(JSON.stringify({ event: "moved_link_plan_failed", siteId: a.siteId, message: String(error) }));
+    return 0;
+  }
+}
+
+/**
+ * Consistency (SPEC §7, issue 1507): the live pages of ours that break a
+ * rule of issue 1507, each planned a `structure` refresh. A page the
+ * customer edited, whose refresh they stopped, or younger than the floor is
+ * not planned. Pure.
+ */
+export function structureCandidates(pages: readonly OwnLivePage[], at: Date): Candidate[] {
+  return pages.flatMap((page): Candidate[] => {
+    if (page.row.targetQuery === null || page.edited === true || page.stopped === true) return [];
+    if ((page.structure ?? []).length === 0) return [];
+    if (at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * DAY_MS) return [];
+    return [refreshOf(page, "structure", at)];
+  });
+}
+
+/** Plans `structureCandidates` for one site. Returns how many rows it
+ *  added; a row already open for a page adds nothing. It never throws. */
+export async function planStructureRefreshes(a: { siteId: string; at: Date }): Promise<number> {
+  try {
+    const store = opportunityStore();
+    if (store.refreshInputs === undefined) return 0;
+    const { pages } = await store.refreshInputs(a.siteId);
+    if (pages.length === 0) return 0;
+    const stopped = await stoppedRefreshes(a.siteId);
+    const candidates = structureCandidates(
+      pages.map((page) => ({ ...page, stopped: stopped.has(addressKey(page.url)) })),
+      a.at
+    );
+    if (candidates.length === 0) return 0;
+    const { created } = await persist({ candidates });
+    return created.length;
+  } catch (error) {
+    console.error(JSON.stringify({ event: "structure_plan_failed", siteId: a.siteId, message: String(error) }));
+    return 0;
+  }
+}
+
+/** `planStructureRefreshes` for every site with a live page: the hourly
+ *  live re-check's second half (issue 1507). Returns how many rows it added
+ *  in all. It never throws. */
+export async function planStructureRefreshesEverywhere(a: { at: Date }): Promise<number> {
+  try {
+    const live = await untyped()
+      .from<{ site_id: string }>("publications")
+      .select("site_id")
+      .not("published_at", "is", null)
+      .is("unpublished_at", null);
+    if (live.error) throw new Error(live.error.message);
+    let planned = 0;
+    for (const siteId of new Set((live.data ?? []).map((row) => row.site_id))) planned += await planStructureRefreshes({ siteId, at: a.at });
+    return planned;
+  } catch (error) {
+    console.error(JSON.stringify({ event: "structure_plan_failed", message: String(error) }));
     return 0;
   }
 }

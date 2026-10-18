@@ -32,6 +32,11 @@ import type { RuleFailure } from "./types";
 /** The blocks a page can be stopped for, in the order they are checked. */
 export type RequiredBlock =
   | "fact_label"
+  /** Issue 1507: link markup the renderer prints as literal text — a "["
+   *  that opens no link, or a "]" that closes none. */
+  | "link_markup"
+  /** Issue 1507: the page's one H1 is its title, so the body holds none. */
+  | "h1"
   | "answer_box"
   | "takeaways"
   | "sections"
@@ -39,6 +44,8 @@ export type RequiredBlock =
   | "section_opening"
   | "table"
   | "steps"
+  /** Issue 1507: a numbered list runs 1, 2, 3 with no number skipped. */
+  | "steps_order"
   /** Issue 1486: more of a how-to's steps are the business's own than its
    *  template allows. */
   | "own_steps"
@@ -90,6 +97,144 @@ const NUMBERED_RE = /^[ \t]*\d+[.)][ \t]+/;
  *  "2026-10-03", "October 2026". */
 const DATE_RE =
   /\b(?:\d{4}-\d{2}-\d{2}|(?:\d{1,2}\s+)?(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+(?:\d{1,2},?\s+)?\d{4})\b/i;
+
+/** The page's lines, each with whether it stands inside a code fence. */
+function proseLines(markdown: string): { line: string; code: boolean }[] {
+  let fenced = false;
+  return markdown.split("\n").map((line) => {
+    if (/^[ \t]*```/.test(line)) {
+      fenced = !fenced;
+      return { line, code: true };
+    }
+    return { line, code: fenced };
+  });
+}
+
+/** A whole link or image, or a code span: what a bracket may belong to. */
+const WHOLE_LINK_RE = /`[^`]+`|!?\[[^\[\]\n]*\]\([^)\s]*\)/g;
+
+/** The lines whose link markup is broken (issue 1507): a "[" or "]" left
+ *  over once every whole link is read. "[One plan.", with nothing closing
+ *  it, prints as literal text. */
+export function brokenLinkLines(markdown: string): string[] {
+  return proseLines(markdown).flatMap(({ line, code }) => (code || !/[[\]]/.test(line.replace(WHOLE_LINK_RE, "")) ? [] : [line]));
+}
+
+/** The page without its broken link markup: each stray bracket removed, the
+ *  words around it kept. Nothing is written. */
+export function withoutBrokenLinks(markdown: string): string {
+  return proseLines(markdown)
+    .map(({ line, code }) => {
+      if (code) return line;
+      let out = "";
+      let from = 0;
+      for (const match of line.matchAll(WHOLE_LINK_RE)) {
+        out += line.slice(from, match.index).replace(/[[\]]/g, "") + match[0];
+        from = match.index + match[0].length;
+      }
+      return out + line.slice(from).replace(/[[\]]/g, "");
+    })
+    .join("\n");
+}
+
+/** The body's H1 headings: a page's one H1 is its title (issue 1507). */
+export function bodyH1s(markdown: string): string[] {
+  return proseLines(markdown).flatMap(({ line, code }) => {
+    const heading = code ? null : HEADING_RE.exec(line);
+    return heading !== null && heading[1]!.length === 1 ? [heading[2]!.trim()] : [];
+  });
+}
+
+/** The body's headings that repeat the page's title or its short-answer
+ *  box (SPEC §7, 2026-09-29; issue 1507): the title is the page's one H1,
+ *  printed above the body, and the box is its answer — a heading that says
+ *  either again says it twice. Read as the renderer reads the title: the
+ *  same words, case, spacing and the closing stop aside. A question that
+ *  shares the title's words ("Which bookkeeping software for therapists?"
+ *  under "Bookkeeping software for therapists: …") is a section, not a
+ *  repeat. */
+export function repeatedHeadings(markdown: string, title: string): string[] {
+  const box = answerBoxOf(markdown);
+  const said = [title, ...(box === null ? [] : [box.split(/(?<=[.!?])\s+/)[0] ?? ""])].filter((text) => text.trim() !== "");
+  return proseLines(markdown).flatMap(({ line, code }) => {
+    const heading = code ? null : HEADING_RE.exec(line)?.[2]?.trim();
+    if (heading === undefined || heading === null || heading === "") return [];
+    return said.some((text) => headingKey(text) === headingKey(heading)) ? [heading] : [];
+  });
+}
+
+/** The body without the headings that repeat its title or its answer box;
+ *  what stood under each stays where it was. */
+export function withoutRepeatedHeadings(markdown: string, title: string): string {
+  const repeated = new Set(repeatedHeadings(markdown, title));
+  if (repeated.size === 0) return markdown;
+  return proseLines(markdown)
+    .filter(({ line, code }) => {
+      const heading = code ? undefined : HEADING_RE.exec(line)?.[2]?.trim();
+      return heading === undefined || !repeated.has(heading);
+    })
+    .map(({ line }) => line)
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/^\n+/, "");
+}
+
+/** The body with its headings moved down one level where it holds an H1,
+ *  so its shallowest is an H2 under the page's title — what the hosted
+ *  renderer already draws, now true of the bytes every destination gets. */
+export function withoutBodyH1(markdown: string): string {
+  if (bodyH1s(markdown).length === 0) return markdown;
+  return proseLines(markdown)
+    .map(({ line, code }) => (code || HEADING_RE.exec(line)?.[1]?.length === 6 || !HEADING_RE.test(line) ? line : line.replace(/^([ \t]*)#/, "$1##")))
+    .join("\n");
+}
+
+/** A top-level numbered item: its number and the marker after it. */
+const STEP_RE = /^(\d+)([.)][ \t]+)/;
+
+/**
+ * Each top-level numbered item with the number it should carry: the first
+ * of a section is 1, an item written "1" starts a new list, and every other
+ * item follows the one before. Read off H2 and H3 sections, outside code.
+ */
+function stepNumbers(markdown: string): { index: number; written: number; due: number }[] {
+  const out: { index: number; written: number; due: number }[] = [];
+  let last = 0;
+  proseLines(markdown).forEach(({ line, code }, index) => {
+    if (code) return;
+    if (HEADING_RE.test(line)) {
+      last = 0;
+      return;
+    }
+    const step = STEP_RE.exec(line);
+    if (step === null) return;
+    const written = Number(step[1]);
+    const due = written === 1 ? 1 : last + 1;
+    out.push({ index, written, due });
+    last = due;
+  });
+  return out;
+}
+
+/** Whether every numbered list runs 1, 2, 3 with no number skipped or
+ *  repeated (issue 1507: a page went from 4 to 6). */
+export function stepsInOrder(markdown: string): boolean {
+  return stepNumbers(markdown).every((step) => step.written === step.due);
+}
+
+/** The page with each numbered list counted again from 1. A step a repair
+ *  dropped leaves no gap; the words are untouched. */
+export function renumberSteps(markdown: string): string {
+  const wrong = new Map(stepNumbers(markdown).filter((step) => step.written !== step.due).map((step) => [step.index, step.due]));
+  if (wrong.size === 0) return markdown;
+  return markdown
+    .split("\n")
+    .map((line, index) => {
+      const due = wrong.get(index);
+      return due === undefined ? line : line.replace(STEP_RE, (_, __, marker: string) => `${due}${marker}`);
+    })
+    .join("\n");
+}
 
 /** The page's tables, each as its lines. */
 function tablesOf(lines: readonly string[]): string[][] {
@@ -201,6 +346,11 @@ export function missingBlock(a: { markdown: string; title: string; blocks: Block
   const faqText = blocks.faq.map((entry) => `${entry.question} ${entry.answer}`).join(" ");
   if (FACT_LABEL_RE.test(markdown) || FACT_LABEL_RE.test(a.title) || FACT_LABEL_RE.test(faqText)) return "fact_label";
 
+  if (brokenLinkLines(markdown).length > 0) return "link_markup";
+  // The page's one H1 is its title: the body holds none, and no heading
+  // that says the title or the answer again.
+  if (bodyH1s(markdown).length > 0 || repeatedHeadings(markdown, a.title).length > 0) return "h1";
+
   const lines = markdown.split("\n");
   const containers = containersOf(lines);
   if (answerBoxOf(markdown) === null) return "answer_box";
@@ -257,6 +407,8 @@ export function missingBlock(a: { markdown: string; title: string; blocks: Block
     const own = template.blocks.steps.own;
     if (own !== undefined && steps.filter((step) => namesBusiness(step.raw, blocks)).length > own) return "own_steps";
   }
+  // Any numbered list, steps or not, counts 1, 2, 3.
+  if (!stepsInOrder(markdown)) return "steps_order";
   if (template.blocks.datedSources === true) {
     const repeated = new Set(template.sections.filter((slot) => slot.repeat !== undefined).map((slot) => slot.key));
     const dated = (section: Section): boolean => {

@@ -654,15 +654,15 @@ export async function publishDue(a: {
 // Each hour, before any page is attempted, a live page written before the
 // rival rules is read again from its own row at 0¢, and one that fails is
 // withdrawn through `unpublish()`. A read that fails withdraws nothing and
-// stops nothing: the next tick reads again.
-
+// stops nothing: the next tick reads again. Then (issue 1507) each live page
+// of ours that breaks a consistency rule is planned a refresh, 0¢.
 //
 // Issue 1506: in the same tick, each live page the customer has not edited
 // is read against the topic rules — a "vs" needs measured demand, and a top
 // ten of another kind of business is not the business's market. One that
 // fails is retargeted to a ready topic in its cluster, kept and refreshed
 // where it already earns anything or its host is unmeasured, or withdrawn.
-// Each half reads and fails on its own.
+// Each part reads and fails on its own.
 
 export async function recheckLivePages(now: Date): Promise<{ readonly withdrawn: number }> {
   let withdrawn = 0;
@@ -672,6 +672,15 @@ export async function recheckLivePages(now: Date): Promise<{ readonly withdrawn:
     withdrawn += outcome.withdrawn.length;
   } catch (error) {
     console.log(JSON.stringify({ event: "live_rival_recheck_failed", error: error instanceof Error ? error.message : "unknown" }));
+  }
+  try {
+    // Issue 1507: a live page that breaks a consistency rule is planned a
+    // refresh, written from its text with what code can repair repaired.
+    const { planStructureRefreshesEverywhere } = await import("@/lib/opportunities/refresh");
+    const planned = await planStructureRefreshesEverywhere({ at: now });
+    console.log(JSON.stringify({ event: "live_structure_recheck", planned }));
+  } catch (error) {
+    console.log(JSON.stringify({ event: "live_structure_recheck_failed", error: error instanceof Error ? error.message : "unknown" }));
   }
   try {
     const { retireOffTopicPages } = await import("@/lib/opportunities/live-topics");

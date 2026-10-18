@@ -70,7 +70,8 @@ export function rulesAsked(a: DeterministicInputs, verdicts: { fit: FitVerdict; 
     distinct_headings: a.distinctHeadings === true,
     fit_claim: verdicts.fitAsked && verdicts.fit.state !== "unrun",
     do_not_claim: a.site.doNotClaim.length > 0,
-    title: a.titleRule != null && a.titleRule.type !== "update",
+    // An update is asked its description's figures alone (issue 1507).
+    title: a.titleRule != null,
     plain_prose: a.prose != null,
     cites_market: a.cites != null,
   };
@@ -205,7 +206,7 @@ export function runDeterministicRules(
     no_placeholder_cell: checkPlaceholderCell({ markdown: a.markdown }),
     no_demo_text: checkDemoText({ markdown: a.markdown, phrases: a.demoPhrases }),
     distinct_headings: checkDistinctHeadings({ markdown: a.markdown, apply: a.distinctHeadings === true }),
-    title: checkTitle({ title: a.title, ...(a.heading === undefined ? {} : { heading: a.heading }), rule: a.titleRule ?? null }),
+    title: checkTitle({ title: a.title, ...(a.heading === undefined ? {} : { heading: a.heading }), rule: a.titleRule ?? null, markdown: a.markdown }),
     plain_prose: checkProse({ markdown: a.markdown, prose: a.prose ?? null }),
     cites_market: checkCitesMarket({ markdown: a.markdown, cites: a.cites ?? null }),
   };
