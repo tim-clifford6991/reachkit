@@ -1,7 +1,7 @@
 // SPEC §7 (2026-10-18, issue 1511) — what the scan read of the main site
 // that ties the content host to it as one business.
 //
-// Four facts, all off documents the scan already fetched, so 0¢:
+// Five facts, all off documents the scan already fetched, so 0¢:
 //
 //   · **the canonical home** — the home page as it was served, after its
 //     redirects, at the address its own `<link rel="canonical">` names where
@@ -14,6 +14,9 @@
 //   · **`sameAs`** — the profile pages the home page itself links to, and the
 //     Organization's own `sameAs`. Never invented: a profile the site does not
 //     link is not one of its profiles;
+//   · **the about and team pages** (issue 1509) — their visible text and the
+//     profiles they link, so a page's author is given a `url` only where a
+//     page of the main site names them;
 //   · **whether the main site links the content host** — counted only on the
 //     crawled pages that are not ReachKit's (`known-content/ours.ts`). A link
 //     whose every anchor carries `nofollow`, `sponsored` or `ugc` is "linked,
@@ -24,6 +27,8 @@ import { parse } from "node-html-parser";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { isOurPage, type OurPages } from "@/lib/known-content/ours";
 import type { MainSite, MainSiteLink } from "./main-site-row";
+import { httpUrl, profilesOn } from "./profiles";
+import { SITE_PROFILE } from "@/lib/config/constants";
 
 export type { MainSite, MainSiteLink } from "./main-site-row";
 
@@ -32,46 +37,13 @@ interface PageLinks {
   url: string;
   links: readonly string[];
   unfollowed?: readonly string[];
+  about?: { text: string; profiles: readonly string[] };
 }
-
-/** The hosts a profile of a business lives on. A link to one of their own
- *  share or login pages is not a profile. */
-const PROFILE_HOSTS: ReadonlySet<string> = new Set([
-  "linkedin.com",
-  "x.com",
-  "twitter.com",
-  "facebook.com",
-  "instagram.com",
-  "youtube.com",
-  "tiktok.com",
-  "github.com",
-  "pinterest.com",
-  "threads.net",
-  "bsky.app",
-  "mastodon.social",
-  "xing.com",
-  "crunchbase.com",
-  "wikipedia.org",
-  "wikidata.org",
-]);
-const NOT_A_PROFILE_RE = /^\/(?:sharer|share|sharearticle|intent|dialog|login|signup|home|search|hashtag|watch)\b/i;
-/** How many profiles are kept: a footer lists a handful. */
-const MAX_PROFILES = 10;
 
 /** Types a business's own entity is declared as. */
 const ORGANIZATION_TYPE_RE = /(?:Organization|Corporation|Business|Store|Service)$/;
 
 const hostKey = (host: string): string => host.trim().toLowerCase().replace(/^www\./, "").replace(/\.$/, "");
-
-function httpUrl(raw: unknown, base: string): string | null {
-  if (typeof raw !== "string" || raw.trim() === "") return null;
-  try {
-    const url = new URL(raw.trim(), base);
-    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null;
-  } catch {
-    return null;
-  }
-}
 
 /** The document's own `<link rel="canonical">`, absolute, or `null`. */
 function canonicalOf(html: string, url: string): string | null {
@@ -148,32 +120,10 @@ function organizationOf(html: string, home: string): { node: Record<string, unkn
   return { node, id: httpUrl(node["@id"], home), name, logo };
 }
 
-/** A profile page's address, or `null` where `raw` is not one. */
-function profileUrl(raw: string, home: string): string | null {
-  const address = httpUrl(raw, home);
-  if (address === null) return null;
-  const url = new URL(address);
-  const host = hostKey(url.hostname);
-  const platform = [...PROFILE_HOSTS].find((known) => host === known || host.endsWith(`.${known}`));
-  if (platform === undefined) return null;
-  if (url.pathname.replace(/\/+$/, "") === "" || NOT_A_PROFILE_RE.test(url.pathname)) return null;
-  url.hash = "";
-  url.search = "";
-  return url.toString();
-}
-
 /** The profiles the home page links to, then the Organization's own. */
 function profilesOf(html: string, home: string, node: Record<string, unknown> | null): string[] {
   const declared = node === null ? [] : Array.isArray(node.sameAs) ? node.sameAs : [node.sameAs];
-  const anchors = parse(html, { comment: false })
-    .querySelectorAll("a[href]")
-    .map((anchor) => anchor.getAttribute("href") ?? "");
-  const out: string[] = [];
-  for (const raw of [...anchors, ...declared.filter((value): value is string => typeof value === "string")]) {
-    const url = profileUrl(raw, home);
-    if (url !== null && !out.includes(url)) out.push(url);
-  }
-  return out.slice(0, MAX_PROFILES);
+  return profilesOn(html, home, declared.filter((value): value is string => typeof value === "string"));
 }
 
 function hostOfKey(key: string): string | null {
@@ -218,6 +168,14 @@ export function readMainSite(a: {
     home,
     organization: { id: organization.id, name: organization.name, logo: organization.logo },
     sameAs: html === "" ? [] : profilesOf(html, home, organization.node),
+    // Issue 1509: the site's own about and team pages, never one of ours.
+    aboutPages: a.pages
+      .flatMap((page) =>
+        page.about === undefined || (ours !== null && isOurPage(ours, page.url))
+          ? []
+          : [{ url: page.url, text: page.about.text, profiles: [...page.about.profiles] }]
+      )
+      .slice(0, SITE_PROFILE.ABOUT_PAGES),
     links: ours === null ? [] : [...ours.hosts].sort().map((host) => ({ host, state: linkOf(a.pages, ours, host) })),
   };
 }

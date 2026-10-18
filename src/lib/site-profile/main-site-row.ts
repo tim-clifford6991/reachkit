@@ -15,10 +15,23 @@ export interface MainSite {
   organization: { id: string | null; name: string | null; logo: string | null };
   /** The profile pages the main site itself links to. */
   sameAs: readonly string[];
+  /** Issue 1509: the main site's own about and team pages, each with its
+   *  visible text and the profile pages it links — where a page's author is
+   *  named, if anywhere. Empty on a reading stored before. */
+  aboutPages: readonly AboutPage[];
   /** Per content host ReachKit serves for this domain (without `www.`):
    *  whether the main site's own pages link it. Empty where the domain has
    *  none, or where which pages are ours could not be read. */
   links: readonly { host: string; state: MainSiteLink }[];
+}
+
+/** One about or team page of the main site, as the scan read it. */
+export interface AboutPage {
+  url: string;
+  /** Its visible text, cut to `SITE_PROFILE.ABOUT_TEXT_CHARS`. */
+  text: string;
+  /** The profile pages it links. */
+  profiles: readonly string[];
 }
 
 /** What Overview says about the main-site link (SPEC §7, 2026-10-18):
@@ -55,6 +68,14 @@ export function mainSiteOf(value: unknown): MainSite | null {
     home: row.home,
     organization: { id: text(organization.id), name: text(organization.name), logo: text(organization.logo) },
     sameAs: Array.isArray(row.sameAs) ? row.sameAs.filter((entry): entry is string => isHttp(entry)) : [],
+    aboutPages: Array.isArray(row.aboutPages)
+      ? row.aboutPages.flatMap((entry) => {
+          const page = entry as Record<string, unknown> | null;
+          if (!isHttp(page?.url) || typeof page.text !== "string") return [];
+          const profiles = Array.isArray(page.profiles) ? page.profiles.filter((each): each is string => isHttp(each)) : [];
+          return [{ url: page.url, text: page.text, profiles }];
+        })
+      : [],
     links: Array.isArray(row.links)
       ? row.links.flatMap((entry) => {
           const link = entry as Record<string, unknown> | null;

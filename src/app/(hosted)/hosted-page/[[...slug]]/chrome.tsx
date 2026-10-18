@@ -88,8 +88,16 @@ export function HostedHeader({ business }: { business: HostedBusiness }): React.
 }
 
 /** The card an article ends with: who published it, in one line of their
- *  own, and the way to their product. */
-export function AboutCard({ business }: { business: HostedBusiness }): React.JSX.Element {
+ *  own, who wrote it where a person did (issue 1509), and the way to their
+ *  product. */
+export function AboutCard({
+  business,
+  author = null,
+}: {
+  business: HostedBusiness;
+  author?: { name: string; url: string | null } | null;
+}): React.JSX.Element {
+  const written = author === null ? null : copy("hosted.about.author", { author: author.name });
   return (
     <aside className="card card-border bg-base-100 mt-10" aria-label={copy("hosted.about", { publisher: business.name })}>
       <div className="card-body flex-row flex-wrap items-center gap-4">
@@ -98,6 +106,15 @@ export function AboutCard({ business }: { business: HostedBusiness }): React.JSX
           <p className="text-base-content font-bold">{copy("hosted.about", { publisher: business.name })}</p>
           {business.line === null ? null : (
             <p className="text-base-content/70 line-clamp-3 text-sm">{business.line}</p>
+          )}
+          {written === null ? null : (
+            <p className="text-base-content/70 text-sm">
+              {author === null || author.url === null ? written : (
+                <a href={author.url} className="link link-hover">
+                  {written}
+                </a>
+              )}
+            </p>
           )}
         </div>
         <VisitButton business={business} width={CARD_BUTTON} />

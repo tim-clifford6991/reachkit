@@ -49,6 +49,7 @@ import { withFaq, type FaqEntry } from "@/lib/publish/render/faq";
 import { isSourcesHeading, madeLine } from "@/lib/publish/render/made";
 import { writeDate } from "./present";
 import { articleMetadata, blogPostingSchema, breadcrumbSchema, jsonLd } from "./seo";
+import { pageAuthorOf } from "./author";
 
 export interface Resolved {
   page: HostedPage;
@@ -423,7 +424,7 @@ export function HostedArticle({ resolved }: { resolved: Resolved }): React.JSX.E
             <p className="text-base-content/70 mt-8 text-sm wrap-anywhere">{sourceLine}</p>
           )}
 
-          <AboutCard business={business} />
+          <AboutCard business={business} author={pageAuthorOf(page.byline, business)} />
 
           {guides === "" ? null : <div dangerouslySetInnerHTML={{ __html: guides }} />}
 

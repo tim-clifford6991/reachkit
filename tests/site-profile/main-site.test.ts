@@ -107,3 +107,33 @@ describe("whether the main site links the content host", () => {
     expect(mainSiteOf(null)).toBeNull();
   });
 });
+
+describe("issue 1509 — the about and team pages, where a page's author may be named", () => {
+  const about = (url: string, text: string, profiles: string[] = []) => ({ url, links: [], about: { text, profiles } });
+
+  it("keeps the site's own about pages with their text and profiles, never one of ours, at most three", () => {
+    const pages = [
+      { url: "https://example.com/", links: [] },
+      about("https://example.com/about", "Founded by Ada Park.", ["https://www.linkedin.com/in/ada-park/"]),
+      about("https://example.com/blog/our-post", "A page ReachKit wrote that says about."),
+      about("https://example.com/team", "The team."),
+      about("https://example.com/careers", "Join us."),
+      about("https://example.com/story", "Our story."),
+    ];
+    const read = readMainSite({ domain: "example.com", homeUrl: "https://example.com/", homeHtml: "", pages, ours: OURS });
+    expect(read.aboutPages).toEqual([
+      { url: "https://example.com/about", text: "Founded by Ada Park.", profiles: ["https://www.linkedin.com/in/ada-park/"] },
+      { url: "https://example.com/team", text: "The team.", profiles: [] },
+      { url: "https://example.com/careers", text: "Join us.", profiles: [] },
+    ]);
+    expect(mainSiteOf(JSON.parse(JSON.stringify(read)))).toEqual(read);
+  });
+
+  it("a reading stored before has none, and an entry that does not parse is dropped", () => {
+    expect(mainSiteOf({ home: "https://example.com/", organization: {}, sameAs: [], links: [] })?.aboutPages).toEqual([]);
+    expect(
+      mainSiteOf({ home: "https://example.com/", aboutPages: [{ url: "javascript:x", text: "x" }, { url: "https://example.com/about", text: 3 }] })?.aboutPages
+    ).toEqual([]);
+  });
+});
+

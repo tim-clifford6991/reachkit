@@ -151,6 +151,10 @@ export interface GenerateStore {
    *  when it went live — or `null` where none is. A store that holds no
    *  publications leaves this out, and no page is mended. */
   liveVersionAt?(siteId: string, url: string): Promise<{ draft: DraftRow; publishedAt: Date } | null>;
+  /** Issue 1509: each address of this site live now, with the Markdown of
+   *  the version it serves. A store that holds no publications leaves this
+   *  out, and no fact is offered later for having been said. */
+  livePages?(siteId: string): Promise<{ url: string; markdown: string }[]>;
   queuedPages(siteId: string, exceptDraftId: string | null): Promise<StoredPage[]>;
   /** SPEC §7 (D13, issue 1144): the text of every draft and live page
    *  written for a site **other** than `siteId` since `since`, newest first,
@@ -411,6 +415,24 @@ export function supabaseGenerateStore(): GenerateStore {
       if (newest === undefined) return null;
       const draft = await this.draftById(newest.draft_id);
       return draft === null ? null : { draft, publishedAt: new Date(newest.published_at) };
+    },
+
+    async livePages(siteId) {
+      const live = await untyped()
+        .from<{ live_url: string | null; published_at: string; drafts: { body_md: string | null } | null }>("publications")
+        .select("live_url, published_at, drafts(body_md)")
+        .eq("site_id", siteId)
+        .not("published_at", "is", null)
+        .is("unpublished_at", null)
+        .order("published_at", { ascending: false });
+      if (live.error) throw new Error(`generate/store: read from publications failed: ${live.error.message}`);
+      // Newest first, so an address's first row is the version it serves.
+      const served = new Map<string, string>();
+      for (const row of live.data ?? []) {
+        if (row.live_url === null || served.has(row.live_url)) continue;
+        served.set(row.live_url, row.drafts?.body_md ?? "");
+      }
+      return [...served].map(([url, markdown]) => ({ url, markdown })).filter((page) => page.markdown !== "");
     },
 
     async queuedPages(siteId, exceptDraftId) {

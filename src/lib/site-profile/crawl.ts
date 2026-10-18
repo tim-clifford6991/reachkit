@@ -77,6 +77,8 @@ import { registrableDomain } from "@/lib/market/rivals/domains";
 import { proseText } from "@/lib/measure/prose";
 import { readPageFacts, type PageIssueFacts } from "@/lib/site-issues/facts";
 import { readFirstRank } from "./knowledge/priority";
+import { profilesOn } from "./profiles";
+import { derivePurpose } from "./purpose";
 import {
   siteDocumentOf,
   OWN_FETCH_OPTS,
@@ -102,6 +104,10 @@ export interface CrawledPage {
    *  asks search engines not to follow it (`nofollow`, `sponsored`, `ugc`;
    *  issue 1511). Absent reads as none. */
   unfollowed?: readonly string[];
+  /** Issue 1509: on a page whose purpose is `about` (an about or team
+   *  page), its visible text at more length and the profile pages it links:
+   *  what tells whether it names a page's author, and their own profiles. */
+  about?: { text: string; profiles: readonly string[] };
   /** How long this crawl's own fetch of the document took, or `null` where
    *  no fetch was timed (a document handed over or served from the cache). */
   fetchMs: number | null;
@@ -877,14 +883,19 @@ function aliasOf(url: string, html: string, site: string | null): { alias: false
  *  and no `h1` yields empty strings, which is the truth about it. */
 function pageOf(url: string, html: string, site: string | null, fetchMs: number | null): CrawledPage {
   const { links, unfollowed } = linkSets(url, html, site);
+  const title = firstText(html, TITLE_RE);
+  const h1 = firstText(html, H1_RE);
+  const text = proseText(html);
+  const about = derivePurpose({ url, title, h1 }) === "about";
   return {
     url,
-    title: firstText(html, TITLE_RE),
-    h1: firstText(html, H1_RE),
-    text: proseText(html).slice(0, SITE_PROFILE.PAGE_SAMPLE_CHARS),
+    title,
+    h1,
+    text: text.slice(0, SITE_PROFILE.PAGE_SAMPLE_CHARS),
     facts: readPageFacts(url, html),
     links,
     ...(unfollowed.length === 0 ? {} : { unfollowed }),
+    ...(about ? { about: { text: text.slice(0, SITE_PROFILE.ABOUT_TEXT_CHARS), profiles: profilesOn(html, url) } } : {}),
     fetchMs,
   };
 }
