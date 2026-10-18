@@ -79,8 +79,9 @@ export interface Template {
     /** Every repeated section carries a date and a link to its source. */
     datedSources?: boolean;
   };
-  /** Words of body text. An update keeps within a share of its live page. */
-  length: { floor: number; ceiling: number } | { withinShareOfLive: number };
+  /** Words of body text. An update keeps within a share of its live page;
+   *  one that may add sections grows up to `grownShare` (issue 1521). */
+  length: { floor: number; ceiling: number } | { withinShareOfLive: number; grownShare?: number };
   /** Whether stage 2 reads public pages for this type. */
   research: boolean;
   packMustHold: readonly PackRequirement[];

@@ -392,13 +392,47 @@ function fitDescription(text: string): string {
   return [...kept].length >= min ? kept : text;
 }
 
+/** The heading of the sources list code writes, in each language. */
+const SOURCES_HEADING_RE = /^(?:sources|references|quellen)$/i;
+
+/** Whether an update says something the live page does not: a section
+ *  that no longer reads as the live page has it, one it does not head, or
+ *  one of its sections left out (issue 1521). The words a reader meets, so a
+ *  link or a line break is not a change. */
+function changesLive(live: NonNullable<TidyInputs["live"]>, sections: readonly { heading: string; body: string }[]): boolean {
+  const stands = lower(renderOf(live.markdown));
+  const headed = [...live.markdown.matchAll(/^[ \t]*##[ \t]+(.+?)[ \t]*$/gm)].map((match) => lower(match[1] ?? ""));
+  const heads = new Set(sections.map((section) => lower(section.heading)));
+  return (
+    sections.some((section) => !headed.includes(lower(section.heading)) || !stands.includes(lower(renderOf(section.body)))) ||
+    headed.some((heading) => !heads.has(heading) && !SOURCES_HEADING_RE.test(heading))
+  );
+}
+
 /** An update's title (D51): the live page's own, its year moved to this one
  *  only where a section no longer reads as the live page has it. */
-function liveTitle(live: NonNullable<TidyInputs["live"]>, bodies: readonly string[]): string {
-  // The words a reader meets, so a link or a line break is not a change.
-  const stands = lower(renderOf(live.markdown));
-  const changed = bodies.some((body) => !stands.includes(lower(renderOf(body))));
+function liveTitle(live: NonNullable<TidyInputs["live"]>, changed: boolean): string {
   return changed ? live.title.replace(/\b20\d\d\b/g, String(live.year)) : live.title;
+}
+
+const ANSWER_BOX_RE = /^[ \t]*:::answer[ \t]*\n([\s\S]*?)\n[ \t]*:::[ \t]*$/m;
+const TAKEAWAYS_BOX_RE = /^[ \t]*:::takeaways[ \t]*\n([\s\S]*?)\n[ \t]*:::[ \t]*$/m;
+
+/** The live page's short answer, takeaways and closing line as they stand
+ *  (issue 1521), or `null` for a page written before it carried both boxes.
+ *  The closing line is its last paragraph: only the sources list follows. */
+export function liveLead(markdown: string): { answer: string; takeaways: string[]; closing: string } | null {
+  const answer = ANSWER_BOX_RE.exec(markdown)?.[1]?.trim();
+  const box = TAKEAWAYS_BOX_RE.exec(markdown)?.[1];
+  if (answer === undefined || answer === "" || box === undefined) return null;
+  const takeaways = box
+    .split("\n")
+    .map((line) => line.replace(/^[ \t]*[-*+][ \t]+/, "").trim())
+    .filter((line) => line !== "");
+  const paragraphs = sourceBlocksOf(markdown.replace(ANSWER_BOX_RE, "").replace(TAKEAWAYS_BOX_RE, "")).filter(
+    (block) => !/^[ \t]*(?:#|[-*+][ \t]|\d+[.)][ \t]|\||:::|```)/.test(block.raw)
+  );
+  return { answer, takeaways, closing: paragraphs.at(-1)?.raw.trim() ?? "" };
 }
 
 /** One section as the page carries it, recorded with the row
@@ -420,6 +454,10 @@ export interface LaidPage {
   sections: LaidSection[];
   /** An update's note of what changed; empty otherwise. */
   updated: string;
+  /** Issue 1521: an update that says nothing the live page does not. It
+   *  keeps the live short answer, takeaways and closing line, and its dates
+   *  (as issue 1507). `false` on every other page. */
+  kept: boolean;
 }
 
 /**
@@ -452,11 +490,15 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
     const body = sectionBody(section.body, heading);
     return [{ key: slot, heading, body: slot === "business" ? withPromisesAtMost(body, a.promises) : body }];
   });
-  const takeaways = parts.takeaways
+  // Issue 1521: an update keeps its live short answer where nothing it
+  // says changed; the writer rewrites it only where the answer did.
+  const changed = a.live !== undefined && changesLive(a.live, sections.map((section) => ({ heading: section.heading, body: tidy(section.body, a) })));
+  const kept = a.live === undefined || changed ? null : liveLead(a.live.markdown);
+  const takeaways = (kept?.takeaways ?? parts.takeaways)
     .map((item) => tidyText(oneLine(item)))
     .filter((item) => item !== "")
     .slice(0, PAGE_BLOCKS.takeaways.max);
-  const lead = [answerBox(parts.answer), `:::takeaways\n${takeaways.map((item) => `- ${item}`).join("\n")}\n:::`];
+  const lead = [kept === null ? answerBox(parts.answer) : `:::answer\n${kept.answer}\n:::`, `:::takeaways\n${takeaways.map((item) => `- ${item}`).join("\n")}\n:::`];
   const text = sections.map((section) => `## ${section.heading}${section.body === "" ? "" : `\n\n${section.body}`}`);
   const cleaned = (text: string): string => recased(sentenceCase(tidyText(collapse(text)), proper), cased);
   const description = fitDescription(tidyText(collapse(parts.description)));
@@ -468,7 +510,7 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
   const title =
     a.live === undefined
       ? (a.pickTitle?.(proposed, { description, sections: laid }) ?? proposed[0] ?? "")
-      : liveTitle(a.live, sections.map((section) => tidy(section.body, a)));
+      : liveTitle(a.live, changed);
   return {
     body: {
       title,
@@ -479,7 +521,7 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
       description,
       bodyMarkdown: `${lead.join("\n\n")}\n\n${tidy(text.join("\n\n"), a)}`,
     },
-    closing: tidyText(oneLine(parts.closing)),
+    closing: kept === null ? tidyText(oneLine(parts.closing)) : kept.closing,
     // D42, Q&A: the page's own questions are its FAQ data, and it stores no
     // others — each question with the paragraph that answers it.
     faq:
@@ -490,6 +532,7 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
             .filter((entry) => entry.answer !== "")
         : faqOf(parts.faq),
     sections: laid,
-    updated: tidyText(oneLine(parts.updated)),
+    updated: kept === null ? tidyText(oneLine(parts.updated)) : "",
+    kept: kept !== null,
   };
 }

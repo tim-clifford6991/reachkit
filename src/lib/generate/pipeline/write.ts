@@ -16,7 +16,7 @@
 // the response is ever logged. The ceiling is read before each call; a call
 // the page cannot afford is `not_attempted`, never a rule that failed.
 import { z } from "zod";
-import { PAGE_BLOCKS, RESEARCH, TITLE, VOICE } from "@/lib/config/constants";
+import { HEADING_GAPS, PAGE_BLOCKS, RESEARCH, RIVAL_PRICE_MAX_AGE_D, TITLE, VOICE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import type { Tier } from "@/lib/llm/tiers";
@@ -201,6 +201,15 @@ const ASKED_HEADINGS_RULE =
 const CORRECTIONS_RULE =
   "`pack.corrections` are facts about this business that AI answers state wrongly: `says` is what an answer said, `site` is what the business's own page at `url` states. State each `site` fact plainly, in one sentence of its own, with its figure or place as `site` gives it, in the section that speaks most to it. Never repeat, quote or mention what `says` said, and never say an AI answer was wrong.";
 
+/** Issue 1521 (owner, 2026-10-18, amends D42 #7): what a growing refresh
+ *  may add. */
+const GAPS_TASK =
+  `\`pack.gaps\` are subtopics the pages ranked above this one cover and it does not. Add at most ${HEADING_GAPS.sectionsMax} new sections, each on one of them: headed by that gap's \`heading\`, worded as a reader asks it, placed where it fits among the live sections, written only from the \`pack.claims\` whose \`url\` is in that gap's \`claims\`, and linking at least one of those urls. Add none on a gap those claims give nothing to say about, and say in \`updated\` which sections were added.`;
+
+/** Issue 1521: a comparison whose rival prices are older than D59 allows. */
+const STALE_PRICES_TASK =
+  `The live page states rival prices read more than ${RIVAL_PRICE_MAX_AGE_D} days ago: state each rival's price as \`pack.claims\` now give it, and drop a rival price no claim in \`pack\` states.`;
+
 export interface WriteInputs {
   template: Template;
   pack: ContextPack;
@@ -249,7 +258,13 @@ function taskFor(a: WriteInputs): string {
         ? "`pack.live` is the page as it is live, its link to a page that moved already pointed in code at that page's new address (`pack.live.linkTo.url`) and named `pack.live.linkTo.title`. Return every section of it under its own heading, as it stands, that link included. Change nothing else, and say in `updated`, in one sentence, that a link now points at the page's new address."
         : a.pack.live?.linkTo !== undefined
         ? "`pack.live` is the page as it is live. Return every section of it under its own heading, as it stands. Add exactly one sentence, in the section that speaks most to it, that links `pack.live.linkTo.url` with link text naming what that newer page covers (`pack.live.linkTo.title`); the sentence states no figure and no fact that is not in `pack`. Change nothing else, and say in `updated`, in one sentence, that a link to the newer page was added."
-        : "`pack.live` is the page as it is live. Return every section of it under its own heading; rewrite only a section a fact in `pack` changes, and say in `updated`, in one sentence, what changed."
+        : [
+            "`pack.live` is the page as it is live. Return every section of it under its own heading; rewrite only a section a fact in `pack` changes, and say in `updated`, in one sentence, what changed.",
+            // Issue 1521: the answer box moves only with the answer.
+            "Return the live page's short answer (its `:::answer` box) word for word unless a fact in `pack` changes the answer to `pack.target.question`; then rewrite it to the new answer.",
+            ...(a.pack.gaps === undefined ? [] : [GAPS_TASK]),
+            ...(a.pack.live?.cause === "stale_prices" ? [STALE_PRICES_TASK] : []),
+          ].join(" ")
       : "`updated` is empty.",
     "`rules` hold throughout, and `honesty` says how this business appears on the page.",
   ].join(" ");

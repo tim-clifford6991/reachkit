@@ -37,7 +37,7 @@
 //
 // **The hard rules bind what ReachKit generates, never what the customer
 // writes.** An edit the customer saves does not come through here.
-import { PAGE_BLOCKS, PIPELINE } from "@/lib/config/constants";
+import { HEADING_GAPS, PAGE_BLOCKS, PIPELINE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Tier } from "@/lib/llm/tiers";
 import type { Opportunity } from "@/lib/opportunities";
@@ -256,7 +256,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
 
   const liveWords = pack.live === null ? null : sectionWords(pack.live.markdown);
   // Issue 1390: a short answer is held to its own length, not its type's.
-  const length = voiceLength(pack.voice) ?? lengthRangeFor(template, liveWords);
+  // Issue 1521: a refresh that may add sections on what the pages above it
+  // cover may grow to the update's grown share.
+  const length = voiceLength(pack.voice) ?? lengthRangeFor(template, liveWords, pack.gaps !== undefined);
   // D47: a comparison written as a Q&A for want of two rivals compares
   // nobody, so it is told to answer, not to compare.
   const becameQa = pack.type === "qa" && contentTypeOf(a.opportunity) === "listicle";
@@ -350,6 +352,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       // Which of the template's sections each heading fills.
       sections: page.laid.sections,
       ...(page.laid.updated === "" ? {} : { updateNote: page.laid.updated }),
+      // Issue 1521 (as 1507): a refresh that says nothing new keeps the
+      // live version's dates.
+      ...(page.laid.kept && pack.live?.datedAs !== undefined ? { datedAs: pack.live.datedAs } : {}),
       // The business facts the page states or links, each with the page it
       // was read from (#931) — the grounded one always among them.
       factsUsed: [grounding.fact, ...used.filter((fact) => fact.passage !== grounding.fact.passage)].map((fact) => ({
@@ -437,6 +442,8 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
         ...(table?.baseline == null ? {} : { baseline: table.baseline }),
         // Issue 1486: a step that names the business is its own.
         businessName: a.site.businessName,
+        // Issue 1521: what a growing refresh may add, and on what.
+        ...(pack.type === "update" && pack.live !== null && pack.gaps !== undefined ? { growth: { live: pack.live.markdown, gaps: pack.gaps } } : {}),
       },
       titleRule: { ...titleRuleFor(pack, { description: candidate.laid.body.description, sections: candidate.laid.sections }), settled },
       // D61: a Q&A's questions are each their own.
@@ -525,6 +532,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     return fixNotes(stopped.page.markdown, stopped.outcome.failed, briefRead, a.site, stopped.page.laid.body.title).map((note) => {
       if (note.rule === "required_blocks" && note.sentences.includes("length") && length !== null) {
         return { ...note, sentences: [`length: ${pack.type === "update" ? "the sections have" : "the body has"} ${words} words and must have between ${length.floor} and ${length.ceiling}`] };
+      }
+      if (note.rule === "required_blocks" && note.sentences.includes("new_sections")) {
+        return { ...note, sentences: [`new sections: at most ${HEADING_GAPS.sectionsMax} sections may be new, each headed by one of \`pack.gaps\` and linking a url of that gap's \`claims\`; return every other section under its live heading`] };
       }
       if (note.rule === "required_blocks" && note.sentences.includes("own_steps")) {
         return { ...note, sentences: [`steps: at most ${template.blocks.steps?.own ?? 1} step may be this business's own product or process; every other step is the task as \`pack.claims\` describe it, linking the claim's url`] };

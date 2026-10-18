@@ -15,12 +15,14 @@ export interface LengthRange {
 
 /** The words a page of this template is written to and held to. `liveWords`
  *  is the body of the page an update refreshes; an update with no live page
- *  to measure against has no range. */
-export function lengthRangeFor(template: Template, liveWords: number | null = null): LengthRange | null {
+ *  to measure against has no range. An update that may add sections
+ *  (`grown`, issue 1521) keeps its floor and may grow to its grown share. */
+export function lengthRangeFor(template: Template, liveWords: number | null = null, grown = false): LengthRange | null {
   if ("floor" in template.length) return { floor: template.length.floor, ceiling: template.length.ceiling };
   if (liveWords === null || liveWords <= 0) return null;
   const share = template.length.withinShareOfLive;
-  return { floor: Math.floor(liveWords * (1 - share)), ceiling: Math.ceil(liveWords * (1 + share)) };
+  const up = grown ? (template.length.grownShare ?? share) : share;
+  return { floor: Math.floor(liveWords * (1 - share)), ceiling: Math.ceil(liveWords * (1 + up)) };
 }
 
 /** The words under a page's headings: its body without the short-answer and

@@ -6,7 +6,8 @@ import type { Measured } from "@/lib/measure/measured";
 import { canonicalUrl } from "@/lib/measure/page-reading";
 import type { Opportunity, Shortfall } from "./types";
 
-/** The update of a live page that ranks 4–20 for its target, or that a
+/** The update of a live page that ranks 4–20 for its target — an Improve
+ *  row's own position, or a refresh planned as `close` (issue 1521) — or that a
  *  tracked AI answer cited in the last four weeks (`cited`, canonical addresses). Read off the row's own
  *  evidence and the stored answers; nothing is judged here. */
 export function isCloseUpdate(o: Pick<Opportunity, "evidence">, cited: ReadonlySet<string> = new Set()): boolean {
@@ -16,6 +17,8 @@ export function isCloseUpdate(o: Pick<Opportunity, "evidence">, cited: ReadonlyS
   if (evidence?.family !== "improve") return false;
   const shortfall = evidence.shortfall as Shortfall | undefined;
   const pageUrl = evidence.pageUrl as string | undefined;
+  // Issue 1521: a refresh of one of ours planned because it ranks 4–20.
+  if (shortfall?.kind === "due" && shortfall.cause === "close") return true;
   const position = shortfall?.kind === "position" ? (shortfall.position as Measured<number> | undefined) : undefined;
   if (
     position?.kind === "measured" &&
