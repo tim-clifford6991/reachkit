@@ -555,7 +555,9 @@ export async function rescoreStored(store: RescoreStore, o: RescoreOptions): Pro
     scansWritten: written?.scans ?? 0,
     scansLeft: written?.left.length ?? 0,
     scansUnreadable: unreadable.length,
-    stale: written === null ? rows.filter(moves).map((row) => row.scan.id) : written.left,
+    // A scan that stands as stored though the code reads it differently
+    // (issue 1504) is stale as one the apply left is.
+    stale: [...new Set([...(written === null ? rows.filter(moves).map((row) => row.scan.id) : written.left), ...rows.filter((row) => row.result.stale).map((row) => row.scan.id)])],
     scoreMoves: rows
       .map((row) => ({ domain: row.scan.domain, before: scoreOf(row.result.before), after: scoreOf(row.result.after) }))
       .filter((m) => m.before !== m.after),
