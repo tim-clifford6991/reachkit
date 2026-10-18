@@ -104,9 +104,19 @@ function Section(p: { title: string; testId: string; children: React.ReactNode }
   );
 }
 
-/** Four columns fit a phone: fixed widths, a narrower cell padding, and a
- *  word longer than its cell breaks rather than leaving it. */
-const TABLE = "table table-sm w-full table-fixed wrap-anywhere [&_td]:px-2 [&_th]:px-2";
+const TABLE = "table table-sm";
+
+/** A table wider than its card scrolls inside its own box, never the page.
+ *  It scrolls, so it is reachable from a keyboard: a named region and a tab
+ *  stop, named by its card's head (#947). */
+function Scroll(p: { label: string; children: React.ReactNode }): React.JSX.Element {
+  return (
+    <div className="min-w-0 overflow-x-auto" tabIndex={0} role="region" aria-label={p.label}>
+      {p.children}
+    </div>
+  );
+}
+
 const NUM = "tabular-nums";
 
 function Figures(p: { page: CostPage }): React.JSX.Element {
@@ -166,102 +176,112 @@ export default async function CostsPage(): Promise<React.JSX.Element> {
         {page.week.length === 0 ? (
           <p className="text-sm text-base-content/70">{copy("overview.costs.week.empty")}</p>
         ) : (
-          <table className={TABLE}>
-            <Head cols={["overview.costs.col.site", "overview.costs.col.estimated", "overview.costs.col.billed", "overview.costs.col.month"]} />
-            <tbody>
-              {page.week.map((line) => (
-                <tr key={whoKey(line.who)}>
-                  <td className="min-w-0">{whoName(line.who)}</td>
-                  <td className={NUM}>{cents(line.cell.estimatedCents)}</td>
-                  <td className={NUM}>{billed(line.cell)}</td>
-                  <td className={NUM}>
-                    {line.monthEurCents === null || line.shareOfNet === null ? null : (
-                      <span className="flex flex-col">
-                        <span>{eur(line.monthEurCents / 100)}</span>
-                        <span className="text-xs text-base-content/70">
-                          {copy("overview.costs.share", { share: WHOLE.format(line.shareOfNet * 100), net })}
+          <Scroll label={copy("overview.costs.week.title")}>
+            <table className={TABLE}>
+              <Head cols={["overview.costs.col.site", "overview.costs.col.estimated", "overview.costs.col.billed", "overview.costs.col.month"]} />
+              <tbody>
+                {page.week.map((line) => (
+                  <tr key={whoKey(line.who)}>
+                    <td className="min-w-0">{whoName(line.who)}</td>
+                    <td className={NUM}>{cents(line.cell.estimatedCents)}</td>
+                    <td className={NUM}>{billed(line.cell)}</td>
+                    <td className={NUM}>
+                      {line.monthEurCents === null || line.shareOfNet === null ? null : (
+                        <span className="flex flex-col">
+                          <span>{eur(line.monthEurCents / 100)}</span>
+                          <span className="text-xs text-base-content/70">
+                            {copy("overview.costs.share", { share: WHOLE.format(line.shareOfNet * 100), net })}
+                          </span>
                         </span>
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Scroll>
         )}
         <p className="text-xs text-base-content/70">{copy("overview.costs.week.note", { net })}</p>
       </Section>
 
       <Section title={copy("overview.costs.days.title")} testId="costs-days">
-        <table className={TABLE}>
-          <Head cols={["overview.costs.col.day", "overview.costs.col.site", "overview.costs.col.estimated", "overview.costs.col.billed"]} />
-          <tbody>
-            {page.siteDays.map((line) => (
-              <tr key={`${line.day}-${whoKey(line.who)}`}>
-                <td className="font-mono break-all">{line.day}</td>
-                <td className="min-w-0">{whoName(line.who)}</td>
-                <td className={NUM}>{cents(line.cell.estimatedCents)}</td>
-                <td className={NUM}>{billed(line.cell)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Scroll label={copy("overview.costs.days.title")}>
+          <table className={TABLE}>
+            <Head cols={["overview.costs.col.day", "overview.costs.col.site", "overview.costs.col.estimated", "overview.costs.col.billed"]} />
+            <tbody>
+              {page.siteDays.map((line) => (
+                <tr key={`${line.day}-${whoKey(line.who)}`}>
+                  <td className="font-mono break-all">{line.day}</td>
+                  <td className="min-w-0">{whoName(line.who)}</td>
+                  <td className={NUM}>{cents(line.cell.estimatedCents)}</td>
+                  <td className={NUM}>{billed(line.cell)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Scroll>
       </Section>
 
       <Section title={copy("overview.costs.activities.title")} testId="costs-activities">
-        <table className={TABLE}>
-          <Head cols={["overview.costs.col.activity", "overview.costs.col.estimated", "overview.costs.col.billed", "overview.costs.col.failed"]} />
-          <tbody>
-            {page.activities.map((line) => (
-              <tr key={line.activity}>
-                <td className="min-w-0">{copy(ACTIVITY_KEY[line.activity])}</td>
-                <td className={NUM}>{cents(line.cell.estimatedCents)}</td>
-                <td className={NUM}>{billed(line.cell)}</td>
-                <td className={NUM}>{WHOLE.format(line.cell.failedCalls + line.cell.timeoutCalls)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Scroll label={copy("overview.costs.activities.title")}>
+          <table className={TABLE}>
+            <Head cols={["overview.costs.col.activity", "overview.costs.col.estimated", "overview.costs.col.billed", "overview.costs.col.failed"]} />
+            <tbody>
+              {page.activities.map((line) => (
+                <tr key={line.activity}>
+                  <td className="min-w-0">{copy(ACTIVITY_KEY[line.activity])}</td>
+                  <td className={NUM}>{cents(line.cell.estimatedCents)}</td>
+                  <td className={NUM}>{billed(line.cell)}</td>
+                  <td className={NUM}>{WHOLE.format(line.cell.failedCalls + line.cell.timeoutCalls)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Scroll>
       </Section>
 
       <Section title={copy("overview.costs.vendors.title")} testId="costs-vendors">
-        <table className={TABLE}>
-          <Head cols={["overview.costs.col.day", "overview.costs.col.recorded", "overview.costs.col.vendor-billed", "overview.costs.col.gap"]} />
-          <tbody>
-            {page.vendors.map((line) => (
-              <tr key={`${line.day}-${line.vendor}`}>
-                <td className="min-w-0">
-                  <span className="flex flex-col">
-                    <span className="font-mono break-all">{line.day}</span>
-                    <span className="text-xs text-base-content/70">{copy(VENDOR_KEY[line.vendor])}</span>
-                  </span>
-                </td>
-                <td className={NUM}>{cents(line.recordedCents)}</td>
-                <td className={NUM}>{line.vendorBilledCents === null ? copy("overview.costs.unreported") : cents(line.vendorBilledCents)}</td>
-                <td className={NUM}>{line.gapCents === null ? null : cents(line.gapCents)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Scroll label={copy("overview.costs.vendors.title")}>
+          <table className={TABLE}>
+            <Head cols={["overview.costs.col.day", "overview.costs.col.recorded", "overview.costs.col.vendor-billed", "overview.costs.col.gap"]} />
+            <tbody>
+              {page.vendors.map((line) => (
+                <tr key={`${line.day}-${line.vendor}`}>
+                  <td className="min-w-0">
+                    <span className="flex flex-col">
+                      <span className="font-mono break-all">{line.day}</span>
+                      <span className="text-xs text-base-content/70">{copy(VENDOR_KEY[line.vendor])}</span>
+                    </span>
+                  </td>
+                  <td className={NUM}>{cents(line.recordedCents)}</td>
+                  <td className={NUM}>{line.vendorBilledCents === null ? copy("overview.costs.unreported") : cents(line.vendorBilledCents)}</td>
+                  <td className={NUM}>{line.gapCents === null ? null : cents(line.gapCents)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Scroll>
         <p className="text-xs text-base-content/70">{copy("overview.costs.vendors.note")}</p>
         {page.aiBilled ? null : <p className="text-xs text-base-content/70">{copy("overview.costs.vendors.no-ai")}</p>}
       </Section>
 
       <Section title={copy("overview.costs.cap.title")} testId="costs-cap">
-        <table className={TABLE}>
-          <Head cols={["overview.costs.col.day", "overview.costs.col.judged", "overview.costs.col.cap"]} />
-          <tbody>
-            {page.capDays.map((day) => (
-              <tr key={day.day}>
-                <td className="font-mono break-all">{day.day}</td>
-                <td className={NUM}>{eur(day.judgedEur)}</td>
-                <td>
-                  <span className={CAP_BADGE[day.state]}>{copy(CAP_KEY[day.state])}</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Scroll label={copy("overview.costs.cap.title")}>
+          <table className={TABLE}>
+            <Head cols={["overview.costs.col.day", "overview.costs.col.judged", "overview.costs.col.cap"]} />
+            <tbody>
+              {page.capDays.map((day) => (
+                <tr key={day.day}>
+                  <td className="font-mono break-all">{day.day}</td>
+                  <td className={NUM}>{eur(day.judgedEur)}</td>
+                  <td>
+                    <span className={CAP_BADGE[day.state]}>{copy(CAP_KEY[day.state])}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Scroll>
       </Section>
 
       <Section title={copy("overview.costs.fixed.title", { month: page.fixedMonth.slice(0, 7) })} testId="costs-fixed">
