@@ -10,7 +10,7 @@ Ship the paying path. Prefer a library over new code. Follow **Current** in `doc
 - Never add a custom component, CSS sheet, token set, or SVG chart where daisyUI or Recharts covers it. Do not wrap daisyUI in a new `Btn`/`Card`.
 - Never match pixels or copy markup from a board; it says what a screen holds, daisyUI classes say how it looks. Never add a UI dependency that is not on `docs/DESIGN.md`’s list.
 - Never write a test that transcribes a document.
-- Never guess an owner decision — `blocked-on-owner` and ask; record the answer as a dated SPEC line.
+- Never guess an owner decision — `blocked-on-owner` and ask; record the answer as a dated decision file under `docs/spec/decisions/` (`node scripts/spec-decisions.mjs new <issue> <§n>`), never a new line in `docs/SPEC.md` itself.
 - Never add a merge gate beyond the four in `docs/PROCESS.md`. Coherence and the UI strategy checks live inside `audit` and `no overflow · axe`. One issue uses one worktree, removed when its pull request merges.
 - Follow **Coherence** in `docs/PROCESS.md`. Owner feedback is classified before a worktree exists: an example of a parent is a comment on that parent, a word or a screen extends the strategy check, and a new condition is an issue with Surfaces, Invariants and Overlaps filled. The session that classifies does not also implement. Fill Conditions, Overlaps and Surfaces on the pull request. The owner's look at `dev.reachkit.app` is taste. It is not the check for a condition or a screen the gates already cover.
 - The `seo-audit` skill does not open ReachKit issues. A finding it would file is classified under Coherence first. Vendor skills (daisyUI, Stripe, Supabase, Resend, Vercel) do not add a product rule.

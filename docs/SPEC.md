@@ -4,6 +4,7 @@ The nine features below are the product. Anything not needed by one of them is o
 UI is `docs/DESIGN.md` — this file does not describe pixels. What is on each screen, in what order and with what wording, is that screen's board named there: structure and wording, never a pixel baseline.
 Every customer-visible sentence is a key in `src/lib/presentation/copy/keys/`. A missing sentence is drafted and shipped, never `TODO(copy)`; the owner corrects the wording (owner, 2026-09-16, #759). A mail carrying the marker still sends nothing.
 Pinned numbers live in `src/lib/config/constants.ts`. Each section states the rule that is current; a line a later ruling replaced is deleted, and git keeps the history.
+A new dated ruling is its own file under `docs/spec/decisions/`, headed by the section it belongs to, and reads as part of that section; `node scripts/spec-decisions.mjs` lists them per section (owner, 2026-10-18, #1525). The lines already in a section stay there.
 
 ## §0 Terms
 
