@@ -7,7 +7,7 @@
 // nothing is bought.
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { checkComparisonDemand, checkSite, countPageQuestions, defectsByKind, isRealQuestion, saidOf, type CheckResult, type SiteResult } from "../../scripts/panel/checks";
+import { checkAskedTopics, checkComparisonDemand, checkSite, panelTopicOf, countPageQuestions, defectsByKind, isRealQuestion, saidOf, type CheckResult, type SiteResult } from "../../scripts/panel/checks";
 
 const plumber: SiteResult = {
   site: { domain: "northside-plumbing.example", kind: "local service (plumber)", country: "US", language: "en", market: ["plumb"], why: "fixture" },
@@ -92,15 +92,16 @@ describe("npm run panel — a pass held to what the business is", () => {
     const checks = checkSite(plumber);
 
     // The last is the tracked prompts: this fixture is a run stored before
-    // their kind was recorded (D69), which a person reads.
-    expect(verdicts(checks)).toEqual(["pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "review"]);
+    // their kind was recorded (D69), which a person reads. So is the tenth:
+    // it did not count its SERPs' questions (issue 1519).
+    expect(verdicts(checks)).toEqual(["pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "review", "pass", "review"]);
   });
 
   it("fails a German bakery read as an American software company, and says what is wrong", () => {
     const checks = checkSite(bakery);
     const by = Object.fromEntries(checks.map((check) => [check.check, check]));
 
-    expect(verdicts(checks)).toEqual(["fail", "fail", "fail", "fail", "fail", "fail", "fail", "fail", "pass", "pass", "review"]);
+    expect(verdicts(checks)).toEqual(["fail", "fail", "fail", "fail", "fail", "fail", "fail", "fail", "pass", "review", "pass", "review"]);
     expect(by["the category is specific, and is the business's own"]!.detail).toContain("names no market");
     expect(by["the terms are in the site's own language and country"]!.detail).toContain("a de site in Germany was read in United States / en");
     expect(by["3–5 rivals, none a listing, each with demand or seen by the pass"]!.items).toEqual([
@@ -342,5 +343,43 @@ describe("issue 1506: a ready \"vs\" between products has measured demand, on ev
     ]);
     const prompt = { kind: "comparison", text: "Is Radiant Plumbing better than other plumbers in Austin?" };
     expect(checkComparisonDemand({ ...plumber, topics: [topic], prompts: [prompt] })).toMatchObject({ verdict: "pass", items: [] });
+  });
+});
+
+describe("issue 1519: where the SERPs ask, three answering topics are ready", () => {
+  const answering = (query: string, ready: boolean, unreadyReason: string | null = null) => ({ query, status: "open", type: "keyword_page", fit: 3, volume: null, ready, unreadyReason, asked: true });
+
+  it("passes where three Q&A, how-to or documentation topics are ready, in English and German", () => {
+    const topics = [answering("why is my water heater making noise", true), answering("how to bleed a radiator", true), answering("what is a sump pump", true)];
+    expect(checkAskedTopics({ ...plumber, asked: { peopleAlsoAsk: 12, related: 8 }, topics })).toMatchObject({ verdict: "pass" });
+    const german = [answering("ist sauerteigbrot bekömmlicher", true), answering("wie kann ich sauerteig ansetzen", true), answering("was ist ein sauerteig", true)];
+    expect(checkAskedTopics({ ...bakery, asked: { peopleAlsoAsk: 9, related: 4 }, topics: german })).toMatchObject({ verdict: "pass" });
+  });
+
+  it("fails with fewer, listing each held-back answering topic with its reason; a listicle or a comparison does not count", () => {
+    const topics = [
+      answering("why is my water heater making noise", true),
+      answering("how to bleed a radiator", false, "already_covered"),
+      { query: "best plumber in austin", status: "open", type: "keyword_page", fit: 3, volume: 90, ready: true },
+      { query: "radiant plumbing alternatives", status: "open", type: "comparison_page", fit: 3, volume: 40, ready: true },
+    ];
+    expect(checkAskedTopics({ ...plumber, asked: { peopleAlsoAsk: 12, related: 8 }, topics })).toEqual({
+      check: "where the SERPs ask, three answering topics are ready",
+      verdict: "fail",
+      detail: '1 answering topics ready of 2, from 12 "People also ask" questions',
+      items: ["how to bleed a radiator — held back: already_covered"],
+    });
+  });
+
+  it("says nothing where the SERPs showed no question, and sends a run that did not count them to a person", () => {
+    expect(checkAskedTopics({ ...plumber, asked: { peopleAlsoAsk: 0, related: 3 }, topics: [] }).verdict).toBe("pass");
+    expect(checkAskedTopics({ ...plumber, topics: [] }).verdict).toBe("review");
+  });
+
+  it("the panel keeps each stored topic's readiness reason and whether buyers were seen asking it", () => {
+    const row = { target_query: "how to bleed a radiator", status: "open", type: "keyword_page", business_fit: 3, volume: null, ready: false, unready_reason: "no_grounding_fact", evidence: { family: "write", askedBeside: { term: "radiator repair", serpAt: "2026-10-18T00:00:00.000Z" } } };
+    expect(panelTopicOf(row)).toEqual({ query: "how to bleed a radiator", status: "open", type: "keyword_page", fit: 3, volume: null, ready: false, unreadyReason: "no_grounding_fact", asked: true });
+    expect(panelTopicOf({ ...row, ready: true, unready_reason: null, evidence: { family: "write" } })).toMatchObject({ unreadyReason: null, asked: false });
+    expect(panelTopicOf({ ...row, target_query: null })).toBeNull();
   });
 });

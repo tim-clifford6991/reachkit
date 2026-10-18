@@ -222,6 +222,10 @@ export type Evidence =
       rival: { domain: string; url: Measured<string>; position: Measured<number> };
       /** issue 867. Absent on a row derived before it. */
       target?: TargetFacts;
+      /** Issue 1519: a "People also ask" question or related search the
+       *  site's stored SERP for `term` showed, bought at `serpAt` — demand
+       *  observed, not measured. Absent on every other topic. */
+      askedBeside?: { term: string; serpAt: Date };
     }
   | {
       family: "improve";

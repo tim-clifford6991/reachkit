@@ -10,7 +10,8 @@
 //                        comparison no brand anchors. Favourable framing,
 //                        never a self-ranked "#1 best" (`honest_row`).
 //   `answer`             a question answered — "X vs Y" between two
-//                        category terms included (issue 1506).
+//                        category terms included (issue 1506), and a
+//                        question buyers were seen asking (issue 1519).
 //
 // Decided in code from what the row already stores — its type, its search
 // and the source the pass gave it (§6, issue 1134) — never by a model, and
@@ -48,6 +49,11 @@ export function pageTypeOf(
   // Issue 1506: a "vs" between two category terms names no product
   // (`sourceOf` read it as `category`), so it is a question answered.
   if (source === "category" && VERSUS.test((o.targetQuery ?? "").toLowerCase())) return "answer";
+  // Issue 1519: a question buyers were seen asking is answered, unless its
+  // own words anchor it on a product.
+  if (o.evidence?.family === "write" && o.evidence.askedBeside !== undefined) {
+    return ANCHORED_SHAPES.test((o.targetQuery ?? "").toLowerCase()) ? "product" : "answer";
+  }
   if (source === "product" || source === "problem") return "product";
   if (ANCHORED_SHAPES.test((o.targetQuery ?? "").toLowerCase())) return "product";
   return contentTypeOf(o) === "listicle" ? "market_comparison" : "answer";

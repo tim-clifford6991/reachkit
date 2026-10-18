@@ -36,6 +36,10 @@
 // the last time, or skipped, is `resting` until its `restUntil` — whatever
 // else is true of it (`isResting`, read by both assessments).
 //
+// And SPEC §6's topics from what buyers were seen asking (issue 1519): a
+// "People also ask" question or related search on a stored SERP is observed
+// demand, so D60 never holds it as `no_intent`.
+//
 // And SPEC §6's topics with demand (issue 1506): a "vs" that sets products
 // against each other — the business against a rival, or two rivals — is
 // `no_intent` unless its search has a measured volume above zero, a
@@ -204,9 +208,11 @@ export function opportunityReady(o: Opportunity, ctx: ReadinessContext): Unready
   // check constraint holds it), so this asks nothing of it.
   if (o.family !== "fix" && !qualifiesForADay(o.fitBand)) return "outsized";
   // SPEC §6 (D60, issue 1288): a topic with no measured volume and no
-  // matching tracked prompt is not written.
+  // matching tracked prompt is not written. One buyers were seen asking
+  // beside the site's searches is observed demand (issue 1519).
   const prompts = ctx.prompts ?? [];
-  if (o.family !== "fix" && query.trim() !== "" && prompts.length > 0 && !hasGoal(intentFor({ query, volume: o.volume }, prompts))) {
+  const observed = o.evidence.family === "write" && o.evidence.askedBeside !== undefined;
+  if (o.family !== "fix" && !observed && query.trim() !== "" && prompts.length > 0 && !hasGoal(intentFor({ query, volume: o.volume }, prompts))) {
     return "no_intent";
   }
   return null;

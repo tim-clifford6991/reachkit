@@ -20,7 +20,7 @@
 import type { Locale } from "@/lib/locale/locales";
 import { siteLocale } from "@/lib/locale/site";
 import type { KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
-import { TOPIC_FIT } from "@/lib/config/constants";
+import { ASKED_TOPICS, TOPIC_FIT } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { ownSearched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
@@ -44,7 +44,7 @@ import { refineType } from "./typing";
 import { applyKnownContent, type KnownContentGate } from "./known";
 import { writeCandidates } from "./write";
 import { judgeFit, type FitSearch } from "./fit";
-import { brandsOf, candidateFor, comparisonWithoutDemand, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
+import { askedOfReport, askedTopics, brandsOf, candidateFor, comparisonWithoutDemand, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 
 export interface DeriveInput {
@@ -240,6 +240,10 @@ export async function deriveOpportunities(
   // pass has judged yet. Stored on the row; nothing downstream asks again.
   const judgedHere = derived.filter((candidate) => candidate.family !== "fix" && candidate.targetQuery !== null);
   const written = await writeBuyerSearches(c, { market, prompts: a.prompts ?? [], brands, locale });
+  // SPEC §6 (issue 1519): what buyers were seen asking beside the site's
+  // searches — this report's SERPs and D62's store — at 0¢.
+  const stored = store.askedBeside === undefined ? [] : await store.askedBeside(a.siteId, ASKED_TOPICS.maxAgeDays).catch(() => []);
+  const asked = askedTopics([...askedOfReport(a.report), ...stored], a.report.verdict.measuredAt);
   const offered = proposedTopics({
     report: a.report,
     market,
@@ -249,6 +253,7 @@ export async function deriveOpportunities(
     comparisons,
     written,
     language: locale.language,
+    asked,
   });
 
   // SPEC §6 (2026-10-03, issue 1208): "would a buyer search this?" — one
@@ -256,7 +261,8 @@ export async function deriveOpportunities(
   // offers, and the open rows an earlier pass wrote down the same way. One
   // that fails is not proposed, and a row that fails is dismissed; no
   // judgement proposes none of them and dismisses nothing.
-  const unmeasuredOffers = offered.filter((topic) => topic.volume === null);
+  // A search buyers were seen asking needs no such check: Google showed it.
+  const unmeasuredOffers = offered.filter((topic) => topic.volume === null && topic.asked === undefined);
   const unmeasuredRows = held.filter(
     (row) =>
       row.status === "open" &&
@@ -272,7 +278,9 @@ export async function deriveOpportunities(
     brands,
     locale,
   });
-  const proposals = offered.filter((topic) => topic.volume !== null || typed?.has(unmeasuredOffers.indexOf(topic)) === true);
+  const proposals = offered.filter(
+    (topic) => topic.volume !== null || topic.asked !== undefined || typed?.has(unmeasuredOffers.indexOf(topic)) === true
+  );
   if (typed !== null) {
     unmeasuredRows.forEach((row, index) => {
       if (!typed.has(unmeasuredOffers.length + index)) gone.add(row.id);
