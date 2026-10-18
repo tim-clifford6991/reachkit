@@ -34,6 +34,10 @@ export { AT, DOMAIN, SITE_ID };
 export const WEEK = "2026-08-31";
 export const PREVIOUS_WEEK = "2026-08-24";
 
+/** The address the fixture page answers at, and the row the fixture SERP
+ *  places it with (issue 1518: a page's place is its own address's). */
+export const PAGE_URL = "https://content.example.com/best-user-onboarding-software";
+
 export function pageOf(over: Partial<PublishedPage> = {}): PublishedPage {
   return {
     publicationId: "pub-1",
@@ -41,7 +45,7 @@ export function pageOf(over: Partial<PublishedPage> = {}): PublishedPage {
     publishedAt: new Date("2026-05-01T00:00:00.000Z"),
     unpublishedAt: null,
     domain: DOMAIN,
-    liveUrl: "https://content.example.com/best-user-onboarding-software",
+    liveUrl: PAGE_URL,
     verification: null,
     ...over,
   };
@@ -81,8 +85,8 @@ export function record(over: Partial<VerdictRecord> = {}): VerdictRecord {
   };
 }
 
-/** A report whose measured SERP puts the customer at `position`, or leaves
- *  them absent from it where `position` is null. The question and the
+/** A report whose measured SERP puts the fixture page at `position`, or
+ *  leaves it absent where `position` is null. The question and the
  *  search are the fixture's own, so the acceptance tests above key on
  *  them. */
 export function reportWithOwnPlace(
@@ -96,7 +100,7 @@ export function reportWithOwnPlace(
   const organic =
     position === null
       ? rivals
-      : [...rivals, { position, domain: DOMAIN, url: `https://${DOMAIN}/p`, title: "Ours" }];
+      : [...rivals, { position, domain: "content.example.com", url: PAGE_URL, title: "Ours" }];
   return reportOf({ questions: [question()], serps: [serp({ organic })] }, over);
 }
 
@@ -118,6 +122,10 @@ export function fakeStore(a: {
   scanId?: string;
   history?: readonly VerdictRecord[];
   thisWeek?: readonly VerdictRecord[];
+  /** Another week's stored report, by week (issue 1518: a movement reads
+   *  the previous week's place from its own report). A week not named
+   *  here reads `report`. */
+  reports?: Readonly<Record<string, StoredReport | null>>;
 }): Fake {
   const inserted: VerdictInsert[] = [];
   const rows: VerdictInsert[] = [];
@@ -130,8 +138,9 @@ export function fakeStore(a: {
     async publishedPages() {
       return a.pages ?? [pageOf()];
     },
-    async weekReport() {
-      const report = a.report === undefined ? reportWithOwnPlace(3) : a.report;
+    async weekReport(q) {
+      const named = a.reports !== undefined && q.week in a.reports ? a.reports[q.week] : undefined;
+      const report = named !== undefined ? named : a.report === undefined ? reportWithOwnPlace(3) : a.report;
       if (report === null) return null;
       return { scanId, report };
     },

@@ -44,6 +44,7 @@ describe("a read is scoped to the week it was asked about", () => {
   it("a judged week reads back the verdict, the movement and the date exactly as they were written — and a page can be working and still have declined", async () => {
     fakeStore({
       report: reportWithOwnPlace(9),
+      reports: { [PREVIOUS_WEEK]: reportWithOwnPlace(3) },
       history: [record({ week: PREVIOUS_WEEK, measured: measured(3, AT) })],
     });
     await judgeWeek({ siteId: SITE_ID, week: WEEK });

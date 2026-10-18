@@ -16,28 +16,10 @@
 // still tracks gets a key, whether or not the measurement came back:
 // dropping the key for a SERP that failed would retire a live page
 // forever on the strength of one missed request (ADR-072 decision 5).
-import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { AnswerCell, StoredReport } from "@/lib/scan/report";
 import type { Barrier } from "../types";
-import type { WeekMeasurements, WeekStart } from "./types";
-
-/** The customer's own place on one measured SERP: the best position any
- *  row of their own domain holds, or a measured zero where the SERP was
- *  read and they hold none. Never a guess and never an absence — the SERP
- *  was measured, so "not there" is a measurement. */
-function ownPlace(
-  serp: { organic: readonly { position: number; domain: string }[] },
-  ownDomain: string,
-  at: Date
-): Measured<number> {
-  let best: number | null = null;
-  for (const row of serp.organic) {
-    if (!isOwnDomain(registrableDomain(row.domain) ?? row.domain, ownDomain)) continue;
-    if (best === null || row.position < best) best = row.position;
-  }
-  return best === null ? measuredZero(0, at) : measured(best, at);
-}
+import type { PlacedUrl, SearchRows, WeekMeasurements, WeekStart } from "./types";
 
 /**
  * REQ-063 c1's "the week beginning on Monday in the time zone the customer
@@ -59,9 +41,8 @@ export function weekMeasurementsFrom(a: {
 }): WeekMeasurements {
   const { report } = a;
   const at = report.verdict.measuredAt;
-  const ownDomain = registrableDomain(report.domain) ?? report.domain;
 
-  const positions = new Map<string, Measured<number>>();
+  const positions = new Map<string, Measured<SearchRows>>();
   const namesCustomer = new Map<string, Measured<boolean>>();
   const ownPagesCited = new Map<string, Measured<readonly string[]>>();
 
@@ -83,10 +64,19 @@ export function weekMeasurementsFrom(a: {
     positions.set(
       query,
       serpAt === undefined
-        ? unmeasured<number>("not_attempted", at)
+        ? unmeasured<SearchRows>("not_attempted", at)
         : serpAt.kind === "unmeasured"
-          ? unmeasured<number>(serpAt.reason, at)
-          : ownPlace(serpAt.value, ownDomain, at)
+          ? unmeasured<SearchRows>(serpAt.reason, at)
+          : measured<SearchRows>(
+              {
+                serp: serpAt.value.organic.map((row) => ({ url: row.url, position: row.position })),
+                // Issue 1518: the SERP is bought ten deep, so a page at 11–20
+                // is read from the ranked rows before it reads as absent.
+                ranked: report.ownRanked.kind === "unmeasured" ? [] : rankedRowsFor(report, query),
+                complete: true,
+              },
+              at
+            )
     );
 
     const cell = answerRows[index]?.cell;
@@ -111,7 +101,7 @@ export function weekMeasurementsFrom(a: {
   }
 
   for (const target of a.targets ?? []) {
-    if (!positions.has(target)) positions.set(target, rankedPlace(report, target, at));
+    if (!positions.has(target)) positions.set(target, rankedRows(report, target, at));
   }
 
   // SPEC §6 (D60, issue 1288): what each tracked prompt's answers cited,
@@ -143,33 +133,34 @@ export function weekMeasurementsFrom(a: {
   };
 }
 
-/** The best place a page's test counts: `top20` names the top twenty. */
-const TRACKED_DEPTH = 20;
-
 /**
- * The tracked-target read (issue 795): the site's own place on a search that
- * is not among this week's twelve, from the ranked rows the pass bought for
- * its count — no call is made for it.
+ * The tracked-target read (issue 795): the rows for a search that is not
+ * among this week's twelve, from the ranked rows the pass bought for its
+ * count — no call is made for it.
  *
  * - The count was not measured this week: not measured, which is transient
  *   and writes nothing.
- * - A row names the search inside the top twenty: that place.
- * - No row does, and the rows are every search the site ranks for: a
- *   measured zero — the site holds no place, which is a result.
- * - No row does, but the site ranks for more searches than the rows hold
- *   (a capped purchase, or a report that kept none): not measured.
+ * - Otherwise the rows that name the search, and whether they are every
+ *   search the site ranks for: a page missing from a capped purchase, or
+ *   from a report that kept none, is not measured rather than absent.
  */
-function rankedPlace(report: StoredReport, target: string, at: Date): Measured<number> {
-  if (report.ownRanked.kind === "unmeasured") return unmeasured<number>(report.ownRanked.reason, at);
-  const wanted = normalised(target);
-  let best: number | null = null;
-  for (const row of report.ownRankedRows) {
-    if (normalised(row.keyword) !== wanted) continue;
-    if (best === null || row.position < best) best = row.position;
-  }
-  if (best !== null) return best <= TRACKED_DEPTH ? measured(best, at) : measuredZero(0, at);
-  if (report.ownRanked.value > report.ownRankedRows.length) return unmeasured<number>("undeterminable", at);
-  return measuredZero(0, at);
+function rankedRows(report: StoredReport, target: string, at: Date): Measured<SearchRows> {
+  if (report.ownRanked.kind === "unmeasured") return unmeasured<SearchRows>(report.ownRanked.reason, at);
+  return measured<SearchRows>(
+    {
+      serp: null,
+      ranked: rankedRowsFor(report, target),
+      complete: report.ownRanked.value <= report.ownRankedRows.length,
+    },
+    at
+  );
+}
+
+function rankedRowsFor(report: StoredReport, query: string): PlacedUrl[] {
+  const wanted = normalised(query);
+  return report.ownRankedRows
+    .filter((row) => normalised(row.keyword) === wanted)
+    .map((row) => ({ url: row.url, position: row.position }));
 }
 
 function normalised(query: string): string {

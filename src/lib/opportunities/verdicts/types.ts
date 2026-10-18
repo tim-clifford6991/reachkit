@@ -171,6 +171,31 @@ export interface AiCitation {
   readonly cited: Measured<boolean>;
 }
 
+/** One address a week read on a search, and the place it held. */
+export interface PlacedUrl {
+  readonly url: string;
+  readonly position: number;
+}
+
+/**
+ * What one week read for one search (issue 1518). Every page judged on it
+ * takes its own place from these rows by its own addresses.
+ *
+ * - `serp`: the week's SERP for it, where it is one of the twelve (depth
+ *   10, `transport.ts`). `null` where it is not.
+ * - `ranked`: the site's own ranked rows for it, which the pass bought for
+ *   its count and which reach depth 20 and beyond. A page on page two is
+ *   seen here.
+ * - `complete`: whether a page found in neither holds no place, as a
+ *   measurement. True where the SERP was read, or where the ranked rows are
+ *   every search the site ranks for; false where the purchase was capped.
+ */
+export interface SearchRows {
+  readonly serp: readonly PlacedUrl[] | null;
+  readonly ranked: readonly PlacedUrl[];
+  readonly complete: boolean;
+}
+
 /** What `page_verdicts.measured` holds: the page's place for its search
  *  and, where its intent names a tracked prompt, whether that prompt's
  *  answers cited it. Rows written before D60 carry the place alone. */
@@ -196,11 +221,11 @@ export interface WeekMeasurements {
   /** The domain this week measured. Compared with the publication's own; a
    *  difference is `domain_changed` (REQ-071 c14). */
   readonly domain: string;
-  /** The customer's own place for each search still measured this week,
-   *  keyed by the query a `top20` test records. A `zero` arm is a
-   *  measurement — the customer holds no place — and never a missing one
-   *  (§6.6's cold-start law). A key absent is `search_untracked`. */
-  readonly positions: ReadonlyMap<string, Measured<number>>;
+  /** The rows each search still measured this week holds, keyed by the
+   *  query a `top20` test records. A page's own place is read from them by
+   *  its own addresses (`placeOf`, issue 1518), never as the best place of
+   *  any page of the domain. A key absent is `search_untracked`. */
+  readonly positions: ReadonlyMap<string, Measured<SearchRows>>;
   /** Whether this week's AI answer for a question names the customer,
    *  keyed by the question a `named_on` test records. A key absent is
    *  `question_left_set` (REQ-071 c7). */

@@ -766,7 +766,11 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       const questions = report.questions.kind === "unmeasured" ? [] : report.questions.value;
       expect(questions.map((q) => q.search.keyword)).not.toContain(target);
 
-      const page = verdictDoubles.pageOf({ domain: DOMAIN, acceptance: { form: "top20", query: target } });
+      const page = verdictDoubles.pageOf({
+        domain: DOMAIN,
+        acceptance: { form: "top20", query: target },
+        liveUrl: `https://${DOMAIN}/gantt`,
+      });
       const store = verdictDoubles.fakeStore({ pages: [page], scanId: "scan-week", report });
       const judged = await verdicts.judgeWeek({ siteId: SITE_ID, week: "2026-08-31" });
 

@@ -19,12 +19,12 @@
 // observe is a value it must not name. The negative sweep in
 // `evaluate.test.ts` is what holds that line — a positive-only suite is
 // green either way.
-import { measured, type Measured } from "@/lib/measure/measured";
+import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { SiteIssuesSection } from "@/lib/site-issues/types";
 import { pageOf } from "@/lib/market/prompts/answer";
 import { canonicalUrl } from "../cluster";
 import type { Acceptance, PageFix } from "../types";
-import type { NotJudgeableCause, WeekMeasurements } from "./types";
+import type { NotJudgeableCause, PlacedUrl, SearchRows, WeekMeasurements } from "./types";
 
 /**
  * What one week can say about one recorded test. **Three arms, not two.**
@@ -97,6 +97,37 @@ export function addressOf(url: string): string {
   return canonicalUrl(pageOf(url) ?? url);
 }
 
+/** The best place a page's test counts: `top20` names the top twenty. */
+const TRACKED_DEPTH = 20;
+
+/**
+ * One page's own place on one search (issue 1518): the best place a row
+ * holds whose address is one of the page's own — its live address, or an
+ * address it had before (issue 1487). Another page of the same domain is
+ * not this page, so the home page at #3 places an article nowhere.
+ *
+ * The week's SERP is read first. Where it holds no row for the page, the
+ * ranked rows are read, to depth 20 and beyond, before the page reads as
+ * absent: a page at 14 is in the top twenty. A row past twenty is a
+ * measured absence from it. A page in no row is a measured zero where the
+ * rows are complete, and not measured where they are not.
+ */
+export function placeOf(reading: Measured<SearchRows>, addresses: readonly string[]): Measured<number> {
+  if (reading.kind === "unmeasured") return unmeasured<number>(reading.reason, reading.at, reading.because);
+  const own = new Set(addresses.map(addressOf));
+  const best = (rows: readonly PlacedUrl[]): number | null => {
+    let found: number | null = null;
+    for (const row of rows) {
+      if (!own.has(addressOf(row.url))) continue;
+      if (found === null || row.position < found) found = row.position;
+    }
+    return found;
+  };
+  const place = best(reading.value.serp ?? []) ?? best(reading.value.ranked);
+  if (place !== null) return place <= TRACKED_DEPTH ? measured(place, reading.at) : measuredZero(0, reading.at);
+  return reading.value.complete ? measuredZero(0, reading.at) : unmeasured<number>("undeterminable", reading.at);
+}
+
 /**
  * Pure. Can this recorded test be decided from what this week measured?
  *
@@ -106,23 +137,24 @@ export function addressOf(url: string): string {
 export function evaluateAcceptance(a: {
   acceptance: Acceptance;
   week: WeekMeasurements;
-  /** The address the page answers at. A `named_on` test reads it and no
-   *  other form does. */
+  /** The address the page answers at. A `named_on` test and a `top20`
+   *  test read it. */
   pageUrl: string;
+  /** The addresses the page answered at before (issue 1487). A `top20`
+   *  test counts a row at any of them as this page's. */
+  earlierUrls?: readonly string[];
 }): Evaluation {
   switch (a.acceptance.form) {
     case "top20": {
-      const place = a.week.positions.get(a.acceptance.query);
+      const reading = a.week.positions.get(a.acceptance.query);
       // Absent: the search this test names is no longer measured.
-      if (place === undefined) return retired("search_untracked");
-      // The battery buys a fixed depth of 10 (`SerpOrganicRow`: "depth 10,
-      // fixed by `transport.ts`, never a caller argument"), so every place
-      // the measurement can observe at all is inside the top twenty this
-      // test names: holding a measured place *is* passing it, and the rank
-      // rides along for the movement. The `zero` arm — measured, and the
-      // customer holds no place — fails it, which is a measured result and
-      // not a missing one (§6.6's cold-start law). No second copy of the
-      // depth is written here to drift from the transport's.
+      if (reading === undefined) return retired("search_untracked");
+      // `placeOf` gives a measured place only inside the top twenty, so
+      // holding one *is* passing, and the rank rides along for the
+      // movement. The `zero` arm — measured, and this page holds no place —
+      // fails it, which is a measured result and not a missing one (§6.6's
+      // cold-start law).
+      const place = placeOf(reading, [a.pageUrl, ...(a.earlierUrls ?? [])]);
       return decide(place, (m) => m.kind === "measured");
     }
     case "named_on": {
