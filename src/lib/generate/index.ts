@@ -578,6 +578,10 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
     ...confirmed.factsOff,
   ];
 
+  // Issue 1509: what the site's live pages already say, so a fact said on
+  // two of them is offered last. A read that fails offers them as before.
+  const livePages = (await store.livePages?.(a.siteId).catch(() => [])) ?? [];
+
   /** Stages 1 and 2 for one opportunity: its type, then its context pack. */
   const packFor = async (o: Opportunity): Promise<{ pack: ContextPack; links: LinkTarget[] } | null> => {
     // 1. Decide (code only): new or an update, and which of the seven types.
@@ -613,6 +617,8 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
         previousResearch,
         now: new Date(),
         locale,
+        // An update is not held to what its own live text says.
+        livePages: livePages.filter((page) => urlKey(page.url) !== urlKey(o.targetRef)).map((page) => page.markdown),
       });
     // 2. Research, for the types that read public pages (SPEC §7, *Two pools
     //    of facts*; issue 1135): at most two model calls, and for *current

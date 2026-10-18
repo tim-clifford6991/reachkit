@@ -376,6 +376,7 @@ describe("issue 1141 — the structured data says what the page shows", () => {
       "@type": "Person",
       name: "Ada Park",
       jobTitle: "Founder, Example",
+      worksFor: { "@id": "https://example.com/#organization" },
     });
   });
 
@@ -390,12 +391,17 @@ describe("issue 1141 — the structured data says what the page shows", () => {
       name: "Tim",
       jobTitle: "Reachkit Founder",
       workLocation: { "@type": "Place", name: "Berlin, Germany" },
+      worksFor: { "@id": "https://example.com/#organization" },
     });
   });
 
   it("a bare name is a person with no job title", async () => {
     state.page = { ...(livePage([]) as object), byline: "Ada Park" };
-    expect(schemaOf(await render(), "BlogPosting").author).toEqual({ "@type": "Person", name: "Ada Park" });
+    expect(schemaOf(await render(), "BlogPosting").author).toEqual({
+      "@type": "Person",
+      name: "Ada Park",
+      worksFor: { "@id": "https://example.com/#organization" },
+    });
   });
 
   it("the dates are the two the page prints: first published, and refreshed", async () => {
@@ -632,5 +638,95 @@ describe("issue 1511 — the content host and the main site are one business", (
     expect(footer?.getAttribute("href")).toBe("https://www.example.com/de/");
     expect(footer?.textContent).toBe("example.com");
     expect(html).not.toContain('href="https://example.com/"');
+  });
+});
+
+describe("issue 1509 — the author is a person the main site shows, and no more", () => {
+  /** A main site with an about page that names Ada Park and links her own
+   *  profile beside the business's, and a team page that names nobody. */
+  const SITE = {
+    home: "https://www.example.com/",
+    organization: { id: "https://www.example.com/#organization", name: null, logo: null },
+    sameAs: ["https://www.linkedin.com/company/example", "https://github.com/ada-park"],
+    aboutPages: [
+      { url: "https://www.example.com/team", text: "Our team builds onboarding tools.", profiles: [] },
+      {
+        url: "https://www.example.com/about",
+        text: "Example was founded in 2019 by Ada Park, who ran onboarding at two startups.",
+        profiles: ["https://www.linkedin.com/in/ada-park-1a2b/", "https://www.linkedin.com/company/example"],
+      },
+    ],
+    links: [],
+  };
+  const byAda = () => ({ ...(livePage([]) as object), byline: "Ada Park · Founder, Example" });
+
+  it("works for the publisher's one Organization, by its @id", async () => {
+    state.mainSite = SITE;
+    state.page = byAda();
+    const posting = schemaOf(await render(), "BlogPosting");
+    const author = posting.author as Record<string, unknown>;
+    const publisher = posting.publisher as Record<string, unknown>;
+    expect(author.worksFor).toEqual({ "@id": publisher["@id"] });
+    expect(author.worksFor).toEqual({ "@id": "https://www.example.com/#organization" });
+  });
+
+  it("`url` is the about page whose text names the person, and `sameAs` only their own profiles the main site links — else neither", async () => {
+    state.mainSite = SITE;
+    state.page = byAda();
+    expect(schemaOf(await render(), "BlogPosting").author).toEqual({
+      "@type": "Person",
+      name: "Ada Park",
+      jobTitle: "Founder, Example",
+      worksFor: { "@id": "https://www.example.com/#organization" },
+      url: "https://www.example.com/about",
+      sameAs: ["https://www.linkedin.com/in/ada-park-1a2b/", "https://github.com/ada-park"],
+    });
+    // An about page that never names the person gives no `url`, and a
+    // profile the main site does not link is never stated.
+    state.mainSite = { ...SITE, sameAs: [], aboutPages: [SITE.aboutPages[0]] };
+    const without = schemaOf(await render(), "BlogPosting").author as Record<string, unknown>;
+    expect(without).not.toHaveProperty("url");
+    expect(without).not.toHaveProperty("sameAs");
+    expect(without.worksFor).toEqual({ "@id": "https://www.example.com/#organization" });
+  });
+
+  it("a name is matched whole, in any language's letters: \"Jörg Müller\" on a German team page", async () => {
+    state.mainSite = {
+      ...SITE,
+      sameAs: [],
+      aboutPages: [{ url: "https://www.example.com/ueber-uns", text: "Gegründet von JÖRG MÜLLER in Köln.", profiles: ["https://www.xing.com/profile/Joerg_Mueller", "https://www.linkedin.com/in/jorg-muller"] }],
+    };
+    state.page = { ...(livePage([]) as object), byline: "Jörg Müller, Gründer" };
+    const author = schemaOf(await render(), "BlogPosting").author as Record<string, unknown>;
+    expect(author.url).toBe("https://www.example.com/ueber-uns");
+    expect(author.sameAs).toEqual(["https://www.linkedin.com/in/jorg-muller"]);
+    state.page = { ...(livePage([]) as object), byline: "Jörg Mül" };
+    expect(schemaOf(await render(), "BlogPosting").author).not.toHaveProperty("url");
+  });
+
+  it("a short first name alone is in too many handles to claim one", async () => {
+    state.mainSite = { ...SITE, sameAs: ["https://www.linkedin.com/in/ada-park-1a2b/"] };
+    state.page = { ...(livePage([]) as object), byline: "Ada, Founder" };
+    const author = schemaOf(await render(), "BlogPosting").author as Record<string, unknown>;
+    expect(author.url).toBe("https://www.example.com/about");
+    expect(author).not.toHaveProperty("sameAs");
+  });
+
+  it("the about card names the person, linked to the page that names them, and is silent on a business's own page", async () => {
+    state.mainSite = SITE;
+    state.page = byAda();
+    let doc = new DOMParser().parseFromString(await render(), "text/html");
+    const link = doc.querySelector("aside a.link");
+    expect(link?.textContent).toBe("Written by Ada Park");
+    expect(link?.getAttribute("href")).toBe("https://www.example.com/about");
+
+    state.mainSite = null;
+    doc = new DOMParser().parseFromString(await render(), "text/html");
+    expect(doc.querySelector("aside")?.textContent).toContain("Written by Ada Park");
+    expect(doc.querySelector("aside a.link")).toBeNull();
+
+    state.page = livePage([]);
+    doc = new DOMParser().parseFromString(await render(), "text/html");
+    expect(doc.querySelector("aside")?.textContent).not.toContain("Written by");
   });
 });

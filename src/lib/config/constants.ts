@@ -404,8 +404,15 @@ export const PIPELINE = Object.freeze({
 
 /** What a context pack carries at most (SPEC §7, D41 stage 2): the business
  *  passages handed to the writer, the site's published and planned pages
- *  (D36: at most 100), and a Q&A page's questions (D42: 5–8). */
-export const PACK = Object.freeze({ facts: 40, pages: 100, questions: 8 } as const);
+ *  (D36: at most 100), and a Q&A page's questions (D42: 5–8). A business
+ *  fact already stated on `repeatedOn` of the site's live pages is offered
+ *  last (issue 1509): each page says something its siblings do not. */
+export const PACK = Object.freeze({ facts: 40, pages: 100, questions: 8, repeatedOn: 2 } as const);
+
+/** Issue 1509: the most a live page's business-fact passages may be ones
+ *  already stated on `PACK.repeatedOn` or more of the site's other live
+ *  pages — the stored-row check `repeatedFactShare` is held to. */
+export const REPEATED_FACT_SHARE_MAX = 0.3;
 
 /** SPEC §7 (owner, D61; issue 1295): two headings are too alike where they
  *  share this fraction of the longer one's words, or open with this many of
@@ -636,6 +643,10 @@ export const SITE_PROFILE = Object.freeze({
   CONCURRENCY: 6,
   PAGE_SAMPLE_CHARS: 600,
   VOICE_INPUT_MAX_CHARS: 4_000,
+  /** Issue 1509: how much of an about or team page's visible text is kept,
+   *  and how many such pages, to tell whether one names a page's author. */
+  ABOUT_TEXT_CHARS: 6_000,
+  ABOUT_PAGES: 3,
 } as const);
 
 /** SPEC §2 (2026-09-24, #1058/#1069): the one logo the free scan keeps per
@@ -1924,12 +1935,15 @@ export const ANSWER_FIRST_BLOCK_CHARS = Object.freeze({ min: 40, max: 320 } as c
 /** SPEC §7 (2026-09-29, *What every page carries*): the counts a generated
  *  page is held to, in code. The answer box is counted in words; a section
  *  is an H2. `taglineRepeats` is the round-1 review's cap (2026-10-02,
- *  issue 1137): a promise of the business's own is said at most twice. */
+ *  issue 1137): a promise of the business's own is said at most twice.
+ *  `businessPromises` (issue 1509): the closing section on how the business
+ *  handles the question says at most this many of its promises. */
 export const PAGE_BLOCKS = Object.freeze({
   answerWords: { min: 40, max: 60 },
   takeaways: { min: 3, max: 5 },
   faq: { min: 3, max: 6 },
   taglineRepeats: 2,
+  businessPromises: 2,
 } as const);                                                   // §7 · issue 1137
 
 /** SPEC §7 (owner, 2026-10-10, issue 1390) — what the prose check holds a

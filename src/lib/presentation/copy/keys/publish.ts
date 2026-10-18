@@ -467,6 +467,10 @@ export const PUBLISH_COPY = Object.freeze({
   "hosted.toc": ["On this page", { slots: {}, fixedBy: "issue 1140" }],
   "hosted.readingTime": ["{minutes} min read", { slots: { minutes: "text" }, fixedBy: "issue 1140" }],
   "hosted.about": ["About {publisher}", { slots: { publisher: "text" }, fixedBy: "issue 1140" }],
+  // Issue 1509: the about card names the person a page is by, where it is
+  // by a person — linked to the main site's page that names them, where it
+  // has one. Drafted under #759's ruling; the owner corrects the wording.
+  "hosted.about.author": ["Written by {author}", { slots: { author: "text" }, fixedBy: "issue 1509 · drafted" }],
   // SPEC §7 (2026-10-11, issue 1397): how the page was made, under its
   // byline. Both numbers are read off the page's own row and neither is
   // typed here; `.one` is the same line for a page with a single fact.

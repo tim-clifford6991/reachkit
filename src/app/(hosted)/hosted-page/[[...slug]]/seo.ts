@@ -13,6 +13,9 @@ import { copy, readerTag } from "@/lib/presentation/copy/reader";
 import type { HostedPage } from "@/lib/publish/destinations/hosted";
 import { OG_SIZE } from "@/app/(public)/_seo/og-card";
 import { INDEX_PATH, LOGO_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
+import { pageAuthorOf } from "./author";
+
+export { personOf } from "./author";
 
 /** The feed, on the customer's own host (`../rss.xml`). */
 export const FEED_PATH = "/rss.xml";
@@ -80,43 +83,24 @@ export function jsonLd(schema: Record<string, unknown>): string {
   return JSON.stringify(schema).replace(/</g, "\\u003c");
 }
 
-/** What separates a name from its line in a byline: "Tim Clifford ·
- *  Founder, ReachKit" (SPEC §7, 2026-09-29) — or the comma or dash a founder
- *  typed instead: "Tim, Founder based in Berlin" (D53, issue 1268). The
- *  middle dot is the form setup shows, so it is read first. */
-const BYLINE_SEPARATORS = [/\s+·\s+/, /\s+[–—|-]\s+/, /,\s+/] as const;
-
-/** Where a line says the person is: "… based in Berlin, Germany". */
-const PLACE = /(?:^|[\s,]+)(?:based|located|living)\s+in\s+(.+)$/i;
-
-/** A byline as a person: the name, then what the line says they do and,
- *  where it states one, where they are. Nothing the byline does not say. */
-export function personOf(byline: string): { name: string; jobTitle: string | null; place: string | null } {
-  const said = byline.replace(/\s+/g, " ").trim();
-  const separator = BYLINE_SEPARATORS.find((candidate) => candidate.test(said));
-  const at = separator === undefined ? null : separator.exec(said);
-  const name = at === null ? said : said.slice(0, at.index).trim();
-  const line = at === null ? "" : said.slice(at.index + at[0].length).trim();
-  const where = PLACE.exec(line);
-  const jobTitle = (where === null ? line : line.slice(0, where.index)).replace(/[\s,;]+$/, "");
-  const place = where?.[1]?.replace(/[\s.]+$/, "") ?? "";
-  return { name, jobTitle: jobTitle === "" ? null : jobTitle, place: place === "" ? null : place };
-}
-
 /** The author the page prints. A page with no recorded byline prints the
  *  business's name, and is authored by the business; a recorded one is the
- *  founder's own name, with their line where they gave one. */
+ *  founder's own name, with their line where they gave one, the business
+ *  they work for as the one Organization the publisher is (issue 1509), and
+ *  the main site's page and profiles of theirs where it has them. */
 function authorOf(byline: string | null, business: HostedBusiness): Record<string, unknown> {
-  const said = byline?.trim() ?? "";
-  if (said === "" || said === business.name || said === business.domain) {
+  const person = pageAuthorOf(byline, business);
+  if (person === null) {
     return { "@type": "Organization", "@id": organizationIdOf(business), name: business.name, url: mainSiteOf(business) };
   }
-  const person = personOf(said);
   return {
     "@type": "Person",
     name: person.name,
     ...(person.jobTitle === null ? {} : { jobTitle: person.jobTitle }),
     ...(person.place === null ? {} : { workLocation: { "@type": "Place", name: person.place } }),
+    worksFor: { "@id": organizationIdOf(business) },
+    ...(person.url === null ? {} : { url: person.url }),
+    ...(person.sameAs.length === 0 ? {} : { sameAs: person.sameAs }),
   };
 }
 

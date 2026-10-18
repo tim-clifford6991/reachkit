@@ -35,6 +35,7 @@ import { isAccountPage } from "@/lib/site-profile/knowledge/priority";
 import { derivePurpose } from "@/lib/site-profile/purpose";
 import type { LinkTarget } from "../links/select";
 import { alikeHeadings } from "../rules/headings";
+import { renderOf } from "../rules/text";
 import { TEMPLATES, type PackNeed, type PackRequirement } from "../templates";
 import type { WritingMarket } from "../voice/market";
 import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
@@ -612,6 +613,45 @@ export interface PackInputs {
   /** The voice the customer fixed in Settings (`sites.writing_voice`);
    *  `null` or absent, it is chosen for the page (issue 1390). */
   writingVoice?: WritingVoice | null;
+  /** Issue 1509: the Markdown of the site's other live pages — never the
+   *  one an update refreshes. Absent reads as none. */
+  livePages?: readonly string[];
+}
+
+/** A page's words as a reader meets them, folded for a verbatim match. */
+const pageText = (markdown: string): string => fold(renderOf(markdown));
+
+/** On how many of `pages` (each already `pageText`) a passage is stated
+ *  word for word. */
+function statedOn(passage: string, pages: readonly string[]): number {
+  const words = fold(passage);
+  return words === "" ? 0 : pages.filter((page) => page.includes(words)).length;
+}
+
+/**
+ * The site's own passages in the order they are offered (issue 1509): one
+ * already stated on `PACK.repeatedOn` or more of the site's live pages goes
+ * last, each group in the order it came. A café's "open since 1998" is
+ * still a fact of the café; it is simply not what the next page leads with.
+ */
+export function freshFirst<T extends { fact: { passage: string } }>(facts: readonly T[], livePages: readonly string[]): T[] {
+  const pages = livePages.map(pageText);
+  const repeated = (sourced: T): boolean => statedOn(sourced.fact.passage, pages) >= PACK.repeatedOn;
+  return [...facts.filter((sourced) => !repeated(sourced)), ...facts.filter(repeated)];
+}
+
+/**
+ * The stored-row check of issue 1509: of the business-fact passages a live
+ * page states (its pack's facts found word for word in its text), the share
+ * also stated on `PACK.repeatedOn` or more of the site's other live pages.
+ * `null` for a page that states none. Held to `REPEATED_FACT_SHARE_MAX`.
+ */
+export function repeatedFactShare(a: { markdown: string; facts: readonly string[]; others: readonly string[] }): number | null {
+  const page = pageText(a.markdown);
+  const stated = [...new Set(a.facts.map(fold))].filter((passage) => passage !== "" && page.includes(passage));
+  if (stated.length === 0) return null;
+  const others = a.others.map(pageText);
+  return stated.filter((passage) => statedOn(passage, others) >= PACK.repeatedOn).length / stated.length;
 }
 
 /** Whether a claim is a rival's price read too long ago to state (D59):
@@ -636,7 +676,10 @@ export function buildPack(a: PackInputs): ContextPack {
   const searches = [...(a.opportunity.targetQuery === null ? [] : [a.opportunity.targetQuery]), ...a.opportunity.absorbedQueries];
   const question = searches[0] ?? a.opportunity.title ?? a.opportunity.targetRef;
   // Issue 1490: the site's own measurements only on a research page.
-  const allowed = a.facts.filter((sourced) => !neverASource(sourced.fact.url) && (sourced.report !== true || reportFactsAllowed(a.type)));
+  const allowed = freshFirst(
+    a.facts.filter((sourced) => !neverASource(sourced.fact.url) && (sourced.report !== true || reportFactsAllowed(a.type))),
+    a.livePages ?? []
+  );
   const facts: PackFact[] = allowed.slice(0, PACK.facts).map((sourced) => ({
     passage: sourced.fact.passage,
     url: sourced.fact.url,

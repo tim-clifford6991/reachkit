@@ -737,3 +737,24 @@ describe("ReachKit's own hosts are recorded, never read (issue 1511)", () => {
     expect(out.pages[0]?.unfollowed).toEqual(["https://content.example.com/a-guide"]);
   });
 });
+
+describe("issue 1509 — an about or team page is kept at more length, with the profiles it links", () => {
+  it("keeps its text past the voice sample and its profile links; any other page carries none", async () => {
+    const story = `${"We started in a garage. ".repeat(40)}Founded by Ada Park.`;
+    const ports = fakePorts({
+      "https://example.com/team": ok(
+        "https://example.com/team",
+        page("Our team", `<p>${story}</p><a href="https://www.linkedin.com/in/ada-park/">Ada</a><a href="https://twitter.com/intent/tweet">Share</a>`)
+      ),
+      "https://example.com/pricing": ok("https://example.com/pricing", page("Pricing", '<a href="https://www.linkedin.com/in/ada-park/">Ada</a>')),
+    });
+    const home = page("Home", '<a href="/team">Team</a><a href="/pricing">Pricing</a>');
+    const out = await crawlSite(fakeCost(), { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [] }, ports);
+    const team = out.pages.find((p) => p.url === "https://example.com/team");
+    expect(team?.text.length).toBeLessThanOrEqual(SITE_PROFILE.PAGE_SAMPLE_CHARS);
+    expect(team?.about?.text).toContain("Founded by Ada Park.");
+    expect(team?.about?.profiles).toEqual(["https://www.linkedin.com/in/ada-park/"]);
+    expect(out.pages.find((p) => p.url === "https://example.com/pricing")).not.toHaveProperty("about");
+    expect(out.pages[0]).not.toHaveProperty("about");
+  });
+});

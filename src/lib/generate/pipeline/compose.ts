@@ -15,8 +15,10 @@
 // admitted only word for word — SPEC §7, *Two pools of facts*); a sentence
 // of legal, removal or refund text, a demo caption and a byline or date line
 // are dropped (the page prints its own byline and dates); and a promise of
-// the business's own is said at most twice. Nothing here writes a word: it
-// lays out, cuts and drops, and the battery reads what is left.
+// the business's own is said at most twice, and the closing section on how
+// the business handles it says at most two of them (issue 1509). Nothing
+// here writes a word: it lays out, cuts and drops, and the battery reads
+// what is left.
 //
 // Deterministic, no I/O.
 import { PAGE_BLOCKS, TITLE } from "@/lib/config/constants";
@@ -225,6 +227,37 @@ export function tidy(markdown: string, a: TidyInputs): string {
   return out.replace(/\n{3,}/g, "\n\n").trim();
 }
 
+/**
+ * The closing section on how the business handles the question, saying at
+ * most `most` of its promises (issue 1509): a sentence that would say one
+ * more is dropped, so the section is not every promise the site makes, the
+ * same on every page. Nothing is written.
+ */
+export function withPromisesAtMost(body: string, promises: readonly string[], most: number = PAGE_BLOCKS.businessPromises): string {
+  const runs = promises.map(runsOf).filter((each) => each.length > 0);
+  if (runs.length <= most) return body;
+  const said = new Set<number>();
+  const edits: { from: number; to: number; text: string }[] = [];
+  for (const block of sourceBlocksOf(body)) {
+    if (/^[ \t]*#{1,6}[ \t]+/.test(block.raw) || block.raw.trimStart().startsWith("|")) continue;
+    const marker = MARKER_RE.exec(block.raw)?.[0] ?? "";
+    const kept: string[] = [];
+    for (const piece of block.raw.slice(marker.length).split(SENTENCE_END_RE)) {
+      const words = lower(renderOf(piece)).replace(/[^\p{L}\d\s]/gu, "");
+      const says = runs.flatMap((each, index) => (each.some((run) => words.includes(run)) ? [index] : []));
+      const fresh = says.filter((index) => !said.has(index));
+      if (said.size + fresh.length > most) continue;
+      for (const index of fresh) said.add(index);
+      kept.push(piece);
+    }
+    const text = kept.length === 0 ? "" : marker + kept.join(" ");
+    if (text !== block.raw) edits.push({ from: block.from, to: block.to, text });
+  }
+  let out = body;
+  for (const edit of edits.sort((x, y) => y.from - x.from)) out = out.slice(0, edit.from) + edit.text + out.slice(edit.to);
+  return out.replace(/\n{3,}/g, "\n\n").trim();
+}
+
 // ── The page, laid out ──────────────────────────────────────────────────
 
 /** One line: no block marker, no fence, no line break. */
@@ -415,7 +448,9 @@ export function layoutPage(parts: PageParts, template: Template, a: TidyInputs):
     const key = lower(heading);
     if (heading === "" || seen.has(key)) return [];
     seen.add(key);
-    return [{ key: slotKey(section.key), heading, body: sectionBody(section.body, heading) }];
+    const slot = slotKey(section.key);
+    const body = sectionBody(section.body, heading);
+    return [{ key: slot, heading, body: slot === "business" ? withPromisesAtMost(body, a.promises) : body }];
   });
   const takeaways = parts.takeaways
     .map((item) => tidyText(oneLine(item)))
