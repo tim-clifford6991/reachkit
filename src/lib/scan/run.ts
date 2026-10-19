@@ -2849,6 +2849,7 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
         ownDomain: a.domain,
         siteName,
         rivals: market.rivals,
+        language: locale.language,
       });
       answers.push({
         promptId: prompt.id,
@@ -2859,6 +2860,7 @@ async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
         ownUrls: reading.ownUrls,
         rivals: reading.rivals,
         ...(reading.alternatives.length === 0 ? {} : { alternatives: reading.alternatives }),
+        ...(reading.states.length === 0 ? {} : { states: reading.states }),
         namesABrand: reading.namesABrand,
       });
       if (prompt.kind !== "branded" && prompt.kind !== "comparison" && !evidence.has(prompt.id)) {

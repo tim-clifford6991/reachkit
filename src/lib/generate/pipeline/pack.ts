@@ -25,6 +25,7 @@ import { LANGUAGE_PACKS, SHAPES, languagePack, modelInstruction } from "@/lib/lo
 import type { Language, Locale } from "@/lib/locale/locales";
 import { ADDS, PACK, RIVAL_PRICE_MAX_AGE_D } from "@/lib/config/constants";
 import { promptTemplateOf } from "@/lib/market/prompts/generate";
+import { misstatedFacts, siteFactsOf } from "@/lib/market/prompts/misstated";
 import { GENERIC_TOKENS, brandOf } from "@/lib/market/questions/select";
 import { templateQuestion } from "@/lib/market/questions/template";
 import type { ContentType } from "@/lib/opportunities/content-type";
@@ -168,6 +169,17 @@ export interface ContextPack {
   adds: AddsRecord;
   /** What the template's *pack must hold* line asks that this pack lacks. */
   missing: PackNeed[];
+  /** Issue 1539: facts of the business an AI answer misstated, on this
+   *  page's topic — what an answer said (`says`) and what the site's own
+   *  page (`url`; `null`, the founder) states (`site`). The page states
+   *  `site` plainly. Absent where there is none, and on every pack before. */
+  corrections?: PackCorrection[];
+}
+
+export interface PackCorrection {
+  says: string;
+  site: string;
+  url: string | null;
 }
 
 /** Every statement the pack carries, beside its passages, that a page may
@@ -580,6 +592,27 @@ export function builtFromOutside(type: ContentType): boolean {
   return TEMPLATES[type].packMustHold.some((requirement) => requirement.need === "outside_sources");
 }
 
+/**
+ * The facts AI answers misstated that a page on this target owns (issue
+ * 1539): a price where the target asks what something costs or names the
+ * fact's words, a count or a place where the target names the fact's words.
+ * Read from the stored report's answers against the knowledge base, at no
+ * cost.
+ */
+export function correctionsFor(a: {
+  report: Pick<StoredReport, "prompts">;
+  knowledge: PromptKnowledge | undefined;
+  target: readonly string[];
+  language: Language;
+}): PackCorrection[] {
+  if (a.knowledge === undefined || a.report.prompts === undefined) return [];
+  const asked = a.target.join(" ");
+  const words = subjectWords(asked);
+  return misstatedFacts({ answers: a.report.prompts.answers, facts: siteFactsOf(a.knowledge), language: a.language })
+    .filter((fact) => (fact.kind === "price" && ASKS_PRICE_RE.test(asked)) || [...topicWords(fact.siteSays)].some((word) => words.has(word)))
+    .map((fact) => ({ says: fact.aiSays, site: fact.siteSays, url: fact.url }));
+}
+
 /** What the template asks of the pack that it does not hold, by handle. */
 export function missingFrom(pack: Omit<ContextPack, "missing">, previousResearch: PackMeasurements | null = null): PackNeed[] {
   return TEMPLATES[pack.type].packMustHold.filter((requirement) => !holds(requirement, pack, previousResearch)).map((requirement) => requirement.need);
@@ -765,6 +798,7 @@ export function buildPack(a: PackInputs): ContextPack {
     }),
   };
   const missing = missingFrom(pack, a.previousResearch ?? null);
+  const corrections = correctionsFor({ report: a.report, knowledge: a.profile?.knowledge, target: [question, ...searches], language: a.locale?.language ?? "en" });
   // SPEC §7 (owner, D47): a comparison with fewer than two rivals that have
   // facts is written as a Q&A, from the same reads. A business with no price
   // of its own is not that case: the page stops and asks for it, as before.
@@ -774,7 +808,7 @@ export function buildPack(a: PackInputs): ContextPack {
   const table = TEMPLATES.listicle.blocks.table;
   const noComparison = table !== undefined && comparisonTable(pack, table.rivals) === null;
   if (a.type === "listicle" && missing.includes("options") && !missing.includes("own_price") && noComparison) return buildPack({ ...a, type: "qa" });
-  return { ...pack, missing };
+  return { ...pack, missing, ...(corrections.length === 0 ? {} : { corrections }) };
 }
 
 /** What a pack holds for a Q&A (owner, D62; issue 1297): the questions it

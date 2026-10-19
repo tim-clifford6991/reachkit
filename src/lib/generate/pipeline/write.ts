@@ -196,6 +196,11 @@ export function unpricedProducts(pack: Pick<ContextPack, "products" | "claims" |
 const ASKED_HEADINGS_RULE =
   "`pack.questions` are questions buyers were seen to ask about this topic. Where one is what a section answers, use it as that section's `heading`, in the buyer's words, tidied into a sentence; use each at most once. A section none of them fits keeps a heading in the reader's own words, and no two sections ask the same thing.";
 
+/** Issue 1539: a fact of the business an AI answer misstated is stated
+ *  plainly on the page that owns it. Model-facing, never shown. */
+const CORRECTIONS_RULE =
+  "`pack.corrections` are facts about this business that AI answers state wrongly: `says` is what an answer said, `site` is what the business's own page at `url` states. State each `site` fact plainly, in one sentence of its own, with its figure or place as `site` gives it, in the section that speaks most to it. Never repeat, quote or mention what `says` said, and never say an AI answer was wrong.";
+
 export interface WriteInputs {
   template: Template;
   pack: ContextPack;
@@ -268,6 +273,7 @@ function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<s
     avoid: AVOID_LIST,
     rules: [
       ...HOUSE_RULES,
+      ...((a.pack.corrections ?? []).length === 0 ? [] : [CORRECTIONS_RULE]),
       ...(a.pack.voice === undefined ? [] : voiceRules(a.pack.voice)),
       ...(a.pack.type === "qa" || a.pack.type === "update" || a.pack.questions.length === 0 ? [] : [ASKED_HEADINGS_RULE]),
       ...(table === null ? [WRITTEN_TABLE_RULE] : [BUILT_TABLE_RULE, COUNTED_OPTIONS_RULE]),
