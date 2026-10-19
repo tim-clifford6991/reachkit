@@ -27,9 +27,13 @@ The repository and the GitHub issues are the only record. A chat, a memory file,
 | Who | Does |
 |---|---|
 | **Owner** | Product, copy, secrets, answers, tests live on `dev.reachkit.app`. Does not read ticket piles. |
-| **Engineer** | One session, one issue. Issue → docs if behaviour changed → implement with libraries → PR → merge when the four gates are green, Coherence included. |
+| **Engineer** | One session, one issue. Issue → docs if behaviour changed → implement with libraries → PR with Conditions, Overlaps and Surfaces. Never merges or deploys (owner, 2026-10-19). |
+| **Architect** | Sets the build order, dependencies, hot-file rules and the proof for each step. Advises; never implements. |
+| **Product manager** | Turns an approved plan step into a ready issue (Conditions, Invariants, Surfaces, Overlaps), classifies feedback under Coherence, sequences waves of at most 3 engineers, keeps the delivery status and verifies each condition in production after deploy. |
+| **Release QA** | Before a merge: each condition proven, CI green, overlaps tested together, migration order; returns GO or NO-GO with the head SHA. After a deploy: Ready, Inngest synced, smoke, errors, conditions in production; returns PASS or FAIL. |
+| **Orchestrator** | Merges on GO with `--match-head-commit`, applies migrations, deploys, syncs Inngest. Holds no implementation. |
 
-The orchestration session holds no implementation and no state. It writes the decision into the repository before anyone builds it. One engineer per issue, in a clean context. The next issue is a new session.
+Delivery flow (owner, 2026-10-19): approved plan step → architect (order, proof) → product manager (issue) → engineer (PR) → release QA (GO) → orchestrator (merge, migration, deploy) → release QA (PASS) → product manager (accepted). The agent definitions live in `~/.claude/agents/`, named in `CLAUDE.md`. The orchestration session holds no implementation and no state. It writes the decision into the repository before anyone builds it. One engineer per issue, in a clean context. The next issue is a new session.
 
 ### Four steps
 
