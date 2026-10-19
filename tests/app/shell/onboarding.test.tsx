@@ -64,6 +64,7 @@ vi.mock("@/lib/publish/daily", () => ({
 }));
 const firstDraft = vi.hoisted(() => ({ during: null as null | (() => Promise<void>) }));
 vi.mock("@/lib/generate", () => ({
+  decideDayPage: async () => ({ ok: true, opportunityId: "opportunity-1" }),
   generateDayPage: async () => {
     await firstDraft.during?.();
     return { ok: false, because: "no_opportunity" };

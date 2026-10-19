@@ -7,7 +7,7 @@
 // built** (issue #182, owner's ruling 2026-09-07). The delays are
 // `NURTURE_H` — 24h, 72h, 168h *from the moment the sequence begins* — so
 // chaining them needs a delay **per event**, and `JobTrigger`'s `afterHours`
-// is per *job*: `client.ts` reads it once at `defineJob`. The trigger model
+// is per *job*: `client.ts` reads it once at `defineJobs`. The trigger model
 // is the thing that is short, not the sequence. So nothing ever sent the
 // event, and a released lead sat in `running` with a `next_touch_at` nobody
 // read.

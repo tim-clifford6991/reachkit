@@ -15,6 +15,7 @@ const store = (delivered: Record<string, string>, going: string[] = []): DraftDa
   statesOn: async (_id, date) => (going.includes(date) ? ["publishing"] : []),
   draftedBefore: async () => true,
   reasonOn: async () => null,
+  decidedOn: async () => [],
   domainOf: async (id) => `${id}.example`,
   claimMissingAlert: async () => true,
   lastDeliveredAt: async (id) => (delivered[id] === undefined ? null : new Date(delivered[id])),

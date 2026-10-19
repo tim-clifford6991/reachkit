@@ -115,11 +115,27 @@ function withDefaults(table: string, builder: { insert(values: Row): unknown }):
   return builder;
 }
 
+/** `draft_days`' upsert on its primary key `(site_id, publish_date)`: the
+ *  day each due hour recorded, which the next tick reads to catch a missed
+ *  one. The shared double has no upsert. */
+function withDayUpsert(table: string, builder: object): unknown {
+  if (table !== "draft_days") return builder;
+  return Object.assign(builder, {
+    upsert(values: Row, options: { ignoreDuplicates?: boolean } = {}) {
+      const rows = db.rows(table);
+      const found = rows.find((row) => row.site_id === values.site_id && row.publish_date === values.publish_date);
+      if (found === undefined) rows.push({ outcome: null, reason: null, missing_alerted_at: null, ...values });
+      else if (options.ignoreDuplicates !== true) Object.assign(found, values);
+      return Promise.resolve({ data: null, error: null });
+    },
+  });
+}
+
 const client = {
   from: (table: string) =>
     table === "fetches"
       ? fetchesBuilder()
-      : withDefaults(table, (db.client as { from(t: string): { insert(values: Row): unknown } }).from(table)),
+      : withDayUpsert(table, withDefaults(table, (db.client as { from(t: string): { insert(values: Row): unknown } }).from(table)) as object),
   rpc: (fn: string, args: Row) => (db.client as { rpc(f: string, a: Row): unknown }).rpc(fn, args),
 };
 

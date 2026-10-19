@@ -43,6 +43,9 @@ function memory(drafts: { date: string; state: string }[]) {
       if (day === undefined || day.outcome === null) return null;
       return day.reason === null ? day.outcome : `${day.outcome}:${day.reason}`;
     },
+    async decidedOn(asked) {
+      return asked.filter((day) => days.get(day.publishDate)?.outcome != null);
+    },
     async domainOf() {
       return "reachkit.app";
     },

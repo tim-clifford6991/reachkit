@@ -516,13 +516,28 @@ export async function generateDraft(a: {
   readonly siteId: string;
   readonly publishDate: string;
   readonly now: Date;
+  /** The per-site run's durable steps: decide, write (the rules and their
+   *  one fix inside it, in one cost context), and review. */
+  readonly step?: StepRunner;
 }): Promise<EngineResult> {
-  const { generateDayPage } = await import("@/lib/generate");
-  const outcome = await generateDayPage({ siteId: a.siteId, publishDate: a.publishDate, now: a.now });
+  const step: StepRunner = a.step ?? ((_name, body) => body());
+  const { decideDayPage, generateDayPage } = await import("@/lib/generate");
+  const day = { siteId: a.siteId, publishDate: a.publishDate, now: a.now };
+  const decided = await step("select", () => decideDayPage(day));
   // A date that already holds its draft is a day already done, not a
   // degraded tick.
+  if (!decided.ok) return decided.because === "already_drafted" ? { done: true } : { degraded: `generate:${decided.because}` };
+  const outcome = await step("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));
   if (!outcome.ok && outcome.because === "already_drafted") return { done: true };
-  return reviewWritten(outcome, a.now);
+  return step("review", () => reviewWritten(outcome, a.now));
+}
+
+/** Of these site days, the ones owed and no due hour recorded an ending for. */
+export async function missedDays<T extends { readonly siteId: string; readonly publishDate: string }>(
+  days: readonly T[]
+): Promise<readonly T[]> {
+  const { missedDays: missed } = await import("@/lib/publish/daily");
+  return missed(days);
 }
 
 /** Drafts the customer restarted (§9's `needs_attention → generating`) on

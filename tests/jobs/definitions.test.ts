@@ -44,6 +44,7 @@ function engineDouble(): Record<string, unknown> {
     recordDraftDay: record("recordDraftDay", undefined),
     alertMissingDrafts: record("alertMissingDrafts", 0),
     alertStalledSites: record("alertStalledSites", 0),
+    missedDays: record("missedDays", []),
     publishApproved: record("publishApproved", done),
     publishDue: record("publishDue", done),
     // Issue 1485: the live pages are read again first.
