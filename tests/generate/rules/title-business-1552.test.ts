@@ -77,4 +77,14 @@ describe("a comparison's title names the business (issue 1552)", () => {
     const brief = titleBrief(comparing({ name: "ReachKit", domain: "reachkit.app", rivals: ["Peec AI", "Otterly"], search: "peec ai vs otterly" }));
     expect((brief.rules as string[]).join(" ")).toContain('"ReachKit"');
   });
+
+  it("a pack with no domain names the business by its name, and with neither the rule does not apply, never a throw", () => {
+    const base = comparing({ name: "ReachKit", domain: "reachkit.app", rivals: ["Peec AI", "Otterly"], search: "peec ai vs otterly" });
+    const nameOnly = { ...base, business: { ...base.business, domain: undefined } } as unknown as ContextPack;
+    expect(titleFaults("Peec AI vs Otterly (2026): $29 a month separates them", titleRuleFor(nameOnly, { description: DESCRIPTION }))).toContain("business");
+    expect((titleBrief(nameOnly).rules as string[]).join(" ")).toContain('"ReachKit"');
+    const unnamed = { ...base, business: { ...base.business, name: undefined, domain: undefined } } as unknown as ContextPack;
+    expect(titleRuleFor(unnamed, { description: DESCRIPTION }).business).toBeUndefined();
+    expect(() => titleBrief(unnamed)).not.toThrow();
+  });
 });
