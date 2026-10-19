@@ -16,6 +16,7 @@
 // the absence is the representation — so the distinction is made from the
 // week, not from a flag.
 import { groupByPage, type PageStanding } from "./judge";
+import { indexStateOf, type IndexState } from "./seen";
 import { noteFor, verdictStore, type VerdictRecord } from "./store";
 import type { WeekStanding, WeekStart } from "./types";
 
@@ -99,6 +100,9 @@ function standingOf(row: VerdictRecord, priorRows: readonly VerdictRecord[]): We
  *  in ReachKit's own voice (§8, REQ-093). */
 export interface DigestPage extends PageStanding {
   readonly liveUrl: string | null;
+  /** Issue 1538: whether any stored SERP or ranked row held the page.
+   *  Absent where the rows could not be read: nothing is then said. */
+  readonly indexState?: IndexState;
 }
 
 /**
@@ -114,10 +118,12 @@ export async function weeklyDigest(a: {
   week: WeekStart;
 }): Promise<{ standings: readonly DigestPage[]; weekMeasuredAt: Date | null }> {
   const store = verdictStore();
-  const [standings, pages, week] = await Promise.all([
+  const [standings, pages, week, seenUrls] = await Promise.all([
     readWeek(a),
     store.publishedPages(a.siteId),
     store.weekReport({ siteId: a.siteId, week: a.week }),
+    // Rows that could not be read state no page's index state.
+    store.seenUrls === undefined ? Promise.resolve(null) : store.seenUrls(a.siteId).catch(() => null),
   ]);
   const byId = new Map(pages.map((page) => [page.publicationId, page]));
 
@@ -137,6 +143,9 @@ export async function weeklyDigest(a: {
         publicationId: standing.publicationId,
         standing: standingWithNote,
         liveUrl: page?.liveUrl ?? null,
+        ...(page === undefined || seenUrls === null
+          ? {}
+          : { indexState: indexStateOf([page.liveUrl, ...(page.earlierUrls ?? [])], seenUrls) }),
       };
     }),
     weekMeasuredAt: week === null ? null : week.report.verdict.measuredAt,

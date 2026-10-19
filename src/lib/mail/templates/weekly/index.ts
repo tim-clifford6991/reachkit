@@ -33,7 +33,7 @@
 // reader's market (§8, ADR-012).
 import { env } from "@/lib/config/env";
 import type { Measured } from "@/lib/measure/measured";
-import type { WeekStanding } from "@/lib/opportunities";
+import type { IndexState, WeekStanding } from "@/lib/opportunities";
 import { PAGE_VERDICTS } from "@/lib/presentation/bands";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { IssueChange } from "@/lib/site-issues/changes";
@@ -73,12 +73,16 @@ const NEXT_ITEM = "mail.weekly.next.item" satisfies CopyKey;
 const PAGE = "mail.weekly.page" satisfies CopyKey;
 const PAGE_MOVED = "mail.weekly.page.moved" satisfies CopyKey;
 const PAGE_MOVED_OVER = "mail.weekly.page.moved_over" satisfies CopyKey;
+const PAGE_NOT_VERIFIED = "mail.weekly.page.not_verified" satisfies CopyKey;
 
 /** One judged page, as the mail needs it. `standing` is read back from the
  *  week's stored verdict and is never recomputed here. */
 export interface WeeklyPage {
   readonly liveUrl: string | null;
   readonly standing: WeekStanding;
+  /** Issue 1538: whether any stored search result held the page. Absent
+   *  where that could not be read. */
+  readonly indexState?: IndexState;
 }
 
 export interface WeeklyMail {
@@ -286,6 +290,13 @@ function verdictRows(pages: readonly WeeklyPage[]): readonly VerdictRow[] {
         subjectVars: { page: page.liveUrl },
         verdict: PAGE_VERDICTS.not_judgeable,
       });
+      continue;
+    }
+    // Issue 1538: a page no stored search result held is not merely not
+    // ranking — the row says it has not been seen, and never that it is
+    // not indexed. A working page needs no such line.
+    if (page.indexState === "not_verified" && standing.verdict !== "working") {
+      rows.push({ subject: PAGE_NOT_VERIFIED, subjectVars: { page: page.liveUrl }, verdict: PAGE_VERDICTS[standing.verdict] });
       continue;
     }
     rows.push({ ...subjectOf(page.liveUrl, standing), verdict: PAGE_VERDICTS[standing.verdict] });

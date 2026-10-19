@@ -275,6 +275,13 @@ export const MAIL_COPY = Object.freeze({
       fixedBy: "REQ-063 c4",
     },
   ],
+  // Issue 1538: a page no stored search result has held. Said as what was
+  // read, never as "not indexed" — Google says a `site:` search does not
+  // list every indexed page, and these rows are fewer than that.
+  "mail.weekly.page.not_verified": [
+    "{page} · not yet seen in any search result we read, which alone does not show whether Google has indexed it",
+    { slots: { page: "text" }, fixedBy: "issue 1538" },
+  ],
 
   // The end of hosting (REQ-076 c11, issue #34): the two notices a customer
   // with pages on the hosted CMS is owed before those pages stop being

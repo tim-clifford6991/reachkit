@@ -18,6 +18,7 @@ export type {
   WeekStart,
 } from "./types";
 export { NOT_JUDGEABLE_CAUSES } from "./types";
+export type { IndexState } from "./seen";
 
 export { judgeWeek, type PageStanding } from "./judge";
 export { readWeek, weeklyDigest, type DigestPage } from "./read";
