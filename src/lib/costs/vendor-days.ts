@@ -42,7 +42,7 @@ export interface VendorDayRow {
   balance_cents?: number | null;
   deposited_cents?: number | null;
   source: string;
-  read_at?: string;
+  read_at: string;
 }
 
 interface QueryResult<T> {
@@ -149,7 +149,7 @@ async function readUsage(day: string, now: Date): Promise<{ done: true } | { deg
       { vendor: "dataforseo", day, kind: "usage", billed_cents: null, balance_cents: reading.balanceCents, deposited_cents: reading.depositedCents, source: "balance", read_at: now.toISOString() },
       ...(opening === undefined || billed === null
         ? []
-        : [{ vendor: "dataforseo", day: before, kind: "usage" as const, billed_cents: billed, balance_cents: Number(opening.balance_cents), deposited_cents: Number(opening.deposited_cents), source: "balance" }]),
+        : [{ vendor: "dataforseo", day: before, kind: "usage" as const, billed_cents: billed, balance_cents: Number(opening.balance_cents), deposited_cents: Number(opening.deposited_cents), source: "balance", read_at: now.toISOString() }]),
     ]);
   }
 
