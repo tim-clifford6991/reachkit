@@ -17,7 +17,7 @@
 // renumbered list is not a change of what the page says (`mendPage` in
 // `../index.ts`); any other is written from the repaired text.
 import { dedupeLinks, hasRepeatedLinks } from "../links/apply";
-import { hasGluedNumberLink, unglueNumberLinks } from "../links/text";
+import { hasGluedLink, unglueLinks } from "../links/text";
 import type { Language } from "@/lib/locale/locales";
 import {
   bodyH1s,
@@ -61,7 +61,7 @@ export function structureDefects(page: StoredStructure): StructureDefect[] {
     }).length > 0 && "description_figures",
     !stepsInOrder(body) && "steps_order",
     hasRepeatedLinks(page.markdown) && "repeated_links",
-    page.markdown.split("\n").some(hasGluedNumberLink) && "glued_numeral",
+    page.markdown.split("\n").some(hasGluedLink) && "glued_numeral",
     brokenLinkLines(body).length > 0 && "link_markup",
     (bodyH1s(body).length > 0 || repeatedHeadings(body, page.title ?? "").length > 0) && "h1",
   ];
@@ -73,7 +73,7 @@ export function structureDefects(page: StoredStructure): StructureDefect[] {
 export function repairStructure(markdown: string, page: { title?: string } = {}): string {
   const unglued = markdown
     .split("\n")
-    .map((line) => (hasGluedNumberLink(line) ? unglueNumberLinks(line) : line))
+    .map((line) => (hasGluedLink(line) ? unglueLinks(line) : line))
     .join("\n");
   return renumberSteps(withoutBodyH1(withoutRepeatedHeadings(withoutBrokenLinks(dedupeLinks(unglued)), page.title ?? "")));
 }
