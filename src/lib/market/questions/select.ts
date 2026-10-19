@@ -26,7 +26,8 @@ import { SHAPES, languagePack } from "@/lib/locale/language";
 import type { Language, Place } from "@/lib/locale/locales";
 import { BATTERY, SELECTION, WINNABILITY } from "@/lib/config/constants";
 import { difficultyCeiling, qualifyingDemand } from "@/lib/opportunities/winnability/bars";
-import { withoutPlace } from "@/lib/locale/place";
+import { namesPlace, saysNearMe, withoutPlace } from "@/lib/locale/place";
+import { BUSINESS_KINDS, type BusinessKind } from "@/lib/market/kinds";
 import { neverMeasured, type MeasuredMarket } from "./measured";
 import type { Profile } from "./profile-types";
 import type { SuggestionRow } from "./market-set";
@@ -169,13 +170,48 @@ export function ownBrandTokens(p: Profile): readonly string[] {
  * carrying the customer's own name measures nothing about discovery and is
  * dropped before its shape is ever read (BUILD §6.7 step 3).
  */
-export function classifyIntent(keyword: string, p: Profile): Intent | "own_brand" {
+export function classifyIntent(keyword: string, p: Profile, where?: PlacedBusiness | null): Intent | "own_brand" {
   if (namesAnyOf(keyword, ownBrandTokens(p), p.language)) return "own_brand";
   const text = normalise(keyword);
+  const local = where != null && asksForService(keyword, p, where);
   for (const [intent, patterns] of INTENT_PATTERNS) {
-    if (patterns.some((pattern) => pattern.test(text))) return intent;
+    if (!patterns.some((pattern) => pattern.test(text))) continue;
+    // Issue 1561: only a "best" or "vs", or an anchored "how to", outranks
+    // a local service asked for where it is sold.
+    return local && intent !== "decision" && !HOW_TO.test(text) ? "solution" : intent;
   }
-  return "informational";
+  return local ? "solution" : "informational";
+}
+
+/** The business a search is read against where it can serve one place
+ *  (issue 1561): its kind, the place it serves, `null` where it serves
+ *  none, and the market's own words for what it sells. */
+export interface PlacedBusiness {
+  kind?: BusinessKind | null;
+  serves?: Place | null;
+  marketWords?: string;
+}
+
+/**
+ * Whether a search asks a business that serves one place for its service
+ * there (issue 1561): the kind is one that can serve a place, the search
+ * names that place, says "near me", or carries one of its language's local
+ * words ("emergency", "24 hour", "notdienst"), and what it asks for is the
+ * business's own offering (`namesOffering`). "emergency plumber austin" is
+ * bought, not read about, for a plumber in Austin as much as "aeo software"
+ * is for a software maker.
+ */
+export function asksForService(keyword: string, p: Profile, where: PlacedBusiness): boolean {
+  const kind = where.kind ?? null;
+  if (kind === null || !BUSINESS_KINDS[kind].placed) return false;
+  const place = where.serves ?? null;
+  const pack = languagePack(p.language ?? "en");
+  const said =
+    (place !== null && namesPlace(keyword, place)) ||
+    saysNearMe(keyword) ||
+    normalise(keyword).split(" ").some((word) => pack.offering.local.has(word));
+  if (!said) return false;
+  return namesOffering(place === null ? keyword : withoutPlace(keyword, place), p, where.marketWords);
 }
 
 /**
