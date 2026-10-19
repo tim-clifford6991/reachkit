@@ -30,7 +30,7 @@ const APPLIED = [
   "00000000000001_baseline.sql",
   "00000000000002_rls.sql",
   "20260922120000_publications_reads.sql",
-  "20261019140000_search_ladder.sql",
+  "20261019170000_publications_search_ladder.sql",
 ];
 
 function raises(sql: string): boolean {

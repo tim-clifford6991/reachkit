@@ -1,4 +1,4 @@
--- supabase/migrations/20261019140000_search_ladder.sql
+-- supabase/migrations/20261019170000_publications_search_ladder.sql
 --
 -- Issue 1553 (owner 2026-10-19: "approved for all, following precisely the
 -- seo master recommendations") — the SEO metrics review's R2. Every live
