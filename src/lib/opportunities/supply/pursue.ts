@@ -16,7 +16,7 @@ import { SUPPLY_TARGET_DEPTH } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { deriveOpportunities, type DeriveInput } from "../derive";
 import { assessReadiness } from "../readiness";
-import { supplyDepth } from "./depth";
+import { refillSupply } from "./refill";
 
 /** Why the pursuit stopped. The distribution of this across passes is the
  *  first place a systematic shortfall in yield becomes visible — which is
@@ -33,8 +33,9 @@ export async function pursueDepth(
   // ran before this one. Checked before the derivation rather than after,
   // so a pass that has no money left spends none here.
   if (c.capHit()) {
-    const { unused } = await supplyDepth(a.siteId);
-    return { unused, stop: "pass_ended_early", created: 0 };
+    // The refill spends nothing, so a pass out of money still takes it.
+    const { unused, added } = await refillSupply({ ...a, spare: [], refused: [] });
+    return { unused, stop: "pass_ended_early", created: added };
   }
 
   // One derivation, not a loop. The report is a fixed set of measurements
@@ -42,16 +43,19 @@ export async function pursueDepth(
   // the same blob produces the same candidates, which the partial unique
   // index then refuses as duplicates. A loop here would buy nothing and
   // would spend a model call per turn.
-  const { created } = await deriveOpportunities(c, a);
+  const { created, spare, refused } = await deriveOpportunities(c, a);
   // SPEC §6: depth is ready supply, so every open row has its answer before
   // it is counted.
   await assessReadiness(a.siteId, { at: a.report.verdict.measuredAt });
-  const { unused } = await supplyDepth(a.siteId);
+  // Issue 1549: two weeks of writable days, from what buyers asked, at 0¢.
+  const refilled = await refillSupply({ ...a, spare, refused });
+  const unused = refilled.unused;
+  const made = created.length + refilled.added;
 
   const stop: DepthStop =
     unused >= target ? "target_met" : c.capHit() ? "pass_ended_early" : "evidence_spent";
-  logDepth({ siteId: a.siteId, scanId: a.scanId, stop, unused, created: created.length });
-  return { unused, stop, created: created.length };
+  logDepth({ siteId: a.siteId, scanId: a.scanId, stop, unused, created: made });
+  return { unused, stop, created: made };
 }
 
 function logDepth(fields: {

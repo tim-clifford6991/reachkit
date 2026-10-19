@@ -690,6 +690,7 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   insert(values: Record<string, unknown>): MinimalQueryBuilder<T>;
   update(values: Record<string, unknown>): MinimalQueryBuilder<T>;
   eq(column: string, value: string): MinimalQueryBuilder<T>;
+  gte(column: string, value: string): MinimalQueryBuilder<T>;
   order(column: string, opts: { ascending: boolean }): MinimalQueryBuilder<T>;
   limit(n: number): MinimalQueryBuilder<T>;
 }
@@ -2225,8 +2226,12 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   // about this market, not off it. And the market in force says which of
   // its own searches are measured and which searches never are (D65).
   let measuredMarket = measuredMarketOf(sections.market, place);
-  const category = (): Pick<Parameters<typeof selectTwelve>[0], "category" | "synonyms" | "measured" | "place"> => ({
+  // Issue 1549: what this site's passes measured in the last weeks, so the
+  // week's twelve read something new. A correction re-reads its own week.
+  const recent = a.siteId === undefined || a.tier !== "weekly" || a.correction ? [] : await recentSearches(a.siteId, a.startedAt);
+  const category = (): Pick<Parameters<typeof selectTwelve>[0], "category" | "synonyms" | "measured" | "place" | "recent"> => ({
     ...(measuredUnder === undefined ? {} : { category: measuredUnder }),
+    ...(recent.length === 0 ? {} : { recent }),
     synonyms: [...synonyms, ...searched],
     ...(measuredMarket === undefined ? {} : { measured: measuredMarket }),
     // Issue 1441: a free pass with a town has no market to say where it
@@ -2312,6 +2317,30 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
 
   if (isShort(sections.selected)) sections.selected = widen();
   return judgeThenPhrase();
+}
+
+/** Issue 1549: the searches this site's passes measured in the
+ *  `SELECTION.freshWeeks` weeks before `at`, from their stored reports.
+ *  None where they cannot be read: the twelve are then chosen as before. */
+async function recentSearches(siteId: string, at: Date): Promise<string[]> {
+  try {
+    const since = new Date(at.getTime() - SELECTION.freshWeeks * 7 * 86_400_000).toISOString();
+    const { data, error } = await untyped(dbAdmin())
+      .from<{ questions: unknown }>("scans")
+      .select("questions:report->questions")
+      .eq("site_id", siteId)
+      .gte("created_at", since);
+    if (error !== null) return [];
+    return (data ?? []).flatMap((row) => {
+      const questions = row.questions as { kind?: unknown; value?: unknown } | null;
+      if (questions?.kind !== "measured" || !Array.isArray(questions.value)) return [];
+      return questions.value.flatMap((question: { search?: { keyword?: unknown } }) =>
+        typeof question?.search?.keyword === "string" ? [question.search.keyword] : []
+      );
+    });
+  } catch {
+    return [];
+  }
 }
 
 /** The profile with the customer's own corrections applied (issue 1454);

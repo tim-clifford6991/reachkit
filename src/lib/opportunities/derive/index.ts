@@ -30,7 +30,7 @@ import type { StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import type { RankedCounts } from "../winnability/counts";
 import { pageTypeOf } from "../page-type";
-import { addRejections, isRetarget, noRejections, type Opportunity, type RejectionCount } from "../types";
+import { addRejections, isRetarget, noRejections, type BusinessFit, type Opportunity, type RejectionCount } from "../types";
 import type { Candidate } from "./candidate";
 import { earnCandidates } from "./earn";
 import { fixCandidates } from "./fix";
@@ -44,7 +44,7 @@ import { refineType } from "./typing";
 import { applyKnownContent, type KnownContentGate } from "./known";
 import { writeCandidates } from "./write";
 import { judgeFit, type FitSearch } from "./fit";
-import { askedOfReport, askedTopics, brandsOf, candidateFor, comparisonWithoutDemand, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
+import { askedOfReport, askedTopics, brandsOf, type ProposedTopic, candidateFor, comparisonWithoutDemand, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 
 export interface DeriveInput {
@@ -108,8 +108,20 @@ export interface DeriveInput {
 /** How many held rows one pass's judgement may also score. */
 const HELD_ROWS_JUDGED = 20;
 
+/** A question buyers were seen asking, judged to help the business below
+ *  the top fit (issue 1549). */
+export interface SpareTopic {
+  topic: ProposedTopic;
+  fit: BusinessFit;
+}
+
 export interface DeriveOutcome {
   created: Opportunity[];
+  /** What the supply refill may still write (issue 1549): asked topics the
+   *  pass judged at least `TOPIC_FIT.gate` and below `writeAt`. */
+  spare: SpareTopic[];
+  /** Asked topics the pass judged below `TOPIC_FIT.gate`. */
+  refused: string[];
   /** Targets looked at, whether or not they became opportunities. */
   assessed: number;
   rejected: RejectionCount;
@@ -228,7 +240,17 @@ export async function deriveOpportunities(
     const neverDrafted = drafted !== null && !drafted.has(row.id) && !isRetarget(row);
     if (aRivalsPrice(row) || unsearchedComparison(row) || irrelevant(row) || (neverDrafted && (aRivalsBrand(row) || notASearch(row)))) gone.add(row.id);
   }
-  const mine = planned.filter((candidate) => !aRivalsPrice(candidate) && !aRivalsBrand(candidate) && !notASearch(candidate));
+  // Issue 1549: a topic a gate or the customer dismissed is not written
+  // down again by a pass that read nothing new for it — only a measured
+  // volume above the one it was dismissed at brings it back.
+  const dismissed = store.dismissedSearches === undefined ? [] : await store.dismissedSearches(a.siteId).catch(() => []);
+  let stillDismissed = 0;
+  const notDismissed = (candidate: Pick<Candidate, "targetQuery" | "volume">): boolean => {
+    if (!dismissedUnchanged(candidate, dismissed)) return true;
+    stillDismissed += 1;
+    return false;
+  };
+  const mine = planned.filter((candidate) => !aRivalsPrice(candidate) && !aRivalsBrand(candidate) && !notASearch(candidate) && notDismissed(candidate));
   const derived: Candidate[] = [
     ...(a.known === undefined ? mine : applyKnownContent(mine, a.known)),
     ...fix.candidates,
@@ -245,7 +267,7 @@ export async function deriveOpportunities(
   const stored = store.askedBeside === undefined ? [] : await store.askedBeside(a.siteId, ASKED_TOPICS.maxAgeDays).catch(() => []);
   const seen = [...askedOfReport(a.report), ...stored];
   const asked = askedTopics(seen, a.report.verdict.measuredAt);
-  const offered = proposedTopics({
+  const proposing = proposedTopics({
     report: a.report,
     market,
     taken: [...derived, ...held].flatMap((row) => row.targetQuery ?? []),
@@ -256,6 +278,11 @@ export async function deriveOpportunities(
     language: locale.language,
     asked,
     seen,
+  });
+  // Never judged again where a row on the search was dismissed (issue 1549).
+  const offered = proposing.filter((topic) => {
+    const volume = topic.volume === null ? null : measured(topic.volume, a.report.verdict.measuredAt);
+    return notDismissed({ targetQuery: topic.query, volume });
   });
 
   // SPEC §6 (2026-10-03, issue 1208): "would a buyer search this?" — one
@@ -348,8 +375,17 @@ export async function deriveOpportunities(
   // A proposal is a write target only at the top fit: below it the search
   // was never measured, and nothing but its fit speaks for it.
   const proposed: Candidate[] = [];
+  // Issue 1549: what buyers were seen asking that the judgement kept below
+  // the top fit is held for the supply refill, and what it judged off the
+  // business is never refilled.
+  const spare: SpareTopic[] = [];
+  const refused: string[] = [];
   for (const [index, topic] of proposals.entries()) {
     const judged = fits.get(judgedHere.length + unjudged.length + index);
+    if (topic.asked !== undefined && judged !== undefined && judged.fit < TOPIC_FIT.writeAt) {
+      if (judged.fit >= TOPIC_FIT.gate) spare.push({ topic, fit: judged.fit });
+      else refused.push(topic.query);
+    }
     if (judged === undefined || judged.fit < TOPIC_FIT.writeAt) continue;
     const candidate = candidateFor(topic, { ...base, market, ownRanked });
     if (candidate !== null) proposed.push({ ...candidate, title: judged.title });
@@ -439,7 +475,22 @@ export async function deriveOpportunities(
   const folded = labelled.length - plan.insert.length;
   return {
     created,
+    spare,
+    refused,
     assessed,
-    rejected: { ...rejected, duplicate_open: rejected.duplicate_open + duplicates + folded },
+    rejected: { ...rejected, duplicate_open: rejected.duplicate_open + duplicates + folded + stillDismissed },
   };
+}
+
+/** Issue 1549: whether a candidate's search was dismissed before and its
+ *  evidence has not changed since — no measured volume above the one the
+ *  dismissed row held. Pure. */
+export function dismissedUnchanged(
+  candidate: Pick<Candidate, "targetQuery" | "volume">,
+  dismissed: readonly { query: string; volume: number | null }[]
+): boolean {
+  if (candidate.targetQuery === null) return false;
+  const key = queryKey(candidate.targetQuery);
+  const now = candidate.volume === null || candidate.volume.kind === "unmeasured" ? 0 : candidate.volume.value;
+  return dismissed.some((row) => queryKey(row.query) === key && now <= (row.volume ?? 0));
 }

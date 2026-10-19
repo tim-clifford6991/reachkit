@@ -212,6 +212,28 @@ async function draftsOf(ids: readonly string[]): Promise<DraftRow[]> {
   return error !== null || data === null ? [] : data;
 }
 
+/** Issue 1549: the topics of pages the system withdrew (`content/recheck`)
+ *  rest as a stopped one does, never left `queued` behind an address that
+ *  no longer serves a page — a queued topic holds its search and its
+ *  cluster, so nothing would ever be written on it again. */
+export async function restTopicsOfDrafts(draftIds: readonly string[], until: Date): Promise<void> {
+  await restTopics(await opportunitiesOf(draftIds), until);
+}
+
+/** Issue 1549: the topics of pages the system withdrew as off the site's
+ *  topic are dismissed, never left `queued`: the page was withdrawn because
+ *  its topic is not the site's, so it is not written again. */
+export async function dismissTopicsOfDrafts(draftIds: readonly string[]): Promise<void> {
+  const ids = await opportunitiesOf(draftIds);
+  if (ids.length === 0) return;
+  const { error } = await publishDb()
+    .from<{ id: string }>("opportunities")
+    .update({ status: "dismissed" })
+    .in("id", [...ids])
+    .in("status", ["open", "queued"]);
+  if (error !== null) throw new Error(`take-down: dismissing topics: ${error.message}`);
+}
+
 /** The distinct rows these drafts were written for. */
 async function opportunitiesOf(draftIds: readonly string[]): Promise<string[]> {
   const drafts = await draftsOf(draftIds);

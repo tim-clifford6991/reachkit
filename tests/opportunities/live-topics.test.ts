@@ -207,6 +207,25 @@ describe("the hourly run acts through unpublish and the refresh path, never a ro
     expect(outcome.stillLive).toEqual([b.liveUrl]);
   });
 
+  it("issue 1549 — a withdrawn page's topic is dismissed, never left queued", async () => {
+    const dismissed: (readonly string[])[] = [];
+    const b = { ...measuredB(), olderVersions: ["older-b"] };
+    await retireOffTopicPages({
+      now: LATER,
+      deps: {
+        sites: async () => [site({ pages: [b], open: [] })],
+        retarget: async () => true,
+        refresh: async () => true,
+        withdraw: async () => true,
+        merge: async () => true,
+        dismiss: async (draftIds) => {
+          dismissed.push(draftIds);
+        },
+      },
+    });
+    expect(dismissed).toEqual([[b.draftId, "older-b"]]);
+  });
+
   it("a kept page is planned one refresh once its version is 30 days old, and none while one is open", async () => {
     const refreshed: string[] = [];
     const run = (open: Opportunity[], now: Date) =>

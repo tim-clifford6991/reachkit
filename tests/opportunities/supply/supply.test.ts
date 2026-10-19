@@ -53,7 +53,8 @@ const input = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-/** A report with `count` distinct qualifying Write targets. */
+/** A report with `count` distinct qualifying Write targets, each written
+ *  as a page that answers — a day of its own (issue 1549). */
 function reportWith(count: number) {
   const questions = [];
   const serps = [];
@@ -61,8 +62,8 @@ function reportWith(count: number) {
     questions.push(
       question({
         id: `q${n}`,
-        text: `What is the best onboarding tool number ${n}?`,
-        search: search({ keyword: `best onboarding tool ${n}` }),
+        text: `Which onboarding software fits plan ${n}?`,
+        search: search({ keyword: `onboarding software plan ${n}` }),
       })
     );
     serps.push(serp());

@@ -21,6 +21,7 @@
 //
 // A page written since carries `meta.rivalScope`: the battery that let it
 // through already asked both rules of it, so it is not read again.
+import { restWithdrawn } from "@/lib/publish/take-down/standing";
 import type { MarketFactRead } from "./rules/brief";
 import { checkRivalNegative, checkRivalScope, namedRivals, type NamedRival } from "./rules/rivals";
 import { withoutReferenceLists } from "./rules/text";
@@ -125,6 +126,9 @@ export interface RecheckOutcome {
 export interface RecheckDeps {
   livePages: () => Promise<StoredLivePage[]>;
   withdraw: (draftId: string, at: Date) => Promise<boolean>;
+  /** Rests the topics the withdrawn drafts were written for until `until`
+   *  (issue 1549). */
+  rest?: (draftIds: readonly string[], until: Date) => Promise<void>;
 }
 
 /** Every live page read again, and each that fails withdrawn. A failed
@@ -141,6 +145,9 @@ export async function withdrawFailingPages(a: { now: Date; deps?: RecheckDeps })
     for (const older of page.olderVersions ?? []) down = (await deps.withdraw(older, a.now)) && down;
     if (down) outcome.withdrawn.push({ draftId: page.draftId, liveUrl: page.liveUrl, rules });
     else outcome.stillLive.push(page.liveUrl);
+    // Issue 1549: the page is down, so its topic is not left `queued`; it
+    // rests as a stopped one does and may be written again under the rules.
+    if (down && deps.rest !== undefined) await restWithdrawn({ rest: deps.rest }, [page.draftId, ...(page.olderVersions ?? [])], a.now);
   }
   console.log(
     JSON.stringify({
@@ -164,7 +171,9 @@ interface LiveRow {
 async function defaultDeps(): Promise<RecheckDeps> {
   const { publishDb } = await import("@/lib/publish/db");
   const { unpublish } = await import("@/lib/publish/attempt/unpublish");
+  const { restTopicsOfDrafts } = await import("@/lib/publish/attempt/take-down");
   return {
+    rest: restTopicsOfDrafts,
     async livePages() {
       const db = publishDb();
       const live = await db

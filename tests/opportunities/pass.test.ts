@@ -12,7 +12,7 @@ import { deriveForPass, rankedCountsOf } from "../../src/lib/opportunities/pass"
 import { setOpportunityStore } from "../../src/lib/opportunities/store";
 import { fakeCost } from "./cost";
 import { memoryStore, newMemoryState, type MemoryState } from "./memory-store";
-import { AT, SITE_ID, defaultReport, question, reportOf, search, serp } from "./fixtures";
+import { AT, PROFILE, SITE_ID, defaultReport, question, reportOf, search, serp } from "./fixtures";
 
 vi.mock("@anthropic-ai/sdk", () => ({
   default: class MockAnthropic {
@@ -101,6 +101,9 @@ describe("the customer's own count is the pass's, not a guess (issue #140)", () 
 
 describe("the deep pass pursues depth", () => {
   it("persists Write opportunities for a site whose rivals clear the bars", async () => {
+    // Issue 1549: a day of supply is a day the ranking plans, which needs
+    // the site's profile.
+    state.profile = PROFILE;
     const report = defaultReport({
       rivalSizes: measured(sized(40), AT),
       ownRanked: measured(120, AT),

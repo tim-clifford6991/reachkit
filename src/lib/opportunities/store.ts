@@ -171,6 +171,10 @@ export interface OpportunityStore {
    *  of the SERPs this site's research read, each with its search, bought in
    *  the last `days`. Optional: a store that cannot answer reads none. */
   askedBeside?(siteId: string, days: number): Promise<readonly AskedBeside[]>;
+  /** Issue 1549: the searches of this site's dismissed non-Fix rows, each
+   *  with the volume it was dismissed at (`null` where none was measured).
+   *  Optional: a store that cannot answer holds nothing back. */
+  dismissedSearches?(siteId: string): Promise<readonly { query: string; volume: number | null }[]>;
   /** Writes a row's cluster and the searches it absorbed. */
   setCluster(opportunityId: string, clusterKey: string, absorbedQueries: readonly string[]): Promise<void>;
   /** The site's current stored report, or `null` where it has no readable
@@ -637,6 +641,17 @@ export function supabaseOpportunityStore(): OpportunityStore {
           ? []
           : [{ term, peopleAlsoAsk: strings(serp?.peopleAlsoAsk), related: strings(serp?.relatedSearches), at: new Date(row.created_at) }];
       });
+    },
+
+    async dismissedSearches(siteId) {
+      const { data, error } = await untyped()
+        .from<{ target_query: string | null; volume: number | null }>("opportunities")
+        .select("target_query, volume")
+        .eq("site_id", siteId)
+        .eq("status", "dismissed")
+        .neq("family", "fix");
+      if (error) throw new Error(`opportunities.dismissedSearches: ${error.message}`);
+      return (data ?? []).flatMap((row) => (row.target_query === null ? [] : [{ query: row.target_query, volume: row.volume }]));
     },
 
     async setCluster(opportunityId, clusterKey, absorbedQueries) {

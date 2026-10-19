@@ -197,8 +197,14 @@ export function opportunityReady(o: Opportunity, ctx: ReadinessContext): Unready
     // shared rule above, which admits `reach` too. It stays here because it
     // is this type's own gate (§6, 2026-09-15) and not the right-sizing law.
     const atTopFit = fit !== null && fit >= TOPIC_FIT.writeAt;
+    // Issue 1549: a question buyers were seen asking beside the site's
+    // searches is observed demand (issue 1519) and an answer page by its
+    // nature, so the commercial-intent and volume half waives for it as for
+    // a top-fit search.
+    const asked = o.evidence.family === "write" && o.evidence.askedBeside !== undefined;
     const passes =
       (atTopFit ||
+        asked ||
         (volumeOf(o) >= KEYWORD_PAGE_MIN_VOLUME &&
           o.fitBand === "winnable" &&
           intent !== null &&

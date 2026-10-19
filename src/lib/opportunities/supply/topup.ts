@@ -25,6 +25,7 @@ import type { CostContext } from "@/lib/costs";
 import { deriveOpportunities, type DeriveInput } from "../derive";
 import { assessReadiness } from "../readiness";
 import { supplyDepth } from "./depth";
+import { refillSupply } from "./refill";
 
 export async function topUp(
   c: CostContext,
@@ -35,13 +36,16 @@ export async function topUp(
     return { added: 0, unused };
   }
 
-  const { created } = await deriveOpportunities(c, a);
+  const { created, spare, refused } = await deriveOpportunities(c, a);
   // SPEC §6: depth is ready supply, so every open row has its answer before
   // it is counted.
   await assessReadiness(a.siteId, { at: a.report.verdict.measuredAt });
-  const { unused } = await supplyDepth(a.siteId);
-  logTopUp({ siteId: a.siteId, scanId: a.scanId, added: created.length, unused });
-  return { added: created.length, unused };
+  // Issue 1549: two weeks of writable days, from what buyers asked, at 0¢.
+  const refilled = await refillSupply({ ...a, spare, refused });
+  const unused = refilled.unused;
+  const added = created.length + refilled.added;
+  logTopUp({ siteId: a.siteId, scanId: a.scanId, added, unused });
+  return { added, unused };
 }
 
 function logTopUp(fields: {

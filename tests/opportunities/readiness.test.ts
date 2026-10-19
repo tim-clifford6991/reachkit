@@ -83,6 +83,35 @@ describe("collapse — one survivor per cluster, over held rows and new candidat
     ]);
   });
 
+  it("issue 1549 — a search a held row already absorbed folds into that row rather than standing as a second topic", () => {
+    const plan = collapse({
+      existing: [
+        held({
+          id: "parent",
+          type: "listed_page",
+          family: "write",
+          targetQuery: "best answer engine optimization tools",
+          absorbedQueries: ["best generative engine optimization tools"],
+        }),
+      ],
+      candidates: [candidate({ type: "listed_page", family: "write", targetQuery: "best generative engine optimization tools" })],
+      brandTokens: BRANDS,
+    });
+    expect(plan.insert).toEqual([]);
+    expect(plan.dismiss).toEqual([]);
+  });
+
+  it("issue 1549 — a low-fit row never swallows a search the business fits into its cluster", () => {
+    const plan = collapse({
+      existing: [held({ id: "low", type: "keyword_page", family: "write", targetQuery: "meltwater cost", businessFit: 1 })],
+      candidates: [candidate({ type: "keyword_page", family: "write", targetQuery: "answer engine optimization pricing", businessFit: 3 })],
+      brandTokens: BRANDS,
+      sameQuestion: new Map([["answer engine optimization pricing", "meltwater cost"]]),
+    });
+    expect(plan.dismiss).toEqual(["low"]);
+    expect(plan.insert.map((c) => c.targetQuery)).toEqual(["answer engine optimization pricing"]);
+  });
+
   it("a queued row is never dismissed, whatever outranks it; the candidate folds into it", () => {
     const plan = collapse({
       existing: [held({ id: "q1", type: "keyword_page", family: "write", targetQuery: "onboarding checklist", status: "queued" })],

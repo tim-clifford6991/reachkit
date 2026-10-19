@@ -1262,6 +1262,12 @@ export const SELECTION = Object.freeze({                    // BP-025 · REQ-006
    *  other places go to the searches its seeds and pool yield, by score.
    *  A drafted default the owner may correct. */
   maxMarketTerms: 6,
+  /** Issue 1549: the fewest of the twelve that are searches the site has
+   *  not measured in the last `freshWeeks` weeks, where the market holds
+   *  them, and the fewest that are how-to or informational searches — the
+   *  answer pages D52's cap does not hold back. Drafted; the owner may
+   *  correct them. */
+  minFresh: 4, freshWeeks: 4, minAnswering: 4,
 } as const);
 
 /** SPEC §0 and §2 (owner, 2026-10-15, issue 1439): how a score says how sure
@@ -1450,6 +1456,9 @@ export const EFFORT_BY_TYPE = Object.freeze({                // BP-040 d3
 export const FIT_WEIGHT = Object.freeze({ winnable: 1.0, reach: 0.5, "not-yet": 0 } as const); // BP-040 d3
 export const SUPPLY_TARGET_DEPTH = 30 as const;              // BP-041 d4 · REQ-095 c1
 export const SUPPLY_SHORT_BELOW = 7 as const;                // BP-041 d4 · REQ-095 c5
+/** Issue 1549: the writable days (`writableDays`) each weekly pass leaves a
+ *  site with, where what buyers were seen asking can fill them at 0¢. */
+export const SUPPLY_FLOOR_DAYS = 14 as const;
 export const TOO_EARLY_WEEKS = 3 as const;                   // BP-051 d4 · REQ-063 c2
 
 // Generation
