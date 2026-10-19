@@ -284,7 +284,7 @@ export const DRAFT_COPY = Object.freeze({
   "draft.copy.html": ["HTML", { slots: {}, fixedBy: "BUILD §9 · S16 (11a)" }],
 
   // §4.6's info box, and its arms. The panel states the schedule sentence
-  // beside the countdown, which carries the time; the phone bar has one
+  // under the go-live line, which carries the time; the phone bar has one
   // line, so it states the autopilot sentence with the time in it.
   "draft.do-nothing.schedule": [
     "Do nothing and it goes live on schedule. Stop it and it never publishes.",
@@ -418,25 +418,10 @@ export const DRAFT_COPY = Object.freeze({
   ],
   "draft.checks.title": ["Checks", { slots: {}, fixedBy: "S16 (11a)" }],
 
-  // SPEC §7 (2026-09-24, board R12-6-Page): the panel's live countdown to
-  // the moment an autopilot page publishes, and the absolute time under it.
-  // Three arms: more than a day away, less than a day, and the instant
-  // passed while the screen was open (the job runs on its own clock).
-  "draft.decide.goes-live-in": [
-    "Goes live in",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-24" },
-  ],
-  "draft.decide.countdown.days": [
-    "{d}d {h}h {m}m",
-    { slots: { d: "text", h: "text", m: "text" }, fixedBy: "SPEC §7 2026-09-24" },
-  ],
-  "draft.decide.countdown": [
-    "{h}h {m}m {s}s",
-    { slots: { h: "text", m: "text", s: "text" }, fixedBy: "SPEC §7 2026-09-24" },
-  ],
-  "draft.decide.countdown.due": [
-    "Any moment now",
-    { slots: {}, fixedBy: "SPEC §7 2026-09-24" },
+  // The rail's go-live line: an absolute time in the site's zone, and no clock.
+  "draft.decide.goes-live": [
+    "Goes live {at}. Nothing is needed from you.",
+    { slots: { at: "date" }, fixedBy: "issue 1574" },
   ],
 
   // SPEC §7 (2026-10-10, issue 1394): the Checks list. The headline is the

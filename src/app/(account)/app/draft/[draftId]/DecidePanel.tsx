@@ -4,8 +4,8 @@
 //
 // **There is no Approve** (owner 2026-10-08, issue 1337: "remove the approve
 // button entirely, autopilot only … they can solely edit or stop the
-// content"). The rail asks for nothing: the *Goes live in* countdown with
-// the absolute time under it leads, then Stop (ghost warning) and Edit
+// content"). The rail asks for nothing: the time it goes live, stated and
+// never ticking, leads, then Stop (ghost warning) and Edit
 // (soft) side by side, the checks, the do-nothing sentence and the two
 // copy-out buttons. No control on it is a solid primary. Below `md` the bar
 // says the same thing in one line with the time in it.
@@ -25,7 +25,7 @@
 // ones are lifted out of flow by `max-md:` classes, and from `md` up every
 // such class is inert. A second copy would be a second thing to keep in step
 // with §9's transition table. The do-nothing sentence is the one thing said
-// twice, in two wordings for two widths, because the phone has no countdown.
+// twice, in two wordings for two widths, because the phone has no go-live box.
 //
 // **The checks stay below the page** on a phone, in this card, where the
 // owner's review asked for them: a list of rules in a fixed bar would cover
@@ -44,7 +44,6 @@
 "use client";
 
 import type React from "react";
-import { useSyncExternalStore } from "react";
 import { Check, Info, LoaderCircle, Minus, Pencil, CircleStop, RotateCcw, X } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { formatDate, formatDateTime } from "../../_shell/format";
@@ -59,57 +58,13 @@ import { putBackWords, takeDownWords } from "../../calendar/take-down-words";
 import type { ClaimState, DraftView } from "./model";
 import { SHAPE } from "./shape";
 
-/** One tick a second, for the countdown. The server has no clock to share
- *  with the browser, so it renders the absolute time alone and the figure
- *  arrives on hydration — never a server "now" the client then contradicts. */
-function subscribeSecond(onTick: () => void): () => void {
-  const id = setInterval(onTick, 1000);
-  return () => clearInterval(id);
-}
-const nowSecond = (): number => Math.floor(Date.now() / 1000);
-const noClock = (): null => null;
-
-const pad = (n: number): string => String(n).padStart(2, "0");
-
-/** The time left, in the registry's words. Days where there are any, down
- *  to the second inside the last day, and the third arm once the instant has
- *  passed while the screen was open — the publish job runs on its own clock,
- *  so the page goes out in a moment rather than at a negative time. */
-function countdownText(at: Date, now: number): string {
-  const left = Math.floor(at.getTime() / 1000) - now;
-  if (left <= 0) return copy("draft.decide.countdown.due");
-  const d = Math.floor(left / 86_400);
-  const h = Math.floor((left % 86_400) / 3600);
-  const m = Math.floor((left % 3600) / 60);
-  const s = left % 60;
-  return d > 0
-    ? copy("draft.decide.countdown.days", { d: String(d), h: String(h), m: pad(m) })
-    : copy("draft.decide.countdown", { h: String(h), m: pad(m), s: pad(s) });
-}
-
-function Countdown(p: { at: Date; timeZone: string }): React.JSX.Element {
-  const now = useSyncExternalStore(subscribeSecond, nowSecond, noClock);
+/** When the page goes live, as a stated time rather than a ticking clock:
+ *  nothing is asked of the reader, so nothing on the rail should hurry them. */
+function GoesLive(p: { at: Date; timeZone: string }): React.JSX.Element {
   return (
-    <div
-      className="rounded-box bg-warning/10 flex min-w-0 flex-col gap-1 p-4 max-md:hidden"
-      data-testid="draft-countdown"
-    >
-      <span className="text-sm font-semibold">{copy("draft.decide.goes-live-in")}</span>
-      {/* A figure, so Jakarta 600 with tabular digits (`.num`): the width
-          holds still as the seconds turn. Not a live region — a screen
-          reader announcing every second would be the page talking over
-          itself; the absolute time under it is the fact to read. */}
-      {/* Drawn only once there is a clock: an empty figure on the server
-          would be a blank where a value sits (REQ-091 c2). */}
-      {now === null ? null : (
-        <span className="num text-2xl" data-testid="draft-countdown-left">
-          {countdownText(p.at, now)}
-        </span>
-      )}
-      <span className="text-xs text-base-content/70" data-testid="draft-do-nothing-at">
-        {formatDateTime(p.at, p.timeZone)}
-      </span>
-    </div>
+    <p className="rounded-box bg-base-200 min-w-0 p-4 text-sm max-md:hidden" data-testid="draft-goes-live">
+      {copy("draft.decide.goes-live", { at: formatDateTime(p.at, p.timeZone) })}
+    </p>
   );
 }
 
@@ -192,19 +147,19 @@ export function DecidePanel(p: {
     known: view.knownCheck,
   });
   const publishesAt = view.doNothing.publishesAt;
-  /** The countdown runs only while the page can still be stopped: the
-   *  moment Stop is pressed the controls leave and so does it. */
+  /** Stated only while the page can still be stopped: the moment Stop is
+   *  pressed the controls leave and so does it. */
   const counting = publishesAt !== null && actions.length > 0;
 
   /** The bar's one line (below `md`): the sentence with the time in it,
-   *  because a phone has no room for the countdown box. */
+   *  because a phone has no room for the go-live box. */
   const barLine =
     view.doNothing.key === null
       ? null
       : publishesAt === null
         ? writtenLine(view.doNothing.key)
         : writtenLine(view.doNothing.key, { at: formatDateTime(publishesAt, view.timeZone) });
-  /** The panel's sentence (from `md`): the time is the countdown's, so the
+  /** The panel's sentence (from `md`): the time is the go-live box's, so the
    *  sentence says what the schedule means rather than repeating it. */
   const panelLine =
     view.doNothing.key === null
@@ -226,7 +181,7 @@ export function DecidePanel(p: {
         <h2 className="eyebrow max-md:hidden">{copy("draft.decide.title")}</h2>
 
         {counting && publishesAt !== null ? (
-          <Countdown at={publishesAt} timeZone={view.timeZone} />
+          <GoesLive at={publishesAt} timeZone={view.timeZone} />
         ) : null}
 
         {/* The bar. In flow inside the card from `md` up, and fixed to the
