@@ -22,6 +22,7 @@
 // until somebody says what it asks the buyer for.
 import { PRICE_CURRENCY } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
+import { copy } from "@/lib/presentation/copy";
 
 export interface CheckoutParams {
   readonly mode: "subscription";
@@ -44,6 +45,10 @@ export interface CheckoutParams {
   readonly allow_promotion_codes: false;
   /** REQ-022 c4 — the same currency wherever the buyer is. */
   readonly currency: typeof PRICE_CURRENCY;
+  /** An EU consumer's express consent to start now, ticked before paying. */
+  readonly consent_collection: { readonly terms_of_service: "required" };
+  /** The tick's sentence, linking to how to withdraw. */
+  readonly custom_text: { readonly terms_of_service_acceptance: { readonly message: string } };
 }
 
 /** Built once per call rather than at module load: `env.STRIPE_PRICE_ID` is
@@ -62,6 +67,14 @@ export function checkoutParams(): CheckoutParams {
     custom_fields: Object.freeze([] as const),
     allow_promotion_codes: false,
     currency: PRICE_CURRENCY,
+    consent_collection: Object.freeze({ terms_of_service: "required" as const }),
+    custom_text: Object.freeze({
+      terms_of_service_acceptance: Object.freeze({
+        message: copy("offer.checkout.consent", {
+          terms: `${new URL(env.NEXT_PUBLIC_APP_URL).origin}/terms`,
+        }),
+      }),
+    }),
   } as const);
 }
 
@@ -77,4 +90,6 @@ export const CHECKOUT_PARAM_KEYS: readonly (keyof CheckoutParams)[] = Object.fre
   "custom_fields",
   "allow_promotion_codes",
   "currency",
+  "consent_collection",
+  "custom_text",
 ] as const);

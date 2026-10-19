@@ -115,6 +115,12 @@ export const OFFER_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC.md §3 (2026-09-13)" },
   ],
 
+  // The Checkout tick's sentence: an EU consumer's consent to start at once.
+  "offer.checkout.consent": [
+    "I agree to the [Terms]({terms}) and ask ReachKit to start at once: my site is measured the moment I pay. I understand my 14-day right of withdrawal ends once the service is fully provided. [How to withdraw]({terms}#withdrawal)",
+    { slots: { terms: "text" }, fixedBy: "issue 1590" },
+  ],
+
   // 2026-09-05, issue #13: the four values the four slotted lines above
   // take. BP-031's `offerTerms()` was to supply them and does not exist;
   // the free report's pricing card (`BUILD.md` §4.1 module 6) needs them
