@@ -91,9 +91,23 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # **Caches and two workers** (issue 1569). tsc is `incremental` in
+      # tsconfig.json and eslint runs with `--cache`; both files are kept
+      # between runs of a pull request. A checkout resets every mtime, so
+      # eslint compares content, not metadata. The key carries the lockfile,
+      # so a plugin upgrade starts cold. The runner is pinned to two CPUs,
+      # where vitest's default is one worker; two keep peak memory under
+      # 5 GB on the 7.6 GB box.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            tsconfig.tsbuildinfo
+            .eslintcache
+          key: check-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.run_id }}
+          restore-keys: check-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       - run: npm run typecheck
-      - run: npm run lint
-      - run: npx vitest run --project node --project ui
+      - run: npm run lint -- --cache --cache-strategy content
+      - run: npx vitest run --project node --project ui --maxWorkers=2
 
   no-overflow:
     name: no overflow · axe (390 / 768 / 1280, light and dark)
