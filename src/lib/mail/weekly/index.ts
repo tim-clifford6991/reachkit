@@ -30,16 +30,16 @@
 // comes from what is already stored: the standings from `weeklyDigest`,
 // D22's four headline numbers from the prompt window, the week's verdict
 // rows and the hosted blog's read counts, the technical checks that moved
-// from `weekMovement`, the next three from the ranking as it stands. A mail that re-measured to state a movement would report a
+// from `weekMovement`, the week's pages and spares from the week this
+// Monday committed (issue 1559). A mail that re-measured to state a movement would report a
 // different week from the one it announces.
 import { dbAdmin } from "@/lib/db";
 import { env } from "@/lib/config/env";
-import { ANSWER_RATE_WEEKS, BLOG_READS_WINDOW_D, MENTION_RATE_MIN_WEEKS, WEEKLY_NEXT_COUNT } from "@/lib/config/constants";
+import { ANSWER_RATE_WEEKS, BLOG_READS_WINDOW_D, MENTION_RATE_MIN_WEEKS } from "@/lib/config/constants";
 import { measurePrompts } from "@/lib/market/prompts/rate";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
-import { rankOpen, weeklyDigest } from "@/lib/opportunities";
-import { opportunityStore, readOpportunity } from "@/lib/opportunities/store";
+import { committedWeek, weeklyDigest, type Opportunity } from "@/lib/opportunities";
 import { accountForWeek, previousWeekStart, readPromptWindow, weekMovement, type UnmeasuredPart } from "@/lib/scan/weekly";
 import type { MeasurementState } from "../shell/compose";
 import { sendEmail } from "../send";
@@ -191,14 +191,26 @@ async function measuredWeek(
 
   const needsYou = await oneNeedsYou(a.siteId);
   const mail = buildWeekly({
-    // SPEC §8 (2026-10-07, issue 1329): D22's four headline numbers lead.
-    numbers: await headlineNumbers(a.siteId, a.weekStart, at),
+    // SPEC §8 (2026-10-07, issue 1329): the headline numbers lead.
+    numbers: {
+      ...(await headlineNumbers(a.siteId, a.weekStart, at)),
+      // Issue 1551: the pages' own questions cited lead, from the same
+      // stored week the movement is read from.
+      ...(movement.pagesCited.kind === "unmeasured"
+        ? {}
+        : {
+            pageQuestions: {
+              cited: counted(movement.pagesCited.value.cited, at),
+              asked: movement.pagesCited.value.asked,
+            },
+          }),
+    },
     ...(needsYou === undefined ? {} : { needsYou }),
     // Measured, and measured-empty where the week judged nothing: "you
     // have published nothing yet" is a result, and the template's own
     // empty line states it.
     pages: measured(pages, at),
-    next: await nextThree(a.siteId, at),
+    ...(await theWeek(a.siteId, at)),
     // SPEC §9 on Monday: the checks whose count moved, from the same two
     // stored weeks the deltas are read from.
     issues: movement.issueChanges,
@@ -350,23 +362,20 @@ async function aiVisitsOf(siteId: string, at: Date): Promise<WeeklyNumbers["aiVi
   }
 }
 
-/** §12's "next 3", by the ranking as it stands. Measured-and-empty where
- *  the supply has run out — the calendar is never padded, and an empty
- *  list of next pages is a result the template states in one line. */
-async function nextThree(siteId: string, at: Date): Promise<Measured<readonly { targetQuery: string }[]>> {
-  const ranked = await rankOpen(siteId);
-  const store = opportunityStore();
-  const rows = await Promise.all(
-    ranked.slice(0, WEEKLY_NEXT_COUNT).map((entry) => store.byId(entry.opportunityId))
-  );
-  const next = rows
-    .filter((row): row is NonNullable<typeof row> => row !== null)
-    .map((row) => readOpportunity(row).targetQuery)
-    // An opportunity with no target search has nothing to name, and
-    // naming it some other way would be a second identity for one row.
-    .filter((targetQuery): targetQuery is string => targetQuery !== null)
-    .map((targetQuery) => ({ targetQuery }));
-  return measured(next, at);
+/** The week this Monday committed (SPEC §7, issue 1559): its pages in date
+ *  order, and its spares. Measured-and-empty where the supply has run out —
+ *  the calendar is never padded, and an empty week is a result the template
+ *  states in one line. */
+async function theWeek(
+  siteId: string,
+  at: Date
+): Promise<{ next: Measured<readonly { targetQuery: string }[]>; spares: Measured<readonly { targetQuery: string }[]> }> {
+  const week = await committedWeek(siteId);
+  // An opportunity with no target search has nothing to name, and naming it
+  // some other way would be a second identity for one row.
+  const named = (rows: readonly Opportunity[]) =>
+    rows.flatMap((row) => (row.targetQuery === null ? [] : [{ targetQuery: row.targetQuery }]));
+  return { next: measured(named(week.days.map((day) => day.opportunity)), at), spares: measured(named(week.spares), at) };
 }
 
 /** The account, as the compose shell states it. A complete week says so

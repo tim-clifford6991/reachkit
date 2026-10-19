@@ -145,7 +145,7 @@ export function liveTopicFailure(page: LiveTopicPage, site: LiveTopicSite): Live
   const evidence = { brands: site.brands, prompts: site.prompts, asked: site.asked, answers: site.answers, composed: site.composed };
   if (comparisonWithoutAsking(row, evidence)) return { rule: "no_demand" };
   const topTen = site.topTen(query);
-  const other = topTen === null ? null : otherKindTopTen(topTen, site.business);
+  const other = topTen === null ? null : otherKindTopTen(topTen, site.business, row);
   return other === null ? null : { rule: "other_kind", kind: other };
 }
 
@@ -237,6 +237,9 @@ export interface LiveTopicDeps {
   /** Merges the hosted page into another, its address answering 301. */
   merge: (page: LiveTopicPage, into: LiveTopicPage, at: Date) => Promise<boolean>;
   withdraw: (draftId: string, at: Date) => Promise<boolean>;
+  /** Dismisses the topics the withdrawn drafts were written for (issue
+   *  1549). */
+  dismiss?: (draftIds: readonly string[]) => Promise<void>;
 }
 
 /** Every live page read again, and each that fails handled as its verdict
@@ -280,6 +283,12 @@ export async function retireOffTopicPages(a: { now: Date; deps?: LiveTopicDeps; 
         for (const older of page.olderVersions ?? []) down = (await deps.withdraw(older, a.now)) && down;
         if (down) outcome.withdrawn.push({ draftId: page.draftId, liveUrl: page.liveUrl, rule: verdict.failure.rule });
         else outcome.stillLive.push(page.liveUrl);
+        // Issue 1549: an off-topic page's topic is not left `queued` behind
+        // an address that is gone; it is dismissed. The page is down whether
+        // or not the rows could be written.
+        if (down && deps.dismiss !== undefined) await deps.dismiss([page.draftId, ...(page.olderVersions ?? [])]).catch((error: unknown) => {
+          console.log(JSON.stringify({ event: "withdrawn_topic_dismiss_failed", draftId: page.draftId, because: String(error) }));
+        });
       }
     }
   }
@@ -357,6 +366,7 @@ const RECHECK = { kind: "system", job: "content/recheck" } as const;
 async function defaultDeps(): Promise<LiveTopicDeps> {
   const { publishDb } = await import("@/lib/publish/db");
   const { unpublish } = await import("@/lib/publish/attempt/unpublish");
+  const { dismissTopicsOfDrafts } = await import("@/lib/publish/attempt/take-down");
   const { opportunityStore, readOpportunity, COLUMNS } = await import("./store");
   const { insertFor } = await import("./derive/persist");
   const { retargetCandidate } = await import("./retarget");
@@ -470,5 +480,6 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
       const result = await unpublish({ draftId, by: RECHECK, at });
       return result.ok;
     },
+    dismiss: dismissTopicsOfDrafts,
   };
 }

@@ -86,11 +86,13 @@ function fixOf(o: Opportunity): { pageUrl: string; issues: readonly PageFix[] } 
  */
 export async function assessFixPages(
   siteId: string,
-  a: { report: StoredReport | null; delivery?: FixDelivery; now?: Date }
+  a: { report: StoredReport | null; delivery?: FixDelivery; now?: Date; only?: ReadonlySet<string> }
 ): Promise<{ done: number; ready: number }> {
   const now = a.now ?? new Date();
   const store = opportunityStore();
-  const rows = await store.openFixPages(siteId);
+  const open = await store.openFixPages(siteId);
+  // Issue 1559: the evening asks only of its committed week.
+  const rows = a.only === undefined ? open : open.filter((row) => a.only!.has(row.id));
   if (rows.length === 0) return { done: 0, ready: 0 };
 
   const delivery = a.delivery ?? (await fixDeliveryFor(siteId));

@@ -79,7 +79,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
     // says the number could not be read and the rest of Overview stands.
     import("../_overview/search-provider")
       .then((tab) => tab.readSearch())
-      .then((model) => model.tiles.firstPage)
+      .then((model) => model.tiles.pages)
       .catch(() => null),
     readPublished(),
     // Issue 1395: what ReachKit did this week, from stored rows.

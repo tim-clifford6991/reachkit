@@ -9,6 +9,7 @@ import "./env";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { TOPIC_REST_DAYS } from "../../src/lib/config/constants";
 import {
   RIVAL_SCOPE_VERSION,
   recheckLivePage,
@@ -70,6 +71,22 @@ describe("the live pages, re-read from their rows", () => {
       withdrawn: [{ draftId: PROFOUND.draftId, liveUrl: "https://content.reachkit.app/profound-alternatives", rules: ["rival_source", "rival_negative"] }],
       stillLive: [],
     });
+  });
+
+  it("issue 1549 — a withdrawn page's topic rests, never left queued behind an address that is gone", async () => {
+    const rested: { draftIds: readonly string[]; until: Date }[] = [];
+    const now = new Date("2026-10-17T19:00:00Z");
+    await withdrawFailingPages({
+      now,
+      deps: {
+        livePages: async () => [{ ...PROFOUND, olderVersions: ["older-version"] }, AEO],
+        withdraw: async () => true,
+        rest: async (draftIds, until) => {
+          rested.push({ draftIds, until });
+        },
+      },
+    });
+    expect(rested).toEqual([{ draftIds: [PROFOUND.draftId, "older-version"], until: new Date(now.getTime() + TOPIC_REST_DAYS * 86_400_000) }]);
   });
 
   it("a withdrawal that does not complete leaves the page on the list for the next tick", async () => {

@@ -1,10 +1,11 @@
-// BUILD §7 — the ranked list, and the one opportunity a day fills from.
+// BUILD §7 — the ranked list, and the one opportunity a day fills from
+// (the week committed from it, issue 1559).
 import "./env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AI_READER_AGENTS } from "../../src/lib/config/constants";
 import { measured } from "../../src/lib/measure/measured";
 import { deriveOpportunities } from "../../src/lib/opportunities/derive";
-import { nextForDay } from "../../src/lib/opportunities/next";
+import { pageForDay } from "../../src/lib/opportunities/plan";
 import { assessReadiness } from "../../src/lib/opportunities/readiness";
 import { isPausedType, rankOpen } from "../../src/lib/opportunities/rank/open";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
@@ -31,6 +32,10 @@ vi.mock("@anthropic-ai/sdk", () => ({
 }));
 
 let state: MemoryState;
+
+/** The page the day of `AT` takes: its committed week's, committed here on
+ *  demand (issue 1559). */
+const dayPage = () => pageForDay(SITE_ID, AT.toISOString().slice(0, 10), AT);
 
 beforeEach(() => {
   state = newMemoryState({ profile: PROFILE });
@@ -123,13 +128,13 @@ describe("§7: `unblock` is never in the list and never fills a day", () => {
     for (const row of state.rows.filter((candidate) => candidate.family !== "fix")) {
       setStatus(state, row.id, "dismissed", AT);
     }
-    expect(await nextForDay(SITE_ID)).toBeNull();
+    expect(await dayPage()).toBeNull();
   });
 
-  it("the exclusion is stated once, in the store, and not restated in nextForDay", async () => {
+  it("the exclusion is stated once, in the store, and not restated in the day's pick", async () => {
     // A second filter here would be the copy that eventually disagrees
     // with what `supplyDepth` counts. The property that proves there is
-    // one predicate: what `nextForDay` hands back is always a member of
+    // one predicate: what the day's pick hands back is always a member of
     // the unused-supply set, and it is null exactly when that set is empty.
     // The search is a plain one: a "best …" search is a type the mix leaves
     // out for now (D46), which the ranking drops and the count still holds.
@@ -142,7 +147,7 @@ describe("§7: `unblock` is never in the list and never fills a day", () => {
         { blockedAgents: [AI_READER_AGENTS[0]!] }
       )
     );
-    const next = await nextForDay(SITE_ID);
+    const next = await dayPage();
     const { unused } = await supplyDepth(SITE_ID);
     expect(next === null).toBe(unused === 0);
     if (next !== null) {
@@ -156,7 +161,7 @@ describe("§4.6: the calendar requests; it never creates", () => {
   it("the answer is the head of the ranked order, loaded whole", async () => {
     await derive(threeTargets());
     const ranked = await rankOpen(SITE_ID);
-    const next = await nextForDay(SITE_ID);
+    const next = await dayPage();
 
     expect(next).not.toBeNull();
     expect(next!.id).toBe(ranked[0]!.opportunityId);
@@ -168,19 +173,16 @@ describe("§4.6: the calendar requests; it never creates", () => {
 
   it("an exhausted site answers null and writes nothing", async () => {
     const before = state.rows.length;
-    expect(await nextForDay(SITE_ID)).toBeNull();
+    expect(await dayPage()).toBeNull();
     expect(state.rows.length).toBe(before);
   });
 
   it("a queued, done or dismissed row is never handed back to avoid an empty day", async () => {
     await derive(threeTargets());
     for (const row of [...state.rows]) setStatus(state, row.id, "queued", AT);
-    expect(await nextForDay(SITE_ID)).toBeNull();
+    expect(await dayPage()).toBeNull();
   });
 
-  it("it takes no date and no count — one site, one opportunity or none", () => {
-    expect(nextForDay.length).toBe(1);
-  });
 });
 
 describe("§7 (D46): the mix leaves out only the types on its one list", () => {
@@ -217,7 +219,7 @@ describe("§7 (D46): the mix leaves out only the types on its one list", () => {
       ready("plain", "user onboarding software for startups", 20),
     ];
 
-    expect((await nextForDay(SITE_ID))?.targetQuery).toBe("best user onboarding software");
+    expect((await dayPage())?.targetQuery).toBe("best user onboarding software");
   });
 
   it("`isPausedType` reads the row's own type against the one list, which is empty", () => {

@@ -45,12 +45,13 @@ describe("a \"vs\" between products is ready only with measured demand (conditio
     expect(opportunityReady(rowOf("B"), CTX)).toBe("no_intent");
   });
 
-  it("a rival against a rival, unmeasured: ready only where a tracked prompt about it was answered naming both (issue 1520)", () => {
+  it("a rival against a rival, unmeasured: no tracked prompt makes it ready, answered naming both or not (issue 1552)", () => {
     expect(opportunityReady(versus("rankscale vs temso"), CTX)).toBe("no_intent");
     // The prompt "How does Profound compare with Peec AI…" names both; that alone is no longer demand.
     expect(opportunityReady(versus("profound vs peec ai"), CTX)).toBe("no_intent");
     const answer = (rivals: string[]) => [{ promptId: "cd9577b2", named: false, linked: false, rivals }];
-    expect(opportunityReady(versus("profound vs peec ai"), { ...CTX, answers: answer(["tryprofound.com", "peec.ai"]) })).toBeNull();
+    // Issue 1552: the prompt is ReachKit's own template, so its answer is no demand for the pair.
+    expect(opportunityReady(versus("profound vs peec ai"), { ...CTX, answers: answer(["tryprofound.com", "peec.ai"]) })).toBe("no_intent");
     expect(opportunityReady(versus("profound vs peec ai"), { ...CTX, answers: answer(["tryprofound.com"]) })).toBe("no_intent");
     expect(opportunityReady(versus("profound vs peec ai"), { ...CTX, prompts: stored.prompts.slice(0, 2), answers: answer(["tryprofound.com", "peec.ai"]) })).toBe("no_intent");
   });

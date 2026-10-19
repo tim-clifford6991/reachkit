@@ -1,17 +1,16 @@
-// BUILD §7 — depth, the weekly top-up, and the one supply statement.
+// BUILD §7 — depth, what a pass adds, and the one supply statement.
 import "../env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AI_READER_AGENTS,
+  PLAN_DEPTH,
   SUPPLY_SHORT_BELOW,
-  SUPPLY_TARGET_DEPTH,
 } from "../../../src/lib/config/constants";
 import { measured } from "../../../src/lib/measure/measured";
 import { setOpportunityStore } from "../../../src/lib/opportunities/store";
 import { supplyDepth } from "../../../src/lib/opportunities/supply/depth";
 import { supplyNotice } from "../../../src/lib/opportunities/supply/notice";
-import { pursueDepth } from "../../../src/lib/opportunities/supply/pursue";
-import { topUp } from "../../../src/lib/opportunities/supply/topup";
+import { deriveForPass } from "../../../src/lib/opportunities/pass";
 import { cappedCost, fakeCost } from "../cost";
 import { memoryStore, newMemoryState, setStatus, type MemoryState } from "../memory-store";
 import {
@@ -53,7 +52,8 @@ const input = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-/** A report with `count` distinct qualifying Write targets. */
+/** A report with `count` distinct qualifying Write targets, each written
+ *  as a page that answers — a day of its own (issue 1549). */
 function reportWith(count: number) {
   const questions = [];
   const serps = [];
@@ -61,8 +61,8 @@ function reportWith(count: number) {
     questions.push(
       question({
         id: `q${n}`,
-        text: `What is the best onboarding tool number ${n}?`,
-        search: search({ keyword: `best onboarding tool ${n}` }),
+        text: `Which onboarding software fits plan ${n}?`,
+        search: search({ keyword: `onboarding software plan ${n}` }),
       })
     );
     serps.push(serp());
@@ -161,7 +161,7 @@ describe("ADR-061: exhausted supply is a proven arm, and there is at most one st
     });
   });
 
-  it("an arrival after a pass that fell short of a month is told once", async () => {
+  it("an arrival after a pass that fell short of a week and its spares is told once", async () => {
     const { ctx } = fakeCost();
     await deriveOnly(ctx, reportWith(SUPPLY_SHORT_BELOW));
     expect(await supplyNotice({ siteId: SITE_ID, firstArrivalAfter: SCAN_ID })).toEqual({
@@ -172,9 +172,9 @@ describe("ADR-061: exhausted supply is a proven arm, and there is at most one st
     expect(await supplyNotice({ siteId: SITE_ID })).toBeNull();
   });
 
-  it("a full month says nothing, arrival or not", async () => {
+  it("a full week and its spares says nothing, arrival or not", async () => {
     const { ctx } = fakeCost();
-    await deriveOnly(ctx, reportWith(SUPPLY_TARGET_DEPTH));
+    await deriveOnly(ctx, reportWith(PLAN_DEPTH));
     expect(await supplyNotice({ siteId: SITE_ID })).toBeNull();
     expect(await supplyNotice({ siteId: SITE_ID, firstArrivalAfter: SCAN_ID })).toBeNull();
   });
@@ -184,7 +184,7 @@ describe("ADR-061: exhausted supply is a proven arm, and there is at most one st
     await deriveOnly(ctx, reportWith(SUPPLY_SHORT_BELOW - 1));
     expect(await supplyNotice({ siteId: SITE_ID })).not.toBeNull();
 
-    await topUp(ctx, { ...input({ report: reportWith(SUPPLY_SHORT_BELOW + 4) }), hasActiveAccess: true });
+    await pass(ctx, reportWith(SUPPLY_SHORT_BELOW + 4));
     expect(await supplyNotice({ siteId: SITE_ID })).toBeNull();
   });
 
@@ -205,67 +205,51 @@ describe("ADR-061: exhausted supply is a proven arm, and there is at most one st
   });
 });
 
-describe("§7: pursuing depth buys nothing and never fills a day", () => {
-  it("a report with enough evidence stops at target_met", async () => {
+describe("§7: a pass buys nothing beyond its judgements and pads no day", () => {
+  it("the only spend is the fit, typing and same-question calls — no SERP, no ranked rows", async () => {
     const { ctx, sources } = fakeCost();
-    const result = await pursueDepth(ctx, {
-      ...input({ report: reportWith(6) }),
-      target: 5,
-    });
-    expect(result.stop).toBe("target_met");
-    expect(result.unused).toBeGreaterThanOrEqual(5);
-    // The only spend is the fit, typing and same-question calls — no SERP,
-    // no ranked rows.
+    const result = await pass(ctx, reportWith(6), "deep");
+    expect(result.unused).toBe(6);
     expect(new Set(sources)).toEqual(new Set(["topic-fit", "opportunity-typing", "topic-same-question"]));
   });
 
-  it("a report with less evidence than a month stops at evidence_spent and does not throw", async () => {
+  it("a report with less evidence than a week and its spares writes what it has and does not throw", async () => {
     const { ctx } = fakeCost();
-    const result = await pursueDepth(ctx, input({ report: reportWith(4) }));
-    expect(result).toEqual({ unused: 4, stop: "evidence_spent", created: 4 });
+    expect(await pass(ctx, reportWith(4), "deep")).toEqual({ tier: "deep", added: 4, unused: 4 });
   });
 
-  it("the target defaults to the pinned month, not a literal", async () => {
+  it("the count stops at the one depth number, a week and its spares", async () => {
     const { ctx } = fakeCost();
-    const result = await pursueDepth(ctx, input({ report: reportWith(SUPPLY_TARGET_DEPTH) }));
-    expect(result.unused).toBe(SUPPLY_TARGET_DEPTH);
-    expect(result.stop).toBe("target_met");
+    const result = await pass(ctx, reportWith(PLAN_DEPTH + 2), "deep");
+    expect(result.unused).toBe(PLAN_DEPTH);
   });
 
-  it("a cap already spent stops the pass early and derives nothing", async () => {
+  it("a cap already spent derives nothing", async () => {
     const { ctx } = cappedCost();
-    const result = await pursueDepth(ctx, input({ report: reportWith(6) }));
-    expect(result).toEqual({ unused: 0, stop: "pass_ended_early", created: 0 });
+    expect(await pass(ctx, reportWith(6), "deep")).toEqual({ tier: "deep", added: 0, unused: 0 });
     expect(state.rows).toEqual([]);
   });
 
   it("a short pass is a disclosure, never a gate — nothing here throws", async () => {
     const { ctx } = fakeCost();
-    await expect(pursueDepth(ctx, input({ report: reportWith(0) }))).resolves.toEqual({
-      unused: 0,
-      stop: "evidence_spent",
-      created: 0,
-    });
+    await expect(pass(ctx, reportWith(0), "deep")).resolves.toEqual({ tier: "deep", added: 0, unused: 0 });
   });
 });
 
-describe("§11's weekly top-up is additive and idempotent", () => {
+describe("§11's weekly pass is additive and idempotent", () => {
   it("a week that finds three new targets adds three", async () => {
     const { ctx } = fakeCost();
     await deriveOnly(ctx, reportWith(2));
-    const result = await topUp(ctx, {
-      ...input({ report: reportWith(5) }),
-      hasActiveAccess: true,
-    });
+    const result = await pass(ctx, reportWith(5));
     expect(result.added).toBe(3);
     expect(result.unused).toBe(5);
   });
 
-  it("running the same top-up twice adds nothing the second time", async () => {
+  it("running the same pass twice adds nothing the second time", async () => {
     const { ctx } = fakeCost();
     const week = reportWith(4);
-    const first = await topUp(ctx, { ...input({ report: week }), hasActiveAccess: true });
-    const second = await topUp(ctx, { ...input({ report: week }), hasActiveAccess: true });
+    const first = await pass(ctx, week);
+    const second = await pass(ctx, week);
     expect(first.added).toBe(4);
     expect(second.added).toBe(0);
     expect(second.unused).toBe(first.unused);
@@ -274,26 +258,38 @@ describe("§11's weekly top-up is additive and idempotent", () => {
   it("it dismisses nothing that was already there", async () => {
     const { ctx } = fakeCost();
     await deriveOnly(ctx, reportWith(3));
-    await topUp(ctx, { ...input({ report: reportWith(3) }), hasActiveAccess: true });
+    await pass(ctx, reportWith(3));
     expect(state.rows.every((row) => row.status === "open")).toBe(true);
   });
 
   it("a site without active access derives nothing", async () => {
     const { ctx, sources } = fakeCost();
-    const result = await topUp(ctx, {
-      ...input({ report: reportWith(5) }),
-      hasActiveAccess: false,
-    });
-    expect(result).toEqual({ added: 0, unused: 0 });
+    const result = await pass(ctx, reportWith(5), "weekly", false);
+    expect(result).toEqual({ tier: "weekly", added: 0, unused: 0 });
     expect(state.rows).toEqual([]);
     expect(sources).toEqual([]);
   });
 });
 
-/** Derives without going through `pursueDepth`, so a suite can set supply
- *  up without asserting on the pursuit's own return. */
+/** One pass over `report` (`deriveForPass`), its rivals sized as
+ *  `smallCounts` sizes them. */
+function pass(
+  ctx: Parameters<typeof deriveForPass>[0],
+  report: ReturnType<typeof defaultReport>,
+  tier: "deep" | "weekly" = "weekly",
+  hasActiveAccess = true
+) {
+  const rivalSizes = measured(
+    [...smallCounts().keys()].map((domain) => ({ domain, state: "sized" as const, rankedCount: 40, band: "near" as const, at: AT, current: true })),
+    AT
+  );
+  return deriveForPass(ctx, { tier, siteId: SITE_ID, report: { ...report, rivalSizes }, hasActiveAccess });
+}
+
+/** Derives without going through a pass, so a suite can set supply up
+ *  without asserting on the pass's own return. */
 async function deriveOnly(
-  ctx: Parameters<typeof pursueDepth>[0],
+  ctx: Parameters<typeof deriveForPass>[0],
   report: ReturnType<typeof defaultReport>
 ): Promise<void> {
   const { deriveOpportunities } = await import("../../../src/lib/opportunities/derive");

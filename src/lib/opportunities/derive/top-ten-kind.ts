@@ -14,7 +14,10 @@
 //                  everywhere: a shop that serves one place is found
 //                  through them ("bakery near me" is Yelp and Tripadvisor
 //                  for every bakery on the panel), so they are its market;
-//   local service  publishers — articles and round-ups, not providers.
+//   local service  publishers — articles and round-ups, not providers —
+//                  for a page that sells: a Q&A, how-to or documentation
+//                  page answers, and its top ten is articles for every
+//                  kind (issue 1561).
 //
 // Hospitality, professional services and creators have no such kind: a
 // café's market is its listings, an agency's is agencies, and a teacher's
@@ -29,6 +32,11 @@
 import { SHAPES } from "@/lib/locale/language";
 import type { BusinessKind } from "@/lib/market/kinds";
 import { isArticleRow, isListingHost, isRoundupPage } from "@/lib/market/rivals/domains";
+import { CONTENT_MIX } from "@/lib/config/constants";
+import { isLocalSearch, saysNearMe } from "@/lib/locale/place";
+import type { Place } from "@/lib/locale/locales";
+import { contentTypeOf } from "../content-type";
+import type { Opportunity } from "../types";
 
 export type OtherKind = "agency" | "directory" | "publisher";
 
@@ -45,6 +53,9 @@ export const OTHER_KIND: Readonly<Partial<Record<BusinessKind, OtherKind>>> = Ob
 export interface KindOfBusiness {
   kind?: BusinessKind | null;
   serves?: unknown;
+  /** The market's category and its other names, as one string (issue
+   *  1561): what a local search names the service by. */
+  words?: string;
 }
 
 /** How many of a top ten's results of the other kind make it that kind's
@@ -91,16 +102,44 @@ export function resultIs(row: TopTenRow, kind: OtherKind): boolean {
   return row.title !== undefined && SHAPES.agency.test(words(row.title));
 }
 
+/** The one place the business serves, or `null`. */
+export function servedPlace(business: KindOfBusiness | null | undefined): Place | null {
+  const serves = business?.serves;
+  return typeof serves === "object" && serves !== null && typeof (serves as Place).name === "string" ? (serves as Place) : null;
+}
+
+/**
+ * Whether a page answers a question rather than sells (issue 1561): a Q&A,
+ * a how-to or documentation, whose search does not ask for the business's
+ * place. Its top ten is articles for every kind of business, so a
+ * publishers' top ten does not make it another kind's market. "water
+ * heater repair cost" and "how to unclog a drain" are; "plumber austin"
+ * and "emergency plumber near me" are not.
+ */
+export function answersQuestion(page: Pick<Opportunity, "type" | "targetQuery">, business: KindOfBusiness | null): boolean {
+  const type = contentTypeOf(page);
+  if (type === null || !(CONTENT_MIX.NON_COMMERCIAL_TYPES as readonly string[]).includes(type)) return false;
+  const query = page.targetQuery ?? "";
+  const place = servedPlace(business);
+  return !(place === null ? saysNearMe(query) : isLocalSearch(query, place));
+}
+
 /**
  * The other kind of business a stored top ten is, for `business` — six or
  * more of its first ten results — or `null` where it is not, or the
- * business's kind is not known.
+ * business's kind is not known. A publishers' top ten says nothing of a
+ * `page` that answers a question (`answersQuestion`, issue 1561).
  */
-export function otherKindTopTen(rows: readonly TopTenRow[], business: KindOfBusiness | null): OtherKind | null {
+export function otherKindTopTen(
+  rows: readonly TopTenRow[],
+  business: KindOfBusiness | null,
+  page?: Pick<Opportunity, "type" | "targetQuery">
+): OtherKind | null {
   const kind = business?.kind ?? null;
   const other = kind === null ? undefined : OTHER_KIND[kind];
   if (other === undefined) return null;
   if (other === "directory" && business?.serves != null) return null;
+  if (other === "publisher" && page !== undefined && answersQuestion(page, business)) return null;
   const held = rows.slice(0, 10).filter((row) => resultIs(row, other)).length;
   return held >= OTHER_KIND_TOP_TEN.min ? other : null;
 }

@@ -166,14 +166,15 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     writeSample("weekly-unmeasured", mail, "variant");
   });
 
-  it("the Monday mail leads with the four headline numbers, and the score is not in it", async () => {
-    // SPEC §8 (2026-10-07, issue 1329). The figures are the fixture's.
+  it("the Monday mail leads with the headline numbers, the pages cited first, and the score is not in it", async () => {
+    // SPEC §8 (2026-10-07, issue 1329; order: issue 1551). The figures are the fixture's.
     const mail = await composePreview("weekly");
     const numbers = [
-      `${COPY["mail.weekly.number.mentionRate"]}: 34% · likely 22–48%`,
-      `${COPY["mail.weekly.number.pagesCited"]}: 3 · in AI answers, last 4 weeks`,
-      `${COPY["mail.weekly.number.top20"]}: 5 (+2)`,
+      `${COPY["mail.weekly.number.pageQuestions"]}: 2 · of 4 pages asked, this week`,
       `${COPY["mail.weekly.number.aiVisits"]}: at least 12 · pages read, last 7 days`,
+      `${COPY["mail.weekly.number.top20"]}: 5 (+2)`,
+      `${COPY["mail.weekly.number.pagesCited"]}: 3 · in AI answers, last 4 weeks`,
+      `${COPY["mail.weekly.number.mentionRate"]}: 34% · likely 22–48%`,
     ];
     // The twin states them one to a line, straight under the heading and
     // above everything else the mail says.

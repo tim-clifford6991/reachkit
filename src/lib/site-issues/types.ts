@@ -67,11 +67,18 @@ export type SiteIssue =
        *  is counted once even when it is both. */
       parts?: { missing: number; duplicate: number };
       /** The affected pages' addresses, for a count of pages; for the
-       *  answer-readers check, the pages a snippet control hides; `null` for
-       *  a count of links or declarations, and on a report written
-       *  before addresses were recorded (version ≤ 7). A Fix opportunity is
-       *  derived per page from this list and from nothing else. */
+       *  answer-readers check, the pages a snippet control hides; for broken
+       *  links, the addresses that answered with an error (issue 1550);
+       *  `null` for a count of declarations, and on a report written before
+       *  addresses were recorded (version ≤ 7, and for broken links before
+       *  issue 1550). A Fix opportunity is derived per page from this list
+       *  and from nothing else. */
       pages: readonly string[] | null;
+      /** Slow pages only (issue 1550): each page's measured time in
+       *  milliseconds, in `pages` order — the quicker of the two reads that
+       *  agreed. Absent on a report written before a second read was taken,
+       *  whose count rests on one read. */
+      ms?: readonly number[];
     }
   | { check: SiteCheck; ran: false; because: CouldNotRun };
 

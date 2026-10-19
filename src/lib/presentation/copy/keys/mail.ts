@@ -212,7 +212,15 @@ export const MAIL_COPY = Object.freeze({
   // words are the Overview tiles' own (`overview.tile.*`), kept here so the
   // mail has its German: a second spelling of a number's name would be the
   // second place the product speaks (ADR-001). Drafted (#759).
-  "mail.weekly.number.mentionRate": ["AI mention rate", { slots: {}, fixedBy: "SPEC §8 2026-10-07 (drafted)" }],
+  // Issue 1551 (SEO review R5.1): the published pages' own questions an AI
+  // answer linked lead, in the AI tab's words; the mention rate is named as
+  // the brand reputation it measures. Drafted (#759).
+  "mail.weekly.number.pageQuestions": ["Your pages cited", { slots: {}, fixedBy: "issue 1551 (drafted)" }],
+  "mail.weekly.number.pageQuestions.of": [
+    "of {asked} pages asked, this week",
+    { slots: { asked: "text" }, fixedBy: "issue 1551 (drafted)" },
+  ],
+  "mail.weekly.number.mentionRate": ["Brand reputation: AI mention rate", { slots: {}, fixedBy: "issue 1551 (drafted)" }],
   "mail.weekly.number.mentionRate.band": [
     "likely {low}–{high}%",
     { slots: { low: "text", high: "text" }, fixedBy: "SPEC §8 2026-10-07 (drafted)" },
@@ -252,7 +260,10 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.nowNamed.item": ["{search}", { slots: { search: "text" }, fixedBy: "SPEC §8 2026-09-29 D16" }],
   "mail.weekly.verdicts": ["pages judged", { slots: {}, fixedBy: "REQ-063 c4" }],
   "mail.weekly.verdicts.none": ["No pages published yet, so none to judge.", { slots: {}, fixedBy: "REQ-064 c3" }],
-  "mail.weekly.next": ["next three", { slots: {}, fixedBy: "§12" }],
+  // SPEC §7 (issue 1559): the week this Monday committed, and its spares.
+  // Drafted (#759).
+  "mail.weekly.next": ["this week’s pages", { slots: {}, fixedBy: "SPEC §7 2026-10-19 (drafted)" }],
+  "mail.weekly.spares": ["spares, if a day’s page cannot be written", { slots: {}, fixedBy: "SPEC §7 2026-10-19 (drafted)" }],
   "mail.weekly.next.none": ["Nothing next: no open opportunity is left, and the plan is never padded.", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
   "mail.weekly.next.item": ["{search}", { slots: { search: "text" }, fixedBy: "§12" }],
 

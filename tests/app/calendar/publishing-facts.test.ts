@@ -24,7 +24,7 @@ const db: FakeDb = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 const supplyDepth = vi.fn();
-const nextForDay = vi.fn();
+const committedWeek = vi.fn();
 const rankOpen = vi.fn();
 const explainChoice = vi.fn();
 
@@ -34,7 +34,7 @@ vi.mock("@/lib/opportunities", () => ({
   // says otherwise.
   supplyMeasured: async () => true,
   supplyState: async () => "measured",
-  nextForDay: (...a: unknown[]) => nextForDay(...a),
+  committedWeek: (...a: unknown[]) => committedWeek(...a),
   rankOpen: (...a: unknown[]) => rankOpen(...a),
   explainChoice: (...a: unknown[]) => explainChoice(...a),
 }));
@@ -125,7 +125,6 @@ function seed(a: {
  *  the proven-zero arm — never by a depth nobody read. */
 function withNoSupply(): void {
   supplyDepth.mockResolvedValue({ unused: 0 });
-  nextForDay.mockResolvedValue(null);
   rankOpen.mockResolvedValue([]);
   explainChoice.mockImplementation(async (id: string) =>
     choiceFor(Number(String(id).replace("opp-", "")) || 0)
@@ -135,7 +134,6 @@ function withNoSupply(): void {
 function withSupply(count: number): void {
   const ids = Array.from({ length: count }, (_, n) => `opp-${n}`);
   supplyDepth.mockResolvedValue({ unused: count });
-  nextForDay.mockResolvedValue(count === 0 ? null : { id: ids[0] });
   rankOpen.mockResolvedValue(ids.map((id) => ({ opportunityId: id, score: 1 })));
   explainChoice.mockImplementation(async (id: string) =>
     choiceFor(Number(String(id).replace("opp-", "")) || 0)
@@ -144,7 +142,8 @@ function withSupply(count: number): void {
 
 beforeEach(() => {
   supplyDepth.mockReset();
-  nextForDay.mockReset();
+  committedWeek.mockReset();
+  committedWeek.mockResolvedValue({ days: [], spares: [] });
   rankOpen.mockReset();
   explainChoice.mockReset();
   withNoSupply();

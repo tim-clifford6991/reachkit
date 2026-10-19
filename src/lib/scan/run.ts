@@ -95,7 +95,7 @@ import { freePageOf } from "@/lib/opportunities/free-page";
 import { DEFAULT_LOCALE, type Locale, type Place } from "@/lib/locale/locales";
 import { localSearch, placeCandidates, placeOf, statedPlace as statedPlaceOf, type PlaceFrom } from "@/lib/locale/place";
 import { readStoredLocale, writeSiteLocale } from "@/lib/locale/site";
-import { aiPresenceOf, aiSampleOf, BOT_PROTECTION, classifyReferences, localPackSearches, measureDomain, searchPresenceOf, type DomainMeasurement } from "@/lib/measure";
+import { aiPresenceOf, aiSampleOf, BOT_PROTECTION, classifyReferences, localPackSearches, measureDomain, searchPresenceOf, withMeasuredPages, type DomainMeasurement } from "@/lib/measure";
 import { aiPresenceRangeOf } from "@/lib/measure/drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import { foldSerps, outcomeOf, type InputOutcome, type ScanInput } from "@/lib/measure/partition";
@@ -690,6 +690,7 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   insert(values: Record<string, unknown>): MinimalQueryBuilder<T>;
   update(values: Record<string, unknown>): MinimalQueryBuilder<T>;
   eq(column: string, value: string): MinimalQueryBuilder<T>;
+  gte(column: string, value: string): MinimalQueryBuilder<T>;
   order(column: string, opts: { ascending: boolean }): MinimalQueryBuilder<T>;
   limit(n: number): MinimalQueryBuilder<T>;
 }
@@ -1464,6 +1465,34 @@ async function runStages(a: StageArgs): Promise<void> {
   }
 }
 
+/**
+ * Issue 1551: the score's Content over the site's measured pages — the
+ * pages ReachKit has live for it, newest first, then the pages its crawl
+ * read — up to the tier's allowance (`withMeasuredPages`). A free scan has
+ * no site and an allowance of none, so it reads nothing here. A list of our
+ * pages that cannot be read leaves the crawl's pages to stand alone.
+ */
+async function measuredContent(a: StageArgs, m: DomainMeasurement, crawled: readonly string[]): Promise<DomainMeasurement["drivers"]["answerability"]> {
+  let ours: readonly string[] = [];
+  if (a.siteId !== undefined) {
+    try {
+      const { readLivePages } = await import("@/lib/known-content/ours");
+      ours = await readLivePages(a.siteId);
+    } catch (error) {
+      console.log(JSON.stringify({ event: "live_pages_unread", because: error instanceof Error ? error.message : String(error) }));
+    }
+  }
+  const read = await withMeasuredPages(a.cost, {
+    measurement: m,
+    domain: a.domain,
+    tier: a.tier,
+    at: a.startedAt,
+    pages: [...ours, ...crawled],
+    ...(a.sinceDays === undefined ? {} : { ownWindowDays: a.sinceDays }),
+  });
+  return read.drivers.answerability;
+}
+
 /** The crawl of the customer's own site, while it runs (issue 1419). */
 interface SiteCrawl {
   reading: Promise<void>;
@@ -1602,9 +1631,13 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
         tier: a.tier,
         locale: measurement.locale,
       });
+      const content = await measuredContent(a, measurement, crawl.pages.map((page) => page.url));
       // SPEC §9: the technical-issue checks run over exactly this crawl —
       // the one run, nothing fetched beyond its set (2026-09-12).
       if (!bounds.abandoned() && !sections.sealed) {
+        if (sections.measurement !== null) {
+          sections.measurement = { ...sections.measurement, drivers: { ...sections.measurement.drivers, answerability: content } };
+        }
         if (profile !== null) sections.siteName = promptSiteName(profile.siteName, domain);
         sections.siteCrawl = readingOf(crawl);
         sections.pagesRead = crawl.pages.map((page) => ({
@@ -2225,8 +2258,12 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   // about this market, not off it. And the market in force says which of
   // its own searches are measured and which searches never are (D65).
   let measuredMarket = measuredMarketOf(sections.market, place);
-  const category = (): Pick<Parameters<typeof selectTwelve>[0], "category" | "synonyms" | "measured" | "place"> => ({
+  // Issue 1549: what this site's passes measured in the last weeks, so the
+  // week's twelve read something new. A correction re-reads its own week.
+  const recent = a.siteId === undefined || a.tier !== "weekly" || a.correction ? [] : await recentSearches(a.siteId, a.startedAt);
+  const category = (): Pick<Parameters<typeof selectTwelve>[0], "category" | "synonyms" | "measured" | "place" | "recent"> => ({
     ...(measuredUnder === undefined ? {} : { category: measuredUnder }),
+    ...(recent.length === 0 ? {} : { recent }),
     synonyms: [...synonyms, ...searched],
     ...(measuredMarket === undefined ? {} : { measured: measuredMarket }),
     // Issue 1441: a free pass with a town has no market to say where it
@@ -2312,6 +2349,30 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
 
   if (isShort(sections.selected)) sections.selected = widen();
   return judgeThenPhrase();
+}
+
+/** Issue 1549: the searches this site's passes measured in the
+ *  `SELECTION.freshWeeks` weeks before `at`, from their stored reports.
+ *  None where they cannot be read: the twelve are then chosen as before. */
+async function recentSearches(siteId: string, at: Date): Promise<string[]> {
+  try {
+    const since = new Date(at.getTime() - SELECTION.freshWeeks * 7 * 86_400_000).toISOString();
+    const { data, error } = await untyped(dbAdmin())
+      .from<{ questions: unknown }>("scans")
+      .select("questions:report->questions")
+      .eq("site_id", siteId)
+      .gte("created_at", since);
+    if (error !== null) return [];
+    return (data ?? []).flatMap((row) => {
+      const questions = row.questions as { kind?: unknown; value?: unknown } | null;
+      if (questions?.kind !== "measured" || !Array.isArray(questions.value)) return [];
+      return questions.value.flatMap((question: { search?: { keyword?: unknown } }) =>
+        typeof question?.search?.keyword === "string" ? [question.search.keyword] : []
+      );
+    });
+  } catch {
+    return [];
+  }
 }
 
 /** The profile with the customer's own corrections applied (issue 1454);
@@ -3278,8 +3339,8 @@ function score(a: Pick<StageArgs, "domain" | "sections" | "parameters" | "correc
   // Beside the card, never inside it (#919): the page questions are
   // composed from their own three arrays, and none of the four values
   // above — the rivals, the presence card, the AI-answers card and the
-  // coherence verdict — has seen one. That is what keeps the score's AI
-  // Presence exactly what it was before a page had a question.
+  // coherence verdict — has seen one. The score's AI Presence reads their
+  // cells beside the twelve's (owner, 2026-10-19, issue 1551).
   sections.pageQuestions = pageQuestionsSectionOf({
     asked: sections.pageAsked,
     serps: sections.pageSerps as readonly Measured<MarketSerp>[],
@@ -3351,6 +3412,9 @@ function composeReport(a: {
   // fallbacks below read a single value rather than an optional chain each.
   const carried = a.carried ?? null;
   const carriedSiteIssues = carried === null ? null : carried.siteIssues;
+  // Issue 1551: the page questions' AI Overviews count toward AI presence
+  // beside the twelve's — the section the report stores, read as stored.
+  const pageCells = (s.pageQuestions ?? carried?.pageQuestions)?.rows.map((row) => row.cell) ?? [];
 
   // One date: the moment the pass started (issue 1392), which the
   // measurement was handed and every `Measured` under the verdict carries;
@@ -3371,7 +3435,7 @@ function composeReport(a: {
       : {
           ...m.drivers,
           searchPresence: withLocalPackPresence(m, localPackSearches({ serps: s.serps, searches: s.selected.map((search) => search.keyword), ownDomain: a.domain })),
-          aiPresence: aiPresenceOf({ serps: s.serps, ownDomain: a.domain, siteName: s.siteName, at: measuredAt }),
+          aiPresence: aiPresenceOf({ serps: s.serps, pageCells, ownDomain: a.domain, siteName: s.siteName, at: measuredAt }),
         };
 
   const market: Measured<MarketSet> =
@@ -3404,7 +3468,7 @@ function composeReport(a: {
     question_serps: outcomeOf(foldSerps(s.serps, measuredAt)),
   };
 
-  const aiSample = aiSampleOf({ serps: s.serps, ownDomain: a.domain, siteName: s.siteName });
+  const aiSample = aiSampleOf({ serps: s.serps, pageCells, ownDomain: a.domain, siteName: s.siteName });
   const verdict: Verdict = verdictOf({
     domain: a.domain,
     measuredAt,

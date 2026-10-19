@@ -9,11 +9,13 @@
 // measured, a list that was not measured omits its section, and a measured
 // zero prints as the result it is.
 //
-// **The numbers are D22's four, in D22's order** — the AI mention rate, the
-// site's pages cited, its pages in Google's top 20, and AI visits to a
-// hosted blog — and the Discoverability Score is not in this mail: it is
-// the free report's grade. Under them every block is a fact. No sentence
-// says a number again.
+// **The numbers lead with what a page moves first** (owner, 2026-10-19,
+// issue 1551; SEO review R5.1): the published pages' own questions an AI
+// answer linked, then AI visits to a hosted blog, the pages in Google's
+// first two pages, the pages linked, and last the AI mention rate, named
+// as the brand reputation it is. The Discoverability Score is not in this
+// mail: it is the free report's grade. Under them every block is a fact.
+// No sentence says a number again.
 //
 // `weekly` is `stoppable: 'toggle'` in the register; the stop control is the
 // caller's to hand `sendEmail`, and this file carries none. No caller hands
@@ -53,6 +55,8 @@ function overviewHref(): string {
   return new URL("/app", env.NEXT_PUBLIC_APP_URL).toString();
 }
 const NEEDS_YOU_ACTION = "mail.weekly.needsYou.action" satisfies CopyKey;
+const PAGE_QUESTIONS = "mail.weekly.number.pageQuestions" satisfies CopyKey;
+const PAGE_QUESTIONS_OF = "mail.weekly.number.pageQuestions.of" satisfies CopyKey;
 const MENTION_RATE = "mail.weekly.number.mentionRate" satisfies CopyKey;
 const MENTION_RATE_BAND = "mail.weekly.number.mentionRate.band" satisfies CopyKey;
 const MENTION_RATE_EARLY = "mail.weekly.number.mentionRate.early" satisfies CopyKey;
@@ -70,6 +74,7 @@ const VERDICTS_NONE = "mail.weekly.verdicts.none" satisfies CopyKey;
 const NEXT = "mail.weekly.next" satisfies CopyKey;
 const NEXT_NONE = "mail.weekly.next.none" satisfies CopyKey;
 const NEXT_ITEM = "mail.weekly.next.item" satisfies CopyKey;
+const SPARES = "mail.weekly.spares" satisfies CopyKey;
 const PAGE = "mail.weekly.page" satisfies CopyKey;
 const PAGE_MOVED = "mail.weekly.page.moved" satisfies CopyKey;
 const PAGE_MOVED_OVER = "mail.weekly.page.moved_over" satisfies CopyKey;
@@ -109,6 +114,10 @@ export interface WeeklyNeedsYou {
  * them. A number nobody measured is `unmeasured`, and its row says so.
  */
 export interface WeeklyNumbers {
+  /** Issue 1551: the published pages' own questions this week whose AI
+   *  answer linked the site, out of those asked. Absent where the week
+   *  asked none, and then the mail has no such row. */
+  readonly pageQuestions?: { readonly cited: Measured<number>; readonly asked: number };
   /** The AI mention rate over the tracked buyer prompts, as a whole
    *  percentage, with the range it likely sits in. Before a rate may be
    *  shown (D58, issue 1287) it is the count of answers that named the
@@ -140,10 +149,14 @@ export function buildWeekly(a: {
    *  measured empty list is "you have published nothing yet", which is a
    *  different fact and gets its own written line. */
   pages: Measured<readonly WeeklyPage[]>;
-  /** The next three, by the ranking. `unmeasured` omits the section;
-   *  measured-and-empty states the supply's own empty line — the calendar
-   *  is never padded (DECISIONS 2026-08-28). */
+  /** The week's pages, in date order, as this Monday committed them (issue
+   *  1559). `unmeasured` omits the section; measured-and-empty states the
+   *  supply's own empty line — the calendar is never padded (DECISIONS
+   *  2026-08-28). */
   next: Measured<readonly { targetQuery: string }[]>;
+  /** The week's spares, written where a day's page cannot be. Absent or
+   *  empty: no list. */
+  spares?: Measured<readonly { targetQuery: string }[]>;
   /** SPEC §9 on Monday (#573): the technical checks whose count moved since
    *  last Monday. Unmeasured — or absent — where either week stored no
    *  checks, and then the rows are absent; a week with no movement has
@@ -164,8 +177,8 @@ export function buildWeekly(a: {
     reason: REASON,
     blocks: [
       { block: "heading", text: HEADING },
-      // The first thing is the numbers (owner, 2026-10-07): D22's four, two
-      // to a row, each with what it is read against.
+      // The first thing is the numbers (owner, 2026-10-07), two to a row,
+      // each with what it is read against (order: issue 1551).
       ...(a.numbers === undefined ? [] : [{ block: "stats", items: numberRows(a.numbers) } as const]),
       ...(a.marketChanges ?? []).map((change) => ({ block: "paragraph", text: change.line, vars: change.vars }) as const),
       // What moved among the technical checks: last week's count, then this
@@ -194,6 +207,9 @@ export function buildWeekly(a: {
         items: mapMeasuredRows(a.next, nextRows),
         emptyLine: NEXT_NONE,
       },
+      ...(a.spares === undefined || a.spares.kind === "unmeasured" || a.spares.value.length === 0
+        ? []
+        : [{ block: "list", label: SPARES, items: mapMeasuredRows(a.spares, nextRows), emptyLine: NEXT_NONE } as const]),
       // #933's one needs-you item: the line, and the button that opens the
       // thing itself. Both or neither — an item with nowhere to go is a
       // sentence about a page the reader cannot reach.
@@ -210,11 +226,12 @@ export function buildWeekly(a: {
   };
 }
 
-/** D22's four as rows, in D22's order. Each carries the line it states
- *  where nobody measured it, so a row is never dropped and never a zero. */
+/** The headline numbers as rows, in issue 1551's order. Each carries the
+ *  line it states where nobody measured it, so a row is never dropped and
+ *  never a zero. */
 function numberRows(n: WeeklyNumbers): readonly StatRow[] {
   const weeks = String(n.weeks);
-  return [
+  const mentions: StatRow =
     n.mentions.kind === "rate"
       ? {
           label: MENTION_RATE,
@@ -229,21 +246,19 @@ function numberRows(n: WeeklyNumbers): readonly StatRow[] {
           format: "integer",
           note: { text: MENTION_RATE_EARLY, vars: { answers: String(n.mentions.answers) } },
           unmeasuredLine: NOT_MEASURED,
-        },
-    {
-      label: PAGES_CITED,
-      value: n.pagesCited,
-      format: "integer",
-      note: { text: PAGES_CITED_WINDOW, vars: { weeks } },
-      unmeasuredLine: NOT_MEASURED,
-    },
-    {
-      label: TOP_20,
-      value: n.top20,
-      format: "integer",
-      ...(n.top20Change === undefined ? {} : { change: n.top20Change }),
-      unmeasuredLine: NOT_MEASURED,
-    },
+        };
+  return [
+    ...(n.pageQuestions === undefined
+      ? []
+      : [
+          {
+            label: PAGE_QUESTIONS,
+            value: n.pageQuestions.cited,
+            format: "integer",
+            note: { text: PAGE_QUESTIONS_OF, vars: { asked: String(n.pageQuestions.asked) } },
+            unmeasuredLine: NOT_MEASURED,
+          } as const,
+        ]),
     ...(n.aiVisits === undefined
       ? []
       : [
@@ -256,6 +271,21 @@ function numberRows(n: WeeklyNumbers): readonly StatRow[] {
             unmeasuredLine: NOT_MEASURED,
           } as const,
         ]),
+    {
+      label: TOP_20,
+      value: n.top20,
+      format: "integer",
+      ...(n.top20Change === undefined ? {} : { change: n.top20Change }),
+      unmeasuredLine: NOT_MEASURED,
+    },
+    {
+      label: PAGES_CITED,
+      value: n.pagesCited,
+      format: "integer",
+      note: { text: PAGES_CITED_WINDOW, vars: { weeks } },
+      unmeasuredLine: NOT_MEASURED,
+    },
+    mentions,
   ];
 }
 

@@ -26,3 +26,16 @@ export const SITE_SEVERITY_WORD: Readonly<Record<IssueSeverity, CopyKey>> = Obje
   worth_fixing: SEVERITY[1],
   critical: SEVERITY[2],
 });
+
+/** Issue 1550: what the customer does about each check they fix, in one
+ *  sentence. A check with none here is never a needs-you item, because an
+ *  item with nothing to do is not one. The checks ReachKit fixes have none:
+ *  they are its Fix work. */
+export const SITE_CHECK_FIX: Readonly<Partial<Record<SiteCheck, CopyKey>>> = Object.freeze({
+  noindex_pages: "check.noindex-pages.fix",
+  sitemap: "check.sitemap.fix",
+  slow_pages: "check.slow-pages.fix",
+  broken_links: "check.broken-links.fix",
+  phone_usability: "check.phone-usability.fix",
+  ai_readers_blocked: "check.ai-readers.fix",
+});

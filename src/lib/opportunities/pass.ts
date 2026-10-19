@@ -1,12 +1,16 @@
 // BUILD §7, §6.3 — what a paid pass does with what it measured.
 //
-// One function, two tiers, and no third caller: the deep pass at
-// onboarding pursues a month of depth out of the evidence it just bought
-// (`pursueDepth`), and every weekly measurement adds what the week newly
-// found (`topUp`). Both run inside the pass's own cost context, under the
-// pass's own cap — §6.3 puts "Haiku ×~4 for opportunity typing" in the
-// deep and weekly budgets and nowhere else — and both persist through the
-// same partial unique index, so a re-derived target adds nothing.
+// One function, one path for both tiers (issue 1559): the pass derives what
+// its evidence supports, gives the new rows their readiness, and where the
+// site could not fill a committed week (`PLAN_DEPTH`: seven days and three
+// spares) refills it at 0¢ from what buyers were seen asking
+// (`refillSupply`). It runs inside the pass's own cost context, under the
+// pass's own cap — §6.3 puts "Haiku ×~4 for opportunity typing" in the deep
+// and weekly budgets and nowhere else — and persists through the partial
+// unique index, so a re-derived target adds nothing. The week itself is
+// committed after the week's verdicts (`planWeek`, from `weekly/refresh`);
+// a deep pass clears the site's week, so its next evening commits one from
+// what this pass wrote.
 //
 // **This module reads the report and decides nothing.** The two inputs
 // §7's winnability needs are projections of the blob and are taken here
@@ -33,18 +37,19 @@
 //                   holds.
 //
 // Nothing here writes a sentence, reads a clock, or decides whether the
-// customer has paid: `hasActiveAccess` is the caller's answer, exactly as
-// `topUp`'s own header requires.
+// customer has paid: `hasActiveAccess` is the caller's answer. A site whose
+// access has lapsed gets no derivation, the same shape re-measurement itself
+// takes.
 import type { CostContext } from "@/lib/costs";
 import type { StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
-import type { DeriveInput } from "./derive";
 import { assessFixPages } from "./fix-page";
 import type { KnownMatch } from "@/lib/known-content/types";
-import { canUpdateFrom } from "./readiness";
+import { deriveOpportunities, type DeriveInput } from "./derive";
+import { assessReadiness, canUpdateFrom } from "./readiness";
 import { opportunityStore } from "./store";
-import { pursueDepth, type DepthStop } from "./supply/pursue";
-import { topUp } from "./supply/topup";
+import { supplyDepth } from "./supply/depth";
+import { refillSupply } from "./supply/refill";
 import { rankedCountsFromSizes, type RankedCounts } from "./winnability/counts";
 
 /** Which pass is asking. The free tier is absent by construction: §6.6
@@ -52,9 +57,11 @@ import { rankedCountsFromSizes, type RankedCounts } from "./winnability/counts";
  *  to hold supply for. */
 export type PassTier = "deep" | "weekly";
 
-export type PassOutcome =
-  | { tier: "deep"; created: number; unused: number; stop: DepthStop }
-  | { tier: "weekly"; added: number; unused: number };
+export interface PassOutcome {
+  tier: PassTier;
+  added: number;
+  unused: number;
+}
 
 /** #37's sizing as winnability reads it. An `unmeasured` arm is an empty
  *  lookup and not an error: every top-ten domain then reads
@@ -136,14 +143,11 @@ async function knownGateFor(a: {
 }
 
 /**
- * Derives and persists one pass's opportunities.
- *
- * The deep pass pursues depth: one derivation over everything the pass
- * measured, and then it stops — `pursueDepth` buys nothing beyond it, so
- * where the evidence runs out before a month of days does the answer is a
- * shorter calendar and a truthful line (§14's volume-follows-supply
- * guardrail). The weekly pass tops up: additive only, and nothing at all
- * where access has lapsed.
+ * Derives and persists one pass's opportunities, and refills a site short of
+ * a committed week from stored questions. Where the evidence and the
+ * questions run out first, the answer is a shorter week and a truthful line
+ * (§14's volume-follows-supply guardrail), never a padded one. A weekly pass
+ * does nothing at all where access has lapsed.
  */
 export async function deriveForPass(
   c: CostContext,
@@ -183,17 +187,23 @@ export async function deriveForPass(
 
   // SPEC §9 (#690): this pass's scan retires the fixes it shows cleared
   // before anything is derived, so a page fixed last week is not re-derived
-  // beside its own closed row; and the fixes that stand have their
-  // readiness recorded once the derivation has added any new ones.
+  // beside its own closed row. The fixes that stand have their readiness
+  // recorded with the week's (`planWeek`).
   await assessFixPages(a.siteId, { report: a.report });
+  if (a.tier === "weekly" && !a.hasActiveAccess) return { tier: a.tier, added: 0, unused: (await supplyDepth(a.siteId)).unused };
 
-  if (a.tier === "deep") {
-    const { created, unused, stop } = await pursueDepth(c, input);
-    await assessFixPages(a.siteId, { report: null });
-    return { tier: "deep", created, unused, stop };
+  // One derivation, not a loop: the report is a fixed set of measurements,
+  // and a pass with no money left spends none here. Its new rows have their
+  // readiness before the refill counts them.
+  const derived = c.capHit() ? null : await deriveOpportunities(c, input);
+  if (derived !== null && derived.created.length > 0) {
+    await assessReadiness(a.siteId, { at: a.report.verdict.measuredAt, only: new Set(derived.created.map((row) => row.id)) });
   }
-
-  const { added, unused } = await topUp(c, { ...input, hasActiveAccess: a.hasActiveAccess });
-  await assessFixPages(a.siteId, { report: null });
-  return { tier: "weekly", added, unused };
+  const refilled = await refillSupply({ ...input, spare: derived?.spare ?? [], refused: derived?.refused ?? [] });
+  // A deep pass (onboarding, or the customer's re-measure) changed what the
+  // site holds: its next evening commits the week again.
+  if (a.tier === "deep") await store.commitPlan?.(a.siteId, []);
+  const added = (derived?.created.length ?? 0) + refilled.added;
+  console.log(JSON.stringify({ event: "supply_pass", tier: a.tier, siteId: a.siteId, scanId: a.report.scanId, added, unused: refilled.unused }));
+  return { tier: a.tier, added, unused: refilled.unused };
 }

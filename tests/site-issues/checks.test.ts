@@ -117,6 +117,8 @@ describe("the nine checks, over the crawled set", () => {
     // One broken target, linked twice, counted once — over the two linked
     // targets the crawl fetched. The page it never read is not counted.
     expect(broken).toMatchObject({ count: 1, over: 2, unit: "links", severity: "critical", doer: "free_fix" });
+    // Issue 1550: the address is kept, so the customer is told which one.
+    expect(broken.pages).toEqual(["https://example.com/gone"]);
   });
 
   it("a noindex home page is a site-wide fault — Critical — while one noindexed page among many is not", () => {
@@ -164,14 +166,25 @@ describe("the nine checks, over the crawled set", () => {
     });
   });
 
-  it("slow pages are counted over the pages whose fetch was timed, at the pinned bound", () => {
+  it("slow pages are counted over the pages whose fetch was timed, at the pinned bound, where two reads agree", () => {
     const pages = [
-      pageAt(1, { fetchMs: SITE_ISSUES.SLOW_PAGE_MS }),
+      pageAt(1, { fetchMs: SITE_ISSUES.SLOW_PAGE_MS + 900, againMs: SITE_ISSUES.SLOW_PAGE_MS }),
       pageAt(2, { fetchMs: SITE_ISSUES.SLOW_PAGE_MS - 1 }),
       pageAt(3, { fetchMs: null }),
     ];
     const slow = ran(issue(checkSite({ crawl: crawl(pages), robots: ROBOTS, blockedAgents: [] }), "slow_pages"));
-    expect(slow).toMatchObject({ count: 1, over: 2 });
+    expect(slow).toMatchObject({ count: 1, over: 2, pages: [pages[0]?.key], ms: [SITE_ISSUES.SLOW_PAGE_MS] });
+  });
+
+  // Issue 1550: one slow read is a cold start as often as a slow page.
+  it("a page slow on one read and quick on the next, or read only once, is not slow", () => {
+    const pages = [
+      pageAt(1, { fetchMs: SITE_ISSUES.SLOW_PAGE_MS + 2_000, againMs: 400 }),
+      pageAt(2, { fetchMs: SITE_ISSUES.SLOW_PAGE_MS + 2_000, againMs: null }),
+      pageAt(3, { fetchMs: SITE_ISSUES.SLOW_PAGE_MS + 2_000 }),
+    ];
+    const slow = ran(issue(checkSite({ crawl: crawl(pages), robots: ROBOTS, blockedAgents: [] }), "slow_pages"));
+    expect(slow).toMatchObject({ count: 0, over: 3, severity: "nothing_to_fix", pages: [], ms: [] });
   });
 
   it("counts pages a phone cannot use and pages with no structured data", () => {

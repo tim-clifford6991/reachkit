@@ -331,6 +331,9 @@ export interface AiAnswersSection {
  * rival row — so a page question added to `aiAnswers.rows` would move a
  * published score by arriving, which is a measurement changing because the
  * product wrote a page rather than because the market did anything.
+ * Since issue 1551 (owner, 2026-10-19) the score's AI Presence reads each
+ * row's `cell` beside the twelve's SERPs, on purpose: a page cited on its
+ * own question is progress. The cards and their counts still do not.
  *
  * `null` where the pass asked none: the free and onboarding passes (no
  * published page has a question yet), a site with no live page, and every
@@ -372,6 +375,11 @@ export interface PageQuestionRow {
   question: StoredQuestion;
   cell: AnswerCell;
   engines: readonly EngineCell[];
+  /** Issue 1548: the organic rows of the Google result bought for this
+   *  question, to the depth bought — what the page's own verdict reads its
+   *  place from. `null` where that result could not be read this week;
+   *  absent on a row stored before the rows were kept. */
+  organic?: readonly { url: string; position: number }[] | null;
 }
 
 export interface RetiredPageQuestion {

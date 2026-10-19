@@ -1,9 +1,10 @@
 // SPEC §4 (2026-09-20, #908) — the Search tab's four readings.
 //
-// The searches ReachKit is keeping ready, how many of the live pages have
-// reached Google's first two pages, how many of the searches it tracks are
-// on Google's first page (issue 1457: the rows the `first_page` chip shows,
-// and Overview's Google tile), and every search the site appears for.
+// The searches ReachKit is keeping ready, how far Google has got with the
+// searches the live pages target (issue 1551: the rows the `live` chip
+// shows, and Overview's Google tile), your market's twelve searches on
+// Google's first page — a months-scale outcome, said so on the tile — and
+// every search the site appears for.
 //
 // **§4's data rule holds on all four**: "every headline number has a
 // change, a goal or a denominator." None of them carries a change — no
@@ -16,8 +17,8 @@
 // the dash and its own written line and never a zero.
 //
 // **Two lines are this site's own reading** (#1039, board R4-05-Search):
-// the queue says how long it lasts, and the first page names the search
-// best placed on it. The other two keep the board's fixed line. A dash on
+// the queue says how long it lasts, and the pages tile splits its searches
+// by place. The other two keep a fixed line. A dash on
 // either of the two says why it is a dash — never the fixed line instead.
 //
 // **A zero is quiet** (docs/DESIGN.md, the calm layer, #1089). A tile whose
@@ -35,11 +36,6 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { CLOSED, TILE_FIGURE, TILE_GRID, formatCount, renderValue } from "./present";
 import type { SearchTile, SearchTiles as Tiles, TileReading } from "./search-model";
 
-/** A place on the results page, spoken the way the table speaks it. */
-function place(position: number): string {
-  return copy("overview.search.position", { position: formatCount(position) });
-}
-
 /** The site's own reading, as the registry words it. */
 function readingLine(r: TileReading): string {
   switch (r.kind) {
@@ -49,18 +45,12 @@ function readingLine(r: TileReading): string {
       return r.days === 1
         ? copy("overview.search.tile.going-after.one-day")
         : copy("overview.search.tile.going-after.none");
-    case "first-page":
-      return r.others === 0
-        ? copy("overview.search.tile.first-page.one", { search: r.search, position: place(r.position) })
-        : copy("overview.search.tile.first-page.more", {
-            search: r.search,
-            position: place(r.position),
-            others: formatCount(r.others),
-          });
-    case "closest":
-      return copy("overview.search.tile.first-page.closest", { search: r.search, position: place(r.position) });
-    case "no-place":
-      return copy("overview.search.tile.first-page.no-place");
+    case "pages":
+      return copy("overview.search.tile.your-pages.split", {
+        first: formatCount(r.firstPage),
+        further: formatCount(r.further),
+        unseen: formatCount(r.unseen),
+      });
   }
 }
 
@@ -110,8 +100,10 @@ function Tile(p: {
         >
           {value.text}
         </span>
+        {/* "of 30 searches your pages target" is a phrase, not a token:
+            it folds between words inside its row (`num-phrase`). */}
         {against === null ? null : (
-          <span className={`num text-sm ${ink}`}>{against}</span>
+          <span className={`num num-phrase min-w-0 text-sm ${ink}`}>{against}</span>
         )}
       </div>
     </>
@@ -162,18 +154,21 @@ const TILES = [
     meansKey: null,
   },
   {
-    id: "firstTwoPages",
-    labelKey: "overview.search.tile.first-two-pages",
-    testId: "search-tile-first-two-pages",
-    againstKey: "overview.search.tile.pages.of",
-    meansKey: "overview.search.tile.first-two-pages.means",
+    // Issue 1551: the searches the live pages target, split by how far
+    // Google has got with each — the reading Overview's Google tile states.
+    id: "pages",
+    labelKey: "overview.search.tile.your-pages",
+    testId: "search-tile-pages",
+    againstKey: "overview.search.tile.your-pages.of",
+    meansKey: null,
   },
   {
-    id: "firstPage",
-    labelKey: "overview.search.tile.first-page",
-    testId: "search-tile-first-page",
+    // The twelve, as the market's long-run outcome (issue 1551).
+    id: "market",
+    labelKey: "overview.search.tile.market",
+    testId: "search-tile-market",
     againstKey: "overview.search.tile.searches.of",
-    meansKey: null,
+    meansKey: "overview.search.tile.market.means",
   },
   {
     // The fourth tile is the Overview's own first tile, read from the same

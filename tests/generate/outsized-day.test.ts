@@ -4,14 +4,14 @@
 // dogfood caught: every target outsized, nothing right-sized on file.
 // `generateDayPage` is the whole of what `draft/generate` calls, and here it
 // runs against the **real** `@/lib/opportunities` — readiness, the ranked
-// list and `nextForDay` — over the in-memory opportunity store.
+// list and the day's pick — over the in-memory opportunity store.
 //
 // What must be true: no draft is written, and **no model call is made**.
 // The dogfood run cost 2.58¢ and a publishing day for a page the
 // right-sizing law bars, so "spends nothing on the model" is the assertion
 // that would have caught it.
 //
-// On main this test fails: the six outsized rows rank, `nextForDay` hands
+// On main this test fails: the six outsized rows rank, the day's pick hands
 // back "best seo software", and the model is asked for a page.
 import "./env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

@@ -94,18 +94,18 @@ describe("issue 1329 — the four numbers lead, and the score is not in the mail
     expect(full().blocks.map((block) => block.block)).toEqual(["heading", "stats", "verdicts", "list", "action"]);
   });
 
-  it("the numbers are D22's four in D22's order, and no block names the Discoverability Score", () => {
+  it("the numbers lead with what a page moves first (issue 1551), and no block names the Discoverability Score", () => {
     const blocks = full().blocks;
     const stats = blocks[at(blocks, "stats")] as Extract<MailBlock, { block: "stats" }>;
     expect(stats.items.map((item) => item.label)).toEqual([
-      "mail.weekly.number.mentionRate",
-      "mail.weekly.number.pagesCited",
-      "mail.weekly.number.top20",
       "mail.weekly.number.aiVisits",
+      "mail.weekly.number.top20",
+      "mail.weekly.number.pagesCited",
+      "mail.weekly.number.mentionRate",
     ]);
-    expect(stats.items[0]).toMatchObject({ format: "percent", value: { value: 34 } });
+    expect(stats.items[3]).toMatchObject({ format: "percent", value: { value: 34 } });
     // The one change that is stored: the top-20 count against last Monday's.
-    expect(stats.items.map((item) => item.change?.kind)).toEqual([undefined, undefined, "measured", undefined]);
+    expect(stats.items.map((item) => item.change?.kind)).toEqual([undefined, "measured", undefined, undefined]);
     expect(JSON.stringify(blocks)).not.toMatch(/score/i);
   });
 
@@ -116,7 +116,7 @@ describe("issue 1329 — the four numbers lead, and the score is not in the mail
       next: measured([], AT),
     });
     const stats = mail.blocks[at(mail.blocks, "stats")] as Extract<MailBlock, { block: "stats" }>;
-    expect(stats.items[0]).toMatchObject({
+    expect(stats.items.find((item) => item.label === "mail.weekly.number.mentionRate")).toMatchObject({
       format: "integer",
       value: { kind: "zero", value: 0 },
       note: { text: "mail.weekly.number.mentionRate.early", vars: { answers: "46" } },

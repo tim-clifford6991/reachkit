@@ -33,7 +33,7 @@
 // one pool, so it goes ahead of the first Write row at all. Improve and Earn
 // keep their scored places. A fix with no Write row to precede goes last. A
 // fix that is not ready is not in the list.
-import { CONTENT_MIX, PACE } from "@/lib/config/constants";
+import { CONTENT_MIX, PACE, PLAN_DEPTH } from "@/lib/config/constants";
 import { opportunityStore } from "../store";
 import { readOpportunity, type DraftedPage } from "../store";
 import { canonicalUrl, comparePrecedence, sameTopic } from "../cluster";
@@ -132,6 +132,14 @@ export function orderRanked(
     /** The site's own pages a tracked AI answer cited in the last four
      *  weeks, as canonical addresses (issue 1146). */
     cited?: ReadonlySet<string>;
+    /** Issue 1549: how many days to plan, counted from the first. Absent
+     *  plans until every row has a day. */
+    days?: number;
+    /** Issue 1549: a day on which only rows over the D52 cap are left goes
+     *  without, rather than answering one of them as a Q&A — what the
+     *  writable-days count reads, since that Q&A needs buyer questions its
+     *  pack may not hold. */
+    holdCapped?: boolean;
   } = {}
 ): Ranked[] {
   const close = (o: Opportunity) => isCloseUpdate(o, rotation.cited);
@@ -141,7 +149,8 @@ export function orderRanked(
   const from = rotation.mix?.from ?? 0;
   const out: Ranked[] = [];
   let previous = rotation.after ?? null;
-  for (let day = from; left.length > 0; day++) {
+  const until = rotation.days === undefined ? Infinity : from + rotation.days;
+  for (let day = from; left.length > 0 && day < until; day++) {
     const window = placed.filter((page) => page.day < day && page.day > day - CONTENT_MIX.WINDOW_DAYS);
     const yesterday = placed.find((page) => page.day === day - 1)?.kind ?? null;
     const held = (kind: ContentType | null) => window.filter((page) => page.kind === kind).length;
@@ -199,6 +208,7 @@ export function orderRanked(
     // Only rows over the cap are left: the freshest of them is answered as
     // a Q&A rather than leave the day empty (issue 1455).
     const asQa = at === -1;
+    if (asQa && rotation.holdCapped === true) continue;
     if (asQa) at = Math.max(0, left.findIndex(fresh));
     const [entry] = left.splice(at, 1);
     out.push({ opportunityId: entry!.opportunity.id, score: entry!.score, ...(asQa ? { writeAs: "qa" as const } : {}) });
@@ -297,7 +307,57 @@ export function placeFixPages(
  */
 export { isPausedType };
 
-export async function rankOpen(siteId: string, at: Date = new Date()): Promise<Ranked[]> {
+export async function rankOpen(siteId: string, at: Date = new Date(), only?: ReadonlySet<string>): Promise<Ranked[]> {
+  const inputs = await rankInputs(siteId, at, only);
+  if (inputs.scored.length === 0) return placeFixPages([], inputs.fixes);
+  return placeFixPages(inputs.scored, inputs.fixes, inputs.rotation);
+}
+
+/**
+ * Issue 1549: how many of the next `days` days the week's commit fills with
+ * a page of the topic's own type — the number "pages left" and the
+ * low-supply finding state, and what the weekly refill tops up to. Read from the same rows, order and rules as `rankOpen`: a
+ * listicle or comparison over D52's cap waits for the cap's window to pass
+ * instead of counting as a Q&A whose buyer questions the pack may not hold,
+ * a resting or unready row is not counted, and a topic another row on the
+ * same topic (`sameTopic`) would be written as is counted once — drafting
+ * the first folds the other (`nearRepeatsOf`). A Fix takes no day of supply.
+ */
+export async function writableDays(siteId: string, at: Date = new Date(), days: number = PLAN_DEPTH): Promise<number> {
+  const { scored, rotation } = await rankInputs(siteId, at);
+  return countWritable(scored, rotation, days);
+}
+
+/** `writableDays` over rows already read. Pure. */
+export function countWritable(
+  scored: readonly { opportunity: Opportunity; score: number }[],
+  rotation: NonNullable<Parameters<typeof orderRanked>[1]>,
+  days: number
+): number {
+  if (scored.length === 0) return 0;
+  const topTens = rotation.topTens ?? new Map<string, readonly string[]>();
+  const byId = new Map(scored.map((entry) => [entry.opportunity.id, entry]));
+  const kept: { opportunity: Opportunity; score: number }[] = [];
+  for (const { opportunityId } of orderRanked(scored, rotation)) {
+    const entry = byId.get(opportunityId)!;
+    if (kept.some((held) => sameTopic(held.opportunity, entry.opportunity, topTens))) continue;
+    kept.push(entry);
+  }
+  return orderRanked(kept, { ...rotation, days, holdCapped: true }).length;
+}
+
+/** What `rankOpen` and `writableDays` read: the ready rows scored, the
+ *  ready fixes, and the rotation and mix the order keeps — of the rows
+ *  `only` names, where it is given (a week's spares, issue 1559). */
+async function rankInputs(
+  siteId: string,
+  at: Date,
+  only?: ReadonlySet<string>
+): Promise<{
+  scored: { opportunity: Opportunity; score: number }[];
+  fixes: Opportunity[];
+  rotation: NonNullable<Parameters<typeof orderRanked>[1]>;
+}> {
   const store = opportunityStore();
   const [rows, profile, fixRows, latest, drafted, citedPages] = await Promise.all([
     store.openRankable(siteId),
@@ -310,7 +370,8 @@ export async function rankOpen(siteId: string, at: Date = new Date()): Promise<R
     // be read lifts no update: the order is the one before it.
     store.citedPages(siteId, at).catch(() => [] as readonly string[]),
   ]);
-  const fixes = fixRows.filter((row) => row.ready).map(readOpportunity);
+  const named = (row: { id: string }) => only === undefined || only.has(row.id);
+  const fixes = fixRows.filter((row) => row.ready && named(row)).map(readOpportunity);
   // No profile, no score — but a fix needs neither, and still takes its day.
   // SPEC §6: "A day is filled only by an opportunity that passes
   // readiness." The answer is the stored column (`assessReadiness`).
@@ -321,14 +382,14 @@ export async function rankOpen(siteId: string, at: Date = new Date()): Promise<R
   // reason — so the column, the screens and this order cannot disagree.
   // Issue 881 filtered on `fit_band` here as well, and that second home is
   // what this removes.
-  const rankable = rows.filter((row) => row.ready);
-  if (profile === null || rankable.length === 0) return placeFixPages([], fixes);
+  const rankable = rows.filter((row) => row.ready && named(row));
+  if (profile === null || rankable.length === 0) return { scored: [], fixes, rotation: {} };
 
   // SPEC §7 (owner, D46): a topic whose type the mix has paused fills no
   // day. It stays on file, open and ready, and ranks again the day its type
   // leaves `CONTENT_MIX.PAUSED_TYPES`.
   const mixed = rankable.map(readOpportunity).filter((opportunity) => !isPausedType(opportunity));
-  if (mixed.length === 0) return placeFixPages([], fixes);
+  if (mixed.length === 0) return { scored: [], fixes, rotation: {} };
 
   const scored = mixed.map((opportunity) => {
     return {
@@ -349,5 +410,5 @@ export async function rankOpen(siteId: string, at: Date = new Date()): Promise<R
   const scanIds = new Set([...scored.map((entry) => entry.opportunity.scanId), ...(after === null ? [] : [after.scanId])]);
   const topTens = await store.topTens([...scanIds]);
   const cited = new Set(citedPages.map(canonicalUrl));
-  return placeFixPages(scored, fixes, { after, topTens, mix: mixOf(drafted, at), cited });
+  return { scored, fixes, rotation: { after, topTens, mix: mixOf(drafted, at), cited } };
 }

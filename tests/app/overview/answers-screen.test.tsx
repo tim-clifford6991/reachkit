@@ -220,8 +220,9 @@ describe("what this tab does not draw", () => {
     // *Also appearing for* and the cited-pages tile (#920), the
     // hosted-blog counts (#921) and a thirteenth question (#919) arrive
     // with those issues. A placeholder for an unbought measurement is a
-    // claim, so this screen draws exactly two tiles and one grid.
-    expect(tiles().querySelectorAll("section")).toHaveLength(2);
+    // claim, so this screen draws exactly three tiles (the pages cited,
+    // issue 1551, the rate and the week) and one grid.
+    expect(tiles().querySelectorAll("section")).toHaveLength(3);
     expect(grid().querySelectorAll("section")).toHaveLength(1);
   });
 });

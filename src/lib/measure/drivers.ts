@@ -572,6 +572,14 @@ type AiOverviewRead = {
   aiOverview: Pick<SerpAiOverview, "present" | "unread" | "referenceDomains" | "referenceUrls" | "text">;
 };
 
+/** A page question's AI-Overview cell as the report stores it
+ *  (`PageQuestionRow.cell`), declared by shape so this leaf imports nothing
+ *  of the report: the reading `overviewCellFor` already took of that SERP. */
+export type PageAnswerCell =
+  | { kind: "answered"; namesCustomer: boolean; ownUrls?: readonly string[]; named?: true }
+  | { kind: "no_answer" }
+  | { kind: "unmeasured" };
+
 /** What AI presence is read from (issue 1439): how many Google results were
  *  read, how many of them showed an AI answer, and in how many of those the
  *  answer named or linked the site. */
@@ -591,8 +599,19 @@ export function aiSampleOf(a: {
   ownDomain: string;
   /** The site's name, as `namesSite` reads it; `null` where none is known. */
   siteName?: string | null;
+  /** The page questions' AI Overviews, bought on the same pass (owner,
+   *  2026-10-19, issue 1551): read beside the twelve, as stored. */
+  pageCells?: readonly PageAnswerCell[];
 }): AiSample {
   const sample: AiSample = { read: 0, answered: 0, mentioned: 0, cited: 0 };
+  for (const cell of a.pageCells ?? []) {
+    if (cell.kind === "unmeasured") continue;
+    sample.read++;
+    if (cell.kind === "no_answer") continue;
+    sample.answered++;
+    if (cell.named === true) sample.mentioned++;
+    if (cell.namesCustomer || (cell.ownUrls?.length ?? 0) > 0) sample.cited++;
+  }
   for (const serp of a.serps) {
     if (serp.kind === "unmeasured" || serp.value.aiOverview.unread === true) continue;
     sample.read++;
@@ -619,7 +638,9 @@ function aiPresenceValue(mentionRate: number, citationRate: number): number {
  *  1439). The rates are over the read SERPs that **showed** an AI answer: a
  *  search Google answers without one is no answer that left the site out,
  *  so it is in neither rate. How often AI answers appear is the AI-answers
- *  card's context line, never a penalty here.
+ *  card's context line, never a penalty here. The SERPs are the twelve's
+ *  and, since issue 1551 (owner, 2026-10-19), the page questions' cells
+ *  beside them, so a page cited on its own question moves the score.
  *
  *  - No SERP read: `unmeasured` with the fold of their reasons
  *    (`undeterminable` where none was handed in).
@@ -637,6 +658,7 @@ export function aiPresenceOf(a: {
   ownDomain: string;
   /** The site's name, as `namesSite` reads it; `null` where none is known. */
   siteName?: string | null;
+  pageCells?: readonly PageAnswerCell[];
   at: Date;
 }): Measured<number> {
   const sample = aiSampleOf(a);

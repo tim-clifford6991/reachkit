@@ -49,6 +49,8 @@ const REST = "20261003130000_opportunities_rest.sql";
 const PAGE_TYPE = "20261003140000_opportunities_page_type.sql";
 /** Issue 1288: `no_intent`. */
 const NO_INTENT = "20261006130000_opportunities_no_intent.sql";
+/** Issue 1559: the week a weekly pass commits. */
+const WEEK_PLAN = "20261019160000_opportunities_week_plan.sql";
 const BASELINE_MIGRATION = path.join(MIGRATIONS, "00000000000001_baseline.sql");
 
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
@@ -87,6 +89,7 @@ beforeAll(() => {
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, REST)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, PAGE_TYPE)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, NO_INTENT)]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, WEEK_PLAN)]);
   const [user] = psqlRows(
     `insert into users (email, plan_status) values ('opps@example.com', 'active') returning id;`
   );
@@ -400,6 +403,16 @@ describe("SPEC §6: at most one open row per cluster — the calendar's unit is 
   it("two rows with no cluster yet never collide", () => {
     expect(insertReadiness("", "")).toBe(false);
     expect(insertReadiness("", "")).toBe(false);
+  });
+});
+
+describe("SPEC §7 (issue 1559): a row's place in the committed week", () => {
+  it("a day has a place and a date, a spare a place alone, and only a Q&A is a written-as type", () => {
+    const id = insert(familyRow("answer_page", { targetRef: "week-plan" }));
+    expect(raises(`update opportunities set plan_place = 0, planned_for = '2026-10-20' where id = '${id}';`)).toBe(false);
+    expect(raises(`update opportunities set plan_place = 7, planned_for = null, plan_write_as = 'qa' where id = '${id}';`)).toBe(false);
+    expect(raises(`update opportunities set plan_place = null, planned_for = '2026-10-20' where id = '${id}';`)).toBe(true);
+    expect(raises(`update opportunities set plan_place = 1, plan_write_as = 'listicle' where id = '${id}';`)).toBe(true);
   });
 });
 

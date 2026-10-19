@@ -26,7 +26,7 @@ vi.mock("@/lib/scan/weekly/collect", () => ({
 vi.mock("@/lib/opportunities", () => ({
   judgeWeek: async () => void seen.order.push("judge"),
   planRefreshes: async () => {},
-  assessReadiness: async () => {},
+  planWeek: async () => [],
 }));
 vi.mock("@/lib/mail/weekly", () => ({
   sendWeeklyDigest: async () => {

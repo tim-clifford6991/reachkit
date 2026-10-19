@@ -66,7 +66,7 @@ vi.mock("@/lib/scan/report", async (importOriginal) => ({
 vi.mock("@/lib/opportunities", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/opportunities")>()),
   readWeek: async () => [],
-  nextForDay: async () => null,
+  committedWeek: async () => ({ days: [], spares: [] }),
   rankOpen: async () => [],
 }));
 

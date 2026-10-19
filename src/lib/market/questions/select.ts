@@ -26,7 +26,8 @@ import { SHAPES, languagePack } from "@/lib/locale/language";
 import type { Language, Place } from "@/lib/locale/locales";
 import { BATTERY, SELECTION, WINNABILITY } from "@/lib/config/constants";
 import { difficultyCeiling, qualifyingDemand } from "@/lib/opportunities/winnability/bars";
-import { withoutPlace } from "@/lib/locale/place";
+import { namesPlace, saysNearMe, withoutPlace } from "@/lib/locale/place";
+import { BUSINESS_KINDS, type BusinessKind } from "@/lib/market/kinds";
 import { neverMeasured, type MeasuredMarket } from "./measured";
 import type { Profile } from "./profile-types";
 import type { SuggestionRow } from "./market-set";
@@ -169,13 +170,48 @@ export function ownBrandTokens(p: Profile): readonly string[] {
  * carrying the customer's own name measures nothing about discovery and is
  * dropped before its shape is ever read (BUILD §6.7 step 3).
  */
-export function classifyIntent(keyword: string, p: Profile): Intent | "own_brand" {
+export function classifyIntent(keyword: string, p: Profile, where?: PlacedBusiness | null): Intent | "own_brand" {
   if (namesAnyOf(keyword, ownBrandTokens(p), p.language)) return "own_brand";
   const text = normalise(keyword);
+  const local = where != null && asksForService(keyword, p, where);
   for (const [intent, patterns] of INTENT_PATTERNS) {
-    if (patterns.some((pattern) => pattern.test(text))) return intent;
+    if (!patterns.some((pattern) => pattern.test(text))) continue;
+    // Issue 1561: only a "best" or "vs", or an anchored "how to", outranks
+    // a local service asked for where it is sold.
+    return local && intent !== "decision" && !HOW_TO.test(text) ? "solution" : intent;
   }
-  return "informational";
+  return local ? "solution" : "informational";
+}
+
+/** The business a search is read against where it can serve one place
+ *  (issue 1561): its kind, the place it serves, `null` where it serves
+ *  none, and the market's own words for what it sells. */
+export interface PlacedBusiness {
+  kind?: BusinessKind | null;
+  serves?: Place | null;
+  marketWords?: string;
+}
+
+/**
+ * Whether a search asks a business that serves one place for its service
+ * there (issue 1561): the kind is one that can serve a place, the search
+ * names that place, says "near me", or carries one of its language's local
+ * words ("emergency", "24 hour", "notdienst"), and what it asks for is the
+ * business's own offering (`namesOffering`). "emergency plumber austin" is
+ * bought, not read about, for a plumber in Austin as much as "aeo software"
+ * is for a software maker.
+ */
+export function asksForService(keyword: string, p: Profile, where: PlacedBusiness): boolean {
+  const kind = where.kind ?? null;
+  if (kind === null || !BUSINESS_KINDS[kind].placed) return false;
+  const place = where.serves ?? null;
+  const pack = languagePack(p.language ?? "en");
+  const said =
+    (place !== null && namesPlace(keyword, place)) ||
+    saysNearMe(keyword) ||
+    normalise(keyword).split(" ").some((word) => pack.offering.local.has(word));
+  if (!said) return false;
+  return namesOffering(place === null ? keyword : withoutPlace(keyword, place), p, where.marketWords);
 }
 
 /**
@@ -371,6 +407,9 @@ export function selectTwelve(a: {
   /** How many to return; the twelve unless a caller wants the runners-up
    *  too, to have them judged with the twelve. */
   limit?: number;
+  /** Issue 1549: the searches this site measured in the last
+   *  `SELECTION.freshWeeks` weeks. Absent, or empty, every search is new. */
+  recent?: readonly string[];
 }): SelectedSearch[] {
   const { profile } = a;
   const limit = a.limit ?? BATTERY.QUESTIONS;
@@ -472,10 +511,31 @@ export function selectTwelve(a: {
     (!candidate.rivalBrand || count((c) => c.rivalBrand) < SELECTION.maxRivalBrand) &&
     (!candidate.howTo || count((c) => c.howTo) < SELECTION.maxHowTo);
 
+  const answering = (candidate: Candidate): boolean => candidate.intent === "problem" || candidate.intent === "informational";
+  // Issue 1549: at least `SELECTION.minFresh` searches the site has not
+  // measured in the last weeks, answering ones first, so a week's pass reads
+  // something of its market it did not read the week before.
+  const recent = new Set((a.recent ?? []).map((keyword) => stemKey(keyword, profile.language)));
+  const fresh = (candidate: Candidate): boolean => !recent.has(stemKey(candidate.keyword, profile.language));
+  if (recent.size > 0) {
+    for (const candidate of [...ranked.filter(answering), ...ranked]) {
+      if (count(fresh) >= SELECTION.minFresh || picked.size >= limit) break;
+      if (fresh(candidate) && admits(candidate)) picked.add(candidate);
+    }
+  }
   // D65: the market's terms first, most searched first, in up to
   // `SELECTION.maxMarketTerms` of the places; then everything by score.
   const terms = ranked.filter((candidate) => candidate.term).sort((x, y) => y.volume - x.volume || byRank(x, y));
-  for (const candidate of terms.slice(0, Math.min(SELECTION.maxMarketTerms, limit))) picked.add(candidate);
+  for (const candidate of terms.slice(0, Math.min(SELECTION.maxMarketTerms, limit))) {
+    if (picked.size >= limit) break;
+    picked.add(candidate);
+  }
+  // Issue 1549: and at least `SELECTION.minAnswering` how-to or
+  // informational searches where the market holds them, inside both caps.
+  for (const candidate of ranked) {
+    if (count(answering) >= SELECTION.minAnswering || picked.size >= limit) break;
+    if (answering(candidate) && admits(candidate)) picked.add(candidate);
+  }
   for (const candidate of ranked) {
     if (picked.size >= limit) break;
     if (admits(candidate)) picked.add(candidate);

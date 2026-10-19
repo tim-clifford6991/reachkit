@@ -30,6 +30,13 @@
 //  - asking a question more times than its three columns need;
 //  - a slow engine costing the other engine's column;
 //  - a weekly pass at production's measured queue waits missing its ceiling.
+//
+// Issue 1566: the timed passes run on a fake clock, and a module the pass
+// loads for the first time takes real time that clock does not wait for. On
+// a loaded box that real time let the clock run to `jobsCeilingS` while the
+// pass was still loading, and the weekly pass failed one run in two. Each
+// timed pass is now run once on the real clock first, so the one on the fake
+// clock loads nothing; one module here is slowed, as a loaded box slows it.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureStages, fakeDb } from "./harness";
 import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured";
@@ -38,6 +45,15 @@ import type { DomainMeasurement } from "../../../src/lib/measure";
 import type { StoredReport } from "../../../src/lib/scan/report";
 import type { AiAnswer } from "../../../src/lib/vendors/dataforseo/types";
 import { AT, ON_PAGE, PROFILE, ROBOTS, SERP, SELECTED, QUESTION } from "../report/fixtures";
+
+// A module the weekly pass loads late, slowed to 300 ms of real time as a
+// loaded box slows a first load (issue 1566). A timed pass that loads it on
+// the fake clock ends on `time_ceiling`.
+const realSetTimeout = vi.hoisted(() => globalThis.setTimeout);
+vi.mock("@/lib/publish/destinations/hosted/store", async (importOriginal) => {
+  await new Promise((resolve) => realSetTimeout(resolve, 300));
+  return importOriginal();
+});
 
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
@@ -132,6 +148,18 @@ const TWELVE = Array.from({ length: BATTERY_PINS.QUESTIONS }, (_, i) => ({
 
 const answered = (cited: string[]): AiAnswer => ({ answered: true, text: "…", citedDomains: cited });
 
+/**
+ * The pass, once on the real clock with every vendor answering at once, so
+ * each module it reaches through `await import` is loaded before a test
+ * fakes the clock. Its calls and queries are then forgotten: the pass a test
+ * asserts on is the one it runs next.
+ */
+async function loadedOnce(args: Parameters<typeof runScan>[0]): Promise<void> {
+  await runScan(args);
+  vi.clearAllMocks();
+  db.queries.length = 0;
+}
+
 function storedReport(): StoredReport {
   const call = storeCurrentReport.mock.calls.at(-1) as unknown as [{ report: StoredReport }];
   return call[0].report;
@@ -208,12 +236,7 @@ afterEach(() => stages.restore());
 
 describe("a paid pass whose engine is slower than its ceiling (issue 902)", () => {
   it("stops waiting before its ceiling and ends `complete`, the slow engine's cells unmeasured (#1195)", async () => {
-    // The pass's other modules are reached through `await import`, and a
-    // module loaded for the first time takes real time the fake clock does
-    // not wait for: loaded here, the timeline below is the pass's own.
-    await import("@/lib/site-profile");
-    await import("@/lib/site-issues");
-    await import("@/lib/market/infer/stored");
+    await loadedOnce({ domain: DOMAIN, siteId: "site-902", tier: "deep" });
     llmScraper.mockImplementation(
       stillQueueing((failure) => {
         const onFailure = (llmScraper.mock.calls.at(-1) as unknown as [unknown, { onFailure?: (f: unknown) => void }])[1]
@@ -253,8 +276,7 @@ describe("a paid pass whose engine is slower than its ceiling (issue 902)", () =
   });
 
   it("a slow engine never costs the other engine its column: AI Mode answers every question", async () => {
-    await import("@/lib/site-profile");
-    await import("@/lib/site-issues");
+    await loadedOnce({ domain: DOMAIN, siteId: "site-902", tier: "deep" });
     llmScraper.mockImplementation(stillQueueing());
 
     vi.useFakeTimers();
@@ -327,13 +349,8 @@ describe("the weekly pass at production's measured queue waits (issue 1160)", ()
   // the twelve keep their Google searches alone. A hundred asks cost the
   // pass the same wait as one.
   it("ends `complete` inside its ceiling, its tracked prompts asked twice on both engines and its rivals sized", async () => {
-    await import("@/lib/site-profile");
-    await import("@/lib/site-issues");
-    await import("@/lib/market/prompts/store");
-    await import("@/lib/market/infer/stored");
-    await import("@/lib/site-profile/store");
-    await import("@/lib/site-profile/business/edits");
     db.rows.set("sites", [SITE_WITH_A_MARKET]);
+    await loadedOnce({ domain: DOMAIN, siteId: "site-1160", tier: "weekly" });
     serpOrganic.mockImplementation(answersAfter(177, measured(SERP, AT)));
     llmScraper.mockImplementation(answersAfter(166, measured(answered(["example.com"]), AT)));
     aiMode.mockImplementation(answersAfter(187, measured(answered(["appcues.com"]), AT)));

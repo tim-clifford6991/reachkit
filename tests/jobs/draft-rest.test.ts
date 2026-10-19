@@ -31,12 +31,12 @@ const client = {
 };
 vi.mock("@/lib/db", () => ({ dbAdmin: () => client, db: () => client }));
 
-const { llmMock, readMeasuredTextMock, sitesForDailyTickMock, draftReadyMock, nextForDayMock } = vi.hoisted(() => ({
+const { llmMock, readMeasuredTextMock, sitesForDailyTickMock, draftReadyMock, pickMock } = vi.hoisted(() => ({
   llmMock: vi.fn(),
   readMeasuredTextMock: vi.fn(),
   sitesForDailyTickMock: vi.fn(),
   draftReadyMock: vi.fn(),
-  nextForDayMock: vi.fn(),
+  pickMock: vi.fn(),
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 // What a pack must hold is `tests/generate/pipeline/pack.test.ts`; here the
@@ -68,7 +68,8 @@ vi.mock("@/lib/mail/draft-ready", () => ({ sendDraftReadyMail: draftReadyMock })
 // the one opportunity this site holds. Its status writes are the real ones.
 vi.mock("@/lib/opportunities", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/opportunities")>()),
-  nextForDay: nextForDayMock,
+  pageForDay: (siteId: string, date: string, now?: Date) => pickMock(siteId, date, now),
+  takeSpare: (siteId: string) => pickMock(siteId),
   assessFixPages: async () => ({ done: 0, ready: 0 }),
   assessReadiness: async () => ({ ready: 1, unready: 0 }),
 }));
@@ -169,7 +170,7 @@ beforeEach(async () => {
   });
   if (inserted.outcome !== "created") throw new Error("the fixture opportunity was refused");
   opportunityId = inserted.row.id;
-  nextForDayMock.mockImplementation(async () => opportunityById(opportunityId));
+  pickMock.mockImplementation(async () => opportunityById(opportunityId));
 });
 
 function statusOf(id: string): string | undefined {
@@ -280,7 +281,9 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     const market = fixtures.report().market;
     if (market.kind !== "measured") throw new Error("the fixture report has no measured market");
     opportunities.profile = market.value.profile;
-    nextForDayMock.mockImplementation(actualOpportunities.nextForDay);
+    pickMock.mockImplementation((siteId: string, date?: string, now?: Date) =>
+      date === undefined ? actualOpportunities.takeSpare(siteId, now) : actualOpportunities.pageForDay(siteId, date, now)
+    );
     for (const row of opportunities.rows) {
       row.ready = true;
       // D46: a "best …" search is a listicle, which the mix leaves out for
@@ -311,6 +314,15 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     if (other.outcome !== "created") throw new Error("the second opportunity was refused");
     for (const row of opportunities.rows) row.ready = true;
     return other.row.id;
+  }
+
+  /** Issue 1559: the week the Monday committed — the first topic is the
+   *  evening's date, the others its spares. */
+  async function week(spares: readonly string[]): Promise<void> {
+    await opportunityDoubles.memoryStore(opportunities).commitPlan!(fixtures.SITE_ID, [
+      { opportunityId, place: 0, plannedFor: "2026-09-08", writeAs: null },
+      ...spares.map((id, n) => ({ opportunityId: id, place: 7 + n, plannedFor: null, writeAs: null })),
+    ]);
   }
 
   it("the next evening does not pick the rested topic and states its empty day; Skip rests it from the skip", async () => {
@@ -352,7 +364,7 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
   });
 
   it("a site whose first-ranked topic is stopped still gets a page that day when the second topic passes", async () => {
-    await secondTopic();
+    await week([await secondTopic()]);
     modelWrites(STOPPED);
     modelWrites(`${STOPPED} Again.`);
     // The second topic's page is its own: the stopped one is still on file.
@@ -394,6 +406,7 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     });
     if (third.outcome !== "created") throw new Error("the third opportunity was refused");
     for (const row of opportunities.rows) row.ready = true;
+    await week(opportunities.rows.filter((row) => row.id !== opportunityId).map((row) => row.id));
 
     for (let attempt = 0; attempt < 4; attempt++) modelWrites(`${STOPPED} ${"Again. ".repeat(attempt)}`);
     const outcome = await draftGenerate.run({ data: {}, now: EVENING });
@@ -433,6 +446,7 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     });
     if (third.outcome !== "created") throw new Error("the third opportunity was refused");
     for (const row of opportunities.rows) row.ready = true;
+    await week(opportunities.rows.filter((row) => row.id !== opportunityId).map((row) => row.id));
     // reachkit.app, 17 October, and issue 1486's short how-to: nothing was
     // written for either.
     const first = fixtures.opportunity().targetQuery;

@@ -15,7 +15,7 @@ import type { Choice } from "@/lib/opportunities";
 import type { Opportunity } from "@/lib/opportunities";
 
 const supplyDepth = vi.fn();
-const nextForDay = vi.fn();
+const committedWeek = vi.fn();
 const rankOpen = vi.fn();
 const explainChoice = vi.fn();
 
@@ -25,7 +25,7 @@ vi.mock("@/lib/opportunities", () => ({
   // says otherwise.
   supplyMeasured: async () => true,
   supplyState: async () => "measured",
-  nextForDay: (...a: unknown[]) => nextForDay(...a),
+  committedWeek: (...a: unknown[]) => committedWeek(...a),
   rankOpen: (...a: unknown[]) => rankOpen(...a),
   explainChoice: (...a: unknown[]) => explainChoice(...a),
 }));
@@ -94,7 +94,6 @@ function choiceFor(n: number): Choice {
 
 function withSupply(count: number): void {
   const ids = Array.from({ length: count }, (_, n) => `opp-${n}`);
-  nextForDay.mockResolvedValue(count === 0 ? null : ({ id: ids[0] } as Opportunity));
   rankOpen.mockResolvedValue(ids.map((id) => ({ opportunityId: id, score: 1 })));
   explainChoice.mockImplementation(async (id: string) =>
     choiceFor(Number(id.replace("opp-", "")))
@@ -103,6 +102,7 @@ function withSupply(count: number): void {
 }
 
 beforeEach(() => {
+  committedWeek.mockResolvedValue({ days: [], spares: [] });
   workStop.mockResolvedValue(null);
   declaredRead.mockResolvedValue({ domain: "acme.com", category: "c", rivals: [] });
   measuredRead.mockResolvedValue({ domain: "acme.com", category: "c", rivals: [] });
@@ -154,11 +154,15 @@ describe("supply is the cap — the calendar is never padded", () => {
     expect(facts.drafts.every((d) => d.scheduledFor >= "2026-09-15")).toBe(true);
   });
 
-  it("takes the head from nextForDay, which is the ranked list's own head", async () => {
-    withSupply(2);
+  it("the committed week takes the first dates in its own order, and the one list after it leaves the week's rows out (issue 1559)", async () => {
+    withSupply(4);
+    committedWeek.mockResolvedValue({
+      days: [{ date: "2026-09-15", opportunity: { id: "opp-2" } as Opportunity }],
+      spares: [{ id: "opp-0" } as Opportunity],
+    });
     await readCalendarFacts({ site: SITE, month: "2026-09", now: NOW });
-    expect(nextForDay).toHaveBeenCalledWith("site-1");
-    expect(explainChoice.mock.calls[0]![0]).toBe("opp-0");
+    expect(committedWeek).toHaveBeenCalledWith("site-1");
+    expect(explainChoice.mock.calls.map((call) => call[0])).toEqual(["opp-2", "opp-1", "opp-3"]);
   });
 });
 
@@ -225,7 +229,6 @@ describe("a planned date is planned, and claims nothing more", () => {
   });
 
   it("an Improve target's 'you' is the position the shortfall measured", async () => {
-    nextForDay.mockResolvedValue({ id: "opp-9" } as Opportunity);
     rankOpen.mockResolvedValue([{ opportunityId: "opp-9", score: 1 }]);
     supplyDepth.mockResolvedValue({ unused: 1, exhaustedSince: null });
     explainChoice.mockResolvedValue({
@@ -297,7 +300,6 @@ describe("the site's own zone decides its dates", () => {
 
 describe("the unmeasured arms are still values", () => {
   it("a volume that could not be measured still dates the provenance line", async () => {
-    nextForDay.mockResolvedValue({ id: "opp-0" } as Opportunity);
     rankOpen.mockResolvedValue([{ opportunityId: "opp-0", score: 1 }]);
     supplyDepth.mockResolvedValue({ unused: 1, exhaustedSince: null });
     explainChoice.mockResolvedValue({

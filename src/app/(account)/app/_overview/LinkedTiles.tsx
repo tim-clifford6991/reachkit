@@ -3,8 +3,8 @@
 // Four tiles, in the #1444 vocabulary: the **Visibility Score**, **Google**,
 // **AI** and **Content**, then the biggest gap. Each number is read through
 // the one selector its detail screen reads, and each tile that counts items
-// opens exactly those items: Google opens the Google tab's *On the first
-// page* rows (`onFirstPage`), AI opens the AI tab's list with the counted
+// opens exactly those items: Google opens the Google tab's rows for the
+// searches the live pages target (`yourPages`, issue 1551), AI opens the AI tab's list with the counted
 // rows marked (`aiSearchesOf`), and Content opens Plan's *Published* list
 // (`contentOf`). The score counts no items, so it opens nothing.
 //
@@ -41,7 +41,7 @@ const AI_LABEL = "overview.tile.ai-answers.label" satisfies CopyKey;
 const CONTENT_LABEL = "overview.tile.content.label" satisfies CopyKey;
 
 /** Where each counting tile opens: the rows it counts. */
-const GOOGLE_HREF = "/app/search?show=first_page";
+const GOOGLE_HREF = "/app/search?show=live";
 const AI_HREF = "/app/ai-answers#prompts-list";
 const CONTENT_HREF = "/app/calendar#published";
 
@@ -50,13 +50,13 @@ const ESTIMATE_LINE: Readonly<Record<"rough" | "close", CopyKey>> = Object.freez
   close: "verdict.estimate.close",
 });
 
-/** The Google tab's first-page reading, declared by shape so this file
- *  does not import that tab's model (its graph reaches the vendor
+/** The Google tab's pages reading (issue 1551), declared by shape so this
+ *  file does not import that tab's model (its graph reaches the vendor
  *  clients; see `(tabs)/page.tsx`). */
 export interface GoogleReading {
   value: Measured<number>;
   of: Measured<number>;
-  change?: number;
+  reading?: { kind: "queue" } | { kind: "pages"; firstPage: number; further: number; unseen: number };
 }
 
 const INK = "text-base-content/70";
@@ -195,24 +195,34 @@ function ScoreTile(p: { score: OverviewModel["score"]; firstScan: string }): Rea
   );
 }
 
-/** Google: the searches ReachKit tracks that Google shows the site on its
- *  first page for, out of all of them, with the change. */
+/** Google (owner, 2026-10-19, issue 1551): the searches the live pages
+ *  target that Google shows the site for at places 1–100, out of all of
+ *  them, split first page · 11–100 · not yet seen. The market's biggest
+ *  searches are the Google tab's *Your market*, never this figure. */
 function GoogleTile(p: { google: GoogleReading | null; firstScan: string }): React.JSX.Element {
   const reading = p.google;
   const value = reading === null ? null : renderValue(reading.value, GOOGLE_LABEL);
   const of = reading === null ? null : renderValue(reading.of, GOOGLE_LABEL);
   const shown = value !== null && !value.isDash;
+  const split = reading?.reading;
   return (
     <Tile
       label={copy(GOOGLE_LABEL)}
       testId="overview-tile-google"
       href={GOOGLE_HREF}
       figure={shown ? value.text : null}
-      against={shown && of !== null && !of.isDash ? <Against>{copy("overview.search.tile.searches.of", { of: of.text })}</Against> : null}
-      change={shown ? changeLine(reading?.change) : null}
+      against={shown && of !== null && !of.isDash ? <Against>{copy("overview.search.tile.your-pages.of", { of: of.text })}</Against> : null}
       lines={
         shown
-          ? [copy("overview.tile.google.line")]
+          ? [
+              split?.kind === "pages"
+                ? copy("overview.search.tile.your-pages.split", {
+                    first: formatCount(split.firstPage),
+                    further: formatCount(split.further),
+                    unseen: formatCount(split.unseen),
+                  })
+                : null,
+            ]
           : [value === null ? copy("unmeasured.undeterminable", { what: copy(GOOGLE_LABEL) }) : p.firstScan]
       }
     />

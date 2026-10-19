@@ -23,12 +23,16 @@ import type { MarketConclusion } from "../../src/lib/market/infer/types";
 import type { Profile } from "../../src/lib/market/questions/profile";
 import type { HostedOwnPages } from "../../src/lib/publish/destinations/hosted/own-page";
 import { topTensOf } from "../../src/lib/opportunities/cluster";
+import type { AskedBeside } from "../../src/lib/opportunities/derive/topics";
 import type { EarnGrounding } from "../../src/lib/opportunities/earn-grounding";
 import type { NotWorkingVerdict } from "../../src/lib/opportunities/suppression";
 import type { StoredReport } from "../../src/lib/scan/report";
 import type { InventoryRow } from "../../src/lib/site-profile/types";
 
 export interface MemoryState {
+  /** What buyers were seen asking beside the site's searches (D62's store,
+   *  issue 1519); absent reads as none. */
+  asked?: AskedBeside[];
   /** The site's concluded market (issue 1134); absent reads as none. */
   market?: MarketConclusion | null;
   rows: OpportunityRow[];
@@ -210,6 +214,16 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       return state.report === null ? new Map() : topTensOf(state.report);
     },
 
+    async askedBeside() {
+      return state.asked ?? [];
+    },
+
+    async dismissedSearches(siteId) {
+      return state.rows
+        .filter((row) => row.site_id === siteId && row.status === "dismissed" && row.family !== "fix" && row.target_query !== null)
+        .map((row) => ({ query: row.target_query!, volume: row.volume }));
+    },
+
     async setCluster(opportunityId, clusterKey, absorbedQueries) {
       const row = state.rows.find((r) => r.id === opportunityId);
       if (row === undefined) return;
@@ -277,6 +291,28 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async marketFor() {
       return { market: state.market ?? null, competitors: [] };
+    },
+
+    async commitPlan(siteId, entries) {
+      for (const row of state.rows) {
+        if (row.site_id !== siteId) continue;
+        row.plan_place = null;
+        row.planned_for = null;
+        row.plan_write_as = null;
+      }
+      for (const entry of entries) {
+        const row = state.rows.find((r) => r.id === entry.opportunityId && r.site_id === siteId);
+        if (row === undefined) continue;
+        row.plan_place = entry.place;
+        row.planned_for = entry.plannedFor;
+        row.plan_write_as = entry.writeAs;
+      }
+    },
+
+    async plannedRows(siteId) {
+      return state.rows
+        .filter((row) => row.site_id === siteId && row.plan_place !== null && row.plan_place !== undefined)
+        .sort((a, b) => a.plan_place! - b.plan_place!);
     },
 
     async setReadiness(opportunityId, reason) {
