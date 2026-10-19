@@ -39,6 +39,11 @@ export interface BriefRuleInputs {
    *  2026-10-17, issue 1490): no measurement they state may appear on it,
    *  linked or not. Absent, nothing is withheld. */
   reportPassages?: readonly string[];
+  /** The lines code lays into the page from the pack, word for word — the
+   *  line under a comparison table that says when its prices were read
+   *  (issue 1536). The writer writes none of them, and each figure in them
+   *  is a date or a count the pack holds. Absent reads as none. */
+  laid?: readonly string[];
 }
 
 /** One market fact as the rules read it. `product` is the rival whose own
@@ -172,6 +177,13 @@ export function untraceableIn(
   );
 }
 
+/** Whether a sentence is one of the lines code laid into the page from the
+ *  pack (issue 1536): not the writer's, and never the writer's to fix. */
+export function isLaid(sentence: string, brief: BriefRuleInputs): boolean {
+  const words = collapse(sentence);
+  return words !== "" && (brief.laid ?? []).some((line) => collapse(line) === words);
+}
+
 export function checkTraceableNumerals(a: {
   markdown: string;
   brief: BriefRuleInputs;
@@ -179,6 +191,9 @@ export function checkTraceableNumerals(a: {
   const traceable = pageTraceableNumerals(a.markdown, a.brief);
   const withheld = withheldMeasurements(a.brief);
   for (const sentence of sentencesOf(a.markdown)) {
+    // Issue 1536: "Prices last checked 17 October 2026." is code's line,
+    // read off the pack's own dates; no fix call could change it.
+    if (isLaid(sentence.text, a.brief)) continue;
     // Issue 1490: the site's own measurement on a page that is not research
     // is not a figure this page may state, whatever it links to.
     const own = ownMeasurementIn(sentence.text, withheld);

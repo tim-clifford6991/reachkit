@@ -761,6 +761,10 @@ export const MAIL_COPY = Object.freeze({
 
   "mail.ops.incident.no-draft-at-publish": ["A site's publish time passed with no page for the day. The cause is the one its draft run recorded.", { slots: {}, fixedBy: "issue 1455 (drafted)" }],
   "mail.ops.incident.fact.date": ["Date", { slots: {}, fixedBy: "issue 1455 (drafted)" }],
+  // Issue 1536: a site on autopilot that has gone twice its cadence without a delivered page.
+  "mail.ops.incident.autopilot-stalled": ["A site on autopilot has had no page delivered for twice its publishing cadence. Its draft days in the database say why each day had none.", { slots: {}, fixedBy: "issue 1536 (drafted)" }],
+  "mail.ops.incident.fact.last-delivered": ["Last page delivered", { slots: {}, fixedBy: "issue 1536 (drafted)" }],
+  "mail.ops.incident.fact.days-without": ["Days without a page", { slots: {}, fixedBy: "issue 1536 (drafted)" }],
   // Issue 1187: a draft the writing rules stopped twice (owner, D27).
   "mail.ops.incident.draft-stopped-twice": ["The writing rules stopped a page twice, so it was not published. Read the sentences below and decide whether the page or the rule is wrong.", { slots: {}, fixedBy: "issue 1187" }],
   "mail.ops.incident.fact.site": ["Site", { slots: {}, fixedBy: "issue 1187" }],

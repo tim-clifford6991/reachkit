@@ -43,6 +43,7 @@ function engineDouble(): Record<string, unknown> {
     // Issue 1455: the day's reason, and the publish-time check.
     recordDraftDay: record("recordDraftDay", undefined),
     alertMissingDrafts: record("alertMissingDrafts", 0),
+    alertStalledSites: record("alertStalledSites", 0),
     publishApproved: record("publishApproved", done),
     publishDue: record("publishDue", done),
     // Issue 1485: the live pages are read again first.

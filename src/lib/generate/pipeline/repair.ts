@@ -22,6 +22,7 @@ import { ANSWER_FIRST_BLOCK_CHARS } from "@/lib/config/constants";
 import {
   INVENTED_PROVENANCE_RES,
   INVENTED_TEST_RES,
+  isLaid,
   isPhraseBreach,
   pageTraceableNumerals,
   untraceableIn,
@@ -171,6 +172,8 @@ function repairNumerals(markdown: string, inputs: RepairInputs): string {
     // Issue 1490: the site's own measurement on a page that is not research
     // goes with its sentence; linking it to the report would still state it.
     if (ownMeasurementIn(wordsOf(piece), withheld) !== null) return null;
+    // Issue 1536: a line code laid in from the pack stays as it is.
+    if (isLaid(wordsOf(piece), inputs.brief)) return piece;
     const figures = untraceable(piece, traceable);
     if (figures.length === 0) return piece;
     const words = wordsOf(piece);
@@ -336,7 +339,7 @@ function sentencesFor(
       const withheld = withheldMeasurements(brief);
       return sourceBlocksOf(markdown)
         .flatMap((block) => splitSentences(block.raw))
-        .filter((piece) => untraceable(piece, traceable).length > 0 || ownMeasurementIn(wordsOf(piece), withheld) !== null)
+        .filter((piece) => !isLaid(wordsOf(piece), brief) && (untraceable(piece, traceable).length > 0 || ownMeasurementIn(wordsOf(piece), withheld) !== null))
         .map(wordsOf);
     }
     case "rival_negative":

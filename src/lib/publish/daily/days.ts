@@ -21,6 +21,7 @@
 //
 // **Nothing here throws into the tick.** A record or an alert that fails
 // logs one line and returns: it must not cost the site its page.
+import { AUTOPILOT_STALL } from "@/lib/config/constants";
 import { nextPublishTimeAtOrAfter, publishDateAtOrAfter } from "../settings/clock";
 import { publishDb } from "../db";
 import type { DailySite } from "./sites";
@@ -47,6 +48,9 @@ export interface DraftDayStore {
   /** Marks the date told about, only if it has not been. True for the one
    *  caller that made the claim — the one that sends the mail. */
   claimMissingAlert(siteId: string, publishDate: string, at: Date): Promise<boolean>;
+  /** When the site's latest page was delivered, or `null` where none has
+   *  been (issue 1536). Absent, no stall is checked. */
+  lastDeliveredAt?(siteId: string): Promise<Date | null>;
 }
 
 let store: DraftDayStore | null = null;
@@ -121,6 +125,50 @@ export async function alertMissingDrafts(a: { sites: readonly DailySite[]; hour:
   return told;
 }
 
+/** The states of a date's page that is going out or out. */
+const GOING_OUT: ReadonlySet<string> = new Set(["in_review", "approved", "publishing", "published"]);
+
+const MS_PER_DAY = 86_400_000;
+
+/** A calendar date, as the site's own zone reads the instant. */
+function localDate(at: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+}
+
+/**
+ * Issue 1536: mails the owner about every site among `sites` whose publish
+ * time falls in this hour and that has gone `AUTOPILOT_STALL.stallFactor`
+ * times its cadence with no page delivered — on that day, and on each such
+ * span after it while none is. reachkit.app's last page went out on 14
+ * October and nothing said so for five days: each day was told on its own,
+ * never the run of them. A site with no page delivered yet, and a date
+ * whose page is going out, are not told. Never throws. Returns how many
+ * were told.
+ */
+export async function alertStalledSites(a: { sites: readonly DailySite[]; hour: Date }): Promise<number> {
+  const span = AUTOPILOT_STALL.cadenceDays * AUTOPILOT_STALL.stallFactor;
+  let told = 0;
+  for (const site of a.sites) {
+    try {
+      const date = publishDateInHour(a.hour, site);
+      if (date === null) continue;
+      const days = draftDays();
+      const last = (await days.lastDeliveredAt?.(site.siteId)) ?? null;
+      if (last === null) continue;
+      const lastDelivered = localDate(last, site.timeZone);
+      const since = Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${lastDelivered}T00:00:00Z`)) / MS_PER_DAY);
+      if (since < span || since % span !== 0) continue;
+      if ((await days.statesOn(site.siteId, date)).some((state) => GOING_OUT.has(state))) continue;
+      const { reportIncident } = await import("@/lib/mail/ops");
+      await reportIncident({ occasion: "autopilot-stalled", domain: (await days.domainOf(site.siteId)) ?? "unknown", lastDelivered, days: since });
+      told += 1;
+    } catch {
+      warn("stall-alert-failed");
+    }
+  }
+  return told;
+}
+
 function databaseDraftDayStore(): DraftDayStore {
   return {
     async record(a) {
@@ -173,6 +221,18 @@ function databaseDraftDayStore(): DraftDayStore {
       const { data, error } = await publishDb().from<{ domain: string }>("sites").select("domain").eq("id", siteId).limit(1);
       if (error !== null) throw new Error(error.message);
       return data?.[0]?.domain ?? null;
+    },
+    async lastDeliveredAt(siteId) {
+      const { data, error } = await publishDb()
+        .from<{ published_at: string }>("publications")
+        .select("published_at")
+        .eq("site_id", siteId)
+        .not("published_at", "is", null)
+        .order("published_at", { ascending: false })
+        .limit(1);
+      if (error !== null) throw new Error(error.message);
+      const at = data?.[0]?.published_at;
+      return at === undefined ? null : new Date(at);
     },
     async claimMissingAlert(siteId, publishDate, at) {
       const seeded = await publishDb()

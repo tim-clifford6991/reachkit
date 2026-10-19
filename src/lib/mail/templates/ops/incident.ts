@@ -75,6 +75,9 @@ export type OpsIncident =
   // for the day. Owner-only, so the site is named; the reason is the code
   // its due hour recorded (`draft_days`), a closed name.
   | { occasion: "no-draft-at-publish"; domain: string; date: string; reason: string }
+  // Issue 1536: no error — a site on autopilot has gone twice its cadence
+  // with no page delivered. Owner-only, so the site is named.
+  | { occasion: "autopilot-stalled"; domain: string; lastDelivered: string; days: number }
   // Issue 1187: no error — the writing rules stopped one draft twice. Each
   // rule that stopped the last attempt, with the sentences that broke it
   // where the rule can point at them.
@@ -100,6 +103,7 @@ const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "market-too-small-week": "mail.ops.incident.market-too-small-week",
   "job-stale": "mail.ops.incident.job-stale",
   "no-draft-at-publish": "mail.ops.incident.no-draft-at-publish",
+  "autopilot-stalled": "mail.ops.incident.autopilot-stalled",
   "draft-stopped-twice": "mail.ops.incident.draft-stopped-twice",
 });
 
@@ -169,7 +173,14 @@ function factsOf(incident: OpsIncident): FactRow[] {
     return [
       { label: "mail.ops.incident.fact.site", value: closedDomain(incident.domain) },
       { label: "mail.ops.incident.fact.date", value: closedDate(incident.date) },
-      { label: "mail.ops.incident.fact.cause", value: closedName(incident.reason.replace(/[^A-Za-z0-9_/-]/g, "/")) },
+      { label: "mail.ops.incident.fact.cause", value: closedName(incident.reason.replace(/[^A-Za-z0-9_/-]/g, "/").slice(0, 64)) },
+    ];
+  }
+  if (incident.occasion === "autopilot-stalled") {
+    return [
+      { label: "mail.ops.incident.fact.site", value: closedDomain(incident.domain) },
+      { label: "mail.ops.incident.fact.last-delivered", value: closedDate(incident.lastDelivered) },
+      { label: "mail.ops.incident.fact.days-without", value: count(incident.days) },
     ];
   }
   if (incident.occasion === "market-too-small") {

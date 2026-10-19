@@ -1877,6 +1877,11 @@ export const TAKE_DOWN = Object.freeze({
  *  tries the next-ranked opportunity for the date "at most once more". */
 export const DAY_TOPICS_MAX = 2 as const;                     // §7
 
+/** Issue 1536: autopilot publishes one page every `cadenceDays`, and a site
+ *  that has gone `stallFactor` times that with no page delivered is told to
+ *  the owner, on that day and every such span after it until one is. */
+export const AUTOPILOT_STALL = Object.freeze({ cadenceDays: 1, stallFactor: 2 } as const); // §7
+
 /** SPEC §6 (2026-09-29, *Topics by business fit*): two searches whose
  *  stored top tens share this many page addresses are one topic. Drafted
  *  threshold; the owner may correct it (#1131). */

@@ -26,6 +26,7 @@ vi.mock("@/lib/publish/daily", () => ({
   // Issue 1455's day record and publish-time check, tested where they live.
   recordDraftDay: async () => {},
   alertMissingDrafts: async () => 0,
+  alertStalledSites: async () => 0,
 }));
 vi.mock("@/lib/generate", () => ({ generateDayPage: (a: { siteId: string; publishDate: string }) => dayPage(a) }));
 vi.mock("@/lib/mail/setup/reminders", () => ({

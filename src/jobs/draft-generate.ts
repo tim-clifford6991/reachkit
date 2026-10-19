@@ -39,6 +39,7 @@
 import {
   activeSites,
   alertMissingDrafts,
+  alertStalledSites,
   generateDraft,
   noticeBrokenDestination,
   recordDraftDay,
@@ -77,6 +78,9 @@ export const draftGenerate: JobDefinition = {
     // Issue 1455: a site whose publish time falls in this hour with no page
     // for the day is told to the owner, whatever site is due to draft.
     await alertMissingDrafts({ sites: selection.sites, hour });
+    // Issue 1536: and one that has gone twice its cadence with no page
+    // delivered, which no single day's mail says.
+    await alertStalledSites({ sites: selection.sites, hour });
     const due = selection.sites.filter((site) => isDraftDue(hour, site));
     if (due.length === 0) {
       return restarted.length === 0

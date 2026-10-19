@@ -232,14 +232,13 @@ describe("a page a check stops takes one fix call", () => {
 });
 
 describe("a short pack writes nothing", () => {
-  it("makes no model call and names what the template asks that the pack lacks", async () => {
+  it("makes no model call, names what the template asks that the pack lacks, and writes no row (issue 1536)", async () => {
     const short = pack({ missing: ["buyer_questions"] });
     const outcome = await run({ pack: short });
-    expect(outcome).toMatchObject({ ok: false, reason: "step_failed", step: "pack", missing: ["buyer_questions"] });
+    expect(outcome).toEqual({ ok: false, reason: "step_failed", draftId: null, step: "pack", missing: ["buyer_questions"] });
     expect(llmMock).not.toHaveBeenCalled();
-    // The row keeps the pack, so the page can say what is missing.
-    const row = store.rows.get(outcome.ok ? "" : outcome.draftId!);
-    expect(row).toMatchObject({ body_md: null, hard_rules_passed: false, meta: { pack: { missing: ["buyer_questions"] } } });
+    // Nothing waits in Needs you for a page nobody could write.
+    expect(store.rows.size).toBe(0);
   });
 
   it("a new page whose pack adds too little stops at `adds`, also without a call (D12)", async () => {
