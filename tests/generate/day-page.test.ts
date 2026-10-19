@@ -325,41 +325,34 @@ describe("SPEC §7 (2026-09-15, issue 712) — a written draft queues its opport
 });
 
 describe("a short pack writes nothing (SPEC §7, D41 stage 2)", () => {
-  it("the page stops naming what is missing, with no model call, and rests where the customer can see it", async () => {
+  it("issue 1536: the page stops naming what is missing, with no model call and no row, and its topic rests", async () => {
     packAnswer.missing = ["buyer_questions", "facts_on_topic"];
+    nextForDayMock.mockResolvedValueOnce(opportunity()).mockResolvedValueOnce(null);
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    expect(outcome).toMatchObject({ ok: false, because: "step_failed", step: "pack:buyer_questions,facts_on_topic" });
+    expect(outcome).toEqual({ ok: false, because: "step_failed", draftId: null, step: "pack:buyer_questions,facts_on_topic" });
     expect(llmMock).not.toHaveBeenCalled();
-    const [row] = [...store.rows.values()];
-    expect(row).toMatchObject({ state: "needs_attention", hard_rules_passed: false, body_md: null });
-    expect(transitionMock).toHaveBeenCalledWith(
-      row?.id,
-      "needs_attention",
-      { kind: "system", job: "draft/generate" },
-      { reason: "step_failed:pack:buyer_questions,facts_on_topic" }
-    );
+    // Nothing waits in Needs you: no row, no move.
+    expect(store.rows.size).toBe(0);
+    expect(transitionMock).not.toHaveBeenCalled();
+    // The pick does not choose a topic its pack cannot fill again.
     expect(restTopicMock.mock.calls).toEqual([[opportunity().id, expect.any(Date)]]);
   });
 
-  it("the day goes to the next topic, and the stopped row gives up its date to it (D26)", async () => {
+  it("the day goes to the next topic, which takes the date (D26, issue 1477)", async () => {
     const next = opportunity({ id: "44444444-4444-4444-8444-444444444444", targetQuery: "project management software plan" });
     nextForDayMock.mockResolvedValueOnce(opportunity()).mockResolvedValueOnce(next);
     // Short for the first topic only.
-    packAnswer.missing = ["buyer_questions"];
-    transitionMock.mockImplementation(async (draftId: string, to: string) => {
-      const row = store.rows.get(draftId);
-      if (row !== undefined) store.rows.set(draftId, { ...row, state: to });
-      packAnswer.missing = [];
-      return { ok: true, state: to };
-    });
+    packAnswer.missingFor = (query) => (query === opportunity().targetQuery ? ["buyer_questions"] : []);
     queueAttempt(CLEAN_MARKDOWN);
-    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
-    expect(outcome.ok).toBe(true);
+    try {
+      const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+      expect(outcome.ok).toBe(true);
+    } finally {
+      delete packAnswer.missingFor;
+    }
     const rows = [...store.rows.values()];
-    expect(rows.map((row) => [row.opportunity_id, row.state, row.scheduled_for])).toEqual([
-      [opportunity().id, "needs_attention", null],
-      [next.id, "generating", "2026-09-07"],
-    ]);
+    expect(rows.map((row) => [row.opportunity_id, row.state, row.scheduled_for])).toEqual([[next.id, "generating", "2026-09-07"]]);
+    expect(restTopicMock.mock.calls).toEqual([[opportunity().id, expect.any(Date)]]);
     expect(queueForDraftMock.mock.calls).toEqual([[next.id]]);
   });
 });

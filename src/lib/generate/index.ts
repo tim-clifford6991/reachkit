@@ -24,9 +24,11 @@
 //     next-ranked opportunity for the date, at most once more and inside the
 //     one `CAP_DRAFT` context;
 //   * a pack short of what its template asks, or a new page whose pack adds
-//     too little (D12), writes nothing: the page stops, naming what is
-//     missing, and the day goes to the next topic the same way — without
-//     using up D26's one more, since nothing was written (issue 1477).
+//     too little (D12), writes nothing, and the day goes to the next topic
+//     the same way — without using up D26's one more, since nothing was
+//     written (issue 1477). A short pack writes no row either and rests its
+//     topic, so the pick does not choose a topic its pack cannot fill
+//     (issue 1536); a page that adds too little rests named on its row.
 //
 // `regenerateRestarted` is the customer's Regenerate carried out: the
 // restart moves the row back into `generating`, and the next draft tick
@@ -193,14 +195,19 @@ export async function generateDayPage(a: {
         // Issue 1477: a topic whose pack was short wrote nothing and cost
         // its pack alone, so it does not use up D26's one more topic — the
         // day goes on to the next ready one, within the same cap and time.
-        if (!packShort(outcome)) written += 1;
+        const short = packShort(outcome);
+        if (!short) written += 1;
+        // Issue 1536: a short pack writes no row. The topic is one its pack
+        // cannot fill, so it rests as a stopped one does, and the pick does
+        // not choose it again until the rest ends.
+        if (short && stopped === null) await restTopic(opportunity.id, now);
         // And only while the job's invocation has the time for a second page.
-        if (stopped === null || written >= DAY_TOPICS_MAX || cost.capHit() || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return outcome;
+        if ((stopped === null && !short) || written >= DAY_TOPICS_MAX || cost.capHit() || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return outcome;
         // The stopped topic rests by now, so the head is the next one.
         const next = await nextForDay(a.siteId);
-        if (next === null || next.id === first.id) return outcome;
+        if (next === null || next.id === first.id || next.id === opportunity.id) return outcome;
         // It keeps its row and gives up its date to the page written next.
-        await store.patchDraft(stopped, { scheduled_for: null });
+        if (stopped !== null) await store.patchDraft(stopped, { scheduled_for: null });
         opportunity = next;
       }
     });

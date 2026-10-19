@@ -60,6 +60,7 @@ vi.mock("@/lib/publish/daily", () => ({
   // Issue 1455's day record and publish-time check, tested where they live.
   recordDraftDay: async () => {},
   alertMissingDrafts: async () => 0,
+  alertStalledSites: async () => 0,
 }));
 vi.mock("@/lib/publish/destinations/health", () => ({ sendBreakageMail: async () => ({ sent: false }) }));
 vi.mock("@/lib/mail/draft-ready", () => ({ sendDraftReadyMail: draftReadyMock }));
@@ -257,31 +258,15 @@ describe("#788 — Regenerate is carried out by the draft tick", () => {
   });
 });
 
-describe("a page whose pack is short rests in needs_attention, not generating (#813, D41)", () => {
-  it("nothing is written, the date's one row names what is missing, and Regenerate with the pack made whole puts that row in review", async () => {
+describe("a page whose pack is short writes no row, and its topic rests (D41, issue 1536)", () => {
+  it("nothing is written or left in Needs you, the run names the step and what is missing, and the next evening does not pick the topic", async () => {
     fixtures.packAnswer.missing = ["buyer_questions"];
     const outcome = await draftGenerate.run({ data: {}, now: EVENING });
-    expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:step_failed" });
+    expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:step_failed:pack:buyer_questions" });
     expect(llmMock).not.toHaveBeenCalled();
-
-    const drafts = db.rows("drafts");
-    expect(drafts).toHaveLength(1);
-    const [draft] = drafts;
-    expect(draft).toMatchObject({ scheduled_for: "2026-09-08", state: "needs_attention", hard_rules_passed: false });
-    const moves = draft?.transitions as { from: string; to: string; reason?: string }[];
-    expect(moves.at(-1)).toMatchObject({ from: "generating", to: "needs_attention", reason: "step_failed:pack:buyer_questions" });
+    expect(db.rows("drafts")).toEqual([]);
     expect(restingUntil(opportunityId)).not.toBeNull();
     expect(draftReadyMock).not.toHaveBeenCalled();
-
-    const draftId = String(draft?.id);
-    fixtures.packAnswer.missing = [];
-    expect(await regenerateDraft(draftId)).toBeNull();
-    modelWrites(fixtures.CLEAN_MARKDOWN);
-    expect(await draftGenerate.run({ data: {}, now: MORNING })).toEqual({ outcome: "ran", subjectId: null });
-    expect(db.rows("drafts")).toHaveLength(1);
-    expect(draft).toMatchObject({ id: draftId, scheduled_for: "2026-09-09", state: "in_review", hard_rules_passed: true });
-    expect(statusOf(opportunityId)).toBe("queued");
-    expect(draftReadyMock).toHaveBeenCalledWith(expect.objectContaining({ draftId }));
   });
 });
 
@@ -460,7 +445,9 @@ describe("D26 (issue 1179) — a stopped draft does not cost its day, and its to
     const drafts = db.rows("drafts");
     const written = drafts.find((row) => row.state === "in_review");
     expect(written).toMatchObject({ scheduled_for: "2026-09-08", opportunity_id: third.row.id });
-    expect(drafts.filter((row) => row.state === "needs_attention").map((row) => row.scheduled_for)).toEqual([null, null]);
+    // Issue 1536: neither short topic left a row in Needs you; both rest.
+    expect(drafts.filter((row) => row.state === "needs_attention")).toEqual([]);
+    expect(restingUntil(opportunityId)).not.toBeNull();
   });
 
   it("Write it again on a stopped draft that gave up its date puts it in review on a date of its own", async () => {

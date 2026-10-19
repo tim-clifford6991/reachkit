@@ -56,6 +56,10 @@ function engineDouble(): Record<string, unknown> {
       engineCalls.count += 1;
       return 0;
     },
+    alertStalledSites: async () => {
+      engineCalls.count += 1;
+      return 0;
+    },
     // BUILD §9's one mail per breakage rides `draft/generate`, so the kill
     // switch stops it too — this counter is what proves it.
     noticeBrokenDestination: ran,

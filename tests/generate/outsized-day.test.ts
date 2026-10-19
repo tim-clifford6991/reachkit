@@ -173,8 +173,9 @@ describe("the daily job on a site whose every target is outsized (issue 881)", (
   it("one right-sized target among them, and that is the page the day takes", async () => {
     state.rows = [...OUTSIZED_SIX, row("opp-fit", "seo brief software for startups", 40, "winnable")];
     // The site's own measured page, so the run reaches the page at all. Its
-    // pack is short of what a Q&A page must hold, so nothing is written:
-    // the date's row is this case's proof of **which** target the day took.
+    // pack is short of what a Q&A page must hold, so nothing is written and
+    // the topic rests (issue 1536): the rest is this case's proof of
+    // **which** target the day took.
     readMeasuredTextMock.mockResolvedValue([
       { url: GROUNDED.url, text: SOURCE_TEXT, measuredAt: GROUNDED.readAt },
     ]);
@@ -183,7 +184,8 @@ describe("the daily job on a site whose every target is outsized (issue 881)", (
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: PUBLISH_DATE });
 
     expect(outcome).toMatchObject({ ok: false, because: "step_failed", step: expect.stringMatching(/^pack:/) });
-    expect([...drafts.rows.values()].map((draft) => draft.opportunity_id)).toEqual(["opp-fit"]);
+    expect([...drafts.rows.values()]).toEqual([]);
+    expect(state.rows.filter((r) => r.rest_until != null).map((r) => r.id)).toEqual(["opp-fit"]);
     expect(llmMock).not.toHaveBeenCalled();
   });
 });

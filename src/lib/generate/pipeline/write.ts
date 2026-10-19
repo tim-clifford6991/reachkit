@@ -169,6 +169,28 @@ const COUNTED_OPTIONS_RULE =
 const fewOptionsRule = (count: number): string =>
   `Only ${count} options qualified. In \`how_we_compared\`, say so in one plain sentence: an option is listed only where its own pricing or product page stated a fact, and only where it sells what this market buys, so the other products searchers see named were left out. Never name a product \`options\` does not hold.`;
 
+/** Issue 1536: a product whose price the pack does not hold is one the page
+ *  says nothing about the price of. Model-facing, never shown. */
+const UNPRICED_RULE =
+  "`unpriced` are products named in `pack.products` whose price `pack.claims` does not hold. Say nothing about the price of any of them, in the body or in `faq`: no figure, no comparison of cost that includes them, and never how they charge or that their price is missing, unstated, unpublished or not among the facts.";
+
+/**
+ * Issue 1536: the researched products that have no `rival_pricing` claim in
+ * the pack, by name where the market names them. A comparison of two
+ * products with one price between them read "Peec AI's own pricing page
+ * does not state a plan price", and `rival_negative` stopped it twice.
+ */
+export function unpricedProducts(pack: Pick<ContextPack, "products" | "claims" | "business">): string[] {
+  const rivals = (pack.business.market as { rivals?: unknown } | null)?.rivals;
+  const named = Array.isArray(rivals) ? (rivals as { name?: unknown; domain?: unknown }[]) : [];
+  return pack.products
+    .filter((product) => !pack.claims.some((claim) => claim.product === product.domain && claim.kind === "rival_pricing"))
+    .map((product) => {
+      const name = named.find((rival) => rival.domain === product.domain)?.name;
+      return typeof name === "string" && name.trim() !== "" ? name.trim() : (product.name ?? product.domain);
+    });
+}
+
 /** SPEC §7 (owner, 2026-10-10; issue 1390): a section is headed by the
  *  question buyers were seen to ask, where the pack holds one it answers. */
 const ASKED_HEADINGS_RULE =
@@ -230,6 +252,7 @@ function taskFor(a: WriteInputs): string {
 
 function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<string, unknown> {
   const table = a.template.blocks.table === undefined || a.pack.type !== "listicle" ? null : comparisonTable(a.pack, a.template.blocks.table.rivals);
+  const unpriced = unpricedProducts(a.pack);
   return {
     task: taskFor(a),
     template: templateFor(a),
@@ -239,6 +262,7 @@ function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<s
     pack: a.pack,
     titleRules: titleBrief(a.pack),
     ...(table === null ? {} : { table: table.markdown, options: table.options, alternativesTo: table.baseline }),
+    ...(unpriced.length === 0 ? {} : { unpriced }),
     // Issue 1390: the habits stage 4 counts, so the page is asked not to
     // write what it would be stopped for.
     avoid: AVOID_LIST,
@@ -248,6 +272,7 @@ function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<s
       ...(a.pack.type === "qa" || a.pack.type === "update" || a.pack.questions.length === 0 ? [] : [ASKED_HEADINGS_RULE]),
       ...(table === null ? [WRITTEN_TABLE_RULE] : [BUILT_TABLE_RULE, COUNTED_OPTIONS_RULE]),
       ...(table !== null && table.options.length < RESEARCH.optionsAim ? [fewOptionsRule(table.options.length)] : []),
+      ...(unpriced.length === 0 ? [] : [UNPRICED_RULE]),
       ...languageRules(a.pack.locale?.language ?? "en"),
     ],
     ...extra,

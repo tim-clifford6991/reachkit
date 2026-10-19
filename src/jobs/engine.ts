@@ -131,6 +131,17 @@ export async function alertMissingDrafts(a: {
   return alert(a);
 }
 
+/** Tells the owner about each of these sites whose publish time falls in
+ *  `hour` and that has gone twice its cadence with no page delivered
+ *  (issue 1536). Never throws. */
+export async function alertStalledSites(a: {
+  readonly sites: DailySelection["sites"];
+  readonly hour: Date;
+}): Promise<number> {
+  const { alertStalledSites: alert } = await import("@/lib/publish/daily");
+  return alert(a);
+}
+
 // ── The weekly measurement — issue #41, built.
 //
 // Two calls into `src/lib/scan/weekly/`, and no logic of their own. The
@@ -530,7 +541,9 @@ async function reviewWritten(
   outcome: DayPageOutcome,
   now: Date
 ): Promise<EngineResult> {
-  if (!outcome.ok) return { degraded: `generate:${outcome.because}` };
+  // Issue 1536: a step names itself, and a short pack what it lacked, so
+  // the day's kept reason says which stage left it without a page.
+  if (!outcome.ok) return { degraded: outcome.because === "step_failed" ? `generate:step_failed:${outcome.step}` : `generate:${outcome.because}` };
   const { enterReview } = await import("@/lib/publish/attempt/window");
   const entry = await enterReview({ draftId: outcome.draftId, at: now });
   if (entry.kind === "told") {

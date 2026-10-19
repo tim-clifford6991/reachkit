@@ -237,8 +237,15 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   };
 
   // 2b. A pack short of what its template asks, or a new page short of what
-  //     it must add, writes nothing. The row keeps the pack, so the page can
-  //     say what is missing.
+  //     it must add, writes nothing. Issue 1536: a short pack on a new day
+  //     writes no row either — the topic was one the pack cannot fill, and
+  //     the caller rests it and goes to the next one, so nothing waits in
+  //     *Needs you* for a page nobody could write. A rewrite keeps its row,
+  //     and the row keeps the pack, so the page can say what is missing.
+  if (pack.missing.length > 0 && existing === null) {
+    logRun({ siteId: a.siteId, step: "pack", outcome: "short", type: pack.type, missing: pack.missing.join(",") });
+    return { ok: false, reason: "step_failed", draftId: null, step: "pack", missing: pack.missing };
+  }
   if (pack.missing.length > 0 || pack.adds.short) {
     const draftId = await writeRow({ title: existing?.title ?? a.opportunity.title ?? null, body_md: existing?.body_md ?? null, meta: baseMeta });
     await store.patchDraft(draftId, { hard_rules_passed: false });
@@ -387,6 +394,8 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     facts: passages,
     queries: searches,
     marketFacts: pack.claims.map((claim) => ({ url: claim.url, passage: claim.passage, ...scopeOf(claim) })),
+    // Issue 1536: the table's own lines are code's, from the pack.
+    ...(table === null ? {} : { laid: [table.checked, ...(table.currencies === null ? [] : [table.currencies])] }),
     // Issue 1490: the report's own sentences, withheld from every page that
     // is not research — a refresh's live page among them.
     ...(reportFactsAllowed(pack.type)
@@ -565,7 +574,11 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   if (stopped && checked.outcome.fit.state !== "unrun") {
     await record(checked, repairs, attemptsBefore + 1);
     const notes = notesFor(checked);
-    const canFix = !c.capHit() && Date.now() - startedAt < PIPELINE.fixBeforeMs;
+    // Issue 1536: a fix call told only of sentences the writer never wrote
+    // — code's table, its sources list — would be stopped for them again.
+    const futile = checked.close === null && !checked.outcome.passed && notWritersToFix(notes, written.value);
+    if (futile) logRun({ siteId: a.siteId, draftId, step: "fix", outcome: "not_writers" });
+    const canFix = !futile && !c.capHit() && Date.now() - startedAt < PIPELINE.fixBeforeMs;
     const again = canFix
       ? await fixPage(c, {
           ...writing,
@@ -672,6 +685,48 @@ async function lostFact(siteId: string, row: DraftRow): Promise<GenerateOutcome>
 function stepFailed(siteId: string, step: PipelineStep, draftId: string | undefined): GenerateOutcome {
   logRun({ siteId, step, outcome: "step_failed" });
   return { ok: false, reason: "step_failed", draftId: draftId ?? null, step };
+}
+
+/** The rules whose note names the sentences that broke them, word for word
+ *  as the page reads (`./repair.ts`'s `fixNotes`). */
+const SENTENCE_RULES: ReadonlySet<HardRule> = new Set([
+  "traceable_numerals",
+  "rival_negative",
+  "rival_source",
+  "no_invented_test",
+  "no_invented_provenance",
+  "no_demo_text",
+  "no_placeholder_cell",
+  "fit_claim",
+]);
+
+/**
+ * Issue 1536: whether every check a page failed points only at sentences
+ * the writer did not write. Each failed rule names its sentences, and none
+ * of them is in the parts the write call returned: they are lines code laid
+ * in (the comparison table, the sources list), which a fix call is handed
+ * back unchanged. A rule that names no sentence, or names one the writer
+ * wrote, is the writer's to put right.
+ */
+export function notWritersToFix(notes: readonly FixNote[], parts: PageParts): boolean {
+  if (notes.length === 0) return false;
+  const flat = (text: string): string => renderOf(text).replace(/\s+/g, " ").trim();
+  const own = [
+    parts.answer,
+    parts.closing,
+    ...parts.takeaways,
+    ...parts.sections.flatMap((section) => [section.heading, section.body]),
+    ...parts.faq.flatMap((entry) => [entry.question, entry.answer]),
+  ].map(flat);
+  return notes.every(
+    (note) =>
+      SENTENCE_RULES.has(note.rule) &&
+      note.sentences.length > 0 &&
+      note.sentences.every((sentence) => {
+        const words = flat(sentence);
+        return words !== "" && !own.some((text) => text.includes(words));
+      })
+  );
 }
 
 /** What a market fact says of a rival beyond its words (issue 1485): its
