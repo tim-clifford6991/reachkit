@@ -18,7 +18,7 @@ Ship the paying path. Prefer a library over new code. Follow **Current** in `doc
 - Never use a general-purpose agent for work an expert agent covers (owner 2026-10-19). The agents live in `~/.claude/agents/`. Advisors, read-only: `seo-master` (every SEO question), `commercialization` (pricing, positioning, funnel, selling copy), `ux-designer` (screens, flows, screen copy, design boards), `architect` (structure, build order, jobs, tests, CI), `customer-success` (onboarding, mails, retention), `trust-compliance` (legal, privacy, security hygiene; light while pre-revenue) and `operations` (production health, incidents, spend). Delivery: `product-manager` (plan step → ready issue, waves of at most 3 engineers, delivery status, acceptance in production), `engineer` (one issue, one worktree, one PR; never merges or deploys) and `release-qa` (GO/NO-GO before a merge, PASS/FAIL after a deploy). Another agent type is used only when no expert fits, and the brief says why. The delivery flow is in `docs/PROCESS.md` › Roles.
 - Never keep something only because a test, gate, ruling or approved file protects it; where a library does the job, delete the custom version and its test (owner 2026-09-25, `docs/PROCESS.md`, #1105).
 
-One issue, one worktree branched from `origin/main`, then stop. Merge when the four gates in `docs/PROCESS.md` are green: `typecheck · lint · unit`, `audit`, `schema · RLS`, and `no overflow · axe`.
+One issue, one worktree branched from `origin/main`, then stop at a pull request. The orchestrator merges on release QA's GO when the four gates in `docs/PROCESS.md` are green: `typecheck · lint · unit`, `audit`, `schema · RLS`, and `no overflow · axe`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

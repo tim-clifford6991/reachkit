@@ -31,7 +31,7 @@ The repository and the GitHub issues are the only record. A chat, a memory file,
 | **Architect** | Sets the build order, dependencies, hot-file rules and the proof for each step. Advises; never implements. |
 | **Product manager** | Turns an approved plan step into a ready issue (Conditions, Invariants, Surfaces, Overlaps), classifies feedback under Coherence, sequences waves of at most 3 engineers, keeps the delivery status and verifies each condition in production after deploy. |
 | **Release QA** | Before a merge: each condition proven, CI green, overlaps tested together, migration order; returns GO or NO-GO with the head SHA. After a deploy: Ready, Inngest synced, smoke, errors, conditions in production; returns PASS or FAIL. |
-| **Orchestrator** | Merges on GO with `--match-head-commit`, applies migrations, deploys, syncs Inngest. Holds no implementation. |
+| **Orchestrator** | Merges on GO with `--match-head-commit`, applies migrations in the order step 4 gives, deploys, syncs Inngest. Holds no implementation. |
 
 Delivery flow (owner, 2026-10-19): approved plan step → architect (order, proof) → product manager (issue) → engineer (PR) → release QA (GO) → orchestrator (merge, migration, deploy) → release QA (PASS) → product manager (accepted). The agent definitions live in `~/.claude/agents/`, named in `CLAUDE.md`. The orchestration session holds no implementation and no state. It writes the decision into the repository before anyone builds it. One engineer per issue, in a clean context. The next issue is a new session.
 
@@ -40,7 +40,7 @@ Delivery flow (owner, 2026-10-19): approved plan step → architect (order, proo
 1. **State it.** GitHub issue: what the user can do afterwards. `feature` or `bug`. Board: Status (Ready is next) and Feature (F1–F9). P0 = the paying path is broken. The issue carries Surfaces, Invariants and Overlaps before it is Ready. An example of a parent in Coherence is a comment on that parent, not a new issue.
 2. **Document if required.** New behaviour → that section of `docs/SPEC.md`. Look of a screen → `docs/DESIGN.md` (the three library rules, not a drawing). A bug in specified behaviour → no docs edit. An owner answer → one dated decision file the same day, `docs/spec/decisions/YYYY-MM-DD-<issue>.md`, headed by the SPEC section it belongs to (`node scripts/spec-decisions.mjs new <issue> <§n>` writes the head). A new ruling is never a new line in `docs/SPEC.md` itself, so two pull requests that each add one never conflict (owner, 2026-10-18, #1525).
 3. **Implement.** One issue, one worktree, at `/root/projects/reachkitv3-wt/issue-<N>`, branched from `origin/main`. The checkout at `/root/projects/reachkitv3` stays on `main`. daisyUI classes in the route, Recharts for series, lucide for icons, the libraries on `docs/DESIGN.md`'s list and no others, Stripe / Resend / Supabase for those jobs. No new wrapper, no new CSS sheet, no SVG chart. PR: what changed, how you proved it, `Closes #n`. An issue cites a screen's board in `docs/DESIGN.md` for structure and wording, never pixels.
-4. **Prove and ship.** The four gates below are green, including the Coherence reading inside `audit` and the strategy checks inside `no overflow · axe`. `gh pr merge --squash --delete-branch`, then remove the worktree and close the tab. The owner looks at `dev.reachkit.app` for taste. Merges deploy to dev and production (owner ruling 2026-09-17, #844); run `scripts/smoke.sh` against production after a production deploy. Apply a merged migration through the Supabase connector after the target deploy is READY, then walk the path again. There is no production freeze.
+4. **Prove and ship.** The four gates below are green, including the Coherence reading inside `audit` and the strategy checks inside `no overflow · axe`. The engineer stops at the pull request. Release QA checks it and returns GO with the head SHA; the orchestrator merges with `gh pr merge --squash --delete-branch --match-head-commit <sha>`, removes the worktree and closes the tab. An expand-only migration is applied through the Supabase connector before the deploy whose code reads it; any other migration after the target deploy is READY. Merges deploy to dev and production (owner ruling 2026-09-17, #844); after a production deploy the orchestrator syncs Inngest and runs `scripts/smoke.sh`, and release QA returns PASS or FAIL. The owner looks at `dev.reachkit.app` for taste. There is no production freeze.
 
 `blocked-on-owner` is not implemented around. Missing copy is drafted and shipped, never `TODO(copy)` (owner ruling 2026-09-16, #759): the PR body names every new or changed string so the owner can correct the wording.
 
@@ -121,7 +121,7 @@ One open issue, one worktree, one session: `/root/projects/reachkitv3-wt/issue-<
 
 A worktree whose commits are already on `origin/main`, and whose issue is closed, is deleted. Untracked `node_modules` is not a reason to keep it. A worktree with its own commits that are not on `main`, or with an open pull request, stays.
 
-The Herdr workspace labelled `reachkit` gets one tab per issue, named `rk-<N>`. The tab is closed when the pull request merges or the issue closes. The orchestration session does not spawn that engineer as a subagent and does not share its transcript. An agent already running may finish. The next one is a new tab (owner, 2026-09-24).
+The Herdr workspace labelled `reachkit` gets one tab per issue, named `rk-<N>`. The tab is closed when the pull request merges or the issue closes. The engineer is started in that tab with its role, `claude --agent engineer` (owner, 2026-10-19, #1578). The orchestration session does not spawn that engineer as a subagent and does not share its transcript. An agent already running may finish. The next one is a new tab (owner, 2026-09-24).
 
 ### What gets worked
 
@@ -143,6 +143,8 @@ The milestone **Launch** is the launch queue. Take an open Launch issue that is 
 ## History
 
 Dated rulings. They explain Current. They are not instructions to carry out.
+
+2026-10-19  **Delivery agents** (owner, #1578). Dedicated agents do the delivery: product manager (issues, waves, acceptance), engineer (one issue, one PR, never merges), release QA (GO before a merge, PASS after a deploy), with the architect setting order and proof. The orchestrator merges, migrates and deploys. Definitions live in `~/.claude/agents/`.
 
 2026-09-21  **`no overflow · axe` is the fourth merge gate** (owner, #910). A pull request merges when it is green beside `typecheck · lint · unit`, `audit` and `schema · RLS`. Its known-defect list excuses only a defect found on `main` under an issue number, never one a pull request introduces, and it is empty as of #946.
 
