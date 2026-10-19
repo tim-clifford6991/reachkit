@@ -211,6 +211,7 @@ export function pageQuestionsSectionOf(a: {
   const ownDomain = registrableDomain(a.ownDomain) ?? a.ownDomain;
   const rows = a.asked.map((candidate, index): PageQuestionRow => {
     const cell = overviewCellFor(a.serps[index], ownDomain, a.siteName ?? null);
+    const serp = a.serps[index];
     return {
       publicationId: candidate.publicationId,
       liveUrl: candidate.liveUrl,
@@ -226,6 +227,14 @@ export function pageQuestionsSectionOf(a: {
         ownDomain,
         siteName: a.siteName ?? null,
       }),
+      // Issue 1548: the result is bought for the page's own search, so its
+      // rows are kept for the page's place, not only its AI cell.
+      organic:
+        serp === undefined || serp.kind === "unmeasured"
+          ? null
+          : serp.value.organic.flatMap((row) =>
+              typeof row.url === "string" && row.url !== "" ? [{ url: row.url, position: row.position }] : []
+            ),
     };
   });
 
