@@ -164,7 +164,11 @@ describe("issue 697 — every page describes itself in structured data", () => {
       datePublished: "2026-09-01T09:00:00.000Z",
       dateModified: "2026-09-01T09:00:00.000Z",
       inLanguage: "en-US",
-      image: "https://content.example.com/share.img/a-page",
+      image: [
+        "https://content.example.com/share.img/a-page",
+        "https://content.example.com/share.img/a-page?shape=4x3",
+        "https://content.example.com/share.img/a-page?shape=1x1",
+      ],
       // No recorded byline: the page prints the business's name, and the
       // business is its author — one Organization with the publisher (issue 1511).
       author: { "@type": "Organization", "@id": "https://example.com/#organization", name: "example.com", url: "https://example.com/" },
@@ -322,19 +326,19 @@ describe("#980 — a hosted response with no title of its own carries the visito
   // ours reaches a domain that is not ours (WO-028), and no page that has
   // a title of its own loses it.
   it("the layout titles the response with the host, exactly as it arrived", async () => {
-    const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/layout");
+    const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/hosted-page/layout");
     state.host = "content.example.com";
     expect((await layoutMetadata()).title).toBe("content.example.com");
   });
 
   it("a port and a trailing dot are not part of the name", async () => {
-    const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/layout");
+    const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/hosted-page/layout");
     state.host = "Content.Example.com.:3000";
     expect((await layoutMetadata()).title).toBe("content.example.com");
   });
 
   it("a request with no Host states no title rather than an empty one", async () => {
-    const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/layout");
+    const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/hosted-page/layout");
     state.host = "";
     expect((await layoutMetadata()).title).toBeUndefined();
   });
@@ -342,7 +346,7 @@ describe("#980 — a hosted response with no title of its own carries the visito
   // #1121, #1129: no ReachKit icon or manifest on a customer's domain, and
   // no head link a customer's host would answer 404.
   it("the layout names an empty icon and no manifest", async () => {
-    const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/layout");
+    const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/hosted-page/layout");
     state.host = "content.example.com";
     const head = await layoutMetadata();
     expect(head.icons).toEqual({ icon: "data:," });
@@ -359,7 +363,7 @@ describe("#980 — a hosted response with no title of its own carries the visito
   });
 
   it("it is the host and nothing else: no ReachKit name anywhere in it", async () => {
-    const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/layout");
+    const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/hosted-page/layout");
     state.host = "content.example.com";
     const { title } = await layoutMetadata();
     expect(String(title).toLowerCase()).not.toContain("reachkit");
@@ -439,6 +443,29 @@ describe("issue 1141 — the structured data says what the page shows", () => {
       "https://content.example.com/",
       "https://content.example.com/a-page",
     ]);
+  });
+});
+
+describe("issue 1514 — the head states the customer's icon and lets its pictures show large", () => {
+  it("an article and the index both carry max-image-preview:large and the customer's own icon", async () => {
+    for (const params of [{ slug: ["a-page"] }, {}]) {
+      const metadata = await generateMetadata({ params: Promise.resolve(params) });
+      expect(metadata.robots).toEqual({ "max-image-preview": "large" });
+      expect(metadata.icons).toEqual({ icon: "/icon.img" });
+    }
+  });
+
+  it("a host that serves no site still names the empty icon, never one that 404s", async () => {
+    state.host = "content.stranger.example";
+    expect(await generateMetadata({ params: Promise.resolve({}) })).toEqual({});
+    const { generateMetadata: layoutMetadata } = await import("@/app/(hosted)/hosted-page/layout");
+    expect((await layoutMetadata()).icons).toEqual({ icon: "data:," });
+  });
+
+  it("the article's card is offered at 16:9, 4:3 and 1:1, each on the customer's host", async () => {
+    const image = schemaOf(await render(), "BlogPosting").image as string[];
+    expect(image).toHaveLength(3);
+    for (const url of image) expect(url.startsWith("https://content.example.com/share.img/a-page")).toBe(true);
   });
 });
 

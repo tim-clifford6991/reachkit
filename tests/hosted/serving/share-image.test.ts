@@ -58,10 +58,16 @@ vi.mock("@/lib/site-profile", () => ({
 
 const { GET } = await import("@/app/(hosted)/hosted-page/share.img/[[...slug]]/route");
 
-function get(host: string, slug?: string[]): Promise<Response> {
-  return GET(new Request("https://ignored.example/hosted-page/share.img", { headers: { host } }), {
+function get(host: string, slug?: string[], query = ""): Promise<Response> {
+  return GET(new Request(`https://ignored.example/hosted-page/share.img${query}`, { headers: { host } }), {
     params: Promise.resolve(slug === undefined ? {} : { slug }),
   });
+}
+
+/** A PNG's width and height, off its header chunk. */
+async function sizeOf(response: Response): Promise<{ width: number; height: number }> {
+  const bytes = Buffer.from(await response.arrayBuffer());
+  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
 }
 
 async function isPng(response: Response): Promise<boolean> {
@@ -114,5 +120,14 @@ describe("issue 1141 — a hosted page's share image", () => {
     expect((await get("content.example.com", ["never-published"])).status).toBe(404);
     expect((await get("content.example.com", ["a-page", "more"])).status).toBe(404);
     expect((await get("content.unknown.example", ["a-page"])).status).toBe(404);
+  });
+
+  it("draws the same card at 4:3 and 1:1 as well as the 1200×630 (issue 1514)", async () => {
+    expect(await sizeOf(await get("content.example.com", ["a-page"]))).toEqual({ width: 1200, height: 630 });
+    expect(await sizeOf(await get("content.example.com", ["a-page"], "?shape=4x3"))).toEqual({ width: 1200, height: 900 });
+    expect(await sizeOf(await get("content.example.com", ["a-page"], "?shape=1x1"))).toEqual({ width: 1200, height: 1200 });
+    expect(await sizeOf(await get("content.example.com", undefined, "?shape=1x1"))).toEqual({ width: 1200, height: 1200 });
+    // A shape it does not draw is the card's own.
+    expect(await sizeOf(await get("content.example.com", ["a-page"], "?shape=toString"))).toEqual({ width: 1200, height: 630 });
   });
 });

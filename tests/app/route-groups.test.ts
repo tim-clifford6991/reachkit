@@ -43,12 +43,11 @@ describe('BP-001 `## Module / boundary` — "It does **not** own `src/app/(hoste
     const entries = readdirSync(hostedDir).sort();
     expect(entries).toEqual(
       [
+        "document.tsx",
         "edge.ts",
         "hosted-gone",
         "hosted-live",
         "hosted-page",
-        "layout.tsx",
-        "not-found.tsx",
         "policies.ts",
         "resolve-host.ts",
         "robots.txt",
@@ -58,9 +57,13 @@ describe('BP-001 `## Module / boundary` — "It does **not** own `src/app/(hoste
   });
 
   it("the group's own four surfaces are on disk", () => {
+    // Each of the two rendered routes has its own root layout since issue
+    // 1514, drawing the group's one document.
     for (const file of [
-      "layout.tsx",
-      "not-found.tsx",
+      "document.tsx",
+      "hosted-page/layout.tsx",
+      "hosted-page/not-found.tsx",
+      "hosted-live/[host]/layout.tsx",
       "resolve-host.ts",
       "hosted-page/[[...slug]]/page.tsx",
       "hosted-live/[host]/[slug]/page.tsx",

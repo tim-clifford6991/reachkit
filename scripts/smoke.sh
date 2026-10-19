@@ -29,6 +29,10 @@
 #
 #   SMOKE_BASE_URL   the deployment to walk. Default `https://dev.reachkit.app`
 #                    (docs/RUNBOOK.md §1). Production is `https://reachkit.app`.
+#   SMOKE_HOSTED_URL the content host to time (issue 1514). Default
+#                    `https://content.reachkit.app` when the deployment is
+#                    `https://reachkit.app`, the dogfood blog; with none,
+#                    the hosted step says so and is skipped.
 #   domain           the site to scan. Default `SMOKE_DOMAIN`, else the
 #                    built-in below. **It spends real money** — one free
 #                    pass, capped at `CAPS.FREE_C` — so it is one domain a
@@ -105,6 +109,11 @@ PLATFORM_CEILING_S=$(pin platformCeilingS) # the platform's hard stop
 FREE_CAP_C=$(pin FREE_C)                 # CAPS — one free pass's ceiling in cents
 RESCAN_WINDOW_D=$(pin FREE_RESCAN_WINDOW_D) # §2: inside it, the stored report is served
 FIRST_FRAME_MS=3000                      # issue #543: a dead stream is the defect
+TTFB_BUDGET_MS=$(pin HOSTED_TTFB_BUDGET_MS) # issue 1514: a cached hosted article
+FONT_PRELOADS=$(pin HOSTED_FONT_PRELOADS)   # issue 1514: a hosted page's preloads
+HOSTED_URL="${SMOKE_HOSTED_URL:-}"
+[ -z "$HOSTED_URL" ] && [ "$BASE_URL" = "https://reachkit.app" ] && HOSTED_URL="https://content.reachkit.app"
+HOSTED_URL="${HOSTED_URL%/}"
 
 echo "smoke: $BASE_URL · $DOMAIN · ceiling ${REPORT_CEILING_S}s, hard stop ${PLATFORM_CEILING_S}s, cap ${FREE_CAP_C}c"
 
@@ -123,6 +132,50 @@ fields=$(grep -o 'name="value"' "$body" | wc -l)
 [ "$fields" -ge 1 ] || fail "$step" "GET / carries no domain field (name=\"value\")"
 grep -q 'type="submit"' "$body" || fail "$step" "GET / carries no submit control"
 ok "$step" "200 · the one field and its CTA"
+
+# ── 1b. hosted ───────────────────────────────────────────────────────────
+# SPEC §7 (2026-10-18, issue 1514, B6): a customer's cached article answers
+# within the budget and preloads at most two fonts, and states a language.
+# Before the scan, which spends: it costs nothing and needs no fresh domain.
+# The article is the index's newest; it is asked four times, the first
+# answer, which may fill the cache, is not timed, and the fastest of the
+# other three is the one held to the budget (one slow answer from a shared
+# box is the network's, three are the page's).
+step=hosted
+if [ -z "$HOSTED_URL" ]; then
+  note "no content host to time (SMOKE_HOSTED_URL) — hosted step skipped"
+else
+  index="$WORK/hosted-index.html"
+  code=$(curl -sS -o "$index" -w '%{http_code}' --max-time 30 "$HOSTED_URL/" 2>"$WORK/hosted.err") \
+    || fail "$step" "GET $HOSTED_URL/ did not answer ($(tr -d '\n' < "$WORK/hosted.err"))"
+  [ "$code" = 200 ] || fail "$step" "GET $HOSTED_URL/ answered $code"
+  slug=$(grep -o 'aria-labelledby="featured".*' "$index" | grep -o 'href="/[a-z0-9][a-z0-9-]*"' | head -1 | sed 's/href="\/\(.*\)"/\1/')
+  if [ -z "$slug" ]; then
+    note "$HOSTED_URL has published nothing — no article to time"
+  else
+    article="$WORK/hosted-article.html"
+    ttfb=""
+    for attempt in 1 2 3 4; do
+      ttfb=$(curl -sS -o "$article" -D "$WORK/hosted-head.txt" -w '%{http_code} %{time_starttransfer}' --max-time 30 "$HOSTED_URL/$slug" 2>"$WORK/hosted.err") \
+        || fail "$step" "GET $HOSTED_URL/$slug did not answer ($(tr -d '\n' < "$WORK/hosted.err"))"
+      [ "${ttfb%% *}" = 200 ] || fail "$step" "GET $HOSTED_URL/$slug answered ${ttfb%% *}"
+      [ "$attempt" = 1 ] && continue
+      ms=$(awk -v s="${ttfb#* }" 'BEGIN { printf "%d", s * 1000 }')
+      best=${best:-$ms}
+      [ "$ms" -lt "$best" ] && best=$ms
+    done
+    [ "$best" -le "$TTFB_BUDGET_MS" ] || fail "$step" "/$slug took ${best} ms to its first byte, past the ${TTFB_BUDGET_MS} ms budget"
+    # Next states a preload in the page (a cached render) or in its `Link`
+    # header (one rendered for the request); both are counted.
+    in_page=$(grep -o '<link[^>]*rel="preload"[^>]*as="font"' "$article" | wc -l)
+    in_header=$(grep -i '^link:' "$WORK/hosted-head.txt" | grep -o 'rel=preload; as="font"' | wc -l)
+    preloads=$((in_page + in_header))
+    [ "$preloads" -le "$FONT_PRELOADS" ] || fail "$step" "/$slug preloads $preloads fonts, more than $FONT_PRELOADS"
+    lang=$(grep -o '<html[^>]* lang="[^"]*"' "$article" | sed 's/.* lang="\([^"]*\)"/\1/' | head -1)
+    [ -n "$lang" ] || fail "$step" "/$slug states no <html lang>"
+    ok "$step" "/$slug · first byte ${best} ms ≤ ${TTFB_BUDGET_MS} ms · ${preloads} font preloads · lang $lang"
+  fi
+fi
 
 # ── 2. scan-start ────────────────────────────────────────────────────────
 # The visitor's own first request: the JSON arm of `POST /api/scan`, which

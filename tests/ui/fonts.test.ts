@@ -337,24 +337,20 @@ describe("BUILD §1 / BP-018 NFR — self-hosted, no third-party font request", 
     }
   });
 
-  it("preloads the latin faces the product renders above the fold, and nothing else", () => {
+  it("preloads two faces, the body and the title, and nothing else (issue 1514)", () => {
     // A preload is a promise the byte is needed now. Jakarta 400 is the
-    // body, 600 every label, button and big figure (#1062), and 700 is
-    // `type.css`'s one heading weight; JetBrains Mono 400
-    // is every numeral; Jakarta 800 is the public header's wordmark and the
-    // landing's headline, and a face discovered after first
-    // paint swaps in and moves the page (issue #494, CLS 0.21 at 320 px).
-    // No non-latin subset is on any screen's critical path, so none
-    // preloads.
+    // body; Jakarta 800 is the public header's wordmark, the landing's
+    // headline and a customer's page title, and a face discovered after
+    // first paint swaps in and moves the page (issue #494, CLS 0.21 at
+    // 320 px). SPEC §7 (2026-10-18, issue 1514) holds a customer's page to
+    // two preloads, and Turbopack serves every route's font CSS as one
+    // chunk, so these two are every page's.
     const preloaded = localFontCalls(fontsSource())
       .filter((call) => call.preload)
       .flatMap((call) => call.faces.map((f) => f.path.slice(f.path.lastIndexOf("/") + 1)))
       .sort();
     expect(preloaded).toEqual([
-      "jetbrains-mono-latin-400-normal.woff2",
       "plus-jakarta-sans-latin-400-normal.woff2",
-      "plus-jakarta-sans-latin-600-normal.woff2",
-      "plus-jakarta-sans-latin-700-normal.woff2",
       "plus-jakarta-sans-latin-800-normal.woff2",
     ]);
   });

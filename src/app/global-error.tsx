@@ -13,9 +13,10 @@
 // imported neither would render the product's one written line in the
 // browser's default face on a white ground, in a product where the theme is
 // three blocks of `src/ui/theme.css` and every numeral is JetBrains Mono.
-// The six imports below are `src/app/layout.tsx`'s own, in its order and
-// for its reasons; `shell.css` is not among them, because no shell is drawn
-// here. They are stylesheets, so they cost a visitor no script at all.
+// The stylesheets below are ReachKit's document's own (`_root/document.tsx`),
+// in its order and for its reasons; `shell.css` is not among them, because
+// no shell is drawn here. They are stylesheets, so they cost a visitor no
+// script at all.
 //
 // **The document is all this file holds** (#988). An error boundary is a
 // Client Component (Next's requirement), and this one sits above both route

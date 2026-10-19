@@ -182,7 +182,7 @@ describe("issue #331 — no path out of `src/middleware.ts` answers without the 
     ["the report address, whose rewrite is a render", "/scan/example.com", {}],
     ["a hosted customer's own domain", "/best-onboarding-tools", { host: "content.example.com" }],
     // #405's fallthrough: an address under no segment this product serves,
-    // which Next answers with `src/app/not-found.tsx`. A rendered screen
+    // which Next answers with `src/app/global-not-found.tsx`. A rendered screen
     // like any other, and it leaves through the same seal.
     ["an address this product does not have", "/nothing-here", {}],
   ])("%s", async (_label, pathname, init) => {

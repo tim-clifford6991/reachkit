@@ -38,7 +38,7 @@ const SURFACE_CSS = path.resolve(
 const APP_DIR = path.resolve(import.meta.dirname, "../../src/app");
 const ROOT_LAYOUT_TSX = path.resolve(
   import.meta.dirname,
-  "../../src/app/layout.tsx",
+  "../../src/app/_root/document.tsx",
 );
 
 /** Ruling 10a (UI-SPEC §1): "type 15 / 13 / 12 / 11.5 / 11 … nothing under
@@ -149,7 +149,7 @@ describe("ruling 10a — every media query in the product is one of the four rul
   });
 });
 
-describe("src/app/layout.tsx imports src/ui/layout/layout.css, so every route's :root carries the tokens", () => {
+describe("src/app/_root/document.tsx imports src/ui/layout/layout.css, so every route's :root carries the tokens", () => {
   it("imports @/ui/layout/layout.css", () => {
     expect(readFileSync(ROOT_LAYOUT_TSX, "utf8")).toMatch(
       /import\s+["']@\/ui\/layout\/layout\.css["']/,
@@ -294,7 +294,7 @@ describe("issue #241 — every arm the route tree declares has a rule in surface
   });
 });
 
-describe("src/app/layout.tsx imports src/ui/layout/surface.css, so every route renders the law", () => {
+describe("src/app/_root/document.tsx imports src/ui/layout/surface.css, so every route renders the law", () => {
   it("imports @/ui/layout/surface.css", () => {
     expect(readFileSync(ROOT_LAYOUT_TSX, "utf8")).toMatch(
       /import\s+["']@\/ui\/layout\/surface\.css["']/,

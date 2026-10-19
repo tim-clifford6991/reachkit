@@ -26,6 +26,7 @@
 // candidate's turn. What is stored is served from our own origin
 // (`/scans/logo/{domain}`), never hotlinked: a visitor's browser asks
 // ReachKit for the picture, not the scanned site.
+import { disableTypes, imageSize, types } from "image-size";
 import { safeFetch } from "@/lib/egress/safe-fetch";
 import type { FetchOutcome } from "@/lib/egress/types";
 import { SITE_LOGO } from "@/lib/config/constants";
@@ -45,6 +46,33 @@ export interface SiteLogo {
   type: LogoType;
   /** The address it was read from, kept so a wrong pick can be traced. */
   source: string;
+}
+
+/** The formats a kept logo can be (`LOGO_TYPES`); `image-size`'s parsers
+ *  for every other format are switched off, so bytes that only look like
+ *  one are never parsed as it. */
+const SIZED = new Set(["png", "jpg", "gif", "webp", "ico", "svg"]);
+disableTypes(types.filter((type) => !SIZED.has(type)));
+
+/** Google's floor for a result's icon (SPEC §7, 2026-10-18, issue 1514). */
+const ICON_MIN_PX = 48;
+
+/** Whether a kept logo can stand as a host's icon in a search result: a
+ *  square of at least 48 px — in any of an ICO's faces — or a square SVG,
+ *  which has no size to be too small at. Bytes it cannot read are not. */
+export function iconWorthy(logo: { bytes: Buffer; type: string }): boolean {
+  try {
+    const size = imageSize(new Uint8Array(logo.bytes));
+    const faces = size.images ?? [size];
+    return faces.some(
+      (face) =>
+        face.width > 0 &&
+        face.width === face.height &&
+        (logo.type === "image/svg+xml" || face.width >= ICON_MIN_PX)
+    );
+  } catch {
+    return false;
+  }
 }
 
 const TAG_RE = /<(link|meta|img)\b([^>]*)>/gi;

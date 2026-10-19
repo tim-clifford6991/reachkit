@@ -155,9 +155,38 @@ describe("the hosted index", () => {
     expect(second).not.toContain("Latest");
     expect(second).toMatch(/<a href="\/" rel="prev"/);
 
-    // A page past the end is the last one, and a search keeps its query.
-    expect(await render(undefined, "99")).toContain("Page 3 of 3");
+    // A search keeps its query.
     expect(await render("seats", "2")).toContain('href="/?q=seats&amp;page=3"');
+  });
+
+  it("answers a page past the last 404, with or without a search (issue 1514)", async () => {
+    state.pages = Array.from({ length: 30 }, (_, i) =>
+      page(`guide-${i}`, `Guide ${i}`, "Seats and tiers.", new Date(Date.UTC(2026, 8, 30 - i)).toISOString())
+    );
+    expect(await render(undefined, "3")).toContain("Page 3 of 3");
+    await expect(render(undefined, "4")).rejects.toThrow();
+    await expect(render(undefined, "9999999")).rejects.toThrow();
+    await expect(render("seats", "4")).rejects.toThrow();
+    // An empty site has its one page and no second.
+    state.pages = [];
+    await expect(render(undefined, "2")).rejects.toThrow();
+  });
+
+  it("each later page of the index is its own canonical; a search and page 1 name the index (issue 1514)", async () => {
+    state.pages = Array.from({ length: 30 }, (_, i) =>
+      page(`guide-${i}`, `Guide ${i}`, "Seats and tiers.", new Date(Date.UTC(2026, 8, 30 - i)).toISOString())
+    );
+    const at = async (search: Record<string, string>) =>
+      (await generateMetadata({ params: Promise.resolve({}), searchParams: Promise.resolve(search) })).alternates
+        ?.canonical;
+    expect(await at({ page: "2" })).toBe("https://content.example.com/?page=2");
+    expect(await at({ page: "3" })).toBe("https://content.example.com/?page=3");
+    expect(await at({ page: "1" })).toBe("https://content.example.com/");
+    expect(await at({})).toBe("https://content.example.com/");
+    expect(await at({ q: "seats", page: "2" })).toBe("https://content.example.com/");
+    // The share card's address is the page's own canonical too.
+    const meta = await generateMetadata({ params: Promise.resolve({}), searchParams: Promise.resolve({ page: "2" }) });
+    expect((meta.openGraph as { url?: string }).url).toBe("https://content.example.com/?page=2");
   });
 
   it("carries nothing of ReachKit's", async () => {

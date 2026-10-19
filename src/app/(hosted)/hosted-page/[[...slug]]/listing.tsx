@@ -22,7 +22,7 @@ import { copy } from "@/lib/presentation/copy/reader";
 import type { HostedPage } from "@/lib/publish/destinations/hosted";
 import { Surface } from "@/ui/layout";
 import { HostedFooter, HostedHeader, type HostedBusiness } from "./chrome";
-import { writeDate } from "./present";
+import { indexHref, writeDate } from "./present";
 import { blogSchema } from "./seo";
 
 /** The query as the address carries it: the first `q`, trimmed, or empty. */
@@ -46,20 +46,19 @@ export function matchPages(pages: readonly HostedPage[], query: string): HostedP
 export const INDEX_PAGE_SIZE = 12;
 
 /** The page number as the address carries it: the first `page`, a whole
- *  number from 1. Anything else is the first page. */
+ *  number from 1. Anything else is the first page. A number past the last
+ *  page is kept, so the route can answer it 404 (issue 1514). */
 export function pageOf(raw: string | string[] | undefined): number {
   const value = Array.isArray(raw) ? raw[0] : raw;
-  return value !== undefined && /^[1-9]\d{0,5}$/.test(value) ? Number(value) : 1;
+  return value !== undefined && /^[1-9]\d*$/.test(value) ? Number(value) : 1;
 }
 
-/** The index's own address for one page of one search. The first page of
- *  no search is the bare root. */
-function indexHref(query: string, page: number): string {
-  const params = new URLSearchParams();
-  if (query !== "") params.set("q", query);
-  if (page > 1) params.set("page", String(page));
-  const search = params.toString();
-  return search === "" ? "/" : `/?${search}`;
+/** How many pages one search of the index runs to: the newest page leads
+ *  the first page of the whole list, and the rest are twelve a page. */
+export function indexPageCount(pages: readonly HostedPage[], query: string): number {
+  const matched = matchPages(pages, query);
+  const rest = query === "" ? matched.slice(1) : matched;
+  return Math.max(1, Math.ceil(rest.length / INDEX_PAGE_SIZE));
 }
 
 /** The date a card states: the day the page was last published. */
@@ -94,8 +93,8 @@ export function HostedIndex({
   // list of matches, and a later page is more of the list: neither has one.
   const lead = query === "" ? (matched[0] ?? null) : null;
   const rest = lead === null ? matched : matched.slice(1);
-  const pageCount = Math.max(1, Math.ceil(rest.length / INDEX_PAGE_SIZE));
-  // A page past the end is the last page, never an empty one.
+  const pageCount = indexPageCount(pages, query);
+  // The route answers a page past the end 404 before it gets here.
   const current = Math.min(page, pageCount);
   const featured = current === 1 ? lead : null;
   const shown = rest.slice((current - 1) * INDEX_PAGE_SIZE, current * INDEX_PAGE_SIZE);

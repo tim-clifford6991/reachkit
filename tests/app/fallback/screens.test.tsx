@@ -11,7 +11,7 @@
 // `renderToStaticMarkup` is the same renderer `tests/presentation/sweeps/`
 // uses, and it runs in the `node` project with no DOM.
 //
-// **Six mounts since #405.** `src/app/not-found.tsx` is the one Next
+// **Six mounts since #405.** `src/app/global-not-found.tsx` is the one Next
 // actually reaches for an unmatched URL — a route group's `not-found.tsx`
 // is a `notFound()` boundary and nothing else — so it is the root file that
 // decides what a mistyped ReachKit address answers. It belongs to no group,
@@ -46,7 +46,7 @@ import AccountError from "../../../src/app/(account)/error";
 // S8 describes is this module; the document is asserted from the source of
 // the other, below.
 import GlobalError from "../../../src/app/_fallback/GlobalErrorBody";
-import RootNotFound from "../../../src/app/not-found";
+import { NotFoundScreen as RootNotFound } from "../../../src/app/global-not-found";
 
 function html(screen: () => React.JSX.Element): string {
   return renderToStaticMarkup(screen());
@@ -238,7 +238,7 @@ describe("S8 — the root 404, the one an unmatched address reaches (#405)", () 
   const markup = html(RootNotFound);
 
   it("wears ruling 3a's header and footer, which no group layout gives it", () => {
-    // It renders inside `src/app/layout.tsx` alone — above all three route
+    // It renders inside `src/app/_root/document.tsx` alone — above all three route
     // groups — so the shell every other public screen inherits from
     // `(public)/layout.tsx` is drawn here or nowhere.
     expect(occurrences(markup, 'data-testid="public-header"')).toBe(1);
@@ -290,7 +290,7 @@ describe("S8 — what each file is, on disk", () => {
   it.each([
     "src/app/(public)/not-found.tsx",
     "src/app/(account)/not-found.tsx",
-    "src/app/not-found.tsx",
+    "src/app/global-not-found.tsx",
   ])(
     "%s is a Server Component that reads no session, cookie or store",
     (file) => {
@@ -327,7 +327,7 @@ describe("S8 — what each file is, on disk", () => {
       "src/app/(account)/error.tsx",
       "src/app/global-error.tsx",
       "src/app/_fallback/GlobalErrorBody.tsx",
-      "src/app/not-found.tsx",
+      "src/app/global-not-found.tsx",
       "src/app/_fallback/Fallback.tsx",
       "src/app/_fallback/AddressLine.tsx",
     ]) {

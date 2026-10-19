@@ -127,6 +127,11 @@ export interface LanguagePack {
   /** The numbers written as words, each at its own value: "five" is 5
    *  (issue 1507, a figure compared with the body). */
   numberWords: readonly string[];
+  /** How a new page's address writes this language's own letters in ASCII,
+   *  where the language has a convention that differs from dropping the
+   *  accent (SPEC §6, 2026-10-18, issue 1514): German writes "ä" as "ae".
+   *  Lower case; a letter not here loses its accent. */
+  slugLetters: Readonly<Record<string, string>>;
 
   /** What a page title is checked by (SPEC §7, D51). */
   title: {

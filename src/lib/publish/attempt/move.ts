@@ -135,6 +135,7 @@ export async function repairMoves(a: { now: Date; by?: Actor }): Promise<{ moved
   const by = a.by ?? PUBLISH_TICK;
   const { isRetarget } = await import("@/lib/opportunities/types");
   const { slugify } = await import("@/lib/opportunities/derive/candidate");
+  const { siteLocale } = await import("@/lib/locale/site");
   const { data, error } = await publishDb()
     .from<RetargetRow>("publications")
     .select("id, site_id, draft_id, live_url, published_at, unpublished_at, drafts(opportunities(family, target_ref, target_query, evidence))")
@@ -148,7 +149,9 @@ export async function repairMoves(a: { now: Date; by?: Actor }): Promise<{ moved
     const opportunity = row.drafts?.opportunities ?? null;
     if (!isLive(row) || opportunity === null || opportunity.target_ref === null) continue;
     if (!isRetarget({ evidence: opportunity.evidence as never })) continue;
-    const to = slugify(opportunity.target_query ?? "");
+    // The new address in the site's language (issue 1514). A page that
+    // moved before is at another slug than this one and is left alone below.
+    const to = slugify(opportunity.target_query ?? "", (await siteLocale(row.site_id)).language);
     const from = slugOf(opportunity.target_ref);
     const at = slugOf(row.live_url ?? "");
     if (to === "" || from === null || from === to) continue;

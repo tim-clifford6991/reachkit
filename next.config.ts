@@ -94,6 +94,11 @@ const nextConfig: NextConfig = {
   // re-score reads a scan with. The `scan/rescore` tick asks for a dry run
   // and an apply by itself when it finds no run at this value.
   env: { RK_DERIVATION: derivation() },
+  // Issue 1514: each route group has its own root layout, so a hosted page
+  // can state its site's language on `<html>`. An address no route matches
+  // then has no root layout to render in; `src/app/global-not-found.tsx` is
+  // Next's file for exactly that case.
+  experimental: { globalNotFound: true },
   // Issue #782: the waiting screen is gone — a founder waits for their pass
   // inside the app, where the side panel says which step is running. An old
   // tab or a saved link still reaches the app.

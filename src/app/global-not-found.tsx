@@ -1,5 +1,11 @@
 // UI-SPEC S8 — the not-found screen for an address this product does not have.
-// src/app/not-found.tsx
+// src/app/global-not-found.tsx
+//
+// **Next's global 404 since issue 1514.** `src/app` has a root layout per
+// group, so there is no root layout for an unmatched URL to render in, and
+// `not-found.md` names `global-not-found.js` for exactly that case
+// (`experimental.globalNotFound`, `next.config.ts`). It renders ReachKit's
+// document itself, around the same screen `src/app/not-found.tsx` drew.
 //
 // **The root `not-found` is the only one an unmatched URL ever reaches.**
 // `not-found.md`, "Good to know": "the root `app/not-found.js` … handles any
@@ -13,7 +19,7 @@
 // **It belongs to no route group, so it draws its own chrome.** Every other
 // public screen gets ruling 3a's header and footer from
 // `(public)/layout.tsx`; this file renders above all three groups, inside
-// `src/app/layout.tsx` alone, so the shell is written here — the same
+// ReachKit's document alone, so the shell is written here — the same
 // `data-public-shell` column, the same `Header` and the same `Footer`, so a
 // stranger who mistypes an address lands somewhere that looks like the
 // product and carries the way out of it.
@@ -44,17 +50,26 @@ import type React from "react";
 import PublicNotFound from "@/app/(public)/not-found";
 import { Header } from "@/app/(public)/_chrome/Header";
 import { Footer } from "@/app/(public)/_chrome/Footer";
+import ReachKitDocument from "./_root/document";
 
 /** A test hook, never a sentence — bound to a name for the same reason
  *  every other test id in `src/app/**` is (ADR-010 point 1). */
 const TEST_ID = "root-not-found";
 
-export default function RootNotFound(): React.JSX.Element {
+export function NotFoundScreen(): React.JSX.Element {
   return (
     <div data-public-shell className="flex min-h-svh flex-col" data-testid={TEST_ID}>
       <Header />
       <PublicNotFound />
       <Footer />
     </div>
+  );
+}
+
+export default function GlobalNotFound(): React.JSX.Element {
+  return (
+    <ReachKitDocument>
+      <NotFoundScreen />
+    </ReachKitDocument>
   );
 }

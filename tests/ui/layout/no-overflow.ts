@@ -594,7 +594,7 @@ export function knownDefectFor(route: string, offender: Offender): KnownDefect |
  *     `title: page.title` for every page that resolves — measured, and
  *     `tests/hosted/indexing/head.test.tsx` holds it — and returns `{}`
  *     for one that does not, which is the request that falls through to
- *     `(hosted)/not-found.tsx`. That file renders **no text at all,
+ *     `(hosted)/hosted-page/not-found.tsx`. That file renders **no text at all,
  *     deliberately**: WO-028's ruling is "never a ReachKit page … no copy
  *     from the product's own registry" on a domain that is not ours.
  *
@@ -602,7 +602,7 @@ export function knownDefectFor(route: string, offender: Offender): KnownDefect |
  *     this surface with no title of its own is titled with the host the
  *     request arrived on — `content.example.com`, the visitor's own
  *     address, which is not copy, not a name of ours and not in any
- *     language. One `generateMetadata` on `(hosted)/layout.tsx`, which a
+ *     language. One `generateMetadata` on `(hosted)/document.tsx`, which a
  *     published page's own title still overrides. The finding is gone, and
  *     it was never excused with a `KNOWN_ON_MAIN` row.
  *

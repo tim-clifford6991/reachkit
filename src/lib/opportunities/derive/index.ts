@@ -367,7 +367,7 @@ export async function deriveOpportunities(
     // Sequential, not `Promise.all`: the cost seam's cap is re-checked
     // between calls, and a parallel fan-out would issue every call before
     // the first settled against it.
-    const refined = await refineType(c, candidate);
+    const refined = await refineType(c, candidate, locale.language);
     // SPEC §6 (2026-09-29): the title is the page's angle for this buyer,
     // which the fit judgement worded against the market — not the keyword.
     const title = angle.get(candidate);

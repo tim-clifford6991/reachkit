@@ -53,6 +53,7 @@ import { Header } from "./_chrome/Header";
 import { appEntry } from "./_chrome/session";
 import { Footer } from "./_chrome/Footer";
 import { ENTER_PUBLIC } from "@/ui/motion";
+import ReachKitDocument from "../_root/document";
 
 /** Every screen under this layout is rendered for its own request, so it
  *  carries that request's nonce (issue #331). The reason is the root
@@ -70,10 +71,13 @@ export default async function PublicLayout({
     // A column at least the viewport tall, so the footer sits at the bottom
     // of a short page. `data-public-shell` is the hook `surface.css` reads
     // to let a declared screen (sign-in) fill what the chrome leaves.
-    <div data-public-shell className={`flex min-h-svh flex-col ${ENTER_PUBLIC}`}>
-      <Header entry={await appEntry()} />
-      {children}
-      <Footer />
-    </div>
+    // A root layout since issue 1514, so it renders ReachKit's document.
+    <ReachKitDocument>
+      <div data-public-shell className={`flex min-h-svh flex-col ${ENTER_PUBLIC}`}>
+        <Header entry={await appEntry()} />
+        {children}
+        <Footer />
+      </div>
+    </ReachKitDocument>
   );
 }

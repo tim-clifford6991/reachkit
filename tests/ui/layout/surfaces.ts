@@ -7,7 +7,7 @@
 // routes and it reaches nothing else, so six of this product's surfaces
 // have never been measured at a width or photographed at a band:
 //
-//   * `src/app/not-found.tsx` — the screen an unmatched address reaches.
+//   * `src/app/global-not-found.tsx` — the screen an unmatched address reaches.
 //     It **has** an address (any address this product does not serve, since
 //     #405 gave the fall-through and this file the shell) and it is not a
 //     `page.tsx`, so the enumerator has no row for it. This one is driven

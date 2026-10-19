@@ -429,7 +429,8 @@ async function renderedPage(draftId: string): Promise<RenderedPage | null> {
     // SPEC §7 (2026-10-17, issue 1487): a retarget changes what the page is
     // about, so its address says the new search, as a new page's does. A
     // refresh keeps its search and so keeps its address.
-    const moveTo = isRetarget(opportunity) ? slugify(opportunity.target_query ?? "") : "";
+    // Its new address is written in the site's language (issue 1514).
+    const moveTo = isRetarget(opportunity) ? slugify(opportunity.target_query ?? "", page.site?.language) : "";
     return { ...page, slug, updateOf, ...(moveTo === "" || moveTo === slug ? {} : { moveTo }) };
   }
 

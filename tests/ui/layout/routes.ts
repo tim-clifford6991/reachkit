@@ -242,7 +242,7 @@ export const HOSTED_PAGE_FILE = "src/app/(hosted)/hosted-page/[[...slug]]/page.t
  * **This map is the route's 404 arm, deliberately** (issue #418). Its host
  * is the reserved account's domain, and that account publishes nothing —
  * so the host resolves to a real site, the site has no page at this
- * address, and the route answers `(hosted)/not-found.tsx`. That is a real
+ * address, and the route answers `(hosted)/hosted-page/not-found.tsx`. That is a real
  * surface of this product and the layout law applies to it exactly as to
  * any other, so it is swept like any other (against S8, which is the
  * screen it actually draws).

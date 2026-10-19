@@ -5,6 +5,8 @@
 // time. Internal to this directory — it is not part of the engine's public
 // surface, because nothing outside derivation may hold an opportunity that
 // has not been persisted.
+import { languagePack } from "@/lib/locale/language";
+import type { Language } from "@/lib/locale/locales";
 import type { Opportunity, RejectionCount } from "../types";
 import { noRejections } from "../types";
 
@@ -35,10 +37,16 @@ const LETTERS: Readonly<Record<string, string>> = { ß: "ss", æ: "ae", œ: "oe"
  *  query always proposes the same slug, which is what lets the partial
  *  unique index recognise a weekly re-derivation of the same target. A
  *  letter outside ASCII is written in ASCII, never dropped (issue 1314):
- *  "zuni café" is `zuni-cafe`, "straße" is `strasse`. */
-export function slugify(query: string): string {
+ *  "zuni café" is `zuni-cafe`, "straße" is `strasse`. In the site's
+ *  language (D66) a letter is written as that language writes it without
+ *  its accent (SPEC §6, 2026-10-18, issue 1514): a German site's "bäckerei
+ *  düsseldorf" is `baeckerei-duesseldorf`. It names a new page's address
+ *  only: a live page keeps the address it was published at. */
+export function slugify(query: string, language: Language = "en"): string {
+  const own = languagePack(language).slugLetters;
   return query
     .toLowerCase()
+    .replace(/./gu, (letter) => own[letter] ?? letter)
     .replace(/[ßæœøđðłþı]/g, (letter) => LETTERS[letter] ?? letter)
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")

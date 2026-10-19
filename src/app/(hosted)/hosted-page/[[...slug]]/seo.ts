@@ -14,6 +14,7 @@ import type { HostedPage } from "@/lib/publish/destinations/hosted";
 import { OG_SIZE } from "@/app/(public)/_seo/og-card";
 import { INDEX_PATH, LOGO_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
 import { pageAuthorOf } from "./author";
+import { indexHref } from "./present";
 
 export { personOf } from "./author";
 
@@ -32,11 +33,38 @@ export function originOf(address: string): string {
   return new URL(address).origin;
 }
 
-export function shareImageUrl(origin: string, slug: string | null): string {
-  return slug === null
-    ? `${origin}${SHARE_IMAGE_PATH}`
-    : `${origin}${SHARE_IMAGE_PATH}/${encodeURIComponent(slug)}`;
+/** The customer's icon on their own host (`../icon.img`, issue 1514):
+ *  their kept logo where it is a square a result can show, else the first
+ *  letter of their name on a tile. Never ours, and never an address that
+ *  answers 404 on a host that serves a site. */
+export const ICON_PATH = "/icon.img";
+
+/** The shapes the share image is drawn in (issue 1514): the card a pasted
+ *  link unfurls as, and the 4:3 and 1:1 that Google's article markup asks
+ *  for beside a 16:9, each at least 1,200 wide. */
+export const SHARE_SHAPES = {
+  wide: OG_SIZE,
+  "4x3": { width: 1200, height: 900 },
+  "1x1": { width: 1200, height: 1200 },
+} as const;
+export type ShareShape = keyof typeof SHARE_SHAPES;
+
+/** The query a shape other than the card's is asked with. */
+export const SHARE_SHAPE_PARAM = "shape";
+
+export function shareImageUrl(origin: string, slug: string | null, shape: ShareShape = "wide"): string {
+  const path =
+    slug === null ? `${origin}${SHARE_IMAGE_PATH}` : `${origin}${SHARE_IMAGE_PATH}/${encodeURIComponent(slug)}`;
+  return shape === "wide" ? path : `${path}?${SHARE_SHAPE_PARAM}=${shape}`;
 }
+
+/** What every hosted head says to a crawler beside its canonical: its
+ *  pictures may be shown large (Discover asks for it), and its icon is the
+ *  customer's. */
+const HEAD_SIGNALS = {
+  robots: { "max-image-preview": "large" },
+  icons: { icon: ICON_PATH },
+} satisfies Metadata;
 
 /** The index's title, which is also the feed's name in a reader. */
 export function indexTitle(business: HostedBusiness): string {
@@ -154,7 +182,8 @@ export function blogPostingSchema(a: {
     datePublished: a.page.firstPublishedAt.toISOString(),
     dateModified: a.page.publishedAt.toISOString(),
     inLanguage: readerTag(),
-    image: shareImageUrl(origin, a.page.slug),
+    // The card in each shape the article markup asks for: 16:9, 4:3, 1:1.
+    image: (Object.keys(SHARE_SHAPES) as ShareShape[]).map((shape) => shareImageUrl(origin, a.page.slug, shape)),
     author: authorOf(a.page.byline, a.business),
     publisher: publisherOf(a.business, origin),
   });
@@ -260,6 +289,7 @@ export function articleMetadata(a: {
     image: shareImageUrl(originOf(a.canonical), a.page.slug),
   });
   return {
+    ...HEAD_SIGNALS,
     title: a.page.title,
     description: a.description,
     alternates: alternatesOf(a.canonical, a.business),
@@ -273,20 +303,36 @@ export function articleMetadata(a: {
   };
 }
 
-export function indexMetadata(a: { canonical: string; business: HostedBusiness }): Metadata {
+/** The address one page of the index declares as its own (issue 1514).
+ *  Each later page of the list is its own canonical, as Google's guide to
+ *  paging asks, so the pages it alone links to stay reachable; a search is
+ *  not a page of the blog and names the index. */
+export function indexCanonical(root: string, query: string, page: number): string {
+  return query !== "" || page === 1 ? root : new URL(indexHref("", page), root).toString();
+}
+
+export function indexMetadata(a: {
+  /** The index's root on the customer's host. */
+  canonical: string;
+  business: HostedBusiness;
+  query?: string;
+  page?: number;
+}): Metadata {
   const title = indexTitle(a.business);
   const description = indexDescription(a.business);
+  const canonical = indexCanonical(a.canonical, a.query ?? "", a.page ?? 1);
   const share = shareTags({
-    canonical: a.canonical,
+    canonical,
     title,
     description,
     business: a.business,
     image: shareImageUrl(originOf(a.canonical), null),
   });
   return {
+    ...HEAD_SIGNALS,
     title,
     description,
-    alternates: alternatesOf(a.canonical, a.business),
+    alternates: alternatesOf(canonical, a.business),
     openGraph: { ...share.openGraph, type: "website" },
     twitter: share.twitter,
   };

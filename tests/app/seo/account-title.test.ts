@@ -3,7 +3,7 @@
 //
 // axe's `document-title` is a **serious** finding, and every route under
 // `src/app/(account)/` carried it: nothing in the group exported `metadata`
-// and `src/app/layout.tsx` declares no default, so eight screens announced
+// and `src/app/_root/document.tsx` declares no default, so eight screens announced
 // the empty string to a screen reader and to a row of browser tabs.
 //
 // The rule this file keeps is the *every* in that sentence, so the list is

@@ -23,7 +23,7 @@
 // search at fit 3 is a write target even below the volume floor, including
 // zero-volume problem and product-anchored searches" (owner, 2026-10-03).
 import { PRICE_FILLER, SHAPES, languagePack } from "@/lib/locale/language";
-import { LANGUAGES, type Language } from "@/lib/locale/locales";
+import { LANGUAGES, measuredLocale, type Language } from "@/lib/locale/locales";
 import { ASKED_TOPICS, EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
 import { comparisonsOf, ownSearched, searched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
@@ -706,7 +706,7 @@ export function candidateFor(
     type,
     family: FAMILY_OF[type],
     targetQuery: topic.query,
-    targetRef: slugify(topic.query),
+    targetRef: slugify(topic.query, measuredLocale(a.report).language),
     title: null,
     volume,
     evidence,
