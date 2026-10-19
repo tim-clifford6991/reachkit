@@ -33,6 +33,7 @@ import { readStoredCheck } from "@/lib/publish/verify/stored";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import type { Acceptance } from "../types";
 import { addressOf } from "./evaluate";
+import { urlsIn } from "./seen";
 import { readIntent, type IntentPrompt, type PageIntent } from "../intent";
 import type { CheckId, Movement, NotJudgeableCause, PageMeasured, Verdict, VerifyNote, WeekStart } from "./types";
 
@@ -145,6 +146,10 @@ export interface VerdictStore {
   trackedPrompts?(siteId: string): Promise<readonly IntentPrompt[]>;
   /** Writes a page's intent onto its draft (`drafts.meta.intent`). */
   recordIntent?(a: { draftId: string; intent: PageIntent }): Promise<void>;
+  /** Issue 1538: every address any of the site's stored scans held in a
+   *  SERP or a ranked row. Optional: a store without it states no page's
+   *  index state. */
+  seenUrls?(siteId: string): Promise<readonly string[]>;
 }
 
 // ── Reading the two stored blobs ────────────────────────────────────────
@@ -452,6 +457,16 @@ export function supabaseVerdictStore(): VerdictStore {
     async trackedPrompts(siteId) {
       const { readPromptSet } = await import("@/lib/market/prompts/store");
       return (await readPromptSet(siteId)).prompts;
+    },
+
+    async seenUrls(siteId) {
+      const { data, error } = await untyped()
+        .from<{ serps: unknown; ranked: unknown }>("scans")
+        .select("serps:report->serps, ranked:report->ownRankedRows")
+        .eq("site_id", siteId)
+        .not("report", "is", null);
+      if (error) throw new Error(`page_verdicts.seenUrls: ${error.message}`);
+      return [...new Set((data ?? []).flatMap(urlsIn))];
     },
 
     async recordIntent(a) {

@@ -77,4 +77,5 @@ export type {
   WeekStanding,
   WeekStart,
 } from "./verdicts";
+export type { IndexState } from "./verdicts";
 export { judgeWeek, readWeek, weeklyDigest, setVerdictStore } from "./verdicts";

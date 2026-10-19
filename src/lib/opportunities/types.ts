@@ -136,9 +136,11 @@ export type Shortfall =
 /** Why a live page of ours is due: its version is 90 days old, the Monday
  *  verdict found it in a worse place, a pool holds a fact newer than it,
  *  eight weekly verdicts found it neither ranking nor cited (D60, issue 1288),
- *  a newer related page went live that it does not link (issue 1391), or it
- *  breaks a consistency rule of issue 1507 (`structure`). */
-export type RefreshCause = "aged" | "lost_position" | "newer_fact" | "unmet" | "link" | "own_figures" | "structure";
+ *  a newer related page went live that it does not link (issue 1391), it
+ *  breaks a consistency rule of issue 1507 (`structure`), or no stored search
+ *  result has held it and D13's check finds it close to a page written for
+ *  another site (`unseen`, issue 1538). */
+export type RefreshCause = "aged" | "lost_position" | "newer_fact" | "unmet" | "link" | "own_figures" | "structure" | "unseen";
 
 /** §7's Fix trigger — "any access gate fails" — as the closed set of gates
  *  the measurement engine can actually report. A sixth barrier is a change

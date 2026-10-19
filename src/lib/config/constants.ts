@@ -1886,6 +1886,11 @@ export const SAME_TOPIC_SHARED_ADDRESSES = 4 as const;        // §6
  *  target of a refresh. Drafted default; the owner may correct it. */
 export const REFRESH_MIN_AGE_DAYS = 30 as const;               // §6
 
+/** Issue 1538: a live page no stored search result has held after this many
+ *  days is due the `unseen` fix — a link in from its cluster's strongest
+ *  live page, and D13's check run again on its text. */
+export const UNSEEN_AFTER_DAYS = 28 as const;                  // issue 1538
+
 /** SPEC §6 (owner, D60, issue 1288): a page that has reached neither of its
  *  goals after this many weekly verdicts gets a refresh or a retarget
  *  queued. */

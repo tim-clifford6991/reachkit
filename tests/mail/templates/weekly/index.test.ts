@@ -195,6 +195,25 @@ describe("REQ-063 c4 — each page's verdict, what moved, the date, and the inte
     ]);
   });
 
+  it("a page no stored search result held is said to be not seen, beside its verdict, and never not indexed (issue 1538)", () => {
+    const mail = buildWeekly({
+      numbers: numbers(),
+      pages: measured(
+        [
+          { liveUrl: URL_A, standing: standing({ verdict: "not_working" }), indexState: "not_verified" as const },
+          { liveUrl: URL_A, standing: standing(), indexState: "not_verified" as const },
+        ],
+        AT
+      ),
+      next: measured([], AT),
+    });
+    expect(verdictRows(mail.blocks)).toEqual([
+      { subject: "mail.weekly.page.not_verified", subjectVars: { page: URL_A }, verdict: PAGE_VERDICTS.not_working },
+      { subject: "mail.weekly.page", subjectVars: { page: URL_A }, verdict: PAGE_VERDICTS.working },
+    ]);
+    expect(COPY["mail.weekly.page.not_verified"]).not.toMatch(/not indexed/i);
+  });
+
   it("a page that moved since the previous week carries both figures and the date it was measured", () => {
     const mail = buildWeekly({
       pages: measured(

@@ -186,6 +186,7 @@ async function measuredWeek(
   const pages: readonly WeeklyPage[] = digest.standings.map((standing) => ({
     liveUrl: standing.liveUrl,
     standing: standing.standing,
+    ...(standing.indexState === undefined ? {} : { indexState: standing.indexState }),
   }));
 
   const needsYou = await oneNeedsYou(a.siteId);
