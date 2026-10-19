@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Plan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f3f4fb}
+a{color:#5b4be0;text-decoration:none}a:hover{color:#4a3bc9;text-decoration:underline}
+.card{background:#ffffff;border:1px solid #e8e9f3;border-radius:14px;box-shadow:0 0 0 1px rgba(24,24,48,.06),0 1px 2px rgba(24,24,48,.04)}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6a6b80;margin:0}
+.fig{font-size:36px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;margin:0;letter-spacing:-0.01em}
+.muted{color:#646579}
+.num{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;word-break:normal;overflow-wrap:anywhere;word-spacing:0}
+.nav a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;color:#646579;font-weight:600;font-size:14px}
+.nav a:hover{background:#eef0f8;text-decoration:none}
+.nav svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;line-height:19px;white-space:nowrap;word-spacing:0;box-sizing:border-box}
+.ic{width:16px;height:16px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid #e8e9f3}
+.tabs a{padding:10px 14px;font-weight:600;font-size:14px;color:#646579;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs a:hover{color:#1e2233;text-decoration:none}
+.tabs a[aria-current="page"]{color:#5b4be0;border-bottom-color:#5b4be0}
+.h1{margin:0;font-size:31px;font-weight:700;letter-spacing:-0.03em;line-height:1.25}
+.h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.35}
+.h3{margin:0;font-size:16px;font-weight:700;line-height:1.4}
+.lead{margin:0;color:#3a3d52}
+.itile{display:inline-flex;width:36px;height:36px;border-radius:10px;background:#eeecfd;color:#5b4be0;align-items:center;justify-content:center;flex:none}
+.itile .ic{width:20px;height:20px}
+.chipn{display:inline-flex;width:28px;height:28px;border-radius:9px;background:#5b4be0;color:#ffffff;align-items:center;justify-content:center;font-weight:800;font-size:14px;font-variant-numeric:tabular-nums;flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:9px;font:inherit;font-weight:600;font-size:15px;cursor:pointer;box-sizing:border-box;white-space:nowrap;text-decoration:none;word-spacing:0}
+.btn:hover{text-decoration:none}
+.primary{background:#5b4be0;color:#ffffff;border:0}.primary:hover{background:#4a3bc9;color:#ffffff}
+.soft{background:#eeecfd;color:#5b4be0;border:0}.soft:hover{background:#e3dffb}
+.stop{background:transparent;color:#945c22;border:1px solid #fbe1c6}.stop:hover{background:#fff3e6;color:#945c22}
+.quiet{background:transparent;color:#646579;border:0}
+.btn .ic{width:16px;height:16px}
+.sm{min-height:36px;padding:0 12px;font-size:14px}
+.well{background:#eef0f8;border-radius:9px}
+.cap{margin:0;font-size:12px;color:#646579}
+.det>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:44px;font-weight:600;font-size:14px;color:#5b4be0}
+.det>summary::-webkit-details-marker{display:none}
+.det .body{display:flex;flex-direction:column;gap:10px;padding:0 0 8px;font-size:14px;color:#3a3d52}
+.det .body p{margin:0}
+.closed>summary{list-style:none;cursor:pointer;padding:16px 20px;font-weight:600;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;min-height:24px}
+.closed>summary::-webkit-details-marker{display:none}
+.closed>summary .chev{margin-left:auto;color:#646579}
+.tile summary{list-style:none;cursor:pointer;padding:20px;display:flex;flex-direction:column;gap:12px}
+.tile summary::-webkit-details-marker{display:none}
+.tile:not([open]) summary{box-sizing:border-box;height:100%}.tile .more{margin-top:auto}
+.more{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:#5b4be0}
+.lrow{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;padding:14px 20px;border-top:1px solid #e8e9f3;align-items:center}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;font-weight:700;color:#6a6b80;padding:10px 12px;border-bottom:1px solid #e8e9f3;white-space:nowrap}
+.tbl td{padding:12px;border-top:1px solid #e8e9f3;vertical-align:top}
+.tbl td.n,.tbl th.n{text-align:right;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border-radius:999px;border:1px solid #e8e9f3;background:#ffffff;font:inherit;font-size:13px;font-weight:600;color:#646579;cursor:pointer;word-spacing:0}
+.pill[aria-pressed="true"]{background:#1e2233;border-color:#1e2233;color:#ffffff}
+.lbl{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;line-height:19px;white-space:nowrap;word-spacing:0}
+.states{border:1px dashed #c9cbe0;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.state{display:flex;flex-direction:column;gap:4px;padding:12px 14px;background:#eef0f8;border-radius:9px;font-size:14px}
+.sub{display:none;font-size:13px;color:#646579;margin-top:2px}
+@media (max-width: 640px){.tbl .opt{display:none}.sub{display:block} }
+.daycell{background:#ffffff;border:1px solid #e8e9f3;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0;box-sizing:border-box}
+.thumb{height:40px;border-radius:6px;background:#eef0f8;display:flex;flex-direction:column;gap:5px;padding:8px;box-sizing:border-box}
+.thumb span{height:5px;border-radius:3px;background:#dcdeec;display:block}
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.clamp3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.sr{position:absolute;left:0;top:0;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tag{display:inline-block;padding:2px 9px;border-radius:999px;background:#eef0f8;color:#6a6b80;font-size:12px;font-weight:600;line-height:19px;white-space:nowrap;vertical-align:middle;word-spacing:0}
+.slot{border:1.5px dashed #c4c6dc;border-radius:12px;padding:12px 14px;color:#6a6b80;font-size:13px;line-height:1.5;background:rgba(255,255,255,.45)}
+.track{display:block;height:10px;border-radius:999px;background:#eef0f8;overflow:hidden}
+.track>span{display:block;height:10px;border-radius:999px}
+
+.hrow{display:flex;align-items:center;gap:8px;min-height:24px;margin:0}
+.hback{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;line-height:24px;min-height:24px}
+.hback .ic{width:16px;height:16px}
+.leadrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-height:24px;margin:0;color:#3a3d52}
+h1,h2,h3,.h1{text-wrap:balance}p,li{text-wrap:pretty}
+.bframe{border:1px solid #e8e9f3;border-radius:12px;overflow:hidden;background:#ffffff;display:flex;flex-direction:column;position:relative;box-sizing:border-box;min-width:0;box-shadow:0 0 0 1px rgba(24,24,48,.06),0 1px 2px rgba(24,24,48,.04)}
+.bframe.crop{-webkit-mask-image:linear-gradient(#000 calc(100% - 64px),transparent);mask-image:linear-gradient(#000 calc(100% - 64px),transparent)}
+.bbar{min-height:38px;flex:none;box-sizing:border-box;display:flex;align-items:center;gap:14px;padding:6px 12px;background:#f3f4fb;border-bottom:1px solid #e8e9f3}
+.bdots{display:inline-flex;gap:8px;flex:none}
+.bdots span{width:12px;height:12px;border-radius:999px;background:#dcdeec;display:block}
+.burl{flex:1 1 auto;min-width:0;min-height:26px;box-sizing:border-box;display:flex;align-items:center;gap:6px;padding:2px 12px;border-radius:999px;background:#ffffff;border:1px solid #e8e9f3;color:#646579}
+.burl b{font-weight:400;min-width:0;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;line-height:1.4;color:#3a3d52;word-break:break-all;word-spacing:0}
+.burl .ic{width:16px;height:16px}
+.bbody{flex:1 1 auto;min-height:0;overflow:hidden;position:relative}
+.bfade{position:absolute;left:0;right:0;bottom:0;height:56px;background:linear-gradient(rgba(255,255,255,0),#ffffff);pointer-events:none}
+.lad{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+@media (max-width: 640px){.lad{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.daygrid{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.daygrid>li{display:grid;grid-template-rows:subgrid;row-gap:8px}
+/* app shell: sidebar from 1024px; navbar + bottom dock below it (DESIGN.md › The shell) */
+.mbar,.dock{display:none}
+.mbar{flex:1 1 100%;position:sticky;top:0;z-index:5;box-sizing:border-box;height:84px;padding:8px 16px;background:#ffffff;border-bottom:1px solid #e8e9f3;flex-direction:column;gap:4px}
+.mbar .row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.mbar .brand{display:flex;align-items:center;gap:8px;color:#1e2233;font-weight:800;font-size:18px;letter-spacing:-0.01em}
+.mbar .theme{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9px;border:0;background:transparent;color:#646579;cursor:pointer}
+.mbar .theme svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.mbar .line{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:13px;min-height:20px}
+.mbar .line .num{word-break:break-all}
+.publine{display:inline-flex;align-items:center;gap:8px;color:#1e2233;font-size:13px;font-weight:600}
+.publine i{width:8px;height:8px;border-radius:999px;flex:none;display:block}
+.dock{flex:1 1 100%;position:sticky;bottom:0;z-index:5;box-sizing:border-box;height:64px;background:#ffffff;border-top:1px solid #e8e9f3;align-items:stretch}
+.dock a{flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#646579;font-size:12px;font-weight:600;position:relative;text-decoration:none}
+.dock a svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.dock a[aria-current="page"]{color:#5b4be0}
+.dock a[aria-current="page"]::after{content:"";position:absolute;bottom:8px;width:24px;height:3px;border-radius:999px;background:#5b4be0}
+@media (max-width: 1023px){
+  nav.nav{display:none !important}
+  .mbar,.dock{display:flex}
+  main{padding:24px !important;max-width:none !important}
+  .tabs{position:sticky;top:84px;z-index:4;background:#f3f4fb}
+}
+@media (max-width: 640px){
+  main{padding:16px 16px 24px !important}
+}
+</style>
+</helmet>
+<div style="min-height: 2035px; display: flex; flex-wrap: wrap; font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; color: #1e2233; font-size: 15px; line-height: 1.55; word-spacing: .06em; background: #f3f4fb">
+  <nav class="nav" aria-label="Main" style="flex: 1 1 220px; max-width: 240px; box-sizing: border-box; padding: 24px 16px; background: #ffffff; border-right: 1px solid #e8e9f3; display: flex; flex-direction: column; gap: 4px">
+    <a href="Main.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 0 12px 20px; color: #1e2233; font-weight: 800; font-size: 18px; letter-spacing: -0.01em">
+      <svg viewBox="0 0 64 64" style="width: 28px; height: 28px; stroke: none" aria-hidden="true"><defs><linearGradient id="plf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="plc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#plc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#plf)"></path></g></svg>ReachKit</a>
+    <a href="Main.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Overview</a>
+    <a href="#" aria-current="page" style="background: #eeecfd; color: #5b4be0"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>Plan</a>
+    <a href="SettingsIndex.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>Settings</a>
+    <div style="margin-top: auto; padding: 12px; font-size: 13px; display: flex; flex-direction: column; gap: 6px">
+      <a href="SettingsPublishing.dc.html" class="publine"><i style="background: #1b765b"></i>Publishing on</a>
+      <span class="num muted">harborplumbing.com</span>
+    </div>
+  </nav>
+  <header class="mbar" aria-label="ReachKit">
+    <div class="row"><a href="Main.dc.html" class="brand"><svg viewBox="0 0 64 64" style="width: 28px; height: 28px; stroke: none" aria-hidden="true"><defs><linearGradient id="plmf" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.38" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="plmc"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#plmc)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#plmf)"></path></g></svg>ReachKit</a><button type="button" class="theme" aria-label="Theme: light"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg></button></div>
+    <div class="line"><span class="num muted">harborplumbing.com</span><a href="SettingsPublishing.dc.html" class="publine"><i style="background: #1b765b"></i>Publishing on</a></div>
+  </header>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 40px; display: flex; flex-direction: column; gap: 28px; max-width: 1040px">
+
+    <header style="display: flex; flex-direction: column; gap: 6px"><div class="hrow"><span class="eyebrow">Plan · week 3</span></div><h1 class="h1">This week’s 7 pages</h1><div class="leadrow">Chosen Monday 19 October. Each goes live on its day unless you stop it. Up to 7 pages a week, new or updated. Never filler.</div></header>
+
+    <section class="card" aria-label="This plan in numbers" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr))">
+      <div style="padding: 16px 20px; display: flex; gap: 12px; align-items: center"><span class="itile" style="background: #eeecfd; color: #5b4be0; width: 36px; height: 36px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></span><span><span class="fig" style="font-size: 24px; font-weight: 700">7</span><br><span class="muted" style="font-size: 13px">pages this week</span></span></div>
+      <div style="padding: 16px 20px; display: flex; gap: 12px; align-items: center; border-left: 1px solid #e8e9f3"><span class="itile" style="background: #e7f6f0; color: #1b765b; width: 36px; height: 36px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span><span><span class="fig" style="font-size: 24px; font-weight: 700">12</span><br><span class="muted" style="font-size: 13px">pages live so far</span></span></div>
+      <div style="padding: 16px 20px; display: flex; gap: 12px; align-items: center; border-left: 1px solid #e8e9f3"><span class="itile" style="background: #eef0f8; color: #646579; width: 36px; height: 36px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg></span><span><span class="fig" style="font-size: 24px; font-weight: 700">3</span><br><span class="muted" style="font-size: 13px">spares kept ready</span></span></div>
+      <div style="padding: 16px 20px; display: flex; gap: 12px; align-items: center; border-left: 1px solid #e8e9f3"><span class="itile" style="background: #fff3e6; color: #945c22; width: 36px; height: 36px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><rect x="9" y="9" width="6" height="6" rx="1"></rect></svg></span><span><span class="fig" style="font-size: 24px; font-weight: 700">0</span><br><span class="muted" style="font-size: 13px">stopped by you</span></span></div>
+    </section>
+
+    <section class="card" aria-labelledby="week" style="padding: 22px 24px; display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: center">
+        <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px"><h2 id="week" class="h2">Mon 19 – Sun 25 October</h2><span class="badge" style="background: #e7f6f0; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>Runs by itself</span></span>
+        <span class="cap">Every page goes live at 4:00 PM, Austin time</span>
+      </div>
+      <ol aria-label="The week, one page a day" class="daygrid" style="grid-template-columns: repeat(auto-fit, minmax(118px, 1fr))"><li class="daycell" style="grid-row: span 6; background: #eeecfd; border: 1.5px solid #5b4be0">
+          <span class="num" style="font-size: 12px; font-weight: 500; color: #1e2233; white-space: nowrap; word-break: normal">Mon 19</span>
+          <span aria-hidden="true" class="thumb" style="background: #ffffff; border: 1px solid #ddd8fa"><span style="width: 80%; background: #c9c3f6"></span><span style="width: 60%"></span><span style="width: 70%"></span></span>
+          <span><span class="lbl" style="background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New</span></span>
+          <span style="font-size: 13px; font-weight: 700; line-height: 1.35">Emergency plumber in Austin: what to do in the first hour</span>
+          <span style="display: flex; flex-direction: column; gap: 3px; padding-top: 8px; border-top: 1px dashed #dcdeec"><span class="eyebrow">Why</span><span style="font-size: 12px; line-height: 1.45; color: #3a3d52">Your core service, and AI answers link to a competitor’s service page for it.</span></span>
+          <span style="align-self: end"><span style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 600; line-height: 1.4">Goes live<br>today, 4:00 PM</span><span style="display: flex; gap: 12px; font-size: 13px; font-weight: 600"><a href="AppDraft.dc.html">Edit</a><a href="AppDraft.dc.html" style="color: #945c22">Stop</a></span></span></span>
+        </li><li class="daycell" style="grid-row: span 6; ">
+          <span class="num" style="font-size: 12px; font-weight: 500; color: #1e2233; white-space: nowrap; word-break: normal">Tue 20</span>
+          <span aria-hidden="true" class="thumb"><span style="width: 80%"></span><span style="width: 60%"></span><span style="width: 70%"></span></span>
+          <span><span class="lbl" style="background: #eef0f8; color: #3a3d52"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>Update</span></span>
+          <span style="font-size: 13px; font-weight: 700; line-height: 1.35">Toilet repair in Austin: running, leaking or clogged</span>
+          <span style="display: flex; flex-direction: column; gap: 3px; padding-top: 8px; border-top: 1px dashed #dcdeec"><span class="eyebrow">Why</span><span style="font-size: 12px; line-height: 1.45; color: #3a3d52">Your page stopped gaining at place 18 for 3 weeks. This update adds what the pages above it cover.</span></span>
+          <span style="align-self: end"><span class="badge" style="background: #eef0f8; color: #646579"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>Planned</span></span>
+        </li><li class="daycell" style="grid-row: span 6; ">
+          <span class="num" style="font-size: 12px; font-weight: 500; color: #1e2233; white-space: nowrap; word-break: normal">Wed 21</span>
+          <span aria-hidden="true" class="thumb"><span style="width: 80%"></span><span style="width: 60%"></span><span style="width: 70%"></span></span>
+          <span><span class="lbl" style="background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New</span></span>
+          <span style="font-size: 13px; font-weight: 700; line-height: 1.35">How much does slab leak repair cost in Austin?</span>
+          <span style="display: flex; flex-direction: column; gap: 3px; padding-top: 8px; border-top: 1px dashed #dcdeec"><span class="eyebrow">Why</span><span style="font-size: 12px; line-height: 1.45; color: #3a3d52">Buyers in Austin ask Google this before they call, and no page of yours answers it.</span></span>
+          <span style="align-self: end"><span class="badge" style="background: #eef0f8; color: #646579"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>Planned</span></span>
+        </li><li class="daycell" style="grid-row: span 6; ">
+          <span class="num" style="font-size: 12px; font-weight: 500; color: #1e2233; white-space: nowrap; word-break: normal">Thu 22</span>
+          <span aria-hidden="true" class="thumb"><span style="width: 80%"></span><span style="width: 60%"></span><span style="width: 70%"></span></span>
+          <span><span class="lbl" style="background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New</span></span>
+          <span style="font-size: 13px; font-weight: 700; line-height: 1.35">Burst pipe in winter: shut-off, damage and repair</span>
+          <span style="display: flex; flex-direction: column; gap: 3px; padding-top: 8px; border-top: 1px dashed #dcdeec"><span class="eyebrow">Why</span><span style="font-size: 12px; line-height: 1.45; color: #3a3d52">Google AI Mode linked your page on shutting off water. This one builds on it.</span></span>
+          <span style="align-self: end"><span class="badge" style="background: #eef0f8; color: #646579"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>Planned</span></span>
+        </li><li class="daycell" style="grid-row: span 6; ">
+          <span class="num" style="font-size: 12px; font-weight: 500; color: #1e2233; white-space: nowrap; word-break: normal">Fri 23</span>
+          <span aria-hidden="true" class="thumb"><span style="width: 80%"></span><span style="width: 60%"></span><span style="width: 70%"></span></span>
+          <span><span class="lbl" style="background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New</span></span>
+          <span style="font-size: 13px; font-weight: 700; line-height: 1.35">Drain cleaning in Austin: when a plunger isn’t enough</span>
+          <span style="display: flex; flex-direction: column; gap: 3px; padding-top: 8px; border-top: 1px dashed #dcdeec"><span class="eyebrow">Why</span><span style="font-size: 12px; line-height: 1.45; color: #3a3d52">Your core service, and Google shows it searched in Austin every month.</span></span>
+          <span style="align-self: end"><span class="badge" style="background: #eef0f8; color: #646579"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>Planned</span></span>
+        </li><li class="daycell" style="grid-row: span 6; ">
+          <span class="num" style="font-size: 12px; font-weight: 500; color: #1e2233; white-space: nowrap; word-break: normal">Sat 24</span>
+          <span aria-hidden="true" class="thumb"><span style="width: 80%"></span><span style="width: 60%"></span><span style="width: 70%"></span></span>
+          <span><span class="lbl" style="background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New</span></span>
+          <span style="font-size: 13px; font-weight: 700; line-height: 1.35">Water softener or filter: which an Austin home needs</span>
+          <span style="display: flex; flex-direction: column; gap: 3px; padding-top: 8px; border-top: 1px dashed #dcdeec"><span class="eyebrow">Why</span><span style="font-size: 12px; line-height: 1.45; color: #3a3d52">AI answers link to a competitor’s guide for this question. Yours can answer it from your own work.</span></span>
+          <span style="align-self: end"><span class="badge" style="background: #eef0f8; color: #646579"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>Planned</span></span>
+        </li><li class="daycell" style="grid-row: span 6; ">
+          <span class="num" style="font-size: 12px; font-weight: 500; color: #1e2233; white-space: nowrap; word-break: normal">Sun 25</span>
+          <span aria-hidden="true" class="thumb"><span style="width: 80%"></span><span style="width: 60%"></span><span style="width: 70%"></span></span>
+          <span><span class="lbl" style="background: #eef0f8; color: #3a3d52"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>Update</span></span>
+          <span style="font-size: 13px; font-weight: 700; line-height: 1.35">Sewer line camera inspection: what it shows and costs</span>
+          <span style="display: flex; flex-direction: column; gap: 3px; padding-top: 8px; border-top: 1px dashed #dcdeec"><span class="eyebrow">Why</span><span style="font-size: 12px; line-height: 1.45; color: #3a3d52">Your page has not moved in 8 weeks. This rewrite matches what Google now shows for it.</span></span>
+          <span style="align-self: end"><span class="badge" style="background: #eef0f8; color: #646579"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>Planned</span></span>
+        </li></ol>
+      <p class="cap" style="display: flex; flex-wrap: wrap; gap: 6px 18px"><span style="display: inline-flex; gap: 5px; align-items: center"><span class="lbl" style="background: #eeecfd; color: #5b4be0"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New</span> a page you don’t have yet</span><span style="display: inline-flex; gap: 5px; align-items: center"><span class="lbl" style="background: #eef0f8; color: #3a3d52"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>Update</span> a better version of a page you have</span></p>
+      <div class="well" style="padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font-size: 14px"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;color: #5b4be0" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg><span><strong>Monday 26 October:</strong> we measure your searches, pages and competitors again, and choose the next 7.</span></div>
+      <details class="det"><summary><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>How this week’s pages were chosen</summary><div class="body"><p>Each Monday ReachKit reads where your pages stand in Google and in AI answers, what your competitors win, and what your business offers. It then picks the 7 pages most likely to bring you buyers: new pages for searches nobody on your site answers yet, and updates to pages that have stopped gaining. A page that is still climbing is left alone.</p><p>The reason under each day is the one ReachKit stored when it chose the page.</p></div></details>
+    </section>
+
+    <details class="card closed"><summary>3 spares <span class="muted" style="font-weight: 500; font-size: 14px">used only if a day’s page can’t be written</span><span class="chev"><svg class="ic" viewBox="0 0 24 24" style="width: 20px; height: 20px;" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></summary><div style="padding: 0 20px 20px; display: flex; flex-direction: column; gap: 12px; font-size: 14px"><ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px"><li>Garbage disposal repair or replace</li><li>Low water pressure in an Austin house: causes</li><li>Gas line repair permits in Austin</li></ul></div></details>
+
+    <section class="card" aria-labelledby="live" style="overflow: hidden">
+      <div style="padding: 20px 20px 12px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; align-items: baseline"><h2 id="live" class="h2">Live pages</h2><span class="cap">dots are steps. Google: live, found, showing, first page. AI: read, linked, visit.</span></div>
+      <div class="lrow">
+        <div style="min-width: 0; flex: 1 1 380px; display: flex; flex-direction: column; gap: 4px"><a href="PageDetail.dc.html" style="font-weight: 600">How to shut off water to a house in an emergency</a><p class="muted" style="margin: 0; font-size: 13px">Place 11 for “how to shut off water to a house”, up 30 since Oct 5. Linked by Google AI Mode on its own question.</p><span style="display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 16px"><span style="display: inline-flex; align-items: center; gap: 8px"><span aria-hidden="true" style="display: inline-flex; align-items: center"><span title="Live" style="width: 12px; height: 12px; border-radius: 999px; background: #5b4be0; border: 1.5px solid #5b4be0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #5b4be0"></span><span title="Found by Google" style="width: 12px; height: 12px; border-radius: 999px; background: #5b4be0; border: 1.5px solid #5b4be0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #5b4be0"></span><span title="Showing in results" style="width: 12px; height: 12px; border-radius: 999px; background: #5b4be0; border: 1.5px solid #5b4be0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #dcdeec"></span><span title="First page" style="width: 12px; height: 12px; border-radius: 999px; background: #ffffff; border: 1.5px solid #c9cbe0; box-sizing: border-box"></span></span><span class="cap">Google: Showing in results</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span aria-hidden="true" style="display: inline-flex; align-items: center"><span title="Read by AI" style="width: 12px; height: 12px; border-radius: 999px; background: #5b4be0; border: 1.5px solid #5b4be0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #5b4be0"></span><span title="Linked by AI" style="width: 12px; height: 12px; border-radius: 999px; background: #5b4be0; border: 1.5px solid #5b4be0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #dcdeec"></span><span title="Visit from AI" style="width: 12px; height: 12px; border-radius: 999px; background: #ffffff; border: 1.5px solid #c9cbe0; box-sizing: border-box"></span></span><span class="cap">AI: Linked by AI</span></span></span></div>
+        <span class="badge" style="background: #e7f6f0; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M22 7l-8.5 8.5-5-5L2 17"></path><path d="M16 7h6v6"></path></svg>Climbing</span>
+      </div><div class="lrow">
+        <div style="min-width: 0; flex: 1 1 380px; display: flex; flex-direction: column; gap: 4px"><a href="PageDetail.dc.html" style="font-weight: 600">Toilet repair in Austin: running, leaking or clogged</a><p class="muted" style="margin: 0; font-size: 13px">Place 18, no gain in 3 weeks. An update goes live Tue 20.</p><span style="display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 16px"><span style="display: inline-flex; align-items: center; gap: 8px"><span aria-hidden="true" style="display: inline-flex; align-items: center"><span title="Live" style="width: 12px; height: 12px; border-radius: 999px; background: #5b4be0; border: 1.5px solid #5b4be0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #5b4be0"></span><span title="Found by Google" style="width: 12px; height: 12px; border-radius: 999px; background: #5b4be0; border: 1.5px solid #5b4be0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #5b4be0"></span><span title="Showing in results" style="width: 12px; height: 12px; border-radius: 999px; background: #5b4be0; border: 1.5px solid #5b4be0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #dcdeec"></span><span title="First page" style="width: 12px; height: 12px; border-radius: 999px; background: #ffffff; border: 1.5px solid #c9cbe0; box-sizing: border-box"></span></span><span class="cap">Google: Showing in results</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span aria-hidden="true" style="display: inline-flex; align-items: center"><span title="Read by AI" style="width: 12px; height: 12px; border-radius: 999px; background: #5b4be0; border: 1.5px solid #5b4be0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #dcdeec"></span><span title="Linked by AI" style="width: 12px; height: 12px; border-radius: 999px; background: #ffffff; border: 1.5px solid #c9cbe0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #dcdeec"></span><span title="Visit from AI" style="width: 12px; height: 12px; border-radius: 999px; background: #ffffff; border: 1.5px solid #c9cbe0; box-sizing: border-box"></span></span><span class="cap">AI: Read by AI</span></span></span></div>
+        <span class="badge" style="background: #e7f6f0; color: #1b765b"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Working</span>
+      </div><div class="lrow">
+        <div style="min-width: 0; flex: 1 1 380px; display: flex; flex-direction: column; gap: 4px"><a href="PageDetail.dc.html" style="font-weight: 600">Water heater repair or replace: an Austin guide</a><p class="muted" style="margin: 0; font-size: 13px">Found by Google on Oct 14. Not in results yet.</p><span style="display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 16px"><span style="display: inline-flex; align-items: center; gap: 8px"><span aria-hidden="true" style="display: inline-flex; align-items: center"><span title="Live" style="width: 12px; height: 12px; border-radius: 999px; background: #5b4be0; border: 1.5px solid #5b4be0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #5b4be0"></span><span title="Found by Google" style="width: 12px; height: 12px; border-radius: 999px; background: #5b4be0; border: 1.5px solid #5b4be0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #dcdeec"></span><span title="Showing in results" style="width: 12px; height: 12px; border-radius: 999px; background: #ffffff; border: 1.5px solid #c9cbe0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #dcdeec"></span><span title="First page" style="width: 12px; height: 12px; border-radius: 999px; background: #ffffff; border: 1.5px solid #c9cbe0; box-sizing: border-box"></span></span><span class="cap">Google: Found by Google</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span aria-hidden="true" style="display: inline-flex; align-items: center"><span title="Read by AI" style="width: 12px; height: 12px; border-radius: 999px; background: #ffffff; border: 1.5px solid #c9cbe0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #dcdeec"></span><span title="Linked by AI" style="width: 12px; height: 12px; border-radius: 999px; background: #ffffff; border: 1.5px solid #c9cbe0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #dcdeec"></span><span title="Visit from AI" style="width: 12px; height: 12px; border-radius: 999px; background: #ffffff; border: 1.5px solid #c9cbe0; box-sizing: border-box"></span></span><span class="cap">AI: not read yet</span></span></span></div>
+        <span class="badge" style="background: #eef0f8; color: #646579"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>Too early</span>
+      </div><div class="lrow">
+        <div style="min-width: 0; flex: 1 1 380px; display: flex; flex-direction: column; gap: 4px"><a href="PageDetail.dc.html" style="font-weight: 600">Sewer line camera inspection in Austin</a><p class="muted" style="margin: 0; font-size: 13px">Place 48, no gain in 8 weeks. An update goes live Sun 25.</p><span style="display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 16px"><span style="display: inline-flex; align-items: center; gap: 8px"><span aria-hidden="true" style="display: inline-flex; align-items: center"><span title="Live" style="width: 12px; height: 12px; border-radius: 999px; background: #5b4be0; border: 1.5px solid #5b4be0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #5b4be0"></span><span title="Found by Google" style="width: 12px; height: 12px; border-radius: 999px; background: #5b4be0; border: 1.5px solid #5b4be0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #5b4be0"></span><span title="Showing in results" style="width: 12px; height: 12px; border-radius: 999px; background: #5b4be0; border: 1.5px solid #5b4be0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #dcdeec"></span><span title="First page" style="width: 12px; height: 12px; border-radius: 999px; background: #ffffff; border: 1.5px solid #c9cbe0; box-sizing: border-box"></span></span><span class="cap">Google: Showing in results</span></span><span style="display: inline-flex; align-items: center; gap: 8px"><span aria-hidden="true" style="display: inline-flex; align-items: center"><span title="Read by AI" style="width: 12px; height: 12px; border-radius: 999px; background: #5b4be0; border: 1.5px solid #5b4be0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #dcdeec"></span><span title="Linked by AI" style="width: 12px; height: 12px; border-radius: 999px; background: #ffffff; border: 1.5px solid #c9cbe0; box-sizing: border-box"></span><span style="width: 10px; height: 2px; background: #dcdeec"></span><span title="Visit from AI" style="width: 12px; height: 12px; border-radius: 999px; background: #ffffff; border: 1.5px solid #c9cbe0; box-sizing: border-box"></span></span><span class="cap">AI: Read by AI</span></span></span></div>
+        <span class="badge" style="background: #fff3e6; color: #945c22"><svg class="ic" viewBox="0 0 24 24" style="width: 16px; height: 16px;" aria-hidden="true"><path d="M5 12h14"></path></svg>Not moving</span>
+      </div>
+      <div class="lrow" style="font-size: 14px"><span class="muted">4 of 12 live pages</span><a href="#" style="font-weight: 600">Show all 12</a></div>
+    </section>
+
+    <section class="states" aria-label="Other states of this screen"><p class="eyebrow">Other states</p><div class="state"><span class="eyebrow">A day you stopped</span><span>The cell reads “Stopped” with the stop icon, and its topic is dropped. Line: “Stopped by you on Mon 19. The other days are not affected.”</span></div><div class="state"><span class="eyebrow">A day with nothing worth writing</span><span>A dashed cell: “Nothing worth writing today, so no page. We skip a day, never fill it.”</span></div><div class="state"><span class="eyebrow">Before the first Monday</span><span>Your first week is being chosen. It shows here by Monday morning, with a reason for each page.</span></div></section>
+
+  </main>
+  <nav class="dock" aria-label="Main"><a href="Main.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Overview</a><a href="#" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>Plan</a><a href="SettingsIndex.dc.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>Settings</a></nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2035}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
