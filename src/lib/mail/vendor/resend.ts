@@ -22,6 +22,7 @@
 import https from "node:https";
 import { createHash } from "node:crypto";
 import { env } from "@/lib/config/env";
+import { copy } from "@/lib/presentation/copy";
 import type { VendorResult, VendorSend } from "./types";
 
 const RESEND_HOST = "api.resend.com";
@@ -159,11 +160,17 @@ export async function sendViaVendor(v: VendorSend): Promise<VendorResult> {
   // `NEXT_PUBLIC_APP_URL` any more: that address was only ever right on
   // production, and the boot refuses a deployment that names no mailbox.
   //
+  // The From carries the product's name in front of the mailbox (#1568):
+  // a bare address reads as a stranger in every inbox list. The name is the
+  // shell's own wordmark, so the sender and the card's head never disagree.
+  // Replies go to the same mailbox, which somebody reads (RUNBOOK §6).
+  //
   // `headers` is omitted entirely for a mail with no stop control rather
   // than sent as `{}`: a kind that carries no unsubscribe must not tell an
   // inbox it does.
   const payload = JSON.stringify({
-    from: env.MAIL_FROM,
+    from: `${copy("mail.shell.wordmark")} <${env.MAIL_FROM}>`,
+    reply_to: env.MAIL_FROM,
     to: [v.to],
     subject,
     html,

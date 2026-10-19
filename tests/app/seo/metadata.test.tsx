@@ -353,6 +353,22 @@ describe("the favicon set and the manifest ship, and no file is owed to the owne
     expect(bimi).not.toMatch(/<script|<image|href=|clipPath/);
   });
 
+  // #1568: the rest of the profile a BIMI validator reads. Tiny 1.2 under
+  // the PS base profile, no positioning on the root, nothing animated,
+  // styled or embedded, every paint reference internal, and a ground that
+  // fills the whole square so the inbox's crop never shows a transparent
+  // corner.
+  it("the BIMI mark is the rest of SVG Tiny PS: 1.2, no root x/y, internal paint only, a full ground", () => {
+    const bimi = readFileSync(path.join(REPO_ROOT, "public/brand/mark-bimi.svg"), "utf8");
+    const root = /<svg\b[^>]*>/.exec(bimi)?.[0] ?? "";
+    expect(root).toContain('version="1.2"');
+    expect(root).not.toMatch(/\s(x|y|width|height)=/);
+    expect(bimi).not.toMatch(/<(style|a|foreignObject|animate\w*|set|use|font|text)\b/);
+    for (const [, ref] of bimi.matchAll(/url\(([^)]*)\)/g)) expect(ref).toMatch(/^#/);
+    const box = /viewBox="0 0 (\d+) \1"/.exec(bimi)?.[1];
+    expect(bimi).toMatch(new RegExp(`<rect width="${box}" height="${box}" fill="#[0-9a-f]{6}"/>`));
+  });
+
   it("the committed .ico holds the two sizes a browser asks a tab for", () => {
     // ICO: a 6-byte header (reserved, type 1, count), then one 16-byte
     // directory entry per image. Byte 0 of an entry is its width, and 0

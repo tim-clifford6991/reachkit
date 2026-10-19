@@ -829,6 +829,10 @@ address on production. Its domain must be a verified Resend sending domain with 
 DMARC in place, or nothing leaves — and the mailbox itself must be one somebody reads:
 `optout.invalid` tells a reader to reply to it and ask to be removed by hand.
 
+The From carries the product's name, `ReachKit <hello@reachkit.app>`, and Reply-To is the same mailbox
+(#1568). The sender logo in inboxes (DMARC, BIMI, a mark certificate, or the Google-account fallback)
+and Stripe Checkout's branding are owner steps in `docs/runbooks/brand-in-inboxes-and-checkout.md`.
+
 **A mail with an unwritten sentence does not send.** `copy()` refuses an empty key, `sendEmail`
 answers `not-composable`, and the attempt is logged. This is the ruling of 2026-09-05 — a mail
 never ships a placeholder — and it is why the ops alerts in §5 and §7 are currently silent. The
@@ -855,7 +859,7 @@ sequence is written from. On dev use `https://dev.reachkit.app`; on production, 
    address has an account, a sign-in link is on its way.*, the address echoed under it (*sent to …*),
    and *It works for 24 hours, and a newer link replaces an older one.* The same screen appears
    whether or not the address has an account.
-3. **The mail.** Subject **Your sign-in link**, from `MAIL_FROM` (`hello@reachkit.app`), within a
+3. **The mail.** Subject **Your sign-in link**, from `MAIL_FROM` (`ReachKit <hello@reachkit.app>`), within a
    second or two; the line *One click signs you in on this device. The link works once and expires
    in 24 hours.*; one **Sign in** action. Resend's dashboard shows what left; a mail that did not
    compose or send is in the runtime log as `mail_not_composable` or `sign_in_link_not_issued`
