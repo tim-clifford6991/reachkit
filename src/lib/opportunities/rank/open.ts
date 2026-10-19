@@ -34,13 +34,14 @@
 // keep their scored places. A fix with no Write row to precede goes last. A
 // fix that is not ready is not in the list.
 import { CONTENT_MIX, PACE, PLAN_DEPTH } from "@/lib/config/constants";
+import type { Profile } from "@/lib/market/questions/profile";
 import { opportunityStore } from "../store";
-import { readOpportunity, type DraftedPage } from "../store";
+import { readOpportunity, type DraftedPage, type OpportunityRow } from "../store";
 import { canonicalUrl, comparePrecedence, sameTopic } from "../cluster";
 import { isCloseUpdate } from "../close";
 import { CONTENT_TYPES, contentTypeOf, type ContentType } from "../content-type";
 import { isPausedType } from "../paused";
-import { isOwnRefresh, type Opportunity, type OpportunityType, type Ranked } from "../types";
+import { isOwnRefresh, type Opportunity, type OpportunityType, type PlaceRule, type Ranked } from "../types";
 import { rankScore } from "./score";
 
 /** A row no pass has judged ranks with the rows that plainly help: it was
@@ -185,25 +186,37 @@ export function orderRanked(
     const owed =
       lastNew.filter((page) => !answers(page.kind)).length >= CONTENT_MIX.NON_COMMERCIAL_OF - CONTENT_MIX.NON_COMMERCIAL_MIN;
     const answering = (entry: Entry) => answers(kindOf(entry));
-    const tiers: ((entry: Entry) => boolean)[] = [
-      ...(updateDue ? [(entry: Entry) => fresh(entry) && isUpdate(entry)] : []),
-      ...(paced ? [(entry: Entry) => fresh(entry) && own(entry), own, (entry: Entry) => fresh(entry) && isUpdate(entry), isUpdate] : []),
-      ...(owed
-        ? [
-            (entry: Entry) => fresh(entry) && answering(entry) && turns(entry) && room(entry),
-            (entry: Entry) => fresh(entry) && answering(entry) && room(entry),
-            (entry: Entry) => fresh(entry) && answering(entry),
-          ]
+    type Tier = readonly [PlaceRule, (entry: Entry) => boolean];
+    const tiers: Tier[] = [
+      ...(updateDue ? [["update due", (entry: Entry) => fresh(entry) && isUpdate(entry)] satisfies Tier] : []),
+      ...(paced
+        ? ([
+            ["paced: own refresh", (entry: Entry) => fresh(entry) && own(entry)],
+            ["paced: own refresh, same topic", own],
+            ["paced: update", (entry: Entry) => fresh(entry) && isUpdate(entry)],
+            ["paced: update, same topic", isUpdate],
+          ] satisfies Tier[])
         : []),
-      (entry) => fresh(entry) && turns(entry) && room(entry),
-      (entry) => fresh(entry) && turns(entry),
-      fresh,
-      () => true,
+      ...(owed
+        ? ([
+            ["answer owed", (entry: Entry) => fresh(entry) && answering(entry) && turns(entry) && room(entry)],
+            ["answer owed, same kind", (entry: Entry) => fresh(entry) && answering(entry) && room(entry)],
+            ["answer owed, kind full", (entry: Entry) => fresh(entry) && answering(entry)],
+          ] satisfies Tier[])
+        : []),
+      ["best", (entry) => fresh(entry) && turns(entry) && room(entry)],
+      ["best, kind full", (entry) => fresh(entry) && turns(entry)],
+      ["best, same kind", fresh],
+      ["best, same topic", () => true],
     ];
     let at = -1;
-    for (const tier of tiers) {
+    let rule: PlaceRule = "over the D52 cap, as a Q&A";
+    for (const [name, tier] of tiers) {
       at = left.findIndex((entry) => !capped(entry) && tier(entry));
-      if (at !== -1) break;
+      if (at !== -1) {
+        rule = name;
+        break;
+      }
     }
     // Only rows over the cap are left: the freshest of them is answered as
     // a Q&A rather than leave the day empty (issue 1455).
@@ -211,7 +224,7 @@ export function orderRanked(
     if (asQa && rotation.holdCapped === true) continue;
     if (asQa) at = Math.max(0, left.findIndex(fresh));
     const [entry] = left.splice(at, 1);
-    out.push({ opportunityId: entry!.opportunity.id, score: entry!.score, ...(asQa ? { writeAs: "qa" as const } : {}) });
+    out.push({ opportunityId: entry!.opportunity.id, score: entry!.score, rule, ...(asQa ? { writeAs: "qa" as const } : {}) });
     previous = entry!.opportunity;
     const kind = asQa ? "qa" : kindOf(entry!);
     if (kind !== null) placed.push({ day, kind });
@@ -283,7 +296,7 @@ export function placeFixPages(
       for (let i = 0; i < pending.length; ) {
         const fix = pending[i]!;
         if (samePool(fix.clusterKey, opportunity.clusterKey)) {
-          out.push({ opportunityId: fix.id, score: entry.score });
+          out.push({ opportunityId: fix.id, score: entry.score, rule: "fix ahead of its cluster" });
           pending.splice(i, 1);
         } else {
           i += 1;
@@ -292,7 +305,7 @@ export function placeFixPages(
     }
     out.push(entry);
   }
-  for (const fix of pending) out.push({ opportunityId: fix.id, score: 0 });
+  for (const fix of pending) out.push({ opportunityId: fix.id, score: 0, rule: "fix, no page to precede" });
   return out;
 }
 
@@ -308,9 +321,8 @@ export function placeFixPages(
 export { isPausedType };
 
 export async function rankOpen(siteId: string, at: Date = new Date(), only?: ReadonlySet<string>): Promise<Ranked[]> {
-  const inputs = await rankInputs(siteId, at, only);
-  if (inputs.scored.length === 0) return placeFixPages([], inputs.fixes);
-  return placeFixPages(inputs.scored, inputs.fixes, inputs.rotation);
+  const { scored, fixes, rotation } = rankingOf(await loadRanking(siteId, at, only), at, only);
+  return placeFixPages(scored, fixes, rotation);
 }
 
 /**
@@ -324,7 +336,7 @@ export async function rankOpen(siteId: string, at: Date = new Date(), only?: Rea
  * the first folds the other (`nearRepeatsOf`). A Fix takes no day of supply.
  */
 export async function writableDays(siteId: string, at: Date = new Date(), days: number = PLAN_DEPTH): Promise<number> {
-  const { scored, rotation } = await rankInputs(siteId, at);
+  const { scored, rotation } = rankingOf(await loadRanking(siteId, at), at);
   return countWritable(scored, rotation, days);
 }
 
@@ -346,69 +358,100 @@ export function countWritable(
   return orderRanked(kept, { ...rotation, days, holdCapped: true }).length;
 }
 
-/** What `rankOpen` and `writableDays` read: the ready rows scored, the
- *  ready fixes, and the rotation and mix the order keeps — of the rows
- *  `only` names, where it is given (a week's spares, issue 1559). */
-async function rankInputs(
-  siteId: string,
-  at: Date,
-  only?: ReadonlySet<string>
-): Promise<{
-  scored: { opportunity: Opportunity; score: number }[];
-  fixes: Opportunity[];
-  rotation: NonNullable<Parameters<typeof orderRanked>[1]>;
-}> {
+/** What the one list is ordered from, as the store holds it. */
+export interface RankLoad {
+  rows: readonly OpportunityRow[];
+  fixRows: readonly OpportunityRow[];
+  profile: Profile | null;
+  /** The page drafted or published last (#1181). */
+  latest: OpportunityRow | null;
+  /** The pages of the days before, newest first (issue 1209). */
+  drafted: readonly DraftedPage[];
+  /** The site's own pages a stored answer cited (issue 1146). */
+  cited: readonly string[];
+  /** The top tens already stored for the eligible rows' searches (#1181). */
+  topTens: ReadonlyMap<string, readonly string[]>;
+}
+
+/** Why a row the store holds open takes no place in the list. */
+export type Rejection = "unready" | "paused" | "no_profile";
+
+/**
+ * Whether a row may take a place, or why not. Pure. One predicate, and it is
+ * the stored one (issue 884, owner's ruling 2026-09-18): SPEC §6's "a day is
+ * filled only by an opportunity that passes readiness" is the stored column
+ * (`assessReadiness`), so the column, the screens and this order cannot
+ * disagree. A fix needs no profile; any other row needs one to be scored,
+ * and a type the mix has paused fills no day (SPEC §7, D46).
+ */
+export function eligible(row: OpportunityRow, ctx: { profile: Profile | null }): Rejection | null {
+  if (!row.ready) return "unready";
+  if (row.type === "fix_page") return null;
+  if (ctx.profile === null) return "no_profile";
+  return isPausedType(readOpportunity(row)) ? "paused" : null;
+}
+
+/** The site's rows and context the list reads — of the rows `only` names,
+ *  where it is given (a week's spares, issue 1559). */
+export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<string>): Promise<RankLoad> {
   const store = opportunityStore();
-  const [rows, profile, fixRows, latest, drafted, citedPages] = await Promise.all([
+  const [rows, profile, fixRows, latest, drafted, cited] = await Promise.all([
     store.openRankable(siteId),
     store.profileForSite(siteId),
     store.openFixPages(siteId),
     store.latestPage(siteId),
     // The weekly mix reads the pages of the days before (issue 1209).
     store.draftedPages(siteId, 2 * CONTENT_MIX.WINDOW_DAYS),
-    // The pages the stored answers cited (issue 1146). A window that cannot
-    // be read lifts no update: the order is the one before it.
+    // A window that cannot be read lifts no update: the order is the one
+    // before it.
     store.citedPages(siteId, at).catch(() => [] as readonly string[]),
   ]);
-  const named = (row: { id: string }) => only === undefined || only.has(row.id);
-  const fixes = fixRows.filter((row) => row.ready && named(row)).map(readOpportunity);
-  // No profile, no score — but a fix needs neither, and still takes its day.
-  // SPEC §6: "A day is filled only by an opportunity that passes
-  // readiness." The answer is the stored column (`assessReadiness`).
-  // One predicate, and it is the stored one (issue 884, owner's ruling
-  // 2026-09-18): this list ranks rows the database says are ready and holds
-  // no rule of its own. SPEC §6's right-sizing law is applied where
-  // readiness is decided (`readiness.ts`), which stores `outsized` as the
-  // reason — so the column, the screens and this order cannot disagree.
-  // Issue 881 filtered on `fit_band` here as well, and that second home is
-  // what this removes.
-  const rankable = rows.filter((row) => row.ready && named(row));
-  if (profile === null || rankable.length === 0) return { scored: [], fixes, rotation: {} };
+  const scans = rows.filter((row) => named(row, only) && eligible(row, { profile }) === null).map((row) => row.scan_id);
+  const topTens =
+    scans.length === 0 ? new Map<string, readonly string[]>() : await store.topTens([...new Set([...scans, ...(latest === null ? [] : [latest.scan_id])])]);
+  return { rows, fixRows, profile, latest, drafted, cited, topTens };
+}
 
-  // SPEC §7 (owner, D46): a topic whose type the mix has paused fills no
-  // day. It stays on file, open and ready, and ranks again the day its type
-  // leaves `CONTENT_MIX.PAUSED_TYPES`.
-  const mixed = rankable.map(readOpportunity).filter((opportunity) => !isPausedType(opportunity));
-  if (mixed.length === 0) return { scored: [], fixes, rotation: {} };
+function named(row: { id: string }, only: ReadonlySet<string> | undefined): boolean {
+  return only === undefined || only.has(row.id);
+}
 
-  const scored = mixed.map((opportunity) => {
-    return {
-      opportunity,
-      score: rankScore({
-        volume: opportunity.volume,
-        // Every rankable opportunity has a target query: `targetQuery` is
-        // null only for `unblock`, which `openRankable` already excluded.
-        query: opportunity.targetQuery ?? "",
-        type: opportunity.type,
-        fit: opportunity.fitBand ?? "not-yet",
-        profile,
-      }),
-    };
-  });
-  // Rotation reads the top tens already stored for these searches (#1181).
-  const after = latest === null ? null : readOpportunity(latest);
-  const scanIds = new Set([...scored.map((entry) => entry.opportunity.scanId), ...(after === null ? [] : [after.scanId])]);
-  const topTens = await store.topTens([...scanIds]);
-  const cited = new Set(citedPages.map(canonicalUrl));
-  return { scored, fixes, rotation: { after, topTens, mix: mixOf(drafted, at), cited } };
+/** The eligible rows scored, the ready fixes, the rotation and mix the order
+ *  keeps, and each row left out with its reason. Pure. */
+export function rankingOf(
+  load: RankLoad,
+  at: Date,
+  only?: ReadonlySet<string>
+): {
+  scored: { opportunity: Opportunity; score: number }[];
+  fixes: Opportunity[];
+  rotation: NonNullable<Parameters<typeof orderRanked>[1]>;
+  rejected: { opportunityId: string; reason: Rejection }[];
+} {
+  const { profile } = load;
+  const rejected: { opportunityId: string; reason: Rejection }[] = [];
+  const keep = (row: OpportunityRow) => {
+    const reason = eligible(row, { profile });
+    if (reason !== null) rejected.push({ opportunityId: row.id, reason });
+    return reason === null;
+  };
+  const fixes = load.fixRows.filter((row) => named(row, only) && keep(row)).map(readOpportunity);
+  const mixed = load.rows.filter((row) => named(row, only) && keep(row)).map(readOpportunity);
+  if (profile === null || mixed.length === 0) return { scored: [], fixes, rotation: {}, rejected };
+
+  const scored = mixed.map((opportunity) => ({
+    opportunity,
+    score: rankScore({
+      volume: opportunity.volume,
+      // Every rankable opportunity has a target query: `targetQuery` is
+      // null only for `unblock`, which `openRankable` already excluded.
+      query: opportunity.targetQuery ?? "",
+      type: opportunity.type,
+      fit: opportunity.fitBand ?? "not-yet",
+      profile,
+    }),
+  }));
+  const after = load.latest === null ? null : readOpportunity(load.latest);
+  const cited = new Set(load.cited.map(canonicalUrl));
+  return { scored, fixes, rotation: { after, topTens: load.topTens, mix: mixOf(load.drafted, at), cited }, rejected };
 }

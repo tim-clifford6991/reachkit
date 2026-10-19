@@ -191,13 +191,11 @@ export interface OpportunityStore {
    *  Optional: a store that cannot answer holds nothing back. */
   dismissedSearches?(siteId: string): Promise<readonly { query: string; volume: number | null }[]>;
   /** Issue 1559: replaces the site's committed week with `entries` — every
-   *  row's place cleared first, then each entry's written. Optional: a store
-   *  that cannot hold a week commits none, and each day is planned on
-   *  demand. */
-  commitPlan?(siteId: string, entries: readonly PlanEntry[]): Promise<void>;
+   *  row's place cleared first, then each entry's written. */
+  commitPlan(siteId: string, entries: readonly PlanEntry[]): Promise<void>;
   /** The site's committed week, in place order, whatever each row's status
-   *  is now. Optional, as `commitPlan`. */
-  plannedRows?(siteId: string): Promise<readonly OpportunityRow[]>;
+   *  is now. */
+  plannedRows(siteId: string): Promise<readonly OpportunityRow[]>;
   /** Writes a row's cluster and the searches it absorbed. */
   setCluster(opportunityId: string, clusterKey: string, absorbedQueries: readonly string[]): Promise<void>;
   /** The site's current stored report, or `null` where it has no readable
