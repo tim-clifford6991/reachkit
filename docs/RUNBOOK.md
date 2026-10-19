@@ -338,6 +338,12 @@ scheduled job whose `last_run_at` is more than **twice its interval** ago is mai
 twice its usual interval."* with the job, its last run and its interval. `stale_alerted_at` records
 that mail; the job is not mailed again until it has run and gone quiet again.
 
+**The outside check.** The heartbeat cannot see *every* job stopping, so `GET /api/health`
+reads the same rows on each request: `200 {"ok":true}` when every scheduled job with a row is within
+twice its interval, `503` with `stale` (the job ids, mailed or not) or `reason` (`no-runs`,
+`read-failed`) otherwise. It needs no session, is never cached, and writes nothing. UptimeRobot
+polls it every 5 minutes and must not follow redirects, so a 307 to `/signin` reads as down.
+
 The alert is carried by the jobs themselves — Vercel Hobby's crons are daily, so there is no
 second clock to watch the first. One job stopping is caught by the others (the 15-minute
 maintenance tick watches the hourly four, and they watch it). **Every job stopping sends no
