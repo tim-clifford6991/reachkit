@@ -105,14 +105,13 @@ export async function readSearchFacts(site: SearchSite, at: Date): Promise<Searc
   // Everything else degrades to its own unmeasured arm: a missing report
   // means no position and no ceiling, a missing verdict means no change
   // stated, an unreadable count of live pages means the dash.
-  const [open, withPages, livePages, verdicts, report, ready, previousPositions] = await Promise.all([
+  const [open, withPages, livePages, verdicts, report, ready] = await Promise.all([
     store.openRankable(site.siteId),
     pagedRows(site.siteId),
     readLivePages(site.siteId),
     readMovements(site.siteId),
     store.currentReport(site.siteId).catch(() => null),
     readReadyDepth(site.siteId, at),
-    readPreviousPositions(site.siteId).catch(() => null),
   ]);
 
   const liveByOpportunity = new Set(livePages.rows.map((row) => row.drafts?.opportunity_id ?? ""));
@@ -190,58 +189,29 @@ export async function readSearchFacts(site: SearchSite, at: Date): Promise<Searc
     positions.set(row.keyword, measured(row.position, measuredAt ?? at));
   }
 
-  const liveSearches = targets.filter((t) => t.status === "live").map((t) => t.target.search);
   const { difficultyCeiling } = await import("@/lib/opportunities/winnability/bars");
   const ownRanked = report?.ownRanked ?? unmeasured<number>("not_attempted", at);
 
   return {
     targets,
     positions,
-    // A count nobody could take is not a count of zero (REQ-004): the two
-    // position tiles then show the dash and their own line, rather than
+    // A count nobody could take is not a count of zero (REQ-004): the
+    // pages tile then shows the dash and its own line, rather than
     // claiming this customer has no live pages.
     livePages: livePages.ok
       ? measured(livePages.rows.length, at)
       : unmeasured<number>("undeterminable", at),
-    liveSearches,
     ready,
     ownRanked,
-    previousPositions,
+    // Issue 1551: your market is the stored presence card's own count over
+    // the twelve, so this tab and the Competitors tab say one number.
+    market:
+      report?.presence == null
+        ? null
+        : { top10: report.presence.you.top10Count, measured: report.presence.measuredSearches },
     ceiling: ownRanked.kind === "unmeasured" ? null : difficultyCeiling(ownRanked.value),
     measuredAt,
   };
-}
-
-/** How many scans back the scan before the current one is looked for. */
-const PREVIOUS_SCAN_LOOKBACK = 8;
-
-/**
- * The site's places on the scan before the current one (issue 1457): the
- * first-page tile's change is a count over the same searches on the two
- * scans. `null` where there is no earlier scan with places, so no change is
- * stated rather than a change from nothing.
- */
-async function readPreviousPositions(siteId: string): Promise<ReadonlyMap<string, Measured<number>> | null> {
-  const { data, error } = await client()
-    .from<{ is_current: boolean | null; rows: unknown; at: unknown }>("scans")
-    .select("is_current, rows:report->ownRankedRows, at:report->verdict->measuredAt")
-    .eq("site_id", siteId)
-    .not("report", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(PREVIOUS_SCAN_LOOKBACK);
-  if (error !== null || data === null) return null;
-  const current = data.findIndex((row) => row.is_current === true);
-  if (current === -1) return null;
-  const before = data.slice(current + 1).find((row) => Array.isArray(row.rows));
-  if (before === undefined || !Array.isArray(before.rows)) return null;
-  const at = typeof before.at === "string" ? new Date(before.at) : new Date(0);
-  const positions = new Map<string, Measured<number>>();
-  for (const row of before.rows as unknown[]) {
-    if (typeof row !== "object" || row === null) continue;
-    const { keyword, position } = row as { keyword?: unknown; position?: unknown };
-    if (typeof keyword === "string" && typeof position === "number") positions.set(keyword, measured(position, at));
-  }
-  return positions;
 }
 
 /**

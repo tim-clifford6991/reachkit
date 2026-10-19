@@ -30,6 +30,7 @@
 // `weekStartFor` would have computed then. A site that skipped a week has
 // no row there and reads `unmeasured` — the honest answer, since the
 // movement across a gap is not a week's movement.
+import { classifyReferences } from "@/lib/measure/drivers";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { issueChanges, type IssueChange } from "@/lib/site-issues/changes";
 import type { StoredReport } from "../report";
@@ -63,6 +64,11 @@ export interface WeekMovement {
    *  was phrased from. A question the week before did not ask, or could
    *  not read, is not listed: "now" is a comparison of two readings. */
   readonly nowNamed: readonly { readonly search: string }[];
+  /** Issue 1551 (SEO review R5.1): the published pages' own questions this
+   *  week whose AI answer links the site, out of those read — the AI tab's
+   *  *Your pages cited*, by its rule (`classifyReferences`' citation over a
+   *  cell's cited domains). `unmeasured` where the week read none. */
+  readonly pagesCited: Measured<{ readonly cited: number; readonly asked: number }>;
 }
 
 const MS_PER_DAY = 86_400_000;
@@ -158,7 +164,23 @@ export async function weekMovement(a: {
     searchesDelta: deltaOf(searchesOf(now), searchesOf(before), a.at),
     issueChanges: issueChanges(now?.siteIssues ?? null, before?.siteIssues ?? null, a.at),
     nowNamed: nowNamedOf(now, before),
+    pagesCited: pagesCitedOf(now, a.at),
   };
+}
+
+/** The page questions any engine answered with a link to the site, over
+ *  those any engine read. */
+function pagesCitedOf(report: StoredReport | null, at: Date): Measured<{ cited: number; asked: number }> {
+  const section = report?.pageQuestions ?? null;
+  let asked = 0;
+  let cited = 0;
+  for (const row of section?.rows ?? []) {
+    const cells = row.engines.length === 0 ? [row.cell] : row.engines.map((engine) => engine.cell);
+    if (cells.every((cell) => cell.kind === "unmeasured")) continue;
+    asked += 1;
+    if (cells.some((cell) => cell.kind === "answered" && classifyReferences(cell.citedDomains, section?.ownDomain ?? "").cited)) cited += 1;
+  }
+  return asked === 0 ? unmeasured("not_attempted", at) : measured({ cited, asked }, at);
 }
 
 /** Each tracked question's AI-Overview reading, the twelve and the page

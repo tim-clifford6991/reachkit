@@ -1,4 +1,6 @@
-// SPEC §6 (2026-09-20, #908) — the AI answers tab's two readings.
+// SPEC §6 (2026-09-20, #908) — the AI answers tab's readings: since issue
+// 1551 (owner, 2026-10-19), the published pages' own questions cited first,
+// then the rate and this week's count.
 //
 // "A rolling four-week rate — answers that name or link the site over all
 // answers asked — beside this week's n of 12; named and linked are counted
@@ -22,8 +24,8 @@
 // body size, the way the Search tab's are — never a white card with a big
 // "0".
 //
-// **It cannot overflow.** One column on a phone and two at `sm`; both tiles
-// are `min-w-0`, the names wrap inside their own column and no figure is
+// **It cannot overflow.** One column on a phone, two at `sm` and three at
+// `xl`; every tile is `min-w-0`, the names wrap inside their own column and no figure is
 // clamped — the box changes instead (docs/DESIGN.md's no-overflow rule).
 import type React from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -31,6 +33,7 @@ import { ENGINE_LABEL } from "../_shell/page-target-words";
 import { CLOSED, TILE_FIGURE, TILE_GRID, formatCount, renderValue } from "./present";
 import { FULL_WINDOW, type AnswersModel } from "./answers-model";
 
+const PAGES_CITED_LABEL = "overview.answers.pages-cited.label" satisfies CopyKey;
 const RATE_LABEL = "overview.answers.rate.label" satisfies CopyKey;
 /** The week tile's name is the Overview's own tile name, read from the same
  *  key: two spellings of "Questions that name you" is how two screens come
@@ -141,8 +144,21 @@ export function AnswerTiles(p: {
         named: formatCount(p.model.rate.named),
       });
 
+  // Issue 1551: the published pages' own questions lead — the AI signal a
+  // page moves first — beside the rate, which is brand reputation.
+  const cited = renderValue(p.model.pagesCited.value, PAGES_CITED_LABEL);
+
   return (
     <div className={`grid min-w-0 gap-4 ${TILE_GRID.answers}`} data-testid="answers-tiles">
+      <Tile
+        labelKey={PAGES_CITED_LABEL}
+        testId="answers-tile-pages-cited"
+        figure={cited.isDash ? null : cited.text}
+        against={copy("overview.answers.pages-cited.of", { of: formatCount(p.model.pagesCited.of) })}
+        lines={[copy("overview.answers.pages-cited.means")]}
+        line={copy("overview.answers.pages-cited.none")}
+        quiet={cited.isDash || p.model.pagesCited.value.kind !== "measured"}
+      />
       {promptRate !== null ? promptRate : <Tile
         labelKey={RATE_LABEL}
         testId="answers-tile-rate"

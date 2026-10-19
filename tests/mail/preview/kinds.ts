@@ -246,6 +246,7 @@ export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
       const mail = buildWeekly({
         // Issue 1329: D22's four headline numbers, on a hosted blog.
         numbers: {
+          pageQuestions: { cited: measured(2, AT), asked: 4 },
           mentions: { kind: "rate", rate: measured(34, AT), low: 22, high: 48 },
           pagesCited: measured(3, AT),
           weeks: 4,

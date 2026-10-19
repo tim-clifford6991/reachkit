@@ -3278,8 +3278,8 @@ function score(a: Pick<StageArgs, "domain" | "sections" | "parameters" | "correc
   // Beside the card, never inside it (#919): the page questions are
   // composed from their own three arrays, and none of the four values
   // above — the rivals, the presence card, the AI-answers card and the
-  // coherence verdict — has seen one. That is what keeps the score's AI
-  // Presence exactly what it was before a page had a question.
+  // coherence verdict — has seen one. The score's AI Presence reads their
+  // cells beside the twelve's (owner, 2026-10-19, issue 1551).
   sections.pageQuestions = pageQuestionsSectionOf({
     asked: sections.pageAsked,
     serps: sections.pageSerps as readonly Measured<MarketSerp>[],
@@ -3351,6 +3351,9 @@ function composeReport(a: {
   // fallbacks below read a single value rather than an optional chain each.
   const carried = a.carried ?? null;
   const carriedSiteIssues = carried === null ? null : carried.siteIssues;
+  // Issue 1551: the page questions' AI Overviews count toward AI presence
+  // beside the twelve's — the section the report stores, read as stored.
+  const pageCells = (s.pageQuestions ?? carried?.pageQuestions)?.rows.map((row) => row.cell) ?? [];
 
   // One date: the moment the pass started (issue 1392), which the
   // measurement was handed and every `Measured` under the verdict carries;
@@ -3371,7 +3374,7 @@ function composeReport(a: {
       : {
           ...m.drivers,
           searchPresence: withLocalPackPresence(m, localPackSearches({ serps: s.serps, searches: s.selected.map((search) => search.keyword), ownDomain: a.domain })),
-          aiPresence: aiPresenceOf({ serps: s.serps, ownDomain: a.domain, siteName: s.siteName, at: measuredAt }),
+          aiPresence: aiPresenceOf({ serps: s.serps, pageCells, ownDomain: a.domain, siteName: s.siteName, at: measuredAt }),
         };
 
   const market: Measured<MarketSet> =
@@ -3404,7 +3407,7 @@ function composeReport(a: {
     question_serps: outcomeOf(foldSerps(s.serps, measuredAt)),
   };
 
-  const aiSample = aiSampleOf({ serps: s.serps, ownDomain: a.domain, siteName: s.siteName });
+  const aiSample = aiSampleOf({ serps: s.serps, pageCells, ownDomain: a.domain, siteName: s.siteName });
   const verdict: Verdict = verdictOf({
     domain: a.domain,
     measuredAt,

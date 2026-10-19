@@ -191,8 +191,20 @@ async function measuredWeek(
 
   const needsYou = await oneNeedsYou(a.siteId);
   const mail = buildWeekly({
-    // SPEC §8 (2026-10-07, issue 1329): D22's four headline numbers lead.
-    numbers: await headlineNumbers(a.siteId, a.weekStart, at),
+    // SPEC §8 (2026-10-07, issue 1329): the headline numbers lead.
+    numbers: {
+      ...(await headlineNumbers(a.siteId, a.weekStart, at)),
+      // Issue 1551: the pages' own questions cited lead, from the same
+      // stored week the movement is read from.
+      ...(movement.pagesCited.kind === "unmeasured"
+        ? {}
+        : {
+            pageQuestions: {
+              cited: counted(movement.pagesCited.value.cited, at),
+              asked: movement.pagesCited.value.asked,
+            },
+          }),
+    },
     ...(needsYou === undefined ? {} : { needsYou }),
     // Measured, and measured-empty where the week judged nothing: "you
     // have published nothing yet" is a result, and the template's own

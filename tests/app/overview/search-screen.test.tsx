@@ -183,8 +183,8 @@ describe("the four tiles", () => {
     container.innerHTML = renderToStaticMarkup(<SearchTiles tiles={MODEL.tiles} />);
     for (const id of [
       "search-tile-going-after",
-      "search-tile-first-two-pages",
-      "search-tile-first-page",
+      "search-tile-pages",
+      "search-tile-market",
       "search-tile-appear-for",
     ]) {
       const tile = container.querySelector(`[data-testid="${id}"]`);
@@ -203,23 +203,17 @@ describe("two tiles state this site's own reading, in the board's shape (#1039)"
     return container;
   }
 
-  it("the queue says how long it lasts, and the first page names the search and its place", () => {
+  it("the queue says how long it lasts, and the pages tile splits its searches by place", () => {
     const el0 = tiles({
       ...MODEL.tiles,
       goingAfter: { ...MODEL.tiles.goingAfter, reading: { kind: "queue", weeks: 5, days: 35 } },
-      firstPage: {
-        ...MODEL.tiles.firstPage,
-        reading: { kind: "first-page", search: "brake pads when to replace", position: 4, others: 0 },
-      },
+      pages: { ...MODEL.tiles.pages, reading: { kind: "pages", firstPage: 1, further: 3, unseen: 2 } },
     });
     expect(el(el0, "search-tile-going-after-means")?.textContent).toBe(
       copy("overview.search.tile.going-after.weeks", { weeks: "5" })
     );
-    expect(el(el0, "search-tile-first-page-means")?.textContent).toBe(
-      copy("overview.search.tile.first-page.one", {
-        search: "brake pads when to replace",
-        position: copy("overview.search.position", { position: "4" }),
-      })
+    expect(el(el0, "search-tile-pages-means")?.textContent).toBe(
+      copy("overview.search.tile.your-pages.split", { first: "1", further: "3", unseen: "2" })
     );
   });
 
@@ -255,12 +249,12 @@ describe("a zero tile is quiet (the calm layer, #1089)", () => {
     const container = document.createElement("div");
     container.innerHTML = renderToStaticMarkup(
       <SearchTiles
-        tiles={{ ...MODEL.tiles, firstPage: { ...MODEL.tiles.firstPage, value: measuredZero<number>(0, AT) } }}
+        tiles={{ ...MODEL.tiles, market: { ...MODEL.tiles.market, value: measuredZero<number>(0, AT) } }}
       />
     );
-    const quiet = el(container, "search-tile-first-page");
+    const quiet = el(container, "search-tile-market");
     expect(quiet?.hasAttribute("data-quiet")).toBe(true);
-    expect(el(container, "search-tile-first-page-value")?.className).not.toContain("text-3xl");
+    expect(el(container, "search-tile-market-value")?.className).not.toContain("text-3xl");
 
     expect(MODEL.tiles.appearFor.value.kind).toBe("measured");
     expect(el(container, "search-tile-appear-for")?.hasAttribute("data-quiet")).toBe(false);

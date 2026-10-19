@@ -196,7 +196,6 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.tile.change": ["{mark} {value} since last week", { slots: { mark: "text", value: "text" }, fixedBy: "issue 1457 (drafted)" }],
   "overview.tile.no-change": ["No change since last week", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
   "overview.tile.first-scan": ["First scan {due}.", { slots: { due: "date" }, fixedBy: "issue 1457 (drafted)" }],
-  "overview.tile.google.line": ["Searches where you’re on the first page", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
   "overview.tile.ai.line": ["Searches where AI answers mention you", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
   "overview.tile.ai.linked": ["{linked} of them link to you", { slots: { linked: "text" }, fixedBy: "issue 1457 (drafted)" }],
   "overview.tile.content.label": ["Content", { slots: {}, fixedBy: "issue 1457 (drafted)" }],
@@ -526,43 +525,28 @@ export const OVERVIEW_COPY = Object.freeze({
     "No page is ready to write. Monday’s scan looks for more.",
     { slots: {}, fixedBy: "issue 1039" },
   ],
-  "overview.search.tile.first-two-pages": [
-    "On Google’s first two pages",
-    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
-  ],
+  // The `first_page` chip's name.
   "overview.search.tile.first-page": ["On the first page", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
-  "overview.search.tile.pages.of": [
-    "of {of} live pages",
-    { slots: { of: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+  // Issue 1551 (owner, 2026-10-19): the searches the live pages target,
+  // split by how far Google has got with each — the tile Overview's Google
+  // figure is read from — and the market's twelve, labelled as the outcome
+  // that takes months. Drafted (#759).
+  "overview.search.tile.your-pages": ["Your pages in Google", { slots: {}, fixedBy: "issue 1551 (drafted)" }],
+  "overview.search.tile.your-pages.of": [
+    "of {of} searches your pages target",
+    { slots: { of: "text" }, fixedBy: "issue 1551 (drafted)" },
   ],
-  "overview.search.tile.first-two-pages.means": [
-    "The first two pages are where a page starts to be found.",
-    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  "overview.search.tile.your-pages.split": [
+    "{first} on the first page, {further} at places 11–100, {unseen} not yet seen.",
+    { slots: { first: "text", further: "text", unseen: "text" }, fixedBy: "issue 1551 (drafted)" },
   ],
-  // The first-page tile names this site's own best-placed live page, in the
-  // board's shape ("'brake pads when to replace', at 11 last week.",
-  // R4-05-Search). The place is `overview.search.position`'s, and the date
-  // it was measured is the line under the tabs. Drafted under the
-  // 2026-09-16 ruling (#759), issue 1039.
-  "overview.search.tile.first-page.one": [
-    "“{search}”, at {position}.",
-    { slots: { search: "text", position: "text" }, fixedBy: "issue 1039" },
+  "overview.search.tile.market": ["Your market", { slots: {}, fixedBy: "issue 1551 (drafted)" }],
+  "overview.search.tile.market.means": [
+    "Your market’s biggest searches where you’re on the first page. Expect months, not weeks: they follow links and mentions from other sites.",
+    { slots: {}, fixedBy: "issue 1551 (drafted)" },
   ],
-  "overview.search.tile.first-page.more": [
-    "“{search}”, at {position}, and {others} more.",
-    { slots: { search: "text", position: "text", others: "text" }, fixedBy: "issue 1039" },
-  ],
-  "overview.search.tile.first-page.closest": [
-    "Closest: “{search}”, at {position}.",
-    { slots: { search: "text", position: "text" }, fixedBy: "issue 1039" },
-  ],
-  "overview.search.tile.first-page.no-place": [
-    "Google doesn’t show you for these searches yet.",
-    { slots: {}, fixedBy: "issue 1457 (drafted)" },
-  ],
-  // Issue 1457: the first-page tile counts every search ReachKit tracks,
-  // and Overview's Google and AI tiles say what they are out of the same
-  // way. Drafted (#759).
+  // Issue 1457: Overview's AI tile and the market tile say what they are
+  // out of the same way. Drafted (#759).
   "overview.search.tile.searches.of": [
     "of {of} searches",
     { slots: { of: "text" }, fixedBy: "issue 1457 (drafted)" },
@@ -651,7 +635,20 @@ export const OVERVIEW_COPY = Object.freeze({
   // rather than spelled again: the tile name ("Questions that name you"),
   // the window's "of {of}", and the three engine names, which are the
   // report screen's own keys.
-  // The first tile: the four-week rate, its denominator, the split the
+  // Issue 1551 (owner, 2026-10-19; SEO review R5.1): the tab leads with the
+  // published pages' own questions whose AI answer links the site — the
+  // signal a page moves first. Drafted (#759).
+  "overview.answers.pages-cited.label": ["Your pages cited", { slots: {}, fixedBy: "issue 1551 (drafted)" }],
+  "overview.answers.pages-cited.of": ["of {of} pages asked", { slots: { of: "text" }, fixedBy: "issue 1551 (drafted)" }],
+  "overview.answers.pages-cited.means": [
+    "Pages whose own question got an AI answer linking to your site this week. Usually the first AI result to move.",
+    { slots: {}, fixedBy: "issue 1551 (drafted)" },
+  ],
+  "overview.answers.pages-cited.none": [
+    "Shows once a page of yours is live and its question has been asked.",
+    { slots: {}, fixedBy: "issue 1551 (drafted)" },
+  ],
+  // The four-week rate over the twelve, its denominator, the split the
   // owner's ruling asks for, and the one line saying why four weeks.
   "overview.answers.rate.label": [
     "Answers that mention or link you",
@@ -767,7 +764,12 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { weeks: "text" }, fixedBy: "SPEC §6 2026-10-07 D64 (drafted)" },
   ],
 
-  // The AI answers tab: the rate's own card.
+  // The AI answers tab: the rate's own card. Issue 1551 (SEO review R5.1)
+  // labels it as what it measures. Drafted (#759).
+  "overview.prompts.rate.reputation": [
+    "Brand reputation: how often AI recommends you when buyers ask for a business like yours. It follows mentions of you on other sites, so it moves over months.",
+    { slots: {}, fixedBy: "issue 1551 (drafted)" },
+  ],
   "overview.prompts.rate.split": [
     "{linked} link to you · {named} mention you without a link",
     { slots: { linked: "text", named: "text" }, fixedBy: "SPEC §6 2026-10-03 D19" },

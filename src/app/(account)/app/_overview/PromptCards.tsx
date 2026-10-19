@@ -87,6 +87,9 @@ export function PromptRate(p: { model: PromptsModel }): React.JSX.Element | null
           </div>
         </summary>
         <div className={CLOSED.tileBody}>
+          <p className={`max-w-prose text-xs ${INK}`} data-testid="prompts-rate-reputation">
+            {copy("overview.prompts.rate.reputation")}
+          </p>
           <p className={`text-xs ${INK}`}>
             {rateShown
               ? copy("overview.tile.mention-rate.of", {
