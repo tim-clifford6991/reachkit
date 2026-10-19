@@ -260,7 +260,10 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.nowNamed.item": ["{search}", { slots: { search: "text" }, fixedBy: "SPEC §8 2026-09-29 D16" }],
   "mail.weekly.verdicts": ["pages judged", { slots: {}, fixedBy: "REQ-063 c4" }],
   "mail.weekly.verdicts.none": ["No pages published yet, so none to judge.", { slots: {}, fixedBy: "REQ-064 c3" }],
-  "mail.weekly.next": ["next three", { slots: {}, fixedBy: "§12" }],
+  // SPEC §7 (issue 1559): the week this Monday committed, and its spares.
+  // Drafted (#759).
+  "mail.weekly.next": ["this week’s pages", { slots: {}, fixedBy: "SPEC §7 2026-10-19 (drafted)" }],
+  "mail.weekly.spares": ["spares, if a day’s page cannot be written", { slots: {}, fixedBy: "SPEC §7 2026-10-19 (drafted)" }],
   "mail.weekly.next.none": ["Nothing next: no open opportunity is left, and the plan is never padded.", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
   "mail.weekly.next.item": ["{search}", { slots: { search: "text" }, fixedBy: "§12" }],
 

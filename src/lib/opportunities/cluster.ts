@@ -18,7 +18,7 @@
 // family added later (an Earn row's readiness, say) clusters with no branch
 // here.
 import { PRICE_WORDS } from "@/lib/locale/language";
-import { SAME_TOPIC_SHARED_ADDRESSES } from "@/lib/config/constants";
+import { SAME_TOPIC_SHARED_ADDRESSES, TOPIC_FIT } from "@/lib/config/constants";
 import { GENERIC_TOKENS, ownBrandTokens, stemKey } from "@/lib/market/questions/select";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import type { StoredReport } from "@/lib/scan/report";
@@ -268,6 +268,13 @@ function hasAPage(m: Member): boolean {
   return m.kind === "row" && (m.row.status === "queued" || m.row.status === "done");
 }
 
+/** Whether a member's stored fit passes SPEC §6's gate; one no pass has
+ *  judged does. */
+function fitsTheBusiness(m: Member): boolean {
+  const fit = (m.kind === "row" ? m.row.businessFit : m.candidate.businessFit) ?? null;
+  return fit === null || fit >= TOPIC_FIT.gate;
+}
+
 function compareMembers(a: Member, b: Member, band: (m: Member) => Winnability | null): number {
   const queued = Number(hasAPage(b)) - Number(hasAPage(a));
   if (queued !== 0) return queued;
@@ -286,6 +293,11 @@ function compareMembers(a: Member, b: Member, band: (m: Member) => Winnability |
   // written about, that column still claimed to qualify.
   const sized = Number(qualifiesForADay(band(b))) - Number(qualifiesForADay(band(a)));
   if (sized !== 0) return sized;
+  // Issue 1549: a member the business is not the answer to never takes a
+  // topic from one it is — "meltwater cost" absorbed "answer engine
+  // optimization pricing" and left that search with no page.
+  const fits = Number(fitsTheBusiness(b)) - Number(fitsTheBusiness(a));
+  if (fits !== 0) return fits;
   const precedence = comparePrecedence(shapeOf(a), shapeOf(b));
   if (precedence !== 0) return precedence;
   const held = Number(b.kind === "row") - Number(a.kind === "row");
@@ -453,6 +465,18 @@ function joinTopics(
   for (const [search, sameAs] of sameQuestion) {
     const [x, y] = [keyOfQuery.get(queryKey(search)), keyOfQuery.get(queryKey(sameAs))];
     if (x !== undefined && y !== undefined) join(x, y);
+  }
+  // Issue 1549: a search a held row already absorbed is that row's topic.
+  // Re-derived by a later pass, it joins the row instead of standing beside
+  // it as a second topic counted twice.
+  for (const [key, members] of byKey) {
+    for (const member of members) {
+      if (member.kind !== "row" || !plansANewPage(member)) continue;
+      for (const query of member.row.absorbedQueries) {
+        const other = keyOfQuery.get(queryKey(query));
+        if (other !== undefined) join(key, other);
+      }
+    }
   }
 
   const topics = new Map<string, Member[]>();

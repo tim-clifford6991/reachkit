@@ -375,7 +375,8 @@ export const CALENDAR_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 881" },
   ],
   "calendar.supply.short": ["Supply is running short. Pages left: {days}. Monday’s scan looks for more.", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
-  "calendar.supply.first-arrival": ["Your first scan found less than a month of pages: {days} so far. We look for more every Monday.", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
+  // Issue 1559: the depth is a week and its spares, not a month. Drafted.
+  "calendar.supply.first-arrival": ["Your first scan found {days} pages so far, short of a full week and its spares. We look for more every Monday.", { slots: { days: "text" }, fixedBy: "SPEC §7 2026-10-19 (drafted)" }],
   // Issue 1184 (drafted): why pages stall, as one line under the statement
   // of supply. `{rule}` is the writing rule's own name with its underscores
   // read as spaces.

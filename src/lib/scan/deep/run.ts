@@ -30,8 +30,8 @@
 // derivation runs here rather than inside the pipeline because the
 // pipeline branches on no tier and the free path derives nothing — the
 // choice of *which* §7 entry point a pass uses belongs to the pass. The
-// deep pass pursues a month of depth (`pursueDepth`, through
-// `deriveForPass`), under the same `DEEP` cap the stages spent and counted
+// deep pass derives and refills up to a week and its spares
+// (`deriveForPass`), under the same `DEEP` cap the stages spent and counted
 // in the same row's cost (issue 798), on the report the pass just stored —
 // as a step of its own, after the pass's. A derivation that
 // finds nothing is a normal return: §4.3 releases the founder either way
@@ -263,7 +263,7 @@ export async function afterDeepReport(a: {
           report,
           // Onboarding's pass runs on a payment that has just cleared, so
           // the gate is answered `true` here and never guessed at inside
-          // the engine (`topUp`'s own rule, which the deep arm does not read).
+          // the engine.
           hasActiveAccess: true,
         });
       } finally {

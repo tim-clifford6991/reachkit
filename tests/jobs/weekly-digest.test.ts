@@ -50,14 +50,14 @@ vi.mock("@/lib/scan/weekly", async (importOriginal) => {
 const engine = vi.hoisted(() => ({
   standings: [] as unknown[],
   measuredAt: new Date(Date.UTC(2026, 8, 7, 6, 0, 0)) as Date | null,
-  ranked: [] as { opportunityId: string }[],
+  week: { days: [], spares: [] } as { days: { date: string; opportunity: { targetQuery: string | null } }[]; spares: { targetQuery: string | null }[] },
 }));
 vi.mock("@/lib/opportunities", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/opportunities")>();
   return {
     ...actual,
     weeklyDigest: async () => ({ standings: engine.standings, weekMeasuredAt: engine.measuredAt }),
-    rankOpen: async () => engine.ranked,
+    committedWeek: async () => engine.week,
   };
 });
 vi.mock("@/lib/opportunities/store", async (importOriginal) => {
@@ -101,7 +101,10 @@ beforeEach(() => {
   account.answer = { kind: "complete", measuredAt: new Date(Date.UTC(2026, 8, 7, 6, 0, 0)) };
   engine.standings = [];
   engine.measuredAt = new Date(Date.UTC(2026, 8, 7, 6, 0, 0));
-  engine.ranked = [{ opportunityId: "o1" }, { opportunityId: "o2" }, { opportunityId: "o3" }];
+  engine.week = {
+    days: ["o1", "o2", "o3"].map((id, n) => ({ date: `2026-09-0${8 + n}`, opportunity: { targetQuery: `search ${id}` } })),
+    spares: [],
+  };
   seed();
 });
 
@@ -175,22 +178,21 @@ describe("the Monday digest goes out for a week that was measured", () => {
     });
   });
 
-  it("the next three come from the ranking, and no more than three", async () => {
-    engine.ranked = [
-      { opportunityId: "o1" },
-      { opportunityId: "o2" },
-      { opportunityId: "o3" },
-      { opportunityId: "o4" },
-    ];
-    await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
-    const list = sent[0]!.blocks.find((b) => b.block === "list") as unknown as {
-      items: { kind: string; value: { label: string; vars: { search: string } }[] };
+  it("issue 1559 — the week this Monday committed is listed in date order, and its spares after it", async () => {
+    const day = (n: number) => ({ date: `2026-09-${String(8 + n).padStart(2, "0")}`, opportunity: { targetQuery: `search d${n}` } });
+    engine.week = {
+      days: [0, 1, 2, 3, 4, 5, 6].map(day),
+      spares: [{ targetQuery: "search s1" }, { targetQuery: "search s2" }, { targetQuery: "search s3" }],
     };
-    expect(list.items.value.map((row) => row.vars.search)).toEqual([
-      "search o1",
-      "search o2",
-      "search o3",
-    ]);
+    await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
+    const lists = sent[0]!.blocks.filter((b) => b.block === "list") as unknown as {
+      label: string;
+      items: { kind: string; value: { label: string; vars: { search: string } }[] };
+    }[];
+    const week = lists.find((list) => list.label === "mail.weekly.next")!;
+    const spares = lists.find((list) => list.label === "mail.weekly.spares")!;
+    expect(week.items.value.map((row) => row.vars.search)).toEqual([0, 1, 2, 3, 4, 5, 6].map((n) => `search d${n}`));
+    expect(spares.items.value.map((row) => row.vars.search)).toEqual(["search s1", "search s2", "search s3"]);
   });
 });
 

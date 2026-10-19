@@ -3,7 +3,7 @@
 //
 // "Opportunity status (2026-09-15): a written draft queues its
 // opportunity; a vetoed draft dismisses it." Nothing moved a row out of
-// `open` before this, so `nextForDay` offered the same opportunity every
+// `open` before this, so the daily pick offered the same opportunity every
 // evening and §8's near-duplicate gate refused the second page against the
 // first: a site left alone got one page and then none.
 //

@@ -35,13 +35,13 @@
 // tell them apart.
 //
 // **What the week found becomes supply, before the account is read.**
-// §7's weekly top-up is additive and runs inside this pass's own cost
+// §7's derivation and 0¢ refill are additive and run inside this pass's own cost
 // context and `WEEKLY` cap (§6.3 puts opportunity typing in the paid
 // budgets); it is handed to `runScan` as the hook it calls once the
 // report is stored, because the opportunity rows reference that row. The
 // access gate is not re-decided for it: `sitesWithActiveAccess` answered
 // a few lines above and that answer is passed on, so there is one
-// definition of active and `topUp` obeys rather than asks.
+// definition of active and `deriveForPass` obeys rather than asks.
 //
 // **The kill switch stops it before any spend.** §11's switch names
 // `scan+generate+publish`, and this starts a scan without passing through

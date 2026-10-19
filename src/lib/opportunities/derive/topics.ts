@@ -394,7 +394,7 @@ export function askedOfReport(report: Pick<StoredReport, "questions" | "serps">)
  * search, distinct, from a SERP no older than `ASKED_TOPICS.maxAgeDays`,
  * and at most `ASKED_TOPICS.max`. Pure.
  */
-export function askedTopics(asked: readonly AskedBeside[], now: Date): AskedTopic[] {
+export function askedTopics(asked: readonly AskedBeside[], now: Date, max: number = ASKED_TOPICS.max): AskedTopic[] {
   const since = now.getTime() - ASKED_TOPICS.maxAgeDays * 86_400_000;
   const fresh = asked.filter((serp) => serp.at === undefined || serp.at.getTime() >= since);
   const out: AskedTopic[] = [];
@@ -405,13 +405,29 @@ export function askedTopics(asked: readonly AskedBeside[], now: Date): AskedTopi
       for (const serp of fresh) {
         const text = list(serp)[rank];
         const query = text === undefined ? null : phrase(text, ASKED_TOPICS.maxWords);
-        if (query === null || seen.has(query) || out.length >= ASKED_TOPICS.max) continue;
+        if (query === null || seen.has(query) || out.length >= max) continue;
         seen.add(query);
         out.push({ query, term: serp.term, serpAt: serp.at ?? now });
       }
     }
   }
   return out;
+}
+
+/** Whether a question buyers were seen asking is a topic for this site
+ *  (issue 1519): on the market in force (D59), and never a rival's name
+ *  asked about as a word (issue 1506). */
+export function askedOnMarket(
+  query: string,
+  a: { market: MarketConclusion | null; own: readonly string[]; rivals: readonly string[] }
+): boolean {
+  if (noLongerRelevant(query, { market: a.market, own: a.own }) !== null) return false;
+  return !(names(normalise(query), a.rivals) && SHAPES.wordSense.test(normalise(query)));
+}
+
+/** Whether `query` names any of `brands` as a word (issue 1549). */
+export function namesAnyBrand(query: string, brands: readonly string[]): boolean {
+  return names(normalise(query), brands);
 }
 
 /** Whether `query` is something buyers were seen asking beside another
@@ -638,8 +654,7 @@ export function proposedTopics(a: {
   // on the market in force (D59), and never a rival's name asked about as a
   // word (issue 1506).
   for (const topic of a.asked ?? []) {
-    if (noLongerRelevant(topic.query, { market: a.market, own }) !== null) continue;
-    if (names(normalise(topic.query), rivals) && SHAPES.wordSense.test(normalise(topic.query))) continue;
+    if (!askedOnMarket(topic.query, { market: a.market, own, rivals })) continue;
     add(topic.query, sourceOf(topic.query, { brands }), null, { asked: { term: topic.term, serpAt: topic.serpAt } });
   }
 

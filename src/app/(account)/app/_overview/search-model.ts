@@ -27,7 +27,7 @@
 // file in this directory allowed to name the goal pins — the pairing lives
 // there and the numbers live in the constants, and this screen reads
 // neither a second time.
-import { SUPPLY_TARGET_DEPTH } from "@/lib/config/constants";
+import { PLAN_DEPTH } from "@/lib/config/constants";
 import { GOALS } from "./goals";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { PageTarget } from "../_shell/page-target";
@@ -132,7 +132,7 @@ export type TileReading =
 
 export interface SearchTiles {
   /** Open, ready, non-Fix rows — days of pages the product holds
-   *  (`supplyDepth`), out of `SUPPLY_TARGET_DEPTH`. */
+   *  (`supplyDepth`), out of `PLAN_DEPTH` (a week and its spares). */
   goingAfter: SearchTile;
   /** The searches the live pages target that Google shows the site for at
    *  places 1–100, out of all of them, split first page · 11–100 · not yet
@@ -283,7 +283,7 @@ export function assembleSearch(facts: SearchFacts, at: Date): SearchModel {
     tiles: {
       goingAfter: {
         value: facts.ready,
-        of: measured(SUPPLY_TARGET_DEPTH, at),
+        of: measured(PLAN_DEPTH, at),
         reading: facts.ready.kind === "unmeasured" ? undefined : queueReading(facts.ready.value),
       },
       pages: pagesRead

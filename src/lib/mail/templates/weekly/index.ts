@@ -74,6 +74,7 @@ const VERDICTS_NONE = "mail.weekly.verdicts.none" satisfies CopyKey;
 const NEXT = "mail.weekly.next" satisfies CopyKey;
 const NEXT_NONE = "mail.weekly.next.none" satisfies CopyKey;
 const NEXT_ITEM = "mail.weekly.next.item" satisfies CopyKey;
+const SPARES = "mail.weekly.spares" satisfies CopyKey;
 const PAGE = "mail.weekly.page" satisfies CopyKey;
 const PAGE_MOVED = "mail.weekly.page.moved" satisfies CopyKey;
 const PAGE_MOVED_OVER = "mail.weekly.page.moved_over" satisfies CopyKey;
@@ -148,10 +149,14 @@ export function buildWeekly(a: {
    *  measured empty list is "you have published nothing yet", which is a
    *  different fact and gets its own written line. */
   pages: Measured<readonly WeeklyPage[]>;
-  /** The next three, by the ranking. `unmeasured` omits the section;
-   *  measured-and-empty states the supply's own empty line — the calendar
-   *  is never padded (DECISIONS 2026-08-28). */
+  /** The week's pages, in date order, as this Monday committed them (issue
+   *  1559). `unmeasured` omits the section; measured-and-empty states the
+   *  supply's own empty line — the calendar is never padded (DECISIONS
+   *  2026-08-28). */
   next: Measured<readonly { targetQuery: string }[]>;
+  /** The week's spares, written where a day's page cannot be. Absent or
+   *  empty: no list. */
+  spares?: Measured<readonly { targetQuery: string }[]>;
   /** SPEC §9 on Monday (#573): the technical checks whose count moved since
    *  last Monday. Unmeasured — or absent — where either week stored no
    *  checks, and then the rows are absent; a week with no movement has
@@ -202,6 +207,9 @@ export function buildWeekly(a: {
         items: mapMeasuredRows(a.next, nextRows),
         emptyLine: NEXT_NONE,
       },
+      ...(a.spares === undefined || a.spares.kind === "unmeasured" || a.spares.value.length === 0
+        ? []
+        : [{ block: "list", label: SPARES, items: mapMeasuredRows(a.spares, nextRows), emptyLine: NEXT_NONE } as const]),
       // #933's one needs-you item: the line, and the button that opens the
       // thing itself. Both or neither — an item with nowhere to go is a
       // sentence about a page the reader cannot reach.

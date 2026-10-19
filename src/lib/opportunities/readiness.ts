@@ -209,8 +209,14 @@ export function opportunityReady(o: Opportunity, ctx: ReadinessContext): Unready
     // shared rule above, which admits `reach` too. It stays here because it
     // is this type's own gate (§6, 2026-09-15) and not the right-sizing law.
     const atTopFit = fit !== null && fit >= TOPIC_FIT.writeAt;
+    // Issue 1549: a question buyers were seen asking beside the site's
+    // searches is observed demand (issue 1519) and an answer page by its
+    // nature, so the commercial-intent and volume half waives for it as for
+    // a top-fit search.
+    const asked = o.evidence.family === "write" && o.evidence.askedBeside !== undefined;
     const passes =
       (atTopFit ||
+        asked ||
         (volumeOf(o) >= KEYWORD_PAGE_MIN_VOLUME &&
           o.fitBand === "winnable" &&
           intent !== null &&
@@ -360,7 +366,8 @@ async function coveredTopics(
 }
 
 /**
- * Records readiness on every open Write, Improve and Earn row of one site.
+ * Records readiness on every open Write, Improve and Earn row of one site,
+ * or on the ones `only` names.
  *
  * Reads, once each: the open rows, the site's `not_working` verdicts, its
  * current report (for the profile and what it ranks for) and whether its own
@@ -373,11 +380,15 @@ export async function assessReadiness(
     /** The clock a topic's rest is read against. `at` is the report's own
      *  moment on the evening run, which can be a week old. */
     now?: Date;
+    /** Issue 1559: only these rows — a pass's new ones, or the evening's
+     *  committed week. Absent: every open row. */
+    only?: ReadonlySet<string>;
   }
 ): Promise<{ ready: number; unready: number }> {
   const now = a.now ?? new Date();
   const store = opportunityStore();
-  const rows = await store.openRankable(siteId);
+  const open = await store.openRankable(siteId);
+  const rows = a.only === undefined ? open : open.filter((row) => a.only!.has(row.id));
   if (rows.length === 0) return { ready: 0, unready: 0 };
 
   const [verdicts, report, profile, grounded, prompts, market, topTens, asked] = await Promise.all([

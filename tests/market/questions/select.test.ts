@@ -78,10 +78,10 @@ describe("selectTwelve — the fixture, selected byte-identically", () => {
       "userpilot alternatives",
       "best product tour software",
       "appcues vs userpilot",
-      "user adoption platform",
-      "best in-app guidance tools",
-      "in-app guidance",
-      "top user onboarding tools",
+      "how to onboard new users",
+      "how to onboard saas users",
+      "user onboarding not working",
+      "what is user onboarding",
     ]);
   });
 
@@ -99,11 +99,13 @@ describe("selectTwelve — the fixture, selected byte-identically", () => {
     expect(tied.map((s) => s.keyword)).toEqual(["appcues alternatives", "onboarding tool"]);
   });
 
-  it("decision and solution intent beat raw volume — a 4,400/mo informational search loses to a 390/mo decision one", () => {
-    const selected = keywords(FIXTURE.market);
+  it("decision and solution intent beat raw volume past the answering floor — the 4,400/mo informational search ranks below 390/mo decision ones", () => {
+    const selected = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market });
+    const rank = (keyword: string) => selected.find((s) => s.keyword === keyword)?.rank ?? Infinity;
 
-    expect(selected).toContain("top user onboarding tools"); // 390/mo, decision
-    expect(selected).not.toContain("what is user onboarding"); // 4,400/mo, informational
+    // Issue 1549: it is in the twelve only as one of its answering searches.
+    expect(rank("what is user onboarding")).toBe(BATTERY.QUESTIONS);
+    expect(rank("appcues vs userpilot")).toBeLessThan(rank("what is user onboarding"));
   });
 });
 
@@ -147,6 +149,28 @@ describe("selectTwelve — what never reaches the ranking", () => {
     expect(chosen).not.toContain("onboarding tools");
     expect(chosen).toContain("best user onboarding software"); // 2,400 beats the word-order variant at 2,000
     expect(chosen).not.toContain("software user onboarding best");
+  });
+});
+
+describe("selectTwelve — a week reads something new (issue 1549)", () => {
+  it("two weekly passes on the same market share at most eight of their twelve", () => {
+    const first = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market });
+    const second = selectTwelve({
+      profile: PROFILE,
+      ownRanked: OWN_RANKED,
+      market: FIXTURE.market,
+      recent: first.map((s) => s.keyword),
+    });
+
+    expect(second).toHaveLength(BATTERY.QUESTIONS);
+    const shared = second.filter((s) => first.some((f) => f.keyword === s.keyword));
+    expect(shared.length).toBeLessThanOrEqual(BATTERY.QUESTIONS - SELECTION.minFresh);
+  });
+
+  it("keeps a floor of how-to and informational searches", () => {
+    const selected = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market });
+    const answering = selected.filter((s) => s.intent === "problem" || s.intent === "informational");
+    expect(answering.length).toBeGreaterThanOrEqual(SELECTION.minAnswering);
   });
 });
 

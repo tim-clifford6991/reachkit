@@ -25,7 +25,7 @@
 // **No sentence.** The three lines are the owner's, in the copy registry
 // (`cause.supply-exhausted` is already a key there). This module emits
 // handles and a count.
-import { SUPPLY_SHORT_BELOW, SUPPLY_TARGET_DEPTH } from "@/lib/config/constants";
+import { PLAN_DEPTH, SUPPLY_SHORT_BELOW } from "@/lib/config/constants";
 import { supplyDepth } from "./depth";
 
 export type SupplyNotice =
@@ -47,8 +47,8 @@ export async function supplyNotice(a: {
   if (unused < SUPPLY_SHORT_BELOW) return { kind: "short", days: unused };
 
   // Supply stands. The only thing left to say is to someone arriving for
-  // the first time after a pass that did not reach a month of depth: they
-  // are about to see a calendar that stops before the month does, and the
+  // the first time after a pass that did not reach a week and its spares
+  // (`PLAN_DEPTH`): they are about to see a week with less in reserve, and the
   // honest thing is to say so once rather than let them find it. Above the
   // target there is nothing to tell, first arrival or not.
   //
@@ -57,7 +57,7 @@ export async function supplyNotice(a: {
   // is conveyed by the short statement and there is one statement, not
   // two. That is the whole of the precedence: it is an `if` chain in one
   // function, and no surface has to remember it.
-  if (a.firstArrivalAfter !== undefined && unused < SUPPLY_TARGET_DEPTH) {
+  if (a.firstArrivalAfter !== undefined && unused < PLAN_DEPTH) {
     return { kind: "arrival_shortfall", days: unused };
   }
   return null;

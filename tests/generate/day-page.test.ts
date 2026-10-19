@@ -6,7 +6,7 @@
 // SPEC §7 (D41): one call writes the page, a page a check stops takes one fix
 // call, and one that still fails rests where the customer can act on it.
 //
-// §7's supply rule is the other half: `nextForDay` answering `null` is a
+// §7's supply rule is the other half: the day's pick answering `null` is a
 // day with no page, never an invented one.
 import "./env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -27,7 +27,7 @@ import {
 const {
   llmMock,
   readMeasuredTextMock,
-  nextForDayMock,
+  pickMock,
   withCostContextMock,
   queueForDraftMock,
   restTopicMock,
@@ -37,7 +37,7 @@ const {
   updateInsteadMock: vi.fn(),
   llmMock: vi.fn(),
   readMeasuredTextMock: vi.fn(),
-  nextForDayMock: vi.fn(),
+  pickMock: vi.fn(),
   withCostContextMock: vi.fn(),
   queueForDraftMock: vi.fn(),
   restTopicMock: vi.fn(),
@@ -67,7 +67,8 @@ vi.mock("@/lib/generate/voice/confirmed", () => ({
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
 vi.mock("@/lib/generate/pipeline/report-facts", () => ({ readReportPage: async () => null }));
 vi.mock("@/lib/opportunities", () => ({
-  nextForDay: nextForDayMock,
+  pageForDay: (siteId: string, date: string, now?: Date) => pickMock(siteId, date, now),
+  takeSpare: (siteId: string) => pickMock(siteId),
   queueForDraft: queueForDraftMock,
   restTopic: restTopicMock,
   updateInstead: updateInsteadMock,
@@ -178,7 +179,7 @@ const STOPPED_AGAIN = "We tested every tool again, and this one won.";
 beforeEach(async () => {
   llmMock.mockReset();
   readMeasuredTextMock.mockReset();
-  nextForDayMock.mockReset();
+  pickMock.mockReset();
   queueForDraftMock.mockReset();
   restTopicMock.mockReset();
   reportIncidentMock.mockReset();
@@ -199,7 +200,7 @@ beforeEach(async () => {
   readMeasuredTextMock.mockResolvedValue([
     { url: GROUNDED.url, text: SOURCE_TEXT, measuredAt: GROUNDED.readAt },
   ]);
-  nextForDayMock.mockResolvedValue(opportunity());
+  pickMock.mockResolvedValue(opportunity());
   withCostContextMock.mockImplementation(
     async (ctx: { scanId: string; cap: string; rollUp?: string }, run: (c: unknown) => Promise<unknown>) => {
       opened.push(ctx);
@@ -327,7 +328,7 @@ describe("SPEC §7 (2026-09-15, issue 712) — a written draft queues its opport
 describe("a short pack writes nothing (SPEC §7, D41 stage 2)", () => {
   it("issue 1536: the page stops naming what is missing, with no model call and no row, and its topic rests", async () => {
     packAnswer.missing = ["buyer_questions", "facts_on_topic"];
-    nextForDayMock.mockResolvedValueOnce(opportunity()).mockResolvedValueOnce(null);
+    pickMock.mockResolvedValueOnce(opportunity()).mockResolvedValueOnce(null);
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     expect(outcome).toEqual({ ok: false, because: "step_failed", draftId: null, step: "pack:buyer_questions,facts_on_topic" });
     expect(llmMock).not.toHaveBeenCalled();
@@ -340,7 +341,7 @@ describe("a short pack writes nothing (SPEC §7, D41 stage 2)", () => {
 
   it("the day goes to the next topic, which takes the date (D26, issue 1477)", async () => {
     const next = opportunity({ id: "44444444-4444-4444-8444-444444444444", targetQuery: "project management software plan" });
-    nextForDayMock.mockResolvedValueOnce(opportunity()).mockResolvedValueOnce(next);
+    pickMock.mockResolvedValueOnce(opportunity()).mockResolvedValueOnce(next);
     // Short for the first topic only.
     packAnswer.missingFor = (query) => (query === opportunity().targetQuery ? ["buyer_questions"] : []);
     queueAttempt(CLEAN_MARKDOWN);
@@ -416,7 +417,7 @@ describe("issue 886 — the same evening tick delivered twice", () => {
 
 describe("§7 — supply is the cap: the calendar is never padded", () => {
   it("no opportunity is a day with no page, and nothing is written", async () => {
-    nextForDayMock.mockResolvedValue(null);
+    pickMock.mockResolvedValue(null);
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     expect(outcome).toEqual({ ok: false, because: "no_opportunity" });
     expect(store.rows.size).toBe(0);
@@ -462,7 +463,7 @@ describe("§7 (2026-09-12) — the page links into the customer's own site and t
   it("the second page of a cluster links the inventory's real pages and the first page", async () => {
     store.inventory = INVENTORY;
     store.cluster.set("seats", [FIRST]);
-    nextForDayMock.mockResolvedValue(opportunity({ clusterKey: "seats" }));
+    pickMock.mockResolvedValue(opportunity({ clusterKey: "seats" }));
     queueAttempt(CLEAN_MARKDOWN);
 
     const html = await publishedHtml();
@@ -558,10 +559,10 @@ describe("issue 737 — the first draft, for a paid site with a free-scan cache"
     queueAttempt(CLEAN_MARKDOWN);
     await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     llmMock.mockReset();
-    nextForDayMock.mockClear();
+    pickMock.mockClear();
     const again = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     expect(again).toEqual({ ok: false, because: "already_drafted" });
-    expect(nextForDayMock).not.toHaveBeenCalled();
+    expect(pickMock).not.toHaveBeenCalled();
     expect(llmMock).not.toHaveBeenCalled();
     expect(store.rows.size).toBe(1);
   });

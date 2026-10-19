@@ -23,7 +23,7 @@ vi.mock("@/lib/config/now", () => ({ now: () => clock }));
 
 vi.mock("@/lib/opportunities", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/opportunities")>()),
-  nextForDay: async () => null,
+  committedWeek: async () => ({ days: [], spares: [] }),
   rankOpen: async () => [],
 }));
 

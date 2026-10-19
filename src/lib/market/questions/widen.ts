@@ -189,6 +189,9 @@ export function selectWidened(a: {
   /** Where the pass measures (issue 1441), as `selectTwelve` reads it. */
   place?: Place;
   limit?: number;
+  /** The searches measured in the last weeks (issue 1549), as
+   *  `selectTwelve` reads them. */
+  recent?: readonly string[];
 }): SelectedSearch[] {
   const category = {
     ...(a.category === undefined ? {} : { category: a.category }),
@@ -196,6 +199,7 @@ export function selectWidened(a: {
     ...(a.measured === undefined ? {} : { measured: a.measured }),
     ...(a.place === undefined ? {} : { place: a.place }),
     ...(a.limit === undefined ? {} : { limit: a.limit }),
+    ...(a.recent === undefined ? {} : { recent: a.recent }),
   };
   const { ownRanked } = a;
   const enough = a.limit ?? BATTERY.QUESTIONS;

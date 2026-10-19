@@ -14,7 +14,7 @@ import {
   type SearchStatus,
   type SearchTargetFacts,
 } from "@/app/(account)/app/_overview/search-model";
-import { SUPPLY_TARGET_DEPTH } from "@/lib/config/constants";
+import { PLAN_DEPTH } from "@/lib/config/constants";
 
 const AT = new Date("2026-08-31T06:00:00.000Z");
 
@@ -148,7 +148,7 @@ describe("the four tiles carry a denominator or a goal, never a bare number", ()
 
   it("the queue is read against the depth §7 keeps ready, and the footprint against its goal", () => {
     const model = assembleSearch(facts({ ready: measuredZero(0, AT) }), AT);
-    expect(model.tiles.goingAfter.of).toMatchObject({ value: SUPPLY_TARGET_DEPTH });
+    expect(model.tiles.goingAfter.of).toMatchObject({ value: PLAN_DEPTH });
     expect(model.tiles.goingAfter.value.kind).toBe("zero");
     expect(model.tiles.appearFor.of.kind).not.toBe("unmeasured");
   });

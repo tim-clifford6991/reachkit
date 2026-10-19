@@ -1262,6 +1262,12 @@ export const SELECTION = Object.freeze({                    // BP-025 · REQ-006
    *  other places go to the searches its seeds and pool yield, by score.
    *  A drafted default the owner may correct. */
   maxMarketTerms: 6,
+  /** Issue 1549: the fewest of the twelve that are searches the site has
+   *  not measured in the last `freshWeeks` weeks, where the market holds
+   *  them, and the fewest that are how-to or informational searches — the
+   *  answer pages D52's cap does not hold back. Drafted; the owner may
+   *  correct them. */
+  minFresh: 4, freshWeeks: 4, minAnswering: 4,
 } as const);
 
 /** SPEC §0 and §2 (owner, 2026-10-15, issue 1439): how a score says how sure
@@ -1448,8 +1454,13 @@ export const EFFORT_BY_TYPE = Object.freeze({                // BP-040 d3
 } as const);                                                 // `unblock` is unranked
 
 export const FIT_WEIGHT = Object.freeze({ winnable: 1.0, reach: 0.5, "not-yet": 0 } as const); // BP-040 d3
-export const SUPPLY_TARGET_DEPTH = 30 as const;              // BP-041 d4 · REQ-095 c1
-export const SUPPLY_SHORT_BELOW = 7 as const;                // BP-041 d4 · REQ-095 c5
+/** SPEC §7 (owner, 2026-10-19, issue 1559): the one depth number. Each
+ *  weekly pass commits the next `days` pages, one a day, and `spares` more
+ *  the daily job takes when a day's page cannot be written. Supply is
+ *  counted, and refilled at 0¢, up to their sum. */
+export const WEEK_PLAN = Object.freeze({ days: 7, spares: 3 } as const);
+export const PLAN_DEPTH = WEEK_PLAN.days + WEEK_PLAN.spares;  // BP-041 d4 · REQ-095 c1
+export const SUPPLY_SHORT_BELOW = WEEK_PLAN.days;            // BP-041 d4 · REQ-095 c5
 export const TOO_EARLY_WEEKS = 3 as const;                   // BP-051 d4 · REQ-063 c2
 
 // Generation
@@ -2315,15 +2326,6 @@ export const MARKDOWN_LINK_SCHEMES = Object.freeze([
   "mailto:",
   "/",
 ] as const);
-
-// ── The Monday digest (issue #181) — BUILD §12
-/** How many of the ranked-open opportunities §12's weekly mail names:
- *  "score delta, AI answers delta, pages verdicts, **next 3**".
- *
- *  Transcribed, not chosen (rule 1.2) — §12 states the number. It is a
- *  pin rather than a literal in the sender because it is the size of a
- *  list a customer reads, and because §12 is where it changes. */
-export const WEEKLY_NEXT_COUNT = 3 as const;                  // BUILD §12
 
 /** SPEC §8 (2026-09-20, #933) — how much of a page the page-ready mail
  *  carries: its first paragraphs, and no more. The mail is where a reader

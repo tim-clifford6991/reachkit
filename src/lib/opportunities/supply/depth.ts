@@ -15,7 +15,13 @@
 // and no materialised view: a count with a second home drifts from the
 // rows it counts, and a customer told supply is short while it is not is
 // the failure mode that drift produces.
+//
+// Issue 1549: a day of pages is a day the daily pick will fill with a page
+// of the topic's own type (`writableDays`), not a ready row. Six listicles
+// under D52's one-a-week cap are one day in the next seven, and were read
+// as six.
 import { stoppedOnCeiling } from "@/lib/scan/market-floor";
+import { writableDays } from "../rank/open";
 import { opportunityStore } from "../store";
 
 export interface Depth {
@@ -26,10 +32,10 @@ export interface Depth {
   exhaustedSince: Date | null;
 }
 
-export async function supplyDepth(siteId: string): Promise<Depth> {
+export async function supplyDepth(siteId: string, at: Date = new Date()): Promise<Depth> {
   const store = opportunityStore();
-  const unused = await store.countUnused(siteId);
-  if (unused > 0) return { unused, exhaustedSince: null };
+  const ready = await store.countUnused(siteId);
+  if (ready > 0) return { unused: await writableDays(siteId, at), exhaustedSince: null };
 
   // Exhausted. The date is the last status change over the site's non-Fix
   // rows; where the site has never held one, it is the completion of its

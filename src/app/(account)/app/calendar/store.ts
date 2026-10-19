@@ -8,10 +8,10 @@
 // (DECISIONS 2026-08-28) is kept the only way a read can keep it: the day
 // list stops when the ranked list does.
 //
-// **Three engine calls and no fourth.** `nextForDay` is the one
-// opportunity the first fillable day takes; `rankOpen` is the order the
-// days after it take, and the two agree by construction (`nextForDay` is
-// that list's head, loaded). `explainChoice` fills the day panel's "Why
+// **Three engine calls and no fourth.** `committedWeek` is the week the
+// weekly pass committed, which the first fillable days take in its own
+// order (issue 1559); `rankOpen` is the order the days after the week take,
+// its rows left out. `explainChoice` fills the day panel's "Why
 // this page" rows from the evidence stored at creation — never
 // re-measured, so the panel still reads correctly after the next Monday
 // has moved every number.
@@ -38,8 +38,8 @@
 import { templateQuestion } from "@/lib/market/questions/phrase";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
 import {
+  committedWeek,
   explainChoice,
-  nextForDay,
   rankOpen,
   supplyDepth,
   supplyMeasured,
@@ -394,12 +394,12 @@ export async function readCalendarFacts(a: {
   now: Date;
 }): Promise<CalendarFacts> {
   const today = dayKeyOf(a.now, a.site.timeZone);
-  const [depth, head, ranked, publishing, stop, changeHold] = await Promise.all([
+  const [depth, week, ranked, publishing, stop, changeHold] = await Promise.all([
     supplyDepth(a.site.siteId).then(
       (d) => d.unused,
       () => null
     ),
-    nextForDay(a.site.siteId),
+    committedWeek(a.site.siteId),
     rankOpen(a.site.siteId),
     // §9's own answers about this month (#175).
     readPublishingFacts({ siteId: a.site.siteId, month: a.month, today }),
@@ -434,10 +434,12 @@ export async function readCalendarFacts(a: {
   // throws states neither.
   const measured = depth === 0 ? await supplyMeasured(a.site.siteId).catch(() => null) : null;
 
-  // The head is the first fillable date's page; the rest of the list, in
-  // its own order, is the dates after it. One list, one order, and no
-  // second ranking — `nextForDay` is this list's head, loaded.
-  const queue = head === null ? [] : [head.id, ...ranked.slice(1).map((r) => r.opportunityId)];
+  // The committed week's pages take the first fillable dates, in date
+  // order; the one list, in its own order and without the week's rows,
+  // takes the dates after it (issue 1559). A site with no week yet is the
+  // one list alone, as its first evening will commit it.
+  const held = new Set([...week.days.map((day) => day.opportunity.id), ...week.spares.map((spare) => spare.id)]);
+  const queue = [...week.days.map((day) => day.opportunity.id), ...ranked.map((r) => r.opportunityId).filter((id) => !held.has(id))];
   const dates = fillableDates({ month: a.month, today });
   const offset = offsetForMonth({ month: a.month, today });
 
