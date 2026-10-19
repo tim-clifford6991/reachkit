@@ -166,6 +166,15 @@ export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
           <p className="text-base-content/70 font-mono text-xs">
             {copy("legal.updated", { date: copy(p.document.updated) })}
           </p>
+          {p.document.summary === undefined ? null : (
+            <section className="rounded-box bg-base-200 mt-3 flex flex-col gap-2 p-4" data-testid="legal-summary">
+              <p className="text-base-content/70 text-xs font-semibold tracking-wide uppercase">
+                {copy("legal.summary.title")}
+              </p>
+              <div dangerouslySetInnerHTML={{ __html: legalBodyHtml(copy(p.document.summary)) }} />
+              <p className="text-base-content/70 text-xs">{copy("legal.summary.note")}</p>
+            </section>
+          )}
           {/* One card, no head: the page's own h1 already names the document. */}
           <div className="card bg-base-100 mt-3 shadow-(--shadow-card)">
             <div className="card-body">
