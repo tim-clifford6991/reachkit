@@ -38,7 +38,13 @@ export function readerLanguage(): Language {
 
 /** `copy()`, in the reader's language. */
 export function copy(key: CopyKey, vars?: Record<string, string | number>): string {
-  const language = readerLanguage();
+  return copyInto(readerLanguage(), key, vars);
+}
+
+/** `copy()` in a language the caller names: for a route that draws no
+ *  page, such as the feed (issue 1545). A route handler is not a render, so
+ *  `readIn` holds nothing there. */
+export function copyInto(language: Language, key: CopyKey, vars?: Record<string, string | number>): string {
   // English is the registry's own `copy()`, reached the way every screen
   // reaches it.
   return language === "en" ? english(key, vars) : copyIn(language, key, vars);

@@ -9,6 +9,7 @@ import type { ContextPack } from "../../src/lib/generate/pipeline/pack";
 import { titleFaults, type TitleRuleInputs } from "../../src/lib/generate/rules/title";
 import { TEMPLATES, languageRules, titleFormulas } from "../../src/lib/generate/templates";
 import { languagePack } from "../../src/lib/locale/language";
+import { LANGUAGES, type Language } from "../../src/lib/locale/locales";
 import { CONTENT_TYPES } from "../../src/lib/opportunities/content-type";
 
 const DESCRIPTION =
@@ -42,6 +43,16 @@ describe("German templates", () => {
     expect(titleFormulas("listicle", "en")).toBeNull();
     expect(languageRules("en")).toEqual([]);
     expect(TEMPLATES.listicle.titles[0]).toBe("{N} best {term} for {audience} ({year})");
+  });
+
+  it("no template, in any language, asks the writer for a slug: the address is code's (issue 1545)", () => {
+    for (const language of Object.keys(LANGUAGES) as Language[]) {
+      const words = [
+        ...languageRules(language),
+        ...CONTENT_TYPES.map((type) => JSON.stringify({ template: TEMPLATES[type], own: titleFormulas(type, language) })),
+      ];
+      for (const text of words) expect(text, language).not.toMatch(/\bslugs?\b/i);
+    }
   });
 
   it("a German page is told to be German throughout", () => {

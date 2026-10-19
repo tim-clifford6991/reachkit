@@ -165,7 +165,7 @@ describe("issue 697 — every page describes itself in structured data", () => {
       dateModified: "2026-09-01T09:00:00.000Z",
       inLanguage: "en-US",
       image: [
-        "https://content.example.com/share.img/a-page",
+        "https://content.example.com/share.img/a-page?shape=16x9",
         "https://content.example.com/share.img/a-page?shape=4x3",
         "https://content.example.com/share.img/a-page?shape=1x1",
       ],
@@ -466,6 +466,8 @@ describe("issue 1514 — the head states the customer's icon and lets its pictur
     const image = schemaOf(await render(), "BlogPosting").image as string[];
     expect(image).toHaveLength(3);
     for (const url of image) expect(url.startsWith("https://content.example.com/share.img/a-page")).toBe(true);
+    // The 1200×630 card is not 16:9 (issue 1545): the markup asks for the 16:9 itself.
+    expect(image.map((url) => new URL(url).searchParams.get("shape"))).toEqual(["16x9", "4x3", "1x1"]);
   });
 });
 

@@ -9,7 +9,8 @@
 //
 // Every address here is on the customer's own host. None names ReachKit.
 import type { Metadata } from "next";
-import { copy, readerTag } from "@/lib/presentation/copy/reader";
+import type { Language } from "@/lib/locale/locales";
+import { copy, copyInto, readerLanguage, readerTag } from "@/lib/presentation/copy/reader";
 import type { HostedPage } from "@/lib/publish/destinations/hosted";
 import { OG_SIZE } from "@/app/(public)/_seo/og-card";
 import { INDEX_PATH, LOGO_PATH, mainSiteOf, type HostedBusiness } from "./chrome";
@@ -39,15 +40,20 @@ export function originOf(address: string): string {
  *  answers 404 on a host that serves a site. */
 export const ICON_PATH = "/icon.img";
 
-/** The shapes the share image is drawn in (issue 1514): the card a pasted
- *  link unfurls as, and the 4:3 and 1:1 that Google's article markup asks
- *  for beside a 16:9, each at least 1,200 wide. */
+/** The shapes the share image is drawn in (issues 1514, 1545): the card a
+ *  pasted link unfurls as, and the 16:9, 4:3 and 1:1 that Google's article
+ *  markup asks for, each at least 1,200 wide. The card's 1200×630 is not
+ *  16:9, so the article markup never offers it. */
 export const SHARE_SHAPES = {
   wide: OG_SIZE,
+  "16x9": { width: 1200, height: 675 },
   "4x3": { width: 1200, height: 900 },
   "1x1": { width: 1200, height: 1200 },
 } as const;
 export type ShareShape = keyof typeof SHARE_SHAPES;
+
+/** The shapes `BlogPosting.image` offers: the article markup's three. */
+const ARTICLE_SHAPES: readonly ShareShape[] = ["16x9", "4x3", "1x1"];
 
 /** The query a shape other than the card's is asked with. */
 export const SHARE_SHAPE_PARAM = "shape";
@@ -66,9 +72,10 @@ const HEAD_SIGNALS = {
   icons: { icon: ICON_PATH },
 } satisfies Metadata;
 
-/** The index's title, which is also the feed's name in a reader. */
-export function indexTitle(business: HostedBusiness): string {
-  return `${copy("hosted.index.heading")} · ${business.name}`;
+/** The index's title, which is also the feed's name in a reader. A route
+ *  that draws no page (the feed) names the site's language itself. */
+export function indexTitle(business: HostedBusiness, language: Language = readerLanguage()): string {
+  return `${copyInto(language, "hosted.index.heading")} · ${business.name}`;
 }
 
 /** How long a description is (SPEC §7, D51 and D53): a search result shows
@@ -92,8 +99,8 @@ function sentenceOf(line: string): string {
  * long for a result is cut at a word; a business with no line has the one
  * sentence it can honestly have, and nothing is padded to reach the length.
  */
-export function indexDescription(business: HostedBusiness): string {
-  const lead = copy("hosted.index.description", { publisher: business.name });
+export function indexDescription(business: HostedBusiness, language: Language = readerLanguage()): string {
+  const lead = copyInto(language, "hosted.index.description", { publisher: business.name });
   const does = sentenceOf(business.line ?? "");
   if (does === "") return lead;
   if (does.length > DESCRIPTION.max) {
@@ -183,7 +190,7 @@ export function blogPostingSchema(a: {
     dateModified: a.page.publishedAt.toISOString(),
     inLanguage: readerTag(),
     // The card in each shape the article markup asks for: 16:9, 4:3, 1:1.
-    image: (Object.keys(SHARE_SHAPES) as ShareShape[]).map((shape) => shareImageUrl(origin, a.page.slug, shape)),
+    image: ARTICLE_SHAPES.map((shape) => shareImageUrl(origin, a.page.slug, shape)),
     author: authorOf(a.page.byline, a.business),
     publisher: publisherOf(a.business, origin),
   });
