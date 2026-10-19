@@ -56,6 +56,7 @@ export { explainChoice, type Choice } from "./derive/explain";
 export { supplyDepth, supplyMeasured, supplyState, type Depth, type SupplyState } from "./supply/depth";
 export { supplyNotice, type SupplyNotice } from "./supply/notice";
 export { pursueDepth, type DepthStop } from "./supply/pursue";
+export { refillSupply } from "./supply/refill";
 export { topUp } from "./supply/topup";
 
 export { setOpportunityStore, type OpportunityStore } from "./store";

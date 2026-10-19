@@ -19,6 +19,22 @@ vi.mock("@anthropic-ai/sdk", () => ({
   },
 }));
 
+/** Questions in the fixture business's own words: §6.7's relevance guard
+ *  keeps a refill to those (issue 1549). */
+const ON_VOCABULARY = [
+  "How to get new users to first success?",
+  "What is user onboarding software?",
+  "What is a product tour?",
+  "What is SaaS onboarding?",
+  "How to get users to first success with product tours?",
+  "What are product tours in SaaS?",
+  "How do SaaS teams do user onboarding?",
+  "What is onboarding software for product teams?",
+  "What does onboarding software do?",
+  "What is new user onboarding?",
+  "How do product teams do SaaS onboarding?",
+];
+
 let state: MemoryState;
 
 beforeEach(() => {
@@ -85,8 +101,8 @@ describe("a weekly pass leaves fourteen writable days", () => {
     state.asked = [
       {
         term: "best onboarding tool 0",
-        peopleAlsoAsk: Array.from({ length: 10 }, (_, n) => `How to onboard new users in week ${n + 1}?`),
-        related: Array.from({ length: 10 }, (_, n) => `how to run onboarding checklist ${n + 1}`),
+        peopleAlsoAsk: ON_VOCABULARY,
+        related: [],
         at: AT,
       },
     ];

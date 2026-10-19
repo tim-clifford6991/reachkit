@@ -17,6 +17,7 @@
 // supply is still the cap: where the questions run out first, the site is
 // left short and the count says so.
 import { ASKED_TOPICS, CONTENT_MIX, SUPPLY_FLOOR_DAYS } from "@/lib/config/constants";
+import { passesRelevanceGuard } from "@/lib/market/questions/select";
 import { malformedSearch } from "@/lib/market/questions/well-formed";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import type { StoredReport } from "@/lib/scan/report";
@@ -30,6 +31,7 @@ import {
   askedTopics,
   brandsOf,
   candidateFor,
+  namesAnyBrand,
   rivalBrandOnly,
   sourceOf,
   type AskedBeside,
@@ -51,10 +53,11 @@ export interface RefillTopic {
  * The topics a short site may be refilled from, best first. Pure.
  *
  * The questions the pass judged to help, then the ones it never reached —
- * those asked beside the market's own searched terms first. Each is on the
- * market (`askedOnMarket`), a search a buyer would type, not a rival's bare
- * name, written as a Q&A, how-to or documentation page (D52 caps the rest),
- * and on no search the site already holds or dismissed.
+ * those asked beside the market's own searched terms first, and only where
+ * the business's vocabulary supports every word and no rival is named. Each
+ * is on the market (`askedOnMarket`), a search a buyer would type, not a
+ * rival's bare name, written as a Q&A, how-to or documentation page (D52
+ * caps the rest), and on no search the site already holds or dismissed.
  */
 export function refillTopics(a: {
   report: StoredReport;
@@ -80,9 +83,20 @@ export function refillTopics(a: {
     malformedSearch(query, a.market?.rivals) === null &&
     !rivalBrandOnly(query, { market: a.market, own, rivals });
 
+  // A question no pass judged is written only where every word of it the
+  // business's own vocabulary supports (§6.7's relevance guard) and it names
+  // no rival: "what is aeo in medical terms" and "is profound ai good" sat
+  // beside reachkit.app's searches. With no profile, nothing unjudged is.
+  const profile = a.report.market.kind === "unmeasured" ? null : a.report.market.value.profile;
+  const marketWords = [a.market?.category ?? "", ...(a.market?.synonyms ?? [])].filter((word) => word.trim() !== "").join(" ");
+  const onTopic = (query: string): boolean =>
+    profile !== null &&
+    passesRelevanceGuard(query, profile, marketWords === "" ? undefined : marketWords) &&
+    !namesAnyBrand(query, rivals);
+
   const out: RefillTopic[] = [];
   const take = (topic: ProposedTopic, fit: BusinessFit | null): void => {
-    if (!usable(topic.query)) return;
+    if (!usable(topic.query) || (fit === null && !onTopic(topic.query))) return;
     seen.add(queryKey(topic.query));
     out.push({ topic, fit });
   };
@@ -112,10 +126,17 @@ export function refillTopics(a: {
 /**
  * Tops a short site up to `target` writable days from `refillTopics`, and
  * returns how many rows it wrote and the days the site now holds. A site
- * already at the target is left as it is. Database reads and writes only.
+ * already at the target is left as it is, and a second run over the same
+ * rows writes nothing: every topic it wrote is a search the site now holds.
+ * Database reads and writes only — run by each pass, and by the evening run
+ * before the day's page from the latest stored scan (`generateDayPage`).
  */
 export async function refillSupply(
-  a: DeriveInput & { spare: readonly SpareTopic[]; refused: readonly string[]; target?: number }
+  a: Pick<DeriveInput, "siteId" | "scanId" | "report" | "ownRanked" | "market"> & {
+    spare?: readonly SpareTopic[];
+    refused?: readonly string[];
+    target?: number;
+  }
 ): Promise<{ added: number; unused: number }> {
   const target = a.target ?? SUPPLY_FLOOR_DAYS;
   const at = a.report.verdict.measuredAt;
@@ -128,13 +149,14 @@ export async function refillSupply(
     store.dismissedSearches === undefined ? [] : store.dismissedSearches(a.siteId).catch(() => []),
     store.askedBeside === undefined ? [] : store.askedBeside(a.siteId, ASKED_TOPICS.maxAgeDays).catch(() => []),
   ]);
-  const market = a.market ?? null;
+  // A pass hands its market in; the evening run reads the one in force.
+  const market = a.market !== undefined ? a.market : (await store.marketFor(a.siteId)).market;
   const pool = refillTopics({
     report: a.report,
     market,
     asked: [...askedOfReport(a.report), ...stored],
-    spare: a.spare,
-    refused: a.refused,
+    spare: a.spare ?? [],
+    refused: a.refused ?? [],
     taken: held.flatMap((row) => [...(row.targetQuery === null ? [] : [row.targetQuery]), ...row.absorbedQueries]),
     dismissed: dismissed.map((row) => row.query),
     now: at,

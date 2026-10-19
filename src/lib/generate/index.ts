@@ -37,6 +37,7 @@ import { siteLocale } from "@/lib/locale/site";
 import {
   assessFixPages,
   assessReadiness,
+  refillSupply,
   nextForDay,
   opportunityById,
   queueForDraft,
@@ -161,6 +162,15 @@ export async function generateDayPage(a: {
   // SPEC §6: and every other open row's readiness, so the day is picked
   // from rows with an answer as of tonight.
   await assessReadiness(a.siteId, { at: report.verdict.measuredAt, now });
+  // Issue 1549: a site short of two weeks of writable days mid-week is
+  // refilled tonight from its latest stored scan's questions, not on
+  // Monday. 0¢: stored rows only. A refill that cannot run never costs the
+  // day its page.
+  try {
+    await refillSupply({ siteId: a.siteId, scanId: report.scanId, report, ownRanked: report.ownRanked });
+  } catch (error) {
+    console.log(JSON.stringify({ event: "supply_refill_failed", siteId: a.siteId, because: String(error) }));
+  }
 
   const first = await nextForDay(a.siteId);
   if (first === null) return { ok: false, because: "no_opportunity" };

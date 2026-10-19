@@ -425,6 +425,11 @@ export function askedOnMarket(
   return !(names(normalise(query), a.rivals) && SHAPES.wordSense.test(normalise(query)));
 }
 
+/** Whether `query` names any of `brands` as a word (issue 1549). */
+export function namesAnyBrand(query: string, brands: readonly string[]): boolean {
+  return names(normalise(query), brands);
+}
+
 /** Whether `query` is something buyers were seen asking beside another
  *  search: one of its related searches, or a "People also ask" question
  *  that holds every word of it but its "vs" (issue 1506; the SEO master
