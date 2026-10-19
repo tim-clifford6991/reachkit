@@ -250,8 +250,24 @@ function AiTile(p: { prompts: PromptsModel; firstScan: string }): React.JSX.Elem
   );
 }
 
-/** Content: the pages published, those in the last four weeks, the last
- *  one and when the next goes live. */
+/** Issue 1553: how many live pages reached each step toward being found,
+ *  in the ladder's order, on one line. A step no page can be read on is
+ *  left out; `null` where none can. */
+function foundLine(found: ContentModel["found"]): string | null {
+  if (found === null) return null;
+  const steps = [
+    found.crawled === null ? null : copy("overview.tile.content.crawled", { count: formatCount(found.crawled) }),
+    found.indexed === null ? null : copy("overview.tile.content.indexed", { count: formatCount(found.indexed) }),
+    found.impressions === null ? null : copy("overview.tile.content.impressions", { count: formatCount(found.impressions) }),
+    found.bestPlace === null ? null : copy("overview.tile.content.place", { place: formatCount(found.bestPlace) }),
+    found.cited === null ? null : copy("overview.tile.content.cited", { count: formatCount(found.cited) }),
+  ].filter((step): step is string => step !== null);
+  return steps.length === 0 ? null : steps.join(" · ");
+}
+
+/** Content: the pages published, how far they have got toward being found,
+ *  those in the last four weeks, the last one and when the next goes
+ *  live. */
 function ContentTile(p: { content: ContentModel | null; nextAt: Date | null; timeZone: string }): React.JSX.Element {
   const next = p.nextAt === null ? null : copy("overview.tile.content.next", { on: formatDate(p.nextAt, p.timeZone) });
   if (p.content === null) {
@@ -265,7 +281,7 @@ function ContentTile(p: { content: ContentModel | null; nextAt: Date | null; tim
       />
     );
   }
-  const { pages, recent, last } = p.content;
+  const { pages, recent, last, found } = p.content;
   return (
     <Tile
       label={copy(CONTENT_LABEL)}
@@ -274,6 +290,7 @@ function ContentTile(p: { content: ContentModel | null; nextAt: Date | null; tim
       figure={formatCount(pages.length)}
       against={<Against>{copy("overview.tile.content.of")}</Against>}
       lines={[
+        foundLine(found),
         copy("overview.tile.content.recent", {
           recent: formatCount(recent.length),
           weeks: formatCount(CONTENT_RECENT_WEEKS),

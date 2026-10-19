@@ -25,6 +25,7 @@
 import { dbAdmin } from "@/lib/db";
 import { BLOG_READS_RETENTION_W } from "@/lib/config/constants";
 import type { BlogEngine, BlogRead, BlogReadKind } from "./classify";
+import { ladderOf, readingOf, type Ladder } from "./ladder";
 
 /** Days per week — spelled once so the retention pin can stay in weeks,
  *  which is how §6 states every window on this screen. */
@@ -45,6 +46,8 @@ interface MinimalQuery<T> extends PromiseLike<MinimalResult<T>> {
   select(columns: string): MinimalQuery<T>;
   eq(column: string, value: unknown): MinimalQuery<T>;
   gte(column: string, value: unknown): MinimalQuery<T>;
+  not(column: string, operator: string, value: unknown): MinimalQuery<T>;
+  is(column: string, value: null): MinimalQuery<T>;
 }
 interface MinimalClient {
   from<T>(table: string): MinimalQuery<T>;
@@ -159,4 +162,43 @@ export async function readBlogReads(a: {
     });
   }
   return rows;
+}
+
+/** One live page's ladder (issue 1553), keyed by its publication and its
+ *  draft. */
+export interface PageLadder {
+  publicationId: string;
+  draftId: string | null;
+  ladder: Ladder;
+}
+
+/**
+ * The ladder of every live page of one site, from its stored weekly
+ * reading and the verified crawler hits counted on it; `null` where the
+ * pages could not be read. A page ReachKit does not serve has no crawler
+ * count, so its crawled step stands on the engines alone.
+ */
+export async function readLadders(siteId: string): Promise<readonly PageLadder[] | null> {
+  const pages = await untyped()
+    .from<{ id: string; draft_id: string | null; destination: string | null; search_reading: unknown }>("publications")
+    .select("id, draft_id, destination, search_reading")
+    .eq("site_id", siteId)
+    .not("published_at", "is", null)
+    .is("unpublished_at", null);
+  if (pages.error !== null) return null;
+  const crawls = await untyped()
+    .from<{ publication_id: string; hits: number }>("publication_reads")
+    .select("publication_id, hits")
+    .eq("site_id", siteId)
+    .eq("kind", "crawl");
+  const hits = new Map<string, number>();
+  for (const row of crawls.data ?? []) hits.set(row.publication_id, (hits.get(row.publication_id) ?? 0) + row.hits);
+  return (pages.data ?? []).map((row) => ({
+    publicationId: row.id,
+    draftId: row.draft_id,
+    ladder: ladderOf(
+      readingOf(row.search_reading),
+      row.destination === "hosted" && crawls.error === null ? (hits.get(row.id) ?? 0) : null
+    ),
+  }));
 }

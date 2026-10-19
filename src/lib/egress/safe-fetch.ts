@@ -67,7 +67,7 @@ export type SafeFetchOpts = {
   userAgent?: "reachkit-measure" | "reachkit-verify";
   /** The verb. Omitted is `GET`, which is every measurement caller — this
    *  module's original and still principal use (issue #54). */
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PUT";
   /** Request headers the caller needs the destination to see: an
    *  `Authorization` for an API the site's own administrator authorised, a
    *  `Content-Type` for a body. **They are never logged** — `logFetch`
@@ -237,7 +237,7 @@ function performRequest(
   userAgentValue: string,
   remainingMs: number,
   maxBytes: number,
-  request: { method: "GET" | "POST"; headers: Readonly<Record<string, string>>; body: string | null },
+  request: { method: "GET" | "POST" | "PUT"; headers: Readonly<Record<string, string>>; body: string | null },
   signal: AbortSignal | undefined
 ): Promise<HopResult> {
   return new Promise((resolve) => {

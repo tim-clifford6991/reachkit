@@ -786,3 +786,21 @@ async function hostnameOfSite(siteId: string): Promise<string | null> {
   const host = data[0]?.hostname ?? null;
   return host === null || host.trim() === "" ? null : host.trim().toLowerCase();
 }
+
+/**
+ * The meta tokens the host's index prints for Search Console and Bing
+ * Webmaster Tools (issue 1553): `google-site-verification` and
+ * `msvalidate.01`. Each is public by design. `null` for one never issued.
+ */
+export async function searchVerificationOfSite(siteId: string): Promise<{ google: string | null; bing: string | null }> {
+  const { data, error } = await publishDb()
+    .from<{ search_verification: { google?: { token?: unknown }; bing?: { token?: unknown } } | null }>("destinations")
+    .select("search_verification")
+    .eq("site_id", siteId)
+    .eq("kind", "hosted")
+    .is("deleted_at", null)
+    .limit(1);
+  const held = error === null ? data?.[0]?.search_verification : null;
+  const token = (value: unknown): string | null => (typeof value === "string" && value !== "" ? value : null);
+  return { google: token(held?.google?.token), bing: token(held?.bing?.token) };
+}

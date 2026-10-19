@@ -6,6 +6,10 @@ import "../opportunities/env";
 
 const seen = vi.hoisted(() => ({ order: [] as string[], left: [] as number[], outcome: {} as unknown }));
 
+// Issue 1553's search-engine step reaches the database and the vendors;
+// these suites judge the week, so it is a no-op here (its own suite is
+// `tests/hosted/indexing/search-engines.test.ts`).
+vi.mock("@/lib/publish/destinations/hosted/search-engines", () => ({ readSearchEngines: async () => undefined }));
 vi.mock("@/lib/scan/weekly", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/scan/weekly")>()),
   runWeekly: async () => {
@@ -59,6 +63,6 @@ describe("the weekly tick reads its late answers before it tells the week (#1160
     seen.left = [2, 0];
     expect(await tick()).toEqual({ done: true });
     expect(seen.order).toEqual(["pass", "read:scan-1", "read:scan-1", "judge", "digest"]);
-    expect(steps).toEqual(["measure-site-1", "late-answers-site-1-1", "late-answers-site-1-2", "tell-site-1"]);
+    expect(steps).toEqual(["measure-site-1", "late-answers-site-1-1", "late-answers-site-1-2", "search-site-1", "tell-site-1"]);
   });
 });

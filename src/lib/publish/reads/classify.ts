@@ -28,6 +28,11 @@
 // **A fetcher outranks a referrer.** An engine's own fetch carries no
 // referrer of a person's, and a crafted one must never turn a robot's
 // fetch into a visit.
+//
+// **A search crawler is a claim here, not a count** (issue 1553). Googlebot
+// and Bingbot are returned as `crawl`, and the route counts one only after
+// `crawler.ts` finds the request's address inside that engine's published
+// ranges. The agent string alone proves nothing: anyone can send it.
 import {
   AI_ANSWER_FETCHERS,
   AI_BLOG_ENGINES,
@@ -35,11 +40,15 @@ import {
   AI_REFERRER_SOURCES,
   AI_SEARCH_INDEXERS,
   AI_TRAINING_CRAWLERS,
+  SEARCH_CRAWLERS,
 } from "@/lib/config/constants";
 
 /** The AI apps this product can tell apart, as internal handles. Every word
  *  a customer reads for one of them is a registry key. */
 export type BlogEngine = (typeof AI_BLOG_ENGINES)[number];
+
+/** The two search engines whose crawlers are counted (issue 1553). */
+export type CrawlEngine = (typeof SEARCH_CRAWLERS)[keyof typeof SEARCH_CRAWLERS];
 
 /**
  * Why the page was read.
@@ -54,10 +63,11 @@ export type BlogEngine = (typeof AI_BLOG_ENGINES)[number];
 export const BLOG_READ_KINDS = ["answer_fetch", "index_fetch", "referral"] as const;
 export type BlogReadKind = (typeof BLOG_READ_KINDS)[number];
 
-export interface BlogRead {
-  readonly engine: BlogEngine;
-  readonly kind: BlogReadKind;
-}
+export type BlogRead =
+  | { readonly engine: BlogEngine; readonly kind: BlogReadKind }
+  /** Googlebot or Bingbot by its agent string, still to be checked by
+   *  address (`crawler.ts`). */
+  | { readonly engine: CrawlEngine; readonly kind: "crawl" };
 
 /** What a request offers this decision. All three are optional because all
  *  three are absent from some real request, and none of them is stored. */
@@ -115,7 +125,7 @@ function engineOfReferrer(referer: string | null, utmSource: string | null): Blo
  * answer for the overwhelming majority of traffic and is not an error.
  *
  * The order is the rule: training crawler, then fetcher, then indexer, then
- * referrer. Nothing falls through to a guess.
+ * search crawler, then referrer. Nothing falls through to a guess.
  */
 export function classifyBlogRead(facts: RequestFacts): BlogRead | null {
   const agent = facts.userAgent ?? "";
@@ -129,6 +139,9 @@ export function classifyBlogRead(facts: RequestFacts): BlogRead | null {
     }
     for (const [token, engine] of Object.entries(AI_SEARCH_INDEXERS)) {
       if (carries(agent, token)) return { engine, kind: "index_fetch" };
+    }
+    for (const [token, engine] of Object.entries(SEARCH_CRAWLERS)) {
+      if (carries(agent, token)) return { engine, kind: "crawl" };
     }
   }
 

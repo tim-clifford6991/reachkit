@@ -2,11 +2,12 @@
 // 404, and an article the middleware could not confirm in time. It reads
 // the host the request arrived on, as the page beneath it does, and draws
 // the hosted document in that site's language. What the document holds is
-// `../document.tsx`.
+// `../document.tsx`. The index is served here, so the Search Console and
+// Bing meta tags are printed here (issue 1553).
 import type React from "react";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { HostedDocument, hostedHead, hostedLanguageOf } from "../document";
+import { HostedDocument, hostedHead, hostedLanguageOf, hostedVerification } from "../document";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,8 @@ async function host(): Promise<string> {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  return hostedHead(await host());
+  const name = await host();
+  return { ...hostedHead(name), ...(await hostedVerification(name)) };
 }
 
 export default async function HostedPageLayout({

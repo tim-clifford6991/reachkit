@@ -464,6 +464,11 @@ function isHostedEdgeHost(req: NextRequest): boolean {
  * for a read that is counted. The write is handed to `waitUntil`, so it
  * does not stand between the reader and the page. Next always passes the
  * event; the suites that call `middleware` with a request alone do not.
+ *
+ * **A search crawler is counted only from its own engine's addresses**
+ * (issue 1553). The platform's client address is checked against the
+ * engine's published ranges inside the same deferred write, and dropped:
+ * it is never stored.
  */
 function countBlogRead(
   req: NextRequest,
@@ -477,7 +482,12 @@ function countBlogRead(
   });
   if (read === null) return;
 
+  const ip = req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const write = (async (): Promise<void> => {
+    if (read.kind === "crawl") {
+      const { isVerifiedCrawler } = await import("@/lib/publish/reads/crawler");
+      if (!(await isVerifiedCrawler(read.engine, ip))) return;
+    }
     const { recordBlogRead } = await import("@/lib/publish/reads/store");
     const { now } = await import("@/lib/config/now");
     await recordBlogRead({

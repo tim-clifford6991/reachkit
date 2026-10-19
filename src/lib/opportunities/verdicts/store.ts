@@ -34,6 +34,7 @@ import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import type { Acceptance } from "../types";
 import { addressOf } from "./evaluate";
 import { urlsIn } from "./seen";
+import { readingOf } from "@/lib/publish/reads/ladder";
 import { readIntent, type IntentPrompt, type PageIntent } from "../intent";
 import type { CheckId, Movement, NotJudgeableCause, PageMeasured, Verdict, VerifyNote, WeekStart } from "./types";
 
@@ -466,7 +467,17 @@ export function supabaseVerdictStore(): VerdictStore {
         .eq("site_id", siteId)
         .not("report", "is", null);
       if (error) throw new Error(`page_verdicts.seenUrls: ${error.message}`);
-      return [...new Set((data ?? []).flatMap(urlsIn))];
+      // Issue 1553: a page Search Console's URL Inspection calls indexed is
+      // seen, whatever the SERPs held.
+      const inspected = await untyped()
+        .from<{ live_url: string | null; search_reading: unknown }>("publications")
+        .select("live_url, search_reading")
+        .eq("site_id", siteId)
+        .not("search_reading", "is", null);
+      const indexed = (inspected.data ?? [])
+        .filter((row) => readingOf(row.search_reading)?.google?.indexed === true)
+        .flatMap((row) => (row.live_url === null ? [] : [row.live_url]));
+      return [...new Set([...(data ?? []).flatMap(urlsIn), ...indexed])];
     },
 
     async recordIntent(a) {

@@ -126,7 +126,8 @@ describe("§6(d) — visitors arriving from an AI answer", () => {
 describe("ordinary traffic is nothing, and that is not an error", () => {
   it.each([
     ["a browser", { userAgent: "Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/140 Safari/537.36" }],
-    ["Googlebot", { userAgent: "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" }],
+    // Googlebot is no longer here: since issue 1553 it is a crawl claim,
+    // counted only from Google's own addresses (`crawler.test.ts`).
     ["a search referral", { referer: "https://www.google.com/search?q=x" }],
     ["nothing at all", {}],
   ])("%s counts nothing", (_name, facts) => {

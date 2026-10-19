@@ -60,6 +60,7 @@ import {
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
 import { pageRecordFor } from "@/lib/publish/record";
+import type { Ladder } from "@/lib/publish/reads/ladder";
 import { takeDownStanding } from "@/lib/publish/take-down/standing";
 import { needsYouOf } from "@/lib/publish/record/needs-you";
 import { askedAs, doneWhen } from "../../calendar/store";
@@ -568,6 +569,8 @@ export async function readDraftRow(a: {
         : null,
     lastSavedAt: lastSaved === null ? null : new Date(lastSaved),
     record,
+    // Issue 1553: the live page's ladder, after the same ownership proof.
+    ladder: record?.address.offered === true ? await ladderOfDraft(a.site.siteId, a.draftId) : null,
     takeDown: takeDownStanding({
       state: row.state as State,
       transitions: row.transitions,
@@ -594,6 +597,13 @@ export async function readDraftRow(a: {
     // the page record and the target.
     ruleFacts: await ruleFactsOf(a.site.siteId, row.opportunity_id),
   };
+}
+
+/** The ladder of the live page this draft is, or `null`. */
+async function ladderOfDraft(siteId: string, draftId: string): Promise<Ladder | null> {
+  const { readLadders } = await import("@/lib/publish/reads/store");
+  const ladders = await readLadders(siteId).catch(() => null);
+  return ladders?.find((row) => row.draftId === draftId)?.ladder ?? null;
 }
 
 /** SPEC §8 (#569): the owner opened this draft, so no veto reminder goes. */

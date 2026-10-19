@@ -203,6 +203,13 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.tile.content.recent": ["{recent} in the last {weeks} weeks", { slots: { recent: "text", weeks: "text" }, fixedBy: "issue 1457 (drafted)" }],
   "overview.tile.content.last": ["Last: {title}, {on}", { slots: { title: "text", on: "date" }, fixedBy: "issue 1457 (drafted)" }],
   "overview.tile.content.next": ["Next: {on}", { slots: { on: "date" }, fixedBy: "issue 1457 (drafted)" }],
+  // Issue 1553: how many live pages reached each step toward being found,
+  // joined with " · ". A step nothing can read is left out. Drafted (#759).
+  "overview.tile.content.crawled": ["{count} crawled", { slots: { count: "text" }, fixedBy: "issue 1553 (drafted)" }],
+  "overview.tile.content.indexed": ["{count} indexed", { slots: { count: "text" }, fixedBy: "issue 1553 (drafted)" }],
+  "overview.tile.content.impressions": ["{count} impressions", { slots: { count: "text" }, fixedBy: "issue 1553 (drafted)" }],
+  "overview.tile.content.place": ["best place {place}", { slots: { place: "text" }, fixedBy: "issue 1553 (drafted)" }],
+  "overview.tile.content.cited": ["{count} cited by AI", { slots: { count: "text" }, fixedBy: "issue 1553 (drafted)" }],
 
   // ── How far ahead each rival is.
   "overview.rivals.title": ["How far ahead competitors are", { slots: {}, fixedBy: "BUILD §4.5" }],

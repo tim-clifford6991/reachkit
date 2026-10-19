@@ -4,7 +4,9 @@
 // stored, for any search and in any week — the Google results bought for
 // the page questions included (issue 1548) — is `seen`. Otherwise it is
 // `not_verified`: none of the results ReachKit read held it. That is never
-// "not indexed". Google says a `site:` search does not list every page it
+// "not indexed". A page Search Console's URL Inspection calls indexed is
+// seen too (issue 1553): the store adds its address to the rows read
+// here. Google says a `site:` search does not list every page it
 // has indexed, and the rows read here are fewer than that, so not seeing a
 // page proves nothing about the index. There is no third state.
 //

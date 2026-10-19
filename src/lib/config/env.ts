@@ -151,6 +151,16 @@ const schema = z.object({
   // The key the product calls the model with cannot read it. `.optional()`:
   // without it AI spend is shown as estimated, and nothing else changes.
   ANTHROPIC_ADMIN_KEY: z.string().min(1).optional(),
+  // Issue 1553: ReachKit verifies every hosted host in Search Console and
+  // Bing Webmaster Tools under its own account. The Google binding is the
+  // service-account key JSON, or a JSON array of them: Search Console holds
+  // 1,000 properties per account, so the array is the pool. The Bing
+  // binding is the Webmaster API key. `.optional()`: without them the
+  // weekly pass reads neither engine, and the ladder shows only the steps
+  // ReachKit can prove from its own rows (`src/lib/vendors/gsc`,
+  // `src/lib/vendors/bing-wmt`).
+  GOOGLE_SEARCH_CONSOLE_KEYS: z.string().min(1).optional(),
+  BING_WEBMASTER_API_KEY: z.string().min(1).optional(),
 });
 
 // BP-005 decision 6b: "the member's type is a required `string` either
@@ -191,6 +201,10 @@ const SERVER_ONLY_KEYS = [
   "POSTHOG_API_KEY",
   // Issue 1478: an admin key reads the organisation's billing.
   "ANTHROPIC_ADMIN_KEY",
+  // Issue 1553: a service-account key and an API key that act on every
+  // verified host.
+  "GOOGLE_SEARCH_CONSOLE_KEYS",
+  "BING_WEBMASTER_API_KEY",
 ] as const satisfies readonly (keyof Env)[];
 
 const serverOnlyKeySet: ReadonlySet<string> = new Set(SERVER_ONLY_KEYS);
