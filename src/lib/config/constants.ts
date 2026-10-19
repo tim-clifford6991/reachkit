@@ -764,9 +764,10 @@ export const KNOWN_CONTENT = Object.freeze({
  *  the owner ruled on 2026-09-14.
  *
  *  `SLOW_PAGE_MS`: a page is slow when the crawl's own fetch of its document
- *  took at least this long. It is the one speed signal that costs nothing
- *  beyond the crawl itself; a page served from the cache has no timing and
- *  is left out of the set the count is measured over.
+ *  took at least this long, and a second read of it did too (issue 1550: one
+ *  slow read is a cold start as often as a slow page). It is the one speed
+ *  signal that costs nothing beyond the crawl itself; a page served from the
+ *  cache has no timing and is left out of the set the count is measured over.
  *
  *  `CRITICAL_PAGE_SHARE`: a per-page check is "Worth fixing" from one page
  *  and "Critical" once at least this share of the set it was measured over

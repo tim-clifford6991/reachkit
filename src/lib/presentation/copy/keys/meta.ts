@@ -221,4 +221,6 @@ export const META_COPY = Object.freeze({
   ],
   // Issue 1478 (drafted): the owner's cost page.
   "meta.app.costs.title": ["Costs · ReachKit", { slots: {}, fixedBy: "issue 1478 (drafted)" }],
+  // Issue 1550 (drafted): the account's view of the checks it fixes.
+  "meta.app.issues.title": ["Technical issues · ReachKit", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
 }) satisfies CopyPartition;

@@ -472,6 +472,14 @@ export const REPORT_COPY = Object.freeze({
   "check.broken-links.title": ["Broken internal links", { slots: {}, fixedBy: "issue 571" }],
   "check.phone-usability.title": ["Hard to use on a phone", { slots: {}, fixedBy: "issue 571" }],
   "check.structured-data.title": ["Missing structured data", { slots: {}, fixedBy: "issue 571" }],
+  // Issue 1550 (drafted): the one thing to do about each check the customer
+  // fixes, on the account's Technical issues view.
+  "check.noindex-pages.fix": ["Remove the noindex setting from these pages in your site builder or SEO plugin, so search engines can list them.", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
+  "check.sitemap.fix": ["Turn on your site’s sitemap in your site builder or SEO plugin, then add its address to your robots.txt.", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
+  "check.slow-pages.fix": ["Turn on page caching with your host or site builder, and shrink the largest images on these pages.", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
+  "check.broken-links.fix": ["Change or remove the links on your site that point to these addresses; each one answers with an error.", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
+  "check.phone-usability.fix": ["Add a viewport line to the head of these pages’ template, so phones draw them at their own width.", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
+  "check.ai-readers.fix": ["Let the AI answer readers in through your robots.txt, and remove any nosnippet setting that keeps a page out of AI answers.", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
 
   // ── Module 4, the DIY sections (REQ-009 c6) ───────────────────────────
   // Instructional text is allowed here and nowhere else on this screen.

@@ -346,9 +346,17 @@ export const OVERVIEW_COPY = Object.freeze({
   // count of the issues not shown are owner-owed.
   "overview.alert.site-issue.action": ["See the fix", { slots: {}, fixedBy: "issue 572" }],
   "overview.alert.site-issue.overflow": [
-    "{remaining} more on your latest report.",
-    { slots: { remaining: "text" }, fixedBy: "issue 572" },
+    "{remaining} more in Technical issues.",
+    { slots: { remaining: "text" }, fixedBy: "issue 1550 (drafted)" },
   ],
+  /* ── Technical issues, the account's view of the checks it fixes (issue 1550, drafted) */
+  "overview.issues.title": ["Technical issues", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
+  "overview.issues.lead": ["What your site waits on you to fix, from your latest scan.", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
+  "overview.issues.empty": ["Nothing on your site waits on you to fix.", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
+  "overview.issues.unreadable": ["Your latest scan could not be read just now. Open this page again in a minute.", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
+  "overview.issues.site": ["Applies to the whole site.", { slots: {}, fixedBy: "issue 1550 (drafted)" }],
+  "overview.issues.seconds": ["{seconds} s", { slots: { seconds: "text" }, fixedBy: "issue 1550 (drafted)" }],
+  "overview.issues.slow-note": ["Each page took {seconds} seconds or more on two reads; the time shown is the quicker one.", { slots: { seconds: "text" }, fixedBy: "issue 1550 (drafted)" }],
   "overview.alerts.empty": ["Nothing needs you today.", { slots: {}, fixedBy: "REQ-041 c5" }],
 
   // ── The one supply statement Overview may make, resolved in this order.

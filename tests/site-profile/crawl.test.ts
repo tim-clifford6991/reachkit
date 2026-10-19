@@ -43,6 +43,7 @@ import type { SafeFetchOpts } from "@/lib/egress/safe-fetch";
 import type { FetchOutcome } from "@/lib/egress/types";
 import { OWN_FETCH_SOURCE } from "@/lib/measure/own-fetch";
 import { crawlSite, type CrawlPorts } from "@/lib/site-profile/crawl";
+import { checkSite, readingOf } from "@/lib/site-issues/checks";
 
 const DOMAIN = "example.com";
 const HOME = "https://example.com/";
@@ -531,6 +532,61 @@ describe("what SPEC §9's technical-issue checks read off the crawl (#570)", () 
     expect(home?.fetchMs).toBeNull();
     expect(read?.facts).toEqual({ metaDescription: "Who we are.", noindex: false, phoneViewport: true, schemaTypes: 1, snippetBlocked: false });
     expect(typeof read?.fetchMs).toBe("number");
+  });
+});
+
+// Issue 1550: one slow read is a cold start as often as a slow page. The
+// crawl reads a slow page once more, and the checks count it only where both
+// reads were slow.
+describe("a slow page is read twice", () => {
+  /** A fetcher whose clock moves by each address's own read times, in turn. */
+  function timedPorts(times: Readonly<Record<string, readonly number[]>>, documents: Readonly<Record<string, FetchOutcome>>) {
+    let at = Date.parse("2026-09-12T08:00:00.000Z");
+    vi.spyOn(Date, "now").mockImplementation(() => at);
+    const ports = fakePorts(documents);
+    const served = new Map<string, number>();
+    const fetchDocument = ports.fetchDocument.bind(ports);
+    ports.fetchDocument = async (url: string, opts: SafeFetchOpts) => {
+      const n = served.get(url) ?? 0;
+      served.set(url, n + 1);
+      at += times[url]?.[n] ?? 50;
+      return fetchDocument(url, opts);
+    };
+    return ports;
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  async function slowPagesOf(times: Readonly<Record<string, readonly number[]>>) {
+    const docs = {
+      "https://example.com/a": ok("https://example.com/a", page("A")),
+      "https://example.com/b": ok("https://example.com/b", page("B")),
+    };
+    const ports = timedPorts(times, docs);
+    const out = await crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: page("Home", `<a href="/a">A</a><a href="/b">B</a>`), sitemaps: [] },
+      ports
+    );
+    const section = checkSite({ crawl: readingOf(out), robots: { kind: "unmeasured", reason: "fixture" } as never, blockedAgents: [] });
+    const slow = section.issues.find((i) => i.check === "slow_pages");
+    if (slow === undefined || !slow.ran) throw new Error("slow pages did not run");
+    return { slow, fetched: ports.fetched };
+  }
+
+  it("one slow read and one quick read: no finding", async () => {
+    const { slow, fetched } = await slowPagesOf({ "https://example.com/a": [4_000, 300] });
+    expect(fetched.filter((url) => url === "https://example.com/a")).toHaveLength(2);
+    expect(slow).toMatchObject({ count: 0, pages: [] });
+  });
+
+  it("two slow reads: a slow page, with the time both reads reached", async () => {
+    const { slow, fetched } = await slowPagesOf({ "https://example.com/a": [4_000, 3_600] });
+    expect(slow).toMatchObject({ count: 1, pages: ["https://example.com/a"], ms: [3_600] });
+    // A quick page is read once.
+    expect(fetched.filter((url) => url === "https://example.com/b")).toHaveLength(1);
   });
 });
 

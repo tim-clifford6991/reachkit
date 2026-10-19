@@ -26,13 +26,15 @@ import {
 
 /** One crawled page, as the checks need it. `links` are the in-scope pages
  *  it links to, as crawl identities; `fetchMs` is how long the crawl's own
- *  fetch took, `null` where the document came from the cache. */
+ *  fetch took, `null` where the document came from the cache; `againMs` is
+ *  the second read of a page whose first was slow (issue 1550). */
 export interface CheckedPage {
   key: string;
   title: string;
   facts: PageIssueFacts;
   links: readonly string[];
   fetchMs: number | null;
+  againMs?: number | null;
 }
 
 export interface CrawlReading {
@@ -52,7 +54,14 @@ type Blocked = readonly string[];
 /** The crawl's own outcome, as the checks read it. Structural, so this module
  *  does not import the crawl that imports its facts reader. */
 export function readingOf(crawl: {
-  pages: readonly { url: string; title: string; facts: PageIssueFacts; links: readonly string[]; fetchMs: number | null }[];
+  pages: readonly {
+    url: string;
+    title: string;
+    facts: PageIssueFacts;
+    links: readonly string[];
+    fetchMs: number | null;
+    againMs?: number | null;
+  }[];
   fetched: readonly string[];
   broken: readonly string[];
   sitemap: CrawlReading["sitemap"];
@@ -65,6 +74,7 @@ export function readingOf(crawl: {
       facts: page.facts,
       links: page.links,
       fetchMs: page.fetchMs,
+      ...(page.againMs === undefined ? {} : { againMs: page.againMs }),
     })),
     fetchedKeys: new Set(crawl.fetched),
     brokenKeys: new Set(crawl.broken),
@@ -214,15 +224,21 @@ export function checkSite(a: {
       ? couldNot("sitemap", "sitemap_unreadable")
       : siteWide("sitemap", a.crawl.sitemap === "absent" ? 1 : 0, 1, "site");
 
+  // Issue 1550: slow only where two reads agree, and the time is kept — the
+  // quicker of the two, so the figure is one both reads reached.
   const timed = pages.filter((p) => p.fetchMs !== null);
+  const slowPages = timed.flatMap((p) =>
+    (p.fetchMs ?? 0) >= SITE_ISSUES.SLOW_PAGE_MS && (p.againMs ?? 0) >= SITE_ISSUES.SLOW_PAGE_MS
+      ? [{ key: p.key, ms: Math.min(p.fetchMs ?? 0, p.againMs ?? 0) }]
+      : []
+  );
   const slow =
     timed.length === 0
       ? couldNot("slow_pages", "no_timed_reads")
-      : perPage(
-          "slow_pages",
-          keysOf(timed.filter((p) => (p.fetchMs ?? 0) >= SITE_ISSUES.SLOW_PAGE_MS)),
-          timed.length
-        );
+      : {
+          ...perPage("slow_pages", slowPages.map((p) => p.key), timed.length),
+          ms: slowPages.map((p) => p.ms),
+        };
 
   // Internal link targets, counted once each, over the targets the crawl
   // actually fetched. A target beyond the crawl's set is never guessed at.
@@ -234,7 +250,7 @@ export function checkSite(a: {
       ? couldNot("broken_links", "no_links_checked")
       : perPage(
           "broken_links",
-          checkedTargets.filter((key) => a.crawl?.brokenKeys.has(key)).length,
+          checkedTargets.filter((key) => a.crawl?.brokenKeys.has(key)),
           checkedTargets.length,
           "links"
         );

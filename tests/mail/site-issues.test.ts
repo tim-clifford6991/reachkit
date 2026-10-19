@@ -47,7 +47,7 @@ const LAST_MONDAY = section([
 const THIS_MONDAY = section([
   ran({ check: "page_titles", count: 3, severity: "worth_fixing", doer: "reachkit_rewrites" }),
   ran({ check: "broken_links", count: 0, over: 118, unit: "links" }),
-  ran({ check: "phone_usability", count: 12, severity: "critical" }),
+  ran({ check: "phone_usability", count: 12, severity: "critical", pages: Array.from({ length: 12 }, (_, i) => `https://a.com/${i}`) }),
   { check: "slow_pages", ran: false, because: "no_timed_reads" },
 ]);
 
@@ -89,7 +89,7 @@ describe("mail, report and dashboard agree for one measurement", () => {
   it("each fault's count and set match the report card and the Overview figure", () => {
     const mail = new Map(issueRows(THIS_MONDAY).map((row) => [row.label, row.value]));
     const cards = readingsOf(THIS_MONDAY, AT);
-    const dashboard = waitingIssues(THIS_MONDAY, { measuredAt: AT, reportHref: "/scan/a.com" });
+    const dashboard = waitingIssues(THIS_MONDAY, { measuredAt: AT });
 
     expect(cards.phone_usability?.count).toEqual(measured(12, AT));
     expect(cards.page_titles?.count).toEqual(measured(3, AT));
