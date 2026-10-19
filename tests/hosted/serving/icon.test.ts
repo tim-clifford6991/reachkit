@@ -75,12 +75,27 @@ describe("issue 1514 — the content host's icon is the customer's", () => {
     expect((await bytesOf(response)).equals(logo)).toBe(true);
   });
 
-  it("a square SVG is the icon at any size", async () => {
-    const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24"/></svg>');
-    state.logo = { bytes: svg, type: "image/svg+xml" };
-    const response = await get("content.example.com");
-    expect(response.headers.get("Content-Type")).toBe("image/svg+xml");
-    expect(response.headers.get("Content-Security-Policy")).toContain("sandbox");
+  it("a square SVG and a square WebP draw the tile: Google shows neither as an icon", async () => {
+    const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96"/></svg>');
+    // A 64×64 WebP header (VP8X: canvas width and height, each less one).
+    const webp = Buffer.alloc(30);
+    webp.write("RIFF", 0);
+    webp.writeUInt32LE(22, 4);
+    webp.write("WEBPVP8X", 8);
+    webp.writeUInt32LE(10, 16);
+    webp.writeUIntLE(63, 24, 3);
+    webp.writeUIntLE(63, 27, 3);
+    for (const logo of [
+      { bytes: svg, type: "image/svg+xml" },
+      { bytes: webp, type: "image/webp" },
+    ]) {
+      state.logo = logo;
+      const response = await get("content.example.com");
+      expect(response.status).toBe(200);
+      expect(response.headers.get("Content-Type"), logo.type).toBe("image/png");
+      const tile = PNG.sync.read(await bytesOf(response));
+      expect([tile.width, tile.height]).toEqual([96, 96]);
+    }
   });
 
   it("a wide logo, a small one, no logo and a failed read draw the 96 px letter tile", async () => {

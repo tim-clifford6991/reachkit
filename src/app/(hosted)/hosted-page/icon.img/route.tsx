@@ -8,9 +8,9 @@
 //
 // **The customer's mark, never ours** (#1121, #1129 stand: no icon of
 // ReachKit's on a customer's host). The kept logo (`site_profiles.logo_image`)
-// where Google can show it as one — a square of at least 48 px, or a square
-// SVG, which has no size to be too small at — served as `logo.img` serves
-// it. Any other logo, no logo, and a read that fails all draw the
+// where Google can show it as one — a PNG, ICO, GIF or JPEG that is a
+// square of at least 48 px — served as `logo.img` serves it. Any other logo
+// (an SVG or a WebP among them), no logo, and a read that fails all draw the
 // first-letter tile the header draws, 96 px square, so a host that serves a
 // site never answers this address 404.
 import { ImageResponse } from "next/og";

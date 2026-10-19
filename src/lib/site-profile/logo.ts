@@ -48,28 +48,35 @@ export interface SiteLogo {
   source: string;
 }
 
-/** The formats a kept logo can be (`LOGO_TYPES`); `image-size`'s parsers
- *  for every other format are switched off, so bytes that only look like
- *  one are never parsed as it. */
-const SIZED = new Set(["png", "jpg", "gif", "webp", "ico", "svg"]);
+/** The kept-logo formats Google shows as a result's icon (its favicon
+ *  guidelines list BMP, GIF, ICO, PNG, JPEG, PPM and TIFF; a kept logo is
+ *  only ever four of those). An SVG or a WebP logo is not one, and the host
+ *  serves the letter tile instead (issue 1514). `image-size`'s parsers for
+ *  every other format are switched off, so bytes that only look like one
+ *  are never parsed as it. */
+const ICON_TYPES: Readonly<Record<string, string>> = {
+  "image/png": "png",
+  "image/x-icon": "ico",
+  "image/gif": "gif",
+  "image/jpeg": "jpg",
+};
+const SIZED = new Set(Object.values(ICON_TYPES));
 disableTypes(types.filter((type) => !SIZED.has(type)));
 
 /** Google's floor for a result's icon (SPEC §7, 2026-10-18, issue 1514). */
 const ICON_MIN_PX = 48;
 
-/** Whether a kept logo can stand as a host's icon in a search result: a
- *  square of at least 48 px — in any of an ICO's faces — or a square SVG,
- *  which has no size to be too small at. Bytes it cannot read are not. */
+/** Whether a kept logo can stand as a host's icon in a search result: a PNG,
+ *  ICO, GIF or JPEG that is a square of at least 48 px — in any of an ICO's
+ *  faces — and is the format it is stored as. Bytes it cannot read are not. */
 export function iconWorthy(logo: { bytes: Buffer; type: string }): boolean {
+  const expected = ICON_TYPES[logo.type];
+  if (expected === undefined) return false;
   try {
     const size = imageSize(new Uint8Array(logo.bytes));
+    if (size.type !== expected) return false;
     const faces = size.images ?? [size];
-    return faces.some(
-      (face) =>
-        face.width > 0 &&
-        face.width === face.height &&
-        (logo.type === "image/svg+xml" || face.width >= ICON_MIN_PX)
-    );
+    return faces.some((face) => face.width >= ICON_MIN_PX && face.width === face.height);
   } catch {
     return false;
   }

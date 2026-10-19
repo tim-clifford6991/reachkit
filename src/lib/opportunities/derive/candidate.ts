@@ -44,7 +44,10 @@ const LETTERS: Readonly<Record<string, string>> = { ß: "ss", æ: "ae", œ: "oe"
  *  only: a live page keeps the address it was published at. */
 export function slugify(query: string, language: Language = "en"): string {
   const own = languagePack(language).slugLetters;
+  // Composed first (NFC): an "ä" typed as "a" plus a combining mark is the
+  // same letter, and the language's own rule must see it as one.
   return query
+    .normalize("NFC")
     .toLowerCase()
     .replace(/./gu, (letter) => own[letter] ?? letter)
     .replace(/[ßæœøđðłþı]/g, (letter) => LETTERS[letter] ?? letter)
