@@ -6,6 +6,7 @@
 // itself is `tests/opportunities/derive/`'s and is not re-tested here.
 import "./env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PLAN_DEPTH } from "../../src/lib/config/constants";
 import { measured, unmeasured } from "../../src/lib/measure/measured";
 import type { RivalSize } from "../../src/lib/market/rivals/size";
 import { deriveForPass, rankedCountsOf } from "../../src/lib/opportunities/pass";
@@ -79,8 +80,7 @@ describe("the customer's own count is the pass's, not a guess (issue #140)", () 
       report,
       hasActiveAccess: true,
     });
-    if (outcome.tier !== "deep") throw new Error("unreachable");
-    expect(outcome.created).toBeGreaterThan(0);
+    expect(outcome.added).toBeGreaterThan(0);
   });
 
   it("a count that could not be read is the cold-start 0 and still derives", async () => {
@@ -94,12 +94,11 @@ describe("the customer's own count is the pass's, not a guess (issue #140)", () 
       report,
       hasActiveAccess: true,
     });
-    if (outcome.tier !== "deep") throw new Error("unreachable");
-    expect(outcome.created).toBeGreaterThan(0);
+    expect(outcome.added).toBeGreaterThan(0);
   });
 });
 
-describe("the deep pass pursues depth", () => {
+describe("the deep pass derives what its evidence supports", () => {
   it("persists Write opportunities for a site whose rivals clear the bars", async () => {
     // Issue 1549: a day of supply is a day the ranking plans, which needs
     // the site's profile.
@@ -121,9 +120,7 @@ describe("the deep pass pursues depth", () => {
     // Every row belongs to the pass that derived it: `scan_id` is the
     // report's own, never a second id minted here.
     expect(state.rows.every((row) => row.scan_id === report.scanId)).toBe(true);
-    if (outcome.tier !== "deep") throw new Error("unreachable");
     expect(outcome.unused).toBe(state.rows.filter((row) => row.family !== "fix").length);
-    expect(["target_met", "evidence_spent", "pass_ended_early"]).toContain(outcome.stop);
     // The Done-when this issue exists for: a sized market yields days of
     // pages, not only Fix instructions (which take no publishing day).
     expect(state.rows.filter((row) => row.family === "write").length).toBeGreaterThan(0);
@@ -146,7 +143,7 @@ describe("the deep pass pursues depth", () => {
     expect(state.rows.filter((row) => row.family === "write")).toHaveLength(0);
   });
 
-  it("stops at the evidence and pads nothing — a month of days is never invented", async () => {
+  it("stops at the evidence and pads nothing — a week of days is never invented", async () => {
     const report = reportOf(
       { questions: [question()], serps: [serp()] },
       { rivalSizes: measured(sized(40), AT) }
@@ -157,9 +154,7 @@ describe("the deep pass pursues depth", () => {
       report,
       hasActiveAccess: true,
     });
-    if (outcome.tier !== "deep") throw new Error("unreachable");
-    expect(outcome.unused).toBeLessThan(30);
-    expect(outcome.stop).toBe("evidence_spent");
+    expect(outcome.unused).toBeLessThan(PLAN_DEPTH);
   });
 });
 

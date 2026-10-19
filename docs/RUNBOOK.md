@@ -479,9 +479,11 @@ Per-stage *timing* is `sites.setup_stage_times`, one instant per stage, written 
 
 1. the job line — `{"event":"job","jobId":"scan/run","outcome":…}`: `ran`, or `degraded` naming the
    step it stopped at;
-2. the supply line — `{"event":"supply_depth","stop":…,"unused":…,"created":…}`: `target_met` (the
-   30 days `SUPPLY_TARGET_DEPTH` asks for), `evidence_spent` (the market supported fewer), or
-   `pass_ended_early` (the cap went first);
+2. the supply line — `{"event":"supply_pass","tier":…,"added":…,"unused":…}`: `unused` is the
+   writable days out of `PLAN_DEPTH` (a week of seven and three spares), after the 0¢ refill;
+   `{"event":"supply_refill",…,"short":true}` says the stored questions ran out first. The week
+   itself is committed by the first evening run (`{"event":"week_planned",…}`) and, after that,
+   every Monday;
 3. `sites.setup_released_reason` — `completed`, `degraded`, `failed` or `deadline`;
 4. `scans.stopped_reason` — `complete`, `time_ceiling`, `spend_ceiling`, `site_unreadable` or
    `failed`;
@@ -526,7 +528,7 @@ empty until #42 and #39 are built), so those two arms cannot fire from this scre
 | `customer_change_holds_pages` | publishing is off, or the destination is disconnected | the site's publishing settings |
 | `change_holds_generation` | a domain or category answer is being replaced | `generationHold()` |
 | `page_held` | a page was planned for the date and did not go out | the publishing machine's held days |
-| `supply_exhausted` | `supplyDepth().unused` was read **and** is zero | `{"event":"supply_depth"}` |
+| `supply_exhausted` | `supplyDepth().unused` was read **and** is zero | `{"event":"supply_pass"}`, `{"event":"week_planned"}` |
 | `unattributed` | nothing above is established, or the publishing facts were unreadable | the last arm, never a widened one |
 
 `supply_exhausted` is proven only: a depth that could not be read is `null` and not zero, and the

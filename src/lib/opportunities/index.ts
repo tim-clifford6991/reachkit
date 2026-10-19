@@ -43,7 +43,8 @@ export { assessFixPages, fixPageReadiness, type FixDelivery } from "./fix-page";
 export { assessReadiness, opportunityReady, ownRanksFrom, type ReadinessContext } from "./readiness";
 export { canonicalUrl, clusterKey, collapse, comparePrecedence } from "./cluster";
 export { suppressionOf, verdictReason, type NotWorkingVerdict, type Suppression } from "./suppression";
-export { nextForDay, opportunityById } from "./next";
+export { opportunityById } from "./next";
+export { committedWeek, pageForDay, planWeek, takeSpare } from "./plan";
 export { contentTypeOf, CONTENT_TYPES, type ContentType } from "./content-type";
 export { pageTypeOf, PAGE_TYPES, type PageType } from "./page-type";
 export { sitePagesFor, type SitePage } from "./site-pages";
@@ -55,14 +56,12 @@ export { explainChoice, type Choice } from "./derive/explain";
 
 export { supplyDepth, supplyMeasured, supplyState, type Depth, type SupplyState } from "./supply/depth";
 export { supplyNotice, type SupplyNotice } from "./supply/notice";
-export { pursueDepth, type DepthStop } from "./supply/pursue";
 export { refillSupply } from "./supply/refill";
-export { topUp } from "./supply/topup";
 
 export { setOpportunityStore, type OpportunityStore } from "./store";
 
-// What a paid pass does with what it measured: the deep pass pursues a
-// month of depth, every weekly refresh tops up (issue #126).
+// What a paid pass does with what it measured: derive, then refill at 0¢
+// up to a committed week's depth (issue 1559).
 export { deriveForPass, rankedCountsOf, type PassOutcome, type PassTier } from "./pass";
 
 // §9's weekly judgement of the pages the engine's opportunities became

@@ -368,7 +368,8 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 881" },
   ],
   "overview.supply.short": ["Less than a week of pages is left. Monday’s scan looks for more.", { slots: {}, fixedBy: "REQ-095 c5" }],
-  "overview.supply.first-arrival": ["Your first scan found less than a month of pages. We look for more every Monday.", { slots: {}, fixedBy: "REQ-095 c6" }],
+  // Issue 1559: the depth is a week and its spares, not a month. Drafted.
+  "overview.supply.first-arrival": ["Your first scan found fewer pages than a full week and its spares. We look for more every Monday.", { slots: {}, fixedBy: "SPEC §7 2026-10-19 (drafted)" }],
 
   // 2026-09-07, issue #205 — the account a broken series puts on its own
   // break. REQ-071 c12/c13 forbid drawing a difference across a date the

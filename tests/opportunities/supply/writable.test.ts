@@ -1,13 +1,14 @@
-// Issue 1549 — supply is the days the daily pick can write, a weekly pass
-// leaves fourteen of them, and a dismissed topic stays dismissed.
+// Issues 1549, 1559 — supply is the days a committed week can write, a pass
+// refills a short site up to a week and its spares, and a dismissed topic
+// stays dismissed.
 import "../env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SUPPLY_FLOOR_DAYS } from "../../../src/lib/config/constants";
+import { PLAN_DEPTH } from "../../../src/lib/config/constants";
 import { measured } from "../../../src/lib/measure/measured";
 import { countWritable, writableDays } from "../../../src/lib/opportunities/rank/open";
 import { setOpportunityStore } from "../../../src/lib/opportunities/store";
 import { supplyDepth } from "../../../src/lib/opportunities/supply/depth";
-import { topUp } from "../../../src/lib/opportunities/supply/topup";
+import { deriveForPass } from "../../../src/lib/opportunities/pass";
 import type { Opportunity } from "../../../src/lib/opportunities/types";
 import { fakeCost } from "../cost";
 import { memoryStore, newMemoryState, setStatus, type MemoryState } from "../memory-store";
@@ -83,8 +84,9 @@ describe("pages left are writable days, not ready topics", () => {
     expect(state.rows.filter((r) => r.ready).length).toBe(6);
 
     expect(await writableDays(SITE_ID, AT, 7)).toBe(1);
-    // A month holds one a week of them, never six-and-counting as a Q&A.
-    expect((await supplyDepth(SITE_ID, AT)).unused).toBe(5);
+    // A week and its spares hold one a week of them, never six-and-counting
+    // as a Q&A.
+    expect((await supplyDepth(SITE_ID, AT)).unused).toBe(2);
   });
 
   it("a topic another row already absorbed is counted once", () => {
@@ -96,7 +98,7 @@ describe("pages left are writable days, not ready topics", () => {
   });
 });
 
-describe("a weekly pass leaves fourteen writable days", () => {
+describe("a weekly pass leaves a week and its spares", () => {
   it("a site of listicles is refilled from what buyers were seen asking", async () => {
     state.asked = [
       {
@@ -108,10 +110,10 @@ describe("a weekly pass leaves fourteen writable days", () => {
     ];
     const { ctx } = fakeCost();
 
-    const { unused } = await topUp(ctx, input(listicles(6)));
+    const { unused } = await deriveForPass(ctx, { tier: "weekly", siteId: SITE_ID, report: listicles(6), hasActiveAccess: true });
 
-    expect(unused).toBeGreaterThanOrEqual(SUPPLY_FLOOR_DAYS);
-    expect((await supplyDepth(SITE_ID, AT)).unused).toBeGreaterThanOrEqual(SUPPLY_FLOOR_DAYS);
+    expect(unused).toBe(PLAN_DEPTH);
+    expect((await supplyDepth(SITE_ID, AT)).unused).toBe(PLAN_DEPTH);
   });
 });
 

@@ -33,7 +33,7 @@
 // one pool, so it goes ahead of the first Write row at all. Improve and Earn
 // keep their scored places. A fix with no Write row to precede goes last. A
 // fix that is not ready is not in the list.
-import { CONTENT_MIX, PACE, SUPPLY_TARGET_DEPTH } from "@/lib/config/constants";
+import { CONTENT_MIX, PACE, PLAN_DEPTH } from "@/lib/config/constants";
 import { opportunityStore } from "../store";
 import { readOpportunity, type DraftedPage } from "../store";
 import { canonicalUrl, comparePrecedence, sameTopic } from "../cluster";
@@ -307,23 +307,23 @@ export function placeFixPages(
  */
 export { isPausedType };
 
-export async function rankOpen(siteId: string, at: Date = new Date()): Promise<Ranked[]> {
-  const inputs = await rankInputs(siteId, at);
+export async function rankOpen(siteId: string, at: Date = new Date(), only?: ReadonlySet<string>): Promise<Ranked[]> {
+  const inputs = await rankInputs(siteId, at, only);
   if (inputs.scored.length === 0) return placeFixPages([], inputs.fixes);
   return placeFixPages(inputs.scored, inputs.fixes, inputs.rotation);
 }
 
 /**
- * Issue 1549: how many of the next `days` days the daily pick fills with a
- * page of the topic's own type — the number "pages left" and the low-supply
- * finding state. Read from the same rows, order and rules as `rankOpen`: a
+ * Issue 1549: how many of the next `days` days the week's commit fills with
+ * a page of the topic's own type — the number "pages left" and the
+ * low-supply finding state, and what the weekly refill tops up to. Read from the same rows, order and rules as `rankOpen`: a
  * listicle or comparison over D52's cap waits for the cap's window to pass
  * instead of counting as a Q&A whose buyer questions the pack may not hold,
  * a resting or unready row is not counted, and a topic another row on the
  * same topic (`sameTopic`) would be written as is counted once — drafting
  * the first folds the other (`nearRepeatsOf`). A Fix takes no day of supply.
  */
-export async function writableDays(siteId: string, at: Date = new Date(), days: number = SUPPLY_TARGET_DEPTH): Promise<number> {
+export async function writableDays(siteId: string, at: Date = new Date(), days: number = PLAN_DEPTH): Promise<number> {
   const { scored, rotation } = await rankInputs(siteId, at);
   return countWritable(scored, rotation, days);
 }
@@ -347,10 +347,12 @@ export function countWritable(
 }
 
 /** What `rankOpen` and `writableDays` read: the ready rows scored, the
- *  ready fixes, and the rotation and mix the order keeps. */
+ *  ready fixes, and the rotation and mix the order keeps — of the rows
+ *  `only` names, where it is given (a week's spares, issue 1559). */
 async function rankInputs(
   siteId: string,
-  at: Date
+  at: Date,
+  only?: ReadonlySet<string>
 ): Promise<{
   scored: { opportunity: Opportunity; score: number }[];
   fixes: Opportunity[];
@@ -368,7 +370,8 @@ async function rankInputs(
     // be read lifts no update: the order is the one before it.
     store.citedPages(siteId, at).catch(() => [] as readonly string[]),
   ]);
-  const fixes = fixRows.filter((row) => row.ready).map(readOpportunity);
+  const named = (row: { id: string }) => only === undefined || only.has(row.id);
+  const fixes = fixRows.filter((row) => row.ready && named(row)).map(readOpportunity);
   // No profile, no score — but a fix needs neither, and still takes its day.
   // SPEC §6: "A day is filled only by an opportunity that passes
   // readiness." The answer is the stored column (`assessReadiness`).
@@ -379,7 +382,7 @@ async function rankInputs(
   // reason — so the column, the screens and this order cannot disagree.
   // Issue 881 filtered on `fit_band` here as well, and that second home is
   // what this removes.
-  const rankable = rows.filter((row) => row.ready);
+  const rankable = rows.filter((row) => row.ready && named(row));
   if (profile === null || rankable.length === 0) return { scored: [], fixes, rotation: {} };
 
   // SPEC §7 (owner, D46): a topic whose type the mix has paused fills no

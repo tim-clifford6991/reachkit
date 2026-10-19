@@ -1,14 +1,15 @@
-// SPEC §7 (issue 1549) — a weekly pass leaves the site with two weeks of
-// pages it can write.
+// SPEC §7 (issues 1549, 1559) — a pass leaves the site with a week it can
+// commit.
 //
 // reachkit.app held six ready topics, every one a listicle or comparison,
 // and D52 lets one of those out a week: "Pages left: 6" was one day, and no
-// page went out for three. Where the pass leaves fewer than
-// `SUPPLY_FLOOR_DAYS` writable days (`writableDays`), this writes down
-// answer and how-to topics from what buyers were seen asking beside the
-// site's searches — the "People also ask" questions and related searches on
-// the SERPs the passes already bought, the market's own searched terms'
-// first (issue 1519) — until the days are there or the questions run out.
+// page went out for three. Where a pass leaves fewer than `PLAN_DEPTH`
+// writable days (`writableDays`: a week of seven and its three spares), this
+// writes down answer and how-to topics from what buyers were seen asking
+// beside the site's searches — the "People also ask" questions and related
+// searches on the SERPs the passes already bought, the market's own
+// searched terms' first (issue 1519) — until the days are there or the
+// questions run out. It runs inside a pass and nowhere else.
 //
 // It buys nothing and asks no model: the questions are stored, the fit is
 // the one the pass already judged (`DeriveOutcome.spare`), and one the pass
@@ -16,7 +17,7 @@
 // question is observed demand (issue 1519), never one ReachKit composed, so
 // supply is still the cap: where the questions run out first, the site is
 // left short and the count says so.
-import { ASKED_TOPICS, CONTENT_MIX, SUPPLY_FLOOR_DAYS } from "@/lib/config/constants";
+import { ASKED_TOPICS, CONTENT_MIX, PLAN_DEPTH } from "@/lib/config/constants";
 import { passesRelevanceGuard } from "@/lib/market/questions/select";
 import { malformedSearch } from "@/lib/market/questions/well-formed";
 import type { MarketConclusion } from "@/lib/market/infer/types";
@@ -128,8 +129,7 @@ export function refillTopics(a: {
  * returns how many rows it wrote and the days the site now holds. A site
  * already at the target is left as it is, and a second run over the same
  * rows writes nothing: every topic it wrote is a search the site now holds.
- * Database reads and writes only — run by each pass, and by the evening run
- * before the day's page from the latest stored scan (`generateDayPage`).
+ * Database reads and writes only, run by each pass (`deriveForPass`).
  */
 export async function refillSupply(
   a: Pick<DeriveInput, "siteId" | "scanId" | "report" | "ownRanked" | "market"> & {
@@ -138,7 +138,7 @@ export async function refillSupply(
     target?: number;
   }
 ): Promise<{ added: number; unused: number }> {
-  const target = a.target ?? SUPPLY_FLOOR_DAYS;
+  const target = a.target ?? PLAN_DEPTH;
   const at = a.report.verdict.measuredAt;
   let { unused } = await supplyDepth(a.siteId, at);
   if (unused >= target) return { added: 0, unused };
@@ -149,7 +149,7 @@ export async function refillSupply(
     store.dismissedSearches === undefined ? [] : store.dismissedSearches(a.siteId).catch(() => []),
     store.askedBeside === undefined ? [] : store.askedBeside(a.siteId, ASKED_TOPICS.maxAgeDays).catch(() => []),
   ]);
-  // A pass hands its market in; the evening run reads the one in force.
+  // A pass hands its market in; without one, the one in force is read.
   const market = a.market !== undefined ? a.market : (await store.marketFor(a.siteId)).market;
   const pool = refillTopics({
     report: a.report,
@@ -187,8 +187,9 @@ export async function refillSupply(
       batch.push(candidate);
     }
     if (batch.length === 0) break;
-    added += (await persist({ candidates: batch })).created.length;
-    await assessReadiness(a.siteId, { at });
+    const { created } = await persist({ candidates: batch });
+    added += created.length;
+    await assessReadiness(a.siteId, { at, only: new Set(created.map((row) => row.id)) });
     unused = (await supplyDepth(a.siteId, at)).unused;
   }
   return logRefill(a, { added, unused, target });

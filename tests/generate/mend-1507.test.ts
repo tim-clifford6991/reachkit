@@ -7,15 +7,16 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SITE_ID, memoryStore, opportunity, type MemoryStore } from "./fixtures";
 
-const { llmMock, nextForDayMock, queueForDraftMock, publications } = vi.hoisted(() => ({
+const { llmMock, pickMock, queueForDraftMock, publications } = vi.hoisted(() => ({
   llmMock: vi.fn(),
-  nextForDayMock: vi.fn(),
+  pickMock: vi.fn(),
   queueForDraftMock: vi.fn(),
   publications: [] as unknown[],
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 vi.mock("@/lib/opportunities", () => ({
-  nextForDay: nextForDayMock,
+  pageForDay: (siteId: string, date: string, now?: Date) => pickMock(siteId, date, now),
+  takeSpare: (siteId: string) => pickMock(siteId),
   queueForDraft: queueForDraftMock,
   restTopic: async () => undefined,
   updateInstead: async () => null,
@@ -56,8 +57,8 @@ let store: MemoryStore & { liveVersionAt: NonNullable<MemoryStore["liveVersionAt
 
 beforeEach(async () => {
   llmMock.mockReset();
-  nextForDayMock.mockReset();
-  nextForDayMock.mockResolvedValue(REFRESH);
+  pickMock.mockReset();
+  pickMock.mockResolvedValue(REFRESH);
   queueForDraftMock.mockReset();
   const base = memoryStore();
   base.seed({ id: B.draftId, state: "published", title: "ReachKit vs AEO Engine: 7 buyer questions, answered", body_md: B.markdown, meta: { description: B.description, contentType: "listicle" }, attribution: "Tim" });

@@ -503,7 +503,7 @@ const { isReleased, deadlineFrom } = await import("../../src/lib/scan/deep/relea
 const { destinationFor, APP_PATH } = await import(
   "../../src/app/(account)/setup/waiting/release"
 );
-const { nextForDay, supplyDepth } = await import("../../src/lib/opportunities");
+const { opportunityById, rankOpen, supplyDepth } = await import("../../src/lib/opportunities");
 const { SetupForm } = await import("../../src/app/(account)/setup/SetupForm");
 const { assembleSetup } = await import("../../src/app/(account)/setup/_setup/facts");
 const { FIXTURE_SETUP_FACTS } = await import(
@@ -979,7 +979,10 @@ describe("three decisions → deep pass → the first page already on the calend
     async () => {
       await untilTheFounderIsReleased();
 
-      const head = await nextForDay(SITE_ID);
+      // No week is committed before the first evening: the calendar reads
+      // the one ranked list (issue 1559).
+      const [ranked] = await rankOpen(SITE_ID);
+      const head = ranked === undefined ? null : await opportunityById(ranked.opportunityId);
       expect(head).not.toBeNull();
       const depth = await supplyDepth(SITE_ID);
       expect(depth.unused).toBe(opportunities.rows.length);

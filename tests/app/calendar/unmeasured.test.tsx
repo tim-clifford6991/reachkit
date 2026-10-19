@@ -34,7 +34,7 @@ vi.mock("@/lib/config/now", () => ({ now: () => NOW }));
 vi.mock("@/lib/opportunities", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/opportunities")>()),
   // Zero supply ranks nothing; the ranked list is not this suite's subject.
-  nextForDay: async () => null,
+  committedWeek: async () => ({ days: [], spares: [] }),
   rankOpen: async () => [],
 }));
 

@@ -8,8 +8,9 @@
 // `generateDayPage` is the whole of what the `draft/generate` job calls. It
 // is where the day's page is assembled end to end, in D41's five stages:
 //
-//   1. **decide** — §7's `nextForDay` supplies the opportunity (and supplies
-//      nothing when there is none: supply is the cap), and its type is read
+//   1. **decide** — the week the weekly pass committed supplies the
+//      opportunity planned for the date (`pageForDay`, issue 1559), or
+//      nothing when the week holds none: supply is the cap. Its type is read
 //      off the row (`contentTypeOf`): new or an update, one of seven;
 //   2. **context pack** — the knowledge base and the founder's answers, the
 //      market, the site's pages, its own passages and what the research step
@@ -21,8 +22,8 @@
 //     left in `generating` — and its topic rests for 28 days (owner, D26,
 //     issue 1179);
 //   * a stopped draft does not cost its day (D26): the same run writes the
-//     next-ranked opportunity for the date, at most once more and inside the
-//     one `CAP_DRAFT` context;
+//     week's best spare for the date (`takeSpare`), at most once more and
+//     inside the one `CAP_DRAFT` context;
 //   * a pack short of what its template asks, or a new page whose pack adds
 //     too little (D12), writes nothing, and the day goes to the next topic
 //     the same way — without using up D26's one more, since nothing was
@@ -35,14 +36,12 @@
 // rewrites that row for the date it already holds.
 import { siteLocale } from "@/lib/locale/site";
 import {
-  assessFixPages,
-  assessReadiness,
-  refillSupply,
-  nextForDay,
   opportunityById,
+  pageForDay,
   queueForDraft,
   restTopic,
   sitePagesFor,
+  takeSpare,
   updateInstead,
   type Opportunity,
 } from "@/lib/opportunities";
@@ -154,25 +153,9 @@ export async function generateDayPage(a: {
   const report = await store.latestReport(a.siteId);
   if (report === null) return { ok: false, because: "no_scan" };
 
-  // SPEC §9 (#690): the freshest scan retires the fixes it shows cleared,
-  // and the rest have their readiness read against today's destination —
-  // before the day is picked, so a fix the destination can no longer make
-  // is not the page chosen.
-  await assessFixPages(a.siteId, { report, now });
-  // SPEC §6: and every other open row's readiness, so the day is picked
-  // from rows with an answer as of tonight.
-  await assessReadiness(a.siteId, { at: report.verdict.measuredAt, now });
-  // Issue 1549: a site short of two weeks of writable days mid-week is
-  // refilled tonight from its latest stored scan's questions, not on
-  // Monday. 0¢: stored rows only. A refill that cannot run never costs the
-  // day its page.
-  try {
-    await refillSupply({ siteId: a.siteId, scanId: report.scanId, report, ownRanked: report.ownRanked });
-  } catch (error) {
-    console.log(JSON.stringify({ event: "supply_refill_failed", siteId: a.siteId, because: String(error) }));
-  }
-
-  const first = await nextForDay(a.siteId);
+  // The week's page for the date, after a 0¢ check that it still stands —
+  // never a re-ranking of the open pool (issue 1559).
+  const first = await pageForDay(a.siteId, a.publishDate, now);
   if (first === null) return { ok: false, because: "no_opportunity" };
 
   try {
@@ -213,8 +196,8 @@ export async function generateDayPage(a: {
         if (short && stopped === null) await restTopic(opportunity.id, now);
         // And only while the job's invocation has the time for a second page.
         if ((stopped === null && !short) || written >= DAY_TOPICS_MAX || cost.capHit() || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return outcome;
-        // The stopped topic rests by now, so the head is the next one.
-        const next = await nextForDay(a.siteId);
+        // The stopped topic rests by now; the day takes the week's best spare.
+        const next = await takeSpare(a.siteId, now);
         if (next === null || next.id === first.id || next.id === opportunity.id) return outcome;
         // It keeps its row and gives up its date to the page written next.
         if (stopped !== null) await store.patchDraft(stopped, { scheduled_for: null });

@@ -5,7 +5,7 @@
 // policy anyone has to enforce: an `unblock` is created with a null
 // `targetQuery`, a null `fitBand` and a null `volume`, so it cannot be
 // ranked (`rankOpen` excludes the Fix family), cannot fill a day
-// (`nextForDay` reads the ranked head), cannot be counted as supply
+// (a week is committed from the ranked list), cannot be counted as supply
 // (`supplyDepth` excludes it), and carries no target search a generation
 // pipeline could write against. A customer holding four outstanding
 // instructions and no pages has zero days of pages, and is told so.

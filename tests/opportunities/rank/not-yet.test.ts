@@ -11,7 +11,7 @@
 // a target; the code did not enforce it.
 //
 // Everything here is the real engine over the in-memory store:
-// `assessReadiness`, `rankOpen`, `nextForDay`, `supplyDepth` and
+// `assessReadiness`, `rankOpen`, `pageForDay`, `supplyDepth` and
 // `supplyState` as they run in production, with the rows in a Map.
 //
 // Issue 884 moved the decision to its one home. The rows are seeded as
@@ -25,7 +25,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setOpportunityStore, type OpportunityRow } from "../../../src/lib/opportunities/store";
 import { assessReadiness } from "../../../src/lib/opportunities/readiness";
 import { rankOpen } from "../../../src/lib/opportunities/rank/open";
-import { nextForDay } from "../../../src/lib/opportunities/next";
+import { pageForDay } from "../../../src/lib/opportunities/plan";
 import { supplyDepth, supplyState } from "../../../src/lib/opportunities/supply/depth";
 import { qualifiesForADay } from "../../../src/lib/opportunities/types";
 import { rebandFor } from "../../../src/lib/opportunities/readiness";
@@ -110,7 +110,7 @@ describe("a not-yet target is never the day's page (issue 881)", () => {
       OUTSIZED_SIX.map(() => [false, "outsized"])
     );
     expect(await rankOpen(SITE_ID)).toEqual([]);
-    expect(await nextForDay(SITE_ID)).toBeNull();
+    expect(await pageForDay(SITE_ID, AT.toISOString().slice(0, 10), AT)).toBeNull();
   });
 
   it("the tie-break can no longer hand the day to the biggest keyword", async () => {
@@ -137,7 +137,7 @@ describe("a not-yet target is never the day's page (issue 881)", () => {
 
     const ranked = await rankOpen(SITE_ID);
     expect(ranked.map((entry) => entry.opportunityId).sort()).toEqual(["opp-reach", "opp-winnable"]);
-    expect((await nextForDay(SITE_ID))?.fitBand).not.toBe("not-yet");
+    expect((await pageForDay(SITE_ID, AT.toISOString().slice(0, 10), AT))?.fitBand).not.toBe("not-yet");
   });
 
   it("issue 884 — the ranking holds no policy: a row stored ready while outsized is ranked", async () => {

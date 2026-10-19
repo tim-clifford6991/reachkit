@@ -76,6 +76,12 @@ export interface OpportunityRow {
   ready: boolean;
   unready_reason: string | null;
   rest_until?: string | null;
+  /** The week the last weekly pass committed (issue 1559): the row's place
+   *  in it, 0 first, the site-local date it is planned for (none for a
+   *  spare), and `qa` where it is written as a Q&A (issue 1455). */
+  plan_place?: number | null;
+  planned_for?: string | null;
+  plan_write_as?: string | null;
   created_at: string;
 }
 
@@ -111,6 +117,15 @@ export type InsertOutcome =
    *  opportunity already exists. A normal return, never an error — a
    *  weekly top-up re-deriving the same target must add nothing. */
   | { outcome: "duplicate" };
+
+/** One row of a committed week (issue 1559). */
+export interface PlanEntry {
+  opportunityId: string;
+  place: number;
+  /** The site-local date, `YYYY-MM-DD`; `null` for a spare. */
+  plannedFor: string | null;
+  writeAs: "qa" | null;
+}
 
 /** One of the site's own pages, as `draftedPages` returns it. */
 export interface DraftedPage {
@@ -175,6 +190,14 @@ export interface OpportunityStore {
    *  with the volume it was dismissed at (`null` where none was measured).
    *  Optional: a store that cannot answer holds nothing back. */
   dismissedSearches?(siteId: string): Promise<readonly { query: string; volume: number | null }[]>;
+  /** Issue 1559: replaces the site's committed week with `entries` — every
+   *  row's place cleared first, then each entry's written. Optional: a store
+   *  that cannot hold a week commits none, and each day is planned on
+   *  demand. */
+  commitPlan?(siteId: string, entries: readonly PlanEntry[]): Promise<void>;
+  /** The site's committed week, in place order, whatever each row's status
+   *  is now. Optional, as `commitPlan`. */
+  plannedRows?(siteId: string): Promise<readonly OpportunityRow[]>;
   /** Writes a row's cluster and the searches it absorbed. */
   setCluster(opportunityId: string, clusterKey: string, absorbedQueries: readonly string[]): Promise<void>;
   /** The site's current stored report, or `null` where it has no readable
@@ -455,7 +478,7 @@ function evidenceAt(evidence: unknown, now: (url: string) => string): unknown {
 export const COLUMNS =
   "id, site_id, scan_id, type, family, target_query, target_ref, proposed_slug, " +
   "title, volume, evidence, acceptance, fit_band, business_fit, source, page_type, effort, status, cluster_key, " +
-  "absorbed_queries, ready, unready_reason, rest_until, created_at";
+  "absorbed_queries, ready, unready_reason, rest_until, plan_place, planned_for, plan_write_as, created_at";
 
 export function supabaseOpportunityStore(): OpportunityStore {
   return {
@@ -787,6 +810,34 @@ export function supabaseOpportunityStore(): OpportunityStore {
       const buyers = current === null ? null : await readBusinessEdits(siteId).then((edits) => edits.answers.buyers ?? null).catch(() => null);
       const market = current === null ? null : spokenMarket(current, buyers);
       return { market, competitors: site?.competitors ?? [], prompts, knowledge };
+    },
+
+    async commitPlan(siteId, entries) {
+      const cleared = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .update({ plan_place: null, planned_for: null, plan_write_as: null })
+        .eq("site_id", siteId)
+        .not("plan_place", "is", null);
+      if (cleared.error) throw new Error(`opportunities.commitPlan: ${cleared.error.message}`);
+      for (const entry of entries) {
+        const { error } = await untyped()
+          .from<OpportunityRow>("opportunities")
+          .update({ plan_place: entry.place, planned_for: entry.plannedFor, plan_write_as: entry.writeAs })
+          .eq("id", entry.opportunityId)
+          .eq("site_id", siteId);
+        if (error) throw new Error(`opportunities.commitPlan: ${error.message}`);
+      }
+    },
+
+    async plannedRows(siteId) {
+      const { data, error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .select(COLUMNS)
+        .eq("site_id", siteId)
+        .not("plan_place", "is", null)
+        .order("plan_place", { ascending: true });
+      if (error) throw new Error(`opportunities.plannedRows: ${error.message}`);
+      return atCurrentHost(siteId, data ?? []);
     },
 
     async setReadiness(opportunityId, reason) {

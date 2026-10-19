@@ -354,7 +354,8 @@ async function coveredTopics(
 }
 
 /**
- * Records readiness on every open Write, Improve and Earn row of one site.
+ * Records readiness on every open Write, Improve and Earn row of one site,
+ * or on the ones `only` names.
  *
  * Reads, once each: the open rows, the site's `not_working` verdicts, its
  * current report (for the profile and what it ranks for) and whether its own
@@ -367,11 +368,15 @@ export async function assessReadiness(
     /** The clock a topic's rest is read against. `at` is the report's own
      *  moment on the evening run, which can be a week old. */
     now?: Date;
+    /** Issue 1559: only these rows — a pass's new ones, or the evening's
+     *  committed week. Absent: every open row. */
+    only?: ReadonlySet<string>;
   }
 ): Promise<{ ready: number; unready: number }> {
   const now = a.now ?? new Date();
   const store = opportunityStore();
-  const rows = await store.openRankable(siteId);
+  const open = await store.openRankable(siteId);
+  const rows = a.only === undefined ? open : open.filter((row) => a.only!.has(row.id));
   if (rows.length === 0) return { ready: 0, unready: 0 };
 
   const [verdicts, report, profile, grounded, prompts, market, topTens, asked] = await Promise.all([

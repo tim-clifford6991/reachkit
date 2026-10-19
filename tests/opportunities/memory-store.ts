@@ -293,6 +293,28 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       return { market: state.market ?? null, competitors: [] };
     },
 
+    async commitPlan(siteId, entries) {
+      for (const row of state.rows) {
+        if (row.site_id !== siteId) continue;
+        row.plan_place = null;
+        row.planned_for = null;
+        row.plan_write_as = null;
+      }
+      for (const entry of entries) {
+        const row = state.rows.find((r) => r.id === entry.opportunityId && r.site_id === siteId);
+        if (row === undefined) continue;
+        row.plan_place = entry.place;
+        row.planned_for = entry.plannedFor;
+        row.plan_write_as = entry.writeAs;
+      }
+    },
+
+    async plannedRows(siteId) {
+      return state.rows
+        .filter((row) => row.site_id === siteId && row.plan_place !== null && row.plan_place !== undefined)
+        .sort((a, b) => a.plan_place! - b.plan_place!);
+    },
+
     async setReadiness(opportunityId, reason) {
       const row = state.rows.find((r) => r.id === opportunityId);
       if (row === undefined) return;
